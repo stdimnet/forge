@@ -1111,6 +1111,26 @@ or without Git, for local and remote projects.
   upload from `onFileSaved` (the listener gets the `SaveTrigger`). Browser mode:
   `mock/deploymentMock.ts` keeps the demo servers' files in memory and uses
   `crates/forge-wasm/src/deploy.rs` for validation, mappings and the comparison.
+- Remote Host (`commands/remote_host.rs`, `forge_deploy::{browse, remote_host}`, UI
+  `src/features/remoteHost`): `remote_host_list({ serverId, path }) -> { root, rootNode, nodes:
+  RemoteNode[] }` (`{ path, name, dir, size, modified, local, mappingRoot, excluded }`),
+  `remote_host_create({ serverId, dir, name, folder })`, `remote_host_rename({ serverId,
+  path, newName })`, `remote_host_delete({ serverId, paths })`, `remote_host_edit({ serverId,
+  path }) -> { text, temp, remote }`, `remote_host_save_edit({ serverId, path, text, force? })
+  -> { status: "uploaded" } | { status: "conflict", deleted }`, `remote_host_close_edit`,
+  `remote_host_disconnect({ serverId? })`. Connections stay open between calls
+  (`remote_host::Connections`). Edit Remote File tabs are `remote-host://<server>/<path>`
+  (a `registerFileSystem` provider); the temporary copy lives in `<cache dir>/forge/remote-edit`.
+  Download from Here / Upload to Here / Compare with Local Version call `deploy_transfer` /
+  `deploy_read_remote` with the node's mapped `local` path. Browsing and editing are allowed in
+  Safe Mode. Browser mode: `mock/remoteHostMock.ts` over the deployment mock's in-memory files,
+  with `deploy_remote_nodes` / `deploy_entry_path` from WebAssembly.
+- SSH terminal sessions: `terminal_open({ options: { ssh: { configId? | serverId?, secret?,
+  confirmed? } } })` opens `forge_remote::shell::SshShell` (a `Terminal` on a pseudo terminal
+  of an SSH channel) instead of a shell; write / resize / close are the terminal commands. A
+  `serverId` target in Safe Mode needs `confirmed` (`forge_trust::ssh_session_needs_confirmation`),
+  the UI asks first. UI: `src/features/terminal/ssh.tsx` (the chooser of `RunSshConsole` and the
+  new-tab dropdown's "SSH Session…").
 
 ## Language servers (`forge-lsp`)
 
@@ -1679,11 +1699,28 @@ libraries.tsx, sourceRoots.tsx}`).
   `[Controller::class, 'method']`, `<x-component>` and custom directives. Offsets are UTF-16.
 - `laravel_gutter({ path, content }) -> { line, kind: "route" | "controller" | "view", tooltip,
   targets }[]`.
+- `ide.json` (`ide_json`): the project's and the packages' (`vendor/*/*/ide.json`) completions
+  (`staticStrings`, `directoryFiles`, `routeName`, `viewName`, `configKey`, `translationKey`,
+  `envKey`, `validationRule` under `functionNames` / `methodNames` + `classFqn` conditions with
+  1-based `parameters`) appear in `laravel_complete` as items of kind `value`; code generations
+  are listed in the overview and run with `laravel_generate({ id, input, write }) -> { path,
+  content, exists }[]` (stub placeholders `${INPUT_CLASS|modifier…}`, `${NAMESPACE}`, `${CLASS}`;
+  `write` creates the files that do not exist).
+- `laravel_overview() -> LaravelOverview { version?, php?, appName?, environment?, debug?, url?,
+  routes, views, components, translations, configKeys, models: { name, class, table, attributes,
+  relations, location }[], commands: { name, signature, description?, location }[], logFiles,
+  ideJson: { files, completions, codeGenerations, errors? } }` (`dashboard`).
+- `laravel_logs({ path?, maxBytes? }) -> LogPage { path, files: { path, size, modified }[],
+  entries: { time, channel, level, message, context?, exception?: { class, message, code?,
+  frame }, frames?: { file?, path?, line?, call, vendor? }[], line }[], size, truncated? }`
+  (`logs`): Monolog line format, the end of large files, frame paths mapped into the project
+  (also from container paths). Only files below `storage/logs/` are read.
 - Artisan commands run in the Command Line Tools Console (see "Command Line Tool Support");
   `artisan::builtin_commands` is its fallback list when artisan cannot run.
 - UI (`app/ui/src/features/laravel`): the Blade language (`registerLanguage("blade")`), a
   completion source next to the LSP one, `GotoDeclaration` / Ctrl+Click that try Laravel first,
-  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`: the
+  gutter icons, the Routes tool window, the Laravel tool window (`laravel`: Overview and Logs
+  tabs, `Laravel.ShowDashboard`, `Laravel.ShowLogs`), Run Artisan Command… (`Laravel.RunArtisan`: the
   Run Command popup with the artisan alias), the `framework.laravel` status item and Settings | Languages & Frameworks |
   PHP | Laravel. Tool windows and status items can declare `when` to show only for matching
   projects.
@@ -1693,7 +1730,8 @@ libraries.tsx, sourceRoots.tsx}`).
   Settings live under Languages & Frameworks | PHP | Symfony (`symfony.*`) and | Doctrine
   (`doctrine.*`). In browser mode `?project=symfony` opens the Symfony demo project.
 - `symfony_detect() -> SymfonyInfo | null` (`{ version, environment, consolePath, hasConsole,
-  containerXml?, kernelClass?, routes, services, templates, commands }`), `symfony_refresh()`.
+  containerXml?, kernelClass?, routes, services, templates, commands, translations, listeners,
+  forms }`), `symfony_refresh()`.
   The backend caches a project snapshot for 10 s; refresh rescans.
 - `symfony_routes() -> Route[]` (`{ name, path, methods?, controller?, host?, source:
   "attribute" | "annotation" | "yaml", location? }`), `symfony_services() -> Service[]` (`{ id,
@@ -1707,6 +1745,26 @@ libraries.tsx, sourceRoots.tsx}`).
   YAML files. `symfony_gutter({ path, content }) -> { line, kind: "route" | "template" | "controller"
   | "command", title, targets?, command? }[]`. Offsets are UTF-16, `Location` is `{ path, line,
   column }` (0-based).
+- Completion and Go to Declaration also cover translation keys and domains (`translations`:
+  catalogues `translations/<domain>.<locale>.{yaml,yml,xlf,xliff,php,json}` by domain and
+  locale; references `->trans()`, `t()`, `TranslatableMessage`, Twig `|trans`, `{% trans %}`,
+  `{% trans_default_domain %}`), form type options and `data_class` fields (`forms`: core type
+  table plus the project's `configureOptions()`), and event names (`events`: subscribers,
+  `#[AsEventListener]`, `kernel.event_listener` tags); kinds `translation`, `domain`,
+  `formOption`, `formField`, `event`. Gutter kinds `listener` (a listener method -> the event
+  class) and `event` (event classes, `*Events` constants and `dispatch(new X())` -> listeners).
+- `symfony_translations() -> TranslationTable { defaultLocale, locales, domains, files: { path,
+  domain, locale, format, icu? }[], rows: { domain, key, values: Record<locale, text>, locations,
+  missing? }[] }`, `symfony_events() -> { event, eventClass?, class, method, priority, source:
+  "subscriber" | "attribute" | "yaml", location?, declaredAt? }[]`.
+- `symfony_translation_analysis({ path, content }) -> { problems: { from, to, severity: "warning"
+  | "weak", message, domain, key, locales }[], folds: { from, to, text, key }[] }` (UTF-16; folds
+  cover the key literal with its quotes) and `symfony_create_translation({ domain, key, locales })
+  -> Location[]`, which writes the key into the catalogues (nested YAML, XLIFF 1.2/2.0, PHP,
+  JSON; new catalogues in the project's main format) and rescans. The editor publishes the
+  problems as diagnostics (source `symfony-translations`) with the Alt+Enter fix "Create
+  translation key" and renders the folds as replace decorations that open while the caret is
+  on the key.
 - `symfony_console_run({ command, args, runId })` streams `symfony://console` events `{ type:
   "started", runId, commandLine } | { type: "output", runId, text, stderr } | { type: "exit", runId,
   code }`; `symfony_console_cancel({ runId })`.
@@ -1801,7 +1859,11 @@ libraries.tsx, sourceRoots.tsx}`).
   PortForward[]` (`spec`: `8080:80, 9000, :5432`), `services_port_forward_stop({ id })`,
   `services_port_forwards()`, `docker_contexts() -> DockerContext[]`, `services_pull({ image })`,
   `services_compose_up({ path, service? })`, `services_dockerfile_run({ path })`,
-  `services_gutter({ path, content })`, `services_compose_changed()`, `services_status()`,
+  `services_gutter({ path, content })` (kinds `composeAll | composeService | dockerfile |
+  kubeManifest`), `services_kube_selection() -> KubeSelection | null` (`{ source, host?,
+  contexts, context?, namespaces, namespace? }`), `services_kube_select({ context, namespace? })`,
+  `services_kube_apply({ path, action: "apply" | "delete" })` (refused in Safe Mode, like
+  `services_terminal` for pods), `services_compose_changed()`, `services_status()`,
   `docker_test_connection({ settings? })`, `docker_registry_login|logout|status`.
 - Events on `services://event`: `{ type: "tree", nodes }`, `{ type: "console", key, delta, reset? }`
   (keys `log:<nodeId>` for followed logs, `run:<nodeId>` for compose, build and pull output;
@@ -1812,7 +1874,14 @@ libraries.tsx, sourceRoots.tsx}`).
   `docker.ssh.socketPath`, `docker.context`, `docker.cliPath`, `docker.logs.tail`; the page
   lists the Docker contexts with Use), | Docker | Docker
   Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
-  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
+  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`,
+  `kubernetes.remoteProjectHost`, `kubernetes.hostKubectlPaths`: `host<TAB>kubectl`).
+- Remote projects: the app hands the hub a `ProjectHost` (`commands/services.rs`
+  `BackendProject`): files and processes through the backend, the host's Unix sockets
+  (`Tunnels::open_socket`) and TCP ports (`Tunnels::open_tcp`, SSH `direct-tcpip`) through the
+  project's connection. With `kubernetes.remoteProjectHost`, `forge_containers::kubectl` runs
+  the host's kubectl (`config view`, `get -o json`, `logs -f`, `port-forward`, `apply -f`)
+  instead of calling the API server from this machine. No remote-agent protocol change.
 
 ## WebForge (`packs/webforge/*`)
 

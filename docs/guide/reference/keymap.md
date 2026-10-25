@@ -385,6 +385,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Deployment Options… | `PublishGroup.Options` | — | — | yes |
 | Automatic Upload (Always) | `PublishGroup.ToggleAutoUpload` | — | — | yes |
 | Browse Remote Host | `PublishGroup.BrowseServers` | — | — | yes |
+| Remote Host (tool window) | `ActivateRemoteHostToolWindow` | — | — | yes |
+| Start SSH Session… | `RunSshConsole` | — | — | yes |
 
 Every enabled [External Tool](../user/run-debug.md#external-tools) is an action too
 (`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no

@@ -75,7 +75,7 @@ function PortForwards(props: { d: ServiceDetails }) {
                   <td>{f.remotePort}</td>
                   <td>{f.connections}</td>
                   <td classList={{ "svc-forward-error": !!f.error }} title={f.error}>
-                    {f.error ?? "Forwarding"}
+                    {f.error ?? (f.via ? `Forwarding via ${f.via}` : "Forwarding")}
                   </td>
                   <td class="svc-cell-actions">
                     <button class="icon-btn svc-stop-forward" title="Stop Port Forwarding" data-testid="stop-forward" onClick={() => void stopForward(f.id)}>

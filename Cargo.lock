@@ -2363,6 +2363,7 @@ dependencies = [
  "flate2",
  "forge-backend",
  "forge-core",
+ "forge-process",
  "forge-remote-agent",
  "hmac 0.12.1",
  "keyring",

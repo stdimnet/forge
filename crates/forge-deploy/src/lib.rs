@@ -9,6 +9,7 @@
 //! - [`options`]: Deployment | Options (automatic upload, overwrite rules, timestamps).
 //! - [`compare`]: comparing the project with the deployed files (timestamps, size,
 //!   content) through `forge_diff`'s folder diff.
+//! - [`browse`]: the nodes of the Remote Host tool window and the names it creates.
 //!
 //! With `client` (the default):
 //! - [`fs`]: the file operations every server type offers, rooted at its root path.
@@ -16,7 +17,10 @@
 //!   sessions and saved SSH configurations).
 //! - [`transfer`]: upload, download, sync, delete and reading deployed files.
 //! - [`connect`]: opening a server, with passwords from the OS keychain ([`secrets`]).
+//! - [`remote_host`]: Remote Host connections, its context menu operations and Edit
+//!   Remote File (a temporary copy uploaded back on save, with a conflict check).
 
+pub mod browse;
 pub mod compare;
 pub mod config;
 pub mod error;
@@ -31,6 +35,8 @@ pub mod fs;
 pub mod ftp;
 #[cfg(feature = "client")]
 pub mod local;
+#[cfg(feature = "client")]
+pub mod remote_host;
 #[cfg(feature = "client")]
 pub mod secrets;
 #[cfg(feature = "client")]

@@ -1,6 +1,6 @@
 ---
 title: forge-deploy
-description: Deployment - SFTP, FTP/FTPS and local servers, path mappings and exclusions, upload, download, sync, delete and compare with the deployed files.
+description: Deployment - SFTP, FTP/FTPS and local servers, path mappings and exclusions, upload, download, sync, delete and compare with the deployed files, and the Remote Host tool window.
 order: 68
 tags: [crate, rust, deployment, sftp, ftp]
 ---
@@ -32,12 +32,17 @@ Pure modules (also built for WebAssembly with `default-features = false`):
 - `compare`: `Entry` (path, dir, size, modified, digest), `compare(local, remote, by)` on top
   of `forge_diff::compare_listings` (the digest carries content, nothing or the timestamp),
   `is_up_to_date` and `is_newer_on_target`.
+- `browse`: the Remote Host tree. `nodes(server, entries)` → `RemoteNode { path, name, dir,
+  size, modified, local, mapping_root, excluded }` (folders first, by name ignoring case;
+  `local` is the mapped project path, `mapping_root` a mapping's deployment path),
+  `check_name`, `child_path`, `renamed_path` (New File / New Directory / Rename) and
+  `absolute_path` (Copy Path).
 
 With `client` (the default):
 
 - `fs::ServerFs`: `stat`, `list`, `read`, `write`, `mkdir`, `remove_file`, `remove_dir`,
-  `set_modified`, `describe`, plus `mkdir_all` / `remove_all`; paths are relative to the
-  server's root path.
+  `rename`, `set_modified`, `describe`, `invalidate` (forget cached listings), plus
+  `mkdir_all` / `remove_all`; paths are relative to the server's root path.
 - `local::LocalFolder` (local servers and the project side of every transfer),
   `ftp::FtpFs` (suppaftp, MIT OR Apache-2.0; FTPS is explicit TLS with rustls and
   `webpki-roots`; `MLSD` with a `LIST` fallback, `MFMT` for timestamps, a listing cache per
@@ -53,6 +58,12 @@ With `client` (the default):
   Connection.
 - `secrets`: FTP passwords in the keychain (service `forge-deploy`, account
   `ftp://user@host:port`).
+- `remote_host`: `Connections` (open connections by server id, reused while the server is
+  unchanged and `stat("")` works, closed after a failed operation), `list`, `create`,
+  `rename`, `delete`, `read_text`, and Edit Remote File: `start_edit(fs, server, path, cache)`
+  downloads into `<cache>/remote-edit/<server>/<path>` (`temp_path`), `save_edit(fs, edited,
+  data, force)` uploads unless the server copy's digest changed (`SaveOutcome::Uploaded |
+  Conflict { deleted }`).
 
 ## IPC
 
@@ -64,7 +75,15 @@ serverId?, direction, paths, overwriteNewer? })`, `deploy_delete({ id, serverId?
 `deploy_sync_compare({ serverId?, path })`, `deploy_read_remote({ serverId?, path })`; events
 `deploy://transfer` (`started`, `file`, `finished`). Browser mode: `app/ui/src/mock/deploymentMock.ts`
 with `crates/forge-wasm/src/deploy.rs` (`deploy_validate`, `deploy_resolve`,
-`deploy_compare`).
+`deploy_compare`, `deploy_remote_nodes`, `deploy_entry_path`).
+
+Remote Host (`app/src-tauri/src/commands/remote_host.rs`): `remote_host_list({ serverId, path
+}) -> { root, rootNode, nodes }`, `remote_host_create({ serverId, dir, name, folder })`,
+`remote_host_rename({ serverId, path, newName })`, `remote_host_delete({ serverId, paths })`,
+`remote_host_edit({ serverId, path }) -> { text, temp, remote }`, `remote_host_save_edit({
+serverId, path, text, force? }) -> { status: "uploaded" } | { status: "conflict", deleted }`,
+`remote_host_close_edit`, `remote_host_disconnect({ serverId? })`. Browser mode:
+`app/ui/src/mock/remoteHostMock.ts`.
 
 Transfers never run project code, so they work in Safe Mode; `deploy_auto_upload` does
 nothing in Safe Mode.
@@ -82,4 +101,7 @@ mappings and exclusions, up-to-date skips, newer files, Sync with Deployed, down
 Compare with Deployed Version, delete target items, delete on server, cancel) against a local
 folder, an in-process FTP server (`tests/common/ftp.rs`, also without `MLSD`/`MFMT`, wrong
 passwords, refused TLS) and an in-process SSH server with the SFTP subsystem
-(`tests/common/sftp.rs`, host key confirmation). No network beyond 127.0.0.1.
+(`tests/common/sftp.rs`, host key confirmation). The same run covers the Remote Host tree
+and its operations (listing with mappings, New Directory / New File, Rename, Refresh after
+outside changes, Edit Remote File with the conflict check, Delete) on every server type. No
+network beyond 127.0.0.1.

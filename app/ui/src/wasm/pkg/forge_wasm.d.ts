@@ -408,6 +408,17 @@ export function csv_sort_order(request_json: string): string;
 export function deploy_compare(request_json: string): string;
 
 /**
+ * Remote Host: `{ path, name, rename }` → `{ path }` of the new or renamed entry, or
+ * `{ error }` for an invalid name.
+ */
+export function deploy_entry_path(request_json: string): string;
+
+/**
+ * Remote Host: `{ server, entries }` → the tree nodes (mappings, exclusions, order).
+ */
+export function deploy_remote_nodes(request_json: string): string;
+
+/**
  * `{ server, paths, excludeNames }` → where every project path is deployed.
  */
 export function deploy_resolve(request_json: string): string;
@@ -1143,6 +1154,11 @@ export function services_details(request_json: string): string;
 export function services_gutter(request_json: string): string;
 
 /**
+ * `KubeInput` → `KubeSelection | null`, mirroring `services_kube_selection`.
+ */
+export function services_kube_selection(kube_json: string): string;
+
+/**
  * `ServicesInput` → `Node[]`, mirroring `services_tree`.
  */
 export function services_tree(input_json: string): string;
@@ -1538,6 +1554,8 @@ export interface InitOutput {
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
+    readonly deploy_entry_path: (a: number, b: number, c: number) => void;
+    readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
     readonly deploy_resolve: (a: number, b: number, c: number) => void;
     readonly deploy_validate: (a: number, b: number, c: number) => void;
     readonly devcontainer_gutter: (a: number, b: number, c: number) => void;
@@ -1683,6 +1701,7 @@ export interface InitOutput {
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly services_details: (a: number, b: number, c: number) => void;
     readonly services_gutter: (a: number, b: number, c: number) => void;
+    readonly services_kube_selection: (a: number, b: number, c: number) => void;
     readonly services_tree: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;

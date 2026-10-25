@@ -8,16 +8,21 @@
 //! - [`config`]: `config()` and `env()` keys;
 //! - [`eloquent`]: models with columns from migrations, `$fillable`, casts, relations,
 //!   scopes and accessors;
-//! - [`translations`]: `__()` keys from PHP and JSON language files.
+//! - [`translations`]: `__()` keys from PHP and JSON language files;
+//! - [`ide_json`]: completions and code generations from `ide.json` files.
 //!
 //! On top of that, [`complete`] offers completion, Go to Declaration and gutter markers
-//! for an editor buffer, and [`artisan`] lists and builds artisan commands.
+//! for an editor buffer, and [`artisan`] lists and builds artisan commands. [`logs`] parses
+//! `storage/logs/*.log` and [`dashboard`] summarises the application for the tool window.
 
 pub mod artisan;
 pub mod complete;
 pub mod config;
 pub mod context;
+pub mod dashboard;
 pub mod eloquent;
+pub mod ide_json;
+pub mod logs;
 pub mod php;
 pub mod project;
 pub mod routes;
@@ -55,6 +60,8 @@ pub struct Laravel {
     pub env: Vec<KeyEntry>,
     pub models: Vec<Model>,
     pub translations: Vec<Translation>,
+    #[serde(skip)]
+    pub ide: ide_json::IdeJson,
     #[serde(skip)]
     pub psr4: Psr4,
     #[serde(skip)]
@@ -95,6 +102,7 @@ impl Laravel {
             env: config::list_env(root),
             models: eloquent::list_models(root),
             translations: translations::list_translations(root),
+            ide: ide_json::load(root),
             fingerprint: fingerprint(root),
             psr4,
         }
@@ -139,6 +147,27 @@ impl Laravel {
         out
     }
 
+    /// The files of an `ide.json` code generation for `input` (a class name, `Orders/Invoice`).
+    pub fn generate(&self, id: &str, input: &str) -> Vec<ide_json::GeneratedFile> {
+        let Some(g) = self.ide.code_generations.iter().find(|g| g.id == id) else {
+            return Vec::new();
+        };
+        let read = |rel: &str| {
+            (!rel.is_empty() && !rel.contains(".."))
+                .then(|| project::read(&self.root, rel))
+                .flatten()
+        };
+        let class_path = |fqn: &str| {
+            self.psr4.path_for(fqn).unwrap_or_else(|| {
+                format!(
+                    "app/{}.php",
+                    fqn.trim_start_matches("App\\").replace('\\', "/")
+                )
+            })
+        };
+        ide_json::generate(g, input, &read, &class_path)
+    }
+
     /// Model by fully qualified or short class name.
     pub fn model(&self, name: &str) -> Option<&Model> {
         let name = name.trim_start_matches('\\');
@@ -165,6 +194,7 @@ pub fn fingerprint(root: &Path) -> u64 {
         ".env",
         ".env.example",
         "bootstrap/app.php",
+        "ide.json",
     ] {
         stamp(&root.join(f), &mut h);
     }

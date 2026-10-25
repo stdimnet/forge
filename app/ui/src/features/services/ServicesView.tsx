@@ -34,6 +34,7 @@ import {
   expandAll,
   expanded,
   findNode,
+  kubeSelection,
   loading,
   nodes,
   openExec,
@@ -41,6 +42,7 @@ import {
   refresh,
   runAction,
   select,
+  selectKube,
   selected,
   setOpen,
   setTab,
@@ -245,6 +247,38 @@ function Tree() {
   );
 }
 
+/** Kubernetes context and namespace selector, with where the contexts come from. */
+function KubeBar() {
+  return (
+    <Show when={kubeSelection()?.contexts.length ? kubeSelection() : null}>
+      {(k) => (
+        <div class="svc-kube-bar" data-testid="kube-selector">
+          <label title="Kubernetes context">
+            Context
+            <select value={k().context ?? ""} onChange={(e) => void selectKube(e.currentTarget.value)} data-testid="kube-context">
+              <For each={k().contexts}>{(c) => <option value={c}>{c}</option>}</For>
+            </select>
+          </label>
+          <label title="Namespace">
+            Namespace
+            <select
+              value={k().namespace ?? ""}
+              disabled={!k().context}
+              onChange={(e) => k().context && void selectKube(k().context!, e.currentTarget.value)}
+              data-testid="kube-namespace"
+            >
+              <For each={k().namespaces}>{(n) => <option value={n}>{n}</option>}</For>
+            </select>
+          </label>
+          <span class="svc-kube-source" title={k().host ? `Contexts and kubectl of the remote host ${k().host}` : `Kubeconfig on this machine: ${k().source}`}>
+            {k().host ? k().source : `from ${k().source}`}
+          </span>
+        </div>
+      )}
+    </Show>
+  );
+}
+
 export function ServicesView() {
   const [treeWidth, setTreeWidth] = createSignal(340);
   const startResize = (e: MouseEvent) => {
@@ -263,6 +297,7 @@ export function ServicesView() {
     <div class="svc-root" data-testid="services">
       <Toolbar />
       <div class="svc-tree-pane" style={{ width: `${treeWidth()}px` }}>
+        <KubeBar />
         <Tree />
       </div>
       <div class="splitter splitter-v" onMouseDown={startResize} />

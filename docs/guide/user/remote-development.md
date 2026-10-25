@@ -121,6 +121,7 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 | Code hosts (GitLab, Forgejo, GitHub) | yes: the repository is detected with git on the host; API calls go from your machine with your tokens |
 | HTTP client (`.http` files) | environment and body files are read on the host; requests are sent **from the host** through an SSH tunnel, so `localhost` URLs reach its services (Settings \| Tools \| HTTP Client \| **Send requests from**) |
 | Services: compose files and Dockerfile ▶ | compose files are read on the host and `docker compose` / `docker build` run there; by default Docker of the host is used through the project's SSH connection |
+| Services: Kubernetes | contexts come from the host's kubeconfig and `kubectl` runs on the host (tree, logs, exec, apply/delete manifests); port forwards are tunnelled back through the SSH connection, see [Services](services.md#kubernetes-in-remote-projects) |
 | Browser Companion | files the browser reports (host paths, container paths like `/app/src/…`) open in the remote project |
 | Project settings (`.forge/settings.toml`) and other `.forge/` files | yes, read and written on the host |
 | Terminal | yes, a shell on the host |
@@ -135,6 +136,8 @@ Every feature works in remote projects. Things that are about your machine stay 
 purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
 when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
 of this machine (see [Services](services.md#remote-projects)).
+
+![Kubernetes contexts from the project host](../../screenshots/services-kube-host-contexts.png)
 
 ![npm tool window of a remote project](../../screenshots/remote-finish-npm.png)
 
@@ -160,7 +163,10 @@ authentication errors stop the retries. **Reconnect to Remote Host** (Find Actio
 ## Saved configurations
 
 Settings | Tools | **SSH Configurations** lists, adds, edits and removes saved configurations.
-They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain.
+They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain. **Parse
+config file `~/.ssh/config`** (on by default) resolves `Host` aliases, jump hosts and proxy
+commands from your OpenSSH config. The same configurations connect SFTP deployment servers and
+SSH terminal sessions, see [Remote Host and SSH sessions](remote-host-and-ssh.md).
 
 ![SSH Configurations](../../screenshots/remote-ssh-settings.png)
 

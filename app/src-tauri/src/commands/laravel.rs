@@ -1,5 +1,6 @@
 //! Laravel IPC (`phpforge-fw-laravel`): project analysis, routes, completion, Go to
-//! Declaration and gutter markers. The analysis runs where the project's files are
+//! Declaration, gutter markers, the Laravel tool window (overview, logs) and `ide.json`
+//! code generations. The analysis runs where the project's files are
 //! (`forge_backend::frameworks`: here for local projects, in the agent for remote ones).
 //! Artisan commands run in the Command Line Tools Console (`command_line_tools`). Offsets
 //! crossing the boundary are UTF-16.
@@ -7,6 +8,9 @@
 use forge_backend::frameworks::LaravelRoutes;
 use forge_backend::{framework_call, FrameworkCall};
 use forge_core::Result;
+use phpforge_fw_laravel::dashboard::LaravelOverview;
+use phpforge_fw_laravel::ide_json::GeneratedFile;
+use phpforge_fw_laravel::logs::{LogPage, DEFAULT_MAX_BYTES};
 use phpforge_fw_laravel::{Completions, GutterMark, LaravelInfo, Location};
 use serde::de::DeserializeOwned;
 use tauri::State;
@@ -100,4 +104,38 @@ pub async fn laravel_gutter(
     state: State<'_, AppState>,
 ) -> Result<Vec<GutterMark>> {
     call(&state, FrameworkCall::LaravelGutter { path, content }).await
+}
+
+/// Version, environment, models, commands, log files and `ide.json` of the application.
+#[tauri::command]
+pub async fn laravel_overview(state: State<'_, AppState>) -> Result<LaravelOverview> {
+    call(&state, FrameworkCall::LaravelOverview).await
+}
+
+/// Entries of a log in `storage/logs` (empty `path`: the newest), read from its end.
+#[tauri::command]
+pub async fn laravel_logs(
+    path: Option<String>,
+    max_bytes: Option<u64>,
+    state: State<'_, AppState>,
+) -> Result<LogPage> {
+    call(
+        &state,
+        FrameworkCall::LaravelLogs {
+            path: path.unwrap_or_default(),
+            max_bytes: max_bytes.unwrap_or(DEFAULT_MAX_BYTES),
+        },
+    )
+    .await
+}
+
+/// Preview (`write: false`) or create the files of an `ide.json` code generation.
+#[tauri::command]
+pub async fn laravel_generate(
+    id: String,
+    input: String,
+    write: bool,
+    state: State<'_, AppState>,
+) -> Result<Vec<GeneratedFile>> {
+    call(&state, FrameworkCall::LaravelGenerate { id, input, write }).await
 }

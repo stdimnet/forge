@@ -20,6 +20,8 @@ export interface SshConfiguration {
   /** Ask for the password / passphrase every time. */
   dontSaveSecret?: boolean;
   name?: string;
+  /** "Parse config file ~/.ssh/config" (on when missing). */
+  parseConfig?: boolean;
 }
 
 export interface SshConfigView extends SshConfiguration {

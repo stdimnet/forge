@@ -1,5 +1,6 @@
 //! Symfony IPC: project snapshot (routes, services, parameters, templates, console
-//! commands), completion/navigation for Symfony references, gutter marks and running
+//! commands, translations, event listeners), completion/navigation for Symfony references,
+//! the missing-translation inspection with its fix, translation folds, gutter marks and running
 //! console commands with streamed output. Logic lives in `phpforge-fw-symfony`; the
 //! analysis runs where the project's files are (`forge_backend::frameworks`) and console
 //! commands run through the project backend's process API.
@@ -9,12 +10,14 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use forge_backend::frameworks::{symfony_console_command, SymfonyQuery};
+use forge_backend::frameworks::{symfony_console_command, SymfonyQuery, TranslationAnalysis};
 use forge_backend::process_io::run_lines;
 use forge_backend::{framework_call, FrameworkCall};
 use forge_core::{ForgeError, Result};
 use phpforge_fw_symfony::complete::CompletionList;
+use phpforge_fw_symfony::events::EventListener;
 use phpforge_fw_symfony::gutter::GutterMark;
+use phpforge_fw_symfony::translations::TranslationTable;
 use phpforge_fw_symfony::{
     Config, ConsoleCommand, Location, Parameter, Route, Service, SymfonyInfo, Template,
 };
@@ -149,6 +152,47 @@ pub async fn symfony_gutter(
     state: State<'_, AppState>,
 ) -> Result<Vec<GutterMark>> {
     query(&state, SymfonyQuery::Gutter { path, content }).await
+}
+
+/// Translation keys per domain with their text per locale.
+#[tauri::command]
+pub async fn symfony_translations(state: State<'_, AppState>) -> Result<TranslationTable> {
+    query(&state, SymfonyQuery::Translations).await
+}
+
+/// Event listeners (subscribers, `#[AsEventListener]`, `kernel.event_listener` tags).
+#[tauri::command]
+pub async fn symfony_events(state: State<'_, AppState>) -> Result<Vec<EventListener>> {
+    query(&state, SymfonyQuery::Events).await
+}
+
+/// Missing translations and the translation folds of a PHP or Twig buffer.
+#[tauri::command]
+pub async fn symfony_translation_analysis(
+    path: String,
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<TranslationAnalysis> {
+    query(&state, SymfonyQuery::TranslationAnalysis { path, content }).await
+}
+
+/// "Create translation key": add `key` to the catalogues of `locales`; returns where.
+#[tauri::command]
+pub async fn symfony_create_translation(
+    domain: String,
+    key: String,
+    locales: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<Location>> {
+    query(
+        &state,
+        SymfonyQuery::CreateTranslation {
+            domain,
+            key,
+            locales,
+        },
+    )
+    .await
 }
 
 #[derive(Clone, Serialize)]

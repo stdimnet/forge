@@ -529,6 +529,22 @@ async fn local_and_remote_port_forwarding() {
     let tunnels = forge_backend::remote::Connection::tunnels(conn.as_ref()).unwrap();
     let again = tunnels.forward_local("127.0.0.1".into(), db).await.unwrap();
     assert_eq!(ask(again.port, "x").await, "mysql: x");
+
+    // A single stream to a port of the host (`kubectl port-forward` listening there).
+    {
+        use tokio::io::{AsyncBufReadExt, BufReader};
+        let mut stream = tunnels.open_tcp("127.0.0.1".into(), db).await.unwrap();
+        stream.write_all(b"kubectl\n").await.unwrap();
+        let mut answer = String::new();
+        tokio::time::timeout(
+            Duration::from_secs(10),
+            BufReader::new(stream).read_line(&mut answer),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(answer.trim_end(), "mysql: kubectl");
+    }
     conn.close().await;
 }
 

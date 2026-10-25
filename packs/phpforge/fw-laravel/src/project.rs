@@ -171,6 +171,24 @@ impl Psr4 {
         None
     }
 
+    /// Where the class's file goes (it need not exist yet).
+    pub fn path_for(&self, fqn: &str) -> Option<String> {
+        let fqn = fqn.trim_start_matches('\\');
+        self.prefixes.iter().find_map(|(ns, dir)| {
+            let rest = if ns.is_empty() {
+                fqn
+            } else {
+                fqn.strip_prefix(ns.as_str())?.strip_prefix('\\')?
+            };
+            let dir = dir.trim_end_matches('/');
+            Some(if dir.is_empty() {
+                format!("{}.php", rest.replace('\\', "/"))
+            } else {
+                format!("{dir}/{}.php", rest.replace('\\', "/"))
+            })
+        })
+    }
+
     /// Class name of a project file (`app/Models/User.php` → `App\Models\User`).
     pub fn class_of(&self, rel: &str) -> Option<String> {
         let stem = rel.strip_suffix(".php")?;

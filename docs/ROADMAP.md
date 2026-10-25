@@ -95,13 +95,13 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 ### Deployment and remote
 - [x] Deployment (SFTP/FTP/local servers, mappings, upload on save, compare with server)
-- [ ] Remote Host tool window, SSH configurations and SSH terminal sessions in local projects
+- [x] Remote Host tool window, SSH configurations and SSH terminal sessions in local projects
 - [x] Dev Containers and WSL projects
 
 ### Frameworks
 - [x] WordPress (hooks, WP-CLI, code style); Drupal, Joomla, Shopware basics
-- [ ] Symfony translations, forms and events; Laravel dashboard (logs, `ide.json`)
-- [ ] Kubernetes contexts from the project's host
+- [x] Symfony translations, forms and events; Laravel dashboard (logs, `ide.json`)
+- [x] Kubernetes contexts from the project's host
 
 ## Milestone 3 — Language packs I: Java, Python, Go, Rust, C/C++
 

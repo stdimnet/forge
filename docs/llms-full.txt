@@ -780,6 +780,7 @@ not finished, the page says so.
 | [Remote development](docs/guide/user/remote-development.md) | SSH, the Forge agent, what runs remotely |
 | [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md) | devcontainer.json, building with the Docker CLI and the build log, Start / Stop / Rebuild / Delete, WSL distributions, `\\wsl$` paths, Terminal › WSL |
 | [Deployment](docs/guide/user/deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
+| [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
 | [AI](docs/guide/user/ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
 | [Browser Companion](docs/guide/user/browser-companion.md) | browser extension, `forge://` links, error page integrations |
 
@@ -9741,6 +9742,35 @@ Turn completion off with **Complete routes, views, config, translations and mode
 (`laravel.completion.enabled`) and **Complete database columns in query builder calls**
 (`laravel.completion.columns`).
 
+## ide.json
+
+Packages and projects describe extra completions in an `ide.json` file (the format Laravel IDE
+plugins such as Laravel Idea document). Forge reads the project's `ide.json` and the
+`ide.json` of every installed package (`vendor/<vendor>/<package>/ide.json`):
+
+- **completions:** `staticStrings` (a fixed list), `directoryFiles` (files of a folder, without
+  `suffixToClear`) and the project's own lists `routeName`, `viewName`, `configKey`,
+  `translationKey`, `envKey` and `validationRule`, offered where a `condition` applies:
+  `functionNames` or `methodNames` (with `classFqn` / `classParentFqn`) and the 1-based
+  `parameters`. Setting: **Complete values from ide.json files**
+  (`laravel.completion.ideJson`).
+- **codeGenerations:** listed in the Overview of the Laravel tool window. **Generate…** asks for
+  a class name (`Orders/Invoice`), fills the stub templates (`${INPUT_CLASS|className|upperCamelCase}`,
+  `${NAMESPACE}`, `${CLASS}`, with the `classSuffix`) and creates the files that do not exist
+  yet below `App\<appNamespace>`.
+
+```json
+{
+  "completions": [
+    {
+      "complete": "staticStrings",
+      "options": { "strings": ["pending", "paid", "shipped"] },
+      "condition": [{ "functionNames": ["order_status"], "parameters": [1] }]
+    }
+  ]
+}
+```
+
 ## Gutter icons
 
 - **Route** icons next to controller actions that a route points to; click to go to the
@@ -9773,6 +9803,33 @@ Routes come from one of two sources, chosen with **Read routes from**
 | `static` | Forge reads `routes/*.php` itself: verbs, `match`, `view`, `redirect`, `resource`/`apiResource`, groups with prefix/name/middleware/controller, included files and the `api` prefix |
 
 With artisan, the source locations from static analysis are kept so navigation still works.
+
+## Laravel tool window
+
+The **Laravel** tool window (bottom; **Tools | Laravel | Show Laravel Tool Window**) has two tabs.
+
+**Overview:** the application (name, Laravel and PHP version, environment, debug, URL from
+`.env` and `composer.json`), counts of routes, models, artisan commands, views, Blade components,
+translations, config keys and log files, the Eloquent models with their tables, the
+application's artisan commands (`app/Console/Commands` and `routes/console.php`; the run button
+opens Run Command with the command typed in) and what `ide.json` contributes.
+
+![Laravel tool window](docs/screenshots/laravel-tool-window-overview.png)
+
+**Logs** (**Tools | Laravel | Show Logs**): the entries of `storage/logs/*.log` (the newest file
+first; the last 2 MB of large files), parsed in Rust from Monolog's line format into level,
+time, channel, message and context. Click an entry to expand the exception and its stack trace;
+`file:line` links open the file, also for logs written in a container (`/var/www/html/app/…`
+is mapped into the project), and vendor frames are dimmed.
+
+![Laravel logs](docs/screenshots/laravel-logs.png)
+
+- the level filter shows a level and the more severe ones;
+- the search field filters messages, exceptions and context;
+- **Follow** reloads the log every two seconds and scrolls to new entries (default:
+  **Follow log files**, `laravel.logs.follow`).
+
+Reading logs does not run project code, so the tool window also works in Safe Mode.
 
 ## Run Artisan Command
 
@@ -9809,6 +9866,8 @@ See [Database tools](docs/guide/user/database.md).
 | Read routes from | `laravel.routes.source` | `auto` |
 | Complete routes, views, config, translations and model attributes | `laravel.completion.enabled` | on |
 | Complete database columns in query builder calls | `laravel.completion.columns` | on |
+| Complete values from ide.json files | `laravel.completion.ideJson` | on |
+| Follow log files | `laravel.logs.follow` | on |
 | Show route icons for controller actions | `laravel.gutter.routes` | on |
 | Show view icons for `view()` calls and Blade includes | `laravel.gutter.views` | on |
 | Additional Blade directives | `laravel.blade.customDirectives` | empty |
@@ -9849,6 +9908,9 @@ The status bar shows **Symfony 7.2 · dev** (version and kernel environment). It
 | Templates | `templates/` (setting `symfony.templatesDirectory`), and which controller renders which template |
 | Twig tags, filters, functions and tests | Twig core, the Symfony bridge and the project's Twig extensions |
 | Console commands | the project's commands (`src/`), then framework and bundle commands |
+| Translations | `translations/<domain>.<locale>.{yaml,yml,xlf,xliff,php,json}` (also ICU files `<domain>+intl-icu.<locale>.*`); the folder, `default_locale` and `enabled_locales` come from `config/packages/{framework,translation}.yaml` |
+| Form types | the core types and their options, plus the project's types: `configureOptions()` (`setDefaults`, `setDefined`, `setRequired`, `define`), `getParent()` and `data_class` |
+| Event listeners | `getSubscribedEvents()` of event subscribers, `#[AsEventListener]` on classes and methods, `kernel.event_listener` tags in `config/services*.yaml`; the project's event classes and `*Events` constants |
 
 The index is cached for a few seconds and rebuilt when files change; **Refresh Symfony Index**
 rescans now.
@@ -9862,13 +9924,43 @@ rescans now.
 | `@service_id` in YAML, `#[Autowire(service: '…')]`, `$container->get('…')`, `service('…')` in PHP config | service ids |
 | `%parameter%` in YAML, `getParameter('…')` | parameters |
 | Twig files | tags, filters, functions, tests and variables |
+| `->trans('…')`, `t('…')`, `new TranslatableMessage('…')`, Twig `{{ '…'\|trans }}`, `{% trans %}…{% endtrans %}`, Twig `t('…')` | translation keys of the domain (with the text of the default locale); `Ctrl+B` lists the key in every locale |
+| the domain argument (`->trans('key', [], '…')`, `\|trans({}, '…')`, `{% trans from '…' %}`, `{% trans_default_domain '…' %}`) | translation domains |
+| `->add('field', TextType::class, ['…' => …])` | the options of the form type, including inherited ones (`FormType`, `ChoiceType`, …) and the project type's own options |
+| `->add('…')` in a form type with a `data_class` | the properties of the data class |
+| `#[AsEventListener(event: '…')]`, `addListener('…')`, keys of `getSubscribedEvents()`, `event:` of a listener tag in YAML | event names (`kernel.*`, `console.*`, `form.*`, security events and the project's) |
 
 ![Twig completion](docs/screenshots/symfony-twig-completion.png)
 
 ![Twig filters](docs/screenshots/symfony-twig-filters.png)
 
 `Ctrl+B` / `Ctrl+Click` on any of these opens the declaration (the controller action, the
-template, the service definition or class, the parameter).
+template, the service definition or class, the parameter, the translation, the entity
+property, the listeners of an event). `Ctrl+B` on `XType` in `createForm(XType::class)` or
+`->add('field', XType::class)` opens the form type, and on a method name in
+`getSubscribedEvents()` the listener method.
+
+![Form option completion](docs/screenshots/symfony-form-options.png)
+
+## Translations
+
+![Translation keys folded to their text](docs/screenshots/symfony-translation-folding.png)
+
+- **Folding:** translation keys show the text of the default locale in place of the key, like
+  PHPStorm (`'order.title'|trans` reads `Order #%id%`). Put the caret on the text (or click it)
+  to see and edit the key. Setting: **Show translated text in place of translation keys**
+  (`symfony.translations.folding`).
+- **Inspection:** a key that no catalogue of its domain has is a warning, a key missing in some
+  of the domain's locales a weak warning (for example "Translation 'order.back' is missing for
+  locale de"). Setting: **Report missing translation keys and locales**
+  (`symfony.translations.inspection`).
+- **Create translation key** (`Alt+Enter` on the key) adds the key to the domain's catalogues
+  of the missing locales: nested under the existing parent keys in YAML, as a `<trans-unit>` in
+  XLIFF (1.2 and 2.0), as an array entry in PHP and as a property in JSON. A locale without a
+  catalogue gets a new `translations/<domain>.<locale>.<ext>` in the format the project uses
+  most. The key is used as the text until you translate it.
+
+![Translation key completion](docs/screenshots/symfony-translation-completion.png)
 
 In `config/services*.yaml` (file type "Symfony Services"), service ids, parameters and tags are
 completed, and `@service` and `%parameter%` references are highlighted.
@@ -9880,19 +9972,30 @@ With **Show line markers for routes, templates and commands** (`symfony.gutterIc
 - a **route** marker on controller actions (click: the route);
 - **go to template** next to `render()` calls;
 - **rendered by** on Twig templates (click: the controller);
-- a **run** marker on console commands (click: run it).
+- a **run** marker on console commands (click: run it);
+- **listens to** on event listener methods (subscriber methods, `#[AsEventListener]`), with the
+  priority (click: the event class);
+- **N listeners** on the project's event classes, on event name constants and on
+  `->dispatch(new XEvent(…))` calls (click: the listener, or a chooser when there are several).
 
 ## Symfony tool window
 
-The **Symfony** tool window (bottom) has three tabs:
+The **Symfony** tool window (bottom) has five tabs:
 
 | Tab | Columns | Filter |
 | --- | --- | --- |
 | Routes | Name, Method, Path, Controller | name, path or controller |
 | Services | Service ID, Class, Tags (public/private icon) | id, class or tag |
 | Parameters | Name, Value | parameter |
+| Translations | Key, Domain, one column per locale (missing texts are marked) | key or text, domain, **Only missing** |
+| Events | Event, Listener, Priority, Registered by (subscriber, `#[AsEventListener]`, `services.yaml`) | event or listener |
 
-Clicking a row opens its definition.
+Clicking a row opens its definition (in the Translations tab: double-click a locale's cell to
+open the key in that catalogue).
+
+![Symfony translations](docs/screenshots/symfony-translations-tab.png)
+
+![Symfony events](docs/screenshots/symfony-events.png)
 
 ![Symfony routes](docs/screenshots/symfony-routes.png)
 
@@ -9923,6 +10026,8 @@ The output is shown in the Symfony tool window with **Rerun** and **Close**.
 | Container XML — empty: `var/cache/<environment>/*Container.xml` | `symfony.containerXml` | empty |
 | Show line markers for routes, templates and commands | `symfony.gutterIcons` | on |
 | Complete Twig tags, filters and functions | `symfony.twigCompletion` | on |
+| Show translated text in place of translation keys | `symfony.translations.folding` | on |
+| Report missing translation keys and locales | `symfony.translations.inspection` | on |
 
 The project settings (environment, folders, console, container) can be stored per project.
 
@@ -11558,12 +11663,14 @@ blocked even if a plugin or the UI tries to start them:
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
+| SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |
 
 What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
 Declaration, completion from the built-in analysis, language servers installed outside the
 project (for example Intelephense from npm or Forge's own install), Git, Local History,
 databases, the HTTP client and [Deployment](docs/guide/user/deployment.md) actions you start yourself (upload,
-download, compare and sync only copy files).
+download, compare and sync only copy files), and the [Remote Host](docs/guide/user/remote-host-and-ssh.md)
+tool window with Edit Remote File.
 
 The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
 settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your
@@ -12492,7 +12599,8 @@ terminal (xterm.js in the UI, a PTY in Rust), so interactive programs such as `v
 
 Tabs are named "Local", "Local (2)", …; while a program runs that sets a title (OSC 0 / OSC 2,
 e.g. Claude Code's current task), the tab shows that title instead (**Show application title**).
-Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. A
+Double-click a tab or use **Rename Session** to rename it; a renamed tab keeps its name. The arrow next to **+** has **New Tab**, **New Tab in Current Directory**, **SSH Session…**
+(see [SSH sessions](#ssh-sessions)), **Rename Session** and **Clear Buffer**. A
 tab's context menu has **New Tab**, **New Tab in Current Directory** (the directory the shell
 reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**. The terminal
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
@@ -12609,6 +12717,17 @@ still run: bash starts with an init file that sources `~/.bashrc` (or the profil
 login shell), zsh with a `ZDOTDIR` whose files source yours. The scripts live in
 `<cache dir>/forge/shell-integration` of the machine the shell runs on (also on remote hosts).
 fish, sh and PowerShell start without it; it applies to new sessions.
+
+## SSH sessions
+
+**Tools | Start SSH Session…** and **SSH Session…** in the new-tab dropdown (the arrow next
+to **+**) open a terminal tab on another host over SSH: pick one of your SSH configurations, an
+SFTP deployment server of the project or **Edit credentials…**. The tab is named after the
+host and runs on a pseudo terminal on the SSH channel, so full-screen programs and resizing
+work. See [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md#ssh-sessions); in Safe Mode a
+session to a deployment server asks first.
+
+![SSH session](docs/screenshots/ssh-session-terminal.png)
 
 ## Other terminals
 
@@ -12966,7 +13085,7 @@ The tree has three roots:
 | --- | --- |
 | **Docker** | Containers, Images, Networks, Volumes |
 | **Docker Compose** | compose projects found in the project root and one folder below, with their services and containers |
-| **Kubernetes** | contexts → namespaces → Pods, Deployments, Services |
+| **Kubernetes** | contexts → namespaces → Pods, Deployments, Services; the node says where the contexts come from (`~/.kube/config`, or `from host deploy@shop.example.com` in a remote project) |
 
 The status bar shows the Docker connection ("Docker 27.3.1", "Docker: connecting…",
 "Docker: not connected"). Forge follows Docker's event stream, so the tree updates by itself,
@@ -13011,6 +13130,35 @@ TTY also offer an attached console (`docker attach`).
 ![Compose](docs/screenshots/services-compose.png)
 
 ![Kubernetes pod log](docs/screenshots/services-kubernetes-pod-log.png)
+
+## Kubernetes contexts and namespaces
+
+Above the tree, the **Context** and **Namespace** selectors pick the context to work with:
+it becomes the current context in the tree (`current · <server>`), its namespace is loaded
+and expanded, and manifests are applied there. The namespace list shows the context's
+namespaces once they are listed. Next to the selectors Forge shows where the contexts come
+from. The pick lasts for the session; the defaults are the settings below.
+
+![Context selector](docs/screenshots/services-kube-host-contexts.png)
+
+## Applying manifests
+
+A YAML file with Kubernetes objects (`apiVersion` and `kind`, several documents separated by
+`---`) gets a ▶ in the gutter on its first object:
+
+| Menu item | Runs |
+| --- | --- |
+| Apply to '<context>' | `kubectl --context <context> [-n <namespace>] apply -f <file>` |
+| Delete from '<context>' | `kubectl --context <context> [-n <namespace>] delete -f <file>` |
+
+`-n` is the selected namespace and is only passed when no object of the file names its own
+namespace. The output appears in the **Log** tab of the Kubernetes node. Applying and
+deleting manifests runs the project's files against a cluster, so it is refused in Safe Mode
+(see [Project trust and Safe Mode](docs/guide/user/project-trust.md)); so are Exec terminals and the Attached
+Console of pods. Reading the cluster (the tree, logs, Inspection, port forwards) works in
+Safe Mode.
+
+![Apply a manifest](docs/screenshots/services-kube-apply.png)
 
 ## Kubernetes pods and deployments
 
@@ -13113,10 +13261,19 @@ CLI, which reaches `ssh://` hosts itself.
 | Kubeconfig file (empty: `$KUBECONFIG` or `~/.kube/config`) | `kubernetes.kubeconfig` | empty |
 | Default context (empty: the kubeconfig's current-context) | `kubernetes.defaultContext` | empty |
 | Default namespace (empty: the context's namespace, else `default`) | `kubernetes.defaultNamespace` | empty |
-| kubectl executable | `kubernetes.kubectlPath` | `kubectl` |
+| kubectl executable (this machine: exec terminals, applying manifests) | `kubernetes.kubectlPath` | `kubectl` |
+| In remote projects, use Kubernetes of the project host | `kubernetes.remoteProjectHost` | on |
+| kubectl from the project host: `user@host` and the kubectl path there | `kubernetes.hostKubectlPaths` | empty (kubectl from the host's `PATH`) |
 
 Kubernetes authentication supports CA certificates, bearer tokens, client certificates, basic
 auth and exec credential plugins (as used by EKS, GKE and AKS).
+
+**kubectl from the Project Host** lists a kubectl per remote host, e.g.
+`deploy@shop.example.com` → `/usr/local/bin/kubectl` or `k3s kubectl`. The host of the open
+remote project is filled in when you add an entry. Hosts without an entry run `kubectl` from
+their `PATH`.
+
+![Kubernetes settings with kubectl per host](docs/screenshots/settings-kubernetes-hosts.png)
 
 > **Note:** port forwarding is available for Kubernetes pods, not for Docker containers.
 
@@ -13132,7 +13289,30 @@ on) the Docker node shows the host's daemon (`ssh://user@host/var/run/docker.soc
 through the project's own SSH connection: no second login and nothing to set up. Exec terminals
 and Attached Console then run `docker` on the host. Turn it off to use the connection configured
 above; compose still runs on the host then (against the host's own daemon), while exec terminals
-run on this machine. Kubernetes always uses this machine's kubeconfig.
+run on this machine.
+
+### Kubernetes in remote projects
+
+With **In remote projects, use Kubernetes of the project host**
+(`kubernetes.remoteProjectHost`, on) Kubernetes runs where the project is, like PHPStorm's
+remote development: clusters next to the host (a k3s on `127.0.0.1:6443`, a private network,
+credential plugins installed there) work without copying anything to this machine.
+
+| | In a remote project |
+| --- | --- |
+| Contexts | from the host's kubeconfig (`$KUBECONFIG` or `~/.kube/config` on the host), read with `kubectl config view`; the Kubernetes node says `from host deploy@shop.example.com` |
+| Namespaces, pods, deployments, services, Inspection | `kubectl get … -o json` on the host |
+| Logs | `kubectl logs -f` on the host |
+| Exec, Attached Console | a terminal on the host running its kubectl |
+| Delete pod, Restart Rollout | `kubectl delete pod`, `kubectl rollout restart` on the host |
+| Forward Ports | `kubectl port-forward` on the host (on its `127.0.0.1`); every connection to `127.0.0.1:<local port>` here is tunnelled to it through the project's SSH connection. The forward shows "Forwarding via deploy@shop.example.com". |
+| Apply / Delete manifests | `kubectl apply -f` / `delete -f` on the host, in the project folder |
+
+kubectl must be installed on the host; its path is set per host under **kubectl from the
+Project Host**. Turn the option off to use this machine's kubeconfig and API access in remote
+projects too. Local projects always use this machine's kubeconfig.
+
+![Kubernetes contexts from the project host](docs/screenshots/services-kube-host-contexts.png)
 
 ![Compose on the remote host](docs/screenshots/remote-finish-compose.png)
 
@@ -13257,6 +13437,7 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 | Code hosts (GitLab, Forgejo, GitHub) | yes: the repository is detected with git on the host; API calls go from your machine with your tokens |
 | HTTP client (`.http` files) | environment and body files are read on the host; requests are sent **from the host** through an SSH tunnel, so `localhost` URLs reach its services (Settings \| Tools \| HTTP Client \| **Send requests from**) |
 | Services: compose files and Dockerfile ▶ | compose files are read on the host and `docker compose` / `docker build` run there; by default Docker of the host is used through the project's SSH connection |
+| Services: Kubernetes | contexts come from the host's kubeconfig and `kubectl` runs on the host (tree, logs, exec, apply/delete manifests); port forwards are tunnelled back through the SSH connection, see [Services](docs/guide/user/services.md#kubernetes-in-remote-projects) |
 | Browser Companion | files the browser reports (host paths, container paths like `/app/src/…`) open in the remote project |
 | Project settings (`.forge/settings.toml`) and other `.forge/` files | yes, read and written on the host |
 | Terminal | yes, a shell on the host |
@@ -13271,6 +13452,8 @@ Every feature works in remote projects. Things that are about your machine stay 
 purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
 when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
 of this machine (see [Services](docs/guide/user/services.md#remote-projects)).
+
+![Kubernetes contexts from the project host](docs/screenshots/services-kube-host-contexts.png)
 
 ![npm tool window of a remote project](docs/screenshots/remote-finish-npm.png)
 
@@ -13296,7 +13479,10 @@ authentication errors stop the retries. **Reconnect to Remote Host** (Find Actio
 ## Saved configurations
 
 Settings | Tools | **SSH Configurations** lists, adds, edits and removes saved configurations.
-They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain.
+They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain. **Parse
+config file `~/.ssh/config`** (on by default) resolves `Host` aliases, jump hosts and proxy
+commands from your OpenSSH config. The same configurations connect SFTP deployment servers and
+SSH terminal sessions, see [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md).
 
 ![SSH Configurations](docs/screenshots/remote-ssh-settings.png)
 
@@ -13602,9 +13788,144 @@ you choosing to.
 
 > **Note:** Deployment works with projects on this machine. In a [remote
 > project](docs/guide/user/remote-development.md) the files already are on the server; the Deployment actions
-> report that they are not available there. Browsing the server's files (Tools | Deployment |
-> Browse Remote Host, PHPStorm's Remote Host tool window) is not built yet; until then the
-> action opens Sync with Deployed for the project root.
+> report that they are not available there.
+
+## Browse Remote Host
+
+Tools | Deployment | **Browse Remote Host** opens the **Remote Host** tool window with the
+files of a server: a lazy tree with the mapped folders highlighted, Edit Remote File (a
+temporary copy uploaded back on save, with a check for changes on the server), Download from
+Here, Upload to Here, Compare with Local Version, New File / New Directory, Rename, Delete and
+Copy Path. See [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md); the same page describes
+SSH terminal sessions to the SFTP servers of the project (Tools | Start SSH Session…).
+
+![Remote Host tool window](docs/screenshots/remote-host-tree.png)
+
+
+---
+
+Source: docs/guide/user/remote-host-and-ssh.md
+
+# Remote Host and SSH sessions
+
+Like PHPStorm, Forge lets you look at and change the files of a
+[deployment server](docs/guide/user/deployment.md) without leaving the IDE, and open a shell on any host you
+have an SSH configuration for, also in projects that live on this machine.
+
+## Remote Host tool window
+
+**Tools | Deployment | Browse Remote Host** opens the **Remote Host** tool window (right
+stripe) on the project's default server; without a default server Forge asks which one. The
+selector at the top switches to another server of the project; **Refresh** reads the selected
+folder again (with the folders open below it), **Collapse All** closes the tree and the gear
+opens the server settings. Find Action has **Remote Host** (`ActivateRemoteHostToolWindow`)
+to show the window; it has no default shortcut, bind one in Settings | Keymap.
+
+![Remote Host tool window](docs/screenshots/remote-host-tree.png)
+
+The tree starts at the server's root path (`/var/www/shop`; the login folder when the root path
+is empty) and loads each folder when you expand it. It works for every server type: SFTP,
+FTP/FTPS and local or mounted folders.
+
+- Folders that are the deployment path of a [mapping](docs/guide/user/deployment.md#mappings-tab) are
+  **green**, with the project folder they belong to next to them ("project root", "public").
+- Paths excluded on the deployment side (Excluded Paths tab) are dimmed.
+- Hover a file or folder to see the project path it is mapped to.
+
+Double-click a folder to expand it, a file to edit it.
+
+### Context menu
+
+![Remote Host context menu](docs/screenshots/remote-host-context-menu.png)
+
+| Entry | What it does |
+| --- | --- |
+| Edit Remote File | Downloads the file into a temporary copy and opens it in the editor. Saving (`Ctrl+S`, automatic saves) uploads it back, see below. |
+| Download from Here | Downloads the file or folder into the project path it is mapped to, like Download from… (the transfer appears in the File Transfer tool window). |
+| Upload to Here | Uploads the project file or folder mapped to this path, like Upload to…. |
+| Compare with Local Version | Opens the diff of the server file and the project file it is mapped to. |
+| New › File / Directory | Creates an empty file (opened with Edit Remote File) or a folder in the selected folder. |
+| Rename… | Renames the file or folder on the server. |
+| Delete… | Deletes the file, or the folder with everything in it, after a confirmation. The root folder is never deleted. |
+| Copy Path | Copies the absolute path on the server. |
+| Refresh | Reads the folder again. |
+
+Download from Here, Upload to Here and Compare with Local Version need a mapping that covers
+the path; the entries are disabled otherwise. They follow the
+[Deployment options](docs/guide/user/deployment.md#options) (excluded names, overwrite rules, timestamps) and
+ask before overwriting newer files, like every transfer.
+
+### Edit Remote File
+
+![Edit Remote File](docs/screenshots/remote-host-edit.png)
+
+The editor tab shows the server and the path in the breadcrumbs. The temporary copy lives in
+Forge's cache folder (`<cache dir>/forge/remote-edit/<server>/…`), never in the project, and
+is removed when you close the tab. Each save uploads the text, but first checks the server copy:
+when someone else changed (or deleted) the file since you opened it, Forge asks before it
+overwrites their version (**Overwrite** / **Upload**, or **Cancel** to keep your changes
+unsaved).
+
+## SSH configurations
+
+Settings | Tools | **SSH Configurations** keeps the SSH connections of
+[remote development](docs/guide/user/remote-development.md#saved-configurations), SFTP deployment servers and
+SSH sessions in one list: **+** adds, **−** removes and the copy button duplicates a
+configuration.
+
+![SSH Configurations](docs/screenshots/ssh-configurations.png)
+
+| Field | Notes |
+| --- | --- |
+| Host, Port | A host name, an address or a `Host` alias of `~/.ssh/config`; port 22 by default |
+| Username | The account on the host |
+| Authentication type | **Password**, **Key pair (OpenSSH or PuTTY)** with the private key file and its passphrase, or **OpenSSH config and authentication agent** (keys of the running ssh-agent, the `IdentityFile`s of `~/.ssh/config` and the default keys in `~/.ssh`) |
+| Save password / Save passphrase | Stores the secret in the OS keychain (service `forge-ssh`); off: Forge asks every time |
+| Parse config file `~/.ssh/config` | On (the default): the host may be a `Host` alias, and the host name, port, user, identity files, `ProxyJump` and `ProxyCommand` come from `~/.ssh/config`. Off: the host is taken literally. |
+
+**Test Connection** connects with the values in the form, including a password you have not
+saved yet. An unknown host key is shown with its fingerprint; trusting it adds it to
+`~/.ssh/known_hosts`.
+
+## SSH sessions
+
+**Tools | Start SSH Session…** (`RunSshConsole`, no default shortcut) and **SSH Session…** in
+the Terminal's new-tab dropdown (the arrow next to **+**) open a chooser:
+
+![Start SSH Session](docs/screenshots/ssh-session-chooser.png)
+
+- **SSH Configurations**: your saved configurations.
+- **Deployment Servers**: the project's SFTP servers, connected with their SSH configuration.
+- **Edit credentials…**: host, port, user name and authentication typed in; Forge saves them as
+  an SSH configuration (an existing one for the same account is updated) and connects.
+
+The session opens as a new tab of the [Terminal](docs/guide/user/terminal.md) tool window, named after the
+host (`shop.example.com`, `shop.example.com (2)`). It is a real pseudo terminal on the SSH
+channel (`xterm-256color`), so `htop`, `vim` or `php artisan tinker` work and the window size
+follows the tool window. Typing `exit` closes the tab; other exit codes stay visible.
+Configurations that do not save their password or passphrase ask for it first, and an unknown
+host key is asked about like in Test Connection.
+
+![SSH session in the Terminal](docs/screenshots/ssh-session-terminal.png)
+
+![The Terminal's new-tab dropdown](docs/screenshots/terminal-ssh-dropdown.png)
+
+## Safe Mode
+
+Browsing a server, Edit Remote File and the transfers only copy files and never run project
+code, so they work in an untrusted project opened in [Safe Mode](docs/guide/user/project-trust.md).
+
+An SSH session logs you in on a host with your credentials. Your own SSH configurations
+connect right away. A deployment server, however, comes from the project's
+`.forge/deployment.toml`: in Safe Mode Forge asks before it starts a session to it ("The
+deployment server … is defined in the files of this untrusted project. Connect … over SSH with
+your credentials?"), so an untrusted project cannot choose a host for you. The backend refuses
+the session without that confirmation. Trusted projects never ask.
+
+> **Note:** Download from Here, Upload to Here and Compare with Local Version need a project on
+> this machine, like every [Deployment](docs/guide/user/deployment.md) transfer. In a
+> [remote project](docs/guide/user/remote-development.md) the project files and the terminal already are on
+> the host.
 
 
 ---
@@ -14294,6 +14615,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Deployment Options… | `PublishGroup.Options` | — | — | yes |
 | Automatic Upload (Always) | `PublishGroup.ToggleAutoUpload` | — | — | yes |
 | Browse Remote Host | `PublishGroup.BrowseServers` | — | — | yes |
+| Remote Host (tool window) | `ActivateRemoteHostToolWindow` | — | — | yes |
+| Start SSH Session… | `RunSshConsole` | — | — | yes |
 
 Every enabled [External Tool](docs/guide/user/run-debug.md#external-tools) is an action too
 (`Tool_<group>_<name>`, e.g. `Tool_Linters_PHPStan`, group "External Tools"); they have no
@@ -14972,6 +15295,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](docs/guide/user/live-templates.md#save-as-live-template) ([screenshot](docs/screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](docs/guide/user/terminal.md#tabs) ([screenshot](docs/screenshots/docs-terminal.png)) |
+| Start SSH Session… | — | — | yes | Chooses an SSH configuration or an SFTP deployment server and opens a Terminal tab connected over SSH. [More](docs/guide/user/remote-host-and-ssh.md#ssh-sessions) ([screenshot](docs/screenshots/ssh-session-chooser.png)) |
 | IDE Scripting Console | — | — | not yet | Not available yet; the entry is disabled. |
 | **External Tools** | | | dynamic | submenu: the enabled [External Tools](docs/guide/user/run-debug.md#external-tools) (Settings \| Tools \| External Tools) ([screenshot](docs/screenshots/external-tools-menu.png)) |
 | Vim | `Ctrl+Alt+V` | `Cmd+Alt+V` | yes | Turns Vim emulation on or off (check mark; plugin `forge.vim`). [More](docs/guide/user/vim-emulation.md) ([screenshot](docs/screenshots/vim-emulation.png)) |
@@ -14993,7 +15317,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Deployment › Configuration… | — | — | yes | Opens Settings \| Build, Execution, Deployment \| Deployment. [More](docs/guide/user/deployment.md#servers) ([screenshot](docs/screenshots/deployment-settings.png)) |
 | Deployment › Options… | — | — | yes | Opens Deployment \| Options. [More](docs/guide/user/deployment.md#options) ([screenshot](docs/screenshots/deployment-options.png)) |
 | Deployment › Automatic Upload (Always) | — | — | yes | Switches automatic upload on save between Always and Never (check mark). [More](docs/guide/user/deployment.md#options) |
-| Deployment › Browse Remote Host | — | — | yes | Opens Sync with Deployed for the project root until the Remote Host tool window exists. [More](docs/guide/user/deployment.md#safe-mode) |
+| Deployment › Browse Remote Host | — | — | yes | Opens the Remote Host tool window on the default server. [More](docs/guide/user/remote-host-and-ssh.md#remote-host-tool-window) ([screenshot](docs/screenshots/remote-host-tree.png)) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](docs/guide/user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](docs/guide/user/services.md) |
@@ -16010,7 +16334,9 @@ Page id `build.kubernetes`.
 | `kubernetes.kubeconfig` | path | `""` | user | Configuration | Kubeconfig file — Empty: $KUBECONFIG or ~/.kube/config. |
 | `kubernetes.defaultContext` | string | `""` | user | Configuration | Default context — Empty: the kubeconfig's current-context. |
 | `kubernetes.defaultNamespace` | string | `""` | user | Configuration | Default namespace — Empty: the context's namespace, else default. |
-| `kubernetes.kubectlPath` | path | `kubectl` | user | Tools | kubectl executable — Used for exec terminals in pods. |
+| `kubernetes.kubectlPath` | path | `kubectl` | user | Tools | kubectl executable — Used on this machine for exec terminals in pods and for applying manifests. |
+| `kubernetes.remoteProjectHost` | bool | `true` | user | Remote projects | In remote projects, use Kubernetes of the project host — Contexts come from the host's kubeconfig ($KUBECONFIG or ~/.kube/config) and kubectl runs on the host: logs, exec terminals, port forwards (tunnelled back through the project's SSH connection) and applying manifests. Off: this machine's kubeconfig. |
+| `kubernetes.hostKubectlPaths` | list | `[]` | user | Remote projects | kubectl from the project host — One entry per host: user@host, a tab, the kubectl path on that host. Hosts without an entry use kubectl from their PATH. Edited in the "kubectl from the Project Host" table. |
 
 
 ---
@@ -16532,6 +16858,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
+| `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
 The search index lives in `<cache dir>/Forge/search/<hash of the project root>.bin`. The
 embedded browser engine (the webview) keeps its cache in `<cache dir>/dev.forge.ide` (WebView2 on
@@ -19197,6 +19524,7 @@ Pure parts (no I/O, built for WebAssembly too):
 - `compose`: `compose.yaml` / `docker-compose.yml` parsing, project names, command lines
   and the mapping of containers to services by their labels.
 - `kube`: kubeconfig parsing and Kubernetes API objects (pods, deployments, services).
+- `kubectl`: kubectl command lines and output for Kubernetes on a remote project's host.
 - `logs`: the multiplexed Docker log stream and Kubernetes log lines.
 - `pull`: image pull progress from the Engine's JSON messages.
 - `endpoint`: where the Docker daemon is (`DOCKER_HOST`, settings, platform defaults).
@@ -19226,6 +19554,7 @@ keychain (`secrets`), and the `hub` that holds the Services state for the app.
 | `http.rs` | A small HTTP/1.1 client for the Docker Engine API and the Kubernetes API server: one connection per request over a Unix socket, a Windows named pipe or TCP (optionally TLS), `Content-Length`, chunked and read-to-close bodies, and streaming bodies for logs, events and pulls. |
 | `hub.rs` | The Services backend: one `Hub` per app holds the Docker connection (with a watcher that follows the Engine's events and reconnects), the project's compose files, the kubeconfig with lazily loaded namespaces and workloads, running log streams and the consoles (Log tabs). |
 | `kube.rs` | Kubernetes: kubeconfig files (clusters, users, contexts) and the API objects the tree shows (namespaces, pods, deployments, services). |
+| `kubectl.rs` | Kubernetes through `kubectl` on a remote project's host: command lines (`config view`, `get -o json`, `logs -f`, `port-forward`, `apply -f` / `delete -f`), the kubectl per host (`kubernetes.hostKubectlPaths`), parsing its output (the port of `Forwarding from …`), Kubernetes manifests in YAML files, and (runtime) the `KubectlClient` that runs them through the project's backend. |
 | `kubeclient.rs` | Kubernetes API client for one kubeconfig context: TLS with the cluster's CA (rustls), bearer tokens, client certificates, basic auth and exec credential plugins (`gke-gcloud-auth-plugin`, `aws eks get-token`, …). |
 | `logs.rs` | Container log streams. |
 | `portforward.rs` | Kubernetes port forwarding (`kubectl port-forward`, PHPStorm's Forward Ports): the `portforward` subresource over a WebSocket with the `v4.channel.k8s.io` channel protocol, and the list of active forwards the Services tool window shows. |
@@ -19244,7 +19573,7 @@ pub struct Error(pub String);
 
 ## Used by
 
-- IPC: `services_tree`, `services_refresh`, `services_compose_changed`, `services_expand`, `services_details`, `services_action`, `services_inspect`, `services_console`, `services_logs_start`, `services_logs_stop`, `services_terminal`, `services_port_forward_start`, `services_port_forward_stop`, `services_port_forwards`, `services_pull`, `services_compose_up`, `services_dockerfile_run`, `services_gutter`, `services_status`, `docker_test_connection`, `docker_contexts`, `docker_registry_login`, `docker_registry_logout`, `docker_registry_status` (`app/src-tauri/src/commands/services.rs`)
+- IPC: `services_tree`, `services_refresh`, `services_compose_changed`, `services_expand`, `services_details`, `services_action`, `services_inspect`, `services_console`, `services_logs_start`, `services_logs_stop`, `services_terminal`, `services_port_forward_start`, `services_port_forward_stop`, `services_port_forwards`, `services_pull`, `services_compose_up`, `services_dockerfile_run`, `services_gutter`, `services_kube_selection`, `services_kube_select`, `services_kube_apply`, `services_status`, `docker_test_connection`, `docker_contexts`, `docker_registry_login`, `docker_registry_logout`, `docker_registry_status` (`app/src-tauri/src/commands/services.rs`)
 - UI: `app/ui/src/features/services`
 - Browser mode: built into `forge-wasm`
 
@@ -19467,12 +19796,17 @@ Pure modules (also built for WebAssembly with `default-features = false`):
 - `compare`: `Entry` (path, dir, size, modified, digest), `compare(local, remote, by)` on top
   of `forge_diff::compare_listings` (the digest carries content, nothing or the timestamp),
   `is_up_to_date` and `is_newer_on_target`.
+- `browse`: the Remote Host tree. `nodes(server, entries)` → `RemoteNode { path, name, dir,
+  size, modified, local, mapping_root, excluded }` (folders first, by name ignoring case;
+  `local` is the mapped project path, `mapping_root` a mapping's deployment path),
+  `check_name`, `child_path`, `renamed_path` (New File / New Directory / Rename) and
+  `absolute_path` (Copy Path).
 
 With `client` (the default):
 
 - `fs::ServerFs`: `stat`, `list`, `read`, `write`, `mkdir`, `remove_file`, `remove_dir`,
-  `set_modified`, `describe`, plus `mkdir_all` / `remove_all`; paths are relative to the
-  server's root path.
+  `rename`, `set_modified`, `describe`, `invalidate` (forget cached listings), plus
+  `mkdir_all` / `remove_all`; paths are relative to the server's root path.
 - `local::LocalFolder` (local servers and the project side of every transfer),
   `ftp::FtpFs` (suppaftp, MIT OR Apache-2.0; FTPS is explicit TLS with rustls and
   `webpki-roots`; `MLSD` with a `LIST` fallback, `MFMT` for timestamps, a listing cache per
@@ -19488,6 +19822,12 @@ With `client` (the default):
   Connection.
 - `secrets`: FTP passwords in the keychain (service `forge-deploy`, account
   `ftp://user@host:port`).
+- `remote_host`: `Connections` (open connections by server id, reused while the server is
+  unchanged and `stat("")` works, closed after a failed operation), `list`, `create`,
+  `rename`, `delete`, `read_text`, and Edit Remote File: `start_edit(fs, server, path, cache)`
+  downloads into `<cache>/remote-edit/<server>/<path>` (`temp_path`), `save_edit(fs, edited,
+  data, force)` uploads unless the server copy's digest changed (`SaveOutcome::Uploaded |
+  Conflict { deleted }`).
 
 ## IPC
 
@@ -19499,7 +19839,15 @@ serverId?, direction, paths, overwriteNewer? })`, `deploy_delete({ id, serverId?
 `deploy_sync_compare({ serverId?, path })`, `deploy_read_remote({ serverId?, path })`; events
 `deploy://transfer` (`started`, `file`, `finished`). Browser mode: `app/ui/src/mock/deploymentMock.ts`
 with `crates/forge-wasm/src/deploy.rs` (`deploy_validate`, `deploy_resolve`,
-`deploy_compare`).
+`deploy_compare`, `deploy_remote_nodes`, `deploy_entry_path`).
+
+Remote Host (`app/src-tauri/src/commands/remote_host.rs`): `remote_host_list({ serverId, path
+}) -> { root, rootNode, nodes }`, `remote_host_create({ serverId, dir, name, folder })`,
+`remote_host_rename({ serverId, path, newName })`, `remote_host_delete({ serverId, paths })`,
+`remote_host_edit({ serverId, path }) -> { text, temp, remote }`, `remote_host_save_edit({
+serverId, path, text, force? }) -> { status: "uploaded" } | { status: "conflict", deleted }`,
+`remote_host_close_edit`, `remote_host_disconnect({ serverId? })`. Browser mode:
+`app/ui/src/mock/remoteHostMock.ts`.
 
 Transfers never run project code, so they work in Safe Mode; `deploy_auto_upload` does
 nothing in Safe Mode.
@@ -19517,7 +19865,10 @@ mappings and exclusions, up-to-date skips, newer files, Sync with Deployed, down
 Compare with Deployed Version, delete target items, delete on server, cancel) against a local
 folder, an in-process FTP server (`tests/common/ftp.rs`, also without `MLSD`/`MFMT`, wrong
 passwords, refused TLS) and an in-process SSH server with the SFTP subsystem
-(`tests/common/sftp.rs`, host key confirmation). No network beyond 127.0.0.1.
+(`tests/common/sftp.rs`, host key confirmation). The same run covers the Remote Host tree
+and its operations (listing with mappings, New Directory / New File, Rename, Refresh after
+outside changes, Edit Remote File with the conflict check, Delete) on every server type. No
+network beyond 127.0.0.1.
 
 
 ---
@@ -21239,17 +21590,20 @@ With `client` (the default):
 - `agent`: installing and starting the agent.
 - `connection`: a live connection to an agent with reconnects and latency.
 - `store`: saved configurations on disk and their secrets in the keychain.
+- `shell`: SSH terminal sessions (`SshShell::open(params, cols, rows, sink)`, a
+  `forge_backend::Terminal` on a pseudo terminal of an SSH channel).
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
 | `agent.rs` | Installing and starting the Forge agent over an SSH session. |
-| `config.rs` | Saved SSH configurations (Settings \| Tools \| SSH Configurations), stored in `<config dir>/forge/ssh.toml`. Passwords and key passphrases never go there: they live in the OS keychain. |
+| `config.rs` | Saved SSH configurations (Settings \| Tools \| SSH Configurations), stored in `<config dir>/forge/ssh.toml`. Passwords and key passphrases never go there: they live in the OS keychain. `parse_config` ("Parse config file ~/.ssh/config", on by default) decides whether `~/.ssh/config` resolves the host. |
 | `connection.rs` | A live connection to the Forge agent on a host: connects (SSH + agent start), measures latency, notices a dead connection and reconnects with backoff. |
 | `deploy.rs` | Installing the Forge agent on a remote host: probe the host with one shell command, decide whether the agent must be uploaded, upload it through `cat` (no SFTP needed) and start it. |
 | `known_hosts.rs` | OpenSSH `known_hosts`: which host keys are trusted. |
 | `session.rs` | SSH sessions with russh: host key verification against `known_hosts` (unknown and changed keys need the user's confirmation of the fingerprint), password, key file and ssh-agent authentication, command execution and streams, jump hosts (`ProxyJump`, one session tunnelled through the previous one) and `ProxyCommand`, port forwarding (`direct-tcpip` channels and remote `tcpip-forward` listeners) and forwarded Unix sockets (the Docker API over SSH). |
+| `shell.rs` | SSH terminal sessions (Tools \| Start SSH Session…): `SshSession::open_shell` (`pty-req` for `xterm-256color` + `shell`), output as UTF-8 to a `forge_process::PtySink`, input, window changes, the exit status and closing. |
 | `ssh_config.rs` | OpenSSH client configuration (`~/.ssh/config`): host blocks with patterns and the keywords Forge uses to connect. Like `ssh`, the first value obtained for a keyword wins and `IdentityFile` accumulates. |
 | `store.rs` | Saved SSH configurations on disk (`<config dir>/forge/ssh.toml`), their passwords and passphrases in the OS keychain (service `forge-ssh`, account = configuration id), and the user's OpenSSH files (`~/.ssh/config`, `~/.ssh/known_hosts`). |
 
@@ -21263,18 +21617,19 @@ pub use known_hosts::HostKeyStatus;
 ## Used by
 
 - IPC: `remote_ssh_configs`, `remote_ssh_config_save`, `remote_validate_config`, `remote_ssh_config_delete`, `remote_ssh_hosts`, `remote_test_connection`, `remote_connect`, `remote_browse`, `remote_open_project`, `remote_disconnect`, `remote_status`, `remote_reconnect` (`app/src-tauri/src/commands/remote.rs`)
-- UI: `app/ui/src/features/remote`
+- IPC: `terminal_open({ options: { ssh: { configId? | serverId?, secret?, confirmed? } } })` (`app/src-tauri/src/commands/terminal.rs`)
+- UI: `app/ui/src/features/remote`, `app/ui/src/features/terminal/ssh.tsx`
 - Browser mode: built into `forge-wasm`
 
 ## Dependencies
 
-- Workspace crates: [`forge-backend`](docs/guide/developer/crates/forge-backend.md), [`forge-core`](docs/guide/developer/crates/forge-core.md)
+- Workspace crates: [`forge-backend`](docs/guide/developer/crates/forge-backend.md), [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-process`](docs/guide/developer/crates/forge-process.md)
 - External: `base64`, `dirs`, `flate2`, `hmac`, `keyring`, `russh`, `serde`, `serde_json`, `sha1`, `sha2`, `tokio`, `toml`, `tracing`
-- Features: `default` = `client`; `client` = `dep:forge-backend`, `dep:forge-core`, `dep:russh`, `dep:tokio`, `dep:tracing`, `dep:dirs`, `dep:keyring`, `dep:toml`, `dep:flate2`
+- Features: `default` = `client`; `client` = `dep:forge-backend`, `dep:forge-core`, `dep:forge-process`, `dep:russh`, `dep:tokio`, `dep:tracing`, `dep:dirs`, `dep:keyring`, `dep:toml`, `dep:flate2`
 
 ## Tests
 
-9 source files, about 3257 lines; 32 unit tests and 5 integration tests in `tests/` (`ssh.rs`).
+10 source files; unit tests and integration tests in `tests/`: `ssh.rs` (agent, reconnects, port forwarding, jump hosts) and `ssh_shell.rs` (SSH terminal sessions against an in-process server: pty request, UTF-8 output split across packets, input, window changes, exit codes, closing, wrong passwords).
 
 ```sh
 cargo test -p forge-remote
@@ -21856,6 +22211,11 @@ The logic behind [Project trust and Safe Mode](docs/guide/user/project-trust.md)
   the project (the program or a path argument lies inside `root`), lexically so it works for
   remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
   project files (`SERVERS_RUNNING_PROJECT_CODE`).
+- `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
+  deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
+  user's confirmation in Safe Mode; the user's own SSH configurations
+  (`SshTarget::UserConfiguration`) never do. `ssh_confirmation_required(server)` is the error
+  `terminal_open` returns without it.
 
 ## IPC
 

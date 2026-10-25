@@ -122,3 +122,47 @@ pub fn deploy_compare(request_json: &str) -> String {
         Err(e) => error(e),
     }
 }
+
+#[derive(Deserialize)]
+struct NodesRequest {
+    server: DeployServer,
+    /// `{ path, dir, size, modified }` relative to the root path.
+    entries: Vec<Entry>,
+}
+
+/// Remote Host: `{ server, entries }` → the tree nodes (mappings, exclusions, order).
+#[wasm_bindgen]
+pub fn deploy_remote_nodes(request_json: &str) -> String {
+    match serde_json::from_str::<NodesRequest>(request_json) {
+        Ok(r) => to_json(&forge_deploy::browse::nodes(&r.server, &r.entries)),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+struct NameRequest {
+    /// The folder of a new entry, or the path of the renamed one (with `rename`).
+    path: String,
+    name: String,
+    #[serde(default)]
+    rename: bool,
+}
+
+/// Remote Host: `{ path, name, rename }` → `{ path }` of the new or renamed entry, or
+/// `{ error }` for an invalid name.
+#[wasm_bindgen]
+pub fn deploy_entry_path(request_json: &str) -> String {
+    let r = match serde_json::from_str::<NameRequest>(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    let path = if r.rename {
+        forge_deploy::browse::renamed_path(&r.path, &r.name)
+    } else {
+        forge_deploy::browse::child_path(&r.path, &r.name)
+    };
+    match path {
+        Ok(path) => to_json(&serde_json::json!({ "path": path })),
+        Err(e) => error(e),
+    }
+}

@@ -1,6 +1,6 @@
 ---
 title: Deployment
-description: Upload the project to SFTP, FTP/FTPS servers or a local folder - servers, root path, path mappings, excluded paths, upload on save, Sync with Deployed, Compare with Deployed Version and the File Transfer tool window.
+description: Upload the project to SFTP, FTP/FTPS servers or a local folder - servers, root path, path mappings, excluded paths, upload on save, Sync with Deployed, Compare with Deployed Version, the File Transfer and Remote Host tool windows.
 order: 205
 tags: [deployment, sftp, ftp, ftps, upload, sync]
 ---
@@ -140,6 +140,15 @@ you choosing to.
 
 > **Note:** Deployment works with projects on this machine. In a [remote
 > project](remote-development.md) the files already are on the server; the Deployment actions
-> report that they are not available there. Browsing the server's files (Tools | Deployment |
-> Browse Remote Host, PHPStorm's Remote Host tool window) is not built yet; until then the
-> action opens Sync with Deployed for the project root.
+> report that they are not available there.
+
+## Browse Remote Host
+
+Tools | Deployment | **Browse Remote Host** opens the **Remote Host** tool window with the
+files of a server: a lazy tree with the mapped folders highlighted, Edit Remote File (a
+temporary copy uploaded back on save, with a check for changes on the server), Download from
+Here, Upload to Here, Compare with Local Version, New File / New Directory, Rename, Delete and
+Copy Path. See [Remote Host and SSH sessions](remote-host-and-ssh.md); the same page describes
+SSH terminal sessions to the SFTP servers of the project (Tools | Start SSH Session…).
+
+![Remote Host tool window](../../screenshots/remote-host-tree.png)

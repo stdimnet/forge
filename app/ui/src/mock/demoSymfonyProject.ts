@@ -124,6 +124,7 @@ use App\\Service\\Checkout;
 use Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController;
 use Symfony\\Component\\HttpFoundation\\Response;
 use Symfony\\Component\\Routing\\Attribute\\Route;
+use Symfony\\Contracts\\Translation\\TranslatorInterface;
 
 #[Route('/orders', name: 'order_')]
 final class OrderController extends AbstractController
@@ -143,10 +144,10 @@ final class OrderController extends AbstractController
     }
 
     #[Route('/{id}/pay', name: 'pay', methods: ['POST'])]
-    public function pay(Order $order, Checkout $checkout): Response
+    public function pay(Order $order, Checkout $checkout, TranslatorInterface $translator): Response
     {
         $checkout->pay($order);
-        $this->addFlash('success', 'Payment received.');
+        $this->addFlash('success', $translator->trans('order.paid', ['%id%' => $order->getId()]));
 
         return $this->redirectToRoute('order_show', ['id' => $order->getId()]);
     }
@@ -637,8 +638,9 @@ final class AppExtension extends AbstractExtension
 {% block title %}Order #{{ order.id }}{% endblock %}
 
 {% block body %}
-    <h1>Order #{{ order.id }}</h1>
-    <p>Status: {{ order.status|capitalize }}</p>
+    <h1>{{ 'order.title'|trans({'%id%': order.id}) }}</h1>
+    <p>{{ 'order.status.label'|trans }}: {{ order.status|capitalize }}</p>
+    <p class="note">{{ 'order.shipping_note'|trans }}</p>
     <ul>
         {% for item in order.items %}
             <li>{{ item.quantity }} × {{ item.product.name }} — {{ item.price|price }}</li>
@@ -647,10 +649,10 @@ final class AppExtension extends AbstractExtension
     <p class="total">{{ order.total|price }}</p>
     {% if order.status == 'new' %}
         <form method="post" action="{{ path('order_pay', {id: order.id}) }}">
-            <button>Pay now</button>
+            <button>{{ 'order.pay'|trans }}</button>
         </form>
     {% endif %}
-    <a href="{{ path('order_index') }}">Back to orders</a>
+    <a href="{{ path('order_index') }}">{% trans %}order.back{% endtrans %}</a>
 {% endblock %}
 `,
   "templates/product/list.html.twig": `{% extends 'base.html.twig' %}
@@ -663,6 +665,170 @@ final class AppExtension extends AbstractExtension
 `,
   "templates/product/show.html.twig": "{% extends 'base.html.twig' %}\n\n{% block body %}\n    <h1>{{ product.name }}</h1>\n    <p>{{ product.price|price }}</p>\n{% endblock %}\n",
   "templates/admin/dashboard.html.twig": "{% extends 'base.html.twig' %}\n\n{% block body %}\n    <h1>Dashboard</h1>\n{% endblock %}\n",
+  "config/packages/translation.yaml": `framework:
+    default_locale: en
+    enabled_locales: ['en', 'de', 'fr']
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks: ['en']
+`,
+  "translations/messages.en.yaml": `order:
+    title: 'Order #%id%'
+    status:
+        label: Status
+        new: New
+        paid: Paid
+    pay: 'Pay now'
+    paid: 'Payment for order #%id% received.'
+    back: 'Back to orders'
+product:
+    list: Products
+    out_of_stock: 'Out of stock'
+`,
+  "translations/messages.de.yaml": `order:
+    title: 'Bestellung #%id%'
+    status:
+        label: Status
+        new: Neu
+        paid: Bezahlt
+    pay: 'Jetzt bezahlen'
+    paid: 'Zahlung für Bestellung #%id% erhalten.'
+product:
+    list: Produkte
+    out_of_stock: 'Nicht vorrätig'
+`,
+  "translations/messages.fr.yaml": `order:
+    title: 'Commande n°%id%'
+    status:
+        label: Statut
+        new: Nouvelle
+        paid: Payée
+    pay: 'Payer maintenant'
+    paid: 'Paiement de la commande n°%id% reçu.'
+    back: 'Retour aux commandes'
+product:
+    list: Produits
+    out_of_stock: 'Épuisé'
+`,
+  "translations/admin.en.xlf": `<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" target-language="en" datatype="plaintext" original="file.ext">
+    <body>
+      <trans-unit id="dashboard.title" resname="dashboard.title">
+        <source>dashboard.title</source>
+        <target>Dashboard</target>
+      </trans-unit>
+      <trans-unit id="dashboard.revenue" resname="dashboard.revenue">
+        <source>dashboard.revenue</source>
+        <target>Revenue this month</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
+`,
+  "src/Form/ProductType.php": `<?php
+
+namespace App\\Form;
+
+use App\\Entity\\Product;
+use Symfony\\Component\\Form\\AbstractType;
+use Symfony\\Component\\Form\\Extension\\Core\\Type\\CheckboxType;
+use Symfony\\Component\\Form\\Extension\\Core\\Type\\MoneyType;
+use Symfony\\Component\\Form\\Extension\\Core\\Type\\TextType;
+use Symfony\\Component\\Form\\FormBuilderInterface;
+use Symfony\\Component\\OptionsResolver\\OptionsResolver;
+
+class ProductType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            ->add('name', TextType::class, ['label' => 'product.name'])
+            ->add('price', MoneyType::class, ['currency' => 'EUR', 'divisor' => 100])
+            ->add('available', CheckboxType::class, ['required' => false])
+        ;
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'data_class' => Product::class,
+            'with_stock' => false,
+        ]);
+    }
+}
+`,
+  "src/Event/OrderPlacedEvent.php": `<?php
+
+namespace App\\Event;
+
+use App\\Entity\\Order;
+use Symfony\\Contracts\\EventDispatcher\\Event;
+
+final class OrderPlacedEvent extends Event
+{
+    public function __construct(public readonly Order $order)
+    {
+    }
+}
+`,
+  "src/EventSubscriber/LocaleSubscriber.php": `<?php
+
+namespace App\\EventSubscriber;
+
+use App\\Event\\OrderPlacedEvent;
+use Symfony\\Component\\EventDispatcher\\EventSubscriberInterface;
+use Symfony\\Component\\HttpKernel\\Event\\RequestEvent;
+use Symfony\\Component\\HttpKernel\\KernelEvents;
+
+final class LocaleSubscriber implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            KernelEvents::REQUEST => [['onKernelRequest', 20]],
+            OrderPlacedEvent::class => 'onOrderPlaced',
+        ];
+    }
+
+    public function onKernelRequest(RequestEvent $event): void
+    {
+        $request = $event->getRequest();
+        $request->setLocale($request->getPreferredLanguage(['en', 'de', 'fr']) ?? 'en');
+    }
+
+    public function onOrderPlaced(OrderPlacedEvent $event): void
+    {
+    }
+}
+`,
+  "src/EventListener/OrderMailListener.php": `<?php
+
+namespace App\\EventListener;
+
+use App\\Event\\OrderPlacedEvent;
+use App\\Service\\InvoiceMailer;
+use Symfony\\Component\\EventDispatcher\\Attribute\\AsEventListener;
+use Symfony\\Component\\HttpKernel\\Event\\ExceptionEvent;
+
+final class OrderMailListener
+{
+    public function __construct(private InvoiceMailer $mailer)
+    {
+    }
+
+    #[AsEventListener(priority: 10)]
+    public function onOrderPlaced(OrderPlacedEvent $event): void
+    {
+        $this->mailer->send($event->order);
+    }
+
+    #[AsEventListener(event: 'kernel.exception')]
+    public function onException(ExceptionEvent $event): void
+    {
+    }
+}
+`,
   "tests/Controller/OrderControllerTest.php": `<?php
 
 namespace App\\Tests\\Controller;

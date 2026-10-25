@@ -733,7 +733,7 @@ async fn frameworks_are_analysed_on_the_agent() {
 
     let dir = laravel_project();
     let b = open_remote(&dir).await;
-    let (info, routes, gutter, symfony, entities, related) = blocking(move || {
+    let (info, routes, gutter, symfony, entities, related, overview) = blocking(move || {
         let info: phpforge_fw_laravel::LaravelInfo =
             framework_call(b.as_ref(), FrameworkCall::LaravelDetect).unwrap();
         let routes: LaravelRoutes = framework_call(
@@ -778,9 +778,13 @@ async fn frameworks_are_analysed_on_the_agent() {
             },
         )
         .unwrap();
-        (info, routes, gutter, symfony, entities, related)
+        // The Laravel tool window's overview is computed on the host.
+        let overview: phpforge_fw_laravel::dashboard::LaravelOverview =
+            framework_call(b.as_ref(), FrameworkCall::LaravelOverview).unwrap();
+        (info, routes, gutter, symfony, entities, related, overview)
     })
     .await;
+    assert_eq!(overview.routes, 1);
     assert_eq!(related.len(), 1, "{related:?}");
     assert_eq!(
         (related[0].path.as_str(), related[0].line),

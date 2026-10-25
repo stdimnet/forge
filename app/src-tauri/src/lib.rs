@@ -100,6 +100,7 @@ pub fn run() {
         .manage(commands::remote::RemoteState::default())
         .manage(commands::devenv::DevEnvState::default())
         .manage(commands::deployment::DeploymentState::default())
+        .manage(commands::remote_host::RemoteHostState::default())
         .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
         .manage(commands::project::CreateState::default())
@@ -497,6 +498,9 @@ pub fn run() {
             commands::laravel::laravel_complete,
             commands::laravel::laravel_goto,
             commands::laravel::laravel_gutter,
+            commands::laravel::laravel_overview,
+            commands::laravel::laravel_logs,
+            commands::laravel::laravel_generate,
             commands::command_line_tools::cli_tools_list,
             commands::command_line_tools::cli_tools_commands,
             commands::command_line_tools::cli_tools_complete,
@@ -684,6 +688,10 @@ pub fn run() {
             commands::symfony::symfony_complete,
             commands::symfony::symfony_goto,
             commands::symfony::symfony_gutter,
+            commands::symfony::symfony_translations,
+            commands::symfony::symfony_events,
+            commands::symfony::symfony_translation_analysis,
+            commands::symfony::symfony_create_translation,
             commands::symfony::symfony_console_run,
             commands::symfony::symfony_console_cancel,
             commands::web::npm_packages,
@@ -712,6 +720,9 @@ pub fn run() {
             commands::services::services_compose_up,
             commands::services::services_dockerfile_run,
             commands::services::services_gutter,
+            commands::services::services_kube_selection,
+            commands::services::services_kube_select,
+            commands::services::services_kube_apply,
             commands::services::services_status,
             commands::services::services_port_forward_start,
             commands::services::services_port_forward_stop,
@@ -733,6 +744,14 @@ pub fn run() {
             commands::deployment::deploy_auto_upload,
             commands::deployment::deploy_sync_compare,
             commands::deployment::deploy_read_remote,
+            commands::remote_host::remote_host_list,
+            commands::remote_host::remote_host_create,
+            commands::remote_host::remote_host_rename,
+            commands::remote_host::remote_host_delete,
+            commands::remote_host::remote_host_edit,
+            commands::remote_host::remote_host_save_edit,
+            commands::remote_host::remote_host_close_edit,
+            commands::remote_host::remote_host_disconnect,
             commands::remote::remote_ssh_configs,
             commands::remote::remote_ssh_config_save,
             commands::remote::remote_ssh_config_delete,

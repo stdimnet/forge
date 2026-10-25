@@ -57,6 +57,7 @@ import "./services";
 import "./remote";
 import "./devenv";
 import "./deployment";
+import "./remoteHost";
 import "./webforge";
 import "./clipboard";
 import "./carets";

@@ -397,6 +397,24 @@ function receiverModel(receiver: string, text: string): MockModel | undefined {
   return v ? variableModel(v, text) : undefined;
 }
 
+/** Values of `ide.json` completions for a call's first argument (simplified conditions). */
+function ideJsonValues(func: string, method: boolean): LaravelCompletionItem[] {
+  let json: { completions?: { complete: string; options?: { strings?: string[] }; condition?: { functionNames?: string[]; methodNames?: string[] }[] }[] };
+  try {
+    json = JSON.parse(files()["ide.json"] ?? "{}");
+  } catch {
+    return [];
+  }
+  const out: LaravelCompletionItem[] = [];
+  for (const c of json.completions ?? []) {
+    const applies = (c.condition ?? []).some((k) => (method ? k.methodNames : k.functionNames)?.includes(func));
+    if (!applies) continue;
+    if (c.complete === "staticStrings") out.push(...(c.options?.strings ?? []).map((v) => item(v, "value", "ide.json")));
+    if (c.complete === "routeName") out.push(...mockRoutes().filter((r) => r.name).map((r) => item(r.name!, "value", "ide.json", r.uri)));
+  }
+  return out;
+}
+
 export function mockComplete(path: string, text: string, offset: number): LaravelCompletions | null {
   const ctx = contextAt(text, offset);
   if (!ctx) return null;
@@ -422,7 +440,10 @@ export function mockComplete(path: string, text: string, offset: number): Larave
     } else if (RELATION_FUNCS.includes(f) && ctx.receiver) {
       const m = receiverModel(ctx.receiver, text);
       items = m?.relations.map((r) => item(r.name, "relation", `${r.kind} → ${r.related?.split("\\").pop()}`)) ?? [];
-    } else return null;
+    } else {
+      items = ideJsonValues(f, !!ctx.receiver);
+      if (!items.length) return null;
+    }
   } else if (ctx.kind === "property") {
     const m = variableModel(ctx.variable, text);
     if (!m) return null;

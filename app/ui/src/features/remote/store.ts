@@ -23,6 +23,7 @@ export const blankConfig = (): SshConfiguration => ({
   auth: "password",
   keyFile: "",
   dontSaveSecret: false,
+  parseConfig: true,
 });
 
 export interface SshDialogRequest {

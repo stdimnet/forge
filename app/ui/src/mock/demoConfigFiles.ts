@@ -1,5 +1,43 @@
 /** Non-PHP files of the demo project, so every syntax mode has something to show. */
 export const demoConfigFiles: Record<string, string> = {
+  "k8s/deployment.yaml": `# The shop on Kubernetes (k3s on the host, kind locally).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: php
+          image: ghcr.io/acme/shop:1.8.2
+          ports:
+            - containerPort: 9000
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+`,
   ".env": `# Application
 APP_NAME="Acme Shop"
 APP_ENV=local

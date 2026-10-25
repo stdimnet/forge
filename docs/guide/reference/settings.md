@@ -852,4 +852,6 @@ Page id `build.kubernetes`.
 | `kubernetes.kubeconfig` | path | `""` | user | Configuration | Kubeconfig file — Empty: $KUBECONFIG or ~/.kube/config. |
 | `kubernetes.defaultContext` | string | `""` | user | Configuration | Default context — Empty: the kubeconfig's current-context. |
 | `kubernetes.defaultNamespace` | string | `""` | user | Configuration | Default namespace — Empty: the context's namespace, else default. |
-| `kubernetes.kubectlPath` | path | `kubectl` | user | Tools | kubectl executable — Used for exec terminals in pods. |
+| `kubernetes.kubectlPath` | path | `kubectl` | user | Tools | kubectl executable — Used on this machine for exec terminals in pods and for applying manifests. |
+| `kubernetes.remoteProjectHost` | bool | `true` | user | Remote projects | In remote projects, use Kubernetes of the project host — Contexts come from the host's kubeconfig ($KUBECONFIG or ~/.kube/config) and kubectl runs on the host: logs, exec terminals, port forwards (tunnelled back through the project's SSH connection) and applying manifests. Off: this machine's kubeconfig. |
+| `kubernetes.hostKubectlPaths` | list | `[]` | user | Remote projects | kubectl from the project host — One entry per host: user@host, a tab, the kubectl path on that host. Hosts without an entry use kubectl from their PATH. Edited in the "kubectl from the Project Host" table. |
