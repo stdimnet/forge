@@ -26,7 +26,8 @@ repository, a new project or a Git worktree) asks where to open it, as in PHPSto
   `thisWindow` or `ask`). Change it there to be asked again.
 
 A project that is already open in another window is not opened twice: that window comes to
-the front. The Welcome screen always opens the project in its own window.
+the front. An untrusted folder asks "Trust and Open Project?" first, and the new window opens
+it trusted or in Safe Mode as you decide (see [Project trust and Safe Mode](project-trust.md)). The Welcome screen always opens the project in its own window.
 
 Every project window keeps its own project state: settings, language servers, terminals,
 run configurations, the file watcher and the search index. Technically each project window is
