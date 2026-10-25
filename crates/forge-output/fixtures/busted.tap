@@ -1,0 +1,11 @@
+ok 1 - Cart adds items
+not ok 2 - Cart totals rounds to cents
+# spec/cart_spec.lua @ 12
+# Failure message: spec/cart_spec.lua:14: Expected objects to be the same.
+# Passed in:
+# (number) 1.1781
+# Expected:
+# (number) 1.18
+ok 3 - # SKIP Cart applies vouchers
+ok 4 - Inventory reserves stock
+1..4

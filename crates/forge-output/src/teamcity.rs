@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::ansi::{AnsiParser, Style};
 use crate::console::{ConsoleLine, ConsoleModel};
 use crate::links::LinkContext;
+use crate::testevents::TestEvent;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServiceMessage {
@@ -132,10 +133,19 @@ pub struct TestLocation {
 /// `php_qn:///abs/tests/UserTest.php::\Tests\UserTest::test_x`, `file:///…:12`, ...
 pub fn parse_location_hint(hint: Option<&str>) -> Option<TestLocation> {
     let hint = hint.filter(|h| !h.is_empty())?;
-    let rest = ["php_qn://", "file://", "pest_qn://", "python://"]
-        .iter()
-        .find_map(|p| hint.strip_prefix(p))
-        .unwrap_or(hint);
+    // `php_qn://`, `file://`, `pest_qn://`, `python://`, `go_qn://`, … (Windows drive
+    // letters such as `C:/x` have no `//` after the colon).
+    let rest = match hint.find("://") {
+        Some(i)
+            if i > 1
+                && hint[..i]
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-') =>
+        {
+            &hint[i + 3..]
+        }
+        _ => hint,
+    };
     let mut parts = rest.split("::");
     let path = parts.next().unwrap_or_default();
     let mut loc = match path.rsplit_once(':') {
@@ -244,6 +254,17 @@ pub struct TestTree {
     finished: bool,
     dirty: BTreeSet<usize>,
     links: LinkContext,
+    rules: Vec<(regex_lite::Regex, String)>,
+}
+
+/// Rewrites a reported location path before it is resolved in the project (a test
+/// framework's "location hints back to files"): `pattern` is a regular expression,
+/// `replacement` may use `$1`, `${name}`. The first matching rule wins.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocationRule {
+    pub pattern: String,
+    pub replacement: String,
 }
 
 impl TestTree {
@@ -261,7 +282,21 @@ impl TestTree {
             finished: false,
             dirty: BTreeSet::from([0]),
             links,
+            rules: Vec::new(),
         }
+    }
+
+    /// Location rules applied to reported paths (invalid patterns are ignored).
+    pub fn with_location_rules(mut self, rules: &[LocationRule]) -> Self {
+        self.rules = rules
+            .iter()
+            .filter_map(|r| {
+                regex_lite::Regex::new(&r.pattern)
+                    .ok()
+                    .map(|re| (re, r.replacement.clone()))
+            })
+            .collect();
+        self
     }
 
     fn add(&mut self, name: &str, kind: TestNodeKind, parent: usize) -> usize {
@@ -288,31 +323,38 @@ impl TestTree {
         }
     }
 
-    fn location(&self, hint: Option<&String>) -> Option<TestLocation> {
-        let mut loc = parse_location_hint(hint.map(String::as_str))?;
+    /// A reported location with the location rules applied and its project path resolved.
+    fn location(&self, loc: Option<&TestLocation>) -> Option<TestLocation> {
+        let mut loc = loc?.clone();
+        if let Some((re, to)) = self.rules.iter().find(|(re, _)| re.is_match(&loc.path)) {
+            loc.path = re.replace(&loc.path, to.as_str()).into_owned();
+        }
         loc.workspace_path = self.links.resolve(&loc.path);
         Some(loc)
     }
 
-    /// Apply one message; returns whether the tree changed.
+    /// Apply one TeamCity message; returns whether the tree changed.
     pub fn apply(&mut self, msg: &ServiceMessage) -> bool {
-        let a = &msg.attrs;
-        let name = a.get("name").map(String::as_str).unwrap_or_default();
-        match msg.name.as_str() {
-            "testCount" => {
-                self.expected_count = a
-                    .get("count")
-                    .and_then(|c| c.parse().ok())
-                    .filter(|&c| c > 0);
+        match TestEvent::from_service_message(msg) {
+            Some(e) => self.apply_event(&e),
+            None => false,
+        }
+    }
+
+    /// Apply one event; returns whether the tree changed.
+    pub fn apply_event(&mut self, event: &TestEvent) -> bool {
+        match event {
+            TestEvent::Count { count } => {
+                self.expected_count = Some(*count).filter(|&c| c > 0);
                 true
             }
-            "testSuiteStarted" => {
+            TestEvent::SuiteStarted { name, location } => {
                 let id = self.add(name, TestNodeKind::Suite, self.current);
-                self.nodes[id].location = self.location(a.get("locationHint"));
+                self.nodes[id].location = self.location(location.as_ref());
                 self.current = id;
                 true
             }
-            "testSuiteFinished" => {
+            TestEvent::SuiteFinished { .. } => {
                 if self.current != 0 {
                     let c = self.current;
                     self.nodes[c].status = Some(self.suite_status(c));
@@ -322,48 +364,71 @@ impl TestTree {
                 }
                 true
             }
-            "testStarted" => {
+            TestEvent::TestStarted { name, location } => {
                 let id = self.add(name, TestNodeKind::Test, self.current);
-                self.nodes[id].location = self.location(a.get("locationHint"));
+                self.nodes[id].location = self.location(location.as_ref());
                 self.running.insert(name.to_string(), id);
                 true
             }
-            "testFailed" => {
+            TestEvent::TestFailed {
+                name,
+                message,
+                details,
+                expected,
+                actual,
+                location,
+            } => {
                 let Some(t) = self.find(name) else {
                     return false;
                 };
+                // A failure spot (a stack frame) is more precise than a location without a line.
+                if self.nodes[t]
+                    .location
+                    .as_ref()
+                    .map_or(true, |l| l.line.is_none())
+                {
+                    if let Some(loc) = self.location(location.as_ref()) {
+                        self.nodes[t].location = Some(loc);
+                    }
+                }
                 let n = &mut self.nodes[t];
                 n.status = Some(TestStatus::Failed);
-                n.message = a.get("message").cloned();
-                n.details = a.get("details").cloned();
-                if a.contains_key("expected") || a.contains_key("actual") {
-                    n.expected = a.get("expected").cloned();
-                    n.actual = a.get("actual").cloned();
+                n.message = Some(message.clone());
+                n.details = details.clone();
+                if expected.is_some() || actual.is_some() {
+                    n.expected = expected.clone();
+                    n.actual = actual.clone();
                 }
                 self.touch(t);
                 true
             }
-            "testIgnored" => {
+            TestEvent::TestIgnored {
+                name,
+                message,
+                location,
+            } => {
                 let t = match self.find(name) {
                     Some(t) => t,
-                    None => self.add(name, TestNodeKind::Test, self.current),
+                    None => {
+                        let t = self.add(name, TestNodeKind::Test, self.current);
+                        self.nodes[t].location = self.location(location.as_ref());
+                        t
+                    }
                 };
                 self.nodes[t].status = Some(TestStatus::Ignored);
-                self.nodes[t].message = a.get("message").cloned();
+                self.nodes[t].message = message.clone();
                 self.touch(t);
                 true
             }
-            "testStdOut" | "testStdErr" => {
+            TestEvent::TestOutput { name, text, .. } => {
                 let Some(t) = self.find(name) else {
                     return false;
                 };
-                self.nodes[t]
-                    .output
-                    .push_str(a.get("out").map(String::as_str).unwrap_or_default());
+                self.nodes[t].output.push_str(text);
                 self.touch(t);
                 true
             }
-            "testFinished" => {
+            TestEvent::TestFinished { name, duration } => {
                 let Some(t) = self.find(name) else {
                     return false;
                 };
@@ -371,14 +436,13 @@ impl TestTree {
                 if n.status() == TestStatus::Running {
                     n.status = Some(TestStatus::Passed);
                 }
-                if let Some(d) = a.get("duration").and_then(|d| d.parse::<f64>().ok()) {
-                    n.duration = Some(d.max(0.0).round() as u64);
+                if let Some(d) = duration {
+                    n.duration = Some(*d);
                 }
-                self.running.remove(name);
+                self.running.remove(name.as_str());
                 self.touch(t);
                 true
             }
-            _ => false,
         }
     }
 
