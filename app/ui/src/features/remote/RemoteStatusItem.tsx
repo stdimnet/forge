@@ -56,7 +56,7 @@ export function RemoteStatusItem() {
         class="status-item remote-status"
         data-state={remoteStatus()?.state ?? "connected"}
         data-latency={latencyLevel(remoteStatus()?.state === "connected" ? (remoteStatus() as { latencyMs?: number }).latencyMs : null)}
-        title={`Remote host: ${label()}`}
+        title={workspace()?.remote?.kind ? label() : `Remote host: ${label()}`}
         onClick={() => setOpen((v) => !v)}
         data-testid="remote-status"
       >
@@ -101,7 +101,14 @@ export function RemoteStatusItem() {
               <dd>{statusText(remoteStatus()!)}</dd>
             </Show>
             <dt>Services</dt>
-            <dd>Indexing, language servers, git and terminals run on the host</dd>
+            <dd>
+              Indexing, language servers, git and terminals run{" "}
+              {workspace()?.remote?.kind?.type === "devContainer"
+                ? "in the container"
+                : workspace()?.remote?.kind?.type === "wsl"
+                  ? "in the distribution"
+                  : "on the host"}
+            </dd>
           </dl>
           <div class="remote-popup-actions">
             <button class="btn-secondary" onClick={() => void reconnect()}>

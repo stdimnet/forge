@@ -33,6 +33,24 @@ export interface TerminalProgram {
   local?: boolean;
 }
 
+/** A shell the terminal's "+" menu offers besides the default one (e.g. "WSL: Ubuntu"). */
+export interface ShellProfile {
+  label: string;
+  command: TerminalProgram & { title?: string };
+  /** Start directory (absolute; default: the project root). */
+  cwd?: string;
+}
+
+const [profileSources, setProfileSources] = createSignal<(() => ShellProfile[])[]>([]);
+
+/** Add shells to the "+" menu; `profiles` is reactive. */
+export function registerShellProfiles(profiles: () => ShellProfile[]): void {
+  setProfileSources((s) => [...s, profiles]);
+}
+
+/** The extra shells of the "+" menu. */
+export const shellProfiles = (): ShellProfile[] => profileSources().flatMap((p) => p());
+
 const [tabs, setTabs] = createSignal<TerminalTab[]>([]);
 const [activeTab, setActiveTabSignal] = createSignal<string | null>(null);
 const [renaming, setRenaming] = createSignal<string | null>(null);

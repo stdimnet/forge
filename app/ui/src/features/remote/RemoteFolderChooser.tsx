@@ -17,7 +17,8 @@ function Chooser(props: { request: FolderChooserRequest }) {
   const [input, setInput] = createSignal(props.request.start || "~");
   const [selected, setSelected] = createSignal<string | null>(null);
   const [hidden, setHidden] = createSignal(false);
-  const [listing, { refetch }] = createResource(dir, (d) => remoteApi.browse(props.request.connectionId, d));
+  const browse = (d: string) => (props.request.browse ? props.request.browse(d) : remoteApi.browse(props.request.connectionId, d));
+  const [listing, { refetch }] = createResource(dir, browse);
 
   // The path field follows navigation; selection shows the selected folder.
   createEffect(() => {

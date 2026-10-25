@@ -29,6 +29,7 @@ mod compare;
 mod composer;
 mod containers;
 mod deploy;
+mod devenv;
 mod editing;
 mod emmet;
 mod filetypes;

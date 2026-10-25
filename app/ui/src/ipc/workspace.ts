@@ -13,7 +13,12 @@ export interface FileEntry {
   excluded?: boolean;
 }
 
-/** The host of a project opened over SSH. */
+/** How a remote project is reached when not over SSH. */
+export type RemoteKind =
+  | { type: "devContainer"; container: string; source: string; config: string }
+  | { type: "wsl"; distro: string };
+
+/** The host of a project opened over SSH, in a dev container or in WSL. */
 export interface RemoteInfo {
   host: string;
   port: number;
@@ -23,6 +28,8 @@ export interface RemoteInfo {
   configId?: string;
   /** Project folder on the host. */
   path: string;
+  /** Dev container or WSL distribution (absent for SSH). */
+  kind?: RemoteKind;
 }
 
 export interface WorkspaceInfo {

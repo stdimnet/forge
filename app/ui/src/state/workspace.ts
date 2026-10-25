@@ -38,12 +38,24 @@ export function setTrustPrompt(prompt: TrustPrompt): void {
   trustPrompt = prompt;
 }
 
+/** Opens a folder through another backend; resolves `false` for paths it does not serve. */
+export type PathHandler = (path: string) => Promise<boolean>;
+
+const pathHandlers: PathHandler[] = [];
+
+/** Let a feature open some paths itself (WSL opens `\\wsl$\…` folders in the distribution). */
+export function registerPathHandler(handler: PathHandler): void {
+  pathHandlers.push(handler);
+}
+
 /**
  * Open a local folder as the project. An untrusted folder asks first (Trust Project,
  * Preview in Safe Mode, Don't Open); `askTrust: false` skips that for a folder that is
  * open already (Repair IDE reopens it).
  */
 export async function openWorkspace(path: string, options: { askTrust?: boolean } = {}): Promise<boolean> {
+  // Paths another backend serves (`\\wsl$\<distro>\…` opens in WSL).
+  for (const handler of pathHandlers) if (await handler(path)) return true;
   if (options.askTrust !== false && trustPrompt && (await trustPrompt.beforeOpen(path)) === "cancel") return false;
   adopt(await workspaceApi.open(path));
   return true;

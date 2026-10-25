@@ -18,6 +18,7 @@ import {
   renaming,
   setActiveTab,
   setRenaming,
+  shellProfiles,
   tabById,
   tabIds,
   tabs,
@@ -146,6 +147,7 @@ export function TerminalTabs() {
             y: r.bottom + 4,
             items: [
               { label: "New Tab", shortcut: "Ctrl+Shift+T", run: () => newTab() },
+              ...shellProfiles().map((p) => ({ label: p.label, run: () => void newTab(p.cwd, p.command) })),
               { label: "New Tab in Current Directory", disabled: !id, run: () => newTabHere() },
               { label: "Rename Session", disabled: !id, run: () => id && setRenaming(id) },
               { label: "Clear Buffer", disabled: !id, run: () => id && clearBuffer(id) },
