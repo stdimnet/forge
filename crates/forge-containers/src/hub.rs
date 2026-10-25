@@ -5,7 +5,10 @@
 //! commands. The open project is a [`ProjectHost`]: for a remote project its compose files
 //! are read on the host and compose / build commands run there, and with
 //! [`HubSettings::project_docker`] the Docker daemon of the host is used through the
-//! project's SSH connection.
+//! project's SSH connection. With [`HubSettings::project_kube`] Kubernetes comes from the
+//! host too: its kubeconfig, and `kubectl` running there ([`crate::kubectl`]) for the
+//! tree, logs, exec, port forwards (tunnelled back through the SSH connection) and
+//! applying manifests. Local projects use this machine's kubeconfig and the API server.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -24,6 +27,7 @@ use crate::exec::{self, TerminalCommand};
 use crate::gutter;
 use crate::kube::{self, KubeConfig};
 use crate::kubeclient::KubeClient;
+use crate::kubectl::{self, KubectlClient, ManifestAction};
 use crate::logs::{pod_log_prefix, LinePrefixer, LogStream};
 use crate::portforward::PortForward;
 use crate::project::{LocalProject, ProjectHost};
@@ -50,6 +54,130 @@ pub struct HubSettings {
     /// (`docker.remoteProjectHost`).
     #[serde(default)]
     pub project_docker: bool,
+    /// In a remote project: Kubernetes of the project's host, with its kubeconfig and
+    /// `kubectl` (`kubernetes.remoteProjectHost`).
+    #[serde(default)]
+    pub project_kube: bool,
+    /// kubectl per host, `host<TAB>path` lines (`kubernetes.hostKubectlPaths`).
+    #[serde(default)]
+    pub host_kubectl: Vec<String>,
+}
+
+/// Where Kubernetes runs for a remote project: the host, its `user@host` label and the
+/// kubectl there.
+type KubePlace = (Arc<dyn ProjectHost>, String, String);
+
+/// The project host whose Kubernetes is used, when the project is remote and
+/// [`HubSettings::project_kube`] is on.
+fn kube_place(settings: &HubSettings, project: &Option<Arc<dyn ProjectHost>>) -> Option<KubePlace> {
+    if !settings.project_kube {
+        return None;
+    }
+    let p = project.as_ref()?;
+    let label = p.remote()?.to_string();
+    let kubectl = kubectl::kubectl_for_host(&settings.host_kubectl, &label);
+    Some((p.clone(), label, kubectl))
+}
+
+/// A connection to one kubeconfig context: the API server from this machine, or kubectl on
+/// a remote project's host.
+#[derive(Clone)]
+enum KubeConn {
+    Api(KubeClient),
+    Cli(KubectlClient),
+}
+
+impl KubeConn {
+    async fn namespaces(&self) -> Result<Vec<String>> {
+        match self {
+            KubeConn::Api(c) => c.namespaces().await,
+            KubeConn::Cli(c) => c.namespaces().await,
+        }
+    }
+
+    async fn workloads(&self, ns: &str) -> Result<kube::RawWorkloads> {
+        match self {
+            KubeConn::Api(c) => c.workloads(ns).await,
+            KubeConn::Cli(c) => c.workloads(ns).await,
+        }
+    }
+
+    async fn pod(&self, ns: &str, name: &str) -> Result<serde_json::Value> {
+        match self {
+            KubeConn::Api(c) => c.pod(ns, name).await,
+            KubeConn::Cli(c) => c.get(ns, "pod", name).await,
+        }
+    }
+
+    async fn deployment(&self, ns: &str, name: &str) -> Result<serde_json::Value> {
+        match self {
+            KubeConn::Api(c) => c.deployment(ns, name).await,
+            KubeConn::Cli(c) => c.get(ns, "deployment", name).await,
+        }
+    }
+
+    async fn service(&self, ns: &str, name: &str) -> Result<serde_json::Value> {
+        match self {
+            KubeConn::Api(c) => c.service(ns, name).await,
+            KubeConn::Cli(c) => c.get(ns, "service", name).await,
+        }
+    }
+
+    async fn delete_pod(&self, ns: &str, name: &str) -> Result<()> {
+        match self {
+            KubeConn::Api(c) => c.delete_pod(ns, name).await,
+            KubeConn::Cli(c) => c.delete_pod(ns, name).await,
+        }
+    }
+
+    async fn restart_deployment(&self, ns: &str, name: &str) -> Result<()> {
+        match self {
+            KubeConn::Api(c) => c.restart_deployment(ns, name, &rfc3339_now()).await,
+            KubeConn::Cli(c) => c.restart_deployment(ns, name).await,
+        }
+    }
+
+    async fn pods_matching(&self, ns: &str, selector: &str) -> Result<Vec<kube::Pod>> {
+        match self {
+            KubeConn::Api(c) => c.pods_matching(ns, selector).await,
+            KubeConn::Cli(c) => c.pods_matching(ns, selector).await,
+        }
+    }
+
+    async fn pod_logs(
+        &self,
+        ns: &str,
+        pod: &str,
+        container: Option<&str>,
+        tail: u32,
+        sink: impl FnMut(String) + Send,
+    ) -> Result<()> {
+        match self {
+            KubeConn::Api(c) => c.pod_logs(ns, pod, container, tail, true, sink).await,
+            KubeConn::Cli(c) => c.pod_logs(ns, pod, container, tail, sink).await,
+        }
+    }
+}
+
+/// Aborts a task when dropped (the host's `kubectl port-forward` of a stopped forward).
+struct AbortOnDrop(tokio::task::AbortHandle);
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+/// Wait until a host's `kubectl port-forward` ends; never without one.
+async fn kubectl_ended(task: &mut Option<JoinHandle<Result<()>>>) -> String {
+    match task {
+        Some(t) => match t.await {
+            Ok(Err(e)) => e.0,
+            Ok(Ok(())) => "kubectl port-forward ended".into(),
+            Err(_) => "kubectl port-forward was stopped".into(),
+        },
+        None => std::future::pending().await,
+    }
 }
 
 /// What the UI is told.
@@ -96,7 +224,9 @@ struct State {
     client: Option<DockerClient>,
     compose_files: Vec<ComposeFile>,
     kube: KubeInput,
-    kube_clients: HashMap<String, KubeClient>,
+    kube_clients: HashMap<String, KubeConn>,
+    /// Context and namespace picked in the Services tool window (this session).
+    kube_select: Option<(String, Option<String>)>,
     busy: Vec<String>,
     consoles: HashMap<String, Console>,
     streams: HashMap<String, JoinHandle<()>>,
@@ -309,6 +439,23 @@ pub fn kubeconfig_paths(setting: &str) -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
+/// The kubeconfig for the tree: this machine's files, or for a remote project's host the
+/// place it comes from (read later with [`Hub::load_host_kube`]).
+fn fresh_kube(settings: &HubSettings, place: Option<&KubePlace>) -> KubeInput {
+    match place {
+        None => load_kube(settings),
+        Some((_, label, kubectl)) => KubeInput {
+            path: "$KUBECONFIG or ~/.kube/config".into(),
+            host: Some(label.clone()),
+            kubectl: Some(kubectl.clone()),
+            loading: true,
+            default_context: Some(settings.default_context.clone()).filter(|s| !s.is_empty()),
+            default_namespace: Some(settings.default_namespace.clone()).filter(|s| !s.is_empty()),
+            ..Default::default()
+        },
+    }
+}
+
 fn load_kube(settings: &HubSettings) -> KubeInput {
     let paths = kubeconfig_paths(&settings.kubeconfig);
     let shown = paths
@@ -381,7 +528,10 @@ impl Hub {
     pub fn details(&self, node_id: &str) -> Option<Details> {
         let mut d = tree::details(&self.input(), node_id)?;
         // Build output of Dockerfile runs and pulls lands on the Docker node.
-        if d.target == Target::Docker && !d.tabs.contains(&tree::Tab::Log) {
+        // So do `kubectl apply` / `delete` runs on the Kubernetes node.
+        if matches!(d.target, Target::Docker | Target::KubeRoot)
+            && !d.tabs.contains(&tree::Tab::Log)
+        {
             d.tabs.push(tree::Tab::Log);
         }
         Some(d)
@@ -444,23 +594,69 @@ impl Hub {
                 || s.settings.project_docker != settings.project_docker
                 || (settings.project_docker && host(&s.project) != host(&project))
                 || s.watcher.is_none();
+            let place = kube_place(&settings, &project);
+            let label = |p: &Option<KubePlace>| p.as_ref().map(|(_, h, k)| (h.clone(), k.clone()));
             let kube_changed = s.settings.kubeconfig != settings.kubeconfig
                 || s.settings.default_context != settings.default_context
                 || s.settings.default_namespace != settings.default_namespace
-                || s.kube.config.is_none();
+                || label(&kube_place(&s.settings, &s.project)) != label(&place)
+                || (s.kube.config.is_none() && !s.kube.loading);
+            let mut load_host = None;
             if kube_changed {
-                s.kube = load_kube(&settings);
+                s.kube = fresh_kube(&settings, place.as_ref());
                 s.kube_clients.clear();
+                s.kube_select = None;
+                load_host = place;
             }
             s.compose_files = compose_files;
             s.settings = settings;
             s.project = project;
-            restart
+            (restart, load_host)
         };
+        let (restart, load_host) = restart;
         if restart {
             self.start_watcher();
         }
         self.emit_tree();
+        if let Some((host, _, kubectl)) = load_host {
+            let hub = self.clone();
+            self.runtime
+                .spawn(async move { hub.load_host_kube(host, kubectl).await });
+        }
+    }
+
+    /// Read the kubeconfig of a remote project's host (`kubectl config view`) into the
+    /// tree. Ignored when the project or kubectl changed meanwhile.
+    async fn load_host_kube(self: &Arc<Self>, host: Arc<dyn ProjectHost>, program: String) {
+        let r = kubectl::config_view(host.as_ref(), &program).await;
+        {
+            let mut s = self.lock();
+            if s.kube.host.as_deref() != host.remote()
+                || s.kube.kubectl.as_deref() != Some(&program)
+            {
+                return;
+            }
+            s.kube.loading = false;
+            match r {
+                Ok(c) => {
+                    s.kube.config = Some(c);
+                    s.kube.error = None;
+                }
+                Err(e) => {
+                    s.kube.config = None;
+                    s.kube.error = Some(e.0);
+                }
+            }
+        }
+        self.emit_tree();
+    }
+
+    /// The selected (or current) context and its namespace, after a reload.
+    fn apply_selection(s: &mut State) {
+        if let Some((c, ns)) = s.kube_select.clone() {
+            s.kube.default_context = Some(c);
+            s.kube.default_namespace = ns;
+        }
     }
 
     /// Re-read compose files and the kubeconfig and refresh Docker.
@@ -471,11 +667,18 @@ impl Hub {
             let mut s = self.lock();
             s.compose_files = compose_files;
             let settings = s.settings.clone();
+            let place = kube_place(&settings, &s.project);
             let namespaces = std::mem::take(&mut s.kube.namespaces);
             let workloads = std::mem::take(&mut s.kube.workloads);
-            s.kube = load_kube(&settings);
+            s.kube = fresh_kube(&settings, place.as_ref());
             s.kube.namespaces = namespaces;
             s.kube.workloads = workloads;
+            Self::apply_selection(&mut s);
+            drop(s);
+            self.emit_tree();
+            if let Some((host, _, kubectl)) = place {
+                self.load_host_kube(host, kubectl).await;
+            }
         }
         if self.lock().client.is_some() {
             let _ = self.refresh_docker().await;
@@ -668,18 +871,45 @@ impl Hub {
 
     // ---- Kubernetes ---------------------------------------------------------------------
 
-    async fn kube_client(&self, context: &str) -> Result<KubeClient> {
+    async fn kube_client(&self, context: &str) -> Result<KubeConn> {
         if let Some(c) = self.lock().kube_clients.get(context) {
             return Ok(c.clone());
         }
-        let rc = {
+        let (rc, place) = {
             let s = self.lock();
+            let place = kube_place(&s.settings, &s.project);
             let Some(cfg) = &s.kube.config else {
-                return err("No kubeconfig found");
+                return err(match &place {
+                    Some((_, h, _)) if s.kube.loading => {
+                        format!("The kubeconfig of {h} is still being read")
+                    }
+                    Some((_, h, _)) => format!("No kubeconfig found on {h}"),
+                    None => "No kubeconfig found".into(),
+                });
             };
-            cfg.resolve(context)?
+            match place {
+                // kubectl on the host resolves the context itself.
+                Some(p) => {
+                    if cfg.context(context).is_none() {
+                        return err(format!(
+                            "Context `{context}` is not in the kubeconfig of {}",
+                            p.1
+                        ));
+                    }
+                    (None, Some(p))
+                }
+                None => (Some(cfg.resolve(context)?), None),
+            }
         };
-        let client = KubeClient::new(&rc).await?;
+        let client = match (rc, place) {
+            (_, Some((host, _, program))) => KubeConn::Cli(KubectlClient {
+                host,
+                program,
+                context: context.to_string(),
+            }),
+            (Some(rc), None) => KubeConn::Api(KubeClient::new(&rc).await?),
+            (None, None) => return err("No kubeconfig found"),
+        };
         self.lock()
             .kube_clients
             .insert(context.to_string(), client.clone());
@@ -727,16 +957,7 @@ impl Hub {
             Some(Target::KubeContext { context }) => {
                 self.load_namespaces(&context).await;
                 // Load the default namespace right away, like kubectl would show it.
-                let ns = {
-                    let s = self.lock();
-                    let current = s.kube.current_context() == Some(context.as_str());
-                    s.kube
-                        .default_namespace
-                        .clone()
-                        .filter(|_| current)
-                        .or_else(|| s.kube.config.as_ref()?.context(&context)?.namespace.clone())
-                        .unwrap_or_else(|| "default".into())
-                };
+                let ns = self.lock().kube.namespace_of(&context);
                 self.load_workloads(&context, &ns).await;
             }
             Some(Target::KubeNamespace { context, namespace }) => {
@@ -936,14 +1157,9 @@ impl Hub {
                         Ok(c) => {
                             let h = hub.clone();
                             let kk = k.clone();
-                            c.pod_logs(
-                                &namespace,
-                                &name,
-                                container.as_deref(),
-                                tail,
-                                true,
-                                move |t| h.console_text(&kk, LogStream::Stdout, t),
-                            )
+                            c.pod_logs(&namespace, &name, container.as_deref(), tail, move |t| {
+                                h.console_text(&kk, LogStream::Stdout, t)
+                            })
                             .await
                         }
                         Err(e) => Err(e),
@@ -1028,7 +1244,7 @@ impl Hub {
                     ))));
                     let (h, kk, p) = (hub.clone(), key.clone(), prefixer.clone());
                     let r = c
-                        .pod_logs(&ns, &pod, Some(&container), tail, true, move |t| {
+                        .pod_logs(&ns, &pod, Some(&container), tail, move |t| {
                             let lines = p.lock().unwrap_or_else(|e| e.into_inner()).push(&t);
                             if !lines.is_empty() {
                                 h.console_text(&kk, LogStream::Stdout, lines);
@@ -1506,7 +1722,7 @@ impl Hub {
                 Action::Restart,
             ) => {
                 let r = match self.kube_client(context).await {
-                    Ok(c) => c.restart_deployment(namespace, name, &rfc3339_now()).await,
+                    Ok(c) => c.restart_deployment(namespace, name).await,
                     Err(e) => Err(e),
                 };
                 self.load_workloads(context, namespace).await;
@@ -1646,34 +1862,33 @@ impl Hub {
                 namespace,
                 name,
             } => {
-                let s = self.lock();
-                let kubectl = if s.settings.kubectl.trim().is_empty() {
-                    "kubectl".to_string()
-                } else {
-                    s.settings.kubectl.clone()
+                let (kubectl, kubeconfig, on_host) = {
+                    let s = self.lock();
+                    match kube_place(&s.settings, &s.project) {
+                        // The host's kubectl with the host's kubeconfig, in a terminal there.
+                        Some((_, _, kubectl)) => (kubectl, None, true),
+                        None => {
+                            let (kubectl, kubeconfig) = Self::local_kubectl(&s);
+                            (kubectl, kubeconfig, false)
+                        }
+                    }
                 };
-                let cfg = kubeconfig_paths(&s.settings.kubeconfig)
-                    .iter()
-                    .map(|p| p.to_string_lossy().into_owned())
-                    .collect::<Vec<_>>();
-                let joined = std::env::join_paths(&cfg)
-                    .ok()
-                    .map(|j| j.to_string_lossy().into_owned());
-                drop(s);
                 let container = self.pod_container(context, namespace, name, container);
                 let make = if attach {
                     exec::kubectl_attach
                 } else {
                     exec::kubectl_exec
                 };
-                return Ok(make(
+                let mut cmd = make(
                     &kubectl,
-                    joined.as_deref(),
+                    kubeconfig.as_deref(),
                     context,
                     namespace,
                     name,
                     container.as_deref(),
-                ));
+                );
+                cmd.on_host = on_host;
+                return Ok(cmd);
             }
             _ => None,
         };
@@ -1689,6 +1904,119 @@ impl Hub {
             Ok(Endpoint::ProjectHost { .. })
         );
         Ok(cmd)
+    }
+
+    /// kubectl on this machine and the `KUBECONFIG` it gets (the setting, `$KUBECONFIG` or
+    /// `~/.kube/config`).
+    fn local_kubectl(s: &State) -> (String, Option<String>) {
+        let kubectl = if s.settings.kubectl.trim().is_empty() {
+            "kubectl".to_string()
+        } else {
+            s.settings.kubectl.clone()
+        };
+        let cfg = kubeconfig_paths(&s.settings.kubeconfig)
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        let joined = std::env::join_paths(&cfg)
+            .ok()
+            .map(|j| j.to_string_lossy().into_owned());
+        (kubectl, joined)
+    }
+
+    /// The context and namespace selector of the Services tool window.
+    pub fn kube_selection(&self) -> Option<tree::KubeSelection> {
+        tree::kube_selection(&self.lock().kube)
+    }
+
+    /// Pick the context (and its namespace; `None`: the context's own) to work with: it
+    /// becomes the current one in the tree and its namespace is loaded. Manifests are
+    /// applied there.
+    pub async fn select_kube(
+        self: &Arc<Self>,
+        context: &str,
+        namespace: Option<String>,
+    ) -> Result<Option<tree::KubeSelection>> {
+        {
+            let mut s = self.lock();
+            let known = s
+                .kube
+                .config
+                .as_ref()
+                .is_some_and(|c| c.context(context).is_some());
+            if !known {
+                return err(format!("Context `{context}` is not in the kubeconfig"));
+            }
+            let namespace = namespace.filter(|n| !n.trim().is_empty());
+            s.kube_select = Some((context.to_string(), namespace));
+            Self::apply_selection(&mut s);
+        }
+        self.expand(
+            &Target::KubeContext {
+                context: context.to_string(),
+            }
+            .node_id(),
+        )
+        .await;
+        Ok(self.kube_selection())
+    }
+
+    /// `kubectl apply -f` / `kubectl delete -f` of a project manifest in the selected
+    /// context (on a remote project's host with its kubectl); output in the Kubernetes
+    /// node's Log tab. `-n <selected namespace>` is passed for manifests that name no
+    /// namespace.
+    pub async fn apply_manifest(&self, path: &str, action: ManifestAction) -> Result<()> {
+        let (root, content) = self.read_project_file(path).await?;
+        let objects = kubectl::manifest_objects(&content);
+        if objects.is_empty() {
+            return err(format!(
+                "{path} has no Kubernetes objects (apiVersion and kind)"
+            ));
+        }
+        let (place, local, context, namespace) = {
+            let s = self.lock();
+            let context = tree::kube_selection(&s.kube).and_then(|k| k.context);
+            let namespace = context.as_deref().map(|c| s.kube.namespace_of(c));
+            (
+                kube_place(&s.settings, &s.project),
+                Self::local_kubectl(&s),
+                context,
+                namespace,
+            )
+        };
+        let Some(context) = context else {
+            return err("No Kubernetes context to apply the manifest to: check the kubeconfig");
+        };
+        let ns = namespace
+            .clone()
+            .filter(|_| kubectl::manifest_needs_namespace(&objects));
+        let args = kubectl::manifest_args(&context, ns.as_deref(), action, path);
+        let node = Target::KubeRoot.node_id();
+        self.set_busy(&node, true);
+        let r = match &place {
+            Some((host, _, program)) => {
+                self.run_cli(&node, Some(host.as_ref()), program, &args, &[], &root)
+                    .await
+            }
+            None => {
+                let env = exec::kubeconfig_env(local.1.as_deref());
+                self.run_cli(&node, None, &local.0, &args, &env, &root)
+                    .await
+            }
+        };
+        self.set_busy(&node, false);
+        if let Some(ns) = namespace {
+            let loaded = self
+                .lock()
+                .kube
+                .workloads
+                .contains_key(&tree::workloads_key(&context, &ns));
+            if loaded {
+                self.load_workloads(&context, &ns).await;
+                self.emit_tree();
+            }
+        }
+        r
     }
 
     /// The resolved endpoint (Settings page "Test connection").
@@ -1728,6 +2056,18 @@ impl Hub {
             return err("Enter the pod port to forward");
         }
         let client = self.kube_client(&context).await?;
+        // On a remote project's host: kubectl port-forward runs there, and every local
+        // connection is tunnelled to its port through the project's SSH connection.
+        let host_forward = match &client {
+            KubeConn::Cli(c) => {
+                let (port, task) = c.port_forward(&namespace, &name, remote).await?;
+                Some((c.host.clone(), port, task))
+            }
+            KubeConn::Api(_) => None,
+        };
+        let stop_kubectl = host_forward
+            .as_ref()
+            .map(|(_, _, t)| AbortOnDrop(t.abort_handle()));
         let listener = tokio::net::TcpListener::bind(("127.0.0.1", local))
             .await
             .map_err(|e| {
@@ -1754,23 +2094,43 @@ impl Hub {
             remote_port: remote,
             connections: 0,
             error: None,
+            via: host_forward
+                .as_ref()
+                .and_then(|(h, _, _)| h.remote().map(str::to_string)),
         };
         let hub = self.clone();
         let task = self.runtime.spawn(async move {
-            // Aborting the listener drops the set, which aborts its connections.
+            // Aborting the listener drops the set, which aborts its connections, and stops
+            // kubectl on the host.
+            let _stop_kubectl = stop_kubectl;
+            let (tunnel, mut kubectl) = match host_forward {
+                Some((host, port, task)) => (Some((host, port)), Some(task)),
+                None => (None, None),
+            };
             let mut conns = tokio::task::JoinSet::new();
             loop {
                 tokio::select! {
                     accepted = listener.accept() => {
-                        let Ok((tcp, _)) = accepted else { continue };
+                        let Ok((mut tcp, _)) = accepted else { continue };
                         tcp.set_nodelay(true).ok();
                         hub.update_forward(id, |f| f.connections += 1);
                         let (hub, client, ns, pod) =
                             (hub.clone(), client.clone(), namespace.clone(), name.clone());
+                        let tunnel = tunnel.clone();
                         conns.spawn(async move {
-                            let r = match client.port_forward(&ns, &pod, remote).await {
-                                Ok(ws) => ws.port_forward(remote, tcp).await,
-                                Err(e) => Err(e),
+                            let r = match (&client, tunnel) {
+                                (_, Some((host, port))) => match host.open_tcp(port).await {
+                                    Ok(mut io) => tokio::io::copy_bidirectional(&mut tcp, &mut io)
+                                        .await
+                                        .map(|_| ())
+                                        .map_err(Error::from),
+                                    Err(e) => Err(e),
+                                },
+                                (KubeConn::Api(c), None) => match c.port_forward(&ns, &pod, remote).await {
+                                    Ok(ws) => ws.port_forward(remote, tcp).await,
+                                    Err(e) => Err(e),
+                                },
+                                (KubeConn::Cli(_), None) => err("kubectl port-forward is not running"),
                             };
                             hub.update_forward(id, |f| {
                                 f.connections = f.connections.saturating_sub(1);
@@ -1781,6 +2141,10 @@ impl Hub {
                         });
                     }
                     Some(_) = conns.join_next(), if !conns.is_empty() => {}
+                    ended = kubectl_ended(&mut kubectl) => {
+                        kubectl = None;
+                        hub.update_forward(id, |f| f.error = Some(ended));
+                    }
                 }
             }
         });
@@ -2083,7 +2447,10 @@ mod tests {
         let hub = Hub::new(emit, tokio::runtime::Handle::current());
         hub.lock().kube_clients.insert(
             "kind".into(),
-            KubeClient::with_transport(crate::http::Transport::Unix(path), None),
+            KubeConn::Api(KubeClient::with_transport(
+                crate::http::Transport::Unix(path),
+                None,
+            )),
         );
         let node = Target::Pod {
             context: "kind".into(),
@@ -2172,7 +2539,10 @@ mod tests {
         let hub = Hub::new(emit, tokio::runtime::Handle::current());
         hub.lock().kube_clients.insert(
             "kind".into(),
-            KubeClient::with_transport(crate::http::Transport::Unix(path), None),
+            KubeConn::Api(KubeClient::with_transport(
+                crate::http::Transport::Unix(path),
+                None,
+            )),
         );
         let node = Target::Deployment {
             context: "kind".into(),

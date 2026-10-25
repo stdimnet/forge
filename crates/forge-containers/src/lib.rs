@@ -26,6 +26,7 @@ pub mod endpoint;
 pub mod exec;
 pub mod gutter;
 pub mod kube;
+pub mod kubectl;
 pub mod logs;
 pub mod portforward;
 pub mod pull;

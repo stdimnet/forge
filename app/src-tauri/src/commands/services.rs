@@ -197,6 +197,20 @@ impl ProjectHost for BackendProject {
             Ok(Box::new(stream) as BoxIo)
         })
     }
+
+    fn open_tcp(&self, port: u16) -> BoxFuture<'static, forge_containers::Result<BoxIo>> {
+        let tunnels = self.backend.tunnels();
+        Box::pin(async move {
+            let tunnels = tunnels.ok_or_else(|| {
+                forge_containers::Error("the project has no SSH connection".into())
+            })?;
+            let stream = tunnels
+                .open_tcp("127.0.0.1".into(), port)
+                .await
+                .map_err(|e| forge_containers::Error(e.to_string()))?;
+            Ok(Box::new(stream) as BoxIo)
+        })
+    }
 }
 
 /// The open project for the hub: a local folder, or a remote project through its backend.

@@ -149,6 +149,10 @@ pub struct PortForward {
     /// The last connection error (pod gone, port not listening).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// The remote project host the forward is tunnelled through (`kubectl port-forward`
+    /// runs there), e.g. `deploy@shop.example.com`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 impl PortForward {
@@ -229,6 +233,7 @@ mod tests {
             remote_port: 80,
             connections: 0,
             error: None,
+            via: None,
         };
         assert_eq!(f.label(), "127.0.0.1:8080 → 80");
         assert_eq!(f.url(), "http://localhost:8080");

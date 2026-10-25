@@ -51,6 +51,12 @@ pub trait ProjectHost: Send + Sync {
         let path = path.to_string();
         Box::pin(async move { err(format!("{path} is not on a remote host")) })
     }
+
+    /// A TCP connection to `127.0.0.1:port` as the project's host sees it, through its SSH
+    /// connection (`kubectl port-forward` running on the host).
+    fn open_tcp(&self, port: u16) -> BoxFuture<'static, Result<BoxIo>> {
+        Box::pin(async move { err(format!("127.0.0.1:{port} is not on a remote host")) })
+    }
 }
 
 /// A project folder on this machine.

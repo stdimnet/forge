@@ -73,6 +73,16 @@ pub struct KubeInput {
     /// Workloads per `context/namespace` key ([`workloads_key`]).
     #[serde(default)]
     pub workloads: BTreeMap<String, Loaded<Workloads>>,
+    /// The remote project host whose kubeconfig and `kubectl` are used
+    /// (`deploy@shop.example.com`); `None`: this machine's kubeconfig.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+    /// The kubectl that runs on [`Self::host`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kubectl: Option<String>,
+    /// The host's kubeconfig is being read.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub loading: bool,
 }
 
 impl KubeInput {
@@ -82,6 +92,71 @@ impl KubeInput {
             .filter(|c| !c.is_empty())
             .or_else(|| self.config.as_ref()?.current_context.as_deref())
     }
+
+    /// The namespace shown first in `context`: the default namespace (setting or selection)
+    /// for the current context, else the context's own namespace, else `default`.
+    pub fn namespace_of(&self, context: &str) -> String {
+        let current = self.current_context() == Some(context);
+        self.default_namespace
+            .clone()
+            .filter(|n| !n.is_empty() && current)
+            .or_else(|| self.config.as_ref()?.context(context)?.namespace.clone())
+            .unwrap_or_else(|| "default".into())
+    }
+
+    /// Where the contexts come from, for the tree: `from host deploy@shop.example.com`, or
+    /// the kubeconfig path on this machine.
+    pub fn source_label(&self) -> String {
+        match &self.host {
+            Some(h) => format!("from host {h}"),
+            None => self.path.clone(),
+        }
+    }
+}
+
+/// The context and namespace selector of the Services tool window.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KubeSelection {
+    /// `from host deploy@shop.example.com` or `~/.kube/config`.
+    pub source: String,
+    /// The remote host the contexts come from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+    pub contexts: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+    /// Namespaces of the selected context (once listed; always with the selected one).
+    pub namespaces: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+}
+
+/// The selector's state; `None` without a kubeconfig.
+pub fn kube_selection(k: &KubeInput) -> Option<KubeSelection> {
+    let cfg = k.config.as_ref()?;
+    let context = k
+        .current_context()
+        .or_else(|| cfg.contexts.first().map(|c| c.name.as_str()))
+        .map(str::to_string);
+    let namespace = context.as_deref().map(|c| k.namespace_of(c));
+    let mut namespaces = match context.as_ref().and_then(|c| k.namespaces.get(c)) {
+        Some(Loaded::Ready { value }) => value.clone(),
+        _ => Vec::new(),
+    };
+    if let Some(ns) = &namespace {
+        if !namespaces.contains(ns) {
+            namespaces.insert(0, ns.clone());
+        }
+    }
+    Some(KubeSelection {
+        source: k.source_label(),
+        host: k.host.clone(),
+        contexts: cfg.contexts.iter().map(|c| c.name.clone()).collect(),
+        context,
+        namespaces,
+        namespace,
+    })
 }
 
 pub fn workloads_key(context: &str, namespace: &str) -> String {
@@ -718,9 +793,21 @@ fn kube_nodes(input: &ServicesInput) -> Option<Node> {
     let k = &input.kube;
     let root = Target::KubeRoot;
     let mut node = Node::new(&root, "Kubernetes", Icon::Kubernetes)
-        .detail(k.path.clone())
+        .detail(k.source_label())
         .expanded(true);
     let Some(cfg) = &k.config else {
+        if k.loading {
+            node.status = Some(Status::Busy);
+            node.children = vec![info_node(
+                "kube",
+                &format!(
+                    "Reading the kubeconfig on {}…",
+                    k.host.as_deref().unwrap_or("the host")
+                ),
+                Icon::Kubernetes,
+            )];
+            return Some(node);
+        }
         let e = k.error.as_ref()?;
         node.children = vec![info_node("kube", e, Icon::Error)];
         return Some(node);
@@ -753,12 +840,7 @@ fn kube_nodes(input: &ServicesInput) -> Option<Node> {
             } else {
                 server
             });
-            let default_ns = k
-                .default_namespace
-                .clone()
-                .filter(|n| !n.is_empty() && is_current)
-                .or_else(|| c.namespace.clone())
-                .unwrap_or_else(|| "default".into());
+            let default_ns = k.namespace_of(&c.name);
             match k.namespaces.get(&c.name) {
                 None => n.lazy = true,
                 Some(Loaded::Loading) => {
@@ -1738,9 +1820,20 @@ pub fn details(input: &ServicesInput, node_id: &str) -> Option<Details> {
         }
         Target::KubeRoot => {
             let k = &input.kube;
-            let mut rows = vec![row("Kubeconfig", k.path.clone())];
+            let mut rows = Vec::new();
+            match &k.host {
+                Some(h) => {
+                    rows.push(row("Contexts from", format!("host {h}")));
+                    rows.push(row("Kubeconfig", format!("{} on {h}", k.path)));
+                    if let Some(kubectl) = &k.kubectl {
+                        rows.push(row("kubectl", format!("{kubectl} (runs on {h})")));
+                    }
+                }
+                None => rows.push(row("Kubeconfig", k.path.clone())),
+            }
             if let Some(c) = k.current_context() {
                 rows.push(row("Current context", c.to_string()));
+                rows.push(row("Namespace", k.namespace_of(c)));
             }
             if let Some(e) = &k.error {
                 d.message = Some(e.clone());
@@ -2293,6 +2386,7 @@ mod tests {
             remote_port: 80,
             connections: 0,
             error: None,
+            via: Some("deploy@shop.example.com".into()),
         }];
         let d = details(&i, &pod).unwrap();
         assert_eq!(
