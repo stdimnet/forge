@@ -219,6 +219,7 @@ impl LocalPhp {
             ..IndexConfig::default()
         };
         let mut idx = ProjectIndex::new(self.root(), config);
+        idx.set_structure(self.workspace.excludes().config());
         idx.load_cache();
         idx.set_source_roots(settings.effective_roots(self.root()));
         idx
@@ -268,6 +269,8 @@ impl PhpBackend for LocalPhp {
         let mut idx = previous.unwrap_or_else(|| self.fresh_index());
         // composer.json may have changed since.
         idx.set_source_roots(self.project_settings().effective_roots(self.root()));
+        // Excluded folders may have changed since (Settings | Directories).
+        idx.set_structure(self.workspace.excludes().config());
         let stats = idx.index_workspace(|done, total| progress(done, total));
         if let Err(e) = idx.save_cache() {
             tracing::warn!("could not save PHP index cache: {e}");

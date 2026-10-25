@@ -11,7 +11,8 @@ pub use forge_fuzzy::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::workspace::{Workspace, DEFAULT_EXCLUDES};
+use crate::excludes::skips_entry;
+use crate::workspace::Workspace;
 use crate::Result;
 
 /// Which files [`Workspace::collect_files`] reads: everything a language index needs in one
@@ -42,7 +43,7 @@ const MAX_WALKED_FILES: usize = 200_000;
 
 impl Workspace {
     /// Find files whose name (or path, if the query contains `/`) fuzzy-matches `query`.
-    /// Respects `.gitignore`/`.ignore` and the default excludes; best matches first.
+    /// Respects `.gitignore`/`.ignore` and the excluded folders; best matches first.
     pub fn find_files(&self, query: &str, limit: usize) -> Result<Vec<FileMatch>> {
         self.find_files_with(query, limit, MatchOptions::default())
     }
@@ -66,10 +67,11 @@ impl Workspace {
     /// Every project file (workspace-relative; `.gitignore`/`.ignore` and the default
     /// excludes respected), at most 200,000.
     pub fn list_files(&self) -> Vec<String> {
+        let (excludes, root) = (self.excludes().get(), self.root().to_path_buf());
         let walker = ignore::WalkBuilder::new(self.root())
             .hidden(false)
             .require_git(false)
-            .filter_entry(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
+            .filter_entry(move |e| !skips_entry(&excludes, &root, e))
             .build();
         walker
             .filter_map(|e| e.ok())
@@ -80,7 +82,7 @@ impl Workspace {
     }
 
     /// Find in Files: search the text of every file in scope (`.gitignore`/`.ignore` and the
-    /// default excludes respected; binary and huge files skipped). An invalid query is
+    /// excluded folders respected; binary and huge files skipped). An invalid query is
     /// reported in [`FindResult::error`].
     pub fn find_in_files(&self, req: &FindRequest) -> Result<FindResult> {
         let finder = match forge_find::Finder::new(req) {
@@ -110,7 +112,7 @@ impl Workspace {
     }
 
     /// TODO tool window: TODO patterns in the comments of every project file (or only of
-    /// `req.paths`), `.gitignore` and the default excludes respected. An invalid pattern is
+    /// `req.paths`), `.gitignore` and the excluded folders respected. An invalid pattern is
     /// reported in [`TodoResult::error`].
     pub fn find_todos(&self, req: &TodoRequest) -> Result<TodoResult> {
         let scanner = match forge_find::todo::TodoScanner::new(req) {
@@ -164,17 +166,18 @@ impl Workspace {
     }
 
     /// Visit the text files under `start` that `wants` accepts (`.gitignore`/`.ignore` and the
-    /// default excludes respected, binary and huge files skipped) until `visit` returns false.
+    /// excluded folders respected, binary and huge files skipped) until `visit` returns false.
     fn walk_text_files(
         &self,
         start: &std::path::Path,
         wants: impl Fn(&str) -> bool,
         mut visit: impl FnMut(&str, &str) -> bool,
     ) {
+        let (excludes, root) = (self.excludes().get(), self.root().to_path_buf());
         let walker = ignore::WalkBuilder::new(start)
             .hidden(false)
             .require_git(false)
-            .filter_entry(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
+            .filter_entry(move |e| !skips_entry(&excludes, &root, e))
             .build();
         for entry in walker.filter_map(|e| e.ok()).take(MAX_WALKED_FILES) {
             if !entry.file_type().is_some_and(|t| t.is_file()) {
@@ -201,18 +204,19 @@ impl Workspace {
     }
 
     /// The text of every file with one of `req.extensions` (`.gitignore`/`.ignore` and the
-    /// default excludes respected; binary and oversized files skipped), in path order.
+    /// excluded folders respected; binary and oversized files skipped), in path order.
     pub fn collect_files(&self, req: &CollectRequest) -> Result<Vec<SourceFile>> {
         let exts: Vec<String> = req
             .extensions
             .iter()
             .map(|e| e.trim_start_matches('.').to_ascii_lowercase())
             .collect();
+        let (excludes, root) = (self.excludes().get(), self.root().to_path_buf());
         let walker = ignore::WalkBuilder::new(self.root())
             .hidden(false)
             .require_git(false)
             .sort_by_file_path(|a, b| a.cmp(b))
-            .filter_entry(|e| !DEFAULT_EXCLUDES.contains(&e.file_name().to_string_lossy().as_ref()))
+            .filter_entry(move |e| !skips_entry(&excludes, &root, e))
             .build();
         let mut out = Vec::new();
         let mut total = 0u64;

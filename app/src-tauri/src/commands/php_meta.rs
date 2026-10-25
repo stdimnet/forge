@@ -43,7 +43,9 @@ pub async fn php_inspect(
     content: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<PhpProblem>> {
-    if !is_php(&path) {
+    // Like PHPStorm, files in excluded folders are not inspected.
+    if !is_php(&path) || crate::commands::project_structure::excludes(&state).excludes(&path, false)
+    {
         return Ok(Vec::new());
     }
     let backend = state.backend()?;

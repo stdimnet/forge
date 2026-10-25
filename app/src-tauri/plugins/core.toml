@@ -215,6 +215,100 @@ group = "appearance"
 section = "Project View"
 order = 41
 
+[[contributions.settings]]
+key = "projectView.showExcludedFiles"
+title = "Show excluded files"
+description = "The Project tool window lists excluded folders and files (orange) instead of hiding them. Options menu (⋮) › Show Excluded Files."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 42
+
+[[contributions.settings]]
+key = "projectView.showMembers"
+title = "Show members"
+description = "PHP, JavaScript, TypeScript and Lua files expand to their classes, functions, methods and properties; a click on a member opens it. Options menu (⋮) › Show Members."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 43
+
+[[contributions.settings]]
+key = "projectView.compactMiddlePackages"
+title = "Compact middle packages"
+description = "Folders that contain only one folder are shown as one row (`src/Acme/Shop`). Options menu (⋮) › Compact Middle Packages."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 44
+
+[[contributions.settings]]
+key = "projectView.foldersAlwaysOnTop"
+title = "Folders always on top"
+description = "Folders come before files; turn it off to sort folders and files together. Options menu (⋮) › Folders Always on Top."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 45
+
+[[contributions.settings]]
+key = "projectView.sortByType"
+title = "Sort by type"
+description = "Files are sorted by their extension, then by name. Options menu (⋮) › Sort by Type."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 46
+
+[[contributions.settings]]
+key = "projectView.fileNesting.enabled"
+title = "File nesting"
+description = "Files with the same name as another file and a child suffix of a nesting rule are shown below it (`app.js` below `app.ts`). Options menu (⋮) › File Nesting…"
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 47
+
+[[contributions.settings]]
+key = "projectView.fileNesting.rules"
+title = "File nesting rules"
+description = "Parent file suffix and child file suffixes (separated by `;`) of File Nesting. Empty uses PHPStorm's predefined rules. Edit them in the Project tool window: Options menu (⋮) › File Nesting…"
+type = "objects"
+unique = ["parent"]
+default = []
+group = "appearance"
+section = "Project View"
+order = 48
+
+# ---- Directories ----------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "projectStructure.folders"
+title = "Excluded and resource folders"
+description = "Folders marked as Excluded, Resource Root or Test Resources Root (Settings | Directories, Project view: Mark Directory as), stored in the project. Kind `included` cancels the default exclusion of a folder like `node_modules`. Excluded folders are left out of the indexes, Find in Files, Search Everywhere, inspections and local history."
+type = "objects"
+unique = ["path"]
+default = []
+group = "directories"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "projectStructure.excludePatterns"
+title = "Exclude files"
+description = "File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`)."
+type = "string"
+default = ""
+group = "directories"
+project = true
+order = 11
+
 # ---- Appearance & Behavior > Scopes and File Colors ------------------------------------
 
 [[contributions.settings]]

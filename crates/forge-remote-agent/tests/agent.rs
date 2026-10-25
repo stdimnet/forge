@@ -165,6 +165,18 @@ async fn files_search_git_and_detection() {
                 ("composer.json".to_string(), false),
             ]
         );
+        // Excluded folders (Settings | Directories) apply on the host.
+        let excluded = forge_core::excludes::StructureConfig {
+            folders: vec![forge_core::excludes::FolderMark {
+                path: "app".into(),
+                kind: forge_core::excludes::FolderKind::Excluded,
+            }],
+            ..Default::default()
+        };
+        assert!(b.set_structure(excluded).unwrap());
+        assert!(b.list_dir("").unwrap()[0].excluded);
+        assert!(b.find_files("Order", 10, false).unwrap().is_empty());
+        assert!(b.set_structure(Default::default()).unwrap());
         b.write_file("app/Http/Kernel.php", "<?php\n// ü\n")
             .unwrap();
         assert_eq!(b.read_file("app/Http/Kernel.php").unwrap(), "<?php\n// ü\n");

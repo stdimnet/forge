@@ -9,6 +9,8 @@ export interface FileEntry {
   kind: FileKind;
   /** Matched by `.gitignore`; the project tree grays these out. */
   ignored?: boolean;
+  /** Excluded from the project (Settings | Directories) or inside an excluded folder. */
+  excluded?: boolean;
 }
 
 /** The host of a project opened over SSH. */
