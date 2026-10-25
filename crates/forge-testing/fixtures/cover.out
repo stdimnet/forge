@@ -1,0 +1,4 @@
+mode: count
+example.com/shop/cart/cart.go:10.32,12.10 2 3
+example.com/shop/cart/cart.go:12.10,14.3 1 0
+example.com/shop/cart/cart.go:13.5,14.3 1 0
