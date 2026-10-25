@@ -4,8 +4,8 @@
 //! instance, which answers "who are you" and "come to the front" requests.
 //!
 //! This module holds the pure parts: the registry ([`ProjectWindows`]: order, Next/Previous
-//! Project Window, pruning), the control protocol ([`control_line`], [`parse_control_line`])
-//! and where Open Project puts a project ([`open_target`]). The Tauri shell does the I/O.
+//! Project Window, pruning) and the control protocol ([`control_line`],
+//! [`parse_control_line`]). The Tauri shell does the I/O.
 
 use serde::{Deserialize, Serialize};
 
@@ -148,29 +148,6 @@ pub struct ProjectWindowInfo {
     pub current: bool,
 }
 
-/// Where Open Project puts a project (Settings | System Settings | Project: "Open project in").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum OpenTarget {
-    /// Ask with the "Open Project" dialog (New Window / This Window).
-    Ask,
-    NewWindow,
-    ThisWindow,
-}
-
-/// The target for the setting value (`ask | newWindow | thisWindow`). A window without a
-/// project (the Welcome screen) always opens the project itself.
-pub fn open_target(setting: &str, has_project: bool) -> OpenTarget {
-    if !has_project {
-        return OpenTarget::ThisWindow;
-    }
-    match setting {
-        "newWindow" => OpenTarget::NewWindow,
-        "thisWindow" | "currentWindow" => OpenTarget::ThisWindow,
-        _ => OpenTarget::Ask,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -269,19 +246,5 @@ mod tests {
             None
         );
         assert_eq!(parse_control_line("GET / HTTP/1.1", "s3cret"), None);
-    }
-
-    #[test]
-    fn open_target_follows_the_setting() {
-        assert_eq!(open_target("ask", true), OpenTarget::Ask);
-        assert_eq!(open_target("newWindow", true), OpenTarget::NewWindow);
-        assert_eq!(open_target("thisWindow", true), OpenTarget::ThisWindow);
-        assert_eq!(open_target("whatever", true), OpenTarget::Ask);
-        // The Welcome screen opens the project itself.
-        assert_eq!(open_target("newWindow", false), OpenTarget::ThisWindow);
-        assert_eq!(
-            serde_json::to_string(&OpenTarget::NewWindow).unwrap(),
-            "\"newWindow\""
-        );
     }
 }

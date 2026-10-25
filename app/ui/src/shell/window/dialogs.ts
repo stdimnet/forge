@@ -15,6 +15,12 @@
  *
  * Small popups (Find Action, completion, context menus, balloons) stay in-page and do not use
  * this API.
+ *
+ * Windows that are not modal (`modal: false`: an editor tab or a tool window in its own
+ * window) use the same API. Several of them can be open at once: their ids are
+ * `<definition id>--<key>` (`editor--2`, `toolwindow--terminal`) and resolve to the
+ * definition before `--`. In browser mode they render in-page without a backdrop, or as a
+ * browser popup window when the definition sets `browserPopup`.
  */
 import { createSignal, type Component } from "solid-js";
 import { isTauri } from "@/ipc";
@@ -40,7 +46,11 @@ export interface DialogDef<P = Record<string, unknown>, R = unknown> {
   /** Runs in the opening window after the dialog closed; `result` is `null` when cancelled. */
   onClosed?: (result: R | null, props: P) => void;
   /** Runs in the opening window for `notifyDialogOpener` messages (e.g. after Apply). */
-  onMessage?: (message: unknown) => void;
+  onMessage?: (message: unknown, props: P) => void;
+  /** Modal (default): the opener takes no input while the dialog is open. */
+  modal?: boolean;
+  /** Browser mode: open as a browser popup window instead of in-page (not modal only). */
+  browserPopup?: boolean;
 }
 
 // Definitions are heterogeneous; callers get typed access through `registerDialog`.
@@ -52,7 +62,16 @@ export function registerDialog<P, R = unknown>(def: DialogDef<P, R>): void {
   defs.set(def.id, def as AnyDef);
 }
 
-export const dialogDef = (id: string): AnyDef | undefined => defs.get(id);
+/** Separates a definition id from the key of one of its windows (`editor--2`). */
+export const INSTANCE_SEPARATOR = "--";
+
+/** The definition of a dialog id: registered as it is, or the part before `--`. */
+export const dialogDef = (id: string): AnyDef | undefined =>
+  defs.get(id) ?? (id.includes(INSTANCE_SEPARATOR) ? defs.get(id.split(INSTANCE_SEPARATOR)[0]) : undefined);
+
+/** A safe dialog id for one window of a definition: `<def>--<key>` with only `[A-Za-z0-9_-]`. */
+export const instanceId = (def: string, key: string): string =>
+  `${def}${INSTANCE_SEPARATOR}${key.replace(/[^A-Za-z0-9_-]/g, "_")}`.slice(0, 64);
 
 export function dialogTitle(def: AnyDef, props: unknown): string {
   return typeof def.title === "function" ? def.title(props) : def.title;
@@ -61,6 +80,8 @@ export function dialogTitle(def: AnyDef, props: unknown): string {
 export interface InPageDialog {
   id: string;
   props: unknown;
+  /** Rendered without a backdrop (a window that is not modal). */
+  modeless?: boolean;
 }
 
 const [inPage, setInPage] = createSignal<InPageDialog[]>([]);
@@ -94,7 +115,7 @@ function ensureListeners(): Promise<void> {
     const me = await windowLabel();
     await windowApi.onDialogClosed((e) => e.window === me && finish(e.id, e.result ?? null));
     await windowApi.onDialogMessage((e) => {
-      if (e.window === me) defs.get(e.id)?.onMessage?.(e.message);
+      if (e.window === me) dialogDef(e.id)?.onMessage?.(e.message, pending.get(e.id)?.props);
     });
   })();
   return listening;
@@ -107,7 +128,7 @@ function finish(id: string, result: unknown): void {
   setOpenIds((ids) => ids.filter((x) => x !== id));
   setInPage((list) => list.filter((d) => d.id !== id));
   try {
-    defs.get(id)?.onClosed?.(result, p.props);
+    dialogDef(id)?.onClosed?.(result, p.props);
   } finally {
     p.resolve(result);
   }
@@ -118,7 +139,7 @@ function finish(id: string, result: unknown): void {
  * Opening a dialog that is already open focuses it and returns the same promise.
  */
 export function openDialogWindow<R = unknown>(id: string, props: object = {}): Promise<R | null> {
-  const def = defs.get(id);
+  const def = dialogDef(id);
   if (!def) return Promise.reject(new Error(`unknown dialog "${id}"`));
   // This window already is that dialog.
   if (dialogBoot()?.id === id) return Promise.resolve(null);
@@ -130,10 +151,12 @@ export function openDialogWindow<R = unknown>(id: string, props: object = {}): P
     minWidth: def.minWidth,
     minHeight: def.minHeight,
     props,
+    modal: def.modal ?? true,
   };
   const existing = pending.get(id);
   if (existing) {
     if (windowMode) void windowApi.openDialog(request).catch(() => undefined);
+    else popups.get(id)?.focus();
     return existing.promise as Promise<R | null>;
   }
   let resolve!: (result: unknown) => void;
@@ -147,10 +170,67 @@ export function openDialogWindow<R = unknown>(id: string, props: object = {}): P
         console.error(`dialog "${id}" could not be opened`, e);
         finish(id, null);
       });
+  } else if (def.modal === false && def.browserPopup) {
+    openPopup(id, def, props);
   } else {
-    setInPage((list) => [...list, { id, props }]);
+    setInPage((list) => [...list, { id, props, modeless: def.modal === false }]);
   }
   return promise as Promise<R | null>;
+}
+
+// ---- Browser popups (browser mode, `browserPopup`) ------------------------------------
+
+/** Posted by a popup dialog window to its opener when it closes. */
+const POPUP_CLOSED = "forge-dialog-closed";
+const popups = new Map<string, Window>();
+let popupListener = false;
+
+function openPopup(id: string, def: AnyDef, props: unknown): void {
+  if (!popupListener && typeof window !== "undefined") {
+    popupListener = true;
+    window.addEventListener("message", (e) => {
+      const data = e.data as { type?: string; id?: string; result?: unknown } | null;
+      if (e.origin !== location.origin || data?.type !== POPUP_CLOSED || !data.id) return;
+      popups.delete(data.id);
+      finish(data.id, data.result ?? null);
+    });
+  }
+  const url = `${location.pathname}?dialog=${encodeURIComponent(id)}&props=${encodeURIComponent(JSON.stringify(props ?? {}))}`;
+  const popup = typeof window.open === "function" ? window.open(url, id, `popup,width=${def.width},height=${def.height}`) : null;
+  if (!popup) {
+    finish(id, null);
+    return;
+  }
+  popups.set(id, popup);
+  // A popup closed by the browser before it could report back.
+  const poll = setInterval(() => {
+    if (!popup.closed) return;
+    clearInterval(poll);
+    if (popups.get(id) === popup) {
+      popups.delete(id);
+      finish(id, null);
+    }
+  }, 500);
+}
+
+/**
+ * Close a window this window opened (e.g. a tool window switched back to docked); it closes
+ * without a result.
+ */
+export async function closeOwnedDialog(id: string): Promise<void> {
+  if (!pending.has(id)) return;
+  if (windowMode) {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const w = await WebviewWindow.getByLabel(`dialog-${id}`);
+    if (w) {
+      await w.close().catch(() => undefined);
+      return;
+    }
+  }
+  const popup = popups.get(id);
+  popups.delete(id);
+  popup?.close();
+  finish(id, null);
 }
 
 /** Close a dialog with a result (OK) or `null` (Cancel). Call it from the dialog itself. */
@@ -158,6 +238,11 @@ export function closeDialog(id: string, result: unknown = null): void {
   if (dialogBoot()?.id === id) {
     disposeHandlers.get(id)?.();
     if (isTauri()) void windowApi.closeDialog(result);
+    else if (window.opener) {
+      // A browser popup (browser mode): report to the opener, then close.
+      (window.opener as Window).postMessage({ type: POPUP_CLOSED, id, result }, location.origin);
+      window.close();
+    }
     return;
   }
   // Dialog windows close themselves; in-page dialogs close here.
@@ -200,7 +285,7 @@ export function notifyDialogOpener(id: string, message: unknown): void {
     if (isTauri()) void windowApi.messageParent(message).catch(() => undefined);
     return;
   }
-  defs.get(id)?.onMessage?.(message);
+  dialogDef(id)?.onMessage?.(message, pending.get(id)?.props);
 }
 
 /** The dialog is open: this window shows it, or this window opened it. */

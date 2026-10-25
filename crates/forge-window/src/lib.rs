@@ -27,8 +27,8 @@ pub use chrome::{
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
 pub use projects::{
-    control_line, open_target, parse_control_line, ControlRequest, OpenTarget, ProjectWindowEntry,
-    ProjectWindowInfo, ProjectWindows,
+    control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo,
+    ProjectWindows,
 };
 pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 

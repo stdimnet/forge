@@ -6,8 +6,12 @@ import { closeAllTabs, editor, openFile } from "./editor";
 import {
   isToolWindowVisible,
   layout,
+  moveFloatingToolWindow,
   moveToolWindowTo,
+  dockedIn,
   removeFromSidebar,
+  setToolWindowViewMode,
+  viewModeOf,
   setToolWindowTab,
   showToolWindow,
   slotOfToolWindow,
@@ -118,5 +122,22 @@ describe("project layout", () => {
     await restoreDefaultLayout();
     expect(slotOfToolWindow("terminal")).toBe("leftSplit");
     expect(layout.active.leftSplit).toBe("terminal");
+  });
+
+  it("saves and restores view modes and floating bounds", async () => {
+    await restoreDefaultLayout();
+    setToolWindowViewMode("terminal", "float");
+    moveFloatingToolWindow("terminal", { x: 40, y: 60, width: 500, height: 260 });
+    showToolWindow("terminal");
+    const saved = currentLayout();
+    expect(saved.toolWindows?.terminal).toMatchObject({ mode: "float", floating: { x: 40, y: 60, width: 500, height: 260 } });
+    // A floating window takes no room in its area.
+    const slot = slotOfToolWindow("terminal");
+    expect(dockedIn(slot)).toBeNull();
+    setToolWindowViewMode("terminal", "dockPinned");
+    expect(currentLayout().toolWindows?.terminal.mode).toBeUndefined();
+    expect(dockedIn(slot)).toBe("terminal");
+    await applyLayout(saved);
+    expect(viewModeOf("terminal")).toBe("float");
   });
 });

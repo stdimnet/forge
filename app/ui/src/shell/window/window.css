@@ -243,6 +243,16 @@
   justify-content: center;
   background: color-mix(in srgb, var(--bg-app) 55%, transparent);
 }
+/* A window that is not modal (browser mode): no backdrop, the IDE stays usable. */
+.wf-modeless {
+  position: fixed;
+  right: 48px;
+  bottom: 48px;
+  z-index: 90;
+  display: flex;
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+}
 .wf-missing {
   padding: 24px;
   color: var(--fg-muted);

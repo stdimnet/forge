@@ -22,7 +22,7 @@ import { getSetting } from "@/state/settings";
 import { CodeEditor } from "@/editor/CodeEditor";
 import { FileIcon } from "./FileIcon";
 import { editorViewFor, fileEditorFor } from "./editorViews";
-import { openTabMenu } from "./tabMenu";
+import { canDragTabsOut, openTabMenu, tabDraggedOut } from "./tabMenu";
 import { NavigationBar, navBarLocation } from "@/features/navBar";
 import { tabColor } from "@/features/scopes/model";
 
@@ -45,6 +45,39 @@ function TabIcon(props: { tab: EditorTab }) {
       {(Icon) => <Dynamic component={Icon()} size={14} name={props.tab.name} />}
     </Show>
   );
+}
+
+/** Pixels the pointer moves before a press on a tab counts as a drag. */
+const DRAG_START = 6;
+
+/**
+ * Dragging a tab out of the window (releasing the pointer outside it) hands it to
+ * `tabDraggedOut` (open it in a new window). Pointer capture keeps the events coming while
+ * the pointer is outside the page.
+ */
+function dragTabOut(e: PointerEvent, group: number, id: string): void {
+  if (e.button !== 0 || !canDragTabsOut() || (e.target as Element).closest("button")) return;
+  const tab = e.currentTarget as HTMLElement;
+  const [x0, y0] = [e.clientX, e.clientY];
+  let dragging = false;
+  const move = (ev: PointerEvent) => {
+    if (dragging || Math.hypot(ev.clientX - x0, ev.clientY - y0) < DRAG_START) return;
+    dragging = true;
+    tab.setPointerCapture(ev.pointerId);
+    tab.classList.add("dragging");
+  };
+  const up = (ev: PointerEvent) => {
+    tab.removeEventListener("pointermove", move);
+    tab.removeEventListener("pointerup", up);
+    tab.removeEventListener("pointercancel", up);
+    tab.classList.remove("dragging");
+    if (!dragging || ev.type === "pointercancel") return;
+    const outside = ev.clientX < 0 || ev.clientY < 0 || ev.clientX > window.innerWidth || ev.clientY > window.innerHeight;
+    if (outside) tabDraggedOut(group, id);
+  };
+  tab.addEventListener("pointermove", move);
+  tab.addEventListener("pointerup", up);
+  tab.addEventListener("pointercancel", up);
 }
 
 /** One editor tab: file, view or custom tab. Pinned tabs show a pin that unpins on click. */
@@ -70,6 +103,7 @@ function Tab(props: { group: TabGroup; id: string }) {
       title={custom()?.tooltip ?? custom()?.title ?? props.id}
       data-tab-id={props.id}
       onClick={() => activateTab(props.group.id, props.id)}
+      onPointerDown={(e) => dragTabOut(e, props.group.id, props.id)}
       onAuxClick={(e) => e.button === 1 && closeTabIn(props.group.id, props.id)}
       onContextMenu={(e) => {
         e.preventDefault();

@@ -71,6 +71,7 @@ import "./servicesMock";
 import "./webMock";
 import "./saveActionsMock";
 import "./windowMock";
+import "./projectWindowsMock";
 import "./updatesMock";
 import "./templatesMock";
 // Wraps the file mocks above, so it comes last.
