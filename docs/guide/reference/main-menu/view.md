@@ -17,10 +17,14 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | --- | --- | --- | --- | --- |
 | **Tool Windows** | — | — | dynamic | Lists every tool window of the project alphabetically; click one to show or hide it. |
 | **Appearance** | | | | submenu |
-| Appearance › Enter Presentation Mode | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Enter Distraction-Free Mode | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Enter Full Screen | — | `Ctrl+Cmd+F` | not yet | Not available yet; the entry is disabled. |
-| Appearance › Enter Zen Mode | — | — | not yet | Not available yet; the entry is disabled. |
+| Appearance › Enter Presentation Mode | — | — | yes | Full screen without tool windows and bars, with a large editor font; reads Exit Presentation Mode while on. [More](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) ([screenshot](../../../screenshots/presentation-mode.png)) |
+| Appearance › Enter Distraction-Free Mode | — | — | yes | Only the centered text; leaving restores the tool windows. [More](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) ([screenshot](../../../screenshots/distraction-free-mode.png)) |
+| Appearance › Enter Full Screen | — | `Ctrl+Cmd+F` | yes | The window covers the screen; reads Exit Full Screen while on. [More](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) |
+| Appearance › Enter Zen Mode | — | — | yes | Distraction-Free Mode in full screen. [More](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) |
+| Appearance › **Zoom IDE** | | | | submenu |
+| Appearance › Zoom IDE › Zoom In | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` | yes | Scales the whole IDE up one step (`appearance.zoom`). [More](../../user/windows-and-layouts.md#zoom-ide) ([screenshot](../../../screenshots/zoomed-ide.png)) |
+| Appearance › Zoom IDE › Zoom Out | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` | yes | Scales the whole IDE down one step. [More](../../user/windows-and-layouts.md#zoom-ide) |
+| Appearance › Zoom IDE › Reset | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` | yes | Back to 100 %. [More](../../user/windows-and-layouts.md#zoom-ide) |
 | Appearance › Compact Mode | — | — | yes | Turns compact mode (smaller toolbars and tool window headers) on or off. [More](../../user/settings-and-themes.md#appearance-options) |
 | Appearance › Show Main Menu in Separate Toolbar | — | — | yes | Shows the main menu as a menu bar above the main toolbar, or back behind ☰. [More](../../user/workbench.md#main-menu) |
 | Appearance › Tool Window Bars | — | — | yes | Shows or hides the tool window stripes along the window edges. [More](../../user/workbench.md#managing-tool-windows) |

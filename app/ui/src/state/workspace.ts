@@ -65,15 +65,34 @@ export async function restoreWorkspace(): Promise<void> {
   if (current) setWorkspace(current);
 }
 
+/** "Trust and Open Project?" for a folder another window will open (resolves at once when trusted). */
+export async function trustBeforeOpen(path: string): Promise<TrustDecision> {
+  return trustPrompt ? trustPrompt.beforeOpen(path) : "trust";
+}
+
+type ProjectOpener = (path: string) => Promise<unknown>;
+let opener: ProjectOpener = openWorkspace;
+
+/**
+ * How File | Open and the recent projects open a local project. The project windows feature
+ * sets it to ask "New Window / This Window" while a project is open.
+ */
+export function setProjectOpener(fn: ProjectOpener): void {
+  opener = fn;
+}
+
+/** Open a local project the way the user wants (this window or a new one). */
+export const openProject = async (path: string): Promise<void> => void (await opener(path));
+
 /** Show the native folder picker and open the chosen directory as a project. */
 export async function pickAndOpenWorkspace(): Promise<void> {
   if (!isTauri()) {
-    await openWorkspace("demo");
+    await openProject("demo");
     return;
   }
   const { open } = await import("@tauri-apps/plugin-dialog");
   const dir = await open({ directory: true, multiple: false, title: "Open File or Project" });
-  if (typeof dir === "string") await openWorkspace(dir);
+  if (typeof dir === "string") await openProject(dir);
 }
 
 export function closeWorkspace(): void {

@@ -60,6 +60,7 @@ import "./carets";
 import "./contextMenu";
 import "./mainMenu";
 import "./editorTabs";
+import "./windows";
 import "./editing";
 import "./bookmarks";
 import "./todo";

@@ -95,7 +95,8 @@ pub fn begin(app: &AppHandle) {
         .read_settings()
         .get_bool(SHOW_SPLASH_KEY)
         .unwrap_or(true);
-    if show {
+    // Additional project windows open without a splash, like PHPStorm.
+    if show && !crate::commands::project_windows::is_secondary() {
         if let Err(e) = window_from_config(app, SPLASH_LABEL).and_then(|b| b.build()) {
             tracing::warn!("cannot open the splash window: {e}");
         }
@@ -146,7 +147,7 @@ fn run_steps(app: &AppHandle) {
     progress(app, "Opening project", "", 34);
     let cwd = std::env::current_dir().unwrap_or_default();
     crate::companion::handle_launch_args(app, std::env::args().skip(1), &cwd, true);
-    if state.project_info().is_none() {
+    if state.project_info().is_none() && !crate::commands::project_windows::is_secondary() {
         reopen_last_project(app);
     }
     let detected = match state.backend() {
@@ -192,8 +193,13 @@ fn run_steps(app: &AppHandle) {
     );
     crate::commands::services::start(app);
 
-    // 5. Updates (the splash may offer one and wait for the answer).
-    let offer = updates::startup_check(app);
+    // 5. Updates (the splash may offer one and wait for the answer). The first project
+    // window checks; additional ones do not ask again.
+    let offer = if crate::commands::project_windows::is_secondary() {
+        None
+    } else {
+        updates::startup_check(app)
+    };
     if let Some(offer) = offer {
         if splash_open(app) {
             updates::offer_on_splash(app, offer);

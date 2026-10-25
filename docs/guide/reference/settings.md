@@ -41,6 +41,7 @@ Page id `appearance`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light` | `dark` | user |  | Theme |
+| `appearance.zoom` | enum: `50`, `67`, `75`, `80`, `90`, `100`, `110`, `125`, `150`, `175`, `200`, `250`, `300` | `100` | user |  | Zoom — Scales the whole IDE: menus, tool windows, dialogs and the editor (View \| Appearance \| Zoom IDE). |
 | `appearance.uiFont.family` | enum: `Inter`, `system-ui`, `Segoe UI`, `Roboto` | `Inter` | user | Font | Font — Font used for menus, tool windows and dialogs. |
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
@@ -50,6 +51,8 @@ Page id `appearance`.
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
+| `appearance.presentationFontSize` | int (8–96) | `24` | user | Presentation Mode | Font size — Editor font size in Presentation Mode (View \| Appearance \| Enter Presentation Mode). |
+| `workbench.layouts` | objects (unique `name`) | `[]` | user | — | Layouts — Tool window layouts saved with Window \| Layouts \| Save Current Layout as New…; each entry has a name and the layout as JSON. |
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
@@ -93,6 +96,7 @@ Page id `system`.
 | --- | --- | --- | --- | --- | --- |
 | `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
 | `system.confirmExit` | bool | `true` | user | Project | Confirm before exiting the IDE |
+| `system.openProjectIn` | enum: `newWindow`, `thisWindow`, `ask` | `ask` | user | Project | Open project in — Where File \| Open and the recent projects open a project while another one is open in this window. |
 | `system.defaultProjectDirectory` | path | `~/Projects` | user | Project | Default project directory — New projects are created here unless you pick another location. |
 | `system.autosave.onFrameDeactivation` | bool | `true` | user | Autosave | Save files if the IDE is switched to a different application |
 | `system.autosave.onIdle` | bool | `false` | user | Autosave | Save files if the IDE is idle |

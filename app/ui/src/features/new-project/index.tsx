@@ -5,7 +5,7 @@
 import { registerCommand } from "@/state/commands";
 import { showBalloon } from "@/keymap";
 import { registerDialog } from "@/shell/window/dialogs";
-import { openWorkspace } from "@/state/workspace";
+import { openProject } from "@/state/workspace";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { NEW_PROJECT_DIALOG, openNewProject, prepareNewProject, type NewProjectProps, type NewProjectResult } from "./store";
 import "./newProject.css";
@@ -23,10 +23,10 @@ registerDialog<NewProjectProps, NewProjectResult>({
   minHeight: 460,
   component: NewProjectDialog,
   prepare: (props) => prepareNewProject(props?.generator),
-  // The project was created: open it in the window that opened the dialog.
+  // The project was created: open it (in this window or a new one, as the user prefers).
   onClosed: (result) => {
     if (result?.root) {
-      openWorkspace(result.root).catch((e) => showBalloon("Cannot open the new project", String(e)));
+      openProject(result.root).catch((e) => showBalloon("Cannot open the new project", String(e)));
     }
   },
 });

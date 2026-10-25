@@ -54,6 +54,7 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Bookmark 0-9](#go-to-bookmark-0-9) | `Ctrl+0` … `Ctrl+9` | `Ctrl+0` … `Ctrl+9` |
 | [Show All Bookmarks](#show-all-bookmarks) | `Shift+F11` | `Cmd+F3` |
 | [Pin Tab](#pin-tab) | — | — |
+| [Open in New Window](#open-in-new-window) | `Shift+F4` | `Shift+F4` |
 | [Split Right](#split-right) | — | — |
 | [Split Down](#split-down) | — | — |
 | [Move to Opposite Group](#move-to-opposite-group) | — | — |
@@ -514,6 +515,16 @@ Opens the Bookmarks tool window.
 ![Show All Bookmarks](../../../screenshots/bookmarks.png)
 
 More: [Workbench and tool windows](../../user/workbench.md#bookmarks)
+
+## Open in New Window
+
+**Shortcut:** `Shift+F4` · macOS `Shift+F4` · action id `EditSourceInNewWindow`
+
+Moves the current editor tab into a window of its own (also: drag the tab out of the IDE window); closing that window docks the tab back.
+
+**Menu:** Window | Editor Tabs | Open in New Window
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#editor-tabs-in-their-own-window)
 
 ## Pin Tab
 

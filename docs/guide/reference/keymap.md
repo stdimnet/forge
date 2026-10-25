@@ -154,10 +154,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Quick Switch Scheme… | `QuickChangeScheme` | `` Ctrl+` `` | `` Ctrl+` `` | yes |
 | Theme: Toggle Dark/Light | `ChangeLaf` |  |  | yes |
-| Toggle Full Screen Mode | `ToggleFullScreen` |  | `Ctrl+Cmd+F` | — |
-| Toggle Presentation Mode | `TogglePresentationMode` |  |  | — |
-| Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
-| Toggle Zen Mode | `ToggleZenMode` |  |  | — |
+| Toggle Full Screen Mode | `ToggleFullScreen` |  | `Ctrl+Cmd+F` | yes |
+| Toggle Presentation Mode | `TogglePresentationMode` |  |  | yes |
+| Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | yes |
+| Toggle Zen Mode | `ToggleZenMode` |  |  | yes |
 | Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | yes |
 | Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
 | External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
@@ -189,6 +189,14 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Show Main Menu in Separate Toolbar | `ToggleMainMenuInSeparateToolbar` |  |  | yes |
 | Compact Mode | `ToggleCompactMode` |  |  | yes |
 | Tool Window Bars | `ViewToolButtons` |  |  | yes |
+
+### View > Appearance > Zoom IDE
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Zoom In | `ZoomInIdeAction` | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` | yes |
+| Zoom Out | `ZoomOutIdeAction` | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` | yes |
+| Reset | `ResetIdeScaleAction` | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` | yes |
 
 ### File > Manage IDE Settings
 
@@ -444,8 +452,14 @@ default shortcut and can be bound in Settings | Keymap.
 | Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
 | Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
-| Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
-| Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |
+| Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | yes |
+| Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | yes |
+
+### Window > Layouts
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Save Current Layout as New… | `StoreNewLayout` |  |  | yes |
 
 ### Window > Active Tool Window
 
@@ -473,6 +487,7 @@ default shortcut and can be bound in Settings | Keymap.
 | Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | yes |
 | Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | yes |
 | Split and Move Right | `MoveTabRight` |  |  | yes |
+| Open in New Window | `EditSourceInNewWindow` | `Shift+F4` | `Shift+F4` | yes |
 | Split and Move Down | `MoveTabDown` |  |  | yes |
 | Move to Opposite Group | `MoveEditorToOppositeTabGroup` |  |  | yes |
 | Change Splitter Orientation | `ChangeSplitOrientation` |  |  | yes |

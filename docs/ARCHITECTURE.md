@@ -642,6 +642,57 @@ or without Git, for local and remote projects.
   in-page (`DialogHost`) inside the same `WindowFrame`. Small popups stay in-page everywhere.
   Window labels `dialog-*` are listed in `capabilities/default.json`.
 
+- **Windows that are not modal.** `registerDialog({ …, modal: false, browserPopup? })` makes a
+  dialog definition for windows that do not block their owner: an editor tab in its own
+  window (`editor`) and a tool window in View Mode › Window (`toolwindow`,
+  `src/features/windows/detachedWindows.tsx`). Several can be open: their ids are
+  `<definition>--<key>` (`instanceId("editor", key)`), resolved by `dialogDef`.
+  `dialog_window_open` builds them without `.parent()`, with a taskbar entry and without
+  disabling the owner; they close when the owner's main window is destroyed.
+  `closeOwnedDialog(id)` closes one from the owner. In browser mode they render in-page
+  without a backdrop (`.wf-modeless`) or, with `browserPopup`, as a browser popup that posts
+  its result back to the opener. A tool window in its own window forwards the files it opens
+  (`setOpenFileForwarder`) to the owner as `{ type: "openFile", path }` messages.
+- **Full screen and zoom.** `window_set_fullscreen({ on })`, `window_is_fullscreen() -> bool`
+  and `window_set_zoom({ factor })` (webview zoom, 0.5–3) act on the calling window. The UI
+  keeps the View | Appearance modes in `src/state/appearanceModes.ts` (Presentation,
+  Distraction-Free, Zen: remember `layout.active` and the full screen state, restore both on
+  exit) and shows them as `data-appearance-mode` / `data-full-screen` on `<html>`. Zoom IDE
+  is the setting `appearance.zoom` (percent), applied by every window. Browser mocks use the
+  Fullscreen API and CSS `zoom` (with `--ide-zoom` for viewport-height layouts).
+- **Several project windows.** Each project window is its own Forge process with its own
+  `AppState` (`commands/project_windows.rs`). `project_window_open({ path })` starts
+  `current_exe` (or `$APPIMAGE`) with the folder and `FORGE_NEW_WINDOW=1`, which skips the
+  single-instance plugin, the splash, the update check, `forge://` registration and the
+  Browser Companion server; a window that already shows the folder is focused instead.
+  Instances register in `<cache dir>/forge/project-windows.json`
+  (`forge_window::ProjectWindows`) and answer `forge-window <token> info|focus` lines on a
+  `127.0.0.1` control port (`forge_window::parse_control_line`); entries that do not answer
+  are pruned. `project_windows_list() -> ProjectWindowInfo[]` (`{ id, name, root, current }`),
+  `project_window_focus({ id })` and `project_window_cycle({ delta }) -> ProjectWindowInfo |
+  null` back Window | Next / Previous Project Window and the window list. The UI asks "New
+  Window / This Window" through `openProject` (`src/features/windows/projectWindows.ts`,
+  installed with `setProjectOpener`), remembered in `system.openProjectIn`.
+
+## Tool window view modes and layouts
+
+- `forge_core::project_state::ToolWindowPlacement` has `mode` (`ViewMode`: `dockPinned`
+  (default, not written), `dockUnpinned`, `undock`, `float`, `window`) and `floating`
+  (`FloatingBounds { x, y, width, height }`, clamped by `sanitize`). The UI's
+  `state/toolWindowLayout.ts` (`setViewMode`, `isDockedMode`, `hidesOnFocusLoss`,
+  `clampFloating`) and `state/layout.ts` (`viewModeOf`, `dockedIn`, `undockedWindows`)
+  apply them: only docked windows take room in their area (`openInArea`), Undock and Float
+  render in `shell/UndockedToolWindows.tsx` over `.workbench-center`, Window opens a
+  `toolwindow` dialog window. Dock Unpinned and Undock windows hide on a pointer or focus
+  change outside them (`features/windows/appearance.ts`).
+- Named layouts (Window | Layouts) are `NamedLayout { name, layout }` in the user setting
+  `workbench.layouts` (`objects`, each `{ name, layout: <JSON text> }`, only the tool window
+  part). IPC: `layouts_list() -> NamedLayout[]`, `layouts_save({ name, layout, replace }) ->
+  NamedLayout` (names trimmed, compared without case, at most 64 characters and 50 layouts)
+  and `layouts_delete({ name }) -> bool`. The main menu fills the `layouts` and
+  `layoutsDelete` dynamic lists; `MainMenuRequest.labels` lets the UI rename an action by state
+  ("Exit Presentation Mode").
+
 ## Project backends and remote development (`forge-backend`, `forge-remote`, `forge-remote-agent`)
 
 - Every project command goes through the open project's `forge_backend::Backend`

@@ -17,6 +17,8 @@ pub fn run() {
     // Invalidate Caches / Restore Default Settings of the previous session, before the
     // settings and caches are opened.
     commands::maintenance::startup();
+    // An additional project window (Open Project › New Window) is an instance of its own.
+    commands::project_windows::init_from_env();
     let app_state = AppState::new();
     let run_state = commands::run::RunState::new(&app_state);
 
@@ -24,7 +26,7 @@ pub fn run() {
     // A second `forge …` launch is forwarded to this instance. forge:// links among its
     // arguments arrive through the deep-link plugin's event instead, so they are skipped.
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
-    {
+    if !commands::project_windows::is_secondary() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             let args = argv
                 .into_iter()
@@ -69,7 +71,9 @@ pub fn run() {
             // register it at runtime. Links that arrive while Forge starts are queued until
             // the workbench is ready (see `companion::dispatch`).
             #[cfg(any(windows, target_os = "linux"))]
-            if cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some() {
+            if (cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some())
+                && !commands::project_windows::is_secondary()
+            {
                 if let Err(e) = app.deep_link().register_all() {
                     tracing::warn!("cannot register the forge:// scheme: {e}");
                 }
@@ -86,6 +90,7 @@ pub fn run() {
 
             // The splash window and the loading steps (settings, plugins, the project from
             // the command line or the last session, services, updates), then the workbench.
+            commands::project_windows::start(app.handle());
             startup::begin(app.handle());
             Ok(())
         })
@@ -155,6 +160,13 @@ pub fn run() {
             commands::project_state::layout_save,
             commands::project_state::layout_default_load,
             commands::project_state::layout_default_save,
+            commands::project_state::layouts_list,
+            commands::project_state::layouts_save,
+            commands::project_state::layouts_delete,
+            commands::project_windows::project_windows_list,
+            commands::project_windows::project_window_focus,
+            commands::project_windows::project_window_cycle,
+            commands::project_windows::project_window_open,
             commands::project_state::agent_history_list,
             commands::project_state::agent_history_load,
             commands::project_state::agent_history_save,
@@ -730,6 +742,9 @@ pub fn run() {
             commands::window::dialog_window_open,
             commands::window::dialog_window_close,
             commands::window::dialog_window_message,
+            commands::window::window_set_fullscreen,
+            commands::window::window_is_fullscreen,
+            commands::window::window_set_zoom,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
@@ -760,16 +775,21 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
             }
         });
 
-    // Browser Companion server, restarted when its settings change.
+    // Browser Companion server, restarted when its settings change. Only the first project
+    // window runs it (the others would find its port taken).
     let handle = app.clone();
     app.state::<AppState>()
         .write_settings()
         .subscribe(move |change| {
-            if change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT {
+            if (change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT)
+                && !commands::project_windows::is_secondary()
+            {
                 companion::apply_server_settings(&handle);
             }
         });
-    companion::apply_server_settings(app);
+    if !commands::project_windows::is_secondary() {
+        companion::apply_server_settings(app);
+    }
 
     // Docker / Kubernetes reconnect when their settings change (they connect in the
     // "background services" step).

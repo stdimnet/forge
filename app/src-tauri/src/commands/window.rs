@@ -40,6 +40,9 @@ const CLOSE_GRACE: Duration = Duration::from_secs(3);
 struct OpenDialog {
     id: String,
     parent: String,
+    /// The parent takes no input while the dialog is open (detached editor and tool
+    /// windows are not modal).
+    modal: bool,
     result: Option<Value>,
     /// The dialog asked to close (`dialog_window_close`).
     closing: bool,
@@ -176,6 +179,30 @@ pub fn apply_decorations(app: &AppHandle) {
     }
 }
 
+// ---- full screen and zoom ----------------------------------------------------------------
+
+/// View | Appearance | Enter Full Screen (also Presentation and Zen Mode).
+#[tauri::command]
+pub fn window_set_fullscreen(window: WebviewWindow, on: bool) -> Result<()> {
+    window.set_fullscreen(on).map_err(err)
+}
+
+#[tauri::command]
+pub fn window_is_fullscreen(window: WebviewWindow) -> Result<bool> {
+    window.is_fullscreen().map_err(err)
+}
+
+/// Zoom IDE: scale the calling window's whole UI (`appearance.zoom`, 1.0 = 100 %).
+#[tauri::command]
+pub fn window_set_zoom(window: WebviewWindow, factor: f64) -> Result<()> {
+    let factor = if factor.is_finite() {
+        factor.clamp(0.5, 3.0)
+    } else {
+        1.0
+    };
+    window.set_zoom(factor).map_err(err)
+}
+
 // ---- dialog windows ----------------------------------------------------------------------
 
 #[derive(Debug, Deserialize)]
@@ -194,6 +221,14 @@ pub struct DialogWindowRequest {
     /// Passed to the dialog as `window.__FORGE_DIALOG__.props`.
     #[serde(default)]
     pub props: Value,
+    /// Modal dialogs disable their parent and stay on top of it. Windows that are not modal
+    /// (an editor tab or a tool window in its own window) get a taskbar entry instead.
+    #[serde(default = "yes")]
+    pub modal: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -314,24 +349,27 @@ pub async fn dialog_window_open(
         serde_json::to_string(&boot).map_err(err)?
     );
     let url = WebviewUrl::App(format!("index.html?dialog={}", request.id).into());
-    let dialog = WebviewWindowBuilder::new(&app, &label, url)
+    let builder = WebviewWindowBuilder::new(&app, &label, url)
         .title(&request.title)
         .decorations(chrome.native)
         .resizable(true)
-        .minimizable(false)
-        .skip_taskbar(true)
+        .minimizable(!request.modal)
+        .skip_taskbar(request.modal)
         .visible(false)
         .min_inner_size(min.width as f64 / scale, min.height as f64 / scale)
-        .initialization_script(&init)
-        .parent(&parent)
-        .map_err(err)?
-        .build()
-        .map_err(err)?;
+        .initialization_script(&init);
+    let builder = if request.modal {
+        builder.parent(&parent).map_err(err)?
+    } else {
+        builder
+    };
+    let dialog = builder.build().map_err(err)?;
     dialogs.open.lock().expect("dialogs lock poisoned").insert(
         label.clone(),
         OpenDialog {
             id: request.id.clone(),
             parent: parent.label().to_string(),
+            modal: request.modal,
             result: None,
             closing: false,
             close_requested: None,
@@ -343,7 +381,9 @@ pub async fn dialog_window_open(
     dialog.show().map_err(err)?;
     let _ = dialog.set_focus();
     // Modal: the parent takes no input until the dialog closes.
-    let _ = parent.set_enabled(false);
+    if request.modal {
+        let _ = parent.set_enabled(false);
+    }
     Ok(())
 }
 
@@ -399,12 +439,35 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         let child = {
             let open = dialogs.open.lock().expect("dialogs lock poisoned");
             open.iter()
-                .find(|(_, d)| d.parent == label)
+                .find(|(_, d)| d.parent == label && d.modal)
                 .map(|(l, _)| l.clone())
         };
         if let Some(dialog) = child.and_then(|l| app.get_webview_window(&l)) {
             let _ = dialog.set_focus();
         }
+    }
+    if label == crate::startup::MAIN_LABEL {
+        if let WindowEvent::Focused(true) = event {
+            // Another project window (a Forge process of its own) may have changed the user
+            // settings; pick them up. Listeners run under the settings lock: use a thread.
+            let app = app.clone();
+            std::thread::spawn(move || app.state::<AppState>().write_settings().reload_shared());
+        }
+        if let WindowEvent::Destroyed = event {
+            // Editor tabs and tool windows in their own windows close with the project window.
+            let owned: Vec<String> = {
+                let open = dialogs.open.lock().expect("dialogs lock poisoned");
+                open.iter()
+                    .filter(|(_, d)| d.parent == label)
+                    .map(|(l, _)| l.clone())
+                    .collect()
+            };
+            for child in owned.iter().filter_map(|l| app.get_webview_window(l)) {
+                let _ = child.destroy();
+            }
+            super::project_windows::stop();
+        }
+        return;
     }
     if dialog_id(&label).is_none() {
         return;
@@ -466,7 +529,10 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
                     save_states(&json);
                 }
             }
-            if let Some(parent) = app.get_webview_window(&entry.parent) {
+            if let Some(parent) = app
+                .get_webview_window(&entry.parent)
+                .filter(|_| entry.modal)
+            {
                 let _ = parent.set_enabled(true);
                 let _ = parent.set_focus();
             }
