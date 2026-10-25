@@ -17,6 +17,9 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Dock
 | --- | --- | --- | --- | --- |
 | Run Anything… | `Double Ctrl` | `Double Ctrl` | yes | Runs or debugs configurations, scripts, PHP files and commands from one popup. [More](../../user/run-debug.md#run-anything) ([screenshot](../../../screenshots/run-anything.png)) |
 | Run Command… | `Ctrl+Shift+X` | `Cmd+Shift+X` | yes | Opens the Command Line Tools Console popup: run Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion (plugin `forge.command-line-tools`, PHP projects). [More](../../user/command-line-tools.md#run-command) ([screenshot](../../../screenshots/docs-run-command.png)) |
+| WP-CLI… | — | — | yes | Opens the Command Line Tools Console with `wp ` typed in (plugin `forge.wordpress`, WordPress projects). [More](../../user/wordpress.md#wp-cli) |
+| Drush…, Shopware Console… | — | — | yes | Open the Command Line Tools Console with `drush ` or the Shopware `bin/console` alias typed in (plugin `forge.cms`). [More](../../user/cms.md#drush-and-the-shopware-console) |
+| WordPress › Run WP-CLI Command…, Show Hooks, Install WordPress Stubs…, Refresh Hook Index | — | — | yes | The WordPress submenu (plugin `forge.wordpress`). [More](../../user/wordpress.md) |
 | Save as Live Template… | — | — | yes | Opens Settings \| Editor \| Live Templates with a new template made from the selection. [More](../../user/live-templates.md#save-as-live-template) ([screenshot](../../../screenshots/save-as-live-template.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | Open in Terminal | `Ctrl+Shift+T` | `Cmd+T` | yes | Opens a new terminal tab (Tools | Open in Terminal). [More](../../user/terminal.md#tabs) ([screenshot](../../../screenshots/docs-terminal.png)) |

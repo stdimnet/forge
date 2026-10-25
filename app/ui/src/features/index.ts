@@ -36,6 +36,8 @@ import "./laravel";
 import "./cliTools";
 import "./symfony";
 import "./doctrine";
+import "./wordpress";
+import "./cms";
 import "./project-type";
 import "./new-project";
 import "./languages";

@@ -2580,6 +2580,8 @@ dependencies = [
  "phpforge-cli-tools",
  "phpforge-composer",
  "phpforge-dql",
+ "phpforge-fw-cms",
+ "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
  "serde",

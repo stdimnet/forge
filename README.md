@@ -7,7 +7,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 
 | Pack | Focus |
 | --- | --- |
-| **PHPForge** | PHP, Laravel, Symfony, Doctrine (DQL), Composer, PHPUnit, Xdebug |
+| **PHPForge** | PHP, Laravel, Symfony, Doctrine (DQL), WordPress, Drupal / Joomla / Shopware basics, Composer, PHPUnit, Xdebug |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun scripts, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim: EmmyLua/LuaLS annotations, lua-language-server, StyLua |
 

@@ -170,7 +170,8 @@ fn drupal(
     } else {
         which("drush").map(|_| "drush".to_string())
     };
-    let site = core.is_some() || composer;
+    // A module with its own composer.json (requiring drupal/core) is still an extension.
+    let site = core.is_some() || (composer && info_file.is_none());
     Some(CmsInfo {
         id: "drupal".into(),
         name: "Drupal".into(),

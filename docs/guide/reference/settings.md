@@ -553,6 +553,26 @@ Page id `lang.php.symfony`.
 | `symfony.gutterIcons` | bool | `true` | user | Editor | Show line markers for routes, templates and commands |
 | `symfony.twigCompletion` | bool | `true` | user | Editor | Complete Twig tags, filters and functions |
 
+### Languages & Frameworks | PHP | WordPress
+
+Page id `lang.php.wordpress`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `wordpress.hookCompletion` | bool | `true` | user | Hooks | Complete hook names — Inside add_action, add_filter, do_action, apply_filters and their variants: the project's hooks first, then frequently used WordPress core hooks. |
+| `wordpress.gutterIcons` | bool | `true` | user | Hooks | Show gutter icons for hooks — A registration links to where its hook fires, an invocation to the registered callbacks. |
+| `wordpress.yodaConditions` | bool | `true` | user | Code Style | Suggest Yoda conditions — A weak warning on comparisons like `$status === 'publish'` with the quick-fix 'Flip to Yoda condition' (WordPress Coding Standards). |
+| `wordpress.offerStubs` | bool | `true` | user, project | Stubs | Offer to install the WordPress stubs — When php-stubs/wordpress-stubs is not in vendor/, a notification offers `composer require --dev php-stubs/wordpress-stubs`. Forge never ships the stubs. |
+
+### Languages & Frameworks | PHP | Drupal, Joomla and Shopware
+
+Page id `lang.php.cms`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cms.drupal.hookCompletion` | bool | `true` | user | Drupal | Complete Drupal hook implementations — After `function` in .module, .install, .theme, .profile and .inc files: `<module>_<hook>` with the hook's parameters. |
+| `cms.drupal.gutterIcons` | bool | `true` | user | Drupal | Show gutter icons for hook implementations — Clicking one opens the hook's documentation: its `hook_…` function in the project's *.api.php files, else api.drupal.org. |
+
 ### Languages & Frameworks | PHP | Doctrine
 
 Page id `lang.php.doctrine`.

@@ -51,6 +51,8 @@ not finished, the page says so.
 | [Composer](composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](symfony.md) | services, routes, Twig, console, Symfony tool window |
+| [WordPress](wordpress.md) | hook completion, navigation, gutter icons and Find Usages, the WordPress tool window, WP-CLI, stubs, the WordPress code style with Yoda hints, plugin and theme templates |
+| [Drupal, Joomla and Shopware](cms.md) | CMS detection, Drupal file types and hook completion with Go to the hook docs, Shopware Twig tags, Drush and Shopware console |
 | [Doctrine and DQL](doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
 | [LuaForge](luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |

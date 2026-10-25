@@ -91,6 +91,11 @@ export function clipboard_history_promote(args_json: string): string;
 export function clipboard_history_remove(args_json: string): string;
 
 /**
+ * `{ files, query }` → the answer of `phpforge_fw_cms::api::answer`.
+ */
+export function cms_query(request_json: string): string;
+
+/**
  * `{ edit, files }` → `{ applied: AppliedFile[], files }` (the files after the edit) or
  * `{ error }`.
  */
@@ -1399,6 +1404,11 @@ export function web_npm_packages(request_json: string): string;
  */
 export function window_chrome(request_json: string): string;
 
+/**
+ * `{ files, query }` → the answer of `phpforge_fw_wordpress::api::answer`.
+ */
+export function wordpress_query(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -1421,6 +1431,7 @@ export interface InitOutput {
     readonly clipboard_history_list: (a: number, b: number, c: number) => void;
     readonly clipboard_history_promote: (a: number, b: number, c: number) => void;
     readonly clipboard_history_remove: (a: number, b: number, c: number) => void;
+    readonly cms_query: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_context_headers: (a: number, b: number, c: number) => void;
@@ -1678,6 +1689,7 @@ export interface InitOutput {
     readonly web_npm_gutter: (a: number, b: number, c: number) => void;
     readonly web_npm_packages: (a: number, b: number, c: number) => void;
     readonly window_chrome: (a: number, b: number, c: number) => void;
+    readonly wordpress_query: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;

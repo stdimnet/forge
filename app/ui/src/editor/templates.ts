@@ -314,6 +314,8 @@ const TWIG_KEYWORDS = [
   ...JINJA_KEYWORDS, "embed", "endembed", "use", "only", "ignore", "missing", "apply", "endapply",
   "verbatim", "endverbatim", "sandbox", "endsandbox", "spaceless", "endspaceless", "trans", "endtrans",
   "form_theme", "matches", "starts", "ends", "with", "defined", "empty", "same", "divisible", "by",
+  // Shopware 6 storefront tags.
+  "sw_extends", "sw_include", "sw_icon", "sw_thumbnails", "sw_silent_feature_call", "endsw_silent_feature_call",
 ];
 
 /** Twig's `tag_variable`, `tag_block` and `tag_comment` (Jinja's `*_start_string` / `*_end_string`). */

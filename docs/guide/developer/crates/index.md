@@ -75,6 +75,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [phpforge-dql](phpforge-dql.md) | PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly) |
 | [phpforge-fw-laravel](phpforge-fw-laravel.md) | PHPForge: Laravel support (routes, views, Blade components, config/env, Eloquent, translations, artisan) |
 | [phpforge-fw-symfony](phpforge-fw-symfony.md) | PHPForge: Symfony support (service container, routes, Twig templates, console commands) |
+| [phpforge-fw-wordpress](phpforge-fw-wordpress.md) | PHPForge: WordPress support (hook index, completion, navigation, gutter marks, usages, Yoda hints, detection, WP-CLI and stubs lookup) |
+| [phpforge-fw-cms](phpforge-fw-cms.md) | PHPForge: Drupal, Joomla and Shopware basics (detection, Drupal hook completion, implementations and hook docs) |
 | [phpforge-lang-php](phpforge-lang-php.md) | PHPForge: PHP language support (tree-sitter index, docblocks, hover, code generation, language server config) |
 | [phpforge-orm-doctrine](phpforge-orm-doctrine.md) | PHPForge: Doctrine ORM support (entity mapping, repositories, DQL parsing and completion) |
 | [webforge-fw-angular](webforge-fw-angular.md) | WebForge: Angular support (components, directives, pipes, templates and styles) |
