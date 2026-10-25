@@ -15,9 +15,9 @@ use forge_backend::{Backend, RemoteBackend, RemoteHost, RemoteKind};
 use forge_devenv::agent::{start_agent, DockerTarget};
 use forge_devenv::connection::{Starter, StdioConnection};
 use forge_devenv::devcontainer::{load, LocalContext};
+use forge_devenv::docker;
 use forge_devenv::runner::{Runner, SystemRunner};
 use forge_devenv::up::{up, UpOptions};
-use forge_devenv::docker;
 use forge_remote::agent::AgentBinaries;
 
 #[tokio::test(flavor = "multi_thread")]
@@ -64,7 +64,9 @@ async fn dev_container_end_to_end() {
         cache_dir: cache.path().to_path_buf(),
     };
     let log = |line: forge_devenv::up::LogLine| eprintln!("{line:?}");
-    let outcome = up(&SystemRunner, &cfg, &opts, &log).await.expect("docker up");
+    let outcome = up(&SystemRunner, &cfg, &opts, &log)
+        .await
+        .expect("docker up");
     assert!(outcome.created);
     let container = outcome.container_id.clone();
     let cleanup = Cleanup(container.clone());
@@ -72,11 +74,19 @@ async fn dev_container_end_to_end() {
     let check = SystemRunner
         .output(
             "docker",
-            &docker::exec_args(&container, None, None, &Default::default(), false, &[
-                "sh".into(),
-                "-c".into(),
-                "test -f /tmp/forge-created && cat /tmp/forge-started && echo $FORGE_E2E".into(),
-            ]),
+            &docker::exec_args(
+                &container,
+                None,
+                None,
+                &Default::default(),
+                false,
+                &[
+                    "sh".into(),
+                    "-c".into(),
+                    "test -f /tmp/forge-created && cat /tmp/forge-started && echo $FORGE_E2E"
+                        .into(),
+                ],
+            ),
             None,
         )
         .await
@@ -100,7 +110,10 @@ async fn dev_container_end_to_end() {
     let starter: Starter = Arc::new(move || {
         let (target, binaries) = (target.clone(), binaries.clone());
         Box::pin(async move {
-            start_agent(&SystemRunner, target.as_ref(), &binaries, &|m: &str| eprintln!("{m}")).await
+            start_agent(&SystemRunner, target.as_ref(), &binaries, &|m: &str| {
+                eprintln!("{m}")
+            })
+            .await
         })
     });
     let conn = StdioConnection::open("Dev Container: Forge E2E", starter)
@@ -121,10 +134,11 @@ async fn dev_container_end_to_end() {
     };
     let source: Arc<dyn Connection> = conn.clone();
     let workspace = cfg.workspace_folder.clone();
-    let backend = tokio::task::spawn_blocking(move || RemoteBackend::open(source, host, &workspace))
-        .await
-        .unwrap()
-        .expect("open the project in the container");
+    let backend =
+        tokio::task::spawn_blocking(move || RemoteBackend::open(source, host, &workspace))
+            .await
+            .unwrap()
+            .expect("open the project in the container");
     let (text, entries) = tokio::task::spawn_blocking(move || {
         (
             backend.read_file("index.php").unwrap(),
