@@ -53,6 +53,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute
   editing with a live preview and IntelliJ `.icls` import and export
   ([Keymap](user/keymap.md), [Color schemes](user/color-schemes.md))
+- **Project trust and Safe Mode**: an untrusted project asks "Trust and Open Project?"
+  (Trust Project, Preview in Safe Mode, Don't Open, "Trust projects in …"); in Safe Mode the
+  backend refuses scripts, run configurations, tests, the debugger, build tools, project-local
+  language servers and external tools on save, the editor area shows a Safe Mode banner with
+  "Trust Project…", and Settings | Build, Execution, Deployment | Trusted Locations lists the
+  trusted folders ([Project trust and Safe Mode](user/project-trust.md)).
 - **Composer**: composer.json gets PHPStorm's Composer toolbar (Install, Update, Validate,
   Show Outdated, Audit), outdated packages are marked in the gutter with an "Update package"
   quick fix, package names and version constraints complete from Packagist with documentation

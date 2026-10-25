@@ -55,6 +55,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute
   editing with a live preview and IntelliJ `.icls` import and export
   ([Keymap](docs/guide/user/keymap.md), [Color schemes](docs/guide/user/color-schemes.md))
+- **Project trust and Safe Mode**: an untrusted project asks "Trust and Open Project?"
+  (Trust Project, Preview in Safe Mode, Don't Open, "Trust projects in …"); in Safe Mode the
+  backend refuses scripts, run configurations, tests, the debugger, build tools, project-local
+  language servers and external tools on save, the editor area shows a Safe Mode banner with
+  "Trust Project…", and Settings | Build, Execution, Deployment | Trusted Locations lists the
+  trusted folders ([Project trust and Safe Mode](docs/guide/user/project-trust.md)).
 - **Composer**: composer.json gets PHPStorm's Composer toolbar (Install, Update, Validate,
   Show Outdated, Audit), outdated packages are marked in the gutter with an "Update package"
   quick fix, package names and version constraints complete from Packagist with documentation
@@ -425,6 +431,11 @@ configurations, breakpoints, data sources); see [File locations](docs/guide/refe
 - In the workbench, the project widget at the left of the main toolbar (the badge with the
   project name) runs **Open…** as well.
 
+A folder you have not trusted yet asks first: **Trust Project**, **Preview in Safe Mode** or
+**Don't Open**, see [Project trust and Safe Mode](docs/guide/user/project-trust.md). Projects in a
+trusted location (Settings | Build, Execution, Deployment | Trusted Locations) and projects
+created with New Project open without asking.
+
 Opening a project replaces the current one in the same window and closes its editor tabs.
 Each project's tool window layout and editor tabs come back when you open it again, see
 [Layout per project](docs/guide/user/workbench.md#layout-per-project).
@@ -740,6 +751,7 @@ not finished, the page says so.
 
 | Page | Covers |
 | --- | --- |
+| [Project trust and Safe Mode](docs/guide/user/project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](docs/guide/user/command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
@@ -10963,12 +10975,127 @@ Settings | Version Control | **Code Hosts** (the account pages are below it):
 
 ---
 
+Source: docs/guide/user/project-trust.md
+
+# Project trust and Safe Mode
+
+A project can contain code that runs as soon as an IDE touches it: Composer and npm scripts,
+run configurations, test suites, build files, language servers or linters installed in
+`node_modules` or `vendor`. Like PHPStorm, Forge asks before it opens a project you have not
+trusted yet, and opens untrusted projects in **Safe Mode**, where none of their code runs.
+
+## Trust and Open Project?
+
+When you open a folder that is not trusted (Open…, a recent project, `forge path`, Get from
+VCS, the Browser Companion), Forge asks first:
+
+![Trust and Open Project dialog](docs/screenshots/trust-open-project.png)
+
+- **Trust Project** opens the project normally and remembers the decision.
+- **Preview in Safe Mode** opens it in Safe Mode: you can browse, search and edit the files,
+  but nothing of the project runs. You can trust it later from the banner.
+- **Don't Open** leaves the current project (or the Welcome screen) as it was.
+- **Trust projects in `<parent folder>`** also trusts every project in the folder that
+  contains this one (a *trusted location*), for example `~/Projects`. The option is missing
+  when the parent is a file system root.
+
+Projects Forge creates itself (File | **New Project…**) are trusted automatically. Reopening
+the open project (Repair IDE) does not ask again.
+
+A project passed on the command line while Forge starts (`forge path`) opens right away; when it
+is not trusted it opens in Safe Mode and shows the banner.
+
+## Safe Mode
+
+While the project is in Safe Mode, the editor area shows a banner:
+
+![Safe Mode banner](docs/screenshots/safe-mode-banner.png)
+
+Click **Trust Project…** in the banner (or run *Trust Project…* through Find Action,
+`Ctrl+Shift+A`) to trust it. The dialog offers the same "Trust projects in …" option:
+
+![Trust Project dialog from the banner](docs/screenshots/safe-mode-trust-dialog.png)
+
+After trusting, everything below is available at once; language servers that were held back
+start on the next file you open.
+
+### What does not run in Safe Mode
+
+Forge's backend refuses these commands with an error that names the action, so they stay
+blocked even if a plugin or the UI tries to start them:
+
+| Feature | In Safe Mode |
+| --- | --- |
+| Run/Debug configurations, Before launch tasks, Run Anything, External Tools | not started (every run goes through one place in the backend) |
+| Composer and npm scripts, Artisan, Symfony console, Command Line Tool Support | not started; the Run Command popup lists only the built-in Artisan and Symfony commands |
+| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
+| Xdebug: Start Listening, PHP Web Page | refused |
+| Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
+| Laravel routes | parsed from the route files instead of `php artisan route:list` |
+| Docker Compose up and Dockerfile ▶ in the gutter, Compose **Up** in Services | refused |
+| PHP interpreters: version and `phpinfo()` of an interpreter inside the project or a Docker Compose service | refused |
+| Language servers installed in the project (`node_modules/.bin`, `vendor/bin`, …) | not started |
+| ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin and C# language servers | not started (they load the project's config files or build scripts) |
+| Actions on Save: ESLint, Prettier, PHP CS Fixer, Laravel Pint | not run |
+| StyLua installed in the project | not run |
+| AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
+
+What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
+Declaration, completion from the built-in analysis, language servers installed outside the
+project (for example Intelephense from npm or Forge's own install), Git, Local History,
+databases and the HTTP client.
+
+The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
+settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your
+user settings are used.
+
+> **Note:** Git runs in Safe Mode, like in PHPStorm. Git itself can run programs a repository
+> configures in `.git/config` (for example `core.fsmonitor`); Forge does not change that.
+
+## Trusted Locations
+
+Settings | Build, Execution, Deployment | **Trusted Locations** lists the folders whose
+projects open without asking, and the projects you trusted one by one:
+
+![Trusted Locations settings page](docs/screenshots/trusted-locations.png)
+
+- **+** adds a folder (`~` is your home folder). Every project inside it, at any depth, is
+  trusted. A whole drive or `/` cannot be added.
+- **−** removes the selected entry. When nothing trusts the open project any more, it goes
+  back to Safe Mode right away.
+
+Changes are saved immediately. Trust decisions are stored in
+`<config dir>/forge/trusted-projects.toml` (see [File locations](docs/guide/reference/file-locations.md)),
+never in the project and never in the settings files: a project's own `.forge/settings.toml`
+cannot trust itself.
+
+## Remote projects
+
+Remote projects (Welcome | Remote Development) use the same rules: the project on the host is
+trusted by itself or by a trusted location on the **same host, user and port**, stored as
+`user@host:/path`. Because the folder on the host is only known after connecting, Forge opens
+an untrusted remote project in Safe Mode first and then asks. **Don't Open** closes the project
+and the connection again; nothing of it ran in the meantime. Trusted locations on this machine
+never cover remote projects, and the other way round.
+
+## Browser mode
+
+The demo projects of browser mode live in `~/Projects`, a trusted location, so they open
+normally. Opening any other folder (for example `~/Downloads/legacy-crm` from a screenshot
+scenario) shows the dialog, and the run mocks refuse like the desktop app does in Safe Mode.
+
+
+---
+
 Source: docs/guide/user/run-debug.md
 
 # Run/Debug configurations
 
 A **run configuration** describes how to start something: a script, a test suite, a command.
 Forge's configurations work like PHPStorm's.
+
+> **Note:** nothing runs while the project is in Safe Mode (not trusted yet); trust it with
+> **Trust Project…** in the banner, see [Project trust and Safe Mode](docs/guide/user/project-trust.md).
 
 ## Run widget
 
@@ -12563,6 +12690,10 @@ Set `FORGE_AGENT_LOG=debug` in the host's environment for verbose agent logs (st
 
 The project's root is shown as `user@host:/path`. Recent Projects keeps remote projects with an
 **SSH** badge; clicking one reconnects.
+
+A remote project you have not trusted yet opens in Safe Mode and Forge asks "Trust and Open
+Project?" right after connecting; trust is kept per host, user, port and folder, see
+[Project trust and Safe Mode](docs/guide/user/project-trust.md#remote-projects).
 
 ![Recent remote projects](docs/screenshots/remote-open-recent.png)
 
@@ -14925,6 +15056,12 @@ Page id `build.docker.registries`.
 | --- | --- | --- | --- | --- | --- |
 | `docker.registries` | list | `[]` | user |  | Registry accounts — One entry per registry: server, a tab, the user name. Passwords are kept in the OS keychain. |
 
+### Build, Execution, Deployment | Trusted Locations
+
+Page id `build.trusted-locations`. No settings keys: trusted projects and locations are kept in
+`<config dir>/forge/trusted-projects.toml`, outside the settings files, so a project's own
+settings cannot trust it (see [Project trust and Safe Mode](docs/guide/user/project-trust.md)).
+
 ### Build, Execution, Deployment | Kubernetes
 
 Page id `build.kubernetes`.
@@ -15433,6 +15570,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `settings.toml` | user settings (including keymap changes and disabled plugins) |
 | `new-project-settings.toml` | [Settings for New Projects](docs/guide/user/settings-and-themes.md#settings-for-new-projects): defaults of project-level settings |
 | `recent-projects.json` | the Welcome screen's recent projects |
+| `trusted-projects.toml` | [trusted projects and trusted locations](docs/guide/user/project-trust.md) (`projects`, `locations`: local paths or `ssh://user@host:port/path`) |
 | `ai.toml` | AI providers and model choices (no keys) |
 | `forges.toml` | GitHub/GitLab/Forgejo accounts (no tokens) |
 | `ssh.toml` | saved SSH configurations (no passwords) |
@@ -17456,6 +17594,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](docs/guide/developer/crates/forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-trust](docs/guide/developer/crates/forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
 | [forge-vim](docs/guide/developer/crates/forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |
@@ -20588,6 +20727,57 @@ pub use split::{leading_keyword, split_statements, statement_at, Statement};
 ```sh
 cargo test -p forge-sql
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-trust.md
+
+# forge-trust
+
+`crates/forge-trust` — Project trust and Safe Mode: trusted projects and locations, and what
+may run.
+
+## Purpose
+
+The logic behind [Project trust and Safe Mode](docs/guide/user/project-trust.md):
+
+- `TrustStore { projects, locations }` is `<config dir>/forge/trusted-projects.toml`
+  (`TrustStore::default_path`, `load`, `save`). `reason(project)` says why a project is
+  trusted (`TrustReason::Project` or `Location { location }`), `check(project)` builds the
+  `TrustCheck` the dialog and banner show (key, display text, parent folder for "Trust
+  projects in …"). `trust`, `distrust`, `add_location` (expands `~`, refuses relative paths
+  and file system roots) and `remove_location` edit it.
+- Keys: `local_key(path)` is the canonical local path (symlinks resolved, no Windows `\\?\`
+  prefix); `remote_key(user, host, port, path)` is `ssh://user@host:port/path`.
+  `normalize` cleans separators, `.` and `..`; `contains(location, project)` matches whole path
+  components on the same machine (case-insensitive for local paths on Windows); `display`
+  shows remote keys as `user@host:/path`.
+- `SafeMode` is the shared flag of the open project; `check(what)` returns the error
+  `refusal(what)` while it is on.
+- `runs_project_program(root, program, args)` tells whether a command starts a program from
+  the project (the program or a path argument lies inside `root`), lexically so it works for
+  remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
+  project files (`SERVERS_RUNNING_PROJECT_CODE`).
+
+## IPC
+
+`app/src-tauri/src/commands/trust.rs`: `trust_check({ path })`, `trust_status()`,
+`trust_project({ path?, location? })`, `trust_locations()`, `trust_location_add({ path })`,
+`trust_location_remove({ key })`; `trust://changed` carries the open project's status.
+`AppState::safe_mode` is set when a project opens (`refresh_safe_mode`) and every command that
+starts project programs calls `AppState::require_trusted`; the LSP manager's launcher is
+wrapped by `SafeModeLauncher`.
+
+## Dependencies
+
+`forge-core` (errors), `serde`, `toml`, `dirs`.
+
+## Tests
+
+Unit tests in `src/lib.rs`: normalization, remote keys, locations and their hosts, parent
+locations, the store round trip, roots and relative paths, Safe Mode errors and project
+program detection. `commands::trust` tests the app state following the store.
 
 
 ---

@@ -935,6 +935,39 @@ or without Git, for local and remote projects.
   10 per project); `test_history_list() -> { id, name, type, at, summary, counts }[]`,
   `test_history_open({ id }) -> { entry, configuration, nodes, summary }`.
 
+## Project trust and Safe Mode (`forge-trust`)
+
+- Trusted projects and trusted locations live in `<config dir>/forge/trusted-projects.toml`
+  (`forge_trust::TrustStore`), never in settings (a project's `.forge/settings.toml` must not
+  trust itself) and never in the project. Keys are canonical local paths
+  (`forge_trust::local_key`) or `ssh://user@host:port/path` for remote projects
+  (`remote_key`); a location covers the projects below it on the same machine.
+- `AppState::safe_mode` (`forge_trust::SafeMode`) is set by `set_workspace` /
+  `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted.
+  **Every command that starts project programs calls `state.require_trusted("<action>")?`**
+  and fails with `forge_trust::refusal`: `run::start_built` (all runs: configurations, tests,
+  debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),
+  `symfony_console_run`, `cli_tools_run`, `composer_audit`, `php_composer_outdated`,
+  `agent_start`, `debug_listen_start`, `debug_web_page_start`, `save_actions_run_tools`,
+  `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`). Degraded instead
+  of refused: `laravel_routes` (static parsing), `cli_tools_commands` (built-in commands),
+  `lua_format` and the interpreter probes (refused only for programs inside the project or
+  Docker Compose services), `terminal_open` (shell and environment from the user layer only,
+  `Settings::get_without_project_as`). Language servers: `commands::lsp::SafeModeLauncher`
+  wraps the backend's launcher and refuses project-local binaries and
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`. New commands that start project programs must
+  check it too.
+- IPC (`src/ipc/trust.ts`): `trust_check({ path }) -> TrustCheck` (before opening a local
+  folder), `trust_status() -> TrustStatus | null`, `trust_project({ path?, location? })`,
+  `trust_locations()`, `trust_location_add({ path })`, `trust_location_remove({ key })`;
+  `trust://changed` with the status. Leaving Safe Mode resets the LSP manager and re-runs the
+  detection. `project_create` trusts the new project.
+- UI (`src/features/trust`): `openWorkspace` asks through `setTrustPrompt` (`beforeOpen` for
+  local folders; `afterRemoteOpen` for remote ones, whose folder is known only after
+  connecting: Don't Open closes the project and the connection), the Safe Mode banner on top of
+  the editor area and the page `build.trusted-locations`. The browser mock trusts `~/Projects`
+  (the demo projects) and refuses runs in Safe Mode.
+
 ## Language servers (`forge-lsp`)
 
 - Packs contribute `LspServerConfig { id, name?, languageIds, fileExtensions, command, args,

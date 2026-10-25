@@ -144,6 +144,7 @@ pub async fn debug_listen_start(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<u16> {
+    state.require_trusted("The debugger")?;
     let server = server(&state, &debug);
     let port = server.config().port;
     let tunnels = state.backend().ok().and_then(|b| b.tunnels());
@@ -509,6 +510,7 @@ pub fn debug_web_page_start(
     state: State<'_, AppState>,
     debug_state: State<'_, DebugState>,
 ) -> Result<WebPageStarted> {
+    state.require_trusted("Running PHP web pages")?;
     let servers = server(&state, &debug_state).servers();
     let srv = find_server(&servers, server_id.as_deref())?;
     let debugging = debug.unwrap_or(false);

@@ -84,12 +84,24 @@ pub async fn terminal_open(
     let remote = backend.info().remote.is_some();
     let (setting_dir, setting_shell, setting_env, integration) = {
         let s = state.read_settings();
+        // In Safe Mode the project's own settings cannot pick the shell or its environment
+        // (`BASH_ENV`, `LD_PRELOAD`, ...): the terminal is the user's, not the project's.
+        let safe = state.safe_mode.is_on();
+        let shell = if safe {
+            s.get_without_project_as::<String>("terminal.shellPath")
+        } else {
+            s.get_as::<String>("terminal.shellPath")
+        };
+        let env = if safe {
+            s.get_without_project_as::<Vec<String>>("terminal.environment")
+        } else {
+            s.get_as::<Vec<String>>("terminal.environment")
+        };
         (
             s.get_as::<String>("terminal.startDirectory")
                 .unwrap_or_default(),
-            s.get_as::<String>("terminal.shellPath").unwrap_or_default(),
-            s.get_as::<Vec<String>>("terminal.environment")
-                .unwrap_or_default(),
+            shell.unwrap_or_default(),
+            env.unwrap_or_default(),
             s.get_bool("terminal.shellIntegration").unwrap_or(true),
         )
     };

@@ -793,6 +793,12 @@ Page id `build.docker.registries`.
 | --- | --- | --- | --- | --- | --- |
 | `docker.registries` | list | `[]` | user |  | Registry accounts — One entry per registry: server, a tab, the user name. Passwords are kept in the OS keychain. |
 
+### Build, Execution, Deployment | Trusted Locations
+
+Page id `build.trusted-locations`. No settings keys: trusted projects and locations are kept in
+`<config dir>/forge/trusted-projects.toml`, outside the settings files, so a project's own
+settings cannot trust it (see [Project trust and Safe Mode](../user/project-trust.md)).
+
 ### Build, Execution, Deployment | Kubernetes
 
 Page id `build.kubernetes`.

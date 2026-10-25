@@ -80,3 +80,4 @@ import "./editorNavigation";
 import "./spelling";
 import "./jsonSchema";
 import "./vim";
+import "./trust";

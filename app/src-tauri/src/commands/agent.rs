@@ -167,6 +167,8 @@ pub async fn agent_start(
     state: State<'_, AppState>,
     agents: State<'_, AgentState>,
 ) -> Result<String> {
+    // Agent CLIs run the project's hooks, MCP servers and commands.
+    state.require_trusted("Starting AI agents")?;
     let adapter = agent_by_id(&agent_id)
         .ok_or_else(|| ForgeError::Other(format!("unknown agent {agent_id}")))?;
     let cwd = state.project_root()?;

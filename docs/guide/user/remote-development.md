@@ -90,6 +90,10 @@ Set `FORGE_AGENT_LOG=debug` in the host's environment for verbose agent logs (st
 The project's root is shown as `user@host:/path`. Recent Projects keeps remote projects with an
 **SSH** badge; clicking one reconnects.
 
+A remote project you have not trusted yet opens in Safe Mode and Forge asks "Trust and Open
+Project?" right after connecting; trust is kept per host, user, port and folder, see
+[Project trust and Safe Mode](project-trust.md#remote-projects).
+
 ![Recent remote projects](../../screenshots/remote-open-recent.png)
 
 | Works on the host | |
