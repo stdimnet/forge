@@ -1,18 +1,20 @@
 /**
- * Terminal tool window (Alt+F12): local shell sessions on a PTY, rendered with xterm.js.
- * Replaces the `terminal` placeholder.
+ * Terminal tool window (Alt+F12): local shell sessions on a PTY and SSH sessions (Tools |
+ * Start SSH Session…), rendered with xterm.js. Replaces the `terminal` placeholder.
  */
 import { Show } from "solid-js";
 import { SquareTerminal } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
+import type { SshTarget } from "@/ipc/terminal";
 import { registerStatusItem } from "@/features/statusItems";
 import { getSetting } from "@/state/settings";
 import { registerCommand } from "@/state/commands";
 import { registerKeymapActions } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { TerminalTabs, TerminalView, closeTerminalTab } from "./TerminalView";
-import { activeTab, displayTitle, newTab, overallProgress, progressTab, tabs, type TerminalProgram } from "./store";
-import { focusSession, revealTerminalTab } from "./sessions";
+import { activeTab, displayTitle, newSshTab, newTab, overallProgress, progressTab, tabs, type TerminalProgram } from "./store";
+import { focusSession, revealTerminalTab, setSshHostKeyResolver } from "./sessions";
+import { chooseSshSession, confirmSshHostKey, setSshTabOpener } from "./ssh";
 import { progressLabel } from "./osc";
 import { ProgressRing } from "./ProgressRing";
 
@@ -75,7 +77,22 @@ export function openTerminalWith(command: TerminalProgram & { title: string }): 
   requestAnimationFrame(() => focusSession(tab.id));
 }
 
+/** Open a Terminal tab with an SSH session (Tools | Start SSH Session…). */
+export function openSshTerminal(title: string, ssh: SshTarget): void {
+  const tab = newSshTab(title, ssh);
+  showToolWindow("terminal");
+  requestAnimationFrame(() => focusSession(tab.id));
+}
+setSshTabOpener(openSshTerminal);
+setSshHostKeyResolver(confirmSshHostKey);
+
 registerKeymapActions([
+  {
+    id: "RunSshConsole",
+    title: "Start SSH Session…",
+    group: "Main Menu/Tools",
+    shortcuts: { $default: [], macOS: [] },
+  },
   {
     id: "Terminal.NewTab",
     title: "New Terminal Tab",
@@ -103,6 +120,7 @@ registerCommand({
   },
 });
 registerCommand({ id: "Terminal.NewTab", title: "New Terminal Tab", category: "Terminal", run: () => openTerminalAt() });
+registerCommand({ id: "RunSshConsole", title: "Start SSH Session…", category: "Tools", run: () => chooseSshSession() });
 registerCommand({
   id: "Terminal.CloseTab",
   title: "Close Terminal Tab",

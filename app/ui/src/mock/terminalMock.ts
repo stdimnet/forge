@@ -1,10 +1,12 @@
 /**
  * Browser-mode terminal: a tiny fake shell with line editing and canned answers for `ls`,
- * `php -v`, `git status`, `pwd`, `echo`, `clear` and a few more. `claude` (and
+ * `php -v`, `git status`, `pwd`, `echo`, `clear` and a few more. SSH sessions (`options.ssh`)
+ * greet like an Ubuntu host and prompt as the configuration's account. `claude` (and
  * `replay <name>`) replays a recorded TUI session from `terminalReplays.ts`; Ctrl+C ends it.
  * It never touches files.
  */
-import { emitMock, registerMock } from "@/ipc";
+import { emitMock, invoke, registerMock } from "@/ipc";
+import { mockSafeMode } from "./trustMock";
 import type { TerminalEvent, TerminalOpenOptions } from "@/ipc/terminal";
 import { demoProjectName } from "./demoProject";
 import { initialLogs } from "./servicesDemoData";
@@ -24,6 +26,8 @@ interface FakeShell {
   historyPos: number;
   /** A shell inside a container or pod (`docker exec -it`, `kubectl exec -it`). */
   container?: { host: string; service: string };
+  /** An SSH session (Tools | Start SSH Session…) to this account. */
+  ssh?: { user: string; host: string };
   /** `docker attach`: output only, no prompt. */
   attached?: boolean;
   /** Timer of a running replay; input other than Ctrl+C is ignored meanwhile. */
@@ -59,6 +63,8 @@ const prompt = (s: FakeShell) =>
     ? ""
     : s.container
       ? `root@${s.container.host}:${s.cwd}# `
+      : s.ssh
+        ? `${C.green}${C.bold}${s.ssh.user}@${s.ssh.host.split(".")[0]}${C.reset}:${C.blue}${C.bold}${s.cwd}${C.reset}$ `
       : promptMarks(s) + `${C.green}${C.bold}${who()}${C.reset} ${C.blue}${C.bold}${s.cwd}${C.reset} ${C.magenta}(${demoStatus().branch})${C.reset} $ `;
 
 const LS_ROOT = [
@@ -208,7 +214,7 @@ function run(id: string, s: FakeShell, line: string): void {
   }
   if (cmd === "cd") {
     const target = args[0] ?? "";
-    if (!target || target === "~") s.cwd = projectDir();
+    if (!target || target === "~") s.cwd = s.ssh ? "~" : projectDir();
     else if (target === "..") s.cwd = s.cwd.replace(/\/[^/]+$/, "") || "~";
     else s.cwd = `${s.cwd}/${target.replace(/\/$/, "")}`;
     return;
@@ -217,9 +223,46 @@ function run(id: string, s: FakeShell, line: string): void {
   out(id, handler ? handler(args, s) : `bash: ${cmd}: command not found\n`);
 }
 
-registerMock("terminal_open", ({ options }) => {
+/** The account of an SSH session: the saved configuration, or the one of a deployment server. */
+async function sshAccount(o: TerminalOpenOptions): Promise<{ user: string; host: string }> {
+  const target = o.ssh!;
+  let configId = target.configId;
+  if (target.serverId) {
+    const config = await invoke<{ servers: { id: string; name: string; kind: string; sshConfig: string }[] }>("deploy_config");
+    const server = config.servers.find((x) => x.id === target.serverId);
+    if (!server) throw new Error(`The deployment server ${target.serverId} does not exist`);
+    if (mockSafeMode() && !target.confirmed) {
+      throw new Error(`The deployment server ${server.name} is defined in the files of an untrusted project. Confirm the SSH session to it first, or trust the project.`);
+    }
+    if (server.kind !== "sftp" || !server.sshConfig) throw new Error(`${server.name} is not an SFTP server: SSH sessions need an SSH configuration`);
+    configId = server.sshConfig;
+  }
+  const configs = await invoke<{ id: string; host: string; user: string; auth: string; hasSecret: boolean }[]>("remote_ssh_configs");
+  const c = configs.find((x) => x.id === configId);
+  if (!c) throw new Error(`The SSH configuration ${configId} does not exist anymore. Select another one.`);
+  if (c.auth === "password" && !c.hasSecret && !target.secret) throw new Error(`Authentication failed for ${c.user}@${c.host}`);
+  return { user: c.user, host: c.host };
+}
+
+const SSH_MOTD = (host: string) =>
+  `Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-45-generic x86_64)\n\n` +
+  `${C.dim} * Documentation:  https://help.ubuntu.com\n * Management:     https://landscape.canonical.com${C.reset}\n\n` +
+  `  System load:  0.08               Processes:             142\n` +
+  `  Usage of /:   41.7% of 77.35GB   Users logged in:       1\n` +
+  `  Memory usage: 38%                IPv4 address for eth0: 10.0.4.21\n\n` +
+  `Last login: Mon Oct 26 09:12:44 2026 from 192.168.1.20 on ${host}\n`;
+
+registerMock("terminal_open", async ({ options }) => {
   const o = options as TerminalOpenOptions;
   const id = o.id ?? `mock-term-${++seq}`;
+  if (o.ssh) {
+    const account = await sshAccount(o);
+    await new Promise((r) => setTimeout(r, 250));
+    const s: FakeShell = { line: "", cwd: "~", history: [], historyPos: 0, ssh: account };
+    shells.set(id, s);
+    setTimeout(() => out(id, SSH_MOTD(account.host) + prompt(s)), 30);
+    return { id, shell: `${account.user}@${account.host}`, cwd: "~" };
+  }
   const s: FakeShell = { line: "", cwd: `${projectDir()}${o.cwd ? `/${o.cwd}` : ""}`, history: [], historyPos: 0 };
   // `docker exec -it <id> sh …`, `docker attach <id>`, `kubectl … exec -it <pod> …`.
   const args = o.args ?? [];

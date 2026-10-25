@@ -81,6 +81,8 @@ async fn with_server<T: Send + 'static>(
 pub struct RemoteListing {
     /// The server's absolute root folder (Copy Path, the root node's tooltip).
     pub root: String,
+    /// The root folder as a node (its mapping), named after `root`.
+    pub root_node: RemoteNode,
     pub nodes: Vec<RemoteNode>,
 }
 
@@ -93,8 +95,11 @@ pub async fn remote_host_list(
     hosts: State<'_, RemoteHostState>,
 ) -> Result<RemoteListing> {
     with_server(&state, &hosts, &server_id, move |fs, root, server| {
+        let mut root_node = browse::node(server, &forge_deploy::compare::Entry::dir("", None));
+        root_node.name = root.to_string();
         Ok(RemoteListing {
             root: root.to_string(),
+            root_node,
             nodes: remote_host::list(fs, server, &path)?,
         })
     })

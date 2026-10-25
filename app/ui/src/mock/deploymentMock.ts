@@ -24,7 +24,7 @@ import { mockFiles } from "./workspaceMock";
 import { mockSettingValue } from "./settingsMock";
 import { mockSafeMode } from "./trustMock";
 
-interface RemoteItem {
+export interface RemoteItem {
   text: string;
   /** Unix seconds. */
   modified: number;
@@ -105,7 +105,7 @@ async function resolve(server: DeployServer, paths: string[]) {
 }
 
 /** The demo deployment: production lags one change behind and has a maintenance page. */
-async function deployed(server: DeployServer): Promise<Map<string, RemoteItem>> {
+export async function deployed(server: DeployServer): Promise<Map<string, RemoteItem>> {
   let files = remote.get(server.id);
   if (files) return files;
   files = new Map();
@@ -132,7 +132,7 @@ const view = (s: DeployServer): ServerView => ({
   hasSecret: s.kind === "sftp" ? s.sshConfig === "staging" : secrets.has(s.id),
 });
 
-const pick = (id: unknown): DeployServer => {
+export const pick = (id: unknown): DeployServer => {
   const server = servers.find((s) => s.id === (id ?? defaultServer));
   if (!server) throw new Error(id ? `The deployment server ${id} does not exist` : "No default deployment server. Add one in Settings | Build, Execution, Deployment | Deployment.");
   return server;

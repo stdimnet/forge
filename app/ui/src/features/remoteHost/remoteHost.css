@@ -1,0 +1,68 @@
+/* Remote Host tool window. Colors come from theme.css variables only. */
+.rh-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.rh-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rh-server {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.rh-select {
+  min-width: 0;
+  max-width: 220px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-input);
+  color: var(--fg);
+}
+.rh-spacer {
+  flex: 1;
+}
+.rh-small {
+  font-size: var(--fs-small);
+}
+.rh-tree {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.rh-root-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+/* Mapped folders, like PHPStorm's green mapping highlight. */
+.rh-row.rh-mapped .tree-label {
+  color: var(--vcs-added);
+}
+.rh-row.rh-excluded .tree-label {
+  color: var(--vcs-ignored);
+}
+.rh-error {
+  padding: 3px 8px;
+  color: var(--danger);
+  font-size: var(--fs-small);
+  white-space: normal;
+}
+.rh-spin {
+  animation: rh-spin 0.9s linear infinite;
+}
+@keyframes rh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
