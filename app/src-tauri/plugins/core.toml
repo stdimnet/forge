@@ -41,12 +41,8 @@ icon = "folder"
 [[contributions.settings]]
 key = "keymap.active"
 title = "Keymap"
-type = "enum"
-options = [
-  { value = "auto", label = "Platform default" },
-  { value = "$default", label = "Windows / Linux" },
-  { value = "macOS", label = "macOS" },
-]
+description = "auto (the PHPStorm keymap of the platform), $default, macOS, a bundled keymap (VSCode, VSCode OSX, Eclipse, Eclipse (Mac OS X), Sublime Text, Sublime Text (Mac OS X), Emacs) or the name of a user keymap."
+type = "string"
 default = "auto"
 group = "keymap"
 order = 0
@@ -68,6 +64,25 @@ type = "list"
 default = []
 group = "keymap"
 order = 2
+
+[[contributions.settings]]
+key = "keymap.overrides.bundled"
+title = "Changed shortcuts (other bundled keymaps)"
+description = "One entry per action: the keymap id, the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 3
+
+[[contributions.settings]]
+key = "keymap.custom"
+title = "User keymaps"
+description = "Keymaps made with Duplicate or Derive: name, parent keymap and the changed shortcuts (one action per line: the action id, then its shortcuts, separated by tabs)."
+type = "objects"
+unique = ["name"]
+default = []
+group = "keymap"
+order = 4
 
 # ---- Appearance & Behavior > Appearance ----------------------------------------------
 

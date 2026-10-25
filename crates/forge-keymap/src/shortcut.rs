@@ -8,6 +8,8 @@
 //! "Double Ctrl+Up"      double-tap a modifier, keep it down on the second tap, press a key
 //!                       (PHPStorm's Clone Caret Above / Below)
 //! "Cmd+," / "Meta+,"    macOS command key; "Mod+S" is Cmd on macOS and Ctrl elsewhere
+//! "Ctrl+Button1 Click"  mouse shortcut (PHPStorm's names: Button1 is the left, Button2 the
+//!                       middle, Button3 the right button; "Double Click"; "Wheel Up/Down")
 //! ```
 
 use serde::{Deserialize, Serialize};
@@ -128,6 +130,87 @@ impl KeyStroke {
     pub fn is_function_key(&self) -> bool {
         is_function_key(&self.key)
     }
+
+    /// Whether the stroke is a mouse click or wheel turn ("Ctrl+Button1 Click").
+    pub fn is_mouse(&self) -> bool {
+        mouse_key_label(&self.key).is_some()
+    }
+}
+
+/// Canonical mouse key names: `Button<n>Click`, `Button<n>DoubleClick` (n = 1…5, PHPStorm's
+/// numbering: 1 left, 2 middle, 3 right) and `WheelUp` / `WheelDown`.
+fn mouse_key(lower: &str) -> Option<String> {
+    match lower {
+        "wheelup" | "mousewheelup" => return Some("WheelUp".into()),
+        "wheeldown" | "mousewheeldown" => return Some("WheelDown".into()),
+        _ => {}
+    }
+    let rest = lower.strip_prefix("button")?;
+    let (n, kind) = rest.split_at(rest.find(|c: char| !c.is_ascii_digit())?);
+    let n: u8 = n.parse().ok().filter(|n| (1..=5).contains(n))?;
+    match kind {
+        "click" => Some(format!("Button{n}Click")),
+        "doubleclick" => Some(format!("Button{n}DoubleClick")),
+        _ => None,
+    }
+}
+
+/// Display name of a canonical mouse key ("Button1 Click", "Wheel Up").
+fn mouse_key_label(key: &str) -> Option<String> {
+    match key {
+        "WheelUp" => return Some("Wheel Up".into()),
+        "WheelDown" => return Some("Wheel Down".into()),
+        _ => {}
+    }
+    let rest = key.strip_prefix("Button")?;
+    let digit = rest.chars().next().filter(char::is_ascii_digit)?;
+    match &rest[1..] {
+        "Click" => Some(format!("Button{digit} Click")),
+        "DoubleClick" => Some(format!("Button{digit} Double Click")),
+        _ => None,
+    }
+}
+
+/// Mouse strokes that need a modifier: plain left clicks, double clicks, right clicks and
+/// wheel turns keep their usual meaning (PHPStorm refuses them as well).
+fn mouse_needs_modifier(key: &str) -> bool {
+    matches!(key, "Button1Click" | "Button3Click" | "WheelUp" | "WheelDown") || key.ends_with("DoubleClick")
+}
+
+/// Join the words of mouse key names written with spaces ("Button1 Double Click",
+/// "Wheel Up") so the shortcut can be split into strokes at whitespace.
+fn join_mouse_words(text: &str) -> String {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut out: Vec<String> = Vec::with_capacity(words.len());
+    let mut i = 0;
+    while i < words.len() {
+        let w = words[i];
+        let lower = w.to_lowercase();
+        let next = |k: usize| words.get(i + k).map(|s| s.to_lowercase());
+        let button = lower
+            .rsplit('+')
+            .next()
+            .and_then(|k| k.strip_prefix("button"))
+            .is_some_and(|n| n.len() == 1 && n.as_bytes()[0].is_ascii_digit());
+        let wheel = lower.ends_with("wheel");
+        if button && next(1).as_deref() == Some("click") {
+            out.push(format!("{w}Click"));
+            i += 2;
+        } else if button
+            && next(1).as_deref() == Some("double")
+            && next(2).as_deref() == Some("click")
+        {
+            out.push(format!("{w}DoubleClick"));
+            i += 3;
+        } else if wheel && matches!(next(1).as_deref(), Some("up" | "down")) {
+            out.push(format!("{w}{}", words[i + 1]));
+            i += 2;
+        } else {
+            out.push(w.to_string());
+            i += 1;
+        }
+    }
+    out.join(" ")
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -256,6 +339,9 @@ pub fn normalize_key(token: &str) -> Option<String> {
     if is_function_key(t) {
         return Some(t.to_uppercase());
     }
+    if let Some(k) = mouse_key(&lower) {
+        return Some(k);
+    }
     if let Some(d) = lower.strip_prefix("numpad") {
         if d.len() == 1 && d.chars().all(|c| c.is_ascii_digit()) {
             return Some(format!("NumPad{d}"));
@@ -325,9 +411,11 @@ pub fn parse_stroke(text: &str, platform: Platform) -> Result<KeyStroke, String>
     Ok(stroke)
 }
 
-/// Parse a full shortcut: single keystroke, two-stroke chord or modifier double-tap.
+/// Parse a full shortcut: single keystroke, two-stroke chord, modifier double-tap or mouse
+/// shortcut.
 pub fn parse_shortcut(text: &str, platform: Platform) -> Result<Shortcut, String> {
-    let trimmed = text.trim();
+    let joined = join_mouse_words(text);
+    let trimmed = joined.as_str();
     let mut words = trimmed.split_whitespace();
     if let (Some(first), Some(second), None) = (words.next(), words.next(), words.next()) {
         if first.eq_ignore_ascii_case("double") {
@@ -378,6 +466,15 @@ pub fn parse_shortcut(text: &str, platform: Platform) -> Result<Shortcut, String
     }
     if strokes.iter().any(|s| s.key.is_empty()) {
         return Err(format!("\"{text}\": a keystroke needs a key"));
+    }
+    if strokes.iter().any(KeyStroke::is_mouse) {
+        if strokes.len() > 1 {
+            return Err(format!("\"{text}\": mouse shortcuts cannot be chords"));
+        }
+        let s = &strokes[0];
+        if s.modifier_count() == 0 && mouse_needs_modifier(&s.key) {
+            return Err(format!("\"{text}\": this mouse shortcut needs a modifier"));
+        }
     }
     Ok(Shortcut::Keys(strokes))
 }
@@ -437,13 +534,18 @@ pub fn format_stroke(s: &KeyStroke, platform: Platform) -> String {
                     out.push_str(m.mac_symbol());
                 }
             }
-            out.push_str(mac_key_symbol(&s.key).unwrap_or(&s.key));
+            match mouse_key_label(&s.key) {
+                Some(label) => out.push_str(&label),
+                None => out.push_str(mac_key_symbol(&s.key).unwrap_or(&s.key)),
+            }
             out
         }
         Platform::Other => {
             let mut stroke = s.clone();
             if let Some(name) = text_key_name(&s.key) {
                 stroke.key = name.to_string();
+            } else if let Some(label) = mouse_key_label(&s.key) {
+                stroke.key = label;
             }
             stroke.id()
         }
@@ -568,6 +670,42 @@ pub fn stroke_from_event(e: &KeyEvent) -> KeyStroke {
         meta: e.meta_key,
         key: event_key(e),
     }
+}
+
+/// The subset of a DOM `MouseEvent` / `WheelEvent` a mouse shortcut needs.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MouseInput {
+    /// `MouseEvent.button` (0 left, 1 middle, 2 right, 3 back, 4 forward).
+    pub button: u8,
+    /// `MouseEvent.detail`: 2 for the second click of a double click.
+    pub click_count: u32,
+    /// `WheelEvent.deltaY` for wheel events, else `None`.
+    pub delta_y: Option<f64>,
+    pub ctrl_key: bool,
+    pub alt_key: bool,
+    pub shift_key: bool,
+    pub meta_key: bool,
+}
+
+/// The mouse stroke of a click or wheel event ("Ctrl+Button1 Click", "Alt+Wheel Down").
+/// `None` for a wheel event without vertical movement or an unknown button.
+pub fn mouse_stroke(e: &MouseInput) -> Option<KeyStroke> {
+    let key = match e.delta_y {
+        Some(d) if d < 0.0 => "WheelUp".to_string(),
+        Some(d) if d > 0.0 => "WheelDown".to_string(),
+        Some(_) => return None,
+        None if e.button > 4 => return None,
+        None if e.click_count == 2 => format!("Button{}DoubleClick", e.button + 1),
+        None => format!("Button{}Click", e.button + 1),
+    };
+    Some(KeyStroke {
+        ctrl: e.ctrl_key,
+        alt: e.alt_key,
+        shift: e.shift_key,
+        meta: e.meta_key,
+        key,
+    })
 }
 
 /// Which modifier a bare modifier key event is about (for double-tap detection).
@@ -809,6 +947,76 @@ mod tests {
         assert_eq!(event_key(&shift(ctrl(ev("Digit5", "%")))), "5");
         assert_eq!(event_key(&ev("Slash", "-")), "/");
         assert_eq!(event_key(&alt(ev("KeyJ", "∆"))), "J");
+    }
+
+    #[test]
+    fn parses_and_formats_mouse_shortcuts() {
+        assert_eq!(canon("Ctrl+Button1 Click").as_deref(), Some("Ctrl+Button1Click"));
+        assert_eq!(canon("ctrl+button1click").as_deref(), Some("Ctrl+Button1Click"));
+        assert_eq!(
+            canon("Alt+Shift+Button1 Double Click").as_deref(),
+            Some("Alt+Shift+Button1DoubleClick")
+        );
+        assert_eq!(canon("Button2 Click").as_deref(), Some("Button2Click"));
+        assert_eq!(canon("Ctrl+Wheel Up").as_deref(), Some("Ctrl+WheelUp"));
+        assert_eq!(canon("Shift+MouseWheelDown").as_deref(), Some("Shift+WheelDown"));
+        assert_eq!(
+            format_shortcut_text("Ctrl+Button1Click", O),
+            "Ctrl+Button1 Click"
+        );
+        assert_eq!(format_shortcut_text("Alt+Wheel Down", O), "Alt+Wheel Down");
+        assert_eq!(
+            format_shortcut_text("Cmd+Alt+Button1 Click", Platform::Mac),
+            "⌥⌘Button1 Click"
+        );
+        assert!(parse_shortcut("Ctrl+Button1 Click", O)
+            .unwrap()
+            .strokes()[0]
+            .is_mouse());
+    }
+
+    #[test]
+    fn rejects_mouse_shortcuts_that_would_break_plain_clicks() {
+        assert!(parse_shortcut("Button1 Click", O).is_err());
+        assert!(parse_shortcut("Button1 Double Click", O).is_err());
+        assert!(parse_shortcut("Button3 Click", O).is_err());
+        assert!(parse_shortcut("Wheel Up", O).is_err());
+        assert!(parse_shortcut("Ctrl+K Ctrl+Button1 Click", O).is_err());
+        assert!(parse_shortcut("Ctrl+Button6 Click", O).is_err());
+        assert!(parse_shortcut("Button4 Click", O).is_ok());
+    }
+
+    #[test]
+    fn builds_mouse_strokes_from_events() {
+        let click = MouseInput {
+            button: 0,
+            click_count: 1,
+            ctrl_key: true,
+            ..Default::default()
+        };
+        assert_eq!(mouse_stroke(&click).unwrap().id(), "Ctrl+Button1Click");
+        let double = MouseInput {
+            click_count: 2,
+            ..click.clone()
+        };
+        assert_eq!(mouse_stroke(&double).unwrap().id(), "Ctrl+Button1DoubleClick");
+        let middle = MouseInput {
+            button: 1,
+            click_count: 1,
+            ..Default::default()
+        };
+        assert_eq!(mouse_stroke(&middle).unwrap().id(), "Button2Click");
+        let wheel = MouseInput {
+            delta_y: Some(-120.0),
+            alt_key: true,
+            ..Default::default()
+        };
+        assert_eq!(mouse_stroke(&wheel).unwrap().id(), "Alt+WheelUp");
+        assert!(mouse_stroke(&MouseInput {
+            delta_y: Some(0.0),
+            ..Default::default()
+        })
+        .is_none());
     }
 
     #[test]

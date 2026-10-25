@@ -7,6 +7,10 @@
 //!
 //! The rows live in `data/phpstorm.json` (one action per line: id, title, group, Windows/Linux
 //! and macOS shortcuts separated by `|`, optional context and native flag).
+//!
+//! The other bundled keymaps (VS Code, Eclipse, Sublime Text, Emacs) are derived from one of
+//! the two PHPStorm keymaps, like in PHPStorm: `data/keymaps.json` lists only the actions whose
+//! shortcuts differ from the parent (an empty string removes all of them).
 
 use std::sync::OnceLock;
 
@@ -14,7 +18,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::shortcut::Platform;
 
-/// One of the two built-in keymaps.
+/// One of the two PHPStorm keymaps; every other keymap derives from one of them, which also
+/// decides the platform its shortcuts are written for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum KeymapId {
     #[serde(rename = "$default")]
@@ -173,6 +178,51 @@ fn split_shortcuts(s: &str) -> Vec<String> {
         .filter(|x| !x.is_empty() && !x.contains("Fn+"))
         .map(str::to_string)
         .collect()
+}
+
+/// A bundled keymap derived from a PHPStorm keymap ("VS Code", "Eclipse (macOS)", …).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BundledKeymap {
+    /// PHPStorm's keymap name ("VSCode", "Eclipse (Mac OS X)").
+    pub id: String,
+    pub title: String,
+    pub parent: KeymapId,
+    /// Actions whose shortcuts replace the parent's, in data order.
+    pub changes: Vec<(String, Vec<String>)>,
+}
+
+#[derive(Deserialize)]
+struct BundledRow {
+    id: String,
+    title: String,
+    parent: KeymapId,
+    shortcuts: serde_json::Map<String, serde_json::Value>,
+}
+
+/// The derived bundled keymaps, in display order.
+pub fn bundled_keymaps() -> &'static [BundledKeymap] {
+    static KEYMAPS: OnceLock<Vec<BundledKeymap>> = OnceLock::new();
+    KEYMAPS.get_or_init(|| {
+        let rows: Vec<BundledRow> = serde_json::from_str(include_str!("../data/keymaps.json"))
+            .expect("data/keymaps.json is valid");
+        rows.into_iter()
+            .map(|r| BundledKeymap {
+                id: r.id,
+                title: r.title,
+                parent: r.parent,
+                changes: r
+                    .shortcuts
+                    .into_iter()
+                    .map(|(id, v)| (id, split_shortcuts(v.as_str().unwrap_or_default())))
+                    .collect(),
+            })
+            .collect()
+    })
+}
+
+/// A derived bundled keymap by id.
+pub fn bundled_keymap(id: &str) -> Option<&'static BundledKeymap> {
+    bundled_keymaps().iter().find(|k| k.id == id)
 }
 
 /// The PHPStorm catalog, parsed once from the embedded data.
@@ -347,6 +397,123 @@ mod tests {
                 .collect();
             assert_eq!(unexpected, vec![], "{km:?}");
         }
+    }
+
+    /// Shortcuts of `km` (a derived keymap) with its changes applied to the parent's.
+    fn derived(km: &BundledKeymap) -> Vec<(String, Vec<String>)> {
+        let mut out: Vec<(String, Vec<String>)> = catalog().defaults(km.parent).to_vec();
+        for (id, list) in &km.changes {
+            match out.iter_mut().find(|(a, _)| a == id) {
+                Some(entry) => entry.1 = list.clone(),
+                None => out.push((id.clone(), list.clone())),
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn bundles_the_other_keymaps_of_phpstorm() {
+        let ids: Vec<&str> = bundled_keymaps().iter().map(|k| k.id.as_str()).collect();
+        assert_eq!(
+            ids,
+            [
+                "VSCode",
+                "VSCode OSX",
+                "Eclipse",
+                "Eclipse (Mac OS X)",
+                "Sublime Text",
+                "Sublime Text (Mac OS X)",
+                "Emacs"
+            ]
+        );
+        assert_eq!(bundled_keymap("VSCode OSX").unwrap().parent, KeymapId::MacOs);
+        assert!(bundled_keymap("Nope").is_none());
+    }
+
+    #[test]
+    fn derived_keymaps_only_change_known_actions_with_valid_shortcuts() {
+        let c = catalog();
+        for km in bundled_keymaps() {
+            for (id, list) in &km.changes {
+                assert!(c.get(id).is_some(), "{}: unknown action {id}", km.id);
+                for s in list {
+                    assert!(
+                        try_parse_shortcut(s, km.parent.platform()).is_some(),
+                        "{}: {id}: {s}",
+                        km.id
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn derived_keymaps_use_the_editors_own_shortcuts() {
+        let expect = [
+            ("VSCode", "GotoAction", "Ctrl+Shift+P"),
+            ("VSCode", "GotoFile", "Ctrl+P"),
+            ("VSCode", "RenameElement", "F2"),
+            ("VSCode", "SelectNextOccurrence", "Ctrl+D"),
+            ("VSCode OSX", "GotoFile", "Cmd+P"),
+            ("Eclipse", "GotoFile", "Ctrl+Shift+R"),
+            ("Eclipse", "ShowIntentionActions", "Ctrl+1"),
+            ("Eclipse (Mac OS X)", "EditorDeleteLine", "Cmd+D"),
+            ("Sublime Text", "GotoSymbol", "Ctrl+Shift+R"),
+            ("Sublime Text (Mac OS X)", "GotoAction", "Cmd+Shift+P"),
+            ("Emacs", "SaveAll", "Ctrl+X Ctrl+S"),
+            ("Emacs", "GotoAction", "Alt+X"),
+        ];
+        for (km, id, s) in expect {
+            let km = bundled_keymap(km).unwrap();
+            let platform = km.parent.platform();
+            let list = derived(km)
+                .into_iter()
+                .find(|(a, _)| a == id)
+                .map(|(_, l)| l)
+                .unwrap_or_default();
+            let want = canonical_shortcut(s, platform);
+            assert!(
+                list.iter().any(|x| canonical_shortcut(x, platform) == want),
+                "{}: {id}",
+                km.id
+            );
+        }
+    }
+
+    #[test]
+    fn derived_keymaps_have_no_unintended_same_context_conflicts() {
+        let c = catalog();
+        // Pairs PHPStorm binds on purpose (different UI contexts), as in the PHPStorm keymaps.
+        let known = [
+            "Ctrl+Alt+Z",
+            "Alt+Meta+Z",
+            "Meta+N",
+            "Alt+Insert",
+            "Ctrl+Shift+Tab",
+            "F6",
+            "F7",
+            "Shift+F7",
+        ];
+        let mut failures = Vec::new();
+        for km in bundled_keymaps() {
+            let non_native: Vec<(String, Vec<String>)> = derived(km)
+                .into_iter()
+                .filter(|(id, _)| !c.get(id).is_some_and(|a| a.native))
+                .collect();
+            let bindings = build_bindings(
+                &non_native,
+                |id| c.get(id).map(|a| a.context).unwrap_or_default(),
+                km.parent.platform(),
+            );
+            let unexpected: Vec<_> = all_conflicts(&bindings)
+                .into_iter()
+                .filter(|(id, _)| !known.contains(&id.as_str()))
+                .collect();
+            if !unexpected.is_empty() {
+                failures.push(format!("{}: {unexpected:?}", km.id));
+            }
+        }
+        assert_eq!(failures, Vec::<String>::new());
     }
 
     #[test]

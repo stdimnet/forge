@@ -3,7 +3,8 @@
 //!
 //! Handles single keystrokes, two-stroke chords ("Ctrl+K Ctrl+C"), modifier double-taps
 //! ("Shift Shift"), keys pressed while a double-tapped modifier is held ("Double Ctrl+Up")
-//! and focus contexts (editor / text input / terminal / everything else).
+//! mouse shortcuts ("Ctrl+Button1 Click", "Alt+Wheel Up") and focus contexts (editor / text
+//! input / terminal / everything else).
 
 use std::collections::HashMap;
 
@@ -11,8 +12,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::catalog::ActionContext;
 use crate::shortcut::{
-    modifier_of_event, stroke_from_event, try_parse_shortcut, KeyEvent, KeyStroke, Modifier,
-    Platform, Shortcut,
+    modifier_of_event, mouse_stroke, stroke_from_event, try_parse_shortcut, KeyEvent, KeyStroke,
+    Modifier, MouseInput, Platform, Shortcut,
 };
 
 /// Where keyboard focus currently is.
@@ -294,6 +295,8 @@ pub enum KeyInputKind {
     Interrupt,
     /// Window blur: forget chords and taps.
     Reset,
+    /// A click or wheel turn (`button`, `clickCount`, `deltaY` plus the modifier keys).
+    Mouse,
 }
 
 /// A key event as the UI forwards it.
@@ -307,6 +310,28 @@ pub struct KeyInput {
     pub focus: FocusContext,
     /// Event time in milliseconds (`KeyboardEvent.timeStamp`).
     pub time: f64,
+    /// Mouse events: `MouseEvent.button`.
+    pub button: u8,
+    /// Mouse events: `MouseEvent.detail` (2 for the second click of a double click).
+    pub click_count: u32,
+    /// Wheel events: `WheelEvent.deltaY`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_y: Option<f64>,
+}
+
+impl KeyInput {
+    /// The mouse part of a `mouse` input.
+    pub fn mouse(&self) -> MouseInput {
+        MouseInput {
+            button: self.button,
+            click_count: self.click_count,
+            delta_y: self.delta_y,
+            ctrl_key: self.event.ctrl_key,
+            alt_key: self.event.alt_key,
+            shift_key: self.event.shift_key,
+            meta_key: self.event.meta_key,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -430,7 +455,35 @@ impl Resolver {
                 self.reset();
                 Resolution::ignored()
             }
+            KeyInputKind::Mouse => self.mouse(&input.mouse(), input.focus),
         }
+    }
+
+    /// A click or wheel turn: mouse shortcuts are single strokes. Text fields and the
+    /// terminal keep their clicks; a pending chord or double tap is cancelled.
+    pub fn mouse(&mut self, e: &MouseInput, focus: FocusContext) -> Resolution {
+        self.interrupt();
+        self.pending_chord = None;
+        let Some(stroke) = mouse_stroke(e) else {
+            return Resolution::ignored();
+        };
+        if matches!(
+            focus,
+            FocusContext::Input | FocusContext::ToolwindowInput | FocusContext::Terminal
+        ) {
+            return Resolution::ignored();
+        }
+        match Self::pick(self.index.get(&stroke.id()).map(|e| &e.single), focus) {
+            Some(action) => Resolution::action(action),
+            None => Resolution::ignored(),
+        }
+    }
+
+    /// The action a mouse stroke is bound to under `focus`, without changing any state
+    /// (editor extensions that handle a click themselves ask this first).
+    pub fn mouse_action(&self, e: &MouseInput, focus: FocusContext) -> Option<String> {
+        let stroke = mouse_stroke(e)?;
+        Self::pick(self.index.get(&stroke.id()).map(|e| &e.single), focus)
     }
 
     fn pick(list: Option<&Vec<Binding>>, focus: FocusContext) -> Option<String> {
@@ -864,6 +917,7 @@ mod tests {
             event,
             focus: Editor,
             time,
+            ..Default::default()
         }
     }
 
@@ -1111,6 +1165,71 @@ mod tests {
             action(&mut r, "Shift+F10", Terminal).as_deref(),
             Some("Run")
         );
+    }
+
+    #[test]
+    fn resolves_mouse_shortcuts_by_focus() {
+        let mut r = resolver(&[
+            ("GotoDeclaration", &["Ctrl+B", "Ctrl+Button1 Click", "Button2 Click"]),
+            ("Generate", &["Alt+Wheel Down"]),
+            ("NextTab", &["Ctrl+Wheel Down"]),
+        ]);
+        let click = |button: u8, ctrl: bool| KeyInput {
+            kind: KeyInputKind::Mouse,
+            event: KeyEvent {
+                ctrl_key: ctrl,
+                ..Default::default()
+            },
+            button,
+            click_count: 1,
+            focus: Editor,
+            ..Default::default()
+        };
+        assert_eq!(
+            r.handle(&click(0, true)).action.as_deref(),
+            Some("GotoDeclaration")
+        );
+        assert_eq!(
+            r.handle(&click(1, false)).action.as_deref(),
+            Some("GotoDeclaration")
+        );
+        assert_eq!(r.handle(&click(0, false)), Resolution::ignored());
+        // Generate is an editor action: not in a tool window.
+        let wheel = MouseInput {
+            delta_y: Some(40.0),
+            alt_key: true,
+            ..Default::default()
+        };
+        assert_eq!(r.mouse_action(&wheel, Editor).as_deref(), Some("Generate"));
+        assert_eq!(r.mouse_action(&wheel, Toolwindow), None);
+        let ctrl_wheel = MouseInput {
+            delta_y: Some(40.0),
+            ctrl_key: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            r.mouse(&ctrl_wheel, Global).action.as_deref(),
+            Some("NextTab")
+        );
+        // Clicks in text fields stay with them.
+        let mut input = click(0, true);
+        input.focus = Input;
+        assert_eq!(r.handle(&input), Resolution::ignored());
+    }
+
+    #[test]
+    fn a_click_cancels_a_pending_chord() {
+        let mut r = resolver(&[("CommentByLineComment", &["Ctrl+K Ctrl+C"])]);
+        assert!(r.key_down(&key("Ctrl+K"), Editor).consumed);
+        assert!(r.chord_pending());
+        r.mouse(
+            &MouseInput {
+                click_count: 1,
+                ..Default::default()
+            },
+            Editor,
+        );
+        assert!(!r.chord_pending());
     }
 
     #[test]
