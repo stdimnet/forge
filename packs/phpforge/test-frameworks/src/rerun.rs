@@ -7,21 +7,11 @@
 //! - PHPSpec: the failed spec file (all specs when several files failed).
 
 use forge_runtools::Configuration;
-use serde::{Deserialize, Serialize};
 
 use crate::command::regex_escape;
 use crate::discover::pest_evaluable;
 
-/// A failed test of the tree.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct FailedTest {
-    pub name: String,
-    /// Method or member of its location.
-    pub member: Option<String>,
-    /// Workspace-relative file.
-    pub path: Option<String>,
-}
+pub use forge_testing::targets::FailedTest;
 
 fn append_options(cfg: &mut Configuration, extra: &str) {
     let joined = format!("{} {extra}", cfg.option("testRunnerOptions"));

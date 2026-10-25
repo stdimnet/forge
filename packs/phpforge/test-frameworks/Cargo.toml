@@ -11,3 +11,4 @@ serde_json.workspace = true
 regex-lite = "0.1"
 forge-output.workspace = true
 forge-runtools.workspace = true
+forge-testing.workspace = true
