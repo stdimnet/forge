@@ -8,11 +8,15 @@ import {
   actionById,
   addActionShortcut,
   allActions,
+  activeKeymap,
   checkShortcut,
+  deleteKeymap,
+  duplicateKeymap,
   findActionsByShortcut,
   formatForKeymap,
   isModified,
   keymapId,
+  keymapNameProblem,
   registerKeymapActions,
   removeActionShortcut,
   resetAction,
@@ -74,5 +78,26 @@ describe("keymap client", () => {
     expect(actionById("php.RunComposer")?.context).toBe("any");
     expect(shortcutsOf("php.RunComposer")).toEqual(["Ctrl+Alt+Shift+R"]);
     expect(actionById("demo.hello")?.group).toBe("Plugins/Demo");
+  });
+
+  it("switches to the other bundled keymaps and makes user keymaps", async () => {
+    await setKeymapId("VSCode");
+    expect(keymapId()).toBe("VSCode");
+    expect(shortcutsOf("GotoFile")).toEqual(["Ctrl+P"]);
+    expect(activeKeymap()?.parent).toBe("$default");
+    await duplicateKeymap("Mine");
+    expect(keymapId()).toBe("Mine");
+    expect(activeKeymap()?.user).toBe(true);
+    expect(shortcutsOf("GotoFile")).toEqual(["Ctrl+P"]);
+    expect(keymapNameProblem("Mine")).toMatch(/already exists/);
+    expect(keymapNameProblem("VS Code")).toMatch(/already exists/);
+    await deleteKeymap("Mine");
+    expect(keymapId()).toBe("VSCode");
+    expect(mockSettingValue("keymap.custom")).toEqual([]);
+  });
+
+  it("lists mouse shortcuts of the PHPStorm keymap", () => {
+    expect(shortcutsOf("GotoDeclaration")).toContain("Ctrl+Button1 Click");
+    expect(actionById("GotoDeclaration")?.display).toContain("Ctrl+Button1 Click");
   });
 });

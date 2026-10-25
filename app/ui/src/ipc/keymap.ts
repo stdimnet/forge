@@ -5,6 +5,7 @@
  */
 import { invoke } from "./index";
 
+/** The two PHPStorm keymaps; every other keymap derives from one of them. */
 export type KeymapId = "$default" | "macOS";
 export type Platform = "mac" | "other";
 /** Where an action may fire: "editor" actions only while a code editor has focus. */
@@ -33,12 +34,27 @@ export interface ActionInfo extends ActionDef {
   aliases?: string[];
 }
 
+/** A keymap: PHPStorm's, another bundled one ("VSCode") or one the user made. */
+export interface KeymapInfo {
+  id: string;
+  title: string;
+  /** The keymap it derives from (none for the PHPStorm keymaps). */
+  parent?: string;
+  /** The PHPStorm keymap at the root of its tree. */
+  base: KeymapId;
+  /** Made by the user: can be renamed and deleted. */
+  user: boolean;
+}
+
 export interface KeymapSnapshot {
-  keymap: KeymapId;
-  /** The `keymap.active` setting: "auto", "$default" or "macOS". */
+  /** Id of the keymap in use. */
+  keymap: string;
+  /** The PHPStorm keymap it derives from. */
+  base: KeymapId;
+  /** The `keymap.active` setting: "auto" or a keymap id. */
   selected: string;
   platform: Platform;
-  keymaps: { id: KeymapId; title: string }[];
+  keymaps: KeymapInfo[];
   groupOrder: string[];
   modifiedCount: number;
   actions: ActionInfo[];
@@ -63,7 +79,13 @@ export type KeymapChange =
   | { op: "add"; actionId: string; shortcut: string; removeConflicts?: boolean }
   | { op: "remove"; actionId: string; shortcut: string }
   | { op: "reset"; actionId: string }
-  | { op: "resetAll" };
+  | { op: "resetAll" }
+  /** Copy the active keymap into a new user keymap and select it. */
+  | { op: "duplicate"; name?: string }
+  /** A user keymap that follows the active keymap and stores only its own changes. */
+  | { op: "derive"; name?: string }
+  | { op: "rename"; keymap: string; name: string }
+  | { op: "delete"; keymap: string };
 
 export interface ConflictInfo {
   actionId: string;
@@ -81,9 +103,9 @@ export interface ShortcutCheck {
   conflicts: ConflictInfo[];
 }
 
-/** A key event as forwarded to the resolver (DOM field names). */
+/** A key or mouse event as forwarded to the resolver (DOM field names). */
 export interface KeyInput {
-  type: "keydown" | "keyup" | "interrupt" | "reset";
+  type: "keydown" | "keyup" | "interrupt" | "reset" | "mouse";
   key?: string;
   code?: string;
   ctrlKey?: boolean;
@@ -94,6 +116,12 @@ export interface KeyInput {
   focus?: FocusContext;
   /** Event time in milliseconds. */
   time?: number;
+  /** Mouse events: `MouseEvent.button`. */
+  button?: number;
+  /** Mouse events: `MouseEvent.detail` (2 for the second click of a double click). */
+  clickCount?: number;
+  /** Wheel events: `WheelEvent.deltaY`. */
+  deltaY?: number;
 }
 
 export interface Resolution {

@@ -24,6 +24,7 @@ import "./hierarchy";
 import "./liveTemplates";
 import "./documentation";
 import "./keymapSettings";
+import "./colorScheme";
 import "./git";
 import "./localHistory";
 import "./compare";

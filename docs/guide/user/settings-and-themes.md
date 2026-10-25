@@ -14,7 +14,7 @@ dialog, with the same tree as PHPStorm:
 
 - **Appearance & Behavior**: Appearance, System Settings
 - **Keymap**
-- **Editor**: General, Font, Code Style (schemes, General and one page per language), Inlay Hints
+- **Editor**: General, Font, Color Scheme, Code Style (schemes, General and one page per language), Inlay Hints
 - **Plugins**
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,
@@ -125,6 +125,9 @@ Settings | Appearance & Behavior | Appearance | **Theme** (`appearance.theme`):
 
 The sun/moon button in the main toolbar, **Theme: Toggle Dark/Light** and **Quick Switch
 Scheme…** (`` Ctrl+` ``) toggle between dark and light.
+
+The editor's colors follow the theme unless you choose a color scheme in Settings | Editor |
+Color Scheme; see [Color schemes](color-schemes.md).
 
 | | |
 | --- | --- |

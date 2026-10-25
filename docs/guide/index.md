@@ -48,6 +48,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Keymaps and color schemes**: PHPStorm's VS Code, Eclipse, Sublime Text and Emacs keymaps,
+  your own keymaps (Duplicate, Derive), mouse shortcuts such as `Ctrl+Button1 Click`, and
+  Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute
+  editing with a live preview and IntelliJ `.icls` import and export
+  ([Keymap](user/keymap.md), [Color schemes](user/color-schemes.md))
 - **Composer**: composer.json gets PHPStorm's Composer toolbar (Install, Update, Validate,
   Show Outdated, Audit), outdated packages are marked in the gutter with an "Update package"
   quick fix, package names and version constraints complete from Packagist with documentation
