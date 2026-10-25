@@ -91,7 +91,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Several project windows, Distraction Free/Presentation/Zen/Full Screen, floating tool windows, editor tabs in their own window, layouts, IDE zoom
 - [x] Invalidate Caches/Repair IDE, Settings for New Projects, Restore Defaults, custom file types
 - [ ] Other keymaps (VS Code, Eclipse, Sublime, Emacs), mouse shortcuts, color scheme editor and import
-- [ ] Project trust (safe mode) before running a project's scripts
+- [x] Project trust (safe mode) before running a project's scripts
 
 ### Deployment and remote
 - [ ] Deployment (SFTP/FTP/local servers, mappings, upload on save, compare with server)

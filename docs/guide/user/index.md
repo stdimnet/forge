@@ -66,6 +66,7 @@ not finished, the page says so.
 
 | Page | Covers |
 | --- | --- |
+| [Project trust and Safe Mode](project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
 | [PHP test frameworks](test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |

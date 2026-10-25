@@ -8,6 +8,9 @@ import { emitMock, mockHandler, registerMock } from "@/ipc";
 import type { TrustCheck, TrustedEntry, TrustStatus } from "@/ipc/trust";
 import { TRUST_CHANGED_EVENT } from "@/ipc/trust";
 import { isRemoteDemo, remoteWorkspace } from "./remoteMock";
+import { mockProjectName } from "./workspaceMock";
+
+const demoRoot = `~/Projects/${mockProjectName}`;
 
 const locations = new Set<string>(["~/Projects"]);
 const projects = new Set<string>(["~/.config/nvim"]);
@@ -32,7 +35,7 @@ function check(path: string): TrustCheck {
 /** The open project's folder as the trust store sees it. */
 function openRoot(): string {
   if (isRemoteDemo()) return remoteWorkspace().root;
-  return opened ?? "~/Projects/demo";
+  return opened ?? demoRoot;
 }
 
 function status(): TrustStatus {
@@ -53,7 +56,7 @@ function entries(): TrustedEntry[] {
 }
 
 // "demo" is what the browser build opens by default; it is the trusted demo project.
-registerMock("trust_check", ({ path }) => (String(path) === "demo" ? check("~/Projects/demo") : check(String(path))));
+registerMock("trust_check", ({ path }) => (String(path) === "demo" ? check(demoRoot) : check(String(path))));
 registerMock("trust_status", () => status());
 registerMock("trust_project", ({ path, location }) => {
   const target = path ? clean(String(path)) : openRoot();
