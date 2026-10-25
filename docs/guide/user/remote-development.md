@@ -21,6 +21,11 @@ machine.
 
 Nothing needs to be installed on the host in advance: Forge uploads the agent itself.
 
+The same agent also runs **in a dev container** (over `docker exec`) and **in a WSL
+distribution** (over `wsl.exe`); see [Dev Containers and WSL](dev-containers-and-wsl.md). The
+Welcome screen's Remote Development section has a page for each: **SSH**, **Dev Containers** and
+**WSL**.
+
 ## Connecting
 
 Welcome screen → **Remote Development** → **New Connection** (or **New SSH Connection…** in
@@ -88,7 +93,8 @@ Set `FORGE_AGENT_LOG=debug` in the host's environment for verbose agent logs (st
 ![Remote project](../../screenshots/remote-workbench.png)
 
 The project's root is shown as `user@host:/path`. Recent Projects keeps remote projects with an
-**SSH** badge; clicking one reconnects.
+**SSH** badge (**Container** and **WSL** for [dev container and WSL projects](dev-containers-and-wsl.md));
+clicking one reconnects.
 
 A remote project you have not trusted yet opens in Safe Mode and Forge asks "Trust and Open
 Project?" right after connecting; trust is kept per host, user, port and folder, see

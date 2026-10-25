@@ -429,6 +429,22 @@ export function deploy_resolve(request_json: string): string;
 export function deploy_validate(server_json: string): string;
 
 /**
+ * `{ path, content }` → `number | null`.
+ */
+export function devcontainer_gutter(request_json: string): string;
+
+/**
+ * `docker ps` output (the format of `docker::list_args`) → `DevContainerInstance[]`.
+ */
+export function devcontainer_parse_list(output: string): string;
+
+/**
+ * `{ text, folder, configPath }` → `{ config, source } | { error }` (the browser mock has no
+ * local environment, so `${localEnv:…}` is empty).
+ */
+export function devcontainer_resolve(request_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -1440,6 +1456,21 @@ export function window_chrome(request_json: string): string;
  */
 export function wordpress_query(request_json: string): string;
 
+/**
+ * A Windows path → `LinuxPath | null`.
+ */
+export function wsl_map_path(path: string): string;
+
+/**
+ * `wsl.exe -l -v` output bytes → `Distro[]` (without Docker Desktop's distributions).
+ */
+export function wsl_parse_list(bytes: Uint8Array): string;
+
+/**
+ * `{ distro, path }` → the Windows view of a Linux path.
+ */
+export function wsl_windows_path(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -1527,6 +1558,9 @@ export interface InitOutput {
     readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
     readonly deploy_resolve: (a: number, b: number, c: number) => void;
     readonly deploy_validate: (a: number, b: number, c: number) => void;
+    readonly devcontainer_gutter: (a: number, b: number, c: number) => void;
+    readonly devcontainer_parse_list: (a: number, b: number, c: number) => void;
+    readonly devcontainer_resolve: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -1727,6 +1761,9 @@ export interface InitOutput {
     readonly web_npm_packages: (a: number, b: number, c: number) => void;
     readonly window_chrome: (a: number, b: number, c: number) => void;
     readonly wordpress_query: (a: number, b: number, c: number) => void;
+    readonly wsl_map_path: (a: number, b: number, c: number) => void;
+    readonly wsl_parse_list: (a: number, b: number, c: number) => void;
+    readonly wsl_windows_path: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;

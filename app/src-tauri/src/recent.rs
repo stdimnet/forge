@@ -138,6 +138,7 @@ mod tests {
                     port: 22,
                     user: "deploy".into(),
                     config_id: Some("c1".into()),
+                    kind: Default::default(),
                 },
                 path: "/var/www/shop".into(),
             }),

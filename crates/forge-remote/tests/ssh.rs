@@ -299,6 +299,7 @@ fn host(port: u16) -> RemoteHost {
         port,
         user: "deploy".into(),
         config_id: None,
+        kind: Default::default(),
     }
 }
 

@@ -1,0 +1,33 @@
+[package]
+name = "forge-devenv"
+description = "Forge IDE Dev Containers and WSL: devcontainer.json, docker command lines, WSL distributions and path mapping, and the Forge agent over a process's stdio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["runtime"]
+# Docker / wsl.exe processes and the Forge agent started over their stdio. Without it only
+# the pure modules are built (devcontainer.json, command lines, WSL parsing and paths), e.g.
+# for WebAssembly.
+runtime = [
+    "dep:tokio",
+    "dep:tracing",
+    "dep:forge-backend",
+    "dep:forge-core",
+    "dep:forge-remote",
+]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-backend = { workspace = true, optional = true }
+forge-core = { workspace = true, optional = true }
+forge-remote = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["process", "io-util", "sync", "rt", "macros", "time"] }
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
+forge-remote-agent = { path = "../forge-remote-agent" }

@@ -60,6 +60,15 @@
   background: var(--accent-soft);
   color: var(--fg-strong);
 }
+.welcome-nav-item.open {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.welcome-nav-sub {
+  height: 26px;
+  padding-left: 30px;
+  font-size: var(--fs-small);
+}
 .welcome-nav-foot {
   margin-top: auto;
 }

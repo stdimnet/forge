@@ -1837,6 +1837,7 @@ dependencies = [
  "forge-db",
  "forge-debug",
  "forge-deploy",
+ "forge-devenv",
  "forge-diff",
  "forge-editing",
  "forge-emmet",
@@ -2077,6 +2078,21 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "webpki-roots 1.0.10",
+]
+
+[[package]]
+name = "forge-devenv"
+version = "0.1.0"
+dependencies = [
+ "forge-backend",
+ "forge-core",
+ "forge-remote",
+ "forge-remote-agent",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2583,6 +2599,7 @@ dependencies = [
  "forge-colorscheme",
  "forge-containers",
  "forge-deploy",
+ "forge-devenv",
  "forge-diff",
  "forge-editing",
  "forge-emmet",

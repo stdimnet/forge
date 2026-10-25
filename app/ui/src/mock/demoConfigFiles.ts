@@ -115,6 +115,31 @@ RUN composer install --no-dev --optimize-autoloader
 EXPOSE 8000
 CMD ["php", "artisan", "serve", "--host=0.0.0.0"]
 `,
+  ".devcontainer/devcontainer.json": `// Dev container for the shop: PHP 8.3 with Composer and Node.
+{
+  "name": "Acme Shop",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": { "PHP_VERSION": "8.3" }
+  },
+  "workspaceFolder": "/workspaces/\${localWorkspaceFolderBasename}",
+  "forwardPorts": [8000, 5173],
+  "containerEnv": { "APP_ENV": "local" },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+  },
+  "postCreateCommand": "composer install && npm ci",
+  "postStartCommand": "php artisan migrate --force",
+  "remoteUser": "vscode",
+}
+`,
+  ".devcontainer/Dockerfile": `ARG PHP_VERSION=8.3
+FROM mcr.microsoft.com/devcontainers/php:\${PHP_VERSION}
+
+RUN apt-get update && apt-get install -y libicu-dev \\
+    && docker-php-ext-install intl pdo_mysql
+`,
   "database/schema.sql": `-- Reporting view for paid orders
 CREATE TABLE IF NOT EXISTS products (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

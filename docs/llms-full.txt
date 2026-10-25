@@ -778,6 +778,7 @@ not finished, the page says so.
 | [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](docs/guide/user/services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](docs/guide/user/remote-development.md) | SSH, the Forge agent, what runs remotely |
+| [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md) | devcontainer.json, building with the Docker CLI and the build log, Start / Stop / Rebuild / Delete, WSL distributions, `\\wsl$` paths, Terminal › WSL |
 | [Deployment](docs/guide/user/deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
 | [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
 | [AI](docs/guide/user/ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
@@ -11704,6 +11705,12 @@ an untrusted remote project in Safe Mode first and then asks. **Don't Open** clo
 and the connection again; nothing of it ran in the meantime. Trusted locations on this machine
 never cover remote projects, and the other way round.
 
+Dev containers are built from a folder on this machine, so the **local folder's** trust counts:
+Forge asks before the image build and `postCreateCommand` (they run the project's code), refuses
+both for an untrusted folder, and the project in the container is trusted with its sources. A
+WSL project is trusted by its `\\wsl.localhost\<distro>\…` path. See
+[Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md).
+
 ## Browser mode
 
 The demo projects of browser mode live in `~/Projects`, a trusted location, so they open
@@ -12599,6 +12606,11 @@ reports, see below), **Rename Session**, **Close Tab** and **Close Other Tabs**.
 area's context menu has **Copy** (`Ctrl+Shift+C`), **Paste** (`Ctrl+Shift+V`), **Select All**
 and **Clear Buffer**.
 
+On Windows, the arrow next to **+** also offers `WSL: <distro>` for every WSL distribution: a
+shell in that distribution, in the project folder (see
+[Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md#terminal--wsl)). In projects opened in a dev
+container or a WSL distribution, every tab is a shell there.
+
 ## Program progress
 
 Programs such as Claude Code, winget or systemd report their progress with the OSC 9;4
@@ -13325,6 +13337,11 @@ machine.
 
 Nothing needs to be installed on the host in advance: Forge uploads the agent itself.
 
+The same agent also runs **in a dev container** (over `docker exec`) and **in a WSL
+distribution** (over `wsl.exe`); see [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md). The
+Welcome screen's Remote Development section has a page for each: **SSH**, **Dev Containers** and
+**WSL**.
+
 ## Connecting
 
 Welcome screen → **Remote Development** → **New Connection** (or **New SSH Connection…** in
@@ -13392,7 +13409,8 @@ Set `FORGE_AGENT_LOG=debug` in the host's environment for verbose agent logs (st
 ![Remote project](docs/screenshots/remote-workbench.png)
 
 The project's root is shown as `user@host:/path`. Recent Projects keeps remote projects with an
-**SSH** badge; clicking one reconnects.
+**SSH** badge (**Container** and **WSL** for [dev container and WSL projects](docs/guide/user/dev-containers-and-wsl.md));
+clicking one reconnects.
 
 A remote project you have not trusted yet opens in Safe Mode and Forge asks "Trust and Open
 Project?" right after connecting; trust is kept per host, user, port and folder, see
@@ -13471,6 +13489,164 @@ SSH terminal sessions, see [Remote Host and SSH sessions](docs/guide/user/remote
 ## Troubleshooting
 
 See [Troubleshooting: remote agent upload](docs/guide/troubleshooting.md#remote-agent-upload).
+
+
+---
+
+Source: docs/guide/user/dev-containers-and-wsl.md
+
+# Dev Containers and WSL
+
+Besides [SSH hosts](docs/guide/user/remote-development.md), Forge opens projects **inside a dev container** or
+**inside a WSL distribution**, like PHPStorm and JetBrains Gateway. In both cases Forge starts its
+headless agent (the same one it uses over SSH) in the container or the distribution and talks to
+it over the stdio of `docker exec` or `wsl.exe` instead of an SSH channel. The project then opens
+like a remote project: indexing, Intelephense and other language servers, Git, terminals and run
+configurations all happen in the container or the distribution, with its PHP, Composer, Node.js
+and tools.
+
+## Dev Containers
+
+A dev container is described by the project's `devcontainer.json`
+([containers.dev](https://containers.dev)). Forge looks for it in the usual places:
+
+| Location | |
+| --- | --- |
+| `.devcontainer/devcontainer.json` | the default configuration |
+| `.devcontainer.json` | in the project root |
+| `.devcontainer/<name>/devcontainer.json` | one of several named configurations |
+
+### Requirements
+
+| Side | Needs |
+| --- | --- |
+| This machine | the Docker CLI (`docker`, Settings \| Build, Execution, Deployment \| Docker \| **Docker executable**, `docker.cliPath`) and a running Docker Engine (Docker Desktop, Podman with the Docker CLI, Rancher Desktop, …) |
+| The container | Linux on x86_64 or aarch64 with `/bin/sh`; nothing else: Forge copies its agent in |
+| Forge | a build that bundles the agents, as for SSH (see [Remote development](docs/guide/user/remote-development.md#requirements)) |
+
+### Create a dev container
+
+- Welcome screen → **Remote Development** → **Dev Containers** → **New Dev Container**, then
+  choose the project folder, or
+- in an open local project: **Create Dev Container and Mount Sources…** (Find Action), or the
+  dev container icon in the gutter of `devcontainer.json`.
+
+![Dev Containers on the Welcome screen](docs/screenshots/devcontainers-welcome.png)
+
+The dialog lists the folder's configurations and shows what the selected one does: how the
+container is made (image, Dockerfile or Docker Compose service), the workspace folder in the
+container, the remote user, forwarded ports, `postCreateCommand` / `postStartCommand` and the
+features.
+
+![Create Dev Container and Mount Sources](docs/screenshots/devcontainers-config.png)
+
+**Build Container and Continue** asks "Trust and Open Project?" for an untrusted folder first:
+building the image and the lifecycle commands run the project's code. Forge then runs the
+Docker CLI and streams every step, command line and line of output into the build log:
+
+1. `docker pull` the image, `docker build` the Dockerfile (with `build.args`, `build.target`),
+   or `docker compose up -d --build` the service with Forge's override file (labels, extra
+   mounts, `containerEnv`, the keep-alive command),
+2. `docker run -d` with the sources mounted (`workspaceMount`, default
+   `type=bind,source=<folder>,target=/workspaces/<folder name>`), `mounts`, `containerEnv`,
+   `runArgs`, `containerUser` and the forwarded ports published on `127.0.0.1`,
+3. `onCreateCommand`, `postCreateCommand` and `postStartCommand` with `docker exec` as the
+   remote user in the workspace folder (strings run with `/bin/sh -c`, arrays without a shell,
+   objects one after the other),
+4. the agent is copied into the container (`~/.cache/forge-agent/<version>/` of the remote
+   user) and started; the workspace folder opens as the project.
+
+![Build log](docs/screenshots/devcontainers-build-log.png)
+
+**Stop** cancels the build (the running `docker` process ends). A failed step shows its exit
+code; **Retry** runs it again.
+
+![Gutter icon in devcontainer.json](docs/screenshots/devcontainers-gutter.png)
+
+### What Forge reads from devcontainer.json
+
+The file may contain `//` and `/* */` comments and trailing commas (JSONC). The editor treats
+it as JSON with comments.
+
+| Property | Support |
+| --- | --- |
+| `name` | the container's name in Forge (default: the folder name) |
+| `image` | pulled, then run |
+| `build.dockerfile`, `build.context`, `build.args`, `build.target` (and the old `dockerFile` / `context`) | built with `docker build`; paths relative to `devcontainer.json` |
+| `dockerComposeFile` (one or several), `service`, `runServices` | `docker compose up`; the compose files mount the sources |
+| `workspaceFolder`, `workspaceMount` | the project folder in the container and the sources' mount |
+| `forwardPorts` | numbers are published on `127.0.0.1:<port>`; `service:port` entries are listed only |
+| `onCreateCommand`, `postCreateCommand`, `postStartCommand` | run after creating / on every start |
+| `remoteUser`, `containerUser` | the user of the agent, terminals and commands / of the container |
+| `containerEnv`, `remoteEnv` | the container's environment / the agent's (`${containerEnv:…}` entries are left to the container) |
+| `mounts` | strings in `--mount` syntax or `{ source, target, type }` objects |
+| `runArgs`, `overrideCommand` | extra `docker run` arguments; keep the container alive with a sleep loop (default for image and Dockerfile) |
+| `features` | **listed only**: Forge does not install features yet and says so in the build log |
+| `${localWorkspaceFolder}`, `${localWorkspaceFolderBasename}`, `${containerWorkspaceFolder}`, `${containerWorkspaceFolderBasename}`, `${localEnv:NAME[:default]}`, `${devcontainerId}` | replaced |
+
+### Your dev containers
+
+The Dev Containers page lists every container Forge created (Docker labels
+`forge.devcontainer.id` and the Dev Containers CLI's `devcontainer.local_folder` /
+`devcontainer.config_file`). Click a container to open it (a stopped one is started first), or
+use its buttons:
+
+| Button | Does |
+| --- | --- |
+| Start / Stop | `docker start` (then `postStartCommand`) / `docker stop` |
+| Rebuild | removes the container and builds it again without cache (the dialog opens with **Rebuild Container**) |
+| Delete | `docker rm -f`; the sources stay on your machine |
+
+Recent Projects show dev container projects with a **Container** badge; opening one starts its
+container, or offers to build it again when it is gone. The status bar shows
+`Dev Container: <name>`; when the agent ends (container stopped or restarted) Forge starts it
+again with a backoff of 1 to 30 seconds and re-attaches the project.
+
+![A project in a dev container](docs/screenshots/devcontainers-project.png)
+
+## WSL
+
+On Windows, Forge opens projects that live inside a WSL distribution and runs its agent there
+(`wsl.exe -d <distro> --exec …`), so files are read at Linux speed and PHP, Composer, Git and
+the language servers are the distribution's.
+
+- Welcome screen → **Remote Development** → **WSL** lists the distributions of `wsl.exe -l -v`
+  (state, WSL version, the default one; Docker Desktop's internal distributions are hidden).
+  Choose one, then the project folder in the distribution's file system.
+- **Open** a folder under `\\wsl$\<distro>\…` or `\\wsl.localhost\<distro>\…`: Forge opens it
+  in that distribution instead of reading it over the network share.
+
+![WSL distributions](docs/screenshots/wsl-distros.png)
+
+![Choose a folder in the distribution](docs/screenshots/wsl-folder-chooser.png)
+
+The project is shown as `\\wsl.localhost\<distro>\home\…` and kept in Recent Projects with a
+**WSL** badge. Trust is kept for that path, see
+[Project trust and Safe Mode](docs/guide/user/project-trust.md#remote-projects).
+
+Paths are mapped between the two views as WSL does:
+
+| Windows | Linux (in the distribution) |
+| --- | --- |
+| `C:\Users\me\shop` | `/mnt/c/Users/me/shop` |
+| `\\wsl$\Ubuntu\home\me\shop`, `\\wsl.localhost\Ubuntu\home\me\shop` | `/home/me/shop` |
+
+### Terminal › WSL
+
+In a local project on Windows, the arrow next to **+** in the Terminal tool window offers a
+`WSL: <distro>` entry per distribution: a shell in the distribution
+(`wsl.exe -d <distro> --cd <project folder>`), started in the project folder when it is on a
+Windows drive.
+
+## Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| "Docker is not available" on the Dev Containers page | start Docker Desktop / the Docker Engine, or set the Docker executable in Settings \| Build, Execution, Deployment \| Docker |
+| "The Forge agent for Linux … is not part of this build" | use a release build or build the agents with `pnpm --dir app/ui agents` (static musl binaries, they run in any Linux container) |
+| A feature from `features` is missing in the container | install it in the Dockerfile; Forge lists features but does not install them yet |
+| "… is not available in Safe Mode" when building | trust the folder: the build runs the project's code |
+| WSL page says "WSL is only available on Windows" | WSL projects need Windows with WSL installed (`wsl --install`) |
 
 
 ---
@@ -18655,6 +18831,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-colorscheme](docs/guide/developer/crates/forge-colorscheme.md) | Editor color schemes (Settings \| Editor \| Color Scheme): the Ember and Anvil schemes, user schemes stored in the settings, per-attribute text attributes, CSS for the editor, and IntelliJ .icls import/export (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
+| [forge-devenv](docs/guide/developer/crates/forge-devenv.md) | Forge IDE Dev Containers and WSL: devcontainer.json, docker command lines, WSL distributions and path mapping, and the Forge agent over a process's stdio |
 | [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](docs/guide/developer/crates/forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
@@ -19468,6 +19645,71 @@ pub use workspace::{FileEntry, FileKind, Workspace};
 
 ```sh
 cargo test -p forge-core
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-devenv.md
+
+# forge-devenv
+
+`crates/forge-devenv` — Forge IDE Dev Containers and WSL: devcontainer.json, docker command lines, WSL distributions and path mapping, and the Forge agent over a process's stdio.
+
+## Purpose
+
+Dev Containers and WSL projects, like PHPStorm / JetBrains Gateway: the project's
+services run in a container or a WSL distribution through the Forge agent
+(`crates/forge-remote-agent`), which Forge starts over the stdio of `docker exec` or
+`wsl.exe` instead of SSH; the project then opens as a `forge_backend::RemoteBackend`
+(`RemoteHost.kind` = `RemoteKind::DevContainer` / `RemoteKind::Wsl`).
+
+Pure modules (also built for WebAssembly without the `runtime` feature):
+- `jsonc`: JSON with comments and trailing commas.
+- `devcontainer`: `devcontainer.json` locations, parsing and resolving.
+- `docker`: Docker CLI command lines and the `docker ps` list of dev containers.
+- `wsl`: `wsl.exe -l -v` (UTF-16) parsing, command lines and Windows ↔ Linux paths.
+
+With `runtime` (the default):
+- `runner`: processes on this machine behind a trait (fakes in tests).
+- `agent`: copying the agent in and starting it over a process's stdio.
+- `connection`: a live agent connection that restarts the agent when it ends.
+- `up`: building / starting a dev container with a build log.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `agent.rs` | The agent over `docker exec -i` / `wsl.exe -d <distro> --exec`: the probe, upload (`cat`) and start commands of `forge_remote::deploy` wrapped by an `AgentTarget` (`DockerTarget`, `WslTarget`), the ready marker skipped, then the usual `RpcClient`. |
+| `connection.rs` | `StdioConnection`: the `forge_backend::remote::Connection` of such a project; restarts the agent with backoff (1–30 s) when its process ends and calls the reconnect hooks (`RemoteBackend::reattach`). |
+| `devcontainer.rs` | `devcontainer.json` model (`image`, `build`, `dockerComposeFile` + `service`, `workspaceFolder`, `workspaceMount`, `forwardPorts`, lifecycle commands, `remoteUser`, `containerEnv`, `mounts`, `features`, …), `resolve` against the local folder (absolute paths, `${localWorkspaceFolder}` and the other variables, defaults), configuration locations and the gutter line. |
+| `docker.rs` | `docker build` / `pull` / `run`, the compose override file and `docker compose up` / `down`, `docker exec` for lifecycle commands, the agent and terminals, the labels (`forge.devcontainer.*`, `devcontainer.local_folder`, `devcontainer.config_file`) and the `docker ps` list. |
+| `jsonc.rs` | Comment and trailing-comma removal that keeps positions. |
+| `runner.rs` | `Runner` (`output`, `stream`, `spawn_stdio`) and `SystemRunner` (tokio processes, no console window on Windows). |
+| `up.rs` | Create or start a dev container: find it by label, pull / build / compose up, `docker run`, `onCreateCommand` / `postCreateCommand` / `postStartCommand`, every step and output line as `LogLine`. |
+| `wsl.rs` | UTF-16LE decoding of `wsl.exe` output, `wsl.exe -l -v` parsing (localized headers and states), `--exec` / `--cd` command lines, `C:\…` ↔ `/mnt/c/…` and `\\wsl$\<distro>\…` / `\\wsl.localhost\…` ↔ Linux paths. |
+
+## Used by
+
+- IPC: `devcontainer_configs`, `devcontainer_gutter`, `devcontainer_list`, `devcontainer_up`, `devcontainer_cancel`, `devcontainer_action`, `devcontainer_open`, `wsl_distributions`, `wsl_map_path`, `wsl_windows_path`, `wsl_connect`, `wsl_browse`, `wsl_open_project`, `wsl_disconnect` (`app/src-tauri/src/commands/devenv.rs`)
+- UI: `app/ui/src/features/devenv`
+- Browser mode: built into `forge-wasm` (`devcontainer_resolve`, `devcontainer_gutter`, `devcontainer_parse_list`, `wsl_parse_list`, `wsl_map_path`, `wsl_windows_path`)
+
+## Dependencies
+
+- Workspace crates: [`forge-backend`](docs/guide/developer/crates/forge-backend.md), [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md)
+- External: `serde`, `serde_json`, `tokio`, `tracing`
+- Features: `default` = `runtime`; `runtime` = `dep:tokio`, `dep:tracing`, `dep:forge-backend`, `dep:forge-core`, `dep:forge-remote`
+
+## Tests
+
+Unit tests with a fake `docker` / `wsl.exe` runner (no Docker, WSL or network): devcontainer.json
+parsing and resolving, command lines, the `docker ps` and UTF-16 `wsl.exe -l -v` fixtures, path
+mapping, the build flow, and the agent copied in and started over an in-memory stdio pipe
+serving a `RemoteBackend` that survives an agent restart.
+
+```sh
+cargo test -p forge-devenv
 ```
 
 

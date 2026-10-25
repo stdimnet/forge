@@ -60,6 +60,9 @@ pub struct RemoteInfo {
     pub config_id: Option<String>,
     /// The project folder on the host.
     pub path: String,
+    /// Dev container or WSL distribution (absent for SSH).
+    #[serde(skip_serializing_if = "forge_backend::RemoteKind::is_ssh")]
+    pub kind: forge_backend::RemoteKind,
 }
 
 #[derive(Serialize, Clone)]
@@ -84,6 +87,7 @@ impl From<&BackendInfo> for WorkspaceInfo {
                 label: r.label(),
                 config_id: r.config_id.clone(),
                 path: info.root.to_string_lossy().into_owned(),
+                kind: r.kind.clone(),
             }),
         }
     }
@@ -170,6 +174,7 @@ pub async fn workspace_recent() -> Vec<RecentProjectInfo> {
                 Some(r) => Some(RecentProjectInfo {
                     remote: Some(RemoteInfo {
                         label: r.host.label(),
+                        kind: r.host.kind.clone(),
                         host: r.host.host,
                         port: r.host.port,
                         user: r.host.user,

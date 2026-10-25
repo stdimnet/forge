@@ -30,6 +30,7 @@ fn host() -> RemoteHost {
         port: 22,
         user: "deploy".into(),
         config_id: None,
+        kind: Default::default(),
     }
 }
 
