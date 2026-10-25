@@ -4,4 +4,4 @@
  */
 export * from "./store";
 export * from "./dispatch";
-export { coreReady, strokeOfEvent } from "./core";
+export { coreReady, mouseInputOf, mouseStrokeOf, strokeOfEvent } from "./core";

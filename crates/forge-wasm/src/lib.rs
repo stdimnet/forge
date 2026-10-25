@@ -24,6 +24,7 @@ mod agents;
 mod cli_tools;
 mod codeintel;
 mod codestyle;
+mod colorscheme;
 mod compare;
 mod composer;
 mod containers;

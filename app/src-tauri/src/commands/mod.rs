@@ -6,6 +6,7 @@ pub mod ai;
 pub mod clipboard;
 pub mod code_style;
 pub mod codeintel;
+pub mod color_scheme;
 pub mod command_line_tools;
 pub mod companion;
 pub mod compare;

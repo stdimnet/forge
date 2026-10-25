@@ -55,6 +55,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   paths; Tools | Deployment and the Project view upload, download, compare with the deployed
   version and sync folders, files upload automatically on save, and the File Transfer tool
   window shows every transfer ([Deployment](docs/guide/user/deployment.md)).
+- **Keymaps and color schemes**: PHPStorm's VS Code, Eclipse, Sublime Text and Emacs keymaps,
+  your own keymaps (Duplicate, Derive), mouse shortcuts such as `Ctrl+Button1 Click`, and
+  Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute
+  editing with a live preview and IntelliJ `.icls` import and export
+  ([Keymap](docs/guide/user/keymap.md), [Color schemes](docs/guide/user/color-schemes.md))
 - **Project trust and Safe Mode**: an untrusted project asks "Trust and Open Project?"
   (Trust Project, Preview in Safe Mode, Don't Open, "Trust projects in …"); in Safe Mode the
   backend refuses scripts, run configurations, tests, the debugger, build tools, project-local
@@ -720,8 +725,9 @@ not finished, the page says so.
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
 | [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
-| [Keymap](docs/guide/user/keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |
+| [Keymap](docs/guide/user/keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](docs/guide/user/shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](docs/guide/user/shortcuts/reference-card.md) |
+| [Color schemes](docs/guide/user/color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
 | [Settings and themes](docs/guide/user/settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
 | [Invalidate Caches and Repair IDE](docs/guide/user/repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
 | [Plugins and packs](docs/guide/user/plugins-and-packs.md) | packs, activation, Settings \| Plugins |
@@ -4844,7 +4850,8 @@ Source: docs/guide/user/keymap.md
 # Keymap
 
 Forge ships **PHPStorm's default keymaps** 1:1, for Windows/Linux and for macOS, keyed by
-PHPStorm's action ids. Shortcuts you know from PHPStorm work the same, and actions that Forge has
+PHPStorm's action ids, plus PHPStorm's keymaps for people coming from **VS Code**, **Eclipse**,
+**Sublime Text** and **Emacs**. Shortcuts you know from PHPStorm work the same, and actions that Forge has
 not implemented yet stay bound and show "*Action* is not available yet" instead of doing
 something unexpected.
 
@@ -4875,8 +4882,12 @@ The complete list with both platforms is in the [keymap reference](docs/guide/re
 
 ![Keymap settings](docs/screenshots/keymap-settings.png)
 
-- **Keymap**: *Platform default* (`auto`), *Windows / Linux* or *macOS* (`keymap.active`). You
-  can use the macOS keymap on Linux and vice versa.
+- **Keymap** (`keymap.active`): *PHPStorm (Windows/Linux)*, *PHPStorm (macOS)*, the
+  [other keymaps](#other-keymaps) and [your own keymaps](#your-own-keymaps). Until you pick one,
+  Forge uses the PHPStorm keymap of your platform (`auto`). You can use a macOS keymap on Linux
+  and vice versa. A derived keymap shows **Based on** with its parent.
+- The **gear** next to it: **Duplicate…**, **Derive…**, **Rename…** and **Delete** (your own
+  keymaps only) and **Restore Defaults**.
 - The tree groups actions like PHPStorm: Main Menu (File, Edit, View, Navigate, Code,
   Refactor, Run, Git, Window, …), Editor Actions, Debugger Actions, Other and Plugins.
   Changed actions are highlighted.
@@ -4891,17 +4902,76 @@ Select an action and press `Enter`, double-click it or use **Edit Shortcuts**:
   **Second stroke** for a chord such as `Ctrl+K Ctrl+C`. The dialog lists conflicts ("The
   shortcut is already assigned to other actions") before you confirm; **Remove Others** takes
   the shortcut away from them.
+- **Add Mouse Shortcut** opens the **Mouse Shortcut** dialog: choose **Single click** or
+  **Double click**, then click in the pad with the mouse button and modifier keys to use, or
+  turn the wheel while holding a modifier. See [mouse shortcuts](#mouse-shortcuts).
 - **Remove *shortcut*** removes one shortcut.
 - **Reset Shortcuts** restores the defaults of the action; the page can also reset all changes.
 
 ![Conflict](docs/screenshots/keymap-shortcut-conflict.png)
 
-Changes are stored in the settings (`keymap.overrides.default` / `keymap.overrides.macOS`, one
-entry per action: the action id followed by its shortcuts, separated by tabs), so they live in
-`settings.toml` and not in browser storage.
+Changes are stored in the settings as you make them, so they live in `settings.toml` and not
+in browser storage: `keymap.overrides.default` / `keymap.overrides.macOS` for the PHPStorm
+keymaps, `keymap.overrides.bundled` for the other bundled keymaps (one entry per action: the
+action id followed by its shortcuts, separated by tabs) and `keymap.custom` for your own
+keymaps. Changes to a bundled keymap belong to that keymap only: switching to another keymap
+does not carry them over.
 
-> **Note:** mouse shortcuts ("Add Mouse Shortcut") and importing PHPStorm keymap files are not
-> available yet.
+> **Note:** importing PHPStorm keymap files (`.xml`) is not available yet.
+
+## Other keymaps
+
+Like PHPStorm, Forge bundles keymaps for the shortcuts of other editors. Each one is derived
+from a PHPStorm keymap: it changes the shortcuts the other editor is known for and keeps
+PHPStorm's for everything else, and shortcuts the editor uses for something else are taken away
+from the PHPStorm actions so nothing fires twice.
+
+![VS Code keymap](docs/screenshots/keymap-vscode.png)
+
+| Keymap | Based on | Examples |
+| --- | --- | --- |
+| VS Code | PHPStorm (Windows/Linux) | `Ctrl+Shift+P` Find Action, `Ctrl+P` Go to File, `F2` Rename, `Ctrl+D` next occurrence, `F12` declaration, `Ctrl+K` chords |
+| VS Code (macOS) | PHPStorm (macOS) | `Cmd+Shift+P`, `Cmd+P`, `Cmd+D`, `F12` |
+| Eclipse | PHPStorm (Windows/Linux) | `Ctrl+Shift+R` Go to File, `Ctrl+Shift+T` Go to Class, `Ctrl+1` quick fix, `F3` declaration, `Ctrl+D` delete line |
+| Eclipse (macOS) | PHPStorm (macOS) | `Cmd+Shift+R`, `Cmd+Shift+T`, `Cmd+1`, `F3`, `Cmd+D` |
+| Sublime Text | PHPStorm (Windows/Linux) | `Ctrl+P` Go to File, `Ctrl+Shift+P` Find Action, `Ctrl+R` file structure, `Ctrl+D` next occurrence |
+| Sublime Text (macOS) | PHPStorm (macOS) | `Cmd+P`, `Cmd+Shift+P`, `Cmd+R`, `Cmd+D` |
+| Emacs | PHPStorm (Windows/Linux) | `Ctrl+X Ctrl+S` save, `Ctrl+X Ctrl+F` open, `Ctrl+S` find, `Alt+X` Find Action, `Ctrl+X 2` / `Ctrl+X 3` split |
+
+Caret movement and text editing keys (`Ctrl+A`, `Ctrl+F`, … in Emacs) belong to the editor
+itself and keep their usual meaning in every keymap; for modal editing use
+[Vim emulation](docs/guide/user/vim-emulation.md).
+
+## Your own keymaps
+
+The gear next to the keymap selector makes keymaps of your own (listed under **Custom**):
+
+- **Duplicate…** copies the selected keymap with all its shortcuts, including your changes.
+- **Derive…** makes a keymap that follows the selected one and keeps only the shortcuts you
+  change in it; later changes to its parent show up in it too.
+- **Rename…** and **Delete** work on your own keymaps. Deleting a keymap selects its parent;
+  keymaps derived from it keep their shortcuts.
+
+![Keymap actions](docs/screenshots/keymap-derive.png)
+
+## Mouse shortcuts
+
+Actions can have mouse shortcuts, written like PHPStorm's:
+
+| Notation | Meaning |
+| --- | --- |
+| `Ctrl+Button1 Click` | `Ctrl` and a click with the left button (`Button2`: middle, `Button3`: right, `Button4`/`Button5`: back and forward) |
+| `Alt+Button1 Double Click` | a double click |
+| `Ctrl+Wheel Up`, `Shift+Wheel Down` | turning the wheel while holding modifiers |
+
+The PHPStorm keymaps bind **Declaration or Usages** to `Ctrl+Button1 Click` (macOS
+`Cmd+Button1 Click`) and `Button2 Click` (middle click), and **Implementation(s)** to
+`Ctrl+Alt+Button1 Click`. In the editor they act on the clicked symbol; rebinding them in the
+keymap changes what the click does. Plain left clicks, double clicks, right clicks and plain
+wheel turns cannot be bound, so selecting text, context menus and scrolling keep working.
+Mouse shortcuts are ignored in text fields and the terminal.
+
+![Mouse Shortcut](docs/screenshots/keymap-mouse-shortcut.png)
 
 ## How shortcuts are written
 
@@ -4910,6 +4980,7 @@ entry per action: the action id followed by its shortcuts, separated by tabs), s
 | `Ctrl+Shift+A` | keys pressed together |
 | `Ctrl+K Ctrl+C` | a chord: the first stroke, then the second |
 | `Double Shift` | press `Shift` twice quickly |
+| `Ctrl+Button1 Click` | a [mouse shortcut](#mouse-shortcuts) |
 | `Cmd`, `Opt`/`Alt` | macOS modifiers |
 
 Shortcuts use the physical key position, so they work with any keyboard layout (on a German
@@ -7986,6 +8057,92 @@ More: [Terminal](docs/guide/user/terminal.md#tabs)
 
 ---
 
+Source: docs/guide/user/color-schemes.md
+
+# Color schemes
+
+The color scheme decides how the editor draws code: the colors of keywords, strings, comments
+and the other token kinds, the editor background, the caret, the caret row, the selection,
+line numbers and search results. Like in PHPStorm it is separate from the UI theme
+(Settings | Appearance & Behavior | Appearance | Theme, see
+[Settings and themes](docs/guide/user/settings-and-themes.md#themes)).
+
+![Color Scheme settings](docs/screenshots/color-scheme-settings.png)
+
+## Choosing a scheme
+
+Settings | Editor | **Color Scheme** | **Scheme** (`editor.colorScheme.active`):
+
+| Scheme | Meaning |
+| --- | --- |
+| Follow the theme | the default: Ember with dark themes, Anvil with light ones, and the theme's own token colors (the Solarized themes bring their own) |
+| Ember | Forge's dark scheme |
+| Anvil | Forge's light scheme |
+| *your schemes* | listed under **Custom** |
+
+A scheme you select explicitly stays the same when you switch the UI theme, so you can, for
+example, use the dark Ember editor with the light Anvil UI.
+
+## Your own schemes
+
+Ember and Anvil are bundled and cannot be changed. The **gear** next to the selector has:
+
+- **Duplicate…**: copy the selected scheme into a new one and select it. Change it from there.
+- **Rename…**, **Restore Defaults** (back to the colors of its parent, Ember or Anvil) and
+  **Delete** for your own schemes.
+- **Import Scheme…** and **Export…** (see below).
+
+## Editing attributes
+
+The list on the left holds the attributes in two groups:
+
+- **General**: Default text (editor foreground and background), Caret, Caret row, Selection
+  background, Line number, Search result.
+- **Language Defaults**: Keyword, String, Number, Comment, Variable, Function, Class name,
+  Property and attribute, Operator sign, Markup tag. Every language uses them (PHP, HTML, CSS,
+  JavaScript, TypeScript, Lua, SQL, Markdown, …).
+
+For the selected attribute you can set, where it applies:
+
+- **Bold** and **Italic**;
+- **Foreground** and **Background**: tick the box and pick a color; untick it to use the
+  default text color or no background;
+- **Effects**: Underscored, Bold underscored, Underwaved, Strikeout, Dotted line or Bordered,
+  with its own color.
+
+Changed attributes are highlighted in the list; **Reset to Ember** (or Anvil) gives one back
+its parent's value. Changes are saved as you make them and show up in every open editor right
+away.
+
+The **preview** below shows a PHP class and some HTML in the scheme. Click a word in it to
+select its attribute.
+
+![Editing a scheme](docs/screenshots/color-scheme-edit.png)
+
+## Import and export
+
+- **Import Scheme…** reads an IntelliJ color scheme file (`.icls`, as exported by PHPStorm,
+  IntelliJ IDEA, WebStorm or downloaded from a theme site) into a new scheme and selects it.
+  IntelliJ's attributes are mapped onto Forge's (for example `DEFAULT_KEYWORD` or
+  `PHP_KEYWORD` → Keyword, `PHP_VAR` / `DEFAULT_LOCAL_VARIABLE` → Variable,
+  `CARET_ROW_COLOR` → Caret row); references to other attributes (`baseAttributes`) are
+  followed. What the file does not set comes from Ember when its parent is Darcula (or another
+  dark scheme) and from Anvil otherwise.
+- **Export…** writes the selected scheme as an `.icls` file with every attribute, so it looks
+  the same when you import it into a JetBrains IDE.
+
+> **Note:** attributes Forge does not have (for example language-specific ones such as PHP
+> heredoc colors, or the console colors) are ignored on import.
+
+## Where schemes are stored
+
+Your schemes are user settings (`editor.colorScheme.schemes`, one entry per scheme with its
+name, its parent and the changed attributes), so they are part of `settings.toml`, of
+**Export Settings** (group Editor) and of the [settings reference](docs/guide/reference/settings.md).
+
+
+---
+
 Source: docs/guide/user/settings-and-themes.md
 
 # Settings and themes
@@ -7997,7 +8154,7 @@ dialog, with the same tree as PHPStorm:
 
 - **Appearance & Behavior**: Appearance, System Settings
 - **Keymap**
-- **Editor**: General, Font, Code Style (schemes, General and one page per language), Inlay Hints
+- **Editor**: General, Font, Color Scheme, Code Style (schemes, General and one page per language), Inlay Hints
 - **Plugins**
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,
@@ -8108,6 +8265,9 @@ Settings | Appearance & Behavior | Appearance | **Theme** (`appearance.theme`):
 
 The sun/moon button in the main toolbar, **Theme: Toggle Dark/Light** and **Quick Switch
 Scheme…** (`` Ctrl+` ``) toggle between dark and light.
+
+The editor's colors follow the theme unless you choose a color scheme in Settings | Editor |
+Color Scheme; see [Color schemes](docs/guide/user/color-schemes.md).
 
 | | |
 | --- | --- |
@@ -13066,7 +13226,9 @@ Source: docs/guide/reference/keymap.md
 # Keymap reference
 
 Forge's default keymaps are PHPStorm's (`crates/forge-keymap/data/phpstorm.json`), keyed by
-PHPStorm's action ids. This page is the complete list. To learn the shortcuts the way the
+PHPStorm's action ids. This page is the complete list. The other bundled keymaps (VS Code,
+Eclipse, Sublime Text, Emacs) change only some of these shortcuts; see
+[Keymap](docs/guide/user/keymap.md#other-keymaps). To learn the shortcuts the way the
 JetBrains help teaches them, start with:
 
 - [Keymap reference card](docs/guide/user/shortcuts/reference-card.md): the 62 most important shortcuts
@@ -13113,8 +13275,8 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Last Edit Location | `JumpToLastChange` | `Ctrl+Shift+Backspace` | `Cmd+Shift+Backspace` | yes |
 | Next Edit Location | `JumpToNextChange` |  |  | yes |
 | Select In… | `SelectIn` | `Alt+F1` | `Alt+F1` | yes |
-| Declaration or Usages | `GotoDeclaration` | `Ctrl+B` | `Cmd+B` | yes |
-| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B` | `Cmd+Alt+B` | yes |
+| Declaration or Usages | `GotoDeclaration` | `Ctrl+B`, `Ctrl+Button1 Click`, `Button2 Click` | `Cmd+B`, `Cmd+Button1 Click`, `Button2 Click` | yes |
+| Implementation(s) | `GotoImplementation` | `Ctrl+Alt+B`, `Ctrl+Alt+Button1 Click` | `Cmd+Alt+B`, `Cmd+Alt+Button1 Click` | yes |
 | Type Declaration | `GotoTypeDeclaration` | `Ctrl+Shift+B` | `Cmd+Shift+B` | yes |
 | Super Method | `GotoSuperMethod` | `Ctrl+U` | `Cmd+U` | yes |
 | Test | `GotoTest` | `Ctrl+Shift+T` | `Cmd+Shift+T` | yes |
@@ -14401,13 +14563,16 @@ version, the last check, **Check Now** and a skipped version with **Offer Again*
 
 ### Keymap
 
-Page id `keymap`. The override lists are edited through the Keymap page, not as text.
+Page id `keymap`. The override lists and user keymaps are edited through the Keymap page, not
+as text.
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `keymap.active` | enum: `auto`, `$default`, `macOS` | `auto` | user |  | Keymap |
+| `keymap.active` | string | `auto` | user |  | Keymap — auto (the PHPStorm keymap of the platform), $default, macOS, a bundled keymap (VSCode, VSCode OSX, Eclipse, Eclipse (Mac OS X), Sublime Text, Sublime Text (Mac OS X), Emacs) or the name of a user keymap. |
 | `keymap.overrides.default` | list | `[]` | user |  | Changed shortcuts (Windows / Linux) — One entry per action: the action id, then its shortcuts, separated by tabs. |
 | `keymap.overrides.macOS` | list | `[]` | user |  | Changed shortcuts (macOS) — One entry per action: the action id, then its shortcuts, separated by tabs. |
+| `keymap.overrides.bundled` | list | `[]` | user |  | Changed shortcuts (other bundled keymaps) — One entry per action: the keymap id, the action id, then its shortcuts, separated by tabs. |
+| `keymap.custom` | objects (`name`) | `[]` | user |  | User keymaps — Keymaps made with Duplicate or Derive: name, parent keymap and the changed shortcuts (one action per line: the action id, then its shortcuts, separated by tabs). |
 
 ### Find Usages
 
@@ -14515,6 +14680,16 @@ Page id `editor.postfix`.
 | `editor.postfix.showInCompletion` | bool | `true` | user |  | Show postfix templates in the completion autopopup |
 | `editor.postfix.expandKey` | enum: `tab`, `space`, `enter` | `tab` | user |  | Expand templates with |
 | `editor.postfix.disabled` | list | `[]` | user |  | Templates — Clear a template to stop offering it. Holds the ids of the switched-off templates (`php.echo`, `js.log`, `lua.print`). |
+
+### Editor | Color Scheme
+
+Page id `editor.color-scheme`. User schemes are edited through the Color Scheme page, not as
+text.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `editor.colorScheme.active` | string | `""` | user |  | Scheme — Color scheme of the editor: Ember, Anvil or the name of a user scheme. Empty follows the theme (Ember for dark themes, Anvil for light ones). |
+| `editor.colorScheme.schemes` | objects (`name`) | `[]` | user |  | User schemes — Schemes made with Duplicate or Import: name, parent (Ember or Anvil) and the changed attributes, one per line: the attribute key, then `fg=#rrggbb`, `bg=#rrggbb`, `bold`, `italic`, `effect=<type>` and `effectColor=#rrggbb`. |
 
 ### Editor | Font
 
@@ -17582,6 +17757,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-codestyle](docs/guide/developer/crates/forge-codestyle.md) | Code style schemes (Settings \| Editor \| Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly) |
 | [forge-colors](docs/guide/developer/crates/forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
+| [forge-colorscheme](docs/guide/developer/crates/forge-colorscheme.md) | Editor color schemes (Settings \| Editor \| Color Scheme): the Ember and Anvil schemes, user schemes stored in the settings, per-attribute text attributes, CSS for the editor, and IntelliJ .icls import/export (pure, WebAssembly-friendly) |
 | [forge-containers](docs/guide/developer/crates/forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](docs/guide/developer/crates/forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
@@ -18197,6 +18373,64 @@ pub fn parse_color(text: &str) -> Option<Parsed> { … }
 Unit tests for parsing every notation, HSL/HWB conversions, formatting in each notation, the
 named colors and the Tailwind palette, finding colors in CSS, SCSS, Sass, HTML, Vue and TSX,
 and UTF-16 offsets.
+
+
+---
+
+Source: docs/guide/developer/crates/forge-colorscheme.md
+
+# forge-colorscheme
+
+`crates/forge-colorscheme` — Editor color schemes (Settings | Editor | Color Scheme): the Ember and Anvil schemes, user schemes stored in the settings, per-attribute text attributes, CSS for the editor, and IntelliJ .icls import/export (pure, WebAssembly-friendly).
+
+## Purpose
+
+Everything behind the Color Scheme page; the UI (`app/ui/src/features/colorScheme`) only
+renders the snapshot and sets the CSS variables it carries.
+
+- `model`: `TextAttributes` (foreground, background, bold, italic, effect and effect color)
+  with the settings encoding, the attribute list (`ATTRIBUTES`: General and Language Defaults,
+  which fields each one has, its CSS target and the IntelliJ names it maps to), the bundled
+  schemes `Bundled::Ember` / `Bundled::Anvil` (the values of `theme.css`) and the CSS of an
+  attribute.
+- `scheme`: `SchemeSettings` read from `editor.colorScheme.active` / `.schemes`, resolution
+  (follow the theme, bundled or user scheme), `apply(SchemeChange)` returning settings writes
+  (select, duplicate, rename, delete, set or reset an attribute, reset all), the
+  `SchemesSnapshot` of the page and the document CSS variables.
+- `icls`: `import_icls` (IntelliJ `.icls`: `<colors>`, `<attributes>`, `baseAttributes`,
+  `FONT_TYPE`, `EFFECT_TYPE`, Darcula → Ember, others → Anvil) and `export_icls`.
+- `preview`: the sample code of the page as segments by attribute.
+
+## Main public items
+
+```rust
+pub fn import_icls(text: &str) -> Result<Imported, String> { … }
+pub fn export_icls(settings: &SchemeSettings, name: &str) -> String { … }
+impl SchemeSettings {
+    pub fn snapshot(&self, dark: bool) -> SchemesSnapshot { … }
+    pub fn apply(&self, change: SchemeChange, dark: bool) -> Vec<SettingWrite> { … }
+    pub fn add_imported(&self, scheme: UserScheme) -> Vec<SettingWrite> { … }
+}
+```
+
+## Used by
+
+- IPC: `color_scheme_state`, `color_scheme_change`, `color_scheme_import`,
+  `color_scheme_export` (`app/src-tauri/src/commands/color_scheme.rs`).
+- UI: `app/ui/src/features/colorScheme`, `app/ui/src/editor/forgeTheme.ts` (reads the
+  variables).
+- Browser mode: built into `forge-wasm` (`colorscheme.rs`).
+
+## Dependencies
+
+- Workspace crates: none
+- External: `serde`, `serde_json`, `quick-xml`
+
+## Tests
+
+Unit tests for color normalization, the attribute encoding, the bundled schemes, CSS of
+effects, scheme changes and their settings round trip, .icls import (colors, fonts, effects,
+`baseAttributes`, parents) and export/import round trips.
 
 
 ---
@@ -19295,11 +19529,15 @@ Forge's PHPStorm-compatible keymap engine.
 
 - `shortcut`: parsing ("Ctrl+K Ctrl+C", "Shift Shift", "Cmd+,"), canonical ids, display
   strings ("Ctrl+Shift+A" / "⇧⌘A") and key names of DOM keyboard events.
-- `catalog`: PHPStorm's default keymaps (Windows/Linux and macOS) and action aliases.
+- `catalog`: PHPStorm's default keymaps (Windows/Linux and macOS), the derived bundled
+  keymaps (VS Code, Eclipse, Sublime Text, Emacs, `data/keymaps.json`) and action aliases.
 - `engine`: bindings, conflict detection and the `Resolver` state machine that turns
   key events into actions (chords, double taps, focus contexts).
 - `keymap`: the `KeymapService` combining the catalog, plugin actions, registered
-  commands and user overrides from the settings.
+  commands, user overrides and user keymaps (Duplicate / Derive / Rename / Delete) from the
+  settings.
+- `shortcut` also models mouse shortcuts ("Ctrl+Button1 Click", "Button2 Double Click",
+  "Alt+Wheel Up"), which the resolver handles as single strokes.
 - `menu`: the main menu (PHPStorm's structure, plugin contributions, resolution).
 
 The crate is pure (no file system or async runtime): the desktop app wraps it in IPC
@@ -19327,6 +19565,8 @@ pub use shortcut::{KeyEvent, Platform, Shortcut};
 
 ## Used by
 
+- UI: `app/ui/src/features/lsp/goto.ts` and `features/laravel/goto.ts` ask for the mouse
+  shortcut of a click (`keymap_mouse_action` in `forge-wasm`).
 - IPC: `keymap_actions`, `keymap_register_actions`, `keymap_set_override`, `keymap_conflicts`, `keymap_find_by_shortcut`, `keymap_main_menu`, `keymap_resolve`, `keymap_import_legacy` (`app/src-tauri/src/commands/keymap.rs`)
 - UI: `app/ui/src/keymap/`, `app/ui/src/features/keymapSettings`
 - Browser mode: built into `forge-wasm`

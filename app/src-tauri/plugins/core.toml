@@ -41,12 +41,8 @@ icon = "folder"
 [[contributions.settings]]
 key = "keymap.active"
 title = "Keymap"
-type = "enum"
-options = [
-  { value = "auto", label = "Platform default" },
-  { value = "$default", label = "Windows / Linux" },
-  { value = "macOS", label = "macOS" },
-]
+description = "auto (the PHPStorm keymap of the platform), $default, macOS, a bundled keymap (VSCode, VSCode OSX, Eclipse, Eclipse (Mac OS X), Sublime Text, Sublime Text (Mac OS X), Emacs) or the name of a user keymap."
+type = "string"
 default = "auto"
 group = "keymap"
 order = 0
@@ -68,6 +64,25 @@ type = "list"
 default = []
 group = "keymap"
 order = 2
+
+[[contributions.settings]]
+key = "keymap.overrides.bundled"
+title = "Changed shortcuts (other bundled keymaps)"
+description = "One entry per action: the keymap id, the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 3
+
+[[contributions.settings]]
+key = "keymap.custom"
+title = "User keymaps"
+description = "Keymaps made with Duplicate or Derive: name, parent keymap and the changed shortcuts (one action per line: the action id, then its shortcuts, separated by tabs)."
+type = "objects"
+unique = ["name"]
+default = []
+group = "keymap"
+order = 4
 
 # ---- Appearance & Behavior > Appearance ----------------------------------------------
 
@@ -1109,6 +1124,27 @@ description = "How each group is shown, one entry per group: the group name, a t
 type = "list"
 default = []
 group = "notifications"
+order = 1
+
+# ---- Editor > Color Scheme -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorScheme.active"
+title = "Scheme"
+description = "Color scheme of the editor: Ember, Anvil or the name of a user scheme. Empty follows the theme (Ember for dark themes, Anvil for light ones)."
+type = "string"
+default = ""
+group = "editor.color-scheme"
+order = 0
+
+[[contributions.settings]]
+key = "editor.colorScheme.schemes"
+title = "User schemes"
+description = "Schemes made with Duplicate or Import: name, parent (Ember or Anvil) and the changed attributes, one per line: the attribute key, then fg=#rrggbb, bg=#rrggbb, bold, italic, effect=<type> and effectColor=#rrggbb."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.color-scheme"
 order = 1
 
 # ---- Editor > Font -------------------------------------------------------------------

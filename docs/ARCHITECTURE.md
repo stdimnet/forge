@@ -96,7 +96,19 @@ app/ui/            SolidJS UI
   captures DOM key events, classifies the focus context, forwards the event to the resolver and
   runs the returned action. Key events are resolved synchronously by the same Rust code compiled
   to WebAssembly (desktop and browser), because the handler must decide on `preventDefault`
-  before it returns; the keymap data and all changes go through the `keymap_*` commands.
+  before it returns; the keymap data and all changes go through the `keymap_*` commands. The
+  other bundled keymaps (VS Code, Eclipse, Sublime Text, Emacs, `data/keymaps.json`) derive from
+  a PHPStorm keymap; user keymaps (`keymap.custom`) derive from any keymap. Mouse shortcuts
+  ("Ctrl+Button1 Click", "Alt+Wheel Up") go through the same resolver: `keymap/dispatch.ts`
+  forwards clicks and wheel turns as `{ type: "mouse", button, clickCount, deltaY }`. Editor
+  extensions that act on the clicked position (Ctrl+Click to the declaration) ask
+  `editorMouseAction(e)` which action the keymap binds and call `claimMouseGesture()` so the
+  dispatcher does not run it a second time.
+- Color schemes: `crates/forge-colorscheme` resolves the active scheme (Ember, Anvil, user
+  schemes from `editor.colorScheme.*`) into CSS variables (`--syn-<token>[-bg|-weight|-style|
+  -deco|-box]`, `--editor-fg`, `--editor-caret`, `--editor-selection`, …) that
+  `features/colorScheme/store.ts` sets on <html>; `editor/forgeTheme.ts` reads them with the
+  theme's variables as fallbacks, so following the theme sets nothing.
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
@@ -121,12 +133,20 @@ app/ui/            SolidJS UI
   keymap, platform, every action with its shortcuts, display strings, `modified` and aliases);
   `keymap_register_actions({ actions?, commands? }) -> KeymapSnapshot`;
   `keymap_set_override({ change }) -> KeymapSnapshot` where `change` is `{ op: "selectKeymap" |
-  "set" | "add" | "remove" | "reset" | "resetAll", … }` and is stored in the user settings;
+  "set" | "add" | "remove" | "reset" | "resetAll" | "duplicate" | "derive" | "rename" |
+  "delete", … }` and is stored in the user settings;
   `keymap_conflicts({ shortcut, actionId? }) -> ShortcutCheck`;
   `keymap_find_by_shortcut({ shortcut }) -> string[]`; `keymap_resolve({ event }) -> Resolution`
   (`{ consumed, action?, pending?: "chord" | "doubleTap" }`, the IPC fallback of the in-process
   resolver); `keymap_import_legacy({ active, overrides })` moves a pre-settings keymap from
   localStorage into the settings.
+- Color schemes (`src/ipc/colorScheme.ts`, `forge-colorscheme`): `color_scheme_state({ dark })
+  -> SchemesSnapshot` (schemes, the active scheme's attributes with their CSS, the preview and
+  the document CSS variables; `dark` is the UI theme, for "follow the theme");
+  `color_scheme_change({ change, dark }) -> SchemesSnapshot` (`{ op: "select" | "duplicate" |
+  "rename" | "delete" | "setAttribute" | "resetAll", … }`, stored in the user settings);
+  `color_scheme_import({ text? | path?, dark }) -> SchemesSnapshot` reads an IntelliJ `.icls`
+  file into a new scheme; `color_scheme_export({ name, path? }) -> string`.
 - Main menu (`src/ipc/keymap.ts`, `forge-keymap::menu`): `keymap_main_menu({ request }) -> MainMenu`.
   The request carries `contributions` (manifest `mainMenu` of active plugins plus
   `registerMainMenuEntries`), `dynamic` lists (`{ key, label, action?, detail?, enabled?,

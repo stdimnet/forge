@@ -55,6 +55,7 @@ forge-livetemplates.workspace = true
 forge-injections.workspace = true
 forge-emmet.workspace = true
 forge-colors.workspace = true
+forge-colorscheme.workspace = true
 forge-spell.workspace = true
 forge-jsonschema = { workspace = true, features = ["remote"] }
 forge-scratches = { workspace = true, features = ["client"] }

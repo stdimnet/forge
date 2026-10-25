@@ -53,6 +53,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   paths; Tools | Deployment and the Project view upload, download, compare with the deployed
   version and sync folders, files upload automatically on save, and the File Transfer tool
   window shows every transfer ([Deployment](user/deployment.md)).
+- **Keymaps and color schemes**: PHPStorm's VS Code, Eclipse, Sublime Text and Emacs keymaps,
+  your own keymaps (Duplicate, Derive), mouse shortcuts such as `Ctrl+Button1 Click`, and
+  Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute
+  editing with a live preview and IntelliJ `.icls` import and export
+  ([Keymap](user/keymap.md), [Color schemes](user/color-schemes.md))
 - **Project trust and Safe Mode**: an untrusted project asks "Trust and Open Project?"
   (Trust Project, Preview in Safe Mode, Don't Open, "Trust projects in …"); in Safe Mode the
   backend refuses scripts, run configurations, tests, the debugger, build tools, project-local

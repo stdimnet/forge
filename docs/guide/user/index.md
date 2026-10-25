@@ -36,8 +36,9 @@ not finished, the page says so.
 | [File Structure, Navigation Bar and Related Symbol](navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
 | [Language servers](language-servers.md) | detection, installation, per-server settings, Intelephense licence |
-| [Keymap](keymap.md) | PHPStorm keymaps, changing shortcuts, contexts |
+| [Keymap](keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](shortcuts/reference-card.md) |
+| [Color schemes](color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
 | [Settings and themes](settings-and-themes.md) | the Settings dialog, settings files, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, themes, window controls |
 | [Invalidate Caches and Repair IDE](repair-ide.md) | Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and its options |
 | [Plugins and packs](plugins-and-packs.md) | packs, activation, Settings \| Plugins |

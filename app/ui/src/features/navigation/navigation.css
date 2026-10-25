@@ -571,6 +571,31 @@ mark.hl {
 .conflict-row .kbd {
   margin-left: auto;
 }
+.shortcut-invalid {
+  color: var(--danger);
+}
+.mouse-kind {
+  gap: 16px;
+}
+.mouse-pad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 72px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--fg-strong);
+  cursor: pointer;
+  user-select: none;
+}
+.mouse-pad:hover {
+  border-color: var(--accent);
+}
+.mouse-pad.empty span {
+  color: var(--fg-faint);
+}
 
 /* Context menu */
 .context-menu {
@@ -691,6 +716,9 @@ mark.hl {
   gap: 10px;
 }
 .km-modified {
+  font-size: var(--fs-small);
+}
+.km-parent {
   font-size: var(--fs-small);
 }
 .km-toolbar {

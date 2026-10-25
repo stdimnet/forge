@@ -90,7 +90,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Project Structure (Mark Directory As sources/tests/excluded), file nesting, Show Members
 - [ ] Several project windows, Distraction Free/Presentation/Zen/Full Screen, floating tool windows, editor tabs in their own window, layouts, IDE zoom
 - [x] Invalidate Caches/Repair IDE, Settings for New Projects, Restore Defaults, custom file types
-- [ ] Other keymaps (VS Code, Eclipse, Sublime, Emacs), mouse shortcuts, color scheme editor and import
+- [x] Other keymaps (VS Code, Eclipse, Sublime, Emacs), mouse shortcuts, color scheme editor and import
 - [x] Project trust (safe mode) before running a project's scripts
 
 ### Deployment and remote
