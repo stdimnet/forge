@@ -235,7 +235,7 @@ pub fn tools_from_setting(value: Option<&Value>) -> Vec<Tool> {
 }
 
 /// The tools a project uses, from the project-relative paths that exist (`composer.json`,
-/// `artisan`, `bin/console`, `wp-cli.phar`, `vendor/bin/wp`, `wp-config.php`,
+/// `artisan`, `bin/console`, `wp-cli.phar`, `vendor/bin/wp`, `wp-config.php`, `wp-content`,
 /// `vendor/bin/drush`). `composer` is the Composer executable setting.
 pub fn detect(exists: &dyn Fn(&str) -> bool, composer: &str) -> Vec<Tool> {
     let mut out = Vec::new();
@@ -264,7 +264,7 @@ pub fn detect(exists: &dyn Fn(&str) -> bool, composer: &str) -> Vec<Tool> {
         add(ToolKind::WpCli, "wp-cli.phar");
     } else if exists("vendor/bin/wp") {
         add(ToolKind::WpCli, "vendor/bin/wp");
-    } else if exists("wp-config.php") || exists("wp-load.php") {
+    } else if exists("wp-config.php") || exists("wp-load.php") || exists("wp-content") {
         add(ToolKind::WpCli, "wp");
     }
     if exists("vendor/bin/drush") {
@@ -282,6 +282,7 @@ pub const DETECTION_FILES: &[&str] = &[
     "vendor/bin/wp",
     "wp-config.php",
     "wp-load.php",
+    "wp-content",
     "vendor/bin/drush",
 ];
 

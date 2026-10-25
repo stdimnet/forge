@@ -100,6 +100,11 @@ const COMPOSER_FRAMEWORKS: &[(&str, &str, &str)] = &[
     ("magento/product-community-edition", "magento", "Magento"),
     ("johnpbloch/wordpress", "wordpress", "WordPress"),
     ("roots/wordpress", "wordpress", "WordPress"),
+    ("roots/bedrock-autoloader", "wordpress", "WordPress"),
+    ("johnpbloch/wordpress-core", "wordpress", "WordPress"),
+    ("shopware/core", "shopware", "Shopware"),
+    ("shopware/platform", "shopware", "Shopware"),
+    ("shopware/storefront", "shopware", "Shopware"),
     ("livewire/livewire", "livewire", "Livewire"),
     ("phpunit/phpunit", "phpunit", "PHPUnit"),
     ("pestphp/pest", "pest", "Pest"),
@@ -126,7 +131,9 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "symfony",
     "drupal",
     "wordpress",
+    "shopware",
     "magento",
+    "joomla",
     "next",
     "nuxt",
     "angular",
@@ -277,6 +284,26 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
     if has("wp-config.php") || has("wp-config-sample.php") || dir.join("wp-includes").is_dir() {
         c.framework("wordpress", "WordPress", "php", wordpress_version(dir), rel);
+    } else if dir.join("wp-content").is_dir()
+        || wordpress_header(dir, &files)
+        || composer_requires_prefix(dir, "roots/")
+    {
+        c.framework("wordpress", "WordPress", "php", None, rel);
+    }
+    if dir.join("core/lib/Drupal.php").is_file() || drupal_extension(dir, &files) {
+        c.framework("drupal", "Drupal", "php", drupal_version(dir), rel);
+    }
+    if dir
+        .join("administrator/manifests/files/joomla.xml")
+        .is_file()
+        || joomla_manifest(dir, &files)
+    {
+        c.framework("joomla", "Joomla", "php", joomla_version(dir), rel);
+    }
+    if dir.join("engine/Shopware/Kernel.php").is_file()
+        || composer_type(dir) == Some("shopware-platform-plugin".to_string())
+    {
+        c.framework("shopware", "Shopware", "php", None, rel);
     }
     if dir.join("app/etc/env.php").is_file() && dir.join("bin/magento").is_file() {
         c.framework("magento", "Magento", "php", None, rel);
@@ -431,6 +458,85 @@ fn composer_lock_versions(path: &Path) -> HashMap<String, String> {
         }
     }
     out
+}
+
+/// The first 8 KiB of a file (plugin and theme headers are at the top).
+fn head(path: &Path) -> Option<String> {
+    use std::io::Read;
+    let mut buf = vec![0; 8192];
+    let n = fs::File::open(path).ok()?.read(&mut buf).ok()?;
+    Some(String::from_utf8_lossy(&buf[..n]).into_owned())
+}
+
+/// A WordPress plugin (`Plugin Name:` in a PHP file) or theme (`Theme Name:` in style.css).
+fn wordpress_header(dir: &Path, files: &[String]) -> bool {
+    let has_field = |src: &str, key: &str| {
+        src.lines().take(60).any(|l| {
+            l.trim_start()
+                .trim_start_matches(['*', '#', '/'])
+                .trim_start()
+                .strip_prefix(key)
+                .is_some_and(|r| r.trim_start().starts_with(':'))
+        })
+    };
+    files.iter().any(|f| {
+        (f.ends_with(".php") && head(&dir.join(f)).is_some_and(|s| has_field(&s, "Plugin Name")))
+            || (f == "style.css" && head(&dir.join(f)).is_some_and(|s| has_field(&s, "Theme Name")))
+    })
+}
+
+fn composer_requires_prefix(dir: &Path, prefix: &str) -> bool {
+    read_json(&dir.join("composer.json")).is_some_and(|m| {
+        ["require", "require-dev"].iter().any(|s| {
+            m.get(*s)
+                .and_then(Value::as_object)
+                .is_some_and(|o| o.keys().any(|k| k.starts_with(prefix)))
+        })
+    })
+}
+
+fn composer_type(dir: &Path) -> Option<String> {
+    read_json(&dir.join("composer.json"))?
+        .get("type")?
+        .as_str()
+        .map(str::to_string)
+}
+
+/// A Drupal module, theme or profile: `<name>.info.yml` with `core_version_requirement`.
+fn drupal_extension(dir: &Path, files: &[String]) -> bool {
+    files.iter().any(|f| {
+        f.ends_with(".info.yml")
+            && head(&dir.join(f)).is_some_and(|s| s.contains("core_version_requirement"))
+    })
+}
+
+fn drupal_version(dir: &Path) -> Option<String> {
+    let src = head(&dir.join("core/lib/Drupal.php"))?;
+    let at = src.find("const VERSION")?;
+    let rest = &src[at..];
+    let start = rest.find(['\'', '"'])? + 1;
+    let end = start + rest[start..].find(['\'', '"'])?;
+    Some(rest[start..end].to_string())
+}
+
+/// A Joomla extension: a root XML manifest `<extension type="component" …>`.
+fn joomla_manifest(dir: &Path, files: &[String]) -> bool {
+    files.iter().any(|f| {
+        f.ends_with(".xml")
+            && head(&dir.join(f)).is_some_and(|s| {
+                s.contains("<extension")
+                    && ["component", "module", "plugin", "template", "package"]
+                        .iter()
+                        .any(|t| s.contains(&format!("type=\"{t}\"")))
+            })
+    })
+}
+
+fn joomla_version(dir: &Path) -> Option<String> {
+    let src = head(&dir.join("administrator/manifests/files/joomla.xml"))?;
+    let start = src.find("<version>")? + "<version>".len();
+    let end = start + src[start..].find("</version>")?;
+    Some(src[start..end].trim().to_string())
 }
 
 fn wordpress_version(dir: &Path) -> Option<String> {
@@ -671,6 +777,70 @@ mod tests {
             (wp.id.as_str(), wp.version.as_deref()),
             ("wordpress", Some("6.6.2"))
         );
+    }
+
+    #[test]
+    fn wordpress_plugins_themes_and_content_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "acme-events.php",
+            "<?php\n/**\n * Plugin Name: Acme Events\n */\n",
+        );
+        assert_eq!(detect(dir.path()).primary.unwrap().id, "wordpress");
+        let theme = tempfile::tempdir().unwrap();
+        write(theme.path(), "style.css", "/*\nTheme Name: Anvil\n*/");
+        write(theme.path(), "functions.php", "<?php");
+        assert_eq!(detect(theme.path()).primary.unwrap().id, "wordpress");
+        let content = tempfile::tempdir().unwrap();
+        write(content.path(), "wp-content/plugins/a/a.php", "<?php");
+        assert_eq!(detect(content.path()).primary.unwrap().id, "wordpress");
+        let bedrock = tempfile::tempdir().unwrap();
+        write(
+            bedrock.path(),
+            "composer.json",
+            r#"{"require": {"roots/acorn": "^4"}}"#,
+        );
+        assert_eq!(detect(bedrock.path()).primary.unwrap().id, "wordpress");
+    }
+
+    #[test]
+    fn drupal_modules_joomla_and_shopware() {
+        let module = tempfile::tempdir().unwrap();
+        write(
+            module.path(),
+            "acme.info.yml",
+            "name: Acme\ntype: module\ncore_version_requirement: ^10 || ^11\n",
+        );
+        assert_eq!(detect(module.path()).primary.unwrap().id, "drupal");
+        let joomla = tempfile::tempdir().unwrap();
+        write(
+            joomla.path(),
+            "administrator/manifests/files/joomla.xml",
+            "<extension type=\"file\"><version>5.1.2</version></extension>",
+        );
+        let j = detect(joomla.path()).primary.unwrap();
+        assert_eq!(
+            (j.id.as_str(), j.version.as_deref()),
+            ("joomla", Some("5.1.2"))
+        );
+        let ext = tempfile::tempdir().unwrap();
+        write(
+            ext.path(),
+            "com_acme.xml",
+            "<?xml version=\"1.0\"?>\n<extension type=\"component\"></extension>",
+        );
+        assert_eq!(detect(ext.path()).primary.unwrap().id, "joomla");
+        let sw = tempfile::tempdir().unwrap();
+        write(
+            sw.path(),
+            "composer.json",
+            r#"{"require": {"shopware/core": "~6.6.0"}}"#,
+        );
+        assert_eq!(detect(sw.path()).primary.unwrap().name, "Shopware");
+        let sw5 = tempfile::tempdir().unwrap();
+        write(sw5.path(), "engine/Shopware/Kernel.php", "<?php");
+        assert_eq!(detect(sw5.path()).primary.unwrap().id, "shopware");
     }
 
     #[test]
