@@ -100,6 +100,8 @@ pub fn project_opened(app: &AppHandle) {
     // The project's import style is the refactorings' default.
     crate::commands::imports::import_style(&state);
     crate::commands::local_history::project_opened(app);
+    // Excluded folders before the watcher and the indexes look at the project.
+    crate::commands::project_structure::apply(app);
     start_watching(app);
     let display = info.display_root();
     match &info.remote {

@@ -875,6 +875,36 @@ export function php_interpreter_wrap(request_json: string): string;
 export function php_source_roots(request_json: string): string;
 
 /**
+ * `{ config }` → `FolderRow[]` (Settings | Directories).
+ */
+export function project_structure_describe(request_json: string): string;
+
+/**
+ * `{ config, paths: [path, isDir][] }` → `boolean[]` (excluded or hidden).
+ */
+export function project_structure_excluded(request_json: string): string;
+
+/**
+ * `{ config, path, action }` → the new `projectStructure.folders`.
+ */
+export function project_structure_mark(request_json: string): string;
+
+/**
+ * `{ config, path, isDir }` → `FolderState`.
+ */
+export function project_structure_state(request_json: string): string;
+
+/**
+ * `{ entries, listing, options }` → `TreeRow[]`.
+ */
+export function project_view_arrange(request_json: string): string;
+
+/**
+ * PHPStorm's predefined File Nesting rules.
+ */
+export function project_view_nesting_defaults(): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1545,6 +1575,12 @@ export interface InitOutput {
     readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
     readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
     readonly php_source_roots: (a: number, b: number, c: number) => void;
+    readonly project_structure_describe: (a: number, b: number, c: number) => void;
+    readonly project_structure_excluded: (a: number, b: number, c: number) => void;
+    readonly project_structure_mark: (a: number, b: number, c: number) => void;
+    readonly project_structure_state: (a: number, b: number, c: number) => void;
+    readonly project_view_arrange: (a: number, b: number, c: number) => void;
+    readonly project_view_nesting_defaults: (a: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

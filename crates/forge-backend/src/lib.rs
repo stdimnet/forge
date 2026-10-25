@@ -291,6 +291,14 @@ pub trait Backend: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// The project's excluded folders and "Exclude files" patterns (Settings | Directories,
+    /// "Mark Directory as" › Excluded). Listings flag excluded entries; walks, searches, the
+    /// watcher and the indexes skip them. Returns whether the excluded paths changed (the
+    /// search index refreshes itself; the PHP index needs `index_workspace`).
+    fn set_structure(&self, _config: forge_core::excludes::StructureConfig) -> Result<bool> {
+        Ok(false)
+    }
+
     /// Whether the search index is ready or still building.
     fn search_status(&self) -> Result<SearchStatus> {
         Ok(SearchStatus::default())

@@ -22,12 +22,13 @@ import { isPluginActive } from "@/state/project";
 import { workspace } from "@/state/workspace";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
-import {
-  item,
-  registerContextMenuProvider,
-  submenu,
-} from "@/features/contextMenu/state";
+import { item, type MenuEntry } from "@/features/contextMenu/state";
 import { registerRowDecorator } from "@/features/project/ProjectView";
+import {
+  addStructureFolder,
+  ProjectStructureSections,
+  type StructureKind,
+} from "@/features/projectStructure/DirectoriesSections";
 
 export const SOURCE_ROOTS_KEY = "php.sourceRoots";
 
@@ -120,11 +121,14 @@ async function mark(
   void refetch();
 }
 
-// Project view: Mark Directory as (folders of PHP projects).
-registerContextMenuProvider<FileEntry | null>("project.compare", (entry) => {
-  if (!entry || entry.kind !== "dir" || !isPluginActive("forge.php")) return [];
+/**
+ * The PHP entries of the Project view's "Mark Directory as" (folders of PHP projects); the
+ * submenu itself and the language-agnostic entries come from `features/projectStructure`.
+ */
+export function sourceRootItems(entry: FileEntry): MenuEntry[] {
+  if (entry.kind !== "dir" || !isPluginActive("forge.php")) return [];
   const r = sourceRoots().find((x) => x.path === entry.path);
-  const items = [];
+  const items: MenuEntry[] = [];
   // Like PHPStorm, the folder's current mark is offered as "Unmark".
   if (r?.kind !== "source")
     items.push(item("Sources Root", () => void mark(entry, "source")));
@@ -139,8 +143,8 @@ registerContextMenuProvider<FileEntry | null>("project.compare", (entry) => {
         () => void mark(entry, null),
       ),
     );
-  return [submenu("Mark Directory as", items)];
-});
+  return items;
+}
 
 const KIND_LABEL: Record<Kind, string> = {
   source: "Source Folders",
@@ -159,7 +163,9 @@ function DirectoriesPage() {
       phpMetaApi.sourceRoots(overrides()).catch((): SourceRootEntry[] => []),
   );
   const [path, setPath] = createSignal("");
-  const [kind, setKind] = createSignal<Exclude<Kind, "none">>("source");
+  const [kind, setKind] = createSignal<Exclude<Kind, "none"> | StructureKind>(
+    "source",
+  );
   const [prefix, setPrefix] = createSignal("");
   const set = (next: SourceRootSetting[]) =>
     setDraft(SOURCE_ROOTS_KEY, next as unknown as SettingValue);
@@ -168,13 +174,16 @@ function DirectoriesPage() {
       .trim()
       .replace(/^\.?\/+|\/+$/g, "");
     if (!p) return;
-    set(
-      upsertRoot(overrides(), p, {
-        path: p,
-        prefix: prefix().trim().replace(/\\+$/, ""),
-        kind: kind(),
-      }),
-    );
+    const k = kind();
+    if (k === "source" || k === "test")
+      set(
+        upsertRoot(overrides(), p, {
+          path: p,
+          prefix: prefix().trim().replace(/\\+$/, ""),
+          kind: k,
+        }),
+      );
+    else addStructureFolder(p, k);
     setPath("");
     setPrefix("");
   };
@@ -191,8 +200,10 @@ function DirectoriesPage() {
           Folders marked as sources or test sources and their package prefix
           (the namespace of the folder). They start from the PSR-4 rules of
           composer.json; New PHP Class, Move Class and the namespace inspection
-          follow them. In the Project view: right-click a folder › Mark
-          Directory as.
+          follow them. Resource, test resource and excluded folders are stored
+          in the project too; excluded folders are left out of the indexes,
+          searches, inspections and local history. In the Project view:
+          right-click a folder › Mark Directory as.
         </p>
       </section>
       <For each={["source", "test", "none"] as Kind[]}>
@@ -287,6 +298,7 @@ function DirectoriesPage() {
           </Show>
         )}
       </For>
+      <ProjectStructureSections />
       <section>
         <h3>Add Folder</h3>
         <div class="php-dirs-add">
@@ -300,6 +312,7 @@ function DirectoriesPage() {
           <input
             type="text"
             placeholder="Package prefix"
+            disabled={kind() !== "source" && kind() !== "test"}
             value={prefix()}
             onInput={(e) => setPrefix(e.currentTarget.value)}
             onKeyDown={(e) => e.key === "Enter" && add()}
@@ -307,11 +320,16 @@ function DirectoriesPage() {
           <select
             value={kind()}
             onChange={(e) =>
-              setKind(e.currentTarget.value as Exclude<Kind, "none">)
+              setKind(
+                e.currentTarget.value as Exclude<Kind, "none"> | StructureKind,
+              )
             }
           >
             <option value="source">Sources</option>
             <option value="test">Tests</option>
+            <option value="resource">Resources</option>
+            <option value="testResource">Test Resources</option>
+            <option value="excluded">Excluded</option>
           </select>
           <button class="icon-btn" title="Add" onClick={add}>
             <Plus size={14} />
@@ -337,6 +355,11 @@ registerSettingsPage({
     "namespace",
     "mark directory as",
     "content root",
+    "excluded",
+    "exclude files",
+    "resource root",
+    "test resources",
+    "cancel exclusion",
   ],
   component: DirectoriesPage,
 });

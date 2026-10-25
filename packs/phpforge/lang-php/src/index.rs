@@ -10,6 +10,8 @@ use std::time::{Instant, UNIX_EPOCH};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use forge_scopes::structure::{ExcludeSet, StructureConfig};
+
 use crate::fuzzy::exact_match;
 use crate::meta::{self, PhpMeta};
 use crate::model::{short_name, ClassLike, FileIndex, Member, SymbolKind};
@@ -46,6 +48,10 @@ pub struct IndexConfig {
     /// Their files are keyed by absolute path.
     #[serde(default)]
     pub include_paths: Vec<PathBuf>,
+    /// Excluded folders and "Exclude files" patterns of the project (Settings |
+    /// Directories); they are not indexed.
+    #[serde(default)]
+    pub structure: StructureConfig,
 }
 
 impl Default for IndexConfig {
@@ -60,6 +66,7 @@ impl Default for IndexConfig {
             extensions: vec!["php".into(), "phtml".into(), "inc".into()],
             cache_file: None,
             include_paths: Vec::new(),
+            structure: StructureConfig::default(),
         }
     }
 }
@@ -183,6 +190,12 @@ impl ProjectIndex {
 
     pub fn set_source_roots(&mut self, roots: Vec<forge_file_templates::psr4::Psr4Root>) {
         self.source_roots = roots;
+    }
+
+    /// The project's excluded folders and patterns; the next [`ProjectIndex::index_workspace`]
+    /// drops the files they cover.
+    pub fn set_structure(&mut self, structure: StructureConfig) {
+        self.config.structure = structure;
     }
 
     /// The advanced metadata of all `.phpstorm.meta.php` files.
@@ -336,6 +349,7 @@ impl ProjectIndex {
             .collect();
         let vendor = self.config.vendor;
         let root = self.root.clone();
+        let excluded = ExcludeSet::new(&self.config.structure);
         let mut out: Vec<(String, u64, u64)> = Vec::new();
         let mut seen: HashSet<String> = HashSet::new();
         let external = self
@@ -349,10 +363,19 @@ impl ProjectIndex {
             let found = walkdir::WalkDir::new(base)
                 .into_iter()
                 .filter_entry(|e| {
-                    if e.depth() == 0 || !e.file_type().is_dir() {
+                    if e.depth() == 0 {
                         return true;
                     }
                     let name = e.file_name().to_string_lossy();
+                    if is_root {
+                        let rel = to_rel(&root, e.path());
+                        if excluded.skips(&rel, &name, e.file_type().is_dir()) {
+                            return false;
+                        }
+                    }
+                    if !e.file_type().is_dir() {
+                        return true;
+                    }
                     if exclude.contains(name.as_ref()) {
                         return false;
                     }
@@ -538,6 +561,7 @@ impl ProjectIndex {
             .is_some_and(|(_, ext)| self.config.extensions.iter().any(|e| e == ext));
         let dirs = &parts[..parts.len() - 1];
         ext_ok
+            && !ExcludeSet::new(&self.config.structure).excludes(rel, false)
             && !dirs
                 .iter()
                 .any(|d| self.config.exclude_dirs.iter().any(|x| x == d))
@@ -1128,6 +1152,16 @@ mod tests {
         idx.index_workspace(|_, _| {});
         assert!(idx.is_indexable("app/Models/Order.php"));
         assert!(!idx.is_indexable("node_modules/x/evil.php"));
+        assert!(idx.is_indexable("app/Generated/Proxy.php"));
+        idx.set_structure(StructureConfig {
+            folders: vec![forge_scopes::structure::FolderMark {
+                path: "app/Generated".into(),
+                kind: forge_scopes::structure::FolderKind::Excluded,
+            }],
+            exclude_patterns: "*.stub.php".into(),
+        });
+        assert!(!idx.is_indexable("app/Generated/Proxy.php"));
+        assert!(!idx.is_indexable("app/Models/Order.stub.php"));
         assert!(!idx.is_indexable("vendor/a/B.php"));
         assert!(!idx.is_indexable("composer.json"));
 

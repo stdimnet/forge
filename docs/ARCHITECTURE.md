@@ -158,7 +158,8 @@ app/ui/            SolidJS UI
   renders it with the context menu renderer (`showResolvedMenu`) as the ☰ popup or a menu bar,
   depending on `appearance.mainMenu` (`hamburger` | `merged` | `toolbar`).
 
-- `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
+- `fs_list_dir({ path }) -> { name, path, kind, ignored, excluded? }[]` — `excluded` marks excluded
+  entries (see "Project structure"); `ignored` is set for entries matched by
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
   content); the Project view grays them out. The browser mock mirrors this with
   `src/mock/gitignoreMatcher.ts`.
@@ -504,6 +505,30 @@ or without Git, for local and remote projects.
   `scopes_edit`, `scopes_tree`, `scopes_contains`, `file_colors_resolve`). IPC:
   `scopes_files({ limit? }) -> string[]` (`Backend::list_files`, agent call `ListFiles`) and
   `scopes_test_roots() -> string[]` (`composer.json` `autoload-dev`).
+- **Project structure** (Settings | Directories, Project view "Mark Directory as"):
+  `forge_scopes::structure` computes the excluded paths from the project settings
+  `projectStructure.folders` (`{ path, kind: excluded | resource | testResource | included }`,
+  `included` cancels a default exclusion) and `projectStructure.excludePatterns` (`;`-separated
+  name globs). `node_modules` and tool folders are excluded by default, `vendor` is a library,
+  `.git` is hidden. `forge_core::Excludes` is the shared handle: `Workspace::list_dir` flags
+  `FileEntry.excluded`, every walk (Go to File, Find in Files, TODO, `collect_files`,
+  `list_files`), the watcher (`ProjectWatcher::start_with_excludes`), the search index
+  (`SearchService::with_excludes`) and the PHP index (`IndexConfig::structure`) skip excluded
+  paths. `Backend::set_structure(config) -> bool` (agent call `SetStructure`, protocol 11)
+  sets them; the app calls it when a project opens and when the settings change
+  (`commands/project_structure.rs`), and emits `project-structure://changed` when they changed
+  (the UI re-reads the tree and reindexes PHP; the search index refreshes itself).
+  `php_inspect` and local history skip excluded files too.
+- **Project view rows**: `project_tree_list({ path, options: ViewOptions }) -> TreeRow[]`
+  (`forge_scopes::view::arrange` over `Backend::list_dir`): `TreeRow { name, path, kind,
+  ignored?, excluded?, compacted?: string[], nested?: TreeRow[] }`, `ViewOptions {
+  showExcluded, foldersOnTop, sortByType, compactMiddlePackages, fileNesting, nestingRules }`
+  (app settings `projectView.*`). Show Members is UI-only and reuses the Structure view
+  providers (`loadFileStructure`, `caretNodeId`). The UI calls `project_structure_state`,
+  `project_structure_mark`, `project_structure_describe` and `project_view_nesting_defaults`
+  through WebAssembly in both modes; browser mode answers `project_tree_list` with
+  `project_view_arrange` and flags excluded demo files with `project_structure_excluded`
+  (`mock/projectStructureMock.ts`).
 - **File colors**: `fileColors.enabled`, `useInEditorTabs`, `useInProjectView`,
   `fileColors.local` (default Non-Project Files: Yellow, Tests: Green) and
   `fileColors.shared`; `forge_scopes::colors::resolve` picks the first row whose scope

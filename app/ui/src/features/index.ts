@@ -30,6 +30,7 @@ import "./localHistory";
 import "./compare";
 import "./forges";
 import "./php";
+import "./projectStructure";
 import "./composer";
 import "./laravel";
 import "./cliTools";

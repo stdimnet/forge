@@ -219,6 +219,7 @@ impl Agent {
                 exact,
             )?),
             Call::SearchStatus => reply(self.backend()?.search_status()?),
+            Call::SetStructure(config) => reply(self.backend()?.set_structure(config)?),
             Call::FindTodos(req) => reply(self.backend()?.find_todos(&req)?),
             Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
             Call::ListFiles { limit } => reply(self.backend()?.list_files(limit)?),
