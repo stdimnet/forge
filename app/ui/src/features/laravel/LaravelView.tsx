@@ -99,7 +99,7 @@ async function runGeneration(id: string, name: string, suffix?: string) {
 }
 
 function OverviewTab() {
-  createEffect(on(laravelActive, (a) => a && !overview() && void loadOverview()));
+  createEffect(on(laravelActive, (a) => a && !overview() && !overviewLoading() && void loadOverview()));
   return (
     <Show when={overview()} fallback={<div class="placeholder-panel">{overviewLoading() ? "Analysing the application…" : "No Laravel application detected."}</div>}>
       {(o) => (
@@ -369,6 +369,8 @@ function LogsTab() {
 }
 
 export function LaravelView() {
+  // The header shows the version and environment from the overview.
+  if (!overview() && !overviewLoading()) void loadOverview();
   return (
     <div class="lv-panel">
       <div class="sf-tabs" role="tablist">
