@@ -1,0 +1,11 @@
+[package]
+name = "forge-colorscheme"
+description = "Editor color schemes (Settings | Editor | Color Scheme): the Ember and Anvil schemes, user schemes stored in the settings, per-attribute text attributes, CSS for the editor, and IntelliJ .icls import/export (pure, WebAssembly-friendly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+quick-xml = "0.42"

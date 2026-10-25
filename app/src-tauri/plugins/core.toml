@@ -1032,6 +1032,27 @@ default = []
 group = "notifications"
 order = 1
 
+# ---- Editor > Color Scheme -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorScheme.active"
+title = "Scheme"
+description = "Color scheme of the editor: Ember, Anvil or the name of a user scheme. Empty follows the theme (Ember for dark themes, Anvil for light ones)."
+type = "string"
+default = ""
+group = "editor.color-scheme"
+order = 0
+
+[[contributions.settings]]
+key = "editor.colorScheme.schemes"
+title = "User schemes"
+description = "Schemes made with Duplicate or Import: name, parent (Ember or Anvil) and the changed attributes, one per line: the attribute key, then fg=#rrggbb, bg=#rrggbb, bold, italic, effect=<type> and effectColor=#rrggbb."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.color-scheme"
+order = 1
+
 # ---- Editor > Font -------------------------------------------------------------------
 
 [[contributions.settings]]

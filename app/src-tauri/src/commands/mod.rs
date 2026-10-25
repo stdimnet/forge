@@ -5,6 +5,7 @@ pub mod agent;
 pub mod ai;
 pub mod clipboard;
 pub mod code_style;
+pub mod color_scheme;
 pub mod codeintel;
 pub mod command_line_tools;
 pub mod companion;
