@@ -274,6 +274,16 @@ impl russh_sftp::server::Handler for Sftp {
         Ok(ok(id))
     }
 
+    async fn rename(
+        &mut self,
+        id: u32,
+        oldpath: String,
+        newpath: String,
+    ) -> Result<Status, Self::Error> {
+        std::fs::rename(self.path(&oldpath)?, self.path(&newpath)?).map_err(code)?;
+        Ok(ok(id))
+    }
+
     async fn remove(&mut self, id: u32, filename: String) -> Result<Status, Self::Error> {
         std::fs::remove_file(self.path(&filename)?).map_err(code)?;
         Ok(ok(id))

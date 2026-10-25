@@ -19,6 +19,10 @@ pub trait ServerFs: Send {
     fn remove_file(&mut self, path: &str) -> Result<()>;
     /// Remove an empty folder.
     fn remove_dir(&mut self, path: &str) -> Result<()>;
+    /// Rename or move a file or folder; the target's folder exists.
+    fn rename(&mut self, from: &str, to: &str) -> Result<()>;
+    /// Forget cached listings (Refresh in the Remote Host tool window).
+    fn invalidate(&mut self) {}
     /// Set the modification time; `Ok(false)` when the server cannot.
     fn set_modified(&mut self, path: &str, secs: i64) -> Result<bool>;
     /// Where `path` is, for messages (`sftp://deploy@shop/var/www/x`).
