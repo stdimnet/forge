@@ -18,6 +18,8 @@ const GLYPHS: Record<string, Glyph> = {
   composer: { icon: Package },
   wordpress: { text: "W" },
   drupal: { text: "Dr" },
+  joomla: { text: "J" },
+  shopware: { text: "Sw" },
   magento: { text: "M" },
   html: { icon: Code },
   css: { text: "#" },

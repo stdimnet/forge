@@ -51,6 +51,8 @@ export type UsageKind =
   | "import"
   | "traitUse"
   | "extends"
+  | "hookRegistration"
+  | "hookInvocation"
   | "newInstance"
   | "methodCall"
   | "functionCall"

@@ -1,0 +1,4 @@
+/* CMS basics UI. Colors come only from the theme tokens in src/theme/theme.css. */
+.cm-line-marker.marker-drupal-hook {
+  color: var(--info);
+}

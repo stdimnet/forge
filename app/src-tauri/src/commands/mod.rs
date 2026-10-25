@@ -4,6 +4,7 @@
 pub mod agent;
 pub mod ai;
 pub mod clipboard;
+pub mod cms;
 pub mod code_style;
 pub mod codeintel;
 pub mod color_scheme;
@@ -74,5 +75,6 @@ pub mod viewers;
 pub mod vim;
 pub mod web;
 pub mod window;
+pub mod wordpress;
 pub mod workbench;
 pub mod workspace;

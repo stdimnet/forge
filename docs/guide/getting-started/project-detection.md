@@ -36,9 +36,11 @@ and a plain Lua project does not start PHP language servers.
 | Laravel | `laravel/framework` in `composer.json`, or an `artisan` file |
 | Symfony | `symfony/framework-bundle`, or `bin/console` together with `config/bundles.php` |
 | Doctrine | `doctrine/orm` |
-| Drupal | `drupal/core` or `drupal/core-recommended` |
+| Drupal | `drupal/core` or `drupal/core-recommended`, `core/lib/Drupal.php`, or a module / theme `<name>.info.yml` with `core_version_requirement` |
+| Joomla | `administrator/manifests/files/joomla.xml`, or an extension manifest (`<extension type="component">` and the like) in the root |
+| Shopware | `shopware/core`, `shopware/platform` or `shopware/storefront`, a `shopware-platform-plugin` composer.json, or `engine/Shopware/Kernel.php` (Shopware 5) |
 | Magento | `magento/framework`, `magento/product-community-edition`, or `app/etc/env.php` with `bin/magento` |
-| WordPress | `johnpbloch/wordpress`, `roots/wordpress`, `wp-config.php`, `wp-config-sample.php` or `wp-includes/` |
+| WordPress | `johnpbloch/wordpress`, `roots/*` packages, `wp-config.php`, `wp-config-sample.php`, `wp-includes/`, `wp-content/`, a plugin header (`Plugin Name:` in a root PHP file) or a theme header (`Theme Name:` in `style.css`) |
 | Livewire | `livewire/livewire` |
 | PHPUnit, Pest | `phpunit/phpunit`, `pestphp/pest` |
 | Next.js, Nuxt, React, Vue.js, Svelte, Solid, Vite | `next`, `nuxt`, `react`, `vue`, `svelte`, `solid-js`, `vite` in `package.json`; Vite also from a `vite.config.*` file |
@@ -61,7 +63,7 @@ Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `targe
 ## Primary type
 
 The most specific framework becomes the project's **primary** type, in this order: Laravel,
-Symfony, Drupal, WordPress, Magento, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
+Symfony, Drupal, WordPress, Shopware, Magento, Joomla, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
 Neovim, Vite. Without a framework the primary language is used (PHP, TypeScript, JavaScript,
 Lua, Rust, Go, Python, HTML, CSS).
 

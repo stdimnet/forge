@@ -74,7 +74,11 @@ app/ui/            SolidJS UI
     before the language servers and the PHP index (see "Code intelligence" below). Several targets (from a provider or the language server) open the shared
     "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
     (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
-    0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine and the LSP use it.
+    0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine, WordPress, Drupal and the LSP use it.
+  - `registerUsagesProvider` (`src/features/codeintel/usages.ts`) — Find Usages / Show Usages for
+    framework elements a language server does not know (WordPress hooks): the provider returns a
+    `UsagesAnswer` (the shape of `code_find_usages`) or null; Rerun in the Find tool window asks
+    it again.
   - `claimFrameworkStatus` (`src/features/project-type`) — a framework plugin with its own status
     widget hides the generic "Laravel 12" / "Symfony 7" one.
   - `registerFileEditor({ id, accepts(path), component })` (`src/shell/editorViews.ts`) — an
@@ -701,7 +705,7 @@ or without Git, for local and remote projects.
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
   `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
   Intelephense / phpactor lookup, `forge_backend::PhpBackend`), `read_optional` (a file or
-  `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine analysis,
+  `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine / WordPress / CMS analysis,
   see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
   (agent CLIs and tools on the project's machine) and `tunnels()` (SSH port forwarding,
   `None` for local projects). Methods block; commands call them on blocking threads
@@ -716,7 +720,9 @@ or without Git, for local and remote projects.
 - Remote projects have the features of local ones; whatever reads many project files runs
   next to them:
   - **Frameworks** (`forge_backend::frameworks`): `LocalFrameworks` scans and caches Laravel
-    (fingerprint recheck every 2 s), Symfony and Doctrine (10 s, keyed by their settings)
+    (fingerprint recheck every 2 s), Symfony and Doctrine (10 s, keyed by their settings),
+    WordPress and the CMS basics (10 s; `FrameworkCall::WordPress` / `::Cms` carry the crates'
+    own `api::Query` and reply with its JSON answer)
     where the files are: in the app for local projects, in the agent for remote ones
     (`Call::Framework`). Editor requests carry the buffer, so completion, Go to Declaration,
     gutter marks and DQL highlighting cost one round trip; `framework_call::<T>` decodes the
@@ -2262,6 +2268,34 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
   Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
   (`mock/composerMock.ts`, `mock/demoComposer.ts`).
+
+## WordPress (`phpforge-fw-wordpress`) and CMS basics (`phpforge-fw-cms`)
+
+- Plugins `forge.wordpress` (project type `wordpress`) and `forge.cms` (`drupal`, `joomla`,
+  `shopware`); settings under Languages & Frameworks | PHP | WordPress (`wordpress.*`) and |
+  Drupal, Joomla and Shopware (`cms.*`). Both crates are pure Rust: the desktop backend and the
+  browser mode (`forge-wasm`: `wordpress_query`, `cms_query` with `{ files, query }`) answer the
+  same `api::Query`. `?project=wordpress` opens the demo plugin, `?project=drupal` the demo module.
+- `wordpress_detect()` / `wordpress_refresh() -> WordPressInfo | null` (`{ kind: "site" |
+  "composer" | "content" | "plugin" | "theme", version?, header?: { name, version?, textDomain?,
+  requiresWp?, requiresPhp? }, headerFile?, core, stubs?, wpCli?: { path, source: "project" |
+  "path" }, hooks, files }`), `wordpress_hooks() -> { name, kind: "action" | "filter", dynamic?,
+  registrations, invocations, location, summary? }[]`.
+- Editor requests carry the buffer (UTF-16 offsets): `wordpress_complete({ path, content,
+  offset }) -> { from, to, items: { label, kind, detail, info?, core? }[] } | null`,
+  `wordpress_goto(…) -> Location[]` (registration ↔ invocation, callback → function, WordPress
+  function → stubs), `wordpress_gutter({ path, content }) -> { line, kind: "registration" |
+  "invocation", hook, title, targets? }[]`, `wordpress_usages(…) -> UsagesAnswer | null` (usage
+  kinds `hookRegistration`, `hookInvocation`, `functionCall`), `wordpress_inspect({ path, content })
+  -> { from, to, message, code, fixTitle, replacement }[]` (Yoda conditions).
+- `cms_detect()` / `cms_refresh() -> { id, name, version?, kind: "site" | "extension", extension?,
+  console? }[]`, `cms_complete({ path, content, offset }) -> { from, items: { label, hook, params,
+  summary }[] } | null`, `cms_goto(…) -> { hook, location?, url } | null`, `cms_gutter({ path,
+  content }) -> { line, title, docs }[]`.
+- WP-CLI, Drush and the Shopware console run through the Command Line Tool Support
+  (`openToolConsole` in `src/features/cliTools/openTool.ts`, `cli_tools_run`, refused in Safe
+  Mode). The WordPress stubs are only used from `vendor/`; installing them is a Composer run the
+  user starts.
 
 ## Command Line Tool Support (`phpforge-cli-tools`)
 
