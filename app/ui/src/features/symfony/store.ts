@@ -3,10 +3,12 @@ import { createEffect, createRoot, createSignal, on } from "solid-js";
 import {
   symfonyApi,
   type ConsoleCommand,
+  type EventListener,
   type SymfonyInfo,
   type SymfonyParameter,
   type SymfonyRoute,
   type SymfonyService,
+  type TranslationTable,
 } from "@/ipc/symfony";
 import { isPluginActive, usesFramework } from "@/state/project";
 import { workspace } from "@/state/workspace";
@@ -19,9 +21,11 @@ const [routes, setRoutes] = createSignal<SymfonyRoute[]>([]);
 const [services, setServices] = createSignal<SymfonyService[]>([]);
 const [parameters, setParameters] = createSignal<SymfonyParameter[]>([]);
 const [commands, setCommands] = createSignal<ConsoleCommand[]>([]);
+const [translations, setTranslations] = createSignal<TranslationTable | null>(null);
+const [listeners, setListeners] = createSignal<EventListener[]>([]);
 const [loading, setLoading] = createSignal(false);
 
-export { info as symfonyInfo, routes, services, parameters, commands, loading };
+export { info as symfonyInfo, routes, services, parameters, commands, translations, listeners, loading };
 
 let pending: Promise<void> | null = null;
 
@@ -34,16 +38,20 @@ export function loadSymfony(force = false): Promise<void> {
       const i = force ? await symfonyApi.refresh() : await symfonyApi.detect();
       setInfo(i);
       if (!i) return;
-      const [r, s, p, c] = await Promise.all([
+      const [r, s, p, c, t, l] = await Promise.all([
         symfonyApi.routes(),
         symfonyApi.services(),
         symfonyApi.parameters(),
         symfonyApi.consoleCommands(),
+        symfonyApi.translations().catch(() => null),
+        symfonyApi.events().catch(() => [] as EventListener[]),
       ]);
       setRoutes(r);
       setServices(s);
       setParameters(p);
       setCommands(c);
+      setTranslations(t);
+      setListeners(l);
     } catch (e) {
       console.warn("Symfony index failed", e);
     } finally {
