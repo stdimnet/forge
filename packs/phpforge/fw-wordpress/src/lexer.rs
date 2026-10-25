@@ -261,8 +261,7 @@ pub fn arguments(tokens: &[Token<'_>], open: usize) -> Vec<std::ops::Range<usize
     } else {
         tokens.len()
     };
-    for i in open + 1..end {
-        let t = &tokens[i];
+    for (i, t) in tokens.iter().enumerate().take(end).skip(open + 1) {
         if t.kind != TokKind::Punct {
             continue;
         }

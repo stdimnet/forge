@@ -17,7 +17,10 @@ struct Request<Q> {
     query: Q,
 }
 
-fn run<Q: for<'de> Deserialize<'de>>(request_json: &str, answer: impl FnOnce(&HashMap<String, String>, Q) -> Value) -> String {
+fn run<Q: for<'de> Deserialize<'de>>(
+    request_json: &str,
+    answer: impl FnOnce(&HashMap<String, String>, Q) -> Value,
+) -> String {
     match serde_json::from_str::<Request<Q>>(request_json) {
         Ok(r) => to_json(&answer(&r.files, r.query)),
         Err(e) => to_json(&json!({ "error": e.to_string() })),
@@ -52,7 +55,10 @@ mod tests {
         });
         let out: Value = serde_json::from_str(&wordpress_query(&req.to_string())).unwrap();
         assert_eq!(out[0]["name"], "acme_ready");
-        let out: Value = serde_json::from_str(&cms_query(&json!({ "files": {}, "query": "detect" }).to_string())).unwrap();
+        let out: Value = serde_json::from_str(&cms_query(
+            &json!({ "files": {}, "query": "detect" }).to_string(),
+        ))
+        .unwrap();
         assert_eq!(out, json!([]));
         let bad: Value = serde_json::from_str(&cms_query("{}")).unwrap();
         assert!(bad["error"].is_string());

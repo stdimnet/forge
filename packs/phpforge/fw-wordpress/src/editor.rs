@@ -61,7 +61,7 @@ pub fn hook_context(src: &str, offset: usize) -> Option<HookContext> {
     }
     let to = offset
         + src[offset..]
-            .find(|c: char| c == quote || c == '\n')
+            .find([quote, '\n'])
             .unwrap_or(src.len() - offset);
     Some(HookContext {
         function: function.trim_start_matches('\\').to_ascii_lowercase(),
