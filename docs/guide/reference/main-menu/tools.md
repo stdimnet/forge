@@ -7,7 +7,7 @@ tags: [main menu, reference, tools]
 
 # Tools menu
 
-Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
+Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Deployment, Docker, Laravel, Symfony). Open it with ☰ (`Alt+\`) or from the menu bar, see [Main menu](../../user/workbench.md#main-menu).
 
 ![Tools menu](../../../screenshots/docs-menu-tools.png)
 
@@ -34,6 +34,17 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Dock
 | Composer › Validate | — | — | yes | Runs `composer validate`. [More](../../user/composer.md#the-composerjson-toolbar) |
 | Composer › Show Outdated | — | — | yes | Runs `composer outdated --direct`. [More](../../user/composer.md#outdated-packages) |
 | Composer › Audit | — | — | yes | Runs `composer audit` and shows the advisories in the Problems tool window. [More](../../user/composer.md#composer-audit) ([screenshot](../../../screenshots/composer-audit.png)) |
+| **Deployment** | | | | submenu |
+| Deployment › Upload to Default Server | — | — | yes | Uploads the selected files or the open file to the default server. [More](../../user/deployment.md#uploading-and-downloading) ([screenshot](../../../screenshots/deployment-file-transfer.png)) |
+| Deployment › Upload to… | `Ctrl+Alt+Shift+X` | `Cmd+Alt+Shift+X` | yes | Asks for the server, then uploads. [More](../../user/deployment.md#uploading-and-downloading) ([screenshot](../../../screenshots/deployment-choose-server.png)) |
+| Deployment › Download from Default Server / Download from… | — | — | yes | Copies the deployed files into the project. [More](../../user/deployment.md#uploading-and-downloading) |
+| Deployment › Compare with Deployed Version / … on… | — | — | yes | Diff of the deployed file and the project file. [More](../../user/deployment.md#uploading-and-downloading) ([screenshot](../../../screenshots/deployment-compare.png)) |
+| Deployment › Sync with Deployed to Default Server / … to… | — | — | yes | Folder diff of a project folder and its deployed copy with Upload / Download per row. [More](../../user/deployment.md#sync-with-deployed) ([screenshot](../../../screenshots/deployment-sync.png)) |
+| Deployment › Delete on Default Server | — | — | yes | Deletes the deployed files after a confirmation. [More](../../user/deployment.md#uploading-and-downloading) |
+| Deployment › Configuration… | — | — | yes | Opens Settings \| Build, Execution, Deployment \| Deployment. [More](../../user/deployment.md#servers) ([screenshot](../../../screenshots/deployment-settings.png)) |
+| Deployment › Options… | — | — | yes | Opens Deployment \| Options. [More](../../user/deployment.md#options) ([screenshot](../../../screenshots/deployment-options.png)) |
+| Deployment › Automatic Upload (Always) | — | — | yes | Switches automatic upload on save between Always and Never (check mark). [More](../../user/deployment.md#options) |
+| Deployment › Browse Remote Host | — | — | yes | Opens Sync with Deployed for the project root until the Remote Host tool window exists. [More](../../user/deployment.md#safe-mode) |
 | **Docker** | | | | submenu |
 | Docker › Pull Image… | — | — | yes | Pulls a Docker image. [More](../../user/services.md#pulling-images-and-registries) |
 | Docker › Refresh Services | — | — | yes | Refreshes the Services tree. [More](../../user/services.md) |
@@ -49,6 +60,7 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 | --- | --- | --- |
 | — | Vim (check mark) | always (plugin `forge.vim`) |
 | Composer | Add Dependency…, Install, Update, Validate, Show Outdated, Audit | Composer projects (`forge.composer`) |
+| Deployment | Upload, Download, Compare, Sync, Delete, Configuration…, Options…, Automatic Upload, Browse Remote Host | always (plugin `forge.deployment`) |
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command…, Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |

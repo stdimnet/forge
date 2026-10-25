@@ -59,6 +59,7 @@ forge-window.workspace = true
 forge-scratches.workspace = true
 forge-containers = { path = "../forge-containers", default-features = false }
 forge-remote = { path = "../forge-remote", default-features = false }
+forge-deploy = { path = "../forge-deploy", default-features = false }
 webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features = false }
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }

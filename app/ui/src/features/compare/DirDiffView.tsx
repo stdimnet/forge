@@ -24,7 +24,7 @@ import { reloadOpenFiles, repositoryChanged } from "@/features/git/store";
 import { setDiffRequest } from "@/features/git/overlays";
 import { fullDate } from "@/features/git/format";
 import { showBalloon } from "@/keymap";
-import { compareApi, type DiffStatus, type DirDiffEntry } from "./api";
+import { compareApi, type DiffStatus, type DirCompare, type DirDiffEntry } from "./api";
 import { compareFiles, readText } from "./state";
 
 const join = (root: string, rel: string) => (root ? `${root}/${rel}` : rel);
@@ -78,8 +78,25 @@ export function visibleRows(entries: DirDiffEntry[], show: Record<DiffStatus, bo
   return entries.filter((e) => keep.has(e.path) && !hidden(e.path));
 }
 
-export function DirDiffView(props: { left: string; right: string }) {
-  const [data, { refetch }] = createResource(() => compareApi.dirs(props.left, props.right));
+/**
+ * Where a folder diff comes from when it is not two project folders (Sync with Deployed:
+ * the project on the left, a deployment server on the right).
+ */
+export interface DirDiffSource {
+  load: () => Promise<DirCompare>;
+  /** Shown above each side instead of the folder paths (reactive: known after loading). */
+  leftTitle: () => string;
+  rightTitle: () => string;
+  /** Compare Contents of a file row. */
+  openDiff: (e: DirDiffEntry) => void | Promise<void>;
+  /** Copy a row to the other side (Upload / Download). */
+  copy: (e: DirDiffEntry, toRight: boolean) => Promise<void>;
+  /** Button titles, e.g. "Upload to shop-production" / "Download from shop-production". */
+  copyTitles: { toRight: string; toLeft: string };
+}
+
+export function DirDiffView(props: { left: string; right: string; source?: DirDiffSource }) {
+  const [data, { refetch }] = createResource(() => (props.source ? props.source.load() : compareApi.dirs(props.left, props.right)));
   const [show, setShow] = createSignal<Record<DiffStatus, boolean>>({ leftOnly: true, different: true, equal: true, rightOnly: true });
   const [collapsed, setCollapsed] = createSignal(new Set<string>());
   const [selected, setSelected] = createSignal<string | null>(null);
@@ -105,6 +122,7 @@ export function DirDiffView(props: { left: string; right: string }) {
   const openDiff = async (e: DirDiffEntry | undefined) => {
     if (!e) return;
     if (e.dir) return toggleDir(e.path);
+    if (props.source) return props.source.openDiff(e);
     const left = join(props.left, e.path);
     const right = join(props.right, e.path);
     if (e.status !== "leftOnly" && e.status !== "rightOnly") return compareFiles(left, right);
@@ -122,6 +140,15 @@ export function DirDiffView(props: { left: string; right: string }) {
   const copy = async (toRight: boolean) => {
     const e = current();
     if (!e || e.status === (toRight ? "rightOnly" : "leftOnly") || e.status === "equal") return;
+    if (props.source) {
+      try {
+        await props.source.copy(e, toRight);
+      } catch (err) {
+        return showBalloon(toRight ? props.source.copyTitles.toRight : props.source.copyTitles.toLeft, String(err instanceof Error ? err.message : err));
+      }
+      await refetch();
+      return;
+    }
     const from = join(toRight ? props.left : props.right, e.path);
     const to = join(toRight ? props.right : props.left, e.path);
     const replaces = e.status === "different";
@@ -204,10 +231,10 @@ export function DirDiffView(props: { left: string; right: string }) {
           <Columns2 size={15} />
         </button>
         <div class="toolbar-sep" />
-        <button class="icon-btn" title="Copy to Right" disabled={!canCopy(true)} onClick={() => void copy(true)}>
+        <button class="icon-btn" title={props.source?.copyTitles.toRight ?? "Copy to Right"} disabled={!canCopy(true)} onClick={() => void copy(true)}>
           <ArrowRightToLine size={15} />
         </button>
-        <button class="icon-btn" title="Copy to Left" disabled={!canCopy(false)} onClick={() => void copy(false)}>
+        <button class="icon-btn" title={props.source?.copyTitles.toLeft ?? "Copy to Left"} disabled={!canCopy(false)} onClick={() => void copy(false)}>
           <ArrowLeftToLine size={15} />
         </button>
         <div class="toolbar-sep" />
@@ -238,12 +265,12 @@ export function DirDiffView(props: { left: string; right: string }) {
         </span>
       </div>
       <div class="dir-diff-header">
-        <div class="dir-diff-root" title={props.left}>
-          {props.left || "/"}
+        <div class="dir-diff-root" title={props.source?.leftTitle() ?? props.left}>
+          {props.source?.leftTitle() ?? (props.left || "/")}
         </div>
         <div />
-        <div class="dir-diff-root" title={props.right}>
-          {props.right || "/"}
+        <div class="dir-diff-root" title={props.source?.rightTitle() ?? props.right}>
+          {props.source?.rightTitle() ?? (props.right || "/")}
         </div>
       </div>
       <div class="dir-diff-columns">

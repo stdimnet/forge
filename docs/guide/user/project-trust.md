@@ -67,11 +67,13 @@ blocked even if a plugin or the UI tries to start them:
 | Actions on Save: ESLint, Prettier, PHP CS Fixer, Laravel Pint | not run |
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
+| Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
 
 What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
 Declaration, completion from the built-in analysis, language servers installed outside the
 project (for example Intelephense from npm or Forge's own install), Git, Local History,
-databases and the HTTP client.
+databases, the HTTP client and [Deployment](deployment.md) actions you start yourself (upload,
+download, compare and sync only copy files).
 
 The **terminal** opens in Safe Mode, because you type the commands yourself. The project's own
 settings (`.forge/settings.toml`) cannot choose its shell or environment variables then; your

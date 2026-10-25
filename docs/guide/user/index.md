@@ -80,5 +80,6 @@ not finished, the page says so.
 | [Scratches, consoles and HTTP client](scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](remote-development.md) | SSH, the Forge agent, what runs remotely |
+| [Deployment](deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
 | [AI](ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
 | [Browser Companion](browser-companion.md) | browser extension, `forge://` links, error page integrations |
