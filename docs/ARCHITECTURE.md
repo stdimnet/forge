@@ -1814,7 +1814,11 @@ libraries.tsx, sourceRoots.tsx}`).
   PortForward[]` (`spec`: `8080:80, 9000, :5432`), `services_port_forward_stop({ id })`,
   `services_port_forwards()`, `docker_contexts() -> DockerContext[]`, `services_pull({ image })`,
   `services_compose_up({ path, service? })`, `services_dockerfile_run({ path })`,
-  `services_gutter({ path, content })`, `services_compose_changed()`, `services_status()`,
+  `services_gutter({ path, content })` (kinds `composeAll | composeService | dockerfile |
+  kubeManifest`), `services_kube_selection() -> KubeSelection | null` (`{ source, host?,
+  contexts, context?, namespaces, namespace? }`), `services_kube_select({ context, namespace? })`,
+  `services_kube_apply({ path, action: "apply" | "delete" })` (refused in Safe Mode, like
+  `services_terminal` for pods), `services_compose_changed()`, `services_status()`,
   `docker_test_connection({ settings? })`, `docker_registry_login|logout|status`.
 - Events on `services://event`: `{ type: "tree", nodes }`, `{ type: "console", key, delta, reset? }`
   (keys `log:<nodeId>` for followed logs, `run:<nodeId>` for compose, build and pull output;
@@ -1825,7 +1829,14 @@ libraries.tsx, sourceRoots.tsx}`).
   `docker.ssh.socketPath`, `docker.context`, `docker.cliPath`, `docker.logs.tail`; the page
   lists the Docker contexts with Use), | Docker | Docker
   Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
-  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
+  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`,
+  `kubernetes.remoteProjectHost`, `kubernetes.hostKubectlPaths`: `host<TAB>kubectl`).
+- Remote projects: the app hands the hub a `ProjectHost` (`commands/services.rs`
+  `BackendProject`): files and processes through the backend, the host's Unix sockets
+  (`Tunnels::open_socket`) and TCP ports (`Tunnels::open_tcp`, SSH `direct-tcpip`) through the
+  project's connection. With `kubernetes.remoteProjectHost`, `forge_containers::kubectl` runs
+  the host's kubectl (`config view`, `get -o json`, `logs -f`, `port-forward`, `apply -f`)
+  instead of calling the API server from this machine. No remote-agent protocol change.
 
 ## WebForge (`packs/webforge/*`)
 

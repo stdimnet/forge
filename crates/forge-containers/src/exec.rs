@@ -143,7 +143,8 @@ fn pod_title(pod: &str, container: Option<&str>) -> String {
     }
 }
 
-fn kubeconfig_env(kubeconfig: Option<&str>) -> Vec<(String, String)> {
+/// `KUBECONFIG=<paths>` for a kubectl run on this machine (none: kubectl's own default).
+pub fn kubeconfig_env(kubeconfig: Option<&str>) -> Vec<(String, String)> {
     kubeconfig
         .filter(|k| !k.is_empty())
         .map(|k| vec![("KUBECONFIG".to_string(), k.to_string())])

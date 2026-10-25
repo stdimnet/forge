@@ -293,6 +293,13 @@ function status(): RemoteStatus | null {
   };
 }
 
+const projectListeners: (() => void)[] = [];
+/** Called after the remote project opened or closed (the Services mock re-announces its
+ * tree, like the backend reconfigures the hub for the project). */
+export function onRemoteProjectChanged(fn: () => void): void {
+  projectListeners.push(fn);
+}
+
 /** Make the remote demo project the open one (`?project=remote`, `remote_open_project`). */
 export function adoptRemoteProject(info: WorkspaceInfo, connectionId = "conn-demo"): WorkspaceInfo {
   openProject = { connectionId, info };
@@ -303,6 +310,7 @@ export function adoptRemoteProject(info: WorkspaceInfo, connectionId = "conn-dem
   queueMicrotask(() => {
     const s = status();
     if (s) emitMock("remote://status", s);
+    for (const fn of projectListeners) fn();
   });
   return info;
 }
@@ -315,7 +323,9 @@ export function currentRemote(): { user: string; path: string; label: string } |
 
 /** Forget the remote project (a local project was opened). */
 export function closeRemoteProject(): void {
+  const was = openProject;
   openProject = null;
+  if (was) queueMicrotask(() => projectListeners.forEach((fn) => fn()));
 }
 
 registerMock("remote_open_project", async ({ connectionId, path }) => {

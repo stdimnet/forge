@@ -283,6 +283,27 @@ users:
       args: [get-token, --environment, AzurePublicCloud]
 `;
 
+/** `kubectl config view -o json` on the remote demo host: a k3s next to the shop and the
+ * production cluster (secrets redacted by kubectl). */
+export const hostKubeconfigView = JSON.stringify({
+  kind: "Config",
+  apiVersion: "v1",
+  preferences: {},
+  "current-context": "k3s-shop",
+  clusters: [
+    { name: "k3s", cluster: { server: "https://127.0.0.1:6443", "certificate-authority-data": "DATA+OMITTED" } },
+    { name: "prod-eu", cluster: { server: "https://k8s.acme.example:6443" } },
+  ],
+  contexts: [
+    { name: "k3s-shop", context: { cluster: "k3s", user: "k3s", namespace: "shop" } },
+    { name: "prod-eu", context: { cluster: "prod-eu", user: "deploy", namespace: "shop" } },
+  ],
+  users: [
+    { name: "k3s", user: { "client-certificate-data": "DATA+OMITTED", "client-key-data": "DATA+OMITTED" } },
+    { name: "deploy", user: { token: "REDACTED" } },
+  ],
+});
+
 export const demoNamespaces = { items: ["default", "kube-node-lease", "kube-public", "kube-system", "shop"].map((name) => ({ metadata: { name } })) };
 
 /** Ports the demo containers declare (Forward Ports suggestions). */

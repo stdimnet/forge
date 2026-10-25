@@ -63,4 +63,14 @@ pub trait Tunnels: Send + Sync {
     /// A stream to a Unix socket on the remote host (`direct-streamlocal`, like
     /// `ssh -L local:/var/run/docker.sock`). Used for Docker on the project's host.
     fn open_socket(&self, path: String) -> BoxFuture<'static, Result<TunnelStream>>;
+
+    /// A stream to `host:port` as the remote host sees it (`direct-tcpip`, like `ssh -W`).
+    /// Used for `kubectl port-forward` running on the project's host.
+    fn open_tcp(&self, host: String, port: u16) -> BoxFuture<'static, Result<TunnelStream>> {
+        Box::pin(async move {
+            Err(forge_core::ForgeError::Other(format!(
+                "{host}:{port} cannot be reached: this connection has no TCP tunnels"
+            )))
+        })
+    }
 }
