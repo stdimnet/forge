@@ -9,9 +9,9 @@
  * with the project's layout, see `forge_core::project_state::ToolWindowPlacement`). The
  * workbench store (`state/layout.ts`) applies them.
  */
-import type { LayoutAnchor, LayoutSlot, ToolWindowPlacement } from "@/ipc/projectState";
+import type { FloatingBounds, LayoutAnchor, LayoutSlot, ToolWindowPlacement, ViewMode } from "@/ipc/projectState";
 
-export type { LayoutSlot as ToolWindowSlot, ToolWindowPlacement };
+export type { FloatingBounds, LayoutSlot as ToolWindowSlot, ToolWindowPlacement, ViewMode };
 type Slot = LayoutSlot;
 
 export const SLOTS: Slot[] = ["left", "leftSplit", "right", "rightSplit", "bottom", "bottomSplit"];
@@ -96,6 +96,69 @@ export function setRemoved(windows: ToolWindowDefault[], placements: Placements,
   const current = placementOf(def, placements);
   if (current.removed === removed) return placements;
   return { ...placements, [id]: { ...current, removed } };
+}
+
+/** PHPStorm's View Mode submenu, in its order. */
+export const VIEW_MODE_LABELS: [ViewMode, string][] = [
+  ["dockPinned", "Dock Pinned"],
+  ["dockUnpinned", "Dock Unpinned"],
+  ["undock", "Undock"],
+  ["float", "Float"],
+  ["window", "Window"],
+];
+
+/** How a tool window shows when it is open. */
+export const modeOf = (def: ToolWindowDefault, placements: Placements): ViewMode => placementOf(def, placements).mode ?? "dockPinned";
+
+/** Docked modes take room at their place; the others show above the IDE or in a window. */
+export const isDockedMode = (mode: ViewMode): boolean => mode === "dockPinned" || mode === "dockUnpinned";
+
+/** Modes that hide the window when another part of the IDE gets the focus. */
+export const hidesOnFocusLoss = (mode: ViewMode): boolean => mode === "dockUnpinned" || mode === "undock";
+
+/** Set the View Mode of a tool window (its place and order stay). */
+export function setViewMode(windows: ToolWindowDefault[], placements: Placements, id: string, mode: ViewMode): Placements {
+  const def = windows.find((w) => w.id === id);
+  if (!def) return placements;
+  const { mode: _old, ...current } = placementOf(def, placements);
+  return { ...placements, [id]: mode === "dockPinned" ? current : { ...current, mode } };
+}
+
+/** Remember where a floating tool window is. */
+export function setFloatingBounds(windows: ToolWindowDefault[], placements: Placements, id: string, bounds: FloatingBounds): Placements {
+  const def = windows.find((w) => w.id === id);
+  if (!def) return placements;
+  const rounded = {
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height),
+  };
+  return { ...placements, [id]: { ...placementOf(def, placements), floating: rounded } };
+}
+
+/**
+ * Where a floating window opens the first time: over its anchor's side of the IDE window
+ * (`area` is the size of the IDE window).
+ */
+export function defaultFloatingBounds(anchor: LayoutAnchor, area: { width: number; height: number }): FloatingBounds {
+  const width = Math.min(anchor === "bottom" ? 720 : 360, Math.max(240, area.width - 80));
+  const height = Math.min(anchor === "bottom" ? 300 : 480, Math.max(160, area.height - 120));
+  const x = anchor === "right" ? area.width - width - 60 : anchor === "left" ? 60 : Math.round((area.width - width) / 2);
+  const y = anchor === "bottom" ? area.height - height - 60 : 80;
+  return { x: Math.max(0, x), y: Math.max(0, y), width, height };
+}
+
+/** Keep a floating window reachable: at least `grip` pixels of its title stay inside the area. */
+export function clampFloating(bounds: FloatingBounds, area: { width: number; height: number }, grip = 48): FloatingBounds {
+  const width = Math.max(160, Math.min(bounds.width, area.width));
+  const height = Math.max(80, Math.min(bounds.height, area.height));
+  return {
+    width,
+    height,
+    x: Math.min(Math.max(bounds.x, grip - width), area.width - grip),
+    y: Math.min(Math.max(bounds.y, 0), area.height - grip),
+  };
 }
 
 /** Open tool window per slot. */

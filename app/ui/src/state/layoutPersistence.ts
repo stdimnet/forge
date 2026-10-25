@@ -28,10 +28,19 @@ const ANCHORS: LayoutAnchor[] = ["left", "right", "bottom"];
 const SAVE_DELAY_MS = 400;
 
 /** The tool window part of the layout (also what Store Current Layout as Default keeps). */
-function windowLayout(): ProjectLayout {
+export function windowLayout(): ProjectLayout {
   // Plain objects: the store's proxies cannot be cloned.
   const toolWindows: Placements = Object.fromEntries(
-    Object.entries(layout.placements).map(([id, p]) => [id, { slot: p.slot, order: p.order, removed: p.removed }]),
+    Object.entries(layout.placements).map(([id, p]) => [
+      id,
+      {
+        slot: p.slot,
+        order: p.order,
+        removed: p.removed,
+        ...(p.mode && p.mode !== "dockPinned" ? { mode: p.mode } : {}),
+        ...(p.floating ? { floating: { ...p.floating } } : {}),
+      },
+    ]),
   );
   return {
     active: { ...layout.active },
@@ -61,7 +70,7 @@ export function currentLayout(): ProjectLayout {
  * (skipped when unknown or no longer at that place), sizes and split ratios. Layouts saved
  * before placements existed have none, so every window starts at its registered place.
  */
-function applyWindowLayout(saved: ProjectLayout): void {
+export function applyWindowLayout(saved: ProjectLayout): void {
   const placements = Object.fromEntries(Object.entries(saved.toolWindows ?? {}).filter(([, p]) => isSlot(p.slot)));
   setLayout("placements", reconcile(placements));
   for (const slot of SLOTS) {

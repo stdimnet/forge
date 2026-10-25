@@ -28,6 +28,7 @@ export function cssVars(get: <T>(key: string) => T): Record<string, string> {
   return {
     "--font-mono": fontStack(get<string>("editor.font.family"), MONO_FALLBACK),
     "--fs-editor": `${get<number>("editor.font.size")}px`,
+    "--fs-presentation": `${get<number>("appearance.presentationFontSize") ?? 24}px`,
     "--editor-line-height": String(get<number>("editor.font.lineHeight")),
     "--editor-ligatures": get<boolean>("editor.font.ligatures") ? "normal" : "none",
     "--font-ui": fontStack(get<string>("appearance.uiFont.family"), UI_FALLBACK),

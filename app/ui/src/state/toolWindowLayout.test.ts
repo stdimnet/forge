@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   anchorOf,
+  clampFloating,
+  defaultFloatingBounds,
   dropIndex,
+  hidesOnFocusLoss,
+  isDockedMode,
+  modeOf,
+  setFloatingBounds,
+  setViewMode,
   groupIds,
   dropBefore,
   isSplitSlot,
@@ -98,5 +105,41 @@ describe("tool window placement", () => {
     expect(dropIndex(buttons, 20)).toBe(1);
     expect(dropIndex(buttons, 60)).toBe(2);
     expect(dropIndex([], 10)).toBe(0);
+  });
+});
+
+describe("view modes", () => {
+  it("are Dock Pinned by default and keep the place when changed", () => {
+    expect(modeOf(windows[0], {})).toBe("dockPinned");
+    const moved = moveToolWindow(windows, {}, "terminal", "right");
+    const floating = setViewMode(windows, moved, "terminal", "float");
+    expect(floating.terminal).toMatchObject({ slot: "right", mode: "float" });
+    expect(modeOf(windows[3], floating)).toBe("float");
+    // Back to Dock Pinned drops the mode instead of storing the default.
+    const docked = setViewMode(windows, floating, "terminal", "dockPinned");
+    expect(docked.terminal.mode).toBeUndefined();
+    expect(docked.terminal.slot).toBe("right");
+    // Moving a window keeps its mode.
+    const again = moveToolWindow(windows, floating, "terminal", "bottom");
+    expect(again.terminal.mode).toBe("float");
+    expect(setViewMode(windows, {}, "unknown", "float")).toEqual({});
+  });
+
+  it("know which modes are docked and which hide on focus loss", () => {
+    expect(["dockPinned", "dockUnpinned", "undock", "float", "window"].map((m) => isDockedMode(m as never))).toEqual([true, true, false, false, false]);
+    expect(["dockPinned", "dockUnpinned", "undock", "float", "window"].map((m) => hidesOnFocusLoss(m as never))).toEqual([false, true, true, false, false]);
+  });
+
+  it("place floating windows on their side and keep them reachable", () => {
+    const area = { width: 1400, height: 860 };
+    const right = defaultFloatingBounds("right", area);
+    expect(right.x + right.width).toBeLessThan(area.width);
+    expect(defaultFloatingBounds("left", area).x).toBe(60);
+    const bottom = defaultFloatingBounds("bottom", area);
+    expect(bottom.y + bottom.height).toBeLessThan(area.height);
+    expect(clampFloating({ x: -5000, y: -20, width: 9000, height: 50 }, area)).toEqual({ x: 48 - 1400, y: 0, width: 1400, height: 80 });
+    expect(clampFloating({ x: 5000, y: 5000, width: 300, height: 200 }, area)).toEqual({ x: 1352, y: 812, width: 300, height: 200 });
+    const stored = setFloatingBounds(windows, {}, "project", { x: 10.4, y: 20.6, width: 300, height: 200 });
+    expect(stored.project).toMatchObject({ slot: "left", floating: { x: 10, y: 21, width: 300, height: 200 } });
   });
 });

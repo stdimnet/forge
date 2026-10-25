@@ -12,12 +12,31 @@ export type LayoutAnchor = "left" | "right" | "bottom";
  */
 export type LayoutSlot = "left" | "leftSplit" | "right" | "rightSplit" | "bottom" | "bottomSplit";
 
+/**
+ * How an open tool window shows (`forge_core::project_state::ViewMode`, PHPStorm's View Mode):
+ * docked and pinned, docked and hiding on focus loss, undocked over the editor, floating over
+ * the IDE window, or in a separate window.
+ */
+export type ViewMode = "dockPinned" | "dockUnpinned" | "undock" | "float" | "window";
+
+/** Position and size of a floating tool window (CSS pixels, relative to the IDE window). */
+export interface FloatingBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface ToolWindowPlacement {
   slot: LayoutSlot;
   /** Position inside the stripe group (lower first). */
   order: number;
   /** Removed from the sidebar: no stripe button until the window is opened another way. */
   removed: boolean;
+  /** Missing = `dockPinned`. */
+  mode?: ViewMode;
+  /** Where the window floats once the user moved or resized it. */
+  floating?: FloatingBounds;
 }
 
 export interface ProjectLayout {
@@ -34,6 +53,12 @@ export interface ProjectLayout {
   /** Open editor tabs (workspace-relative paths) in order. */
   openFiles: string[];
   activeFile: string | null;
+}
+
+/** A layout saved with Window | Layouts | Save Current Layout as New… (tool windows only). */
+export interface NamedLayout {
+  name: string;
+  layout: ProjectLayout;
 }
 
 export interface ChatSummary {
@@ -60,6 +85,12 @@ export const projectStateApi = {
   /** The layout stored with Window | Store Current Layout as Default (tool windows only). */
   loadDefaultLayout: () => invoke<ProjectLayout | null>("layout_default_load"),
   saveDefaultLayout: (layout: ProjectLayout) => invoke<void>("layout_default_save", { layout }),
+  /** Window | Layouts: the saved layouts (user setting `workbench.layouts`). */
+  listLayouts: () => invoke<NamedLayout[]>("layouts_list"),
+  /** Save as `name`; `replace` overwrites a layout of that name, else that is an error. */
+  saveNamedLayout: (name: string, layout: ProjectLayout, replace = false) =>
+    invoke<NamedLayout>("layouts_save", { name, layout, replace }),
+  deleteNamedLayout: (name: string) => invoke<boolean>("layouts_delete", { name }),
   listChats: () => invoke<ChatSummary[]>("agent_history_list"),
   loadChat: (id: string) => invoke<ChatRecord>("agent_history_load", { id }),
   /** Save a chat; an empty conversation removes it. */

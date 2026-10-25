@@ -23,11 +23,16 @@ async function prepare(id: string, props: unknown): Promise<true> {
 }
 
 function InPage(props: { dialog: InPageDialog }) {
-  const def = dialogDef(props.dialog.id)!;
-  const [ready] = createResource(() => prepare(def.id, props.dialog.props));
-  const close = () => requestCloseDialog(def.id);
+  const id = props.dialog.id;
+  const def = dialogDef(id)!;
+  const [ready] = createResource(() => prepare(id, props.dialog.props));
+  const close = () => requestCloseDialog(id);
   return (
-    <div class="wf-backdrop" data-dialog={def.id} onMouseDown={(e) => e.target === e.currentTarget && close()}>
+    <div
+      class={props.dialog.modeless ? "wf-modeless" : "wf-backdrop"}
+      data-dialog={id}
+      onMouseDown={(e) => !props.dialog.modeless && e.target === e.currentTarget && close()}
+    >
       <Show when={ready()}>
         <WindowFrame
           inPage
@@ -62,6 +67,9 @@ export function DialogWindowApp(props: { boot: DialogBoot }) {
   if (def) document.title = dialogTitle(def, dialogProps);
   onMount(() => {
     trackMaximized();
+    // A browser popup (browser mode) that the user closes runs the dialog's Cancel path, so
+    // the opener gets its result (e.g. the tabs of a detached editor window).
+    if (!isTauri() && window.opener) window.addEventListener("pagehide", () => requestCloseDialog(id));
     if (!isTauri()) return;
     void windowLabel().then((me) => windowApi.onCloseRequested((e) => e.window === me && requestCloseDialog(id)));
   });

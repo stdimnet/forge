@@ -77,8 +77,54 @@ pub const SLOTS: [&str; 6] = [
 /// Share of the first tool window when an area shows two (per mille).
 const SPLIT_RATIO: (u32, u32) = (100, 900);
 
+/// How a tool window shows when it is open (PHPStorm's View Mode submenu).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ViewMode {
+    /// Docked at its place; stays open when it loses the focus.
+    #[default]
+    DockPinned,
+    /// Docked at its place; hides when another part of the IDE gets the focus.
+    DockUnpinned,
+    /// Slides over the editor at its place instead of making room; hides on focus loss.
+    Undock,
+    /// A panel floating over the IDE window that the user moves and resizes.
+    Float,
+    /// A separate OS window.
+    Window,
+}
+
+impl ViewMode {
+    fn is_default(&self) -> bool {
+        *self == ViewMode::DockPinned
+    }
+}
+
+/// Position and size of a floating tool window (CSS pixels, relative to the IDE window).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FloatingBounds {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Size limits of floating tool windows.
+const FLOAT_SIZE: (u32, u32) = (160, 4000);
+/// Floating windows stay reachable: their origin is kept within this distance of the window.
+const FLOAT_OFFSET: i32 = 8000;
+
+impl FloatingBounds {
+    fn sanitize(&mut self) {
+        self.width = self.width.clamp(FLOAT_SIZE.0, FLOAT_SIZE.1);
+        self.height = self.height.clamp(FLOAT_SIZE.0 / 2, FLOAT_SIZE.1);
+        self.x = self.x.clamp(-FLOAT_OFFSET, FLOAT_OFFSET);
+        self.y = self.y.clamp(0, FLOAT_OFFSET);
+    }
+}
+
 /// Where the user put a tool window (the registration supplies the default).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolWindowPlacement {
     /// One of [`SLOTS`].
@@ -89,6 +135,12 @@ pub struct ToolWindowPlacement {
     /// Removed from the sidebar: no stripe button until the window is opened another way.
     #[serde(default)]
     pub removed: bool,
+    /// How the window shows when it is open.
+    #[serde(default, skip_serializing_if = "ViewMode::is_default")]
+    pub mode: ViewMode,
+    /// Where the window floats (Float mode), once the user moved or resized it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub floating: Option<FloatingBounds>,
 }
 
 /// The workbench layout of one project.
@@ -124,6 +176,13 @@ impl ProjectLayout {
         }
         self.tool_windows
             .retain(|id, p| !id.is_empty() && id.len() <= 128 && SLOTS.contains(&p.slot.as_str()));
+        for bounds in self
+            .tool_windows
+            .values_mut()
+            .filter_map(|p| p.floating.as_mut())
+        {
+            bounds.sanitize();
+        }
         while self.tool_windows.len() > MAX_PLACEMENTS {
             self.tool_windows.pop_last();
         }
@@ -204,6 +263,138 @@ pub fn load_default_layout(dir: &Path) -> Option<ProjectLayout> {
 
 pub fn save_default_layout(dir: &Path, layout: &ProjectLayout) -> Result<()> {
     write_json(&default_layout_file(dir), &window_part(layout.clone()))
+}
+
+// ---- Named layouts (Window | Layouts) -------------------------------------------------
+
+/// User setting with the layouts saved with Window | Layouts | Save Current Layout as New….
+pub const LAYOUTS_SETTING: &str = "workbench.layouts";
+/// Longest layout name.
+pub const MAX_LAYOUT_NAME: usize = 64;
+/// Most layouts kept.
+pub const MAX_LAYOUTS: usize = 50;
+
+/// A layout saved under a name. Like the default layout it holds only the tool window part.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NamedLayout {
+    pub name: String,
+    pub layout: ProjectLayout,
+}
+
+/// The layouts stored in [`LAYOUTS_SETTING`]: a list of tables `{ name, layout }` whose
+/// `layout` is the JSON text of the layout (settings tables hold strings only). Entries that
+/// do not parse are skipped, the first entry of a name wins.
+pub fn named_layouts(value: Option<&Value>) -> Vec<NamedLayout> {
+    let mut out: Vec<NamedLayout> = Vec::new();
+    for item in value.and_then(Value::as_array).into_iter().flatten() {
+        let Some(name) = item
+            .get("name")
+            .and_then(Value::as_str)
+            .and_then(|n| layout_name(n).ok())
+        else {
+            continue;
+        };
+        let Some(layout) = item
+            .get("layout")
+            .and_then(Value::as_str)
+            .and_then(|text| serde_json::from_str::<ProjectLayout>(text).ok())
+        else {
+            continue;
+        };
+        if out.len() < MAX_LAYOUTS && find_index(&out, &name).is_none() {
+            out.push(NamedLayout {
+                name,
+                layout: window_part(layout),
+            });
+        }
+    }
+    out
+}
+
+/// The setting value for `layouts` (see [`named_layouts`]).
+pub fn named_layouts_value(layouts: &[NamedLayout]) -> Value {
+    Value::Array(
+        layouts
+            .iter()
+            .map(|l| {
+                serde_json::json!({
+                    "name": l.name,
+                    "layout": serde_json::to_string(&l.layout).unwrap_or_else(|_| "{}".into()),
+                })
+            })
+            .collect(),
+    )
+}
+
+/// A valid layout name: trimmed, not empty, at most [`MAX_LAYOUT_NAME`] characters and no
+/// control characters.
+pub fn layout_name(name: &str) -> Result<String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(ForgeError::Other("the layout name is empty".into()));
+    }
+    if name.chars().count() > MAX_LAYOUT_NAME {
+        return Err(ForgeError::Other(format!(
+            "the layout name is longer than {MAX_LAYOUT_NAME} characters"
+        )));
+    }
+    if name.chars().any(char::is_control) {
+        return Err(ForgeError::Other(
+            "the layout name contains control characters".into(),
+        ));
+    }
+    Ok(name.to_string())
+}
+
+/// Names compare without case, like PHPStorm's layout names.
+fn find_index(layouts: &[NamedLayout], name: &str) -> Option<usize> {
+    let name = name.trim().to_lowercase();
+    layouts.iter().position(|l| l.name.to_lowercase() == name)
+}
+
+pub fn find_named_layout<'a>(layouts: &'a [NamedLayout], name: &str) -> Option<&'a NamedLayout> {
+    find_index(layouts, name).map(|i| &layouts[i])
+}
+
+/// Save `layout` (its tool window part) as `name`. An existing layout of that name is
+/// replaced in place when `replace` is set, else it is an error.
+pub fn save_named_layout(
+    layouts: &mut Vec<NamedLayout>,
+    name: &str,
+    layout: &ProjectLayout,
+    replace: bool,
+) -> Result<NamedLayout> {
+    let name = layout_name(name)?;
+    let entry = NamedLayout {
+        name: name.clone(),
+        layout: window_part(layout.clone()),
+    };
+    match find_index(layouts, &name) {
+        Some(i) if replace => layouts[i] = entry.clone(),
+        Some(_) => {
+            return Err(ForgeError::Other(format!(
+                "a layout named \"{name}\" already exists"
+            )))
+        }
+        None if layouts.len() >= MAX_LAYOUTS => {
+            return Err(ForgeError::Other(format!(
+                "at most {MAX_LAYOUTS} layouts can be saved"
+            )))
+        }
+        None => layouts.push(entry.clone()),
+    }
+    Ok(entry)
+}
+
+/// Delete the layout `name`; `false` when there is none.
+pub fn delete_named_layout(layouts: &mut Vec<NamedLayout>, name: &str) -> bool {
+    match find_index(layouts, name) {
+        Some(i) => {
+            layouts.remove(i);
+            true
+        }
+        None => false,
+    }
 }
 
 // ---- Chat history --------------------------------------------------------------------
@@ -452,6 +643,7 @@ mod tests {
             slot: slot.into(),
             order,
             removed,
+            ..Default::default()
         };
         layout
             .tool_windows
@@ -510,7 +702,7 @@ mod tests {
             ToolWindowPlacement {
                 slot: "right".into(),
                 order: 5,
-                removed: false,
+                ..Default::default()
             },
         );
         layout.tabs.insert("git".into(), "log".into());
@@ -524,6 +716,110 @@ mod tests {
         assert_eq!(back.active_file, None);
         // Not mistaken for a project's layout.
         assert_eq!(load_layout(dir.path(), "_default"), None);
+    }
+
+    #[test]
+    fn view_modes_and_floating_bounds_round_trip() {
+        let mut layout = ProjectLayout::default();
+        layout.tool_windows.insert(
+            "terminal".into(),
+            ToolWindowPlacement {
+                slot: "bottom".into(),
+                mode: ViewMode::Float,
+                floating: Some(FloatingBounds {
+                    x: -20_000,
+                    y: -5,
+                    width: 10,
+                    height: 300,
+                }),
+                ..Default::default()
+            },
+        );
+        layout.tool_windows.insert(
+            "project".into(),
+            ToolWindowPlacement {
+                slot: "left".into(),
+                ..Default::default()
+            },
+        );
+        layout.sanitize();
+        let text = serde_json::to_string(&layout).unwrap();
+        assert!(text.contains(r#""mode":"float""#), "{text}");
+        // The default mode and missing bounds are not written.
+        assert!(!text.contains("dockPinned"), "{text}");
+        let back: ProjectLayout = serde_json::from_str(&text).unwrap();
+        let terminal = &back.tool_windows["terminal"];
+        assert_eq!(terminal.mode, ViewMode::Float);
+        assert_eq!(
+            terminal.floating,
+            Some(FloatingBounds {
+                x: -8000,
+                y: 0,
+                width: 160,
+                height: 300
+            })
+        );
+        assert_eq!(back.tool_windows["project"].mode, ViewMode::DockPinned);
+        let undock: ToolWindowPlacement =
+            serde_json::from_str(r#"{"slot":"right","mode":"undock"}"#).unwrap();
+        assert_eq!(undock.mode, ViewMode::Undock);
+        assert!(
+            serde_json::from_str::<ToolWindowPlacement>(r#"{"slot":"right","mode":"x"}"#).is_err()
+        );
+    }
+
+    #[test]
+    fn named_layouts_are_saved_replaced_and_deleted() {
+        let mut layouts = named_layouts(None);
+        assert!(layouts.is_empty());
+        let mut review = ProjectLayout::default();
+        review.active.insert("right".into(), Some("commit".into()));
+        review.open_files = vec!["a.php".into()];
+        review.tabs.insert("git".into(), "log".into());
+        let saved = save_named_layout(&mut layouts, "  Review ", &review, false).unwrap();
+        assert_eq!(saved.name, "Review");
+        // Only the tool window part is kept.
+        assert!(saved.layout.open_files.is_empty() && saved.layout.tabs.is_empty());
+        assert!(save_named_layout(&mut layouts, "review", &review, false).is_err());
+        let mut debug = ProjectLayout::default();
+        debug.active.insert("bottom".into(), Some("debug".into()));
+        save_named_layout(&mut layouts, "Debugging", &debug, false).unwrap();
+        save_named_layout(&mut layouts, "REVIEW", &debug, true).unwrap();
+        assert_eq!(
+            layouts.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(),
+            ["REVIEW", "Debugging"]
+        );
+        assert_eq!(
+            find_named_layout(&layouts, "review").unwrap().layout.active["bottom"].as_deref(),
+            Some("debug")
+        );
+        assert!(save_named_layout(&mut layouts, "  ", &debug, false).is_err());
+        assert!(save_named_layout(&mut layouts, &"x".repeat(65), &debug, false).is_err());
+        assert!(save_named_layout(&mut layouts, "a\nb", &debug, false).is_err());
+
+        // The setting holds tables of strings and reads back the same layouts.
+        let value = named_layouts_value(&layouts);
+        assert!(value[0]["layout"].is_string(), "{value}");
+        assert_eq!(named_layouts(Some(&value)), layouts);
+
+        assert!(delete_named_layout(&mut layouts, "debugging"));
+        assert!(!delete_named_layout(&mut layouts, "debugging"));
+        assert_eq!(layouts.len(), 1);
+    }
+
+    #[test]
+    fn broken_layout_entries_are_skipped() {
+        let value = json!([
+            { "name": "Ok", "layout": "{\"active\":{\"left\":\"project\"}}" },
+            { "name": "Broken", "layout": "not json" },
+            { "name": "", "layout": "{}" },
+            { "layout": "{}" },
+            { "name": "ok", "layout": "{}" },
+            "text"
+        ]);
+        let layouts = named_layouts(Some(&value));
+        assert_eq!(layouts.len(), 1);
+        assert_eq!(layouts[0].layout.active["left"].as_deref(), Some("project"));
     }
 
     fn conv(prompt: &str) -> Value {

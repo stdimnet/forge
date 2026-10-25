@@ -277,11 +277,22 @@ export function registerBinaryFileView(v: BinaryFileView): void {
   binaryViews.push(v);
 }
 
+let forwardOpen: ((path: string) => boolean) | null = null;
+
+/**
+ * A window without an editor area (a tool window in its own window) hands the files it
+ * opens to its project window; `fn` returns `true` when it took the file.
+ */
+export function setOpenFileForwarder(fn: ((path: string) => boolean) | null): void {
+  forwardOpen = fn;
+}
+
 /**
  * Open a file (or activate its tab) in an editor group; default: the active group. With
  * `activate: false` the tab opens in the background (restoring a project's layout).
  */
 export async function openFile(path: string, opts: { group?: number; activate?: boolean } = {}): Promise<void> {
+  if (forwardOpen?.(path)) return;
   const activate = opts.activate ?? true;
   if (isCustomTab(path)) {
     if (activate && customTabs().some((t) => t.id === path)) showTab(path, opts.group ?? groups.groupOf(editor.layout, path)?.id);

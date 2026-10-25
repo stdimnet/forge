@@ -142,9 +142,13 @@ side by side. Drag the line between them to change the split.
 - **Hide** (header ⋮ menu or the **−** button, `Shift+Escape` while the tool window has the
   focus) closes the tool window.
 - View | Appearance | **Tool Window Bars** shows or hides both stripes.
+- **View Mode** (same menus): Dock Pinned, Dock Unpinned, Undock, Float or Window, see
+  [Tool window view modes](windows-and-layouts.md#tool-window-view-modes).
 - Window | Layouts | **Store Current Layout as Default** keeps where every tool window sits,
   which are open and their sizes as the default for all projects; **Restore Default Layout**
-  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one.
+  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one. Named
+  layouts (**Save Current Layout as New…**) are described in
+  [Layouts](windows-and-layouts.md#layouts).
 
 ![Move To on a stripe button](../../screenshots/tool-window-move-to.png)
 

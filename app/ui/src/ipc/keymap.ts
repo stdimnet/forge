@@ -164,6 +164,8 @@ export interface MainMenuRequest {
   dynamic: Record<string, MainMenuDynamicItem[]>;
   /** Checkable actions that are on. */
   checked: string[];
+  /** Labels of actions whose text follows their state ("Exit _Presentation Mode"). */
+  labels?: Record<string, string>;
   git: boolean;
 }
 

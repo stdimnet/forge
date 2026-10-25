@@ -1,5 +1,6 @@
 /**
- * Window chrome and dialog windows (`app/src-tauri/src/commands/window.rs`, `forge-window`).
+ * Window chrome, dialog windows, full screen and IDE zoom (`app/src-tauri/src/commands/window.rs`,
+ * `forge-window`).
  */
 import { invoke, listen } from "./index";
 
@@ -33,6 +34,11 @@ export interface DialogWindowRequest {
   minWidth?: number;
   minHeight?: number;
   props?: unknown;
+  /**
+   * Modal dialogs (the default) disable their parent. Windows that are not modal (an editor
+   * tab or a tool window in its own window) get a taskbar entry instead.
+   */
+  modal?: boolean;
 }
 
 /** Dialog events name the window they are meant for (`window`, a window label). */
@@ -62,6 +68,11 @@ export const windowApi = {
   /** A dialog this window opened has closed. */
   onDialogClosed: (cb: (e: DialogClosedEvent) => void) => listen<DialogClosedEvent>("dialog://closed", cb),
   onDialogMessage: (cb: (e: DialogMessageEvent) => void) => listen<DialogMessageEvent>("dialog://message", cb),
+  /** View | Appearance | Enter Full Screen for the calling window. */
+  setFullscreen: (on: boolean) => invoke<void>("window_set_fullscreen", { on }),
+  isFullscreen: () => invoke<boolean>("window_is_fullscreen"),
+  /** Zoom IDE: scale the calling window's whole UI (1 = 100 %). */
+  setZoom: (factor: number) => invoke<void>("window_set_zoom", { factor }),
   /** The OS asks this dialog window to close (Alt+F4); run the dialog's Cancel path. */
   onCloseRequested: (cb: (e: { window: string }) => void) => listen<{ window: string }>("dialog://close-requested", cb),
 };

@@ -13,7 +13,16 @@ export type MenuEntry =
    * A menu item that runs a closure instead of a registered action. `action` names the action
    * the closure stands for and supplies the shortcut, unless `shortcutAction` names another one.
    */
-  | { type: "item"; label: string; run: () => void; action?: string; disabled?: boolean; shortcutAction?: string; hint?: string }
+  | {
+      type: "item";
+      label: string;
+      run: () => void;
+      action?: string;
+      disabled?: boolean;
+      shortcutAction?: string;
+      hint?: string;
+      checked?: boolean;
+    }
   | { type: "submenu"; label: string; items: MenuEntry[] }
   | { type: "separator" };
 
@@ -48,6 +57,8 @@ export interface ItemOptions {
   shortcutAction?: string;
   /** Tooltip, e.g. why the item is disabled. */
   hint?: string;
+  /** Show a check mark column; `true` draws the mark (radio-like choices such as View Mode). */
+  checked?: boolean;
 }
 export const item = (label: string, run: () => void, action?: string, opts: ItemOptions = {}): MenuEntry => ({
   type: "item",
@@ -75,6 +86,7 @@ export function resolveEntries(entries: MenuEntry[]): ResolvedEntry[] {
         shortcut: keys ? shortcutLabel(keys) : "",
         disabled: e.disabled,
         hint: e.hint,
+        ...(e.checked === undefined ? {} : { checkable: true, checked: e.checked }),
       });
     } else if (e.type === "action") {
       if (!isActionAvailable(e.action)) continue;
