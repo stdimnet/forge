@@ -12,6 +12,7 @@ pub mod compare;
 pub mod composer;
 pub mod db;
 pub mod debug;
+pub mod deployment;
 pub mod doctrine;
 pub mod editor;
 pub mod emmet;
