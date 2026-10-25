@@ -30,6 +30,9 @@ pub struct Contributions {
     pub lsp_servers: Vec<LspServerSpec>,
     #[serde(default)]
     pub run_configuration_types: Vec<RunConfigurationType>,
+    /// Debug adapters (Debug Adapter Protocol) the shared debugger can start or attach with.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub debug_adapters: Vec<DebugAdapterContribution>,
     #[serde(default)]
     pub ai_providers: Vec<AiProviderContribution>,
     #[serde(default)]
@@ -271,6 +274,79 @@ pub struct LspServerSpec {
     pub file_extensions: Vec<String>,
     #[serde(default, skip_serializing_if = "Value::is_null")]
     pub initialization_options: Value,
+}
+
+/// How the debugger talks to a debug adapter.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DebugAdapterTransport {
+    /// Start `command` and speak DAP over its stdin/stdout (`lldb-dap`, `debugpy-adapter`).
+    #[default]
+    Stdio,
+    /// Start `command` with `${port}` in its arguments, then connect to that port
+    /// (`dlv dap --listen 127.0.0.1:${port}`).
+    Connect,
+    /// Listen on a free local port and start `command` with `${port}`; the adapter
+    /// connects back (`js-debug` style).
+    Listen,
+}
+
+/// A debug adapter (Debug Adapter Protocol), declared in a manifest:
+///
+/// ```toml
+/// [[contributions.debugAdapters]]
+/// type = "lldb"
+/// label = "LLDB"
+/// command = "lldb-dap"
+/// commandSetting = "debugger.lldb.path"
+/// languages = ["c", "cpp", "rs"]
+/// launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}" }
+/// attach = { pid = "${pid}" }
+/// coreDump = { program = "${program}", coreFile = "${core}" }
+/// ```
+///
+/// The `launch`, `attach` and `coreDump` tables are templates of the request arguments.
+/// A string that is exactly `"${args}"`, `"${env}"`, `"${pid}"` or `"${stopOnEntry}"`
+/// becomes an array, object, number or bool; other `${name}` placeholders are replaced in
+/// strings; keys whose placeholder has no value are dropped. Without `attach` the adapter
+/// cannot attach to processes, without `coreDump` it cannot open core dumps.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugAdapterContribution {
+    /// Adapter type, also the `type` of launch configurations (`lldb`, `debugpy`, `go`).
+    pub r#type: String,
+    pub label: String,
+    /// Executable of the adapter; empty for adapters that are only attached to over TCP.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub command: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub args: Vec<String>,
+    /// Setting that overrides `command` with a user-chosen path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command_setting: Option<String>,
+    #[serde(default)]
+    pub transport: DebugAdapterTransport,
+    /// File extensions (without dot) whose line breakpoints the adapter handles.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub languages: Vec<String>,
+    /// `launch` request template; without it the adapter cannot launch programs.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub launch: Value,
+    /// `attach` request template for attaching to a local process (`${pid}`).
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub attach: Value,
+    /// Template for debugging a core dump (`${program}`, `${core}`).
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub core_dump: Value,
+    /// Request the core dump template is sent with (`attach` or `launch`, default `launch`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub core_dump_request: Option<String>,
+    /// JSON schema of extra `launch` options, for forms and validation in the UI.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub launch_schema: Value,
+    /// JSON schema of extra `attach` options.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub attach_schema: Value,
 }
 
 /// A kind of Run/Debug configuration, e.g. "PHP Script" or "PHPUnit".
