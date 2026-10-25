@@ -1,8 +1,9 @@
 /**
- * Reactive view of the keymap computed in Rust (`forge-keymap`): the selected keymap, every
- * action with its shortcuts (PHPStorm defaults, plugin defaults and user overrides) and the
- * display strings for the keymap's platform. Changes go to the backend, which stores them in
- * the settings (`keymap.active`, `keymap.overrides.*`) and returns the new state.
+ * Reactive view of the keymap computed in Rust (`forge-keymap`): the selected keymap (a
+ * PHPStorm keymap, VS Code, Eclipse, Sublime Text, Emacs or a user keymap), every action with
+ * its shortcuts (defaults, plugin defaults and user changes) and the display strings for the
+ * keymap's platform. Changes go to the backend, which stores them in the settings
+ * (`keymap.active`, `keymap.overrides.*`, `keymap.custom`) and returns the new state.
  */
 import { createEffect, createMemo, createRoot, createSignal } from "solid-js";
 import { listen } from "@/ipc";
@@ -13,6 +14,7 @@ import {
   type CommandInfo,
   type KeymapChange,
   type KeymapId,
+  type KeymapInfo,
   type KeymapSnapshot,
   type Platform,
   type ShortcutCheck,
@@ -21,7 +23,7 @@ import { SETTINGS_CHANGED_EVENT, type SettingsChange } from "@/ipc/settings";
 import { commands } from "@/state/commands";
 import { formatShortcut, loadBindings } from "./core";
 
-export type { ActionContext, ActionDef, ActionInfo, KeymapId, Platform } from "@/ipc/keymap";
+export type { ActionContext, ActionDef, ActionInfo, KeymapId, KeymapInfo, Platform } from "@/ipc/keymap";
 
 const [snapshot, setSnapshot] = createSignal<KeymapSnapshot | null>(null);
 export { snapshot as keymapSnapshot };
@@ -114,8 +116,12 @@ export const { allActions, actionById } = createRoot(() => {
   return { allActions, actionById: (id: string): ActionInfo | undefined => byId().get(id) };
 });
 
-export const keymapId = (): KeymapId => snapshot()?.keymap ?? "$default";
-export const keymaps = () => snapshot()?.keymaps ?? [];
+/** Id of the keymap in use ("$default", "VSCode", a user keymap's name). */
+export const keymapId = (): string => snapshot()?.keymap ?? "$default";
+/** The PHPStorm keymap the active keymap derives from. */
+export const keymapBase = (): KeymapId => snapshot()?.base ?? "$default";
+export const keymaps = (): KeymapInfo[] => snapshot()?.keymaps ?? [];
+export const activeKeymap = (): KeymapInfo | undefined => keymaps().find((k) => k.id === keymapId());
 export const actionGroupOrder = () => snapshot()?.groupOrder ?? [];
 export const modifiedCount = () => snapshot()?.modifiedCount ?? 0;
 
@@ -149,7 +155,27 @@ function change(c: KeymapChange): Promise<void> {
   return track(keymapApi.setOverride(c), "change");
 }
 
-export const setKeymapId = (keymap: KeymapId | "auto") => change({ op: "selectKeymap", keymap });
+/** Select a keymap by id, or "auto" for the PHPStorm keymap of the platform. */
+export const setKeymapId = (keymap: string) => change({ op: "selectKeymap", keymap });
+
+/** Copy the active keymap with its shortcuts into a new user keymap (and select it). */
+export const duplicateKeymap = (name?: string) => change({ op: "duplicate", name });
+
+/** Make a user keymap that follows the active keymap (and select it). */
+export const deriveKeymap = (name?: string) => change({ op: "derive", name });
+
+export const renameKeymap = (keymap: string, name: string) => change({ op: "rename", keymap, name });
+
+export const deleteKeymap = (keymap: string) => change({ op: "delete", keymap });
+
+/** Why `name` cannot name a user keymap (null when it can); `except` is its current name. */
+export function keymapNameProblem(name: string, except?: string): string | null {
+  const n = name.trim();
+  if (!n) return "Enter a name";
+  if (/[\t\n]/.test(n)) return "The name cannot contain tabs or line breaks";
+  const taken = n === "auto" || keymaps().some((k) => (k.id === n || k.title === n) && k.id !== except);
+  return taken ? `A keymap named "${n}" already exists` : null;
+}
 
 /** Replace all shortcuts of an action in the active keymap. */
 export const setActionShortcuts = (actionId: string, shortcuts: string[]) => change({ op: "set", actionId, shortcuts });

@@ -2,6 +2,7 @@
 import "./settingsMock";
 import "./maintenanceMock";
 import "./keymapMock";
+import "./colorSchemeMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";

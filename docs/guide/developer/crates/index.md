@@ -20,6 +20,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-codeintel](forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-codestyle](forge-codestyle.md) | Code style schemes (Settings \| Editor \| Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly) |
 | [forge-colors](forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
+| [forge-colorscheme](forge-colorscheme.md) | Editor color schemes (Settings \| Editor \| Color Scheme): the Ember and Anvil schemes, user schemes stored in the settings, per-attribute text attributes, CSS for the editor, and IntelliJ .icls import/export (pure, WebAssembly-friendly) |
 | [forge-containers](forge-containers.md) | Forge IDE containers: Docker Engine API, Docker Compose and Kubernetes for the Services tool window |
 | [forge-core](forge-core.md) | Forge IDE core: workspace, file system, settings and event bus |
 | [forge-diff](forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |

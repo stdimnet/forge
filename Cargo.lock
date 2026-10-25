@@ -1817,6 +1817,7 @@ dependencies = [
  "forge-bookmarks",
  "forge-codestyle",
  "forge-colors",
+ "forge-colorscheme",
  "forge-containers",
  "forge-core",
  "forge-db",
@@ -1952,6 +1953,15 @@ name = "forge-colors"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "forge-colorscheme"
+version = "0.1.0"
+dependencies = [
+ "quick-xml",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2530,6 +2540,7 @@ dependencies = [
  "forge-codeintel",
  "forge-codestyle",
  "forge-colors",
+ "forge-colorscheme",
  "forge-containers",
  "forge-diff",
  "forge-editing",

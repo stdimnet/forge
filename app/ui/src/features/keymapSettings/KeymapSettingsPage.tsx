@@ -1,31 +1,56 @@
 /**
- * Settings | Keymap — PHPStorm's keymap page: keymap selector, searchable action tree with
- * shortcuts, "Find Actions by Shortcut", and add/remove shortcuts with conflict warnings.
+ * Settings | Keymap — PHPStorm's keymap page: keymap selector (PHPStorm, VS Code, Eclipse,
+ * Sublime Text, Emacs and user keymaps) with Duplicate / Derive / Rename / Delete, searchable
+ * action tree with shortcuts, "Find Actions by Shortcut", and adding keyboard and mouse
+ * shortcuts with conflict warnings.
  */
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Folder, Keyboard, Pencil, RotateCcw, Search, X } from "lucide-solid";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Folder,
+  Keyboard,
+  Mouse,
+  Pencil,
+  RotateCcw,
+  Search,
+  Settings,
+  X,
+} from "lucide-solid";
 import {
   actionById,
   actionGroupOrder,
+  activeKeymap,
   addActionShortcut,
   allActions,
   checkShortcut,
+  deleteKeymap,
+  deriveKeymap,
   displayShortcutsOf,
+  duplicateKeymap,
   findActionsByShortcut,
   formatForKeymap,
   isModified,
   keymapId,
+  keymapNameProblem,
   keymaps,
   modifiedCount,
+  mouseInputOf,
+  mouseStrokeOf,
   removeActionShortcut,
+  renameKeymap,
   resetAction,
   resetKeymap,
   setKeymapId,
   shortcutsOf,
+  suspendKeymap,
   type ActionDef,
-  type KeymapId,
 } from "@/keymap";
 import type { ShortcutCheck } from "@/ipc/keymap";
+import { showContextMenu, item, separator, type MenuEntry } from "@/features/contextMenu/state";
+import { askConfirm, askName } from "@/features/contextMenu/dialogs";
 import { ShortcutField } from "./ShortcutField";
 
 const MAIN_MENU_ORDER = ["File", "Edit", "View", "Navigate", "Code", "Refactor", "Build", "Run", "Git", "Window", "Help"];
@@ -68,47 +93,50 @@ function buildTree(actions: ActionDef[]): GroupNode[] {
 
 type Row = { type: "group"; node: GroupNode; depth: number } | { type: "action"; action: ActionDef; depth: number };
 
-/** Dialog to record a one- or two-stroke shortcut, with conflict warnings. */
-function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
-  const [first, setFirst] = createSignal("");
-  const [useSecond, setUseSecond] = createSignal(false);
-  const [second, setSecond] = createSignal("");
-  const text = () => (first() ? (useSecond() && second() ? `${first()} ${second()}` : first()) : "");
-  // Validity and conflicts come from the keymap engine.
+/** Validity and conflicts of the shortcut being recorded (from the keymap engine). */
+function useShortcutCheck(text: () => string, actionId: string) {
   const [check, setCheck] = createSignal<ShortcutCheck | null>(null);
   createEffect(() => {
     const t = text();
     if (!t) return setCheck(null);
-    void checkShortcut(t, props.action.id).then((c) => text() === t && setCheck(c));
+    void checkShortcut(t, actionId).then((c) => text() === t && setCheck(c));
   });
   const parsed = () => (text() && check()?.valid ? check() : null);
   const conflicts = () => parsed()?.conflicts ?? [];
+  return { check, parsed, conflicts };
+}
 
+/** Conflict list and OK / Leave / Remove Others buttons of the shortcut dialogs. */
+function ShortcutDialogFrame(props: {
+  title: string;
+  action: ActionDef;
+  text: string;
+  hint: string;
+  onClose: () => void;
+  children: JSX.Element;
+}) {
+  const { check, parsed, conflicts } = useShortcutCheck(() => props.text, props.action.id);
   const apply = (removeOthers: boolean) => {
     if (!parsed()) return;
-    void addActionShortcut(props.action.id, text(), removeOthers);
+    void addActionShortcut(props.action.id, props.text, removeOthers);
     props.onClose();
   };
-
   return (
     <div class="popup-backdrop modal" onMouseDown={(e) => e.target === e.currentTarget && props.onClose()}>
-      <div class="dialog shortcut-dialog" role="dialog" aria-label="Keyboard Shortcut" onKeyDown={(e) => e.key === "Escape" && props.onClose()}>
-        <div class="dialog-title">Keyboard Shortcut</div>
+      <div class="dialog shortcut-dialog" role="dialog" aria-label={props.title} onKeyDown={(e) => e.key === "Escape" && props.onClose()}>
+        <div class="dialog-title">{props.title}</div>
         <div class="dialog-body">
           <div class="muted shortcut-dialog-action">{props.action.title.replace(/…$/, "")}</div>
-          <div class="form-row">
-            <span class="form-label">First stroke:</span>
-            <ShortcutField value={first()} onChange={setFirst} autofocus />
-          </div>
-          <div class="form-row">
-            <label class="form-label check">
-              <input type="checkbox" checked={useSecond()} onChange={(e) => setUseSecond(e.currentTarget.checked)} />
-              Second stroke:
-            </label>
-            <ShortcutField value={second()} onChange={setSecond} disabled={!useSecond()} />
-          </div>
+          {props.children}
           <div class="shortcut-conflicts">
-            <Show when={parsed()} fallback={<span class="muted">Press the keys to use as the shortcut.</span>}>
+            <Show
+              when={parsed()}
+              fallback={
+                <span class="muted" classList={{ "shortcut-invalid": !!props.text && check()?.valid === false }}>
+                  {props.text && check()?.valid === false ? "This shortcut cannot be used." : props.hint}
+                </span>
+              }
+            >
               <Show when={conflicts().length} fallback={<span class="muted">No conflicts</span>}>
                 <div class="conflict-title">
                   {conflicts().some((c) => c.kind === "same")
@@ -153,7 +181,144 @@ function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
   );
 }
 
-function ContextMenu(props: { action: ActionDef; x: number; y: number; onClose: () => void; onAdd: () => void }) {
+/** Dialog to record a one- or two-stroke shortcut, with conflict warnings. */
+function ShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
+  const [first, setFirst] = createSignal("");
+  const [useSecond, setUseSecond] = createSignal(false);
+  const [second, setSecond] = createSignal("");
+  const text = () => (first() ? (useSecond() && second() ? `${first()} ${second()}` : first()) : "");
+  return (
+    <ShortcutDialogFrame title="Keyboard Shortcut" action={props.action} text={text()} hint="Press the keys to use as the shortcut." onClose={props.onClose}>
+      <div class="form-row">
+        <span class="form-label">First stroke:</span>
+        <ShortcutField value={first()} onChange={setFirst} autofocus />
+      </div>
+      <div class="form-row">
+        <label class="form-label check">
+          <input type="checkbox" checked={useSecond()} onChange={(e) => setUseSecond(e.currentTarget.checked)} />
+          Second stroke:
+        </label>
+        <ShortcutField value={second()} onChange={setSecond} disabled={!useSecond()} />
+      </div>
+    </ShortcutDialogFrame>
+  );
+}
+
+/**
+ * PHPStorm's Mouse Shortcut dialog: click (or turn the wheel) in the pad while holding the
+ * modifiers. The keymap is suspended while it is open, so the clicks run nothing.
+ */
+function MouseShortcutDialog(props: { action: ActionDef; onClose: () => void }) {
+  const [stroke, setStroke] = createSignal("");
+  const [double, setDouble] = createSignal(false);
+  const resume = suspendKeymap();
+  onCleanup(resume);
+  const record = (e: MouseEvent, wheel = false) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const input = mouseInputOf(e);
+    const s = mouseStrokeOf(wheel ? input : { ...input, clickCount: double() ? 2 : 1, deltaY: undefined });
+    if (s) setStroke(s);
+  };
+  return (
+    <ShortcutDialogFrame
+      title="Mouse Shortcut"
+      action={props.action}
+      text={stroke()}
+      hint="Click or turn the wheel in the pad, holding the modifier keys."
+      onClose={props.onClose}
+    >
+      <div class="form-row mouse-kind">
+        <label class="check">
+          <input type="radio" name="mouse-kind" checked={!double()} onChange={() => setDouble(false)} />
+          Single click
+        </label>
+        <label class="check">
+          <input type="radio" name="mouse-kind" checked={double()} onChange={() => setDouble(true)} />
+          Double click
+        </label>
+      </div>
+      <div
+        class="mouse-pad"
+        classList={{ empty: !stroke() }}
+        data-testid="mouse-pad"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={(e) => record(e)}
+        onAuxClick={(e) => record(e)}
+        onContextMenu={(e) => e.preventDefault()}
+        onWheel={(e) => record(e, true)}
+      >
+        <Mouse size={18} class="muted" />
+        <span>{stroke() ? formatForKeymap(stroke()) : "Click pad"}</span>
+      </div>
+    </ShortcutDialogFrame>
+  );
+}
+
+/** Group a keymap list for the selector: bundled keymaps, then the user's. */
+function KeymapSelect() {
+  const bundled = () => keymaps().filter((k) => !k.user);
+  const user = () => keymaps().filter((k) => k.user);
+  return (
+    <div class="select-wrap">
+      <select aria-label="Keymap" value={keymapId()} onChange={(e) => setKeymapId(e.currentTarget.value)}>
+        <For each={bundled()}>{(k) => <option value={k.id}>{k.title}</option>}</For>
+        <Show when={user().length}>
+          <optgroup label="Custom">
+            <For each={user()}>{(k) => <option value={k.id}>{k.title}</option>}</For>
+          </optgroup>
+        </Show>
+      </select>
+      <ChevronDown size={14} class="select-chevron" />
+    </div>
+  );
+}
+
+const askKeymapName = (title: string, initial: string, confirm: string, except?: string) =>
+  askName({ title, label: "Name:", initial, confirm, validate: (n) => keymapNameProblem(n, except) });
+
+/** A name like Rust's `free_name`, so the dialog suggests one that is free. */
+function freeKeymapName(base: string): string {
+  if (!keymapNameProblem(base)) return base;
+  for (let n = 2; ; n++) if (!keymapNameProblem(`${base} ${n}`)) return `${base} ${n}`;
+}
+
+/** Ask for a name, then run `then` with it (nothing when cancelled). */
+function withName(title: string, initial: string, confirm: string, then: (name: string) => unknown, except?: string): void {
+  void askKeymapName(title, initial, confirm, except).then((n) => {
+    if (n) void then(n);
+  });
+}
+
+function keymapMenu(): MenuEntry[] {
+  const km = activeKeymap();
+  if (!km) return [];
+  const entries: MenuEntry[] = [
+    item("Duplicate…", () => withName("Duplicate Keymap", freeKeymapName(`${km.title} copy`), "OK", duplicateKeymap)),
+    item("Derive…", () => withName("Derive Keymap", freeKeymapName(`${km.title} derived`), "OK", deriveKeymap)),
+  ];
+  if (km.user) {
+    entries.push(
+      item("Rename…", () => withName("Rename Keymap", km.id, "Rename", (n) => renameKeymap(km.id, n), km.id)),
+      item("Delete", () => {
+        void askConfirm({ title: "Delete Keymap", message: `Delete the keymap "${km.title}"?`, confirm: "Delete" }).then((ok) => {
+          if (ok) void deleteKeymap(km.id);
+        });
+      }),
+    );
+  }
+  entries.push(separator, item("Restore Defaults", () => void resetKeymap(), undefined, { disabled: !modifiedCount() }));
+  return entries;
+}
+
+function ContextMenu(props: {
+  action: ActionDef;
+  x: number;
+  y: number;
+  onClose: () => void;
+  onAdd: () => void;
+  onAddMouse: () => void;
+}) {
   const onDoc = (e: MouseEvent) => {
     if (!(e.target as Element).closest(".context-menu")) props.onClose();
   };
@@ -174,7 +339,7 @@ function ContextMenu(props: { action: ActionDef; x: number; y: number; onClose: 
   return (
     <div class="context-menu popup" style={{ left: `${props.x}px`, top: `${props.y}px` }}>
       {item("Add Keyboard Shortcut", props.onAdd)}
-      {item("Add Mouse Shortcut", () => {}, true)}
+      {item("Add Mouse Shortcut", props.onAddMouse)}
       <Show when={shortcutsOf(props.action.id).length}>
         <div class="context-sep" />
         <For each={shortcutsOf(props.action.id)}>
@@ -196,6 +361,11 @@ export function KeymapSettingsPage() {
   const [selected, setSelected] = createSignal<string | null>(null);
   const [menu, setMenu] = createSignal<{ action: ActionDef; x: number; y: number } | null>(null);
   const [dialog, setDialog] = createSignal<ActionDef | null>(null);
+  const [mouseDialog, setMouseDialog] = createSignal<ActionDef | null>(null);
+  const parentTitle = () => {
+    const parent = activeKeymap()?.parent;
+    return parent ? (keymaps().find((k) => k.id === parent)?.title ?? parent) : null;
+  };
 
   // "Find Actions by Shortcut": the engine also finds chords starting with a single stroke.
   const [byShortcut, setByShortcut] = createSignal<Set<string> | null>(null);
@@ -271,12 +441,20 @@ export function KeymapSettingsPage() {
     <div class="keymap-page">
       <div class="km-top">
         <span class="form-label">Keymap:</span>
-        <div class="select-wrap">
-          <select value={keymapId()} onChange={(e) => setKeymapId(e.currentTarget.value as KeymapId)}>
-            <For each={keymaps()}>{(k) => <option value={k.id}>{k.title}</option>}</For>
-          </select>
-          <ChevronDown size={14} class="select-chevron" />
-        </div>
+        <KeymapSelect />
+        <button
+          class="icon-btn"
+          title="Show Keymap Actions"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            showContextMenu(keymapMenu(), r.left, r.bottom + 2);
+          }}
+        >
+          <Settings size={15} />
+        </button>
+        <Show when={parentTitle()}>
+          <span class="muted km-parent">Based on {parentTitle()}</span>
+        </Show>
         <Show when={modifiedCount()}>
           <span class="muted km-modified">{modifiedCount()} modified</span>
           <button class="link-btn" onClick={() => void resetKeymap()}>
@@ -400,13 +578,22 @@ export function KeymapSettingsPage() {
       </div>
 
       <div class="km-note muted">
-        Shortcuts are saved on this device as you change them. Double-click an action or press Enter to edit it.
+        Shortcuts are saved as you change them. Double-click an action or press Enter to edit it; right-click it to add a
+        mouse shortcut.
       </div>
 
       <Show when={menu()}>
-        {(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} onAdd={() => setDialog(m().action)} />}
+        {(m) => (
+          <ContextMenu
+            {...m()}
+            onClose={() => setMenu(null)}
+            onAdd={() => setDialog(m().action)}
+            onAddMouse={() => setMouseDialog(m().action)}
+          />
+        )}
       </Show>
       <Show when={dialog()}>{(a) => <ShortcutDialog action={a()} onClose={() => setDialog(null)} />}</Show>
+      <Show when={mouseDialog()}>{(a) => <MouseShortcutDialog action={a()} onClose={() => setMouseDialog(null)} />}</Show>
     </div>
   );
 }
