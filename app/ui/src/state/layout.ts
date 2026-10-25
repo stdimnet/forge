@@ -4,17 +4,23 @@ import {
   SLOTS,
   anchorOf,
   groupIds,
+  isDockedMode,
+  modeOf,
   moveOpenWindow,
   moveToolWindow,
   openSlotOf,
   placementOf,
+  setFloatingBounds,
   setRemoved,
+  setViewMode,
   type ActiveWindows,
+  type FloatingBounds,
   type Placements,
   type ToolWindowSlot,
+  type ViewMode,
 } from "./toolWindowLayout";
 
-export type { ToolWindowSlot };
+export type { ToolWindowSlot, ViewMode };
 
 interface LayoutState {
   /** Open tool window per slot (one per stripe group, like PHPStorm). */
@@ -116,9 +122,40 @@ export function resizeSplit(anchor: ToolWindowAnchor, ratio: number): void {
   setLayout("splits", anchor, Math.max(min, Math.min(max, Math.round(ratio))));
 }
 
-/** The open tool windows of an anchor's area: the primary group first. */
+/** The View Mode of a tool window (Dock Pinned unless the user changed it). */
+export function viewModeOf(id: string): ViewMode {
+  const tw = findToolWindow(id);
+  return tw ? modeOf(tw, layout.placements) : "dockPinned";
+}
+
+/** View Mode › Dock Pinned / Dock Unpinned / Undock / Float / Window. */
+export function setToolWindowViewMode(id: string, mode: ViewMode): void {
+  setLayout("placements", reconcile(setViewMode(toolWindows(), layout.placements, id, mode)));
+}
+
+/** A floating tool window was moved or resized. */
+export function moveFloatingToolWindow(id: string, bounds: FloatingBounds): void {
+  setLayout("placements", reconcile(setFloatingBounds(toolWindows(), layout.placements, id, bounds)));
+}
+
+/** The docked tool window open in a slot (Undock, Float and Window show elsewhere). */
+export function dockedIn(slot: ToolWindowSlot): string | null {
+  const id = layout.active[slot];
+  return id && isDockedMode(viewModeOf(id)) ? id : null;
+}
+
+/** The open tool windows of an anchor's area that are docked: the primary group first. */
 export const openInArea = (anchor: ToolWindowAnchor): ToolWindowSlot[] =>
-  SLOTS.filter((s) => anchorOf(s) === anchor && layout.active[s]);
+  SLOTS.filter((s) => anchorOf(s) === anchor && dockedIn(s));
+
+/** Open tool windows that are not docked (Undock, Float, Window), with their slot. */
+export const undockedWindows = (): { slot: ToolWindowSlot; id: string; mode: ViewMode }[] =>
+  SLOTS.flatMap((slot) => {
+    const id = layout.active[slot];
+    if (!id) return [];
+    const mode = viewModeOf(id);
+    return isDockedMode(mode) ? [] : [{ slot, id, mode }];
+  });
 
 /** The selected tab of a tool window with tabs (restored with the project's layout). */
 export const toolWindowTab = (id: string, fallback: string): string => layout.tabs[id] ?? fallback;

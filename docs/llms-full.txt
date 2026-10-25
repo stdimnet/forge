@@ -50,6 +50,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Windows, modes and layouts**: several project windows (Open Project asks New Window or
+  This Window, Window | Next / Previous Project Window `Ctrl+Alt+]` / `Ctrl+Alt+[`),
+  Presentation, Distraction-Free, Zen and Full Screen modes that restore the layout when you
+  leave them, Zoom IDE (`appearance.zoom`), tool window view modes (Dock Unpinned, Undock,
+  Float, Window), editor tabs in their own window (`Shift+F4` or drag a tab out) and named
+  layouts in Window | Layouts ([Windows, modes and layouts](docs/guide/user/windows-and-layouts.md)).
 - **Keymaps and color schemes**: PHPStorm's VS Code, Eclipse, Sublime Text and Emacs keymaps,
   your own keymaps (Duplicate, Derive), mouse shortcuts such as `Ctrl+Button1 Click`, and
   Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute
@@ -700,6 +706,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [Workbench and tool windows](docs/guide/user/workbench.md) | main toolbar, tool windows, Project view, tabs, Recent Files, Switcher, status bar |
+| [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md) | several project windows, Presentation / Distraction-Free / Zen / Full Screen, Zoom IDE, tool window view modes (Float, Undock, Window), editor tabs in their own window, Window \| Layouts |
 | [Editor](docs/guide/user/editor.md) | completion, hover, Parameter Info, Go to Declaration, problems, formatting, editing actions, folding, find, gutter, context menu |
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
@@ -906,9 +913,13 @@ side by side. Drag the line between them to change the split.
 - **Hide** (header ⋮ menu or the **−** button, `Shift+Escape` while the tool window has the
   focus) closes the tool window.
 - View | Appearance | **Tool Window Bars** shows or hides both stripes.
+- **View Mode** (same menus): Dock Pinned, Dock Unpinned, Undock, Float or Window, see
+  [Tool window view modes](docs/guide/user/windows-and-layouts.md#tool-window-view-modes).
 - Window | Layouts | **Store Current Layout as Default** keeps where every tool window sits,
   which are open and their sizes as the default for all projects; **Restore Default Layout**
-  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one.
+  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one. Named
+  layouts (**Save Current Layout as New…**) are described in
+  [Layouts](docs/guide/user/windows-and-layouts.md#layouts).
 
 ![Move To on a stripe button](docs/screenshots/tool-window-move-to.png)
 
@@ -1275,6 +1286,159 @@ Left: the project name and the path of the current file. Right, depending on the
 | `LF`, `UTF-8`, `4 spaces` | line separator, encoding and indentation of the file | change the separator, reload or convert the encoding, configure indents, see [Editor](docs/guide/user/editor.md#line-separator-encoding-and-indent) |
 | File type | e.g. "PHP", "Blade", "TypeScript" | — |
 | Branch | the current Git branch | — |
+
+
+---
+
+Source: docs/guide/user/windows-and-layouts.md
+
+# Windows, modes and layouts
+
+Forge arranges its windows like PHPStorm: every project has its own window, the workbench has
+modes that leave only the editor, tool windows can float or get their own window, editor tabs
+can move into a window of their own, layouts can be saved under a name, and the whole IDE can
+be zoomed.
+
+## Several project windows
+
+Opening a project while another one is open (File | Open…, File | Recent Projects, a cloned
+repository, a new project or a Git worktree) asks where to open it, as in PHPStorm:
+
+![Open Project: New Window or This Window](docs/screenshots/open-project-new-window.png)
+
+- **New Window** opens the project in a window of its own; the current project stays open.
+- **This Window** closes the current project and opens the new one in its place.
+- **Remember, don't ask again** stores the answer in Settings | Appearance & Behavior |
+  System Settings | Project | **Open project in** (`system.openProjectIn`: `newWindow`,
+  `thisWindow` or `ask`). Change it there to be asked again.
+
+A project that is already open in another window is not opened twice: that window comes to
+the front. An untrusted folder asks "Trust and Open Project?" first, and the new window opens
+it trusted or in Safe Mode as you decide (see [Project trust and Safe Mode](docs/guide/user/project-trust.md)). The Welcome screen always opens the project in its own window.
+
+Every project window keeps its own project state: settings, language servers, terminals,
+run configurations, the file watcher and the search index. Technically each project window is
+a Forge process of its own; the windows find each other through a small registry in Forge's
+cache directory (see [File locations](docs/guide/reference/file-locations.md)).
+
+| Action | Shortcut | What it does |
+| --- | --- | --- |
+| Window \| Next Project Window | `Ctrl+Alt+]` (macOS ``Cmd+` ``) | brings the next project window to the front |
+| Window \| Previous Project Window | `Ctrl+Alt+[` (macOS ``Cmd+Shift+` ``) | the previous one |
+| Window \| *project name* | — | the end of the Window menu lists every project window; the current one is checked |
+
+Additional project windows open without the splash screen and do not check for updates; the
+first window keeps the [Browser Companion](docs/guide/user/browser-companion.md) server and `forge://` links.
+Remote projects (over SSH) open in the current window.
+
+> **Note:** in browser mode (`pnpm dev`) the page is the only project window. **New Window**
+> opens the demo project in a new browser tab with its own in-memory backend.
+
+## Presentation, Distraction-Free, Zen and Full Screen
+
+View | Appearance has PHPStorm's four modes. Each entry turns into **Exit …** while its mode is
+on; running it again (or Find Action, `Ctrl+Shift+A`) leaves the mode.
+
+| Mode | What you see |
+| --- | --- |
+| **Enter Presentation Mode** | full screen, no tool windows, toolbar or status bar, and a large editor font (Settings \| Appearance \| Presentation Mode \| **Font size**, `appearance.presentationFontSize`, default 24) |
+| **Enter Distraction-Free Mode** | only the text: no tool windows, toolbar, tool window bars, status bar, editor tabs, breadcrumbs or gutter; the text is centered |
+| **Enter Zen Mode** | Distraction-Free Mode in full screen |
+| **Enter Full Screen** | the window covers the screen, everything else stays |
+
+![Distraction-Free Mode](docs/screenshots/distraction-free-mode.png)
+
+Entering a mode remembers which tool windows were open and whether the window was full
+screen; leaving it restores both. Tool windows still open with their shortcuts inside a mode,
+and **Hide All Tool Windows** (`Ctrl+Shift+F12`) hides them again. Leaving full screen while
+Presentation or Zen Mode is on leaves the mode too. When Forge draws its own title bar, a
+window that is not full screen keeps a slim title bar in these modes so you can still move it.
+
+![Presentation Mode](docs/screenshots/presentation-mode.png)
+
+## Zoom IDE
+
+View | Appearance | **Zoom IDE** scales the whole user interface: menus, tool windows, dialogs
+and the editor.
+
+| Action | Shortcut |
+| --- | --- |
+| Zoom In | `Ctrl+Alt+Shift+=` |
+| Zoom Out | `Ctrl+Alt+Shift+-` |
+| Reset | `Ctrl+Alt+Shift+0` |
+
+The steps are 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250 and 300 %. The zoom is a
+setting, Settings | Appearance & Behavior | Appearance | **Zoom** (`appearance.zoom`), so it
+is kept for the next start and applies to every window, dialogs included. The editor font
+size (Settings | Editor | Font) is independent of it.
+
+![The IDE zoomed to 125 %](docs/screenshots/zoomed-ide.png)
+
+> **Note:** the desktop app zooms the window's web view. Browser mode uses CSS `zoom`, where
+> the terminal's text is not scaled.
+
+## Tool window view modes
+
+The **View Mode** submenu of a tool window (the **⋮** menu in its header, or a right click on
+its stripe button) decides how the tool window shows when it is open:
+
+| View mode | Behaviour |
+| --- | --- |
+| **Dock Pinned** (default) | docked at its place; the editor makes room for it |
+| **Dock Unpinned** | docked, but it hides as soon as you click or focus another part of the IDE |
+| **Undock** | slides over the editor at its place instead of making room, and hides when it loses the focus |
+| **Float** | a panel over the IDE window: drag its header to move it, drag its bottom-right corner to resize it |
+| **Window** | a separate window; closing that window hides the tool window |
+
+![A floating Terminal and its View Mode submenu](docs/screenshots/floating-tool-window.png)
+
+The view mode, the place and the floating position are saved with the project's layout (and
+with [named layouts](#layouts)). The stripe button and the tool window shortcut show and hide
+the window in every mode. Choosing another view mode brings a tool window in **Window** mode
+back into the IDE window.
+
+A tool window in its own window shows its own content: files you open there (for example by
+double-clicking a file in the Project tool window) open in the project window's editor. Tool
+windows that follow the editor (Structure, Documentation) are most useful docked or floating.
+
+> **Note:** in browser mode, **Window** shows the tool window as a framed panel inside the
+> page, since the browser has no separate windows for it.
+
+## Editor tabs in their own window
+
+**Open in New Window** (`Shift+F4` in the editor, the tab's context menu, or Window | Editor
+Tabs) moves the tab into a window of its own, with its own tabs and splits. Dragging a tab out
+of the IDE window and releasing it outside does the same.
+
+Closing that window docks its tabs back: every file it shows opens again as a tab of the
+project window, with unsaved changes kept. The window belongs to its project window and closes
+with it. Only project files move into their own window; SQL consoles, table editors,
+scratches and other views stay in the project window.
+
+> **Note:** an editor window edits, highlights and saves files; code insight popups such as
+> Show Usages, refactorings and the language-server-driven inspections run in the project
+> window. In browser mode the editor window opens as a browser popup with its own demo
+> backend, so its edits do not reach the page.
+
+## Layouts
+
+Window | Layouts keeps tool window arrangements under a name, like PHPStorm:
+
+![Window | Layouts with two saved layouts](docs/screenshots/layouts-menu.png)
+
+| Entry | What it does |
+| --- | --- |
+| **Save Current Layout as New…** | asks for a name and saves which tool windows are open, where each one sits, its view mode, the floating positions and the sizes of the areas |
+| *layout name* | restores that layout: its tool windows open, the others close |
+| **Store Current Layout as Default** | the default layout for every project |
+| **Restore Default Layout** (`Shift+F12`) | goes back to the stored default, or to Forge's own layout when you never stored one |
+| **Delete Layout** › *layout name* | deletes a saved layout |
+
+![Save Layout](docs/screenshots/save-layout-dialog.png)
+
+Names are compared without case and may be up to 64 characters long. Layouts are a user
+setting (`workbench.layouts`, in `settings.toml`), so they are available in every project;
+editor tabs are not part of a layout.
 
 
 ---
@@ -5111,6 +5275,15 @@ Actions that work everywhere: Find Action, Settings, the main menu, projects, th
 | [Compact Mode](#compact-mode) | — | — |
 | [Show Main Menu in Separate Toolbar](#show-main-menu-in-separate-toolbar) | — | — |
 | [Tool Window Bars](#tool-window-bars) | — | — |
+| [Enter Presentation Mode](#enter-presentation-mode) | — | — |
+| [Enter Distraction-Free Mode](#enter-distraction-free-mode) | — | — |
+| [Enter Zen Mode](#enter-zen-mode) | — | — |
+| [Enter Full Screen](#enter-full-screen) | — | `Ctrl+Cmd+F` |
+| [Zoom IDE In](#zoom-ide-in) | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` |
+| [Zoom IDE Out](#zoom-ide-out) | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` |
+| [Reset IDE Zoom](#reset-ide-zoom) | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` |
+| [Next Project Window](#next-project-window) | `Ctrl+Alt+]` | `` Cmd+` `` |
+| [Previous Project Window](#previous-project-window) | `Ctrl+Alt+[` | `` Cmd+Shift+` `` |
 | [Keymap Reference](#keymap-reference) | — | — |
 | [About](#about) | — | — |
 | [Exit](#exit) | — | `Cmd+Q` |
@@ -5298,6 +5471,96 @@ Shows or hides the tool window stripes along the window edges.
 **Menu:** View | Appearance | Tool Window Bars
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#managing-tool-windows)
+
+## Enter Presentation Mode
+
+**Shortcut:** — · macOS — · action id `TogglePresentationMode`
+
+Full screen without tool windows and bars, with a large editor font; run again to leave it.
+
+**Menu:** View | Appearance | Enter Presentation Mode
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Enter Distraction-Free Mode
+
+**Shortcut:** — · macOS — · action id `ToggleDistractionFreeMode`
+
+Only the centered text; leaving it restores the tool windows.
+
+**Menu:** View | Appearance | Enter Distraction-Free Mode
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Enter Zen Mode
+
+**Shortcut:** — · macOS — · action id `ToggleZenMode`
+
+Distraction-Free Mode in full screen.
+
+**Menu:** View | Appearance | Enter Zen Mode
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Enter Full Screen
+
+**Shortcut:** — · macOS `Ctrl+Cmd+F` · action id `ToggleFullScreen`
+
+The window covers the screen; run again to leave full screen.
+
+**Menu:** View | Appearance | Enter Full Screen
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Zoom IDE In
+
+**Shortcut:** `Ctrl+Alt+Shift+=` · macOS `Ctrl+Alt+Shift+=` · action id `ZoomInIdeAction`
+
+Scales the whole IDE up one step.
+
+**Menu:** View | Appearance | Zoom IDE | Zoom In
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#zoom-ide)
+
+## Zoom IDE Out
+
+**Shortcut:** `Ctrl+Alt+Shift+-` · macOS `Ctrl+Alt+Shift+-` · action id `ZoomOutIdeAction`
+
+Scales the whole IDE down one step.
+
+**Menu:** View | Appearance | Zoom IDE | Zoom Out
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#zoom-ide)
+
+## Reset IDE Zoom
+
+**Shortcut:** `Ctrl+Alt+Shift+0` · macOS `Ctrl+Alt+Shift+0` · action id `ResetIdeScaleAction`
+
+Back to 100 %.
+
+**Menu:** View | Appearance | Zoom IDE | Reset
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#zoom-ide)
+
+## Next Project Window
+
+**Shortcut:** `Ctrl+Alt+]` · macOS `` Cmd+` `` · action id `NextProjectWindow`
+
+Brings the next project window to the front.
+
+**Menu:** Window | Next Project Window
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#several-project-windows)
+
+## Previous Project Window
+
+**Shortcut:** `Ctrl+Alt+[` · macOS `` Cmd+Shift+` `` · action id `PreviousProjectWindow`
+
+Brings the previous project window to the front.
+
+**Menu:** Window | Previous Project Window
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#several-project-windows)
 
 ## Keymap Reference
 
@@ -6117,6 +6380,7 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Go to Bookmark 0-9](#go-to-bookmark-0-9) | `Ctrl+0` … `Ctrl+9` | `Ctrl+0` … `Ctrl+9` |
 | [Show All Bookmarks](#show-all-bookmarks) | `Shift+F11` | `Cmd+F3` |
 | [Pin Tab](#pin-tab) | — | — |
+| [Open in New Window](#open-in-new-window) | `Shift+F4` | `Shift+F4` |
 | [Split Right](#split-right) | — | — |
 | [Split Down](#split-down) | — | — |
 | [Move to Opposite Group](#move-to-opposite-group) | — | — |
@@ -6577,6 +6841,16 @@ Opens the Bookmarks tool window.
 ![Show All Bookmarks](docs/screenshots/bookmarks.png)
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#bookmarks)
+
+## Open in New Window
+
+**Shortcut:** `Shift+F4` · macOS `Shift+F4` · action id `EditSourceInNewWindow`
+
+Moves the current editor tab into a window of its own (also: drag the tab out of the IDE window); closing that window docks the tab back.
+
+**Menu:** Window | Editor Tabs | Open in New Window
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#editor-tabs-in-their-own-window)
 
 ## Pin Tab
 
@@ -7674,6 +7948,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Hide Side Tool Windows](#hide-side-tool-windows) | — | — |
 | [Restore Default Layout](#restore-default-layout) | `Shift+F12` | `Shift+F12` |
 | [Store Current Layout as Default](#store-current-layout-as-default) | — | — |
+| [Save Current Layout as New…](#save-current-layout-as-new) | — | — |
 | [Jump to Last Tool Window](#jump-to-last-tool-window) | `F12` | `F12` |
 | [Stretch to Left](#stretch-to-left) | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` |
 | [Stretch to Right](#stretch-to-right) | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` |
@@ -7967,6 +8242,16 @@ Stores where the tool windows sit, which are open and their sizes as the default
 **Menu:** Window | Layouts | Store Current Layout as Default
 
 More: [Workbench and tool windows](docs/guide/user/workbench.md#moving-and-hiding-tool-windows)
+
+## Save Current Layout as New…
+
+**Shortcut:** — · macOS — · action id `StoreNewLayout`
+
+Saves the open tool windows, where each sits, its view mode and the area sizes under a name; the layout then appears in Window | Layouts.
+
+**Menu:** Window | Layouts | Save Current Layout as New…
+
+More: [Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#layouts)
 
 ## Jump to Last Tool Window
 
@@ -13220,10 +13505,10 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | --- | --- | --- | --- | --- |
 | Quick Switch Scheme… | `QuickChangeScheme` | `` Ctrl+` `` | `` Ctrl+` `` | yes |
 | Theme: Toggle Dark/Light | `ChangeLaf` |  |  | yes |
-| Toggle Full Screen Mode | `ToggleFullScreen` |  | `Ctrl+Cmd+F` | — |
-| Toggle Presentation Mode | `TogglePresentationMode` |  |  | — |
-| Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | — |
-| Toggle Zen Mode | `ToggleZenMode` |  |  | — |
+| Toggle Full Screen Mode | `ToggleFullScreen` |  | `Ctrl+Cmd+F` | yes |
+| Toggle Presentation Mode | `TogglePresentationMode` |  |  | yes |
+| Toggle Distraction Free Mode | `ToggleDistractionFreeMode` |  |  | yes |
+| Toggle Zen Mode | `ToggleZenMode` |  |  | yes |
 | Jump to Navigation Bar | `ShowNavBar` | `Alt+Home` | `Cmd+Up` | yes |
 | Quick Documentation | `QuickJavaDoc` | `Ctrl+Q` | `F1`, `Ctrl+J` | yes |
 | External Documentation | `ExternalJavaDoc` | `Shift+F1` | `Shift+F1` | yes |
@@ -13255,6 +13540,14 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Show Main Menu in Separate Toolbar | `ToggleMainMenuInSeparateToolbar` |  |  | yes |
 | Compact Mode | `ToggleCompactMode` |  |  | yes |
 | Tool Window Bars | `ViewToolButtons` |  |  | yes |
+
+### View > Appearance > Zoom IDE
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Zoom In | `ZoomInIdeAction` | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` | yes |
+| Zoom Out | `ZoomOutIdeAction` | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` | yes |
+| Reset | `ResetIdeScaleAction` | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` | yes |
 
 ### File > Manage IDE Settings
 
@@ -13497,8 +13790,14 @@ default shortcut and can be bound in Settings | Keymap.
 | Restore Default Layout | `RestoreDefaultLayout` | `Shift+F12` | `Shift+F12` | yes |
 | Store Current Layout as Default | `StoreDefaultLayout` |  |  | yes |
 | Close Active Tool Window Tab | `CloseActiveTab` | `Ctrl+Shift+F4` | `Cmd+Shift+F4` | yes |
-| Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | — |
-| Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | — |
+| Next Project Window | `NextProjectWindow` | `Ctrl+Alt+]` | `` Cmd+` `` | yes |
+| Previous Project Window | `PreviousProjectWindow` | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | yes |
+
+### Window > Layouts
+
+| Action | Action id | Windows / Linux | macOS | In Forge |
+| --- | --- | --- | --- | --- |
+| Save Current Layout as New… | `StoreNewLayout` |  |  | yes |
 
 ### Window > Active Tool Window
 
@@ -13526,6 +13825,7 @@ default shortcut and can be bound in Settings | Keymap.
 | Goto Next Splitter | `NextSplitter` |  | `Alt+Tab` | yes |
 | Goto Previous Splitter | `PrevSplitter` |  | `Alt+Shift+Tab` | yes |
 | Split and Move Right | `MoveTabRight` |  |  | yes |
+| Open in New Window | `EditSourceInNewWindow` | `Shift+F4` | `Shift+F4` | yes |
 | Split and Move Down | `MoveTabDown` |  |  | yes |
 | Move to Opposite Group | `MoveEditorToOppositeTabGroup` |  |  | yes |
 | Change Splitter Orientation | `ChangeSplitOrientation` |  |  | yes |
@@ -13846,10 +14146,14 @@ Tool windows, appearance toggles, documentation popups and recent files. Open it
 | --- | --- | --- | --- | --- |
 | **Tool Windows** | — | — | dynamic | Lists every tool window of the project alphabetically; click one to show or hide it. |
 | **Appearance** | | | | submenu |
-| Appearance › Enter Presentation Mode | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Enter Distraction-Free Mode | — | — | not yet | Not available yet; the entry is disabled. |
-| Appearance › Enter Full Screen | — | `Ctrl+Cmd+F` | not yet | Not available yet; the entry is disabled. |
-| Appearance › Enter Zen Mode | — | — | not yet | Not available yet; the entry is disabled. |
+| Appearance › Enter Presentation Mode | — | — | yes | Full screen without tool windows and bars, with a large editor font; reads Exit Presentation Mode while on. [More](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) ([screenshot](docs/screenshots/presentation-mode.png)) |
+| Appearance › Enter Distraction-Free Mode | — | — | yes | Only the centered text; leaving restores the tool windows. [More](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) ([screenshot](docs/screenshots/distraction-free-mode.png)) |
+| Appearance › Enter Full Screen | — | `Ctrl+Cmd+F` | yes | The window covers the screen; reads Exit Full Screen while on. [More](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) |
+| Appearance › Enter Zen Mode | — | — | yes | Distraction-Free Mode in full screen. [More](docs/guide/user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen) |
+| Appearance › **Zoom IDE** | | | | submenu |
+| Appearance › Zoom IDE › Zoom In | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` | yes | Scales the whole IDE up one step (`appearance.zoom`). [More](docs/guide/user/windows-and-layouts.md#zoom-ide) ([screenshot](docs/screenshots/zoomed-ide.png)) |
+| Appearance › Zoom IDE › Zoom Out | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` | yes | Scales the whole IDE down one step. [More](docs/guide/user/windows-and-layouts.md#zoom-ide) |
+| Appearance › Zoom IDE › Reset | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` | yes | Back to 100 %. [More](docs/guide/user/windows-and-layouts.md#zoom-ide) |
 | Appearance › Compact Mode | — | — | yes | Turns compact mode (smaller toolbars and tool window headers) on or off. [More](docs/guide/user/settings-and-themes.md#appearance-options) |
 | Appearance › Show Main Menu in Separate Toolbar | — | — | yes | Shows the main menu as a menu bar above the main toolbar, or back behind ☰. [More](docs/guide/user/workbench.md#main-menu) |
 | Appearance › Tool Window Bars | — | — | yes | Shows or hides the tool window stripes along the window edges. [More](docs/guide/user/workbench.md#managing-tool-windows) |
@@ -14197,8 +14501,11 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | **Layouts** | | | | submenu |
+| Layouts › Save Current Layout as New… | — | — | yes | Saves the open tool windows, their places, view modes and sizes under a name. [More](docs/guide/user/windows-and-layouts.md#layouts) ([screenshot](docs/screenshots/save-layout-dialog.png)) |
+| Layouts › *saved layouts* | — | — | dynamic | Restores that layout. [More](docs/guide/user/windows-and-layouts.md#layouts) ([screenshot](docs/screenshots/layouts-menu.png)) |
 | Layouts › Store Current Layout as Default | — | — | yes | Stores where the tool windows sit, which are open and their sizes as the default for all projects. [More](docs/guide/user/workbench.md#moving-and-hiding-tool-windows) |
 | Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | yes | Goes back to the stored default layout, or Forge's own. [More](docs/guide/user/workbench.md#moving-and-hiding-tool-windows) |
+| Layouts › **Delete Layout** › *saved layouts* | — | — | dynamic | Deletes a saved layout. [More](docs/guide/user/windows-and-layouts.md#layouts) |
 | **Active Tool Window** | | | | submenu |
 | Active Tool Window › Hide Active Tool Window | `Shift+Escape` | `Shift+Escape` | yes | Hides the tool window that has the focus and returns to the editor. [More](docs/guide/user/workbench.md#managing-tool-windows) |
 | Active Tool Window › Hide Side Tool Windows | — | — | yes | Hides the left and right tool windows. [More](docs/guide/user/workbench.md#managing-tool-windows) |
@@ -14219,6 +14526,7 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Editor Tabs › Split and Move Right | — | — | yes | Moves the current tab into a new editor group on the right. [More](docs/guide/user/workbench.md#split-editors) |
 | Editor Tabs › Split and Move Down | — | — | yes | Moves the current tab into a new editor group below. [More](docs/guide/user/workbench.md#split-editors) |
 | Editor Tabs › Move to Opposite Group | — | — | yes | Moves the current tab to the neighbouring editor group. [More](docs/guide/user/workbench.md#split-editors) |
+| Editor Tabs › Open in New Window | `Shift+F4` | `Shift+F4` | yes | Moves the current tab into a window of its own; closing that window docks the tab back. [More](docs/guide/user/windows-and-layouts.md#editor-tabs-in-their-own-window) |
 | Editor Tabs › Change Splitter Orientation | — | — | yes | Switches split editors between side by side and stacked. [More](docs/guide/user/workbench.md#split-editors) |
 | Editor Tabs › Unsplit | — | — | yes | Merges the current editor group into its neighbour. [More](docs/guide/user/workbench.md#split-editors) |
 | Editor Tabs › Unsplit All | — | — | yes | Merges all editor groups into one. [More](docs/guide/user/workbench.md#split-editors) |
@@ -14231,8 +14539,9 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Editor Tabs › Close Tabs to the Right | — | — | yes | Closes the unpinned tabs right of the current one. [More](docs/guide/user/workbench.md#tab-context-menu) |
 | Editor Tabs › Close Unmodified Tabs | — | — | yes | Closes the editor tabs without unsaved changes. [More](docs/guide/user/workbench.md#editor-tabs) |
 | Editor Tabs › Reopen Closed Tab | — | — | yes | Reopens the editor tab closed last. [More](docs/guide/user/workbench.md#editor-tabs) |
-| Next Project Window | `Ctrl+Alt+]` | `` Cmd+` `` | not yet | Not available yet; the entry is disabled. |
-| Previous Project Window | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | not yet | Not available yet; the entry is disabled. |
+| Next Project Window | `Ctrl+Alt+]` | `` Cmd+` `` | yes | Brings the next project window to the front. [More](docs/guide/user/windows-and-layouts.md#several-project-windows) |
+| Previous Project Window | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | yes | Brings the previous project window to the front. [More](docs/guide/user/windows-and-layouts.md#several-project-windows) |
+| *project windows* | — | — | dynamic | One entry per open project window; the current one is checked. [More](docs/guide/user/windows-and-layouts.md#several-project-windows) |
 
 
 ---
@@ -14304,6 +14613,7 @@ Page id `appearance`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `appearance.theme` | enum: `dark`, `light`, `solarized-dark`, `solarized-light` | `dark` | user |  | Theme |
+| `appearance.zoom` | enum: `50`, `67`, `75`, `80`, `90`, `100`, `110`, `125`, `150`, `175`, `200`, `250`, `300` | `100` | user |  | Zoom — Scales the whole IDE: menus, tool windows, dialogs and the editor (View \| Appearance \| Zoom IDE). |
 | `appearance.uiFont.family` | enum: `Inter`, `system-ui`, `Segoe UI`, `Roboto` | `Inter` | user | Font | Font — Font used for menus, tool windows and dialogs. |
 | `appearance.uiFont.size` | int (10–20) | `13` | user | Font | Size |
 | `appearance.mainMenu` | enum: `hamburger`, `merged`, `toolbar` | `hamburger` | user | UI Options | Main menu — Hamburger menu: behind the button at the left of the main toolbar. Merged: the menu names in the main toolbar. Separate toolbar: a classic menu bar above the main toolbar. |
@@ -14313,6 +14623,8 @@ Page id `appearance`.
 | `appearance.windowControls` | enum: `auto`, `windows`, `macos`, `gnome`, `kde`, `linux`, `native` | `auto` | user | Window | Window controls — Look of the title bar buttons of the main window and dialogs. "Native" lets the operating system draw the title bar. |
 | `appearance.showToolWindowBars` | bool | `true` | user | Tool Windows | Show tool window bars — The stripes with tool window buttons along the window edges. |
 | `appearance.showToolWindowNumbers` | bool | `true` | user | Tool Windows | Show tool window numbers |
+| `appearance.presentationFontSize` | int (8–96) | `24` | user | Presentation Mode | Font size — Editor font size in Presentation Mode (View \| Appearance \| Enter Presentation Mode). |
+| `workbench.layouts` | objects (unique `name`) | `[]` | user | — | Layouts — Tool window layouts saved with Window \| Layouts \| Save Current Layout as New…; each entry has a name and the layout as JSON. |
 | `appearance.navigationBar.location` | enum: `top`, `statusBar`, `hidden` | `top` | user | Navigation Bar | Navigation bar — Where the navigation bar (project, folders, file and members at the caret) is shown: Top: above the editor, with the path in the status bar too. In status bar: only in the status bar. Don't show: Jump to Navigation Bar (Alt+Home) shows it as a popup. View \| Appearance \| Navigation Bar. |
 | `appearance.navigationBar.showMembers` | bool | `true` | user | Navigation Bar | Show members in the navigation bar — Add the class and function at the caret after the file name. View \| Appearance \| Members in Navigation Bar. |
 | `projectView.openFilesWithSingleClick` | bool | `true` | user | Project View | Open files with single click — In the Project tool window a single click opens files and expands folders. Turn it off to select with a single click and open with a double click, like PHPStorm. |
@@ -14356,6 +14668,7 @@ Page id `system`.
 | --- | --- | --- | --- | --- | --- |
 | `system.reopenLastProject` | bool | `true` | user | Project | Reopen projects on startup — the last local project, when Forge starts without a project argument |
 | `system.confirmExit` | bool | `true` | user | Project | Confirm before exiting the IDE |
+| `system.openProjectIn` | enum: `newWindow`, `thisWindow`, `ask` | `ask` | user | Project | Open project in — Where File \| Open and the recent projects open a project while another one is open in this window. |
 | `system.defaultProjectDirectory` | path | `~/Projects` | user | Project | Default project directory — New projects are created here unless you pick another location. |
 | `system.autosave.onFrameDeactivation` | bool | `true` | user | Autosave | Save files if the IDE is switched to a different application |
 | `system.autosave.onIdle` | bool | `false` | user | Autosave | Save files if the IDE is idle |
@@ -15586,6 +15899,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `project-windows.json` | the running project windows (one Forge instance each) and their local control ports, for Window \| Next Project Window |
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
@@ -15685,6 +15999,7 @@ Source: docs/guide/reference/environment-variables.md
 
 | Variable | Effect |
 | --- | --- |
+| `FORGE_NEW_WINDOW` | set by Forge when it starts another project window (Open Project › New Window): the instance skips the single-instance hand-over, the splash and the update check; it is removed from the environment at once, so terminals do not inherit it |
 | `FORGE_GIT` | git executable to use instead of `git` on the `PATH` (e.g. a bundled git on Windows) |
 | `FORGE_REMOTE_AGENT_DIR` | folder with the remote agent binaries (`forge-remote-agent-<arch>-linux[.gz]`), searched before the bundle's `agents/` folder |
 | `FORGE_AGENT_LOG` | log filter of the remote agent on the host (e.g. `debug`); the agent logs to stderr |
@@ -21109,6 +21424,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `projects`: the registry of running project windows (one Forge instance each, oldest
+  first), Next / Previous Project Window with wrap-around, pruning of instances that no longer
+  answer, and the `forge-window <token> info|focus` control lines between instances.
 - `reveal`: the commands that show a file in the system file manager (Explorer's `/select,`,
   `open -R`, the freedesktop `FileManager1.ShowItems` D-Bus call with `xdg-open` as fallback)
   and the file manager's name for Select In….
@@ -21124,6 +21442,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `projects.rs` | The project window registry and the control protocol between Forge instances. |
 | `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
 ## Main public items
@@ -21132,6 +21451,7 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use projects::{control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo, ProjectWindows};
 pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
 pub fn dialog_id(label: &str) -> Option<&str> { … }
@@ -21139,7 +21459,7 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ## Used by
 
-- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`); `project_windows_list`, `project_window_focus`, `project_window_cycle`, `project_window_open` (`app/src-tauri/src/commands/project_windows.rs`)
 - UI: `app/ui/src/shell/window`
 - Browser mode: built into `forge-wasm`
 
@@ -21150,7 +21470,7 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ## Tests
 
-4 source files, about 1046 lines; 24 unit tests.
+6 source files, about 1400 lines; 30 unit tests.
 
 ```sh
 cargo test -p forge-window
@@ -22021,8 +22341,9 @@ Commit `settings.toml`, `runConfigurations.toml`, `php-servers.json` and `dataSo
 team should share them; ignore `runConfigurations.local.toml` and `cache/`.
 
 **Can I open several projects at once?**
-One project per window. Opening another project replaces the current one; multiple windows are not
-available yet.
+Yes, one project per window. Opening a project while another one is open asks **New Window** or
+**This Window**; Window | Next Project Window (`Ctrl+Alt+]`) switches between them. See
+[Windows, modes and layouts](docs/guide/user/windows-and-layouts.md#several-project-windows).
 
 **Can I work on a server over SSH?**
 Yes, see [Remote development](docs/guide/user/remote-development.md). Frameworks, language servers,

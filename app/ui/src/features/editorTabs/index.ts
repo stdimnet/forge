@@ -33,6 +33,7 @@ import { registerMainMenuEntries } from "@/features/mainMenu";
 import { action as menuAction } from "@/features/mainMenu/model";
 import { selectInTree } from "@/features/project/ProjectView";
 import { setTabMenuProvider } from "@/shell/tabMenu";
+import { canDetach, openTabInNewWindow } from "@/features/windows/detachedWindows";
 import "./recentLocations";
 import "./editorTabs.css";
 
@@ -123,6 +124,7 @@ registerMainMenuEntries(
   { after: "SplitHorizontally" },
 );
 registerMainMenuEntries("Window/Editor Tabs", [menuAction("CloseAllToTheLeft"), menuAction("CloseAllToTheRight")], { after: "CloseAllEditors" });
+registerMainMenuEntries("Window/Editor Tabs", [menuAction("EditSourceInNewWindow")], { after: "UnsplitAll" });
 
 async function copy(text: string, what: string): Promise<void> {
   try {
@@ -176,6 +178,9 @@ export function tabMenuEntries(group: number, id: string): MenuEntry[] {
       ]),
       item("Select in Project View", () => selectInProject(id), "SelectInProjectView"),
     );
+  }
+  if (canDetach(id)) {
+    entries.push(separator, item("Open in New Window", () => openTabInNewWindow(group, id), "EditSourceInNewWindow"));
   }
   return entries;
 }

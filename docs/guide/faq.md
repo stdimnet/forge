@@ -88,8 +88,9 @@ Commit `settings.toml`, `runConfigurations.toml`, `php-servers.json` and `dataSo
 team should share them; ignore `runConfigurations.local.toml` and `cache/`.
 
 **Can I open several projects at once?**
-One project per window. Opening another project replaces the current one; multiple windows are not
-available yet.
+Yes, one project per window. Opening a project while another one is open asks **New Window** or
+**This Window**; Window | Next Project Window (`Ctrl+Alt+]`) switches between them. See
+[Windows, modes and layouts](user/windows-and-layouts.md#several-project-windows).
 
 **Can I work on a server over SSH?**
 Yes, see [Remote development](user/remote-development.md). Frameworks, language servers,

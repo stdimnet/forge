@@ -7,7 +7,8 @@ import { createSignal } from "solid-js";
 import { askChoice, askConfirm } from "@/features/contextMenu/dialogs";
 import { setInputDialog } from "./overlays";
 import { setGitDialog } from "./gitDialogs";
-import { openRemoteProject, openWorkspace, workspace, isRemoteProject } from "@/state/workspace";
+import { openRemoteProject, workspace, isRemoteProject } from "@/state/workspace";
+import { openProject } from "@/features/windows/projectWindows";
 import { joinDir, suggestWorktreePath } from "./extrasModel";
 export { joinDir, suggestWorktreePath };
 import { extrasApi, type CloneProgress, type NewWorktree, type Worktree } from "./extrasApi";
@@ -70,13 +71,13 @@ export const cancelClone = () => void extrasApi.cancelClone();
  * opens right away; with a project open, PHPStorm asks where to open it.
  */
 export async function offerToOpen(path: string, connectionId: string | null, what = "the project"): Promise<void> {
-  if (workspace()) {
+  if (workspace() && connectionId) {
     const name = path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? path;
     const choice = await askChoice({
       title: "Open Project",
       message: `Would you like to open ${what} ${name} in this window?`,
       choices: [
-        { id: "new", label: "New Window", disabled: true, hint: "Forge shows one project per window for now" },
+        { id: "new", label: "New Window", disabled: true, hint: "Remote projects open in this window" },
         { id: "this", label: "This Window" },
       ],
     });
@@ -84,7 +85,7 @@ export async function offerToOpen(path: string, connectionId: string | null, wha
   }
   try {
     if (connectionId) await openRemoteProject(connectionId, path);
-    else await openWorkspace(path);
+    else await openProject(path, what);
   } catch (e) {
     notify("error", "Cannot open the project", String((e as Error)?.message ?? e));
   }

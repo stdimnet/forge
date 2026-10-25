@@ -48,6 +48,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Windows, modes and layouts**: several project windows (Open Project asks New Window or
+  This Window, Window | Next / Previous Project Window `Ctrl+Alt+]` / `Ctrl+Alt+[`),
+  Presentation, Distraction-Free, Zen and Full Screen modes that restore the layout when you
+  leave them, Zoom IDE (`appearance.zoom`), tool window view modes (Dock Unpinned, Undock,
+  Float, Window), editor tabs in their own window (`Shift+F4` or drag a tab out) and named
+  layouts in Window | Layouts ([Windows, modes and layouts](user/windows-and-layouts.md)).
 - **Keymaps and color schemes**: PHPStorm's VS Code, Eclipse, Sublime Text and Emacs keymaps,
   your own keymaps (Duplicate, Derive), mouse shortcuts such as `Ctrl+Button1 Click`, and
   Settings | Editor | Color Scheme with Ember, Anvil and your own schemes, per-attribute

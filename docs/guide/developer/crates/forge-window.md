@@ -20,6 +20,9 @@ Window chrome for Forge's own (undecorated) windows.
   including GNOME's `button-layout` and KDE's `kwinrc` button order.
 - `geometry`: where a dialog window opens (centered on its parent, or where the user left
   it) and the remembered size and position of every dialog.
+- `projects`: the registry of running project windows (one Forge instance each, oldest
+  first), Next / Previous Project Window with wrap-around, pruning of instances that no longer
+  answer, and the `forge-window <token> info|focus` control lines between instances.
 - `reveal`: the commands that show a file in the system file manager (Explorer's `/select,`,
   `open -R`, the freedesktop `FileManager1.ShowItems` D-Bus call with `xdg-open` as fallback)
   and the file manager's name for Select In….
@@ -35,6 +38,7 @@ WebAssembly.
 | `chrome.rs` | Title bar style and button layout for `appearance.windowControls`. |
 | `desktop.rs` | Operating system and desktop environment detection. |
 | `geometry.rs` | Where dialog windows open and the geometry Forge remembers for each dialog. |
+| `projects.rs` | The project window registry and the control protocol between Forge instances. |
 | `reveal.rs` | Commands that reveal a file in Explorer, Finder or the Linux file manager. |
 
 ## Main public items
@@ -43,6 +47,7 @@ WebAssembly.
 pub use chrome::{…};
 pub use desktop::{detect_desktop, Desktop, Os};
 pub use geometry::{place_dialog, DialogStates, Rect, Size};
+pub use projects::{control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo, ProjectWindows};
 pub use reveal::{file_manager_name, reveal_commands, RevealCommand};
 pub fn dialog_label(id: &str) -> Option<String> { … }
 pub fn dialog_id(label: &str) -> Option<&str> { … }
@@ -50,7 +55,7 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ## Used by
 
-- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`)
+- IPC: `window_chrome`, `reveal_in_file_manager`, `dialog_window_open`, `dialog_window_close`, `dialog_window_message` (`app/src-tauri/src/commands/window.rs`); `project_windows_list`, `project_window_focus`, `project_window_cycle`, `project_window_open` (`app/src-tauri/src/commands/project_windows.rs`)
 - UI: `app/ui/src/shell/window`
 - Browser mode: built into `forge-wasm`
 
@@ -61,7 +66,7 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ## Tests
 
-4 source files, about 1046 lines; 24 unit tests.
+6 source files, about 1400 lines; 30 unit tests.
 
 ```sh
 cargo test -p forge-window

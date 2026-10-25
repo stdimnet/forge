@@ -38,6 +38,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Hide Side Tool Windows](#hide-side-tool-windows) | — | — |
 | [Restore Default Layout](#restore-default-layout) | `Shift+F12` | `Shift+F12` |
 | [Store Current Layout as Default](#store-current-layout-as-default) | — | — |
+| [Save Current Layout as New…](#save-current-layout-as-new) | — | — |
 | [Jump to Last Tool Window](#jump-to-last-tool-window) | `F12` | `F12` |
 | [Stretch to Left](#stretch-to-left) | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` |
 | [Stretch to Right](#stretch-to-right) | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` |
@@ -331,6 +332,16 @@ Stores where the tool windows sit, which are open and their sizes as the default
 **Menu:** Window | Layouts | Store Current Layout as Default
 
 More: [Workbench and tool windows](../../user/workbench.md#moving-and-hiding-tool-windows)
+
+## Save Current Layout as New…
+
+**Shortcut:** — · macOS — · action id `StoreNewLayout`
+
+Saves the open tool windows, where each sits, its view mode and the area sizes under a name; the layout then appears in Window | Layouts.
+
+**Menu:** Window | Layouts | Save Current Layout as New…
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#layouts)
 
 ## Jump to Last Tool Window
 

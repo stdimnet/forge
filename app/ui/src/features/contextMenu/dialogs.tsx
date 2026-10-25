@@ -29,7 +29,9 @@ interface ChoiceRequest {
   message: string;
   /** Buttons from left to right; the last enabled one is the default (Enter). */
   choices: { id: string; label: string; disabled?: boolean; hint?: string }[];
-  done: (id: string | null) => void;
+  /** Label of a checkbox left of the buttons, e.g. "Remember, don't ask again". */
+  checkbox?: string;
+  done: (id: string | null, checked: boolean) => void;
 }
 
 const [request, setRequest] = createSignal<NameRequest | ConfirmRequest | ChoiceRequest | null>(null);
@@ -50,21 +52,29 @@ export function askConfirmWithCheckbox(
 }
 
 /** Ask the user to pick one of several actions (e.g. Reload / Convert); null when cancelled. */
-export function askChoice(opts: Omit<ChoiceRequest, "kind" | "done">): Promise<string | null> {
-  return new Promise((resolve) => setRequest({ kind: "choice", ...opts, done: resolve }));
+export function askChoice(opts: Omit<ChoiceRequest, "kind" | "done" | "checkbox">): Promise<string | null> {
+  return new Promise((resolve) => setRequest({ kind: "choice", ...opts, done: (id) => resolve(id) }));
+}
+
+/** Pick an action with a checkbox ("Remember, don't ask again"); `checked` is its state. */
+export function askChoiceWithCheckbox(
+  opts: Omit<ChoiceRequest, "kind" | "done" | "checkbox"> & { checkbox: string },
+): Promise<{ id: string | null; checked: boolean }> {
+  return new Promise((resolve) => setRequest({ kind: "choice", ...opts, done: (id, checked) => resolve({ id, checked }) }));
 }
 
 function ChoiceDialog(props: { req: ChoiceRequest }) {
+  const [checked, setChecked] = createSignal(false);
   const close = (id: string | null) => {
     setRequest(null);
-    props.req.done(id);
+    props.req.done(id, id !== null && checked());
   };
   const enabled = () => props.req.choices.filter((c) => !c.disabled);
   return (
     <div class="popup-backdrop modal">
       <div
         class="dialog"
-        style={{ width: "min(480px, calc(100vw - 32px))" }}
+        style={{ width: `min(${props.req.checkbox ? 580 : 480}px, calc(100vw - 32px))` }}
         role="alertdialog"
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}
@@ -79,6 +89,12 @@ function ChoiceDialog(props: { req: ChoiceRequest }) {
         <div class="dialog-title">{props.req.title}</div>
         <div class="dialog-body">{props.req.message}</div>
         <div class="dialog-buttons">
+          <Show when={props.req.checkbox}>
+            <label class="dialog-checkbox">
+              <input type="checkbox" checked={checked()} onChange={(e) => setChecked(e.currentTarget.checked)} />
+              {props.req.checkbox}
+            </label>
+          </Show>
           <button class="btn-secondary" onClick={() => close(null)}>
             Cancel
           </button>

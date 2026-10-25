@@ -16,6 +16,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 
 - [User guide overview](guide/user/index.md): all user topics
 - [Workbench](guide/user/workbench.md): main window, main menu, tool windows, editor tabs and split editors, Recent Locations, Bookmarks, Find, TODO and Notifications tool windows, status bar
+- [Windows, modes and layouts](guide/user/windows-and-layouts.md): several project windows, Presentation / Distraction-Free / Zen / Full Screen, Zoom IDE, tool window view modes (Float, Undock, Window), editor tabs in their own window, Window | Layouts
 - [Markdown, images and CSV](guide/user/markdown-images-csv.md): Markdown editor with live GitHub-flavored preview (Mermaid, tables, links, images, front matter, sync scroll), image editor (zoom, grid, chessboard), SVG preview, Edit as Table for CSV/TSV
 - [Editor](guide/user/editor.md): editing, completion, postfix completion, Complete Current Statement (Ctrl+Shift+Enter), Cyclic Expand Word (Alt+/), Quick Documentation (Ctrl+Q), Quick Definition, Go to Declaration, Find/Show Usages, Rename (Shift+F6), Show Context Actions (Alt+Enter), inspections, folding, multiple carets
 - [Emmet and color previews](guide/user/emmet-and-colors.md): Emmet abbreviations + Tab in HTML/Blade/Twig/Vue/PHP/JSX/CSS (`ul>li*3`, `m10`, `df`), abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points (Alt+Shift+] / Alt+Shift+[), gutter color swatches and the color picker
