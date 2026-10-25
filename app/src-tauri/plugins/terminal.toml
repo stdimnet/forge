@@ -3,7 +3,7 @@ name = "Terminal"
 version = "0.1.0"
 pack = "core"
 vendor = "Forge"
-description = "Integrated terminal emulator with shell integration."
+description = "Integrated terminal emulator with shell integration and SSH sessions."
 
 [[contributions.commands]]
 id = "terminal.open"
@@ -13,6 +13,18 @@ category = "View"
 [[contributions.keybindings]]
 command = "terminal.open"
 key = "Alt+F12"
+
+[[contributions.commands]]
+id = "RunSshConsole"
+title = "Start SSH Session…"
+category = "Tools"
+
+[[contributions.mainMenu]]
+path = "Tools"
+after = "Terminal.NewTab"
+items = [
+  { type = "action", id = "RunSshConsole", label = "Start SSH _Session..." },
+]
 
 [[contributions.toolWindows]]
 id = "terminal"
