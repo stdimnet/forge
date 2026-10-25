@@ -27,7 +27,12 @@ pub const SETTINGS_PREFIX: &str = "langservers.";
 
 /// The other settings server configurations depend on (Auto Import of JavaScript and
 /// TypeScript: the TypeScript server's import preferences).
-pub const EXTRA_SETTINGS_PREFIXES: &[&str] = &["javascript.autoImport."];
+pub const EXTRA_SETTINGS_PREFIXES: &[&str] = &[
+    "javascript.autoImport.",
+    // The project's Python interpreter: its environment's tools and `python.pythonPath`.
+    "python.interpreter",
+    "python.lsp.",
+];
 
 /// Whether the planner reads the setting `key`.
 pub fn is_planner_setting(key: &str) -> bool {
@@ -108,7 +113,7 @@ impl LocalLangServers {
         let ids = Catalog::builtin().servers.iter().map(|s| s.id.as_str());
         let prefs = Prefs::load(|k| req.settings.get(k).cloned(), ids);
         let scan = self.scan(root, prefs.scan_limit, req.rescan);
-        let detector = Detector::for_project(root);
+        let detector = Detector::for_project_with(root, prefs.python_tool_dirs());
         let ctx = ConfigContext {
             root,
             cache_dir: cache_dir(),
@@ -269,6 +274,18 @@ pub async fn install(
         };
     }
     let option = option.ok_or("nothing to install")?;
+    // Binary wheels from PyPI (ruff, ty), SHA-256 checked, into Forge's directory.
+    if let (Some(name), Some(managed_dir)) = (
+        managed::pypi_package(&option),
+        detector.managed_dir().map(Path::to_path_buf),
+    ) {
+        let http = managed::Http::new()?;
+        let platform = managed::pypi::current_platform();
+        return tokio::select! {
+            r = managed::pypi::install(&http, managed::pypi::DEFAULT_INDEX, &name, &managed_dir, platform, on) => r.map(|_| InstallOutcome::Succeeded),
+            _ = cancel.notified() => Ok(InstallOutcome::Cancelled),
+        };
+    }
     let (program, args) = forge_langservers::install::resolve_command(&option, &detector)?;
     on(Event::step(format!(
         "$ {}",
