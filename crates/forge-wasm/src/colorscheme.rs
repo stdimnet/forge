@@ -23,7 +23,10 @@ struct Request {
     name: Option<String>,
 }
 
-fn run<T: Serialize>(json: &str, f: impl FnOnce(SchemeSettings, Request) -> Result<T, String>) -> String {
+fn run<T: Serialize>(
+    json: &str,
+    f: impl FnOnce(SchemeSettings, Request) -> Result<T, String>,
+) -> String {
     let r = serde_json::from_str::<Request>(json)
         .map_err(|e| format!("invalid color scheme request: {e}"))
         .and_then(|r| f(SchemeSettings::from_json(&r.settings), r));
@@ -60,7 +63,9 @@ pub fn colorscheme_import(json: &str) -> String {
 /// `{settings, name}` → the scheme as .icls text.
 #[wasm_bindgen]
 pub fn colorscheme_export(json: &str) -> String {
-    run(json, |s, r| Ok(export_icls(&s, &r.name.unwrap_or_default())))
+    run(json, |s, r| {
+        Ok(export_icls(&s, &r.name.unwrap_or_default()))
+    })
 }
 
 #[cfg(test)]
@@ -84,8 +89,7 @@ mod tests {
         assert_eq!(imported[0]["value"][0]["parent"], "Anvil");
         let bad: Value = serde_json::from_str(&colorscheme_import(r#"{"text":"<x/>"}"#)).unwrap();
         assert!(bad["error"].is_string());
-        let text: Value =
-            serde_json::from_str(&colorscheme_export(r#"{"name":"Ember"}"#)).unwrap();
+        let text: Value = serde_json::from_str(&colorscheme_export(r#"{"name":"Ember"}"#)).unwrap();
         assert!(text.as_str().unwrap().contains("parent_scheme=\"Darcula\""));
     }
 }

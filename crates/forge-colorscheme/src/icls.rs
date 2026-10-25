@@ -379,9 +379,11 @@ mod tests {
 
     #[test]
     fn maps_light_parents_to_anvil_and_strips_user_prefixes() {
-        let s = import_icls(r#"<scheme name="_@user_Default" parent_scheme="Default"><attributes/></scheme>"#)
-            .unwrap()
-            .scheme;
+        let s = import_icls(
+            r#"<scheme name="_@user_Default" parent_scheme="Default"><attributes/></scheme>"#,
+        )
+        .unwrap()
+        .scheme;
         assert_eq!(s.name, "Default");
         assert_eq!(s.parent, Bundled::Anvil);
         assert!(s.attributes.is_empty());
@@ -403,7 +405,9 @@ mod tests {
             schemes: vec![imported.clone()],
         };
         let text = export_icls(&settings, &imported.name);
-        assert!(text.starts_with("<scheme name=\"Monokai &amp; Co\" version=\"142\" parent_scheme=\"Darcula\">"));
+        assert!(text.starts_with(
+            "<scheme name=\"Monokai &amp; Co\" version=\"142\" parent_scheme=\"Darcula\">"
+        ));
         assert!(text.contains("<option name=\"CARET_COLOR\" value=\"f8f8f0\" />"));
         assert!(text.contains("<option name=\"FONT_TYPE\" value=\"1\" />"));
         let again = import_icls(&text).unwrap().scheme;

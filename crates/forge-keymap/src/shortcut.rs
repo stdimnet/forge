@@ -174,7 +174,10 @@ fn mouse_key_label(key: &str) -> Option<String> {
 /// Mouse strokes that need a modifier: plain left clicks, double clicks, right clicks and
 /// wheel turns keep their usual meaning (PHPStorm refuses them as well).
 fn mouse_needs_modifier(key: &str) -> bool {
-    matches!(key, "Button1Click" | "Button3Click" | "WheelUp" | "WheelDown") || key.ends_with("DoubleClick")
+    matches!(
+        key,
+        "Button1Click" | "Button3Click" | "WheelUp" | "WheelDown"
+    ) || key.ends_with("DoubleClick")
 }
 
 /// Join the words of mouse key names written with spaces ("Button1 Double Click",
@@ -951,15 +954,24 @@ mod tests {
 
     #[test]
     fn parses_and_formats_mouse_shortcuts() {
-        assert_eq!(canon("Ctrl+Button1 Click").as_deref(), Some("Ctrl+Button1Click"));
-        assert_eq!(canon("ctrl+button1click").as_deref(), Some("Ctrl+Button1Click"));
+        assert_eq!(
+            canon("Ctrl+Button1 Click").as_deref(),
+            Some("Ctrl+Button1Click")
+        );
+        assert_eq!(
+            canon("ctrl+button1click").as_deref(),
+            Some("Ctrl+Button1Click")
+        );
         assert_eq!(
             canon("Alt+Shift+Button1 Double Click").as_deref(),
             Some("Alt+Shift+Button1DoubleClick")
         );
         assert_eq!(canon("Button2 Click").as_deref(), Some("Button2Click"));
         assert_eq!(canon("Ctrl+Wheel Up").as_deref(), Some("Ctrl+WheelUp"));
-        assert_eq!(canon("Shift+MouseWheelDown").as_deref(), Some("Shift+WheelDown"));
+        assert_eq!(
+            canon("Shift+MouseWheelDown").as_deref(),
+            Some("Shift+WheelDown")
+        );
         assert_eq!(
             format_shortcut_text("Ctrl+Button1Click", O),
             "Ctrl+Button1 Click"
@@ -969,10 +981,7 @@ mod tests {
             format_shortcut_text("Cmd+Alt+Button1 Click", Platform::Mac),
             "⌥⌘Button1 Click"
         );
-        assert!(parse_shortcut("Ctrl+Button1 Click", O)
-            .unwrap()
-            .strokes()[0]
-            .is_mouse());
+        assert!(parse_shortcut("Ctrl+Button1 Click", O).unwrap().strokes()[0].is_mouse());
     }
 
     #[test]
@@ -999,7 +1008,10 @@ mod tests {
             click_count: 2,
             ..click.clone()
         };
-        assert_eq!(mouse_stroke(&double).unwrap().id(), "Ctrl+Button1DoubleClick");
+        assert_eq!(
+            mouse_stroke(&double).unwrap().id(),
+            "Ctrl+Button1DoubleClick"
+        );
         let middle = MouseInput {
             button: 1,
             click_count: 1,

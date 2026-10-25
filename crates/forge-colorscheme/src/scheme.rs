@@ -12,7 +12,9 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::model::{attribute, AttributeSpec, Bundled, CssStyle, Effect, Fields, TextAttributes, ATTRIBUTES};
+use crate::model::{
+    attribute, AttributeSpec, Bundled, CssStyle, Effect, Fields, TextAttributes, ATTRIBUTES,
+};
 use crate::preview::{preview, PreviewLine};
 
 pub const ACTIVE_SETTING: &str = "editor.colorScheme.active";
@@ -183,7 +185,11 @@ impl SchemeSettings {
             .unwrap_or_else(|| "inherit".into());
         ATTRIBUTES
             .iter()
-            .flat_map(|a| self.attribute_of(name, a.key).0.css_vars(a.target, &text_fg))
+            .flat_map(|a| {
+                self.attribute_of(name, a.key)
+                    .0
+                    .css_vars(a.target, &text_fg)
+            })
             .map(|(name, value)| CssVar { name, value })
             .collect()
     }
@@ -388,15 +394,22 @@ impl SchemeSettings {
 #[serde(tag = "op", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum SchemeChange {
     /// Select a scheme; "" follows the theme.
-    Select { scheme: String },
+    Select {
+        scheme: String,
+    },
     /// Copy the active scheme into a new user scheme and select it.
     Duplicate {
         #[serde(default)]
         name: Option<String>,
     },
-    Rename { scheme: String, name: String },
+    Rename {
+        scheme: String,
+        name: String,
+    },
     /// Delete a user scheme; when it was active its parent is selected.
-    Delete { scheme: String },
+    Delete {
+        scheme: String,
+    },
     /// Change one attribute of the active user scheme; `None` resets it to the parent's.
     SetAttribute {
         key: String,
@@ -495,7 +508,8 @@ mod tests {
 
     /// Apply a change and adopt the writes, like the settings backend.
     fn change(s: &mut SchemeSettings, c: SchemeChange) {
-        let mut values = json!({ ACTIVE_SETTING: s.active, SCHEMES_SETTING: encode_schemes(&s.schemes) });
+        let mut values =
+            json!({ ACTIVE_SETTING: s.active, SCHEMES_SETTING: encode_schemes(&s.schemes) });
         for w in s.apply(c, true) {
             values[w.key.as_str()] = w.value;
         }
@@ -566,7 +580,12 @@ mod tests {
         let snap = s.snapshot(true);
         assert!(snap.editable);
         assert_eq!(snap.modified_count, 1);
-        let get = |n: &str| snap.css.iter().find(|v| v.name == n).map(|v| v.value.clone());
+        let get = |n: &str| {
+            snap.css
+                .iter()
+                .find(|v| v.name == n)
+                .map(|v| v.value.clone())
+        };
         assert_eq!(get("--syn-keyword").as_deref(), Some("#ff0000"));
         assert_eq!(get("--syn-keyword-weight").as_deref(), Some("bold"));
         // Setting the parent's value removes the change.
@@ -657,7 +676,10 @@ mod tests {
             attributes,
         }];
         let value = encode_schemes(&schemes);
-        assert_eq!(value[0]["attributes"], "TEXT bg=#000000\nKEYWORD fg=#ff0000 bold");
+        assert_eq!(
+            value[0]["attributes"],
+            "TEXT bg=#000000\nKEYWORD fg=#ff0000 bold"
+        );
         assert_eq!(decode_schemes(&value), schemes);
         assert!(decode_schemes(&json!([{ "name": "" }, 3])).is_empty());
     }

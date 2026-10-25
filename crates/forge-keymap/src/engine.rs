@@ -1170,7 +1170,10 @@ mod tests {
     #[test]
     fn resolves_mouse_shortcuts_by_focus() {
         let mut r = resolver(&[
-            ("GotoDeclaration", &["Ctrl+B", "Ctrl+Button1 Click", "Button2 Click"]),
+            (
+                "GotoDeclaration",
+                &["Ctrl+B", "Ctrl+Button1 Click", "Button2 Click"],
+            ),
             ("Generate", &["Alt+Wheel Down"]),
             ("NextTab", &["Ctrl+Wheel Down"]),
         ]);

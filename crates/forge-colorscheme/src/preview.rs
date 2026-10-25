@@ -130,7 +130,13 @@ mod tests {
         let segs = parse_line("‹KEYWORD:as› ‹SELECTION:‹VARIABLE:$item››!");
         let pairs: Vec<(&str, Option<&str>, Option<&str>)> = segs
             .iter()
-            .map(|s| (s.text.as_str(), s.attribute.as_deref(), s.overlay.as_deref()))
+            .map(|s| {
+                (
+                    s.text.as_str(),
+                    s.attribute.as_deref(),
+                    s.overlay.as_deref(),
+                )
+            })
             .collect();
         assert_eq!(
             pairs,

@@ -175,7 +175,12 @@ pub fn encode_bundled_overrides(maps: &BTreeMap<String, ShortcutMap>) -> Vec<Str
 /// Read a list written by [`encode_bundled_overrides`]; entries of unknown keymaps are kept.
 pub fn decode_bundled_overrides(value: &Value) -> BTreeMap<String, ShortcutMap> {
     let mut out: BTreeMap<String, ShortcutMap> = BTreeMap::new();
-    for entry in value.as_array().into_iter().flatten().filter_map(Value::as_str) {
+    for entry in value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+    {
         let Some((km, rest)) = entry.split_once('\t').filter(|(km, _)| !km.is_empty()) else {
             continue;
         };
@@ -1650,7 +1655,10 @@ mod tests {
         let list = encode_bundled_overrides(&maps);
         assert_eq!(
             list,
-            vec!["VSCode OSX\tCut", "VSCode OSX\tGotoFile\tCtrl+P\tCtrl+K Ctrl+P"]
+            vec![
+                "VSCode OSX\tCut",
+                "VSCode OSX\tGotoFile\tCtrl+P\tCtrl+K Ctrl+P"
+            ]
         );
         assert_eq!(
             encode_bundled_overrides(&decode_bundled_overrides(&json!(list))),
@@ -1662,7 +1670,10 @@ mod tests {
             shortcuts: m,
         }];
         let value = encode_custom(&custom);
-        assert_eq!(value[0]["shortcuts"], "Cut\nGotoFile\tCtrl+P\tCtrl+K Ctrl+P");
+        assert_eq!(
+            value[0]["shortcuts"],
+            "Cut\nGotoFile\tCtrl+P\tCtrl+K Ctrl+P"
+        );
         assert_eq!(encode_custom(&decode_custom(&value)), value);
         assert_eq!(decode_custom(&value)[0].parent, "VSCode");
         assert!(decode_custom(&json!([{ "name": " " }, "x"])).is_empty());
@@ -1721,7 +1732,12 @@ mod tests {
         assert_eq!(s.shortcuts_of("GotoClass"), vec!["Ctrl+Alt+Shift+J"]);
         assert!(s.shortcuts_of("GotoFile").is_empty());
         // Duplicating a user keymap keeps its parent.
-        change(&mut s, KeymapChange::Duplicate { name: Some("Twin".into()) });
+        change(
+            &mut s,
+            KeymapChange::Duplicate {
+                name: Some("Twin".into()),
+            },
+        );
         let info = s.keymaps().into_iter().find(|k| k.id == "Twin").unwrap();
         assert_eq!(info.parent.as_deref(), Some("Base"));
         assert!(s.shortcuts_of("GotoFile").is_empty());
@@ -1730,9 +1746,19 @@ mod tests {
     #[test]
     fn renames_and_deletes_user_keymaps() {
         let mut s = service();
-        change(&mut s, KeymapChange::Derive { name: Some("A".into()) });
+        change(
+            &mut s,
+            KeymapChange::Derive {
+                name: Some("A".into()),
+            },
+        );
         set(&mut s, "GotoClass", &["Ctrl+Alt+Shift+K"]);
-        change(&mut s, KeymapChange::Derive { name: Some("B".into()) });
+        change(
+            &mut s,
+            KeymapChange::Derive {
+                name: Some("B".into()),
+            },
+        );
         change(
             &mut s,
             KeymapChange::Rename {

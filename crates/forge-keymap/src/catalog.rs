@@ -426,7 +426,10 @@ mod tests {
                 "Emacs"
             ]
         );
-        assert_eq!(bundled_keymap("VSCode OSX").unwrap().parent, KeymapId::MacOs);
+        assert_eq!(
+            bundled_keymap("VSCode OSX").unwrap().parent,
+            KeymapId::MacOs
+        );
         assert!(bundled_keymap("Nope").is_none());
     }
 

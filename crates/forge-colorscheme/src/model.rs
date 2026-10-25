@@ -391,7 +391,11 @@ pub const ATTRIBUTES: &[AttributeSpec] = &[
         group: "Language Defaults",
         fields: TEXT_FIELDS,
         target: Target::Syntax("operator"),
-        icls: &["DEFAULT_OPERATION_SIGN", "DEFAULT_BRACES", "DEFAULT_PARENTHS"],
+        icls: &[
+            "DEFAULT_OPERATION_SIGN",
+            "DEFAULT_BRACES",
+            "DEFAULT_PARENTHS",
+        ],
     },
     AttributeSpec {
         key: "TAG",
@@ -468,14 +472,8 @@ impl Bundled {
                 },
             ),
             ("CARET", fg("#ff7a1a", "#e8620c")),
-            (
-                "CARET_ROW",
-                TextAttributes::bg(&pick("#1e1e23", "#f1f2f6")),
-            ),
-            (
-                "SELECTION",
-                TextAttributes::bg(&pick("#3a2a1e", "#ffe3cc")),
-            ),
+            ("CARET_ROW", TextAttributes::bg(&pick("#1e1e23", "#f1f2f6"))),
+            ("SELECTION", TextAttributes::bg(&pick("#3a2a1e", "#ffe3cc"))),
             ("LINE_NUMBERS", fg("#5f5f6a", "#9a9da6")),
             (
                 "SEARCH_RESULT",
@@ -624,7 +622,10 @@ mod tests {
             "fg=#cc7832 bold italic effect=waveUnderline effectColor=#ff0000"
         );
         assert_eq!(TextAttributes::decode(&text), a);
-        assert_eq!(TextAttributes::decode("fg=nope junk"), TextAttributes::default());
+        assert_eq!(
+            TextAttributes::decode("fg=nope junk"),
+            TextAttributes::default()
+        );
         // An effect color needs an effect.
         assert_eq!(
             TextAttributes::decode("effectColor=#ff0000").effect_color,
