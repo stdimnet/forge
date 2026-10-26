@@ -1876,6 +1876,10 @@ dependencies = [
  "forge-vim",
  "forge-window",
  "futures-util",
+ "goforge-delve",
+ "goforge-lang-go",
+ "goforge-pprof",
+ "goforge-sdk",
  "javaforge-build",
  "javaforge-jdk",
  "javaforge-lang-java",
@@ -2689,6 +2693,8 @@ dependencies = [
  "forge-viewers",
  "forge-vim",
  "forge-window",
+ "goforge-lang-go",
+ "goforge-pprof",
  "javaforge-build",
  "javaforge-lang-java",
  "luaforge-lang-lua",
@@ -3140,6 +3146,55 @@ dependencies = [
  "glib-sys",
  "libc",
  "system-deps",
+]
+
+[[package]]
+name = "goforge-delve"
+version = "0.1.0"
+dependencies = [
+ "forge-dap",
+ "forge-debug",
+ "forge-runtools",
+ "goforge-lang-go",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "goforge-lang-go"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "goforge-pprof"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "goforge-sdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "flate2",
+ "forge-langservers",
+ "goforge-lang-go",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

@@ -628,6 +628,41 @@ export function find_paged(request_json: string): string;
  */
 export function fuzzy_filter(request_json: string): string;
 
+/**
+ * `{ configuration, context }` → `GoCommand` of a Go Build configuration.
+ */
+export function go_build_command(request_json: string): string;
+
+/**
+ * `{ path, content, line? }` → `go generate` arguments.
+ */
+export function go_generate_args(request_json: string): string;
+
+/**
+ * `{ content }` → `GenerateDirective[]`.
+ */
+export function go_generate_directives(request_json: string): string;
+
+/**
+ * `{ tool: "vet" | "golangci", output, root }` → `GoProblem[]`.
+ */
+export function go_lint_parse(request_json: string): string;
+
+/**
+ * `{ path, content, offset }` → completion context or null.
+ */
+export function go_mod_completion_context(request_json: string): string;
+
+/**
+ * `{ path, content }` → `{ kind: "mod" | "work", … }` (`go_mod_parse`).
+ */
+export function go_mod_parse(request_json: string): string;
+
+/**
+ * `{ action, arg?, dir?, context }` → `GoCommand` (`go mod tidy`, `go get …`).
+ */
+export function go_module_command(request_json: string): string;
+
 export function hierarchy_call_view(request_json: string): string;
 
 export function hierarchy_method_view(request_json: string): string;
@@ -980,6 +1015,11 @@ export function php_interpreter_wrap(request_json: string): string;
  * `{ composerJson, composerPath, sourceRoots }` → `SourceRootEntry[]` (Settings | Directories).
  */
 export function php_source_roots(request_json: string): string;
+
+/**
+ * `{ base64?, sampleIndex? }` → `ProfileView` (`pprof_open`).
+ */
+export function pprof_view(request_json: string): string;
 
 /**
  * `{ config }` → `FolderRow[]` (Settings | Directories).
@@ -1757,6 +1797,13 @@ export interface InitOutput {
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly go_build_command: (a: number, b: number, c: number) => void;
+    readonly go_generate_args: (a: number, b: number, c: number) => void;
+    readonly go_generate_directives: (a: number, b: number, c: number) => void;
+    readonly go_lint_parse: (a: number, b: number, c: number) => void;
+    readonly go_mod_completion_context: (a: number, b: number, c: number) => void;
+    readonly go_mod_parse: (a: number, b: number, c: number) => void;
+    readonly go_module_command: (a: number, b: number, c: number) => void;
     readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
@@ -1827,6 +1874,7 @@ export interface InitOutput {
     readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
     readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
     readonly php_source_roots: (a: number, b: number, c: number) => void;
+    readonly pprof_view: (a: number, b: number, c: number) => void;
     readonly project_structure_describe: (a: number, b: number, c: number) => void;
     readonly project_structure_excluded: (a: number, b: number, c: number) => void;
     readonly project_structure_mark: (a: number, b: number, c: number) => void;

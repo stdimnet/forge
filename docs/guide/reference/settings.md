@@ -660,6 +660,26 @@ Page id `lang.python`.
 | `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
 | `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
 
+### Languages & Frameworks | Go
+
+Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `go.goroot` | path | `""` | user, project | GOROOT | GOROOT — The Go SDK of the project. Empty: the newest SDK Forge finds (PATH, /usr/local/go, ~/sdk, Homebrew, Program Files, Forge's downloads). |
+| `go.sdk.downloadSource` | string | `https://go.dev/dl` | user | SDK Downloads | SDK download source — Where Download Go SDK gets the release list (?mode=json, with SHA-256 checksums) and the archives. |
+| `go.gopath` | path | `""` | user, project | GOPATH | Project GOPATH — GOPATH for builds, runs and tests of this project. Empty: Go's default (GOPATH or ~/go). |
+| `go.goflags` | string | `""` | user, project | Build Tags and Environment | GOFLAGS — Flags every go command of the project gets, e.g. -mod=mod or -buildvcs=false. |
+| `go.buildTags` | list | `[]` | user, project | Build Tags and Environment | Build tags — Tags for builds, runs, tests and gopls (-tags), e.g. integration. |
+| `go.environment` | list | `[]` | user, project | Build Tags and Environment | Environment — Variables for go commands of the project, one KEY=VALUE per entry (GOPRIVATE, CGO_ENABLED, GOEXPERIMENT). |
+| `go.formatter` | enum: `gofmt`, `goimports`, `lsp`, `none` | `gofmt` | user, project | Code Style | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Go files. |
+| `go.goimports.path` | path | `""` | user | Code Style | goimports executable — Empty: Forge's tools folder, GOPATH/bin or PATH. |
+| `go.vet.onSave` | bool | `true` | user, project | External Annotators | Run go vet on save — Problems of the saved file's package appear in the editor and the Problems tool window. go vet builds the package, so it runs only in trusted projects. |
+| `go.golangciLint.onSave` | bool | `false` | user, project | External Annotators | Run golangci-lint on save — Runs the project's .golangci.yml configuration for the saved file's package (trusted projects only). |
+| `go.golangciLint.path` | path | `""` | user | External Annotators | golangci-lint executable — golangci-lint is not installed by Forge (GPL-3.0). Empty: GOPATH/bin or PATH. |
+| `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
+| `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
+| `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.

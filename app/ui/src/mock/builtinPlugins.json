@@ -8005,6 +8005,425 @@
     }
   },
   {
+    "id": "forge.go",
+    "name": "Go",
+    "version": "0.1.0",
+    "pack": "goforge",
+    "description": "Go SDK and GOPATH, go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve debugging (launch, attach, remote) and the pprof Profiler.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "goforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "go"
+      ],
+      "fileTypes": [
+        {
+          "id": "go-mod",
+          "name": "Go Module",
+          "extensions": [],
+          "fileNames": [
+            "go.mod"
+          ],
+          "indentSize": 4
+        },
+        {
+          "id": "go-work",
+          "name": "Go Workspace",
+          "extensions": [],
+          "fileNames": [
+            "go.work"
+          ],
+          "indentSize": 4
+        },
+        {
+          "id": "go-sum",
+          "name": "Go Checksums",
+          "extensions": [],
+          "fileNames": [
+            "go.sum",
+            "go.work.sum"
+          ]
+        }
+      ],
+      "commands": [
+        {
+          "id": "go.syncDependencies",
+          "title": "Sync Dependencies (go mod tidy)",
+          "category": "Go"
+        },
+        {
+          "id": "go.downloadDependencies",
+          "title": "Download Dependencies (go mod download)",
+          "category": "Go"
+        },
+        {
+          "id": "go.addDependency",
+          "title": "Add Dependency…",
+          "category": "Go"
+        },
+        {
+          "id": "go.vet",
+          "title": "Run go vet",
+          "category": "Go"
+        },
+        {
+          "id": "go.golangciLint",
+          "title": "Run golangci-lint",
+          "category": "Go"
+        },
+        {
+          "id": "go.generate",
+          "title": "Run go generate for File",
+          "category": "Go"
+        },
+        {
+          "id": "go.downloadSdk",
+          "title": "Download Go SDK…",
+          "category": "Go"
+        },
+        {
+          "id": "go.openProfile",
+          "title": "Open Profile (pprof)…",
+          "category": "Go"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "go.goroot",
+          "title": "GOROOT",
+          "description": "The Go SDK of the project. Empty: the newest SDK Forge finds (PATH, /usr/local/go, ~/sdk, Homebrew, Program Files, Forge's downloads).",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "GOROOT",
+          "project": true,
+          "hidden": true,
+          "order": 0
+        },
+        {
+          "key": "go.gopath",
+          "title": "Project GOPATH",
+          "description": "GOPATH for builds, runs and tests of this project. Empty: Go's default (GOPATH or ~/go).",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "GOPATH",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "go.goflags",
+          "title": "GOFLAGS",
+          "description": "Flags every go command of the project gets, e.g. -mod=mod or -buildvcs=false.",
+          "type": "string",
+          "default": "",
+          "group": "lang.go",
+          "section": "Build Tags and Environment",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "go.buildTags",
+          "title": "Build tags",
+          "description": "Tags for builds, runs, tests and gopls (-tags), e.g. integration.",
+          "type": "list",
+          "default": [],
+          "group": "lang.go",
+          "section": "Build Tags and Environment",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "go.environment",
+          "title": "Environment",
+          "description": "Variables for go commands of the project, one KEY=VALUE per entry (GOPRIVATE, CGO_ENABLED, GOEXPERIMENT).",
+          "type": "list",
+          "default": [],
+          "group": "lang.go",
+          "section": "Build Tags and Environment",
+          "project": true,
+          "order": 22
+        },
+        {
+          "key": "go.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Go files.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "gofmt",
+              "label": "gofmt"
+            },
+            {
+              "value": "goimports",
+              "label": "goimports (gofmt and imports)"
+            },
+            {
+              "value": "lsp",
+              "label": "gopls"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "gofmt",
+          "group": "lang.go",
+          "section": "Code Style",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "go.goimports.path",
+          "title": "goimports executable",
+          "description": "Empty: Forge's tools folder, GOPATH/bin or PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "Code Style",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "go.vet.onSave",
+          "title": "Run go vet on save",
+          "description": "Problems of the saved file's package appear in the editor and the Problems tool window. go vet builds the package, so it runs only in trusted projects.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.go",
+          "section": "External Annotators",
+          "project": true,
+          "order": 40
+        },
+        {
+          "key": "go.golangciLint.onSave",
+          "title": "Run golangci-lint on save",
+          "description": "Runs the project's .golangci.yml configuration for the saved file's package (trusted projects only).",
+          "type": "bool",
+          "default": false,
+          "group": "lang.go",
+          "section": "External Annotators",
+          "project": true,
+          "order": 41
+        },
+        {
+          "key": "go.golangciLint.path",
+          "title": "golangci-lint executable",
+          "description": "golangci-lint is not installed by Forge (GPL-3.0). Empty: GOPATH/bin or PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "External Annotators",
+          "project": false,
+          "order": 42
+        },
+        {
+          "key": "go.delve.path",
+          "title": "Delve (dlv) executable",
+          "description": "Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain.",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "Debugger",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "go.test.fuzztime",
+          "title": "Default fuzz time",
+          "description": "How long fuzzing runs when a Go Test configuration does not set it (-fuzztime).",
+          "type": "string",
+          "default": "10s",
+          "group": "lang.go",
+          "section": "Tests",
+          "project": true,
+          "order": 60
+        },
+        {
+          "key": "go.modules.proxyLookups",
+          "title": "Look up module versions on the module proxy",
+          "description": "Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.go",
+          "section": "Go Modules",
+          "project": false,
+          "order": 70
+        },
+        {
+          "key": "go.sdk.downloadSource",
+          "title": "SDK download source",
+          "description": "Where Download Go SDK gets the release list (?mode=json, with SHA-256 checksums) and the archives.",
+          "type": "string",
+          "default": "https://go.dev/dl",
+          "group": "lang.go",
+          "section": "SDK Downloads",
+          "project": false,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "go-build",
+          "name": "Go Build",
+          "description": "Build a Go package, folder or files, and run the program (go run) or only build it (go build -o).",
+          "icon": "box",
+          "debuggable": true
+        },
+        {
+          "id": "go-remote",
+          "name": "Go Remote",
+          "description": "Attach the debugger to a dlv --headless --accept-multiclient server, e.g. in a container or on another machine.",
+          "icon": "plug",
+          "debuggable": true
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "go-test",
+          "name": "Go Test",
+          "description": "Run go test: all packages, a folder, a file, one test or subtest, or a name pattern; benchmarks and fuzzing; coverage and profiles.",
+          "icon": "flask-conical",
+          "language": "go",
+          "detect": {
+            "files": [
+              "go.mod",
+              "go.work",
+              "*_test.go",
+              "**/*_test.go"
+            ],
+            "dependencies": []
+          },
+          "testFiles": [
+            "*_test.go"
+          ],
+          "program": "go",
+          "programSetting": "go.goroot",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${file}",
+              "${test}"
+            ]
+          },
+          "report": "goTestJson",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "rerun": {
+            "join": "|",
+            "template": "^(${names})$"
+          },
+          "locationRules": [],
+          "coverage": {
+            "args": [],
+            "file": "${coverageFile}",
+            "format": "goCover",
+            "env": {}
+          },
+          "debuggable": true,
+          "fields": [
+            {
+              "key": "kind",
+              "label": "Run",
+              "kind": "enum",
+              "default": "test",
+              "options": [
+                {
+                  "value": "test",
+                  "label": "Tests"
+                },
+                {
+                  "value": "bench",
+                  "label": "Benchmarks"
+                },
+                {
+                  "value": "fuzz",
+                  "label": "Fuzzing"
+                }
+              ]
+            },
+            {
+              "key": "tags",
+              "label": "Build tags",
+              "placeholder": "integration,e2e"
+            },
+            {
+              "key": "count",
+              "label": "Count (-count)",
+              "placeholder": "1 disables the test cache"
+            },
+            {
+              "key": "benchtime",
+              "label": "Benchmark time",
+              "placeholder": "1s or 100x"
+            },
+            {
+              "key": "fuzztime",
+              "label": "Fuzz time",
+              "placeholder": "10s"
+            },
+            {
+              "key": "flags",
+              "label": "Go tool arguments",
+              "placeholder": "-race -v"
+            },
+            {
+              "key": "profile",
+              "label": "Profile",
+              "kind": "enum",
+              "default": "none",
+              "options": [
+                {
+                  "value": "none",
+                  "label": "None"
+                },
+                {
+                  "value": "cpu",
+                  "label": "CPU (-cpuprofile)"
+                },
+                {
+                  "value": "mem",
+                  "label": "Memory (-memprofile)"
+                },
+                {
+                  "value": "block",
+                  "label": "Blocking (-blockprofile)"
+                },
+                {
+                  "value": "mutex",
+                  "label": "Mutex (-mutexprofile)"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.java",
     "name": "Java",
     "version": "0.1.0",

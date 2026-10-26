@@ -2258,6 +2258,57 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
   `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
 
+## GoForge (`packs/goforge/*`)
+
+- Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):
+  file types `go-mod`, `go-work`, `go-sum` (`.go` is bundled), the
+  run configuration types `go-build` and `go-remote`, the `go-test` test framework (wrapped in
+  Rust by `GoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
+  Settings | Languages & Frameworks | Go (`lang.go`, `go.*`). `forge-project` reports the
+  `go` language (pack `goforge`) for `go.mod`, `go.work`, Go files in the root or two or more
+  in a folder, and the tool `go-workspace`. gopls comes from the language server catalog.
+- Crates: `goforge-lang-go` (pure, also WebAssembly: go.mod / go.work, versions, test
+  discovery, the Go Test provider, Go Build and module command lines, go:generate, go vet /
+  golangci-lint reports, `GoContext`), `goforge-sdk` (SDK detection and go.dev/dl downloads,
+  tools and pinned `go install`, module proxy with cache), `goforge-delve` (the `go` debug
+  adapter, `dlv dap`), `goforge-pprof` (pure, also WebAssembly: profile.proto decoder and
+  views).
+- The Go context (`commands::go::context`: SDK from `go.goroot` or detection, `go.gopath`,
+  `go.goflags`, `go.buildTags`, `go.environment`, the project's modules from `go.mod` files
+  and `go.work`) reaches the Go Test provider through `CommandContext.settings["go.context"]`
+  (`run.rs::framework_command` calls `go::extend_test_context`); Go Build runs are built by
+  `go::build_run` in `run.rs::build`. Test keys are `<package folder>::<test>`; the UI's
+  `resultKeys` also keys `_test.go` failures by their folder.
+- IPC (`app/ui/src/ipc/go.ts`, `commands/go.rs`; lines 0-based, columns UTF-16 for go.mod):
+  `go_status({ refresh? }) -> { sdk?, custom, sdks, tools, modules, gopath }`,
+  `go_sdk_releases() -> { version, file }[]`, `go_sdk_download({ version }) -> GoSdk` (events
+  `go://install`: `{ message }` or `{ label, done, total }`),
+  `go_tool_install_command({ tool }) -> CommandLine`, `go_mod_parse({ path, content }) ->
+  { kind: "mod" | "work", … problems }`, `go_mod_complete({ path, content, offset }) -> { from,
+  items } | null`, `go_module_versions({ module })`, `go_module_command({ action, arg?, dir? })
+  -> CommandLine`, `go_generate_directives({ content })`, `go_generate_command({ path,
+  content, line? }) -> CommandLine`, `go_format({ path, content }) -> string | null`,
+  `go_lint({ tool: "vet" | "golangci", path? }) -> { path, line, column, severity, message,
+  source, code }[]` (trusted projects only), `go_delve_status()`, `go_debug_request({
+  configuration }) -> LaunchRequest`, `go_profile_path({ name })`, `pprof_open({ path,
+  sampleIndex? }) -> ProfileView { sampleTypes, sampleIndex, total, samples, durationNanos,
+  top, tree }`. Command lines are started by the UI through `run_start` (hidden type
+  `go-command`), so they are refused in Safe Mode.
+- Profiler: the `profiler` tool window and `ActivateProfilerToolWindow` belong to
+  `app/ui/src/features/profiler`; packs add a source with `registerProfilerSource({ id,
+  label, active, component, actions?, onActivate? })` (PyForge: cProfile snapshots, GoForge:
+  pprof) and show theirs with `showProfiler(id)`; with several active sources the window
+  shows tabs.
+- Debugging: `commands::go::sync_debug` (called from `dap.rs::sync`) registers
+  `DelveAdapter` while `forge.go` is enabled; the UI's `delve` debug launcher asks to install
+  Delve when it is missing, then `go_debug_request` + `dap_start`.
+- UI (`app/ui/src/features/go`): settings page, run configuration types (Go Test re-registered
+  from the manifest spec with profile support: `start` adds `profileFile`, `afterStart` opens
+  the Profiler), pprof profiles in the shared Profiler tool window, go.mod language,
+  problems and completion, go:generate line markers, the format provider and go vet /
+  golangci-lint on save (`editor.ts`). Browser mode: `?project=go` opens the `ledger` demo
+  (`mock/demoGoProject.ts`, `mock/goMock.ts`, `mock/goTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/go.rs`).
 ## JavaForge (`packs/javaforge/*`)
 
 - The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)

@@ -53,6 +53,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
+  downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
+  checks and version completion from the module proxy; gofmt / goimports, go vet and
+  golangci-lint problems; go generate gutter icons; Go Build and Go Test run configurations
+  with subtests, benchmarks, fuzzing, coverage and profiles; Delve debugging (launch, test,
+  attach, remote) and the pprof Profiler with a flame graph ([GoForge](docs/guide/user/go.md)).
 - **PyForge**: the Python interpreter in the status bar with a popup to switch,
   Settings | Project | Python Interpreter with detection of venv, uv, Poetry, conda, Pipenv,
   Hatch and pyenv environments and new environments, Docker / Compose / SSH / WSL
@@ -554,7 +560,7 @@ and a plain Lua project does not start PHP language servers.
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` |
-| Go | `go.mod` |
+| Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -581,7 +587,7 @@ version constraints in the manifests. The PHP version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -615,6 +621,7 @@ The primary type appears
 | WebForge | JavaScript, TypeScript, HTML or CSS; React for `react`/`next`, Vue.js for `vue`/`nuxt`, Angular for `angular` |
 | LuaForge | Lua projects |
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
+| GoForge | Go projects |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
@@ -768,6 +775,7 @@ not finished, the page says so.
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
+| [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 
 ## Version control
@@ -8764,6 +8772,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **WebForge** | HTML, CSS & JavaScript, React, Vue.js, Angular |
 | **LuaForge** | Lua |
 | **PyForge** | Python: interpreters, packages, requirements inspections |
+| **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
@@ -11036,6 +11045,219 @@ Its tests (pytest with a failing parametrized case, a unittest test case), `tox.
 session in `Cart.total`, the Python Console and a profile of `scripts/report.py` are simulated;
 discovery, command lines, tox environments and the snapshot's call tree are computed by the
 same Rust code (WebAssembly).
+
+
+---
+
+Source: docs/guide/user/go.md
+
+# GoForge (Go)
+
+**GoForge** brings GoLand's Go support to Forge. Its plugin **Go** (`forge.go`) is active in
+[Go projects](docs/guide/getting-started/project-detection.md): a `go.mod` or `go.work` in the root
+or one folder below, Go files in the root, or two or more `.go` files in a folder.
+
+- Highlighting of `.go` files comes from CodeMirror's Go grammar; completion, navigation,
+  hover, rename and diagnostics come from **gopls** (BSD-3-Clause), started like every other
+  [language server](docs/guide/user/language-servers.md).
+- Everything else — SDK detection and downloads, `go.mod` analysis, test discovery, command
+  lines, lint reports, debugging and profiles — is computed in Rust (`packs/goforge/*`).
+
+![A Go test file with run icons on the package, tests, subtests, the benchmark, the fuzz test and the example](docs/screenshots/go-editor.png)
+
+## Go SDK (GOROOT) and GOPATH
+
+**Settings | Languages & Frameworks | Go** shows the project's SDK, the Go tools and the Go
+settings in one page.
+
+![Settings | Languages & Frameworks | Go](docs/screenshots/go-settings.png)
+
+- **GOROOT**: *Automatic* uses the newest SDK Forge finds without running anything: the `go`
+  on the `PATH`, `GOROOT`, `/usr/local/go`, `/usr/lib/go`, `/usr/lib/golang`, `/opt/go`,
+  Snap, Homebrew (`/opt/homebrew/opt/go/libexec`, `/usr/local/opt/go/libexec`, Linuxbrew),
+  `C:\Program Files\Go`, `%LOCALAPPDATA%\Programs\Go`, SDKs of `golang.org/dl` (`~/sdk/go1.x`),
+  `~/go/go1.x` and Forge's own downloads. The version comes from the SDK's `VERSION` file.
+  Choose another SDK in the list; the choice (`go.goroot`) is stored with the project.
+- **Download…** lists the stable releases of `go.dev/dl` (`?mode=json`, which names the SHA-256
+  of every archive) for this platform. After you agree, Forge downloads the archive, checks
+  its SHA-256, unpacks it into `<data dir>/forge/go-sdks/go<version>` and makes it the
+  project's GOROOT. **SDK download source** (`go.sdk.downloadSource`) points at a mirror.
+  When a Go project opens and no SDK is found, a balloon offers the download.
+- **Project GOPATH** (`go.gopath`), **GOFLAGS** (`go.goflags`), **Build tags**
+  (`go.buildTags`) and **Environment** (`go.environment`, `KEY=VALUE` entries such as
+  `GOPRIVATE` or `CGO_ENABLED=0`) apply to every build, run, test, `go generate`, `go vet` and
+  debug session of the project.
+
+### Go tools
+
+The page lists the tools GoForge uses, where they were found (the path in the settings,
+Forge's tools folder, `GOBIN`, `GOPATH/bin`, the SDK's `bin`, `PATH`) and their licence:
+
+| Tool | Used for | Install |
+| --- | --- | --- |
+| gopls | the language server | `go install golang.org/x/tools/gopls@v0.23.0` (Go 1.25+) or `@v0.20.0` |
+| Delve (`dlv`) | debugging | `go install github.com/go-delve/delve/cmd/dlv@v1.27.2` (Go 1.25+) or `@v1.25.2` |
+| goimports | Reformat Code with goimports | `go install golang.org/x/tools/cmd/goimports@v0.30.0` |
+| golangci-lint | the golangci-lint annotator | not installed by Forge (GPL-3.0): install it from golangci-lint.run |
+
+**Install** runs the `go install` line with your Go toolchain in the Run tool window
+(`GOBIN` = `<data dir>/forge/go-tools/bin`, `GOTOOLCHAIN=auto`), so modules come from your
+module proxy and are verified by the Go checksum database. The versions are pinned per SDK
+version because Delve only debugs the Go versions it supports.
+
+## go.mod and go.work
+
+`go.mod`, `go.work` and `go.sum` have their own file types (**Go Module**, **Go Workspace**,
+**Go Checksums**) with highlighting of directives, module paths, versions and comments.
+
+![Version completion in go.mod](docs/screenshots/go-mod.png)
+
+- Problems are reported while you type: unknown directives, malformed `require`, `replace`
+  and `exclude` lines, invalid versions (`v1.2.3`, pseudo-versions and `+incompatible` are
+  valid), invalid `go` versions, a missing `module` statement, a missing `)`.
+- **Completion** (`Ctrl+Space`): directives at the start of a line; module paths from the
+  file's requirements and the module cache (`$GOMODCACHE/cache/download`); versions of a
+  module from the module proxy (the first entry of `GOPROXY`, `proxy.golang.org` by default),
+  newest first with the latest release marked, cached for 12 hours in
+  `<cache dir>/forge/go-proxy` and answered from the cache when the proxy is offline; `go`
+  versions of the installed SDKs. **Look up module versions on the module proxy**
+  (`go.modules.proxyLookups`) turns the lookups off.
+- Actions (Find Action, `Ctrl+Shift+A`): **Sync Dependencies (go mod tidy)**, **Download
+  Dependencies (go mod download)** and **Add Dependency…** (`go get module[@version]`). They
+  run in the module's folder and show their output in the Run tool window.
+
+## Formatting and annotators
+
+- **Reformat Code** (`Ctrl+Alt+L`) and "Reformat code" on save use **gofmt** by default;
+  `go.formatter` switches to **goimports** (also fixes imports), **gopls** or nothing.
+- **go vet** runs for the saved file's package after every save (`go.vet.onSave`) and on
+  demand (**Run go vet**); its JSON report (`go vet -json`) becomes problems in the editor and
+  the Problems tool window.
+- **golangci-lint** uses the project's `.golangci.yml` (v1 and v2 are both supported):
+  **Run golangci-lint** checks the whole project, `go.golangciLint.onSave` checks the saved
+  file's package. Its JSON report becomes problems with the linter as the code.
+
+![golangci-lint problems in the editor and the Problems tool window](docs/screenshots/go-lint.png)
+
+go vet and golangci-lint build the code (and golangci-lint may load plugins), so they run only
+in [trusted projects](docs/guide/user/project-trust.md).
+
+## go generate
+
+Every `//go:generate` directive gets a ▶ icon in the gutter: it runs `go generate -run` for
+exactly that directive in the file's module. **Run go generate for File** runs all
+directives of the open file.
+
+## Go Build
+
+The **Go Build** run configuration builds a package (`./cmd/ledger` or an import path of a
+project module), a directory or files:
+
+| Field | Meaning |
+| --- | --- |
+| Run kind | Package, Directory or File |
+| Run after build | on: `go run …` with the program arguments; off: `go build -o <output>` |
+| Output directory or file | `-o` of `go build` |
+| Build tags | added to the project's build tags (`-tags`) |
+| Go tool arguments | more flags, e.g. `-race -trimpath` |
+| Program arguments | the program's own arguments |
+
+The command runs in the package's module folder unless the configuration sets a working
+directory. Debug (`Shift+F9`) starts the same configuration under Delve.
+
+## Go Test
+
+**Go Test** configurations run `go test -json` and show the results in the test tree; a
+failing test's `file_test.go:16:` line becomes its message, expected / actual values and a
+link.
+
+![The test tree of TestRound with the failing subtest](docs/screenshots/go-test-tree.png)
+
+- **Gutter icons** appear on the `package` clause (all tests of the package), every
+  `func TestXxx(t *testing.T)`, `BenchmarkXxx`, `FuzzXxx` and `ExampleXxx`, and on subtests
+  and sub-benchmarks started with a literal name (`t.Run("half up", …)`, any depth). After a
+  run they show the last result. Subtest names follow `go test`: spaces become `_`.
+- **Scopes**: all packages (`./...`), a directory (with or without sub folders), a file (its
+  top-level tests), one test or subtest (`-run '^TestRound$/^half_up$'`), or a name pattern.
+- **Run**: Tests, **Benchmarks** (`-run '^$' -bench … -benchmem`, optional benchmark time) or
+  **Fuzzing** (`-fuzz`, one fuzz test of one package, **Fuzz time** defaulting to
+  `go.test.fuzztime`, 10s).
+- **Count**, **Build tags**, **Go tool arguments** (`-race -v`) and program arguments (`-args`).
+- **Run with Coverage** adds `-coverprofile`; the profile shows in the
+  [Coverage tool window](docs/guide/user/coverage.md) and the editor gutter.
+- **Rerun Failed Tests** runs the failed top-level tests in their packages
+  (`-run '^(TestRound|TestParse)$'`).
+- Modules in sub folders run with `go -C <module>`; import paths in the results and coverage
+  are mapped to project files.
+
+## Debugging with Delve
+
+Debug (`Shift+F9`) on a Go Build or Go Test configuration starts **Delve** (`dlv dap`, MIT) on
+the shared [debugger](docs/guide/user/debugging.md): breakpoints, conditions, logpoints, stepping, goroutines
+as threads, variables, watches and evaluation, memory and disassembly views. If Delve is
+missing, Forge offers to install it with your Go toolchain.
+
+![A Delve session stopped in report.Total](docs/screenshots/go-debug.png)
+
+- Go Build sessions use Delve's `debug` mode, Go Test sessions its `test` mode for one
+  package (fuzz tests run their seed corpus). The program is built into the system temp
+  folder, never into the project.
+- **Attach to Process…** (`Ctrl+Alt+F5`) lists local processes; choose **Go (Delve)** to
+  attach (`mode: local`). **Debug Core Dump…** opens a core file of a Go program.
+- **Go Remote** configurations connect to a Delve server started with
+  `dlv debug --headless --listen=:2345 --accept-multiclient` (Delve 1.20 or newer), e.g. in a
+  container; **Project folder on the remote side** maps breakpoints (`substitutePath`).
+
+Launching programs is refused in Safe Mode; attaching is allowed.
+
+## Profiler
+
+The **Profiler** tool window (shared with [PyForge's cProfile snapshots](docs/guide/user/python.md#profiler);
+a project that uses both shows a **cProfile** and a **pprof** tab) shows pprof profiles: a
+**Flame Graph** (callers below their
+callees; click a frame to zoom, double-click to open its source), the **Call Tree** with total
+and self values, and the **Method List** (flat and cumulative values, like `pprof -top`). The
+sample type (CPU time, allocations, in-use memory, contentions, …) is chosen on top.
+
+![The CPU profile of BenchmarkReport as a flame graph](docs/screenshots/go-profiler.png)
+
+- Set **Profile** of a Go Test configuration to CPU, Memory, Blocking or Mutex: the run writes
+  `-cpuprofile` (…) into `<cache dir>/forge/go-profiles` and the Profiler opens it when the
+  run ends. **Profile Test with CPU Profiler** / **Memory Profiler** run the test or
+  benchmark at the caret that way.
+- **Open Profile (pprof)…** opens any profile file (`go test -cpuprofile`, `runtime/pprof`,
+  `net/http/pprof` downloads), gzip compressed or not; the folder icon in the Profiler's
+  header does the same.
+
+![The call tree of the profile](docs/screenshots/go-profiler-tree.png)
+
+## Settings
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `go.goroot` | (automatic) | the project's SDK folder |
+| `go.sdk.downloadSource` | `https://go.dev/dl` | where Download Go SDK gets releases |
+| `go.gopath` | (Go's default) | GOPATH of the project's go commands |
+| `go.goflags` |  | GOFLAGS of the project's go commands |
+| `go.buildTags` | `[]` | build tags of builds, runs and tests |
+| `go.environment` | `[]` | `KEY=VALUE` variables of the project's go commands |
+| `go.formatter` | `gofmt` | `gofmt`, `goimports`, `lsp` or `none` |
+| `go.goimports.path` |  | goimports executable |
+| `go.vet.onSave` | `true` | run go vet for the saved file's package |
+| `go.golangciLint.onSave` | `false` | run golangci-lint for the saved file's package |
+| `go.golangciLint.path` |  | golangci-lint executable |
+| `go.delve.path` |  | dlv executable |
+| `go.test.fuzztime` | `10s` | default `-fuzztime` |
+| `go.modules.proxyLookups` | `true` | module versions from the module proxy |
+
+gopls has its own settings in Settings | Language Servers (`langservers.servers.gopls.*`).
+
+## Browser mode
+
+`pnpm dev` with `?project=go` opens the `ledger` demo module (a money package with tests,
+subtests, a benchmark, a fuzz test and an example; a report package with a `//go:generate`
+directive; a store for golangci-lint to find). The mocks run the Rust crates as WebAssembly;
+test runs, the Delve session and the profile are simulated.
 
 
 ---
@@ -17340,6 +17562,26 @@ Page id `lang.python`.
 | `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
 | `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
 
+### Languages & Frameworks | Go
+
+Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `go.goroot` | path | `""` | user, project | GOROOT | GOROOT — The Go SDK of the project. Empty: the newest SDK Forge finds (PATH, /usr/local/go, ~/sdk, Homebrew, Program Files, Forge's downloads). |
+| `go.sdk.downloadSource` | string | `https://go.dev/dl` | user | SDK Downloads | SDK download source — Where Download Go SDK gets the release list (?mode=json, with SHA-256 checksums) and the archives. |
+| `go.gopath` | path | `""` | user, project | GOPATH | Project GOPATH — GOPATH for builds, runs and tests of this project. Empty: Go's default (GOPATH or ~/go). |
+| `go.goflags` | string | `""` | user, project | Build Tags and Environment | GOFLAGS — Flags every go command of the project gets, e.g. -mod=mod or -buildvcs=false. |
+| `go.buildTags` | list | `[]` | user, project | Build Tags and Environment | Build tags — Tags for builds, runs, tests and gopls (-tags), e.g. integration. |
+| `go.environment` | list | `[]` | user, project | Build Tags and Environment | Environment — Variables for go commands of the project, one KEY=VALUE per entry (GOPRIVATE, CGO_ENABLED, GOEXPERIMENT). |
+| `go.formatter` | enum: `gofmt`, `goimports`, `lsp`, `none` | `gofmt` | user, project | Code Style | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Go files. |
+| `go.goimports.path` | path | `""` | user | Code Style | goimports executable — Empty: Forge's tools folder, GOPATH/bin or PATH. |
+| `go.vet.onSave` | bool | `true` | user, project | External Annotators | Run go vet on save — Problems of the saved file's package appear in the editor and the Problems tool window. go vet builds the package, so it runs only in trusted projects. |
+| `go.golangciLint.onSave` | bool | `false` | user, project | External Annotators | Run golangci-lint on save — Runs the project's .golangci.yml configuration for the saved file's package (trusted projects only). |
+| `go.golangciLint.path` | path | `""` | user | External Annotators | golangci-lint executable — golangci-lint is not installed by Forge (GPL-3.0). Empty: GOPATH/bin or PATH. |
+| `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
+| `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
+| `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -18367,7 +18609,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -18392,6 +18634,7 @@ script and config language plugins.
 | Lua | `forge.lua` | luaforge |  | `luaforge` | 1 commands; 6 settings; file types: Lua; 1 LSP servers; run types: Lua Script |
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
+| Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
@@ -20356,6 +20599,10 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-lang-python](docs/guide/developer/crates/pyforge-lang-python.md) | PyForge: Python language support (PEP 440 versions and specifiers, PEP 508 requirements, requirements.txt and pyproject.toml dependencies, imports, requirements inspections and completion, run configurations; pure, also built to WebAssembly) |
 | [pyforge-interpreters](docs/guide/developer/crates/pyforge-interpreters.md) | PyForge: Python interpreters (system, pyenv, venv/virtualenv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL): model, detection, metadata parsing and new environments |
 | [pyforge-packages](docs/guide/developer/crates/pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
+| [goforge-lang-go](docs/guide/developer/crates/goforge-lang-go.md) | GoForge: Go language support (go.mod / go.work, module versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider, Go Build command lines, go:generate, go vet and golangci-lint reports; pure, also built to WebAssembly) |
+| [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
+| [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
+| [goforge-pprof](docs/guide/developer/crates/goforge-pprof.md) | GoForge: pprof profiles (profile.proto, gzip) with top, call tree and flame graph views; pure, also built to WebAssembly |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
@@ -24821,6 +25068,236 @@ quick fixes and completion in dependency files.
 
 ```sh
 cargo test -p pyforge-packages --features net
+```
+
+
+---
+
+Source: docs/guide/developer/crates/goforge-lang-go.md
+
+# goforge-lang-go
+
+`packs/goforge/lang-go` — GoForge: everything about Go that needs no I/O. The desktop
+backend and the WebAssembly build of browser mode share it.
+
+## Purpose
+
+- `scan`: a tolerant Go tokenizer (identifiers, decoded string literals, punctuation, lines).
+- `gomod`: `go.mod` (`module`, `go`, `toolchain`, `godebug`, `require`, `replace`, `exclude`,
+  `retract`, `tool`, `ignore`, single lines and blocks, `// indirect`) and `go.work` (`go`,
+  `toolchain`, `use`, `replace`) with positions (UTF-16 columns), problems and the completion
+  context at an offset (directive, module path, version of a module, Go version).
+- `version`: module versions (semver, pseudo-versions, `+incompatible`), ordering, the latest
+  release, proxy `@v/list` answers and module path escaping (`!a` for `A`).
+- `discovery`: `TestXxx`, `BenchmarkXxx`, `FuzzXxx` and `ExampleXxx` functions and literal
+  subtests / sub-benchmarks (`t.Run("name", func(t *testing.T) {…})`, any depth) with
+  `go test`'s names.
+- `provider`: `GoTestProvider`, the `forge-testing` provider of the manifest's `go-test`
+  framework: gutter targets keyed `<package folder>::<name>`, `go test -json` command lines per
+  scope (all, directory, file, test, pattern) and kind (tests, benchmarks, fuzzing), coverage
+  (`-coverprofile`, Go coverprofile), profiles (`-cpuprofile`, …), Rerun Failed Tests, `-C`
+  for modules in sub folders and location rules from import paths to project paths;
+  `debug_test` gives Delve the test binary flags of a configuration.
+- `build`: Go Build configurations (`go run` / `go build -o`, package / directory / files,
+  tags, Go tool arguments) and module commands (`go mod tidy|download|verify`,
+  `go work sync`, `go get`, `go install`).
+- `generate`: `//go:generate` directives and `go generate -run '^<directive>$' file.go`.
+- `lint`: `go vet -json` and golangci-lint JSON (v1 `--out-format=json`, v2
+  `--output.json.path=stdout`) as `GoProblem`s of project files.
+- `env`: `GoContext` (SDK, GOPATH, GOFLAGS, build tags, environment, modules), handed to the
+  provider through `CommandContext.settings["go.context"]`, and `go env -json`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `scan.rs` | `tokens`, `matching`, `utf16_len`. |
+| `gomod.rs` | `parse_go_mod`, `parse_go_work`, `completion_context`, `GO_MOD_DIRECTIVES`. |
+| `version.rs` | `is_valid_version`, `is_pseudo`, `compare`, `latest`, `escape_path`, `parse_version_list`. |
+| `discovery.rs` | `discover`, `GoTest`, `GoTestKind`, `subtest_name`. |
+| `provider.rs` | `GoTestProvider`, `register`, `run_pattern`, `debug_test`. |
+| `build.rs` | `build_command`, `build_target`, `module_command`, `GoCommand`. |
+| `generate.rs` | `directives`, `generate_args`. |
+| `lint.rs` | `parse_vet`, `parse_golangci`, `golangci_args`, `golangci_major`. |
+| `env.rs` | `GoContext`, `ModuleRoot`, `parse_go_env`, `CONTEXT_KEY`. |
+
+## Main public items
+
+```rust
+pub use build::{build_command, build_target, module_command, GoCommand, GO_BUILD};
+pub use discovery::{discover, GoTest, GoTestFile, GoTestKind};
+pub use env::{parse_go_env, GoContext, GoEnv, ModuleRoot, CONTEXT_KEY};
+pub use gomod::{parse_go_mod, parse_go_work, GoMod, GoWork, ModCompletion};
+pub use lint::{parse_golangci, parse_vet, GoProblem};
+pub use provider::{debug_test, DebugTest, GoTestProvider, GO_TEST};
+pub fn modules_of<'a>(files: impl IntoIterator<Item = (&'a str, &'a str)>) -> Vec<ModuleRoot>;
+```
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/go.rs` (`go_*`), `commands/run.rs` (the Go Test provider
+  in `RunState.tests`, Go Build command lines).
+- Browser mode: `crates/forge-wasm/src/go.rs` and `testing.rs`.
+- [goforge-delve](docs/guide/developer/crates/goforge-delve.md), [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module; `tests/fixtures/` holds a real `go vet -json` report and a real
+golangci-lint 2.5 JSON report.
+
+```sh
+cargo test -p goforge-lang-go
+```
+
+
+---
+
+Source: docs/guide/developer/crates/goforge-sdk.md
+
+# goforge-sdk
+
+`packs/goforge/sdk` — GoForge on the user's machine: SDKs, tools and the module proxy.
+
+## Purpose
+
+- `detect`: Go SDKs found without running anything — the `go` on the `PATH` (symlinks
+  resolved), `GOROOT`, `/usr/local/go`, `/usr/lib/go`, `/usr/lib/golang`, `/opt/go`, Snap,
+  Homebrew, `Program Files\Go`, `~/sdk/go*`, `~/go/go*` and `<data dir>/forge/go-sdks` —
+  newest first, the version from the SDK's `VERSION` file.
+- `download`: the release list of `go.dev/dl/?mode=json`, the archive of a stable release for
+  the platform, and the install: download, SHA-256 check against the list, unpack
+  (`forge_langservers::managed::archive`, `go/` stripped) into a staging folder renamed to
+  `<data dir>/forge/go-sdks/go<version>`. Only called after the user agreed.
+- `tools`: gopls, Delve, goimports and golangci-lint — the setting with the user's path, the
+  lookup order (Forge's `GOBIN`, `GOBIN`, `GOPATH/bin`, the SDK's `bin`, `PATH`), and the
+  pinned `go install <module>@<version>` per SDK version (Delve 1.27.2 for Go 1.25+, 1.25.2
+  before; gopls 0.23.0 / 0.20.0; goimports 0.30.0). golangci-lint (GPL-3.0) is never installed.
+- `proxy`: `ModuleProxy` (module versions from `<proxy>/<escaped>/@v/list`, `@latest` for
+  untagged modules), cached 12 hours in `<cache dir>/forge/go-proxy` with the stale copy used
+  offline; `proxy_from_goproxy`; `cached_modules` (module paths in the module cache).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `DetectEnv`, `GoSdk`, `sdk_version`, `sdk_from_folder`, `default_sdks_dir`. |
+| `download.rs` | `releases`, `downloadable`, `install`, `platform`. |
+| `tools.rs` | `GoTool`, `ToolDirs`, `install_command`, `status`, `default_tools_dir`. |
+| `proxy.rs` | `ModuleProxy`, `cached_modules`, `proxy_from_goproxy`. |
+| `testserver.rs` | A local HTTP server for the tests. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/go.rs` (`go_status`, `go_sdk_releases`,
+  `go_sdk_download`, `go_tool_install_command`, `go_mod_complete`, `go_module_versions`).
+- Browser mode: not built to WebAssembly (file system and network); `mock/goMock.ts`.
+
+## Dependencies
+
+- Workspace crates: [`goforge-lang-go`](docs/guide/developer/crates/goforge-lang-go.md),
+  [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md) (HTTP client, archives, SHA-256)
+- External: `serde`, `serde_json`, `dirs`, `tokio`
+
+## Tests
+
+Fake SDK folders for detection, a local HTTP server with a generated SDK tarball for the
+download (checksum mismatch and unsafe names refused) and the module proxy (cache, offline
+fallback). No network.
+
+```sh
+cargo test -p goforge-sdk
+```
+
+
+---
+
+Source: docs/guide/developer/crates/goforge-delve.md
+
+# goforge-delve
+
+`packs/goforge/delve` — GoForge's debugger on [forge-dap](docs/guide/developer/crates/forge-dap.md).
+
+## Purpose
+
+- `DelveAdapter` implements `DebugAdapterDescriptor` for the adapter type `go`: each session
+  starts `dlv dap --listen=127.0.0.1:<port>` in the package's folder (Delve runs `go build`
+  there) with the project's environment and the SDK's `bin` first on the `PATH`, and connects
+  to it. The built program goes to `<temp>/forge-delve`, never into the project.
+- Requests: `launch` with `mode: debug` (Go Build), `mode: test` (Go Test), `mode: core`
+  (core dumps); `attach` with `mode: local` (Attach to Process) and `mode: remote` (a running
+  `dlv --headless --accept-multiclient` server, Go Remote configurations, `substitutePath`).
+- `request(cfg, env, go, root)` builds the `LaunchRequest` of a `go-build`, `go-test` or
+  `go-remote` configuration (program, arguments, working directory, environment,
+  `buildFlags`, test binary flags from `goforge_lang_go::debug_test`).
+
+## Used by
+
+- `app/src-tauri/src/commands/go.rs`: `sync_debug` registers the adapter while `forge.go` is
+  enabled (called by `commands/dap.rs`), `go_debug_request`, `go_delve_status`.
+- UI: the `delve` debug launcher in `app/ui/src/features/go/index.tsx`.
+
+## Dependencies
+
+- Workspace crates: [`forge-dap`](docs/guide/developer/crates/forge-dap.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`goforge-lang-go`](docs/guide/developer/crates/goforge-lang-go.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests for every mode. `tests/delve_smoke.rs` (ignored) debugs a small Go program with a
+real Delve and Go toolchain: breakpoint, stack, variables.
+
+```sh
+cargo test -p goforge-delve
+FORGE_DLV=$(go env GOPATH)/bin/dlv cargo test -p goforge-delve -- --ignored
+```
+
+
+---
+
+Source: docs/guide/developer/crates/goforge-pprof.md
+
+# goforge-pprof
+
+`packs/goforge/pprof` — the data of the Profiler tool window.
+
+## Purpose
+
+- `proto`: the protobuf wire format (varints, length-delimited fields, packed repeated
+  numbers, fixed 32/64-bit fields skipped), reading and writing. No protobuf library is
+  needed for `profile.proto`'s few messages.
+- `profile`: `decode` reads a profile, gzip compressed (`flate2`) or not: sample types,
+  samples (location ids, leaf first, and values), locations with their inlined lines,
+  functions, the string table, period and duration; frames are interned.
+- `view`: `view(profile, sample_index, options)` for one sample type — the top list (flat and
+  cumulative per function, sorted like `pprof -top`), the top-down call tree merged by
+  function, with nodes below `min_fraction` pruned. The UI draws the flame graph from the tree.
+- `builder`: `ProfileBuilder` writes profiles (tests) and `demo_profile` is the CPU profile of
+  the browser-mode demo.
+
+## Used by
+
+- IPC: `pprof_open` (`app/src-tauri/src/commands/go.rs`).
+- Browser mode: `crates/forge-wasm/src/go.rs` (`pprof_view`).
+- UI: `app/ui/src/features/go/ProfilerView.tsx`.
+
+## Dependencies
+
+- External: `serde`, `flate2` (MIT / Apache-2.0)
+
+## Tests
+
+`tests/fixtures/` holds a CPU and a memory profile written by `go test -cpuprofile` /
+`-memprofile`; the views of a known built profile are checked value by value.
+
+```sh
+cargo test -p goforge-pprof
 ```
 
 
