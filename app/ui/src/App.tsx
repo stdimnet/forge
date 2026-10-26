@@ -31,6 +31,7 @@ export function App() {
       lua: "main.lua",
       python: "src/shop_api/main.py",
       java: "src/main/java/com/acme/inventory/App.java",
+      kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
       react: "src/App.tsx",

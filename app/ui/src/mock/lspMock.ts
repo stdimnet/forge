@@ -19,6 +19,7 @@ import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo } from "./demoPythonProject";
 import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./demoJavaProject";
+import { cartMembers, isKotlinDemo, kotlinGlobals, orderMembers as kotlinOrderMembers } from "./demoKotlinProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -105,6 +106,8 @@ const SERVER = isLuaDemo()
     ? { id: "basedpyright", name: "basedpyright" }
     : isJavaDemo()
       ? { id: "jdtls", name: "Eclipse JDT LS" }
+    : isKotlinDemo()
+      ? { id: "kotlin-lsp", name: "Kotlin LSP" }
     : { id: "intelephense", name: "Intelephense" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
@@ -137,7 +140,10 @@ export const intelephenseMissingAtStart = () =>
   typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
 /** `?project=java&jdtls=missing`: the Java demo starts without Eclipse JDT LS. */
 const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
-let serverInstalled = isLuaDemo() || isPythonDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : !intelephenseMissingAtStart());
+/** `?project=kotlin&kotlin-lsp=missing`: the Kotlin demo starts without kotlin-lsp. */
+const kotlinLspMissingAtStart = () => isKotlinDemo() && new URLSearchParams(location.search).get("kotlin-lsp") === "missing";
+let serverInstalled =
+  isLuaDemo() || isPythonDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : !intelephenseMissingAtStart());
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {
@@ -152,7 +158,7 @@ function startServer() {
   setStatus({ ...base, state: "starting" });
   const steps = [0, 35, 70, 100];
   // JDT LS reports its startup and the Gradle import (`language/status`).
-  const message = (p: number) => (isJavaDemo() ? (p < 70 ? "Importing Gradle project(s)" : "Building workspace") : "Indexing");
+  const message = (p: number) => (isJavaDemo() || isKotlinDemo() ? (p < 70 ? "Importing Gradle project(s)" : isKotlinDemo() ? "Indexing" : "Building workspace") : "Indexing");
   steps.forEach((p, i) =>
     setTimeout(() => setStatus({ ...base, state: "busy", message: message(p), percentage: p }), 120 + i * 150),
   );
@@ -196,8 +202,23 @@ function javaCompletionAt(text: string, offset: number): EditorCompletionList {
   };
 }
 
+/** What kotlin-lsp completes in the Kotlin demo: members of `cart` / `order`, else globals. */
+function kotlinCompletionAt(text: string, offset: number): EditorCompletionList {
+  const line = text.slice(text.lastIndexOf("\n", offset - 1) + 1, offset);
+  const prefix = /\w*$/.exec(line)![0];
+  const before = line.slice(0, line.length - prefix.length);
+  const items = /\bcart\.$/.test(before) ? cartMembers : /\border\.$/.test(before) ? kotlinOrderMembers : /\.$/.test(before) ? [] : kotlinGlobals;
+  return {
+    isIncomplete: false,
+    items: items
+      .filter((i) => i.label.toLowerCase().startsWith(prefix.toLowerCase()))
+      .map((i, idx) => ({ ...i, sortText: String(idx).padStart(3, "0"), raw: { label: i.label } })),
+  };
+}
+
 export function completionAt(path: string, pos: LspPosition): EditorCompletionList {
   if (isJavaDemo()) return path.endsWith(".java") ? javaCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
+  if (isKotlinDemo()) return path.endsWith(".kt") ? kotlinCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
   // The simulated server is Intelephense: it completes PHP files only.
   if (!/\.php$/.test(path)) return { isIncomplete: false, items: [] };
   const text = docs[path] ?? "";
