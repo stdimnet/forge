@@ -3716,6 +3716,8 @@ dependencies = [
  "dirs 6.0.0",
  "flate2",
  "forge-langservers",
+ "forge-lsp",
+ "javaforge-lang-java",
  "serde",
  "serde_json",
  "tar",

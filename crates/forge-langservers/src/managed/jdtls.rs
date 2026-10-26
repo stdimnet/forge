@@ -112,6 +112,83 @@ pub struct Installation {
     pub version: String,
     /// `plugins/org.eclipse.equinox.launcher_<version>.jar`.
     pub launcher_jar: PathBuf,
+    /// The Java release the server needs to run (21 for 2024–2025 builds, 25 for newer).
+    pub java: u32,
+}
+
+/// Remembers [`required_java`] of an installation.
+const JAVA_MARKER: &str = ".forge-java";
+/// What JDT LS has needed at least since 1.36.
+const MIN_JAVA: u32 = 21;
+
+/// The Java releases bundle manifests require (`Require-Capability: osgi.ee;
+/// filter:="(&(osgi.ee=JavaSE)(version=25))"`, `Bundle-RequiredExecutionEnvironment:
+/// JavaSE-21`).
+pub fn manifest_java(manifest: &str) -> Option<u32> {
+    // Manifest lines wrap at 72 bytes; continuations start with a space.
+    let text = manifest.replace("\r\n", "\n").replace("\n ", "");
+    let mut best: Option<u32> = None;
+    let mut note = |v: Option<u32>| {
+        if let Some(v) = v {
+            best = Some(best.map_or(v, |b| b.max(v)));
+        }
+    };
+    for (i, _) in text.match_indices("osgi.ee=JavaSE)(version=") {
+        let rest = &text[i + "osgi.ee=JavaSE)(version=".len()..];
+        let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+        note(digits.parse().ok());
+    }
+    for line in text.lines() {
+        if let Some(envs) = line.strip_prefix("Bundle-RequiredExecutionEnvironment:") {
+            for env in envs.split(',') {
+                let v = env
+                    .trim()
+                    .trim_start_matches("JavaSE-")
+                    .trim_start_matches("1.");
+                note(v.parse().ok());
+            }
+        }
+    }
+    best
+}
+
+/// The Java release an installation needs: the highest any of its Eclipse bundles requires
+/// (cached in `.forge-java`), at least 21.
+pub fn required_java(dir: &Path) -> u32 {
+    if let Some(v) = std::fs::read_to_string(dir.join(JAVA_MARKER))
+        .ok()
+        .and_then(|s| s.trim().parse().ok())
+    {
+        return v;
+    }
+    let mut need = MIN_JAVA;
+    if let Ok(entries) = std::fs::read_dir(dir.join("plugins")) {
+        for e in entries.flatten() {
+            let path = e.path();
+            let name = e.file_name().to_string_lossy().into_owned();
+            if !name.starts_with("org.eclipse.") || !name.ends_with(".jar") {
+                continue;
+            }
+            let Ok(file) = std::fs::File::open(&path) else {
+                continue;
+            };
+            let Ok(mut zip) = zip::ZipArchive::new(file) else {
+                continue;
+            };
+            let Ok(mut entry) = zip.by_name("META-INF/MANIFEST.MF") else {
+                continue;
+            };
+            let mut text = String::new();
+            if std::io::Read::read_to_string(&mut entry, &mut text).is_ok() {
+                if let Some(v) = manifest_java(&text) {
+                    need = need.max(v);
+                }
+            }
+        }
+    }
+    // Forge's own installations are writable; a user's may not be.
+    let _ = std::fs::write(dir.join(JAVA_MARKER), need.to_string());
+    need
 }
 
 /// The equinox launcher jar of an installation.
@@ -141,6 +218,7 @@ pub fn inspect(dir: &Path) -> Option<Installation> {
         dir: dir.to_path_buf(),
         version,
         launcher_jar,
+        java: required_java(dir),
     })
 }
 
@@ -260,6 +338,26 @@ mod tests {
             format!("{sum}  {file}\n"),
         );
         tgz
+    }
+
+    #[test]
+    fn required_java_from_manifests() {
+        let m = "Manifest-Version: 1.0\r\nRequire-Capability: osgi.ee;filter:=\"(&(osgi.ee=JavaSE)(versi\r\n on=25))\"\r\nBundle-SymbolicName: x\r\n";
+        assert_eq!(manifest_java(m), Some(25));
+        assert_eq!(
+            manifest_java("Bundle-RequiredExecutionEnvironment: JavaSE-17\n"),
+            Some(17)
+        );
+        assert_eq!(
+            manifest_java("Bundle-RequiredExecutionEnvironment: JavaSE-1.8, JavaSE-11\n"),
+            Some(11)
+        );
+        assert_eq!(manifest_java("Manifest-Version: 1.0\n"), None);
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("plugins")).unwrap();
+        assert_eq!(required_java(tmp.path()), 21, "at least 21");
+        std::fs::write(tmp.path().join(".forge-java"), "25").unwrap();
+        assert_eq!(required_java(tmp.path()), 25, "cached");
     }
 
     #[test]

@@ -44,7 +44,8 @@ pub const PLUGIN_ID: &str = "forge.java";
 pub const SERVER_ID: &str = "jdtls";
 /// `{ id: "jdtls" | "jdk", event: managed::Event }` while something is installed.
 pub const INSTALL_EVENT: &str = "java://install";
-/// JDT LS needs this Java release to run.
+/// JDT LS needs at least this Java release to run (newer builds need more, see
+/// `jdtls::required_java`).
 const SERVER_MIN_MAJOR: u32 = 21;
 
 /// Run configuration types JavaForge builds.
@@ -118,16 +119,16 @@ fn project_jdk(state: &AppState, jdks: &[Jdk]) -> Option<Jdk> {
     javaforge_jdk::pick(jdks, Some(chosen.as_str()).filter(|c| !c.is_empty()), 0).cloned()
 }
 
-/// The JDK that runs JDT LS: `java.jdtls.jdk`, else the project JDK when it is 21+, else
-/// the newest 21+.
-fn server_jdk(state: &AppState, jdks: &[Jdk]) -> Option<Jdk> {
+/// The JDK that runs JDT LS (it needs `min` or newer; 21 for 2024–2025 builds, 25 for
+/// newer ones): `java.jdtls.jdk`, else the project JDK when it is new enough, else the
+/// newest that is.
+fn server_jdk(state: &AppState, jdks: &[Jdk], min: u32) -> Option<Jdk> {
     let chosen = setting(state, "java.jdtls.jdk");
     if !chosen.is_empty() {
-        return javaforge_jdk::inspect(Path::new(&chosen), "Added")
-            .filter(|j| j.major >= SERVER_MIN_MAJOR);
+        return javaforge_jdk::inspect(Path::new(&chosen), "Added").filter(|j| j.major >= min);
     }
     let project = project_jdk(state, jdks).map(|j| j.home);
-    javaforge_jdk::pick(jdks, project.as_deref(), SERVER_MIN_MAJOR).cloned()
+    javaforge_jdk::pick(jdks, project.as_deref(), min).cloned()
 }
 
 #[tauri::command]
@@ -227,9 +228,13 @@ fn jdtls_setup(
     root: &Path,
 ) -> std::result::Result<JdtlsSetup, String> {
     let install = installation(state).ok_or("Eclipse JDT Language Server is not installed")?;
-    let server = server_jdk(state, jdks).ok_or(
-        "Eclipse JDT LS needs a JDK 21 or newer: download one (Download JDK…) or choose it in Settings | Languages & Frameworks | Java",
-    )?;
+    let need = install.java.max(SERVER_MIN_MAJOR);
+    let server = server_jdk(state, jdks, need).ok_or_else(|| {
+        format!(
+            "Eclipse JDT LS {} needs a JDK {need} or newer: download one (Download JDK…) or choose it in Settings | Languages & Frameworks | Java",
+            install.version
+        )
+    })?;
     let cache = cache_dir().ok_or("no user cache directory for JDT LS")?;
     let name = root
         .file_name()
@@ -425,7 +430,13 @@ pub async fn java_status(app: AppHandle) -> Result<JavaStatus> {
             jdtls: install.as_ref().map(|i| i.version.clone()),
             jdtls_dir: install.as_ref().map(|i| i.dir.display().to_string()),
             java_debug: java_debug_jar().map(|j| j.display().to_string()),
-            server_jdk: server_jdk(&state, &jdks),
+            server_jdk: server_jdk(
+                &state,
+                &jdks,
+                install
+                    .as_ref()
+                    .map_or(SERVER_MIN_MAJOR, |i| i.java.max(SERVER_MIN_MAJOR)),
+            ),
             project_jdk: project,
             language_level: level,
             build,
