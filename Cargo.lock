@@ -8518,6 +8518,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "webforge-js-debug"
+version = "0.1.0"
+
+[[package]]
+name = "webforge-js-testing"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "webforge-lang-web"
 version = "0.1.0"
 dependencies = [

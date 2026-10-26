@@ -171,7 +171,8 @@ impl TestFrameworks {
     /// The tests of a file in a project that uses the frameworks `detected` (ids). When a
     /// detected framework claims the file, frameworks with detection rules (`detectable`)
     /// that the project does not use are skipped, so a `*.test.ts` file belongs to Vitest
-    /// in a Vitest project and to Jest in a Jest project; otherwise every framework is asked.
+    /// in a Vitest project and to Jest in a Jest project; otherwise, or when those find no
+    /// tests, every framework is asked.
     pub fn discover_in_project(
         &self,
         path: &str,
@@ -190,7 +191,12 @@ impl TestFrameworks {
             .map(|p| p.id().to_string())
             .filter(|id| detected.contains(id) || !detectable.contains(id))
             .collect();
-        self.discover(path, text, Some(&active))
+        let found = self.discover(path, text, Some(&active));
+        if found.is_empty() {
+            // The file names another framework (imports it): ask every framework.
+            return self.discover(path, text, None);
+        }
+        found
     }
 
     pub fn rerun_failed(
@@ -304,10 +310,15 @@ mod tests {
         let text = "describe(\"Cart\", function()\n  it(\"adds\", function() end)\nend)\n";
         let ids = ["busted".to_string(), "other".to_string()];
         let path = "spec/cart_spec.lua";
-        let found = |detected: &[String]| r.discover_in_project(path, text, detected, &ids).framework;
+        let found =
+            |detected: &[String]| r.discover_in_project(path, text, detected, &ids).framework;
         assert_eq!(found(&["other".into()]).as_deref(), Some("other"));
         assert_eq!(found(&["busted".into()]).as_deref(), Some("busted"));
-        assert_eq!(found(&[]).as_deref(), Some("busted"), "nothing detected: the first");
+        assert_eq!(
+            found(&[]).as_deref(),
+            Some("busted"),
+            "nothing detected: the first"
+        );
         assert_eq!(
             r.discover_in_project("x.fake", "", &["other".into()], &ids)
                 .framework
