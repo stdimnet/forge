@@ -330,7 +330,7 @@ fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestComman
 }
 
 #[cfg(test)]
-mod tests {
+mod unit {
     use super::*;
 
     const TEST: &str = "package com.acme.inventory;\nimport org.junit.jupiter.api.Test;\nclass InventoryTest {\n  @Test void addsStock() {}\n  @Test void removesStock() {}\n}\n";

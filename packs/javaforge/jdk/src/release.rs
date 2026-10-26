@@ -80,9 +80,8 @@ pub fn vendor_name(info: &ReleaseInfo) -> String {
         || i.contains("debian")
         || i.contains("red hat")
         || i.contains("n/a")
+        || info.implementor.trim().is_empty()
     {
-        "OpenJDK"
-    } else if info.implementor.trim().is_empty() {
         "OpenJDK"
     } else {
         return info.implementor.trim().to_string();

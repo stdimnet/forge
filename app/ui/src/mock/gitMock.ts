@@ -791,7 +791,26 @@ async function withMarkers(c: DemoConflict, theirs: string): Promise<string> {
   let pos = 0;
   for (const ch of model.chunks) {
     out += lines.slice(pos, ch.base.start).join("");
-    if (ch.kind === "conflict") out += `if (!web && !isLuaDemo() && !isPythonDemo() && !isJavaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+    if (ch.kind === "conflict") out += `<<<<<<< HEAD\n${ch.leftText}=======\n${ch.rightText}>>>>>>> ${theirs}\n`;
+    else out += ch.kind === "right" ? ch.rightText : ch.leftText;
+    pos = ch.base.end;
+  }
+  return out + lines.slice(pos).join("");
+}
+
+async function startConflictMerge(rev: string): Promise<void> {
+  merging.theirs = rev.replace(/^origin\//, "");
+  merging.theirsSha = resolveRev(rev) ?? shaOf("c3");
+  for (const [path, c] of Object.entries(demoConflicts())) {
+    merging.conflicts.set(path, c);
+    if (c.binary) continue;
+    const text = c.ours !== null && c.theirs !== null ? await withMarkers(c, merging.theirs) : (c.ours ?? c.theirs ?? "");
+    await invoke("fs_write_file", { path, contents: text });
+  }
+}
+
+// `?conflicts` opens the demo in the middle of that merge (screenshots).
+if (!web && !isLuaDemo() && !isPythonDemo() && !isJavaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)
