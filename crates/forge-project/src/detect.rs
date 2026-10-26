@@ -32,12 +32,12 @@ pub struct Framework {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectInfo {
-    /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `rust`, `go`, `python`.
+    /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `rust`, `go`, `python`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
-    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`.
+    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `javaforge`.
     pub packs: Vec<String>,
-    /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `docker`, `git`.
+    /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `maven`, `gradle`, `docker`, `git`.
     pub tools: Vec<String>,
     /// The framework (or, without one, the language) that best describes the project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -75,6 +75,7 @@ pub fn language_name(id: &str) -> &str {
         "rust" => "Rust",
         "go" => "Go",
         "python" => "Python",
+        "java" => "Java",
         other => other,
     }
 }
@@ -85,6 +86,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "php" => Some("phpforge"),
         "javascript" | "typescript" | "html" | "css" => Some("webforge"),
         "lua" => Some("luaforge"),
+        "java" => Some("javaforge"),
         _ => None,
     }
 }
@@ -148,6 +150,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
 
 const LANGUAGE_PRIORITY: &[&str] = &[
     "php",
+    "java",
     "typescript",
     "javascript",
     "lua",
@@ -376,6 +379,9 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
         c.framework("neovim", "Neovim", "lua", None, rel);
     }
 
+    // ---- Java (JavaForge): Maven and Gradle builds, Java sources
+    scan_java(dir, rel, c, &files);
+
     // ---- Other languages and tools
     if has("Cargo.toml") {
         c.language("rust");
@@ -393,6 +399,35 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
         || has("docker-compose.yaml")
     {
         c.tool("docker");
+    }
+}
+
+/// Maven (`pom.xml`, `mvnw`) and Gradle (`build.gradle(.kts)`, `settings.gradle(.kts)`,
+/// `gradlew`) builds, and Java sources (`*.java` in the folder or a `src/main/java` tree).
+/// A Kotlin-only Gradle build (no Java sources, `kotlin("jvm")`) still counts: JavaForge
+/// runs its Gradle tasks.
+fn scan_java(dir: &Path, _rel: &str, c: &mut Collector, files: &[String]) {
+    let has = |name: &str| files.iter().any(|f| f == name);
+    let maven = has("pom.xml");
+    let gradle = [
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+    ]
+    .iter()
+    .any(|f| has(f));
+    let sources = files.iter().any(|f| f.ends_with(".java"))
+        || dir.join("src/main/java").is_dir()
+        || dir.join("src/test/java").is_dir();
+    if maven {
+        c.tool("maven");
+    }
+    if gradle {
+        c.tool("gradle");
+    }
+    if maven || gradle || sources {
+        c.language("java");
     }
 }
 
@@ -937,6 +972,38 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), "init.lua", "vim.opt.number = true");
         assert_eq!(detect(dir.path()).primary.unwrap().id, "neovim");
+    }
+
+    #[test]
+    fn java_builds_and_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "settings.gradle.kts",
+            "rootProject.name = \"inventory\"",
+        );
+        write(
+            dir.path(),
+            "app/build.gradle.kts",
+            "plugins { application }",
+        );
+        write(
+            dir.path(),
+            "app/src/main/java/com/acme/App.java",
+            "class App {}",
+        );
+        let info = detect(dir.path());
+        assert_eq!(info.languages, vec!["java"]);
+        assert_eq!(info.packs, vec!["javaforge"]);
+        assert_eq!(info.tools, vec!["gradle"]);
+        assert_eq!(info.primary.as_ref().map(|p| p.name.as_str()), Some("Java"));
+
+        let maven = tempfile::tempdir().unwrap();
+        write(maven.path(), "pom.xml", "<project/>");
+        assert!(detect(maven.path()).uses("maven"));
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "Hello.java", "void main() {}");
+        assert!(detect(plain.path()).uses("javaforge"));
     }
 
     #[test]
