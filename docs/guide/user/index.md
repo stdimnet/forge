@@ -79,6 +79,7 @@ not finished, the page says so.
 | [Run targets (Run on)](run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
+| [JavaScript debugging and testing](javascript-debugging.md) | js-debug for Node.js, npm scripts, tests and Chrome/Edge (TypeScript through source maps, attach), Jest, Vitest, Mocha, Playwright, Cypress and `node --test` |
 | [Debugging](debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
 | [Terminal](terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](database.md) | data sources, consoles, data grid, export |

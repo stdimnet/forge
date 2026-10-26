@@ -84,6 +84,8 @@ javaforge-jdk.workspace = true
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 webforge-lang-web = { path = "../../packs/webforge/lang-web" }
+webforge-js-debug.workspace = true
+webforge-js-testing.workspace = true
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 luaforge-lang-lua.workspace = true

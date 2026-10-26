@@ -155,7 +155,17 @@ export function testFrameworkType(spec: TestFrameworkSpec, pluginId: string): Ru
       { key: "file", label: "File", kind: "path", required: true, visible: inScope("file", "test") },
       { key: "test", label: "Test", required: true, visible: inScope("test") },
       { key: "pattern", label: "Pattern", required: true, visible: inScope("pattern") },
-      { key: "executable", label: "Executable", kind: "path", placeholder: spec.program },
+      ...(spec.fields ?? []).map(
+        (f): RunConfigField => ({
+          key: f.key,
+          label: f.label,
+          kind: (["string", "path", "text", "enum", "bool"].includes(f.kind ?? "") ? f.kind : "string") as FieldKind,
+          placeholder: f.placeholder,
+          default: f.default,
+          options: f.options,
+        }),
+      ),
+      ...(spec.fields?.some((f) => f.key === "executable") ? [] : [{ key: "executable", label: "Executable", kind: "path" as const, placeholder: spec.program }]),
       { key: "testRunnerOptions", label: "Test runner options" },
     ],
     suggestName: (cfg) => {

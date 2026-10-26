@@ -49,6 +49,9 @@
 //! - `coverage`: Run with Coverage adds `args`, sets `env` and reads `file` (a path
 //!   relative to the working directory, or with `${reportDir}` / `${coverageFile}`) in
 //!   `format`.
+//! - `fields`: extra fields of the run configuration form (`key`, `label`, `kind`,
+//!   `placeholder`, `default`, `options`), stored in the configuration's options for a
+//!   code-backed provider that wraps the spec (WebForge's Node.js test runners).
 
 use std::collections::BTreeMap;
 
@@ -120,6 +123,32 @@ pub struct CoverageSpec {
     pub env: BTreeMap<String, String>,
 }
 
+/// A choice of an `enum` field.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct FieldOption {
+    pub value: String,
+    pub label: String,
+}
+
+/// An extra field of the framework's run configuration form, stored in the
+/// configuration's `options` (a Jest configuration's "Jest package" or "Node options").
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SpecField {
+    pub key: String,
+    pub label: String,
+    /// `string` (default), `path`, `text`, `enum` or `bool`.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub kind: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub placeholder: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub default: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub options: Vec<FieldOption>,
+}
+
 /// A test framework contribution.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -157,6 +186,9 @@ pub struct TestFrameworkSpec {
     pub coverage: Option<CoverageSpec>,
     /// Whether configurations of the framework can be debugged.
     pub debuggable: bool,
+    /// Extra fields of its run configuration form.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub fields: Vec<SpecField>,
 }
 
 /// The order of scopes in forms and menus.

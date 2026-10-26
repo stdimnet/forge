@@ -33,6 +33,7 @@ pub mod hierarchy;
 pub mod imports;
 pub mod injections;
 pub mod java;
+pub mod js_debug;
 pub mod json_schema;
 pub mod keymap;
 pub mod langservers;
