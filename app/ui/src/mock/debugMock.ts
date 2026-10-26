@@ -248,6 +248,11 @@ const bp = (spec: BreakpointSpec): Breakpoint => ({
   logExpression: spec.logExpression,
   temporary: spec.temporary || undefined,
   passCount: spec.passCount,
+  function: spec.function,
+  dataId: spec.dataId,
+  accessType: spec.accessType,
+  description: spec.description,
+  adapter: spec.adapter,
 });
 const state: BreakpointsSnapshot = {
   muted: false,
@@ -649,7 +654,12 @@ registerMock("debug_validate_web", (args) => {
 registerMock("debug_breakpoints", () => snapshot());
 registerMock("debug_breakpoint_add", (args) => {
   const spec = args.spec as BreakpointSpec;
-  const existing = state.breakpoints.find((x) => x.kind === "line" && spec.kind !== "exception" && x.file === spec.file && x.line === spec.line);
+  const existing = state.breakpoints.find(
+    (x) =>
+      (x.kind === "line" && (spec.kind ?? "line") === "line" && x.file === spec.file && x.line === spec.line) ||
+      (x.kind === "data" && spec.kind === "data" && x.dataId === spec.dataId) ||
+      (x.kind === "exception" && spec.kind === "exception" && !!spec.adapter && x.adapter === spec.adapter && x.exception === spec.exception),
+  );
   if (existing) return existing;
   const created = bp(spec);
   state.breakpoints.push(created);
