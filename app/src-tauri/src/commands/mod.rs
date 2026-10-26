@@ -36,6 +36,7 @@ pub mod java;
 pub mod js_debug;
 pub mod json_schema;
 pub mod keymap;
+pub mod kotlin;
 pub mod langservers;
 pub mod laravel;
 pub mod library;

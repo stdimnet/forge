@@ -64,6 +64,8 @@ impl RunState {
         // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
         tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
+        // KotlinForge: Kotest specs and JUnit tests in Kotlin files.
+        tests.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
         let program_settings = plugins
             .test_frameworks()
             .filter_map(|f| f.program_setting.clone())
@@ -349,9 +351,12 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
                 }
-                match crate::commands::java::command_line(state, &cfg, java_debug)? {
+                match crate::commands::kotlin::command_line(state, &cfg, java_debug)? {
                     Some(cmd) => cmd,
-                    None => runs.kinds.build(&cfg, &ctx)?,
+                    None => match crate::commands::java::command_line(state, &cfg, java_debug)? {
+                        Some(cmd) => cmd,
+                        None => runs.kinds.build(&cfg, &ctx)?,
+                    },
                 }
             };
             // PHPUnit and Pest: a Clover report with Xdebug or PCOV.

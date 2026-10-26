@@ -81,6 +81,7 @@ phpforge-fw-cms.workspace = true
 javaforge-build.workspace = true
 javaforge-lang-java.workspace = true
 javaforge-jdk.workspace = true
+kotlinforge-lang-kotlin.workspace = true
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 webforge-lang-web = { path = "../../packs/webforge/lang-web" }

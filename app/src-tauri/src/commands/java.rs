@@ -53,7 +53,8 @@ pub const APPLICATION: &str = "java-application";
 pub const MAVEN: &str = "maven";
 pub const GRADLE: &str = "gradle";
 pub const REMOTE: &str = "jvm-remote-debug";
-const TEST_TYPES: [&str; 2] = ["junit", "testng"];
+/// Kotest (KotlinForge) runs through the same builds.
+const TEST_TYPES: [&str; 3] = ["junit", "testng", "kotest"];
 
 /// Detected JDKs (detection reads many folders: cached until a refresh).
 #[derive(Default)]
@@ -64,7 +65,7 @@ pub struct JavaState {
 static JAVA_STATE: std::sync::OnceLock<JavaState> = std::sync::OnceLock::new();
 
 /// The JDK cache, shared by commands and run configurations.
-fn java_state() -> &'static JavaState {
+pub(crate) fn java_state() -> &'static JavaState {
     JAVA_STATE.get_or_init(JavaState::default)
 }
 
@@ -88,7 +89,7 @@ fn windows() -> bool {
 // ---- JDKs ----------------------------------------------------------------------------------
 
 /// Detected JDKs plus the ones added by hand (`java.jdks`).
-fn all_jdks(state: &AppState, java: &JavaState, refresh: bool) -> Vec<Jdk> {
+pub(crate) fn all_jdks(state: &AppState, java: &JavaState, refresh: bool) -> Vec<Jdk> {
     let mut cache = java.jdks.lock().expect("jdks lock");
     if refresh || cache.is_none() {
         *cache = Some(javaforge_jdk::detect(&javaforge_jdk::DetectEnv::system()));
@@ -114,7 +115,7 @@ fn all_jdks(state: &AppState, java: &JavaState, refresh: bool) -> Vec<Jdk> {
 }
 
 /// The project JDK: `java.projectJdk` (home or name), else the newest JDK.
-fn project_jdk(state: &AppState, jdks: &[Jdk]) -> Option<Jdk> {
+pub(crate) fn project_jdk(state: &AppState, jdks: &[Jdk]) -> Option<Jdk> {
     let chosen = setting(state, "java.projectJdk");
     javaforge_jdk::pick(jdks, Some(chosen.as_str()).filter(|c| !c.is_empty()), 0).cloned()
 }
@@ -387,7 +388,7 @@ pub struct JavaStatus {
 }
 
 /// The build in the project root (`None`: neither Maven nor Gradle).
-fn read_build(state: &AppState, backend: &dyn Backend) -> Option<BuildProject> {
+pub(crate) fn read_build(state: &AppState, backend: &dyn Backend) -> Option<BuildProject> {
     let files: Vec<String> = backend
         .list_dir("")
         .ok()?
@@ -494,7 +495,7 @@ pub struct BuildView {
     pub program: String,
 }
 
-fn exec_options(state: &AppState, tool: BuildTool, root: &Path) -> ExecOptions {
+pub(crate) fn exec_options(state: &AppState, tool: BuildTool, root: &Path) -> ExecOptions {
     let (wrapper, exe, offline) = match tool {
         BuildTool::Gradle => (
             "java.gradle.useWrapper",
@@ -589,7 +590,7 @@ pub(crate) fn handles(type_id: &str) -> bool {
 
 /// The JDK home a configuration runs with: its own (`interpreter` / option `jdk`), else
 /// the project JDK.
-fn jdk_home(state: &AppState, cfg: &RunConfiguration) -> Option<String> {
+pub(crate) fn jdk_home(state: &AppState, cfg: &RunConfiguration) -> Option<String> {
     let own = [cfg.interpreter.trim(), cfg.option("jdk").trim()]
         .into_iter()
         .find(|s| !s.is_empty())
@@ -790,7 +791,11 @@ async fn execute(app: &AppHandle, command: &str, arguments: Vec<Value>) -> Resul
 /// Application runs without an explicit class path: compile with JDT LS and ask java-debug
 /// for the class and module path of the main class.
 pub(crate) async fn resolve_launch(app: &AppHandle, cfg: &mut RunConfiguration) {
-    if cfg.type_id != APPLICATION || !cfg.option("classpath").trim().is_empty() {
+    // Kotlin applications run through the build (KotlinForge).
+    if cfg.type_id != APPLICATION
+        || !cfg.option("classpath").trim().is_empty()
+        || cfg.option("kotlin") == "true"
+    {
         return;
     }
     let state = app.state::<AppState>();
@@ -860,7 +865,7 @@ pub struct DebugPlan {
     pub run: bool,
 }
 
-fn free_port() -> Result<u16> {
+pub(crate) fn free_port() -> Result<u16> {
     let listener = std::net::TcpListener::bind("127.0.0.1:0")
         .map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
     Ok(listener

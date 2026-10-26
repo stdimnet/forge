@@ -1879,6 +1879,7 @@ dependencies = [
  "javaforge-build",
  "javaforge-jdk",
  "javaforge-lang-java",
+ "kotlinforge-lang-kotlin",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
  "phpforge-composer",

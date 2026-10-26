@@ -1,0 +1,249 @@
+# KotlinForge: Kotlin in the style of IntelliJ IDEA. The logic lives in
+# packs/kotlinforge/lang-kotlin (sources, mains, JUnit and Kotest, Kotlin/JVM and script
+# runs, ktlint / detekt reports, coroutine dumps); kotlin-lsp, ktlint and detekt are
+# installed on request by forge-langservers (managed::kotlin) and wired up by
+# app/src-tauri/src/commands/kotlin.rs. JDKs, Maven and Gradle come from JavaForge.
+
+id = "forge.kotlin"
+name = "Kotlin"
+version = "0.1.0"
+pack = "kotlinforge"
+vendor = "Forge"
+depends = ["forge.java"]
+description = "Kotlin/JVM: JetBrains' kotlin-lsp (or kotlin-language-server), Kotlin run configurations and scripts, JUnit 5 and Kotest, the Kotlin debugger with its Coroutines view, ktlint and detekt."
+projectTypes = ["kotlinforge"]
+
+[contributions]
+languages = ["kotlin"]
+
+[[contributions.commands]]
+id = "kotlin.installLanguageServer"
+title = "Install Kotlin Language Server (kotlin-lsp)"
+category = "Kotlin"
+
+[[contributions.commands]]
+id = "kotlin.inspectCode"
+title = "Run detekt on the Project"
+category = "Kotlin"
+
+[[contributions.commands]]
+id = "kotlin.ktlintFormat"
+title = "Format File with ktlint"
+category = "Kotlin"
+
+[[contributions.commands]]
+id = "kotlin.installLinters"
+title = "Download ktlint and detekt"
+category = "Kotlin"
+
+# kotlin-lsp serves DAP on a port it opens on request (`start_debug_server`); sessions attach
+# to a JVM's JDWP port and map Kotlin lines (SMAP) themselves.
+[[contributions.debugAdapters]]
+type = "kotlin"
+label = "Kotlin (kotlin-lsp)"
+languages = ["kt", "kts"]
+attachSchema = { type = "object", properties = { hostName = { type = "string", description = "Host of the JVM's JDWP agent" }, port = { type = "integer", description = "JDWP port" } } }
+
+# ---- Kotest on the shared test runner (forge-testing) -------------------------------------
+# Discovery (Kotest specs, and JUnit tests in Kotlin files), command lines through Gradle or
+# Maven and Rerun Failed Tests come from `kotlinforge_lang_kotlin::KotlinTests`, registered
+# under the same id.
+
+[[contributions.testFrameworks]]
+id = "kotest"
+name = "Kotest"
+description = "Run Kotest specs (FunSpec, StringSpec, DescribeSpec, BehaviorSpec) through Gradle or Maven: all, a package, a spec or one test."
+icon = "flask-conical"
+language = "kotlin"
+detect = { dependencies = [{ file = "build.gradle.kts", contains = "io.kotest" }, { file = "build.gradle", contains = "io.kotest" }, { file = "pom.xml", contains = "io.kotest" }] }
+testFiles = ["**/src/test/kotlin/**/*.kt", "*Test.kt", "*Tests.kt", "*Spec.kt"]
+report = "jUnitFile"
+junitFlavor = "kotlin"
+coverage = { file = "build/reports/jacoco/test/jacocoTestReport.xml", format = "jacoco" }
+debuggable = true
+
+# ---- Settings | Languages & Frameworks | Kotlin -----------------------------------------
+
+[[contributions.settings]]
+key = "kotlin.lsp.server"
+title = "Language server"
+description = "kotlin-lsp is JetBrains' official server (IntelliJ's Kotlin analysis); kotlin-language-server is fwcd's community server, used from the PATH or the path below."
+type = "enum"
+options = [
+  { value = "kotlin-lsp", label = "Kotlin LSP (JetBrains)" },
+  { value = "kotlin-language-server", label = "Kotlin Language Server (fwcd)" },
+]
+default = "kotlin-lsp"
+group = "lang.kotlin"
+section = "Language Server"
+order = 0
+
+[[contributions.settings]]
+key = "kotlin.lsp.autoInstall"
+title = "Install kotlin-lsp"
+description = "When a Kotlin project opens without the language server: ask, download it from download.jetbrains.com, or never."
+type = "enum"
+options = [
+  { value = "ask", label = "Ask" },
+  { value = "always", label = "Always" },
+  { value = "never", label = "Never" },
+]
+default = "ask"
+group = "lang.kotlin"
+section = "Language Server"
+order = 1
+
+[[contributions.settings]]
+key = "kotlin.lsp.path"
+title = "Server path"
+description = "An unpacked kotlin-lsp folder (or its bin/intellij-server), or the kotlin-language-server launcher. Empty: the one Forge installed, else the PATH."
+type = "path"
+default = ""
+group = "lang.kotlin"
+section = "Language Server"
+order = 2
+
+[[contributions.settings]]
+key = "kotlin.lsp.jdk"
+title = "JDK for the build import"
+description = "JAVA_HOME the language server imports Gradle and Maven builds with. Empty: the project JDK."
+type = "path"
+default = ""
+group = "lang.kotlin"
+section = "Language Server"
+order = 3
+
+[[contributions.settings]]
+key = "kotlin.lsp.jvmOptions"
+title = "JVM options"
+description = "Options of the server's JVM, e.g. -Xmx4g."
+type = "string"
+default = ""
+group = "lang.kotlin"
+section = "Language Server"
+order = 4
+
+[[contributions.settings]]
+key = "kotlin.run.runner"
+title = "Run Kotlin applications with"
+description = "Kotlin programs need the Kotlin runtime on the class path: they run through the build (a Gradle task Forge adds with an init script, or Maven exec:java), or are compiled with kotlinc."
+type = "enum"
+options = [
+  { value = "auto", label = "The project's build (Gradle, else Maven), else kotlinc" },
+  { value = "gradle", label = "Gradle" },
+  { value = "maven", label = "Maven" },
+  { value = "kotlinc", label = "kotlinc" },
+]
+default = "auto"
+group = "lang.kotlin"
+section = "Run"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "kotlin.compiler.path"
+title = "Kotlin compiler"
+description = "The kotlinc of a Kotlin compiler (its kotlin runs scripts). Empty: kotlinc on the PATH."
+type = "path"
+default = ""
+group = "lang.kotlin"
+section = "Run"
+order = 11
+
+[[contributions.settings]]
+key = "kotlin.debug.debugger"
+title = "Debugger"
+description = "kotlin-lsp's debugger knows Kotlin (breakpoints in .kt files, inline functions, coroutines); java-debug (Eclipse JDT LS) binds breakpoints in Java files only."
+type = "enum"
+options = [
+  { value = "kotlin-lsp", label = "Kotlin (kotlin-lsp)" },
+  { value = "java-debug", label = "Java (java-debug)" },
+]
+default = "kotlin-lsp"
+group = "lang.kotlin"
+section = "Debugger"
+order = 20
+
+[[contributions.settings]]
+key = "kotlin.ktlint.enabled"
+title = "Check files with ktlint"
+description = "Show ktlint's findings in the editor and the Problems view."
+type = "bool"
+default = true
+group = "lang.kotlin"
+section = "ktlint"
+order = 30
+
+[[contributions.settings]]
+key = "kotlin.ktlint.path"
+title = "ktlint"
+description = "The ktlint executable or ktlint-cli-*-all.jar. Empty: ktlint on the PATH, else the one Forge downloaded."
+type = "path"
+default = ""
+group = "lang.kotlin"
+section = "ktlint"
+order = 31
+
+[[contributions.settings]]
+key = "kotlin.formatter"
+title = "Reformat Code with"
+type = "enum"
+options = [
+  { value = "lsp", label = "The language server (IntelliJ code style)" },
+  { value = "ktlint", label = "ktlint format" },
+]
+default = "lsp"
+group = "lang.kotlin"
+section = "ktlint"
+order = 32
+
+[[contributions.settings]]
+key = "kotlin.ktlint.formatOnSave"
+title = "Run ktlint format on save"
+type = "bool"
+default = false
+group = "lang.kotlin"
+section = "ktlint"
+project = true
+order = 33
+
+[[contributions.settings]]
+key = "kotlin.detekt.enabled"
+title = "Check the project with detekt"
+description = "Run detekt after saving a Kotlin file and show its findings in the Problems view."
+type = "bool"
+default = true
+group = "lang.kotlin"
+section = "detekt"
+order = 40
+
+[[contributions.settings]]
+key = "kotlin.detekt.path"
+title = "detekt"
+description = "The detekt executable or detekt-cli-*-all.jar. Empty: detekt on the PATH, else the one Forge downloaded."
+type = "path"
+default = ""
+group = "lang.kotlin"
+section = "detekt"
+order = 41
+
+[[contributions.settings]]
+key = "kotlin.detekt.config"
+title = "Configuration file"
+description = "Empty: config/detekt/detekt.yml (the Gradle plugin's default) when it exists."
+type = "path"
+default = ""
+group = "lang.kotlin"
+section = "detekt"
+project = true
+order = 42
+
+[[contributions.settings]]
+key = "kotlin.download.repository"
+title = "Maven repository for ktlint and detekt"
+description = "Where Forge downloads the pinned ktlint and detekt jars from (SHA-256 checked)."
+type = "string"
+default = "https://repo1.maven.org/maven2"
+group = "lang.kotlin"
+section = "Downloads"
+order = 50
