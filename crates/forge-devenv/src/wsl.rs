@@ -36,14 +36,21 @@ pub fn decode_output(bytes: &[u8]) -> String {
         || (bytes.len() >= 2 && {
             // ASCII text in UTF-16LE: every second byte is zero.
             let pairs = bytes.len() / 2;
-            let zeros = bytes.chunks_exact(2).filter(|c| c[1] == 0).count();
+            let zeros = bytes
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .filter(|c| c[1] == 0)
+                .count();
             pairs > 0 && zeros * 2 > pairs
         });
     if utf16 {
         let body = bytes.strip_prefix(&[0xFF, 0xFE]).unwrap_or(bytes);
         let units: Vec<u16> = body
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_le_bytes(*c))
             .collect();
         String::from_utf16_lossy(&units).replace('\0', "")
     } else {
