@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -931,7 +931,8 @@ or without Git, for local and remote projects.
 - Detection reads markers in the project root and one level below (`composer.json`/`composer.lock`,
   `artisan`, `bin/console`, `wp-config.php`, `package.json`/lock files/`node_modules`, `angular.json`,
   `tsconfig.json`, `*.lua`, `.luarc.json`, `*.rockspec`, `conf.lua`, `init.lua`, `Cargo.toml`, `go.mod`,
-  `pyproject.toml`, `Dockerfile`/`compose.yaml`, `.git`).
+  `*.py`, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`,
+  `uv.lock`, `poetry.lock`, `Dockerfile`/`compose.yaml`, `.git`).
 - `project_detect() -> ProjectInfo { languages, frameworks: { id, name, version?, language, dir? }[],
   packs, tools, primary? }`; `workspace_open` also emits `project://detected` `{ root, info }`, and
   `workspace_recent` returns each project's `primary` for the Welcome screen badge.
@@ -1135,10 +1136,14 @@ or without Git, for local and remote projects.
   debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),
   `symfony_console_run`, `cli_tools_run`, `composer_audit`, `php_composer_outdated`,
   `agent_start`, `debug_listen_start`, `debug_web_page_start`, `save_actions_run_tools`,
-  `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`). Degraded instead
+  `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`), and every Python
+  run (the `python` configuration type, package commands and new environments all start
+  through `run_start`). Degraded instead
   of refused: `laravel_routes` (static parsing), `cli_tools_commands` (built-in commands),
-  `lua_format` and the interpreter probes (refused only for programs inside the project or
-  Docker Compose services), `terminal_open` (shell and environment from the user layer only,
+  `lua_format`, `python_format` and the interpreter probes (`python_interpreter_info`,
+  `python_packages_list`; refused only for programs inside the project, such as a project
+  `.venv`, or Docker Compose services), `python_interpreters_detect` (asks `poetry` / `pipenv`
+  only outside Safe Mode), `terminal_open` (shell and environment from the user layer only,
   `Settings::get_without_project_as`). Language servers: `commands::lsp::SafeModeLauncher`
   wraps the backend's launcher and refuses project-local binaries and
   `forge_trust::SERVERS_RUNNING_PROJECT_CODE`. New commands that start project programs must
@@ -1283,6 +1288,13 @@ or without Git, for local and remote projects.
      for newer versions of the recorded packages at most once a day
      (`<dir>/.forge-update-check.json`, setting `langservers.updates.check`);
      `langservers_update({ package })` installs the latest version and restarts the servers.
+  5. Binary wheels from PyPI (ruff, ty): a catalog option `{ tool = "pypi", command = ["pypi",
+     "install", "<name>"] }` (`managed::pypi_package`) downloads the latest release's wheel for
+     the platform (`manylinux` before `musllinux`, `macosx_*_arm64` / `x86_64` / `universal2`,
+     `win_amd64` / `win_arm64`) from `<index>/pypi/<name>/json`, checks it against the
+     `digests.sha256` of that answer, copies `<name>-<version>.data/scripts/<name>` to
+     `<managed dir>/bin` (searched by the detector after `node_modules/.bin`) and records the
+     version in `<managed dir>/pypi-tools.json` (`managed::pypi`).
   Downloads report `langservers://install-progress` `{ id, label, done, total }` (status bar
   `langservers.install`, `src/features/langservers/InstallStatus.tsx`) and their steps as
   `install-output` lines. `ServerRow.install[].managed` marks such options; the settings page
@@ -2117,9 +2129,69 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `interpreterSetting`; LÖVE games run as `love <dir>`. Browser mode: `?project=lua` opens the
   LÖVE demo game `pixel-dungeon` (`mock/demoLuaProject.ts`).
 
+## PyForge (`packs/pyforge/*`)
+
+- Plugins (`app/src-tauri/plugins/pyforge.toml`): `forge.python` (file types `python` and
+  `pip-requirements`, Reformat Code, the language server settings; always active) and
+  `forge.python-env` (`projectTypes = ["pyforge"]`: interpreters, the `pythonPackages` tool
+  window, requirements inspections, the `python` run configuration type). `forge-project`
+  reports the `python` language (pack `pyforge`) for Python files in the root, two or more in a
+  folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile` or
+  `environment.yml`, and the tools `uv`, `poetry`, `pipenv`, `conda`.
+- Crates: `pyforge-lang-python` (pure, also WebAssembly: PEP 440 / PEP 508, dependency files
+  with positions, imports, inspections, completion contexts, run arguments and markers),
+  `pyforge-interpreters` (model and settings, probes, detection, new environments; remote kinds
+  wrap through `phpforge_interpreters::command::wrap` with `Program::Other(python)` and the PHP
+  interpreters' compose / SSH / WSL mappings via `commands::php_interpreters::prepare`) and
+  `pyforge-packages` (installed packages via an `importlib.metadata` script, pip / uv / Poetry /
+  Pipenv commands, PyPI JSON and search; feature `net`: the cached client,
+  `<cache dir>/forge/pypi`).
+- Settings: `python.interpreter` (a local path or a configured interpreter's name; empty = the
+  project's own environment, found without running anything), `python.interpreters` (user) and
+  `python.projectInterpreters` (project) `objects`; `python.formatter` (`ruff` | `black` |
+  `lsp` | `none`), `python.ruff.path`, `python.black.path`, `python.lsp.useEnvironmentTools`,
+  `python.packages.pypi`, `python.packages.index`, `python.inspections.*`. The language server
+  planner reads `python.interpreter` (`EXTRA_SETTINGS_PREFIXES`): its folder is searched for
+  servers first (`DetectEnv::extra_dirs`, plus the project's `.venv/bin` and `venv/bin`) and
+  basedpyright / Pyright get it as `python.pythonPath`. The catalog has basedpyright (npm,
+  managed), Pyright, ty (preview, off) and Ruff (`ruff server`; ty and ruff from PyPI wheels).
+- IPC (`app/ui/src/ipc/python.ts`, `commands/python.rs`; offsets UTF-16, lines 0-based):
+  `python_interpreter_current() -> { interpreter, label, automatic } | null`,
+  `python_interpreters_detect() -> { path, kind, version, envDir, project }[]`,
+  `python_interpreter_info({ interpreter }) -> { version, implementation, prefix, basePrefix,
+  executable, platform }`, `python_environment_plan({ request: { kind, location,
+  baseInterpreter, pythonVersion, installDependencies } }) -> { steps: CommandLine[], python }`,
+  `python_packages_list({ interpreter? }) -> { interpreter, manager, packages: { name, version,
+  modules }[] } | null` (also remembered for the inspections),
+  `python_packages_command({ action: "install" | "uninstall" | "upgrade", packages,
+  interpreter? }) -> CommandLine`, `python_packages_latest({ names }) -> Record<name,
+  version>`, `python_packages_search({ query }) -> { name, version, summary }[]`,
+  `python_package_info({ name }) -> PypiPackage`, `python_inspect({ path, content }) ->
+  { line, start, end, severity, message, code, fixes }[]` (fixes `installRequirements` |
+  `addRequirement` | `ignore`), `python_add_requirement({ requirement, target, current? }) ->
+  { path, text }`, `python_complete({ path, content, offset }) -> { from, items } | null`,
+  `python_run_markers({ content })`, `python_format({ path, content }) -> string | null`,
+  `python_dependencies({ request: { path, content } }) -> DepFile`. Command lines (packages,
+  new environments) are started by the UI through `run_start` (hidden run configuration type
+  `python-command` with `buildCommand`), so they stream into the Run tool window and are
+  refused in Safe Mode.
+- Runs: `run::build` builds the `python` type with `commands::python::build_run` (`[options]
+  (<script> | -m <module>) [parameters]`, `PYTHONUNBUFFERED=1`) through the configuration's or
+  the project's interpreter, with output path mappings for remote ones.
+- UI (`app/ui/src/features/python`): the status item `python.interpreter` with the switch popup,
+  Settings | Project | Python Interpreter (`project.python-interpreter`, settings group
+  `Project`) and Languages & Frameworks | Python (`lang.python`, schema plus
+  `LanguageServersPage groups={["Python"]}`), the Add Python Interpreter dialog, the Python
+  Packages tool window (`ActivatePythonPackagesToolWindow`), inspections published as
+  diagnostics (source `pyforge`) from a line marker provider that also draws ▶ on `__main__`
+  guards, `Alt+Enter` fixes (`Python.ApplyFix`), completion in dependency files and a format
+  provider. `features/languages/requirements.ts` highlights requirements files. Browser mode:
+  `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
+  `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
+
 ## Scripting and config language packs
 
-- `app/ui/src/features/languages/` holds the packs for Bash, Python, YAML, JSON, INI, `.conf`,
+- `app/ui/src/features/languages/` holds the packs for Bash, Python (with pip requirements files; PyForge adds the rest, see above), YAML, JSON, INI, `.conf`,
   dotenv, ignore files, Dockerfile, Docker Compose, Postfix (`main.cf`, `master.cf`), E-Mail and
   Symfony services. Each file calls `registerLanguage` (the syntax mode for a file type id; same
   ids replace the built-in modes in `src/editor/languages.ts`) and `registerEditorExtension`; `shared.ts` has the stream parser token

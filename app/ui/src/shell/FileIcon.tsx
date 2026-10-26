@@ -12,6 +12,7 @@ import {
   Lock,
   Mail,
   Mailbox,
+  Package,
   Settings2,
 } from "lucide-solid";
 import { Dynamic } from "solid-js/web";
@@ -48,7 +49,10 @@ const byExt: Record<string, Spec> = {
   tsx: { icon: FileCode, color: "#4f8fe0" },
   jsx: { icon: FileCode, color: "#e8d44d" },
   py: { icon: FileCode, color: "#4f8fe0" },
-  pyi: { icon: FileCode, color: "#4f8fe0" },
+  pyw: { icon: FileCode, color: "#4f8fe0" },
+  pyx: { icon: FileCode, color: "#4f8fe0" },
+  pxd: { icon: FileCode, color: "#4f8fe0" },
+  pyi: { icon: FileCode, color: "#6aa5e8" },
   go: { icon: FileCode, color: "#4fc3e0" },
   rs: { icon: FileCode, color: "#d08050" },
   css: { icon: FileCode, color: "#5aa0e0" },
@@ -68,6 +72,8 @@ for (const ext of ["inc", "phtml", "module", "install", "theme", "profile", "eng
 const ignoreFile = /^\.(?:\w+)?ignore$|^\.gitignore_global$/;
 const composeFile = /^(?:docker-compose|compose)(?:\..+)?\.ya?ml$/i;
 const dockerfile = /^(?:Dockerfile|Containerfile)(?:\..+)?$/i;
+// Python dependency files (pip, Pipenv, Poetry, uv).
+const pythonDeps = /^(?:(?:requirements|constraints)[\w.-]*\.(?:txt|in)|Pipfile|Pipfile\.lock|poetry\.lock|uv\.lock)$/;
 const shellDotfile = /^\.(?:bashrc|bash_profile|bash_login|bash_logout|bash_aliases|profile|zshrc|zprofile|envrc)$/;
 
 function specFor(name: string): Spec {
@@ -75,6 +81,7 @@ function specFor(name: string): Spec {
   if (ignoreFile.test(name)) return { icon: EyeOff, color: "#a0a0aa" };
   if (composeFile.test(name) || dockerfile.test(name)) return byExt.dockerfile;
   if (shellDotfile.test(name)) return byExt.sh;
+  if (pythonDeps.test(name)) return { icon: Package, color: "#e5b449" };
   if (/^\.env(?:\..+)?$/.test(name)) return byExt.env;
   const ext = name.startsWith(".") ? name.slice(1).split(".")[0] : name.split(".").pop()!;
   return byExt[ext.toLowerCase()] ?? { icon: File, color: "var(--fg-muted)" };

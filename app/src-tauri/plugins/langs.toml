@@ -21,21 +21,6 @@ interpreters = ["sh", "bash", "zsh", "ksh", "dash", "ash"]
 indentSize = 2
 
 [[plugin]]
-id = "forge.python"
-name = "Python"
-version = "0.1.0"
-pack = "scriptforge"
-vendor = "Forge"
-description = "Python editing with scope-aware completion and and syntax checks. Pyright and other servers come from Settings > Language Servers."
-
-[[plugin.contributions.fileTypes]]
-id = "python"
-name = "Python"
-extensions = ["py", "pyw", "pyi", "pyx", "pxd", "gyp"]
-fileNames = ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"]
-interpreters = ["python"]
-
-[[plugin]]
 id = "forge.yaml"
 name = "YAML"
 version = "0.1.0"

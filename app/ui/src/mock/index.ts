@@ -67,6 +67,7 @@ import "./cliToolsMock";
 import "./symfonyMock";
 import "./wordpressMock";
 import "./luaMock";
+import "./pythonMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

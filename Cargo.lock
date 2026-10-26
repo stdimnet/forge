@@ -1888,6 +1888,9 @@ dependencies = [
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "phpforge-test-frameworks",
+ "pyforge-interpreters",
+ "pyforge-lang-python",
+ "pyforge-packages",
  "regex-lite",
  "serde",
  "serde_json",
@@ -2687,6 +2690,9 @@ dependencies = [
  "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
+ "pyforge-interpreters",
+ "pyforge-lang-python",
+ "pyforge-packages",
  "regex-lite",
  "serde",
  "serde_json",
@@ -5450,6 +5456,41 @@ dependencies = [
  "bitflags 2.13.2",
  "memchr",
  "unicase",
+]
+
+[[package]]
+name = "pyforge-interpreters"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "phpforge-interpreters",
+ "pyforge-lang-python",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "pyforge-lang-python"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
+name = "pyforge-packages"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "pyforge-interpreters",
+ "pyforge-lang-python",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

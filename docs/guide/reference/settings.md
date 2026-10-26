@@ -629,6 +629,32 @@ Page id `lang.lua`.
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
 | `lua.busted.path` | path | `busted` | user | Testing | busted executable — Runs busted test configurations that do not set their own executable. |
 
+### Languages & Frameworks | Python
+
+Page id `lang.python`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.formatter` | enum: `ruff`, `black`, `lsp`, `none` | `ruff` | user, project | Formatter | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this formatter for Python files; pyproject.toml / ruff.toml settings are honoured. |
+| `python.ruff.path` | path | `""` | user | Formatter | ruff executable — Leave empty to use the interpreter's environment, Forge's download or PATH. |
+| `python.black.path` | path | `""` | user | Formatter | Black executable — Leave empty to use the interpreter's environment or PATH. |
+| `python.lsp.useEnvironmentTools` | bool | `true` | user | Language Servers | Use language servers from the interpreter's environment — basedpyright, ruff and ty installed in the selected environment (or the project's .venv) start before Forge's own downloads and PATH. |
+| `python.packages.pypi` | bool | `true` | user | Packages | Look up packages on PyPI — Latest versions, search and version completion come from PyPI (cached for 12 hours in Forge's cache folder). |
+| `python.packages.index` | string | `https://pypi.org` | user | Packages | Package index — PyPI or a mirror with the same JSON API. |
+| `python.inspections.requirements` | bool | `true` | user | Inspections | Report unsatisfied requirements — Dependencies in requirements files and pyproject.toml that are not installed in the interpreter, with "Install requirement". |
+| `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
+| `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
+
+### Project | Python Interpreter
+
+Page id `project.python-interpreter` (edited on the page, not as rows).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.interpreter` | string | `""` | user, project |  | Python Interpreter — The project's interpreter: the path of a local python executable (a detected environment) or the name of a configured interpreter. |
+| `python.interpreters` | objects | `[]` | user |  | Python interpreters — Interpreters available in every project: local, Docker, Docker Compose, SSH and WSL. |
+| `python.projectInterpreters` | objects | `[]` | user, project |  | Python interpreters of this project |
+
 ### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
 
 Page id `lang.json-schema` (plugin `forge.json-schema`). See [JSON Schema](../user/json-schema.md).

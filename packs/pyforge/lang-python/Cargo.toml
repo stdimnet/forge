@@ -1,0 +1,11 @@
+[package]
+name = "pyforge-lang-python"
+description = "PyForge: Python language support (PEP 440 versions and specifiers, PEP 508 requirements, requirements.txt and pyproject.toml dependencies, imports, requirements inspections and completion, run configurations; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true

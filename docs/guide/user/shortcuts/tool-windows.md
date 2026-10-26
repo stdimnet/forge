@@ -255,6 +255,14 @@ Shows or hides the npm tool window.
 
 More: [WebForge](../../user/webforge.md#npm-tool-window)
 
+## Python Packages tool window
+
+**Shortcut:** — · macOS — · action id `ActivatePythonPackagesToolWindow`
+
+Shows or hides the Python Packages tool window.
+
+More: [PyForge](../../user/python.md#python-packages-tool-window)
+
 ## Doctrine tool window
 
 **Shortcut:** — · macOS — · action id `Doctrine.ShowEntities`

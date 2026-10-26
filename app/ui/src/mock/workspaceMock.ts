@@ -19,13 +19,15 @@ import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
+import { isPythonDemo, pythonDemoFiles, pythonDemoName } from "./demoPythonProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
-// `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module.
+// `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
+// the FastAPI service of PyForge.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
   : isWordPressDemo()
@@ -34,6 +36,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
       ? { ...drupalDemoFiles }
       : isLuaDemo()
     ? { ...luaDemoFiles }
+    : isPythonDemo()
+    ? { ...pythonDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -47,6 +51,8 @@ export const mockProjectName = isSymfonyDemo()
       ? drupalDemoName
       : isLuaDemo()
     ? luaDemoName
+    : isPythonDemo()
+    ? pythonDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.
@@ -99,6 +105,7 @@ registerMock("workspace_recent", () =>
     { name: "symfony-api", root: "~/Projects/symfony-api" },
     { name: "storefront-ui", root: "~/Projects/storefront-ui" },
     { name: "pixel-dungeon", root: "~/Games/pixel-dungeon" },
+    { name: "shop-api", root: "~/Projects/shop-api" },
     { name: "dotfiles.nvim", root: "~/.config/nvim" },
     { name: "legacy-crm", root: "~/Work/legacy-crm" },
   ].map(({ primaryOf, ...p }: { name: string; root: string; primaryOf?: string }) => ({

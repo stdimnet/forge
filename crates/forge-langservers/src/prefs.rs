@@ -26,6 +26,11 @@ pub const LUA_LIBRARIES_KEY: &str = "langservers.lua.libraries";
 /// are written and whether TypeScript gets `import type`.
 pub const JS_IMPORT_PATHS_KEY: &str = "javascript.autoImport.pathStyle";
 pub const TS_TYPE_IMPORTS_KEY: &str = "javascript.autoImport.typeImports";
+/// The project's Python interpreter (PyForge): a local executable path or a configured
+/// interpreter's name.
+pub const PYTHON_INTERPRETER_KEY: &str = "python.interpreter";
+/// Start basedpyright, ruff and ty from the selected environment when it has them.
+pub const PYTHON_ENV_TOOLS_KEY: &str = "python.lsp.useEnvironmentTools";
 
 /// Settings key of a per-server value (`enabled`, `path` or `settings`).
 pub fn server_key(id: &str, field: &str) -> String {
@@ -82,6 +87,10 @@ pub struct Prefs {
     pub js_import_paths: String,
     /// The TypeScript server's `preferTypeOnlyAutoImports`.
     pub ts_type_imports: bool,
+    /// The project's local Python executable (`python.pythonPath` of Pyright-based servers).
+    pub python_path: Option<PathBuf>,
+    /// Look for Python language servers in the interpreter's environment first.
+    pub python_env_tools: bool,
     pub servers: HashMap<String, ServerPrefs>,
 }
 
@@ -95,6 +104,8 @@ impl Default for Prefs {
             lua_libraries: Vec::new(),
             js_import_paths: "shortest".into(),
             ts_type_imports: false,
+            python_path: None,
+            python_env_tools: true,
             servers: HashMap::new(),
         }
     }
@@ -152,8 +163,31 @@ impl Prefs {
             ts_type_imports: get(TS_TYPE_IMPORTS_KEY)
                 .and_then(|v| v.as_bool())
                 .unwrap_or(defaults.ts_type_imports),
+            // Only a path names a local executable; a configured interpreter (Docker, SSH)
+            // is not something the servers can run.
+            python_path: string(PYTHON_INTERPRETER_KEY)
+                .map(|p| p.trim().to_string())
+                .filter(|p| p.contains('/') || p.contains('\\'))
+                .map(PathBuf::from)
+                .filter(|p| p.is_absolute()),
+            python_env_tools: get(PYTHON_ENV_TOOLS_KEY)
+                .and_then(|v| v.as_bool())
+                .unwrap_or(defaults.python_env_tools),
             servers,
         }
+    }
+
+    /// The selected Python environment's executable folder, searched for language
+    /// servers first (empty when it is off or no local interpreter is selected).
+    pub fn python_tool_dirs(&self) -> Vec<PathBuf> {
+        if !self.python_env_tools {
+            return Vec::new();
+        }
+        self.python_path
+            .as_deref()
+            .and_then(std::path::Path::parent)
+            .map(|d| vec![d.to_path_buf()])
+            .unwrap_or_default()
     }
 
     pub fn server(&self, id: &str) -> ServerPrefs {
@@ -173,6 +207,32 @@ impl Prefs {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(unix)]
+    #[test]
+    fn python_interpreter_paths() {
+        let load = |v: Value, tools: bool| {
+            Prefs::load(
+                |k| match k {
+                    PYTHON_INTERPRETER_KEY => Some(v.clone()),
+                    PYTHON_ENV_TOOLS_KEY => Some(json!(tools)),
+                    _ => None,
+                },
+                [],
+            )
+        };
+        let p = load(json!("/work/shop/.venv/bin/python"), true);
+        assert_eq!(
+            p.python_tool_dirs(),
+            vec![PathBuf::from("/work/shop/.venv/bin")]
+        );
+        assert!(load(json!("/work/shop/.venv/bin/python"), false)
+            .python_tool_dirs()
+            .is_empty());
+        // A configured interpreter's name is not a local executable.
+        assert_eq!(load(json!("Docker python:3.12"), true).python_path, None);
+        assert_eq!(load(json!("venv/bin/python"), true).python_path, None);
+    }
 
     #[test]
     fn reads_global_and_per_server_values() {

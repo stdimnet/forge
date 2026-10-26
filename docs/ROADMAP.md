@@ -113,7 +113,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] KotlinForge: Kotlin (kotlin-lsp, managed), Kotlin/JVM run configurations, Kotlin scripts (`.kts`), JUnit 5/Kotest runners, Kotlin debugger (coroutines view), ktlint and detekt
 - [ ] JavaForge: Spring Boot (run dashboard, beans, endpoints, `application.yml` completion), Jakarta EE basics
 - [ ] JVM extras: Groovy and Scala basics (highlighting, run, Gradle/sbt import), Android basics (Gradle Android projects, adb devices, Logcat)
-- [ ] PyForge: basedpyright/ruff/ty/Black, interpreters (venv, uv, Poetry, conda, pipenv, Hatch; Docker/SSH/WSL), Python Packages tool window, requirements inspections
+- [x] PyForge: basedpyright/ruff/ty/Black, interpreters (venv, uv, Poetry, conda, pipenv, Hatch; Docker/SSH/WSL), Python Packages tool window, requirements inspections
 - [ ] PyForge: pytest/unittest/tox runners, debugpy with debug console, Python console, profiler
 - [ ] PyForge: Django (manage.py, template navigation, server/tests configurations), Flask, FastAPI, Celery
 - [ ] PyForge: Jupyter notebooks (editor, kernels, outputs, DataFrame views, notebook diffs)

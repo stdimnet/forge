@@ -233,7 +233,8 @@ pub fn rows(
                 .map(|(index, o)| {
                     let program = o.command.first().cloned().unwrap_or_default();
                     let managed = ctx.detector.managed_dir().is_some()
-                        && crate::managed::npm_packages(o).is_some();
+                        && (crate::managed::npm_packages(o).is_some()
+                            || crate::managed::pypi_package(o).is_some());
                     let available = managed
                         || (!program.is_empty()
                             && *tools

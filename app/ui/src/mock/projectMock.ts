@@ -48,6 +48,7 @@ export const recentPrimaries: Record<string, ReturnType<typeof fw>> = {
   "legacy-crm": fw("php", "PHP", "7.4", "php"),
   "storefront-ui": fw("react", "React", "19.1.0", "javascript"),
   "pixel-dungeon": fw("love", "LÖVE", "11.5", "lua"),
+  "shop-api": fw("python", "Python", "", "python"),
   "dotfiles.nvim": fw("neovim", "Neovim", "", "lua"),
 };
 

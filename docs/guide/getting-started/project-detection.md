@@ -27,7 +27,7 @@ and a plain Lua project does not start PHP language servers.
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` |
 | Go | `go.mod` |
-| Python | `pyproject.toml`, `requirements.txt` or `setup.py` |
+| Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
 
@@ -54,7 +54,8 @@ version constraints in the manifests. The PHP version comes from `require.php`.
 ### Tools
 
 `composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `luarocks`
-(`*.rockspec`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
+(`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
+(`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
 
 Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `target`, `dist`,
@@ -85,6 +86,7 @@ The primary type appears
 | PHPForge | PHP projects; Laravel, Symfony, Doctrine, Composer, PHPUnit/Pest and Xdebug plugins for their framework or tool |
 | WebForge | JavaScript, TypeScript, HTML or CSS; React for `react`/`next`, Vue.js for `vue`/`nuxt`, Angular for `angular` |
 | LuaForge | Lua projects |
+| PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
 always active. Each plugin can still be switched off in Settings | Plugins, see
