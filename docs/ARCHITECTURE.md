@@ -1063,7 +1063,7 @@ or without Git, for local and remote projects.
   report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is

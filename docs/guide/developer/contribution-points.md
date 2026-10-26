@@ -304,7 +304,7 @@ testFiles = ["*_spec.lua"]          # gutter icons in these files
 program = "busted"
 programSetting = "lua.busted.path"  # setting with the executable
 args = ["--output=TAP"]
-report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | pytestReportLog | jestJson | tox
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox
 junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
 nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
 escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none

@@ -34,6 +34,8 @@ pub enum TestReport {
     GoTestJson,
     /// libtest JSON lines on stdout (`cargo test -- -Z unstable-options --format json`).
     LibtestJson,
+    /// libtest's plain output on stdout (`cargo test` on a stable toolchain).
+    LibtestText,
     /// A pytest report log on stdout (`--report-log=/dev/stdout`).
     PytestReportLog,
     /// A Jest / Vitest JSON document on stdout (`jest --json`, `vitest --reporter=json`),
@@ -139,6 +141,8 @@ pub struct RunOutput {
     junit: String,
     /// Incomplete stdout line of a test run (service messages are line based).
     partial: String,
+    /// Incomplete stderr line, for the line parser's view of stderr.
+    stderr_partial: String,
     current_test: Option<usize>,
     delta: ConsoleDelta,
     tests_changed: bool,
@@ -186,6 +190,7 @@ impl RunOutput {
                 .flatten(),
             junit: String::new(),
             partial: String::new(),
+            stderr_partial: String::new(),
             current_test: None,
             delta: ConsoleDelta::default(),
             tests_changed: false,
@@ -236,6 +241,9 @@ impl RunOutput {
                 } else if self.parser.is_some() && stream == Stream::Stdout {
                     self.write_test_output(text, false);
                 } else {
+                    if stream == Stream::Stderr {
+                        self.observe_stderr(text);
+                    }
                     self.write(text, stream);
                 }
             }
@@ -374,6 +382,19 @@ impl RunOutput {
     /// The test tree (for the test history), `None` for runs without tests.
     pub fn tests(&self) -> Option<&TestTree> {
         self.tests.as_ref()
+    }
+
+    /// Hand complete stderr lines to the line parser (cargo names the test binary there).
+    fn observe_stderr(&mut self, text: &str) {
+        let Some(parser) = self.parser.as_mut() else {
+            return;
+        };
+        let all = std::mem::take(&mut self.stderr_partial) + text;
+        let mut parts: Vec<&str> = all.split('\n').collect();
+        self.stderr_partial = parts.pop().unwrap_or_default().to_string();
+        for line in parts {
+            parser.stderr(line.trim_end_matches('\r'));
+        }
     }
 
     /// Test output of a streaming format: protocol lines go to the tree, the rest to the
