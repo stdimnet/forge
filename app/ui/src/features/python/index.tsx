@@ -78,6 +78,34 @@ registerSettingsPage({
   ),
 });
 
+registerSettingsPage({
+  id: "tools.python-integrated-tools",
+  title: "Python Integrated Tools",
+  group: "Tools",
+  order: 40,
+  keywords: ["pytest", "unittest", "tox", "test runner", "default test runner", "junit", "report log", "profiler", "cprofile"],
+  component: () => <SchemaPage pageId="tools.python-integrated-tools" />,
+});
+
+registerSettingsPage({
+  id: "build.python-debugger",
+  title: "Python Debugger",
+  group: "Build, Execution, Deployment",
+  parent: "build.debugger",
+  order: 20,
+  keywords: ["debugpy", "justMyCode", "just my code", "subprocess", "python debug"],
+  component: () => <SchemaPage pageId="build.python-debugger" />,
+});
+
+registerSettingsPage({
+  id: "build.python-console",
+  title: "Python Console",
+  group: "Build, Execution, Deployment",
+  order: 25,
+  keywords: ["python console", "ipython", "repl", "interpreter options"],
+  component: () => <SchemaPage pageId="build.python-console" />,
+});
+
 // ---- Add interpreter and the status bar popup -----------------------------------------------
 
 const [dialog, setDialog] = createSignal(false);

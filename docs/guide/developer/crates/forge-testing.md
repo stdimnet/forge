@@ -47,7 +47,8 @@ pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<Coverage
   lines of manifest frameworks in `run_start` / `run_command_line`
   (`app/src-tauri/src/commands/testing.rs`, `commands/run.rs`)
 - Crates: [`forge-plugin-api`](forge-plugin-api.md) (the `testFrameworks` contribution),
-  [`phpforge-test-frameworks`](phpforge-test-frameworks.md) (the PHP provider)
+  [`phpforge-test-frameworks`](phpforge-test-frameworks.md) (the PHP provider),
+  [`pyforge-testing`](pyforge-testing.md) (pytest, unittest and tox)
 - UI: `app/ui/src/features/run` (manifest framework types, gutter), `app/ui/src/features/coverage`
 - Browser mode: built into `forge-wasm` (`testing.rs`)
 
