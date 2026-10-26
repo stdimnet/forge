@@ -588,6 +588,10 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | npm (tool window) | `ActivatenpmToolWindow` |  |  | any |
 | Reload npm Scripts | `npm.reload` |  |  | any |
 | Install Dependencies | `npm.install` |  |  | any |
+| Python Packages (tool window) | `ActivatePythonPackagesToolWindow` |  |  | any |
+| Switch Python Interpreter… | `python.selectInterpreter` |  |  | any |
+| Add Python Interpreter… | `python.addInterpreter` |  |  | any |
+| Install Requirements | `python.installRequirements` |  |  | any |
 | New Terminal Tab | `Terminal.NewTab` | `Ctrl+Shift+T` | `Cmd+T` | tool window |
 | Close Terminal Tab | `Terminal.CloseTab` |  |  | tool window |
 | Start Listening for PHP Debug Connections | `PhpListenDebugAction` |  |  | any |

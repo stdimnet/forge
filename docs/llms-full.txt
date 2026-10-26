@@ -22,6 +22,7 @@ Languages and large feature sets ship as **packs**:
 | **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Doctrine (DQL), WordPress, Drupal / Joomla / Shopware basics |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
+| **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
 terminal, database tools, Scratches with an HTTP client, Docker/Compose/Kubernetes, remote
@@ -51,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **PyForge**: the Python interpreter in the status bar with a popup to switch,
+  Settings | Project | Python Interpreter with detection of venv, uv, Poetry, conda, Pipenv,
+  Hatch and pyenv environments and new environments, Docker / Compose / SSH / WSL
+  interpreters, the Python Packages tool window (pip, uv, Poetry, Pipenv; PyPI search and
+  latest versions), requirements inspections with "Install requirement" and "Add requirement",
+  basedpyright, ruff and ty (preview) with verified downloads, Reformat Code with ruff format
+  or Black, and the Python run configuration ([PyForge](docs/guide/user/python.md)).
 - **Deployment**: Settings | Build, Execution, Deployment | Deployment configures SFTP, FTP,
   FTPS and local-folder servers with root path, web server URL, path mappings and excluded
   paths; Tools | Deployment and the Project view upload, download, compare with the deployed
@@ -546,7 +554,7 @@ and a plain Lua project does not start PHP language servers.
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` |
 | Go | `go.mod` |
-| Python | `pyproject.toml`, `requirements.txt` or `setup.py` |
+| Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
 
@@ -573,7 +581,8 @@ version constraints in the manifests. The PHP version comes from `require.php`.
 ### Tools
 
 `composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `luarocks`
-(`*.rockspec`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
+(`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
+(`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
 
 Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `target`, `dist`,
@@ -604,6 +613,7 @@ The primary type appears
 | PHPForge | PHP projects; Laravel, Symfony, Doctrine, Composer, PHPUnit/Pest and Xdebug plugins for their framework or tool |
 | WebForge | JavaScript, TypeScript, HTML or CSS; React for `react`/`next`, Vue.js for `vue`/`nuxt`, Angular for `angular` |
 | LuaForge | Lua projects |
+| PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
 always active. Each plugin can still be switched off in Settings | Plugins, see
@@ -755,6 +765,7 @@ not finished, the page says so.
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
+| [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 
 ## Version control
 
@@ -8180,6 +8191,14 @@ Shows or hides the npm tool window.
 
 More: [WebForge](docs/guide/user/webforge.md#npm-tool-window)
 
+## Python Packages tool window
+
+**Shortcut:** — · macOS — · action id `ActivatePythonPackagesToolWindow`
+
+Shows or hides the Python Packages tool window.
+
+More: [PyForge](docs/guide/user/python.md#python-packages-tool-window)
+
 ## Doctrine tool window
 
 **Shortcut:** — · macOS — · action id `Doctrine.ShowEntities`
@@ -8715,6 +8734,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Symfony Services, Doctrine |
 | **WebForge** | HTML, CSS & JavaScript, React, Vue.js, Angular |
 | **LuaForge** | Lua |
+| **PyForge** | Python: interpreters, packages, requirements inspections |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
 All plugins are built in; there is no separate download.
@@ -10632,6 +10652,199 @@ Settings | Languages & Frameworks | Lua | **Lua interpreter** (`lua.interpreter`
 ![Lua settings](docs/screenshots/lua-settings.png)
 
 See the [settings reference](docs/guide/reference/settings.md#languages--frameworks--lua) for every key.
+
+
+---
+
+Source: docs/guide/user/python.md
+
+# PyForge (Python)
+
+**PyForge** brings PyCharm's Python support to Forge. It has two plugins:
+
+- **Python** (`forge.python`) — highlighting, scope-aware completion and syntax checks for
+  `.py` files, pip requirements files, the Python language servers and Reformat Code. It is
+  active in every project, so a lone script is still a Python file.
+- **Python Interpreters and Packages** (`forge.python-env`) — interpreters, the Python
+  Packages tool window, requirements inspections and the Python run configuration. It is
+  active in [Python projects](docs/guide/getting-started/project-detection.md): `pyproject.toml`,
+  `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`, Python files in
+  the root, or two or more in a folder.
+
+![A Python file with basedpyright's errors and the requirements inspection](docs/screenshots/python-editor.png)
+
+## Python interpreter
+
+The status bar shows the project's interpreter, PyCharm style: **Python 3.12 (shop-api)**.
+Click it (or run **Switch Python Interpreter…** from Find Action) to switch between the
+configured interpreters, the project's environments and the Pythons found on this machine,
+to add a new one, or to open the settings.
+
+![The interpreter popup in the status bar](docs/screenshots/python-interpreter-popup.png)
+
+Without a selection Forge uses the project's own environment (`.venv`, `venv` or the Poetry,
+Pipenv or Hatch environment of the project) automatically.
+
+### Settings | Project | Python Interpreter
+
+The page selects the interpreter (`python.interpreter`: the path of a local `python`, or the
+name of a configured interpreter) and lists its packages with the latest version on PyPI.
+**Add Interpreter…** opens the **Add Python Interpreter** dialog.
+
+![Settings | Project | Python Interpreter](docs/screenshots/python-interpreter-settings.png)
+
+Forge finds, without running anything inside the project:
+
+| Kind | Where |
+| --- | --- |
+| Virtualenv / venv | `.venv`, `venv`, `env` with a `pyvenv.cfg` (typed by `pyvenv.cfg`: uv and virtualenv write their own key) |
+| uv | an environment created by `uv venv` / `uv sync`, or any project environment next to `uv.lock` |
+| Poetry | `<cache>/pypoetry/virtualenvs/<name>-…`, else `poetry env info -p` |
+| Pipenv | `~/.local/share/virtualenvs/<folder>-…` (`WORKON_HOME`), else `pipenv --venv` |
+| Hatch | `<data>/hatch/env/virtual/<name>/…` |
+| conda / mamba | `~/miniconda3`, `~/anaconda3`, `~/miniforge3`, `~/mambaforge`, `~/micromamba`, `/opt/conda` and their `envs/`, `~/.conda/environments.txt`; the version comes from `conda-meta` |
+| pyenv | `~/.pyenv/versions/*` (`PYENV_ROOT`) |
+| System | `python`, `python3`, `python3.X` on `PATH`, `/usr/bin`, `/usr/local/bin`, Homebrew; python.org installs on Windows (`%LOCALAPPDATA%\Programs\Python`) |
+
+Only system Pythons are asked for their version (`python --version`); environments report
+theirs from their metadata. The tools (`poetry`, `pipenv`) are asked only outside
+[Safe Mode](docs/guide/user/project-trust.md).
+
+### Add Python Interpreter
+
+![Add Python Interpreter](docs/screenshots/python-add-interpreter.png)
+
+- **Local Interpreter | Generate new** creates an environment:
+  - **Virtualenv**: `<base python> -m venv <location>`, then `pip install -r requirements.txt`.
+  - **uv**: `uv venv <location> --python <base or version>`, then `uv sync` (with `uv.lock`)
+    or `uv pip install -r requirements.txt`.
+  - **Poetry**: `poetry env use <base python>`, then `poetry install`.
+  - **Conda**: `conda create --yes --prefix <location> python=<version>`, then pip.
+
+  The commands run one after another in the Run tool window; the new environment becomes the
+  project's interpreter. "Install the project's dependencies" can be turned off.
+- **Local Interpreter | Select existing** picks a detected interpreter or a path.
+- **Docker**, **Docker Compose**, **SSH** and **WSL** work like PHP's
+  [CLI interpreters](docs/guide/user/php.md): an image (the project is mounted at `/opt/project`), a compose
+  service (`docker compose run` or `exec`), an SSH configuration of Settings | Tools | SSH
+  Configurations, or a WSL distribution, plus the path of `python` there. Paths in arguments
+  and the Run console are mapped both ways. Such interpreters are stored in
+  `python.projectInterpreters` (or `python.interpreters` for every project).
+
+## Python Packages tool window
+
+**View | Tool Windows | Python Packages** lists the packages of the project's interpreter
+with their versions; a newer release on PyPI is shown next to the version. Type in the search
+field to filter them and to search PyPI. The right side shows the selected package: summary,
+latest version, required Python, licence and home page, with **Install** (choose a version),
+**Upgrade to …** and **Delete Package**.
+
+![Python Packages](docs/screenshots/python-packages.png)
+
+Packages are installed with the tool that manages the environment:
+
+| Environment | Command |
+| --- | --- |
+| uv (or a venv next to `uv.lock`) | `uv pip install --python <python> …` / `uv pip uninstall` |
+| Poetry | `poetry add` / `poetry remove` / `poetry update` (also changes `pyproject.toml`) |
+| Pipenv | `pipenv install` / `uninstall` / `update` |
+| anything else | `python -m pip install` / `uninstall --yes` / `install --upgrade` |
+
+The commands run in the Run tool window and are refused in [Safe Mode](docs/guide/user/project-trust.md).
+Installed packages are read with a small `importlib.metadata` script, so environments without
+pip (uv's) work too.
+
+PyPI answers are cached for 12 hours in `<cache dir>/forge/pypi` and the cache is used when
+PyPI cannot be reached. Settings | Languages & Frameworks | Python | **Look up packages on
+PyPI** (`python.packages.pypi`) turns the lookups off; **Package index**
+(`python.packages.index`) points them at a mirror with PyPI's JSON API.
+
+![Searching PyPI](docs/screenshots/python-packages-search.png)
+
+## Requirements inspections
+
+- **Package requirement 'X' is not satisfied**: a dependency in `requirements*.txt` or
+  `pyproject.toml` (PEP 621 `dependencies` and `optional-dependencies`, PEP 735
+  `dependency-groups`, Poetry's `tool.poetry.*dependencies`) is not installed, or the
+  installed version does not match its specifiers. `Alt+Enter`: **Install requirement**,
+  **Install all missing requirements**, **Ignore requirement**.
+- **Package containing module 'x' is not listed in the project requirements**: an import of a
+  third-party package that no dependency file declares. `Alt+Enter`: **Add requirement 'x' to
+  pyproject.toml** (or `requirements.txt` when the project has no PEP 621 / Poetry
+  dependencies), **Install package x** when it is not installed, **Ignore requirement**.
+  The distribution name is taken from the installed packages (`import yaml` → `PyYAML`).
+
+![Install requirement in requirements-dev.txt](docs/screenshots/python-requirements.png)
+
+Versions are compared with PEP 440 rules (`~=`, `==1.4.*`, pre-releases, local versions,
+Poetry's `^` and `~`). Dependencies with environment markers are not checked. **Install
+Requirements** (Find Action) installs everything that is not satisfied. Settings | Languages &
+Frameworks | Python | Inspections turns the two inspections off and lists ignored packages
+(`python.inspections.ignoredPackages`).
+
+Requirements files are highlighted (names, extras, specifiers, markers, options, URLs) and
+complete package names (installed ones and PyPI) and versions; so do the dependency strings
+of `pyproject.toml`.
+
+## Language servers
+
+Settings | Languages & Frameworks | Python lists the Python servers of the
+[language server catalog](docs/guide/user/language-servers.md):
+
+| Server | Role |
+| --- | --- |
+| **basedpyright** (default) | types, completion, navigation, hover; Forge installs it from npm with one click |
+| **Pyright** | starts when basedpyright is missing or disabled |
+| **ty** (preview) | Astral's type checker; off by default, enable it and disable basedpyright and Pyright |
+| **Ruff** | `ruff server`: lint diagnostics and fixes next to the type checker |
+
+Forge downloads ruff and ty itself, with your consent, as the official wheel of your platform
+from PyPI, checked against the SHA-256 digest PyPI publishes, into
+`<data dir>/forge/langservers/bin`. Nothing is bundled with Forge.
+
+**Use language servers from the interpreter's environment**
+(`python.lsp.useEnvironmentTools`, on by default): a basedpyright, ruff or ty installed in the
+selected environment (or the project's `.venv`) is used before Forge's download and `PATH`.
+basedpyright and Pyright get the interpreter as `python.pythonPath`, so imports resolve
+against its site-packages.
+
+## Reformat Code
+
+`Ctrl+Alt+L` (and "Reformat code" in [Actions on Save](docs/guide/user/actions-on-save.md)) formats Python files
+with the formatter of **Reformat Code with** (`python.formatter`): **ruff format** (default),
+**Black**, **the language server** or **do not format**. Their settings in `pyproject.toml`,
+`ruff.toml` or `.ruff.toml` apply. The executables come from `python.ruff.path` /
+`python.black.path`, else the interpreter's environment, Forge's download (ruff) or `PATH`.
+
+## Running Python code
+
+The **Python** run configuration runs a **Script path** or a **Module name** (`python -m`) with
+script parameters, interpreter options, environment variables and a working directory,
+through the configuration's interpreter or the project's (local, Docker, Docker Compose, SSH or
+WSL). `PYTHONUNBUFFERED=1` keeps the output live. A ▶ in the gutter of
+`if __name__ == "__main__":` runs the file, as does `Ctrl+Shift+F10` in a Python file.
+
+Running scripts, modules, pip and environment tools is running project code: it is refused in
+[Safe Mode](docs/guide/user/project-trust.md). The debugger, test runners and the Python console are not part
+of PyForge yet.
+
+## Settings
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Python Interpreter | `python.interpreter` | the project's environment |
+| Reformat Code with | `python.formatter` | `ruff` |
+| ruff / Black executable | `python.ruff.path`, `python.black.path` | found automatically |
+| Use language servers from the interpreter's environment | `python.lsp.useEnvironmentTools` | on |
+| Look up packages on PyPI | `python.packages.pypi` | on |
+| Package index | `python.packages.index` | `https://pypi.org` |
+| Report unsatisfied requirements | `python.inspections.requirements` | on |
+| Report imports of packages missing from the requirements | `python.inspections.imports` | on |
+| Ignored packages | `python.inspections.ignoredPackages` | none |
+
+## Browser mode
+
+`?project=python` opens the demo service `shop-api` (FastAPI, SQLAlchemy, a uv environment).
 
 
 ---
@@ -14818,6 +15031,10 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | npm (tool window) | `ActivatenpmToolWindow` |  |  | any |
 | Reload npm Scripts | `npm.reload` |  |  | any |
 | Install Dependencies | `npm.install` |  |  | any |
+| Python Packages (tool window) | `ActivatePythonPackagesToolWindow` |  |  | any |
+| Switch Python Interpreter… | `python.selectInterpreter` |  |  | any |
+| Add Python Interpreter… | `python.addInterpreter` |  |  | any |
+| Install Requirements | `python.installRequirements` |  |  | any |
 | New Terminal Tab | `Terminal.NewTab` | `Ctrl+Shift+T` | `Cmd+T` | tool window |
 | Close Terminal Tab | `Terminal.CloseTab` |  |  | tool window |
 | Start Listening for PHP Debug Connections | `PhpListenDebugAction` |  |  | any |
@@ -16110,6 +16327,32 @@ Page id `lang.lua`.
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
 
+### Languages & Frameworks | Python
+
+Page id `lang.python`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.formatter` | enum: `ruff`, `black`, `lsp`, `none` | `ruff` | user, project | Formatter | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this formatter for Python files; pyproject.toml / ruff.toml settings are honoured. |
+| `python.ruff.path` | path | `""` | user | Formatter | ruff executable — Leave empty to use the interpreter's environment, Forge's download or PATH. |
+| `python.black.path` | path | `""` | user | Formatter | Black executable — Leave empty to use the interpreter's environment or PATH. |
+| `python.lsp.useEnvironmentTools` | bool | `true` | user | Language Servers | Use language servers from the interpreter's environment — basedpyright, ruff and ty installed in the selected environment (or the project's .venv) start before Forge's own downloads and PATH. |
+| `python.packages.pypi` | bool | `true` | user | Packages | Look up packages on PyPI — Latest versions, search and version completion come from PyPI (cached for 12 hours in Forge's cache folder). |
+| `python.packages.index` | string | `https://pypi.org` | user | Packages | Package index — PyPI or a mirror with the same JSON API. |
+| `python.inspections.requirements` | bool | `true` | user | Inspections | Report unsatisfied requirements — Dependencies in requirements files and pyproject.toml that are not installed in the interpreter, with "Install requirement". |
+| `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
+| `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
+
+### Project | Python Interpreter
+
+Page id `project.python-interpreter` (edited on the page, not as rows).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.interpreter` | string | `""` | user, project |  | Python Interpreter — The project's interpreter: the path of a local python executable (a detected environment) or the name of a configured interpreter. |
+| `python.interpreters` | objects | `[]` | user |  | Python interpreters — Interpreters available in every project: local, Docker, Docker Compose, SSH and WSL. |
+| `python.projectInterpreters` | objects | `[]` | user, project |  | Python interpreters of this project |
+
 ### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
 
 Page id `lang.json-schema` (plugin `forge.json-schema`). See [JSON Schema](docs/guide/user/json-schema.md).
@@ -16445,7 +16688,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | Id | Name | Plugin | Extensions | File names | Shebang interpreters | Indent |
 | --- | --- | --- | --- | --- | --- | --- |
 | `shell` | Shell Script | `forge.bash` | `.sh`, `.bash`, `.zsh`, `.ksh`, `.bats` | `.bashrc`, `.bash_profile`, `.bash_login`, `.bash_logout`, `.bash_aliases`, `.profile`, `.zshrc`, `.zprofile`, `.envrc`, `PKGBUILD`, `.xinitrc`, `.xprofile` | `sh`, `bash`, `zsh`, `ksh`, `dash`, `ash` | 2 |
-| `python` | Python | `forge.python` | `.py`, `.pyw`, `.pyi`, `.pyx`, `.pxd`, `.gyp` | `SConstruct`, `SConscript`, `wscript`, `.pythonstartup`, `.pythonrc` | `python` | 4 |
+| `python` | Python | `forge.python` | `.py`, `.pyw`, `.pyi`, `.pyx`, `.pxd`, `.gyp` | `SConstruct`, `SConscript`, `wscript`, `.pythonstartup`, `.pythonrc` | `python`, `python3`, `pypy`, `pypy3` | 4 |
+| `pip-requirements` | pip Requirements | `forge.python` |  | `requirements*.txt`, `constraints*.txt`, `requirements*.in`, `requirements/*.txt` |  | 4 |
 | `yaml` | YAML | `forge.yaml` | `.yml`, `.yaml`, `.neon` | `.clang-format`, `.clang-tidy`, `.yamllint`, `.gemrc`, `CITATION.cff`, `.sops.yaml` |  | 2 |
 | `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
 | `dotenv` | Dotenv | `forge.dotenv` | `.env` | `.env`, `.env.local`, `.env.*.local`, `.env.dist`, `.env.*.dist`, `.env.example`, `.env.sample`, `.env.template`, `.env.defaults`, `.env.dev`, `.env.development`, `.env.prod`, `.env.production`, `.env.stage`, `.env.staging`, `.env.test`, `.env.testing` |  | 2 |
@@ -16506,6 +16750,8 @@ settings work.
 
 - **Install**: npm commands (`npm install -g …`) become managed installs into Forge's server
   folder, never global ones; Forge downloads Node.js itself when none (>= 18) is installed.
+  "Download … from PyPI" fetches the official wheel of the platform (ruff, ty), checks its
+  SHA-256 against PyPI and copies the executable to `<data dir>/forge/langservers/bin`.
   Commands with `sudo` are only shown for you to run. Links are download pages.
 - **Alternative group**: only the first enabled and installed server of a group starts.
 - **Needs plugin**: the server starts only while that plugin is enabled and active.
@@ -16625,8 +16871,10 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [basedpyright](https://docs.basedpyright.com) | `basedpyright` | Python | `basedpyright-langserver --stdio` | `pipx install basedpyright`<br>`python3 -m pip install --user basedpyright`<br>`npm install -g basedpyright` | MIT | alternative group `python` |
+| [basedpyright](https://docs.basedpyright.com) | `basedpyright` | Python | `basedpyright-langserver --stdio` | `npm install -g basedpyright` (managed: Forge installs it)<br>`pipx install basedpyright`<br>`python3 -m pip install --user basedpyright` | MIT | needs plugin `forge.python`; alternative group `python`; gets the project's interpreter as `python.pythonPath` |
 | [Pyright](https://github.com/microsoft/pyright) | `pyright` | Python | `pyright-langserver --stdio` | `npm install -g pyright`<br>`pipx install pyright`<br>`sudo pacman -S pyright` (linux) | MIT | alternative group `python`; Starts only when basedpyright is missing or disabled. |
+| [ty (preview)](https://docs.astral.sh/ty/) | `ty` | Python | `ty server` | Download ty from PyPI (SHA-256 verified)<br>`uv tool install ty`<br>`pipx install ty` | MIT | needs plugin `forge.python`; off by default; alternative group `python`; Preview: Astral's type checker. Enable it and disable basedpyright and Pyright to use it. |
+| [Ruff](https://docs.astral.sh/ruff/) | `ruff` | Python | `ruff server` | Download ruff from PyPI (SHA-256 verified)<br>`uv tool install ruff`<br>`pipx install ruff`<br>`brew install ruff` (macos, linux) | MIT | needs plugin `forge.python`; Linting and quick fixes next to the type checker; ruff format is the default formatter. |
 
 ### Go
 
@@ -16855,6 +17103,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
+| `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/…` | workspace data of the Java language server |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
@@ -16872,7 +17121,7 @@ index falls back to `<project>/.forge/cache/php-index.json`.
 
 | Path | Content |
 | --- | --- |
-| `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`) |
+| `langservers/` | language servers installed by Forge (`node_modules/.bin`, `package.json`, `.forge-update-check.json`; `bin/` and `pypi-tools.json` for ruff and ty from PyPI) |
 | `composer/composer.phar` | composer.phar downloaded from getcomposer.org with Settings \| PHP \| Composer, checked against its published SHA-256 sum |
 | `runtimes/node-<version>/` | the Node.js build Forge downloaded for language servers (only when no Node.js 18+ was installed) |
 | `projects/<name>-<hash>/bookmarks.json` | the bookmarks and bookmark lists of a project (`<hash>` of the project root, for remote projects of `user@host:/path`); kept out of the project |
@@ -17027,7 +17276,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -17039,7 +17288,6 @@ script and config language plugins.
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
 | Git | `forge.git` | core |  | always | tool windows: Commit, Git; 2 commands; 8 settings; 1 keybindings |
 | Bash | `forge.bash` | scriptforge |  | always | file types: Shell Script |
-| Python | `forge.python` | scriptforge |  | always | file types: Python |
 | YAML | `forge.yaml` | configforge |  | always | file types: YAML |
 | JSON | `forge.json` | configforge |  | always | file types: JSON |
 | .env | `forge.dotenv` | configforge |  | always | file types: Dotenv |
@@ -17051,6 +17299,8 @@ script and config language plugins.
 | Config Files | `forge.conf` | configforge |  | always | file types: Config |
 | Language Servers | `forge.langservers` | core | `forge.core` | always | 1 commands; 9 settings |
 | Lua | `forge.lua` | luaforge |  | `luaforge` | 1 commands; 6 settings; file types: Lua; 1 LSP servers; run types: Lua Script |
+| Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
+| Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
@@ -18879,6 +19129,9 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | Crate | Description |
 | --- | --- |
 | [luaforge-lang-lua](docs/guide/developer/crates/luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
+| [pyforge-lang-python](docs/guide/developer/crates/pyforge-lang-python.md) | PyForge: Python language support (PEP 440 versions and specifiers, PEP 508 requirements, requirements.txt and pyproject.toml dependencies, imports, requirements inspections and completion, run configurations; pure, also built to WebAssembly) |
+| [pyforge-interpreters](docs/guide/developer/crates/pyforge-interpreters.md) | PyForge: Python interpreters (system, pyenv, venv/virtualenv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL): model, detection, metadata parsing and new environments |
+| [pyforge-packages](docs/guide/developer/crates/pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
 | [phpforge-composer](docs/guide/developer/crates/phpforge-composer.md) | PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion) |
@@ -22681,6 +22934,174 @@ pub use project::{IndexStats, Location, ProjectIndex, SearchKind, SymbolHit, Sym
 
 ```sh
 cargo test -p luaforge-lang-lua
+```
+
+
+---
+
+Source: docs/guide/developer/crates/pyforge-lang-python.md
+
+# pyforge-lang-python
+
+`packs/pyforge/lang-python` — PyForge: Python language support that does not need a language
+server. Pure Rust (no file system or processes), so the same code backs the desktop app and the
+browser mode (WebAssembly, `crates/forge-wasm/src/python.rs`).
+
+## Purpose
+
+- `pep440` parses and normalizes versions (`1.0RC1` = `1.0rc1`, `1.0-1` = `1.0.post1`), orders
+  them like pip and matches specifier sets (`~=`, `==1.4.*`, `!=`, `<`, `>` with the pre- and
+  post-release exclusions, `===`).
+- `pep508` parses dependency specifications (name, extras, specifiers, `@ url`, markers) with
+  byte ranges, and normalizes names (PEP 503).
+- `deps` reads the dependencies of `requirements*.txt` (options, `-r` includes, line
+  continuations, comments, `--hash`) and `pyproject.toml` (PEP 621, PEP 735 groups, Poetry
+  tables with `^` / `~` converted to PEP 440) with the position of each name, and edits the
+  files for "Add requirement".
+- `imports` finds the import statements of a file (strings and comments skipped, `try:`
+  blocks marked) and knows the standard library and module → distribution names.
+- `inspections` reports unsatisfied requirements and undeclared imports with quick fixes.
+- `completion` finds the name / version context in dependency files; `run` builds the
+  arguments of the Python run configuration and finds `__main__` guards.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `completion.rs` | Completion contexts in dependency files: a package name or a version after an operator, in `requirements.txt` lines and in the dependency strings of pyproject.toml; final releases sorted before pre-releases. |
+| `deps.rs` | Declared dependencies of `requirements*.txt` and `pyproject.toml` with their positions (0-based lines, UTF-16 columns), Poetry constraint conversion and the "Add requirement" edits. |
+| `imports.rs` | Import statements, `STDLIB` (Python 3.8–3.13) and `KNOWN_DISTRIBUTIONS` (`yaml` → `PyYAML`, `PIL` → `Pillow`, …). |
+| `inspections.rs` | `check_dep_file` ("Package requirement 'X' is not satisfied") and `check_imports` ("Package containing module 'x' is not listed in the project requirements") with `Fix`es. |
+| `pep440.rs` | `Version`, `Specifier`, `SpecifierSet` (`contains`, `best`). |
+| `pep508.rs` | `Requirement`, `parse`, `normalize`, `is_name`. |
+| `run.rs` | `arguments` of a script / module run, `run_markers`, `module_of`. |
+
+## Used by
+
+- IPC: `python_inspect`, `python_add_requirement`, `python_complete`, `python_run_markers`, `python_dependencies`, the Python run configuration (`app/src-tauri/src/commands/python.rs`)
+- [`pyforge-interpreters`](docs/guide/developer/crates/pyforge-interpreters.md), [`pyforge-packages`](docs/guide/developer/crates/pyforge-packages.md)
+- UI: `app/ui/src/features/python`
+- Browser mode: built into `forge-wasm`
+
+## Dependencies
+
+- External: `serde`, `serde_json`, `toml`
+
+## Tests
+
+8 source files, about 2970 lines; 24 unit tests.
+
+```sh
+cargo test -p pyforge-lang-python
+```
+
+
+---
+
+Source: docs/guide/developer/crates/pyforge-interpreters.md
+
+# pyforge-interpreters
+
+`packs/pyforge/interpreters` — PyForge: Python interpreters (Settings | Project | Python
+Interpreter, the status bar widget and its popup).
+
+## Purpose
+
+- `model` describes an interpreter (`EnvKind`: system, pyenv, venv, virtualenv, uv, Poetry,
+  conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL) and how it is stored in the
+  `objects` settings `python.interpreters` / `python.projectInterpreters`;
+  `python.interpreter` selects one by name or is a local path. `PythonInterpreter::label` is
+  the status bar text (`Python 3.12 (shop-api)`). Remote kinds run through the PHP
+  interpreters' command lines and path mappings: `wrap_target` turns the interpreter into a
+  `phpforge_interpreters::PhpInterpreter` whose program is `python`.
+- `probe` parses `python --version`, the probe script's JSON, `pyvenv.cfg`, `conda-meta` file
+  names, `py -0p`, `conda env list --json` and the one-path answers of `poetry env info -p`,
+  `pipenv --venv` and friends.
+- `detect` (not in WebAssembly) finds the project's environments and the machine's Pythons
+  (see the [user guide](docs/guide/user/python.md#python-interpreter)); versions come from metadata,
+  only system Pythons are run. `SearchEnv` and the `version_of` / `run_tool` callbacks make it
+  testable with fixture folders and fake executables.
+- `create` plans the commands of a new environment (venv, uv, Poetry, conda) and the
+  dependency install.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `create.rs` | `NewEnvironment`, `ProjectFiles`, `plan` → `Step`s, `python_in`. |
+| `detect.rs` | `SearchEnv::system`, `detect`, `version_of`, `run_with_timeout`. |
+| `model.rs` | `EnvKind`, `PythonInterpreter`, `InterpreterSet` (`resolve`: names, ids and local paths). |
+| `probe.rs` | Parsers and `PROBE_SCRIPT`. |
+
+## Used by
+
+- IPC: `python_interpreter_current`, `python_interpreters_detect`, `python_interpreter_info`, `python_environment_plan` (`app/src-tauri/src/commands/python.rs`)
+- [`pyforge-packages`](docs/guide/developer/crates/pyforge-packages.md)
+- Browser mode: `python_interpreter_label`, `python_environment_plan` in `forge-wasm`
+
+## Dependencies
+
+- Workspace crates: `phpforge-interpreters` (`packs/phpforge/interpreters`), [`pyforge-lang-python`](docs/guide/developer/crates/pyforge-lang-python.md)
+- External: `serde`, `serde_json`, `dirs`
+
+## Tests
+
+5 source files, about 1600 lines; 10 unit tests (fixture environments, fake `python`
+executables, a fake tool runner).
+
+```sh
+cargo test -p pyforge-interpreters
+```
+
+
+---
+
+Source: docs/guide/developer/crates/pyforge-packages.md
+
+# pyforge-packages
+
+`packs/pyforge/packages` — PyForge: the Python Packages tool window, "Install requirement"
+quick fixes and completion in dependency files.
+
+## Purpose
+
+- `listing` holds the `importlib.metadata` script that lists an environment's distributions
+  with their top-level modules (it works without pip), and parses its JSON (and `pip list
+  --format=json`).
+- `manager` chooses pip, uv, Poetry or Pipenv for an environment and builds the install,
+  uninstall and upgrade command lines.
+- `pypi` parses PyPI's JSON API (latest version, summary, licence, required Python, home page,
+  releases without yanked ones) and its search page.
+- `net` (feature `net`, desktop only) is the PyPI client: requests through the system proxy,
+  answers cached in `<cache dir>/forge/pypi` (12 hours for packages, 1 hour for searches) with
+  the stale copy used when PyPI cannot be reached.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `listing.rs` | `LIST_SCRIPT`, `parse`, `parse_pip_list`. |
+| `manager.rs` | `Manager`, `Action`, `choose`, `command`. |
+| `net.rs` | `Pypi` (`package`, `search`, `cached`). |
+| `pypi.rs` | `PackageInfo`, `SearchHit`, `parse_json`, `parse_search`, URLs. |
+| `testserver.rs` | A tiny HTTP server on localhost for the tests (no network). |
+
+## Used by
+
+- IPC: `python_packages_list`, `python_packages_command`, `python_packages_latest`, `python_packages_search`, `python_package_info`, `python_complete` (`app/src-tauri/src/commands/python.rs`)
+- Browser mode: `python_packages_command` in `forge-wasm`
+
+## Dependencies
+
+- Workspace crates: [`pyforge-lang-python`](docs/guide/developer/crates/pyforge-lang-python.md), [`pyforge-interpreters`](docs/guide/developer/crates/pyforge-interpreters.md)
+- External: `serde`, `serde_json`; with `net`: `reqwest` (rustls), `tokio`, `dirs`
+
+## Tests
+
+6 source files, about 790 lines; 6 unit tests (PyPI answers from a local mock server).
+
+```sh
+cargo test -p pyforge-packages --features net
 ```
 
 
