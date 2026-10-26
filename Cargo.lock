@@ -2033,6 +2033,7 @@ dependencies = [
  "forge-core",
  "forge-debug",
  "forge-plugin-api",
+ "forge-runtools",
  "serde",
  "serde_json",
  "tempfile",

@@ -68,6 +68,10 @@ pub struct LaunchRequest {
     pub program: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
+    /// Program arguments as one command-line string (a run configuration's "Program
+    /// arguments"); split like a shell and appended to `args`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -88,6 +92,7 @@ impl LaunchRequest {
             mode: LaunchMode::Launch,
             program: Some(program.into()),
             args: Vec::new(),
+            arguments: None,
             cwd: None,
             env: BTreeMap::new(),
             stop_on_entry: false,
@@ -153,7 +158,11 @@ fn placeholders(r: &LaunchRequest) -> HashMap<&'static str, Value> {
     if let Some(p) = r.program.as_deref().filter(|p| !p.is_empty()) {
         v.insert("program", json!(p));
     }
-    v.insert("args", json!(r.args));
+    let mut args = r.args.clone();
+    if let Some(line) = r.arguments.as_deref() {
+        args.extend(forge_runtools::args::split_args(line));
+    }
+    v.insert("args", json!(args));
     if let Some(c) = r.cwd.as_deref().filter(|c| !c.is_empty()) {
         v.insert("cwd", json!(c));
     }
@@ -396,6 +405,7 @@ mod tests {
         let a = ManifestAdapter::new(lldb());
         let mut r = LaunchRequest::launch("lldb", "/w/demo");
         r.args = vec!["--fast".into()];
+        r.arguments = Some("--name 'a b'".into());
         r.env.insert("A".into(), "1".into());
         r.stop_on_entry = true;
         r.configuration = json!({"sourceMap": {"/b": "/w"}, "stopOnEntry": false});
@@ -403,7 +413,7 @@ mod tests {
         assert_eq!(resolved.request, "launch");
         let args = resolved.arguments;
         assert_eq!(args["program"], "/w/demo");
-        assert_eq!(args["args"], json!(["--fast"]));
+        assert_eq!(args["args"], json!(["--fast", "--name", "a b"]));
         assert_eq!(args["env"], json!({"A": "1"}));
         assert!(args.get("cwd").is_none(), "no cwd: dropped");
         assert_eq!(args["stopOnEntry"], false, "configuration wins");
