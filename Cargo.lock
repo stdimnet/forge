@@ -8520,6 +8520,20 @@ dependencies = [
 [[package]]
 name = "webforge-js-debug"
 version = "0.1.0"
+dependencies = [
+ "flate2",
+ "forge-dap",
+ "forge-debug",
+ "forge-langservers",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "tokio",
+ "webforge-js-testing",
+]
 
 [[package]]
 name = "webforge-js-testing"

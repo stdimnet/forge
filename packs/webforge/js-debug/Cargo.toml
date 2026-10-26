@@ -1,5 +1,22 @@
 [package]
 name = "webforge-js-debug"
+description = "WebForge: the JavaScript debugger — Microsoft's js-debug DAP server (downloaded on consent, SHA-256 pinned) as the pwa-node, pwa-chrome and pwa-msedge debug adapters, browser detection and the launch requests of Node.js, npm, JavaScript Debug, attach and test run configurations"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[dependencies]
+forge-dap.workspace = true
+forge-langservers.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+webforge-js-testing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
+flate2 = "1"
+tar = { version = "0.4", default-features = false }
+forge-debug.workspace = true
