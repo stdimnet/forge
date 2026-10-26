@@ -1,0 +1,213 @@
+/* PyForge web frameworks: Endpoints and Django Structure tool windows, the manage.py task
+   popup and gutter icons. The tables reuse the Routes window's `.routes-*` classes.
+   Colors come from theme.css variables only. */
+
+.pyweb-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.pyweb-tabs button,
+.pyweb-segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.pyweb-tabs button {
+  border-bottom: 2px solid transparent;
+}
+.pyweb-tabs button.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.pyweb-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.pyweb-segmented button {
+  height: 22px;
+  font-size: var(--fs-small);
+}
+.pyweb-segmented button + button {
+  border-left: 1px solid var(--border);
+}
+.pyweb-segmented button.active {
+  background: var(--bg-selection);
+  color: var(--fg-strong);
+}
+.pyweb-docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: var(--fs-small);
+}
+.pyweb-table .pyweb-col-framework {
+  width: 84px;
+  font-size: var(--fs-small);
+}
+.pyweb-module {
+  color: var(--fg-muted);
+}
+.pyweb-col-task {
+  width: 34%;
+}
+.pyweb-col-decorator {
+  width: 18%;
+}
+.pyweb-task-name {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+}
+.pyweb-col-decorator code {
+  font-size: var(--fs-small);
+  color: var(--syn-attribute);
+}
+
+/* ---------- Django Structure ---------- */
+.pyweb-structure {
+  height: 100%;
+  overflow: auto;
+  padding: 4px 0;
+  font-size: var(--fs-ui);
+}
+.pyweb-tree-row {
+  gap: 4px;
+}
+.pyweb-chevron {
+  display: inline-flex;
+  width: 14px;
+  color: var(--fg-muted);
+}
+.pyweb-tree-label {
+  color: var(--fg-strong);
+}
+.pyweb-tree-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+  margin-left: 4px;
+}
+.pyweb-icon-app {
+  color: var(--success);
+}
+.pyweb-icon-model {
+  color: var(--syn-type);
+}
+.pyweb-icon-field {
+  color: var(--syn-variable);
+}
+.pyweb-icon-relation {
+  color: var(--info);
+}
+.pyweb-icon-settings {
+  color: var(--fg-muted);
+}
+.pyweb-icon-folder {
+  color: var(--warning);
+}
+
+/* ---------- Run manage.py Task ---------- */
+.pyweb-manage-popup {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, 90vw);
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+.pyweb-manage-source {
+  font-size: var(--fs-small);
+  margin-left: 8px;
+}
+.pyweb-manage-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 10px;
+  padding: 0 8px;
+  height: 30px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.pyweb-manage-prompt {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+.pyweb-manage-input input,
+.pyweb-manage-input input:focus {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+.pyweb-manage-list {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+.pyweb-manage-item {
+  display: grid;
+  grid-template-columns: 200px 110px 1fr;
+  gap: 10px;
+  align-items: center;
+  height: 24px;
+  padding: 0 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pyweb-manage-item.selected {
+  background: var(--bg-selection);
+}
+.pyweb-manage-name {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+.pyweb-manage-app {
+  color: var(--info);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pyweb-manage-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+.pyweb-manage-empty {
+  padding: 16px;
+  text-align: center;
+}
+
+/* ---------- Gutter ---------- */
+.marker-pyweb-route {
+  color: var(--success);
+}
+.marker-pyweb-template,
+.marker-pyweb-view {
+  color: var(--info);
+}
+.marker-pyweb-task {
+  color: var(--syn-type);
+}

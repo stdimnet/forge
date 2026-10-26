@@ -15,7 +15,7 @@ import { isWordPressDemo, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
-import { isPythonDemo, pythonDemoName } from "./demoPythonProject";
+import { isDjangoDemo, isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { goDemoName, isGoDemo } from "./demoGoProject";
 import { goContext } from "./goTestsMock";
 import { isJavaDemo, javaDemoName } from "./demoJavaProject";
@@ -42,6 +42,18 @@ const PYTHON_CONFIGURATIONS: RunConfigurations = {
   configurations: [
     { name: "shop-api", type: "python", storeAsProjectFile: true, workingDirectory: "src", options: { target: "module", script: "uvicorn" }, arguments: "shop_api.main:app --reload" },
     { name: "seed", type: "python", options: { target: "script", script: "scripts/seed.py" } },
+    { name: "shop-api (uvicorn)", type: "fastapi", options: { host: "127.0.0.1", port: "8000", reload: "true" } },
+  ],
+};
+
+/** The Django demo (`?project=django`): the development server, the tests and a Celery worker. */
+const DJANGO_CONFIGURATIONS: RunConfigurations = {
+  selected: "bookshop",
+  configurations: [
+    { name: "bookshop", type: "django-server", storeAsProjectFile: true, options: { host: "127.0.0.1", port: "8000" } },
+    { name: "Django tests", type: "django-tests", storeAsProjectFile: true, options: { runner: "django" } },
+    { name: "Celery worker", type: "celery-worker", options: { loglevel: "INFO", concurrency: "4" } },
+    { name: "Celery beat", type: "celery-beat", options: { loglevel: "INFO" } },
   ],
 };
 
@@ -56,7 +68,7 @@ const GO_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : {
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {

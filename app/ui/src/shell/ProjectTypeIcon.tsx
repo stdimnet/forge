@@ -39,6 +39,10 @@ const GLYPHS: Record<string, Glyph> = {
   rust: { text: "Rs" },
   go: { text: "Go" },
   python: { text: "Py" },
+  django: { text: "dj" },
+  flask: { text: "Fl" },
+  fastapi: { icon: Zap },
+  celery: { text: "Ce" },
   folder: { icon: Folder },
 };
 

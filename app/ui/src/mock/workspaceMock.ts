@@ -29,7 +29,8 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
 // `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
-// the FastAPI service of PyForge, `?project=go` the `ledger` module of GoForge.
+// the FastAPI service of PyForge (`?project=django` its Django bookshop), `?project=go` the
+// `ledger` module of GoForge.
 // the FastAPI service of PyForge, `?project=java` a Gradle Java service.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
