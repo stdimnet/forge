@@ -255,6 +255,8 @@ pub struct TestTree {
     dirty: BTreeSet<usize>,
     links: LinkContext,
     rules: Vec<(regex_lite::Regex, String)>,
+    /// The file of a single-file run: tests reported without a location belong to it.
+    default_file: Option<String>,
 }
 
 /// Rewrites a reported location path before it is resolved in the project (a test
@@ -283,7 +285,24 @@ impl TestTree {
             dirty: BTreeSet::from([0]),
             links,
             rules: Vec::new(),
+            default_file: None,
         }
+    }
+
+    /// Tests reported without a location get `file` (with their name as member), so the
+    /// results of a single-file run reach the file's gutter icons.
+    pub fn with_default_file(mut self, file: Option<String>) -> Self {
+        self.default_file = file.filter(|f| !f.trim().is_empty());
+        self
+    }
+
+    fn default_location(&self, name: &str) -> Option<TestLocation> {
+        let file = self.default_file.as_ref()?;
+        self.location(Some(&TestLocation {
+            path: file.clone(),
+            member: Some(name.to_string()),
+            ..TestLocation::default()
+        }))
     }
 
     /// Location rules applied to reported paths (invalid patterns are ignored).
@@ -366,7 +385,9 @@ impl TestTree {
             }
             TestEvent::TestStarted { name, location } => {
                 let id = self.add(name, TestNodeKind::Test, self.current);
-                self.nodes[id].location = self.location(location.as_ref());
+                self.nodes[id].location = self
+                    .location(location.as_ref())
+                    .or_else(|| self.default_location(name));
                 self.running.insert(name.to_string(), id);
                 true
             }
@@ -411,7 +432,9 @@ impl TestTree {
                     Some(t) => t,
                     None => {
                         let t = self.add(name, TestNodeKind::Test, self.current);
-                        self.nodes[t].location = self.location(location.as_ref());
+                        self.nodes[t].location = self
+                            .location(location.as_ref())
+                            .or_else(|| self.default_location(name));
                         t
                     }
                 };
@@ -967,6 +990,42 @@ mod tests {
         let again = TestTree::import(&back, LinkContext::new(Some("/p"), None));
         assert_eq!(again.snapshot(), b.snapshot());
         assert_eq!(again.summary(), b.summary());
+    }
+
+    #[test]
+    fn location_rules_and_default_files() {
+        let mut t = TestTree::new("Test Results", LinkContext::new(Some("/p"), None))
+            .with_location_rules(&[LocationRule {
+                pattern: "^example\\.com/shop/".into(),
+                replacement: "".into(),
+            }])
+            .with_default_file(Some("spec/cart_spec.lua".into()));
+        t.apply_event(&TestEvent::TestStarted {
+            name: "Cart adds".into(),
+            location: None,
+        });
+        t.apply_event(&TestEvent::TestStarted {
+            name: "TestA".into(),
+            location: Some(TestLocation {
+                path: "example.com/shop/cart".into(),
+                ..TestLocation::default()
+            }),
+        });
+        let nodes = t.snapshot();
+        let loc = nodes[1].location.as_ref().unwrap();
+        assert_eq!(
+            (loc.workspace_path.as_deref(), loc.member.as_deref()),
+            (Some("spec/cart_spec.lua"), Some("Cart adds"))
+        );
+        assert_eq!(
+            nodes[2]
+                .location
+                .as_ref()
+                .unwrap()
+                .workspace_path
+                .as_deref(),
+            Some("cart")
+        );
     }
 
     #[test]

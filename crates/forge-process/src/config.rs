@@ -62,6 +62,10 @@ pub struct RunConfiguration {
     pub options: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub before_launch: Vec<BeforeLaunchTask>,
+    /// "Run on": where runs, tests and debug runs of the configuration execute (`None` or
+    /// a local target: this machine).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_on: Option<forge_runtargets::RunTarget>,
 }
 
 impl RunConfiguration {
@@ -716,6 +720,30 @@ mod tests {
             php_interpreter: "/usr/bin/php8.3".into(),
             interpreters: BTreeMap::new(),
         }
+    }
+
+    #[test]
+    fn run_targets_are_stored_with_the_configuration() {
+        let mut c = cfg("busted", &[("scope", "all")]);
+        c.store_as_project_file = true;
+        c.run_on = Some(forge_runtargets::RunTarget {
+            kind: forge_runtargets::TargetKind::DockerImage,
+            image: "nickblah/lua:5.4".into(),
+            mappings: vec![forge_runtargets::PathMapping {
+                local: "".into(),
+                remote: "/app".into(),
+            }],
+            ..Default::default()
+        });
+        let all = RunConfigurations {
+            configurations: vec![c.clone()],
+            ..Default::default()
+        };
+        let [shared, _] = all.to_texts().unwrap();
+        let shared = shared.unwrap();
+        assert!(shared.contains("[configuration.runOn]"), "{shared}");
+        let back = RunConfigurations::from_texts(Some(&shared), None).unwrap();
+        assert_eq!(back.configurations[0], c);
     }
 
     #[test]

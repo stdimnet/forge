@@ -2336,6 +2336,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-output",
+ "forge-runtargets",
  "forge-runtools",
  "libc",
  "portable-pty",

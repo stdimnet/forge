@@ -80,6 +80,9 @@ pub struct RunOutputOptions {
     /// Rewrites of reported test locations (a test framework's location rules).
     #[serde(default)]
     pub location_rules: Vec<LocationRule>,
+    /// The file a single-file test run tests (tests without a location belong to it).
+    #[serde(default)]
+    pub default_test_file: Option<String>,
 }
 
 /// What happened to the process.
@@ -169,7 +172,9 @@ impl RunOutput {
             ansi: AnsiParser::new(),
             console: ConsoleModel::new(links.clone()),
             tests: opts.test_runner.then(|| {
-                TestTree::new("Test Results", links).with_location_rules(&opts.location_rules)
+                TestTree::new("Test Results", links)
+                    .with_location_rules(&opts.location_rules)
+                    .with_default_file(opts.default_test_file.clone())
             }),
             report: opts.test_report,
             flavor: opts.junit_flavor,
