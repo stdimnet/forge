@@ -120,7 +120,7 @@ Shows or hides the Debug tool window.
 
 **Menu:** View | Tool Windows | Debug
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Problems tool window
 

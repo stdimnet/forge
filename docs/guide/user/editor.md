@@ -572,7 +572,7 @@ markers.
   files, `.http` requests, compose services and Dockerfiles.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
   number, as in the New UI), or press `Ctrl+F8` (macOS `Cmd+F8`). Right-click it to edit its
-  condition. See [Xdebug debugging](debugging.md).
+  condition. See [Debugging](debugging.md).
 - **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
   `Ctrl+F11`). See [Bookmarks](workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](git.md#blame).

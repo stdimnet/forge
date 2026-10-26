@@ -57,6 +57,10 @@ app/ui/            SolidJS UI
   - `registerRunConfigurationType` / `registerDebugLauncher` / `registerBeforeLaunchHandler`
     (`src/features/run`) — Run/Debug configuration types, debuggers and Before launch task
     kinds (see "Terminal and Run/Debug" below).
+  - `registerDebugAdapter({ type, label?, runConfigurationTypes?, languages?, launchSchema?,
+    attachSchema?, resolve? })` (`src/features/debug/adapters.ts`) — a Debug Adapter Protocol
+    debugger for a pack, together with `[[contributions.debugAdapters]]` in its manifest or a
+    Rust `forge_dap::DebugAdapterDescriptor` (see "Shared debugging layer" below).
   - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
     Anything (double Ctrl), e.g. Artisan and Symfony console commands.
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
@@ -1580,6 +1584,77 @@ libraries.tsx, sourceRoots.tsx}`).
   `debugLauncher.setStopFallback(fn)` lets "Stop" (Ctrl+F2) stop a run when no debug session is active.
 - Main toolbar widgets left of the run configuration selector: `registerToolbarItem`
   (`src/features/toolbarItems.ts`).
+## Shared debugging layer (`forge-dap`)
+
+Every language except PHP debugs through the Debug Adapter Protocol. `forge-dap` is the
+client; its sessions are mapped onto `forge_debug`'s model (`SessionInfo` with `adapter`,
+`features`, `threadId`, `parentId`; `Frame` with `id` and `address`; `Property` with
+`reference`, `container`, `memoryReference`; breakpoint kinds `function` and `data`;
+`StepKind::StepIntoInstruction|StepOverInstruction`; `DebugEvent::Invalidated`), so one Debug
+tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stream
+(`debug://*`) serve Xdebug and DAP sessions.
+
+- **Contribution point.** Adapters come from manifests:
+
+  ```toml
+  [[contributions.debugAdapters]]
+  type = "lldb"                       # adapter type, also the launch configuration's type
+  label = "LLDB"
+  command = "lldb-dap"                # empty: only reachable as a DAP server
+  args = []
+  commandSetting = "debugger.lldb.path"
+  transport = "stdio"                 # stdio | connect (${port}) | listen (adapter connects back)
+  languages = ["c", "cpp", "rs"]      # line breakpoints in these files
+  launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}" }
+  attach = { pid = "${pid}" }         # Attach to Process
+  coreDump = { program = "${program}", coreFile = "${core}" }
+  coreDumpRequest = "attach"
+  launchSchema = { … }                # JSON schema of extra options
+  ```
+
+  or from Rust: `impl DebugAdapterDescriptor { fn info() -> AdapterInfo; fn resolve(&LaunchRequest)
+  -> ResolvedLaunch { transport, request, arguments } }`, registered with
+  `DapManager::register_adapter`. The UI adds `registerDebugAdapter` (run configuration types
+  and `resolve(cfg) -> LaunchRequest`). The built-in Debugger plugin (`forge.debugger`,
+  `plugins/debugger.toml`) declares LLDB (`lldb-dap`) and GDB (`gdb -i dap`), the "Native
+  Application" run configuration type and Settings | Build, Execution, Deployment | Debugger
+  (`debugger.*`).
+- **Sessions.** `DapManager::start(LaunchRequest { adapter, mode: launch | attachProcess{pid} |
+  attachServer{host,port} | coreDump{core}, program, args, arguments, cwd, env, stopOnEntry,
+  configuration })` resolves the descriptor, opens the transport, and runs initialize →
+  (breakpoints first when `initialized` comes right after `initialize`) → launch/attach →
+  breakpoints → configurationDone. Session ids are `dap-<n>`; the app's `debug_*` commands
+  route them to `DapSession` (`commands/debug.rs`), so stepping, frames, variables, evaluate,
+  completion, Set Value and Run to Cursor are shared. Breakpoint changes reach DAP sessions
+  through the event sink (`DebugEvent::Breakpoints` → `DapManager::breakpoints_changed`).
+  Logpoints use the adapter's `logMessage` (templates with `{expr}`) or are emulated; exception
+  filters are stored as exception breakpoints with `adapter`; watchpoints are data
+  breakpoints (`dataBreakpointInfo`). Reverse requests: `runInTerminal` (Forge starts the
+  program, output in the console) and `startDebugging` (child sessions with `parentId`).
+- **Trust.** `dap_start` / `dap_restart` refuse launching in Safe Mode
+  (`require_trusted`); attaching to a process or a DAP server and core dumps are allowed.
+- **IPC** (`commands/dap.rs`): `dap_adapters() -> AdapterInfo[]`, `dap_start({ request }) ->
+  SessionInfo`, `dap_restart({ sessionId })`, `dap_threads({ sessionId })`, `dap_goto({
+  sessionId, file, line })`, `dap_registers({ sessionId, depth })`, `dap_read_memory({
+  sessionId, memoryReference, offset?, count }) -> { address, rows: { address, hex[], ascii
+  }[], unreadable }`, `dap_write_memory({ sessionId, memoryReference, offset?, data })` (hex
+  bytes), `dap_disassemble({ sessionId, memoryReference, instructionOffset?, count, current? })
+  -> Instruction[]`, `dap_modules`, `dap_loaded_sources`, `dap_data_breakpoint({ sessionId,
+  container, name, accessType? }) -> Breakpoint`, `dap_processes({ filter? }) ->
+  ProcessInfo[]`. Shared commands gained optional arguments: `debug_stack({ threadId })`,
+  `debug_property({ reference })`, `debug_eval({ context: watch|repl|hover })`,
+  `debug_set_value({ container, name })`, `debug_watches({ scope })` /
+  `debug_watches_set({ watches, scope })` (`php` or an adapter type). Typed clients:
+  `features/debug/api.ts`, `features/debug/dapApi.ts`; browser mock: `mock/dapMock.ts`.
+- **UI.** The Debug tool window shows a thread selector and, when the session's `features`
+  allow, the Memory, Disassembly (instruction stepping) and Registers tabs
+  (`features/debug/nativeViews.tsx`); variables offer Add Watchpoint and View Memory; the
+  Breakpoints dialog lists line, function, watchpoint and adapter exception breakpoints;
+  `AttachDialogs.tsx` has Attach to Process (`XDebugger.AttachToProcess`, `Ctrl+Alt+F5`),
+  Attach to DAP Server and Debug Core Dump. Inline values use `inlineValuesGeneric`.
+- **Tests.** `crates/forge-dap/tests/fake_adapter.rs` drives the simulated adapter
+  (`forge_dap::fake`, binary `forge-dap-fake`) over every transport; no debugger downloads.
+
 ## PHP CLI interpreters (`packs/phpforge/interpreters`)
 
 - `phpforge-interpreters` (pure except `detect`; also in `forge-wasm`,

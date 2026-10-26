@@ -43,7 +43,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 - [Language servers](user/language-servers.md) — install Intelephense and friends, licence keys
 - [Laravel](user/laravel.md) and [Symfony](user/symfony.md)
 - [WordPress](user/wordpress.md) and [Drupal, Joomla and Shopware](user/cms.md)
-- [Xdebug debugging](user/debugging.md)
+- [Debugging](user/debugging.md)
 - [Remote development](user/remote-development.md)
 - [AI](user/ai.md)
 

@@ -619,7 +619,7 @@ The language level and the interpreter can be stored per project ("For current p
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
 says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
 
-Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](debugging.md)),
+Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
 
 ### CLI interpreters
@@ -747,7 +747,7 @@ cleanup of PHP files run there too, see [Actions on Save](actions-on-save.md).
   Test Frameworks**, see [PHP test frameworks](test-frameworks.md).
 - **PHP scratch files** run with the project's autoloader.
 
-See [Run/Debug configurations](run-debug.md), [Xdebug debugging](debugging.md) and
+See [Run/Debug configurations](run-debug.md), [Debugging](debugging.md) and
 [Scratches](scratches-and-http.md).
 
 ## Remote projects
