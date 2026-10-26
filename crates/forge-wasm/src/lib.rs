@@ -47,6 +47,7 @@ mod php_interpreters;
 mod project_structure;
 mod python;
 mod python_testing;
+mod python_web;
 mod runtools;
 mod save_actions;
 mod scopes;

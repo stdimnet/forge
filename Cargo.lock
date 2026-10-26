@@ -2706,6 +2706,7 @@ dependencies = [
  "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
+ "pyforge-frameworks",
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",

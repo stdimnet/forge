@@ -37,6 +37,7 @@ pyforge-packages.workspace = true
 goforge-lang-go.workspace = true
 goforge-pprof.workspace = true
 pyforge-testing.workspace = true
+pyforge-frameworks.workspace = true
 javaforge-build.workspace = true
 javaforge-lang-java.workspace = true
 forge-keymap.workspace = true
