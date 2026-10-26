@@ -18,6 +18,7 @@ import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { goDemoName, isGoDemo } from "./demoGoProject";
 import { goContext } from "./goTestsMock";
+import { isJavaDemo, javaDemoName } from "./demoJavaProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 import { frameworkCommand, frameworkSteps, recordTestRun, specFor, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
@@ -25,7 +26,7 @@ import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isJavaDemo() ? javaDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -239,6 +240,18 @@ async function onTarget(cfg: RunConfiguration | undefined, cmd: CommandLine, run
   return { cmd: { program: out.program, args: out.args, cwd: cmd.cwd }, pathMappings: out.pathMappings };
 }
 
+/** A pack's own canned runs (PyForge's tests, debug and profile runs). */
+export interface MockRunHandler {
+  /** The command line of a configuration the handler runs; null for others. */
+  commandLine: (r: RunRequest) => Promise<CommandLine | null>;
+  /** Start the run; null when the handler does not run it. */
+  start: (r: RunRequest, runId: string) => Promise<{ runId: string; commandLine: string } | null>;
+}
+const runHandlers: MockRunHandler[] = [];
+export function registerMockRunHandler(h: MockRunHandler): void {
+  runHandlers.push(h);
+}
+
 registerMock("run_target_info", async ({ configuration }) => {
   const cfg = configuration as RunConfiguration;
   if (!cfg.runOn || cfg.runOn.kind === "local") return null;
@@ -254,6 +267,10 @@ registerMock("run_target_info", async ({ configuration }) => {
 
 registerMock("run_command_line", async ({ request }) => {
   const r = request as RunRequest;
+  for (const h of runHandlers) {
+    const cmd = await h.commandLine(r);
+    if (cmd) return cmd;
+  }
   if (r.command) return (await onTarget(undefined, r.command, r.runOn))?.cmd ?? r.command;
   const local = await commandLineOf(r.configuration!, !!r.coverage);
   return (await onTarget(r.configuration, local))?.cmd ?? (await throughInterpreter(r.configuration, local)).cmd;
@@ -264,6 +281,8 @@ interface MockRun {
   done: boolean;
   /** Run with Coverage: the report read when the run exits. */
   coverage?: MockCoverage;
+  /** Another event before `exited` (a profiler snapshot). */
+  exitEvent?: () => Promise<RunEvent | null>;
   /** Handle of the run's `RunOutput` in the WebAssembly module. */
   output: number;
   /** Test runs: the configuration stored in the Test History. */
@@ -326,6 +345,8 @@ async function exitWithCoverage(runId: string, code: number): Promise<void> {
     }).catch(() => null);
     if (suite) emitMock(`run://${runId}`, { type: "coverage", suite });
   }
+  const extra = await run?.exitEvent?.();
+  if (extra) emitMock(`run://${runId}`, extra);
   emitRun(runId, { type: "exited", code, signal: null });
 }
 
@@ -743,6 +764,7 @@ export async function startMockRun(
     locationRules?: { pattern: string; replacement: string }[];
     defaultTestFile?: string;
     coverage?: MockCoverage;
+    exitEvent?: () => Promise<RunEvent | null>;
   } = {},
 ): Promise<{ runId: string; commandLine: string }> {
   wasm ??= await forgeWasm();
@@ -768,6 +790,7 @@ export async function startMockRun(
     configuration: opts.testRunner ? opts.configuration : undefined,
     startedAt: Date.now(),
     coverage: opts.coverage,
+    exitEvent: opts.exitEvent,
   });
   const pid = 40000 + ++seq;
   setTimeout(() => emitRun(runId, { type: "started", pid, commandLine }), 0);
@@ -778,6 +801,10 @@ export async function startMockRun(
 registerMock("run_start", async ({ request }) => {
   const r = request as RunRequest;
   const runId = r.runId ?? `mock-run-${++seq}`;
+  for (const h of runHandlers) {
+    const started = await h.start(r, runId);
+    if (started) return started;
+  }
   const cfg = r.command ? undefined : r.configuration;
   const spec = cfg ? specFor(cfg.type) : undefined;
   const framework = cfg && spec ? await frameworkCommand(cfg, !!r.coverage) : undefined;

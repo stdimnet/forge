@@ -10,7 +10,7 @@ import { ChevronDown, ChevronRight, Flame, FolderOpen, ListTree, Rows3 } from "l
 import { goApi, type CallNode, type ProfileView as Profile } from "@/ipc/go";
 import { openFileAt } from "@/editor/views";
 import { setInputDialog } from "@/features/git/overlays";
-import { showToolWindow } from "@/state/layout";
+import { showProfiler } from "@/features/profiler";
 import { workspace } from "@/state/workspace";
 import { showGoBalloon } from "./state";
 import "./profiler.css";
@@ -29,7 +29,7 @@ export async function openProfile(path: string, title?: string, sampleIndex?: nu
   try {
     const view = await goApi.pprofOpen(path, sampleIndex);
     setOpened({ path, title: title ?? path.replace(/\\/g, "/").split("/").pop() ?? path, view });
-    showToolWindow("profiler");
+    showProfiler("go");
   } catch (e) {
     showGoBalloon("Cannot open the profile", String(e).replace(/^Error: /, ""), 8000);
   }
@@ -111,14 +111,14 @@ function FlameGraph(props: { root: CallNode; unit: string }) {
     return out;
   });
   return (
-    <div class="prof-flame" data-testid="profiler-flame">
+    <div class="goprof-flame" data-testid="profiler-flame">
       <For each={[...rows()].reverse()}>
         {(row) => (
-          <div class="prof-flame-row">
+          <div class="goprof-flame-row">
             <For each={row}>
               {(f) => (
                 <div
-                  class="prof-flame-frame"
+                  class="goprof-flame-frame"
                   style={{ left: `${f.x * 100}%`, width: `${f.w * 100}%`, background: colorOf(f.node.name), color: f.node.name === "root" ? "var(--fg)" : undefined }}
                   title={`${f.node.name}\n${formatValue(f.node.total, props.unit)} (${percent(f.node.total, props.root.total)}), self ${formatValue(f.node.self, props.unit)}${f.node.file ? `\n${f.node.file}:${f.node.line}` : ""}`}
                   onClick={() => setFocus(f.node === base() ? null : f.node)}
@@ -132,7 +132,7 @@ function FlameGraph(props: { root: CallNode; unit: string }) {
         )}
       </For>
       <Show when={focus()}>
-        <button class="prof-reset pill-btn" onClick={() => setFocus(null)}>
+        <button class="goprof-reset pill-btn" onClick={() => setFocus(null)}>
           Reset zoom
         </button>
       </Show>
@@ -145,18 +145,18 @@ function TreeRow(props: { node: CallNode; depth: number; total: number; unit: st
   const has = () => props.node.children.length > 0;
   return (
     <>
-      <div class="tree-row prof-tree-row" style={{ "padding-left": `${8 + props.depth * 14}px` }} onDblClick={() => navigate(props.node.file, props.node.line)}>
-        <span class="prof-toggle" onClick={() => setOpen(!open())}>
+      <div class="tree-row goprof-tree-row" style={{ "padding-left": `${8 + props.depth * 14}px` }} onDblClick={() => navigate(props.node.file, props.node.line)}>
+        <span class="goprof-toggle" onClick={() => setOpen(!open())}>
           <Show when={has()}>{open() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</Show>
         </span>
-        <span class="prof-pct">{percent(props.node.total, props.total)}</span>
-        <span class="prof-bar">
+        <span class="goprof-pct">{percent(props.node.total, props.total)}</span>
+        <span class="goprof-bar">
           <span style={{ width: percent(props.node.total, props.total) }} />
         </span>
-        <span class="prof-name">{props.node.name === "root" ? "All" : shortName(props.node.name)}</span>
-        <span class="muted prof-value">{formatValue(props.node.total, props.unit)}</span>
+        <span class="goprof-name">{props.node.name === "root" ? "All" : shortName(props.node.name)}</span>
+        <span class="muted goprof-value">{formatValue(props.node.total, props.unit)}</span>
         <Show when={props.node.self}>
-          <span class="muted prof-self">self {formatValue(props.node.self, props.unit)}</span>
+          <span class="muted goprof-self">self {formatValue(props.node.self, props.unit)}</span>
         </Show>
       </div>
       <Show when={open()}>
@@ -166,17 +166,26 @@ function TreeRow(props: { node: CallNode; depth: number; total: number; unit: st
   );
 }
 
+/** Header buttons of the Profiler while it shows pprof profiles. */
+export function ProfilerActions() {
+  return (
+    <button class="icon-btn" title="Open Profile (pprof)…" onClick={askForProfile}>
+      <FolderOpen size={14} />
+    </button>
+  );
+}
+
 export function ProfilerView() {
   const unit = () => {
     const v = opened()?.view;
     return v ? (v.sampleTypes[v.sampleIndex]?.unit ?? "") : "";
   };
   return (
-    <div class="prof-view">
+    <div class="goprof-view">
       <Show
         when={opened()}
         fallback={
-          <div class="prof-empty muted">
+          <div class="goprof-empty muted">
             <p>No profile is open.</p>
             <p>Run a Go test or benchmark with a profile (Go Test configuration › Profile), or open a pprof file.</p>
             <button class="btn-secondary" onClick={askForProfile}>
@@ -187,10 +196,10 @@ export function ProfilerView() {
       >
         {(o) => (
           <>
-            <div class="prof-toolbar">
-              <span class="prof-title">{o().title}</span>
+            <div class="goprof-toolbar">
+              <span class="goprof-title">{o().title}</span>
               <select
-                class="prof-type"
+                class="goprof-type"
                 value={String(o().view.sampleIndex)}
                 onChange={(e) => void openProfile(o().path, o().title, Number(e.currentTarget.value))}
               >
@@ -206,8 +215,8 @@ export function ProfilerView() {
                 Total {formatValue(o().view.total, unit())} · {o().view.samples} call stacks
                 <Show when={o().view.durationNanos}> · {formatValue(o().view.durationNanos, "nanoseconds")} recorded</Show>
               </span>
-              <span class="prof-spacer" />
-              <div class="prof-tabs">
+              <span class="goprof-spacer" />
+              <div class="goprof-tabs">
                 <button classList={{ active: tab() === "flame" }} onClick={() => setTab("flame")}>
                   <Flame size={13} /> Flame Graph
                 </button>
@@ -218,21 +227,18 @@ export function ProfilerView() {
                   <Rows3 size={13} /> Method List
                 </button>
               </div>
-              <button class="icon-btn" title="Open Profile…" onClick={askForProfile}>
-                <FolderOpen size={14} />
-              </button>
             </div>
-            <div class="prof-body">
+            <div class="goprof-body">
               <Show when={tab() === "flame"}>
                 <FlameGraph root={o().view.tree} unit={unit()} />
               </Show>
               <Show when={tab() === "tree"}>
-                <div class="prof-tree">
+                <div class="goprof-tree">
                   <TreeRow node={o().view.tree} depth={0} total={o().view.total} unit={unit()} />
                 </div>
               </Show>
               <Show when={tab() === "top"}>
-                <table class="prof-top">
+                <table class="goprof-top">
                   <thead>
                     <tr>
                       <th>Method</th>
@@ -245,7 +251,7 @@ export function ProfilerView() {
                   <tbody>
                     <For each={o().view.top}>
                       {(r) => (
-                        <tr onDblClick={() => navigate(r.file, r.line)} classList={{ "prof-own": isProjectFile(r.file) }}>
+                        <tr onDblClick={() => navigate(r.file, r.line)} classList={{ "goprof-own": isProjectFile(r.file) }}>
                           <td title={`${r.name}\n${r.file}`}>{shortName(r.name)}</td>
                           <td>{formatValue(r.flat, unit())}</td>
                           <td>{percent(r.flat, o().view.total)}</td>

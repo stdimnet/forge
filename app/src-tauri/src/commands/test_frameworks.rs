@@ -93,6 +93,10 @@ pub(crate) enum ReportDir {
     Local(PathBuf),
     /// A project folder read through the backend.
     Project(String),
+    /// Project folders a build tool writes its reports into itself (Gradle
+    /// `build/test-results/test`, Maven `target/surefire-reports`): emptied before the run,
+    /// their `TEST-*.xml` files read recursively after it, and left in place.
+    Builds(Vec<String>),
 }
 
 impl ReportDir {
@@ -107,6 +111,12 @@ impl ReportDir {
                 let _ = backend.delete(rel);
                 backend.create_dir(rel)
             }
+            ReportDir::Builds(dirs) => {
+                for d in dirs {
+                    let _ = backend.delete(d);
+                }
+                Ok(())
+            }
         }
     }
 
@@ -115,6 +125,7 @@ impl ReportDir {
         match self {
             ReportDir::Local(dir) => std::fs::read_to_string(dir.join(name)).ok(),
             ReportDir::Project(rel) => backend.read_file(&format!("{rel}/{name}")).ok(),
+            ReportDir::Builds(_) => None,
         }
     }
 
@@ -127,6 +138,7 @@ impl ReportDir {
             ReportDir::Project(rel) => {
                 let _ = backend.delete(rel);
             }
+            ReportDir::Builds(_) => {}
         }
     }
 
@@ -164,8 +176,33 @@ impl ReportDir {
                 }
                 let _ = backend.delete(rel);
             }
+            ReportDir::Builds(dirs) => {
+                for d in dirs {
+                    collect_build_reports(backend, d, 0, &mut out);
+                }
+            }
         }
         out
+    }
+}
+
+/// The `TEST-*.xml` reports below a build tool's report folder (Gradle and Surefire name
+/// them so; other XML files there, like TestNG's `testng-results.xml`, are not JUnit).
+fn collect_build_reports(backend: &dyn Backend, dir: &str, depth: usize, out: &mut Vec<String>) {
+    let Ok(mut entries) = backend.list_dir(dir) else {
+        return;
+    };
+    entries.sort_by(|a, b| a.path.cmp(&b.path));
+    for e in entries {
+        if e.kind == forge_core::workspace::FileKind::Dir {
+            if depth < 4 {
+                collect_build_reports(backend, &e.path, depth + 1, out);
+            }
+        } else if e.name.starts_with("TEST-") && e.name.ends_with(".xml") {
+            if let Ok(t) = backend.read_file(&e.path) {
+                out.push(t);
+            }
+        }
     }
 }
 
@@ -218,6 +255,8 @@ pub(crate) struct TestSetup {
     pub default_file: Option<String>,
     /// Run with Coverage: where the report is read after the run.
     pub coverage: Option<crate::commands::testing::CoverageSetup>,
+    /// Profile (Python): where the cProfile snapshot is read after the run.
+    pub profile: Option<crate::commands::python_tools::ProfileSetup>,
 }
 
 fn framework_for(

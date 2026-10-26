@@ -7,17 +7,17 @@
  * - run configuration types "Go Build", "Go Remote" and the manifest's "Go Test" with
  *   profiles (the Profiler opens the result), Debug through Delve (`go_debug_request`,
  *   `dap_start`; Forge offers to install Delve with the project's Go),
- * - the Profiler tool window (pprof: flame graph, call tree, method list),
+ * - pprof profiles in the shared Profiler tool window (flame graph, call tree, method list),
  * - actions: Sync Dependencies, Download Dependencies, Add Dependency, go vet,
  *   golangci-lint, go generate, Download Go SDK, Open Profile,
  * - go.mod editing, go:generate markers, gofmt / goimports and annotators (`editor.ts`).
  */
 import { createEffect, createRoot, on } from "solid-js";
-import { Box, Flame, Plug } from "lucide-solid";
+import { Box, Plug } from "lucide-solid";
 import { goApi } from "@/ipc/go";
 import { runApi, type CommandLine, type RunConfiguration } from "@/ipc/run";
 import { registerKeymapActions } from "@/keymap";
-import { registerToolWindow } from "@/features/registry";
+import { registerProfilerSource } from "@/features/profiler";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { confirmDialog } from "@/features/browserCompanion/ConfirmDialog";
 import { setInputDialog } from "@/features/git/overlays";
@@ -32,11 +32,11 @@ import { activeView } from "@/editor/views";
 import { isDialogWindow } from "@/shell/window/mode";
 import { registerCommand } from "@/state/commands";
 import { activeTab } from "@/state/editor";
-import { showToolWindow, toggleToolWindow } from "@/state/layout";
+import { showToolWindow } from "@/state/layout";
 import { settingsState } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { GoSettingsPage } from "./GoSettingsPage";
-import { askForProfile, openProfile, ProfilerView } from "./ProfilerView";
+import { askForProfile, openProfile, ProfilerActions, ProfilerView } from "./ProfilerView";
 import { isGoPath, runGenerate, runLint } from "./editor";
 import { downloadSdk } from "./sdk";
 import { goActive, installTool, PLUGIN, refreshGoStatus, runGoCommand, showGoBalloon } from "./state";
@@ -56,15 +56,8 @@ registerSettingsPage({
 
 // ---- Profiler -----------------------------------------------------------------------------------
 
-registerToolWindow({
-  id: "profiler",
-  title: "Profiler",
-  icon: Flame,
-  anchor: "bottom",
-  order: 55,
-  component: ProfilerView,
-  when: goActive,
-});
+// The shared Profiler tool window (features/profiler) shows pprof profiles.
+registerProfilerSource({ id: "go", label: "pprof", active: goActive, component: ProfilerView, actions: ProfilerActions, order: 20 });
 
 // ---- Run configurations -----------------------------------------------------------------------
 
@@ -262,7 +255,6 @@ async function profileAtCaret(kind: "cpu" | "mem"): Promise<void> {
 }
 
 registerKeymapActions([
-  { id: "ActivateProfilerToolWindow", title: "Profiler", group: "Tool Windows" },
   { id: "go.syncDependencies", title: "Sync Dependencies (go mod tidy)", group: "Plugins/Go" },
   { id: "go.downloadDependencies", title: "Download Dependencies (go mod download)", group: "Plugins/Go" },
   { id: "go.addDependency", title: "Add Dependency…", group: "Plugins/Go" },
@@ -275,7 +267,6 @@ registerKeymapActions([
   { id: "go.profileMemory", title: "Profile Test with Memory Profiler", group: "Plugins/Go" },
 ]);
 
-registerCommand({ id: "ActivateProfilerToolWindow", title: "Profiler", category: "View", run: () => toggleToolWindow("profiler") });
 registerCommand({ id: "go.syncDependencies", title: "Sync Dependencies (go mod tidy)", category: "Go", run: () => void moduleCommand("tidy") });
 registerCommand({ id: "go.downloadDependencies", title: "Download Dependencies (go mod download)", category: "Go", run: () => void moduleCommand("download") });
 registerCommand({ id: "go.addDependency", title: "Add Dependency…", category: "Go", run: addDependency });

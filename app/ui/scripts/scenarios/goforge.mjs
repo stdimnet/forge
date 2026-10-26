@@ -128,7 +128,7 @@ export default {
     await page.evaluate(() => window.__forgeOpenProfile("/home/anna/.cache/forge/go-profiles/BenchmarkReport-cpu.pprof", "BenchmarkReport (cpu)"));
     await page.waitForSelector('[data-testid="profiler-flame"]');
     await bottomHeight(page, 380);
-    await page.click('.prof-tabs button:has-text("Call Tree")');
+    await page.click('.goprof-tabs button:has-text("Call Tree")');
     await page.waitForTimeout(400);
   }),
   // Settings | Languages & Frameworks | Go.

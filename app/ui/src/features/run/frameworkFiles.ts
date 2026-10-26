@@ -36,5 +36,15 @@ const patterns = createRoot(() =>
   ),
 );
 
-/** Whether a project file matches a manifest test framework's `testFiles`. */
-export const isFrameworkTestFile = (path: string) => patterns().some((re) => re.test(path.replace(/\\/g, "/")));
+const matchers: ((path: string) => boolean)[] = [];
+
+/** Files of a code-backed test framework (Python test modules) that get the test gutter. */
+export function registerTestFileMatcher(matches: (path: string) => boolean): void {
+  matchers.push(matches);
+}
+
+/** Whether a project file matches a manifest test framework's `testFiles` or a registered matcher. */
+export const isFrameworkTestFile = (path: string) => {
+  const p = path.replace(/\\/g, "/");
+  return patterns().some((re) => re.test(p)) || matchers.some((m) => m(p));
+};

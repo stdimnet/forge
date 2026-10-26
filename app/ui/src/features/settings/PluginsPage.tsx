@@ -16,8 +16,9 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   luaforge: { label: "LuaForge", order: 3 },
   pyforge: { label: "PyForge", order: 4 },
   goforge: { label: "GoForge", order: 5 },
-  scriptforge: { label: "ScriptForge", order: 6 },
-  configforge: { label: "ConfigForge", order: 7 },
+  javaforge: { label: "JavaForge", order: 6 },
+  scriptforge: { label: "ScriptForge", order: 7 },
+  configforge: { label: "ConfigForge", order: 8 },
 };
 
 const packLabel = (pack: string) => PACKS[pack]?.label ?? pack;

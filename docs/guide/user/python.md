@@ -1,13 +1,13 @@
 ---
 title: PyForge (Python)
-description: The PyForge pack - Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), the Python Packages tool window, requirements inspections, basedpyright / ty / ruff, Black and the Python run configuration.
+description: The PyForge pack - Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), the Python Packages tool window, requirements inspections, basedpyright / ty / ruff, Black, the Python run configuration, pytest / unittest / tox, debugging with debugpy, the Python Console and the cProfile profiler.
 order: 115
-tags: [python, pyforge, interpreter, venv, uv, poetry, conda, pip, ruff, basedpyright]
+tags: [python, pyforge, interpreter, venv, uv, poetry, conda, pip, ruff, basedpyright, pytest, unittest, tox, debugpy, console, ipython, profiler, cprofile]
 ---
 
 # PyForge (Python)
 
-**PyForge** brings PyCharm's Python support to Forge. It has two plugins:
+**PyForge** brings PyCharm's Python support to Forge. It has three plugins:
 
 - **Python** (`forge.python`) — highlighting, scope-aware completion and syntax checks for
   `.py` files, pip requirements files, the Python language servers and Reformat Code. It is
@@ -17,6 +17,9 @@ tags: [python, pyforge, interpreter, venv, uv, poetry, conda, pip, ruff, basedpy
   active in [Python projects](../getting-started/project-detection.md): `pyproject.toml`,
   `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`, Python files in
   the root, or two or more in a folder.
+- **Python Tests, Debugger, Console and Profiler** (`forge.python-tools`) — pytest, unittest
+  and tox in the test runner, debugging with debugpy, the Python Console and the profiler, in
+  the same projects.
 
 ![A Python file with basedpyright's errors and the requirements inspection](../../screenshots/python-editor.png)
 
@@ -172,8 +175,121 @@ WSL). `PYTHONUNBUFFERED=1` keeps the output live. A ▶ in the gutter of
 `if __name__ == "__main__":` runs the file, as does `Ctrl+Shift+F10` in a Python file.
 
 Running scripts, modules, pip and environment tools is running project code: it is refused in
-[Safe Mode](project-trust.md). The debugger, test runners and the Python console are not part
-of PyForge yet.
+[Safe Mode](project-trust.md), like tests, debugging, the Python Console and Profile below.
+
+## Testing with pytest, unittest and tox
+
+Python tests run in the shared [test runner](testing.md): gutter icons, the test tree with
+**Click to see difference**, Rerun Failed Tests, [Test History](testing.md) and
+[Run with Coverage](coverage.md).
+
+![pytest results with a failed parametrized case and its comparison](../../screenshots/python-pytest.png)
+
+- **Gutter icons** come from the source (no test run, no plugin needed): pytest's
+  `test*` functions in `test_*.py` / `*_test.py` files, `Test*` classes without `__init__`
+  (also nested ones) and their methods, and `unittest.TestCase` subclasses with their `test*`
+  methods in any file. `@pytest.mark.parametrize` cases get icons of their own when each
+  value is on its own line; their names are pytest's ids (`ids=`, `pytest.param(id=…)`, the
+  values themselves, `argname0` otherwise; stacked decorators multiply). The icons show the
+  last result, a failing case marks its test.
+- **Default test runner** (Settings | Tools | Python Integrated Tools,
+  `python.testing.runner`): *Autodetect* uses pytest when the project uses it
+  (`pytest.ini`, `conftest.py`, `[tool.pytest.ini_options]`, `[tool:pytest]`, tox's
+  `[pytest]` or a `pytest` dependency) and unittest for files with only test cases; or always
+  pytest / always Unittests. Run Context Configuration (`Ctrl+Shift+F10`) runs the test at the
+  caret, else the file; in a file without tests it runs the file as a Python script.
+- **pytest** configurations run all tests, a directory, a **Script path**, a test (the node id
+  after the file: `TestCart::test_add[one]`) or **Keywords** (`-k`), with additional
+  arguments. Results come from pytest's JUnit XML (`--junitxml`, built in) or, with **pytest
+  results** set to *Report log*, from the pytest-reportlog plugin. **Rerun Failed Tests** runs
+  the failed tests' node ids, with their classes read from the files. **Run with Coverage**
+  needs pytest-cov: it adds `--cov --cov-report=xml:…` and shows the Cobertura report in the
+  Coverage tool window and the editor.
+- **Unittests** configurations run discovery below the project or a directory (pattern
+  `test*.py`), a file, a class or a test method with Forge's own runner: a small script that
+  comes with Forge (standard library only, sent inline with `python -c`), reports every test as
+  it runs and records `assertEqual` values for the comparison. Rerun Failed Tests runs the
+  failed tests' ids (`tests.test_cart.TestCart.test_total`).
+- **tox** configurations run the environments you name (empty: tox's `env_list`) with
+  `python -m tox`, or the program of **tox executable** (`python.tox.path`). Every
+  environment is a test of the tree, with its output and its result (`OK`, `FAIL`, `SKIP`).
+  **Run tox Environment…** (Tools menu, Find Action) lists the environments of `tox.ini`,
+  `setup.cfg`, `tox.toml` or `pyproject.toml` (`[tool.tox]`), generative names such as
+  `py{311,312}` expanded, and runs one.
+
+All of them run through the configuration's or the project's interpreter, including Docker,
+Docker Compose, SSH and WSL interpreters, and on a configuration's [run target](run-targets.md).
+Report files go to the system temp folder, or to `.forge/test-reports/<run>` in the project
+when the interpreter or target is remote, and are read and removed when the run ends.
+
+## Debugging with debugpy
+
+Debug (`Shift+F9`) on a Python, pytest or Unittests configuration, or **Debug** in a test's
+gutter menu, debugs it with [debugpy](https://github.com/microsoft/debugpy) (MIT) in the
+shared [debugger](debugging.md): breakpoints, conditions and logpoints, stepping, frames and
+variables, watches, inline values, Set Value, exception breakpoints (raised, uncaught, user
+uncaught) and the **Console** tab, which evaluates expressions in the selected frame.
+
+![A pytest test paused in Cart.total with the debug console](../../screenshots/python-debug.png)
+
+- When the interpreter has no debugpy, Forge asks before it installs it with the
+  environment's package manager (`pip install debugpy`, `uv pip install debugpy`, …); **Install
+  debugpy without asking** turns the question off.
+- The run starts in the Run tool window as `python [options] -m debugpy --listen
+  127.0.0.1:<port> --wait-for-client …` and Forge attaches to it. Docker, SSH and WSL
+  interpreters and run targets listen on every interface; the port is published or forwarded
+  and the project's path mappings become debugpy's `pathMappings`, so breakpoints work in
+  containers and on remote hosts.
+- **Attach to Process** (`Ctrl+Alt+F5`) attaches debugpy to a running local Python process,
+  with the adapter (`python -m debugpy.adapter`) started in the project's interpreter.
+  **Attach to DAP Server** connects to a program started with
+  `python -m debugpy --listen 5678 app.py`.
+- Settings | Build, Execution, Deployment | Debugger | **Python Debugger**:
+  **Step only through the project's code** (`python.debugger.justMyCode`, on) and
+  **Attach to subprocesses automatically** (`python.debugger.subProcess`, on).
+
+## Python Console
+
+The **Python Console** tool window (Tools | Python Console) is an interactive REPL in the
+project's interpreter, IPython when the interpreter has it (Settings | Build, Execution,
+Deployment | Python Console, **Use IPython if available**).
+
+![The Python Console with a variable expanded](../../screenshots/python-console.png)
+
+- Type at the prompt; `Enter` runs the input, an incomplete statement continues with `...`,
+  `Shift+Enter` adds a line, `Up` / `Down` go through the command history (kept per project in
+  Forge's state folder). A program's `input()` asks at the prompt.
+- **Run Selection in Python Console** (`Alt+Shift+E`) runs the selection, or the caret's line,
+  in the console and starts it when needed. **Run File in Python Console** runs the whole file
+  in the console's namespace.
+- **Show Variables** shows the console's variables with their types and values; lists, dicts,
+  sets and objects expand.
+- The toolbar reruns, stops and clears the console. It runs through Docker, SSH and WSL
+  interpreters too and is refused in Safe Mode.
+
+## Profiler
+
+**Run | Profile** runs the selected Python configuration under cProfile (standard library):
+`python [options] -m cProfile -o <snapshot> (<script> | -m <module>) …`. The snapshot
+(`.pstats`) goes to Forge's cache folder (`<cache dir>/forge/profiles/<project>`; the newest
+**Profiler snapshots to keep** stay); runs on remote interpreters write it into the project's
+`.forge/test-reports` folder first, then Forge moves it out. Forge reads the file itself, no
+Python is needed to view it.
+
+![The Profiler's call tree](../../screenshots/python-profiler.png)
+
+The **Profiler** tool window shows a snapshot:
+
+- **Call Tree**: what called what, with calls, total and own time and the share of the run;
+  recursion shows once, cheap calls deep in the tree are left out.
+- **Method List**: the hot spots — every function with its calls (`calls/primitive calls`
+  for recursion), own time and share, and total time; sort by any column.
+
+![The Profiler's method list](../../screenshots/python-profiler-hot-spots.png)
+
+Double-click a row to open the function's source. **Snapshots…** switches between the
+project's snapshots, **Open Snapshot…** reads a `.pstats` file of the project, **Delete
+Snapshot** removes one.
 
 ## Settings
 
@@ -188,7 +304,31 @@ of PyForge yet.
 | Report unsatisfied requirements | `python.inspections.requirements` | on |
 | Report imports of packages missing from the requirements | `python.inspections.imports` | on |
 | Ignored packages | `python.inspections.ignoredPackages` | none |
+| Default test runner | `python.testing.runner` | `auto` |
+| pytest results | `python.pytest.reporter` | `junitxml` |
+| tox executable | `python.tox.path` | `python -m tox` |
+| Profiler snapshots to keep | `python.profiler.snapshots` | 20 |
+| Step only through the project's code (justMyCode) | `python.debugger.justMyCode` | on |
+| Attach to subprocesses automatically | `python.debugger.subProcess` | on |
+| Install debugpy without asking | `python.debugger.installWithoutAsking` | off |
+| Use IPython if available | `python.console.ipython` | on |
+| Python Console interpreter options | `python.console.interpreterOptions` | none |
+
+## Shortcuts
+
+| Action | Id | Windows / Linux | macOS |
+| --- | --- | --- | --- |
+| Run Selection in Python Console | `ExecuteInPyConsoleAction` | `Alt+Shift+E` | `Alt+Shift+E` |
+| Run File in Python Console | `RunFileInPythonConsole` | — | — |
+| Python Console | `ActivatePythonConsoleToolWindow` | — | — |
+| Profiler | `ActivateProfilerToolWindow` | — | — |
+| Profile | `python.profile` | — | — |
+| Run tox Environment… | `python.runToxEnvironment` | — | — |
 
 ## Browser mode
 
 `?project=python` opens the demo service `shop-api` (FastAPI, SQLAlchemy, a uv environment).
+Its tests (pytest with a failing parametrized case, a unittest test case), `tox.ini`, a debug
+session in `Cart.total`, the Python Console and a profile of `scripts/report.py` are simulated;
+discovery, command lines, tox environments and the snapshot's call tree are computed by the
+same Rust code (WebAssembly).

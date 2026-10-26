@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -66,6 +66,9 @@ app/ui/            SolidJS UI
   - Test frameworks: `[[contributions.testFrameworks]]` in a manifest (or a Rust
     `forge_testing::TestFrameworkProvider`) — gutter icons, a run configuration type, the test
     tree, Rerun Failed Tests and Run with Coverage for a pack's test framework.
+    Code-backed frameworks add `registerTestFileMatcher(path => bool)` (files that get the
+    test gutter) and `registerContextConfiguration(path => cfg | null)` (Run Context
+    Configuration outside tests) from `@/features/run` (PyForge).
   - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
     Anything (double Ctrl), e.g. Artisan and Symfony console commands.
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
@@ -932,7 +935,8 @@ or without Git, for local and remote projects.
   `artisan`, `bin/console`, `wp-config.php`, `package.json`/lock files/`node_modules`, `angular.json`,
   `tsconfig.json`, `*.lua`, `.luarc.json`, `*.rockspec`, `conf.lua`, `init.lua`, `Cargo.toml`, `go.mod`,
   `*.py`, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`,
-  `uv.lock`, `poetry.lock`, `Dockerfile`/`compose.yaml`, `.git`).
+  `uv.lock`, `poetry.lock`, `pom.xml`, `build.gradle(.kts)`/`settings.gradle(.kts)`,
+  `*.java` / `src/main/java`, `Dockerfile`/`compose.yaml`, `.git`).
 - `project_detect() -> ProjectInfo { languages, frameworks: { id, name, version?, language, dir? }[],
   packs, tools, primary? }`; `workspace_open` also emits `project://detected` `{ root, info }`, and
   `workspace_recent` returns each project's `primary` for the Welcome screen badge.
@@ -1059,7 +1063,7 @@ or without Git, for local and remote projects.
   report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is
@@ -1067,14 +1071,19 @@ or without Git, for local and remote projects.
   `discover(path, text) -> TestFile`, `rerun_failed(cfg, failed)`, `command(cfg, ctx) ->
   TestCommand` (optional) and `supports_coverage`) in the `TestFrameworks` registry
   (`RunState.tests`). The PHP frameworks register as `PhpTestFrameworks` (their commands keep
-  going through the PHP CLI interpreter); manifest frameworks (`[[contributions.testFrameworks]]`,
+  going through the PHP CLI interpreter) and PyForge's as `PythonTestFrameworks` (pytest,
+  unittest, tox through the Python interpreter, see "PyForge"); manifest frameworks (`[[contributions.testFrameworks]]`,
   `TestFrameworkSpec`, re-exported as `forge_plugin_api::TestFrameworkContribution`) are
   `SpecProvider`s: detection (globs, dependency files), `testFiles` globs, line-pattern
   discovery nested by indentation (full names with `nameSeparator`), per-scope arguments
   (`all`, `directory`, `file`, `test`, `pattern`) with `${file}`, `${test}`, `${testPattern}`,
   `${pattern}`, `${reportDir}`, `${coverageFile}`, the `report` format, `locationRules`,
   `rerun` and `coverage`. LuaForge declares busted. `TestCommand { program, args, env,
-  report, flavor, locationRules, defaultFile, coverage }`.
+  report, flavor, locationRules, defaultFile, coverage, reportDirs }`: `reportDirs` are project
+  folders a build tool writes its JUnit XML into (Gradle, Surefire), emptied before the run and
+  read recursively (`TEST-*.xml`) after it (`test_frameworks::ReportDir::Builds`); a
+  `coverage.locationRules` overrides the command's rules for the report (JaCoCo names main
+  sources). JavaForge registers `JavaTests` for `junit` / `testng` (`JUnitFlavor::Java`).
 - IPC (`commands/testing.rs`, `src/ipc/testing.ts`): `test_discover({ path, text }) ->
   TestFile` and `test_rerun_failed({ configuration, failed }) -> RunConfiguration | null` ask
   the registry; `test_frameworks_detect() -> string[]` (manifest frameworks the project
@@ -1141,8 +1150,9 @@ or without Git, for local and remote projects.
   through `run_start`). Degraded instead
   of refused: `laravel_routes` (static parsing), `cli_tools_commands` (built-in commands),
   `lua_format`, `python_format` and the interpreter probes (`python_interpreter_info`,
-  `python_packages_list`; refused only for programs inside the project, such as a project
-  `.venv`, or Docker Compose services), `python_interpreters_detect` (asks `poetry` / `pipenv`
+  `python_packages_list`, `python_debugpy_status`; refused only for programs inside the
+  project, such as a project `.venv`, or Docker Compose services; `python_console_start` is
+  refused), `python_interpreters_detect` (asks `poetry` / `pipenv`
   only outside Safe Mode), `terminal_open` (shell and environment from the user layer only,
   `Settings::get_without_project_as`). Language servers: `commands::lsp::SafeModeLauncher`
   wraps the backend's launcher and refuses project-local binaries and
@@ -2144,7 +2154,8 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 
 ## PyForge (`packs/pyforge/*`)
 
-- Plugins (`app/src-tauri/plugins/pyforge.toml`): `forge.python` (file types `python` and
+- Plugins (`app/src-tauri/plugins/pyforge.toml`): `forge.python-tools` (tests, debugpy,
+  Python Console, Profiler; see below), `forge.python` (file types `python` and
   `pip-requirements`, Reformat Code, the language server settings; always active) and
   `forge.python-env` (`projectTypes = ["pyforge"]`: interpreters, the `pythonPackages` tool
   window, requirements inspections, the `python` run configuration type). `forge-project`
@@ -2188,9 +2199,54 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   new environments) are started by the UI through `run_start` (hidden run configuration type
   `python-command` with `buildCommand`), so they stream into the Run tool window and are
   refused in Safe Mode.
-- Runs: `run::build` builds the `python` type with `commands::python::build_run` (`[options]
-  (<script> | -m <module>) [parameters]`, `PYTHONUNBUFFERED=1`) through the configuration's or
-  the project's interpreter, with output path mappings for remote ones.
+- Runs: `run::build` hands the `python`, `pytest`, `unittest` and `tox` types to
+  `commands::python_tools::build`: `python [options] [head] (<script> | -m <module>)
+  [parameters]` (`commands::python::run_command`, `PYTHONUNBUFFERED=1`) or the test runner's
+  arguments from `pyforge-testing`, through the configuration's or the project's interpreter
+  (`python::through_serving`, which publishes a debug port of container interpreters), or on
+  the configuration's run target (`run::on_target`, program `python3`), with output path
+  mappings for remote ones. `RunRequest.interpreterArgs` of these types go after the
+  interpreter options (`-m debugpy --listen …`), `RunRequest.profile` adds `-m cProfile -o
+  <snapshot>` and ends the run with `{ type: "profile", profile | error }` on `run://<runId>`
+  (`TestSetup.profile`, `python_tools::record_profile`).
+- Tests, debugger, console, profiler (`packs/pyforge/testing`, plugin `forge.python-tools`,
+  IPC `commands/python_tools.rs`, `src/ipc/pythonTools.ts`): `PythonTestFrameworks` registers
+  `pytest` / `unittest` / `tox` in the `forge-testing` registry; `test_discover` for `.py`
+  files scans the source (`discover::scan`) and picks the runner from `python.testing.runner`
+  and the project's files (`detect`, cached for 10 s), `test_rerun_failed` reads the failed
+  tests' files for their classes (node ids / unittest ids). pytest reports JUnit XML
+  (`--junitxml <dir>/pytest.xml -o junit_family=xunit1`, flavor `pytest`) or a report log
+  into the run's report folder, unittest runs `helpers/forge_unittest.py` inline (`-c`, base64)
+  with TeamCity messages, tox output is read by `forge_output::formats::tox`
+  (`TestReport::Tox`, environments as tests); Run with Coverage adds pytest-cov's Cobertura
+  report. `python_testing_detect() -> { pytest, tox, reasons }`,
+  `python_tox_environments() -> { name, default, description?, file, line? }[]`,
+  `python_debugpy_status({ interpreter? }) -> { installed, version?, interpreter }`,
+  `python_debug_plan({ configuration }) -> { listenHost, connectHost, port, pathMappings:
+  { localRoot, remoteRoot }[], justMyCode, subProcess }`; the UI's `debugpy` launcher
+  (`features/python/debug.ts`) installs debugpy with consent (`python_packages_command`),
+  starts the run with `-m debugpy --listen <listenHost>:<port> --wait-for-client` and
+  `debugPort { ideConnects }`, then `dap_start({ adapter: "python", mode: "attachServer" })`
+  (retried until it listens). The manifest's `python` adapter (`python -m debugpy.adapter`,
+  command = the project's local interpreter, `python_tools::adapter_python`) serves Attach to
+  Process / DAP Server. Python Console: `python_console_start({ id? }) -> { id, commandLine,
+  interpreter }` runs `helpers/forge_console.py` (IPython when `python.console.ipython`) and
+  streams `python-console://<id>`: `{ type: "console", …ConsoleDelta }` (rendered by
+  `RunOutput`), `{ type: "message", message: ready | more | done | vars | children | input }`
+  (`\x1e` + JSON lines separated by `console::Splitter`) and `{ type: "exited", code }`;
+  `python_console_send({ id, op, fields?, echo? })` writes a JSON request to stdin,
+  `python_console_stop`, `python_console_history()` / `python_console_history_add({ entry })`
+  (state dir). Profiler: `python_profiles() -> ProfileInfo[]`, `python_profile_view({ id })
+  -> { info, view: { totalMs, functions, calls, hotSpots, callTree } }` (`pstats::parse`,
+  files mapped back and made project-relative), `python_profile_open({ path })`,
+  `python_profile_delete({ id })`; snapshots in `<cache dir>/forge/profiles/<project>`.
+  UI: `features/python/testing.ts` (types, `registerTestFileMatcher`,
+  `registerContextConfiguration`, Run tox Environment…), `console/` (Python Console tool
+  window, `ExecuteInPyConsoleAction` `Alt+Shift+E`, `RunFileInPythonConsole`), `profiler/`
+  (Profiler tool window, `onProfileSnapshot`), settings pages
+  `tools.python-integrated-tools`, `build.python-debugger`, `build.python-console`. Browser
+  mode: `mock/pythonToolsMock.ts`, `mock/pythonDebugMock.ts`, WebAssembly
+  `crates/forge-wasm/src/python_testing.rs`.
 - UI (`app/ui/src/features/python`): the status item `python.interpreter` with the switch popup,
   Settings | Project | Python Interpreter (`project.python-interpreter`, settings group
   `Project`) and Languages & Frameworks | Python (`lang.python`, schema plus
@@ -2205,7 +2261,7 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 ## GoForge (`packs/goforge/*`)
 
 - Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):
-  file types `go-mod`, `go-work`, `go-sum` (`.go` is bundled), the `profiler` tool window, the
+  file types `go-mod`, `go-work`, `go-sum` (`.go` is bundled), the
   run configuration types `go-build` and `go-remote`, the `go-test` test framework (wrapped in
   Rust by `GoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
   Settings | Languages & Frameworks | Go (`lang.go`, `go.*`). `forge-project` reports the
@@ -2238,16 +2294,79 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   sampleIndex? }) -> ProfileView { sampleTypes, sampleIndex, total, samples, durationNanos,
   top, tree }`. Command lines are started by the UI through `run_start` (hidden type
   `go-command`), so they are refused in Safe Mode.
+- Profiler: the `profiler` tool window and `ActivateProfilerToolWindow` belong to
+  `app/ui/src/features/profiler`; packs add a source with `registerProfilerSource({ id,
+  label, active, component, actions?, onActivate? })` (PyForge: cProfile snapshots, GoForge:
+  pprof) and show theirs with `showProfiler(id)`; with several active sources the window
+  shows tabs.
 - Debugging: `commands::go::sync_debug` (called from `dap.rs::sync`) registers
   `DelveAdapter` while `forge.go` is enabled; the UI's `delve` debug launcher asks to install
   Delve when it is missing, then `go_debug_request` + `dap_start`.
 - UI (`app/ui/src/features/go`): settings page, run configuration types (Go Test re-registered
   from the manifest spec with profile support: `start` adds `profileFile`, `afterStart` opens
-  the Profiler), the Profiler tool window (`ActivateProfilerToolWindow`), go.mod language,
+  the Profiler), pprof profiles in the shared Profiler tool window, go.mod language,
   problems and completion, go:generate line markers, the format provider and go vet /
   golangci-lint on save (`editor.ts`). Browser mode: `?project=go` opens the `ledger` demo
   (`mock/demoGoProject.ts`, `mock/goMock.ts`, `mock/goTestsMock.ts`, WebAssembly
   `crates/forge-wasm/src/go.rs`).
+## JavaForge (`packs/javaforge/*`)
+
+- The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)
+  is active for Java projects: `forge-project` reports the `java` language (and so the
+  `javaforge` pack) for a `pom.xml` (tool `maven`), a Gradle build (`build.gradle(.kts)`,
+  `settings.gradle(.kts)`, tool `gradle`), `*.java` files or a `src/main/java` / `src/test/java`
+  tree. Three crates, all with unit tests on fixtures and no network:
+  - `javaforge-build` (pure, also in `forge-wasm`): the build read from its files (tool, wrapper,
+    DSL, modules, JaCoCo, `application` main class, test frameworks, Java release), goals and
+    tasks, and command lines (goals / tasks, Build Project, tests with report folders);
+  - `javaforge-lang-java` (pure, also in `forge-wasm`): the tolerant Java scanner, `main`
+    methods, JUnit 5/4/3 and TestNG discovery, `JavaTests` (the `forge-testing` provider of the
+    `junit` / `testng` types), Application command lines and the JDT LS launch configuration
+    (`jdtls::JdtlsSetup`);
+  - `javaforge-jdk`: JDK detection from `release` files (JAVA_HOME, PATH, system folders,
+    registry, SDKMAN!, asdf, jabba, Gradle toolchains, `~/.jdks`, Forge's downloads) and Temurin
+    downloads from the Adoptium API (SHA-256), into `<data dir>/forge/jdks`.
+- Eclipse JDT LS is a pack server (`pack_servers.toml`, never started from the catalog):
+  `forge_langservers::managed::jdtls` installs the newest milestone from download.eclipse.org
+  (`latest.txt`, `.sha256`) and `managed::javadebug` Microsoft's java-debug jar from Maven Central
+  (`.sha256` or `.sha1`), with the user's consent, into `<data dir>/forge/langservers`.
+  `commands::java::sync_lsp_server` (after detection, like PHP's, and when a `java.*` setting or
+  the enabled plugins change) registers the `jdtls` server for local Java projects: `java` of a
+  JDK new enough for the installation (`required_java` from the bundle manifests: 21, or 25 for
+  newer builds), the installation read-only, OSGi configuration and `-data` in
+  `<cache dir>/forge/jdtls`, java-debug as a bundle, every JDK as a runtime. `jdtls` is in
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`. `forge-lsp` shows JDT LS's `language/status` as
+  progress. Completion, navigation, diagnostics, rename, code actions, organize imports and
+  formatting go through the shared LSP commands.
+- IPC (`commands/java.rs`, `src/ipc/java.ts`): `java_jdks({ refresh? }) -> Jdk[]`,
+  `java_jdk_inspect({ path }) -> Jdk | null`, `java_jdk_releases() -> AvailableReleases`,
+  `java_jdk_download({ feature }) -> Jdk`, `java_status() -> { jdtls?, jdtlsDir?, javaDebug?,
+  serverJdk?, projectJdk?, languageLevel?, build?, problems, remote }`, `java_jdtls_install() ->
+  version`, `java_build_info() -> { project, goals, program } | null`, `java_reload_project()`
+  (`java/projectConfigurationsUpdate` for the build files), `java_main_methods({ path, text }) ->
+  MainMethod[]`, `java_debug_prepare({ configuration }) -> { dapPort, hostName, jdwpPort, run }`.
+  Installs report `java://install` `{ id: "jdtls" | "jdk", event }` (`managed::Event`).
+- Runs (`run.rs`): `java-application`, `maven`, `gradle` and `jvm-remote-debug` are built by
+  `commands::java::command_line` (the configuration's or project JDK, `JAVA_HOME` for the build
+  tools, wrapper or configured executable); `junit` / `testng` configurations are filled with
+  the build (`commands::java::prepare`: `buildTool`, `buildProgram`, `buildDir`, `gradlePath`,
+  …) and built by `JavaTests`. Application runs without a class path ask java-debug
+  (`vscode.java.resolveClasspath`, after `java/buildWorkspace`) in `run_start`. A debug run sets
+  `FORGE_JAVA_DEBUG_PORT` in its environment; the backend turns it into the JDWP agent
+  (`-agentlib:jdwp=…,suspend=y`), Gradle's `--debug-jvm` or Surefire's `-Dmaven.surefire.debug`.
+  All of it starts in `run::start_built`, so Safe Mode refuses it.
+- Debugging: the manifest declares the `java` debug adapter without a command (a DAP server).
+  `java_debug_prepare` sends java-debug's settings (hot code replace) and
+  `vscode.java.startDebugSession` to JDT LS; the UI (`features/java/debug.ts`) starts the run,
+  waits for "Listening for transport dt_socket" and calls `dap_start` with `attachServer` (the
+  DAP port) and `{ hostName, port }` (JDWP). Remote JVM Debug only attaches.
+- UI (`app/ui/src/features/java`): settings pages `build.jdks` (custom), `build.tools`,
+  `build.tools.gradle`, `build.tools.maven`, `lang.java` (status and install), the run
+  configuration types, the Run gutter on `main` and `RunClass`, `CompileDirty` (Build Project),
+  `java.reloadProject`, `java.downloadJdk`, `java.installLanguageServer`, the small `gradle` /
+  `maven` tool windows, the install offer (`java.jdtls.autoInstall`) and its status bar progress.
+  Browser mode: `?project=java` opens the Gradle demo `inventory-service`
+  (`mock/demoJavaProject.ts`, `javaMock.ts`, `javaDebugMock.ts`).
 
 ## Scripting and config language packs
 

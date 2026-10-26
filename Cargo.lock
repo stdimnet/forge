@@ -1880,6 +1880,9 @@ dependencies = [
  "goforge-lang-go",
  "goforge-pprof",
  "goforge-sdk",
+ "javaforge-build",
+ "javaforge-jdk",
+ "javaforge-lang-java",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
  "phpforge-composer",
@@ -1895,6 +1898,7 @@ dependencies = [
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
+ "pyforge-testing",
  "regex-lite",
  "serde",
  "serde_json",
@@ -2251,6 +2255,7 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha1 0.10.7",
  "sha2 0.10.9",
  "tar",
  "tempfile",
@@ -2690,6 +2695,8 @@ dependencies = [
  "forge-window",
  "goforge-lang-go",
  "goforge-pprof",
+ "javaforge-build",
+ "javaforge-lang-java",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
  "phpforge-composer",
@@ -2701,6 +2708,7 @@ dependencies = [
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
+ "pyforge-testing",
  "regex-lite",
  "serde",
  "serde_json",
@@ -3758,6 +3766,42 @@ name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "javaforge-build"
+version = "0.1.0"
+dependencies = [
+ "regex-lite",
+ "serde",
+]
+
+[[package]]
+name = "javaforge-jdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "flate2",
+ "forge-langservers",
+ "forge-lsp",
+ "javaforge-lang-java",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "javaforge-lang-java"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "javaforge-build",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "javascriptcore-rs"
@@ -5549,6 +5593,18 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "pyforge-testing"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
 ]
 
 [[package]]

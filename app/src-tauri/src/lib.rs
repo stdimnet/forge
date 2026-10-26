@@ -104,6 +104,8 @@ pub fn run() {
         .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
         .manage(commands::python::PythonState::default())
+        .manage(commands::python_tools::PythonToolsState::default())
+        .manage(commands::python_tools::PythonConsoleState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
@@ -496,7 +498,30 @@ pub fn run() {
             commands::python::python_complete,
             commands::python::python_run_markers,
             commands::python::python_format,
+            commands::python_tools::python_testing_detect,
+            commands::python_tools::python_tox_environments,
+            commands::python_tools::python_debugpy_status,
+            commands::python_tools::python_debug_plan,
+            commands::python_tools::python_console_start,
+            commands::python_tools::python_console_send,
+            commands::python_tools::python_console_stop,
+            commands::python_tools::python_console_history,
+            commands::python_tools::python_console_history_add,
+            commands::python_tools::python_profiles,
+            commands::python_tools::python_profile_view,
+            commands::python_tools::python_profile_open,
+            commands::python_tools::python_profile_delete,
             commands::python::python_dependencies,
+            commands::java::java_jdks,
+            commands::java::java_jdk_inspect,
+            commands::java::java_jdk_releases,
+            commands::java::java_jdk_download,
+            commands::java::java_status,
+            commands::java::java_jdtls_install,
+            commands::java::java_build_info,
+            commands::java::java_reload_project,
+            commands::java::java_main_methods,
+            commands::java::java_debug_prepare,
             commands::lua::lua_index_workspace,
             commands::lua::lua_files_changed,
             commands::lua::lua_search_symbols,
@@ -945,6 +970,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::php::spawn_sync_lsp_server(&handle);
+            }
+            // Eclipse JDT LS: JDKs, its installation and options, the Java plugin.
+            if commands::java::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::java::spawn_sync_lsp_server(&handle);
             }
         });
 }

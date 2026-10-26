@@ -32,6 +32,24 @@ pub enum JUnitFlavor {
     /// pytest (`--junitxml`): `classname` is the dotted module path plus class, `line` is
     /// 0-based, names may carry parameters (`test_total[ten]`).
     Pytest,
+    /// Java (Gradle `build/test-results`, Maven Surefire / Failsafe reports): `classname` is
+    /// the binary class name (`com.acme.CartTest$Totals`), names are methods (`adds()`,
+    /// `adds(int)[1]`, JUnit 5 display names). Locations are `java://com/acme/CartTest.java`
+    /// (relative to a source root; the test framework's location rules add the root).
+    Java,
+}
+
+/// The source file of a Java binary class name: `com.acme.CartTest$Totals` →
+/// `com/acme/CartTest.java`.
+pub fn java_class_file(class: &str) -> String {
+    let top = class.split('$').next().unwrap_or(class).trim();
+    format!("{}.java", top.replace('.', "/"))
+}
+
+/// The method of a Java test case name: `adds()`, `adds(int)[1]`, `adds[1]` → `adds`.
+pub fn java_method(name: &str) -> &str {
+    let end = name.find(['(', '[', ' ']).unwrap_or(name.len());
+    name[..end].trim()
 }
 
 #[derive(Debug, Clone, Default)]
@@ -233,6 +251,10 @@ impl Converter {
                     ),
                 }
             }
+            JUnitFlavor::Java => match class {
+                Some(c) => format!("java://{}::{}", java_class_file(c), java_method(name)),
+                None => String::new(),
+            },
             JUnitFlavor::Behat => match case.attr_nonempty("file").or(suite_file) {
                 Some(f) => format!("file://{f}::{name}"),
                 None => String::new(),
@@ -344,6 +366,9 @@ impl Converter {
         let name = suite.attr("name").unwrap_or_default().to_string();
         let file = suite.attr_nonempty("file").map(str::to_string);
         let hint = match (&file, self.flavor) {
+            (_, JUnitFlavor::Java) if !name.is_empty() => {
+                format!("java://{}", java_class_file(&name))
+            }
             (Some(f), JUnitFlavor::Behat) => format!("file://{f}"),
             (Some(f), _) => format!("php_qn://{f}::\\{}", name.trim_start_matches('\\')),
             (None, _) => String::new(),
@@ -454,6 +479,46 @@ mod tests {
         }
         t.finish(Some(1));
         t
+    }
+
+    const GRADLE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.acme.inventory.InventoryTest" tests="3" skipped="1" failures="1" errors="0" timestamp="2026-10-26T10:00:00" hostname="dev" time="0.042">
+  <properties/>
+  <testcase name="addsStock()" classname="com.acme.inventory.InventoryTest" time="0.012"/>
+  <testcase name="rejectsNegative(int)[1]" classname="com.acme.inventory.InventoryTest" time="0.02">
+    <failure message="expected: &lt;3&gt; but was: &lt;2&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;3&gt; but was: &lt;2&gt;
+	at com.acme.inventory.InventoryTest.rejectsNegative(InventoryTest.java:31)</failure>
+  </testcase>
+  <testcase name="later()" classname="com.acme.inventory.InventoryTest" time="0"><skipped/></testcase>
+  <system-out><![CDATA[]]></system-out>
+</testsuite>"#;
+
+    #[test]
+    fn java_reports_locate_classes_and_methods() {
+        assert_eq!(
+            java_class_file("com.acme.Cart$Totals"),
+            "com/acme/Cart.java"
+        );
+        assert_eq!(java_method("adds(int)[1]"), "adds");
+        assert_eq!(java_method("[1] two items"), "");
+        let t = tree(GRADLE, JUnitFlavor::Java);
+        let nodes = t.snapshot();
+        let suite = nodes[1].location.as_ref().unwrap();
+        assert_eq!(suite.path, "com/acme/inventory/InventoryTest.java");
+        let failed = nodes
+            .iter()
+            .find(|n| {
+                n.status == TestStatus::Failed && n.kind == crate::teamcity::TestNodeKind::Test
+            })
+            .unwrap();
+        let loc = failed.location.as_ref().unwrap();
+        assert_eq!(loc.path, "com/acme/inventory/InventoryTest.java");
+        assert_eq!(loc.member.as_deref(), Some("rejectsNegative"));
+        assert_eq!(
+            failed.message.as_deref(),
+            Some("expected: <3> but was: <2>")
+        );
+        assert_eq!(t.counts().ignored, 1);
     }
 
     const CODECEPTION: &str = r#"<?xml version="1.0" encoding="UTF-8"?>

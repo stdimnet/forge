@@ -63,7 +63,7 @@ and writes `docs/screenshots/<scenario>.png` at 1440×900.
 
 `ai-chat`, `ai-providers`, `browser-companion`, `context-menu`, `database`, `debugger`,
 `dialog-windows`, `docker`, `editor-lsp`, `file-menu`, `forges`, `gemini`, `integration-polish`,
-`language-servers`, `laravel`, `luaforge`, `navigation`, `php`, `project-tree`, `project-wizard`,
+`javaforge`, `language-servers`, `laravel`, `luaforge`, `navigation`, `php`, `project-tree`, `project-wizard`,
 `remote`, `scratches`, `settings`, `symfony`, `syntax`, `terminal-run`, `vcs`, `webforge`,
 `welcome`, `workbench`.
 

@@ -33,6 +33,8 @@ export function resultKeys(root: TestNode): Map<string, TestStatus> {
       for (const name of [...names]) {
         names.add(name.replace(/ with (data set .*|\(.*\))$/, ""));
         names.add(name.replace(/ #\d+$/, ""));
+        // pytest's parametrized cases (`test_total[half-up]`) count for their test.
+        names.add(name.replace(/\[.*\]$/, ""));
       }
       for (const name of names) put(`${path}::${name}`, n.status);
       // Go reports tests by package and failures at their `_test.go` file: key both by the package folder.

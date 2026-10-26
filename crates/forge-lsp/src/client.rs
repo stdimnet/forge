@@ -517,6 +517,7 @@ impl LspClient {
                 }
             }
             notif::Progress::METHOD => self.on_progress(&params),
+            "language/status" => self.on_language_status(&params),
             notif::LogMessage::METHOD | notif::ShowMessage::METHOD => {
                 let level = params.get("type").and_then(Value::as_i64).unwrap_or(4) as i32;
                 let message = params
@@ -587,6 +588,41 @@ impl LspClient {
         };
         if let Some(state) = next {
             self.set_state(state);
+        }
+    }
+
+    /// Eclipse JDT LS reports its startup and the Maven / Gradle import as `language/status`
+    /// (`{ type: "Starting", message: "57% Starting Java Language Server - Importing Maven
+    /// project(s)" }`, then `Started` / `ServiceReady`): shown like work-done progress.
+    fn on_language_status(&self, params: &Value) {
+        let kind = params
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let message = params
+            .get("message")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        match kind {
+            "Starting" => {
+                let (percentage, message) = split_percentage(message);
+                self.set_state(ServerState::Busy {
+                    message: message.to_string(),
+                    percentage,
+                });
+            }
+            "Started" | "ServiceReady" => {
+                let idle = self
+                    .inner
+                    .progress
+                    .lock()
+                    .expect("progress lock")
+                    .is_empty();
+                if idle && matches!(self.state(), ServerState::Busy { .. }) {
+                    self.set_state(ServerState::Ready);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -1197,6 +1233,17 @@ impl LspClient {
     }
 }
 
+/// `"57% Starting Java Language Server"` → `(Some(57), "Starting Java Language Server")`.
+pub(crate) fn split_percentage(message: &str) -> (Option<u32>, &str) {
+    let trimmed = message.trim();
+    if let Some((num, rest)) = trimmed.split_once('%') {
+        if let Ok(p) = num.trim().parse::<u32>() {
+            return (Some(p.min(100)), rest.trim());
+        }
+    }
+    (None, trimmed)
+}
+
 /// What Forge supports, announced in `initialize`.
 fn client_capabilities() -> Value {
     json!({
@@ -1265,4 +1312,22 @@ fn client_capabilities() -> Value {
             }
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_percentage;
+
+    #[test]
+    fn language_status_percentages() {
+        assert_eq!(
+            split_percentage("57% Starting Java Language Server - Importing Maven project(s)"),
+            (
+                Some(57),
+                "Starting Java Language Server - Importing Maven project(s)"
+            )
+        );
+        assert_eq!(split_percentage("Init..."), (None, "Init..."));
+        assert_eq!(split_percentage("100 % done"), (Some(100), "done"));
+    }
 }

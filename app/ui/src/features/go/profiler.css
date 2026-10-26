@@ -1,4 +1,4 @@
-.prof-view {
+.goprof-view {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -7,7 +7,7 @@
   color: var(--fg);
 }
 
-.prof-empty {
+.goprof-empty {
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -15,7 +15,7 @@
   align-items: flex-start;
 }
 
-.prof-toolbar {
+.goprof-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -25,12 +25,12 @@
   flex-wrap: wrap;
 }
 
-.prof-title {
+.goprof-title {
   font-weight: 600;
   color: var(--fg-strong);
 }
 
-.prof-type {
+.goprof-type {
   background: var(--bg-input);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -38,16 +38,16 @@
   padding: 1px 4px;
 }
 
-.prof-spacer {
+.goprof-spacer {
   flex: 1;
 }
 
-.prof-tabs {
+.goprof-tabs {
   display: flex;
   gap: 2px;
 }
 
-.prof-tabs button {
+.goprof-tabs button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -60,19 +60,19 @@
   font: inherit;
 }
 
-.prof-tabs button.active {
+.goprof-tabs button.active {
   background: var(--bg-active);
   color: var(--fg-strong);
 }
 
-.prof-body {
+.goprof-body {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
 /* Flame graph: the root at the bottom, callees above their callers. */
-.prof-flame {
+.goprof-flame {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -82,13 +82,13 @@
   box-sizing: border-box;
 }
 
-.prof-flame-row {
+.goprof-flame-row {
   position: relative;
   height: 20px;
   margin-top: 1px;
 }
 
-.prof-flame-frame {
+.goprof-flame-frame {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -106,21 +106,21 @@
   text-overflow: ellipsis;
 }
 
-.prof-flame-frame:hover {
+.goprof-flame-frame:hover {
   filter: brightness(1.12);
 }
 
-.prof-flame-frame span {
+.goprof-flame-frame span {
   pointer-events: none;
 }
 
-.prof-reset {
+.goprof-reset {
   position: absolute;
   top: 6px;
   right: 8px;
 }
 
-.prof-tree-row {
+.goprof-tree-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -128,20 +128,20 @@
   white-space: nowrap;
 }
 
-.prof-toggle {
+.goprof-toggle {
   width: 12px;
   display: inline-flex;
   cursor: pointer;
   color: var(--fg-muted);
 }
 
-.prof-pct {
+.goprof-pct {
   width: 48px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.prof-bar {
+.goprof-bar {
   width: 60px;
   height: 6px;
   background: var(--bg-hover);
@@ -149,29 +149,29 @@
   overflow: hidden;
 }
 
-.prof-bar span {
+.goprof-bar span {
   display: block;
   height: 100%;
   background: var(--accent);
 }
 
-.prof-name {
+.goprof-name {
   font-family: var(--font-mono);
   font-size: var(--fs-small);
 }
 
-.prof-value,
-.prof-self {
+.goprof-value,
+.goprof-self {
   font-variant-numeric: tabular-nums;
 }
 
-.prof-top {
+.goprof-top {
   width: 100%;
   border-collapse: collapse;
 }
 
-.prof-top th,
-.prof-top td {
+.goprof-top th,
+.goprof-top td {
   text-align: right;
   padding: 2px 10px;
   border-bottom: 1px solid var(--border);
@@ -179,15 +179,15 @@
   white-space: nowrap;
 }
 
-.prof-top th:first-child,
-.prof-top td:first-child {
+.goprof-top th:first-child,
+.goprof-top td:first-child {
   text-align: left;
   font-family: var(--font-mono);
   font-size: var(--fs-small);
   width: 100%;
 }
 
-.prof-top th {
+.goprof-top th {
   position: sticky;
   top: 0;
   background: var(--bg-panel);
@@ -195,11 +195,11 @@
   font-weight: 500;
 }
 
-.prof-top tr:hover td {
+.goprof-top tr:hover td {
   background: var(--bg-hover);
 }
 
-.prof-top tr.prof-own td:first-child {
+.goprof-top tr.goprof-own td:first-child {
   color: var(--accent);
 }
 

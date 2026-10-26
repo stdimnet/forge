@@ -1,6 +1,7 @@
 # Servers that language packs configure and start themselves. They are listed on the
 # Language Servers settings page (status, path, install hints) but never started from
-# here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP).
+# here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP),
+# JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java).
 
 [[language]]
 id = "php"
@@ -36,4 +37,23 @@ note = "Used when Intelephense is not installed, or when chosen in the PHP setti
 install = [
   { tool = "composer", command = ["composer", "global", "require", "phpactor/phpactor"] },
   { tool = "download", url = "https://github.com/phpactor/phpactor/releases" },
+]
+
+[[language]]
+id = "java"
+name = "Java"
+extensions = ["java"]
+
+[[server]]
+id = "jdtls"
+name = "Eclipse JDT Language Server"
+group = "Java"
+languages = ["java"]
+command = "jdtls"
+plugin = "forge.java"
+homepage = "https://github.com/eclipse-jdtls/eclipse.jdt.ls"
+license = "EPL-2.0"
+note = "JavaForge installs it from download.eclipse.org on request (SHA-256 checked) and starts it with a JDK 21+; its workspace data lives in the user cache directory."
+install = [
+  { tool = "download", url = "https://download.eclipse.org/jdtls/milestones/" },
 ]

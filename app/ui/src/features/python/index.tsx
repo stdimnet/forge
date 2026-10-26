@@ -8,11 +8,13 @@
  * - the Python Packages tool window,
  * - requirements inspections, completion and quick fixes, ▶ on `__main__` and Reformat
  *   Code with ruff format / Black (`editor.ts`),
- * - the "Python" run configuration type.
+ * - the "Python" run configuration type,
+ * - pytest / Unittests / tox (`testing.ts`), debugpy (`debug.ts`), the Python Console
+ *   (`console/`) and the cProfile profiler (`profiler/`).
  */
 import { createEffect, createRoot, createSignal, on, Show } from "solid-js";
 import { render } from "solid-js/web";
-import { FileCode, Package } from "lucide-solid";
+import { FileCode, Package, SquareTerminal } from "lucide-solid";
 import { pythonApi, type DetectedPython } from "@/ipc/python";
 import type { CommandLine } from "@/ipc/run";
 import { workspaceApi } from "@/ipc/workspace";
@@ -30,12 +32,26 @@ import { registerCommand } from "@/state/commands";
 import { showToolWindow, toggleToolWindow } from "@/state/layout";
 import { getSetting, saveSettings } from "@/state/settings";
 import { workspace } from "@/state/workspace";
+import { isPluginActive } from "@/state/project";
 import { AddInterpreterDialog, type AddResult } from "./AddInterpreterDialog";
 import { InterpreterPage } from "./InterpreterPage";
 import { PackagesActions, PackagesView } from "./PackagesView";
 import { configuredInterpreters, currentInterpreter, KIND_LABELS, labelOf, packageAction, pythonActive, refreshInterpreter, toSetting } from "./state";
 import { isPyproject, isRequirementsPath } from "./editor";
+import { showToxPopup } from "./testing";
+import "./debug";
+import { ConsoleActions, ConsoleView } from "./console/ConsoleView";
+import { executeCode, runFileInConsole } from "./console/store";
+import { ProfilerActions, ProfilerView } from "./profiler/ProfilerView";
+import { loadLatest } from "./profiler/store";
+import { registerProfilerSource } from "@/features/profiler";
+import { activeView } from "@/features/lsp/navigation";
+import { launch } from "@/features/run/runStore";
+import { selectedConfiguration } from "@/features/run/configStore";
+import { openRunConfigurations } from "@/features/run/dialogState";
+import { action, registerMainMenuEntries } from "@/features/mainMenu/model";
 import "./python.css";
+import "./profiler/profiler.css";
 
 // ---- Settings -----------------------------------------------------------------------------
 
@@ -61,6 +77,34 @@ registerSettingsPage({
       <LanguageServersPage groups={["Python"]} />
     </div>
   ),
+});
+
+registerSettingsPage({
+  id: "tools.python-integrated-tools",
+  title: "Python Integrated Tools",
+  group: "Tools",
+  order: 40,
+  keywords: ["pytest", "unittest", "tox", "test runner", "default test runner", "junit", "report log", "profiler", "cprofile"],
+  component: () => <SchemaPage pageId="tools.python-integrated-tools" />,
+});
+
+registerSettingsPage({
+  id: "build.python-debugger",
+  title: "Python Debugger",
+  group: "Build, Execution, Deployment",
+  parent: "build.debugger",
+  order: 20,
+  keywords: ["debugpy", "justMyCode", "just my code", "subprocess", "python debug"],
+  component: () => <SchemaPage pageId="build.python-debugger" />,
+});
+
+registerSettingsPage({
+  id: "build.python-console",
+  title: "Python Console",
+  group: "Build, Execution, Deployment",
+  order: 25,
+  keywords: ["python console", "ipython", "repl", "interpreter options"],
+  component: () => <SchemaPage pageId="build.python-console" />,
 });
 
 // ---- Add interpreter and the status bar popup -----------------------------------------------
@@ -149,6 +193,94 @@ registerToolWindow({
   component: PackagesView,
   actions: PackagesActions,
   when: pythonActive,
+});
+
+// ---- Python Console and Profiler -----------------------------------------------------------
+
+const toolsActive = () => pythonActive() && isPluginActive("forge.python-tools");
+
+registerToolWindow({
+  id: "pythonConsole",
+  title: "Python Console",
+  icon: SquareTerminal,
+  anchor: "bottom",
+  order: 46,
+  component: ConsoleView,
+  actions: ConsoleActions,
+  when: toolsActive,
+});
+
+// The shared Profiler tool window (features/profiler) shows cProfile snapshots.
+registerProfilerSource({
+  id: "python",
+  label: "cProfile",
+  active: toolsActive,
+  component: ProfilerView,
+  actions: ProfilerActions,
+  onActivate: () => void loadLatest(),
+  order: 10,
+});
+
+registerKeymapActions([
+  {
+    id: "ExecuteInPyConsoleAction",
+    title: "Run Selection in Python Console",
+    group: "Plugins/Python",
+    context: "editor",
+    shortcuts: { $default: ["Alt+Shift+E"], macOS: ["Alt+Shift+E"] },
+  },
+  { id: "RunFileInPythonConsole", title: "Run File in Python Console", group: "Plugins/Python" },
+  { id: "ActivatePythonConsoleToolWindow", title: "Python Console", group: "Tool Windows" },
+  { id: "python.profile", title: "Profile", group: "Plugins/Python" },
+  { id: "python.runToxEnvironment", title: "Run tox Environment…", group: "Plugins/Python" },
+]);
+
+/** The selection, or the caret's line without one. */
+function selectionOrLine(): string | null {
+  const a = activeView();
+  if (!a) return null;
+  const st = a.view.state;
+  const r = st.selection.main;
+  return r.empty ? st.doc.lineAt(r.head).text : st.sliceDoc(r.from, r.to);
+}
+
+registerCommand({
+  id: "ExecuteInPyConsoleAction",
+  title: "Run Selection in Python Console",
+  category: "Python",
+  run: () => {
+    const code = selectionOrLine();
+    if (!code?.trim()) return void showBalloon("Nothing to run", "Select Python code or place the caret on a line.");
+    void executeCode(code);
+  },
+});
+registerCommand({
+  id: "RunFileInPythonConsole",
+  title: "Run File in Python Console",
+  category: "Python",
+  run: () => {
+    const a = activeView();
+    if (!a || !/\.pyw?$/i.test(a.path)) return void showBalloon("Run File in Python Console", "Open a Python file.");
+    void runFileInConsole(a.path);
+  },
+});
+registerCommand({ id: "ActivatePythonConsoleToolWindow", title: "Python Console", category: "View", run: () => toggleToolWindow("pythonConsole") });
+registerCommand({
+  id: "python.profile",
+  title: "Profile",
+  category: "Run",
+  run: () => {
+    const cfg = selectedConfiguration();
+    if (!cfg) return openRunConfigurations();
+    if (cfg.type !== "python") return void showBalloon(`Cannot profile '${cfg.name}'`, "Profile runs Python configurations with cProfile.");
+    void launch(cfg, { extra: { profile: true } });
+  },
+});
+registerCommand({ id: "python.runToxEnvironment", title: "Run tox Environment…", category: "Python", run: () => void showToxPopup() });
+
+registerMainMenuEntries("Run", [action("python.profile", "Pro_file")], { after: "Debug", when: toolsActive });
+registerMainMenuEntries("Tools", [action("ActivatePythonConsoleToolWindow", "Python Conso_le"), action("python.runToxEnvironment", "Run to_x Environment...")], {
+  when: toolsActive,
 });
 
 // ---- Commands --------------------------------------------------------------------------

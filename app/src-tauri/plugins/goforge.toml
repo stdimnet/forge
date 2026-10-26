@@ -33,13 +33,6 @@ id = "go-sum"
 name = "Go Checksums"
 fileNames = ["go.sum", "go.work.sum"]
 
-[[plugin.contributions.toolWindows]]
-id = "profiler"
-title = "Profiler"
-anchor = "bottom"
-icon = "flame"
-order = 55
-
 [[plugin.contributions.commands]]
 id = "go.syncDependencies"
 title = "Sync Dependencies (go mod tidy)"
@@ -79,11 +72,6 @@ category = "Go"
 id = "go.openProfile"
 title = "Open Profile (pprof)…"
 category = "Go"
-
-[[plugin.contributions.commands]]
-id = "ActivateProfilerToolWindow"
-title = "Profiler"
-category = "View"
 
 [[plugin.contributions.runConfigurationTypes]]
 id = "go-build"

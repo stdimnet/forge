@@ -635,6 +635,8 @@
 }
 .pack-goforge {
   --pack: var(--info);
+.pack-javaforge {
+  --pack: var(--danger);
 }
 .pack-scriptforge {
   --pack: var(--success);

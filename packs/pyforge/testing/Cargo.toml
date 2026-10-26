@@ -1,0 +1,14 @@
+[package]
+name = "pyforge-testing"
+description = "PyForge: pytest, unittest and tox on the shared test runner (discovery from source, parametrize ids, command lines, Rerun Failed Tests, tox environments), debugpy and cProfile command lines, .pstats profiles (hot spots, call tree) and the Python Console protocol; pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true

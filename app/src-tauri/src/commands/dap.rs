@@ -24,15 +24,21 @@ use crate::state::AppState;
 fn sync(state: &AppState, debug: &DebugState) {
     // Opens the project's breakpoints in the shared store.
     let _ = server(state, debug);
+    // debugpy's adapter runs in the project's interpreter (resolved before the settings
+    // lock is taken: resolving reads the settings too).
+    let python_adapter = crate::commands::python_tools::adapter_python(state);
     let settings = state.read_settings();
     let mut registry = AdapterRegistry::new();
     {
         let plugins = state.plugins.read().expect("plugins lock poisoned");
         for spec in plugins.debug_adapters() {
-            let command = spec
+            let mut command = spec
                 .command_setting
                 .as_deref()
                 .and_then(|key| settings.get_as::<String>(key));
+            if spec.r#type == "python" && command.is_none() {
+                command = python_adapter.clone();
+            }
             registry.register_manifest(spec.clone(), command);
         }
     }

@@ -166,7 +166,9 @@ Launching programs is refused in Safe Mode; attaching is allowed.
 
 ## Profiler
 
-The **Profiler** tool window shows pprof profiles: a **Flame Graph** (callers below their
+The **Profiler** tool window (shared with [PyForge's cProfile snapshots](python.md#profiler);
+a project that uses both shows a **cProfile** and a **pprof** tab) shows pprof profiles: a
+**Flame Graph** (callers below their
 callees; click a frame to zoom, double-click to open its source), the **Call Tree** with total
 and self values, and the **Method List** (flat and cumulative values, like `pprof -top`). The
 sample type (CPU time, allocations, in-use memory, contentions, …) is chosen on top.
@@ -178,7 +180,8 @@ sample type (CPU time, allocations, in-use memory, contentions, …) is chosen o
   run ends. **Profile Test with CPU Profiler** / **Memory Profiler** run the test or
   benchmark at the caret that way.
 - **Open Profile (pprof)…** opens any profile file (`go test -cpuprofile`, `runtime/pprof`,
-  `net/http/pprof` downloads), gzip compressed or not.
+  `net/http/pprof` downloads), gzip compressed or not; the folder icon in the Profiler's
+  header does the same.
 
 ![The call tree of the profile](../../screenshots/go-profiler-tree.png)
 

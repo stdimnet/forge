@@ -35,6 +35,7 @@ import { testAt } from "./tests";
 import { COMPOUND } from "./types";
 import { scriptConfiguration } from "./phpTests";
 import { isFrameworkTestFile } from "./frameworkFiles";
+import type { RunConfiguration } from "@/ipc/run";
 import "./builtinTypes";
 import "./testFrameworkTypes";
 import "./run.css";
@@ -52,6 +53,7 @@ export {
   runConfiguration,
   runWithCoverage,
   onCoverageSuite,
+  onProfileSnapshot,
   debugConfiguration,
   stopConfiguration,
   registerBeforeLaunchHandler,
@@ -59,6 +61,7 @@ export {
   type BeforeLaunchHandler,
 } from "./runStore";
 export { COMPOUND } from "./types";
+export { registerTestFileMatcher } from "./frameworkFiles";
 
 registerToolWindow({
   id: "run",
@@ -83,20 +86,42 @@ const mayHoldTests = (path: string) =>
 
 registerEditorExtension(({ path }) => (mayHoldTests(path) ? testGutter(path) : null));
 
+const contextFallbacks: ((path: string) => RunConfiguration | null)[] = [];
+
+/**
+ * Run Context Configuration outside a test: a pack's configuration for the file (a Python
+ * script), tried after the tests of the file.
+ */
+export function registerContextConfiguration(fallback: (path: string) => RunConfiguration | null): void {
+  contextFallbacks.push(fallback);
+}
+
 /**
  * Temporary configuration for the caret position: the test at or above it, else the whole
- * test file, else the PHP file as a script.
+ * test file, else the PHP file as a script (or a pack's configuration for the file).
  */
 function contextConfiguration() {
   const a = activeView();
-  if (!a || !(isPhp(a.path) || /\.feature$/i.test(a.path) || isFrameworkTestFile(a.path))) return null;
+  if (!a) return null;
+  if (!(isPhp(a.path) || /\.feature$/i.test(a.path) || isFrameworkTestFile(a.path))) {
+    for (const f of contextFallbacks) {
+      const cfg = f(a.path);
+      if (cfg) return cfg;
+    }
+    return null;
+  }
   const state = a.view.state;
   const line = state.doc.lineAt(state.selection.main.head).number - 1;
   const tests = testsOf(state);
   const target = testAt(tests.targets, line) ?? tests.targets[0];
   if (target) return target.configuration;
   if (tests.file) return tests.file;
-  return isPhp(a.path) ? scriptConfiguration(a.path) : null;
+  if (isPhp(a.path)) return scriptConfiguration(a.path);
+  for (const f of contextFallbacks) {
+    const cfg = f(a.path);
+    if (cfg) return cfg;
+  }
+  return null;
 }
 
 registerDialog<DialogRequest>({

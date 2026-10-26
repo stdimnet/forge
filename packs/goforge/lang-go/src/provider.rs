@@ -318,6 +318,7 @@ impl GoTestProvider {
             CoverageRequest {
                 file: file.clone(),
                 format: CoverageFormat::GoCover,
+                location_rules: Vec::new(),
             }
         });
         let profile_file = opt("profileFile");
@@ -350,6 +351,7 @@ impl GoTestProvider {
             location_rules: go.location_rules(),
             default_file: (scope == "file").then_some(file),
             coverage,
+            report_dirs: Vec::new(),
         })
     }
 
