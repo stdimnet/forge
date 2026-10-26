@@ -301,6 +301,7 @@ fn to_lsp_config(cfg: LspServerConfig) -> forge_lsp::LspServerConfig {
         args: cfg.args,
         initialization_options: cfg.initialization_options,
         settings: cfg.settings,
+        ..Default::default()
     }
 }
 

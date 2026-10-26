@@ -561,6 +561,7 @@ async fn language_server_stdio_is_proxied() {
         args: vec![],
         initialization_options: serde_json::Value::Null,
         settings: serde_json::Value::Null,
+        ..Default::default()
     };
     let launcher = backend.lsp_launcher();
     let mut io = launcher
@@ -604,6 +605,7 @@ async fn language_servers_run_on_the_agent() {
         args: vec![],
         initialization_options: serde_json::json!({}),
         settings: serde_json::json!({}),
+        ..Default::default()
     });
     let file = backend.resolve("app/Models/Order.php").unwrap();
     let mut events = manager.subscribe();

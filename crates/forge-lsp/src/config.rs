@@ -1,12 +1,13 @@
 //! Language server configuration as contributed by language packs.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// How to start and talk to one language server.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LspServerConfig {
     /// Stable id, e.g. `"intelephense"`.
@@ -33,6 +34,16 @@ pub struct LspServerConfig {
     /// `workspace/didChangeConfiguration`, e.g. `{"intelephense": {"files": {...}}}`.
     #[serde(default)]
     pub settings: Value,
+    /// Environment variables of the server process on top of Forge's own (`JAVA_HOME` of
+    /// the Kotlin servers, JVM options).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub env: BTreeMap<String, String>,
+    /// Ask the server for diagnostics (`textDocument/diagnostic`, LSP 3.17 pull model)
+    /// after opening and changing documents, for servers that do not publish them
+    /// (kotlin-lsp). Off for the others: announcing pull support makes some servers stop
+    /// publishing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pull_diagnostics: bool,
 }
 
 impl LspServerConfig {
@@ -154,6 +165,7 @@ mod tests {
             args: vec![],
             initialization_options: Value::Null,
             settings: json!({"intelephense": {"files": {"maxSize": 5}}}),
+            ..Default::default()
         }
     }
 
@@ -206,5 +218,13 @@ mod tests {
         .unwrap();
         assert_eq!(c.display_name(), "a");
         assert!(c.args.is_empty());
+        assert!(c.env.is_empty() && !c.pull_diagnostics);
+        let c: LspServerConfig = serde_json::from_value(json!({
+            "id": "k", "languageIds": ["kotlin"], "fileExtensions": ["kt"], "command": "k",
+            "env": {"JAVA_HOME": "/jdk"}, "pullDiagnostics": true
+        }))
+        .unwrap();
+        assert_eq!(c.env["JAVA_HOME"], "/jdk");
+        assert!(c.pull_diagnostics);
     }
 }

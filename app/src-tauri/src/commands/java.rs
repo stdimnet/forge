@@ -295,6 +295,7 @@ fn to_lsp_config(setup: &JdtlsSetup) -> LspServerConfig {
         args: setup.args(),
         initialization_options: setup.initialization_options(),
         settings: setup.settings(),
+        ..Default::default()
     }
 }
 
