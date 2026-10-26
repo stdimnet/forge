@@ -96,6 +96,8 @@ goforge-lang-go.workspace = true
 goforge-sdk.workspace = true
 goforge-delve.workspace = true
 goforge-pprof.workspace = true
+rustforge-lang-rust.workspace = true
+rustforge-toolchain.workspace = true
 pyforge-testing.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

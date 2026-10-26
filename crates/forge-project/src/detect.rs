@@ -36,7 +36,7 @@ pub struct ProjectInfo {
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
     /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
-    /// `goforge`.
+    /// `goforge`, `rustforge`.
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
     /// `conda`, `maven`, `gradle`, `docker`, `git`.
@@ -90,6 +90,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "lua" => Some("luaforge"),
         "python" => Some("pyforge"),
         "go" => Some("goforge"),
+        "rust" => Some("rustforge"),
         "java" => Some("javaforge"),
         _ => None,
     }
@@ -387,8 +388,14 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     scan_java(dir, rel, c, &files);
 
     // ---- Other languages and tools
-    if has("Cargo.toml") {
+    // ---- Rust
+    // A Cargo manifest, Rust files in the root, or several in a folder.
+    let rs_files = files.iter().filter(|f| f.ends_with(".rs")).count();
+    if has("Cargo.toml") || rs_files >= 2 || (rel.is_empty() && rs_files > 0) {
         c.language("rust");
+    }
+    if has("Cargo.toml") {
+        c.tool("cargo");
     }
     // ---- Go
     // A module or workspace file, Go files in the root, or several in a folder.
@@ -1119,8 +1126,28 @@ mod tests {
         write(dir.path(), "pyproject.toml", "");
         let info = detect(dir.path());
         assert_eq!(info.languages, vec!["rust", "go", "python"]);
-        assert_eq!(info.packs, vec!["goforge", "pyforge"]);
+        assert_eq!(info.packs, vec!["rustforge", "goforge", "pyforge"]);
         assert_eq!(info.primary.unwrap().name, "Rust");
+    }
+
+    #[test]
+    fn rust_projects() {
+        for marker in ["Cargo.toml", "main.rs"] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "[package]");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["rustforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().id, "rust", "{marker}");
+        }
+        // A workspace member in a sub folder; a single build helper is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "scripts/gen.rs", "");
+        assert!(!detect(dir.path()).uses("rust"));
+        write(dir.path(), "native/Cargo.toml", "[package]");
+        let info = detect(dir.path());
+        assert!(info.uses("rustforge"));
+        assert!(info.tools.contains(&"cargo".to_string()));
     }
 
     #[test]

@@ -32,6 +32,7 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("luaforge.toml", include_str!("../plugins/luaforge.toml")),
     ("pyforge.toml", include_str!("../plugins/pyforge.toml")),
     ("goforge.toml", include_str!("../plugins/goforge.toml")),
+    ("rustforge.toml", include_str!("../plugins/rustforge.toml")),
     ("javaforge.toml", include_str!("../plugins/javaforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
@@ -207,6 +208,10 @@ mod tests {
             ("go.work", "go-work"),
             ("go.sum", "go-sum"),
             ("go.work.sum", "go-sum"),
+            ("crates/shop-core/src/cart.rs", "rust"),
+            ("Cargo.toml", "toml"),
+            ("Cargo.lock", "toml"),
+            ("rust-toolchain", "toml"),
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }

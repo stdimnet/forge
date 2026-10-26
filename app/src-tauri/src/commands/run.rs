@@ -64,6 +64,8 @@ impl RunState {
         webforge_js_testing::register(&mut tests, plugins.test_frameworks().cloned());
         // Go Test: the manifest spec with GoForge's discovery and command lines.
         goforge_lang_go::provider::register(&mut tests, plugins.test_frameworks().cloned());
+        // Cargo Test: the manifest spec with RustForge's discovery and command lines.
+        rustforge_lang_rust::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
         tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -360,6 +362,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 cmd
             } else if cfg.type_id == goforge_lang_go::GO_BUILD {
                 super::go::build_run(state, &cfg)?
+            } else if cfg.type_id == rustforge_lang_rust::CARGO {
+                super::rust::cargo_run(state, &cfg)?
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
@@ -478,6 +482,7 @@ fn framework_command(
     };
     drop(settings);
     super::go::extend_test_context(state, &cfg.type_id, &mut ctx);
+    super::rust::extend_test_context(state, &cfg.type_id, &mut ctx);
     let built = runs
         .tests
         .command(&test_frameworks::to_runtools(cfg)?, &ctx)

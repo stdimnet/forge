@@ -712,6 +712,15 @@ pub fn run() {
             commands::go::go_debug_request,
             commands::go::go_profile_path,
             commands::go::pprof_open,
+            commands::rust::rust_status,
+            commands::rust::rust_install_command,
+            commands::rust::rust_analyzer_download,
+            commands::rust::cargo_workspace,
+            commands::rust::cargo_command,
+            commands::rust::rust_file_targets,
+            commands::rust::rust_format,
+            commands::rust::rust_clippy,
+            commands::rust::rust_debug_request,
             commands::dap::dap_start,
             commands::dap::dap_restart,
             commands::dap::dap_threads,
@@ -970,6 +979,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::php::spawn_sync_lsp_server(&handle);
+            }
+            // rust-analyzer: Settings | Rust (features, check, proc macros, toolchain).
+            if commands::rust::affects_analyzer(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::rust::spawn_sync_analyzer(&handle);
             }
             // Eclipse JDT LS: JDKs, its installation and options, the Java plugin.
             if commands::java::affects_server(&change.key)

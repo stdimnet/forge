@@ -1900,6 +1900,8 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rustforge-lang-rust",
+ "rustforge-toolchain",
  "serde",
  "serde_json",
  "tauri",

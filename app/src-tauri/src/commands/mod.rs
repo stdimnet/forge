@@ -63,6 +63,7 @@ pub mod remote;
 pub mod remote_host;
 pub mod run;
 pub mod runtools;
+pub mod rust;
 pub mod save_actions;
 pub mod scopes;
 pub mod scratches;
