@@ -34,6 +34,7 @@ mod editing;
 mod emmet;
 mod filetypes;
 mod go;
+mod rust;
 mod hierarchy;
 mod injections;
 mod java;
