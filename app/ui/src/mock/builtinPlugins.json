@@ -8016,7 +8016,7 @@
           "type": "string",
           "default": "https://go.dev/dl",
           "group": "lang.go",
-          "section": "GOROOT",
+          "section": "SDK Downloads",
           "project": false,
           "order": 1
         }

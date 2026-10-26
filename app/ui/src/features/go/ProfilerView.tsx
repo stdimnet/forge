@@ -119,7 +119,7 @@ function FlameGraph(props: { root: CallNode; unit: string }) {
               {(f) => (
                 <div
                   class="prof-flame-frame"
-                  style={{ left: `${f.x * 100}%`, width: `${f.w * 100}%`, background: colorOf(f.node.name) }}
+                  style={{ left: `${f.x * 100}%`, width: `${f.w * 100}%`, background: colorOf(f.node.name), color: f.node.name === "root" ? "var(--fg)" : undefined }}
                   title={`${f.node.name}\n${formatValue(f.node.total, props.unit)} (${percent(f.node.total, props.root.total)}), self ${formatValue(f.node.self, props.unit)}${f.node.file ? `\n${f.node.file}:${f.node.line}` : ""}`}
                   onClick={() => setFocus(f.node === base() ? null : f.node)}
                   onDblClick={() => navigate(f.node.file, f.node.line)}
@@ -203,7 +203,7 @@ export function ProfilerView() {
                 </For>
               </select>
               <span class="muted">
-                Total {formatValue(o().view.total, unit())} · {o().view.samples} samples
+                Total {formatValue(o().view.total, unit())} · {o().view.samples} call stacks
                 <Show when={o().view.durationNanos}> · {formatValue(o().view.durationNanos, "nanoseconds")} recorded</Show>
               </span>
               <span class="prof-spacer" />

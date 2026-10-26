@@ -298,5 +298,5 @@ description = "Where Download Go SDK gets the release list (?mode=json, with SHA
 type = "string"
 default = "https://go.dev/dl"
 group = "lang.go"
-section = "GOROOT"
+section = "SDK Downloads"
 order = 1

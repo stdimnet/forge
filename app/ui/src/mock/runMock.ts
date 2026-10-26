@@ -16,6 +16,8 @@ import { drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoName } from "./demoPythonProject";
+import { goDemoName, isGoDemo } from "./demoGoProject";
+import { goContext } from "./goTestsMock";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 import { frameworkCommand, frameworkSteps, recordTestRun, specFor, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
@@ -23,7 +25,7 @@ import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -42,7 +44,18 @@ const PYTHON_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : {
+/** The Go demo (`?project=go`): the ledger command, its tests and a remote debug target. */
+const GO_CONFIGURATIONS: RunConfigurations = {
+  selected: "ledger",
+  configurations: [
+    { name: "ledger", type: "go-build", storeAsProjectFile: true, options: { kind: "package", package: "./cmd/ledger", runAfterBuild: "true" }, arguments: "-file ledger.csv -month 2026-10" },
+    { name: "All tests", type: "go-test", storeAsProjectFile: true, options: { scope: "all", kind: "test" } },
+    { name: "BenchmarkReport", type: "go-test", options: { scope: "test", kind: "bench", file: "internal/report/report_test.go", directory: "internal/report", test: "BenchmarkReport", profile: "cpu" } },
+    { name: "staging (dlv)", type: "go-remote", options: { host: "staging.internal", port: "2345", remotePath: "/app" } },
+  ],
+};
+
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -190,6 +203,10 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
   if (specFor(cfg.type)) {
     const c = await frameworkCommand(cfg, coverage);
     return { program: c.program, args: c.args, cwd: cfg.workingDirectory || "", env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
+  }
+  if (cfg.type === "go-build") {
+    const c = callWasmSync<CommandLine>((await forgeWasm()).go_build_command, { configuration: cfg, context: goContext() });
+    return { ...c, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
   const cmd = TEST_TYPES.has(cfg.type) ? (({ report: _, ...c }) => c)(await testCommandLine(cfg)) : mockCommandLine(cfg);
   // PHPUnit and Pest write Clover XML with Xdebug's coverage mode.
@@ -502,6 +519,16 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       return phpunitSteps(cfg);
     case "python":
       return pythonSteps(cfg);
+    case "go-build":
+      return o.runAfterBuild === "false"
+        ? [[900, ""], [10, { code: 0 }]]
+        : [
+            [900, "Ledger 2026-10\n"],
+            [20, "2026-10-01  Rent                       -1200.00  1\n"],
+            [20, "2026-10-03  Invoice 1042                3499.00  0\n"],
+            [20, "Total 2299.00\n"],
+            [10, { code: 0 }],
+          ];
     case "php-builtin-server": {
       const address = `${o.host || "localhost"}:${o.port || "8080"}`;
       const when = "[Thu Oct 22 09:14:02 2026]";

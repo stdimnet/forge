@@ -18,6 +18,7 @@ import type {
 import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo } from "./demoPythonProject";
+import { isGoDemo } from "./demoGoProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -101,6 +102,8 @@ const SERVER = isLuaDemo()
   ? { id: "lua-language-server", name: "Lua Language Server" }
   : isPythonDemo()
     ? { id: "basedpyright", name: "basedpyright" }
+    : isGoDemo()
+    ? { id: "gopls", name: "gopls" }
     : { id: "intelephense", name: "Intelephense" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
@@ -131,7 +134,7 @@ export function onMockDidOpen(cb: (path: string) => void): void {
  */
 export const intelephenseMissingAtStart = () =>
   typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
-let serverInstalled = isLuaDemo() || isPythonDemo() || !intelephenseMissingAtStart();
+let serverInstalled = isLuaDemo() || isPythonDemo() || isGoDemo() || !intelephenseMissingAtStart();
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {
