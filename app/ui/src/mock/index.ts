@@ -60,6 +60,7 @@ import "./scratchesMock";
 import "./debugMock";
 // Wraps the debug_* mocks for debug adapter sessions.
 import "./dapMock";
+import "./jsDebugMock";
 import "./dbMock";
 import "./laravelMock";
 import "./laravelDashboardMock";

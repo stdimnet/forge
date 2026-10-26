@@ -2696,6 +2696,7 @@ dependencies = [
  "webforge-fw-angular",
  "webforge-fw-react",
  "webforge-fw-vue",
+ "webforge-js-testing",
  "webforge-lang-web",
 ]
 
