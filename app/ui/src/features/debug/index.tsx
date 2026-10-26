@@ -64,6 +64,7 @@ import { registerMainMenuToggle } from "@/features/mainMenu/model";
 import { balloonsFor } from "@/keymap/dispatch";
 
 export { registerDebugAdapter, debugAdapters, isDebuggableFile, type DebugAdapterRegistration } from "./adapters";
+export { registerDebugTab, type DebugTabDef } from "./debugTabs";
 export { dapApi, type LaunchRequest } from "./dapApi";
 
 const showDebuggerBalloon = balloonsFor("Debugger");
