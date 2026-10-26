@@ -814,3 +814,23 @@
 .rc-compound-multiple {
   margin-top: 10px;
 }
+
+/* "Run on" (run targets) */
+.rc-run-on {
+  margin-bottom: 4px;
+}
+
+.rc-target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 2px 16px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.rc-target-note {
+  font-size: 12px;
+  line-height: 1.4;
+  padding-left: 2px;
+}

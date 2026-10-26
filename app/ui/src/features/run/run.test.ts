@@ -4,6 +4,8 @@ import { forgeWasm } from "@/wasm";
 import type { TestFile } from "@/ipc/testFrameworks";
 import { applyConsoleDelta, applyTestUpdates, emptyTestTree, lineText, testAt } from "./tests";
 import { resultKeys } from "./testResults";
+import { declarationPattern, fullNameLine } from "./TestTree";
+import { globRegExp } from "./frameworkFiles";
 
 describe("run output (Rust, forge-output via WebAssembly)", () => {
   it("renders console lines and a test tree", async () => {
@@ -87,5 +89,27 @@ describe("php test detection", () => {
     const keys = resultKeys(tree.root);
     expect(keys.get("tests/Feature/CartTest.php")).toBe("failed");
     expect(keys.get("tests/Feature/CartTest.php::it adds")).toBe("failed");
+  });
+});
+
+describe("test navigation and framework files", () => {
+  it("finds declarations of tests in other languages", () => {
+    expect(declarationPattern("TestRound/half_up", "test", "cart/cart_test.go").test("func TestRound(t *testing.T) {")).toBe(true);
+    expect(declarationPattern("rounds_to_cents", "test", "src/cart.rs").test("    fn rounds_to_cents() {")).toBe(true);
+    expect(declarationPattern("test_rounds[half]", "test", "tests/test_cart.py").test("    def test_rounds(self, amount):")).toBe(true);
+    expect(declarationPattern("test_full_name", "test", "tests/UserTest.php").test("    public function test_full_name(): void")).toBe(true);
+    expect(declarationPattern("TestCart", "suite", "tests/test_cart.py").test("class TestCart:")).toBe(true);
+    const lines = ['describe("Cart", function()', '  it("adds items", function() end)', '  describe("totals", function()', '    it("rounds", function() end)'];
+    expect(fullNameLine(lines, "Cart totals rounds")).toBe(3);
+    expect(fullNameLine(lines, "Cart adds items")).toBe(1);
+    expect(fullNameLine(lines, "Other")).toBe(-1);
+  });
+
+  it("matches testFiles globs like forge-testing", () => {
+    expect(globRegExp("*_spec.lua").test("spec/cart_spec.lua")).toBe(true);
+    expect(globRegExp("spec/**/*.lua").test("spec/a/b.lua")).toBe(true);
+    expect(globRegExp("spec/**/*.lua").test("spec/b.lua")).toBe(true);
+    expect(globRegExp("spec/*.lua").test("spec/a/b.lua")).toBe(false);
+    expect(globRegExp("*.test.ts").test("src/cart.test.tsx")).toBe(false);
   });
 });

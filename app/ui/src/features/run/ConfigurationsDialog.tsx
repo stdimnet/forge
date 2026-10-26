@@ -52,6 +52,7 @@ import {
   type RunConfigurationTypeDef,
 } from "./types";
 import { openMenu } from "./PopupMenu";
+import { RunOnRow } from "./RunOn";
 
 interface Item {
   uid: number;
@@ -666,6 +667,11 @@ function ConfigForm(props: { item: Item }) {
             when={!t().form}
             fallback={<Dynamic component={t().form!} cfg={cfg()} update={update} configurations={state.items.map((i) => i.cfg)} />}
           >
+            <Show when={!t().start && !t().noRunTarget}>
+              <div class="rc-group rc-run-on">
+                <RunOnRow cfg={cfg()} update={update} php={t().interpreter === "php"} />
+              </div>
+            </Show>
             <Show when={t().fields.length}>
               <div class="rc-group-title">{t().testRunner ? "Test Runner" : "Configuration"}</div>
               <div class="rc-group">

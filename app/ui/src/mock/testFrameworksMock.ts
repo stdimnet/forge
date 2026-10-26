@@ -10,7 +10,8 @@ import { registerMock } from "@/ipc";
 import type { CommandLine, RunConfiguration, TestNodeData, TestSummary } from "@/ipc/run";
 import type { FrameworkConfig, StoredRun, TestRunEntry } from "@/ipc/testFrameworks";
 import { callWasm, callWasmSync, forgeWasm } from "@/wasm";
-import { mockSettingValue } from "./settingsMock";
+import { mockSettingValue, mockTestFrameworkSpecs } from "./settingsMock";
+import type { TestFrameworkSpec } from "@/ipc/testing";
 import { mockFiles } from "./workspaceMock";
 import type { Step } from "./runMock";
 
@@ -33,11 +34,101 @@ async function frameworks(): Promise<FrameworkConfig[]> {
 
 registerMock("test_frameworks_list", () => frameworks());
 
-registerMock("test_discover", async ({ path, text }) => callWasm((await forgeWasm()).test_discover, { path, text }));
+// Discovery and Rerun Failed Tests of every framework: the PHP ones and the manifests'.
+registerMock("test_discover", async ({ path, text }) =>
+  callWasm((await forgeWasm()).testing_discover, { path, text, specs: mockTestFrameworkSpecs() }),
+);
 
 registerMock("test_rerun_failed", async ({ configuration, failed }) =>
-  callWasm((await forgeWasm()).test_rerun_failed, { configuration, failed }),
+  callWasm((await forgeWasm()).testing_rerun_failed, { configuration, failed, specs: mockTestFrameworkSpecs() }),
 );
+
+registerMock("test_frameworks_detect", async () => {
+  const wasm = await forgeWasm();
+  const files = Object.keys(mockFiles);
+  return callWasmSync<string[]>(wasm.testing_detect, { specs: mockTestFrameworkSpecs(), files, texts: {} });
+});
+
+// ---- Frameworks declared by manifests (busted) -----------------------------------------
+
+/** The manifest framework of a configuration type. */
+export const specFor = (type: string): TestFrameworkSpec | undefined => mockTestFrameworkSpecs().find((f) => f.id === type);
+
+interface FrameworkCommand {
+  program: string;
+  args: string[];
+  env?: Record<string, string>;
+  report: string;
+  flavor: string;
+  locationRules?: { pattern: string; replacement: string }[];
+  defaultFile?: string;
+  coverage?: { file: string; format: string };
+}
+
+/** The command of a manifest framework's configuration, built by `forge-testing`. */
+export async function frameworkCommand(cfg: RunConfiguration, coverage = false): Promise<FrameworkCommand> {
+  const wasm = await forgeWasm();
+  return callWasmSync<FrameworkCommand>(wasm.testing_command, {
+    configuration: cfg,
+    spec: specFor(cfg.type),
+    reportDir: "/tmp/forge-test-reports/run",
+    coverageFile: coverage ? "/tmp/forge-test-reports/run-coverage/coverage" : null,
+  });
+}
+
+interface BustedTest {
+  file: string;
+  name: string;
+  ms: number;
+  fail?: { line: number; message: string; passed: string; expected: string };
+  pending?: boolean;
+}
+
+const BUSTED: BustedTest[] = [
+  { file: "spec/entity_spec.lua", name: "Entity starts with 10 hit points", ms: 1 },
+  { file: "spec/entity_spec.lua", name: "Entity damage never goes below zero", ms: 1 },
+  { file: "spec/entity_spec.lua", name: "Entity damage kills at zero hit points", ms: 2 },
+  { file: "spec/player_spec.lua", name: "Player picks up gold", ms: 1 },
+  {
+    file: "spec/player_spec.lua",
+    name: "Player moves by speed and frame time",
+    ms: 3,
+    fail: { line: 11, message: "spec/player_spec.lua:14: Expected objects to be equal.", passed: "(number) 4", expected: "(number) 5" },
+  },
+  { file: "spec/player_spec.lua", name: "Player drops gold on death", ms: 0, pending: true },
+];
+
+/** Canned `busted --output=TAP` output for the tests a configuration selects. */
+function bustedSteps(cfg: RunConfiguration): Step[] {
+  const o = cfg.options ?? {};
+  const scope = o.scope || "all";
+  let tests = BUSTED;
+  if (scope === "file") tests = tests.filter((t) => t.file === o.file);
+  if (scope === "directory") tests = tests.filter((t) => t.file.startsWith(`${(o.directory ?? "").replace(/\/$/, "")}/`));
+  if (scope === "test") tests = tests.filter((t) => t.file === o.file && t.name.startsWith(o.test ?? ""));
+  if (scope === "pattern") {
+    const names = (o.pattern ?? "").split("\n").map((p) => p.replace(/%(.)/g, "$1"));
+    tests = tests.filter((t) => names.some((n) => t.name.includes(n)));
+  }
+  const steps: Step[] = [[120, ""]];
+  tests.forEach((t, i) => {
+    if (t.pending) steps.push([20, `ok ${i + 1} - # SKIP ${t.name}\n`]);
+    else if (t.fail)
+      steps.push([
+        t.ms * 40,
+        `not ok ${i + 1} - ${t.name}\n# ${t.file} @ ${t.fail.line}\n# Failure message: ${t.fail.message}\n# Passed in:\n# ${t.fail.passed}\n# Expected:\n# ${t.fail.expected}\n`,
+      ]);
+    else steps.push([t.ms * 40, `ok ${i + 1} - ${t.name}\n`]);
+  });
+  steps.push([20, `1..${tests.length}\n`], [10, { code: tests.some((t) => t.fail) ? 1 : 0 }]);
+  return steps;
+}
+
+/** Canned output of a manifest framework's run. */
+export function frameworkSteps(cfg: RunConfiguration): Step[] {
+  if (cfg.type === "busted") return bustedSteps(cfg);
+  return [[100, "Done.\n"], [20, { code: 0 }]];
+}
 
 registerMock("behat_step_definitions", async ({ text, line }) => {
   const files = Object.entries(mockFiles)

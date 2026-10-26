@@ -96,6 +96,9 @@ export function setSetting(key: string, value: SettingValue | null, scope: Setti
 
 const byId = (id: string) => plugins.find((p) => p.id === id);
 
+/** Test frameworks the enabled plugins declare (`contributions.testFrameworks`). */
+export const mockTestFrameworkSpecs = () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.testFrameworks ?? []);
+
 /** Same cascade as `PluginRegistry::set_enabled` in Rust. */
 export function setPluginEnabled(id: string, enabled: boolean): string[] {
   const plugin = byId(id);

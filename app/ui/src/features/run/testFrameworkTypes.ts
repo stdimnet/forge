@@ -31,6 +31,7 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   testRunner: true,
+  coverage: true,
   fields: [
     {
       key: "scope",

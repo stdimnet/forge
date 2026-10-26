@@ -12,6 +12,7 @@ import { onFileSaved, saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
 import { getSetting } from "@/state/settings";
 import { testFrameworksApi, type FailedTest, type StoredRun } from "@/ipc/testFrameworks";
+import { testingApi, type CoverageSuite } from "@/ipc/testing";
 import { applyConsoleDelta, applyTestUpdates, emptyTestTree, type TestNode, type TestTreeState } from "./tests";
 import { COMPOUND, compoundMembers, debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
 import { allConfigurations, findConfiguration, selectedConfiguration } from "./configStore";
@@ -53,7 +54,7 @@ interface SessionData {
   tests?: TestTreeState;
   exited?: (code: number | null) => void;
   unlisten?: () => void;
-  extra?: Pick<RunRequest, "env" | "interpreterArgs">;
+  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort">;
   /** Rerun of a tab without a process. */
   rerun?: () => void;
 }
@@ -70,6 +71,14 @@ export const activeSessionId = () => state.active;
 export const activeSession = () => state.sessions.find((s) => s.id === state.active);
 export const sessionData = (id: string) => data.get(id);
 export const setActiveSession = (id: string) => setState("active", id);
+
+type CoverageListener = (suite: CoverageSuite) => void;
+const coverageListeners: CoverageListener[] = [];
+
+/** Coverage suites of finished Run with Coverage runs (the Coverage feature listens). */
+export function onCoverageSuite(l: CoverageListener): void {
+  coverageListeners.push(l);
+}
 
 const [softWrap, setSoftWrap] = createSignal(false);
 export { softWrap, setSoftWrap };
@@ -125,6 +134,10 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       if (d.tests) applyTestUpdates(d.tests, e.nodes, e.summary);
       scheduleBump(id);
       break;
+    case "coverage":
+      if (e.suite) coverageListeners.forEach((l) => l(e.suite!));
+      else if (e.error) writeError(id, `Coverage: ${e.error}`);
+      break;
     case "exited": {
       if (d.tests) publishTestResults(d.tests.root);
       setState("sessions", (x) => x.id === id, { status: "finished", exitCode: e.code ?? (e.signal ? 128 + e.signal : null), endedAt: Date.now() });
@@ -145,6 +158,9 @@ function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["e
     interpreterArgs: extra?.interpreterArgs,
     testRunner: !!type?.testRunner,
     outputFilters: type?.outputFilters?.(cfg),
+    coverage: extra?.coverage || undefined,
+    debugPort: extra?.debugPort,
+    runOn: cfg.runOn?.kind && cfg.runOn.kind !== "local" ? cfg.runOn : undefined,
   };
   if (type?.buildCommand) {
     const cmd = type.buildCommand(cfg);
@@ -362,6 +378,19 @@ export async function runConfiguration(cfg: RunConfiguration | undefined = selec
   await launch(cfg);
 }
 
+/** Run with Coverage: the configuration's tests write a coverage report the IDE shows. */
+export async function runWithCoverage(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
+  if (!cfg) {
+    openRunConfigurations();
+    return;
+  }
+  if (!findType(cfg.type)?.coverage) {
+    showBalloon(`Cannot run '${cfg.name}' with coverage`, `${findType(cfg.type)?.name ?? cfg.type} configurations cannot measure coverage.`);
+    return;
+  }
+  await launch(cfg, { extra: { coverage: true } });
+}
+
 export async function debugConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
   if (!cfg) {
     openRunConfigurations();
@@ -385,7 +414,10 @@ export async function debugConfiguration(cfg: RunConfiguration | undefined = sel
     );
     return;
   }
-  await launcher.launch(cfg, { run: (extra) => launch(cfg, { debug: true, extra }) });
+  await launcher.launch(cfg, {
+    run: (extra) => launch(cfg, { debug: true, extra }),
+    target: () => (cfg.runOn && cfg.runOn.kind !== "local" ? testingApi.runTargetInfo(cfg).catch(() => null) : Promise.resolve(null)),
+  });
 }
 
 export const isRunning = (s: RunSession | undefined) => !!s && (s.status === "running" || s.status === "starting");

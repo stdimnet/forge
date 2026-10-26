@@ -8,9 +8,10 @@
  * a UI registration; the backend expands the template.
  */
 import { createMemo, createRoot, createSignal, type Component } from "solid-js";
-import { Box, FileCode, FlaskConical, Hexagon, Moon, Package, Play, SquareTerminal, Terminal } from "lucide-solid";
-import type { CommandLine, RunConfiguration, RunRequest, RunStarted } from "@/ipc/run";
+import { Box, FileCode, FlaskConical, Hexagon, Moon, Package, Play, SquareTerminal, Terminal, TestTubeDiagonal } from "lucide-solid";
+import type { CommandLine, DebugTarget, RunConfiguration, RunRequest, RunStarted } from "@/ipc/run";
 import { settingsState } from "@/state/settings";
+import type { TestFrameworkSpec } from "@/ipc/testing";
 
 export type FieldKind = "string" | "path" | "text" | "enum" | "bool" | "segmented";
 
@@ -49,8 +50,12 @@ export interface RunConfigurationTypeDef {
   /** Label of the arguments row; `false` hides it. */
   argumentsLabel?: string | false;
   debuggable?: boolean;
-  /** Produces a test tree from TeamCity output. */
+  /** Produces a test tree (TeamCity, JUnit, TAP, … output, see `forge-output`). */
   testRunner?: boolean;
+  /** Can run with coverage (Run with Coverage). */
+  coverage?: boolean;
+  /** No "Run on" choice (the type starts its runs itself or has its own form). */
+  noRunTarget?: boolean;
   /** Initial values of a new configuration. */
   defaults?: () => Partial<RunConfiguration>;
   /** Name for a new or temporary configuration, derived from its fields. */
@@ -111,13 +116,72 @@ const ICONS: Record<string, IconComponent> = {
   moon: Moon,
   hexagon: Hexagon,
   box: Box,
+  "test-tube-diagonal": TestTubeDiagonal,
 };
+
+const SCOPE_LABELS: Record<string, string> = {
+  all: "All tests",
+  directory: "Directory",
+  file: "File",
+  test: "Test",
+  pattern: "Pattern",
+};
+
+/** A run configuration type for a test framework a manifest declares (`testFrameworks`). */
+export function testFrameworkType(spec: TestFrameworkSpec, pluginId: string): RunConfigurationTypeDef {
+  const scopes = ["all", "directory", "file", "test", "pattern"].filter((s) => spec.scopes?.[s]);
+  const scope = (cfg: RunConfiguration) => cfg.options?.scope || "all";
+  const inScope = (...list: string[]) => (cfg: RunConfiguration) => list.includes(scope(cfg));
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    icon: ICONS[spec.icon ?? ""] ?? FlaskConical,
+    color: "var(--success)",
+    pluginId,
+    argumentsLabel: false,
+    debuggable: !!spec.debuggable,
+    testRunner: true,
+    coverage: !!spec.coverage,
+    fields: [
+      {
+        key: "scope",
+        label: "Test scope",
+        kind: "segmented",
+        default: "all",
+        options: scopes.map((s) => ({ value: s, label: SCOPE_LABELS[s] })),
+      },
+      { key: "directory", label: "Directory", kind: "path", directory: true, required: true, visible: inScope("directory") },
+      { key: "file", label: "File", kind: "path", required: true, visible: inScope("file", "test") },
+      { key: "test", label: "Test", required: true, visible: inScope("test") },
+      { key: "pattern", label: "Pattern", required: true, visible: inScope("pattern") },
+      { key: "executable", label: "Executable", kind: "path", placeholder: spec.program },
+      { key: "testRunnerOptions", label: "Test runner options" },
+    ],
+    suggestName: (cfg) => {
+      const o = cfg.options ?? {};
+      switch (scope(cfg)) {
+        case "directory":
+          return baseName(o.directory);
+        case "file":
+          return baseName(o.file)?.replace(/\.[^.]+$/, "");
+        case "test":
+          return o.test || undefined;
+        case "pattern":
+          return o.pattern ? `${spec.name}: ${o.pattern}` : undefined;
+        default:
+          return spec.name;
+      }
+    },
+  };
+}
 
 /** Types from plugin manifests that declare a command template but have no UI registration. */
 const manifestTypes = createRoot(() =>
   createMemo<RunConfigurationTypeDef[]>(() => {
     const out: RunConfigurationTypeDef[] = [];
     for (const p of settingsState.plugins) {
+      for (const f of p.contributions?.testFrameworks ?? []) out.push(testFrameworkType(f, p.id));
       for (const t of p.contributions?.runConfigurationTypes ?? []) {
         if (!t.command?.length) continue;
         out.push({
@@ -222,8 +286,17 @@ export interface RunHandle {
 }
 
 export interface DebugLaunchContext {
-  /** Start the configuration in the Run/Debug tool window with extra settings. */
-  run: (extra?: Pick<RunRequest, "env" | "interpreterArgs">) => Promise<RunHandle | null>;
+  /**
+   * Start the configuration in the Run/Debug tool window with extra settings; `debugPort`
+   * asks its run target to make the debugger's port reachable (published, forwarded or
+   * reverse-tunnelled).
+   */
+  run: (extra?: Pick<RunRequest, "env" | "interpreterArgs" | "debugPort">) => Promise<RunHandle | null>;
+  /**
+   * The configuration's run target for the debugger ("Run on"): host names and path
+   * mappings; `null` when it runs on this machine.
+   */
+  target: () => Promise<DebugTarget | null>;
 }
 
 export interface DebugLauncher {
