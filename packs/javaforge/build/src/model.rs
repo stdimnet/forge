@@ -875,7 +875,7 @@ mod tests {
 
     pub(crate) const GRADLE_MODEL: &str = include_str!("../tests/fixtures/gradle-model.json");
     const MAVEN_TREE: &str = include_str!("../tests/fixtures/maven-dependency-tree.txt");
-    const MAVEN_LOG: &str = include_str!("../tests/fixtures/maven-dependency-tree.log");
+    const MAVEN_LOG: &str = include_str!("../tests/fixtures/maven-dependency-tree-log.txt");
 
     #[test]
     fn reads_the_gradle_model() {
