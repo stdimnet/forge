@@ -27,6 +27,7 @@ fn error(e: impl ToString) -> String {
 fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     let mut r = TestFrameworks::new();
     r.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
+    r.register(Box::new(pyforge_testing::PythonTestFrameworks));
     r.register_specs(specs);
     webforge_js_testing::register(&mut r, specs.iter().cloned());
     // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.

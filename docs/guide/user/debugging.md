@@ -18,7 +18,9 @@ for every session; only how a session starts differs:
   [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) (DAP), through
   the Debugger plugin (`forge.debugger`). **LLDB** (`lldb-dap`) and **GDB** (14 or newer,
   `gdb -i dap`) are built in for C, C++, Rust, Go and other native code; language packs add
-  their own adapters, like JavaForge's java-debug for Java (see [JavaForge](java.md#debugging)). Adapters are programs installed on your machine; Forge does not bundle
+  their own adapters, such as debugpy for Python ([PyForge](python.md#debugging-with-debugpy)) and
+  java-debug for Java ([JavaForge](java.md#debugging)). Adapters are programs installed on your
+  machine; Forge does not bundle
   them. See [Debug adapter sessions](#debug-adapter-sessions) below.
 
 The sections up to [Debug adapter sessions](#debug-adapter-sessions) describe Xdebug; the

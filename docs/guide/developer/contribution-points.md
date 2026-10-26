@@ -304,7 +304,7 @@ testFiles = ["*_spec.lua"]          # gutter icons in these files
 program = "busted"
 programSetting = "lua.busted.path"  # setting with the executable
 args = ["--output=TAP"]
-report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | pytestReportLog | jestJson
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | pytestReportLog | jestJson | tox
 junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
 nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
 escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
@@ -343,6 +343,15 @@ wrap a manifest spec and register under its id after `register_specs`, as WebFor
 runners do (`webforge_js_testing::register`). New output formats
 go into `forge-output` (`formats/`): a `LineParser` for streamed lines or a document parser,
 both producing `TestEvent`s.
+
+
+Frameworks that need code (discovery from parsed source, commands through an interpreter)
+implement `forge_testing::TestFrameworkProvider` in Rust instead, like PyForge's
+`PythonTestFrameworks` (pytest, unittest, tox in `packs/pyforge/testing`), and register their
+run configuration types in the UI. `registerTestFileMatcher(path => bool)` from
+`@/features/run` attaches the test gutter to their files, and
+`registerContextConfiguration(path => cfg | null)` answers Run Context Configuration in files
+without tests.
 
 ## Run Anything providers
 

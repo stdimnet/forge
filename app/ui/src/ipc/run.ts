@@ -103,6 +103,8 @@ export interface RunRequest {
   debugPort?: { port: number; direction: "connectsToIde" | "ideConnects" };
   /** "Run on" for command lines built in the UI. */
   runOn?: RunTarget;
+  /** Profile (Python): run under cProfile; the run ends with a `profile` event. */
+  profile?: boolean;
 }
 
 export interface RunStarted {
@@ -198,7 +200,8 @@ export type RunEvent =
   | { type: "exited"; code: number | null; signal: number | null }
   | ({ type: "console" } & ConsoleDelta)
   | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary }
-  | { type: "coverage"; suite?: import("./testing").CoverageSuite; error?: string };
+  | { type: "coverage"; suite?: import("./testing").CoverageSuite; error?: string }
+  | { type: "profile"; profile?: import("./pythonTools").ProfileInfo; error?: string };
 
 /** A file reference in terminal output; offsets are string indices. */
 export interface FileLink {
