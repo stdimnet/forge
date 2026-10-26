@@ -952,6 +952,36 @@ export function project_view_arrange(request_json: string): string;
 export function project_view_nesting_defaults(): string;
 
 /**
+ * `{ target, text, requirement }` -> the new text.
+ */
+export function python_add_requirement(request_json: string): string;
+
+/**
+ * `{ path, content, offset }` -> completion context or null.
+ */
+export function python_completion_context(request_json: string): string;
+
+/**
+ * `{ path, content }` -> the file's declared dependencies.
+ */
+export function python_dependencies(request_json: string): string;
+
+/**
+ * `{ path, content, installed?, imports }` -> `Problem[]`.
+ */
+export function python_inspect(request_json: string): string;
+
+/**
+ * An interpreter -> its status bar label.
+ */
+export function python_interpreter_label(request_json: string): string;
+
+/**
+ * `{ content }` -> run markers.
+ */
+export function python_run_markers(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1662,6 +1692,12 @@ export interface InitOutput {
     readonly project_structure_state: (a: number, b: number, c: number) => void;
     readonly project_view_arrange: (a: number, b: number, c: number) => void;
     readonly project_view_nesting_defaults: (a: number) => void;
+    readonly python_add_requirement: (a: number, b: number, c: number) => void;
+    readonly python_completion_context: (a: number, b: number, c: number) => void;
+    readonly python_dependencies: (a: number, b: number, c: number) => void;
+    readonly python_inspect: (a: number, b: number, c: number) => void;
+    readonly python_interpreter_label: (a: number, b: number, c: number) => void;
+    readonly python_run_markers: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

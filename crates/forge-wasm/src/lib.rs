@@ -43,6 +43,7 @@ mod lua;
 mod maintenance;
 mod php_interpreters;
 mod project_structure;
+mod python;
 mod runtools;
 mod save_actions;
 mod scopes;

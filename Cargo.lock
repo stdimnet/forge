@@ -2641,6 +2641,8 @@ dependencies = [
  "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
+ "pyforge-interpreters",
+ "pyforge-lang-python",
  "serde",
  "serde_json",
  "wasm-bindgen",

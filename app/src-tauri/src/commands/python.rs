@@ -149,12 +149,16 @@ pub struct CurrentInterpreter {
 }
 
 #[tauri::command]
-pub async fn python_interpreter_current(state: State<'_, AppState>) -> Result<Option<CurrentInterpreter>> {
-    Ok(resolve(&state, "").map(|(interpreter, automatic)| CurrentInterpreter {
-        label: interpreter.label(),
-        interpreter,
-        automatic,
-    }))
+pub async fn python_interpreter_current(
+    state: State<'_, AppState>,
+) -> Result<Option<CurrentInterpreter>> {
+    Ok(
+        resolve(&state, "").map(|(interpreter, automatic)| CurrentInterpreter {
+            label: interpreter.label(),
+            interpreter,
+            automatic,
+        }),
+    )
 }
 
 /// Interpreters on this machine and the project's environments (none for remote
@@ -177,7 +181,11 @@ pub async fn python_interpreters_detect(state: State<'_, AppState>) -> Result<Ve
             let exe = forge_langservers::Detector::system().find(program)?;
             detect::run_with_timeout(exe.as_os_str(), args, Some(cwd), Duration::from_secs(20))
         };
-        Ok(detect::detect(&env, &|p| detect::version_of(p, timeout), &tools))
+        Ok(detect::detect(
+            &env,
+            &|p| detect::version_of(p, timeout),
+            &tools,
+        ))
     })
     .await
 }
@@ -237,7 +245,11 @@ fn run_captured(backend: &dyn Backend, cmd: &CommandLine, timeout: Duration) -> 
 }
 
 fn failure(code: Option<i32>, stdout: String, stderr: String) -> ForgeError {
-    let message = if stderr.trim().is_empty() { stdout } else { stderr };
+    let message = if stderr.trim().is_empty() {
+        stdout
+    } else {
+        stderr
+    };
     ForgeError::Other(match message.trim() {
         "" => format!("The interpreter exited with code {code:?}"),
         m => m.lines().last().unwrap_or(m).to_string(),
@@ -251,7 +263,12 @@ pub async fn python_interpreter_info(
     state: State<'_, AppState>,
 ) -> Result<InterpreterInfo> {
     let backend = state.backend()?;
-    let cmd = python_command(&state, backend.as_ref(), &interpreter, &["-c", probe::PROBE_SCRIPT])?;
+    let cmd = python_command(
+        &state,
+        backend.as_ref(),
+        &interpreter,
+        &["-c", probe::PROBE_SCRIPT],
+    )?;
     blocking(move || {
         let stdout = run_captured(backend.as_ref(), &cmd, Duration::from_secs(180))?;
         probe::parse_probe(&stdout).map_err(ForgeError::Other)
@@ -268,7 +285,9 @@ fn project_files(backend: &dyn Backend) -> ProjectFiles {
     let has = |n: &str| names.iter().any(|x| x == n);
     let mut requirements: Vec<String> = names
         .iter()
-        .filter(|n| deps::is_requirements_file(n) && !n.starts_with("constraints") && !n.ends_with(".in"))
+        .filter(|n| {
+            deps::is_requirements_file(n) && !n.starts_with("constraints") && !n.ends_with(".in")
+        })
         .cloned()
         .collect();
     requirements.sort_by_key(|n| (n != "requirements.txt", n.clone()));
@@ -347,7 +366,12 @@ pub async fn python_packages_list(
         return Ok(None);
     };
     let backend = state.backend()?;
-    let cmd = python_command(&state, backend.as_ref(), &interp, &["-c", listing::LIST_SCRIPT])?;
+    let cmd = python_command(
+        &state,
+        backend.as_ref(),
+        &interp,
+        &["-c", listing::LIST_SCRIPT],
+    )?;
     let b = backend.clone();
     let packages = blocking(move || {
         let stdout = run_captured(b.as_ref(), &cmd, Duration::from_secs(120))?;
@@ -376,9 +400,13 @@ pub async fn python_packages_command(
     interpreter: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<CommandLine> {
-    let (interp, _) = resolve(&state, interpreter.as_deref().unwrap_or(""))
-        .ok_or_else(|| ForgeError::Other("No Python interpreter is configured for the project".into()))?;
-    if packages.iter().any(|p| p.trim().is_empty() || p.trim_start().starts_with('-')) {
+    let (interp, _) = resolve(&state, interpreter.as_deref().unwrap_or("")).ok_or_else(|| {
+        ForgeError::Other("No Python interpreter is configured for the project".into())
+    })?;
+    if packages
+        .iter()
+        .any(|p| p.trim().is_empty() || p.trim_start().starts_with('-'))
+    {
         return Err(ForgeError::Other("not a package requirement".into()));
     }
     let backend = state.backend()?;
@@ -390,7 +418,8 @@ pub async fn python_packages_command(
     };
     let (program, args) = manager::command(mgr, action, &packages, interp.python());
     let mut cmd = CommandLine::new("python").args(args);
-    cmd.env.insert("PIP_DISABLE_PIP_VERSION_CHECK".into(), "1".into());
+    cmd.env
+        .insert("PIP_DISABLE_PIP_VERSION_CHECK".into(), "1".into());
     let tool = (mgr != manager::Manager::Pip).then_some(program.as_str());
     through(&state, backend.as_ref(), &interp, tool, cmd).map(|(c, _)| c)
 }
@@ -438,9 +467,9 @@ pub async fn python_packages_search(
     state: State<'_, AppState>,
     python: State<'_, PythonState>,
 ) -> Result<Vec<SearchHit>> {
-    let pypi = index(&state)
-        .and_then(|i| python.pypi(&i))
-        .ok_or_else(|| ForgeError::Other("PyPI lookups are turned off in Settings | Python".into()))?;
+    let pypi = index(&state).and_then(|i| python.pypi(&i)).ok_or_else(|| {
+        ForgeError::Other("PyPI lookups are turned off in Settings | Python".into())
+    })?;
     pypi.search(&query).await.map_err(ForgeError::Other)
 }
 
@@ -451,9 +480,9 @@ pub async fn python_package_info(
     state: State<'_, AppState>,
     python: State<'_, PythonState>,
 ) -> Result<PackageInfo> {
-    let pypi = index(&state)
-        .and_then(|i| python.pypi(&i))
-        .ok_or_else(|| ForgeError::Other("PyPI lookups are turned off in Settings | Python".into()))?;
+    let pypi = index(&state).and_then(|i| python.pypi(&i)).ok_or_else(|| {
+        ForgeError::Other("PyPI lookups are turned off in Settings | Python".into())
+    })?;
     pypi.package(&name).await.map_err(ForgeError::Other)
 }
 
@@ -479,13 +508,22 @@ fn declared(backend: &dyn Backend) -> (Vec<String>, Option<String>, Option<Strin
         .collect();
     if entries.iter().any(|e| e.name == "requirements") {
         if let Ok(list) = backend.list_dir("requirements") {
-            req_files.extend(list.into_iter().filter(|e| e.name.ends_with(".txt")).map(|e| e.path));
+            req_files.extend(
+                list.into_iter()
+                    .filter(|e| e.name.ends_with(".txt"))
+                    .map(|e| e.path),
+            );
         }
     }
     req_files.sort_by_key(|n| (n != "requirements.txt", n.clone()));
     for f in &req_files {
         if let Ok(Some(text)) = backend.read_optional(f) {
-            names.extend(deps::requirements_txt(&text).deps.into_iter().map(|d| d.normalized));
+            names.extend(
+                deps::requirements_txt(&text)
+                    .deps
+                    .into_iter()
+                    .map(|d| d.normalized),
+            );
         }
     }
     if target.is_none() {
@@ -557,7 +595,11 @@ pub async fn python_inspect(
         if is_python && !check_imports {
             return Ok(Vec::new());
         }
-        let installed = if check_reqs { installed.as_deref() } else { None };
+        let installed = if check_reqs {
+            installed.as_deref()
+        } else {
+            None
+        };
         Ok(pyforge_lang_python::inspect(&path, &content, installed, &ctx).unwrap_or_default())
     })
     .await
@@ -580,7 +622,9 @@ pub async fn python_add_requirement(
     state: State<'_, AppState>,
 ) -> Result<FileEdit> {
     if pyforge_lang_python::pep508::parse(&requirement).is_err() {
-        return Err(ForgeError::Other(format!("'{requirement}' is not a requirement")));
+        return Err(ForgeError::Other(format!(
+            "'{requirement}' is not a requirement"
+        )));
     }
     let backend = state.backend()?;
     let text = match current {
@@ -589,12 +633,16 @@ pub async fn python_add_requirement(
     };
     let name = target.rsplit('/').next().unwrap_or(&target);
     let new_text = if name == "pyproject.toml" {
-        deps::add_to_pyproject(&text, &requirement)
-            .ok_or_else(|| ForgeError::Other("pyproject.toml has no [project] or Poetry dependencies".into()))?
+        deps::add_to_pyproject(&text, &requirement).ok_or_else(|| {
+            ForgeError::Other("pyproject.toml has no [project] or Poetry dependencies".into())
+        })?
     } else {
         deps::add_to_requirements(&text, &requirement)
     };
-    Ok(FileEdit { path: target, text: new_text })
+    Ok(FileEdit {
+        path: target,
+        text: new_text,
+    })
 }
 
 /// One completion item.
@@ -635,7 +683,14 @@ pub async fn python_complete(
     };
     let pypi = index(&state).and_then(|i| python.pypi(&i));
     let installed: Vec<InstalledPackage> = resolve(&state, "")
-        .and_then(|(i, _)| python.installed.lock().expect("installed lock").get(&cache_key(&i)).cloned())
+        .and_then(|(i, _)| {
+            python
+                .installed
+                .lock()
+                .expect("installed lock")
+                .get(&cache_key(&i))
+                .cloned()
+        })
         .unwrap_or_default();
     match ctx {
         Context::Name { from, prefix } => {
@@ -664,7 +719,11 @@ pub async fn python_complete(
             }
             Ok(Some(Completion { from, items }))
         }
-        Context::Version { from, prefix, package } => {
+        Context::Version {
+            from,
+            prefix,
+            package,
+        } => {
             let mut versions: Vec<String> = Vec::new();
             if let Some(pypi) = pypi {
                 if let Ok(info) = pypi.package(&package).await {
@@ -673,7 +732,10 @@ pub async fn python_complete(
             }
             let installed_version = installed
                 .iter()
-                .find(|p| pyforge_lang_python::normalize(&p.name) == pyforge_lang_python::normalize(&package))
+                .find(|p| {
+                    pyforge_lang_python::normalize(&p.name)
+                        == pyforge_lang_python::normalize(&package)
+                })
                 .map(|p| p.version.clone());
             if let Some(v) = &installed_version {
                 if !versions.contains(v) {
@@ -685,7 +747,11 @@ pub async fn python_complete(
                 .filter(|v| v.starts_with(&prefix))
                 .take(200)
                 .map(|v| CompletionItem {
-                    detail: if Some(&v) == installed_version.as_ref() { "installed".into() } else { String::new() },
+                    detail: if Some(&v) == installed_version.as_ref() {
+                        "installed".into()
+                    } else {
+                        String::new()
+                    },
                     label: v,
                     kind: "version".into(),
                 })
@@ -714,13 +780,23 @@ pub async fn python_format(
 ) -> Result<Option<String>> {
     let formatter = setting_string(&state, FORMATTER_KEY);
     let (names, custom, label): (Vec<String>, String, &str) = match formatter.as_str() {
-        "black" => (vec!["black".into()], setting_string(&state, BLACK_PATH_KEY), "Black"),
+        "black" => (
+            vec!["black".into()],
+            setting_string(&state, BLACK_PATH_KEY),
+            "Black",
+        ),
         "lsp" | "none" => return Ok(None),
-        _ => (vec!["ruff".into()], setting_string(&state, RUFF_PATH_KEY), "ruff"),
+        _ => (
+            vec!["ruff".into()],
+            setting_string(&state, RUFF_PATH_KEY),
+            "ruff",
+        ),
     };
     // The selected environment's tools first (`.venv/bin/ruff`).
     let env_bin = resolve(&state, "")
-        .filter(|(i, _)| !i.kind.is_remote() && setting_bool(&state, "python.lsp.useEnvironmentTools", true))
+        .filter(|(i, _)| {
+            !i.kind.is_remote() && setting_bool(&state, "python.lsp.useEnvironmentTools", true)
+        })
         .and_then(|(i, _)| Path::new(i.python()).parent().map(Path::to_path_buf));
     let backend = state.backend()?;
     let safe_mode = state.safe_mode.is_on();
@@ -732,24 +808,44 @@ pub async fn python_format(
         } else {
             let in_env = env_bin
                 .filter(|_| backend.info().remote.is_none())
-                .map(|d| d.join(if cfg!(windows) { format!("{}.exe", names[0]) } else { names[0].clone() }))
+                .map(|d| {
+                    d.join(if cfg!(windows) {
+                        format!("{}.exe", names[0])
+                    } else {
+                        names[0].clone()
+                    })
+                })
                 .filter(|p| p.is_file());
             match in_env {
                 Some(p) => Some(p),
-                None => backend.find_executable(&names, None)?.or_else(|| managed_tool(&names[0])),
+                None => backend
+                    .find_executable(&names, None)?
+                    .or_else(|| managed_tool(&names[0])),
             }
         };
         let Some(program) = program else {
             return Ok(None);
         };
-        if safe_mode && forge_trust::runs_project_program(&backend.info().root, &program.to_string_lossy(), &[]) {
-            return Err(ForgeError::Other(forge_trust::refusal(&format!("Running the project's {label}"))));
+        if safe_mode
+            && forge_trust::runs_project_program(
+                &backend.info().root,
+                &program.to_string_lossy(),
+                &[],
+            )
+        {
+            return Err(ForgeError::Other(forge_trust::refusal(&format!(
+                "Running the project's {label}"
+            ))));
         }
         let mut cmd = CommandLine::new(program.to_string_lossy());
         cmd = if black {
-            cmd.args(["-q", "--stdin-filename"]).arg(file.to_string_lossy()).arg("-")
+            cmd.args(["-q", "--stdin-filename"])
+                .arg(file.to_string_lossy())
+                .arg("-")
         } else {
-            cmd.args(["format", "--stdin-filename"]).arg(file.to_string_lossy()).arg("-")
+            cmd.args(["format", "--stdin-filename"])
+                .arg(file.to_string_lossy())
+                .arg("-")
         };
         cmd.cwd = backend.info().root.clone();
         let out = capture(backend.as_ref(), &cmd, &content, FORMAT_TIMEOUT)?;
@@ -758,7 +854,11 @@ pub async fn python_format(
             None => Err(ForgeError::Other(format!("{label} did not finish"))),
             Some(_) => {
                 let msg = out.stderr.trim();
-                Err(ForgeError::Other(if msg.is_empty() { format!("{label} failed") } else { msg.lines().next().unwrap_or(msg).to_string() }))
+                Err(ForgeError::Other(if msg.is_empty() {
+                    format!("{label} failed")
+                } else {
+                    msg.lines().next().unwrap_or(msg).to_string()
+                }))
             }
         }
     })
@@ -767,14 +867,23 @@ pub async fn python_format(
 
 /// ruff downloaded by Forge (`<data dir>/forge/langservers/bin`).
 fn managed_tool(name: &str) -> Option<PathBuf> {
-    let dir = forge_langservers::managed::pypi::bin_dir(&forge_langservers::detect::default_managed_dir()?);
-    let p = dir.join(if cfg!(windows) { format!("{name}.exe") } else { name.to_string() });
+    let dir = forge_langservers::managed::pypi::bin_dir(
+        &forge_langservers::detect::default_managed_dir()?,
+    );
+    let p = dir.join(if cfg!(windows) {
+        format!("{name}.exe")
+    } else {
+        name.to_string()
+    });
     p.is_file().then_some(p)
 }
 
 /// The "Python" run configuration: `python [options] (<script> | -m <module>) [parameters]`
 /// through the configuration's interpreter (or the project's).
-pub(crate) fn build_run(state: &AppState, cfg: &RunConfiguration) -> Result<(CommandLine, Vec<OutputPathMapping>)> {
+pub(crate) fn build_run(
+    state: &AppState,
+    cfg: &RunConfiguration,
+) -> Result<(CommandLine, Vec<OutputPathMapping>)> {
     let (interp, _) = resolve(state, &cfg.interpreter).ok_or_else(|| {
         ForgeError::Other("No Python interpreter is configured: choose one in Settings | Project | Python Interpreter".into())
     })?;
