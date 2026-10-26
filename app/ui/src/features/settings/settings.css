@@ -630,6 +630,9 @@
 .pack-luaforge {
   --pack: var(--syn-type);
 }
+.pack-javaforge {
+  --pack: var(--danger);
+}
 .pack-scriptforge {
   --pack: var(--success);
 }
