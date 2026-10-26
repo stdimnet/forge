@@ -27,15 +27,20 @@ with the same `debug_*` commands and `debug://*` events.
   `attach` arguments), `ManifestAdapter` (adapters declared with
   `[[contributions.debugAdapters]]`, request templates with `${program}`, `${args}`,
   `${cwd}`, `${env}`, `${pid}`, `${core}`, `${stopOnEntry}`), `AdapterRegistry` and
-  `LaunchRequest` (launch, attach to a process, attach to a DAP server, core dump).
-- `manager::DapManager` starts and tracks sessions, shares the project's breakpoints with
+  `LaunchRequest` (launch, attach to a process, attach to a DAP server, attach to a
+  debuggee's port (`AttachPort`: `node --inspect`, a browser's remote debugging port), core
+  dump).
+- `manager::DapManager` starts and tracks sessions (`register_adapter` / `unregister_adapter`
+  for adapters implemented in Rust, such as [webforge-js-debug](webforge-js-debug.md)'s js-debug), shares the project's breakpoints with
   Xdebug through a `BreakpointHost` (the app's `DebugServer`) and resends them when they
   change. Relative program and working directory paths are resolved against the project.
 - `session::DapSession`: initialize → launch/attach → breakpoints → configurationDone (for
   adapters that announce `initialized` early, like GDB, breakpoints go first), stopped /
   continued / output / thread / breakpoint / terminated / exited / module / process / memory /
   capabilities / invalidated events, the reverse requests `runInTerminal` (Forge starts the
-  program with its output in the console) and `startDebugging` (child sessions). Requests:
+  program with its output in the console) and `startDebugging` (child sessions; when Forge
+  started the parent's adapter as a TCP server, the child connects to that same server, as
+  js-debug needs). Requests:
   threads, stackTrace, scopes, variables, setVariable / setExpression, evaluate (watch, repl,
   hover), completions, continue / next / stepIn / stepOut (also by instruction), pause, goto,
   restart, terminate, disconnect, setBreakpoints (conditions, hit counts, logpoints),
@@ -46,7 +51,8 @@ with the same `debug_*` commands and `debug://*` events.
 - `processes`: local processes for Attach to Process (`/proc` on Linux, `ps` on macOS,
   `tasklist` on Windows; no third-party crate).
 - `fake`: a simulated adapter running a small C program, used by the tests and available as
-  the `forge-dap-fake` binary (stdio, `--connect <port>`, `--listen <port>`).
+  the `forge-dap-fake` binary (stdio, `--connect <port>`, `--listen <port>`, and
+  `--serve <port>` for many clients).
 
 ## Modules
 

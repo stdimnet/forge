@@ -775,6 +775,7 @@ not finished, the page says so.
 | [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](docs/guide/user/command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
+| [JavaScript debugging and testing](docs/guide/user/javascript-debugging.md) | js-debug for Node.js, npm scripts, tests and Chrome/Edge (TypeScript through source maps, attach), Jest, Vitest, Mocha, Playwright, Cypress and `node --test` |
 | [Debugging](docs/guide/user/debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
 | [Terminal](docs/guide/user/terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](docs/guide/user/database.md) | data sources, consoles, data grid, export |
@@ -10425,12 +10426,16 @@ npm, pnpm, yarn and bun are supported. Script arguments are passed after `--` fo
 
 ### Debugging scripts
 
-**Debug** on an npm script sets `NODE_OPTIONS` to the value of **Node options when debugging
-scripts** (`web.npm.debugArguments`, default `--inspect`). Attach Chrome DevTools
-(`chrome://inspect`) or another inspector client to the printed port.
+**Debug** on an npm script runs it under the JavaScript debugger (js-debug): breakpoints in
+your JavaScript and TypeScript files stop every Node.js process the script starts. See
+[JavaScript debugging and testing](docs/guide/user/javascript-debugging.md), which also covers the Node.js,
+JavaScript Debug and Attach run configurations and the Jest, Vitest, Mocha, Playwright and
+Cypress test runners.
 
-> **Note:** Forge has no built-in JavaScript debugger yet; Debug only starts Node with the
-> inspector enabled.
+Without js-debug (the download was declined, or the JavaScript Debugger plugin is disabled),
+Debug sets `NODE_OPTIONS` to the value of **Node options when debugging scripts**
+(`web.npm.debugArguments`, default `--inspect`); attach Chrome DevTools (`chrome://inspect`)
+or another inspector client to the printed port.
 
 ### Settings | Languages & Frameworks | Node.js
 
@@ -12131,13 +12136,15 @@ PHP, Lua and every language pack that follows:
 | --- | --- | --- | --- |
 | PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](docs/guide/user/test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
 | busted | LuaForge ([LuaForge](docs/guide/user/luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
+| Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](docs/guide/user/javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
 
 Language packs declare their frameworks in their plugin manifest
 (`[[contributions.testFrameworks]]`, see [Contribution points](docs/guide/developer/contribution-points.md#test-frameworks));
 the framework then appears everywhere on this page without further code.
 
 A framework is used in a project when its files are there (`.busted`, `spec/*_spec.lua`) or a
-project file names it (a rockspec that depends on busted).
+project file names it (a rockspec that depends on busted). When several frameworks claim the
+same files (Jest and Vitest both run `*.test.ts`), the gutter uses the one the project uses.
 
 ## Running tests
 
@@ -12184,6 +12191,7 @@ format into the same test events:
 | libtest JSON | `cargo test -- -Z unstable-options --format json`, nextest | streamed on stdout |
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
+| Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
 
 Failures keep their message, the failure location (a stack frame) and, where the tool reports
 them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`
@@ -12608,6 +12616,154 @@ with a debugger, create an **Artisan** or **Composer** run configuration
 
 ---
 
+Source: docs/guide/user/javascript-debugging.md
+
+# JavaScript debugging and testing
+
+Two WebForge plugins bring WebStorm's JavaScript run, debug and test support to Forge. Both
+are active in projects with a `package.json` (Settings | Plugins):
+
+| Plugin | Id | What it adds |
+| --- | --- | --- |
+| JavaScript Debugger | `forge.js-debugger` | the **Node.js**, **JavaScript Debug** and **Attach to Node.js/Chrome** run configurations, and Debug of Node.js programs, npm scripts, tests and browser pages with js-debug |
+| JavaScript Test Runners | `forge.js-testing` | **Jest**, **Vitest**, **Mocha**, **Playwright**, **Cypress** and **Node.js Test Runner** (`node --test`) on the shared [test runner](docs/guide/user/testing.md) |
+
+![A Node.js debug session stopped at a breakpoint in TypeScript](docs/screenshots/js-debug-node-typescript.png)
+
+## The debugger: js-debug
+
+Forge debugs JavaScript with Microsoft's **js-debug**, the debugger of VS Code (MIT licence),
+over the Debug Adapter Protocol. It is not bundled with Forge. The first time you debug a
+JavaScript configuration, Forge asks to download it:
+
+![Forge asks before downloading js-debug](docs/screenshots/js-debug-download.png)
+
+- Forge downloads one pinned release (`js-debug-dap-v1.140.0.tar.gz`) from the GitHub
+  releases of `microsoft/vscode-js-debug`, checks its SHA-256 checksum and unpacks it into
+  `<data dir>/forge/debug-adapters/js-debug/<version>`. A download with another checksum is
+  discarded.
+- js-debug runs on Node.js 18 or newer: the **Node interpreter** of Settings | Languages &
+  Frameworks | Node.js, else `node` on the `PATH`, else the Node.js Forge downloads from
+  nodejs.org for its language servers (also SHA-256 checked).
+- **Run | Download JavaScript Debugger (js-debug)** (Find Action) downloads it ahead of time.
+- To use a js-debug you unpacked yourself, set **js-debug folder** (the folder with
+  `src/dapDebugServer.js`) in Settings | Languages & Frameworks | Node.js.
+
+Each debug session starts js-debug's DAP server. js-debug runs the program in a **child
+session** (it asks for it with the `startDebugging` request); the Debug tool window shows the
+launcher and the program as two tabs, `server` and `server [48211]`, and the program's tab
+stops at breakpoints. Child processes of the program (workers, test runners that fork) get
+their own tabs too.
+
+### Breakpoints in TypeScript
+
+Breakpoints, stepping and the stack work in the files you write: TypeScript, JSX, Vue single
+file components and bundled code are mapped through **source maps** by js-debug. Compile with
+source maps (`"sourceMap": true` in `tsconfig.json`, Vite and webpack create them in
+development) or run TypeScript directly with a loader such as `tsx` (`--import tsx` in the
+configuration's Node options). Conditions, hit counts and logpoints work as for every
+debugger (see [Debugging](docs/guide/user/debugging.md)).
+
+**Do not step into** (Settings | Node.js) lists scripts the debugger steps over, separated by
+`;`; the default skips Node.js' own modules (`<node_internals>/**`).
+
+## Run configurations
+
+![The JavaScript Debug run configuration](docs/screenshots/js-debug-chrome-configuration.png)
+
+| Type | Run | Debug |
+| --- | --- | --- |
+| **Node.js** | `node [Node options] <file> [Application parameters]` in the Run tool window | the same under js-debug |
+| **JavaScript Debug** | opens the URL in the browser | launches Chrome, Edge or Chromium with a separate profile under js-debug; breakpoints in the page's sources |
+| **Attach to Node.js/Chrome** | (Debug only) | attaches to `host:port`: Node.js started with `--inspect` (port 9229) or a browser started with `--remote-debugging-port` (9222) |
+| **npm** | the script | the script under js-debug (`npm run <script>` with the debugger attached to every Node.js process it starts) |
+
+- **Node.js**: *JavaScript file*, *Interpreter* (default: the project's Node interpreter),
+  *Interpreter options* (Node options such as `--import tsx`), *Application parameters*,
+  working directory and environment variables.
+- **JavaScript Debug**: *URL*, *Browser* (the default of Settings | Node.js | Browser for
+  JavaScript Debug: Auto, Google Chrome, Microsoft Edge or Chromium; or a path to a browser)
+  and *Browser arguments*. Forge looks for the browsers at their usual install paths and on
+  the `PATH`.
+- **Attach to Node.js/Chrome**: *Attach to* (Node.js, Chrome, Edge), *Host*, *Port* and
+  *Remote root* (the project's folder inside a container, for path mapping).
+- **Run | Attach to Process…** lists local processes; picking a Node.js process attaches
+  js-debug to it (Node.js opens its inspector on request).
+- The ▶ icons next to scripts in `package.json` and the npm tool window offer **Debug** as
+  well. Without js-debug (you declined the download, or the plugin is disabled), Debug of an
+  npm script falls back to Node's inspector through `NODE_OPTIONS` (*Node options when
+  debugging scripts*, default `--inspect`).
+
+Launching a program runs project code and is refused in [Safe Mode](docs/guide/user/project-trust.md);
+attaching is not.
+
+## Test runners
+
+![Vitest tests in the test tree, with the failed comparison](docs/screenshots/js-tests-vitest.png)
+
+| Runner | Detected by | Results from | Coverage |
+| --- | --- | --- | --- |
+| **Jest** | `jest` in `package.json`, `jest.config.*` | Jest's JSON report (`--json --outputFile`) | `--coverage`, LCOV |
+| **Vitest** | `vitest` in `package.json`, `vitest.config.*`, `vitest.workspace.*` | the JSON reporter (`--reporter=json --outputFile.json`) | `--coverage.enabled`, LCOV (needs `@vitest/coverage-v8` or `-istanbul`) |
+| **Mocha** | `mocha` in `package.json`, `.mocharc.*` | the TAP reporter | through **c8** (`node_modules/c8`), LCOV |
+| **Playwright** | `@playwright/test` in `package.json`, `playwright.config.*` | the JSON reporter (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | — |
+| **Cypress** | `cypress` in `package.json`, `cypress.config.*` | `cypress run --reporter junit` | — |
+| **Node.js Test Runner** | `node --test` in a `package.json` script | TAP (`--test-reporter=tap`) | Node's LCOV reporter (`--experimental-test-coverage`) |
+
+- **Gutter icons** on `describe` / `context` / `suite`, `it` / `test` / `specify` (with
+  `.only`, `.skip`, `.each`, `test.describe` and the other modifiers) whose name is a string.
+  The nesting follows the calls, so a test's full name is the names of its `describe` blocks
+  and its own. Each icon offers **Run**, **Run with Coverage** (Jest, Vitest, Mocha,
+  `node --test`), **Debug** and **Modify Run Configuration…**; after a run it shows the test's
+  result.
+- **Which runner a file belongs to**: the runner the project uses (detected from
+  `package.json` and config files). Files that import `vitest`, `@jest/globals`, `mocha` or
+  `node:test` belong to that runner, files that import `@playwright/test` (or lie in `e2e/`)
+  to Playwright, and `*.cy.*` files and the `cypress/` folder to Cypress.
+- **Scopes**: all tests, a directory, a file, a test or `describe` block (`-t` / `--grep` /
+  `--test-name-pattern` with the full name), or a name pattern.
+- **Run configurations** of each runner add *Node interpreter*, *Node options*, the runner's
+  *package* (default `node_modules/<runner>`, for monorepos) and its *Configuration file*.
+  The runner's CLI script runs with Node.js (`node node_modules/jest/bin/jest.js …`), so no
+  `npx` or shell shim is involved.
+- **Rerun Failed Tests** runs the failed tests again by name, limited to their files (Cypress,
+  which cannot filter names without `@cypress/grep`, reruns the failed spec files).
+- **Debug** runs the same command under js-debug with the runner in one process and without
+  timeouts (Jest `--runInBand`, Vitest `--no-file-parallelism`, Playwright `--workers=1`,
+  Mocha `--no-timeouts`). Cypress tests run in the browser Cypress drives; debug them with
+  **Open Cypress** and the browser's DevTools.
+- **Tools | Show Playwright Report** opens the HTML report (`playwright show-report`), **Tools
+  | Open Cypress** starts the Cypress app (`cypress open`).
+
+![Playwright tests with the failed request](docs/screenshots/js-tests-playwright.png)
+
+See [Testing](docs/guide/user/testing.md) for the test tree, Click to see difference, Test History and
+auto-test, and [Code coverage](docs/guide/user/coverage.md) for the Coverage tool window.
+
+## Settings
+
+Settings | Languages & Frameworks | Node.js:
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Node interpreter | `web.node.interpreter` | empty: `node` on the `PATH`, else Forge's Node.js |
+| js-debug folder | `web.jsDebug.path` | empty: the version Forge downloads |
+| Browser for JavaScript Debug | `web.jsDebug.browser` | `auto` |
+| Do not step into | `web.jsDebug.skipFiles` | `<node_internals>/**` |
+| Node options when debugging scripts (without js-debug) | `web.npm.debugArguments` | `--inspect` |
+
+## For developers
+
+The debugger lives in [`webforge-js-debug`](docs/guide/developer/crates/webforge-js-debug.md) (the
+pinned release, the `pwa-node` / `pwa-chrome` / `pwa-msedge` adapters registered with
+[`forge-dap`](docs/guide/developer/crates/forge-dap.md), browser detection and the launch requests of
+the run configurations), the test runners in
+[`webforge-js-testing`](docs/guide/developer/crates/webforge-js-testing.md), which wraps the runners'
+`[[contributions.testFrameworks]]` entries of WebForge's manifest.
+
+
+---
+
 Source: docs/guide/user/debugging.md
 
 # Debugging
@@ -12813,7 +12969,7 @@ only when the adapter supports them.
 
 | How | Where |
 | --- | --- |
-| **Debug** a run configuration (`Shift+F9`) | a **Native Application** configuration (executable, program arguments, working directory, debugger, "Stop at the beginning of the program", launch options as JSON), or a configuration type of a language pack that uses an adapter |
+| **Debug** a run configuration (`Shift+F9`) | a **Native Application** configuration (executable, program arguments, working directory, debugger, "Stop at the beginning of the program", launch options as JSON), or a configuration type of a language pack that uses an adapter (Node.js, npm, JavaScript Debug and the JavaScript test runners use js-debug, see [JavaScript debugging](docs/guide/user/javascript-debugging.md)) |
 | **Attach to Process…** (`Ctrl+Alt+F5`, macOS `Cmd+Alt+F5`) | Run menu: pick a local process (filter by name, command line or PID) and an adapter that can attach |
 | **Attach to DAP Server…** | Run menu: connect to an adapter that already listens on a TCP port (`dlv dap --listen 127.0.0.1:4711`, `debugpy --listen 5678`), with optional attach options as JSON |
 | **Debug Core Dump…** | Run menu: open a core file with the executable that crashed (LLDB); nothing runs, frames, variables, memory and registers show the state at the crash |
@@ -18258,12 +18414,18 @@ Placeholders: `${file}`, `${directory}`, `${test}` (full name), `${testName}`, `
 argument whose placeholders are all empty is dropped; a multi-line `${pattern}` repeats its
 argument per line. Discovery nests by indentation; `kind` is `class`, `describe`, `suite` or
 `file` for groups and `test`, `method` or `example` for tests. Coverage formats: `lcov`,
-`cobertura`, `clover`, `jacoco`, `goCover`.
+`cobertura`, `clover`, `jacoco`, `goCover`. `fields` adds form fields to the framework's run
+configuration type (`{ key, label, kind, placeholder, default, options }`, stored in the
+configuration's options) for a provider that wraps the spec. Discovery asks the frameworks the
+project uses first (`TestFrameworks::discover_in_project` with the detected ids), so frameworks
+that share file globs (Jest and Vitest on `*.test.ts`) do not collide.
 
 Frameworks that need code implement `forge_testing::TestFrameworkProvider` (types, `accepts`,
 `discover`, `rerun_failed`, optionally `command` and `supports_coverage`) and register it in
 the backend's `TestFrameworks` registry (`RunState::new`) and in `forge-wasm`'s `registry()`,
-as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). New output formats
+as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). A provider can also
+wrap a manifest spec and register under its id after `register_specs`, as WebForge's Node.js
+runners do (`webforge_js_testing::register`). New output formats
 go into `forge-output` (`formats/`): a `LineParser` for streamed lines or a document parser,
 both producing `TestEvent`s.
 
@@ -19408,6 +19570,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [webforge-fw-angular](docs/guide/developer/crates/webforge-fw-angular.md) | WebForge: Angular support (components, directives, pipes, templates and styles) |
 | [webforge-fw-react](docs/guide/developer/crates/webforge-fw-react.md) | WebForge: React support (JSX components, props and usages) |
 | [webforge-fw-vue](docs/guide/developer/crates/webforge-fw-vue.md) | WebForge: Vue.js support (single-file components, props, emits and usages) |
+| [webforge-js-debug](docs/guide/developer/crates/webforge-js-debug.md) | WebForge: the JavaScript debugger (js-debug downloaded on consent, the pwa-node / pwa-chrome / pwa-msedge adapters, browser detection, launch requests) |
+| [webforge-js-testing](docs/guide/developer/crates/webforge-js-testing.md) | WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright, Cypress, node --test): discovery, command lines, Rerun Failed Tests, debug programs (pure, also built to WebAssembly) |
 | [webforge-lang-web](docs/guide/developer/crates/webforge-lang-web.md) | WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins |
 
 
@@ -20413,15 +20577,20 @@ with the same `debug_*` commands and `debug://*` events.
   `attach` arguments), `ManifestAdapter` (adapters declared with
   `[[contributions.debugAdapters]]`, request templates with `${program}`, `${args}`,
   `${cwd}`, `${env}`, `${pid}`, `${core}`, `${stopOnEntry}`), `AdapterRegistry` and
-  `LaunchRequest` (launch, attach to a process, attach to a DAP server, core dump).
-- `manager::DapManager` starts and tracks sessions, shares the project's breakpoints with
+  `LaunchRequest` (launch, attach to a process, attach to a DAP server, attach to a
+  debuggee's port (`AttachPort`: `node --inspect`, a browser's remote debugging port), core
+  dump).
+- `manager::DapManager` starts and tracks sessions (`register_adapter` / `unregister_adapter`
+  for adapters implemented in Rust, such as [webforge-js-debug](docs/guide/developer/crates/webforge-js-debug.md)'s js-debug), shares the project's breakpoints with
   Xdebug through a `BreakpointHost` (the app's `DebugServer`) and resends them when they
   change. Relative program and working directory paths are resolved against the project.
 - `session::DapSession`: initialize → launch/attach → breakpoints → configurationDone (for
   adapters that announce `initialized` early, like GDB, breakpoints go first), stopped /
   continued / output / thread / breakpoint / terminated / exited / module / process / memory /
   capabilities / invalidated events, the reverse requests `runInTerminal` (Forge starts the
-  program with its output in the console) and `startDebugging` (child sessions). Requests:
+  program with its output in the console) and `startDebugging` (child sessions; when Forge
+  started the parent's adapter as a TCP server, the child connects to that same server, as
+  js-debug needs). Requests:
   threads, stackTrace, scopes, variables, setVariable / setExpression, evaluate (watch, repl,
   hover), completions, continue / next / stepIn / stepOut (also by instruction), pause, goto,
   restart, terminate, disconnect, setBreakpoints (conditions, hit counts, logpoints),
@@ -20432,7 +20601,8 @@ with the same `debug_*` commands and `debug://*` events.
 - `processes`: local processes for Attach to Process (`/proc` on Linux, `ps` on macOS,
   `tasklist` on Windows; no third-party crate).
 - `fake`: a simulated adapter running a small C program, used by the tests and available as
-  the `forge-dap-fake` binary (stdio, `--connect <port>`, `--listen <port>`).
+  the `forge-dap-fake` binary (stdio, `--connect <port>`, `--listen <port>`, and
+  `--serve <port>` for many clients).
 
 ## Modules
 
@@ -21965,7 +22135,7 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON, Jest / Vitest JSON and pytest
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON, Jest / Vitest JSON, Playwright JSON and pytest
   report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
@@ -21987,6 +22157,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/tap.rs` | TAP 12–14: `ok` / `not ok`, `# SKIP` / `# TODO`, YAML diagnostics (`message`, `expected`/`actual`, `at`, `duration_ms`), busted's comments (`# file @ line`, `Failure message`, `Passed in` / `Expected`), `# Subtest:` nesting (node `--test`, node-tap), plans. |
 | `formats/gotest.rs` | Go `test2json`: packages as suites, tests and subtests, output per test, the first `file_test.go:12:` line as message and failure location, `got … want …` values. |
 | `formats/libtest.rs` | libtest JSON (`cargo test -- --format json`): a suite per test binary (`Running …` lines), module paths as locations, panic locations and `left` / `right` values. |
+| `formats/playwright.rs` | Playwright JSON reports: a suite per file, `test.describe` blocks as nested suites, one test per spec and project (`title [project]` with several projects), expected / unexpected / flaky / skipped, `Expected…` / `Received…` values, errors outside tests. |
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
@@ -22909,8 +23080,8 @@ coverage reports into one model.
 | Module | Summary |
 | --- | --- |
 | `targets.rs` | `TestFile` (the tests of a file with their temporary configurations and result keys), `TestTarget`, `TargetKind` (`class`, `method`, `file`, `describe`, `test`, `dataset`, `feature`, `scenario`, `example`, `suite`), `FailedTest`. |
-| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
-| `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
+| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `discover_in_project` (the frameworks the project uses first), `rerun_failed`, `command`, `info`). |
+| `spec.rs` | `TestFrameworkSpec` (with `fields`: extra run configuration form fields), the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
 | `coverage/mod.rs` | `CoverageReport` (files with `LineHits`: hits, branches, partial), `LineStatus` (covered, partial, uncovered), `merge`, `resolve` (reported paths → project paths), `sniff` / `parse_any`, `Counter` ("85% (17/20)"), `summary` (the Coverage tool window's project, compacted directories and files) and `FileCoverage::marks` (gutter marks with hover texts). |
 | `coverage/lcov.rs` | LCOV tracefiles (`SF`, `DA`, `BRDA`). |
 | `coverage/xml.rs` | Cobertura (`<source>` folders, class lines without the method duplicates), Clover (`stmt`, `method`, `cond` with true/false counts) and JaCoCo (covered/missed instructions and branches) in one streaming pass. |
@@ -22933,7 +23104,8 @@ pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<Coverage
   lines of manifest frameworks in `run_start` / `run_command_line`
   (`app/src-tauri/src/commands/testing.rs`, `commands/run.rs`)
 - Crates: [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md) (the `testFrameworks` contribution),
-  [`phpforge-test-frameworks`](docs/guide/developer/crates/phpforge-test-frameworks.md) (the PHP provider)
+  [`phpforge-test-frameworks`](docs/guide/developer/crates/phpforge-test-frameworks.md) (the PHP provider),
+  [`webforge-js-testing`](docs/guide/developer/crates/webforge-js-testing.md) (the Node.js runners wrap their specs)
 - UI: `app/ui/src/features/run` (manifest framework types, gutter), `app/ui/src/features/coverage`
 - Browser mode: built into `forge-wasm` (`testing.rs`)
 
@@ -24229,6 +24401,147 @@ pub struct VueIndex<'a> { … }
 
 ```sh
 cargo test -p webforge-fw-vue
+```
+
+
+---
+
+Source: docs/guide/developer/crates/webforge-js-debug.md
+
+# webforge-js-debug
+
+`packs/webforge/js-debug` — WebForge: the JavaScript debugger on the shared debugging layer
+([forge-dap](docs/guide/developer/crates/forge-dap.md)).
+
+## Purpose
+
+[JavaScript debugging](docs/guide/user/javascript-debugging.md) with Microsoft's js-debug
+(vscode-js-debug, MIT). Nothing is bundled: the pinned standalone DAP server is downloaded
+after the user agreed, checked against its SHA-256 and unpacked into Forge's data folder.
+
+- `release`: the pinned release (`js-debug-dap-v1.140.0.tar.gz`, URL, SHA-256, size),
+  `install_archive` (verify, unpack with the shared archive checks, mark complete), `ensure`
+  (download with progress through `forge_langservers::managed::Http`), `installed`,
+  `user_server` (a folder the user chose) and `default_base_dir`
+  (`<data dir>/forge/debug-adapters/js-debug`).
+- `adapter`: `JsDebugAdapter` implements `forge_dap::DebugAdapterDescriptor` for the targets
+  `pwa-node`, `pwa-chrome` and `pwa-msedge`. Every session starts
+  `node dapDebugServer.js ${port} 127.0.0.1` and connects to it (`Transport::Connect`);
+  js-debug's child sessions (`startDebugging`) connect to the same server (forge-dap reuses a
+  server Forge started). Launch arguments: `program`, `args`, `cwd`, `env`, `runtimeExecutable`,
+  `outFiles` below the working directory (TypeScript breakpoints bind before scripts load),
+  `outputCapture: "std"`, `autoAttachChildProcesses`, `skipFiles`; `url` and `webRoot` for
+  browsers; `processId` (Attach to Process) and `address` / `port`
+  (`LaunchMode::AttachPort`) for attaching; the request's `configuration` is merged last.
+- `browsers`: Chrome, Edge and Chromium at their install paths (Linux, macOS, Windows) or on
+  the `PATH`, and `pick` for a setting value or a path.
+- `launch`: `request(configuration, context)`, the `forge_dap::LaunchRequest` of a run
+  configuration: Node.js (file, interpreter, options, parameters), npm (`runtimeExecutable`
+  = the package manager), JavaScript Debug (URL and the found browser), Attach to
+  Node.js/Chrome (`AttachPort`), and the Node.js test runners through
+  [webforge-js-testing](docs/guide/developer/crates/webforge-js-testing.md)'s `debug_program`.
+- `locate` and `JsDebugStatus`: which DAP server Forge uses (the user's folder or the
+  download) for the UI.
+
+## Main public items
+
+```rust
+pub struct JsDebugAdapter { pub target: Target, pub config: JsDebugConfig }   // DebugAdapterDescriptor
+pub fn request(cfg: &JsConfiguration, ctx: &LaunchContext) -> Result<LaunchRequest, String>;
+pub fn pinned_release() -> Release;
+pub fn release::ensure(http: &Http, base: &Path, release: &Release, on: &mut dyn FnMut(Event)) -> Result<PathBuf, String>;
+pub fn system_browsers() -> Vec<Browser>;
+```
+
+## Used by
+
+- IPC: `js_debug_status`, `js_debug_install` (events `js-debug://install`),
+  `js_debug_browsers`, `js_debug_request`; the adapters are registered with the DAP manager
+  whenever `dap_adapters` / `dap_start` sync it (`app/src-tauri/src/commands/js_debug.rs`)
+- UI: `app/ui/src/features/webforge/jsDebug.ts` (run configuration types, the debug
+  launcher, the download consent dialog), `app/ui/src/ipc/jsDebug.ts`
+- Browser mode: not built to WebAssembly; `app/ui/src/mock/jsDebugMock.ts` simulates a
+  js-debug session of the Node.js demo (`?project=node`)
+
+## Dependencies
+
+- Workspace crates: [`forge-dap`](docs/guide/developer/crates/forge-dap.md), [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md),
+  [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md), [`forge-testing`](docs/guide/developer/crates/forge-testing.md),
+  [`webforge-js-testing`](docs/guide/developer/crates/webforge-js-testing.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests for the archive check and unpacking (built in the test, no network), browser
+detection with fake file systems, the adapter's launch / attach arguments and transports, and
+the launch requests of every configuration type. An ignored smoke test debugs a TypeScript
+file through its source map with a real js-debug and Node.js:
+
+```sh
+cargo test -p webforge-js-debug
+JS_DEBUG_DIR=/path/to/js-debug cargo test -p webforge-js-debug -- --ignored
+```
+
+
+---
+
+Source: docs/guide/developer/crates/webforge-js-testing.md
+
+# webforge-js-testing
+
+`packs/webforge/js-testing` — WebForge's Node.js test runners on the shared test runner
+([forge-testing](docs/guide/developer/crates/forge-testing.md)); pure, also built to WebAssembly.
+
+## Purpose
+
+WebForge's manifest declares each runner as `[[contributions.testFrameworks]]` (detection,
+test file globs, arguments per scope, report format, rerun pattern, coverage, extra form
+fields). `JsTestRunner` wraps such a spec and replaces the plain spec provider of the same id
+in the `TestFrameworks` registry (`register`):
+
+- `discovery`: a small JavaScript scanner (strings, template literals, comments and regular
+  expressions are skipped) finds `describe` / `context` / `suite` and `it` / `test` /
+  `specify` calls with `.only`, `.skip`, `.each(…)(…)`, `test.describe` and other modifiers;
+  suites end where their call closes, so full names do not depend on indentation.
+- `runner`: `Runner` (`jest`, `vitest`, `mocha`, `playwright`, `cypress`, `node-test`) with
+  its package, CLI script and debug arguments. `build` runs the CLI script with Node.js
+  (options `executable`, `nodeOptions`, `package`, `configFile`), sets
+  `PLAYWRIGHT_JSON_OUTPUT_NAME` for Playwright's report file, wraps Mocha in c8 for
+  coverage and puts `node --test`'s options before its files. `claims` decides between
+  runners that share file globs by the file's imports. `rerun` adds the failed tests' files
+  to the spec's name pattern (Cypress reruns files). `debug_program` gives the
+  `runtimeExecutable`, `runtimeArgs`, script and arguments js-debug launches.
+
+## Main public items
+
+```rust
+pub enum Runner { Jest, Vitest, Mocha, Playwright, Cypress, NodeTest }
+pub struct JsTestRunner { pub runner: Runner, pub spec: TestFrameworkSpec }   // TestFrameworkProvider
+pub fn register(registry: &mut TestFrameworks, specs: impl IntoIterator<Item = TestFrameworkSpec>);
+pub fn discovery::discover(text: &str) -> Vec<Found>;
+pub struct NodeProgram { pub runtime: String, pub runtime_args: Vec<String>, pub program: String, pub args: Vec<String>, … }
+```
+
+## Used by
+
+- IPC: the test registry of `run_start`, `run_command_line`, `test_discover` and
+  `test_rerun_failed` (`app/src-tauri/src/commands/run.rs`, `commands/testing.rs`);
+  `js_debug_request` through [webforge-js-debug](docs/guide/developer/crates/webforge-js-debug.md)
+- Browser mode: built into `forge-wasm` (`testing.rs`)
+
+## Dependencies
+
+- Workspace crates: [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md), [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`
+
+## Tests
+
+Unit tests run against WebForge's real manifest (`app/src-tauri/plugins/webforge.toml`):
+detection from `package.json` and config files, discovery and the choice between runners,
+command lines per runner and scope, coverage arguments, Rerun Failed Tests and debug programs.
+
+```sh
+cargo test -p webforge-js-testing
 ```
 
 

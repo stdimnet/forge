@@ -23,8 +23,8 @@ coverage reports into one model.
 | Module | Summary |
 | --- | --- |
 | `targets.rs` | `TestFile` (the tests of a file with their temporary configurations and result keys), `TestTarget`, `TargetKind` (`class`, `method`, `file`, `describe`, `test`, `dataset`, `feature`, `scenario`, `example`, `suite`), `FailedTest`. |
-| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
-| `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
+| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `discover_in_project` (the frameworks the project uses first), `rerun_failed`, `command`, `info`). |
+| `spec.rs` | `TestFrameworkSpec` (with `fields`: extra run configuration form fields), the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
 | `coverage/mod.rs` | `CoverageReport` (files with `LineHits`: hits, branches, partial), `LineStatus` (covered, partial, uncovered), `merge`, `resolve` (reported paths → project paths), `sniff` / `parse_any`, `Counter` ("85% (17/20)"), `summary` (the Coverage tool window's project, compacted directories and files) and `FileCoverage::marks` (gutter marks with hover texts). |
 | `coverage/lcov.rs` | LCOV tracefiles (`SF`, `DA`, `BRDA`). |
 | `coverage/xml.rs` | Cobertura (`<source>` folders, class lines without the method duplicates), Clover (`stmt`, `method`, `cond` with true/false counts) and JaCoCo (covered/missed instructions and branches) in one streaming pass. |
@@ -47,7 +47,8 @@ pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<Coverage
   lines of manifest frameworks in `run_start` / `run_command_line`
   (`app/src-tauri/src/commands/testing.rs`, `commands/run.rs`)
 - Crates: [`forge-plugin-api`](forge-plugin-api.md) (the `testFrameworks` contribution),
-  [`phpforge-test-frameworks`](phpforge-test-frameworks.md) (the PHP provider)
+  [`phpforge-test-frameworks`](phpforge-test-frameworks.md) (the PHP provider),
+  [`webforge-js-testing`](webforge-js-testing.md) (the Node.js runners wrap their specs)
 - UI: `app/ui/src/features/run` (manifest framework types, gutter), `app/ui/src/features/coverage`
 - Browser mode: built into `forge-wasm` (`testing.rs`)
 
