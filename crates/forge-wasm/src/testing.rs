@@ -27,6 +27,7 @@ fn error(e: impl ToString) -> String {
 fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     let mut r = TestFrameworks::new();
     r.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
+    r.register(Box::new(pyforge_testing::PythonTestFrameworks));
     r.register_specs(specs);
     r
 }

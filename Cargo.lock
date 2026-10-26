@@ -2694,6 +2694,7 @@ dependencies = [
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
+ "pyforge-testing",
  "regex-lite",
  "serde",
  "serde_json",
