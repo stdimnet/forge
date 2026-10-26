@@ -148,16 +148,23 @@ fn result_line(line: &str) -> Option<(String, EnvResult, String)> {
     };
     let after = &rest[word.len()..];
     let tail_ok = after.is_empty()
-        || [" ✔", " ✖", " ⚠", " (", " in ", " code", ":", " succeeded", " failed"]
-            .iter()
-            .any(|p| after.starts_with(p));
+        || [
+            " ✔",
+            " ✖",
+            " ⚠",
+            " (",
+            " in ",
+            " code",
+            ":",
+            " succeeded",
+            " failed",
+        ]
+        .iter()
+        .any(|p| after.starts_with(p));
     if !tail_ok {
         return None;
     }
-    let detail = after
-        .trim_start_matches(':')
-        .trim()
-        .to_string();
+    let detail = after.trim_start_matches(':').trim().to_string();
     let detail = if result == EnvResult::Fail && word == "commands" {
         rest.to_string()
     } else {
@@ -193,8 +200,16 @@ fn action_env(line: &str) -> Option<String> {
     (is_env_name(env)
         && matches!(
             action,
-            "create" | "recreate" | "installdeps" | "inst" | "installed" | "run-test-pre"
-                | "run-test" | "develop-inst" | "inst-nodeps" | "commands_pre"
+            "create"
+                | "recreate"
+                | "installdeps"
+                | "inst"
+                | "installed"
+                | "run-test-pre"
+                | "run-test"
+                | "develop-inst"
+                | "inst-nodeps"
+                | "commands_pre"
         ))
     .then(|| env.to_string())
 }
@@ -212,7 +227,7 @@ impl LineParser for ToxParser {
             };
         }
         if let Some(env) = action_env(&clean) {
-            if !self.done.iter().any(|e| *e == env) {
+            if !self.done.contains(&env) {
                 self.start(&env, &mut events);
             }
             if let Some(rest) = clean
@@ -277,7 +292,10 @@ mod tests {
         assert_eq!(py312.duration, Some(3100));
         let lint = nodes.iter().find(|n| n.name == "lint").unwrap();
         assert_eq!(lint.status, TestStatus::Failed);
-        assert!(lint.message.as_deref().unwrap().contains("exit 1"), "{lint:?}");
+        assert!(
+            lint.message.as_deref().unwrap().contains("exit 1"),
+            "{lint:?}"
+        );
         assert!(events.iter().any(|e| matches!(e,
             TestEvent::TestOutput { name, text, .. } if name == "lint" && text.contains("ruff check"))));
     }
@@ -312,11 +330,17 @@ mod tests {
     #[test]
     fn helpers_read_names_and_durations() {
         assert_eq!(seconds("OK ✔ in 3.1 seconds"), Some(3100));
-        assert_eq!(seconds("OK (3.10=setup[2.20]+cmd[0.90] seconds)"), Some(3100));
+        assert_eq!(
+            seconds("OK (3.10=setup[2.20]+cmd[0.90] seconds)"),
+            Some(3100)
+        );
         assert_eq!(seconds("OK"), None);
         assert!(is_env_name("py312-django50") && !is_env_name(""));
         assert!(result_line("note: OK then").is_none());
-        assert_eq!(action_env("py312: commands[0]> pytest").as_deref(), Some("py312"));
+        assert_eq!(
+            action_env("py312: commands[0]> pytest").as_deref(),
+            Some("py312")
+        );
         assert_eq!(action_env("  congratulations :) (5.12 seconds)"), None);
         assert_eq!(action_env("ImportError: no module"), None);
     }

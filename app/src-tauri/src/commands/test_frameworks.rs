@@ -218,6 +218,8 @@ pub(crate) struct TestSetup {
     pub default_file: Option<String>,
     /// Run with Coverage: where the report is read after the run.
     pub coverage: Option<crate::commands::testing::CoverageSetup>,
+    /// Profile (Python): where the cProfile snapshot is read after the run.
+    pub profile: Option<crate::commands::python_tools::ProfileSetup>,
 }
 
 fn framework_for(

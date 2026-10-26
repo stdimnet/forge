@@ -6987,6 +6987,267 @@
     }
   },
   {
+    "id": "forge.python-tools",
+    "name": "Python Tests, Debugger, Console and Profiler",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "pytest, unittest and tox in the test runner (gutter icons, Rerun Failed Tests, coverage with pytest-cov), debugging with debugpy (launch, Attach to Process, Attach to DAP Server, the debug console), the Python Console with IPython and a variables view, and the cProfile profiler with call tree and hot spots.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-env"
+    ],
+    "required": false,
+    "projectTypes": [
+      "pyforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "ExecuteInPyConsoleAction",
+          "title": "Run Selection in Python Console",
+          "category": "Python"
+        },
+        {
+          "id": "RunFileInPythonConsole",
+          "title": "Run File in Python Console",
+          "category": "Python"
+        },
+        {
+          "id": "ActivatePythonConsoleToolWindow",
+          "title": "Python Console",
+          "category": "View"
+        },
+        {
+          "id": "python.profile",
+          "title": "Profile",
+          "category": "Run"
+        },
+        {
+          "id": "python.runToxEnvironment",
+          "title": "Run tox Environment…",
+          "category": "Python"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "pythonConsole",
+          "title": "Python Console",
+          "anchor": "bottom",
+          "icon": "square-terminal",
+          "order": 46
+        },
+        {
+          "id": "profiler",
+          "title": "Profiler",
+          "anchor": "bottom",
+          "icon": "gauge",
+          "order": 47
+        }
+      ],
+      "settings": [
+        {
+          "key": "python.testing.runner",
+          "title": "Default test runner",
+          "description": "Runs tests from the gutter and Run Context Configuration. Autodetect: pytest when the project uses it (configuration or dependency), unittest for files with only test cases.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Autodetect"
+            },
+            {
+              "value": "pytest",
+              "label": "pytest"
+            },
+            {
+              "value": "unittest",
+              "label": "Unittests"
+            }
+          ],
+          "default": "auto",
+          "group": "tools.python-integrated-tools",
+          "section": "Testing",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "python.pytest.reporter",
+          "title": "pytest results",
+          "description": "JUnit XML is built into pytest; a report log needs the pytest-reportlog plugin.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "junitxml",
+              "label": "JUnit XML (--junitxml)"
+            },
+            {
+              "value": "reportLog",
+              "label": "Report log (--report-log)"
+            }
+          ],
+          "default": "junitxml",
+          "group": "tools.python-integrated-tools",
+          "section": "Testing",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "python.tox.path",
+          "title": "tox executable",
+          "description": "Leave empty to run tox with the project's interpreter (python -m tox).",
+          "type": "path",
+          "default": "",
+          "group": "tools.python-integrated-tools",
+          "section": "tox",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "python.debugger.justMyCode",
+          "title": "Step only through the project's code (justMyCode)",
+          "description": "Library and standard library frames are skipped while stepping and break only on exceptions raised in the project.",
+          "type": "bool",
+          "default": true,
+          "group": "build.python-debugger",
+          "section": "debugpy",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "python.debugger.subProcess",
+          "title": "Attach to subprocesses automatically",
+          "description": "Child Python processes (multiprocessing, subprocess) are debugged too.",
+          "type": "bool",
+          "default": true,
+          "group": "build.python-debugger",
+          "section": "debugpy",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "python.debugger.installWithoutAsking",
+          "title": "Install debugpy without asking",
+          "description": "When the interpreter has no debugpy, Debug installs it (pip install debugpy) instead of asking first.",
+          "type": "bool",
+          "default": false,
+          "group": "build.python-debugger",
+          "section": "debugpy",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "python.console.ipython",
+          "title": "Use IPython if available",
+          "description": "The Python Console runs IPython when the interpreter has it (magics, Out[] history).",
+          "type": "bool",
+          "default": true,
+          "group": "build.python-console",
+          "section": "Python Console",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "python.console.interpreterOptions",
+          "title": "Interpreter options",
+          "description": "Passed to the interpreter that runs the console, for example -X dev.",
+          "type": "string",
+          "default": "",
+          "group": "build.python-console",
+          "section": "Python Console",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "python.profiler.snapshots",
+          "title": "Profiler snapshots to keep",
+          "description": "cProfile snapshots (.pstats) of a project kept in Forge's cache folder.",
+          "type": "int",
+          "min": 1,
+          "max": 200,
+          "default": 20,
+          "group": "tools.python-integrated-tools",
+          "section": "Profiler",
+          "project": false,
+          "order": 20
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "pytest",
+          "name": "pytest",
+          "description": "Run pytest: a directory, a file, a class, a test or parametrized case, or tests matching a keyword (-k).",
+          "icon": "flask-conical",
+          "debuggable": false
+        },
+        {
+          "id": "unittest",
+          "name": "Unittests",
+          "description": "Run unittest test cases: discovery in a directory, a file, a class or a test method.",
+          "icon": "test-tube-diagonal",
+          "debuggable": false
+        },
+        {
+          "id": "tox",
+          "name": "tox",
+          "description": "Run tox environments; every environment is a test of the tree.",
+          "icon": "box",
+          "debuggable": false
+        }
+      ],
+      "debugAdapters": [
+        {
+          "type": "python",
+          "label": "Python (debugpy)",
+          "command": "python3",
+          "args": [
+            "-m",
+            "debugpy.adapter"
+          ],
+          "transport": "stdio",
+          "languages": [
+            "py",
+            "pyw"
+          ],
+          "launch": {
+            "args": "${args}",
+            "console": "internalConsole",
+            "cwd": "${cwd}",
+            "env": "${env}",
+            "justMyCode": true,
+            "program": "${program}",
+            "stopOnEntry": "${stopOnEntry}"
+          },
+          "attach": {
+            "justMyCode": true,
+            "processId": "${pid}"
+          },
+          "attachSchema": {
+            "properties": {
+              "justMyCode": {
+                "description": "Step only through the project's code",
+                "type": "boolean"
+              },
+              "pathMappings": {
+                "description": "[{ \"localRoot\": \"…\", \"remoteRoot\": \"…\" }] for programs in containers or on other hosts",
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.ai",
     "name": "AI Assistant",
     "version": "0.1.0",

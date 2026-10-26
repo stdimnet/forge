@@ -104,6 +104,8 @@ pub fn run() {
         .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
         .manage(commands::python::PythonState::default())
+        .manage(commands::python_tools::PythonToolsState::default())
+        .manage(commands::python_tools::PythonConsoleState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
@@ -496,6 +498,19 @@ pub fn run() {
             commands::python::python_complete,
             commands::python::python_run_markers,
             commands::python::python_format,
+            commands::python_tools::python_testing_detect,
+            commands::python_tools::python_tox_environments,
+            commands::python_tools::python_debugpy_status,
+            commands::python_tools::python_debug_plan,
+            commands::python_tools::python_console_start,
+            commands::python_tools::python_console_send,
+            commands::python_tools::python_console_stop,
+            commands::python_tools::python_console_history,
+            commands::python_tools::python_console_history_add,
+            commands::python_tools::python_profiles,
+            commands::python_tools::python_profile_view,
+            commands::python_tools::python_profile_open,
+            commands::python_tools::python_profile_delete,
             commands::python::python_dependencies,
             commands::lua::lua_index_workspace,
             commands::lua::lua_files_changed,
