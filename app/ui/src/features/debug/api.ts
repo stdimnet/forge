@@ -1,9 +1,46 @@
-/** Typed client for the PHP debugger (`app/src-tauri/src/commands/debug.rs`). */
+/**
+ * Typed client for the debugger (`app/src-tauri/src/commands/debug.rs`). The same commands
+ * drive Xdebug sessions (`xdebug-<n>`) and Debug Adapter Protocol sessions (`dap-<n>`, see
+ * `dapApi.ts` for what only DAP sessions offer).
+ */
 import { invoke, listen } from "@/ipc";
 
 export type SessionStatus = "initializing" | "awaitingAcceptance" | "running" | "paused" | "stopped";
 export type BreakReason = "breakpoint" | "step" | "firstLine" | "exception" | "pause";
-export type StepKind = "run" | "stepInto" | "forceStepInto" | "stepOver" | "stepOut";
+export type StepKind = "run" | "stepInto" | "forceStepInto" | "stepOver" | "stepOut" | "stepIntoInstruction" | "stepOverInstruction";
+
+/** An exception filter of a debug adapter ("C++: on throw"). */
+export interface ExceptionFilter {
+  filter: string;
+  label: string;
+  description?: string;
+  default: boolean;
+  supportsCondition: boolean;
+}
+
+/** Optional features of a DAP session (its adapter's capabilities). */
+export interface SessionFeatures {
+  threads: boolean;
+  readMemory: boolean;
+  writeMemory: boolean;
+  disassemble: boolean;
+  registers: boolean;
+  dataBreakpoints: boolean;
+  functionBreakpoints: boolean;
+  conditionalBreakpoints: boolean;
+  hitConditionalBreakpoints: boolean;
+  logPoints: boolean;
+  instructionStepping: boolean;
+  goto: boolean;
+  restart: boolean;
+  completions: boolean;
+  setVariable: boolean;
+  modules: boolean;
+  loadedSources: boolean;
+  /** Attached to a running program: Stop detaches. */
+  attached: boolean;
+  exceptionFilters: ExceptionFilter[];
+}
 
 export interface Location {
   /** Project relative file; null when the server file is not mapped. */
@@ -28,6 +65,13 @@ export interface SessionInfo {
   location: Location | null;
   reason: BreakReason | null;
   exception: { name: string; message: string | null } | null;
+  /** Debug adapter type of a DAP session (`lldb`); absent for Xdebug. */
+  adapter?: string;
+  features?: SessionFeatures;
+  /** The thread that stopped (DAP). */
+  threadId?: number;
+  /** The session that started this one (DAP child sessions). */
+  parentId?: string;
 }
 
 export interface Frame {
@@ -36,6 +80,10 @@ export interface Frame {
   fileUri: string;
   line: number;
   where: string;
+  /** DAP frame id. */
+  id?: number;
+  /** DAP: instruction pointer (Disassembly). */
+  address?: string;
 }
 
 export interface Property {
@@ -51,11 +99,31 @@ export interface Property {
   page: number;
   pageSize: number;
   children: Property[];
+  /** DAP `variablesReference` of the children. */
+  reference?: number;
+  /** DAP: reference of the scope or variable holding this one (Set Value, watchpoints). */
+  container?: number;
+  /** DAP: memory location of the value (View Memory). */
+  memoryReference?: string;
 }
 
-export type BreakpointKind = "line" | "exception";
+export type BreakpointKind = "line" | "exception" | "function" | "data";
 
-export interface Breakpoint {
+/** Fields of function breakpoints, watchpoints and adapter exception filters (DAP). */
+interface DapBreakpointFields {
+  /** Function name (function breakpoints). */
+  function?: string;
+  /** The adapter's data id (data breakpoints). */
+  dataId?: string;
+  /** `write`, `read` or `readWrite` (data breakpoints). */
+  accessType?: string;
+  /** What a watchpoint watches, or an exception filter's label. */
+  description?: string;
+  /** Debug adapter type of an exception filter or watchpoint. */
+  adapter?: string;
+}
+
+export interface Breakpoint extends DapBreakpointFields {
   id: number;
   kind: BreakpointKind;
   file?: string;
@@ -77,7 +145,7 @@ export interface Breakpoint {
   passCount?: number;
 }
 
-export interface BreakpointSpec {
+export interface BreakpointSpec extends DapBreakpointFields {
   kind?: BreakpointKind;
   file?: string;
   line?: number;
@@ -166,9 +234,11 @@ export type DebugEvent =
   /** `stream`: stdout, stderr or log (logpoints). */
   | { type: "output"; sessionId: string; stream: string; text: string }
   | { type: "breakpoints"; snapshot: BreakpointsSnapshot }
+  /** Views showing `areas` (`memory`, `threads`, `modules`, `variables`) reload. */
+  | { type: "invalidated"; sessionId: string; areas: string[] }
   | { type: "error"; sessionId: string | null; message: string };
 
-const CHANNELS = ["listening", "session", "incoming", "ended", "output", "breakpoints", "error"] as const;
+const CHANNELS = ["listening", "session", "incoming", "ended", "output", "breakpoints", "invalidated", "error"] as const;
 
 export const debugApi = {
   status: () => invoke<DebugStatus>("debug_status"),
@@ -184,16 +254,20 @@ export const debugApi = {
   detach: (sessionId: string) => invoke<void>("debug_detach", { sessionId }),
   runToCursor: (sessionId: string, file: string, line: number) =>
     invoke<void>("debug_run_to_cursor", { sessionId, file, line }),
-  stack: (sessionId: string) => invoke<Frame[]>("debug_stack", { sessionId }),
+  /** Frames; DAP sessions show `threadId` (default: the current thread). */
+  stack: (sessionId: string, threadId?: number) => invoke<Frame[]>("debug_stack", { sessionId, threadId }),
   contexts: (sessionId: string, depth: number) => invoke<ContextName[]>("debug_contexts", { sessionId, depth }),
   variables: (sessionId: string, depth: number, context = 0) =>
     invoke<Property[]>("debug_variables", { sessionId, depth, context }),
-  property: (sessionId: string, fullname: string, depth: number, context = 0, page = 0) =>
-    invoke<Property>("debug_property", { sessionId, fullname, depth, context, page }),
-  eval: (sessionId: string, expression: string, depth = 0) =>
-    invoke<Property>("debug_eval", { sessionId, expression, depth }),
-  setValue: (sessionId: string, fullname: string, value: string, depth = 0) =>
-    invoke<void>("debug_set_value", { sessionId, fullname, value, depth }),
+  /** Children of a variable: DBGp by `fullname` and page, DAP by `reference`. */
+  property: (sessionId: string, fullname: string, depth: number, context = 0, page = 0, reference?: number) =>
+    invoke<Property>("debug_property", { sessionId, fullname, depth, context, page, reference }),
+  /** `context` (DAP): `watch`, `repl` (console, Evaluate) or `hover`. */
+  eval: (sessionId: string, expression: string, depth = 0, context?: "watch" | "repl" | "hover" | "clipboard") =>
+    invoke<Property>("debug_eval", { sessionId, expression, depth, context }),
+  /** Set Value; DAP variables are addressed by `container` and `name`. */
+  setValue: (sessionId: string, fullname: string, value: string, depth = 0, container?: number, name?: string) =>
+    invoke<void>("debug_set_value", { sessionId, fullname, value, depth, container, name }),
   breakpoints: () => invoke<BreakpointsSnapshot>("debug_breakpoints"),
   addBreakpoint: (spec: BreakpointSpec) => invoke<Breakpoint>("debug_breakpoint_add", { spec }),
   updateBreakpoint: (breakpoint: Breakpoint) => invoke<Breakpoint>("debug_breakpoint_update", { breakpoint }),

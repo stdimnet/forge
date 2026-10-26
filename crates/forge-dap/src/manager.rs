@@ -184,9 +184,61 @@ impl Inner {
     }
 }
 
+/// Make project-relative paths of a request absolute (adapters run outside the project);
+/// the working directory defaults to the project root.
+pub fn absolutize(mut request: LaunchRequest, root: Option<&std::path::Path>) -> LaunchRequest {
+    let Some(root) = root else {
+        return request;
+    };
+    let abs = |p: &str| -> String {
+        let path = std::path::Path::new(p);
+        if path.is_absolute() || p.is_empty() {
+            p.to_string()
+        } else {
+            root.join(path).to_string_lossy().into_owned()
+        }
+    };
+    let program_is_path = |p: &str| p.contains('/') || p.contains('\\');
+    if let Some(p) = request.program.as_deref().filter(|p| program_is_path(p)) {
+        request.program = Some(abs(p));
+    }
+    request.cwd = Some(match request.cwd.as_deref().filter(|c| !c.is_empty()) {
+        Some(c) => abs(c),
+        None => root.to_string_lossy().into_owned(),
+    });
+    if let crate::adapter::LaunchMode::CoreDump { core } = &mut request.mode {
+        *core = abs(core);
+    }
+    request
+}
+
 /// Starts and tracks DAP sessions.
 pub struct DapManager {
     inner: Arc<Inner>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn relative_paths_are_resolved_against_the_project() {
+        let mut r = LaunchRequest::launch("lldb", "build/demo");
+        r.mode = crate::adapter::LaunchMode::Launch;
+        let r = absolutize(r, Some(Path::new("/w")));
+        assert_eq!(r.program.as_deref(), Some("/w/build/demo"));
+        assert_eq!(r.cwd.as_deref(), Some("/w"));
+        let mut bare = LaunchRequest::launch("lldb", "python3");
+        bare.cwd = Some("src".into());
+        let bare = absolutize(bare, Some(Path::new("/w")));
+        assert_eq!(
+            bare.program.as_deref(),
+            Some("python3"),
+            "commands stay on the PATH"
+        );
+        assert_eq!(bare.cwd.as_deref(), Some("/w/src"));
+    }
 }
 
 impl DapManager {
@@ -233,6 +285,7 @@ impl DapManager {
     /// Start a session: launch a program, attach to a process or DAP server, or open a
     /// core dump. Returns once the adapter is configured (the program runs or is paused).
     pub async fn start(&self, request: LaunchRequest) -> DapResult<SessionInfo> {
+        let request = absolutize(request, self.inner.root().as_deref());
         let descriptor = self
             .inner
             .registry
