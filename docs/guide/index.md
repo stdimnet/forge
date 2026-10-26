@@ -50,6 +50,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
+  downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
+  checks and version completion from the module proxy; gofmt / goimports, go vet and
+  golangci-lint problems; go generate gutter icons; Go Build and Go Test run configurations
+  with subtests, benchmarks, fuzzing, coverage and profiles; Delve debugging (launch, test,
+  attach, remote) and the pprof Profiler with a flame graph ([GoForge](user/go.md)).
 - **PyForge**: the Python interpreter in the status bar with a popup to switch,
   Settings | Project | Python Interpreter with detection of venv, uv, Poetry, conda, Pipenv,
   Hatch and pyenv environments and new environments, Docker / Compose / SSH / WSL
