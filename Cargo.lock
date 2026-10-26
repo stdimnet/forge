@@ -2088,6 +2088,7 @@ dependencies = [
  "forge-core",
  "forge-remote",
  "forge-remote-agent",
+ "forge-runtargets",
  "serde",
  "serde_json",
  "tempfile",
@@ -2321,6 +2322,8 @@ dependencies = [
  "forge-core",
  "forge-filetypes",
  "forge-keymap",
+ "forge-output",
+ "forge-testing",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -2405,6 +2408,15 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-runtargets"
+version = "0.1.0"
+dependencies = [
+ "forge-runtools",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2521,6 +2533,19 @@ dependencies = [
  "tree-sitter-javascript",
  "tree-sitter-php",
  "tree-sitter-typescript",
+]
+
+[[package]]
+name = "forge-testing"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "quick-xml",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -5017,6 +5042,7 @@ dependencies = [
 name = "phpforge-interpreters"
 version = "0.1.0"
 dependencies = [
+ "forge-runtargets",
  "serde",
  "serde_json",
  "tempfile",
@@ -5065,6 +5091,7 @@ version = "0.1.0"
 dependencies = [
  "forge-output",
  "forge-runtools",
+ "forge-testing",
  "regex-lite",
  "serde",
  "serde_json",
