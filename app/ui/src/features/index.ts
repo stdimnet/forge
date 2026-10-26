@@ -53,6 +53,7 @@ import "./database";
 import "./injections";
 import "./scratches";
 import "./lua";
+import "./python";
 import "./services";
 import "./remote";
 import "./devenv";
