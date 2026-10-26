@@ -41,7 +41,7 @@
 .coverage-head,
 .coverage-row {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) 150px 150px;
+  grid-template-columns: minmax(120px, 1fr) minmax(118px, auto) minmax(118px, auto);
   align-items: center;
 }
 
@@ -108,7 +108,7 @@
 
 .coverage-bar {
   flex: none;
-  width: 36px;
+  width: 28px;
   height: 6px;
   border-radius: 3px;
   background: color-mix(in srgb, var(--danger) 55%, transparent);

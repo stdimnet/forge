@@ -188,6 +188,8 @@ impl TapParser {
             // busted: `# file @ line`, `# Failure message: …`, `# Passed in:` / `# Expected:`.
             let mut section: Option<&str> = None;
             let (mut passed_in, mut wanted) = (Vec::new(), Vec::new());
+            // Comments that are none of these stay as details.
+            let mut rest: Vec<&str> = Vec::new();
             for c in &p.comments {
                 if let Some((f, l)) = c.split_once(" @ ") {
                     if loc.is_none() {
@@ -208,6 +210,8 @@ impl TapParser {
                     passed_in.push(c.trim().to_string());
                 } else if section == Some("expected") {
                     wanted.push(c.trim().to_string());
+                } else {
+                    rest.push(c);
                 }
             }
             if expected.is_none() && !wanted.is_empty() {
@@ -220,8 +224,8 @@ impl TapParser {
             if let Some(stack) = first_of(&yaml, &["stack", "stackTrace"]) {
                 details.push(stack);
             }
-            if !p.comments.is_empty() {
-                details.push(p.comments.join("\n"));
+            if !rest.is_empty() {
+                details.push(rest.join("\n"));
             }
             if let Some(l) = &loc {
                 details.push(format!(
@@ -231,7 +235,7 @@ impl TapParser {
                 ));
             }
             let message = message
-                .or_else(|| p.comments.first().cloned())
+                .or_else(|| rest.first().map(|c| c.to_string()))
                 .unwrap_or_else(|| "Test failed".to_string());
             out.push(TestEvent::TestFailed {
                 name: p.name.clone(),
