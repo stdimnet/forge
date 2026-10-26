@@ -1,0 +1,17 @@
+py312: install_deps> python -I -m pip install pytest
+py312: commands[0]> pytest -q
+...                                                                      [100%]
+3 passed in 0.02s
+py312: OK ✔ in 3.1 seconds
+lint: install_deps> python -I -m pip install ruff
+lint: commands[0]> ruff check .
+src/shop_api/main.py:3:8: F401 [*] `yaml` imported but unused
+Found 1 error.
+lint: exit 1 (0.05 seconds) /home/me/shop-api> ruff check . pid=48211
+lint: FAIL ✖ in 1.2 seconds
+py39: skipped because could not find python interpreter with spec(s): py39
+py39: SKIP ⚠ in 0.01 seconds
+  py312: OK (3.10=setup[2.20]+cmd[0.90] seconds)
+  lint: FAIL code 1 (1.20=setup[1.15]+cmd[0.05] seconds)
+  py39: SKIP (0.01 seconds)
+  evaluation failed :( (4.32 seconds)

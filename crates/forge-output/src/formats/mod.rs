@@ -9,6 +9,7 @@
 //! | libtest JSON (`cargo test`) | [`libtest`] | lines on stdout |
 //! | pytest report log / JUnit | [`pytest`] | lines on stdout or a report file / report files |
 //! | Jest / Vitest JSON | [`jest`] | a document on stdout or a report file |
+//! | tox (environments as tests) | [`tox`] | lines on stdout |
 //!
 //! [`line_parser`] picks the line parser of a [`TestReport`]; [`document_events`] reads a
 //! whole report (sniffing JSON, JSON lines and XML) for documents on stdout and report files.
@@ -18,6 +19,7 @@ pub mod jest;
 pub mod libtest;
 pub mod pytest;
 pub mod tap;
+pub mod tox;
 
 use crate::junit::{junit_messages, JUnitFlavor};
 use crate::run::TestReport;
@@ -28,6 +30,7 @@ pub use jest::jest_events;
 pub use libtest::LibtestParser;
 pub use pytest::PytestReportLogParser;
 pub use tap::TapParser;
+pub use tox::ToxParser;
 
 /// The parser of a format that streams lines on stdout; `None` for whole documents.
 pub fn line_parser(report: TestReport) -> Option<Box<dyn LineParser>> {
@@ -37,6 +40,7 @@ pub fn line_parser(report: TestReport) -> Option<Box<dyn LineParser>> {
         TestReport::GoTestJson => Box::new(GoTestParser::new()),
         TestReport::LibtestJson => Box::new(LibtestParser::new()),
         TestReport::PytestReportLog => Box::new(PytestReportLogParser::new()),
+        TestReport::Tox => Box::new(ToxParser::new()),
         TestReport::JUnitStdout | TestReport::JUnitFile | TestReport::JestJson => return None,
     })
 }
