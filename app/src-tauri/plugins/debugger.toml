@@ -1,0 +1,93 @@
+id = "forge.debugger"
+name = "Debugger"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Shared debugging layer for every language pack: Debug Adapter Protocol sessions (launch, Attach to Process, Attach to DAP server, core dumps), logpoints and watchpoints, and the Memory, Disassembly and Registers views. Packs add their debug adapters; LLDB and GDB are built in."
+
+# Native debuggers. Language packs add more adapters the same way (see
+# docs/ARCHITECTURE.md, "Shared debugging layer").
+[[contributions.debugAdapters]]
+type = "lldb"
+label = "LLDB"
+command = "lldb-dap"
+commandSetting = "debugger.lldb.path"
+languages = ["c", "h", "cc", "cpp", "cxx", "hpp", "hh", "m", "mm", "rs", "swift", "zig"]
+launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}" }
+attach = { pid = "${pid}", program = "${program}" }
+coreDump = { program = "${program}", coreFile = "${core}" }
+coreDumpRequest = "attach"
+launchSchema = { type = "object", properties = { initCommands = { type = "array", items = { type = "string" }, description = "LLDB commands run before the target is created" }, sourceMap = { type = "array", description = "Source path remappings: [[from, to], …]" } } }
+
+[[contributions.debugAdapters]]
+type = "gdb"
+label = "GDB"
+command = "gdb"
+args = ["-i", "dap"]
+commandSetting = "debugger.gdb.path"
+languages = ["c", "h", "cc", "cpp", "cxx", "hpp", "hh", "rs", "go", "f", "f90", "adb", "ads", "d"]
+launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopAtBeginningOfMainSubprogram = "${stopOnEntry}" }
+attach = { pid = "${pid}", program = "${program}" }
+
+[[contributions.settings]]
+key = "debugger.lldb.path"
+title = "LLDB DAP executable"
+description = "Path of lldb-dap (lldb-vscode in older LLVM releases). Empty: lldb-dap on the PATH."
+type = "path"
+default = ""
+group = "build.debugger"
+section = "Debug Adapters"
+order = 10
+
+[[contributions.settings]]
+key = "debugger.gdb.path"
+title = "GDB executable"
+description = "GDB 14 or newer (its built-in DAP server, gdb -i dap). Empty: gdb on the PATH."
+type = "path"
+default = ""
+group = "build.debugger"
+section = "Debug Adapters"
+order = 20
+
+[[contributions.settings]]
+key = "debugger.dap.requestTimeout"
+title = "Debug adapter request timeout (ms)"
+description = "How long Forge waits for an answer of a debug adapter before it reports an error."
+type = "int"
+min = 1000
+max = 120000
+default = 10000
+group = "build.debugger"
+section = "Debug Adapter Protocol"
+order = 30
+
+[[contributions.settings]]
+key = "debugger.dap.trace"
+title = "Log Debug Adapter Protocol messages"
+description = "Write every message to and from debug adapters to the Forge log (trace level)."
+type = "bool"
+default = false
+group = "build.debugger"
+section = "Debug Adapter Protocol"
+order = 40
+
+[[contributions.settings]]
+key = "debugger.showInlineValues"
+title = "Show variable values in editor while debugging"
+description = "For debug adapter sessions; PHP uses the setting under Languages & Frameworks | PHP | Debug."
+type = "bool"
+default = true
+group = "build.debugger"
+section = "Data Views"
+order = 50
+
+[[contributions.settings]]
+key = "debugger.memory.bytesPerRow"
+title = "Memory view: bytes per row"
+type = "int"
+min = 4
+max = 64
+default = 16
+group = "build.debugger"
+section = "Data Views"
+order = 60

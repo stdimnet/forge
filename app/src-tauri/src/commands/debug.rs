@@ -8,15 +8,16 @@
 //! Xdebug reports are the host's, which are the project's paths, so no mappings are needed.
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 
 use forge_backend::{BackendFiles, PortForward};
 use forge_core::{ForgeError, Result, Settings};
+use forge_dap::{DapManager, DapSession};
 use forge_debug::console::Completion;
 use forge_debug::validation::{self, Expectation, ValidationReport};
 use forge_debug::{
     Breakpoint, BreakpointSpec, BreakpointsSnapshot, ContextName, DebugConfig, DebugError,
-    DebugEvent, DebugServer, Frame, Property, ServerConfig, SessionInfo, StepKind,
+    DebugEvent, DebugServer, EventSink, Frame, Property, ServerConfig, SessionInfo, StepKind,
 };
 use forge_process::output::{RunInput, RunOutput, RunOutputOptions};
 use forge_process::RunEvent;
@@ -28,6 +29,9 @@ use crate::state::AppState;
 
 pub struct DebugState {
     server: Arc<DebugServer>,
+    /// Debug Adapter Protocol sessions (every other language); they share the breakpoints,
+    /// events and commands of the PHP debugger (see `commands/dap.rs`).
+    pub(crate) dap: Arc<DapManager>,
     watches: Mutex<Vec<String>>,
     /// The project the server was opened for (its display root).
     project: Mutex<Option<String>>,
@@ -39,13 +43,25 @@ pub struct DebugState {
 
 impl DebugState {
     pub fn new(app: AppHandle) -> Self {
-        let server = DebugServer::new(Arc::new(move |event: DebugEvent| {
+        // Breakpoint changes reach the DAP sessions through the shared event sink.
+        let dap_slot: Arc<OnceLock<Weak<DapManager>>> = Arc::new(OnceLock::new());
+        let hook = Arc::clone(&dap_slot);
+        let sink: EventSink = Arc::new(move |event: DebugEvent| {
+            if matches!(event, DebugEvent::Breakpoints { .. }) {
+                if let Some(dap) = hook.get().and_then(Weak::upgrade) {
+                    dap.breakpoints_changed();
+                }
+            }
             if let Err(e) = app.emit(event.channel(), &event) {
                 tracing::warn!("cannot emit debugger event: {e}");
             }
-        }));
+        });
+        let server = Arc::new(DebugServer::new(Arc::clone(&sink)));
+        let dap = Arc::new(DapManager::new(sink, server.clone()));
+        let _ = dap_slot.set(Arc::downgrade(&dap));
         Self {
-            server: Arc::new(server),
+            server,
+            dap,
             watches: Mutex::new(Vec::new()),
             project: Mutex::new(None),
             forward: Mutex::new(None),
@@ -83,9 +99,14 @@ fn config_from(settings: &Settings) -> DebugConfig {
     }
 }
 
+/// The DAP session `id`, if it is one (Xdebug sessions are `xdebug-<n>`).
+pub(crate) fn dap_session(debug: &DebugState, id: &str) -> Option<Arc<DapSession>> {
+    debug.dap.session(id).ok()
+}
+
 /// The debugger, synced with the open project and current settings. Breakpoints and
 /// servers are read through the project backend (on the host for remote projects).
-fn server(state: &AppState, debug: &DebugState) -> Arc<DebugServer> {
+pub(crate) fn server(state: &AppState, debug: &DebugState) -> Arc<DebugServer> {
     let info = state.project_info();
     let key = info.as_ref().map(|i| i.display_root());
     let mut current = debug.project.lock().expect("project lock");
@@ -129,10 +150,12 @@ pub fn debug_status(state: State<'_, AppState>, debug: State<'_, DebugState>) ->
         .as_ref()
         .filter(|_| port.is_some())
         .map(|f| f.via.clone());
+    let mut sessions = server.sessions();
+    sessions.extend(debug.dap.sessions());
     DebugStatus {
         listening: port.is_some(),
         port: port.unwrap_or(server.config().port),
-        sessions: server.sessions(),
+        sessions,
         via,
     }
 }
@@ -177,7 +200,9 @@ pub fn debug_sessions(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Vec<SessionInfo> {
-    server(&state, &debug).sessions()
+    let mut sessions = server(&state, &debug).sessions();
+    sessions.extend(debug.dap.sessions());
+    sessions
 }
 
 #[tauri::command]
@@ -201,14 +226,17 @@ pub async fn debug_ignore_connection(
     Ok(server.ignore_connection(&session_id).await?)
 }
 
-/// Resume, Step Over/Into/Out, Force Step Into.
+/// Resume, Step Over/Into/Out, Force Step Into, and instruction steps (DAP).
 #[tauri::command]
-pub fn debug_step(
+pub async fn debug_step(
     session_id: String,
     kind: StepKind,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<()> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.continue_with(kind).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.continue_with(kind)?)
 }
@@ -219,6 +247,9 @@ pub async fn debug_pause(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<()> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.pause().await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.pause().await?)
 }
@@ -229,6 +260,10 @@ pub async fn debug_stop(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<()> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        s.stop().await;
+        return Ok(());
+    }
     let session = server(&state, &debug).session(&session_id)?;
     session.stop().await;
     Ok(())
@@ -240,6 +275,10 @@ pub async fn debug_detach(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<()> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        s.detach().await;
+        return Ok(());
+    }
     let session = server(&state, &debug).session(&session_id)?;
     session.detach().await;
     Ok(())
@@ -253,16 +292,24 @@ pub async fn debug_run_to_cursor(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<()> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.run_to(&file, line).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.run_to(&file, line).await?)
 }
 
+/// Frames of the suspended script; DAP sessions take the thread to show (`threadId`).
 #[tauri::command]
 pub async fn debug_stack(
     session_id: String,
+    thread_id: Option<i64>,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<Vec<Frame>> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.stack(thread_id).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.stack().await?)
 }
@@ -274,11 +321,15 @@ pub async fn debug_contexts(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<Vec<ContextName>> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.contexts(depth).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.contexts(depth).await?)
 }
 
-/// Variables of a frame (`depth`) and context (0 locals, 1 superglobals, 2 constants).
+/// Variables of a frame (`depth`) and context (0 locals, 1 superglobals, 2 constants; DAP:
+/// the scope index, 0 = first scope plus the others as groups).
 #[tauri::command]
 pub async fn debug_variables(
     session_id: String,
@@ -287,48 +338,89 @@ pub async fn debug_variables(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<Vec<Property>> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.variables(depth, context.unwrap_or(0)).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.variables(depth, context.unwrap_or(0)).await?)
 }
 
-/// Expand a variable: one page of its children.
+/// Expand a variable: one page of its children (DAP: all children of `reference`).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn debug_property(
     session_id: String,
     fullname: String,
     depth: u32,
     context: Option<u32>,
     page: Option<u32>,
+    reference: Option<i64>,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<Property> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        let reference = reference
+            .ok_or_else(|| ForgeError::Other(format!("'{fullname}' has no children to expand")))?;
+        let children = s.children(reference).await?;
+        return Ok(Property {
+            name: fullname.clone(),
+            fullname,
+            r#type: "dap".into(),
+            has_children: true,
+            num_children: children.len() as u32,
+            children,
+            reference: Some(reference),
+            ..Default::default()
+        });
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session
         .property(&fullname, depth, context.unwrap_or(0), page.unwrap_or(0))
         .await?)
 }
 
+/// Evaluate an expression; DAP sessions take the `context` (`watch`, `repl`, `hover`).
 #[tauri::command]
 pub async fn debug_eval(
     session_id: String,
     expression: String,
     depth: Option<u32>,
+    context: Option<String>,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<Property> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        let context = context.unwrap_or_else(|| "repl".into());
+        return Ok(s.eval(&expression, depth.unwrap_or(0), &context).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.eval(&expression, depth.unwrap_or(0)).await?)
 }
 
+/// Set Value; DAP variables are addressed by their `container` reference and `name`.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn debug_set_value(
     session_id: String,
     fullname: String,
     value: String,
     depth: Option<u32>,
+    container: Option<i64>,
+    name: Option<String>,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<()> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s
+            .set_value(
+                container,
+                name.as_deref(),
+                &fullname,
+                &value,
+                depth.unwrap_or(0),
+            )
+            .await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session
         .set_value(&fullname, &value, depth.unwrap_or(0))
@@ -346,7 +438,7 @@ pub fn debug_breakpoints(
 }
 
 #[tauri::command]
-pub fn debug_breakpoint_add(
+pub async fn debug_breakpoint_add(
     spec: BreakpointSpec,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
@@ -355,7 +447,7 @@ pub fn debug_breakpoint_add(
 }
 
 #[tauri::command]
-pub fn debug_breakpoint_update(
+pub async fn debug_breakpoint_update(
     breakpoint: Breakpoint,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
@@ -364,7 +456,7 @@ pub fn debug_breakpoint_update(
 }
 
 #[tauri::command]
-pub fn debug_breakpoint_remove(
+pub async fn debug_breakpoint_remove(
     id: u64,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
@@ -374,7 +466,7 @@ pub fn debug_breakpoint_remove(
 
 /// Gutter click / Ctrl+F8. Returns the new breakpoint or `null` when one was removed.
 #[tauri::command]
-pub fn debug_breakpoint_toggle(
+pub async fn debug_breakpoint_toggle(
     file: String,
     line: u32,
     state: State<'_, AppState>,
@@ -384,7 +476,7 @@ pub fn debug_breakpoint_toggle(
 }
 
 #[tauri::command]
-pub fn debug_breakpoints_mute(
+pub async fn debug_breakpoints_mute(
     muted: bool,
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
@@ -446,6 +538,9 @@ pub async fn debug_complete(
     state: State<'_, AppState>,
     debug: State<'_, DebugState>,
 ) -> Result<Vec<Completion>> {
+    if let Some(s) = dap_session(&debug, &session_id) {
+        return Ok(s.complete(&text, depth.unwrap_or(0)).await?);
+    }
     let session = server(&state, &debug).session(&session_id)?;
     Ok(session.complete(&text, depth.unwrap_or(0)).await?)
 }

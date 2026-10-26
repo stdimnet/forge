@@ -12,6 +12,7 @@ pub mod command_line_tools;
 pub mod companion;
 pub mod compare;
 pub mod composer;
+pub mod dap;
 pub mod db;
 pub mod debug;
 pub mod deployment;

@@ -1834,6 +1834,7 @@ dependencies = [
  "forge-colorscheme",
  "forge-containers",
  "forge-core",
+ "forge-dap",
  "forge-db",
  "forge-debug",
  "forge-deploy",

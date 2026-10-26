@@ -47,6 +47,7 @@ forge-runtools.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
 forge-debug.workspace = true
+forge-dap.workspace = true
 forge-db.workspace = true
 forge-containers.workspace = true
 forge-keymap.workspace = true

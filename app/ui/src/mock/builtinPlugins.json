@@ -3161,6 +3161,194 @@
     }
   },
   {
+    "id": "forge.debugger",
+    "name": "Debugger",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Shared debugging layer for every language pack: Debug Adapter Protocol sessions (launch, Attach to Process, Attach to DAP server, core dumps), logpoints and watchpoints, and the Memory, Disassembly and Registers views. Packs add their debug adapters; LLDB and GDB are built in.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "debugger.lldb.path",
+          "title": "LLDB DAP executable",
+          "description": "Path of lldb-dap (lldb-vscode in older LLVM releases). Empty: lldb-dap on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "build.debugger",
+          "section": "Debug Adapters",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "debugger.gdb.path",
+          "title": "GDB executable",
+          "description": "GDB 14 or newer (its built-in DAP server, gdb -i dap). Empty: gdb on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "build.debugger",
+          "section": "Debug Adapters",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "debugger.dap.requestTimeout",
+          "title": "Debug adapter request timeout (ms)",
+          "description": "How long Forge waits for an answer of a debug adapter before it reports an error.",
+          "type": "int",
+          "min": 1000,
+          "max": 120000,
+          "default": 10000,
+          "group": "build.debugger",
+          "section": "Debug Adapter Protocol",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "debugger.dap.trace",
+          "title": "Log Debug Adapter Protocol messages",
+          "description": "Write every message to and from debug adapters to the Forge log (trace level).",
+          "type": "bool",
+          "default": false,
+          "group": "build.debugger",
+          "section": "Debug Adapter Protocol",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "debugger.showInlineValues",
+          "title": "Show variable values in editor while debugging",
+          "description": "For debug adapter sessions; PHP uses the setting under Languages & Frameworks | PHP | Debug.",
+          "type": "bool",
+          "default": true,
+          "group": "build.debugger",
+          "section": "Data Views",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "debugger.memory.bytesPerRow",
+          "title": "Memory view: bytes per row",
+          "type": "int",
+          "min": 4,
+          "max": 64,
+          "default": 16,
+          "group": "build.debugger",
+          "section": "Data Views",
+          "project": false,
+          "order": 60
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "debugAdapters": [
+        {
+          "type": "lldb",
+          "label": "LLDB",
+          "command": "lldb-dap",
+          "commandSetting": "debugger.lldb.path",
+          "transport": "stdio",
+          "languages": [
+            "c",
+            "h",
+            "cc",
+            "cpp",
+            "cxx",
+            "hpp",
+            "hh",
+            "m",
+            "mm",
+            "rs",
+            "swift",
+            "zig"
+          ],
+          "launch": {
+            "args": "${args}",
+            "cwd": "${cwd}",
+            "env": "${env}",
+            "program": "${program}",
+            "stopOnEntry": "${stopOnEntry}"
+          },
+          "attach": {
+            "pid": "${pid}",
+            "program": "${program}"
+          },
+          "coreDump": {
+            "coreFile": "${core}",
+            "program": "${program}"
+          },
+          "coreDumpRequest": "attach",
+          "launchSchema": {
+            "properties": {
+              "initCommands": {
+                "description": "LLDB commands run before the target is created",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "sourceMap": {
+                "description": "Source path remappings: [[from, to], …]",
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        {
+          "type": "gdb",
+          "label": "GDB",
+          "command": "gdb",
+          "args": [
+            "-i",
+            "dap"
+          ],
+          "commandSetting": "debugger.gdb.path",
+          "transport": "stdio",
+          "languages": [
+            "c",
+            "h",
+            "cc",
+            "cpp",
+            "cxx",
+            "hpp",
+            "hh",
+            "rs",
+            "go",
+            "f",
+            "f90",
+            "adb",
+            "ads",
+            "d"
+          ],
+          "launch": {
+            "args": "${args}",
+            "cwd": "${cwd}",
+            "env": "${env}",
+            "program": "${program}",
+            "stopAtBeginningOfMainSubprogram": "${stopOnEntry}"
+          },
+          "attach": {
+            "pid": "${pid}",
+            "program": "${program}"
+          }
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.database",
     "name": "Database Tools and SQL",
     "version": "0.1.0",

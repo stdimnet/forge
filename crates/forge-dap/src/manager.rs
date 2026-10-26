@@ -301,8 +301,14 @@ impl DapManager {
             .values()
             .cloned()
             .collect();
+        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+            tracing::warn!(
+                "breakpoints changed outside the async runtime; DAP sessions not updated"
+            );
+            return;
+        };
         for s in sessions.into_iter().filter(|s| s.is_configured()) {
-            tokio::spawn(async move { s.sync_breakpoints().await });
+            runtime.spawn(async move { s.sync_breakpoints().await });
         }
     }
 

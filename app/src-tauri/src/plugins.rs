@@ -15,6 +15,7 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("terminal.toml", include_str!("../plugins/terminal.toml")),
     ("vim.toml", include_str!("../plugins/vim.toml")),
     ("run.toml", include_str!("../plugins/run.toml")),
+    ("debugger.toml", include_str!("../plugins/debugger.toml")),
     ("database.toml", include_str!("../plugins/database.toml")),
     ("services.toml", include_str!("../plugins/services.toml")),
     (
@@ -96,6 +97,21 @@ mod tests {
                 .map(|s| s.id.as_str()),
             Some("intelephense")
         );
+        let mut adapters = HashSet::new();
+        for a in registry.debug_adapters() {
+            assert!(
+                adapters.insert(&a.r#type),
+                "duplicate debug adapter {}",
+                a.r#type
+            );
+            if let Some(key) = &a.command_setting {
+                assert!(
+                    registry.find_setting(key).is_some(),
+                    "{key} is not a setting"
+                );
+            }
+        }
+        assert!(adapters.contains(&"lldb".to_string()));
     }
 
     #[test]
