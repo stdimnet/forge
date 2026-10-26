@@ -1,0 +1,348 @@
+/* PyForge: status bar widget, Python Packages tool window, Settings | Project | Python
+   Interpreter and the Add Python Interpreter dialog. Theme variables only. */
+
+.py-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---- Python Packages tool window ---- */
+.py-packages {
+  display: grid;
+  grid-template-columns: minmax(260px, 38%) 1fr;
+  height: 100%;
+  min-height: 0;
+}
+.py-packages-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+}
+.py-packages-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.py-packages-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--fg-muted);
+}
+.py-packages-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+}
+.py-packages-list {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0 8px;
+}
+.py-packages-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 2px;
+  color: var(--fg-strong);
+  font-weight: 600;
+  font-size: var(--fs-small);
+}
+.py-packages-group .muted {
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.py-package-row {
+  gap: 6px;
+  padding: 0 10px 0 14px;
+  cursor: default;
+}
+.py-package-icon {
+  color: var(--syn-keyword);
+  flex-shrink: 0;
+}
+.py-package-icon.remote {
+  color: var(--fg-muted);
+}
+.py-package-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.py-package-version {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.py-package-latest {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--info);
+  font-size: var(--fs-small);
+}
+.py-packages-empty,
+.py-packages-placeholder {
+  padding: 16px;
+}
+.py-packages-placeholder {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+.py-packages-error {
+  margin: 4px 10px;
+  color: var(--danger);
+  white-space: pre-wrap;
+}
+.py-packages-detail {
+  overflow: auto;
+  min-width: 0;
+  padding: 10px 16px;
+}
+.py-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.py-detail-name {
+  flex: 1;
+  color: var(--fg-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+.py-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.py-detail-versions {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+}
+.py-detail-loading {
+  padding: 10px 0;
+}
+.py-detail-summary {
+  margin: 10px 0;
+  color: var(--fg);
+  line-height: 1.5;
+}
+.py-detail-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0 0 10px;
+}
+.py-detail-meta dt {
+  color: var(--fg-muted);
+}
+.py-detail-meta dd {
+  margin: 0;
+}
+.py-detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---- Settings | Project | Python Interpreter ---- */
+.py-interp-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.py-interp-picker select {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+}
+.py-interp-picker .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.py-interp-path {
+  margin: 6px 0 12px 118px;
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+.py-interp-table-head,
+.py-interp-table-row {
+  display: grid;
+  grid-template-columns: 1fr 140px 160px;
+  gap: 8px;
+  padding: 3px 10px;
+}
+.py-interp-table-head {
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.py-interp-table {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--bg-editor);
+}
+.py-interp-table-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.py-interp-table-row:hover {
+  background: var(--bg-hover);
+}
+.py-interp-table-row svg {
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.py-update,
+.py-interp-table-row .py-update svg {
+  color: var(--info);
+}
+.py-interp-empty {
+  padding: 10px;
+}
+.py-interp-foot {
+  margin-top: 8px;
+}
+.py-settings-page .set-section-title {
+  margin-top: 18px;
+}
+
+/* ---- Add Python Interpreter ---- */
+.py-dialog {
+  max-height: calc(100vh - 48px);
+}
+.py-dialog input[type="text"],
+.py-dialog select {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.py-dialog input:focus,
+.py-dialog select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.py-dialog input[type="radio"],
+.py-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.py-dialog-body {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  min-height: 320px;
+  max-height: calc(100vh - 160px);
+  overflow: hidden;
+}
+.py-dialog-targets {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-editor);
+}
+.py-dialog-target {
+  gap: 8px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+.py-dialog-target svg {
+  color: var(--fg-muted);
+}
+.py-dialog-target.disabled {
+  opacity: 0.5;
+}
+.py-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  overflow: auto;
+}
+.py-field {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.py-field-value {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.py-radios {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 4px;
+}
+.py-radios.column {
+  flex-direction: column;
+  gap: 4px;
+}
+.py-radios label,
+.py-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.py-note {
+  margin-left: 160px;
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+.py-busy {
+  margin-right: auto;
+}

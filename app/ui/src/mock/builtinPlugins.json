@@ -7450,6 +7450,300 @@
     }
   },
   {
+    "id": "forge.python",
+    "name": "Python",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "Python editing: highlighting, scope-aware completion, syntax checks, requirements files, basedpyright / ty and ruff from Settings > Language Servers, Reformat Code with ruff format or Black.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "python"
+      ],
+      "fileTypes": [
+        {
+          "id": "python",
+          "name": "Python",
+          "extensions": [
+            "py",
+            "pyw",
+            "pyi",
+            "pyx",
+            "pxd",
+            "gyp"
+          ],
+          "fileNames": [
+            "SConstruct",
+            "SConscript",
+            "wscript",
+            ".pythonstartup",
+            ".pythonrc"
+          ],
+          "interpreters": [
+            "python",
+            "python3",
+            "pypy",
+            "pypy3"
+          ]
+        },
+        {
+          "id": "pip-requirements",
+          "name": "pip Requirements",
+          "extensions": [],
+          "fileNames": [
+            "requirements*.txt",
+            "constraints*.txt",
+            "requirements*.in",
+            "requirements/*.txt"
+          ]
+        }
+      ],
+      "commands": [
+        {
+          "id": "python.reformatFile",
+          "title": "Reformat File with ruff format / Black",
+          "category": "Python"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "python.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L and \"Reformat code\" on save use this formatter for Python files; pyproject.toml / ruff.toml settings are honoured.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "ruff",
+              "label": "ruff format"
+            },
+            {
+              "value": "black",
+              "label": "Black"
+            },
+            {
+              "value": "lsp",
+              "label": "The language server"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "ruff",
+          "group": "lang.python",
+          "section": "Formatter",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "python.ruff.path",
+          "title": "ruff executable",
+          "description": "Leave empty to use the interpreter's environment, Forge's download or PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.python",
+          "section": "Formatter",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "python.black.path",
+          "title": "Black executable",
+          "description": "Leave empty to use the interpreter's environment or PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.python",
+          "section": "Formatter",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "python.lsp.useEnvironmentTools",
+          "title": "Use language servers from the interpreter's environment",
+          "description": "basedpyright, ruff and ty installed in the selected environment (or the project's .venv) start before Forge's own downloads and PATH.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.python",
+          "section": "Language Servers",
+          "project": false,
+          "order": 10
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.python-env",
+    "name": "Python Interpreters and Packages",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "Python interpreters (system, pyenv, venv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL), the Python Packages tool window, requirements inspections and the Python run configuration.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python"
+    ],
+    "required": false,
+    "projectTypes": [
+      "pyforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "python.selectInterpreter",
+          "title": "Switch Python Interpreter…",
+          "category": "Python"
+        },
+        {
+          "id": "python.addInterpreter",
+          "title": "Add Python Interpreter…",
+          "category": "Python"
+        },
+        {
+          "id": "python.installRequirements",
+          "title": "Install Requirements",
+          "category": "Python"
+        },
+        {
+          "id": "ActivatePythonPackagesToolWindow",
+          "title": "Python Packages",
+          "category": "View"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "pythonPackages",
+          "title": "Python Packages",
+          "anchor": "bottom",
+          "icon": "package",
+          "order": 45
+        }
+      ],
+      "settings": [
+        {
+          "key": "python.interpreter",
+          "title": "Python Interpreter",
+          "description": "The project's interpreter: the path of a local python executable (a detected environment) or the name of a configured interpreter.",
+          "type": "string",
+          "default": "",
+          "group": "project.python-interpreter",
+          "project": true,
+          "hidden": true,
+          "order": 0
+        },
+        {
+          "key": "python.interpreters",
+          "title": "Python interpreters",
+          "description": "Interpreters available in every project: local, Docker, Docker Compose, SSH and WSL.",
+          "type": "objects",
+          "unique": [
+            "name"
+          ],
+          "default": [],
+          "group": "project.python-interpreter",
+          "project": false,
+          "hidden": true,
+          "order": 1
+        },
+        {
+          "key": "python.projectInterpreters",
+          "title": "Python interpreters of this project",
+          "type": "objects",
+          "unique": [
+            "name"
+          ],
+          "default": [],
+          "group": "project.python-interpreter",
+          "project": true,
+          "hidden": true,
+          "order": 2
+        },
+        {
+          "key": "python.packages.pypi",
+          "title": "Look up packages on PyPI",
+          "description": "Latest versions, search and version completion come from PyPI (cached for 12 hours in Forge's cache folder).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.python",
+          "section": "Packages",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "python.packages.index",
+          "title": "Package index",
+          "description": "PyPI or a mirror with the same JSON API.",
+          "type": "string",
+          "default": "https://pypi.org",
+          "group": "lang.python",
+          "section": "Packages",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "python.inspections.requirements",
+          "title": "Report unsatisfied requirements",
+          "description": "Dependencies in requirements files and pyproject.toml that are not installed in the interpreter, with \"Install requirement\".",
+          "type": "bool",
+          "default": true,
+          "group": "lang.python",
+          "section": "Inspections",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "python.inspections.imports",
+          "title": "Report imports of packages missing from the requirements",
+          "description": "With the quick fix \"Add requirement\" to requirements.txt or pyproject.toml.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.python",
+          "section": "Inspections",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "python.inspections.ignoredPackages",
+          "title": "Ignored packages",
+          "description": "Packages the requirements inspections do not report.",
+          "type": "list",
+          "default": [],
+          "group": "lang.python",
+          "section": "Inspections",
+          "project": true,
+          "order": 32
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "python",
+          "name": "Python",
+          "description": "Run a Python script or module (python -m) with the project's interpreter.",
+          "icon": "file-code",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.ai",
     "name": "AI Assistant",
     "version": "0.1.0",
@@ -7794,54 +8088,6 @@
             "ash"
           ],
           "indentSize": 2
-        }
-      ],
-      "commands": [],
-      "keybindings": [],
-      "toolWindows": [],
-      "settings": [],
-      "lspServers": [],
-      "runConfigurationTypes": [],
-      "aiProviders": [],
-      "chatAgents": [],
-      "codeGenerators": [],
-      "mainMenu": []
-    }
-  },
-  {
-    "id": "forge.python",
-    "name": "Python",
-    "version": "0.1.0",
-    "pack": "scriptforge",
-    "description": "Python editing with scope-aware completion and and syntax checks. Pyright and other servers come from Settings > Language Servers.",
-    "vendor": "Forge",
-    "depends": [],
-    "required": false,
-    "enabled": true,
-    "contributions": {
-      "languages": [],
-      "fileTypes": [
-        {
-          "id": "python",
-          "name": "Python",
-          "extensions": [
-            "py",
-            "pyw",
-            "pyi",
-            "pyx",
-            "pxd",
-            "gyp"
-          ],
-          "fileNames": [
-            "SConstruct",
-            "SConscript",
-            "wscript",
-            ".pythonstartup",
-            ".pythonrc"
-          ],
-          "interpreters": [
-            "python"
-          ]
         }
       ],
       "commands": [],

@@ -17,6 +17,7 @@ import type {
 } from "@/ipc/lsp";
 import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
+import { isPythonDemo } from "./demoPythonProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -96,7 +97,11 @@ function publish(path: string) {
 // ---------- server status ----------
 
 // The Lua demo game (`?project=lua`) runs lua-language-server instead.
-const SERVER = isLuaDemo() ? { id: "lua-language-server", name: "Lua Language Server" } : { id: "intelephense", name: "Intelephense" };
+const SERVER = isLuaDemo()
+  ? { id: "lua-language-server", name: "Lua Language Server" }
+  : isPythonDemo()
+    ? { id: "basedpyright", name: "basedpyright" }
+    : { id: "intelephense", name: "Intelephense" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
 /** Other mock servers (e.g. the TypeScript server of the language servers mock). */
@@ -126,7 +131,7 @@ export function onMockDidOpen(cb: (path: string) => void): void {
  */
 export const intelephenseMissingAtStart = () =>
   typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
-let serverInstalled = isLuaDemo() || !intelephenseMissingAtStart();
+let serverInstalled = isLuaDemo() || isPythonDemo() || !intelephenseMissingAtStart();
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {

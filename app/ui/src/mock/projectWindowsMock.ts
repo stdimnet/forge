@@ -12,6 +12,7 @@ const DEMOS: Record<string, string> = {
   "symfony-api": "symfony",
   "storefront-ui": "react",
   "pixel-dungeon": "lua",
+  "shop-api": "python",
 };
 
 /** URLs opened with New Window (for tests). */

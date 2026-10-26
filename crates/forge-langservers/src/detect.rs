@@ -35,6 +35,10 @@ pub struct DetectEnv {
     pub runtimes_dir: Option<PathBuf>,
     /// Leave out the fixed system directories (`/usr/local/bin`, Homebrew); for tests.
     pub skip_system_dirs: bool,
+    /// Searched right after the project's `node_modules/.bin`: the `bin` folder of the
+    /// project's selected Python environment ("use from interpreter" for basedpyright,
+    /// ruff and ty).
+    pub extra_dirs: Vec<PathBuf>,
 }
 
 /// Forge's own directory for npm language servers: `<user data dir>/forge/langservers`.
@@ -65,6 +69,7 @@ impl DetectEnv {
             managed_dir: default_managed_dir(),
             runtimes_dir: crate::managed::default_runtimes_dir(),
             skip_system_dirs: false,
+            extra_dirs: Vec::new(),
         }
     }
 
@@ -76,8 +81,17 @@ impl DetectEnv {
         if let Some(root) = &self.project_root {
             dirs.push(root.join("node_modules").join(".bin"));
         }
+        dirs.extend(self.extra_dirs.iter().cloned());
+        // Tools installed into the project's own Python environment.
+        if let Some(root) = &self.project_root {
+            let bin = if self.windows { "Scripts" } else { "bin" };
+            dirs.push(root.join(".venv").join(bin));
+            dirs.push(root.join("venv").join(bin));
+        }
         if let Some(managed) = &self.managed_dir {
             dirs.push(managed.join("node_modules").join(".bin"));
+            // Binaries Forge downloaded from PyPI (ruff, ty).
+            dirs.push(managed.join("bin"));
         }
         dirs.extend(
             self.path
@@ -243,6 +257,16 @@ impl Detector {
     pub fn for_project(root: &Path) -> Self {
         Self::new(DetectEnv {
             project_root: Some(root.to_path_buf()),
+            ..DetectEnv::from_system()
+        })
+    }
+
+    /// Like [`for_project`](Self::for_project), with `extra` folders searched right after
+    /// the project's `node_modules/.bin` (the selected Python environment's `bin`).
+    pub fn for_project_with(root: &Path, extra: Vec<PathBuf>) -> Self {
+        Self::new(DetectEnv {
+            project_root: Some(root.to_path_buf()),
+            extra_dirs: extra,
             ..DetectEnv::from_system()
         })
     }
@@ -541,6 +565,41 @@ pub(crate) mod tests {
         assert_eq!(
             plain.find("yaml-language-server"),
             Some(usr.join("yaml-language-server"))
+        );
+    }
+
+    #[test]
+    fn python_environments_and_pypi_binaries() {
+        let tmp = tempfile::tempdir().unwrap();
+        let project = tmp.path().join("project");
+        let managed = tmp.path().join("data/forge/langservers");
+        let env = tmp.path().join("poetry/shop-py3.12/bin");
+        let usr = tmp.path().join("usr/bin");
+        fake_bin(&project.join(".venv/bin/basedpyright-langserver"));
+        fake_bin(&env.join("ruff"));
+        fake_bin(&managed.join("bin/ruff"));
+        fake_bin(&managed.join("bin/ty"));
+        fake_bin(&usr.join("ty"));
+        let d = Detector::new(DetectEnv {
+            path: Some(std::env::join_paths([&usr]).unwrap()),
+            project_root: Some(project.clone()),
+            managed_dir: Some(managed.clone()),
+            extra_dirs: vec![env.clone()],
+            ..Default::default()
+        });
+        assert_eq!(
+            d.find("basedpyright-langserver"),
+            Some(project.join(".venv/bin/basedpyright-langserver"))
+        );
+        assert_eq!(
+            d.find("ruff"),
+            Some(env.join("ruff")),
+            "the selected environment wins"
+        );
+        assert_eq!(
+            d.find("ty"),
+            Some(managed.join("bin/ty")),
+            "Forge's download beats PATH"
         );
     }
 

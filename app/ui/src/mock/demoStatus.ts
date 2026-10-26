@@ -4,7 +4,7 @@
  * storefront does not show the Laravel shop's branch and pipeline. (The Docker widget
  * follows the project type detected in Rust.)
  */
-export type DemoId = "laravel" | "remote" | "symfony" | "lua" | "react" | "vue" | "angular";
+export type DemoId = "laravel" | "remote" | "symfony" | "lua" | "python" | "react" | "vue" | "angular";
 
 export type DemoCi = "success" | "running" | "failed" | "pending";
 
@@ -23,7 +23,7 @@ export interface DemoStatus {
 export function currentDemo(): DemoId {
   if (typeof location === "undefined") return "laravel";
   const p = new URLSearchParams(location.search).get("project");
-  return p === "remote" || p === "symfony" || p === "lua" || p === "react" || p === "vue" || p === "angular" ? p : "laravel";
+  return p === "remote" || p === "symfony" || p === "lua" || p === "python" || p === "react" || p === "vue" || p === "angular" ? p : "laravel";
 }
 
 const laravel: DemoStatus = {
@@ -51,6 +51,16 @@ export const DEMO_STATUS: Record<DemoId, DemoStatus> = {
     branches: ["feature/fog-of-war"],
     ci: null,
     jobs: [],
+  },
+  python: {
+    branch: "feature/order-api",
+    branches: ["main", "chore/uv-lock"],
+    ci: "success",
+    jobs: [
+      ["lint / ruff", "success"],
+      ["typecheck / basedpyright", "success"],
+      ["test / pytest", "success"],
+    ],
   },
   react: {
     branch: "feature/cart-drawer",

@@ -239,6 +239,21 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             }
             cmd
         }
+        (Some(cfg), None) if cfg.type_id == "python" => {
+            // Python runs through its own interpreters (local or Docker / SSH / WSL).
+            let (mut cmd, path_mappings) = super::python::build_run(state, &cfg)?;
+            cmd.env.extend(req.env);
+            if !req.interpreter_args.is_empty() {
+                cmd.args.splice(0..0, req.interpreter_args);
+            }
+            return Ok(Built {
+                cmd,
+                path_mappings,
+                debug_server: None,
+                output_filters,
+                tests,
+            });
+        }
         (Some(mut cfg), None) => {
             run_on = cfg.run_on.clone().filter(|t| !t.is_local()).or(run_on);
             let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
