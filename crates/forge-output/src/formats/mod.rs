@@ -9,6 +9,7 @@
 //! | libtest JSON (`cargo test`) | [`libtest`] | lines on stdout |
 //! | pytest report log / JUnit | [`pytest`] | lines on stdout or a report file / report files |
 //! | Jest / Vitest JSON | [`jest`] | a document on stdout or a report file |
+//! | Playwright JSON | [`playwright`] | a report file |
 //!
 //! [`line_parser`] picks the line parser of a [`TestReport`]; [`document_events`] reads a
 //! whole report (sniffing JSON, JSON lines and XML) for documents on stdout and report files.
@@ -16,6 +17,7 @@
 pub mod gotest;
 pub mod jest;
 pub mod libtest;
+pub mod playwright;
 pub mod pytest;
 pub mod tap;
 
@@ -26,6 +28,7 @@ use crate::testevents::{LineParser, TeamCityParser, TestEvent};
 pub use gotest::GoTestParser;
 pub use jest::jest_events;
 pub use libtest::LibtestParser;
+pub use playwright::playwright_events;
 pub use pytest::PytestReportLogParser;
 pub use tap::TapParser;
 
@@ -53,6 +56,11 @@ pub fn document_events(text: &str, flavor: JUnitFlavor) -> Result<Vec<TestEvent>
     }
     if !t.starts_with('{') {
         return Err("not a test report".into());
+    }
+    if playwright::is_playwright_report(t) {
+        if let Ok(events) = playwright_events(t) {
+            return Ok(events);
+        }
     }
     if let Ok(events) = jest_events(t) {
         return Ok(events);
@@ -157,6 +165,17 @@ pub(crate) mod tests {
         assert!(junit.iter().any(|e| e.name() == "test_rounds[half]"));
         let jest = document_events(&fixture("jest.json"), JUnitFlavor::Generic).unwrap();
         assert_eq!(tree_of(&jest).counts().total, 4);
+        let pw = document_events(&fixture("playwright.json"), JUnitFlavor::Generic).unwrap();
+        assert_eq!(tree_of(&pw).counts().total, 4);
+        // Cypress (`--reporter junit`, Mocha's JUnit reporter).
+        let cy = document_events(&fixture("cypress-junit.xml"), JUnitFlavor::Generic).unwrap();
+        let tree = tree_of(&cy);
+        assert_eq!((tree.counts().total, tree.counts().failed), (3, 1));
+        let names: Vec<String> = tree.snapshot().into_iter().map(|n| n.name).collect();
+        assert!(
+            names.contains(&"Cart applies a voucher".to_string()),
+            "{names:?}"
+        );
         let log =
             document_events(&fixture("pytest-reportlog.jsonl"), JUnitFlavor::Generic).unwrap();
         assert_eq!(tree_of(&log).counts().failed, 1);

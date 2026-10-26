@@ -195,7 +195,10 @@ fn child_transport(parent: &Transport, peer: &str) -> Transport {
             host,
             adapter: Some(_),
             ..
-        } => match peer.rsplit_once(':').and_then(|(_, p)| p.parse::<u16>().ok()) {
+        } => match peer
+            .rsplit_once(':')
+            .and_then(|(_, p)| p.parse::<u16>().ok())
+        {
             Some(port) => Transport::Connect {
                 host: host.clone(),
                 port,
