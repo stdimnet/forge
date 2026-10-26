@@ -43,7 +43,7 @@ fn parts(uri: &str) -> (&str, &str, &str, &str) {
     let s = scheme_len(uri).map_or(0, |i| i + 1);
     let (scheme, rest) = uri.split_at(s);
     let (authority, rest) = if let Some(r) = rest.strip_prefix("//") {
-        let end = r.find('/').map_or(r.len(), |i| i);
+        let end = r.find('/').unwrap_or(r.len());
         rest.split_at(end + 2)
     } else {
         ("", rest)
