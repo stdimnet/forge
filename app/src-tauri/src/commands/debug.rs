@@ -7,7 +7,7 @@
 //! port>` is forwarded to over SSH (Xdebug there connects to its own localhost). Paths
 //! Xdebug reports are the host's, which are the project's paths, so no mappings are needed.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
 
 use forge_backend::{BackendFiles, PortForward};
@@ -32,7 +32,8 @@ pub struct DebugState {
     /// Debug Adapter Protocol sessions (every other language); they share the breakpoints,
     /// events and commands of the PHP debugger (see `commands/dap.rs`).
     pub(crate) dap: Arc<DapManager>,
-    watches: Mutex<Vec<String>>,
+    /// Watch expressions per debugger: `php` (Xdebug) or a debug adapter type.
+    watches: Mutex<HashMap<String, Vec<String>>>,
     /// The project the server was opened for (its display root).
     project: Mutex<Option<String>>,
     /// The SSH forward of a remote project's debug port while listening.
@@ -62,7 +63,7 @@ impl DebugState {
         Self {
             server,
             dap,
-            watches: Mutex::new(Vec::new()),
+            watches: Mutex::new(HashMap::new()),
             project: Mutex::new(None),
             forward: Mutex::new(None),
             interpreter_servers: Mutex::new(Vec::new()),
@@ -486,14 +487,32 @@ pub async fn debug_breakpoints_mute(
 
 // ---- watches, servers, launching ------------------------------------------------------
 
+/// Watches of a debugger (`scope`: `php`, the default, or a debug adapter type): PHP
+/// expressions make no sense in a C session and vice versa.
 #[tauri::command]
-pub fn debug_watches(debug: State<'_, DebugState>) -> Vec<String> {
-    debug.watches.lock().expect("watches lock").clone()
+pub fn debug_watches(scope: Option<String>, debug: State<'_, DebugState>) -> Vec<String> {
+    let scope = scope.unwrap_or_else(|| "php".into());
+    debug
+        .watches
+        .lock()
+        .expect("watches lock")
+        .get(&scope)
+        .cloned()
+        .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn debug_watches_set(watches: Vec<String>, debug: State<'_, DebugState>) {
-    *debug.watches.lock().expect("watches lock") = watches;
+pub fn debug_watches_set(
+    watches: Vec<String>,
+    scope: Option<String>,
+    debug: State<'_, DebugState>,
+) {
+    let scope = scope.unwrap_or_else(|| "php".into());
+    debug
+        .watches
+        .lock()
+        .expect("watches lock")
+        .insert(scope, watches);
 }
 
 #[tauri::command]

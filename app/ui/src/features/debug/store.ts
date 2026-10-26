@@ -151,6 +151,7 @@ function log(sessionId: string, stream: ConsoleLine["stream"], text: string, val
 
 async function loadVariables(sessionId: string, depth: number): Promise<void> {
   setVariablesLoading(true);
+  await loadWatches();
   try {
     const vars = await debugApi.variables(sessionId, depth, 0);
     batch(() => {
@@ -238,17 +239,30 @@ export async function evaluateWatches(): Promise<void> {
   setWatchResults(results);
 }
 
+/** Watches belong to a debugger: `php` or the active session's adapter type. */
+const watchScope = () => activeSession()?.adapter ?? "php";
+let loadedScope = "php";
+
+/** Show the watches of the active session's debugger (after switching sessions). */
+async function loadWatches(): Promise<void> {
+  const scope = watchScope();
+  if (scope === loadedScope) return;
+  loadedScope = scope;
+  const list = await debugApi.watches(scope).catch(() => [] as string[]);
+  if (loadedScope === scope) setWatchList(list);
+}
+
 export function addWatch(expression: string): void {
   const e = expression.trim();
   if (!e || watches().includes(e)) return;
   setWatchList((w) => [...w, e]);
-  void debugApi.setWatches(watches()).catch(() => {});
+  void debugApi.setWatches(watches(), loadedScope).catch(() => {});
   void evaluateWatches();
 }
 
 export function removeWatch(expression: string): void {
   setWatchList((w) => w.filter((x) => x !== expression));
-  void debugApi.setWatches(watches()).catch(() => {});
+  void debugApi.setWatches(watches(), loadedScope).catch(() => {});
 }
 
 /**
@@ -369,7 +383,8 @@ export async function startDebugStore(): Promise<void> {
 /** Re-read status, sessions and breakpoints (e.g. after opening another project). */
 export async function reloadDebugState(): Promise<void> {
   try {
-    const [status, bps, w] = await Promise.all([debugApi.status(), debugApi.breakpoints(), debugApi.watches()]);
+    loadedScope = "php";
+    const [status, bps, w] = await Promise.all([debugApi.status(), debugApi.breakpoints(), debugApi.watches("php")]);
     void reloadServers();
     batch(() => {
       setListening(status.listening);

@@ -275,8 +275,9 @@ export const debugApi = {
   toggleBreakpoint: (file: string, line: number) =>
     invoke<Breakpoint | null>("debug_breakpoint_toggle", { file, line }),
   mute: (muted: boolean) => invoke<void>("debug_breakpoints_mute", { muted }),
-  watches: () => invoke<string[]>("debug_watches"),
-  setWatches: (watches: string[]) => invoke<void>("debug_watches_set", { watches }),
+  /** Watches of a debugger: `php` (default) or a debug adapter type. */
+  watches: (scope = "php") => invoke<string[]>("debug_watches", { scope }),
+  setWatches: (watches: string[], scope = "php") => invoke<void>("debug_watches_set", { watches, scope }),
   servers: () => invoke<ServerConfig[]>("debug_servers"),
   saveServers: (servers: ServerConfig[]) => invoke<void>("debug_servers_save", { servers }),
   /** Completion of `text` (caret at its end) in a frame: variables after `$`, members after `->`. */

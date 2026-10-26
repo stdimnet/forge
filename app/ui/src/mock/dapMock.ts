@@ -304,7 +304,10 @@ function memoryByte(s: DapMockSession, addr: number): number | null {
   const int = (base: number, value: number | undefined) =>
     value !== undefined && addr >= base && addr < base + 4 ? (value >>> ((addr - base) * 8)) & 0xff : null;
   if (addr >= NAME && addr < NAME + 8) return v.name.charCodeAt(addr - NAME) || 0;
-  return int(COUNTER, v.counter) ?? int(ORIGIN, v.origin[0]) ?? int(ORIGIN + 4, v.origin[1]) ?? int(N_ADDR, v.n) ?? int(SUM_ADDR, v.sum) ?? int(I_ADDR, v.i) ?? (addr % 16 === 8 ? 0x7f : 0);
+  // A saved frame pointer and the return address into libc above main's locals.
+  const saved = [0x00, 0xf1, 0xfe, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x90, 0x9d, 0xc2, 0xf7, 0xff, 0x7f, 0x00, 0x00];
+  const frame = addr >= ORIGIN + 0x10 && addr < ORIGIN + 0x20 ? saved[addr - ORIGIN - 0x10] : null;
+  return int(COUNTER, v.counter) ?? int(ORIGIN, v.origin[0]) ?? int(ORIGIN + 4, v.origin[1]) ?? int(N_ADDR, v.n) ?? int(SUM_ADDR, v.sum) ?? int(I_ADDR, v.i) ?? frame ?? 0;
 }
 
 // ---- execution ------------------------------------------------------------------------------

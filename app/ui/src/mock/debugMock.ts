@@ -694,9 +694,12 @@ registerMock("debug_breakpoints_mute", (args) => {
   state.muted = !!args.muted;
   emitBreakpoints();
 });
-registerMock("debug_watches", () => [...watches]);
+const otherWatches = new Map<string, string[]>();
+registerMock("debug_watches", (args) => [...((args.scope ?? "php") === "php" ? watches : (otherWatches.get(String(args.scope)) ?? []))]);
 registerMock("debug_watches_set", (args) => {
-  watches = [...(args.watches as string[])];
+  const list = [...(args.watches as string[])];
+  if ((args.scope ?? "php") === "php") watches = list;
+  else otherWatches.set(String(args.scope), list);
 });
 registerMock("debug_servers", () => JSON.parse(JSON.stringify(servers)));
 registerMock("debug_servers_save", (args) => {
