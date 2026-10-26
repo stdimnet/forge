@@ -67,6 +67,9 @@ import "./cliToolsMock";
 import "./symfonyMock";
 import "./wordpressMock";
 import "./luaMock";
+// JavaForge: wraps run_start / run_command_line and the DAP mocks for Java sessions.
+import "./javaMock";
+import "./javaDebugMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

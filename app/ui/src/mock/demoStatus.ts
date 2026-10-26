@@ -4,7 +4,7 @@
  * storefront does not show the Laravel shop's branch and pipeline. (The Docker widget
  * follows the project type detected in Rust.)
  */
-export type DemoId = "laravel" | "remote" | "symfony" | "lua" | "react" | "vue" | "angular";
+export type DemoId = "laravel" | "remote" | "symfony" | "lua" | "java" | "react" | "vue" | "angular";
 
 export type DemoCi = "success" | "running" | "failed" | "pending";
 
@@ -23,7 +23,7 @@ export interface DemoStatus {
 export function currentDemo(): DemoId {
   if (typeof location === "undefined") return "laravel";
   const p = new URLSearchParams(location.search).get("project");
-  return p === "remote" || p === "symfony" || p === "lua" || p === "react" || p === "vue" || p === "angular" ? p : "laravel";
+  return p === "remote" || p === "symfony" || p === "lua" || p === "java" || p === "react" || p === "vue" || p === "angular" ? p : "laravel";
 }
 
 const laravel: DemoStatus = {
@@ -44,6 +44,15 @@ export const DEMO_STATUS: Record<DemoId, DemoStatus> = {
       ["lint / php-cs-fixer", "success"],
       ["analyse / phpstan", "success"],
       ["test / phpunit", "success"],
+    ],
+  },
+  java: {
+    branch: "feature/low-stock-report",
+    branches: ["main", "chore/gradle-8.10"],
+    ci: "success",
+    jobs: [
+      ["build / gradle", "success"],
+      ["test / junit", "success"],
     ],
   },
   lua: {

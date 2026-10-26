@@ -24,6 +24,7 @@ import { lineDiff, unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { isLuaDemo } from "./demoLuaProject";
+import { isJavaDemo, JAVA_PKG, javaDemoFiles } from "./demoJavaProject";
 import { demoStatus } from "./demoStatus";
 import { CONFLICT_BRANCH, demoConflicts, type DemoConflict } from "./demoConflicts";
 import { callWasm, forgeWasm } from "@/wasm";
@@ -254,10 +255,18 @@ if (web) {
     Object.assign(snapshot, web.files);
   }
 }
+// The Java demo (`?project=java`) is committed except for the low-stock report in progress.
+if (isJavaDemo()) {
+  for (const snapshot of [head, index]) {
+    for (const k of Object.keys(snapshot)) delete snapshot[k];
+    Object.assign(snapshot, javaDemoFiles);
+  }
+  head[`${JAVA_PKG}/Inventory.java`] = javaDemoFiles[`${JAVA_PKG}/Inventory.java`].replace(/\n    public List<StockItem> lowStock[\s\S]*?\n    }\n/, "\n");
+}
 
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock). The web demos and the Lua demo game have no PHP tests.
-if (!web && !isLuaDemo()) void Promise.resolve().then(() =>
+if (!web && !isLuaDemo() && !isJavaDemo()) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
@@ -795,7 +804,7 @@ async function startConflictMerge(rev: string): Promise<void> {
 }
 
 // `?conflicts` opens the demo in the middle of that merge (screenshots).
-if (!web && !isLuaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+if (!web && !isLuaDemo() && !isJavaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)

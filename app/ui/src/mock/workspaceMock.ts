@@ -19,13 +19,15 @@ import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
+import { isJavaDemo, javaDemoFiles, javaDemoName } from "./demoJavaProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
-// `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module.
+// `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=java` a
+// Gradle Java service.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
   : isWordPressDemo()
@@ -34,6 +36,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
       ? { ...drupalDemoFiles }
       : isLuaDemo()
     ? { ...luaDemoFiles }
+    : isJavaDemo()
+    ? { ...javaDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -47,6 +51,8 @@ export const mockProjectName = isSymfonyDemo()
       ? drupalDemoName
       : isLuaDemo()
     ? luaDemoName
+    : isJavaDemo()
+    ? javaDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.

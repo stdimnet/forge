@@ -5,6 +5,7 @@
  */
 import { emitMock, registerMock } from "@/ipc";
 import { isLuaDemo } from "./demoLuaProject";
+import { isJavaDemo } from "./demoJavaProject";
 import {
   DATA_SOURCES_EVENT,
   SESSION_EVENT,
@@ -392,7 +393,7 @@ registerMock("db_cancel", () => undefined);
 
 registerMock("db_detect_env", (): DetectedDataSource[] => {
   // The WebForge demos and the Lua demo game have no .env with a database.
-  if (webDemo() || isLuaDemo()) return [];
+  if (webDemo() || isLuaDemo() || isJavaDemo()) return [];
   const ds = envSource();
   if (sources.some((s) => s.source.driver === "mysql" && s.source.database === ds.database)) return [];
   return [{ source: ds, hasPassword: true, origin: ".env" }];
