@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.google.guava</groupId>
+  <artifactId>guava</artifactId>
+  <versioning>
+    <latest>33.4.0-jre</latest>
+    <release>33.4.0-jre</release>
+    <versions>
+      <version>31.1-jre</version>
+      <version>31.1-android</version>
+      <version>32.0.0-jre</version>
+      <version>32.0.0-android</version>
+      <version>33.3.1-jre</version>
+      <version>33.3.1-android</version>
+      <version>33.4.0-jre</version>
+      <version>33.4.0-android</version>
+    </versions>
+    <lastUpdated>20241219190000</lastUpdated>
+  </versioning>
+</metadata>

@@ -1,0 +1,9 @@
+com.acme:shop-domain:jar:1.0.0
+\- org.apache.commons:commons-lang3:jar:3.14.0:compile
+com.acme:shop-web:jar:1.0.0
++- org.springframework.boot:spring-boot-starter-web:jar:3.3.0:compile
+|  +- org.springframework.boot:spring-boot-starter:jar:3.3.0:compile
+|  |  \- org.yaml:snakeyaml:jar:2.2:compile
+|  \- org.springframework:spring-webmvc:jar:6.1.8:compile
++- com.acme:shop-domain:jar:1.0.0:compile
+\- org.junit.jupiter:junit-jupiter:jar:5.10.2:test
