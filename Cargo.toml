@@ -46,6 +46,7 @@ forge-runtargets = { path = "crates/forge-runtargets" }
 forge-markdown = { path = "crates/forge-markdown" }
 forge-viewers = { path = "crates/forge-viewers" }
 forge-debug = { path = "crates/forge-debug" }
+forge-dap = { path = "crates/forge-dap" }
 forge-db = { path = "crates/forge-db" }
 forge-containers = { path = "crates/forge-containers" }
 forge-sql = { path = "crates/forge-sql" }

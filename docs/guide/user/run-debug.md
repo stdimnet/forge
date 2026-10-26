@@ -107,6 +107,7 @@ type, so they run like configurations:
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
 | Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
+| Native Application | Executable, Debugger (LLDB, GDB or a pack's adapter), Stop at the beginning of the program, Launch options (JSON) | `<executable> <program arguments>` | the chosen [debug adapter](debugging.md#debug-adapter-sessions) |
 | Compound | Configurations, Allow multiple instances | starts every configuration, each in its own Run tab | debugs every member |
 
 The PHP interpreter defaults to the project's CLI interpreter (`php.interpreter`, Settings |
@@ -304,7 +305,7 @@ lines first.
 Paths of a server or container are mapped into the project:
 
 1. the path mappings of the PHP servers (Settings | PHP | Servers,
-   [Xdebug debugging](debugging.md)),
+   [Debugging](debugging.md)),
 2. the bind mounts of the project's Docker Compose file (`./:/var/www/html`),
 3. the project root,
 4. otherwise the longest trailing part of the path that exists in the project
@@ -337,7 +338,10 @@ shows which lines the tests ran, see [Code coverage](coverage.md).
 Server) starts Forge's Xdebug listener and runs the process with the Xdebug environment
 (`XDEBUG_MODE=debug`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`). **Debug** on PHP Web Page, PHP HTTP
 Request and requests of `.http` files starts listening and adds the Xdebug trigger to the
-request. See [Xdebug debugging](debugging.md#debugging-web-pages-and-http-requests).
+request. See [Debugging](debugging.md#debugging-web-pages-and-http-requests).
+
+**Debug** on a Native Application configuration, or on a configuration type whose language
+pack registers a debug adapter, starts a [debug adapter session](debugging.md#debug-adapter-sessions).
 
 > **Note:** Run/Debug configurations work in [remote projects](remote-development.md): the
 > process runs on the remote host.

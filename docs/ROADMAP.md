@@ -105,7 +105,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 ## Milestone 3 — Language packs I: Java, Python, Go, Rust, C/C++
 
-- [ ] Shared debugging layer: DAP client in Rust used by every pack (attach to process, attach to DAP server, logpoints), native views (memory, disassembly, registers, core dumps, watchpoints)
+- [x] Shared debugging layer: DAP client in Rust used by every pack (attach to process, attach to DAP server, logpoints), native views (memory, disassembly, registers, core dumps, watchpoints)
 - [x] Shared test runner and coverage for every pack; run targets (Docker, WSL, SSH) for run, test and debug
 - [ ] JavaScript/TypeScript debugger (Chrome, Node.js, attach) and JS test runners (Jest, Vitest, Mocha, Playwright, Cypress)
 - [ ] JavaForge: Eclipse JDT LS (managed), JDK detection and download, Maven and Gradle, JUnit 5/TestNG, Java debugger

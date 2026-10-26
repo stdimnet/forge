@@ -26,6 +26,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-devenv](forge-devenv.md) | Forge IDE Dev Containers and WSL: devcontainer.json, docker command lines, WSL distributions and path mapping, and the Forge agent over a process's stdio |
 | [forge-diff](forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
+| [forge-dap](forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
 | [forge-db](forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |

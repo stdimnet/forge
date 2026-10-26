@@ -9,7 +9,8 @@ import { RangeSet, StateEffect, StateField, type Extension, type Range } from "@
 import { Decoration, EditorView, GutterMarker, ViewPlugin, WidgetType, lineNumberMarkers, type DecorationSet } from "@codemirror/view";
 import { getSetting } from "@/state/settings";
 import type { Breakpoint } from "./api";
-import { inlineValues } from "./format";
+import { inlineValues, inlineValuesGeneric } from "./format";
+import { isDebuggableFile } from "./adapters";
 import { addLogpoint, breakpoints, breakpointsMuted, frameIndex, frames, pausedSession, toggleLineBreakpoint, variables } from "./store";
 import { openBreakpointPopup } from "./overlays";
 
@@ -74,6 +75,7 @@ function bpTitle(bp: Breakpoint, look: BreakpointLook): string {
   if (look === "log") parts.push("does not suspend");
   if (bp.condition?.trim()) parts.push(`condition: ${bp.condition}`);
   if (bp.logExpression?.trim()) parts.push(`logs: ${bp.logExpression}`);
+  if (bp.passCount && bp.passCount > 1) parts.push(`from hit ${bp.passCount}`);
   return parts.join(", ");
 }
 
@@ -160,9 +162,11 @@ export function stateFor(path: string, doc: string[]): EditorDebugState {
   const selected = fs[frameIndex()];
   const frame = session && selected && frameIndex() > 0 && selected.file === path ? selected.line : null;
   const valuesLine = frameIndex() > 0 ? frame : exec;
+  const dap = !!session?.adapter;
+  const showInline = dap ? getSetting<boolean>("debugger.showInlineValues", true) : getSetting<boolean>("php.debug.showInlineValues", true);
   const inline =
-    session && valuesLine && getSetting<boolean>("php.debug.showInlineValues", true)
-      ? inlineValues(doc, valuesLine, variables())
+    session && valuesLine && showInline
+      ? (dap ? inlineValuesGeneric : inlineValues)(doc, valuesLine, variables())
       : new Map<number, string>();
   return { bps, muted: breakpointsMuted(), exec, frame, inline };
 }
@@ -284,10 +288,8 @@ const debugTheme = EditorView.baseTheme({
   },
 });
 
-const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path);
-
-/** Editor extension for PHP files. */
+/** Editor extension for PHP files and files of the debug adapters' languages. */
 export function debugEditorExtensions(path: string): Extension | null {
-  if (!isPhp(path)) return null;
+  if (!isDebuggableFile(path)) return null;
   return [debugField, controller(path), debugTheme, EditorView.editorAttributes.of({ class: "cm-debuggable" })];
 }

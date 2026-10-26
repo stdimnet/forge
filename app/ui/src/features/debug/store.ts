@@ -8,6 +8,8 @@ import { showToolWindow } from "@/state/layout";
 import { EditorView } from "@codemirror/view";
 import { openFile } from "@/state/editor";
 import { viewFor } from "@/features/lsp/navigation";
+import { dapApi, type DapThread } from "./dapApi";
+import { refreshDebugAdapters } from "./adapters";
 import {
   debugApi,
   type Breakpoint,
@@ -66,6 +68,11 @@ const [editingVariable, setEditingVariable] = createSignal<string | null>(null);
 const [expressionHistory, setExpressionHistory] = createSignal<string[]>([]);
 /** Settings | PHP | Servers (for PHP Web Page / HTTP Request configurations). */
 const [knownServers, setKnownServers] = createSignal<ServerConfig[]>([]);
+/** Threads of the active DAP session and the one whose frames are shown. */
+const [threads, setThreads] = createSignal<DapThread[]>([]);
+const [threadId, setThreadId] = createSignal<number | null>(null);
+/** Bumped per area when a session's cached data is stale (`memory`, `threads`, …). */
+const [invalidations, setInvalidations] = createSignal<Record<string, number>>({});
 
 export {
   listening,
@@ -88,6 +95,9 @@ export {
   setEditingVariable,
   expressionHistory,
   knownServers,
+  threads,
+  threadId,
+  invalidations,
 };
 
 export const breakpoints = () => breakpointState().breakpoints;
@@ -103,6 +113,10 @@ const memo = createRoot(() => {
 });
 
 export const activeSession = memo.activeSession;
+/** Features of the active session (DAP), or `undefined` for Xdebug. */
+export const sessionFeatures = () => activeSession()?.features;
+/** The active session is a Debug Adapter Protocol session. */
+export const isDapSession = () => !!activeSession()?.adapter;
 /** The active session if it is suspended. */
 export const pausedSession = memo.paused;
 export const selectedFrame = (): Frame | undefined => frames()[frameIndex()];
@@ -126,6 +140,8 @@ function clearContext(): void {
     setFrameIndex(0);
     setVariables([]);
     setWatchResults({});
+    setThreads([]);
+    setThreadId(null);
   });
 }
 
@@ -135,6 +151,7 @@ function log(sessionId: string, stream: ConsoleLine["stream"], text: string, val
 
 async function loadVariables(sessionId: string, depth: number): Promise<void> {
   setVariablesLoading(true);
+  await loadWatches();
   try {
     const vars = await debugApi.variables(sessionId, depth, 0);
     batch(() => {
@@ -151,8 +168,15 @@ async function loadVariables(sessionId: string, depth: number): Promise<void> {
 }
 
 async function loadSuspendContext(session: SessionInfo): Promise<void> {
+  if (session.adapter) {
+    const list = await dapApi.threads(session.id).catch(() => [] as DapThread[]);
+    batch(() => {
+      setThreads(list);
+      setThreadId(session.threadId ?? list[0]?.id ?? null);
+    });
+  }
   try {
-    const stack = await debugApi.stack(session.id);
+    const stack = await debugApi.stack(session.id, session.adapter ? (session.threadId ?? undefined) : undefined);
     batch(() => {
       setFrames(stack);
       setFrameIndex(0);
@@ -162,6 +186,26 @@ async function loadSuspendContext(session: SessionInfo): Promise<void> {
     console.warn("stack", e);
   }
   await loadVariables(session.id, 0);
+}
+
+/** Show another thread's frames (DAP sessions). */
+export async function selectThread(id: number): Promise<void> {
+  const s = pausedSession();
+  if (!s) return;
+  setThreadId(id);
+  try {
+    const stack = await debugApi.stack(s.id, id);
+    batch(() => {
+      setFrames(stack);
+      setFrameIndex(0);
+    });
+    const top = stack[0];
+    if (top?.file) void showLine(top.file, top.line);
+  } catch (e) {
+    setFrames([]);
+    showBalloon("Cannot show the thread", String(e).replace(/^Error: /, ""));
+  }
+  await loadVariables(s.id, 0);
 }
 
 /** Select a frame: shows its variables and opens its source line. */
@@ -186,7 +230,7 @@ export async function evaluateWatches(): Promise<void> {
   await Promise.all(
     list.map(async (w) => {
       try {
-        results[w] = { value: await debugApi.eval(s.id, w, depth) };
+        results[w] = { value: await debugApi.eval(s.id, w, depth, "watch") };
       } catch (e) {
         results[w] = { error: String(e).replace(/^Error: /, "") };
       }
@@ -195,17 +239,30 @@ export async function evaluateWatches(): Promise<void> {
   setWatchResults(results);
 }
 
+/** Watches belong to a debugger: `php` or the active session's adapter type. */
+const watchScope = () => activeSession()?.adapter ?? "php";
+let loadedScope = "php";
+
+/** Show the watches of the active session's debugger (after switching sessions). */
+async function loadWatches(): Promise<void> {
+  const scope = watchScope();
+  if (scope === loadedScope) return;
+  loadedScope = scope;
+  const list = await debugApi.watches(scope).catch(() => [] as string[]);
+  if (loadedScope === scope) setWatchList(list);
+}
+
 export function addWatch(expression: string): void {
   const e = expression.trim();
   if (!e || watches().includes(e)) return;
   setWatchList((w) => [...w, e]);
-  void debugApi.setWatches(watches()).catch(() => {});
+  void debugApi.setWatches(watches(), loadedScope).catch(() => {});
   void evaluateWatches();
 }
 
 export function removeWatch(expression: string): void {
   setWatchList((w) => w.filter((x) => x !== expression));
-  void debugApi.setWatches(watches()).catch(() => {});
+  void debugApi.setWatches(watches(), loadedScope).catch(() => {});
 }
 
 /**
@@ -240,7 +297,11 @@ function upsert(session: SessionInfo): SessionInfo | undefined {
 
 function onSession(session: SessionInfo): void {
   const prev = upsert(session);
-  if (!prev) log(session.id, "system", `Connected to ${session.engine || "Xdebug"} (${session.serverName}, ${session.file ?? session.fileUri})\n`);
+  if (!prev) {
+    const target = session.file ?? session.fileUri;
+    const where = target && target !== session.serverName ? `${session.serverName}, ${target}` : session.serverName;
+    log(session.id, "system", `Connected to ${session.engine || "Xdebug"} (${where})\n`);
+  }
   if (!activeId() || !sessions().some((s) => s.id === activeId())) setActiveId(session.id);
   if (session.status === "paused") {
     if (activeId() !== session.id && activeSession()?.status !== "paused") setActiveId(session.id);
@@ -286,7 +347,19 @@ export function handleDebugEvent(e: DebugEvent): void {
       onEnded(e.sessionId);
       break;
     case "output":
-      log(e.sessionId, e.stream === "stderr" ? "stderr" : e.stream === "log" ? "log" : "stdout", e.text);
+      log(e.sessionId, e.stream === "stderr" || e.stream === "log" || e.stream === "system" ? e.stream : "stdout", e.text);
+      break;
+    case "invalidated":
+      if (e.sessionId !== activeId()) break;
+      setInvalidations((prev) => {
+        const next = { ...prev };
+        for (const a of e.areas) next[a] = (next[a] ?? 0) + 1;
+        return next;
+      });
+      if (e.areas.some((a) => a === "variables" || a === "all")) {
+        const s = pausedSession();
+        if (s) void loadVariables(s.id, selectedFrame()?.level ?? 0);
+      }
       break;
     case "breakpoints":
       setBreakpointState(e.snapshot);
@@ -304,13 +377,14 @@ export async function startDebugStore(): Promise<void> {
   if (started) return;
   started = true;
   await debugApi.onEvent(handleDebugEvent);
-  await reloadDebugState();
+  await Promise.all([reloadDebugState(), refreshDebugAdapters()]);
 }
 
 /** Re-read status, sessions and breakpoints (e.g. after opening another project). */
 export async function reloadDebugState(): Promise<void> {
   try {
-    const [status, bps, w] = await Promise.all([debugApi.status(), debugApi.breakpoints(), debugApi.watches()]);
+    loadedScope = "php";
+    const [status, bps, w] = await Promise.all([debugApi.status(), debugApi.breakpoints(), debugApi.watches("php")]);
     void reloadServers();
     batch(() => {
       setListening(status.listening);
@@ -361,6 +435,13 @@ export async function step(kind: StepKind): Promise<void> {
 export async function pause(): Promise<void> {
   const s = activeSession();
   if (s?.status === "running") await debugApi.pause(s.id).catch((e) => showBalloon("Pause is not supported by this engine", String(e)));
+}
+
+/** Rerun a DAP session (in place when the adapter can restart). */
+export async function restartSession(): Promise<void> {
+  const s = activeSession();
+  if (!s?.adapter) return;
+  await dapApi.restart(s.id).catch((e) => showBalloon("Cannot restart", String(e).replace(/^Error: /, "")));
 }
 
 export async function stop(): Promise<boolean> {
@@ -447,7 +528,7 @@ export async function evaluateInConsole(expression: string): Promise<void> {
     return;
   }
   try {
-    const value = await debugApi.eval(s.id, e, selectedFrame()?.level ?? 0);
+    const value = await debugApi.eval(s.id, e, selectedFrame()?.level ?? 0, "repl");
     log(s.id, "result", "", value);
   } catch (err) {
     log(s.id, "stderr", `${String(err).replace(/^Error: /, "")}\n`);
@@ -462,19 +543,33 @@ export async function completeExpression(text: string) {
 }
 
 /**
- * Set Value (F2): assign the PHP expression `value` to a variable, then reload the
- * variables and watches.
+ * Set Value (F2): assign the expression `value` to a variable, then reload the variables
+ * and watches. DAP variables are addressed by the `property`'s container and name.
  */
-export async function setVariableValue(fullname: string, value: string): Promise<boolean> {
+export async function setVariableValue(fullname: string, value: string, property?: Property): Promise<boolean> {
   const s = pausedSession();
   if (!s) return false;
   const depth = selectedFrame()?.level ?? 0;
   try {
-    await debugApi.setValue(s.id, fullname, value, depth);
+    await debugApi.setValue(s.id, fullname, value, depth, property?.container, property?.container ? property.name : undefined);
   } catch (e) {
     showBalloon("Cannot set value", String(e).replace(/^Error: /, ""), 5000);
     return false;
   }
   await loadVariables(s.id, depth);
   return true;
+}
+
+// ---- watchpoints --------------------------------------------------------------------------
+
+/** Add a watchpoint (data breakpoint) on a variable of a DAP session. */
+export async function addWatchpoint(property: Property): Promise<void> {
+  const s = pausedSession();
+  if (!s?.adapter || property.container == null) return;
+  try {
+    const bp = await dapApi.dataBreakpoint(s.id, property.container, property.name);
+    showBalloon("Watchpoint added", `Suspends when ${bp.description ?? property.name} changes.`, 3000);
+  } catch (e) {
+    showBalloon("Cannot add a watchpoint", String(e).replace(/^Error: /, ""), 5000);
+  }
 }

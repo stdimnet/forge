@@ -51,6 +51,7 @@ export const demoFiles: Record<string, string> = {
 `,
   "Dockerfile": "FROM php:8.3-fpm AS base\n\nWORKDIR /var/www\nRUN docker-php-ext-install pdo_mysql\nCOPY . .\nCMD [\"php-fpm\"]\n",
   "deploy.sh": "#!/usr/bin/env bash\nset -euo pipefail\n\nBRANCH=${1:-main}\necho \"Deploying $BRANCH\"\ngit pull origin \"$BRANCH\"\ncomposer install --no-dev\n",
+  "scripts/native/demo.c": "#include <stdio.h>\n\nstruct point { int x; int y; };\n\nint compute(int n) {\n    int sum = 0;\n    for (int i = 0; i < n; i++) {\n        sum += i;\n    }\n    return sum;\n}\n\nint main(void) {\n    int counter = 0;\n    char name[8] = \"forge\";\n    struct point origin = { 3, 4 };\n    counter = compute(4);\n    counter += origin.x;\n    printf(\"%s %d\\n\", name, counter);\n    return 0;\n}\n",
   "scripts/report.py": "#!/usr/bin/env python3\nimport json\nimport sys\n\n\ndef main() -> None:\n    print(json.dumps({\"orders\": 0}))\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n",
   "config/services.yaml": "parameters:\n    app.currency: EUR\n\nservices:\n    _defaults:\n        autowire: true\n        autoconfigure: true\n\n    App\\:\n        resource: '../app/'\n\n    App\\Services\\Checkout:\n        arguments:\n            $currency: '%app.currency%'\n",
   "config/packages/framework.yaml": "framework:\n    secret: '%env(APP_SECRET)%'\n    session: true\n",

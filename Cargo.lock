@@ -1834,6 +1834,7 @@ dependencies = [
  "forge-colorscheme",
  "forge-containers",
  "forge-core",
+ "forge-dap",
  "forge-db",
  "forge-debug",
  "forge-deploy",
@@ -2024,6 +2025,23 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "toml 0.8.23",
+ "tracing",
+]
+
+[[package]]
+name = "forge-dap"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "forge-core",
+ "forge-debug",
+ "forge-plugin-api",
+ "forge-runtools",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
  "tracing",
 ]
 

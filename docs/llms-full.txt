@@ -45,7 +45,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 - [Language servers](docs/guide/user/language-servers.md) — install Intelephense and friends, licence keys
 - [Laravel](docs/guide/user/laravel.md) and [Symfony](docs/guide/user/symfony.md)
 - [WordPress](docs/guide/user/wordpress.md) and [Drupal, Joomla and Shopware](docs/guide/user/cms.md)
-- [Xdebug debugging](docs/guide/user/debugging.md)
+- [Debugging](docs/guide/user/debugging.md)
 - [Remote development](docs/guide/user/remote-development.md)
 - [AI](docs/guide/user/ai.md)
 
@@ -775,7 +775,7 @@ not finished, the page says so.
 | [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](docs/guide/user/command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
-| [Xdebug debugging](docs/guide/user/debugging.md) | listening, breakpoints, stepping, evaluate, servers and path mappings |
+| [Debugging](docs/guide/user/debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
 | [Terminal](docs/guide/user/terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](docs/guide/user/database.md) | data sources, consoles, data grid, export |
 | [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
@@ -815,7 +815,7 @@ From left to right:
   project.
 - **Branch widget**: the current Git branch; click it for the [Branches popup](docs/guide/user/git.md#branches).
 - Toolbar items of plugins, for example Xdebug's **Start Listening for PHP Debug Connections**
-  button (see [Xdebug debugging](docs/guide/user/debugging.md)).
+  button (see [Debugging](docs/guide/user/debugging.md)).
 - **Run widget**: the selected run configuration with **Run** and **Debug** buttons, see
   [Run/Debug configurations](docs/guide/user/run-debug.md).
 - **AI Chat**, **Search Everywhere** (`Double Shift`), the **theme toggle** (dark/light) and
@@ -878,7 +878,7 @@ where each tool window sits by default; you can move every one of them (see
 | npm | left | — | [WebForge](docs/guide/user/webforge.md) |
 | Find | bottom | `Alt+3` (macOS `Cmd+3`) | [below](#find-tool-window) |
 | Run | bottom | `Alt+4` (macOS `Cmd+4`) | [Run/Debug configurations](docs/guide/user/run-debug.md) |
-| Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Xdebug debugging](docs/guide/user/debugging.md) |
+| Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Debugging](docs/guide/user/debugging.md) |
 | Services | bottom | `Alt+8` (macOS `Cmd+8`) | [Services](docs/guide/user/services.md) |
 | Routes (Laravel) | bottom | — | [Laravel](docs/guide/user/laravel.md) |
 | Symfony | bottom | — | [Symfony](docs/guide/user/symfony.md) |
@@ -1291,7 +1291,7 @@ Left: the project name and the path of the current file. Right, depending on the
 | Widget | Shows | Click |
 | --- | --- | --- |
 | Remote connection | host and latency of a remote project | connection popup, see [Remote development](docs/guide/user/remote-development.md) |
-| Xdebug | listening state and port | [Xdebug debugging](docs/guide/user/debugging.md) |
+| Xdebug | listening state and port | [Debugging](docs/guide/user/debugging.md) |
 | PHP indexing | "Indexing… 45%" while the PHP index is built | — |
 | Language servers | "Indexing… TypeScript 45%" or the running servers | opens Settings | Languages & Frameworks | Language Servers |
 | Docker | connection to the Docker daemon | [Services](docs/guide/user/services.md) |
@@ -2028,7 +2028,7 @@ markers.
   files, `.http` requests, compose services and Dockerfiles.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
   number, as in the New UI), or press `Ctrl+F8` (macOS `Cmd+F8`). Right-click it to edit its
-  condition. See [Xdebug debugging](docs/guide/user/debugging.md).
+  condition. See [Debugging](docs/guide/user/debugging.md).
 - **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
   `Ctrl+F11`). See [Bookmarks](docs/guide/user/workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](docs/guide/user/git.md#blame).
@@ -7448,7 +7448,7 @@ Source: docs/guide/user/shortcuts/run-debug.md
 
 # Shortcuts: Run and debug
 
-Running configurations, breakpoints and stepping through PHP code with Xdebug. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Running configurations, breakpoints, stepping with Xdebug and debug adapters, and attaching to processes. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -7461,6 +7461,8 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Edit Configurations](#edit-configurations) | — | — |
 | [Stop](#stop) | `Ctrl+F2` | `Cmd+F2` |
 | [Rerun](#rerun) | `Ctrl+F5` | `Cmd+R` |
+| [Attach to Process…](#attach-to-process) | `Ctrl+Alt+F5` | `Cmd+Alt+F5` |
+| [Step Over Instruction / Step Into Instruction](#step-over-instruction--step-into-instruction) | — | — |
 | [Start Listening for PHP Debug Connections](#start-listening-for-php-debug-connections) | — | — |
 | [Web Server Debug Validation](#web-server-debug-validation) | — | — |
 | [Toggle Line Breakpoint](#toggle-line-breakpoint) | `Ctrl+F8` | `Cmd+F8` |
@@ -7573,6 +7575,26 @@ Runs the last run again.
 
 More: [Run/Debug configurations](docs/guide/user/run-debug.md#run-tool-window)
 
+## Attach to Process…
+
+**Shortcut:** `Ctrl+Alt+F5` · macOS `Cmd+Alt+F5` · action id `XDebugger.AttachToProcess`
+
+Lists the local processes and attaches a debug adapter (LLDB, GDB or a language pack's) to the
+chosen one. The Run menu also has **Attach to DAP Server…** (`Forge.AttachToDapServer`) and
+**Debug Core Dump…** (`Forge.DebugCoreDump`).
+
+**Menu:** Run | Attach to Process…
+
+More: [Debugging](docs/guide/user/debugging.md#starting-a-session)
+
+## Step Over Instruction / Step Into Instruction
+
+**Shortcut:** — · macOS — · action ids `Forge.Debugger.StepOverInstruction`, `Forge.Debugger.StepIntoInstruction`
+
+Step one machine instruction in a debug adapter session (buttons of the Disassembly tab).
+
+More: [Debugging](docs/guide/user/debugging.md#memory-disassembly-and-registers)
+
 ## Start Listening for PHP Debug Connections
 
 **Shortcut:** — · macOS — · action id `PhpListenDebugAction`
@@ -7581,7 +7603,7 @@ Starts or stops listening for incoming Xdebug connections on port 9003.
 
 **Menu:** Run | Start Listening for PHP Debug Connections
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#listening-for-connections)
+More: [Debugging](docs/guide/user/debugging.md#listening-for-connections)
 
 ## Web Server Debug Validation
 
@@ -7592,7 +7614,7 @@ port, start with request) and explains what to change.
 
 **Menu:** Run | Web Server Debug Validation…
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#web-server-debug-validation)
+More: [Debugging](docs/guide/user/debugging.md#web-server-debug-validation)
 
 ## Toggle Line Breakpoint
 
@@ -7602,7 +7624,7 @@ Adds or removes a line breakpoint at the caret.
 
 **Menu:** Run | Toggle Breakpoint | Line Breakpoint
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoints)
+More: [Debugging](docs/guide/user/debugging.md#breakpoints)
 
 ## Toggle Temporary Line Breakpoint
 
@@ -7612,7 +7634,7 @@ Adds a breakpoint that is removed once it is hit, or removes the breakpoint at t
 
 **Menu:** Run | Toggle Breakpoint | Temporary Line Breakpoint
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
+More: [Debugging](docs/guide/user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
 
 ## View Breakpoints
 
@@ -7624,7 +7646,7 @@ Lists all breakpoints, with conditions and exception breakpoints.
 
 ![View Breakpoints…](docs/screenshots/docs-view-breakpoints.png)
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoints)
+More: [Debugging](docs/guide/user/debugging.md#breakpoints)
 
 ## Mute Breakpoints
 
@@ -7634,7 +7656,7 @@ Turns all breakpoints off temporarily, or on again.
 
 **Menu:** Run | Mute Breakpoints
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#breakpoints)
+More: [Debugging](docs/guide/user/debugging.md#breakpoints)
 
 ## Resume Program
 
@@ -7644,7 +7666,7 @@ Continues until the next breakpoint.
 
 **Menu:** Run | Debugging Actions | Resume Program
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Pause Program
 
@@ -7654,7 +7676,7 @@ Asks the debugger to pause the script (if the engine supports it).
 
 **Menu:** Run | Debugging Actions | Pause Program
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Step Over
 
@@ -7664,7 +7686,7 @@ Executes the current line and stops at the next one.
 
 **Menu:** Run | Debugging Actions | Step Over
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Step Into
 
@@ -7674,7 +7696,7 @@ Steps into the function called on the current line.
 
 **Menu:** Run | Debugging Actions | Step Into
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Smart Step Into
 
@@ -7684,7 +7706,7 @@ Steps into the call on the current line (currently like Step Into).
 
 **Menu:** Run | Debugging Actions | Smart Step Into
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Force Step Into
 
@@ -7694,7 +7716,7 @@ Steps into the call even in code that is normally skipped.
 
 **Menu:** Run | Debugging Actions | Force Step Into
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Step Out
 
@@ -7704,7 +7726,7 @@ Runs to the end of the current function and stops in the caller.
 
 **Menu:** Run | Debugging Actions | Step Out
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Run to Cursor
 
@@ -7714,7 +7736,7 @@ Continues until the line with the caret.
 
 **Menu:** Run | Debugging Actions | Run to Cursor
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Force Run to Cursor
 
@@ -7724,7 +7746,7 @@ Continues until the caret line, ignoring breakpoints on the way.
 
 **Menu:** Run | Debugging Actions | Force Run to Cursor
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Evaluate Expression
 
@@ -7734,7 +7756,7 @@ Evaluates a PHP expression in the current frame.
 
 **Menu:** Run | Debugging Actions | Evaluate Expression…
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Quick Evaluate Expression
 
@@ -7744,7 +7766,7 @@ Evaluates the selection or the expression at the caret.
 
 **Menu:** Run | Debugging Actions | Quick Evaluate Expression
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Show Execution Point
 
@@ -7754,7 +7776,7 @@ Shows the line where the debugger is paused.
 
 **Menu:** Run | Debugging Actions | Show Execution Point
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Add to Watches
 
@@ -7762,7 +7784,7 @@ More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 Adds the selected expression to the watches.
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Set Value
 
@@ -7771,7 +7793,7 @@ More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 Edits the value of the variable selected in the Debug tool window: type a PHP expression and
 press `Enter`.
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#variables-set-value-and-copy-value)
+More: [Debugging](docs/guide/user/debugging.md#variables-set-value-and-copy-value)
 
 ## Run Command
 
@@ -8048,7 +8070,7 @@ Shows or hides the Debug tool window.
 
 **Menu:** View | Tool Windows | Debug
 
-More: [Xdebug debugging](docs/guide/user/debugging.md#the-debug-tool-window)
+More: [Debugging](docs/guide/user/debugging.md#the-debug-tool-window)
 
 ## Problems tool window
 
@@ -9368,7 +9390,7 @@ The language level and the interpreter can be stored per project ("For current p
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
 says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
 
-Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](docs/guide/user/debugging.md)),
+Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](docs/guide/user/debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
 
 ### CLI interpreters
@@ -9496,7 +9518,7 @@ cleanup of PHP files run there too, see [Actions on Save](docs/guide/user/action
   Test Frameworks**, see [PHP test frameworks](docs/guide/user/test-frameworks.md).
 - **PHP scratch files** run with the project's autoloader.
 
-See [Run/Debug configurations](docs/guide/user/run-debug.md), [Xdebug debugging](docs/guide/user/debugging.md) and
+See [Run/Debug configurations](docs/guide/user/run-debug.md), [Debugging](docs/guide/user/debugging.md) and
 [Scratches](docs/guide/user/scratches-and-http.md).
 
 ## Remote projects
@@ -11844,6 +11866,7 @@ type, so they run like configurations:
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
 | Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
+| Native Application | Executable, Debugger (LLDB, GDB or a pack's adapter), Stop at the beginning of the program, Launch options (JSON) | `<executable> <program arguments>` | the chosen [debug adapter](docs/guide/user/debugging.md#debug-adapter-sessions) |
 | Compound | Configurations, Allow multiple instances | starts every configuration, each in its own Run tab | debugs every member |
 
 The PHP interpreter defaults to the project's CLI interpreter (`php.interpreter`, Settings |
@@ -12041,7 +12064,7 @@ lines first.
 Paths of a server or container are mapped into the project:
 
 1. the path mappings of the PHP servers (Settings | PHP | Servers,
-   [Xdebug debugging](docs/guide/user/debugging.md)),
+   [Debugging](docs/guide/user/debugging.md)),
 2. the bind mounts of the project's Docker Compose file (`./:/var/www/html`),
 3. the project root,
 4. otherwise the longest trailing part of the path that exists in the project
@@ -12074,7 +12097,10 @@ shows which lines the tests ran, see [Code coverage](docs/guide/user/coverage.md
 Server) starts Forge's Xdebug listener and runs the process with the Xdebug environment
 (`XDEBUG_MODE=debug`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`). **Debug** on PHP Web Page, PHP HTTP
 Request and requests of `.http` files starts listening and adds the Xdebug trigger to the
-request. See [Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests).
+request. See [Debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests).
+
+**Debug** on a Native Application configuration, or on a configuration type whose language
+pack registers a debug adapter, starts a [debug adapter session](docs/guide/user/debugging.md#debug-adapter-sessions).
 
 > **Note:** Run/Debug configurations work in [remote projects](docs/guide/user/remote-development.md): the
 > process runs on the remote host.
@@ -12584,11 +12610,24 @@ with a debugger, create an **Artisan** or **Composer** run configuration
 
 Source: docs/guide/user/debugging.md
 
-# Xdebug debugging
+# Debugging
 
-The Xdebug plugin (`forge.xdebug`, PHPForge pack) is a DBGp server for **Xdebug 3**. It
-accepts any number of connections at once, from the CLI, a web server, Docker containers or
-another machine.
+Forge has one debugger for every language. The **Debug** tool window (`Alt+5`), breakpoints in
+the editor, stepping, variables, watches, Evaluate Expression and the console work the same
+for every session; only how a session starts differs:
+
+- **PHP** uses the Xdebug plugin (`forge.xdebug`, PHPForge pack): a DBGp server for **Xdebug 3**
+  that accepts any number of connections at once, from the CLI, a web server, Docker
+  containers or another machine.
+- **Every other language** uses a **debug adapter** that speaks the
+  [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) (DAP), through
+  the Debugger plugin (`forge.debugger`). **LLDB** (`lldb-dap`) and **GDB** (14 or newer,
+  `gdb -i dap`) are built in for C, C++, Rust, Go and other native code; language packs add
+  their own adapters. Adapters are programs installed on your machine; Forge does not bundle
+  them. See [Debug adapter sessions](#debug-adapter-sessions) below.
+
+The sections up to [Debug adapter sessions](#debug-adapter-sessions) describe Xdebug; the
+breakpoints and the Debug tool window are shared.
 
 ## Preparing PHP
 
@@ -12656,12 +12695,14 @@ connections silently.
 
 ## Breakpoints
 
-- Click a line number in a PHP file, or press **Toggle Line Breakpoint** (`Ctrl+F8`, macOS
-  `Cmd+F8`).
-- Right-click a breakpoint to set a **condition** (a PHP expression; the script suspends only
-  when it is true) or disable it.
-- **View Breakpoints…** (`Ctrl+Shift+F8`) lists all breakpoints, including **PHP Exception
-  Breakpoints** (an exception class, or `*` for any).
+- Click a line number in a PHP file, or in a file of a debug adapter's languages (`.c`, `.cpp`,
+  `.rs`, `.go`, …), or press **Toggle Line Breakpoint** (`Ctrl+F8`, macOS `Cmd+F8`).
+- Right-click a breakpoint to set a **condition** (an expression of the file's language; the
+  program suspends only when it is true) or disable it.
+- **View Breakpoints…** (`Ctrl+Shift+F8`) lists all breakpoints: **PHP Line Breakpoints**,
+  **Line Breakpoints** of other languages, **Function Breakpoints**, **Watchpoints**, **PHP
+  Exception Breakpoints** (an exception class, or `*` for any) and the exception filters of
+  debug adapters (for example LLDB's "C++: on throw").
 - **Mute Breakpoints** turns all of them off temporarily.
 
 ![Breakpoint condition](docs/screenshots/debugger-condition-popup.png)
@@ -12679,12 +12720,12 @@ PHPStorm's properties:
 | --- | --- |
 | **Enabled** | off keeps the breakpoint without stopping |
 | **Suspend execution** | off makes a **logpoint**: Forge logs and lets the script run on (yellow dot) |
-| **Condition** | a PHP expression; Xdebug stops only when it is true |
+| **Condition** | an expression; Xdebug or the debug adapter stops only when it is true |
 | **Log: "Breakpoint hit" message** | prints `Breakpoint reached at <file>:<line>` to the session's Console |
 | **Log: Stack trace** | prints the frames |
-| **Evaluate and log** | evaluates a PHP expression in the frame and prints its value |
+| **Evaluate and log** | evaluates an expression in the frame and prints its value (debug adapters: `{expr}` in the text is replaced, e.g. `i={i} sum={sum}`) |
 | **Remove once hit** | a **temporary breakpoint**: removed after it suspended once (dot with a ring) |
-| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`) |
+| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`, a DAP hit condition) |
 
 - **Shift+click** on a line number adds a logpoint ("Breakpoint hit" message, no suspend) and
   opens its properties.
@@ -12759,6 +12800,98 @@ results are trees that expand like variables.
 
 Smart Step Into currently behaves like Step Into. Pause depends on the engine and may
 report "Pause is not supported by this engine".
+
+## Debug adapter sessions
+
+A debug adapter session drives the same Debug tool window as Xdebug. What the window offers
+depends on the adapter (its capabilities): threads, memory, disassembly and registers appear
+only when the adapter supports them.
+
+![Debug adapter session](docs/screenshots/dap-session.png)
+
+### Starting a session
+
+| How | Where |
+| --- | --- |
+| **Debug** a run configuration (`Shift+F9`) | a **Native Application** configuration (executable, program arguments, working directory, debugger, "Stop at the beginning of the program", launch options as JSON), or a configuration type of a language pack that uses an adapter |
+| **Attach to Process…** (`Ctrl+Alt+F5`, macOS `Cmd+Alt+F5`) | Run menu: pick a local process (filter by name, command line or PID) and an adapter that can attach |
+| **Attach to DAP Server…** | Run menu: connect to an adapter that already listens on a TCP port (`dlv dap --listen 127.0.0.1:4711`, `debugpy --listen 5678`), with optional attach options as JSON |
+| **Debug Core Dump…** | Run menu: open a core file with the executable that crashed (LLDB); nothing runs, frames, variables, memory and registers show the state at the crash |
+
+![Attach to Process](docs/screenshots/dap-attach-process.png)
+
+> **Note:** starting a program under the debugger runs project code, so it is refused in
+> [Safe Mode](docs/guide/user/project-trust.md). Attaching to a running process or DAP server and opening a
+> core dump are allowed.
+
+Program output and the adapter's messages appear in the **Console** tab. Programs that need a
+terminal (the adapter's `runInTerminal` request) are started by Forge with their output in the
+console; adapters that start child sessions (`startDebugging`, e.g. for subprocesses) get a
+session tab per child.
+
+### Threads, variables and the console
+
+- The frames pane has a thread selector; the thread that stopped is marked "(stopped)".
+- Variables expand lazily. Scopes other than the locals (globals, statics) are groups at the
+  end of the tree.
+- Watches belong to the debugger: PHP sessions keep their watches, a C session has its own.
+- The console and Evaluate (`Alt+F8`) evaluate in the adapter's language (LLDB also accepts
+  its commands) and complete names while you type.
+- Values are shown inline in the editor (`debugger.showInlineValues`).
+- **Rerun** in the toolbar restarts the session (in place when the adapter supports it).
+
+### Logpoints and watchpoints
+
+Logpoints (**Suspend execution** off, `Shift`+click on a line number) are evaluated by the
+adapter when it supports them, so the program does not stop at all; otherwise Forge logs and
+resumes. In **Evaluate and log**, `{expression}` is replaced by its value: `i={i} sum={sum}`
+prints `i=2 sum=1`; a plain expression `counter` prints `counter = 6`.
+
+![Logpoint output and completion](docs/screenshots/dap-console-logpoint.png)
+
+![Breakpoints dialog with a logpoint](docs/screenshots/dap-breakpoints.png)
+
+**Add Watchpoint** in the context menu of a variable adds a data breakpoint: the program stops
+when the value changes. It is listed under **Watchpoints** in View Breakpoints…, where
+**Suspend on** chooses write, read or both (as far as the adapter supports it). **Function
+Breakpoints** (**+** in the dialog) stop when a function is entered (`main`,
+`MyClass::method`).
+
+### Memory, disassembly and registers
+
+| Tab | Shows |
+| --- | --- |
+| **Memory** | hex and ASCII from an address; type an address or `&variable`, page with the arrows, or choose **View Memory** on a variable. Double-click a byte to change it (when the adapter can write memory). |
+| **Disassembly** | the instructions around the selected frame's instruction pointer with symbols and source lines; **Step Over Instruction** and **Step Into Instruction** step one machine instruction |
+| **Registers** | the registers of the selected frame |
+
+![Memory view](docs/screenshots/dap-memory.png)
+
+![Disassembly](docs/screenshots/dap-disassembly.png)
+
+![Registers](docs/screenshots/dap-registers.png)
+
+| Action | Default shortcut |
+| --- | --- |
+| Attach to Process… | `Ctrl+Alt+F5` (macOS `Cmd+Alt+F5`) |
+| Attach to DAP Server…, Debug Core Dump… | Run menu |
+| Step Over Instruction, Step Into Instruction | Disassembly tab (assign keys in Settings \| Keymap) |
+| Add Watchpoint, Set Execution Point to Cursor | context menu / Find Action |
+| Rerun Debug Session | Debug toolbar |
+
+### Settings | Build, Execution, Deployment | Debugger
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| LLDB DAP executable | `debugger.lldb.path` | empty: `lldb-dap` on the PATH |
+| GDB executable | `debugger.gdb.path` | empty: `gdb` on the PATH |
+| Debug adapter request timeout (ms) | `debugger.dap.requestTimeout` | 10000 |
+| Log Debug Adapter Protocol messages | `debugger.dap.trace` | off |
+| Show variable values in editor while debugging | `debugger.showInlineValues` | on |
+| Memory view: bytes per row | `debugger.memory.bytesPerRow` | 16 |
+
+Language packs add their adapters to the same settings page and dialogs (see
+[contribution points](docs/guide/developer/contribution-points.md)).
 
 ## Servers and path mappings
 
@@ -13187,7 +13320,7 @@ run as an `http-request` run configuration.
 The ▶ menu also offers **Debug '…' with Xdebug**: it starts
 listening for Xdebug and sends the request with the cookie `XDEBUG_SESSION=FORGE`, so the PHP
 application stops at your breakpoints (see
-[Xdebug debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests)).
+[Debugging](docs/guide/user/debugging.md#debugging-web-pages-and-http-requests)).
 
 ![HTTP request](docs/screenshots/scratches-http-request.png)
 
@@ -16532,6 +16665,19 @@ Page id `tools.http-client`.
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
 
+### Build, Execution, Deployment | Debugger
+
+Page id `build.debugger`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `debugger.lldb.path` | path | `""` | user | Debug Adapters | LLDB DAP executable — Path of lldb-dap (lldb-vscode in older LLVM releases). Empty: lldb-dap on the PATH. |
+| `debugger.gdb.path` | path | `""` | user | Debug Adapters | GDB executable — GDB 14 or newer (its built-in DAP server, gdb -i dap). Empty: gdb on the PATH. |
+| `debugger.dap.requestTimeout` | int (1000–120000) | `10000` | user | Debug Adapter Protocol | Debug adapter request timeout (ms) — How long Forge waits for an answer of a debug adapter before it reports an error. |
+| `debugger.dap.trace` | bool | `false` | user | Debug Adapter Protocol | Log Debug Adapter Protocol messages — Write every message to and from debug adapters to the Forge log (trace level). |
+| `debugger.showInlineValues` | bool | `true` | user | Data Views | Show variable values in editor while debugging — For debug adapter sessions; PHP uses the setting under Languages & Frameworks \| PHP \| Debug. |
+| `debugger.memory.bytesPerRow` | int (4–64) | `16` | user | Data Views | Memory view: bytes per row |
+
 ### Build, Execution, Deployment | Deployment
 
 Page id `build.deployment`. No settings keys: the servers are project data in
@@ -17322,6 +17468,7 @@ script and config language plugins.
 | Symfony Services | `forge.symfony-services` | phpforge | `forge.yaml` | `symfony` | file types: Symfony Services |
 | Doctrine | `forge.doctrine` | phpforge | `forge.php` | `doctrine` | tool windows: Doctrine; 1 commands; 6 settings |
 | Run/Debug | `forge.run` | core |  | always | tool windows: Run; 3 commands; 2 settings; run types: Shell Script |
+| Debugger | `forge.debugger` | core |  | always | 6 settings; debug adapters: LLDB, GDB |
 | Deployment | `forge.deployment` | core |  | always | tool windows: File Transfer; 8 commands; 8 settings; 1 main menu entries |
 | Docker and Kubernetes | `forge.services` | core |  | always | tool windows: Services; 2 commands; 15 settings; 1 main menu entries |
 | Terminal | `forge.terminal` | core |  | always | tool windows: Terminal; 1 commands; 7 settings; 1 keybindings |
@@ -17830,6 +17977,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
+| `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
 | `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
@@ -18014,6 +18162,61 @@ itself are registered by their feature:
 registerBeforeLaunchHandler("externalTool", (task) => runToolAndWait(task.value));
 ```
 
+## Debug adapters
+
+Every language except PHP debugs through a [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/)
+adapter ([forge-dap](docs/guide/developer/crates/forge-dap.md)). The shared Debug tool window, breakpoints dialog,
+Attach to Process (`Ctrl+Alt+F5`), Attach to DAP Server and Debug Core Dump then work for the
+pack without further UI code. A pack contributes an adapter in three layers; most need only
+the first two.
+
+1. **Manifest** (how to start the adapter and the request templates):
+
+   ```toml
+   [[contributions.debugAdapters]]
+   type = "debugpy"
+   label = "Python (debugpy)"
+   command = "python3"
+   args = ["-m", "debugpy.adapter"]
+   commandSetting = "python.debugger.path"   # optional: user-chosen executable
+   transport = "stdio"                       # stdio | connect (${port} in args) | listen (adapter connects back)
+   languages = ["py"]                        # files with line breakpoints
+   launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}", console = "internalConsole" }
+   attach = { processId = "${pid}" }         # omit: no Attach to Process
+   # coreDump = { program = "${program}", coreFile = "${core}" }, coreDumpRequest = "attach"
+   ```
+
+   A string that is exactly `"${args}"`, `"${env}"`, `"${pid}"` or `"${stopOnEntry}"` becomes
+   an array, object, number or bool; other placeholders (`${program}`, `${cwd}`, `${core}`,
+   `${name}`) are replaced inside strings; keys whose placeholder has no value are dropped.
+   The run configuration's "launch options" JSON is merged over the result.
+
+2. **UI** (which run configuration types the adapter debugs, and how):
+
+   ```ts
+   import { registerDebugAdapter, defaultLaunchRequest } from "@/features/debug/adapters";
+
+   registerDebugAdapter({
+     type: "debugpy",
+     runConfigurationTypes: ["python-script"],
+     resolve: (cfg) => ({ ...defaultLaunchRequest("debugpy", cfg), program: cfg.options?.script }),
+   });
+   ```
+
+   `resolve` returns a `LaunchRequest` (`mode: "launch" | "attachProcess" | "attachServer" |
+   "coreDump"`); without it, `defaultLaunchRequest` reads the common fields (`program`,
+   arguments, working directory, environment, `stopOnEntry`, `launchOptions`).
+
+3. **Rust** (adapters that need code to start, e.g. a managed download or a virtualenv):
+   implement `forge_dap::DebugAdapterDescriptor` (`info()` and `resolve(&LaunchRequest) ->
+   ResolvedLaunch { transport, request, arguments }`) and register it with
+   `DapManager::register_adapter`.
+
+Line breakpoints in the adapter's `languages` work automatically; function breakpoints,
+watchpoints, exception filters, logpoints, threads, memory, disassembly and registers appear
+when the adapter's capabilities say so. Starting a program is refused in Safe Mode; attaching
+is not. Tests use the fake adapter (`forge_dap::fake`, binary `forge-dap-fake`) instead of a
+real debugger.
 ## Test frameworks
 
 A pack's test framework plugs into the shared test runner (`crates/forge-testing`): the gutter
@@ -18281,6 +18484,7 @@ order = 0
 
 Contribution types (`crates/forge-plugin-api/src/contributions.rs`): `languages`, `fileTypes`,
 `commands`, `keybindings`, `toolWindows`, `settings`, `lspServers`, `runConfigurationTypes`,
+`debugAdapters` (see [Contribution points](docs/guide/developer/contribution-points.md#debug-adapters)),
 `aiProviders`, `chatAgents`, `codeGenerators`, `mainMenu` (see [Contribution points](docs/guide/developer/contribution-points.md#main-menu)). A run configuration type with `fields` and a
 `command` template works without UI code (see `lua-script` in `luaforge.toml`).
 
@@ -19143,6 +19347,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-devenv](docs/guide/developer/crates/forge-devenv.md) | Forge IDE Dev Containers and WSL: devcontainer.json, docker command lines, WSL distributions and path mapping, and the Forge agent over a process's stdio |
 | [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](docs/guide/developer/crates/forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
+| [forge-dap](docs/guide/developer/crates/forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
@@ -20180,6 +20385,120 @@ passwords, refused TLS) and an in-process SSH server with the SFTP subsystem
 and its operations (listing with mappings, New Directory / New File, Rename, Refresh after
 outside changes, Edit Remote File with the conflict check, Delete) on every server type. No
 network beyond 127.0.0.1.
+
+
+---
+
+Source: docs/guide/developer/crates/forge-dap.md
+
+# forge-dap
+
+`crates/forge-dap` — Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter
+registry and native debugger views.
+
+## Purpose
+
+The debugger of every language pack except PHP (which uses Xdebug through
+[forge-debug](docs/guide/developer/crates/forge-debug.md)). It is a client of the
+[Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) and maps DAP
+sessions onto Forge's debugger model, so the Debug tool window drives Xdebug and DAP sessions
+with the same `debug_*` commands and `debug://*` events.
+
+- `client::DapClient` speaks the protocol: Content-Length framing (`codec`), requests with
+  sequence numbers and timeouts, responses, events and reverse requests.
+- `transport::Transport`: an adapter process on stdio, a TCP connection to an adapter that
+  listens (started by Forge with `${port}`, or already running: "Attach to DAP server"), or a
+  TCP server Forge opens for an adapter that connects back.
+- `adapter`: `DebugAdapterDescriptor` (how to start an adapter and build its `launch` /
+  `attach` arguments), `ManifestAdapter` (adapters declared with
+  `[[contributions.debugAdapters]]`, request templates with `${program}`, `${args}`,
+  `${cwd}`, `${env}`, `${pid}`, `${core}`, `${stopOnEntry}`), `AdapterRegistry` and
+  `LaunchRequest` (launch, attach to a process, attach to a DAP server, core dump).
+- `manager::DapManager` starts and tracks sessions, shares the project's breakpoints with
+  Xdebug through a `BreakpointHost` (the app's `DebugServer`) and resends them when they
+  change. Relative program and working directory paths are resolved against the project.
+- `session::DapSession`: initialize → launch/attach → breakpoints → configurationDone (for
+  adapters that announce `initialized` early, like GDB, breakpoints go first), stopped /
+  continued / output / thread / breakpoint / terminated / exited / module / process / memory /
+  capabilities / invalidated events, the reverse requests `runInTerminal` (Forge starts the
+  program with its output in the console) and `startDebugging` (child sessions). Requests:
+  threads, stackTrace, scopes, variables, setVariable / setExpression, evaluate (watch, repl,
+  hover), completions, continue / next / stepIn / stepOut (also by instruction), pause, goto,
+  restart, terminate, disconnect, setBreakpoints (conditions, hit counts, logpoints),
+  setFunctionBreakpoints, setExceptionBreakpoints (filters stored as breakpoints),
+  dataBreakpointInfo + setDataBreakpoints (watchpoints), readMemory / writeMemory,
+  disassemble, modules, loadedSources.
+- `views`: rows of the Memory view (hex/ASCII), Disassembly instructions, address parsing.
+- `processes`: local processes for Attach to Process (`/proc` on Linux, `ps` on macOS,
+  `tasklist` on Windows; no third-party crate).
+- `fake`: a simulated adapter running a small C program, used by the tests and available as
+  the `forge-dap-fake` binary (stdio, `--connect <port>`, `--listen <port>`).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `adapter.rs` | Debug adapter descriptors: how to start an adapter and which `launch` / `attach` arguments it gets. |
+| `client.rs` | One connection to a debug adapter: requests, responses, events and reverse requests. |
+| `codec.rs` | DAP base protocol: `Content-Length` framed JSON messages. |
+| `error.rs` | `DapError`, convertible to `ForgeError`. |
+| `fake.rs` | The simulated adapter (`DEMO_SOURCE`, `FakeAdapter`, `serve`). |
+| `manager.rs` | `DapManager`: adapter registry and running sessions; `BreakpointHost`, `DapConfig`. |
+| `processes.rs` | Local processes for "Attach to Process…". |
+| `protocol.rs` | DAP messages and the typed bodies Forge uses. |
+| `session.rs` | A DAP session bridged to Forge's debugger model (`SessionInfo`, `Frame`, `Property`, `DebugEvent`). |
+| `transport.rs` | Stdio, TCP connect and TCP listen transports. |
+| `views.rs` | Memory rows, instructions and addresses of the native views. |
+
+## Main public items
+
+```rust
+pub use adapter::{AdapterInfo, AdapterRegistry, DebugAdapterDescriptor, LaunchMode, LaunchRequest, ManifestAdapter, ResolvedLaunch};
+pub use error::{DapError, DapResult};
+pub use manager::{BreakpointHost, DapConfig, DapManager};
+pub use processes::{list_processes, ProcessInfo};
+pub use session::{DapSession, LoadedSource};
+pub use transport::{AdapterCommand, Transport};
+pub use views::{Instruction, MemoryBlock, MemoryRow};
+
+pub trait DebugAdapterDescriptor: Send + Sync {
+    fn info(&self) -> AdapterInfo;
+    fn resolve(&self, request: &LaunchRequest) -> DapResult<ResolvedLaunch>;
+}
+```
+
+## Used by
+
+- IPC: `dap_adapters`, `dap_start`, `dap_restart`, `dap_threads`, `dap_goto`, `dap_registers`,
+  `dap_read_memory`, `dap_write_memory`, `dap_disassemble`, `dap_modules`,
+  `dap_loaded_sources`, `dap_data_breakpoint`, `dap_processes`
+  (`app/src-tauri/src/commands/dap.rs`); the shared `debug_*` commands route `dap-<n>`
+  session ids here (`app/src-tauri/src/commands/debug.rs`).
+- UI: `app/ui/src/features/debug` (`dapApi.ts`, `adapters.ts`, `nativeViews.tsx`,
+  `AttachDialogs.tsx`)
+- Browser mode: not built to WebAssembly (runtime code); browser mode uses
+  `app/ui/src/mock/dapMock.ts`, the same simulated C program.
+
+## Dependencies
+
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-debug`](docs/guide/developer/crates/forge-debug.md),
+  [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md)
+- External: `base64`, `serde`, `serde_json`, `thiserror`, `tokio`, `tracing`
+
+## Tests
+
+12 source files, about 6300 lines; 25 unit tests and 10 integration tests in `tests/`
+(`fake_adapter.rs`): launch, breakpoints, stack, threads, variables, stepping, logpoints,
+conditions and hit counts, function and exception breakpoints, watchpoints, memory read and
+write, disassembly, instruction stepping, goto, set value, attach to a process and to a DAP
+server, adapters that listen or connect back, `runInTerminal`, child sessions, core dumps and
+restart, all against the fake adapter. No real debugger is needed; an ignored smoke test runs
+GDB's DAP server (`gdb -i dap`, GDB 14+) with a C compiler when both are installed.
+
+```sh
+cargo test -p forge-dap
+cargo test -p forge-dap -- --ignored   # GDB smoke test
+```
 
 
 ---

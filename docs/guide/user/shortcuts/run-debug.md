@@ -1,13 +1,13 @@
 ---
 title: "Shortcuts: Run and debug"
-description: "Running configurations, breakpoints and stepping through PHP code with Xdebug."
+description: "Running configurations, breakpoints, stepping with Xdebug and debug adapters, and attaching to processes."
 order: 60
 tags: [shortcuts, keymap, run-debug]
 ---
 
 # Shortcuts: Run and debug
 
-Running configurations, breakpoints and stepping through PHP code with Xdebug. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
+Running configurations, breakpoints, stepping with Xdebug and debug adapters, and attaching to processes. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
@@ -20,6 +20,8 @@ Running configurations, breakpoints and stepping through PHP code with Xdebug. W
 | [Edit Configurations](#edit-configurations) | — | — |
 | [Stop](#stop) | `Ctrl+F2` | `Cmd+F2` |
 | [Rerun](#rerun) | `Ctrl+F5` | `Cmd+R` |
+| [Attach to Process…](#attach-to-process) | `Ctrl+Alt+F5` | `Cmd+Alt+F5` |
+| [Step Over Instruction / Step Into Instruction](#step-over-instruction--step-into-instruction) | — | — |
 | [Start Listening for PHP Debug Connections](#start-listening-for-php-debug-connections) | — | — |
 | [Web Server Debug Validation](#web-server-debug-validation) | — | — |
 | [Toggle Line Breakpoint](#toggle-line-breakpoint) | `Ctrl+F8` | `Cmd+F8` |
@@ -132,6 +134,26 @@ Runs the last run again.
 
 More: [Run/Debug configurations](../../user/run-debug.md#run-tool-window)
 
+## Attach to Process…
+
+**Shortcut:** `Ctrl+Alt+F5` · macOS `Cmd+Alt+F5` · action id `XDebugger.AttachToProcess`
+
+Lists the local processes and attaches a debug adapter (LLDB, GDB or a language pack's) to the
+chosen one. The Run menu also has **Attach to DAP Server…** (`Forge.AttachToDapServer`) and
+**Debug Core Dump…** (`Forge.DebugCoreDump`).
+
+**Menu:** Run | Attach to Process…
+
+More: [Debugging](../../user/debugging.md#starting-a-session)
+
+## Step Over Instruction / Step Into Instruction
+
+**Shortcut:** — · macOS — · action ids `Forge.Debugger.StepOverInstruction`, `Forge.Debugger.StepIntoInstruction`
+
+Step one machine instruction in a debug adapter session (buttons of the Disassembly tab).
+
+More: [Debugging](../../user/debugging.md#memory-disassembly-and-registers)
+
 ## Start Listening for PHP Debug Connections
 
 **Shortcut:** — · macOS — · action id `PhpListenDebugAction`
@@ -140,7 +162,7 @@ Starts or stops listening for incoming Xdebug connections on port 9003.
 
 **Menu:** Run | Start Listening for PHP Debug Connections
 
-More: [Xdebug debugging](../../user/debugging.md#listening-for-connections)
+More: [Debugging](../../user/debugging.md#listening-for-connections)
 
 ## Web Server Debug Validation
 
@@ -151,7 +173,7 @@ port, start with request) and explains what to change.
 
 **Menu:** Run | Web Server Debug Validation…
 
-More: [Xdebug debugging](../../user/debugging.md#web-server-debug-validation)
+More: [Debugging](../../user/debugging.md#web-server-debug-validation)
 
 ## Toggle Line Breakpoint
 
@@ -161,7 +183,7 @@ Adds or removes a line breakpoint at the caret.
 
 **Menu:** Run | Toggle Breakpoint | Line Breakpoint
 
-More: [Xdebug debugging](../../user/debugging.md#breakpoints)
+More: [Debugging](../../user/debugging.md#breakpoints)
 
 ## Toggle Temporary Line Breakpoint
 
@@ -171,7 +193,7 @@ Adds a breakpoint that is removed once it is hit, or removes the breakpoint at t
 
 **Menu:** Run | Toggle Breakpoint | Temporary Line Breakpoint
 
-More: [Xdebug debugging](../../user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
+More: [Debugging](../../user/debugging.md#breakpoint-properties-logpoints-and-temporary-breakpoints)
 
 ## View Breakpoints
 
@@ -183,7 +205,7 @@ Lists all breakpoints, with conditions and exception breakpoints.
 
 ![View Breakpoints…](../../../screenshots/docs-view-breakpoints.png)
 
-More: [Xdebug debugging](../../user/debugging.md#breakpoints)
+More: [Debugging](../../user/debugging.md#breakpoints)
 
 ## Mute Breakpoints
 
@@ -193,7 +215,7 @@ Turns all breakpoints off temporarily, or on again.
 
 **Menu:** Run | Mute Breakpoints
 
-More: [Xdebug debugging](../../user/debugging.md#breakpoints)
+More: [Debugging](../../user/debugging.md#breakpoints)
 
 ## Resume Program
 
@@ -203,7 +225,7 @@ Continues until the next breakpoint.
 
 **Menu:** Run | Debugging Actions | Resume Program
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Pause Program
 
@@ -213,7 +235,7 @@ Asks the debugger to pause the script (if the engine supports it).
 
 **Menu:** Run | Debugging Actions | Pause Program
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Step Over
 
@@ -223,7 +245,7 @@ Executes the current line and stops at the next one.
 
 **Menu:** Run | Debugging Actions | Step Over
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Step Into
 
@@ -233,7 +255,7 @@ Steps into the function called on the current line.
 
 **Menu:** Run | Debugging Actions | Step Into
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Smart Step Into
 
@@ -243,7 +265,7 @@ Steps into the call on the current line (currently like Step Into).
 
 **Menu:** Run | Debugging Actions | Smart Step Into
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Force Step Into
 
@@ -253,7 +275,7 @@ Steps into the call even in code that is normally skipped.
 
 **Menu:** Run | Debugging Actions | Force Step Into
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Step Out
 
@@ -263,7 +285,7 @@ Runs to the end of the current function and stops in the caller.
 
 **Menu:** Run | Debugging Actions | Step Out
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Run to Cursor
 
@@ -273,7 +295,7 @@ Continues until the line with the caret.
 
 **Menu:** Run | Debugging Actions | Run to Cursor
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Force Run to Cursor
 
@@ -283,7 +305,7 @@ Continues until the caret line, ignoring breakpoints on the way.
 
 **Menu:** Run | Debugging Actions | Force Run to Cursor
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Evaluate Expression
 
@@ -293,7 +315,7 @@ Evaluates a PHP expression in the current frame.
 
 **Menu:** Run | Debugging Actions | Evaluate Expression…
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Quick Evaluate Expression
 
@@ -303,7 +325,7 @@ Evaluates the selection or the expression at the caret.
 
 **Menu:** Run | Debugging Actions | Quick Evaluate Expression
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Show Execution Point
 
@@ -313,7 +335,7 @@ Shows the line where the debugger is paused.
 
 **Menu:** Run | Debugging Actions | Show Execution Point
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Add to Watches
 
@@ -321,7 +343,7 @@ More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
 
 Adds the selected expression to the watches.
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Set Value
 
@@ -330,7 +352,7 @@ More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
 Edits the value of the variable selected in the Debug tool window: type a PHP expression and
 press `Enter`.
 
-More: [Xdebug debugging](../../user/debugging.md#variables-set-value-and-copy-value)
+More: [Debugging](../../user/debugging.md#variables-set-value-and-copy-value)
 
 ## Run Command
 

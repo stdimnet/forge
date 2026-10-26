@@ -1,13 +1,15 @@
 /** Lazy variables tree (Variables pane, Watches, Evaluate result). */
 import { createEffect, createSignal, For, on, onMount, Show, type JSX } from "solid-js";
-import { Braces, Brackets, ChevronDown, ChevronRight, Copy, Eye, Glasses, Pencil, Variable, X } from "lucide-solid";
+import { Binary, Braces, Brackets, ChevronDown, ChevronRight, Copy, Eye, Glasses, Layers, Pencil, ScanEye, Variable, X } from "lucide-solid";
 import { shortcutLabel } from "@/keymap";
 import { openMenu } from "@/features/run/PopupMenu";
 import { debugApi, type Property } from "./api";
 import { formatValue, phpLiteral, typeLabel, valueText } from "./format";
 import { setEvaluateRequest } from "./overlays";
+import { openMemoryView } from "./nativeViews";
 import {
   addWatch,
+  addWatchpoint,
   contextVersion,
   editingVariable,
   pausedSession,
@@ -16,11 +18,14 @@ import {
   setEditingVariable,
   setSelectedVariable,
   setVariableValue,
+  sessionFeatures,
   type SelectedVariable,
 } from "./store";
 
 function TypeIcon(props: { p: Property; watch?: boolean }) {
   if (props.watch) return <Glasses size={13} class="dbg-icon dbg-icon-watch" />;
+  if (props.p.type === "scope") return <Layers size={13} class="dbg-icon dbg-icon-scope" />;
+  if (props.p.type === "dap" && props.p.hasChildren) return <Braces size={13} class="dbg-icon dbg-icon-object" />;
   if (props.p.type === "object") return <Braces size={13} class="dbg-icon dbg-icon-object" />;
   if (props.p.type === "array") return <Brackets size={13} class="dbg-icon dbg-icon-array" />;
   return <Variable size={13} class="dbg-icon dbg-icon-scalar" />;
@@ -61,7 +66,7 @@ export async function copyValue(v: SelectedVariable): Promise<void> {
   const p = v.property;
   let text = p.type === "string" ? (p.value ?? "") : valueText(p);
   const s = pausedSession();
-  if (s && (p.type === "array" || p.type === "object")) {
+  if (s && !s.adapter && (p.type === "array" || p.type === "object")) {
     const printed = await debugApi.eval(s.id, `print_r(${v.watch ?? p.fullname}, true)`, selectedFrame()?.level ?? 0).catch(() => null);
     if (printed?.value != null) text = printed.value;
   }
@@ -77,6 +82,16 @@ export function editSelectedValue(): void {
 function openVariableMenu(e: MouseEvent, v: SelectedVariable, onRemove?: () => void): void {
   e.preventDefault();
   const expr = v.watch ?? v.property.fullname;
+  const features = sessionFeatures();
+  const p = v.property;
+  const native = [
+    ...(features?.dataBreakpoints && p.container != null && !v.watch
+      ? [{ label: "Add Watchpoint", icon: ScanEye, disabled: !pausedSession(), run: () => void addWatchpoint(p) }]
+      : []),
+    ...(features?.readMemory && p.memoryReference
+      ? [{ label: "View Memory", icon: Binary, run: () => openMemoryView(p.memoryReference!) }]
+      : []),
+  ];
   openMenu({
     x: e.clientX,
     y: e.clientY,
@@ -87,6 +102,7 @@ function openVariableMenu(e: MouseEvent, v: SelectedVariable, onRemove?: () => v
       { separator: true },
       { label: "Evaluate Expression…", shortcut: shortcutLabel("EvaluateExpression"), run: () => setEvaluateRequest({ expression: expr }) },
       { label: "Add to Watches", icon: Eye, disabled: !!v.watch, run: () => addWatch(expr) },
+      ...(native.length ? [{ separator: true }, ...native] : []),
       ...(onRemove ? [{ separator: true }, { label: "Remove Watch", icon: X, run: onRemove }] : []),
     ],
   });
@@ -118,16 +134,16 @@ function ValueEditor(props: { p: Property; expression: string }) {
         } else if (e.key === "Enter") {
           e.preventDefault();
           const value = text().trim();
-          if (value) void setVariableValue(props.expression, value).then((ok) => ok && done());
+          if (value) void setVariableValue(props.expression, value, props.p).then((ok) => ok && done());
         }
       }}
     />
   );
 }
 
-/** Load all children of `p` up to the page `p` describes. */
+/** Load all children of `p` up to the page `p` describes (DAP: by its reference). */
 async function loadChildren(sessionId: string, p: Property, frame: number, page: number): Promise<Property> {
-  return debugApi.property(sessionId, p.fullname, frame, 0, page);
+  return debugApi.property(sessionId, p.fullname, frame, 0, page, p.reference);
 }
 
 export function VariableNode(props: NodeProps) {
@@ -136,7 +152,7 @@ export function VariableNode(props: NodeProps) {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [nextPage, setNextPage] = createSignal(0);
-  const key = () => `${props.label ?? ""}|${props.p.fullname}`;
+  const key = () => `${props.label ?? ""}|${props.p.fullname || `#${props.p.name}`}`;
   const isSelected = () => (props.selectable ? selectedVariable()?.key === key() : props.selected === key());
   const editing = () => !!props.selectable && editingVariable() === key();
   const asSelection = (): SelectedVariable => ({ key: key(), property: props.p, watch: props.watch ? props.label : undefined });
@@ -201,7 +217,7 @@ export function VariableNode(props: NodeProps) {
           openVariableMenu(e, asSelection(), props.onRemove);
         }}
         title={formatValue(props.p)}
-        data-var={props.p.fullname}
+        data-var={props.p.fullname || props.p.name}
       >
         <span class="tree-chevron" onClick={(e) => (e.stopPropagation(), toggle())}>
           <Show when={props.p.hasChildren}>{open() ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</Show>
@@ -219,7 +235,15 @@ export function VariableNode(props: NodeProps) {
             </>
           }
         >
-          <Show when={props.children} fallback={<><span class="dbg-eq"> = </span><ValueSpan p={props.p} /></>}>
+          <Show
+            when={props.children}
+            fallback={
+              <Show when={props.p.type !== "scope"}>
+                <span class="dbg-eq"> = </span>
+                <ValueSpan p={props.p} />
+              </Show>
+            }
+          >
             {props.children}
           </Show>
         </Show>

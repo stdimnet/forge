@@ -248,6 +248,11 @@ const bp = (spec: BreakpointSpec): Breakpoint => ({
   logExpression: spec.logExpression,
   temporary: spec.temporary || undefined,
   passCount: spec.passCount,
+  function: spec.function,
+  dataId: spec.dataId,
+  accessType: spec.accessType,
+  description: spec.description,
+  adapter: spec.adapter,
 });
 const state: BreakpointsSnapshot = {
   muted: false,
@@ -649,7 +654,12 @@ registerMock("debug_validate_web", (args) => {
 registerMock("debug_breakpoints", () => snapshot());
 registerMock("debug_breakpoint_add", (args) => {
   const spec = args.spec as BreakpointSpec;
-  const existing = state.breakpoints.find((x) => x.kind === "line" && spec.kind !== "exception" && x.file === spec.file && x.line === spec.line);
+  const existing = state.breakpoints.find(
+    (x) =>
+      (x.kind === "line" && (spec.kind ?? "line") === "line" && x.file === spec.file && x.line === spec.line) ||
+      (x.kind === "data" && spec.kind === "data" && x.dataId === spec.dataId) ||
+      (x.kind === "exception" && spec.kind === "exception" && !!spec.adapter && x.adapter === spec.adapter && x.exception === spec.exception),
+  );
   if (existing) return existing;
   const created = bp(spec);
   state.breakpoints.push(created);
@@ -684,9 +694,12 @@ registerMock("debug_breakpoints_mute", (args) => {
   state.muted = !!args.muted;
   emitBreakpoints();
 });
-registerMock("debug_watches", () => [...watches]);
+const otherWatches = new Map<string, string[]>();
+registerMock("debug_watches", (args) => [...((args.scope ?? "php") === "php" ? watches : (otherWatches.get(String(args.scope)) ?? []))]);
 registerMock("debug_watches_set", (args) => {
-  watches = [...(args.watches as string[])];
+  const list = [...(args.watches as string[])];
+  if ((args.scope ?? "php") === "php") watches = list;
+  else otherWatches.set(String(args.scope), list);
 });
 registerMock("debug_servers", () => JSON.parse(JSON.stringify(servers)));
 registerMock("debug_servers_save", (args) => {
