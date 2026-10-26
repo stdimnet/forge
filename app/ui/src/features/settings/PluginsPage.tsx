@@ -14,9 +14,10 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   phpforge: { label: "PHPForge", order: 1 },
   webforge: { label: "WebForge", order: 2 },
   luaforge: { label: "LuaForge", order: 3 },
-  javaforge: { label: "JavaForge", order: 4 },
-  scriptforge: { label: "ScriptForge", order: 5 },
-  configforge: { label: "ConfigForge", order: 6 },
+  pyforge: { label: "PyForge", order: 4 },
+  javaforge: { label: "JavaForge", order: 5 },
+  scriptforge: { label: "ScriptForge", order: 6 },
+  configforge: { label: "ConfigForge", order: 7 },
 };
 
 const packLabel = (pack: string) => PACKS[pack]?.label ?? pack;

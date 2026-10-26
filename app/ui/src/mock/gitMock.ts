@@ -24,6 +24,7 @@ import { lineDiff, unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { isLuaDemo } from "./demoLuaProject";
+import { isPythonDemo, pythonDemoFiles } from "./demoPythonProject";
 import { isJavaDemo, JAVA_PKG, javaDemoFiles } from "./demoJavaProject";
 import { demoStatus } from "./demoStatus";
 import { CONFLICT_BRANCH, demoConflicts, type DemoConflict } from "./demoConflicts";
@@ -249,10 +250,15 @@ index["app/Http/Controllers/OrderController.php"] = controllerWorking;
 
 // The WebForge demos (`?project=react|vue|angular`) are committed as they are.
 const web = webDemo();
-if (web) {
+if (web || isPythonDemo()) {
   for (const snapshot of [head, index]) {
     for (const k of Object.keys(snapshot)) delete snapshot[k];
-    Object.assign(snapshot, web.files);
+    Object.assign(snapshot, web ? web.files : pythonDemoFiles);
+  }
+  // The Python demo has one change: the new import in main.py.
+  if (!web) {
+    const main = "src/shop_api/main.py";
+    for (const snapshot of [head, index]) snapshot[main] = pythonDemoFiles[main].replace("from rich.console import Console\n", "").replace("console = Console()\n\n\n", "");
   }
 }
 // The Java demo (`?project=java`) is committed except for the low-stock report in progress.
@@ -266,7 +272,7 @@ if (isJavaDemo()) {
 
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock). The web demos and the Lua demo game have no PHP tests.
-if (!web && !isLuaDemo() && !isJavaDemo()) void Promise.resolve().then(() =>
+if (!web && !isLuaDemo() && !isPythonDemo() && !isJavaDemo()) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
@@ -785,26 +791,7 @@ async function withMarkers(c: DemoConflict, theirs: string): Promise<string> {
   let pos = 0;
   for (const ch of model.chunks) {
     out += lines.slice(pos, ch.base.start).join("");
-    if (ch.kind === "conflict") out += `<<<<<<< HEAD\n${ch.leftText}=======\n${ch.rightText}>>>>>>> ${theirs}\n`;
-    else out += ch.kind === "right" ? ch.rightText : ch.leftText;
-    pos = ch.base.end;
-  }
-  return out + lines.slice(pos).join("");
-}
-
-async function startConflictMerge(rev: string): Promise<void> {
-  merging.theirs = rev.replace(/^origin\//, "");
-  merging.theirsSha = resolveRev(rev) ?? shaOf("c3");
-  for (const [path, c] of Object.entries(demoConflicts())) {
-    merging.conflicts.set(path, c);
-    if (c.binary) continue;
-    const text = c.ours !== null && c.theirs !== null ? await withMarkers(c, merging.theirs) : (c.ours ?? c.theirs ?? "");
-    await invoke("fs_write_file", { path, contents: text });
-  }
-}
-
-// `?conflicts` opens the demo in the middle of that merge (screenshots).
-if (!web && !isLuaDemo() && !isJavaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+    if (ch.kind === "conflict") out += `if (!web && !isLuaDemo() && !isPythonDemo() && !isJavaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)

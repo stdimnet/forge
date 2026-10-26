@@ -103,6 +103,7 @@ pub fn run() {
         .manage(commands::remote_host::RemoteHostState::default())
         .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
+        .manage(commands::python::PythonState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
@@ -481,6 +482,21 @@ pub fn run() {
             commands::php_meta::php_libraries,
             commands::php_meta::php_library_list,
             commands::php_meta::php_source_roots,
+            commands::python::python_interpreter_current,
+            commands::python::python_interpreters_detect,
+            commands::python::python_interpreter_info,
+            commands::python::python_environment_plan,
+            commands::python::python_packages_list,
+            commands::python::python_packages_command,
+            commands::python::python_packages_latest,
+            commands::python::python_packages_search,
+            commands::python::python_package_info,
+            commands::python::python_inspect,
+            commands::python::python_add_requirement,
+            commands::python::python_complete,
+            commands::python::python_run_markers,
+            commands::python::python_format,
+            commands::python::python_dependencies,
             commands::java::java_jdks,
             commands::java::java_jdk_inspect,
             commands::java::java_jdk_releases,

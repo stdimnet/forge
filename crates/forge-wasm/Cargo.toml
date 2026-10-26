@@ -30,6 +30,9 @@ phpforge-fw-wordpress.workspace = true
 phpforge-fw-cms.workspace = true
 phpforge-test-frameworks = { path = "../../packs/phpforge/test-frameworks" }
 luaforge-lang-lua.workspace = true
+pyforge-lang-python.workspace = true
+pyforge-interpreters.workspace = true
+pyforge-packages.workspace = true
 javaforge-build.workspace = true
 javaforge-lang-java.workspace = true
 forge-keymap.workspace = true

@@ -20,6 +20,7 @@ Languages and large feature sets ship as **packs**:
 | **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Doctrine (DQL), WordPress, Drupal / Joomla / Shopware basics |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
+| **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
@@ -50,6 +51,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **PyForge**: the Python interpreter in the status bar with a popup to switch,
+  Settings | Project | Python Interpreter with detection of venv, uv, Poetry, conda, Pipenv,
+  Hatch and pyenv environments and new environments, Docker / Compose / SSH / WSL
+  interpreters, the Python Packages tool window (pip, uv, Poetry, Pipenv; PyPI search and
+  latest versions), requirements inspections with "Install requirement" and "Add requirement",
+  basedpyright, ruff and ty (preview) with verified downloads, Reformat Code with ruff format
+  or Black, and the Python run configuration ([PyForge](user/python.md)).
 - **Deployment**: Settings | Build, Execution, Deployment | Deployment configures SFTP, FTP,
   FTPS and local-folder servers with root path, web server URL, path mappings and excluded
   paths; Tools | Deployment and the Project view upload, download, compare with the deployed

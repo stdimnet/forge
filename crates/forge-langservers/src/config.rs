@@ -195,6 +195,16 @@ pub fn build_config(
                 language_ids.push("vue".into());
             }
         }
+        "basedpyright" | "pyright" => {
+            // The project's interpreter (Settings | Python Interpreter): imports resolve
+            // against its site-packages.
+            if let Some(python) = &ctx.prefs.python_path {
+                merge_json(
+                    &mut settings,
+                    &json!({"python": {"pythonPath": python.display().to_string()}}),
+                );
+            }
+        }
         "vue-language-server" | "astro-ls" => {
             let dirs = node_modules_dirs(ctx, Some(executable));
             if let Some(ts) = find_package(&dirs, "typescript/lib") {

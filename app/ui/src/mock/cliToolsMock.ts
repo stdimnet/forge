@@ -15,13 +15,14 @@ import { isSymfonyDemo } from "./demoSymfonyProject";
 import { isWordPressDemo } from "./demoWordPressProject";
 import { isDrupalDemo } from "./demoDrupalProject";
 import { isLuaDemo } from "./demoLuaProject";
+import { isPythonDemo } from "./demoPythonProject";
 import { isJavaDemo } from "./demoJavaProject";
 import { webDemo } from "./demoWebProjects";
 import { mockSettingValue } from "./settingsMock";
 
 /** Project files the detection looks at. */
 function demoFiles(): string[] {
-  if (isLuaDemo() || isJavaDemo() || webDemo()) return [];
+  if (isLuaDemo() || isPythonDemo() || isJavaDemo() || webDemo()) return [];
   if (isSymfonyDemo()) return ["composer.json", "bin/console"];
   if (isWordPressDemo()) return ["composer.json", "vendor/bin/wp"];
   if (isDrupalDemo()) return ["composer.json", "vendor/bin/drush"];

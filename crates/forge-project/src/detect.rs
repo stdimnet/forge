@@ -35,9 +35,10 @@ pub struct ProjectInfo {
     /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `rust`, `go`, `python`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
-    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `javaforge`.
+    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`.
     pub packs: Vec<String>,
-    /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `maven`, `gradle`, `docker`, `git`.
+    /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
+    /// `conda`, `maven`, `gradle`, `docker`, `git`.
     pub tools: Vec<String>,
     /// The framework (or, without one, the language) that best describes the project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -86,6 +87,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "php" => Some("phpforge"),
         "javascript" | "typescript" | "html" | "css" => Some("webforge"),
         "lua" => Some("luaforge"),
+        "python" => Some("pyforge"),
         "java" => Some("javaforge"),
         _ => None,
     }
@@ -389,8 +391,39 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     if has("go.mod") {
         c.language("go");
     }
-    if has("pyproject.toml") || has("requirements.txt") || has("setup.py") {
+    // ---- Python
+    // Like Lua: Python files in the root, several of them in a folder, or a packaging /
+    // environment file make it a Python project.
+    let py_files = files
+        .iter()
+        .filter(|f| f.ends_with(".py") || f.ends_with(".pyw"))
+        .count();
+    let requirements = files.iter().any(|f| {
+        (f.starts_with("requirements") || f.starts_with("constraints")) && f.ends_with(".txt")
+    });
+    if has("pyproject.toml")
+        || has("setup.py")
+        || has("setup.cfg")
+        || has("Pipfile")
+        || has("environment.yml")
+        || has("environment.yaml")
+        || requirements
+        || py_files >= 2
+        || (rel.is_empty() && py_files > 0)
+    {
         c.language("python");
+    }
+    if has("uv.lock") {
+        c.tool("uv");
+    }
+    if has("poetry.lock") {
+        c.tool("poetry");
+    }
+    if has("Pipfile") || has("Pipfile.lock") {
+        c.tool("pipenv");
+    }
+    if has("environment.yml") || has("environment.yaml") {
+        c.tool("conda");
     }
     if has("Dockerfile")
         || has("compose.yaml")
@@ -1078,8 +1111,42 @@ mod tests {
         write(dir.path(), "pyproject.toml", "");
         let info = detect(dir.path());
         assert_eq!(info.languages, vec!["rust", "go", "python"]);
-        assert!(info.packs.is_empty());
+        assert_eq!(info.packs, vec!["pyforge"]);
         assert_eq!(info.primary.unwrap().name, "Rust");
+    }
+
+    #[test]
+    fn python_projects() {
+        // Each marker alone makes a Python project.
+        for marker in [
+            "pyproject.toml",
+            "setup.py",
+            "setup.cfg",
+            "requirements-dev.txt",
+            "Pipfile",
+            "environment.yml",
+            "main.py",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["pyforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().id, "python", "{marker}");
+        }
+        // One helper script in a subfolder of another project does not count; two do.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "composer.json", "{}");
+        write(dir.path(), "scripts/gen.py", "");
+        assert!(!detect(dir.path()).uses("python"));
+        write(dir.path(), "scripts/other.py", "");
+        assert!(detect(dir.path()).uses("pyforge"));
+        // Tools.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "pyproject.toml", "");
+        write(dir.path(), "uv.lock", "");
+        write(dir.path(), "poetry.lock", "");
+        let info = detect(dir.path());
+        assert!(info.uses("uv") && info.uses("poetry") && !info.uses("pipenv"));
     }
 
     #[test]

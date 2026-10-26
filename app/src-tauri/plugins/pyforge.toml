@@ -1,0 +1,212 @@
+# PyForge: Python in the style of PyCharm. The logic lives in packs/pyforge (lang-python:
+# PEP 440/508, dependency files, imports and inspections; interpreters: detection and new
+# environments; packages: pip/uv/Poetry/Pipenv and PyPI). basedpyright, Pyright, ty and
+# ruff come from the language server catalog (crates/forge-langservers).
+
+[[plugin]]
+id = "forge.python"
+name = "Python"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+description = "Python editing: highlighting, scope-aware completion, syntax checks, requirements files, basedpyright / ty and ruff from Settings > Language Servers, Reformat Code with ruff format or Black."
+
+[plugin.contributions]
+languages = ["python"]
+
+[[plugin.contributions.fileTypes]]
+id = "python"
+name = "Python"
+extensions = ["py", "pyw", "pyi", "pyx", "pxd", "gyp"]
+fileNames = ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"]
+interpreters = ["python", "python3", "pypy", "pypy3"]
+
+[[plugin.contributions.fileTypes]]
+id = "pip-requirements"
+name = "pip Requirements"
+fileNames = ["requirements*.txt", "constraints*.txt", "requirements*.in", "requirements/*.txt"]
+
+[[plugin.contributions.commands]]
+id = "python.reformatFile"
+title = "Reformat File with ruff format / Black"
+category = "Python"
+
+# ---- Settings | Languages & Frameworks | Python ----------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.formatter"
+title = "Reformat Code with"
+description = "Ctrl+Alt+L and \"Reformat code\" on save use this formatter for Python files; pyproject.toml / ruff.toml settings are honoured."
+type = "enum"
+options = [
+  { value = "ruff", label = "ruff format" },
+  { value = "black", label = "Black" },
+  { value = "lsp", label = "The language server" },
+  { value = "none", label = "Do not format" },
+]
+default = "ruff"
+group = "lang.python"
+section = "Formatter"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.ruff.path"
+title = "ruff executable"
+description = "Leave empty to use the interpreter's environment, Forge's download or PATH."
+type = "path"
+default = ""
+group = "lang.python"
+section = "Formatter"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.black.path"
+title = "Black executable"
+description = "Leave empty to use the interpreter's environment or PATH."
+type = "path"
+default = ""
+group = "lang.python"
+section = "Formatter"
+order = 2
+
+[[plugin.contributions.settings]]
+key = "python.lsp.useEnvironmentTools"
+title = "Use language servers from the interpreter's environment"
+description = "basedpyright, ruff and ty installed in the selected environment (or the project's .venv) start before Forge's own downloads and PATH."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Language Servers"
+order = 10
+
+[[plugin]]
+id = "forge.python-env"
+name = "Python Interpreters and Packages"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python"]
+projectTypes = ["pyforge"]
+description = "Python interpreters (system, pyenv, venv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL), the Python Packages tool window, requirements inspections and the Python run configuration."
+
+[[plugin.contributions.toolWindows]]
+id = "pythonPackages"
+title = "Python Packages"
+anchor = "bottom"
+icon = "package"
+order = 45
+
+[[plugin.contributions.commands]]
+id = "python.selectInterpreter"
+title = "Switch Python Interpreter…"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "python.addInterpreter"
+title = "Add Python Interpreter…"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "python.installRequirements"
+title = "Install Requirements"
+category = "Python"
+
+[[plugin.contributions.commands]]
+id = "ActivatePythonPackagesToolWindow"
+title = "Python Packages"
+category = "View"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "python"
+name = "Python"
+description = "Run a Python script or module (python -m) with the project's interpreter."
+icon = "file-code"
+
+# ---- Settings | Project | Python Interpreter ------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.interpreter"
+title = "Python Interpreter"
+description = "The project's interpreter: the path of a local python executable (a detected environment) or the name of a configured interpreter."
+type = "string"
+default = ""
+group = "project.python-interpreter"
+project = true
+hidden = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "python.interpreters"
+title = "Python interpreters"
+description = "Interpreters available in every project: local, Docker, Docker Compose, SSH and WSL."
+type = "objects"
+unique = ["name"]
+default = []
+group = "project.python-interpreter"
+hidden = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "python.projectInterpreters"
+title = "Python interpreters of this project"
+type = "objects"
+unique = ["name"]
+default = []
+group = "project.python-interpreter"
+project = true
+hidden = true
+order = 2
+
+# ---- Python Packages and inspections ---------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "python.packages.pypi"
+title = "Look up packages on PyPI"
+description = "Latest versions, search and version completion come from PyPI (cached for 12 hours in Forge's cache folder)."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Packages"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "python.packages.index"
+title = "Package index"
+description = "PyPI or a mirror with the same JSON API."
+type = "string"
+default = "https://pypi.org"
+group = "lang.python"
+section = "Packages"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "python.inspections.requirements"
+title = "Report unsatisfied requirements"
+description = "Dependencies in requirements files and pyproject.toml that are not installed in the interpreter, with \"Install requirement\"."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Inspections"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "python.inspections.imports"
+title = "Report imports of packages missing from the requirements"
+description = "With the quick fix \"Add requirement\" to requirements.txt or pyproject.toml."
+type = "bool"
+default = true
+group = "lang.python"
+section = "Inspections"
+order = 31
+
+[[plugin.contributions.settings]]
+key = "python.inspections.ignoredPackages"
+title = "Ignored packages"
+description = "Packages the requirements inspections do not report."
+type = "list"
+default = []
+group = "lang.python"
+section = "Inspections"
+project = true
+order = 32

@@ -630,6 +630,9 @@
 .pack-luaforge {
   --pack: var(--syn-type);
 }
+.pack-pyforge {
+  --pack: var(--syn-keyword);
+}
 .pack-javaforge {
   --pack: var(--danger);
 }

@@ -73,6 +73,9 @@ pub fn effective_command(option: &InstallOption, detector: &Detector) -> Vec<Str
 
 /// [`effective_command`] as one line, for the install dialog and its output.
 pub fn display_command(option: &InstallOption, detector: &Detector) -> String {
+    if let Some(name) = crate::managed::pypi_package(option) {
+        return format!("Download {name} from PyPI (SHA-256 verified)");
+    }
     if option.command.is_empty() {
         return option.display();
     }

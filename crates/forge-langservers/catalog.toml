@@ -663,10 +663,11 @@ args = ["--stdio"]
 alternative = "python"
 homepage = "https://docs.basedpyright.com"
 license = "MIT"
+plugin = "forge.python"
 install = [
+  { tool = "npm", command = ["npm", "install", "-g", "basedpyright"] },
   { tool = "pipx", command = ["pipx", "install", "basedpyright"] },
   { tool = "pip", command = ["python3", "-m", "pip", "install", "--user", "basedpyright"] },
-  { tool = "npm", command = ["npm", "install", "-g", "basedpyright"] },
 ]
 
 [server.settings]
@@ -691,6 +692,43 @@ install = [
 
 [server.settings]
 python = { analysis = { typeCheckingMode = "standard", autoSearchPaths = true, useLibraryCodeForTypes = true, diagnosticMode = "openFilesOnly" } }
+
+[[server]]
+id = "ty"
+name = "ty (preview)"
+group = "Python"
+languages = ["python"]
+command = "ty"
+args = ["server"]
+alternative = "python"
+plugin = "forge.python"
+enabled = false
+homepage = "https://docs.astral.sh/ty/"
+license = "MIT"
+note = "Preview: Astral's type checker. Enable it and disable basedpyright and Pyright to use it."
+install = [
+  { tool = "pypi", command = ["pypi", "install", "ty"] },
+  { tool = "uv", command = ["uv", "tool", "install", "ty"] },
+  { tool = "pipx", command = ["pipx", "install", "ty"] },
+]
+
+[[server]]
+id = "ruff"
+name = "Ruff"
+group = "Python"
+languages = ["python"]
+command = "ruff"
+args = ["server"]
+plugin = "forge.python"
+homepage = "https://docs.astral.sh/ruff/"
+license = "MIT"
+note = "Linting and quick fixes next to the type checker; ruff format is the default formatter."
+install = [
+  { tool = "pypi", command = ["pypi", "install", "ruff"] },
+  { tool = "uv", command = ["uv", "tool", "install", "ruff"] },
+  { tool = "pipx", command = ["pipx", "install", "ruff"] },
+  { tool = "brew", command = ["brew", "install", "ruff"], platforms = ["macos", "linux"] },
+]
 
 # ---- Systems languages -------------------------------------------------------------------
 

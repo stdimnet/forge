@@ -14,6 +14,8 @@ settings work.
 
 - **Install**: npm commands (`npm install -g …`) become managed installs into Forge's server
   folder, never global ones; Forge downloads Node.js itself when none (>= 18) is installed.
+  "Download … from PyPI" fetches the official wheel of the platform (ruff, ty), checks its
+  SHA-256 against PyPI and copies the executable to `<data dir>/forge/langservers/bin`.
   Commands with `sudo` are only shown for you to run. Links are download pages.
 - **Alternative group**: only the first enabled and installed server of a group starts.
 - **Needs plugin**: the server starts only while that plugin is enabled and active.
@@ -133,8 +135,10 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [basedpyright](https://docs.basedpyright.com) | `basedpyright` | Python | `basedpyright-langserver --stdio` | `pipx install basedpyright`<br>`python3 -m pip install --user basedpyright`<br>`npm install -g basedpyright` | MIT | alternative group `python` |
+| [basedpyright](https://docs.basedpyright.com) | `basedpyright` | Python | `basedpyright-langserver --stdio` | `npm install -g basedpyright` (managed: Forge installs it)<br>`pipx install basedpyright`<br>`python3 -m pip install --user basedpyright` | MIT | needs plugin `forge.python`; alternative group `python`; gets the project's interpreter as `python.pythonPath` |
 | [Pyright](https://github.com/microsoft/pyright) | `pyright` | Python | `pyright-langserver --stdio` | `npm install -g pyright`<br>`pipx install pyright`<br>`sudo pacman -S pyright` (linux) | MIT | alternative group `python`; Starts only when basedpyright is missing or disabled. |
+| [ty (preview)](https://docs.astral.sh/ty/) | `ty` | Python | `ty server` | Download ty from PyPI (SHA-256 verified)<br>`uv tool install ty`<br>`pipx install ty` | MIT | needs plugin `forge.python`; off by default; alternative group `python`; Preview: Astral's type checker. Enable it and disable basedpyright and Pyright to use it. |
+| [Ruff](https://docs.astral.sh/ruff/) | `ruff` | Python | `ruff server` | Download ruff from PyPI (SHA-256 verified)<br>`uv tool install ruff`<br>`pipx install ruff`<br>`brew install ruff` (macos, linux) | MIT | needs plugin `forge.python`; Linting and quick fixes next to the type checker; ruff format is the default formatter. |
 
 ### Go
 

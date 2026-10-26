@@ -54,6 +54,7 @@ import "./database";
 import "./injections";
 import "./scratches";
 import "./lua";
+import "./python";
 import "./java";
 import "./services";
 import "./remote";

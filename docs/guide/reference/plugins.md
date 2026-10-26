@@ -13,7 +13,7 @@ them (a language, framework, pack or tool id from
 [project detection](../getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `javaforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -25,7 +25,6 @@ script and config language plugins.
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
 | Git | `forge.git` | core |  | always | tool windows: Commit, Git; 2 commands; 8 settings; 1 keybindings |
 | Bash | `forge.bash` | scriptforge |  | always | file types: Shell Script |
-| Python | `forge.python` | scriptforge |  | always | file types: Python |
 | YAML | `forge.yaml` | configforge |  | always | file types: YAML |
 | JSON | `forge.json` | configforge |  | always | file types: JSON |
 | .env | `forge.dotenv` | configforge |  | always | file types: Dotenv |
@@ -37,6 +36,8 @@ script and config language plugins.
 | Config Files | `forge.conf` | configforge |  | always | file types: Config |
 | Language Servers | `forge.langservers` | core | `forge.core` | always | 1 commands; 9 settings |
 | Lua | `forge.lua` | luaforge |  | `luaforge` | 1 commands; 6 settings; file types: Lua; 1 LSP servers; run types: Lua Script |
+| Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
+| Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |

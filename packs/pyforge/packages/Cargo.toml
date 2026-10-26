@@ -1,0 +1,24 @@
+[package]
+name = "pyforge-packages"
+description = "PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# PyPI requests cached in the user cache dir. The pure part builds to WebAssembly without it.
+net = ["dep:reqwest", "dep:tokio", "dep:dirs"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+pyforge-lang-python.workspace = true
+pyforge-interpreters.workspace = true
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+tokio = { workspace = true, optional = true }
+dirs = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

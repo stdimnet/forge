@@ -17,6 +17,7 @@ import type {
 } from "@/ipc/lsp";
 import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
+import { isPythonDemo } from "./demoPythonProject";
 import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./demoJavaProject";
 import {
   collectionMembers,
@@ -100,8 +101,10 @@ function publish(path: string) {
 // The Java demo (`?project=java`) runs Eclipse JDT LS, which imports the Gradle build first.
 const SERVER = isLuaDemo()
   ? { id: "lua-language-server", name: "Lua Language Server" }
-  : isJavaDemo()
-    ? { id: "jdtls", name: "Eclipse JDT LS" }
+  : isPythonDemo()
+    ? { id: "basedpyright", name: "basedpyright" }
+    : isJavaDemo()
+      ? { id: "jdtls", name: "Eclipse JDT LS" }
     : { id: "intelephense", name: "Intelephense" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
@@ -134,7 +137,7 @@ export const intelephenseMissingAtStart = () =>
   typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
 /** `?project=java&jdtls=missing`: the Java demo starts without Eclipse JDT LS. */
 const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
-let serverInstalled = isLuaDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : !intelephenseMissingAtStart());
+let serverInstalled = isLuaDemo() || isPythonDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : !intelephenseMissingAtStart());
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {

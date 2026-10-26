@@ -26,6 +26,7 @@ pub mod javadebug;
 pub mod jdtls;
 pub mod node;
 pub mod npm;
+pub mod pypi;
 pub mod stubs;
 pub mod updates;
 
@@ -135,6 +136,17 @@ pub fn npm_packages(option: &InstallOption) -> Option<Vec<String>> {
         .cloned()
         .collect();
     (!packages.is_empty()).then_some(packages)
+}
+
+/// The project of a PyPI install option (`pypi install ruff` → `ruff`): its executable is
+/// downloaded from PyPI's wheels by [`pypi::install`].
+pub fn pypi_package(option: &InstallOption) -> Option<String> {
+    match (option.tool.as_str(), option.command.as_slice()) {
+        ("pypi", [program, verb, name]) if program == "pypi" && verb == "install" => {
+            Some(name.clone())
+        }
+        _ => None,
+    }
 }
 
 /// Installs npm packages into Forge's directory with a Node.js it finds or downloads.
