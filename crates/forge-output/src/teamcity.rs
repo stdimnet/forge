@@ -406,7 +406,7 @@ impl TestTree {
                 if self.nodes[t]
                     .location
                     .as_ref()
-                    .map_or(true, |l| l.line.is_none())
+                    .is_none_or(|l| l.line.is_none())
                 {
                     if let Some(loc) = self.location(location.as_ref()) {
                         self.nodes[t].location = Some(loc);

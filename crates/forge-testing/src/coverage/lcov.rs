@@ -69,7 +69,7 @@ pub fn parse(text: &str) -> Result<CoverageReport, String> {
             let Ok(n) = parts[0].trim().parse::<u32>() else {
                 continue;
             };
-            let taken = parts[3].trim().parse::<u64>().map_or(false, |t| t > 0);
+            let taken = parts[3].trim().parse::<u64>().is_ok_and(|t| t > 0);
             let e = branches.entry(n).or_default();
             e.0 += u32::from(taken);
             e.1 += 1;

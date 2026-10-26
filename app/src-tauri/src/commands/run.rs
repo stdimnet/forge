@@ -302,7 +302,7 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             // Reports and coverage go to the temp dir only when everything runs here.
             let local = backend_local
                 && run_on.is_none()
-                && through.as_ref().map_or(true, |(i, _)| !i.kind.is_remote());
+                && through.as_ref().is_none_or(|(i, _)| !i.kind.is_remote());
             let mut cmd = if test_frameworks::is_test_type(&cfg.type_id) {
                 let (cmd, setup) = test_frameworks::command_line(
                     state,

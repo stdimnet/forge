@@ -162,7 +162,7 @@ impl TestFrameworks {
     /// providers (the frameworks the project uses); `None` asks every provider.
     pub fn discover(&self, path: &str, text: &str, active: Option<&[String]>) -> TestFile {
         self.providers()
-            .filter(|p| active.map_or(true, |a| a.iter().any(|id| id == p.id())))
+            .filter(|p| active.is_none_or(|a| a.iter().any(|id| id == p.id())))
             .filter(|p| p.accepts(path))
             .find_map(|p| p.discover(path, text))
             .unwrap_or_default()

@@ -180,11 +180,11 @@ impl LineParser for GoTestParser {
                     location: Some(Self::test_location(&e.package, t)),
                 });
             }
-            ("pass", None) | ("fail", None) | ("skip", None) => {
-                if self.open.as_deref() == Some(e.package.as_str()) {
-                    self.open = None;
-                    out.push(TestEvent::SuiteFinished { name: e.package });
-                }
+            ("pass", None) | ("fail", None) | ("skip", None)
+                if self.open.as_deref() == Some(e.package.as_str()) =>
+            {
+                self.open = None;
+                out.push(TestEvent::SuiteFinished { name: e.package });
             }
             _ => {}
         }

@@ -46,12 +46,9 @@ fn indent_of(line: &str) -> usize {
 
 /// `ok 3 - adds numbers # SKIP no db` → (ok, "adds numbers", directive, reason).
 fn test_line(text: &str) -> Option<(bool, String, Option<String>, String)> {
-    let (ok, rest) = if let Some(r) = text.strip_prefix("not ok") {
-        (false, r)
-    } else if let Some(r) = text.strip_prefix("ok") {
-        (true, r)
-    } else {
-        return None;
+    let (ok, rest) = match text.strip_prefix("not ok") {
+        Some(r) => (false, r),
+        None => (true, text.strip_prefix("ok")?),
     };
     if !(rest.is_empty() || rest.starts_with(' ')) {
         return None;

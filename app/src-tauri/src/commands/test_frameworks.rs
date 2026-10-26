@@ -262,7 +262,7 @@ pub(crate) fn command_line(
     let fw = framework_for(state, backend.as_ref(), framework, &cfg.interpreter);
     let local = backend.info().remote.is_none()
         && interpreters::resolve(state, &cfg.interpreter).kind == InterpreterKind::Local
-        && cfg.run_on.as_ref().map_or(true, |t| t.is_local());
+        && cfg.run_on.as_ref().is_none_or(|t| t.is_local());
     let (arg_dir, dir) = report_dir(local, root, run_id, "");
     let built =
         command::build(&to_runtools(cfg)?, fw.as_ref(), &arg_dir).map_err(ForgeError::Other)?;
