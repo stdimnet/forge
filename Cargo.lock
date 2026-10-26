@@ -1895,6 +1895,7 @@ dependencies = [
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
+ "pyforge-testing",
  "regex-lite",
  "serde",
  "serde_json",
@@ -2703,6 +2704,7 @@ dependencies = [
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
+ "pyforge-testing",
  "regex-lite",
  "serde",
  "serde_json",
@@ -5551,6 +5553,18 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "pyforge-testing"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
 ]
 
 [[package]]

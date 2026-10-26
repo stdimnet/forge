@@ -54,7 +54,7 @@ interface SessionData {
   tests?: TestTreeState;
   exited?: (code: number | null) => void;
   unlisten?: () => void;
-  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort">;
+  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort" | "profile">;
   /** Rerun of a tab without a process. */
   rerun?: () => void;
 }
@@ -78,6 +78,14 @@ const coverageListeners: CoverageListener[] = [];
 /** Coverage suites of finished Run with Coverage runs (the Coverage feature listens). */
 export function onCoverageSuite(l: CoverageListener): void {
   coverageListeners.push(l);
+}
+
+type ProfileListener = (profile: import("@/ipc/pythonTools").ProfileInfo) => void;
+const profileListeners: ProfileListener[] = [];
+
+/** Snapshots of finished Profile runs (the Profiler tool window listens). */
+export function onProfileSnapshot(l: ProfileListener): void {
+  profileListeners.push(l);
 }
 
 const [softWrap, setSoftWrap] = createSignal(false);
@@ -138,6 +146,10 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       if (e.suite) coverageListeners.forEach((l) => l(e.suite!));
       else if (e.error) writeError(id, `Coverage: ${e.error}`);
       break;
+    case "profile":
+      if (e.profile) profileListeners.forEach((l) => l(e.profile!));
+      else if (e.error) writeError(id, `Profiler: ${e.error}`);
+      break;
     case "exited": {
       if (d.tests) publishTestResults(d.tests.root);
       setState("sessions", (x) => x.id === id, { status: "finished", exitCode: e.code ?? (e.signal ? 128 + e.signal : null), endedAt: Date.now() });
@@ -160,6 +172,7 @@ function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["e
     outputFilters: type?.outputFilters?.(cfg),
     coverage: extra?.coverage || undefined,
     debugPort: extra?.debugPort,
+    profile: extra?.profile || undefined,
     runOn: cfg.runOn?.kind && cfg.runOn.kind !== "local" ? cfg.runOn : undefined,
   };
   if (type?.buildCommand) {

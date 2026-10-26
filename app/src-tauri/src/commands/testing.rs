@@ -226,7 +226,14 @@ pub async fn test_discover(
     text: String,
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
+    python: State<'_, crate::commands::python_tools::PythonToolsState>,
 ) -> Result<TestFile> {
+    // Python files: the project's runner (pytest or unittest) builds the configurations.
+    if path.to_ascii_lowercase().ends_with(".py") {
+        return Ok(crate::commands::python_tools::discover_file(
+            &state, &python, &path, &text,
+        ));
+    }
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     let specs = specs(&state);
@@ -254,11 +261,16 @@ pub async fn test_discover(
 
 /// The configuration that reruns the failed tests of a run.
 #[tauri::command]
-pub fn test_rerun_failed(
+pub async fn test_rerun_failed(
     configuration: RunConfiguration,
     failed: Vec<FailedTest>,
+    state: State<'_, AppState>,
     runs: State<'_, RunState>,
 ) -> Result<Option<RunConfiguration>> {
+    // pytest / unittest: the failed tests' classes come from their files.
+    if matches!(configuration.type_id.as_str(), "pytest" | "unittest") {
+        return crate::commands::python_tools::rerun_failed(&state, &configuration, &failed);
+    }
     match runs
         .tests
         .rerun_failed(&to_runtools(&configuration)?, &failed)

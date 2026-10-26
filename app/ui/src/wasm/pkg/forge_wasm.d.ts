@@ -1017,6 +1017,12 @@ export function python_add_requirement(request_json: string): string;
 export function python_completion_context(request_json: string): string;
 
 /**
+ * `{ rows }` → `ProfileView`: a demo snapshot written as a real `.pstats` file and read
+ * back by the parser the desktop app uses.
+ */
+export function python_demo_profile(request_json: string): string;
+
+/**
  * `{ path, content }` -> the file's declared dependencies.
  */
 export function python_dependencies(request_json: string): string;
@@ -1042,9 +1048,35 @@ export function python_interpreter_label(request_json: string): string;
 export function python_packages_command(request_json: string): string;
 
 /**
+ * `{ configuration, failed, files }` → `Configuration | null`.
+ */
+export function python_rerun_failed(request_json: string): string;
+
+/**
  * `{ content }` -> run markers.
  */
 export function python_run_markers(request_json: string): string;
+
+/**
+ * `{ configuration, cwd, reportDir, coverageFile?, reporter, toxProgram, head }` →
+ * `PythonCommand`.
+ */
+export function python_test_command(request_json: string): string;
+
+/**
+ * `{ path, text, runner, files }` → `TestFile` (`test_discover` for Python files).
+ */
+export function python_test_discover(request_json: string): string;
+
+/**
+ * `{ files }` → `ProjectTesting`.
+ */
+export function python_testing_detect(request_json: string): string;
+
+/**
+ * `{ files }` → `ToxEnv[]`.
+ */
+export function python_tox_environments(request_json: string): string;
 
 /**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
@@ -1797,12 +1829,18 @@ export interface InitOutput {
     readonly project_view_nesting_defaults: (a: number) => void;
     readonly python_add_requirement: (a: number, b: number, c: number) => void;
     readonly python_completion_context: (a: number, b: number, c: number) => void;
+    readonly python_demo_profile: (a: number, b: number, c: number) => void;
     readonly python_dependencies: (a: number, b: number, c: number) => void;
     readonly python_environment_plan: (a: number, b: number, c: number) => void;
     readonly python_inspect: (a: number, b: number, c: number) => void;
     readonly python_interpreter_label: (a: number, b: number, c: number) => void;
     readonly python_packages_command: (a: number, b: number, c: number) => void;
+    readonly python_rerun_failed: (a: number, b: number, c: number) => void;
     readonly python_run_markers: (a: number, b: number, c: number) => void;
+    readonly python_test_command: (a: number, b: number, c: number) => void;
+    readonly python_test_discover: (a: number, b: number, c: number) => void;
+    readonly python_testing_detect: (a: number, b: number, c: number) => void;
+    readonly python_tox_environments: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

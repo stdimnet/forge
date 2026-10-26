@@ -58,6 +58,7 @@ impl RunState {
         let plugins = app.plugins.read().expect("plugins lock poisoned");
         let mut tests = forge_testing::TestFrameworks::new();
         tests.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
+        tests.register(Box::new(pyforge_testing::PythonTestFrameworks));
         tests.register_specs(plugins.test_frameworks());
         // Node.js test runners: their manifest specs with WebForge's Node.js specifics.
         webforge_js_testing::register(&mut tests, plugins.test_frameworks().cloned());
@@ -185,6 +186,9 @@ pub struct RunRequest {
     /// "Run on" for command lines built by the UI (configurations carry their own).
     #[serde(default)]
     pub run_on: Option<forge_runtargets::RunTarget>,
+    /// Profile (Python): run under cProfile; the run ends with a `profile` event.
+    #[serde(default)]
+    pub profile: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -246,20 +250,27 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
             }
             cmd
         }
-        (Some(cfg), None) if cfg.type_id == "python" => {
+        (Some(cfg), None) if super::python_tools::is_python_type(&cfg.type_id) => {
             // Python runs through its own interpreters (local or Docker / SSH / WSL).
-            let (mut cmd, path_mappings) = super::python::build_run(state, &cfg)?;
-            cmd.env.extend(req.env);
-            if !req.interpreter_args.is_empty() {
-                cmd.args.splice(0..0, req.interpreter_args);
-            }
-            return Ok(Built {
-                cmd,
-                path_mappings,
-                debug_server: None,
-                output_filters,
-                tests,
-            });
+            return super::python_tools::build(
+                state,
+                &cfg,
+                super::python_tools::Extras {
+                    run_id,
+                    env: req.env,
+                    head: req.interpreter_args,
+                    debug_port: req.debug_port,
+                    coverage,
+                    profile: req.profile,
+                    output_filters,
+                },
+            );
+        }
+        (Some(cfg), None) if req.profile => {
+            return Err(ForgeError::Other(format!(
+                "'{}' configurations cannot be profiled",
+                cfg.type_id
+            )));
         }
         (Some(mut cfg), None) => {
             if crate::commands::java::handles(&cfg.type_id) {
@@ -530,6 +541,7 @@ fn framework_command(
             location_rules: built.location_rules,
             default_file: built.default_file,
             coverage,
+            profile: None,
         },
     ))
 }
@@ -537,7 +549,7 @@ fn framework_command(
 /// A command (as if run here) on a run target: wrapped by `forge-runtargets` with the
 /// target's mappings; PHP programs get what Xdebug needs to reach the IDE.
 #[allow(clippy::too_many_arguments)]
-fn on_target(
+pub(crate) fn on_target(
     state: &AppState,
     target: &forge_runtargets::RunTarget,
     cmd: CommandLine,
@@ -749,6 +761,20 @@ pub(crate) async fn start_built(
         drop(out);
         let mut coverage_event = None;
         if exited {
+            // Profile: the snapshot is complete once the program exited.
+            if let Some(setup) = &tests.profile {
+                coverage_event = Some(
+                    match crate::commands::python_tools::record_profile(
+                        &sink_app,
+                        sink_backend.as_ref(),
+                        setup,
+                        &run_root,
+                    ) {
+                        Ok(profile) => serde_json::json!({ "type": "profile", "profile": profile }),
+                        Err(error) => serde_json::json!({ "type": "profile", "error": error }),
+                    },
+                );
+            }
             // Run with Coverage: the report is complete once the runner exited.
             if let Some(setup) = &tests.coverage {
                 coverage_event = Some(

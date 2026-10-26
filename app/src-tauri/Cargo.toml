@@ -93,6 +93,7 @@ luaforge-lang-lua.workspace = true
 pyforge-lang-python.workspace = true
 pyforge-interpreters.workspace = true
 pyforge-packages = { workspace = true, features = ["net"] }
+pyforge-testing.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

@@ -39,6 +39,8 @@ pub enum TestReport {
     /// A Jest / Vitest JSON document on stdout (`jest --json`, `vitest --reporter=json`),
     /// read when the process exits.
     JestJson,
+    /// tox's output on stdout: every environment is a test (`tox -e py312,lint`).
+    Tox,
 }
 
 impl TestReport {

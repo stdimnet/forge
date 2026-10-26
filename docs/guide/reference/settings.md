@@ -683,6 +683,36 @@ Page id `lang.python`.
 | `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
 | `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
 
+### Tools | Python Integrated Tools
+
+Page id `tools.python-integrated-tools`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.testing.runner` | enum: `auto`, `pytest`, `unittest` | `auto` | user, project | Testing | Default test runner — Runs tests from the gutter and Run Context Configuration. Autodetect: pytest when the project uses it (configuration or dependency), unittest for files with only test cases. |
+| `python.pytest.reporter` | enum: `junitxml`, `reportLog` | `junitxml` | user, project | Testing | pytest results — JUnit XML is built into pytest; a report log needs the pytest-reportlog plugin. |
+| `python.tox.path` | path | `""` | user | tox | tox executable — Leave empty to run tox with the project's interpreter (python -m tox). |
+| `python.profiler.snapshots` | int | `20` | user | Profiler | Profiler snapshots to keep — cProfile snapshots (.pstats) of a project kept in Forge's cache folder. |
+
+### Build, Execution, Deployment | Debugger | Python Debugger
+
+Page id `build.python-debugger`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.debugger.justMyCode` | bool | `true` | user | debugpy | Step only through the project's code (justMyCode) — Library and standard library frames are skipped while stepping and break only on exceptions raised in the project. |
+| `python.debugger.subProcess` | bool | `true` | user | debugpy | Attach to subprocesses automatically — Child Python processes (multiprocessing, subprocess) are debugged too. |
+| `python.debugger.installWithoutAsking` | bool | `false` | user | debugpy | Install debugpy without asking — When the interpreter has no debugpy, Debug installs it (pip install debugpy) instead of asking first. |
+
+### Build, Execution, Deployment | Python Console
+
+Page id `build.python-console`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `python.console.ipython` | bool | `true` | user | Python Console | Use IPython if available — The Python Console runs IPython when the interpreter has it (magics, Out[] history). |
+| `python.console.interpreterOptions` | string | `""` | user, project | Python Console | Interpreter options — Passed to the interpreter that runs the console, for example -X dev. |
+
 ### Project | Python Interpreter
 
 Page id `project.python-interpreter` (edited on the page, not as rows).

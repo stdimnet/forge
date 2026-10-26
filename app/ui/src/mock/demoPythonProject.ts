@@ -266,6 +266,134 @@ def test_health():
 def test_unknown_order_is_404():
     assert client.get("/orders/999").status_code == 404
 `,
+  "src/shop_api/pricing.py": `"""Prices, discounts and the totals of a cart."""
+from dataclasses import dataclass, field
+from decimal import ROUND_HALF_UP, Decimal
+
+
+def round_cents(amount: float) -> float:
+    """Round to whole cents."""
+    return round(amount, 2)
+
+
+def apply_discount(total: Decimal, percent: int) -> Decimal:
+    if not 0 <= percent <= 100:
+        raise ValueError(f"discount out of range: {percent}")
+    discounted = total * (100 - percent) / 100
+    return discounted.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+@dataclass
+class Cart:
+    items: list[tuple[str, Decimal, int]] = field(default_factory=list)
+
+    def add(self, sku: str, price: Decimal, quantity: int = 1) -> None:
+        self.items.append((sku, price, quantity))
+
+    def total(self, tax_rate: Decimal = Decimal("0.19")) -> Decimal:
+        net = sum((price * qty for _, price, qty in self.items), Decimal("0"))
+        return (net * (1 + tax_rate)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+`,
+  "tests/conftest.py": `import pytest
+
+from shop_api.pricing import Cart
+
+
+@pytest.fixture
+def cart() -> Cart:
+    return Cart()
+`,
+  "tests/test_pricing.py": `from decimal import Decimal
+
+import pytest
+
+from shop_api.pricing import Cart, apply_discount, round_cents
+
+
+@pytest.mark.parametrize(
+    ("amount", "expected"),
+    [
+        (1.1781, 1.18),
+        (2.675, 2.68),
+        pytest.param(0.0, 0.0, id="zero"),
+    ],
+)
+def test_round_cents(amount, expected):
+    assert round_cents(amount) == expected
+
+
+def test_discount_rejects_out_of_range():
+    with pytest.raises(ValueError):
+        apply_discount(Decimal("10"), 120)
+
+
+class TestCart:
+    def test_empty_cart_total(self, cart: Cart):
+        assert cart.total() == Decimal("0.00")
+
+    def test_total_includes_tax(self, cart: Cart):
+        cart.add("mug", Decimal("12.50"), 2)
+        assert cart.total() == Decimal("29.75")
+
+    @pytest.mark.skip(reason="vouchers move to the checkout service")
+    def test_voucher(self, cart: Cart):
+        ...
+`,
+  "tests/test_settings.py": `import os
+import unittest
+from unittest import mock
+
+from shop_api.settings import Settings
+
+
+class SettingsTest(unittest.TestCase):
+    def test_defaults(self):
+        self.assertEqual(Settings().port, 8000)
+
+    @mock.patch.dict(os.environ, {"SHOP_PORT": "9000"})
+    def test_port_from_environment(self):
+        self.assertEqual(Settings().port, 9000)
+`,
+  "tox.ini": `[tox]
+envlist = py311, py312, lint
+
+[testenv]
+description = run the tests with pytest
+deps = pytest>=8
+commands = pytest {posargs}
+
+[testenv:lint]
+description = check the code with ruff
+deps = ruff
+commands = ruff check src tests
+`,
+  "scripts/report.py": `"""Monthly revenue per customer from the orders export."""
+import csv
+from collections import defaultdict
+from decimal import Decimal
+
+
+def parse_row(row: dict[str, str]) -> tuple[str, Decimal]:
+    return row["customer"].strip().title(), Decimal(row["total"])
+
+
+def load_orders(path: str) -> list[tuple[str, Decimal]]:
+    with open(path, encoding="utf-8") as f:
+        return [parse_row(r) for r in csv.DictReader(f)]
+
+
+def totals_by_customer(orders: list[tuple[str, Decimal]]) -> dict[str, Decimal]:
+    totals: dict[str, Decimal] = defaultdict(Decimal)
+    for customer, total in orders:
+        totals[customer] += total
+    return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))
+
+
+if __name__ == "__main__":
+    orders = load_orders("exports/orders-2026-10.csv")
+    for customer, total in totals_by_customer(orders).items():
+        print(f"{customer:<30} {total:>12}")
+`,
   "scripts/seed.py": `"""Load the demo orders into the database."""
 from shop_api.db import engine
 from shop_api.models import Base
