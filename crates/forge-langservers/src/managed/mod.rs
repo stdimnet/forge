@@ -23,8 +23,8 @@ pub mod npm;
 pub mod stubs;
 pub mod updates;
 
-#[cfg(test)]
-pub(crate) mod testserver;
+#[cfg(any(test, feature = "testserver"))]
+pub mod testserver;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

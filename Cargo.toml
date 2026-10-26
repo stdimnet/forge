@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/luaforge/lang-lua", "app/src-tauri"]
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/luaforge/lang-lua", "packs/javaforge/build", "packs/javaforge/lang-java", "packs/javaforge/jdk", "app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -74,6 +74,9 @@ phpforge-test-frameworks = { path = "packs/phpforge/test-frameworks" }
 phpforge-fw-wordpress = { path = "packs/phpforge/fw-wordpress" }
 phpforge-fw-cms = { path = "packs/phpforge/fw-cms" }
 luaforge-lang-lua = { path = "packs/luaforge/lang-lua" }
+javaforge-build = { path = "packs/javaforge/build" }
+javaforge-lang-java = { path = "packs/javaforge/lang-java", default-features = false }
+javaforge-jdk = { path = "packs/javaforge/jdk" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }

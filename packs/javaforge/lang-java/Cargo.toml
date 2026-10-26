@@ -1,0 +1,14 @@
+[package]
+name = "javaforge-lang-java"
+description = "JavaForge: Java language support (structural source scanner, main methods, JUnit 5/4/3 and TestNG discovery and commands for the shared test runner, application command lines, Eclipse JDT LS launch configuration; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+javaforge-build.workspace = true

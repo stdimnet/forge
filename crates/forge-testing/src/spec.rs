@@ -465,6 +465,7 @@ impl TestFrameworkSpec {
             coverage = Some(CoverageRequest {
                 file: expand(&spec.file, &vars).unwrap_or_default(),
                 format: spec.format,
+                location_rules: Vec::new(),
             });
         }
         Ok(TestCommand {
@@ -477,6 +478,7 @@ impl TestFrameworkSpec {
             default_file: matches!(scope, "file" | "test")
                 .then(|| cfg.option("file").trim().to_string()),
             coverage,
+            report_dirs: Vec::new(),
         })
     }
 

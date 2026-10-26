@@ -38,6 +38,11 @@ pub struct CoverageRequest {
     /// Path of the report: absolute or relative to the working directory.
     pub file: String,
     pub format: CoverageFormat,
+    /// Rewrites of the report's paths when they differ from the test locations' (JaCoCo
+    /// reports name main sources, test locations test sources); empty: the command's
+    /// `location_rules`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub location_rules: Vec<LocationRule>,
 }
 
 /// A test run's command line and how its results are read.
@@ -57,6 +62,12 @@ pub struct TestCommand {
     pub default_file: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub coverage: Option<CoverageRequest>,
+    /// Folders (relative to the project) where the build tool writes its JUnit XML reports
+    /// itself (Gradle `build/test-results/test`, Maven `target/surefire-reports`), with
+    /// [`TestReport::JUnitFile`]: they are emptied before the run and read (recursively)
+    /// after it, instead of a report folder Forge creates.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub report_dirs: Vec<String>,
 }
 
 /// A test framework (or a family of them) as the shared test runner sees it.

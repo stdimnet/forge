@@ -1,0 +1,19 @@
+[package]
+name = "javaforge-jdk"
+description = "JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry and Program Files, SDKMAN, asdf, jabba, Gradle toolchains, IntelliJ's ~/.jdks) from each JDK's release file, and JDK downloads from Eclipse Adoptium (Temurin) with SHA-256 verification"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+forge-langservers.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
+flate2 = "1"
+tar = { version = "0.4", default-features = false }
+forge-langservers = { workspace = true, features = ["testserver"] }
