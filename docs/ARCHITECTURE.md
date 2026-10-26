@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge, kotlinforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -1079,7 +1079,8 @@ or without Git, for local and remote projects.
   folders a build tool writes its JUnit XML into (Gradle, Surefire), emptied before the run and
   read recursively (`TEST-*.xml`) after it (`test_frameworks::ReportDir::Builds`); a
   `coverage.locationRules` overrides the command's rules for the report (JaCoCo names main
-  sources). JavaForge registers `JavaTests` for `junit` / `testng` (`JUnitFlavor::Java`).
+  sources). JavaForge registers `JavaTests` for `junit` / `testng` (`JUnitFlavor::Java`;
+  `JUnitFlavor::Kotlin` with `language = kotlin`), KotlinForge `KotlinTests` for `kotest`.
 - IPC (`commands/testing.rs`, `src/ipc/testing.ts`): `test_discover({ path, text }) ->
   TestFile` and `test_rerun_failed({ configuration, failed }) -> RunConfiguration | null` ask
   the registry; `test_frameworks_detect() -> string[]` (manifest frameworks the project
@@ -2265,6 +2266,60 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `maven` tool windows, the install offer (`java.jdtls.autoInstall`) and its status bar progress.
   Browser mode: `?project=java` opens the Gradle demo `inventory-service`
   (`mock/demoJavaProject.ts`, `javaMock.ts`, `javaDebugMock.ts`).
+
+## KotlinForge (`packs/kotlinforge/lang-kotlin`)
+
+- The plugin `forge.kotlin` (`app/src-tauri/plugins/kotlinforge.toml`, `projectTypes =
+  ["kotlinforge"]`, depends on `forge.java`) is active for Kotlin projects: `forge-project`
+  reports the `kotlin` language for `*.kt` files, Kotlin scripts (not `*.gradle.kts`),
+  `src/{main,test}/kotlin` or a build applying the Kotlin plugin, and the `kotest` framework for
+  builds depending on `io.kotest`. JDKs, builds and the JUnit / TestNG machinery are JavaForge's.
+- `kotlinforge-lang-kotlin` (pure, also in `forge-wasm`): the tolerant Kotlin scanner
+  (`source`), `main` functions (file facades `MainKt`, `@file:JvmName`, `@JvmStatic` in objects
+  and companions) and JUnit / TestNG discovery (`discovery`), Kotest specs (`kotest`: FunSpec,
+  StringSpec, DescribeSpec, BehaviorSpec), `KotlinTests` (the `forge-testing` provider of
+  `kotest`, which also discovers JUnit tests in `.kt` files as `junit` / `testng` configurations
+  with `language = kotlin`), Kotlin/JVM and script command lines (`launch`: Gradle init script
+  with a `forgeRunKotlin` `JavaExec`, Maven `exec:java`, `kotlinc`; `kotlin` / `kotlinc
+  -script`), the server launch (`lsp`), ktlint / detekt reports (`lint`: ktlint JSON,
+  Checkstyle, SARIF) and coroutine dumps (`coroutines`).
+- Language servers (pack servers in `pack_servers.toml`): JetBrains' kotlin-lsp, installed by
+  `forge_langservers::managed::kotlin` with the user's consent from download.jetbrains.com
+  (pinned version and SHA-256 per platform, never bundled), or fwcd's kotlin-language-server from
+  the PATH. `commands::kotlin::sync_lsp_server` registers one of them for local Kotlin projects
+  (`kt` and `main.kts`; Gradle scripts are left to the Gradle DSL support) with `JAVA_HOME` =
+  the project JDK through `LspServerConfig::env`. kotlin-lsp only answers pull diagnostics, so
+  its config sets `LspServerConfig::pull_diagnostics`: the client announces the capability and
+  asks `textDocument/diagnostic` after `didOpen` / `didChange`, publishing the answers as
+  `LspEvent::Diagnostics`. Both ids are in `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- IPC (`commands/kotlin.rs`, `src/ipc/kotlin.ts`): `kotlin_status() -> { server, serverPath?,
+  serverVersion?, pinnedVersion, downloadSize?, ktlint?, detekt?, kotlinc?, problems, remote }`,
+  `kotlin_lsp_install() -> version`, `kotlin_linters_install() -> paths`,
+  `kotlin_main_functions({ path, text }) -> MainFunction[]`, `kotlin_lint({ path, content }) ->
+  LintProblem[]` (ktlint on stdin), `kotlin_format({ path, content }) -> string | null`,
+  `kotlin_detekt({ paths? }) -> LintProblem[]` (CLI with a SARIF report, else the project's
+  `detekt` Gradle task in trusted projects), `kotlin_debug_prepare({ configuration }) -> {
+  adapter, dapPort, hostName, jdwpPort, run }`, `kotlin_coroutines({ value }) -> CoroutineDump`.
+  Downloads report `kotlin://install` `{ id: "kotlin-lsp" | "ktlint" | "detekt", event }`.
+- Runs (`run.rs`): `commands::kotlin::command_line` builds `java-application` configurations
+  with `kotlin = true` and `kotlin-script` before JavaForge; `kotest` is one of JavaForge's test
+  types for `prepare` (build tool, program, folders, debug port) and built by `KotlinTests`
+  (Gradle `--tests` plus `kotest_filter_specs` / `kotest_filter_tests`). Everything starts in
+  `run::start_built`, so Safe Mode refuses it.
+- Debugging: the manifest declares the `kotlin` debug adapter (a DAP server, `kt` / `kts`).
+  `kotlin_debug_prepare` executes `start_debug_server` on kotlin-lsp (or delegates to
+  `java_debug_prepare` when `kotlin.debug.debugger` is `java-debug`); the UI starts the run with
+  `FORGE_JAVA_DEBUG_PORT` and attaches with `{ type: "intellij_jvm", request: "attach",
+  hostName, port }`. The Debug tool window's **Coroutines** tab is a pack tab
+  (`registerDebugTab` in `features/debug/debugTabs.ts`): it evaluates the `DebugProbes` dump in
+  the selected frame and renders `kotlin_coroutines`' answer.
+- UI (`app/ui/src/features/kotlin`): settings page `lang.kotlin`, the `kotlin-script` and
+  `kotest` run types, the Run gutter on `main` and scripts (`RunClass`), ktlint / detekt
+  diagnostics (`publishDiagnostics` sources `kotlin-ktlint` / `kotlin-detekt`), a ktlint format
+  provider and format on save, the download offer and its status bar progress. Kotlin file
+  templates are in `forge-file-templates` (group `kotlin`, `package_of_dir`). Browser mode:
+  `?project=kotlin` opens the Gradle demo `orders-service` (`mock/demoKotlinProject.ts`,
+  `kotlinMock.ts`, `kotlinDebugMock.ts`, WebAssembly `crates/forge-wasm/src/kotlin.rs`).
 
 ## Scripting and config language packs
 

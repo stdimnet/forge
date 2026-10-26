@@ -12,6 +12,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim: EmmyLua/LuaLS annotations, lua-language-server, StyLua |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS (installed on request), JDK detection and Temurin downloads, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) |
+| **KotlinForge** | Kotlin/JVM: kotlin-lsp (installed on request), Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with a Coroutines view, ktlint and detekt |
 
 AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),
 AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp
