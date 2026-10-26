@@ -1,4 +1,4 @@
-/** Test results tree of a test run (PHPUnit, Pest): statuses, durations, navigation. */
+/** Test results tree of a test run (any framework): statuses, durations, navigation. */
 import { createMemo, For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { Ban, ChevronDown, ChevronRight, CircleCheck, CircleX, LoaderCircle } from "lucide-solid";
@@ -61,21 +61,42 @@ export function flattenTree(root: TestNode, view: TreeView): FlatRow[] {
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
- * Where a member is declared: a PHP method or class, a Pest `test()` / `it()` call (the last
- * part of `` `describe` → it … ``), a Behat scenario.
+ * Where a member is declared: a function or method (PHP, Go, Rust, Python, Lua), a class, a
+ * Pest `test()` / `it()` call (the last part of `` `describe` → it … ``), a Behat scenario.
  */
 export function declarationPattern(member: string, kind: TestNode["kind"], path: string): RegExp {
-  const name = member.replace(/ with (data set .*|\(.*\))$/, "");
+  const name = member.replace(/ with (data set .*|\(.*\))$/, "").replace(/\[.*\]$/, "");
   if (/\.feature$/i.test(path)) {
     const scenario = name.replace(/ #\d+$/, "");
     return new RegExp(`^\\s*(?:Scenario(?: Outline| Template)?|Example):\\s*${escapeRe(scenario)}\\s*$`);
   }
-  const short = name.split("\\").pop()!;
-  if (/^[A-Za-z_]\w*$/.test(short)) return kind === "test" ? new RegExp(`function\\s+${short}\\s*\\(`) : new RegExp(`(class|trait)\\s+${short}\\b`);
+  const short = name.split("\\").pop()!.split("/")[0];
+  if (/^[A-Za-z_]\w*$/.test(short))
+    return kind === "test"
+      ? new RegExp(`\\b(?:function|func|fn|def)\\s+(?:\\([^)]*\\)\\s*)?(?:[\\w.:]+[.:])?${short}\\s*[(<]`)
+      : new RegExp(`\\b(?:class|trait|struct|interface|object|mod)\\s+${short}\\b`);
   const own = name.split(" → ").pop()!;
   const it = /^it (.*)$/.exec(own);
   const [fn, desc] = it ? ["it", it[1]] : ["test", own];
   return new RegExp(`\\b${fn}\\(\\s*['"]${escapeRe(desc)}['"]`);
+}
+
+/**
+ * The line of a test whose full name joins its suites' names (busted, Mocha: "Cart totals
+ * rounds"): the last `it` / `test` / `describe` call whose description ends the name.
+ */
+export function fullNameLine(lines: string[], name: string): number {
+  const call = /\b(?:it|test|spec|describe|context|pending)\s*\(?\s*["'`]([^"'`]+)["'`]/;
+  let found = -1;
+  let best = 0;
+  lines.forEach((l, i) => {
+    const m = call.exec(l);
+    if (m && name.endsWith(m[1]) && m[1].length > best) {
+      best = m[1].length;
+      found = i;
+    }
+  });
+  return found;
 }
 
 /** Open the test's source: its line, else the declaration of the member in its location. */
@@ -90,7 +111,8 @@ export async function navigateToTest(node: TestNode): Promise<void> {
     const text = await workspaceApi.readFile(rel).catch(() => "");
     const re = declarationPattern(loc.member, node.location ? node.kind : "suite", rel);
     const lines = text.split("\n");
-    const idx = lines.findIndex((l) => re.test(l));
+    let idx = lines.findIndex((l) => re.test(l));
+    if (idx < 0) idx = fullNameLine(lines, loc.member);
     if (idx >= 0) {
       line = idx;
       character = Math.max(0, lines[idx].search(/\S/));

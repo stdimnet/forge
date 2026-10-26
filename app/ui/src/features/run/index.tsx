@@ -26,6 +26,7 @@ import {
   runConfiguration,
   toggleAutoTest,
   runningFor,
+  runWithCoverage,
   stopConfiguration,
   stopSession,
 } from "./runStore";
@@ -33,6 +34,7 @@ import { testGutter, testsOf } from "./gutter";
 import { testAt } from "./tests";
 import { COMPOUND } from "./types";
 import { scriptConfiguration } from "./phpTests";
+import { isFrameworkTestFile } from "./frameworkFiles";
 import "./builtinTypes";
 import "./testFrameworkTypes";
 import "./run.css";
@@ -48,6 +50,8 @@ export {
 export {
   launch,
   runConfiguration,
+  runWithCoverage,
+  onCoverageSuite,
   debugConfiguration,
   stopConfiguration,
   registerBeforeLaunchHandler,
@@ -68,9 +72,14 @@ registerToolWindow({
 });
 
 const isPhp = (path: string) => /\.php$/i.test(path) && !path.endsWith(".blade.php");
-/** Files that may hold tests: test, spec and feature folders, `*Test`, `*Cest`, `*Cept`, `*Spec`. */
+/**
+ * Files that may hold tests: PHP test, spec and feature folders, `*Test`, `*Cest`, `*Cept`,
+ * `*Spec`, and the `testFiles` globs of manifest test frameworks.
+ */
 const mayHoldTests = (path: string) =>
-  /\.feature$/i.test(path) || (isPhp(path) && /(^|\/)(tests?|spec|features)\/|(Test|Cest|Cept|Spec)\.php$/i.test(path));
+  /\.feature$/i.test(path) ||
+  (isPhp(path) && /(^|\/)(tests?|spec|features)\/|(Test|Cest|Cept|Spec)\.php$/i.test(path)) ||
+  isFrameworkTestFile(path);
 
 registerEditorExtension(({ path }) => (mayHoldTests(path) ? testGutter(path) : null));
 
@@ -80,7 +89,7 @@ registerEditorExtension(({ path }) => (mayHoldTests(path) ? testGutter(path) : n
  */
 function contextConfiguration() {
   const a = activeView();
-  if (!a || !(isPhp(a.path) || /\.feature$/i.test(a.path))) return null;
+  if (!a || !(isPhp(a.path) || /\.feature$/i.test(a.path) || isFrameworkTestFile(a.path))) return null;
   const state = a.view.state;
   const line = state.doc.lineAt(state.selection.main.head).number - 1;
   const tests = testsOf(state);
@@ -126,6 +135,12 @@ cmd("RunClass", "Run Context Configuration", () => {
   const cfg = contextConfiguration();
   if (!cfg) return void showBalloon("Nothing to run here", "Open a PHP file or a test.");
   void launch(useTemporary(cfg));
+});
+cmd("Coverage", "Run with Coverage", () => runWithCoverage());
+cmd("RunCoverage", "Run Context Configuration with Coverage", () => {
+  const cfg = contextConfiguration();
+  if (!cfg) return void showBalloon("Nothing to run here", "Open a test file.");
+  void runWithCoverage(useTemporary(cfg));
 });
 cmd("DebugClass", "Debug Context Configuration", () => {
   const cfg = contextConfiguration();

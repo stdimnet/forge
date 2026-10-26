@@ -85,6 +85,23 @@ Settings | Languages & Frameworks | Lua | **Lua interpreter** (`lua.interpreter`
 
 ![Run Lua](../../screenshots/lua-run.png)
 
+## Tests with busted
+
+LuaForge registers [busted](https://lunarmodules.github.io/busted/) on the shared
+[test runner](testing.md): `*_spec.lua` files get ▶ gutter icons on every `describe` block and
+`it` test, a **busted** run configuration type runs all specs, a directory, a spec file, one
+test (by its full name, `--filter`) or a name pattern, and the results arrive as TAP
+(`busted --output=TAP`) in the test tree with **Click to see difference** for failed
+`assert.are.equal` comparisons. **Rerun Failed Tests** passes one `--filter` per failed test.
+The executable is Settings | Languages & Frameworks | Lua | **busted executable**
+(`lua.busted.path`, `busted`) unless the configuration sets its own.
+
+**Run with Coverage** runs `busted --coverage`; with luacov's LCOV reporter in `.luacov`
+(`runreport = true`, `reporter = "lcov"`) the report `luacov.report.out` is shown in the
+[Coverage](coverage.md) tool window and the editor.
+
+![busted tests](../../screenshots/test-runner-busted.png)
+
 ## Settings summary
 
 ![Lua settings](../../screenshots/lua-settings.png)

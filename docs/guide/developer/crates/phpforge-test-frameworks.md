@@ -16,7 +16,11 @@ gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests.
 Everything [PHP test frameworks](../../user/test-frameworks.md) computes. The crate is pure
 (no processes, files or network) and builds to WebAssembly for browser mode; the app runs the
 tests through the project backend and the PHP interpreter, and the results are parsed by
-[`forge-output`](forge-output.md) (TeamCity messages and JUnit reports).
+[`forge-output`](forge-output.md) (TeamCity messages and JUnit reports). The frameworks
+register on the shared test runner as one provider (`PhpTestFrameworks`, see
+[`forge-testing`](forge-testing.md)), so discovery, Rerun Failed Tests and Run with Coverage
+go through the same registry as every other pack's frameworks; the discovery types
+(`TestFile`, `TestTarget`, `TargetKind`, `FailedTest`) are `forge-testing`'s.
 
 ## Modules
 
@@ -28,6 +32,7 @@ tests through the project backend and the PHP interpreter, and the results are p
 | `gherkin.rs` | `parse`: features, background, scenarios and outlines with tags, steps (`Given`, `When`, `Then`, `And`, `But`, `*`) and example rows (1-based lines, doc strings skipped); `split_step`. |
 | `steps.rs` | Behat step definitions from doc comments (`@Given …`) and attributes (`#[Given('…')]`, `#[\Behat\Step\Then("…")]`); `pattern_regex` (delimited regular expressions with flags, turnip `:placeholders`, optional `(s)` and `word/other` alternatives); `step_at` (a step's text, outline placeholders replaced by the first example row) and `step_targets`. |
 | `rerun.rs` | `rerun_failed`: PHPUnit / Pest `--filter`, Codeception `-g failed`, Behat `--rerun`, PHPSpec the failed spec file. |
+| `provider.rs` | `PhpTestFrameworks`: the `forge_testing::TestFrameworkProvider` of the five types (commands stay with the PHP interpreter path of the backend); `coverage_args` (`--coverage-clover <file>`, `XDEBUG_MODE=coverage`) for PHPUnit and Pest. |
 
 ## Used by
 
@@ -41,7 +46,8 @@ tests through the project backend and the PHP interpreter, and the results are p
 
 ## Dependencies
 
-- Workspace crates: [`forge-output`](forge-output.md), [`forge-runtools`](forge-runtools.md)
+- Workspace crates: [`forge-output`](forge-output.md), [`forge-runtools`](forge-runtools.md),
+  [`forge-testing`](forge-testing.md)
 - External: `regex-lite`, `serde`, `serde_json`
 
 ## Tests

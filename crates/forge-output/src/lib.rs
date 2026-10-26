@@ -8,8 +8,11 @@
 //! - [`links`]: clickable file references (`app/User.php:42`, stack traces) and URLs.
 //! - [`teamcity`]: TeamCity service messages (`phpunit --teamcity`, Pest, Jest) into a test
 //!   tree that is sent to the UI as node updates.
-//! - [`junit`]: JUnit XML reports (Codeception, Behat, PHPSpec) as service messages for the
-//!   same test tree.
+//! - [`junit`]: JUnit XML reports (Codeception, Behat, PHPSpec, pytest) as service messages
+//!   for the same test tree.
+//! - [`testevents`]: the test event protocol every test runner format is turned into.
+//! - [`formats`]: parsers for TAP, Go `test2json`, libtest JSON, Jest / Vitest JSON and
+//!   pytest report logs, and report sniffing.
 //! - [`run`]: everything above combined for one run.
 //! - [`stacktrace`]: Analyze External Stack Trace (frames linked to project files).
 //! - [`osc`]: terminal OSC sequences (progress, notifications, working directory) and OSC 8
@@ -20,12 +23,14 @@
 pub mod ansi;
 pub mod console;
 pub mod filters;
+pub mod formats;
 pub mod junit;
 pub mod links;
 pub mod osc;
 pub mod run;
 pub mod stacktrace;
 pub mod teamcity;
+pub mod testevents;
 mod utf16;
 
 pub use ansi::{AnsiParser, Segment, Style};
@@ -39,7 +44,9 @@ pub use links::{
 pub use osc::{link_target, parse_osc, LinkTarget, OscAction, Progress, ProgressState};
 pub use run::{OutputEvent, RunInput, RunOutput, RunOutputOptions, TestReport};
 pub use teamcity::{
-    format_duration, parse_location_hint, parse_service_message, ServiceMessage, StoredNode,
-    TestCounts, TestLocation, TestNode, TestNodeKind, TestStatus, TestSummary, TestTree,
+    format_duration, parse_location_hint, parse_service_message, LocationRule, ServiceMessage,
+    StoredNode, TestCounts, TestLocation, TestNode, TestNodeKind, TestStatus, TestSummary,
+    TestTree,
 };
+pub use testevents::{LineParser, ParsedLine, TestEvent};
 pub use utf16::{byte_to_utf16, utf16_to_byte};

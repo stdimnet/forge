@@ -1,0 +1,13 @@
+[package]
+name = "forge-runtargets"
+description = "Forge run targets (\"Run on\": local machine, Docker image, Docker Compose service, SSH, WSL, Dev Container): path mappings and the command lines that run, test and debug there (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+forge-runtools.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

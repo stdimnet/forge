@@ -29,6 +29,42 @@ export interface RunConfiguration {
   /** Type-specific fields. */
   options?: Record<string, string>;
   beforeLaunch?: BeforeLaunchTask[];
+  /** "Run on": where runs, tests and debug runs execute (none: this machine). */
+  runOn?: RunTarget;
+}
+
+export type RunTargetKind = "local" | "dockerImage" | "composeService" | "ssh" | "wsl" | "devContainer";
+
+/** A run target (Rust: `forge_runtargets::RunTarget`); fields a kind does not use stay empty. */
+export interface RunTarget {
+  kind: RunTargetKind;
+  image?: string;
+  /** Extra `docker run` options. */
+  runOptions?: string;
+  dockerContext?: string;
+  composeFiles?: string[];
+  service?: string;
+  lifecycle?: "run" | "exec";
+  host?: string;
+  port?: number;
+  user?: string;
+  keyFile?: string;
+  distribution?: string;
+  container?: string;
+  /** Where the project is on the target (Docker default `/opt/project`). */
+  projectPath?: string;
+  mappings?: { local: string; remote: string }[];
+  env?: Record<string, string>;
+}
+
+/** What a debugger needs for a run on a target (`run_target_info`). */
+export interface DebugTarget {
+  target: string;
+  /** How the program reaches the IDE (`host.docker.internal`, `127.0.0.1` over SSH). */
+  ideHost: string;
+  /** How the IDE reaches a port the program listens on. */
+  targetHost: string;
+  mappings: { local: string; remote: string }[];
 }
 
 export interface RunConfigurations {
@@ -61,6 +97,12 @@ export interface RunRequest {
   testRunner?: boolean;
   /** External Tools output filters (`$FILE_PATH$:$LINE$`) that link file references. */
   outputFilters?: string[];
+  /** Run with Coverage: the run ends with a `coverage` event. */
+  coverage?: boolean;
+  /** A debug port the run target must make reachable (DAP adapters). */
+  debugPort?: { port: number; direction: "connectsToIde" | "ideConnects" };
+  /** "Run on" for command lines built in the UI. */
+  runOn?: RunTarget;
 }
 
 export interface RunStarted {
@@ -155,7 +197,8 @@ export type RunEvent =
   | { type: "output"; stream: OutputStream; text: string }
   | { type: "exited"; code: number | null; signal: number | null }
   | ({ type: "console" } & ConsoleDelta)
-  | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary };
+  | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary }
+  | { type: "coverage"; suite?: import("./testing").CoverageSuite; error?: string };
 
 /** A file reference in terminal output; offsets are string indices. */
 export interface FileLink {

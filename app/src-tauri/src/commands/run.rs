@@ -24,6 +24,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::php_interpreters as interpreters;
 use crate::commands::test_frameworks::{self, TestSetup};
+use crate::commands::testing::{self, CoverageSetup};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
@@ -42,6 +43,10 @@ pub struct RunState {
     pub kinds: KindRegistry,
     /// Settings that hold default interpreters of manifest kinds (`lua.interpreter`).
     interpreter_settings: Vec<String>,
+    /// Test frameworks of every pack: the PHP frameworks and the manifests' ones.
+    pub tests: forge_testing::TestFrameworks,
+    /// Settings with the executables of manifest test frameworks (`programSetting`).
+    program_settings: Vec<String>,
 }
 
 impl RunState {
@@ -51,6 +56,13 @@ impl RunState {
         let mut interpreter_settings = Vec::new();
         kinds.register(Box::new(super::scratches::ScratchKind));
         let plugins = app.plugins.read().expect("plugins lock poisoned");
+        let mut tests = forge_testing::TestFrameworks::new();
+        tests.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
+        tests.register_specs(plugins.test_frameworks());
+        let program_settings = plugins
+            .test_frameworks()
+            .filter_map(|f| f.program_setting.clone())
+            .collect();
         for t in plugins.run_configuration_types() {
             if t.command.is_empty() {
                 continue;
@@ -74,6 +86,8 @@ impl RunState {
             next_id: AtomicU64::new(0),
             kinds,
             interpreter_settings,
+            tests,
+            program_settings,
         }
     }
 
@@ -155,6 +169,15 @@ pub struct RunRequest {
     /// External Tools output filters (`$FILE_PATH$:$LINE$`) that link file references.
     #[serde(default)]
     pub output_filters: Vec<String>,
+    /// Run with Coverage: the framework writes a coverage report that is read at the exit.
+    #[serde(default)]
+    pub coverage: bool,
+    /// A debug run's port that the run target must make reachable (a DAP adapter).
+    #[serde(default)]
+    pub debug_port: Option<forge_runtargets::DebugPort>,
+    /// "Run on" for command lines built by the UI (configurations carry their own).
+    #[serde(default)]
+    pub run_on: Option<forge_runtargets::RunTarget>,
 }
 
 #[derive(Debug, Serialize)]
@@ -199,6 +222,12 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
     let mut tests = TestSetup::default();
     // Ports the built-in web server serves, published by container / SSH interpreters.
     let mut publish: Vec<u16> = Vec::new();
+    // "Run on" of the configuration, and the program PHP kinds run there.
+    let mut run_on: Option<forge_runtargets::RunTarget> =
+        req.run_on.clone().filter(|t| !t.is_local());
+    let mut php_on_target = String::from("php");
+    let coverage = req.coverage;
+    let backend_local = state.backend()?.info().remote.is_none();
     let mut cmd = match (req.configuration, req.command) {
         (_, Some(mut cmd)) => {
             if cmd.cwd.as_os_str().is_empty() {
@@ -209,7 +238,18 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             cmd
         }
         (Some(mut cfg), None) => {
+            run_on = cfg.run_on.clone().filter(|t| !t.is_local()).or(run_on);
             let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
+            let own = cfg.interpreter.trim();
+            if !own.is_empty() && interpreters::interpreter_set(state).find(own).is_none() {
+                php_on_target = own.to_string();
+            }
+            if coverage && !runs.tests.supports_coverage(&cfg.type_id) {
+                return Err(ForgeError::Other(format!(
+                    "'{}' configurations cannot run with coverage",
+                    cfg.type_id
+                )));
+            }
             let composer_kind = COMPOSER_KINDS.contains(&cfg.type_id.as_str())
                 && interpreters::interpreter_set(state)
                     .find(&cfg.interpreter)
@@ -259,7 +299,11 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             if cfg.type_id == "phpunit" {
                 test_frameworks::apply_phpunit_defaults(state, &mut cfg)?;
             }
-            if test_frameworks::is_test_type(&cfg.type_id) {
+            // Reports and coverage go to the temp dir only when everything runs here.
+            let local = backend_local
+                && run_on.is_none()
+                && through.as_ref().is_none_or(|(i, _)| !i.kind.is_remote());
+            let mut cmd = if test_frameworks::is_test_type(&cfg.type_id) {
                 let (cmd, setup) = test_frameworks::command_line(
                     state,
                     &cfg,
@@ -269,18 +313,69 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
                 )?;
                 tests = setup;
                 cmd
+            } else if runs.tests.for_type(&cfg.type_id).is_some()
+                && !PHP_KINDS.contains(&cfg.type_id.as_str())
+            {
+                let (cmd, setup) =
+                    framework_command(state, runs, &cfg, &ctx.root, &run_id, local, coverage)?;
+                tests = setup;
+                cmd
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
                 }
                 runs.kinds.build(&cfg, &ctx)?
+            };
+            // PHPUnit and Pest: a Clover report with Xdebug or PCOV.
+            if coverage && tests.coverage.is_none() {
+                let (dir_arg, dir) =
+                    test_frameworks::report_dir(local, &ctx.root, &run_id, "coverage");
+                let file = "clover.xml";
+                let (args, env) = phpforge_test_frameworks::provider::coverage_args(
+                    &cfg.type_id,
+                    &format!("{dir_arg}/{file}"),
+                )
+                .ok_or_else(|| {
+                    ForgeError::Other(format!(
+                        "'{}' configurations cannot run with coverage",
+                        cfg.type_id
+                    ))
+                })?;
+                cmd.args.extend(args);
+                for (k, v) in env {
+                    cmd.env.entry(k).or_insert(v);
+                }
+                tests.coverage = Some(CoverageSetup {
+                    dir: Some(dir),
+                    file: file.into(),
+                    format: phpforge_test_frameworks::provider::COVERAGE_FORMAT,
+                    name: cfg.name.clone(),
+                    location_rules: Vec::new(),
+                });
             }
+            cmd
         }
         (None, None) => return Err(ForgeError::Other("nothing to run".into())),
     };
     cmd.env.extend(req.env);
     if !req.interpreter_args.is_empty() {
         cmd.args.splice(0..0, req.interpreter_args);
+    }
+    // "Run on" a target: the command runs there unless a remote PHP interpreter already
+    // decides where PHP runs.
+    let remote_interpreter = through.as_ref().is_some_and(|(i, _)| i.kind.is_remote());
+    if let Some(target) = run_on.filter(|_| !remote_interpreter) {
+        let php = through.as_ref().is_some_and(|(_, composer)| !composer);
+        return on_target(
+            state,
+            &target,
+            cmd,
+            php.then_some(php_on_target),
+            publish,
+            req.debug_port,
+            output_filters,
+            tests,
+        );
     }
     let Some((interp, composer)) = through else {
         return Ok(Built {
@@ -310,6 +405,170 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
         debug_server: phpforge_interpreters::command::is_debug(&cmd.env)
             .then(|| prepared.debug_server())
             .flatten(),
+        output_filters,
+        tests,
+    })
+}
+
+/// The command of a test framework that a manifest declares (busted, …): built by
+/// `forge-testing`, with its report folder and Run with Coverage report.
+fn framework_command(
+    state: &AppState,
+    runs: &RunState,
+    cfg: &RunConfiguration,
+    root: &std::path::Path,
+    run_id: &str,
+    local: bool,
+    coverage: bool,
+) -> Result<(CommandLine, TestSetup)> {
+    let (report_arg, report_dir) = test_frameworks::report_dir(local, root, run_id, "");
+    let (coverage_arg, coverage_dir) = test_frameworks::report_dir(local, root, run_id, "coverage");
+    let settings = state.read_settings();
+    let ctx = forge_testing::CommandContext {
+        report_dir: report_arg,
+        coverage_file: coverage.then(|| format!("{coverage_arg}/coverage")),
+        settings: runs
+            .program_settings
+            .iter()
+            .filter_map(|k| settings.get_as::<String>(k).map(|v| (k.clone(), v)))
+            .collect(),
+    };
+    drop(settings);
+    let built = runs
+        .tests
+        .command(&test_frameworks::to_runtools(cfg)?, &ctx)
+        .unwrap_or_else(|| Err(format!("no test framework builds '{}'", cfg.type_id)))
+        .map_err(ForgeError::Other)?;
+    let mut cmd = CommandLine::new(built.program).args(built.args);
+    let cwd = match cfg.working_directory.trim() {
+        "" => root.to_path_buf(),
+        d if std::path::Path::new(d).is_absolute() => std::path::PathBuf::from(d),
+        d => root.join(d),
+    };
+    cmd.cwd = cwd.clone();
+    cmd.env.extend(built.env);
+    cmd.env.extend(cfg.env.clone());
+    let coverage = built.coverage.map(|c| {
+        let in_dir = c
+            .file
+            .strip_prefix(&format!("{coverage_arg}/"))
+            .map(str::to_string);
+        let (dir, file) = match in_dir {
+            Some(name) => (Some(coverage_dir.clone()), name),
+            None => {
+                // A report the tool writes into the project (relative to the working dir).
+                let abs = if std::path::Path::new(&c.file).is_absolute() {
+                    std::path::PathBuf::from(&c.file)
+                } else {
+                    cwd.join(&c.file)
+                };
+                let rel = abs
+                    .strip_prefix(root)
+                    .map(|p| p.to_string_lossy().replace('\\', "/"))
+                    .unwrap_or_else(|_| c.file.clone());
+                (None, rel)
+            }
+        };
+        CoverageSetup {
+            dir,
+            file,
+            format: c.format,
+            name: cfg.name.clone(),
+            location_rules: built.location_rules.clone(),
+        }
+    });
+    Ok((
+        cmd,
+        TestSetup {
+            report: built.report,
+            flavor: built.flavor,
+            report_dir: (built.report == forge_process::output::TestReport::JUnitFile)
+                .then_some(report_dir),
+            configuration: Some(cfg.clone()),
+            location_rules: built.location_rules,
+            default_file: built.default_file,
+            coverage,
+        },
+    ))
+}
+
+/// A command (as if run here) on a run target: wrapped by `forge-runtargets` with the
+/// target's mappings; PHP programs get what Xdebug needs to reach the IDE.
+#[allow(clippy::too_many_arguments)]
+fn on_target(
+    state: &AppState,
+    target: &forge_runtargets::RunTarget,
+    cmd: CommandLine,
+    php: Option<String>,
+    publish: Vec<u16>,
+    debug_port: Option<forge_runtargets::DebugPort>,
+    output_filters: Vec<String>,
+    tests: TestSetup,
+) -> Result<Built> {
+    use forge_runtargets::{DebugDirection, DebugPort, Mapper};
+    use phpforge_interpreters::command::{debug_port as xdebug_port, is_debug, with_client_host};
+    let backend = state.backend()?;
+    let ctx = testing::target_context(backend.as_ref(), target, &testing::docker_cli(state));
+    let mapper = Mapper::new(&ctx.root, &ctx.mappings);
+    let mut env = cmd.env.clone();
+    let mut debug = debug_port;
+    let mut debug_server = None;
+    let server_name = target.display();
+    if php.is_some() && is_debug(&env) {
+        env.entry("PHP_IDE_CONFIG".into())
+            .or_insert_with(|| format!("serverName={server_name}"));
+        if target.kind.is_container() {
+            if let Some(c) = env.get_mut("XDEBUG_CONFIG") {
+                *c = with_client_host(c, "host.docker.internal");
+            }
+        }
+        debug = debug.or(Some(DebugPort {
+            port: xdebug_port(&env).unwrap_or(0),
+            direction: DebugDirection::ConnectsToIde,
+        }));
+        debug_server = Some(forge_debug::ServerConfig {
+            id: format!("target:{server_name}"),
+            name: server_name.clone(),
+            host: String::new(),
+            port: 80,
+            debugger: "Xdebug".into(),
+            use_path_mappings: true,
+            mappings: mapper
+                .pairs()
+                .iter()
+                .map(|(local, remote)| forge_debug::PathMapping {
+                    local: local.clone(),
+                    remote: remote.clone(),
+                })
+                .collect(),
+        });
+    }
+    let inv = forge_runtargets::Invocation {
+        program: php.unwrap_or_else(|| cmd.program.clone()),
+        program_args: Vec::new(),
+        args: cmd.args.clone(),
+        cwd: cmd.cwd.to_string_lossy().into_owned(),
+        env,
+        publish,
+        debug,
+    };
+    let w = forge_runtargets::wrap(target, &inv, &ctx).map_err(ForgeError::Other)?;
+    Ok(Built {
+        cmd: CommandLine {
+            program: w.program,
+            args: w.args,
+            cwd: std::path::PathBuf::from(w.cwd),
+            env: w.env,
+        },
+        path_mappings: mapper
+            .pairs()
+            .iter()
+            .map(|(local, remote)| OutputPathMapping {
+                remote: remote.clone(),
+                local: local.clone(),
+            })
+            .collect(),
+        debug_server,
         output_filters,
         tests,
     })
@@ -376,17 +635,25 @@ pub(crate) async fn start_built(
         root: Some(root(state)?.display().to_string()),
         cwd: Some(cmd.cwd.display().to_string()),
         cycle_buffer_kb,
-        path_mappings,
+        path_mappings: path_mappings.clone(),
         output_filters,
         test_report: tests.report,
         junit_flavor: tests.flavor,
+        location_rules: tests.location_rules.clone(),
+        default_test_file: tests.default_file.clone(),
     })));
+    let run_root = root(state)?.to_string_lossy().replace('\\', "/");
+    let run_cwd = cmd.cwd.to_string_lossy().replace('\\', "/");
     let event = format!("run://{run_id}");
     let sink_output = output.clone();
     let backend = state.backend()?;
     let sink_backend = backend.clone();
     if let Some(dir) = &tests.report_dir {
         let (dir, b) = (dir.clone(), backend.clone());
+        blocking(move || dir.prepare(b.as_ref())).await?;
+    }
+    if let Some(dir) = tests.coverage.as_ref().and_then(|c| c.dir.clone()) {
+        let b = backend.clone();
         blocking(move || dir.prepare(b.as_ref())).await?;
     }
     let started_at = std::time::SystemTime::now()
@@ -433,11 +700,33 @@ pub(crate) async fn start_built(
             }
         }
         drop(out);
+        let mut coverage_event = None;
+        if exited {
+            // Run with Coverage: the report is complete once the runner exited.
+            if let Some(setup) = &tests.coverage {
+                coverage_event = Some(
+                    match testing::record_coverage(
+                        &sink_app,
+                        sink_backend.as_ref(),
+                        setup,
+                        &run_root,
+                        &run_cwd,
+                        &path_mappings,
+                    ) {
+                        Ok(suite) => serde_json::json!({ "type": "coverage", "suite": suite }),
+                        Err(error) => serde_json::json!({ "type": "coverage", "error": error }),
+                    },
+                );
+            }
+        }
         if !exited {
             emit(&app, &event, &e);
         }
         for r in &rendered {
             emit(&app, &event, r);
+        }
+        if let Some(c) = &coverage_event {
+            emit(&app, &event, c);
         }
         if exited {
             emit(&app, &event, &e);
