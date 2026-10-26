@@ -120,9 +120,11 @@ pub fn request(cfg: &JsConfiguration, ctx: &LaunchContext) -> Result<LaunchReque
             r.configuration = object(vec![
                 (
                     "runtimeExecutable",
-                    (!interpreter.is_empty())
-                        .then(|| json!(interpreter))
-                        .unwrap_or(Value::Null),
+                    if interpreter.is_empty() {
+                        Value::Null
+                    } else {
+                        json!(interpreter)
+                    },
                 ),
                 ("runtimeArgs", json!(split_args(&cfg.interpreter_options))),
             ]);

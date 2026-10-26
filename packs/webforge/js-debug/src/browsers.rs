@@ -165,7 +165,7 @@ pub fn system_browsers() -> Vec<Browser> {
 }
 
 /// The browser for a choice (`auto`, `chrome`, `edge`, `chromium` or a path).
-pub fn pick<'a>(browsers: &'a [Browser], choice: &str) -> Option<Browser> {
+pub fn pick(browsers: &[Browser], choice: &str) -> Option<Browser> {
     match choice.trim() {
         "" | "auto" => browsers.first().cloned(),
         id => match BrowserKind::from_id(id) {
