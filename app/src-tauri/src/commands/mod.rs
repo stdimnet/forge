@@ -40,6 +40,7 @@ pub mod live_templates;
 pub mod local_history;
 pub mod lsp;
 pub mod lua;
+pub mod python;
 pub mod maintenance;
 pub mod markdown;
 pub mod output;
