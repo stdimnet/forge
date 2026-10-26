@@ -113,10 +113,12 @@ function completionSource(path: string) {
     return {
       from: answer.from,
       to: Math.max(answer.to, ctx.pos),
+      // Inside these strings only names make sense: rank them above word and tag completions.
       options: answer.items.map((i) => ({
         label: i.label,
         detail: i.detail,
         type: i.kind === "template" ? "pyTemplate" : "pyUrl",
+        boost: 50,
       })),
       validFor: /^[\w./:-]*$/,
     };

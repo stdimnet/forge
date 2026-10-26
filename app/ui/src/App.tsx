@@ -30,6 +30,7 @@ export function App() {
       symfony: "src/Controller/OrderController.php",
       lua: "main.lua",
       python: "src/shop_api/main.py",
+      django: "catalog/views.py",
       go: "cmd/ledger/main.go",
       java: "src/main/java/com/acme/inventory/App.java",
       wordpress: "acme-events.php",
