@@ -175,19 +175,121 @@
   overflow: auto;
   padding: 2px 0;
 }
-.java-tree-root {
-  gap: 6px;
-  padding-left: 8px;
-  color: var(--fg-strong);
-}
-.java-tree-group {
-  gap: 4px;
-  padding-left: 18px;
-}
-.java-tree-goal {
-  gap: 6px;
-  padding-left: 52px;
-}
 .java-build-icon {
   color: var(--info);
+}
+
+/* Gradle / Maven tool windows */
+.java-toolbar-sep {
+  width: 1px;
+  margin: 4px 3px;
+  background: var(--border);
+}
+.java-bt-row {
+  gap: 5px;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.java-bt-twisty {
+  display: inline-flex;
+  width: 13px;
+  flex: none;
+  color: var(--fg-muted);
+}
+.java-bt-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.java-bt-secondary {
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.java-bt-muted .java-bt-label {
+  color: var(--fg-muted);
+}
+.java-bt-danger .java-bt-label {
+  color: var(--danger);
+}
+.java-bt-lib {
+  color: var(--warning);
+}
+.java-bt-error,
+.java-error-icon {
+  color: var(--danger);
+}
+.java-bt-check {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.java-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.java-sync-failed {
+  color: var(--danger);
+}
+.java-sync-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.java-sync-hint {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.java-sync-log {
+  max-height: 140px;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  background: var(--bg-editor);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+/* Execute Gradle Task / Maven Goal */
+.java-execute-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  margin-top: 6px;
+  overflow: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.java-execute-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+.java-execute-item:hover {
+  background: var(--bg-hover);
+}
+.java-execute-item.selected {
+  background: var(--bg-selection);
+}
+
+/* Settings | Build Tools | Gradle: the wrapper */
+.java-wrapper .java-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

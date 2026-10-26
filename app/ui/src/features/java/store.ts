@@ -4,7 +4,7 @@
  * (`commands/java.rs`); this module caches the answers for the pages and widgets.
  */
 import { createRoot, createSignal } from "solid-js";
-import { javaApi, type BuildView, type InstallProgress, type Jdk, type JavaStatus } from "@/ipc/java";
+import { javaApi, type BuildModel, type BuildView, type InstallProgress, type Jdk, type JavaStatus, type SyncLine } from "@/ipc/java";
 import { isPluginActive } from "@/state/project";
 
 export const active = () => isPluginActive("forge.java");
@@ -14,8 +14,53 @@ const state = createRoot(() => {
   const [status, setStatus] = createSignal<JavaStatus | null>(null);
   const [build, setBuild] = createSignal<BuildView | null>(null);
   const [install, setInstall] = createSignal<{ id: InstallProgress["id"]; label: string; done: number; total: number | null } | null>(null);
-  return { jdks, setJdks, status, setStatus, build, setBuild, install, setInstall };
+  const [model, setModel] = createSignal<BuildModel | null>(null);
+  const [syncing, setSyncing] = createSignal(false);
+  const [syncLog, setSyncLog] = createSignal<SyncLine[]>([]);
+  const [syncError, setSyncError] = createSignal<string | null>(null);
+  return { jdks, setJdks, status, setStatus, build, setBuild, install, setInstall, model, setModel, syncing, setSyncing, syncLog, setSyncLog, syncError, setSyncError };
 });
+
+/** The Gradle / Maven tool window's model (projects, tasks, dependencies of the last sync). */
+export const buildModel = state.model;
+export const syncing = state.syncing;
+export const syncLog = state.syncLog;
+export const syncError = state.syncError;
+export const clearSyncLog = () => {
+  state.setSyncLog([]);
+  state.setSyncError(null);
+};
+
+export async function refreshModel(): Promise<BuildModel | null> {
+  const m = await javaApi.buildModel().catch(() => null);
+  state.setModel(m);
+  return m;
+}
+
+let syncListening = false;
+
+/** Reload All Gradle / Maven Projects: the build tool reports tasks and dependency trees. */
+export async function syncProject(): Promise<BuildModel | null> {
+  if (state.syncing()) return state.model();
+  if (!syncListening) {
+    syncListening = true;
+    void javaApi.onSync((l) => state.setSyncLog((log) => [...log.slice(-499), l]));
+  }
+  state.setSyncLog([]);
+  state.setSyncError(null);
+  state.setSyncing(true);
+  try {
+    const m = await javaApi.syncProject();
+    state.setModel(m);
+    void refreshBuild();
+    return m;
+  } catch (e) {
+    state.setSyncError(String(e).replace(/^Error: /, ""));
+    return null;
+  } finally {
+    state.setSyncing(false);
+  }
+}
 
 export const jdks = state.jdks;
 export const javaStatus = state.status;
