@@ -72,6 +72,8 @@ impl Default for DapConfig {
 
 pub(crate) struct Inner {
     registry: RwLock<AdapterRegistry>,
+    /// Adapters registered in Rust; they survive `set_registry` (manifest reloads).
+    native: RwLock<Vec<Arc<dyn DebugAdapterDescriptor>>>,
     sessions: Mutex<HashMap<String, Arc<DapSession>>>,
     sink: EventSink,
     breakpoints: Arc<dyn BreakpointHost>,
@@ -217,35 +219,12 @@ pub struct DapManager {
     inner: Arc<Inner>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::Path;
-
-    #[test]
-    fn relative_paths_are_resolved_against_the_project() {
-        let mut r = LaunchRequest::launch("lldb", "build/demo");
-        r.mode = crate::adapter::LaunchMode::Launch;
-        let r = absolutize(r, Some(Path::new("/w")));
-        assert_eq!(r.program.as_deref(), Some("/w/build/demo"));
-        assert_eq!(r.cwd.as_deref(), Some("/w"));
-        let mut bare = LaunchRequest::launch("lldb", "python3");
-        bare.cwd = Some("src".into());
-        let bare = absolutize(bare, Some(Path::new("/w")));
-        assert_eq!(
-            bare.program.as_deref(),
-            Some("python3"),
-            "commands stay on the PATH"
-        );
-        assert_eq!(bare.cwd.as_deref(), Some("/w/src"));
-    }
-}
-
 impl DapManager {
     pub fn new(sink: EventSink, breakpoints: Arc<dyn BreakpointHost>) -> Self {
         Self {
             inner: Arc::new(Inner {
                 registry: RwLock::new(AdapterRegistry::new()),
+                native: RwLock::new(Vec::new()),
                 sessions: Mutex::new(HashMap::new()),
                 sink,
                 breakpoints,
@@ -265,7 +244,15 @@ impl DapManager {
         *self.inner.root.write().expect("root lock") = root;
     }
 
+    /// Register an adapter implemented in Rust (it wins over a manifest adapter of the
+    /// same type and stays across `set_registry`).
     pub fn register_adapter(&self, adapter: Arc<dyn DebugAdapterDescriptor>) {
+        let ty = adapter.info().r#type;
+        {
+            let mut native = self.inner.native.write().expect("native lock");
+            native.retain(|a| a.info().r#type != ty);
+            native.push(Arc::clone(&adapter));
+        }
         self.inner
             .registry
             .write()
@@ -273,8 +260,12 @@ impl DapManager {
             .register(adapter);
     }
 
-    /// Replace the registry (e.g. after plugins were enabled or disabled).
-    pub fn set_registry(&self, registry: AdapterRegistry) {
+    /// Replace the manifest adapters (e.g. after plugins were enabled or disabled or an
+    /// adapter path changed); adapters registered in Rust are kept.
+    pub fn set_registry(&self, mut registry: AdapterRegistry) {
+        for a in self.inner.native.read().expect("native lock").iter() {
+            registry.register(Arc::clone(a));
+        }
         *self.inner.registry.write().expect("registry lock") = registry;
     }
 
@@ -378,5 +369,47 @@ impl DapManager {
         for s in sessions {
             s.stop().await;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn relative_paths_are_resolved_against_the_project() {
+        let mut r = LaunchRequest::launch("lldb", "build/demo");
+        r.mode = crate::adapter::LaunchMode::Launch;
+        let r = absolutize(r, Some(Path::new("/w")));
+        assert_eq!(r.program.as_deref(), Some("/w/build/demo"));
+        assert_eq!(r.cwd.as_deref(), Some("/w"));
+        let mut bare = LaunchRequest::launch("lldb", "python3");
+        bare.cwd = Some("src".into());
+        let bare = absolutize(bare, Some(Path::new("/w")));
+        assert_eq!(
+            bare.program.as_deref(),
+            Some("python3"),
+            "commands stay on the PATH"
+        );
+        assert_eq!(bare.cwd.as_deref(), Some("/w/src"));
+    }
+
+    #[test]
+    fn rust_adapters_survive_manifest_reloads() {
+        let server = Arc::new(DebugServer::new(Arc::new(|_| {})));
+        let m = DapManager::new(Arc::new(|_| {}), server);
+        let spec = |t: &str| forge_plugin_api::DebugAdapterContribution {
+            r#type: t.into(),
+            label: t.into(),
+            command: t.into(),
+            ..Default::default()
+        };
+        m.register_adapter(Arc::new(crate::ManifestAdapter::new(spec("native"))));
+        let mut manifests = AdapterRegistry::new();
+        manifests.register_manifest(spec("lldb"), None);
+        m.set_registry(manifests);
+        let types: Vec<String> = m.adapters().into_iter().map(|a| a.r#type).collect();
+        assert_eq!(types, ["lldb", "native"]);
     }
 }

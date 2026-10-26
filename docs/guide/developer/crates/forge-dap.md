@@ -101,7 +101,7 @@ pub trait DebugAdapterDescriptor: Send + Sync {
 
 ## Tests
 
-12 source files, about 6200 lines; 24 unit tests and 10 integration tests in `tests/`
+12 source files, about 6300 lines; 25 unit tests and 10 integration tests in `tests/`
 (`fake_adapter.rs`): launch, breakpoints, stack, threads, variables, stepping, logpoints,
 conditions and hit counts, function and exception breakpoints, watchpoints, memory read and
 write, disassembly, instruction stepping, goto, set value, attach to a process and to a DAP
