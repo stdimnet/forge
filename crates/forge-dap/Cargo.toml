@@ -1,0 +1,27 @@
+[package]
+name = "forge-dap"
+description = "Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+# A tiny simulated debug adapter (a C program) for tests and demos; speaks DAP on stdio.
+name = "forge-dap-fake"
+path = "src/bin/forge-dap-fake.rs"
+test = false
+doc = false
+
+[dependencies]
+forge-core.workspace = true
+forge-debug.workspace = true
+forge-plugin-api.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile.workspace = true

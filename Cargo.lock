@@ -2025,6 +2025,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-dap"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "forge-core",
+ "forge-debug",
+ "forge-plugin-api",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "forge-db"
 version = "0.1.0"
 dependencies = [
