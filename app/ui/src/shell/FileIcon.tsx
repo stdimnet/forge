@@ -29,6 +29,8 @@ const byExt: Record<string, Spec> = {
   js: { icon: FileCode, color: "#e8d44d" },
   ts: { icon: FileCode, color: "#4f8fe0" },
   lua: { icon: FileCode, color: "#5a6ee0" },
+  kt: { icon: FileCode, color: "#a97bff" },
+  kts: { icon: FileCode, color: "#a97bff" },
   yml: { icon: Settings2, color: "#e07070" },
   yaml: { icon: Settings2, color: "#e07070" },
   neon: { icon: Settings2, color: "#e07070" },

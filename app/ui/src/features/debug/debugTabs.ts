@@ -9,7 +9,7 @@ export interface DebugTabDef {
   id: string;
   title: string;
   /** Whether the tab applies to the active session. */
-  when: (session: SessionInfo | undefined) => boolean;
+  when: (session: SessionInfo | null | undefined) => boolean;
   component: Component;
 }
 
