@@ -1895,6 +1895,7 @@ dependencies = [
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "phpforge-test-frameworks",
+ "pyforge-frameworks",
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
