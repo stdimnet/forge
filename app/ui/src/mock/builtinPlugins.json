@@ -8448,6 +8448,21 @@
           "category": "Java"
         },
         {
+          "id": "java.syncProject",
+          "title": "Reload All Gradle and Maven Projects (Sync)",
+          "category": "Java"
+        },
+        {
+          "id": "java.executeTask",
+          "title": "Execute Gradle Task / Maven Goal…",
+          "category": "Java"
+        },
+        {
+          "id": "java.updateWrapper",
+          "title": "Update Gradle Wrapper…",
+          "category": "Java"
+        },
+        {
           "id": "java.downloadJdk",
           "title": "Download JDK…",
           "category": "Java"
@@ -8552,43 +8567,126 @@
           "order": 0
         },
         {
-          "key": "java.gradle.useWrapper",
-          "title": "Use the Gradle wrapper (gradlew)",
-          "description": "Run Gradle through the project's gradlew when it has one.",
-          "type": "bool",
-          "default": true,
+          "key": "java.gradle.distribution",
+          "title": "Use Gradle from",
+          "description": "The wrapper (gradle/wrapper/gradle-wrapper.properties), a Gradle home you choose, or gradle on the PATH.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "wrapper",
+              "label": "'gradle-wrapper.properties' file"
+            },
+            {
+              "value": "specified",
+              "label": "Specified location"
+            },
+            {
+              "value": "local",
+              "label": "Local installation (gradle on the PATH)"
+            }
+          ],
+          "default": "wrapper",
           "group": "build.tools.gradle",
+          "section": "Gradle",
           "project": true,
           "order": 1
         },
         {
-          "key": "java.gradle.executable",
-          "title": "Gradle executable",
-          "description": "Used without a wrapper. Empty: gradle on the PATH.",
+          "key": "java.gradle.home",
+          "title": "Gradle home",
+          "description": "Used with \"Specified location\": the Gradle installation folder (or its bin/gradle).",
           "type": "path",
           "default": "",
           "group": "build.tools.gradle",
+          "section": "Gradle",
           "project": false,
           "order": 2
         },
         {
           "key": "java.gradle.jvm",
           "title": "Gradle JVM",
-          "description": "JDK home Gradle imports and runs with. Empty: the project JDK.",
+          "description": "JDK home (or name, like temurin-21) Gradle syncs, builds and runs with. Empty: the project JDK.",
           "type": "path",
           "default": "",
           "group": "build.tools.gradle",
+          "section": "Gradle",
           "project": true,
           "order": 3
         },
         {
           "key": "java.gradle.offline",
           "title": "Offline work",
+          "description": "Gradle resolves dependencies from its caches only (--offline).",
           "type": "bool",
           "default": false,
           "group": "build.tools.gradle",
+          "section": "Gradle",
           "project": true,
           "order": 4
+        },
+        {
+          "key": "java.gradle.buildAndRunUsing",
+          "title": "Build and run using",
+          "description": "Build Project and Application configurations run through Gradle (forgeRun) or Eclipse JDT LS compiles and Forge runs java itself.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "gradle",
+              "label": "Gradle"
+            },
+            {
+              "value": "idea",
+              "label": "IntelliJ IDEA (Eclipse JDT LS)"
+            }
+          ],
+          "default": "gradle",
+          "group": "build.tools.gradle",
+          "section": "Build and run",
+          "project": true,
+          "order": 5
+        },
+        {
+          "key": "java.gradle.runTestsUsing",
+          "title": "Run tests using",
+          "description": "JUnit tests run through Gradle's test task or the JUnit Platform Console Launcher on JDT LS's class path (TestNG always runs through Gradle).",
+          "type": "enum",
+          "options": [
+            {
+              "value": "gradle",
+              "label": "Gradle"
+            },
+            {
+              "value": "idea",
+              "label": "IntelliJ IDEA (JUnit runner)"
+            }
+          ],
+          "default": "gradle",
+          "group": "build.tools.gradle",
+          "section": "Build and run",
+          "project": true,
+          "order": 6
+        },
+        {
+          "key": "java.junit.consoleLauncher",
+          "title": "JUnit Platform Console Launcher",
+          "description": "junit-platform-console-standalone.jar for \"Run tests using: IntelliJ IDEA\". Empty: the newest in ~/.m2 or Gradle's cache.",
+          "type": "path",
+          "default": "",
+          "group": "build.tools.gradle",
+          "section": "Build and run",
+          "project": false,
+          "order": 7
+        },
+        {
+          "key": "java.gradle.servicesUrl",
+          "title": "Gradle services",
+          "description": "Where Update Wrapper looks up Gradle releases and their SHA-256 sums. Empty: https://services.gradle.org.",
+          "type": "string",
+          "default": "",
+          "group": "build.tools.gradle",
+          "project": false,
+          "hidden": true,
+          "order": 8
         },
         {
           "key": "java.maven.useWrapper",
@@ -8620,6 +8718,27 @@
           "order": 3
         },
         {
+          "key": "java.maven.skipTests",
+          "title": "Skip tests",
+          "description": "Maven goals run with -DskipTests (the Maven tool window's Skip Tests toggle; test runs ignore it).",
+          "type": "bool",
+          "default": false,
+          "group": "build.tools.maven",
+          "project": true,
+          "order": 5
+        },
+        {
+          "key": "java.maven.profiles",
+          "title": "Profiles",
+          "description": "Profiles the Maven tool window selected: id to activate, !id to deactivate.",
+          "type": "list",
+          "default": [],
+          "group": "build.tools.maven",
+          "project": true,
+          "hidden": true,
+          "order": 6
+        },
+        {
           "key": "java.maven.downloadSources",
           "title": "Download sources of dependencies",
           "type": "bool",
@@ -8627,6 +8746,39 @@
           "group": "build.tools.maven",
           "project": false,
           "order": 4
+        },
+        {
+          "key": "java.mavenCentral.enabled",
+          "title": "Search Maven Central",
+          "description": "Complete dependency coordinates and versions in build.gradle(.kts) and pom.xml and report newer versions (cached in the user cache dir).",
+          "type": "bool",
+          "default": true,
+          "group": "build.tools",
+          "section": "Maven Central",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "java.mavenCentral.searchUrl",
+          "title": "Search API",
+          "description": "Empty: https://search.maven.org.",
+          "type": "string",
+          "default": "",
+          "group": "build.tools",
+          "section": "Maven Central",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "java.mavenCentral.repositoryUrl",
+          "title": "Repository",
+          "description": "Where maven-metadata.xml (the versions) comes from. Empty: https://repo1.maven.org/maven2.",
+          "type": "string",
+          "default": "",
+          "group": "build.tools",
+          "section": "Maven Central",
+          "project": false,
+          "order": 2
         },
         {
           "key": "java.jdtls.autoInstall",

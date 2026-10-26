@@ -7,7 +7,9 @@ use std::collections::BTreeMap;
 
 use forge_runtools::Configuration;
 use forge_testing::{CommandContext, TestFrameworkProvider};
-use javaforge_build::command::ExecOptions;
+use javaforge_build::command::{gradle_application_command, ExecOptions, GradleAppRun};
+use javaforge_build::dsl::{self, CentralData, Script};
+use javaforge_build::{deps, model, wrapper};
 use javaforge_build::{BuildProject, BuildTool};
 use javaforge_lang_java::launch::{self, AppLaunch};
 use javaforge_lang_java::JavaTests;
@@ -95,6 +97,12 @@ struct RunRequest {
     java: String,
     #[serde(default)]
     debug_port: Option<u16>,
+    /// "Build and run using: Gradle": Application runs go through `forgeRun`.
+    #[serde(default)]
+    gradle_run: bool,
+    /// Where the backend writes `forge-run.gradle`.
+    #[serde(default)]
+    init_script: String,
 }
 
 /// `{ configuration, build, coverage?, java?, debugPort? }` → `{ program, args, test? }`: the
@@ -148,6 +156,30 @@ pub fn java_command_line(request_json: &str) -> String {
                 Some(Err(e)) => Err(e),
                 None => Err("no command".into()),
             }
+        }
+        "java-application"
+            if r.gradle_run
+                && cfg.option("classpath").trim().is_empty()
+                && project
+                    .as_ref()
+                    .is_some_and(|p| p.tool == BuildTool::Gradle) =>
+        {
+            let project = project.expect("a Gradle build");
+            let mut jvm_args = forge_runtools::args::split_args(&cfg.interpreter_options);
+            if let Some(port) = r.debug_port {
+                jvm_args.push(launch::jdwp_listen(port, true));
+            }
+            let module = project.module(cfg.option("module")).cloned();
+            let run = GradleAppRun {
+                main_class: cfg.option("mainClass").to_string(),
+                args: forge_runtools::args::split_args(&cfg.arguments),
+                jvm_args,
+                init_script: r.init_script.clone(),
+                test_classpath: false,
+                working_dir: String::new(),
+            };
+            let c = gradle_application_command(&project, &r.build.exec, module.as_ref(), &run);
+            Ok(json!({ "program": c.program, "args": c.args }))
         }
         "java-application" => {
             let classpath = match cfg.option("classpath").trim() {
@@ -216,6 +248,136 @@ pub fn java_command_line(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelRequest {
+    #[serde(flatten)]
+    build: BuildRequest,
+    /// What a Gradle sync's init script wrote (`forge-model.gradle`).
+    #[serde(default)]
+    gradle_model: Option<String>,
+    /// What a Maven sync's `dependency:tree` wrote.
+    #[serde(default)]
+    maven_tree: Option<String>,
+}
+
+/// `{ folder, files, prefer?, gradleModel?, mavenTree? }` → `BuildModel | null`
+/// (`java_build_model`, `java_sync_project`).
+#[wasm_bindgen]
+pub fn java_build_model(request_json: &str) -> String {
+    let r = match parse::<ModelRequest>(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    let Some(project) = build(&r.build) else {
+        return "null".into();
+    };
+    let base = model::static_model(&project, &|p| r.build.files.get(p).cloned());
+    let synced = match (project.tool, &r.gradle_model, &r.maven_tree) {
+        (BuildTool::Gradle, Some(json), _) => match model::parse_gradle_model(json) {
+            Ok(m) => Some(m),
+            Err(e) => return error(e),
+        },
+        (BuildTool::Maven, _, Some(tree)) => Some(model::maven_sync_model(tree)),
+        _ => None,
+    };
+    to_json(&match synced {
+        Some(s) => model::merge(base, &s),
+        None => base,
+    })
+}
+
+#[derive(Deserialize)]
+struct CompleteRequest {
+    path: String,
+    text: String,
+    offset: usize,
+    #[serde(default)]
+    data: CentralData,
+}
+
+/// `{ path, text, offset }` → `Request | null`: what Maven Central must answer.
+#[wasm_bindgen]
+pub fn java_build_request(request_json: &str) -> String {
+    match parse::<CompleteRequest>(request_json) {
+        Ok(r) => match Script::of_path(&r.path) {
+            Some(s) => to_json(&dsl::request(s, &r.text, r.offset)),
+            None => "null".into(),
+        },
+        Err(e) => error(e),
+    }
+}
+
+/// `{ path, text, offset, data }` → `CompletionOut | null` (`java_build_complete`).
+#[wasm_bindgen]
+pub fn java_build_complete(request_json: &str) -> String {
+    match parse::<CompleteRequest>(request_json) {
+        Ok(r) => match Script::of_path(&r.path) {
+            Some(s) => to_json(&dsl::complete(s, &r.text, r.offset, &r.data)),
+            None => "null".into(),
+        },
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+struct OutdatedRequest {
+    path: String,
+    text: String,
+    /// `group:artifact` → versions.
+    #[serde(default)]
+    versions: std::collections::HashMap<String, Vec<String>>,
+}
+
+/// `{ path, text, versions }` → `OutdatedMarker[]` (`java_build_outdated`); `{ path, text }`
+/// alone → the `group:artifact`s to look up (`coordinates`).
+#[wasm_bindgen]
+pub fn java_build_outdated(request_json: &str) -> String {
+    match parse::<OutdatedRequest>(request_json) {
+        Ok(r) => match deps::FileKind::of_path(&r.path) {
+            Some(kind) => to_json(&json!({
+                "coordinates": deps::versioned_coordinates(&r.text, kind),
+                "markers": deps::outdated(&r.text, kind, &r.versions),
+            })),
+            None => to_json(&json!({ "coordinates": [], "markers": [] })),
+        },
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WrapperRequest {
+    text: String,
+    /// Update Wrapper: the new version and its checksum.
+    #[serde(default)]
+    update: Option<(String, String)>,
+}
+
+/// `{ text, update? }` → `{ wrapper, text }`: `gradle-wrapper.properties` read (and updated).
+#[wasm_bindgen]
+pub fn java_wrapper(request_json: &str) -> String {
+    match parse::<WrapperRequest>(request_json) {
+        Ok(r) => {
+            let text = match &r.update {
+                Some((version, sum)) => {
+                    let kind = wrapper::parse_properties(&r.text)
+                        .map(|w| w.distribution_type)
+                        .unwrap_or_else(|| "bin".into());
+                    wrapper::update_properties(
+                        &r.text,
+                        &wrapper::distribution_url(version, &kind),
+                        Some(sum),
+                    )
+                }
+                None => r.text.clone(),
+            };
+            to_json(&json!({ "wrapper": wrapper::parse_properties(&text), "text": text }))
+        }
+        Err(e) => error(e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -228,6 +390,29 @@ mod tests {
             "gradlew": "",
         });
         let build = json!({ "folder": "inventory", "files": files, "exec": { "useWrapper": true, "buildDir": "/p" } });
+        let model: serde_json::Value =
+            serde_json::from_str(&java_build_model(&build.to_string())).unwrap();
+        assert_eq!(model["tool"], "gradle");
+        assert_eq!(model["projects"][0]["path"], ":");
+        let gradle_run = json!({
+            "configuration": { "name": "App", "type": "java-application", "options": { "mainClass": "com.acme.App" } },
+            "build": build, "gradleRun": true, "initScript": "/c/forge-run.gradle",
+        });
+        let out: serde_json::Value =
+            serde_json::from_str(&java_command_line(&gradle_run.to_string())).unwrap();
+        assert_eq!(out["program"], "/p/gradlew");
+        assert_eq!(out["args"][2], "forgeRun");
+        let complete =
+            json!({ "path": "build.gradle.kts", "text": "dependencies {\n  imp\n}", "offset": 20 });
+        let c: serde_json::Value =
+            serde_json::from_str(&java_build_complete(&complete.to_string())).unwrap();
+        assert!(c["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["label"] == "implementation"));
+        let w: serde_json::Value = serde_json::from_str(&java_wrapper(&json!({ "text": "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.9-bin.zip\n", "update": ["8.11", "ab"] }).to_string())).unwrap();
+        assert_eq!(w["wrapper"]["version"], "8.11");
         let info: serde_json::Value =
             serde_json::from_str(&java_build_info(&build.to_string())).unwrap();
         assert_eq!(info["program"], "/p/gradlew");

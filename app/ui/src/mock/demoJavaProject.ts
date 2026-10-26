@@ -246,6 +246,89 @@ build/
 `,
 };
 
+/** `?project=java&build=maven`: the same service built with Maven (profiles, plugins). */
+export const isJavaMavenDemo = (): boolean =>
+  isJavaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).get("build") === "maven";
+
+const JAVA_MAVEN_POM = `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.acme</groupId>
+    <artifactId>inventory-service</artifactId>
+    <version>1.4.0</version>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <guava.version>32.1.3-jre</guava.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>\${guava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>com.acme.inventory.App</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>prod</id>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+        </profile>
+    </profiles>
+</project>
+`;
+
+if (isJavaMavenDemo()) {
+  for (const f of ["settings.gradle.kts", "build.gradle.kts", "gradlew", "gradlew.bat", "gradle/wrapper/gradle-wrapper.properties"]) delete javaDemoFiles[f];
+  javaDemoFiles["pom.xml"] = JAVA_MAVEN_POM;
+  javaDemoFiles["mvnw"] = "#!/bin/sh\n# Apache Maven Wrapper startup script, version 3.3.2\n";
+  javaDemoFiles["mvnw.cmd"] = "@REM Apache Maven Wrapper startup batch script\r\n";
+  javaDemoInfo.tools = ["git", "maven"];
+}
+
 /** The file the demo opens first. */
 export const javaDemoStartFile = `${JAVA_PKG}/App.java`;
 
