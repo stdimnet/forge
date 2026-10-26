@@ -226,7 +226,7 @@ pub struct RustProblem {
     pub column: u32,
     pub end_line: u32,
     pub end_column: u32,
-    /// `error`, `warning`, `information` or `hint`.
+    /// `error`, `warning`, `info` (notes) or `weak` (help), like the editor's severities.
     pub severity: String,
     pub message: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -244,8 +244,8 @@ fn severity(level: &str) -> Option<&'static str> {
     Some(match level {
         "error" | "error: internal compiler error" => "error",
         "warning" => "warning",
-        "note" => "information",
-        "help" => "hint",
+        "note" => "info",
+        "help" => "weak",
         _ => return None,
     })
 }

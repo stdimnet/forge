@@ -56,6 +56,7 @@ import "./scratches";
 import "./lua";
 import "./python";
 import "./go";
+import "./rust";
 import "./java";
 import "./services";
 import "./remote";
