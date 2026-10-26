@@ -329,12 +329,18 @@ Placeholders: `${file}`, `${directory}`, `${test}` (full name), `${testName}`, `
 argument whose placeholders are all empty is dropped; a multi-line `${pattern}` repeats its
 argument per line. Discovery nests by indentation; `kind` is `class`, `describe`, `suite` or
 `file` for groups and `test`, `method` or `example` for tests. Coverage formats: `lcov`,
-`cobertura`, `clover`, `jacoco`, `goCover`.
+`cobertura`, `clover`, `jacoco`, `goCover`. `fields` adds form fields to the framework's run
+configuration type (`{ key, label, kind, placeholder, default, options }`, stored in the
+configuration's options) for a provider that wraps the spec. Discovery asks the frameworks the
+project uses first (`TestFrameworks::discover_in_project` with the detected ids), so frameworks
+that share file globs (Jest and Vitest on `*.test.ts`) do not collide.
 
 Frameworks that need code implement `forge_testing::TestFrameworkProvider` (types, `accepts`,
 `discover`, `rerun_failed`, optionally `command` and `supports_coverage`) and register it in
 the backend's `TestFrameworks` registry (`RunState::new`) and in `forge-wasm`'s `registry()`,
-as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). New output formats
+as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). A provider can also
+wrap a manifest spec and register under its id after `register_specs`, as WebForge's Node.js
+runners do (`webforge_js_testing::register`). New output formats
 go into `forge-output` (`formats/`): a `LineParser` for streamed lines or a document parser,
 both producing `TestEvent`s.
 

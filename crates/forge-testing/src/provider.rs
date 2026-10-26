@@ -168,6 +168,37 @@ impl TestFrameworks {
             .unwrap_or_default()
     }
 
+    /// The tests of a file in a project that uses the frameworks `detected` (ids). When a
+    /// detected framework claims the file, frameworks with detection rules (`detectable`)
+    /// that the project does not use are skipped, so a `*.test.ts` file belongs to Vitest
+    /// in a Vitest project and to Jest in a Jest project; otherwise, or when those find no
+    /// tests, every framework is asked.
+    pub fn discover_in_project(
+        &self,
+        path: &str,
+        text: &str,
+        detected: &[String],
+        detectable: &[String],
+    ) -> TestFile {
+        let claimed = self
+            .providers()
+            .any(|p| detected.iter().any(|d| d == p.id()) && p.accepts(path));
+        if !claimed {
+            return self.discover(path, text, None);
+        }
+        let active: Vec<String> = self
+            .providers()
+            .map(|p| p.id().to_string())
+            .filter(|id| detected.contains(id) || !detectable.contains(id))
+            .collect();
+        let found = self.discover(path, text, Some(&active));
+        if found.is_empty() {
+            // The file names another framework (imports it): ask every framework.
+            return self.discover(path, text, None);
+        }
+        found
+    }
+
     pub fn rerun_failed(
         &self,
         cfg: &Configuration,
@@ -266,5 +297,34 @@ mod tests {
         assert!(r.supports_coverage("busted"));
         let info = r.info();
         assert_eq!(info[1].types, ["busted"]);
+    }
+
+    #[test]
+    fn project_detection_picks_between_frameworks_of_the_same_files() {
+        let a = crate::spec::tests::busted();
+        let mut b = a.clone();
+        b.id = "other".into();
+        let mut r = TestFrameworks::new();
+        r.register(Box::new(Fake));
+        r.register_specs([&a, &b]);
+        let text = "describe(\"Cart\", function()\n  it(\"adds\", function() end)\nend)\n";
+        let ids = ["busted".to_string(), "other".to_string()];
+        let path = "spec/cart_spec.lua";
+        let found =
+            |detected: &[String]| r.discover_in_project(path, text, detected, &ids).framework;
+        assert_eq!(found(&["other".into()]).as_deref(), Some("other"));
+        assert_eq!(found(&["busted".into()]).as_deref(), Some("busted"));
+        assert_eq!(
+            found(&[]).as_deref(),
+            Some("busted"),
+            "nothing detected: the first"
+        );
+        assert_eq!(
+            r.discover_in_project("x.fake", "", &["other".into()], &ids)
+                .framework
+                .as_deref(),
+            Some("fake"),
+            "providers without detection stay"
+        );
     }
 }

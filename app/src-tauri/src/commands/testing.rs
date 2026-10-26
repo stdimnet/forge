@@ -180,48 +180,83 @@ pub(crate) fn record_coverage(
 }
 
 /// Manifest test frameworks the project uses (ids), from their `detect` rules.
-#[tauri::command]
-pub async fn test_frameworks_detect(state: State<'_, AppState>) -> Result<Vec<String>> {
-    let backend = state.backend()?;
-    let specs: Vec<forge_testing::TestFrameworkSpec> = state
+fn detect(backend: &dyn Backend, specs: &[forge_testing::TestFrameworkSpec]) -> Vec<String> {
+    let mut files: Vec<String> = Vec::new();
+    for dir in ["", "spec", "test", "tests", "src"] {
+        if let Ok(entries) = backend.list_dir(dir) {
+            files.extend(entries.into_iter().map(|e| e.path));
+        }
+    }
+    let read = |p: &str| backend.read_optional(p).ok().flatten();
+    specs
+        .iter()
+        .filter(|s| s.detect(&files, &read))
+        .map(|s| s.id.clone())
+        .collect()
+}
+
+/// The last detection: project root, when, the ids. Gutter discovery runs on every edit;
+/// the project's frameworks are looked up again after a few seconds.
+static DETECTED: Mutex<Option<(std::path::PathBuf, std::time::Instant, Vec<String>)>> =
+    Mutex::new(None);
+
+fn specs(state: &AppState) -> Vec<forge_testing::TestFrameworkSpec> {
+    state
         .plugins
         .read()
         .expect("plugins lock poisoned")
         .test_frameworks()
         .cloned()
-        .collect();
-    blocking(move || {
-        let mut files: Vec<String> = Vec::new();
-        for dir in ["", "spec", "test", "tests", "src"] {
-            if let Ok(entries) = backend.list_dir(dir) {
-                files.extend(entries.into_iter().map(|e| e.path));
-            }
-        }
-        let read = |p: &str| backend.read_optional(p).ok().flatten();
-        Ok(specs
-            .iter()
-            .filter(|s| s.detect(&files, &read))
-            .map(|s| s.id.clone())
-            .collect())
-    })
-    .await
+        .collect()
+}
+
+#[tauri::command]
+pub async fn test_frameworks_detect(state: State<'_, AppState>) -> Result<Vec<String>> {
+    let backend = state.backend()?;
+    let specs = specs(&state);
+    blocking(move || Ok(detect(backend.as_ref(), &specs))).await
 }
 
 /// The tests of a file for the gutter icons and Run Context Configuration, from the first
-/// test framework that finds some.
+/// test framework that finds some; frameworks the project uses (`detect`) come first, so a
+/// `*.test.ts` file is Vitest's in a Vitest project and Jest's in a Jest project.
 #[tauri::command]
-pub fn test_discover(
+pub async fn test_discover(
     path: String,
     text: String,
     state: State<'_, AppState>,
     runs: State<'_, RunState>,
     python: State<'_, crate::commands::python_tools::PythonToolsState>,
-) -> TestFile {
+) -> Result<TestFile> {
     // Python files: the project's runner (pytest or unittest) builds the configurations.
     if path.to_ascii_lowercase().ends_with(".py") {
-        return crate::commands::python_tools::discover_file(&state, &python, &path, &text);
+        return Ok(crate::commands::python_tools::discover_file(
+            &state, &python, &path, &text,
+        ));
     }
-    runs.tests.discover(&path, &text, None)
+    let backend = state.backend()?;
+    let root = backend.info().root.clone();
+    let specs = specs(&state);
+    let cached = DETECTED
+        .lock()
+        .expect("detection lock")
+        .as_ref()
+        .filter(|(r, at, _)| *r == root && at.elapsed() < std::time::Duration::from_secs(10))
+        .map(|(_, _, ids)| ids.clone());
+    let detected = match cached {
+        Some(ids) => ids,
+        None => {
+            let s = specs.clone();
+            let ids = blocking(move || Ok(detect(backend.as_ref(), &s))).await?;
+            *DETECTED.lock().expect("detection lock") =
+                Some((root, std::time::Instant::now(), ids.clone()));
+            ids
+        }
+    };
+    let detectable: Vec<String> = specs.into_iter().map(|s| s.id).collect();
+    Ok(runs
+        .tests
+        .discover_in_project(&path, &text, &detected, &detectable))
 }
 
 /// The configuration that reruns the failed tests of a run.

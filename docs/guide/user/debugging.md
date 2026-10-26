@@ -209,7 +209,7 @@ only when the adapter supports them.
 
 | How | Where |
 | --- | --- |
-| **Debug** a run configuration (`Shift+F9`) | a **Native Application** configuration (executable, program arguments, working directory, debugger, "Stop at the beginning of the program", launch options as JSON), or a configuration type of a language pack that uses an adapter |
+| **Debug** a run configuration (`Shift+F9`) | a **Native Application** configuration (executable, program arguments, working directory, debugger, "Stop at the beginning of the program", launch options as JSON), or a configuration type of a language pack that uses an adapter (Node.js, npm, JavaScript Debug and the JavaScript test runners use js-debug, see [JavaScript debugging](javascript-debugging.md)) |
 | **Attach to Process…** (`Ctrl+Alt+F5`, macOS `Cmd+Alt+F5`) | Run menu: pick a local process (filter by name, command line or PID) and an adapter that can attach |
 | **Attach to DAP Server…** | Run menu: connect to an adapter that already listens on a TCP port (`dlv dap --listen 127.0.0.1:4711`, `debugpy --listen 5678`), with optional attach options as JSON |
 | **Debug Core Dump…** | Run menu: open a core file with the executable that crashed (LLDB); nothing runs, frames, variables, memory and registers show the state at the crash |

@@ -62,12 +62,16 @@ npm, pnpm, yarn and bun are supported. Script arguments are passed after `--` fo
 
 ### Debugging scripts
 
-**Debug** on an npm script sets `NODE_OPTIONS` to the value of **Node options when debugging
-scripts** (`web.npm.debugArguments`, default `--inspect`). Attach Chrome DevTools
-(`chrome://inspect`) or another inspector client to the printed port.
+**Debug** on an npm script runs it under the JavaScript debugger (js-debug): breakpoints in
+your JavaScript and TypeScript files stop every Node.js process the script starts. See
+[JavaScript debugging and testing](javascript-debugging.md), which also covers the Node.js,
+JavaScript Debug and Attach run configurations and the Jest, Vitest, Mocha, Playwright and
+Cypress test runners.
 
-> **Note:** Forge has no built-in JavaScript debugger yet; Debug only starts Node with the
-> inspector enabled.
+Without js-debug (the download was declined, or the JavaScript Debugger plugin is disabled),
+Debug sets `NODE_OPTIONS` to the value of **Node options when debugging scripts**
+(`web.npm.debugArguments`, default `--inspect`); attach Chrome DevTools (`chrome://inspect`)
+or another inspector client to the printed port.
 
 ### Settings | Languages & Frameworks | Node.js
 

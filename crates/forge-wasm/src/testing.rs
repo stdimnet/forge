@@ -29,6 +29,7 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
     r.register(Box::new(pyforge_testing::PythonTestFrameworks));
     r.register_specs(specs);
+    webforge_js_testing::register(&mut r, specs.iter().cloned());
     r
 }
 
@@ -39,13 +40,20 @@ struct DiscoverRequest {
     text: String,
     #[serde(default)]
     specs: Vec<TestFrameworkSpec>,
+    /// Ids of the frameworks the project uses (`testing_detect`).
+    #[serde(default)]
+    detected: Vec<String>,
 }
 
-/// `{ path, text, specs }` → `TestFile` (`test_discover`, every framework).
+/// `{ path, text, specs, detected? }` → `TestFile` (`test_discover`, every framework,
+/// those the project uses first).
 #[wasm_bindgen]
 pub fn testing_discover(request_json: &str) -> String {
     match parse::<DiscoverRequest>(request_json) {
-        Ok(r) => to_json(&registry(&r.specs).discover(&r.path, &r.text, None)),
+        Ok(r) => {
+            let ids: Vec<String> = r.specs.iter().map(|s| s.id.clone()).collect();
+            to_json(&registry(&r.specs).discover_in_project(&r.path, &r.text, &r.detected, &ids))
+        }
         Err(e) => error(e),
     }
 }
@@ -89,7 +97,12 @@ pub fn testing_command(request_json: &str) -> String {
                 coverage_file: r.coverage_file,
                 settings: Default::default(),
             };
-            match r.spec.build(&r.configuration, &ctx) {
+            // Node.js test runners wrap their spec (CLI script with Node.js, report files).
+            let built = match webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
+                Some(js) => js.build(&r.configuration, &ctx),
+                None => r.spec.build(&r.configuration, &ctx),
+            };
+            match built {
                 Ok(c) => to_json(&c),
                 Err(e) => error(e),
             }

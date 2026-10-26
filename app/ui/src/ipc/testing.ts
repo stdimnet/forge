@@ -69,6 +69,8 @@ export interface TestFrameworkSpec {
   report?: string;
   coverage?: { args?: string[]; file?: string; format?: string };
   debuggable?: boolean;
+  /** Extra fields of the run configuration form (stored in `options`). */
+  fields?: { key: string; label: string; kind?: string; placeholder?: string; default?: string; options?: { value: string; label: string }[] }[];
 }
 
 export const testingApi = {

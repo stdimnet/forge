@@ -1,11 +1,13 @@
 /**
  * WebForge demo projects for browser mode: `?project=react` (a Vite + React storefront in a
  * pnpm workspace), `?project=vue` (a Vue 3 dashboard with yarn) and `?project=angular` (an
- * Angular admin portal with npm). The default demo is the Laravel shop in demoProject.ts.
+ * Angular admin portal with npm) and `?project=node` (a Node.js + TypeScript API with Vitest
+ * and Playwright tests, for the JavaScript debugger and the test runners). The default demo
+ * is the Laravel shop in demoProject.ts.
  */
 import type { ProjectInfo } from "@/ipc/project";
 
-export type WebDemoId = "react" | "vue" | "angular";
+export type WebDemoId = "react" | "vue" | "angular" | "node";
 
 export interface WebDemo {
   name: string;
@@ -19,7 +21,7 @@ export interface WebDemo {
 export function webDemoId(): WebDemoId | null {
   if (typeof location === "undefined") return null;
   const p = new URLSearchParams(location.search).get("project");
-  return p === "react" || p === "vue" || p === "angular" ? p : null;
+  return p === "react" || p === "vue" || p === "angular" || p === "node" ? p : null;
 }
 
 const fw = (id: string, name: string, version: string, language = "javascript") => ({ id, name, version, language });
@@ -668,6 +670,194 @@ export class RelativeTimePipe implements PipeTransform {
 `,
 };
 
+
+// ---- Node.js: orders-api --------------------------------------------------------------
+
+/** `src/orders/pricing.ts`, where the JavaScript debugger demo stops (line 12). */
+export const NODE_PRICING = `import type { LineItem, Order } from "../types";
+
+export const TAX_RATE = 0.19;
+
+export function lineTotal(item: LineItem): number {
+  return item.unitPrice * item.quantity;
+}
+
+export function orderTotal(order: Order): number {
+  const subtotal = order.items.reduce((sum, item) => sum + lineTotal(item), 0);
+  const discount = order.voucher ? (subtotal * order.voucher.percent) / 100 : 0;
+  const tax = (subtotal - discount) * TAX_RATE;
+  return Math.round((subtotal - discount + tax) * 100) / 100;
+}
+`;
+
+const node: Record<string, string> = {
+  "package.json": `{
+  "name": "orders-api",
+  "version": "2.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p .",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "~5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
+`,
+  "package-lock.json": '{\n  "name": "orders-api",\n  "lockfileVersion": 3,\n  "requires": true\n}\n',
+  "tsconfig.json": `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "sourceMap": true,
+    "strict": true
+  },
+  "include": ["src"]
+}
+`,
+  "vitest.config.ts": `import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: { include: ["src/**/*.test.ts"], coverage: { provider: "v8" } },
+});
+`,
+  "playwright.config.ts": `import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "e2e",
+  use: { baseURL: "http://localhost:3000" },
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  webServer: { command: "npm run dev", url: "http://localhost:3000/health" },
+});
+`,
+  ".gitignore": "node_modules\ndist\ntest-results\nplaywright-report\n",
+  "src/types.ts": `export interface LineItem {
+  sku: string;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: number;
+  items: LineItem[];
+  voucher?: { code: string; percent: number };
+}
+`,
+  "src/orders/pricing.ts": NODE_PRICING,
+  "src/orders/pricing.test.ts": `import { describe, expect, it } from "vitest";
+import { lineTotal, orderTotal } from "./pricing";
+
+const keyboard = { sku: "KB-1", name: "Keyboard", unitPrice: 49.99, quantity: 1 };
+const cable = { sku: "USB-C", name: "USB-C cable", unitPrice: 4.99, quantity: 2 };
+
+describe("pricing", () => {
+  it("multiplies the unit price", () => {
+    expect(lineTotal(cable)).toBeCloseTo(9.98);
+  });
+
+  describe("orderTotal", () => {
+    it("adds the tax", () => {
+      expect(orderTotal({ id: 1, items: [keyboard] })).toBe(59.49);
+    });
+
+    it("applies the voucher before the tax", () => {
+      const order = { id: 2, items: [keyboard, cable], voucher: { code: "SPRING10", percent: 10 } };
+      expect(orderTotal(order)).toBe(64.24);
+    });
+
+    it("rounds to cents", () => {
+      expect(orderTotal({ id: 3, items: [cable] })).toBe(11.88);
+    });
+  });
+});
+`,
+  "src/orders/store.ts": `import type { Order } from "../types";
+
+const orders = new Map<number, Order>([
+  [1042, {
+    id: 1042,
+    items: [
+      { sku: "KB-1", name: "Keyboard", unitPrice: 49.99, quantity: 1 },
+      { sku: "USB-C", name: "USB-C cable", unitPrice: 4.99, quantity: 2 },
+    ],
+    voucher: { code: "SPRING10", percent: 10 },
+  }],
+]);
+
+export async function findOrder(id: number): Promise<Order | undefined> {
+  return orders.get(id);
+}
+`,
+  "src/orders/store.test.ts": `import { describe, expect, it } from "vitest";
+import { findOrder } from "./store";
+
+describe("store", () => {
+  it("finds an order by id", async () => {
+    expect((await findOrder(1042))?.items).toHaveLength(2);
+  });
+
+  it("returns undefined for unknown ids", async () => {
+    expect(await findOrder(1)).toBeUndefined();
+  });
+});
+`,
+  "src/server.ts": `import { createServer } from "node:http";
+import { orderTotal } from "./orders/pricing";
+import { findOrder } from "./orders/store";
+
+const PORT = Number(process.env.PORT ?? 3000);
+
+const server = createServer(async (req, res) => {
+  const url = new URL(req.url ?? "/", \`http://localhost:\${PORT}\`);
+  const match = /^\\/orders\\/(\\d+)\\/total$/.exec(url.pathname);
+  if (!match) {
+    res.writeHead(404).end();
+    return;
+  }
+  const order = await findOrder(Number(match[1]));
+  if (!order) {
+    res.writeHead(404, { "content-type": "application/json" }).end(JSON.stringify({ error: "order not found" }));
+    return;
+  }
+  const total = orderTotal(order);
+  res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ id: order.id, total }));
+});
+
+server.listen(PORT, () => console.log(\`Orders API listening on http://localhost:\${PORT}\`));
+`,
+  "e2e/checkout.spec.ts": `import { expect, test } from "@playwright/test";
+
+test("reports the health", async ({ request }) => {
+  const res = await request.get("/health");
+  expect(res.ok()).toBeTruthy();
+});
+
+test.describe("order totals", () => {
+  test("returns the total of an order", async ({ request }) => {
+    const res = await request.get("/orders/1042/total");
+    expect(await res.json()).toEqual({ id: 1042, total: 64.24 });
+  });
+
+  test("answers 404 for unknown orders", async ({ request }) => {
+    const res = await request.get("/orders/1/total");
+    expect(res.status()).toBe(404);
+  });
+});
+`,
+  "README.md": "# orders-api\n\nOrder totals over HTTP. `npm run dev` starts the server on port 3000, `npm test` runs the Vitest unit tests and `npm run test:e2e` the Playwright tests.\n",
+};
+
 const base = { packs: ["webforge"], languages: ["javascript", "typescript", "html", "css"] };
 
 export const webDemos: Record<WebDemoId, WebDemo> = {
@@ -691,6 +881,17 @@ export const webDemos: Record<WebDemoId, WebDemo> = {
       frameworks: [fw("vue", "Vue.js", "3.5.13"), fw("vite", "Vite", "6.3.5")],
       tools: ["git", "yarn"],
       primary: fw("vue", "Vue.js", "3.5.13"),
+    },
+  },
+  node: {
+    name: "orders-api",
+    initialFile: "src/orders/pricing.ts",
+    files: node,
+    info: {
+      ...base,
+      frameworks: [fw("node", "Node.js", "22.11.0", "typescript")],
+      tools: ["git", "npm"],
+      primary: fw("node", "Node.js", "22.11.0", "typescript"),
     },
   },
   angular: {

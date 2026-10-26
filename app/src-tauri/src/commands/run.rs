@@ -60,6 +60,8 @@ impl RunState {
         tests.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
         tests.register(Box::new(pyforge_testing::PythonTestFrameworks));
         tests.register_specs(plugins.test_frameworks());
+        // Node.js test runners: their manifest specs with WebForge's Node.js specifics.
+        webforge_js_testing::register(&mut tests, plugins.test_frameworks().cloned());
         let program_settings = plugins
             .test_frameworks()
             .filter_map(|f| f.program_setting.clone())

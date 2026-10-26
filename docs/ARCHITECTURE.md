@@ -1717,7 +1717,7 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   Application" run configuration type and Settings | Build, Execution, Deployment | Debugger
   (`debugger.*`).
 - **Sessions.** `DapManager::start(LaunchRequest { adapter, mode: launch | attachProcess{pid} |
-  attachServer{host,port} | coreDump{core}, program, args, arguments, cwd, env, stopOnEntry,
+  attachServer{host,port} | attachPort{host,port} | coreDump{core}, program, args, arguments, cwd, env, stopOnEntry,
   configuration })` resolves the descriptor, opens the transport, and runs initialize →
   (breakpoints first when `initialized` comes right after `initialize`) → launch/attach →
   breakpoints → configurationDone. Session ids are `dap-<n>`; the app's `debug_*` commands
@@ -1727,7 +1727,8 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   Logpoints use the adapter's `logMessage` (templates with `{expr}`) or are emulated; exception
   filters are stored as exception breakpoints with `adapter`; watchpoints are data
   breakpoints (`dataBreakpointInfo`). Reverse requests: `runInTerminal` (Forge starts the
-  program, output in the console) and `startDebugging` (child sessions with `parentId`).
+  program, output in the console) and `startDebugging` (child sessions with `parentId`; a child of an adapter that Forge
+  started as a TCP server connects to that same server, which js-debug requires).
 - **Trust.** `dap_start` / `dap_restart` refuse launching in Safe Mode
   (`require_trusted`); attaching to a process or a DAP server and core dumps are allowed.
 - **IPC** (`commands/dap.rs`): `dap_adapters() -> AdapterInfo[]`, `dap_start({ request }) ->
@@ -1751,6 +1752,18 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   Attach to DAP Server and Debug Core Dump. Inline values use `inlineValuesGeneric`.
 - **Tests.** `crates/forge-dap/tests/fake_adapter.rs` drives the simulated adapter
   (`forge_dap::fake`, binary `forge-dap-fake`) over every transport; no debugger downloads.
+- **JavaScript (js-debug).** `packs/webforge/js-debug` registers `pwa-node`, `pwa-chrome` and
+  `pwa-msedge` in Rust (`DapManager::register_adapter`, removed with `unregister_adapter` when
+  `forge.js-debugger` is disabled); each session runs js-debug's DAP server on Node.js
+  (`node dapDebugServer.js ${port} 127.0.0.1`). js-debug is downloaded after the user agreed
+  (pinned release, SHA-256). IPC (`commands/js_debug.rs`): `js_debug_status() ->
+  JsDebugStatus`, `js_debug_install() -> JsDebugStatus` (events `js-debug://install`:
+  `{ message }` or `{ label, done, total }`), `js_debug_browsers() -> Browser[]`,
+  `js_debug_request({ configuration }) -> LaunchRequest` (Node.js, npm, JavaScript Debug,
+  Attach to Node.js/Chrome, the Node.js test runners). The UI's `js-debug` debug launcher
+  (`features/webforge/jsDebug.ts`) asks for the download, then calls `dap_start`. Browser
+  mock: `mock/jsDebugMock.ts`. The Node.js test runners (`packs/webforge/js-testing`) wrap
+  their `[[contributions.testFrameworks]]` specs and replace them in the test registry.
 
 ## PHP CLI interpreters (`packs/phpforge/interpreters`)
 

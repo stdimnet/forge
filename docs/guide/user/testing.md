@@ -1,8 +1,8 @@
 ---
 title: Testing
-description: The shared test runner of every pack — test frameworks of PHP and the language packs, gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, and the result formats Forge reads (TeamCity, JUnit XML, TAP, Go test2json, libtest JSON, pytest, Jest and Vitest JSON).
+description: The shared test runner of every pack — test frameworks of PHP and the language packs, gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, and the result formats Forge reads (TeamCity, JUnit XML, TAP, Go test2json, libtest JSON, pytest, Jest and Vitest JSON, Playwright JSON).
 order: 141
-tags: [tests, test runner, test tree, gutter, rerun failed tests, test history, auto-test, busted, tap, junit, jest, vitest, pytest, go test, cargo test]
+tags: [tests, test runner, test tree, gutter, rerun failed tests, test history, auto-test, busted, tap, junit, jest, vitest, mocha, playwright, cypress, pytest, go test, cargo test]
 ---
 
 # Testing
@@ -26,6 +26,7 @@ PHP, Lua and every language pack that follows:
 | --- | --- | --- | --- |
 | PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
 | busted | LuaForge ([LuaForge](luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
+| Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
 | pytest, unittest, tox | PyForge ([PyForge](python.md#testing-with-pytest-unittest-and-tox)) | JUnit XML or report log (pytest), TeamCity (Forge's unittest runner), environments as tests (tox) | pytest-cov (Cobertura) |
 
 Language packs declare their frameworks in their plugin manifest
@@ -33,7 +34,8 @@ Language packs declare their frameworks in their plugin manifest
 the framework then appears everywhere on this page without further code.
 
 A framework is used in a project when its files are there (`.busted`, `spec/*_spec.lua`) or a
-project file names it (a rockspec that depends on busted).
+project file names it (a rockspec that depends on busted). When several frameworks claim the
+same files (Jest and Vitest both run `*.test.ts`), the gutter uses the one the project uses.
 
 ## Running tests
 
@@ -80,6 +82,7 @@ format into the same test events:
 | libtest JSON | `cargo test -- -Z unstable-options --format json`, nextest | streamed on stdout |
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
+| Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
 
 Failures keep their message, the failure location (a stack frame) and, where the tool reports
 them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`

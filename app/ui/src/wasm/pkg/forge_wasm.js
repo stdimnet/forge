@@ -6578,7 +6578,8 @@ export function testing_detect(request_json) {
 }
 
 /**
- * `{ path, text, specs }` → `TestFile` (`test_discover`, every framework).
+ * `{ path, text, specs, detected? }` → `TestFile` (`test_discover`, every framework,
+ * those the project uses first).
  * @param {string} request_json
  * @returns {string}
  */

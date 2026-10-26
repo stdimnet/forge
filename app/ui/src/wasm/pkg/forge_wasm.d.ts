@@ -1399,7 +1399,8 @@ export function testing_command(request_json: string): string;
 export function testing_detect(request_json: string): string;
 
 /**
- * `{ path, text, specs }` → `TestFile` (`test_discover`, every framework).
+ * `{ path, text, specs, detected? }` → `TestFile` (`test_discover`, every framework,
+ * those the project uses first).
  */
 export function testing_discover(request_json: string): string;
 
