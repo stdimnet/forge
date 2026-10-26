@@ -26,6 +26,7 @@ use javaforge_build::command::ExecOptions;
 use javaforge_build::{test_command, BuildProject, BuildTool, Module, TestFilter};
 
 use crate::discovery::{discover_tests, source_root, Framework};
+use crate::launch::{junit_console_command, JUnitSelector};
 
 /// The module folder of a source root: `app/src/test/java/` → `app`.
 pub fn module_of_source_root(root: &str) -> String {
@@ -258,7 +259,82 @@ impl TestFrameworkProvider for JavaTests {
     }
 }
 
+/// "Run tests using: IntelliJ IDEA": the JUnit Platform Console Launcher on the class path
+/// the backend resolved (options `runner` = `junit`, `java`, `launcherJar`,
+/// `resolvedClasspath`, `reportsDir`, `runnerJvmArgs`).
+fn console_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCommand, String> {
+    if ctx.coverage_file.is_some() {
+        return Err(
+            "Run with Coverage needs \"Run tests using: Gradle\" (Settings | Build Tools | Gradle)"
+                .into(),
+        );
+    }
+    let launcher = cfg.option("launcherJar").trim();
+    if launcher.is_empty() {
+        return Err("The JUnit Platform Console Launcher (junit-platform-console-standalone.jar) was not found".into());
+    }
+    let java = match cfg.option("java").trim() {
+        "" => "java",
+        j => j,
+    };
+    let windows = java.ends_with(".exe");
+    let classpath: Vec<String> = cfg
+        .option("resolvedClasspath")
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .map(str::to_string)
+        .collect();
+    let selectors: Vec<JUnitSelector> = match filter(cfg)? {
+        TestFilter::All => vec![JUnitSelector::All],
+        TestFilter::Package { name } => vec![JUnitSelector::Package(name)],
+        TestFilter::Class { name } => vec![JUnitSelector::Class(name)],
+        TestFilter::Method { class, method } => vec![JUnitSelector::Method(class, method)],
+        TestFilter::Tests { tests } => tests
+            .into_iter()
+            .map(|(c, m)| match m {
+                Some(m) => JUnitSelector::Method(c, m),
+                None => JUnitSelector::Class(c),
+            })
+            .collect(),
+    };
+    let reports = match cfg.option("reportsDir").trim() {
+        "" => "build/test-results/forge-junit".to_string(),
+        r => r.to_string(),
+    };
+    let (program, args) = junit_console_command(
+        java,
+        launcher,
+        &classpath,
+        &selectors,
+        &reports,
+        &split_args(cfg.option("runnerJvmArgs")),
+        windows,
+    );
+    let root = match cfg.option("sourceRoot").trim() {
+        "" => "src/test/java/".to_string(),
+        r => format!("{}/", r.trim_end_matches('/')),
+    };
+    let scoped_file = matches!(cfg.option("scope"), "class" | "method");
+    Ok(TestCommand {
+        program,
+        args,
+        env: Default::default(),
+        report: TestReport::JUnitFile,
+        flavor: JUnitFlavor::Java,
+        location_rules: vec![source_rule(&root)],
+        default_file: scoped_file
+            .then(|| cfg.option("file").trim().to_string())
+            .filter(|f| !f.is_empty()),
+        coverage: None,
+        report_dirs: vec![reports],
+    })
+}
+
 fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCommand, String> {
+    if cfg.option("runner") == "junit" {
+        return console_command(cfg, ctx);
+    }
     let tool = BuildTool::parse(cfg.option("buildTool")).ok_or(
         "Tests run through Gradle or Maven: no build.gradle or pom.xml was found for this project",
     )?;
@@ -282,6 +358,7 @@ fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestComman
         build_dir: cfg.option("buildDir").to_string(),
         windows: program.ends_with(".bat") || program.ends_with(".cmd"),
         offline: cfg.option("offline") == "true",
+        ..Default::default()
     };
     let project = BuildProject::minimal(tool, module.clone().into_iter().collect());
     let extra = split_args(cfg.option("testRunnerOptions"));
@@ -399,6 +476,42 @@ mod unit {
             "app/build/reports/jacoco/test/jacocoTestReport.xml"
         );
         assert_eq!(cov.location_rules[0].replacement, "app/src/main/java/$1");
+    }
+
+    #[test]
+    fn junit_runner_command() {
+        let file = JavaTests::junit().discover(PATH, TEST).unwrap();
+        let cfg = file.targets[1]
+            .configuration
+            .clone()
+            .with_option("runner", "junit")
+            .with_option("java", "/jdk/bin/java")
+            .with_option("launcherJar", "/m2/console.jar")
+            .with_option("resolvedClasspath", "/p/app/bin/main\n/p/app/bin/test")
+            .with_option("reportsDir", "app/build/test-results/forge-junit");
+        let cmd = JavaTests::junit()
+            .command(&cfg, &CommandContext::default())
+            .unwrap()
+            .unwrap();
+        assert_eq!(cmd.program, "/jdk/bin/java");
+        assert!(cmd
+            .args
+            .contains(&"/p/app/bin/main:/p/app/bin/test".to_string()));
+        assert!(cmd
+            .args
+            .contains(&"com.acme.inventory.InventoryTest#addsStock".to_string()));
+        assert_eq!(cmd.report_dirs, ["app/build/test-results/forge-junit"]);
+        assert_eq!(cmd.location_rules[0].replacement, "app/src/test/java/$1");
+        let ctx = CommandContext {
+            coverage_file: Some("/tmp/c".into()),
+            ..Default::default()
+        };
+        assert!(JavaTests::junit().command(&cfg, &ctx).unwrap().is_err());
+        let missing = cfg.with_option("launcherJar", "");
+        assert!(JavaTests::junit()
+            .command(&missing, &CommandContext::default())
+            .unwrap()
+            .is_err());
     }
 
     #[test]
