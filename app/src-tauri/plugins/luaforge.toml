@@ -47,6 +47,39 @@ label = "File"
 kind = "path"
 required = true
 
+# ---- busted on the shared test runner (forge-testing) ----------------------------------
+# Gutter icons in *_spec.lua files, a "busted" run configuration type, the test tree from
+# its TAP output, Rerun Failed Tests and Run with Coverage (luacov with
+# `runreport = true` and `reporter = "lcov"` in .luacov).
+
+[[contributions.testFrameworks]]
+id = "busted"
+name = "busted"
+description = "Run busted specs: all specs, a directory, a spec file, one test or a name pattern."
+icon = "flask-conical"
+language = "lua"
+detect = { files = [".busted", "spec/*_spec.lua", "spec/**/*_spec.lua"], dependencies = [{ file = "*.rockspec", contains = "busted" }] }
+testFiles = ["*_spec.lua"]
+program = "busted"
+programSetting = "lua.busted.path"
+args = ["--output=TAP"]
+report = "tap"
+nameSeparator = " "
+escape = "lua"
+discovery = [
+  { kind = "describe", pattern = '''^\s*(?:describe|context|insulate|expose)\s*\(?\s*["'](?P<name>[^"']+)["']''' },
+  { kind = "test", pattern = '''^\s*(?:it|spec|test|pending)\s*\(?\s*["'](?P<name>[^"']+)["']''' },
+]
+rerun = { join = "\n" }
+coverage = { args = ["--coverage"], file = "luacov.report.out", format = "lcov" }
+
+[contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--filter=${testPattern}"]
+pattern = ["--filter=${pattern}"]
+
 # ---- Settings | Languages & Frameworks | Lua ------------------------------------------
 
 [[contributions.settings]]
@@ -110,3 +143,13 @@ default = "stylua"
 group = "lang.lua"
 section = "StyLua"
 order = 21
+
+[[contributions.settings]]
+key = "lua.busted.path"
+title = "busted executable"
+description = "Runs busted test configurations that do not set their own executable."
+type = "path"
+default = "busted"
+group = "lang.lua"
+section = "Testing"
+order = 30

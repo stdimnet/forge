@@ -132,6 +132,23 @@ fn compose_service(
     Some((dir, volumes, services))
 }
 
+/// The compose directory and the volumes of `service` (for run targets on a Docker
+/// Compose service), read like an interpreter's.
+pub(crate) fn compose_volumes(
+    backend: &dyn Backend,
+    root: &str,
+    files: &[String],
+    service: &str,
+) -> Option<(String, Vec<String>)> {
+    let interp = PhpInterpreter {
+        kind: InterpreterKind::Compose,
+        compose_files: files.to_vec(),
+        service: service.to_string(),
+        ..PhpInterpreter::default()
+    };
+    compose_service(&interp, backend, root).map(|(dir, volumes, _)| (dir, volumes))
+}
+
 /// The SSH configuration an interpreter names.
 fn ssh_target(interp: &PhpInterpreter) -> Option<SshTarget> {
     let all = forge_remote::store::load();
