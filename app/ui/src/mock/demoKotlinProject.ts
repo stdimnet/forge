@@ -254,8 +254,6 @@ export const cartMembers = [
 export const orderMembers = [
   item("id", "property", "Int"),
   item("items", "property", "List<LineItem>"),
-  item("component1()", "method", "Int"),
-  item("component2()", "method", "List<LineItem>"),
   item("copy(id: Int = ..., items: List<LineItem> = ...)", "method", "Order"),
 ];
 
