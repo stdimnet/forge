@@ -35,7 +35,8 @@ pub struct ProjectInfo {
     /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `rust`, `go`, `python`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
-    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`.
+    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
+    /// `kotlinforge`.
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
     /// `conda`, `maven`, `gradle`, `docker`, `git`.
@@ -77,6 +78,7 @@ pub fn language_name(id: &str) -> &str {
         "go" => "Go",
         "python" => "Python",
         "java" => "Java",
+        "kotlin" => "Kotlin",
         other => other,
     }
 }
@@ -89,6 +91,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "lua" => Some("luaforge"),
         "python" => Some("pyforge"),
         "java" => Some("javaforge"),
+        "kotlin" => Some("kotlinforge"),
         _ => None,
     }
 }
@@ -152,6 +155,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
 
 const LANGUAGE_PRIORITY: &[&str] = &[
     "php",
+    "kotlin",
     "java",
     "typescript",
     "javascript",
@@ -383,6 +387,7 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
 
     // ---- Java (JavaForge): Maven and Gradle builds, Java sources
     scan_java(dir, rel, c, &files);
+    scan_kotlin(dir, rel, c, &files);
 
     // ---- Other languages and tools
     if has("Cargo.toml") {
@@ -461,6 +466,34 @@ fn scan_java(dir: &Path, _rel: &str, c: &mut Collector, files: &[String]) {
     }
     if maven || gradle || sources {
         c.language("java");
+    }
+}
+
+/// Kotlin (KotlinForge): Kotlin sources (`*.kt` in the folder, `src/main/kotlin`,
+/// `src/test/kotlin`) or a build that applies the Kotlin plugin (`kotlin("jvm")`,
+/// `org.jetbrains.kotlin.*`, `kotlin-maven-plugin`). Kotest is a framework of its own.
+fn scan_kotlin(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let sources = files
+        .iter()
+        .any(|f| f.ends_with(".kt") || (f.ends_with(".kts") && !f.ends_with(".gradle.kts")))
+        || dir.join("src/main/kotlin").is_dir()
+        || dir.join("src/test/kotlin").is_dir();
+    let builds: Vec<String> = ["build.gradle.kts", "build.gradle", "pom.xml"]
+        .iter()
+        .filter(|f| files.iter().any(|x| x == *f))
+        .filter_map(|f| fs::read_to_string(dir.join(f)).ok())
+        .collect();
+    let plugin = builds.iter().any(|b| {
+        b.contains("kotlin(\"jvm\")")
+            || b.contains("kotlin(\"multiplatform\")")
+            || b.contains("org.jetbrains.kotlin")
+            || b.contains("kotlin-maven-plugin")
+    });
+    if sources || plugin {
+        c.language("kotlin");
+    }
+    if builds.iter().any(|b| b.contains("io.kotest")) {
+        c.framework("kotest", "Kotest", "kotlin", None, rel);
     }
 }
 
@@ -1037,6 +1070,39 @@ mod tests {
         let plain = tempfile::tempdir().unwrap();
         write(plain.path(), "Hello.java", "void main() {}");
         assert!(detect(plain.path()).uses("javaforge"));
+    }
+
+    #[test]
+    fn kotlin_sources_builds_and_kotest() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "settings.gradle.kts",
+            "rootProject.name = \"orders\"",
+        );
+        write(
+            dir.path(),
+            "build.gradle.kts",
+            "plugins { kotlin(\"jvm\") version \"2.2.0\" }\ndependencies { testImplementation(\"io.kotest:kotest-runner-junit5:5.9.1\") }",
+        );
+        let info = detect(dir.path());
+        assert!(info.uses("kotlin") && info.uses("kotlinforge"));
+        assert!(
+            info.uses("javaforge"),
+            "Gradle builds belong to JavaForge too"
+        );
+        assert!(info.framework("kotest").is_some());
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.name.as_str()),
+            Some("Kotlin")
+        );
+
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "hello.main.kts", "println(\"Hi\")");
+        assert!(detect(plain.path()).uses("kotlinforge"));
+        let gradle_only = tempfile::tempdir().unwrap();
+        write(gradle_only.path(), "build.gradle.kts", "plugins { java }");
+        assert!(!detect(gradle_only.path()).uses("kotlin"));
     }
 
     #[test]
