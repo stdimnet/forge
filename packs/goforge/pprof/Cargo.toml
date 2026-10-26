@@ -1,0 +1,13 @@
+[package]
+name = "goforge-pprof"
+description = "GoForge: pprof profiles (profile.proto, gzip-compressed protobuf) decoded by a small hand-written protobuf reader, with the Profiler's views: top functions (flat / cumulative), call tree and flame graph; pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+flate2 = "1"
+
+[dev-dependencies]
+serde_json.workspace = true

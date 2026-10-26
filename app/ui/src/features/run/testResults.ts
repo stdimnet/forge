@@ -37,6 +37,8 @@ export function resultKeys(root: TestNode): Map<string, TestStatus> {
         names.add(name.replace(/\[.*\]$/, ""));
       }
       for (const name of names) put(`${path}::${name}`, n.status);
+      // Go reports tests by package and failures at their `_test.go` file: key both by the package folder.
+      if (path.endsWith(".go")) for (const name of names) put(`${path.replace(/\/?[^/]*$/, "")}::${name}`, n.status);
       // The file (class, spec, feature) fails with any of its tests.
       put(path, n.status);
     }

@@ -683,6 +683,26 @@ Page id `lang.python`.
 | `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
 | `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
 
+### Languages & Frameworks | Go
+
+Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `go.goroot` | path | `""` | user, project | GOROOT | GOROOT — The Go SDK of the project. Empty: the newest SDK Forge finds (PATH, /usr/local/go, ~/sdk, Homebrew, Program Files, Forge's downloads). |
+| `go.sdk.downloadSource` | string | `https://go.dev/dl` | user | SDK Downloads | SDK download source — Where Download Go SDK gets the release list (?mode=json, with SHA-256 checksums) and the archives. |
+| `go.gopath` | path | `""` | user, project | GOPATH | Project GOPATH — GOPATH for builds, runs and tests of this project. Empty: Go's default (GOPATH or ~/go). |
+| `go.goflags` | string | `""` | user, project | Build Tags and Environment | GOFLAGS — Flags every go command of the project gets, e.g. -mod=mod or -buildvcs=false. |
+| `go.buildTags` | list | `[]` | user, project | Build Tags and Environment | Build tags — Tags for builds, runs, tests and gopls (-tags), e.g. integration. |
+| `go.environment` | list | `[]` | user, project | Build Tags and Environment | Environment — Variables for go commands of the project, one KEY=VALUE per entry (GOPRIVATE, CGO_ENABLED, GOEXPERIMENT). |
+| `go.formatter` | enum: `gofmt`, `goimports`, `lsp`, `none` | `gofmt` | user, project | Code Style | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Go files. |
+| `go.goimports.path` | path | `""` | user | Code Style | goimports executable — Empty: Forge's tools folder, GOPATH/bin or PATH. |
+| `go.vet.onSave` | bool | `true` | user, project | External Annotators | Run go vet on save — Problems of the saved file's package appear in the editor and the Problems tool window. go vet builds the package, so it runs only in trusted projects. |
+| `go.golangciLint.onSave` | bool | `false` | user, project | External Annotators | Run golangci-lint on save — Runs the project's .golangci.yml configuration for the saved file's package (trusted projects only). |
+| `go.golangciLint.path` | path | `""` | user | External Annotators | golangci-lint executable — golangci-lint is not installed by Forge (GPL-3.0). Empty: GOPATH/bin or PATH. |
+| `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
+| `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
+| `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -898,17 +918,31 @@ Page id `build.jdks` (plugin `forge.java`, a custom page: the project JDK, langu
 | `java.languageLevel` | enum: ``, `8`, `11`, `17`, `21`, `25` | `""` | user, project |  | Language level — Java release of the sources. Empty: from the build (toolchain, maven.compiler.release) or the project JDK. |
 | `java.download.adoptiumApi` | string | `https://api.adoptium.net` | user | Downloads | Adoptium API — Where Download JDK… looks up Eclipse Temurin builds (and their SHA-256 checksums). |
 
+### Build, Execution, Deployment | Build Tools
+
+Page id `build.tools` (plugin `forge.java`). See [JavaForge](../user/java.md#editing-build-scripts).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.mavenCentral.enabled` | bool | `true` | user | Maven Central | Search Maven Central — Complete dependency coordinates and versions in build.gradle(.kts) and pom.xml and report newer versions (cached in the user cache dir). |
+| `java.mavenCentral.searchUrl` | string | `""` | user | Maven Central | Search API — Empty: https://search.maven.org. |
+| `java.mavenCentral.repositoryUrl` | string | `""` | user | Maven Central | Repository — Where maven-metadata.xml (the versions) comes from. Empty: https://repo1.maven.org/maven2. |
+
 ### Build, Execution, Deployment | Build Tools | Gradle
 
-Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](../user/java.md#maven-and-gradle).
+Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](../user/java.md#gradle-settings-and-the-wrapper).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `java.build.preferredTool` | enum: `gradle`, `maven` | `gradle` | user, project |  | Build tool of projects with both — Which build Forge uses when a folder has a pom.xml and a Gradle build. |
-| `java.gradle.useWrapper` | bool | `true` | user, project |  | Use the Gradle wrapper (gradlew) — Run Gradle through the project's gradlew when it has one. |
-| `java.gradle.executable` | path | `""` | user |  | Gradle executable — Used without a wrapper. Empty: gradle on the PATH. |
-| `java.gradle.jvm` | path | `""` | user, project |  | Gradle JVM — JDK home Gradle imports and runs with. Empty: the project JDK. |
-| `java.gradle.offline` | bool | `false` | user, project |  | Offline work |
+| `java.gradle.distribution` | enum: `wrapper`, `specified`, `local` | `wrapper` | user, project | Gradle | Use Gradle from — The wrapper (gradle/wrapper/gradle-wrapper.properties), a Gradle home you choose, or gradle on the PATH. |
+| `java.gradle.home` | path | `""` | user | Gradle | Gradle home — Used with "Specified location": the Gradle installation folder (or its bin/gradle). |
+| `java.gradle.jvm` | path | `""` | user, project | Gradle | Gradle JVM — JDK home (or name, like temurin-21) Gradle syncs, builds and runs with. Empty: the project JDK. |
+| `java.gradle.offline` | bool | `false` | user, project | Gradle | Offline work — Gradle resolves dependencies from its caches only (--offline). |
+| `java.gradle.buildAndRunUsing` | enum: `gradle`, `idea` | `gradle` | user, project | Build and run | Build and run using — Build Project and Application configurations run through Gradle (forgeRun) or Eclipse JDT LS compiles and Forge runs java itself. |
+| `java.gradle.runTestsUsing` | enum: `gradle`, `idea` | `gradle` | user, project | Build and run | Run tests using — JUnit tests run through Gradle's test task or the JUnit Platform Console Launcher on JDT LS's class path (TestNG always runs through Gradle). |
+| `java.junit.consoleLauncher` | path | `""` | user | Build and run | JUnit Platform Console Launcher — junit-platform-console-standalone.jar for "Run tests using: IntelliJ IDEA". Empty: the newest in ~/.m2 or Gradle's cache. |
+| `java.gradle.servicesUrl` | string | `""` | user |  | Gradle services (hidden) — Where Update Wrapper looks up Gradle releases and their SHA-256 sums. Empty: https://services.gradle.org. |
 
 ### Build, Execution, Deployment | Build Tools | Maven
 
@@ -919,6 +953,8 @@ Page id `build.tools.maven` (plugin `forge.java`).
 | `java.maven.useWrapper` | bool | `true` | user, project |  | Use the Maven wrapper (mvnw) — Run Maven through the project's mvnw when it has one. |
 | `java.maven.executable` | path | `""` | user |  | Maven home path — The mvn executable used without a wrapper. Empty: mvn on the PATH. |
 | `java.maven.offline` | bool | `false` | user, project |  | Work offline |
+| `java.maven.skipTests` | bool | `false` | user, project |  | Skip tests — Maven goals run with -DskipTests (the Maven tool window's Skip Tests toggle; test runs ignore it). |
+| `java.maven.profiles` | list | `[]` | user, project |  | Profiles — Profiles the Maven tool window selected: id to activate, !id to deactivate. |
 | `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
 
 ### Build, Execution, Deployment | Debugger

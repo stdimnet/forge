@@ -30,6 +30,7 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register(Box::new(pyforge_testing::PythonTestFrameworks));
     r.register_specs(specs);
     webforge_js_testing::register(&mut r, specs.iter().cloned());
+    goforge_lang_go::provider::register(&mut r, specs.iter().cloned());
     // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -88,6 +89,9 @@ struct CommandRequest {
     report_dir: String,
     #[serde(default)]
     coverage_file: Option<String>,
+    /// The project's Go context for Go Test configurations.
+    #[serde(default)]
+    go_context: Option<serde_json::Value>,
 }
 
 /// `{ configuration, spec, reportDir, coverageFile? }` → `TestCommand` of a manifest
@@ -96,15 +100,24 @@ struct CommandRequest {
 pub fn testing_command(request_json: &str) -> String {
     match parse::<CommandRequest>(request_json) {
         Ok(r) => {
-            let ctx = CommandContext {
+            let mut ctx = CommandContext {
                 report_dir: r.report_dir,
                 coverage_file: r.coverage_file,
                 settings: Default::default(),
             };
-            // Node.js test runners wrap their spec (CLI script with Node.js, report files).
-            let built = match webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
-                Some(js) => js.build(&r.configuration, &ctx),
-                None => r.spec.build(&r.configuration, &ctx),
+            if let Some(go) = &r.go_context {
+                ctx.settings
+                    .insert(goforge_lang_go::CONTEXT_KEY.into(), go.to_string());
+            }
+            // Node.js test runners and Go Test wrap their spec.
+            let built = if let Some(js) = webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
+                js.build(&r.configuration, &ctx)
+            } else if let Some(go) = goforge_lang_go::GoTestProvider::new(r.spec.clone()) {
+                use forge_testing::TestFrameworkProvider;
+                go.command(&r.configuration, &ctx)
+                    .unwrap_or_else(|| Err("no command".into()))
+            } else {
+                r.spec.build(&r.configuration, &ctx)
             };
             match built {
                 Ok(c) => to_json(&c),

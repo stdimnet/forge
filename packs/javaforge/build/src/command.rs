@@ -17,6 +17,10 @@ pub struct ExecOptions {
     pub windows: bool,
     /// Work offline (`--offline`, `-o`).
     pub offline: bool,
+    /// Maven profiles to activate (`dev`) or deactivate (`!prod`): `-Pdev,!prod`.
+    pub profiles: Vec<String>,
+    /// Maven: skip running tests (`-DskipTests`; test runs ignore it).
+    pub skip_tests: bool,
 }
 
 /// A command line of the build tool.
@@ -67,6 +71,12 @@ fn base(project: &BuildProject, opts: &ExecOptions) -> BuildCommand {
             }
             .to_string(),
         );
+    }
+    if project.tool == BuildTool::Maven {
+        args.extend(crate::model::profiles_argument(&opts.profiles));
+        if opts.skip_tests {
+            args.push("-DskipTests".into());
+        }
     }
     BuildCommand {
         program: executable(project.tool, project.wrapper, opts),
@@ -193,6 +203,10 @@ pub fn test_command(
     extra: &[String],
 ) -> TestRun {
     let entries = filter.entries();
+    let opts = &ExecOptions {
+        skip_tests: false,
+        ..opts.clone()
+    };
     match project.tool {
         BuildTool::Gradle => {
             let mut tasks = vec!["cleanTest".to_string(), "test".to_string()];
@@ -251,6 +265,126 @@ pub fn test_command(
     }
 }
 
+/// The init script of "Build and run using: Gradle": `forgeRun`, a `JavaExec` task in
+/// every Java project that runs the main class given by `-PforgeRunMain` with the JSON
+/// arrays `-PforgeRunArgs` and `-PforgeRunJvmArgs`, on the main (or, with
+/// `-PforgeRunTestClasspath=true`, the test) runtime class path and the project's toolchain.
+pub const GRADLE_RUN_INIT_SCRIPT: &str = r#"// Forge: runs a main class through Gradle (Settings | Build Tools | Gradle: Build and run using Gradle).
+import groovy.json.JsonSlurper
+
+allprojects { p ->
+    p.plugins.withId('java') {
+        p.tasks.register('forgeRun', JavaExec) { t ->
+            t.group = 'application'
+            t.description = 'Runs a main class for Forge'
+            def sets = p.extensions.getByName('sourceSets')
+            def set = p.findProperty('forgeRunTestClasspath') == 'true' ? sets.getByName('test') : sets.getByName('main')
+            t.classpath = set.runtimeClasspath
+            t.mainClass.set(String.valueOf(p.findProperty('forgeRunMain') ?: ''))
+            def json = { String name ->
+                def v = p.findProperty(name)
+                v ? new JsonSlurper().parseText(v.toString()) : []
+            }
+            t.args(json('forgeRunArgs'))
+            t.jvmArgs(json('forgeRunJvmArgs'))
+            t.standardInput = System.in
+            def dir = p.findProperty('forgeRunWorkingDir')
+            if (dir) {
+                t.workingDir = dir.toString()
+            }
+        }
+    }
+}
+"#;
+
+/// An Application run through Gradle (`forgeRun` of [`GRADLE_RUN_INIT_SCRIPT`]).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct GradleAppRun {
+    pub main_class: String,
+    pub args: Vec<String>,
+    pub jvm_args: Vec<String>,
+    /// Where the init script was written.
+    pub init_script: String,
+    /// The main class is a test source (`src/test/java`).
+    pub test_classpath: bool,
+    /// Absolute working directory of the program (empty: the project's folder).
+    pub working_dir: String,
+}
+
+fn json_array(items: &[String]) -> String {
+    serde_json::to_string(items).unwrap_or_else(|_| "[]".into())
+}
+
+/// `gradlew -I forge-run.gradle :app:forgeRun -PforgeRunMain=… …`.
+pub fn gradle_application_command(
+    project: &BuildProject,
+    opts: &ExecOptions,
+    module: Option<&Module>,
+    run: &GradleAppRun,
+) -> BuildCommand {
+    let mut extra = vec![
+        format!("-PforgeRunMain={}", run.main_class),
+        format!("-PforgeRunArgs={}", json_array(&run.args)),
+        format!("-PforgeRunJvmArgs={}", json_array(&run.jvm_args)),
+    ];
+    if run.test_classpath {
+        extra.push("-PforgeRunTestClasspath=true".into());
+    }
+    if !run.working_dir.is_empty() {
+        extra.push(format!("-PforgeRunWorkingDir={}", run.working_dir));
+    }
+    let mut cmd = goals_command(project, opts, module, &["forgeRun".to_string()], &extra);
+    let at = usize::from(opts.offline);
+    cmd.args.insert(at, "-I".into());
+    cmd.args.insert(at + 1, run.init_script.clone());
+    cmd
+}
+
+/// The command line of a Gradle sync: `forgeModel` of [`crate::model::GRADLE_INIT_SCRIPT`]
+/// writing to `out`.
+pub fn gradle_sync_command(
+    project: &BuildProject,
+    opts: &ExecOptions,
+    init_script: &str,
+    out: &str,
+) -> BuildCommand {
+    let mut cmd = goals_command(
+        project,
+        opts,
+        None,
+        &["forgeModel".to_string()],
+        &[
+            "--no-configuration-cache".into(),
+            "-q".into(),
+            format!("-Dforge.model.out={out}"),
+        ],
+    );
+    let at = usize::from(opts.offline);
+    cmd.args.insert(at, "-I".into());
+    cmd.args.insert(at + 1, init_script.into());
+    cmd
+}
+
+/// The command line of a Maven sync: `dependency:tree` of every module appended to `out`.
+pub fn maven_sync_command(project: &BuildProject, opts: &ExecOptions, out: &str) -> BuildCommand {
+    let opts = ExecOptions {
+        skip_tests: false,
+        ..opts.clone()
+    };
+    goals_command(
+        project,
+        &opts,
+        None,
+        &["dependency:tree".to_string()],
+        &[
+            "-B".into(),
+            format!("-DoutputFile={out}"),
+            "-DappendOutput=true".into(),
+        ],
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -278,6 +412,7 @@ mod tests {
             spring_boot: false,
             custom_tasks: vec![],
             java_version: None,
+            gradle_version: None,
             test_frameworks: vec![],
         }
     }
@@ -289,6 +424,7 @@ mod tests {
             build_dir: if windows { "C:\\p".into() } else { "/p".into() },
             windows,
             offline: false,
+            ..Default::default()
         }
     }
 
@@ -343,10 +479,72 @@ mod tests {
         );
         assert_eq!(cmd.program, "mvn");
         assert_eq!(cmd.args, ["-o", "-pl", "app", "-am", "package"]);
+        let profiled = ExecOptions {
+            profiles: vec!["dev".into(), "!prod".into()],
+            skip_tests: true,
+            ..opts(false)
+        };
+        let cmd = goals_command(&mvn, &profiled, None, &["install".into()], &[]);
+        assert_eq!(cmd.args, ["-Pdev,!prod", "-DskipTests", "install"]);
+        let run = test_command(&mvn, &profiled, None, &TestFilter::All, false, &[]);
+        assert_eq!(run.command.args, ["-Pdev,!prod", "test"]);
+        assert_eq!(
+            maven_sync_command(&mvn, &profiled, "/c/tree.txt").args,
+            [
+                "-Pdev,!prod",
+                "dependency:tree",
+                "-B",
+                "-DoutputFile=/c/tree.txt",
+                "-DappendOutput=true"
+            ]
+        );
         assert_eq!(
             build_project_command(&mvn, &opts(false)).args,
             ["test-compile"]
         );
+    }
+
+    #[test]
+    fn gradle_application_and_sync() {
+        let g = project(BuildTool::Gradle, true);
+        let offline = ExecOptions {
+            offline: true,
+            ..opts(false)
+        };
+        let run = GradleAppRun {
+            main_class: "com.acme.App".into(),
+            args: vec!["a b".into(), "\"q\"".into()],
+            jvm_args: vec!["-Xmx1g".into()],
+            init_script: "/cache/forge-run.gradle".into(),
+            ..Default::default()
+        };
+        let cmd = gradle_application_command(&g, &offline, g.modules.first(), &run);
+        assert_eq!(cmd.program, "/p/gradlew");
+        assert_eq!(
+            cmd.args,
+            [
+                "--offline",
+                "-I",
+                "/cache/forge-run.gradle",
+                ":app:forgeRun",
+                "-PforgeRunMain=com.acme.App",
+                r#"-PforgeRunArgs=["a b","\"q\""]"#,
+                r#"-PforgeRunJvmArgs=["-Xmx1g"]"#
+            ]
+        );
+        let sync = gradle_sync_command(&g, &opts(false), "/c/forge-model.gradle", "/c/model.json");
+        assert_eq!(
+            sync.args,
+            [
+                "-I",
+                "/c/forge-model.gradle",
+                "forgeModel",
+                "--no-configuration-cache",
+                "-q",
+                "-Dforge.model.out=/c/model.json"
+            ]
+        );
+        assert!(GRADLE_RUN_INIT_SCRIPT.contains("forgeRun"));
     }
 
     #[test]

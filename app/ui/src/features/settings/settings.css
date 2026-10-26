@@ -633,6 +633,8 @@
 .pack-pyforge {
   --pack: var(--syn-keyword);
 }
+.pack-goforge {
+  --pack: var(--info);
 .pack-javaforge {
   --pack: var(--danger);
 }

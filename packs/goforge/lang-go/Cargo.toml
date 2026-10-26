@@ -1,0 +1,13 @@
+[package]
+name = "goforge-lang-go"
+description = "GoForge: Go language support (go.mod / go.work parsing and completion contexts, module paths and versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider of the shared test runner, Go Build command lines, go:generate directives, go vet and golangci-lint reports, go env; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true

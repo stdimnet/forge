@@ -116,9 +116,104 @@ pub fn build_tool_debug_args(tool: &str, port: u16) -> Vec<String> {
     }
 }
 
+/// What the JUnit Platform Console Launcher selects (`--select-…`, `--scan-class-path`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum JUnitSelector {
+    All,
+    Package(String),
+    Class(String),
+    /// `com.acme.CartTest#adds`.
+    Method(String, String),
+}
+
+/// "Run tests using: IntelliJ IDEA": the JUnit Platform Console Launcher
+/// (`junit-platform-console-standalone.jar`) on the class path the language server
+/// compiled, writing legacy JUnit XML reports to `reports_dir`. JUnit 4 runs through the
+/// Vintage engine the launcher bundles; `jvm_args` (debugging) go before `-jar`.
+pub fn junit_console_command(
+    java: &str,
+    launcher: &str,
+    classpath: &[String],
+    selectors: &[JUnitSelector],
+    reports_dir: &str,
+    jvm_args: &[String],
+    windows: bool,
+) -> (String, Vec<String>) {
+    let mut args: Vec<String> = jvm_args.to_vec();
+    args.extend([
+        "-jar".to_string(),
+        launcher.to_string(),
+        "execute".into(),
+        "--disable-banner".into(),
+        "--details=tree".into(),
+        "--class-path".into(),
+        classpath.join(if windows { ";" } else { ":" }),
+    ]);
+    for s in selectors {
+        match s {
+            JUnitSelector::All => args.push("--scan-class-path".into()),
+            JUnitSelector::Package(p) => args.extend(["--select-package".into(), p.clone()]),
+            JUnitSelector::Class(c) => args.extend(["--select-class".into(), c.clone()]),
+            JUnitSelector::Method(c, m) => {
+                args.extend(["--select-method".into(), format!("{c}#{m}")])
+            }
+        }
+    }
+    args.extend(["--reports-dir".into(), reports_dir.to_string()]);
+    (java.to_string(), args)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn junit_console_launcher() {
+        let (java, args) = junit_console_command(
+            "/jdk/bin/java",
+            "/m2/junit-platform-console-standalone-1.11.3.jar",
+            &["bin/main".into(), "bin/test".into()],
+            &[
+                JUnitSelector::Method("com.acme.CartTest".into(), "adds".into()),
+                JUnitSelector::Class("com.acme.Outer$Inner".into()),
+            ],
+            "build/test-results/forge-junit",
+            &[],
+            false,
+        );
+        assert_eq!(java, "/jdk/bin/java");
+        assert_eq!(
+            args,
+            [
+                "-jar",
+                "/m2/junit-platform-console-standalone-1.11.3.jar",
+                "execute",
+                "--disable-banner",
+                "--details=tree",
+                "--class-path",
+                "bin/main:bin/test",
+                "--select-method",
+                "com.acme.CartTest#adds",
+                "--select-class",
+                "com.acme.Outer$Inner",
+                "--reports-dir",
+                "build/test-results/forge-junit"
+            ]
+        );
+        let (_, args) = junit_console_command(
+            "java",
+            "l.jar",
+            &["a".into(), "b".into()],
+            &[JUnitSelector::All],
+            "r",
+            &["-agentlib:jdwp=x".into()],
+            true,
+        );
+        assert_eq!(args[0], "-agentlib:jdwp=x");
+        assert!(
+            args.contains(&"a;b".to_string()) && args.contains(&"--scan-class-path".to_string())
+        );
+    }
 
     #[test]
     fn application_command_lines() {

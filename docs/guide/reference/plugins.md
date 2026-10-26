@@ -13,7 +13,7 @@ them (a language, framework, pack or tool id from
 [project detection](../getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -38,6 +38,7 @@ script and config language plugins.
 | Lua | `forge.lua` | luaforge |  | `luaforge` | 1 commands; 6 settings; file types: Lua; 1 LSP servers; run types: Lua Script |
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
+| Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | Kotlin | `forge.kotlin` | kotlinforge | `forge.java` | `kotlinforge` | 4 commands; 16 settings; 1 debug adapters (kotlin-lsp); 1 test frameworks (Kotest); run types (UI): Kotlin Script, Kotest |

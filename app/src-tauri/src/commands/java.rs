@@ -69,7 +69,7 @@ pub(crate) fn java_state() -> &'static JavaState {
     JAVA_STATE.get_or_init(JavaState::default)
 }
 
-fn setting(state: &AppState, key: &str) -> String {
+pub(crate) fn setting(state: &AppState, key: &str) -> String {
     state
         .read_settings()
         .get_as::<String>(key)
@@ -78,11 +78,11 @@ fn setting(state: &AppState, key: &str) -> String {
         .to_string()
 }
 
-fn flag(state: &AppState, key: &str, default: bool) -> bool {
+pub(crate) fn flag(state: &AppState, key: &str, default: bool) -> bool {
     state.read_settings().get_as::<bool>(key).unwrap_or(default)
 }
 
-fn windows() -> bool {
+pub(crate) fn windows() -> bool {
     cfg!(windows)
 }
 
@@ -209,7 +209,7 @@ fn java_debug_jar() -> Option<PathBuf> {
 }
 
 /// FNV-1a: a stable short hash that keeps the data of projects with the same name apart.
-fn short_hash(s: &str) -> String {
+pub(crate) fn short_hash(s: &str) -> String {
     let mut h: u64 = 0xcbf29ce484222325;
     for b in s.bytes() {
         h ^= b as u64;
@@ -495,26 +495,125 @@ pub struct BuildView {
     pub program: String,
 }
 
+/// The Gradle executable of "Use Gradle from: Specified location" (a Gradle home or the
+/// script itself).
+fn gradle_in_home(home: &str) -> String {
+    let p = Path::new(home);
+    if p.is_file() {
+        return home.to_string();
+    }
+    p.join("bin")
+        .join(if windows() { "gradle.bat" } else { "gradle" })
+        .display()
+        .to_string()
+}
+
+/// How Gradle and Maven run: Settings | Build Tools | Gradle ("Use Gradle from": wrapper,
+/// specified location, local installation; offline) and Maven (wrapper, Maven home,
+/// offline, the selected profiles, Skip Tests).
 pub(crate) fn exec_options(state: &AppState, tool: BuildTool, root: &Path) -> ExecOptions {
-    let (wrapper, exe, offline) = match tool {
-        BuildTool::Gradle => (
-            "java.gradle.useWrapper",
-            "java.gradle.executable",
-            "java.gradle.offline",
-        ),
-        BuildTool::Maven => (
-            "java.maven.useWrapper",
-            "java.maven.executable",
-            "java.maven.offline",
-        ),
-    };
-    ExecOptions {
-        use_wrapper: flag(state, wrapper, true),
-        executable: Some(setting(state, exe)).filter(|e| !e.is_empty()),
+    let base = ExecOptions {
         build_dir: root.display().to_string(),
         windows: windows(),
-        offline: flag(state, offline, false),
+        ..Default::default()
+    };
+    match tool {
+        BuildTool::Gradle => {
+            let home = setting(state, "java.gradle.home");
+            let (use_wrapper, executable) =
+                match setting(state, "java.gradle.distribution").as_str() {
+                    "local" => (false, None),
+                    "specified" if !home.is_empty() => (false, Some(gradle_in_home(&home))),
+                    _ => (true, None),
+                };
+            ExecOptions {
+                use_wrapper,
+                executable,
+                offline: flag(state, "java.gradle.offline", false),
+                ..base
+            }
+        }
+        BuildTool::Maven => ExecOptions {
+            use_wrapper: flag(state, "java.maven.useWrapper", true),
+            executable: Some(setting(state, "java.maven.executable")).filter(|e| !e.is_empty()),
+            offline: flag(state, "java.maven.offline", false),
+            profiles: state
+                .read_settings()
+                .get_as::<Vec<String>>("java.maven.profiles")
+                .unwrap_or_default(),
+            skip_tests: flag(state, "java.maven.skipTests", false),
+            ..base
+        },
     }
+}
+
+/// The JDK Gradle runs with: Settings | Build Tools | Gradle | Gradle JVM, else the
+/// project JDK.
+pub(crate) fn gradle_java_home(state: &AppState) -> Option<String> {
+    let own = setting(state, "java.gradle.jvm");
+    let jdks = all_jdks(state, java_state(), false);
+    if !own.is_empty() {
+        return javaforge_jdk::pick(&jdks, Some(&own), 0)
+            .map(|j| j.home.clone())
+            .or(Some(own));
+    }
+    project_jdk(state, &jdks).map(|j| j.home)
+}
+
+/// "Build and run using: Gradle" (the default) for a Gradle build.
+pub(crate) fn runs_through_gradle(state: &AppState, build: Option<&BuildProject>) -> bool {
+    build.is_some_and(|b| b.tool == BuildTool::Gradle)
+        && setting(state, "java.gradle.buildAndRunUsing") != "idea"
+}
+
+/// "Run tests using: IntelliJ IDEA" (the JUnit Platform Console Launcher).
+pub(crate) fn tests_through_junit_runner(state: &AppState, cfg: &RunConfiguration) -> bool {
+    // Kotlin tests need the Kotlin class path of the build: they run through it.
+    cfg.type_id == "junit"
+        && cfg.option("language") != "kotlin"
+        && setting(state, "java.gradle.runTestsUsing") == "idea"
+}
+
+/// `junit-platform-console-standalone.jar`: the setting, else the newest in the local
+/// Maven repository or Gradle's cache.
+fn console_launcher(state: &AppState) -> Option<String> {
+    let own = setting(state, "java.junit.consoleLauncher");
+    if !own.is_empty() {
+        return Some(own);
+    }
+    let home = dirs::home_dir()?;
+    const NAME: &str = "junit-platform-console-standalone";
+    let mut found: Vec<(String, PathBuf)> = Vec::new();
+    let m2 = home.join(format!(".m2/repository/org/junit/platform/{NAME}"));
+    let gradle = home.join(format!(
+        ".gradle/caches/modules-2/files-2.1/org.junit.platform/{NAME}"
+    ));
+    for base in [m2, gradle] {
+        let Ok(versions) = std::fs::read_dir(&base) else {
+            continue;
+        };
+        for v in versions.flatten() {
+            let version = v.file_name().to_string_lossy().into_owned();
+            let jar = format!("{NAME}-{version}.jar");
+            let direct = v.path().join(&jar);
+            if direct.is_file() {
+                found.push((version, direct));
+                continue;
+            }
+            // Gradle: <version>/<sha1>/<jar>.
+            if let Ok(hashes) = std::fs::read_dir(v.path()) {
+                for h in hashes.flatten() {
+                    if h.path().join(&jar).is_file() {
+                        found.push((version.clone(), h.path().join(&jar)));
+                    }
+                }
+            }
+        }
+    }
+    found
+        .into_iter()
+        .max_by(|a, b| javaforge_build::version::compare(&a.0, &b.0))
+        .map(|(_, p)| p.display().to_string())
 }
 
 #[tauri::command]
@@ -622,9 +721,45 @@ pub(crate) fn prepare(
                 .into(),
         )
     })?;
+    let module = cfg.option("module").trim().to_string();
+    if tests_through_junit_runner(state, cfg) {
+        let home = jdk_home(state, cfg);
+        let java = home
+            .map(|h| javaforge_jdk::java_executable(&h, windows()))
+            .unwrap_or_else(|| "java".into());
+        let launcher = console_launcher(state).ok_or_else(|| {
+            ForgeError::Other(
+                "Run tests using IntelliJ IDEA needs the JUnit Platform Console Launcher: set its jar in Settings | Build Tools | Gradle, or add org.junit.platform:junit-platform-console-standalone to the local Maven repository".into(),
+            )
+        })?;
+        if cfg.option("resolvedClasspath").trim().is_empty() {
+            return Err(ForgeError::Other(
+                "Run tests using IntelliJ IDEA needs the class path from Eclipse JDT LS: open a Java file and wait until the project is imported".into(),
+            ));
+        }
+        let out = match build.tool {
+            BuildTool::Gradle => "build/test-results/forge-junit",
+            BuildTool::Maven => "target/forge-junit",
+        };
+        let reports = if module.is_empty() {
+            out.to_string()
+        } else {
+            format!("{}/{out}", module.trim_end_matches('/'))
+        };
+        let set = |cfg: &mut RunConfiguration, k: &str, v: String| {
+            cfg.options.insert(k.into(), v);
+        };
+        set(cfg, "runner", "junit".into());
+        set(cfg, "java", java);
+        set(cfg, "launcherJar", launcher);
+        set(cfg, "reportsDir", reports);
+        if let Some(port) = debug_port {
+            set(cfg, "runnerJvmArgs", launch::jdwp_listen(port, true));
+        }
+        return Ok(());
+    }
     let opts = exec_options(state, build.tool, &root);
     let program = javaforge_build::executable(build.tool, build.wrapper, &opts);
-    let module = cfg.option("module").trim().to_string();
     let gradle_path = build
         .module(&module)
         .map(|m| m.path.clone())
@@ -645,8 +780,16 @@ pub(crate) fn prepare(
             .to_string();
         set(cfg, "testRunnerOptions", joined);
     }
-    // Gradle and Maven run with the project JDK.
-    if let Some(home) = jdk_home(state, cfg) {
+    // Gradle runs with the Gradle JVM, Maven with the project JDK.
+    let home = match build.tool {
+        BuildTool::Gradle
+            if cfg.interpreter.trim().is_empty() && cfg.option("jdk").trim().is_empty() =>
+        {
+            gradle_java_home(state)
+        }
+        _ => jdk_home(state, cfg),
+    };
+    if let Some(home) = home {
         cfg.env.entry("JAVA_HOME".into()).or_insert(home);
     }
     Ok(())
@@ -681,15 +824,49 @@ pub(crate) fn command_line(
             root.join(p).display().to_string()
         }
     };
+    let build = read_build(state, backend.as_ref());
     let mut cmd = match cfg.type_id.as_str() {
+        APPLICATION
+            if cfg.option("classpath").trim().is_empty()
+                && runs_through_gradle(state, build.as_ref()) =>
+        {
+            let project = build.clone().expect("a Gradle build");
+            let opts = exec_options(state, BuildTool::Gradle, &root);
+            let init = crate::commands::java_build::init_script(
+                "forge-run.gradle",
+                javaforge_build::command::GRADLE_RUN_INIT_SCRIPT,
+            )?;
+            let mut jvm_args = forge_process::split_args(&cfg.interpreter_options);
+            if let Some(port) = debug_port {
+                jvm_args.push(launch::jdwp_listen(port, true));
+            }
+            let module = project.module(cfg.option("module")).cloned();
+            let run = javaforge_build::command::GradleAppRun {
+                main_class: cfg.option("mainClass").to_string(),
+                args: forge_process::split_args(&cfg.arguments),
+                jvm_args,
+                init_script: init.display().to_string(),
+                test_classpath: cfg.option("testClasspath") == "true",
+                working_dir: cwd.display().to_string(),
+            };
+            let built = javaforge_build::command::gradle_application_command(
+                &project,
+                &opts,
+                module.as_ref(),
+                &run,
+            );
+            let mut c = CommandLine::new(built.program).args(built.args);
+            if let Some(home) = gradle_java_home(state) {
+                c.env.insert("JAVA_HOME".into(), home);
+            }
+            c
+        }
         APPLICATION => {
             let home = jdk_home(state, cfg);
             let classpath = match cfg.option("classpath").trim() {
                 "" => match cfg.option("resolvedClasspath").trim() {
                     "" => {
-                        let tool = read_build(state, backend.as_ref())
-                            .map(|b| b.tool.id())
-                            .unwrap_or("gradle");
+                        let tool = build.as_ref().map(|b| b.tool.id()).unwrap_or("gradle");
                         launch::build_output_classpath(tool, cfg.option("module"))
                     }
                     resolved => split_lines(resolved),
@@ -716,13 +893,13 @@ pub(crate) fn command_line(
             CommandLine::new(program).args(args)
         }
         MAVEN | GRADLE => {
-            let build = read_build(state, backend.as_ref());
             let tool = if cfg.type_id == MAVEN {
                 BuildTool::Maven
             } else {
                 BuildTool::Gradle
             };
             let mut project = build
+                .clone()
                 .filter(|b| b.tool == tool)
                 .unwrap_or_else(|| BuildProject::minimal(tool, Vec::new()));
             let opts = exec_options(state, tool, &root);
@@ -761,7 +938,14 @@ pub(crate) fn command_line(
         _ => return Ok(None),
     };
     cmd.cwd = cwd;
-    if cfg.type_id != APPLICATION {
+    if cfg.type_id == GRADLE
+        && cfg.interpreter.trim().is_empty()
+        && cfg.option("jdk").trim().is_empty()
+    {
+        if let Some(home) = gradle_java_home(state) {
+            cmd.env.insert("JAVA_HOME".into(), home);
+        }
+    } else if cfg.type_id != APPLICATION {
         if let Some(home) = jdk_home(state, cfg) {
             cmd.env.insert("JAVA_HOME".into(), home);
         }
@@ -778,7 +962,11 @@ pub(crate) fn take_debug_port(env: &mut std::collections::BTreeMap<String, Strin
 }
 
 /// A JDT LS command on the project's server (started when needed).
-async fn execute(app: &AppHandle, command: &str, arguments: Vec<Value>) -> Result<Option<Value>> {
+pub(crate) async fn execute(
+    app: &AppHandle,
+    command: &str,
+    arguments: Vec<Value>,
+) -> Result<Option<Value>> {
     let state = app.state::<AppState>();
     let root = state.project_root()?;
     let manager = app.state::<LspState>().manager(app, &state)?;
@@ -792,13 +980,23 @@ async fn execute(app: &AppHandle, command: &str, arguments: Vec<Value>) -> Resul
 /// for the class and module path of the main class.
 pub(crate) async fn resolve_launch(app: &AppHandle, cfg: &mut RunConfiguration) {
     // Kotlin applications run through the build (KotlinForge).
-    if cfg.type_id != APPLICATION
-        || !cfg.option("classpath").trim().is_empty()
-        || cfg.option("kotlin") == "true"
-    {
+    if cfg.option("kotlin") == "true" {
         return;
     }
     let state = app.state::<AppState>();
+    let junit_runner = tests_through_junit_runner(&state, cfg);
+    if !junit_runner && (cfg.type_id != APPLICATION || !cfg.option("classpath").trim().is_empty()) {
+        return;
+    }
+    if !junit_runner {
+        let build = state
+            .backend()
+            .ok()
+            .and_then(|b| read_build(&state, b.as_ref()));
+        if runs_through_gradle(&state, build.as_ref()) {
+            return;
+        }
+    }
     if state
         .backend()
         .map(|b| b.info().remote.is_some())
@@ -814,7 +1012,12 @@ pub(crate) async fn resolve_launch(app: &AppHandle, cfg: &mut RunConfiguration) 
     if !running || java_debug_jar().is_none() {
         return;
     }
-    let main = cfg.option("mainClass").to_string();
+    // A test class resolves the test class path too (java-debug looks at its source folder).
+    let main = if junit_runner {
+        cfg.option("class").to_string()
+    } else {
+        cfg.option("mainClass").to_string()
+    };
     if let Ok(manager) = app.state::<LspState>().manager(app, &state) {
         if let Some(client) = manager
             .running_clients()
@@ -842,6 +1045,15 @@ pub(crate) async fn resolve_launch(app: &AppHandle, cfg: &mut RunConfiguration) 
                     })
                     .unwrap_or_default()
             };
+            if junit_runner {
+                let all = [join(paths.first()), join(paths.get(1))]
+                    .into_iter()
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                cfg.options.insert("resolvedClasspath".into(), all);
+                return;
+            }
             cfg.options
                 .insert("resolvedModulepath".into(), join(paths.first()));
             cfg.options

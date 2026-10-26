@@ -14,7 +14,7 @@
  */
 import { createEffect, createRoot, createSignal, on, Show } from "solid-js";
 import { render } from "solid-js/web";
-import { FileCode, Gauge, Package, SquareTerminal } from "lucide-solid";
+import { FileCode, Package, SquareTerminal } from "lucide-solid";
 import { pythonApi, type DetectedPython } from "@/ipc/python";
 import type { CommandLine } from "@/ipc/run";
 import { workspaceApi } from "@/ipc/workspace";
@@ -44,6 +44,7 @@ import { ConsoleActions, ConsoleView } from "./console/ConsoleView";
 import { executeCode, runFileInConsole } from "./console/store";
 import { ProfilerActions, ProfilerView } from "./profiler/ProfilerView";
 import { loadLatest } from "./profiler/store";
+import { registerProfilerSource } from "@/features/profiler";
 import { activeView } from "@/features/lsp/navigation";
 import { launch } from "@/features/run/runStore";
 import { selectedConfiguration } from "@/features/run/configStore";
@@ -209,15 +210,15 @@ registerToolWindow({
   when: toolsActive,
 });
 
-registerToolWindow({
-  id: "profiler",
-  title: "Profiler",
-  icon: Gauge,
-  anchor: "bottom",
-  order: 47,
+// The shared Profiler tool window (features/profiler) shows cProfile snapshots.
+registerProfilerSource({
+  id: "python",
+  label: "cProfile",
+  active: toolsActive,
   component: ProfilerView,
   actions: ProfilerActions,
-  when: toolsActive,
+  onActivate: () => void loadLatest(),
+  order: 10,
 });
 
 registerKeymapActions([
@@ -230,7 +231,6 @@ registerKeymapActions([
   },
   { id: "RunFileInPythonConsole", title: "Run File in Python Console", group: "Plugins/Python" },
   { id: "ActivatePythonConsoleToolWindow", title: "Python Console", group: "Tool Windows" },
-  { id: "ActivateProfilerToolWindow", title: "Profiler", group: "Tool Windows" },
   { id: "python.profile", title: "Profile", group: "Plugins/Python" },
   { id: "python.runToxEnvironment", title: "Run tox Environment…", group: "Plugins/Python" },
 ]);
@@ -265,15 +265,6 @@ registerCommand({
   },
 });
 registerCommand({ id: "ActivatePythonConsoleToolWindow", title: "Python Console", category: "View", run: () => toggleToolWindow("pythonConsole") });
-registerCommand({
-  id: "ActivateProfilerToolWindow",
-  title: "Profiler",
-  category: "View",
-  run: () => {
-    toggleToolWindow("profiler");
-    void loadLatest();
-  },
-});
 registerCommand({
   id: "python.profile",
   title: "Profile",

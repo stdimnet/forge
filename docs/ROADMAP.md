@@ -109,7 +109,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Shared test runner and coverage for every pack; run targets (Docker, WSL, SSH) for run, test and debug
 - [x] JavaScript/TypeScript debugger (Chrome, Node.js, attach) and JS test runners (Jest, Vitest, Mocha, Playwright, Cypress)
 - [x] JavaForge: Eclipse JDT LS (managed), JDK detection and download, Maven and Gradle, JUnit 5/TestNG, Java debugger
-- [ ] JavaForge: Gradle and Maven tool windows (tasks, dependencies, sync, offline mode), Gradle wrapper, build and run through Gradle/Maven, Gradle Kotlin and Groovy DSL editing with completion
+- [x] JavaForge: Gradle and Maven tool windows (tasks, dependencies, sync, offline mode), Gradle wrapper, build and run through Gradle/Maven, Gradle Kotlin and Groovy DSL editing with completion
 - [x] KotlinForge: Kotlin (kotlin-lsp, managed), Kotlin/JVM run configurations, Kotlin scripts (`.kts`), JUnit 5/Kotest runners, Kotlin debugger (coroutines view), ktlint and detekt
 - [ ] JavaForge: Spring Boot (run dashboard, beans, endpoints, `application.yml` completion), Jakarta EE basics
 - [ ] JVM extras: Groovy and Scala basics (highlighting, run, Gradle/sbt import), Android basics (Gradle Android projects, adb devices, Logcat)
@@ -117,7 +117,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] PyForge: pytest/unittest/tox runners, debugpy with debug console, Python console, profiler
 - [ ] PyForge: Django (manage.py, template navigation, server/tests configurations), Flask, FastAPI, Celery
 - [ ] PyForge: Jupyter notebooks (editor, kernels, outputs, DataFrame views, notebook diffs)
-- [ ] GoForge: SDK/GOPATH, `go.mod`/`go.work`, gofmt/goimports/vet/generate, golangci-lint, Go Build/Test (bench, fuzz), Delve attach/remote, pprof
+- [x] GoForge: SDK/GOPATH, `go.mod`/`go.work`, gofmt/goimports/vet/generate, golangci-lint, Go Build/Test (bench, fuzz), Delve attach/remote, pprof
 - [ ] RustForge: rustup toolchains, Cargo tool window and configurations, Clippy, rustfmt, doctest/nextest, LLDB/GDB renderers
 - [ ] CForge: clangd (managed), CMake profiles/presets and tool window, compilation database, toolchains (GCC/Clang/MSVC/MinGW), build actions, CTest/GoogleTest/Catch2, debugger
 - [ ] CForge v2: sanitizers, Valgrind, perf, vcpkg/Conan, embedded (OpenOCD, SVD, PlatformIO, ESP-IDF, Zephyr)

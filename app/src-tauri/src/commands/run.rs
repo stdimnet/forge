@@ -62,6 +62,8 @@ impl RunState {
         tests.register_specs(plugins.test_frameworks());
         // Node.js test runners: their manifest specs with WebForge's Node.js specifics.
         webforge_js_testing::register(&mut tests, plugins.test_frameworks().cloned());
+        // Go Test: the manifest spec with GoForge's discovery and command lines.
+        goforge_lang_go::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
         tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -358,6 +360,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                     framework_command(state, runs, &cfg, &ctx.root, &run_id, local, coverage)?;
                 tests = setup;
                 cmd
+            } else if cfg.type_id == goforge_lang_go::GO_BUILD {
+                super::go::build_run(state, &cfg)?
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
@@ -468,7 +472,7 @@ fn framework_command(
     let (report_arg, report_dir) = test_frameworks::report_dir(local, root, run_id, "");
     let (coverage_arg, coverage_dir) = test_frameworks::report_dir(local, root, run_id, "coverage");
     let settings = state.read_settings();
-    let ctx = forge_testing::CommandContext {
+    let mut ctx = forge_testing::CommandContext {
         report_dir: report_arg,
         coverage_file: coverage.then(|| format!("{coverage_arg}/coverage")),
         settings: runs
@@ -478,6 +482,7 @@ fn framework_command(
             .collect(),
     };
     drop(settings);
+    super::go::extend_test_context(state, &cfg.type_id, &mut ctx);
     let built = runs
         .tests
         .command(&test_frameworks::to_runtools(cfg)?, &ctx)

@@ -791,6 +791,7 @@ pub(crate) fn record_profile(
                 ReportDir::Project(rel) => {
                     backend.read_bytes(&format!("{rel}/{}", setup.file)).ok()
                 }
+                // Build tool report folders hold no profiles.
                 ReportDir::Builds(_) => None,
             };
             dir.remove(backend);

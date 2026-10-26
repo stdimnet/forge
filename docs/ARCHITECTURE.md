@@ -2259,6 +2259,57 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
   `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
 
+## GoForge (`packs/goforge/*`)
+
+- Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):
+  file types `go-mod`, `go-work`, `go-sum` (`.go` is bundled), the
+  run configuration types `go-build` and `go-remote`, the `go-test` test framework (wrapped in
+  Rust by `GoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
+  Settings | Languages & Frameworks | Go (`lang.go`, `go.*`). `forge-project` reports the
+  `go` language (pack `goforge`) for `go.mod`, `go.work`, Go files in the root or two or more
+  in a folder, and the tool `go-workspace`. gopls comes from the language server catalog.
+- Crates: `goforge-lang-go` (pure, also WebAssembly: go.mod / go.work, versions, test
+  discovery, the Go Test provider, Go Build and module command lines, go:generate, go vet /
+  golangci-lint reports, `GoContext`), `goforge-sdk` (SDK detection and go.dev/dl downloads,
+  tools and pinned `go install`, module proxy with cache), `goforge-delve` (the `go` debug
+  adapter, `dlv dap`), `goforge-pprof` (pure, also WebAssembly: profile.proto decoder and
+  views).
+- The Go context (`commands::go::context`: SDK from `go.goroot` or detection, `go.gopath`,
+  `go.goflags`, `go.buildTags`, `go.environment`, the project's modules from `go.mod` files
+  and `go.work`) reaches the Go Test provider through `CommandContext.settings["go.context"]`
+  (`run.rs::framework_command` calls `go::extend_test_context`); Go Build runs are built by
+  `go::build_run` in `run.rs::build`. Test keys are `<package folder>::<test>`; the UI's
+  `resultKeys` also keys `_test.go` failures by their folder.
+- IPC (`app/ui/src/ipc/go.ts`, `commands/go.rs`; lines 0-based, columns UTF-16 for go.mod):
+  `go_status({ refresh? }) -> { sdk?, custom, sdks, tools, modules, gopath }`,
+  `go_sdk_releases() -> { version, file }[]`, `go_sdk_download({ version }) -> GoSdk` (events
+  `go://install`: `{ message }` or `{ label, done, total }`),
+  `go_tool_install_command({ tool }) -> CommandLine`, `go_mod_parse({ path, content }) ->
+  { kind: "mod" | "work", … problems }`, `go_mod_complete({ path, content, offset }) -> { from,
+  items } | null`, `go_module_versions({ module })`, `go_module_command({ action, arg?, dir? })
+  -> CommandLine`, `go_generate_directives({ content })`, `go_generate_command({ path,
+  content, line? }) -> CommandLine`, `go_format({ path, content }) -> string | null`,
+  `go_lint({ tool: "vet" | "golangci", path? }) -> { path, line, column, severity, message,
+  source, code }[]` (trusted projects only), `go_delve_status()`, `go_debug_request({
+  configuration }) -> LaunchRequest`, `go_profile_path({ name })`, `pprof_open({ path,
+  sampleIndex? }) -> ProfileView { sampleTypes, sampleIndex, total, samples, durationNanos,
+  top, tree }`. Command lines are started by the UI through `run_start` (hidden type
+  `go-command`), so they are refused in Safe Mode.
+- Profiler: the `profiler` tool window and `ActivateProfilerToolWindow` belong to
+  `app/ui/src/features/profiler`; packs add a source with `registerProfilerSource({ id,
+  label, active, component, actions?, onActivate? })` (PyForge: cProfile snapshots, GoForge:
+  pprof) and show theirs with `showProfiler(id)`; with several active sources the window
+  shows tabs.
+- Debugging: `commands::go::sync_debug` (called from `dap.rs::sync`) registers
+  `DelveAdapter` while `forge.go` is enabled; the UI's `delve` debug launcher asks to install
+  Delve when it is missing, then `go_debug_request` + `dap_start`.
+- UI (`app/ui/src/features/go`): settings page, run configuration types (Go Test re-registered
+  from the manifest spec with profile support: `start` adds `profileFile`, `afterStart` opens
+  the Profiler), pprof profiles in the shared Profiler tool window, go.mod language,
+  problems and completion, go:generate line markers, the format provider and go vet /
+  golangci-lint on save (`editor.ts`). Browser mode: `?project=go` opens the `ledger` demo
+  (`mock/demoGoProject.ts`, `mock/goMock.ts`, `mock/goTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/go.rs`).
 ## JavaForge (`packs/javaforge/*`)
 
 - The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)
@@ -2266,9 +2317,16 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `javaforge` pack) for a `pom.xml` (tool `maven`), a Gradle build (`build.gradle(.kts)`,
   `settings.gradle(.kts)`, tool `gradle`), `*.java` files or a `src/main/java` / `src/test/java`
   tree. Three crates, all with unit tests on fixtures and no network:
-  - `javaforge-build` (pure, also in `forge-wasm`): the build read from its files (tool, wrapper,
-    DSL, modules, JaCoCo, `application` main class, test frameworks, Java release), goals and
-    tasks, and command lines (goals / tasks, Build Project, tests with report folders);
+  - `javaforge-build` (pure, also in `forge-wasm`; feature `net` for the desktop): the build read
+    from its files (tool, wrapper and its Gradle version, DSL, modules, JaCoCo, `application`
+    main class, test frameworks, Java release), goals and tasks, command lines (goals / tasks
+    with offline mode, Maven profiles and Skip Tests, Build Project, tests with report folders,
+    Application runs through Gradle's `forgeRun`, syncs), the tool window model (`model`:
+    static from the build files, merged with a sync: Gradle init script JSON, `mvn
+    dependency:tree`), the wrapper (`gradle-wrapper.properties`, `distributionSha256Sum`), Gradle
+    DSL and `pom.xml` completion (`dsl`), declared and outdated dependencies (`deps`, `version`)
+    and Maven Central / services.gradle.org (`central`; `net` caches in
+    `<cache>/forge/maven-central`);
   - `javaforge-lang-java` (pure, also in `forge-wasm`): the tolerant Java scanner, `main`
     methods, JUnit 5/4/3 and TestNG discovery, `JavaTests` (the `forge-testing` provider of the
     `junit` / `testng` types), Application command lines and the JDT LS launch configuration
@@ -2296,6 +2354,17 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   (`java/projectConfigurationsUpdate` for the build files), `java_main_methods({ path, text }) ->
   MainMethod[]`, `java_debug_prepare({ configuration }) -> { dapPort, hostName, jdwpPort, run }`.
   Installs report `java://install` `{ id: "jdtls" | "jdk", event }` (`managed::Event`).
+  `commands/java_build.rs`: `java_build_model() -> BuildModel | null` (the static model with
+  the cached sync over it), `java_sync_project() -> BuildModel` (Gradle `-I
+  <cache>/forge/javaforge/forge-model.gradle forgeModel`, Maven `dependency:tree -DoutputFile`;
+  output on `java://sync` `{ line, stderr }`; refused in Safe Mode and on remote projects; the
+  result cached in `<cache>/forge/javaforge/sync/<hash>.json`; JDT LS re-imports afterwards),
+  `java_sync_cancel()`, `java_wrapper_info() -> { wrapper, path } | null`,
+  `java_wrapper_verify() -> "notSet" | "matches" | "mismatch" | "unknown"`,
+  `java_wrapper_update({ version? }) -> GradleWrapper` (rewrites the properties with the
+  published SHA-256), `java_build_complete({ path, text, offset }) -> SchemaCompletion | null`,
+  `java_build_outdated({ path, text }) -> OutdatedDependency[]`, `java_build_workspace({ full })
+  -> status` (Build Project with "Build and run using: IntelliJ IDEA").
 - Runs (`run.rs`): `java-application`, `maven`, `gradle` and `jvm-remote-debug` are built by
   `commands::java::command_line` (the configuration's or project JDK, `JAVA_HOME` for the build
   tools, wrapper or configured executable); `junit` / `testng` configurations are filled with
@@ -2304,6 +2373,12 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   (`vscode.java.resolveClasspath`, after `java/buildWorkspace`) in `run_start`. A debug run sets
   `FORGE_JAVA_DEBUG_PORT` in its environment; the backend turns it into the JDWP agent
   (`-agentlib:jdwp=…,suspend=y`), Gradle's `--debug-jvm` or Surefire's `-Dmaven.surefire.debug`.
+  With `java.gradle.buildAndRunUsing = gradle` (the default) Application configurations of
+  Gradle builds run `forgeRun` of the init script `forge-run.gradle` (cache dir) instead; with
+  `java.gradle.runTestsUsing = idea` JUnit runs on the JUnit Platform Console Launcher with the
+  class path java-debug resolves for the test class (`runner = junit`). Gradle runs get
+  `JAVA_HOME` from `java.gradle.jvm` (else the project JDK); `java.gradle.distribution` picks
+  the wrapper, a Gradle home or `gradle` on the PATH.
   All of it starts in `run::start_built`, so Safe Mode refuses it.
 - Debugging: the manifest declares the `java` debug adapter without a command (a DAP server).
   `java_debug_prepare` sends java-debug's settings (hot code replace) and
@@ -2313,10 +2388,15 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 - UI (`app/ui/src/features/java`): settings pages `build.jdks` (custom), `build.tools`,
   `build.tools.gradle`, `build.tools.maven`, `lang.java` (status and install), the run
   configuration types, the Run gutter on `main` and `RunClass`, `CompileDirty` (Build Project),
-  `java.reloadProject`, `java.downloadJdk`, `java.installLanguageServer`, the small `gradle` /
-  `maven` tool windows, the install offer (`java.jdtls.autoInstall`) and its status bar progress.
-  Browser mode: `?project=java` opens the Gradle demo `inventory-service`
-  (`mock/demoJavaProject.ts`, `javaMock.ts`, `javaDebugMock.ts`).
+  `java.reloadProject` / `java.syncProject`, `java.executeTask`, `java.updateWrapper`,
+  `java.downloadJdk`, `java.installLanguageServer`, the `gradle` / `maven` tool windows
+  (`BuildToolWindow.tsx` on `BuildTree.tsx`: tasks, dependency trees, run configurations,
+  profiles, offline / Skip Tests toggles; `ExecuteDialog.tsx`), the Gradle page with the wrapper
+  (`GradlePage.tsx`), build script completion and the newer-version inspection with its quick
+  fix (`buildScripts.ts`), the install offer (`java.jdtls.autoInstall`) and its status bar
+  progress. Browser mode: `?project=java` opens the Gradle demo `inventory-service`
+  (`?build=maven` the Maven variant; `mock/demoJavaProject.ts`, `javaMock.ts`,
+  `javaDebugMock.ts`, recorded sync and Maven Central data).
 
 ## KotlinForge (`packs/kotlinforge/lang-kotlin`)
 
