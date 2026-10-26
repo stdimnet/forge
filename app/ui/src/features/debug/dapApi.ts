@@ -14,6 +14,8 @@ export interface AdapterInfo {
   languages: string[];
   launch: boolean;
   attachProcess: boolean;
+  /** Attaches to a debuggee that listens on a port (`node --inspect`, Chrome remote debugging). */
+  attachPort?: boolean;
   coreDump: boolean;
   command?: string;
   launchSchema?: unknown;
@@ -24,6 +26,7 @@ export type LaunchMode =
   | { mode: "launch" }
   | { mode: "attachProcess"; pid: number }
   | { mode: "attachServer"; host: string; port: number }
+  | { mode: "attachPort"; host: string; port: number }
   | { mode: "coreDump"; core: string };
 
 export type LaunchRequest = LaunchMode & {

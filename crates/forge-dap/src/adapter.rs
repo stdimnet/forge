@@ -27,6 +27,10 @@ pub struct AdapterInfo {
     /// Can attach to a local process by pid.
     #[serde(default)]
     pub attach_process: bool,
+    /// Can attach to a debuggee that listens on a port (`node --inspect`, a browser's
+    /// remote debugging port).
+    #[serde(default)]
+    pub attach_port: bool,
     /// Can open core dumps.
     #[serde(default)]
     pub core_dump: bool,
@@ -49,6 +53,9 @@ pub enum LaunchMode {
     AttachProcess { pid: u32 },
     /// Connect to a debug adapter that already runs as a server ("Attach to DAP server…").
     AttachServer { host: String, port: u16 },
+    /// Start the adapter and attach it to a debuggee that listens for a debugger on
+    /// `host:port` (Node.js `--inspect`, Chrome `--remote-debugging-port`).
+    AttachPort { host: String, port: u16 },
     /// Open a core dump of `program` ("Debug Core Dump…").
     CoreDump { core: String },
 }
@@ -108,7 +115,9 @@ impl LaunchRequest {
     pub fn is_attach(&self) -> bool {
         matches!(
             self.mode,
-            LaunchMode::AttachProcess { .. } | LaunchMode::AttachServer { .. }
+            LaunchMode::AttachProcess { .. }
+                | LaunchMode::AttachServer { .. }
+                | LaunchMode::AttachPort { .. }
         )
     }
 
@@ -125,7 +134,8 @@ impl LaunchRequest {
         match (&self.mode, program) {
             (LaunchMode::AttachProcess { pid }, Some(p)) => format!("{p} ({pid})"),
             (LaunchMode::AttachProcess { pid }, None) => format!("Process {pid}"),
-            (LaunchMode::AttachServer { host, port }, None) => format!("{host}:{port}"),
+            (LaunchMode::AttachServer { host, port }, None)
+            | (LaunchMode::AttachPort { host, port }, None) => format!("{host}:{port}"),
             (LaunchMode::CoreDump { core }, None) => {
                 core.rsplit(['/', '\\']).next().unwrap_or(core).to_string()
             }
@@ -173,7 +183,7 @@ fn placeholders(r: &LaunchRequest) -> HashMap<&'static str, Value> {
         LaunchMode::AttachProcess { pid } => {
             v.insert("pid", json!(pid));
         }
-        LaunchMode::AttachServer { host, port } => {
+        LaunchMode::AttachServer { host, port } | LaunchMode::AttachPort { host, port } => {
             v.insert("host", json!(host));
             v.insert("port", json!(port));
         }
@@ -282,6 +292,7 @@ impl DebugAdapterDescriptor for ManifestAdapter {
             languages: s.languages.clone(),
             launch: has_command && !s.launch.is_null(),
             attach_process: has_command && !s.attach.is_null(),
+            attach_port: has_command && s.attach.to_string().contains("${port}"),
             core_dump: has_command && !s.core_dump.is_null(),
             command: self.command.clone(),
             launch_schema: s.launch_schema.clone(),
@@ -294,7 +305,9 @@ impl DebugAdapterDescriptor for ManifestAdapter {
         let values = placeholders(r);
         let (template, request) = match &r.mode {
             LaunchMode::Launch => (&s.launch, "launch".to_string()),
-            LaunchMode::AttachProcess { .. } => (&s.attach, "attach".to_string()),
+            LaunchMode::AttachProcess { .. } | LaunchMode::AttachPort { .. } => {
+                (&s.attach, "attach".to_string())
+            }
             LaunchMode::AttachServer { .. } => (&Value::Null, "attach".to_string()),
             LaunchMode::CoreDump { .. } => (
                 &s.core_dump,
@@ -307,6 +320,7 @@ impl DebugAdapterDescriptor for ManifestAdapter {
             let what = match r.mode {
                 LaunchMode::Launch => "start programs",
                 LaunchMode::AttachProcess { .. } => "attach to processes",
+                LaunchMode::AttachPort { .. } => "attach to a debug port",
                 _ => "open core dumps",
             };
             return Err(DapError::Unsupported(format!("{} cannot {what}", s.label)));
@@ -373,6 +387,10 @@ impl AdapterRegistry {
                 "No debug adapter of type '{type}' is installed. Enable the plugin that provides it."
             ))
         })
+    }
+
+    pub fn remove(&mut self, r#type: &str) {
+        self.adapters.remove(r#type);
     }
 
     pub fn list(&self) -> Vec<AdapterInfo> {
@@ -480,6 +498,33 @@ mod tests {
         reg.register(Arc::new(a));
         assert!(reg.get("lldb").is_ok());
         assert!(reg.get("gdb").is_err());
+    }
+
+    #[test]
+    fn attach_to_a_debug_port() {
+        let mut spec = lldb();
+        spec.attach = json!({"address": "${host}", "port": "${port}"});
+        let a = ManifestAdapter::new(spec);
+        assert!(a.info().attach_port);
+        let mut r = LaunchRequest::launch("lldb", "");
+        r.program = None;
+        r.mode = LaunchMode::AttachPort {
+            host: "localhost".into(),
+            port: 9229,
+        };
+        let resolved = a.resolve(&r).unwrap();
+        assert_eq!(resolved.request, "attach");
+        assert_eq!(resolved.arguments["port"], 9229);
+        assert_eq!(resolved.arguments["address"], "localhost");
+        assert!(matches!(resolved.transport, Transport::Stdio { .. }));
+        assert!(!r.runs_code() && r.is_attach());
+        assert_eq!(r.title(), "localhost:9229");
+        assert!(!ManifestAdapter::new(lldb()).info().attach_port);
+        let r: LaunchRequest = serde_json::from_value(json!({
+            "adapter": "lldb", "mode": "attachPort", "host": "h", "port": 1
+        }))
+        .unwrap();
+        assert!(matches!(r.mode, LaunchMode::AttachPort { .. }));
     }
 
     #[test]

@@ -224,6 +224,11 @@ impl DapSession {
         &self.request
     }
 
+    /// Where the adapter was reached (`host:port` for TCP adapters).
+    pub(crate) fn peer(&self) -> &str {
+        &self.peer
+    }
+
     pub(crate) fn resolved(&self) -> &ResolvedLaunch {
         &self.resolved
     }

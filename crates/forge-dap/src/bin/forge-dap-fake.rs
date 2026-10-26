@@ -3,7 +3,9 @@
 //!
 //! - no arguments: speak DAP on stdin/stdout;
 //! - `--connect <port>`: connect to `127.0.0.1:<port>` (Forge listens, the adapter connects back);
-//! - `--listen <port>`: accept one client on `127.0.0.1:<port>`.
+//! - `--listen <port>`: accept one client on `127.0.0.1:<port>`;
+//! - `--serve <port>`: serve every client on `127.0.0.1:<port>`, each with its own session
+//!   (like js-debug's DAP server, where child sessions connect to the same port).
 
 use tokio::net::{TcpListener, TcpStream};
 
@@ -26,6 +28,16 @@ async fn main() -> std::io::Result<()> {
             let (stream, _) = listener.accept().await?;
             let (r, w) = stream.into_split();
             forge_dap::fake::serve(r, w).await
+        }
+        Some("--serve") => {
+            let listener = TcpListener::bind(("127.0.0.1", port(1)?)).await?;
+            loop {
+                let (stream, _) = listener.accept().await?;
+                tokio::spawn(async move {
+                    let (r, w) = stream.into_split();
+                    let _ = forge_dap::fake::serve(r, w).await;
+                });
+            }
         }
         _ => forge_dap::fake::serve(tokio::io::stdin(), tokio::io::stdout()).await,
     }

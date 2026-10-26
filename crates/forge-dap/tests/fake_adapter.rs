@@ -70,6 +70,11 @@ fn harness() -> Harness {
             DebugAdapterTransport::Connect,
             vec!["--listen", "${port}"],
         ),
+        (
+            "fake-server",
+            DebugAdapterTransport::Connect,
+            vec!["--serve", "${port}"],
+        ),
     ] {
         manager.register_adapter(Arc::new(ManifestAdapter::new(spec(t, transport, &args))));
     }
@@ -483,6 +488,30 @@ async fn run_in_terminal_and_child_sessions() {
         .map(|s| (s.id, s.status, s.parent_id))
         .collect();
     assert!(left.is_empty(), "{left:?}");
+}
+
+#[tokio::test]
+async fn child_sessions_connect_to_the_parents_adapter_server() {
+    let mut h = harness();
+    let mut req = LaunchRequest::launch("fake-server", "demo");
+    req.configuration = json!({
+        "spawnChild": true,
+        "sourcePath": h.root.path().join("demo.c"),
+    });
+    req.stop_on_entry = true;
+    let parent = h.manager.start(req).await.unwrap().id;
+    let child = h
+        .next("the child session", |e| {
+            matches!(e, DebugEvent::Session { session } if session.parent_id.as_deref() == Some(parent.as_str()))
+        })
+        .await;
+    let DebugEvent::Session { session: child } = child else {
+        unreachable!()
+    };
+    let parent_peer = h.manager.session(&parent).unwrap().info().peer;
+    assert_eq!(child.peer, parent_peer, "the child uses the same server");
+    assert!(child.peer.starts_with("127.0.0.1:"));
+    h.manager.stop_all().await;
 }
 
 #[tokio::test]
