@@ -770,23 +770,6 @@ install = [
 # ---- JVM & .NET --------------------------------------------------------------------------
 
 [[server]]
-id = "jdtls"
-name = "Eclipse JDT Language Server"
-group = "Java"
-languages = ["java"]
-command = "jdtls"
-homepage = "https://github.com/eclipse-jdtls/eclipse.jdt.ls"
-license = "EPL-2.0"
-note = "Needs Java 21+. Forge keeps its workspace data in the user cache directory."
-install = [
-  { tool = "brew", command = ["brew", "install", "jdtls"], platforms = ["macos", "linux"] },
-  { tool = "download", url = "https://download.eclipse.org/jdtls/snapshots/" },
-]
-
-[server.settings]
-java = { format = { enabled = true }, signatureHelp = { enabled = true }, contentProvider = { preferred = "fernflower" } }
-
-[[server]]
 id = "kotlin-language-server"
 name = "Kotlin Language Server"
 group = "Kotlin"

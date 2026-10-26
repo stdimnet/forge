@@ -13,11 +13,17 @@
 //! [`stubs`] downloads JetBrains' phpstorm-stubs (pinned, SHA-256 checked) for Go to
 //! Declaration on PHP's own symbols.
 //!
+//! [`jdtls`] installs Eclipse JDT LS from download.eclipse.org (SHA-256 checked) and
+//! [`javadebug`] Microsoft's java-debug plugin from Maven Central (checksum checked) for
+//! JavaForge.
+//!
 //! Nothing is bundled with Forge: servers whose licence forbids redistribution
 //! (Intelephense) are downloaded by each user, with their consent, from the official source.
 
 pub mod archive;
 pub mod http;
+pub mod javadebug;
+pub mod jdtls;
 pub mod node;
 pub mod npm;
 pub mod stubs;
