@@ -164,7 +164,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Eclipse JDT Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) | `jdtls` | Java | `jdtls` | `brew install jdtls` (macos, linux)<br>[download](https://download.eclipse.org/jdtls/snapshots/) | EPL-2.0 | Needs Java 21+. Forge keeps its workspace data in the user cache directory. |
+| [Eclipse JDT Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) | `jdtls` | Java | started by JavaForge (`forge.java`) | Install from Settings \| Languages & Frameworks \| Java (download.eclipse.org, SHA-256 checked)<br>[download](https://download.eclipse.org/jdtls/milestones/) | EPL-2.0 | A pack server: JavaForge starts it with a JDK 21+ (25 for newer builds) and keeps its data in the user cache directory. See [JavaForge](../user/java.md). |
 
 ### Kotlin
 

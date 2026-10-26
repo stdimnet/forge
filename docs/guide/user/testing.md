@@ -26,6 +26,7 @@ PHP, Lua and every language pack that follows:
 | --- | --- | --- | --- |
 | PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
 | busted | LuaForge ([LuaForge](luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
+| JUnit 5/4/3, TestNG | JavaForge ([JavaForge](java.md#tests)), through Gradle or Maven | JUnit XML of the build (`build/test-results/test`, `target/surefire-reports`) | JaCoCo XML |
 
 Language packs declare their frameworks in their plugin manifest
 (`[[contributions.testFrameworks]]`, see [Contribution points](../developer/contribution-points.md#test-frameworks));

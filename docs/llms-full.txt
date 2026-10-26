@@ -22,6 +22,7 @@ Languages and large feature sets ship as **packs**:
 | **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Doctrine (DQL), WordPress, Drupal / Joomla / Shopware basics |
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
 terminal, database tools, Scratches with an HTTP client, Docker/Compose/Kubernetes, remote
@@ -604,6 +605,7 @@ The primary type appears
 | PHPForge | PHP projects; Laravel, Symfony, Doctrine, Composer, PHPUnit/Pest and Xdebug plugins for their framework or tool |
 | WebForge | JavaScript, TypeScript, HTML or CSS; React for `react`/`next`, Vue.js for `vue`/`nuxt`, Angular for `angular` |
 | LuaForge | Lua projects |
+| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
 always active. Each plugin can still be switched off in Settings | Plugins, see
@@ -664,7 +666,7 @@ what is not there yet.
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
 | AI | AI Assistant subscription | bring your own provider (Anthropic, OpenAI-compatible, OpenRouter, Ollama, LM Studio, llama.cpp) or your installed Claude Code / Gemini CLI |
-| Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge); no Marketplace yet |
+| Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge, JavaForge); no Marketplace yet |
 | Remote development | Gateway | built in: SSH connection, Forge uploads a small agent to the host |
 | Theme | Darcula/Light/New UI themes | Forge Ember (dark), Forge Anvil (light), Solarized Dark and Light |
 
@@ -755,6 +757,7 @@ not finished, the page says so.
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
+| [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 
 ## Version control
 
@@ -8740,6 +8743,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **PHPForge** | PHP, Composer, PHPUnit, Xdebug, Laravel, Symfony, Symfony Services, Doctrine |
 | **WebForge** | HTML, CSS & JavaScript, React, Vue.js, Angular |
 | **LuaForge** | Lua |
+| **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
 All plugins are built in; there is no separate download.
@@ -10678,6 +10682,182 @@ See the [settings reference](docs/guide/reference/settings.md#languages--framewo
 
 ---
 
+Source: docs/guide/user/java.md
+
+# JavaForge
+
+**JavaForge** (plugin `forge.java`) brings Java to Forge in the style of IntelliJ IDEA. It
+activates in [Java projects](docs/guide/getting-started/project-detection.md): a `pom.xml`, a Gradle
+build (`build.gradle`, `build.gradle.kts`, `settings.gradle`, `settings.gradle.kts`), `*.java`
+files in a folder or a `src/main/java` / `src/test/java` tree. Maven and Gradle are reported as
+the project's tools.
+
+![The Java editor with completion from Eclipse JDT LS](docs/screenshots/java-editor-completion.png)
+
+## Eclipse JDT Language Server
+
+Code intelligence comes from [Eclipse JDT LS](https://github.com/eclipse-jdtls/eclipse.jdt.ls)
+(EPL-2.0) through Forge's shared language server client: completion, Go to Declaration and
+Implementation, Find Usages, hover with Javadoc, parameter info, diagnostics in the editor and
+the Problems tool window, Rename, quick fixes and code actions (`Alt+Enter`), Optimize Imports
+(`Ctrl+Alt+O`) and Reformat Code (`Ctrl+Alt+L`).
+
+JDT LS is never bundled with Forge. When a Java project opens without it, a balloon offers
+**Install**, **Not now** and **Don't ask again** (setting **Install Eclipse JDT LS**: Ask,
+Always, Never). Install downloads, with your consent:
+
+- the newest JDT LS milestone (or snapshot, see **Release channel**) from
+  `download.eclipse.org/jdtls`, checked against the `.sha256` file published next to it, into
+  `<data dir>/forge/langservers/jdtls/<version>`;
+- Microsoft's [java-debug](https://github.com/microsoft/java-debug) plugin (EPL-1.0) from
+  Maven Central, checked against the repository's checksum, into
+  `<data dir>/forge/langservers/java-debug`.
+
+Progress shows in the status bar. **Install Eclipse JDT Language Server** in Find Action
+(`Ctrl+Shift+A`) installs or updates both at any time.
+
+![The install offer](docs/screenshots/java-jdtls-install.png)
+
+Forge starts JDT LS itself, like the official `jdtls` launcher: with a JDK that it can run on
+(Java 21 for 2024–2025 builds; newer builds need Java 25, which Forge reads from the bundles of
+the installation), the installation read-only, and its OSGi configuration and the workspace data
+in the user cache directory (`<cache dir>/forge/jdtls`), never inside the project. Every
+detected JDK is announced to JDT LS as a runtime, the project JDK as the default.
+
+While JDT LS imports a Maven or Gradle build, the status bar shows its progress ("Importing
+Gradle project(s) 45%"). After editing a build file, run **Reload All Maven and Gradle Projects**
+(Find Action, the main menu's Build menu or the Gradle / Maven tool window) to re-import it.
+
+Settings | Languages & Frameworks | **Java** shows the installed versions and the JDK JDT LS runs
+on, and has these options:
+
+| Setting | |
+| --- | --- |
+| Install Eclipse JDT LS | Ask, Always or Never when a Java project opens without it |
+| JDT LS installation | Use your own unpacked JDT LS (a folder with `plugins/` and `config_*`) |
+| JDK for the language server | The JDK that runs JDT LS; empty: the project JDK when it is new enough, else the newest that is |
+| VM options | `-Xmx1G` by default |
+| Release channel | Milestones or snapshots |
+| Download site | `https://download.eclipse.org/jdtls` |
+| Hot code replace | Automatically, on request or never (see [Debugging](#debugging)) |
+| java-debug repository | `https://repo1.maven.org/maven2` |
+
+![Settings | Languages & Frameworks | Java](docs/screenshots/java-settings-jdtls.png)
+
+JDT LS imports and builds projects, which runs code of the project (Gradle build scripts,
+annotation processors), so it does not start in [Safe Mode](docs/guide/user/project-trust.md). It runs for local
+projects; remote projects do not start it yet.
+
+## JDKs
+
+Settings | Build, Execution, Deployment | **JDKs** combines IntelliJ's SDK list and Project
+settings:
+
+- **Project JDK**: the JDK the project builds and runs with (empty: the newest). Runs of Maven
+  and Gradle get it as `JAVA_HOME`.
+- **Language level**: the Java release of the sources; empty means the build's (toolchain,
+  `maven.compiler.release`) or the project JDK's.
+- The JDK list: every JDK Forge detects, with its name (`temurin-21`), home, version, vendor and
+  where it was found. Detection reads each JDK's `release` file and looks at `JAVA_HOME`, `java`
+  on `PATH`, `/usr/lib/jvm` and `/usr/java` (Linux), `/Library/Java/JavaVirtualMachines` and
+  `~/Library/Java/JavaVirtualMachines` (macOS), `Program Files` and the registry (Windows),
+  SDKMAN! (`~/.sdkman/candidates/java`), asdf, jabba, Gradle toolchains (`~/.gradle/jdks`),
+  IntelliJ's `~/.jdks` and Forge's own downloads. A JRE without `javac` is not listed.
+- **+** adds a JDK from disk, **Detect Again** rescans.
+
+![Settings | Build, Execution, Deployment | JDKs](docs/screenshots/java-jdks-settings.png)
+
+**Download JDK…** (the download button, or Find Action) downloads Eclipse Temurin from the
+[Adoptium API](https://api.adoptium.net) (setting **Adoptium API**): pick a version (LTS releases
+are marked), and Forge downloads the build for your platform, checks it against the SHA-256 the
+API publishes and unpacks it into `<data dir>/forge/jdks/<release>`.
+
+![Download JDK](docs/screenshots/java-jdk-download.png)
+
+## Maven and Gradle
+
+Forge reads the build in the project root: the tool (with both a `pom.xml` and a Gradle build,
+setting **Build tool of projects with both**), the wrapper (`mvnw`, `gradlew`), the Kotlin or
+Groovy DSL, modules (`include` in `settings.gradle(.kts)`, `<modules>` in `pom.xml`), JaCoCo,
+the `application` plugin and its main class, Spring Boot, custom tasks and the Java release.
+
+Runs use the wrapper when the project has one (settings **Use the Gradle wrapper** / **Use the
+Maven wrapper**); otherwise the configured **Gradle executable** / **Maven home path**, or
+`gradle` / `mvn` on `PATH`. **Offline work** adds `--offline` / `-o`. These options live in
+Settings | Build, Execution, Deployment | Build Tools | Maven and Gradle.
+
+- **Build Project** (`Ctrl+F9`) compiles main and test sources through the build tool
+  (Gradle `classes testClasses`, Maven `test-compile`).
+- The **Gradle** and **Maven** tool windows (right stripe) list the build's tasks by group, or
+  Maven's lifecycle phases and plugin goals. Double-click runs one; the toolbar reloads the
+  project.
+
+![The Gradle tool window](docs/screenshots/java-gradle-tool-window.png)
+
+## Run configurations
+
+| Type | |
+| --- | --- |
+| **Application** | Runs a main class with the configuration's JDK (empty: the project JDK), VM options, program arguments, environment and working directory. The class path comes from the build through JDT LS (java-debug resolves it after JDT LS compiled the project); without JDT LS it is the module's build output (`build/classes/java/main`, `target/classes`). **Class path** and **Java module** (`-m module/class`) override it. |
+| **Gradle** | Runs tasks (`clean build`), optionally in a module (`:app:build`). |
+| **Maven** | Runs goals (`clean install -DskipTests`), optionally in a module (`-pl app -am`). |
+| **JUnit**, **TestNG** | Runs all tests, a package, a class, a method or a list of tests through the build tool; see [Tests](#tests). |
+| **Remote JVM Debug** | Attaches the debugger to a JVM started with `-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005`. |
+
+A green ▶ in the gutter next to a `main` method (`public static void main(String[] args)`, and
+Java 25's instance `void main()` and compact source files) offers Run, Debug and Modify Run
+Configuration; `Ctrl+Shift+F10` runs the class at the caret.
+
+![The Run gutter on main](docs/screenshots/java-run-gutter.png)
+
+## Tests
+
+JUnit 5 (`@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`,
+`@Nested` classes), JUnit 4 (`@Test`), JUnit 3 (`TestCase` subclasses with `test*` methods) and
+TestNG (method and class level `@Test`) get gutter icons on their classes and methods, chosen by
+the file's imports. They run on the [shared test runner](docs/guide/user/testing.md) through the build tool, as
+IntelliJ delegates to Gradle and Maven:
+
+- Gradle: `cleanTest test --tests 'com.acme.CartTest.adds'` (so up-to-date tests run again);
+- Maven Surefire: `test -Dtest='com.acme.CartTest#adds' -Dsurefire.failIfNoSpecifiedTests=false`.
+
+The results come from the JUnit XML reports the build writes (`build/test-results/test`,
+`target/surefire-reports`), which Forge empties before the run. The tree links tests and stack
+traces to their sources; **Rerun Failed Tests** runs the failed ones only.
+
+![A JUnit 5 run through Gradle](docs/screenshots/java-junit-tree.png)
+
+**Run with Coverage** works when the build configures JaCoCo: Gradle runs `jacocoTestReport`
+(enable its XML report: `reports { xml.required = true }`), Maven runs
+`org.jacoco:jacoco-maven-plugin:report` (with `prepare-agent` bound in the build). Forge reads
+`build/reports/jacoco/test/jacocoTestReport.xml` or `target/site/jacoco/jacoco.xml` into the
+[Coverage](docs/guide/user/coverage.md) tool window and the editor gutter.
+
+## Debugging
+
+Debug (`Shift+F9`) on an Application, Gradle (`run` and friends), JUnit or TestNG configuration
+starts the JVM with a JDWP agent that waits for the debugger (Application: a free port;
+Gradle: `--debug-jvm` on port 5005; Maven Surefire: `-Dmaven.surefire.debug`), and attaches
+java-debug as soon as the JVM listens. java-debug runs inside JDT LS and serves the Debug
+Adapter Protocol, so the [Debug tool window](docs/guide/user/debugging.md) works as for every other language:
+threads, frames, variables with expandable objects, watches, Evaluate Expression, breakpoints
+with conditions and logpoints, exception breakpoints (caught and uncaught) and inline values.
+
+**Remote JVM Debug** attaches to a JVM on another machine or in a container at `host:port`.
+
+**Hot code replace**: with **Automatically** (the default), java-debug reloads changed classes
+into the running JVM after JDT LS rebuilt them on save.
+
+![A java-debug session](docs/screenshots/java-debug-session.png)
+
+## Browser mode
+
+`pnpm dev` with `?project=java` opens the demo Gradle service `inventory-service`
+(`?project=java&jdtls=missing` starts without JDT LS to try the install offer).
+
+
+---
+
 Source: docs/guide/user/git.md
 
 # Git
@@ -12131,6 +12311,7 @@ PHP, Lua and every language pack that follows:
 | --- | --- | --- | --- |
 | PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](docs/guide/user/test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
 | busted | LuaForge ([LuaForge](docs/guide/user/luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
+| JUnit 5/4/3, TestNG | JavaForge ([JavaForge](docs/guide/user/java.md#tests)), through Gradle or Maven | JUnit XML of the build (`build/test-results/test`, `target/surefire-reports`) | JaCoCo XML |
 
 Language packs declare their frameworks in their plugin manifest
 (`[[contributions.testFrameworks]]`, see [Contribution points](docs/guide/developer/contribution-points.md#test-frameworks));
@@ -12214,6 +12395,7 @@ Source: docs/guide/user/coverage.md
 | Framework | How | Report |
 | --- | --- | --- |
 | PHPUnit, Pest | `--coverage-clover <file>` with `XDEBUG_MODE=coverage` (Xdebug) or PCOV, whichever the interpreter loads | Clover XML |
+| JUnit, TestNG (JavaForge) | Gradle `jacocoTestReport` (XML report enabled) or Maven `org.jacoco:jacoco-maven-plugin:report`, when the build configures JaCoCo | JaCoCo (`build/reports/jacoco/test/jacocoTestReport.xml`, `target/site/jacoco/jacoco.xml`) |
 | busted (LuaForge) | `busted --coverage` with luacov; `.luacov` sets `runreport = true` and `reporter = "lcov"` (luacov-reporter-lcov) | LCOV (`luacov.report.out`) |
 | any manifest framework | its `coverage` arguments | LCOV, Cobertura, Clover, JaCoCo or a Go profile |
 
@@ -12623,7 +12805,7 @@ for every session; only how a session starts differs:
   [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) (DAP), through
   the Debugger plugin (`forge.debugger`). **LLDB** (`lldb-dap`) and **GDB** (14 or newer,
   `gdb -i dap`) are built in for C, C++, Rust, Go and other native code; language packs add
-  their own adapters. Adapters are programs installed on your machine; Forge does not bundle
+  their own adapters, like JavaForge's java-debug for Java (see [JavaForge](docs/guide/user/java.md#debugging)). Adapters are programs installed on your machine; Forge does not bundle
   them. See [Debug adapter sessions](#debug-adapter-sessions) below.
 
 The sections up to [Debug adapter sessions](#debug-adapter-sessions) describe Xdebug; the
@@ -16485,6 +16667,21 @@ Page id `lang.servers`.
 | `langservers.download.npmRegistry` | string | `https://registry.npmjs.org` | user | Downloads | npm registry — Where Forge downloads npm language servers from. Every tarball is checked against the registry's sha512 integrity hash. |
 | `langservers.download.nodeMirror` | string | `https://nodejs.org/dist` | user | Downloads | Node.js download mirror — Used only when no Node.js 18 or newer is installed. Downloads are checked against the release's SHASUMS256.txt. |
 
+### Languages & Frameworks | Java
+
+Page id `lang.java` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.md#eclipse-jdt-language-server).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.jdtls.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Eclipse JDT Language Server | Install Eclipse JDT LS — When a Java project opens without the language server: ask, install it from download.eclipse.org, or never. |
+| `java.jdtls.path` | path | `""` | user | Eclipse JDT Language Server | JDT LS installation — A folder with an unpacked JDT LS (plugins/, config_*/). Empty: the one Forge installed. |
+| `java.jdtls.jdk` | path | `""` | user | Eclipse JDT Language Server | JDK for the language server — JDT LS needs Java 21 or newer (Java 25 for releases since 2026). Empty: the project JDK when it is new enough, else the newest detected JDK that is. |
+| `java.jdtls.vmOptions` | string | `-Xmx1G` | user | Eclipse JDT Language Server | VM options |
+| `java.jdtls.channel` | enum: `milestones`, `snapshots` | `milestones` | user | Eclipse JDT Language Server | Release channel |
+| `java.jdtls.downloadSite` | string | `https://download.eclipse.org/jdtls` | user | Eclipse JDT Language Server | Download site |
+| `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
+| `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.
@@ -16664,6 +16861,40 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+
+### Build, Execution, Deployment | JDKs
+
+Page id `build.jdks` (plugin `forge.java`, a custom page: the project JDK, language level and JDK list are edited there). See [JavaForge](docs/guide/user/java.md#jdks).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.jdks` | list | `[]` | user |  | Added JDKs — JDK homes added by hand (Add JDK from Disk…); detected and downloaded JDKs are listed without this. |
+| `java.projectJdk` | string | `""` | user, project |  | Project JDK — JDK home (or name, like temurin-21) the project builds and runs with. Empty: the newest detected JDK. |
+| `java.languageLevel` | enum: ``, `8`, `11`, `17`, `21`, `25` | `""` | user, project |  | Language level — Java release of the sources. Empty: from the build (toolchain, maven.compiler.release) or the project JDK. |
+| `java.download.adoptiumApi` | string | `https://api.adoptium.net` | user | Downloads | Adoptium API — Where Download JDK… looks up Eclipse Temurin builds (and their SHA-256 checksums). |
+
+### Build, Execution, Deployment | Build Tools | Gradle
+
+Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.md#maven-and-gradle).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.build.preferredTool` | enum: `gradle`, `maven` | `gradle` | user, project |  | Build tool of projects with both — Which build Forge uses when a folder has a pom.xml and a Gradle build. |
+| `java.gradle.useWrapper` | bool | `true` | user, project |  | Use the Gradle wrapper (gradlew) — Run Gradle through the project's gradlew when it has one. |
+| `java.gradle.executable` | path | `""` | user |  | Gradle executable — Used without a wrapper. Empty: gradle on the PATH. |
+| `java.gradle.jvm` | path | `""` | user, project |  | Gradle JVM — JDK home Gradle imports and runs with. Empty: the project JDK. |
+| `java.gradle.offline` | bool | `false` | user, project |  | Offline work |
+
+### Build, Execution, Deployment | Build Tools | Maven
+
+Page id `build.tools.maven` (plugin `forge.java`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.maven.useWrapper` | bool | `true` | user, project |  | Use the Maven wrapper (mvnw) — Run Maven through the project's mvnw when it has one. |
+| `java.maven.executable` | path | `""` | user |  | Maven home path — The mvn executable used without a wrapper. Empty: mvn on the PATH. |
+| `java.maven.offline` | bool | `false` | user, project |  | Work offline |
+| `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
 
 ### Build, Execution, Deployment | Debugger
 
@@ -17060,7 +17291,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Eclipse JDT Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) | `jdtls` | Java | `jdtls` | `brew install jdtls` (macos, linux)<br>[download](https://download.eclipse.org/jdtls/snapshots/) | EPL-2.0 | Needs Java 21+. Forge keeps its workspace data in the user cache directory. |
+| [Eclipse JDT Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) | `jdtls` | Java | started by JavaForge (`forge.java`) | Install from Settings \| Languages & Frameworks \| Java (download.eclipse.org, SHA-256 checked)<br>[download](https://download.eclipse.org/jdtls/milestones/) | EPL-2.0 | A pack server: JavaForge starts it with a JDK 21+ (25 for newer builds) and keeps its data in the user cache directory. See [JavaForge](docs/guide/user/java.md). |
 
 ### Kotlin
 
@@ -17260,7 +17491,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
-| `jdtls/…` | workspace data of the Java language server |
+| `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 | `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
@@ -17431,7 +17662,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `javaforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -17455,6 +17686,7 @@ script and config language plugins.
 | Config Files | `forge.conf` | configforge |  | always | file types: Config |
 | Language Servers | `forge.langservers` | core | `forge.core` | always | 1 commands; 9 settings |
 | Lua | `forge.lua` | luaforge |  | `luaforge` | 1 commands; 6 settings; file types: Lua; 1 LSP servers; run types: Lua Script |
+| Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
@@ -17555,7 +17787,7 @@ changes.
 │  Tauri shell (app/src-tauri)   commands/<area>.rs  (thin: parse args, call crates, emit)      │
 │                                                      │                                        │
 │  Rust crates (crates/forge-*)  core, plugin-api, lsp, vcs, keymap, fuzzy, filetypes, ai, …    │
-│  Packs (packs/<pack>/<plugin>) phpforge, webforge, luaforge                                   │
+│  Packs (packs/<pack>/<plugin>) phpforge, webforge, luaforge, javaforge                        │
 │                                                      │                                        │
 │  forge-backend: Backend trait ── LocalBackend (this machine)                                  │
 │                              └─ RemoteBackend ──SSH── forge-remote-agent on a Linux host      │
@@ -17580,7 +17812,7 @@ output (`forge-process`, `forge-output`), the debugger (`forge-debug`), database
 
 **Packs** (`packs/<pack>/<plugin>`) are language and framework crates: PHPForge (`lang-php`,
 `fw-laravel`, `fw-symfony`, `orm-doctrine`, `dql`), WebForge (`lang-web`, `fw-react`,
-`fw-vue`, `fw-angular`), LuaForge (`lang-lua`). They depend on core crates, never on the app.
+`fw-vue`, `fw-angular`), LuaForge (`lang-lua`), JavaForge (`build`, `lang-java`, `jdk`). They depend on core crates, never on the app.
 
 **The UI** (`app/ui`, SolidJS + TypeScript + CodeMirror 6, icons from `lucide-solid`) renders
 and forwards events. A feature is a folder `src/features/<name>/` whose `index.ts` registers its
@@ -17671,6 +17903,7 @@ packs/<pack>/<plugin>      language and framework crates, package name <pack>-<p
   phpforge/                lang-php, fw-laravel, fw-symfony, orm-doctrine, dql
   webforge/                lang-web, fw-react, fw-vue, fw-angular
   luaforge/                lang-lua
+  javaforge/               build, lang-java, jdk
 app/
   src-tauri/               the Tauri shell (crate forge-app, binary forge)
     src/lib.rs             builder, state, event wiring, generate_handler![…]
@@ -17872,7 +18105,7 @@ re-implementing logic in TypeScript mocks, Forge compiles its **pure** crates to
 - `crates/forge-wasm` depends on the pure crates (`forge-fuzzy`, `forge-filetypes`,
   `forge-keymap`, `forge-markdown`, `forge-output`, `forge-sql`, `forge-window`,
   `forge-plugin-api`, `forge-scratches` without `client`, `forge-remote` without `client`,
-  `forge-containers` without `runtime`, `forge-agent-cli` without `runtime`, `luaforge-lang-lua`,
+  `forge-containers` without `runtime`, `forge-agent-cli` without `runtime`, `luaforge-lang-lua`, `javaforge-build`, `javaforge-lang-java`,
   `phpforge-dql`, the WebForge crates).
 - Each area is a module `crates/forge-wasm/src/<area>.rs` with `#[wasm_bindgen]` functions that
   take and return **JSON strings**, mirroring the matching IPC command:
@@ -18440,7 +18673,7 @@ Source: docs/guide/developer/plugins-and-packs.md
 
 # Writing a plugin or pack
 
-A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`; AI plugins live in
+A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`, `javaforge`; AI plugins live in
 `core`). A **plugin** is a manifest, plus an optional Rust crate, plus an optional UI feature.
 Recipe: [`add-plugin-or-pack`](.claude/skills/add-plugin-or-pack/SKILL.md).
 
@@ -18892,7 +19125,7 @@ and writes `docs/screenshots/<scenario>.png` at 1440×900.
 
 `ai-chat`, `ai-providers`, `browser-companion`, `context-menu`, `database`, `debugger`,
 `dialog-windows`, `docker`, `editor-lsp`, `file-menu`, `forges`, `gemini`, `integration-polish`,
-`language-servers`, `laravel`, `luaforge`, `navigation`, `php`, `project-tree`, `project-wizard`,
+`javaforge`, `language-servers`, `laravel`, `luaforge`, `navigation`, `php`, `project-tree`, `project-wizard`,
 `remote`, `scratches`, `settings`, `symfony`, `syntax`, `terminal-run`, `vcs`, `webforge`,
 `welcome`, `workbench`.
 
@@ -19394,6 +19627,9 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 
 | Crate | Description |
 | --- | --- |
+| [javaforge-build](docs/guide/developer/crates/javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
+| [javaforge-jdk](docs/guide/developer/crates/javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
+| [javaforge-lang-java](docs/guide/developer/crates/javaforge-lang-java.md) | JavaForge: Java language support (source scanner, main methods, JUnit 5/4/3 and TestNG for the shared test runner, application command lines, Eclipse JDT LS launch configuration; pure, also built to WebAssembly) |
 | [luaforge-lang-lua](docs/guide/developer/crates/luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
@@ -21416,6 +21652,8 @@ these rows.
 | `install.rs` | Running an install command (`npm install …`, `pipx install …`) with streamed output. Commands come from the catalog only and run without a shell. |
 | `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
+| `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
+| `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
 | `managed/node.rs` | A Node.js runtime for npm language servers: a suitable one on the machine (>= 18), or the official build from nodejs.org (or a mirror) downloaded into `<data dir>/forge/runtimes/node-<version>`, verified against the release's `SHASUMS256.txt`. |
@@ -21649,7 +21887,7 @@ them.
 
 | Module | Summary |
 | --- | --- |
-| `client.rs` | An LSP client talking to one language server process over stdio. |
+| `client.rs` | An LSP client talking to one language server process over stdio. `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
@@ -21990,7 +22228,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
-| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class). |
+| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`). |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
@@ -22178,7 +22416,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -22909,7 +23147,7 @@ coverage reports into one model.
 | Module | Summary |
 | --- | --- |
 | `targets.rs` | `TestFile` (the tests of a file with their temporary configurations and result keys), `TestTarget`, `TargetKind` (`class`, `method`, `file`, `describe`, `test`, `dataset`, `feature`, `scenario`, `example`, `suite`), `FailedTest`. |
-| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
+| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request with its own location rules, `report_dirs`: project folders a build tool writes its JUnit XML into, emptied before and read after the run) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
 | `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
 | `coverage/mod.rs` | `CoverageReport` (files with `LineHits`: hits, branches, partial), `LineStatus` (covered, partial, uncovered), `merge`, `resolve` (reported paths → project paths), `sniff` / `parse_any`, `Counter` ("85% (17/20)"), `summary` (the Coverage tool window's project, compacted directories and files) and `FileCoverage::marks` (gutter marks with hover texts). |
 | `coverage/lcov.rs` | LCOV tracefiles (`SF`, `DA`, `BRDA`). |
@@ -23275,6 +23513,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
+| `java.rs` | JavaForge (`javaforge-build`, `javaforge-lang-java`), mirroring `java_main_methods`, `java_build_info` and the backend's Java run building (`java_command_line`: Application, Maven, Gradle, JUnit and TestNG with their `TestCommand`). `testing.rs` registers `JavaTests` like the app. |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
 | `parsers.rs` | Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the IPC commands of the desktop app for the browser-mode mocks. |
 | `parsers/chat.rs` | The AI chat conversation (`forge_agent_cli::conversation`) for the browser-mode agent: the mock feeds its scripted events into a `Chat` and emits the `chat` updates like the desktop backend. |
@@ -23387,6 +23626,198 @@ pub fn dialog_id(label: &str) -> Option<&str> { … }
 
 ```sh
 cargo test -p forge-window
+```
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-build.md
+
+# javaforge-build
+
+`packs/javaforge/build` — JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly).
+
+## Purpose
+
+JavaForge's Maven and Gradle support, like IntelliJ IDEA's build tool integration. Pure Rust:
+the caller hands in file names and texts, so the desktop backend, the remote agent and the
+browser mode (WebAssembly) share it.
+
+- `detect` reads a build (`BuildProject`): the tool, its wrapper (`mvnw`, `gradlew`), the
+  Kotlin or Groovy DSL, modules (`settings.gradle` `include`, `pom.xml` `<modules>`), JaCoCo,
+  the test frameworks the build depends on, the Java release, Gradle's `application` main class,
+  Spring Boot and custom tasks.
+- `goals` lists Maven lifecycle phases and plugin goals, or Gradle tasks by group, for the
+  Gradle / Maven tool windows.
+- `command` builds command lines: goals and tasks (Gradle `:module:task`, Maven `-pl module
+  -am`), Build Project (`classes testClasses`, `test-compile`) and test runs (Gradle `cleanTest
+  test --tests`, Maven Surefire `test -Dtest=` with `-Dsurefire.failIfNoSpecifiedTests=false`)
+  with their JUnit XML report folders and JaCoCo reports.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `command.rs` | `ExecOptions` (wrapper, executable, build folder, offline), `executable`, `goals_command`, `build_project_command`, `TestFilter` (all, package, class, method, a list) and `test_command` → `TestRun { command, report_dirs, coverage_report }`. |
+| `detect.rs` | `BuildTool`, `Module`, `BuildProject` (`module_of`, `module`, `minimal`) and `detect(folder, files, read, prefer)`. |
+| `goals.rs` | `Goal { name, group, description }` and `goals(&BuildProject)`. |
+
+## Main public items
+
+```rust
+pub use command::{build_project_command, executable, goals_command, test_command, BuildCommand, ExecOptions, TestFilter, TestRun};
+pub use detect::{detect, BuildProject, BuildTool, Module, TestFrameworkUse};
+pub use goals::{goals, Goal};
+```
+
+## Used by
+
+- [`javaforge-lang-java`](docs/guide/developer/crates/javaforge-lang-java.md) (test commands), the app (`app/src-tauri/src/commands/java.rs`: `java_build_info`, Maven / Gradle runs, Build Project) and [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) (`java_build_info`, `java_command_line`).
+
+## Dependencies
+
+- External: `serde`, `regex-lite`
+
+## Tests
+
+4 source files, about 1190 lines; 9 unit tests (Gradle Kotlin and Groovy builds, Maven modules, wrappers, goals, test filters, JaCoCo).
+
+```sh
+cargo test -p javaforge-build
+```
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-jdk.md
+
+# javaforge-jdk
+
+`packs/javaforge/jdk` — JavaForge: JDK detection and Eclipse Temurin downloads.
+
+## Purpose
+
+JavaForge's JDKs, like IntelliJ IDEA's SDK table.
+
+- `detect` finds the JDKs on the machine: `JAVA_HOME`, `java` on `PATH` (symlinks resolved),
+  `/usr/lib/jvm`, `/usr/java`, `/opt/java` (Linux), `/Library/Java/JavaVirtualMachines` and
+  `~/Library/Java/JavaVirtualMachines` plus Homebrew (macOS), `Program Files` vendor folders and
+  the registry (`reg query`, Windows), SDKMAN!, asdf, jabba, Gradle toolchains (`~/.gradle/jdks`),
+  IntelliJ's `~/.jdks` and Forge's downloads (`<data dir>/forge/jdks`). macOS bundles
+  (`Contents/Home`) and folders with one JDK inside are followed; a JRE (no `javac`) is skipped;
+  the same JDK reached twice is listed once. `pick` chooses the JDK of a minimum release
+  (JDT LS) or a preferred one.
+- `release` reads a JDK's `release` file (`JAVA_VERSION`, `IMPLEMENTOR`, …): the feature
+  release (`1.8.0_412` → 8) and the vendor (`Eclipse Temurin`, `Azul Zulu`, …).
+- `adoptium` downloads Eclipse Temurin: the Adoptium API names the latest build of a feature
+  release for this platform with its SHA-256; the archive is verified, unpacked into a staging
+  folder and renamed into `<data dir>/forge/jdks/<release>`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `adoptium.rs` | `AvailableReleases`, `Platform`, `assets_url`, `parse_assets`, `available_releases`, `download`. |
+| `detect.rs` | `Jdk`, `DetectEnv` (`system()`), `detect`, `inspect`, `pick`, `parse_registry`, `system_roots`. |
+| `release.rs` | `ReleaseInfo`, `parse_release`, `major_of`, `vendor_name`. |
+
+## Main public items
+
+```rust
+pub use detect::{detect, inspect, pick, DetectEnv, Jdk};
+pub fn default_jdks_dir() -> Option<PathBuf>;
+pub fn java_executable(home: &str, windows: bool) -> String;
+```
+
+## Used by
+
+- The app (`app/src-tauri/src/commands/java.rs`: `java_jdks`, `java_jdk_inspect`,
+  `java_jdk_releases`, `java_jdk_download`, the JDK of JDT LS, runs and `JAVA_HOME`).
+
+## Dependencies
+
+- Workspace crates: [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md) (`managed::Http`, `archive`, `Event`)
+- External: `serde`, `serde_json`, `dirs`
+
+## Tests
+
+5 source files, about 1140 lines; 9 tests with fixture JDK folders and a local HTTP server (no
+network). `tests/jdtls_smoke.rs` is an ignored end-to-end test against the real JDT LS,
+java-debug and, if needed, a Temurin download:
+
+```sh
+cargo test -p javaforge-jdk
+cargo test -p javaforge-jdk --test jdtls_smoke -- --ignored --nocapture   # network
+```
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-lang-java.md
+
+# javaforge-lang-java
+
+`packs/javaforge/lang-java` — JavaForge: Java language support (structural source scanner, main methods, JUnit 5/4/3 and TestNG discovery and commands for the shared test runner, application command lines, Eclipse JDT LS launch configuration; pure, also built to WebAssembly).
+
+## Purpose
+
+JavaForge's Java language support. Pure Rust (no file system or processes); code intelligence
+itself comes from Eclipse JDT LS through `forge-lsp`.
+
+- `source` scans a Java file: package, imports, types (classes, interfaces, enums, records,
+  annotation types, nested types with binary names such as `com.acme.Outer$Inner`) and their
+  methods with annotations, modifiers, return types and parameters. It skips comments, strings,
+  text blocks and method bodies and tolerates half-typed code.
+- `discovery` finds `main` methods for the Run gutter (`public static void main(String[])`,
+  Java 25 instance mains and compact source files) and tests: JUnit 5 (`@Test`,
+  `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, `@Nested`), JUnit 4,
+  JUnit 3 `TestCase` subclasses and TestNG (method and class level `@Test`), chosen by imports.
+- `tests` is the shared test runner's provider (`JavaTests::junit()`, `JavaTests::testng()`):
+  gutter targets with temporary configurations, Rerun Failed Tests (`Class#method` lists) and
+  commands through `javaforge-build` with `TestReport::JUnitFile`, `JUnitFlavor::Java`, the
+  build's report folders (`TestCommand::report_dirs`), location rules from the source root and
+  JaCoCo coverage with its own rules (main sources).
+- `launch` builds Application command lines (`java` with VM options, `-p` / `-cp`, `-m`, the
+  JDWP agent of debug runs) and the debug arguments of Gradle (`--debug-jvm`) and Surefire.
+- `jdtls` describes how JDT LS starts: the command line (read-only installation, OSGi
+  configuration and `-data` in the cache dir), `initializationOptions` (java-debug bundle,
+  extended client capabilities) and the `java.*` settings (JDKs as runtimes, Gradle / Maven
+  import, hot code replace), plus the JDT LS and java-debug commands Forge sends.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `discovery.rs` | `main_methods`, `discover_tests`, `Framework`, `TestDiscovery`, `source_root`. |
+| `jdtls.rs` | `JdtlsSetup` (`args`, `settings`, `initialization_options`), `Runtime`, `execution_environment`, `config_folder`, `commands`. |
+| `launch.rs` | `AppLaunch`, `application_command`, `jdwp_listen`, `remote_jvm_arguments`, `build_output_classpath`, `build_tool_debug_args`, `DEBUG_PORT_ENV`. |
+| `source.rs` | The tolerant scanner: `parse(text) -> JavaFile { package, imports, types, top_level_methods }`. |
+| `tests.rs` | `JavaTests` (`TestFrameworkProvider`) and `module_of_source_root`. |
+
+## Main public items
+
+```rust
+pub use discovery::{discover_tests, main_methods, Framework, MainMethod, TestDiscovery};
+pub use tests::JavaTests;
+```
+
+## Used by
+
+- The app: `RunState` registers `JavaTests` (`commands/run.rs`); `commands/java.rs` builds
+  JDT LS, Application and debug runs with it. [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `java_main_methods`,
+  `java_command_line` and the test registry of the browser mode.
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md), [`forge-testing`](docs/guide/developer/crates/forge-testing.md), [`javaforge-build`](docs/guide/developer/crates/javaforge-build.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+6 source files, about 2110 lines; 14 unit tests.
+
+```sh
+cargo test -p javaforge-lang-java
 ```
 
 

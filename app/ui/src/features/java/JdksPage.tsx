@@ -212,7 +212,7 @@ export function JdksPage() {
                   <span class="java-value">{j().source}</span>
                 </div>
                 <Show when={j().major > 0 && j().major < 21}>
-                  <p class="muted java-hint">Eclipse JDT LS runs on Java 21 or newer; projects can still build and run with this JDK.</p>
+                  <p class="muted java-hint">Eclipse JDT LS runs on Java 21 or newer (25 for its newest releases); projects can still build and run with this JDK.</p>
                 </Show>
               </>
             )}

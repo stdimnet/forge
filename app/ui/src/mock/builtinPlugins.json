@@ -6936,7 +6936,7 @@
         {
           "key": "java.jdtls.jdk",
           "title": "JDK for the language server",
-          "description": "JDT LS needs Java 21 or newer. Empty: the newest detected JDK 21+.",
+          "description": "JDT LS needs Java 21 or newer (Java 25 for releases since 2026). Empty: the project JDK when it is new enough, else the newest detected JDK that is.",
           "type": "path",
           "default": "",
           "group": "lang.java",
