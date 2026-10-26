@@ -28,6 +28,9 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     let mut r = TestFrameworks::new();
     r.register(Box::new(phpforge_test_frameworks::PhpTestFrameworks));
     r.register_specs(specs);
+    // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.
+    r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
+    r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
     r
 }
 

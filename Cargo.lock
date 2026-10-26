@@ -2683,6 +2683,8 @@ dependencies = [
  "forge-viewers",
  "forge-vim",
  "forge-window",
+ "javaforge-build",
+ "javaforge-lang-java",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
  "phpforge-composer",
