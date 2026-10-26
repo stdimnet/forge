@@ -89,6 +89,10 @@ luaforge-lang-lua.workspace = true
 pyforge-lang-python.workspace = true
 pyforge-interpreters.workspace = true
 pyforge-packages = { workspace = true, features = ["net"] }
+goforge-lang-go.workspace = true
+goforge-sdk.workspace = true
+goforge-delve.workspace = true
+goforge-pprof.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

@@ -38,6 +38,7 @@ fn sync(state: &AppState, debug: &DebugState) {
     }
     debug.dap.set_registry(registry);
     crate::commands::js_debug::sync(state, debug);
+    crate::commands::go::sync_debug(state, debug);
     debug.dap.set_config(DapConfig {
         request_timeout: Duration::from_millis(
             settings

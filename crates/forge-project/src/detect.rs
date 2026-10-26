@@ -1073,7 +1073,9 @@ mod tests {
         assert!(detect(dir.path()).uses("goforge"));
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), "go.work", "go 1.23");
-        assert!(detect(dir.path()).tools.contains(&"go-workspace".to_string()));
+        assert!(detect(dir.path())
+            .tools
+            .contains(&"go-workspace".to_string()));
     }
 
     #[test]

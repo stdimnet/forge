@@ -29,6 +29,7 @@ pub mod git_extras;
 pub mod git_history;
 pub mod git_log;
 pub mod git_ops;
+pub mod go;
 pub mod hierarchy;
 pub mod imports;
 pub mod injections;
