@@ -177,10 +177,15 @@ impl Walker {
             let expected = value_after(&text, "Expected");
             let actual = value_after(&text, "Received");
             let stack = error.map(|e| strip_ansi(&e.stack)).unwrap_or_default();
-            let details = if stack.is_empty() || text.contains(stack.trim()) {
+            // The stack repeats the message: only its frames are added.
+            let frames: Vec<&str> = stack
+                .lines()
+                .filter(|l| l.trim_start().starts_with("at ") && !text.contains(l.trim()))
+                .collect();
+            let details = if frames.is_empty() {
                 text.clone()
             } else {
-                format!("{text}\n{stack}")
+                format!("{text}\n{}", frames.join("\n"))
             };
             self.out.push(TestEvent::TestFailed {
                 name: name.clone(),
