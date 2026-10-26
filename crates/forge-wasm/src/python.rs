@@ -159,7 +159,8 @@ pub fn python_packages_command(request_json: &str) -> String {
         Err(e) => return error(e),
     };
     let manager = pyforge_packages::manager::choose(req.kind, req.uv_lock);
-    let (program, args) = pyforge_packages::manager::command(manager, req.action, &req.packages, &req.python);
+    let (program, args) =
+        pyforge_packages::manager::command(manager, req.action, &req.packages, &req.python);
     to_json(&json!({ "manager": manager, "program": program, "args": args }))
 }
 

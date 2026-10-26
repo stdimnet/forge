@@ -73,14 +73,14 @@ pub fn scan(text: &str) -> Vec<Import> {
             let mut offset = indent + "import ".len();
             for part in rest.split(',') {
                 let lead = part.len() - part.trim_start().len();
-                let name = part.trim().split_whitespace().next().unwrap_or("");
+                let name = part.split_whitespace().next().unwrap_or("");
                 let name = name.trim_matches(['(', ')']);
                 push(name, offset + lead);
                 offset += part.len() + 1;
             }
         } else if let Some(rest) = stmt_text.strip_prefix("from ") {
             let lead = rest.len() - rest.trim_start().len();
-            let name = rest.trim_start().split_whitespace().next().unwrap_or("");
+            let name = rest.split_whitespace().next().unwrap_or("");
             if rest.contains(" import") {
                 push(name, indent + "from ".len() + lead);
             }
