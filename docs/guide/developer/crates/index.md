@@ -73,6 +73,9 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 
 | Crate | Description |
 | --- | --- |
+| [javaforge-build](javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
+| [javaforge-jdk](javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
+| [javaforge-lang-java](javaforge-lang-java.md) | JavaForge: Java language support (source scanner, main methods, JUnit 5/4/3 and TestNG for the shared test runner, application command lines, Eclipse JDT LS launch configuration; pure, also built to WebAssembly) |
 | [luaforge-lang-lua](luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
 | [pyforge-lang-python](pyforge-lang-python.md) | PyForge: Python language support (PEP 440 versions and specifiers, PEP 508 requirements, requirements.txt and pyproject.toml dependencies, imports, requirements inspections and completion, run configurations; pure, also built to WebAssembly) |
 | [pyforge-interpreters](pyforge-interpreters.md) | PyForge: Python interpreters (system, pyenv, venv/virtualenv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL): model, detection, metadata parsing and new environments |

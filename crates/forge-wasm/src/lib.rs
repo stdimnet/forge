@@ -35,6 +35,7 @@ mod emmet;
 mod filetypes;
 mod hierarchy;
 mod injections;
+mod java;
 mod json_schema;
 mod keymap;
 mod livetemplates;

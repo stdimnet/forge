@@ -43,6 +43,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
+| `java.rs` | JavaForge (`javaforge-build`, `javaforge-lang-java`), mirroring `java_main_methods`, `java_build_info` and the backend's Java run building (`java_command_line`: Application, Maven, Gradle, JUnit and TestNG with their `TestCommand`). `testing.rs` registers `JavaTests` like the app. |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
 | `parsers.rs` | Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the IPC commands of the desktop app for the browser-mode mocks. |
 | `parsers/chat.rs` | The AI chat conversation (`forge_agent_cli::conversation`) for the browser-mode agent: the mock feeds its scripted events into a `Chat` and emits the `chat` updates like the desktop backend. |

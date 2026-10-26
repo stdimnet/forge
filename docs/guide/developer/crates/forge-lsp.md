@@ -31,7 +31,7 @@ them.
 
 | Module | Summary |
 | --- | --- |
-| `client.rs` | An LSP client talking to one language server process over stdio. |
+| `client.rs` | An LSP client talking to one language server process over stdio. `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |

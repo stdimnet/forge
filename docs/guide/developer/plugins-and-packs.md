@@ -7,7 +7,7 @@ tags: [plugins, packs, manifest, walkthrough]
 
 # Writing a plugin or pack
 
-A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`; AI plugins live in
+A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`, `javaforge`; AI plugins live in
 `core`). A **plugin** is a manifest, plus an optional Rust crate, plus an optional UI feature.
 Recipe: [`add-plugin-or-pack`](../../../.claude/skills/add-plugin-or-pack/SKILL.md).
 

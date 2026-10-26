@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -935,7 +935,8 @@ or without Git, for local and remote projects.
   `artisan`, `bin/console`, `wp-config.php`, `package.json`/lock files/`node_modules`, `angular.json`,
   `tsconfig.json`, `*.lua`, `.luarc.json`, `*.rockspec`, `conf.lua`, `init.lua`, `Cargo.toml`, `go.mod`,
   `*.py`, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`,
-  `uv.lock`, `poetry.lock`, `Dockerfile`/`compose.yaml`, `.git`).
+  `uv.lock`, `poetry.lock`, `pom.xml`, `build.gradle(.kts)`/`settings.gradle(.kts)`,
+  `*.java` / `src/main/java`, `Dockerfile`/`compose.yaml`, `.git`).
 - `project_detect() -> ProjectInfo { languages, frameworks: { id, name, version?, language, dir? }[],
   packs, tools, primary? }`; `workspace_open` also emits `project://detected` `{ root, info }`, and
   `workspace_recent` returns each project's `primary` for the Welcome screen badge.
@@ -1078,7 +1079,11 @@ or without Git, for local and remote projects.
   (`all`, `directory`, `file`, `test`, `pattern`) with `${file}`, `${test}`, `${testPattern}`,
   `${pattern}`, `${reportDir}`, `${coverageFile}`, the `report` format, `locationRules`,
   `rerun` and `coverage`. LuaForge declares busted. `TestCommand { program, args, env,
-  report, flavor, locationRules, defaultFile, coverage }`.
+  report, flavor, locationRules, defaultFile, coverage, reportDirs }`: `reportDirs` are project
+  folders a build tool writes its JUnit XML into (Gradle, Surefire), emptied before the run and
+  read recursively (`TEST-*.xml`) after it (`test_frameworks::ReportDir::Builds`); a
+  `coverage.locationRules` overrides the command's rules for the report (JaCoCo names main
+  sources). JavaForge registers `JavaTests` for `junit` / `testng` (`JUnitFlavor::Java`).
 - IPC (`commands/testing.rs`, `src/ipc/testing.ts`): `test_discover({ path, text }) ->
   TestFile` and `test_rerun_failed({ configuration, failed }) -> RunConfiguration | null` ask
   the registry; `test_frameworks_detect() -> string[]` (manifest frameworks the project
@@ -2252,6 +2257,65 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   provider. `features/languages/requirements.ts` highlights requirements files. Browser mode:
   `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
   `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
+
+## JavaForge (`packs/javaforge/*`)
+
+- The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)
+  is active for Java projects: `forge-project` reports the `java` language (and so the
+  `javaforge` pack) for a `pom.xml` (tool `maven`), a Gradle build (`build.gradle(.kts)`,
+  `settings.gradle(.kts)`, tool `gradle`), `*.java` files or a `src/main/java` / `src/test/java`
+  tree. Three crates, all with unit tests on fixtures and no network:
+  - `javaforge-build` (pure, also in `forge-wasm`): the build read from its files (tool, wrapper,
+    DSL, modules, JaCoCo, `application` main class, test frameworks, Java release), goals and
+    tasks, and command lines (goals / tasks, Build Project, tests with report folders);
+  - `javaforge-lang-java` (pure, also in `forge-wasm`): the tolerant Java scanner, `main`
+    methods, JUnit 5/4/3 and TestNG discovery, `JavaTests` (the `forge-testing` provider of the
+    `junit` / `testng` types), Application command lines and the JDT LS launch configuration
+    (`jdtls::JdtlsSetup`);
+  - `javaforge-jdk`: JDK detection from `release` files (JAVA_HOME, PATH, system folders,
+    registry, SDKMAN!, asdf, jabba, Gradle toolchains, `~/.jdks`, Forge's downloads) and Temurin
+    downloads from the Adoptium API (SHA-256), into `<data dir>/forge/jdks`.
+- Eclipse JDT LS is a pack server (`pack_servers.toml`, never started from the catalog):
+  `forge_langservers::managed::jdtls` installs the newest milestone from download.eclipse.org
+  (`latest.txt`, `.sha256`) and `managed::javadebug` Microsoft's java-debug jar from Maven Central
+  (`.sha256` or `.sha1`), with the user's consent, into `<data dir>/forge/langservers`.
+  `commands::java::sync_lsp_server` (after detection, like PHP's, and when a `java.*` setting or
+  the enabled plugins change) registers the `jdtls` server for local Java projects: `java` of a
+  JDK new enough for the installation (`required_java` from the bundle manifests: 21, or 25 for
+  newer builds), the installation read-only, OSGi configuration and `-data` in
+  `<cache dir>/forge/jdtls`, java-debug as a bundle, every JDK as a runtime. `jdtls` is in
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`. `forge-lsp` shows JDT LS's `language/status` as
+  progress. Completion, navigation, diagnostics, rename, code actions, organize imports and
+  formatting go through the shared LSP commands.
+- IPC (`commands/java.rs`, `src/ipc/java.ts`): `java_jdks({ refresh? }) -> Jdk[]`,
+  `java_jdk_inspect({ path }) -> Jdk | null`, `java_jdk_releases() -> AvailableReleases`,
+  `java_jdk_download({ feature }) -> Jdk`, `java_status() -> { jdtls?, jdtlsDir?, javaDebug?,
+  serverJdk?, projectJdk?, languageLevel?, build?, problems, remote }`, `java_jdtls_install() ->
+  version`, `java_build_info() -> { project, goals, program } | null`, `java_reload_project()`
+  (`java/projectConfigurationsUpdate` for the build files), `java_main_methods({ path, text }) ->
+  MainMethod[]`, `java_debug_prepare({ configuration }) -> { dapPort, hostName, jdwpPort, run }`.
+  Installs report `java://install` `{ id: "jdtls" | "jdk", event }` (`managed::Event`).
+- Runs (`run.rs`): `java-application`, `maven`, `gradle` and `jvm-remote-debug` are built by
+  `commands::java::command_line` (the configuration's or project JDK, `JAVA_HOME` for the build
+  tools, wrapper or configured executable); `junit` / `testng` configurations are filled with
+  the build (`commands::java::prepare`: `buildTool`, `buildProgram`, `buildDir`, `gradlePath`,
+  …) and built by `JavaTests`. Application runs without a class path ask java-debug
+  (`vscode.java.resolveClasspath`, after `java/buildWorkspace`) in `run_start`. A debug run sets
+  `FORGE_JAVA_DEBUG_PORT` in its environment; the backend turns it into the JDWP agent
+  (`-agentlib:jdwp=…,suspend=y`), Gradle's `--debug-jvm` or Surefire's `-Dmaven.surefire.debug`.
+  All of it starts in `run::start_built`, so Safe Mode refuses it.
+- Debugging: the manifest declares the `java` debug adapter without a command (a DAP server).
+  `java_debug_prepare` sends java-debug's settings (hot code replace) and
+  `vscode.java.startDebugSession` to JDT LS; the UI (`features/java/debug.ts`) starts the run,
+  waits for "Listening for transport dt_socket" and calls `dap_start` with `attachServer` (the
+  DAP port) and `{ hostName, port }` (JDWP). Remote JVM Debug only attaches.
+- UI (`app/ui/src/features/java`): settings pages `build.jdks` (custom), `build.tools`,
+  `build.tools.gradle`, `build.tools.maven`, `lang.java` (status and install), the run
+  configuration types, the Run gutter on `main` and `RunClass`, `CompileDirty` (Build Project),
+  `java.reloadProject`, `java.downloadJdk`, `java.installLanguageServer`, the small `gradle` /
+  `maven` tool windows, the install offer (`java.jdtls.autoInstall`) and its status bar progress.
+  Browser mode: `?project=java` opens the Gradle demo `inventory-service`
+  (`mock/demoJavaProject.ts`, `javaMock.ts`, `javaDebugMock.ts`).
 
 ## Scripting and config language packs
 

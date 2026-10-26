@@ -1,0 +1,193 @@
+/* JavaForge: JDKs and Java settings pages, the Gradle / Maven tool window. Theme variables only. */
+
+.java-pad {
+  padding: 12px;
+}
+
+.java-jdks,
+.java-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.java-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.java-form-row > label {
+  min-width: 120px;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.java-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.java-value {
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.java-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.java-sdks {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  min-height: 260px;
+  margin-top: 6px;
+}
+.java-sdk-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  min-height: 0;
+}
+.java-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.java-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.java-toolbar .icon-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.java-sdk-items {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.java-sdk-row {
+  gap: 7px;
+  padding-left: 10px;
+}
+.java-sdk-version {
+  margin-left: auto;
+  padding-right: 8px;
+  font-size: 11px;
+}
+.java-jdk-icon {
+  color: var(--warning);
+}
+.java-sdk-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.java-download {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.java-download-title {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.java-hint {
+  margin: 0;
+  font-size: 12px;
+}
+.java-error {
+  margin: 0;
+  color: var(--danger);
+}
+.java-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-muted);
+}
+.java-progress progress {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.java-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.java-buttons-left {
+  justify-content: flex-start;
+}
+
+.java-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.java-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.java-status-row b {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.java-status-pad {
+  width: 14px;
+}
+.java-ok {
+  color: var(--success);
+}
+.java-warn {
+  color: var(--warning);
+}
+
+.java-build-tw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.java-build-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.java-tree-root {
+  gap: 6px;
+  padding-left: 8px;
+  color: var(--fg-strong);
+}
+.java-tree-group {
+  gap: 4px;
+  padding-left: 18px;
+}
+.java-tree-goal {
+  gap: 6px;
+  padding-left: 52px;
+}
+.java-build-icon {
+  color: var(--info);
+}

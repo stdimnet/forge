@@ -72,6 +72,9 @@ import "./pythonMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";
 import "./pythonDebugMock";
+// JavaForge: wraps run_start / run_command_line and the DAP mocks for Java sessions.
+import "./javaMock";
+import "./javaDebugMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

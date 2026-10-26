@@ -352,7 +352,6 @@ mod tests {
             "gopls",
             "rust-analyzer",
             "clangd",
-            "jdtls",
             "csharp-ls",
             "ruby-lsp",
             "kotlin-language-server",

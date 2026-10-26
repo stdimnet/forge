@@ -701,6 +701,23 @@ export function injections_languages(): string;
 export function injections_rules(): string;
 
 /**
+ * `{ folder, files, prefer?, exec }` → `{ project, goals, program } | null` (`java_build_info`).
+ */
+export function java_build_info(request_json: string): string;
+
+/**
+ * `{ configuration, build, coverage?, java?, debugPort? }` → `{ program, args, test? }`: the
+ * command line of a Java configuration as the backend builds it (`run.rs`, `java.rs`);
+ * JUnit / TestNG add their `TestCommand` (`test`).
+ */
+export function java_command_line(request_json: string): string;
+
+/**
+ * `{ path, text }` → `MainMethod[]` (`java_main_methods`).
+ */
+export function java_main_methods(request_json: string): string;
+
+/**
  * Like `json_schema_builtins`.
  */
 export function json_schema_builtins(): string;
@@ -1729,6 +1746,9 @@ export interface InitOutput {
     readonly injections_inject: (a: number, b: number, c: number) => void;
     readonly injections_languages: (a: number) => void;
     readonly injections_rules: (a: number) => void;
+    readonly java_build_info: (a: number, b: number, c: number) => void;
+    readonly java_command_line: (a: number, b: number, c: number) => void;
+    readonly java_main_methods: (a: number, b: number, c: number) => void;
     readonly json_schema_builtins: (a: number) => void;
     readonly json_schema_complete: (a: number, b: number, c: number) => void;
     readonly json_schema_goto: (a: number, b: number, c: number) => void;

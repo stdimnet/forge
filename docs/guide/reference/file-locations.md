@@ -46,7 +46,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
-| `jdtls/…` | workspace data of the Java language server |
+| `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 | `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 

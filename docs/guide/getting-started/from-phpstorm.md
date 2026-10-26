@@ -48,7 +48,7 @@ what is not there yet.
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
 | AI | AI Assistant subscription | bring your own provider (Anthropic, OpenAI-compatible, OpenRouter, Ollama, LM Studio, llama.cpp) or your installed Claude Code / Gemini CLI |
-| Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge); no Marketplace yet |
+| Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge, JavaForge); no Marketplace yet |
 | Remote development | Gateway | built in: SSH connection, Forge uploads a small agent to the host |
 | Theme | Darcula/Light/New UI themes | Forge Ember (dark), Forge Anvil (light), Solarized Dark and Light |
 

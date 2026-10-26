@@ -20,7 +20,7 @@ changes.
 │  Tauri shell (app/src-tauri)   commands/<area>.rs  (thin: parse args, call crates, emit)      │
 │                                                      │                                        │
 │  Rust crates (crates/forge-*)  core, plugin-api, lsp, vcs, keymap, fuzzy, filetypes, ai, …    │
-│  Packs (packs/<pack>/<plugin>) phpforge, webforge, luaforge                                   │
+│  Packs (packs/<pack>/<plugin>) phpforge, webforge, luaforge, javaforge                        │
 │                                                      │                                        │
 │  forge-backend: Backend trait ── LocalBackend (this machine)                                  │
 │                              └─ RemoteBackend ──SSH── forge-remote-agent on a Linux host      │
@@ -45,7 +45,7 @@ output (`forge-process`, `forge-output`), the debugger (`forge-debug`), database
 
 **Packs** (`packs/<pack>/<plugin>`) are language and framework crates: PHPForge (`lang-php`,
 `fw-laravel`, `fw-symfony`, `orm-doctrine`, `dql`), WebForge (`lang-web`, `fw-react`,
-`fw-vue`, `fw-angular`), LuaForge (`lang-lua`). They depend on core crates, never on the app.
+`fw-vue`, `fw-angular`), LuaForge (`lang-lua`), JavaForge (`build`, `lang-java`, `jdk`). They depend on core crates, never on the app.
 
 **The UI** (`app/ui`, SolidJS + TypeScript + CodeMirror 6, icons from `lucide-solid`) renders
 and forwards events. A feature is a folder `src/features/<name>/` whose `index.ts` registers its
