@@ -55,6 +55,7 @@ import "./injections";
 import "./scratches";
 import "./lua";
 import "./python";
+import "./go";
 import "./services";
 import "./remote";
 import "./devenv";
