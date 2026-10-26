@@ -1,0 +1,19 @@
+[package]
+name = "goforge-sdk"
+description = "GoForge: Go SDKs and tools on the user's machine — SDK detection (PATH, /usr/local/go, ~/sdk, Homebrew, Program Files, Forge's downloads), consented SDK downloads from go.dev/dl with SHA-256 checks, gopls / Delve / goimports locations and their pinned `go install` commands, and module proxy lookups cached in the user cache dir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+tokio.workspace = true
+goforge-lang-go.workspace = true
+forge-langservers.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+flate2 = "1"
+tar = { version = "0.4", default-features = false }

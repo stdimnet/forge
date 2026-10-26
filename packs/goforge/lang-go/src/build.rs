@@ -151,7 +151,12 @@ pub fn build_command(cfg: &Configuration, go: &GoContext) -> Result<GoCommand, S
 
 /// `go mod tidy`, `go mod download`, `go get <module>@<version>`, `go work sync`,
 /// `go install <tool>@<version>` in the module folder `dir`.
-pub fn module_command(action: &str, arg: &str, dir: &str, go: &GoContext) -> Result<GoCommand, String> {
+pub fn module_command(
+    action: &str,
+    arg: &str,
+    dir: &str,
+    go: &GoContext,
+) -> Result<GoCommand, String> {
     let args: Vec<String> = match action {
         "tidy" => vec!["mod".into(), "tidy".into()],
         "download" => vec!["mod".into(), "download".into()],
@@ -208,7 +213,14 @@ mod tests {
         assert_eq!(c.program, "go");
         assert_eq!(
             c.args,
-            ["run", "-tags=prod", "-race", "./cmd/ledger", "--port", "8080"]
+            [
+                "run",
+                "-tags=prod",
+                "-race",
+                "./cmd/ledger",
+                "--port",
+                "8080"
+            ]
         );
         assert_eq!(c.cwd, "");
         let built = build_command(
@@ -220,14 +232,25 @@ mod tests {
         .unwrap();
         assert_eq!(
             built.args,
-            ["build", "-tags=prod", "-o", "bin/ledger", "-race", "./cmd/ledger"]
+            [
+                "build",
+                "-tags=prod",
+                "-o",
+                "bin/ledger",
+                "-race",
+                "./cmd/ledger"
+            ]
         );
         let t = build_target(
-            &Configuration::new("api", GO_BUILD).with_option("package", "github.com/acme/api/cmd/server"),
+            &Configuration::new("api", GO_BUILD)
+                .with_option("package", "github.com/acme/api/cmd/server"),
             &go(),
         )
         .unwrap();
-        assert_eq!((t.cwd.as_str(), t.package_dir.as_str()), ("services/api", "services/api/cmd/server"));
+        assert_eq!(
+            (t.cwd.as_str(), t.package_dir.as_str()),
+            ("services/api", "services/api/cmd/server")
+        );
         assert!(build_command(&Configuration::new("x", GO_BUILD), &go()).is_err());
     }
 
@@ -248,8 +271,12 @@ mod tests {
     #[test]
     fn module_commands() {
         let g = go();
-        assert_eq!(module_command("tidy", "", "", &g).unwrap().args, ["mod", "tidy"]);
-        let get = module_command("get", "github.com/google/uuid@v1.6.0", "services/api", &g).unwrap();
+        assert_eq!(
+            module_command("tidy", "", "", &g).unwrap().args,
+            ["mod", "tidy"]
+        );
+        let get =
+            module_command("get", "github.com/google/uuid@v1.6.0", "services/api", &g).unwrap();
         assert_eq!(get.args, ["get", "github.com/google/uuid@v1.6.0"]);
         assert_eq!(get.cwd, "services/api");
         assert!(module_command("get", "-u all", "", &g).is_err());

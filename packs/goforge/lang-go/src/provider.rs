@@ -118,7 +118,10 @@ impl GoTestProvider {
         let mut targets = Vec::new();
         if !found.tests.is_empty() {
             // ▶ on the package clause: every test of the package.
-            if let Some(line) = text.lines().position(|l| l.trim_start().starts_with("package ")) {
+            if let Some(line) = text
+                .lines()
+                .position(|l| l.trim_start().starts_with("package "))
+            {
                 let mut c = base(format!("go test {pkg}"));
                 c.options.insert("scope".into(), "directory".into());
                 c.options.insert("recursive".into(), "false".into());
@@ -375,7 +378,8 @@ impl GoTestProvider {
         let mut c = cfg.clone();
         let quoted: Vec<String> = names.iter().map(|n| quote_meta(n)).collect();
         c.options.insert("scope".into(), "pattern".into());
-        c.options.insert("pattern".into(), format!("^({})$", quoted.join("|")));
+        c.options
+            .insert("pattern".into(), format!("^({})$", quoted.join("|")));
         c.options.insert("kind".into(), "test".into());
         c.options.remove("test");
         c.options.remove("tests");
@@ -411,17 +415,18 @@ pub fn debug_test(cfg: &Configuration, go: &GoContext) -> Result<DebugTest, Stri
     let mut args = Vec::new();
     let filter = match scope.as_str() {
         "test" => Some(run_pattern(&opt("test"))),
-        "file" => Some(opt("tests"))
-            .filter(|t| !t.is_empty())
-            .map(|t| format!("^({})$", t.split('|').map(quote_meta).collect::<Vec<_>>().join("|"))),
+        "file" => Some(opt("tests")).filter(|t| !t.is_empty()).map(|t| {
+            format!(
+                "^({})$",
+                t.split('|').map(quote_meta).collect::<Vec<_>>().join("|")
+            )
+        }),
         "pattern" => Some(opt("pattern")),
         "directory" if opt("recursive") == "false" => None,
-        _ => {
-            return Err(
-                "Debugging runs the tests of one package: choose a file, a test or a package folder"
-                    .into(),
-            )
-        }
+        _ => return Err(
+            "Debugging runs the tests of one package: choose a file, a test or a package folder"
+                .into(),
+        ),
     };
     match (opt("kind").as_str(), filter) {
         ("bench", f) => {
@@ -532,7 +537,11 @@ mod tests {
                 (5, TargetKind::Test, "internal/money::TestRound/half_up"),
                 (8, TargetKind::Test, "internal/money::BenchmarkString"),
                 (10, TargetKind::Test, "internal/money::FuzzParse"),
-                (12, TargetKind::Example, "internal/money::ExampleAmount_String"),
+                (
+                    12,
+                    TargetKind::Example,
+                    "internal/money::ExampleAmount_String"
+                ),
             ]
         );
         assert_eq!(f.targets[1].configuration.name, "TestRound in money");
@@ -541,7 +550,9 @@ mod tests {
             f.file.unwrap().option("tests"),
             "TestRound|ExampleAmount_String"
         );
-        assert!(GoTestProvider::standalone().discover("a_test.go", "package a").is_none());
+        assert!(GoTestProvider::standalone()
+            .discover("a_test.go", "package a")
+            .is_none());
         assert!(!GoTestProvider::standalone().accepts("a.go"));
     }
 
@@ -551,7 +562,9 @@ mod tests {
             .with_option("scope", "test")
             .with_option("file", "internal/money/money_test.go")
             .with_option("test", "TestRound/half_up");
-        let built = GoTestProvider::standalone().build(&test, &ctx(false)).unwrap();
+        let built = GoTestProvider::standalone()
+            .build(&test, &ctx(false))
+            .unwrap();
         assert_eq!(built.program, "/sdk/go1.24/bin/go");
         assert_eq!(
             built.args,
@@ -564,11 +577,19 @@ mod tests {
             ]
         );
         assert_eq!(built.report, TestReport::GoTestJson);
-        assert!(built.location_rules.iter().any(|r| r.replacement == "tools/"));
+        assert!(built
+            .location_rules
+            .iter()
+            .any(|r| r.replacement == "tools/"));
 
         let all = Configuration::new("all", GO_TEST);
-        assert_eq!(args(&all, true)[3..], ["-coverprofile=/tmp/r/coverage/coverage", "./..."]);
-        let cov = GoTestProvider::standalone().build(&all, &ctx(true)).unwrap();
+        assert_eq!(
+            args(&all, true)[3..],
+            ["-coverprofile=/tmp/r/coverage/coverage", "./..."]
+        );
+        let cov = GoTestProvider::standalone()
+            .build(&all, &ctx(true))
+            .unwrap();
         assert_eq!(cov.coverage.unwrap().format, CoverageFormat::GoCover);
 
         let bench = test
@@ -578,7 +599,13 @@ mod tests {
             .with_option("benchtime", "2s");
         assert_eq!(
             args(&bench, false)[3..],
-            ["-run=^$", "-bench=^BenchmarkString$", "-benchmem", "-benchtime=2s", "./internal/money"]
+            [
+                "-run=^$",
+                "-bench=^BenchmarkString$",
+                "-benchmem",
+                "-benchtime=2s",
+                "./internal/money"
+            ]
         );
         let fuzz = test
             .clone()
@@ -587,16 +614,25 @@ mod tests {
             .with_option("fuzztime", "30s");
         assert_eq!(
             args(&fuzz, false)[3..],
-            ["-run=^$", "-fuzz=^FuzzParse$", "-fuzztime=30s", "./internal/money"]
+            [
+                "-run=^$",
+                "-fuzz=^FuzzParse$",
+                "-fuzztime=30s",
+                "./internal/money"
+            ]
         );
         let fuzz_all = all.clone().with_option("kind", "fuzz");
-        assert!(GoTestProvider::standalone().build(&fuzz_all, &ctx(false)).is_err());
+        assert!(GoTestProvider::standalone()
+            .build(&fuzz_all, &ctx(false))
+            .is_err());
 
         let file = Configuration::new("f", GO_TEST)
             .with_option("scope", "file")
             .with_option("file", "tools/gen/gen_test.go")
             .with_option("tests", "TestA|TestB");
-        let built = GoTestProvider::standalone().build(&file, &ctx(false)).unwrap();
+        let built = GoTestProvider::standalone()
+            .build(&file, &ctx(false))
+            .unwrap();
         assert_eq!(built.args[..2], ["-C", "tools"]);
         assert_eq!(built.args[5..], ["-run=^(TestA|TestB)$", "./gen"]);
         assert_eq!(built.default_file.as_deref(), Some("tools/gen/gen_test.go"));
@@ -607,7 +643,9 @@ mod tests {
         assert_eq!(args(&dir, false).last().unwrap(), "./internal/...");
 
         let mut prof = test.clone().with_option("profile", "cpu");
-        assert!(GoTestProvider::standalone().build(&prof, &ctx(false)).is_err());
+        assert!(GoTestProvider::standalone()
+            .build(&prof, &ctx(false))
+            .is_err());
         prof = prof
             .with_option("profileFile", "/cache/cpu.pprof")
             .with_option("flags", "-v -race");
@@ -640,8 +678,14 @@ mod tests {
         assert_eq!(d.package_dir, "internal/money");
         assert_eq!(d.args, ["-test.run=^TestRound$/^half_up$", "-test.v"]);
         assert_eq!(d.build_flags, ["-tags=integration"]);
-        let bench = cfg.clone().with_option("kind", "bench").with_option("test", "BenchmarkString");
-        assert_eq!(debug_test(&bench, &go).unwrap().args[1], "-test.bench=^BenchmarkString$");
+        let bench = cfg
+            .clone()
+            .with_option("kind", "bench")
+            .with_option("test", "BenchmarkString");
+        assert_eq!(
+            debug_test(&bench, &go).unwrap().args[1],
+            "-test.bench=^BenchmarkString$"
+        );
         assert!(debug_test(&Configuration::new("all", GO_TEST), &go).is_err());
     }
 

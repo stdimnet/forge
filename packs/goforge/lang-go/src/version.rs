@@ -29,7 +29,9 @@ fn parse(v: &str) -> Option<Parsed<'_>> {
     }
     let mut nums = [0u64; 3];
     for (i, p) in parts.iter().enumerate() {
-        if p.is_empty() || !p.chars().all(|c| c.is_ascii_digit()) || (p.len() > 1 && p.starts_with('0'))
+        if p.is_empty()
+            || !p.chars().all(|c| c.is_ascii_digit())
+            || (p.len() > 1 && p.starts_with('0'))
         {
             return None;
         }
@@ -198,7 +200,10 @@ mod tests {
 
     #[test]
     fn escapes_module_paths() {
-        assert_eq!(escape_path("github.com/Azure/go-SDK"), "github.com/!azure/go-!s!d!k");
+        assert_eq!(
+            escape_path("github.com/Azure/go-SDK"),
+            "github.com/!azure/go-!s!d!k"
+        );
         assert_eq!(
             unescape_path("github.com/!azure/go-!s!d!k").as_deref(),
             Some("github.com/Azure/go-SDK")

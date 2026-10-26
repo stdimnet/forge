@@ -243,7 +243,9 @@ fn decode_message(data: &[u8]) -> Result<Profile, String> {
                     function: name,
                     file: f.map(|f| s(f.filename)).unwrap_or_default(),
                     line: u32::try_from(*line).unwrap_or(0),
-                    start_line: f.and_then(|f| u32::try_from(f.start_line).ok()).unwrap_or(0),
+                    start_line: f
+                        .and_then(|f| u32::try_from(f.start_line).ok())
+                        .unwrap_or(0),
                 },
                 &mut frames,
             ));

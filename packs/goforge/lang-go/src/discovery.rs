@@ -36,10 +36,8 @@ impl GoTestKind {
             (GoTestKind::Benchmark, r)
         } else if let Some(r) = name.strip_prefix("Fuzz") {
             (GoTestKind::Fuzz, r)
-        } else if let Some(r) = name.strip_prefix("Example") {
-            (GoTestKind::Example, r)
         } else {
-            return None;
+            (GoTestKind::Example, name.strip_prefix("Example")?)
         };
         // `Testing` is not a test: the rest must not start with a lower-case letter.
         if rest.chars().next().is_some_and(|c| c.is_lowercase()) {
@@ -107,18 +105,27 @@ fn testing_param<'a>(t: &[Token<'a>], i: usize, ty: &str) -> Option<&'a str> {
     .then_some(name)
 }
 
-/// Subtests started in `t[from..to]` with `param.Run("name", func(x *testing.T) {…})`.
-fn subtests(
-    t: &[Token<'_>],
-    from: usize,
-    to: usize,
-    param: &str,
-    ty: &str,
-    parent: &str,
+/// Where subtests are looked for: the test function's or closure's parameter.
+struct Scope<'s> {
+    /// `t` of `t *testing.T`.
+    param: &'s str,
+    /// `T` or `B`.
+    ty: &'s str,
+    /// Full name of the enclosing test.
+    parent: &'s str,
     kind: GoTestKind,
     depth: u32,
-    out: &mut Vec<GoTest>,
-) {
+}
+
+/// Subtests started in `t[from..to]` with `param.Run("name", func(x *testing.T) {…})`.
+fn subtests(t: &[Token<'_>], from: usize, to: usize, scope: &Scope<'_>, out: &mut Vec<GoTest>) {
+    let Scope {
+        param,
+        ty,
+        parent,
+        kind,
+        depth,
+    } = *scope;
     let mut i = from;
     while i < to {
         let is_run = t[i].is_ident(param)
@@ -155,7 +162,14 @@ fn subtests(
                 let open = i + 14;
                 if t.get(open).is_some_and(|x| x.is_punct('{')) {
                     let close = matching(t, open).min(call_end);
-                    subtests(t, open + 1, close, inner, ty, &full, kind, depth + 1, out);
+                    let inner_scope = Scope {
+                        param: inner,
+                        ty,
+                        parent: &full,
+                        kind,
+                        depth: depth + 1,
+                    };
+                    subtests(t, open + 1, close, &inner_scope, out);
                 }
             }
         }
@@ -182,10 +196,12 @@ pub fn discover(text: &str) -> GoTestFile {
             }
         }
         // `func Name(` at the top level (methods have a receiver: `func (`).
-        let top_func = depth == 0
-            && tok.is_ident("func")
-            && t.get(i + 2).is_some_and(|x| x.is_punct('('));
-        let Some(name) = top_func.then(|| t.get(i + 1).and_then(Token::ident)).flatten() else {
+        let top_func =
+            depth == 0 && tok.is_ident("func") && t.get(i + 2).is_some_and(|x| x.is_punct('('));
+        let Some(name) = top_func
+            .then(|| t.get(i + 1).and_then(Token::ident))
+            .flatten()
+        else {
             i += 1;
             continue;
         };
@@ -224,7 +240,14 @@ pub fn discover(text: &str) -> GoTestFile {
         let close = matching(&t, open);
         if let Some((p, ty)) = param {
             if kind != GoTestKind::Fuzz {
-                subtests(&t, open + 1, close, p, ty, name, kind, 1, &mut file.tests);
+                let scope = Scope {
+                    param: p,
+                    ty,
+                    parent: name,
+                    kind,
+                    depth: 1,
+                };
+                subtests(&t, open + 1, close, &scope, &mut file.tests);
             }
         }
         i = close + 1;

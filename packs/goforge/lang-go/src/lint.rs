@@ -234,7 +234,15 @@ mod tests {
         let p = parse_golangci(LINT, "/work/ledger", "").unwrap();
         let rows: Vec<_> = p
             .iter()
-            .map(|p| (p.path.as_str(), p.line, p.column, p.code.as_str(), p.severity.as_str()))
+            .map(|p| {
+                (
+                    p.path.as_str(),
+                    p.line,
+                    p.column,
+                    p.code.as_str(),
+                    p.severity.as_str(),
+                )
+            })
             .collect();
         assert_eq!(
             rows,

@@ -156,7 +156,22 @@ mod tests {
         write::uint(&mut b, 1, 300);
         write::bytes(&mut b, 2, b"hi");
         write::packed(&mut b, 3, &[1, 128, 2]);
-        b.extend_from_slice(&[(4 << 3) | 1, 1, 0, 0, 0, 0, 0, 0, 0, (5 << 3) | 5, 2, 0, 0, 0]);
+        b.extend_from_slice(&[
+            (4 << 3) | 1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            (5 << 3) | 5,
+            2,
+            0,
+            0,
+            0,
+        ]);
         let mut r = Reader::new(&b);
         assert_eq!(r.next_field().unwrap(), Some((1, Value::Varint(300))));
         assert_eq!(r.next_field().unwrap(), Some((2, Value::Bytes(b"hi"))));

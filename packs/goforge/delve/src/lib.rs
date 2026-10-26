@@ -51,7 +51,8 @@ impl DelveAdapter {
         } else {
             self.config.dlv.trim().to_string()
         };
-        let mut cmd = AdapterCommand::new(dlv, vec!["dap".into(), "--listen=127.0.0.1:${port}".into()]);
+        let mut cmd =
+            AdapterCommand::new(dlv, vec!["dap".into(), "--listen=127.0.0.1:${port}".into()]);
         cmd.env = self.config.env.clone();
         cmd
     }
@@ -67,11 +68,9 @@ impl DelveAdapter {
                     .and_then(Value::as_str)
                     .unwrap_or("debug")
                     .to_string();
-                let program = r
-                    .program
-                    .clone()
-                    .filter(|p| !p.is_empty())
-                    .ok_or_else(|| DapError::Other("Nothing to debug: no Go package or program".into()))?;
+                let program = r.program.clone().filter(|p| !p.is_empty()).ok_or_else(|| {
+                    DapError::Other("Nothing to debug: no Go package or program".into())
+                })?;
                 args.insert("program".into(), json!(program));
                 let mut list = r.args.clone();
                 if let Some(line) = r.arguments.as_deref() {
@@ -176,7 +175,13 @@ impl DebugAdapterDescriptor for DelveAdapter {
 pub fn debug_binary(name: &str) -> String {
     let safe: String = name
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .take(40)
         .collect();
     let exe = if cfg!(windows) { ".exe" } else { "" };
@@ -217,9 +222,10 @@ pub fn request(
             let target = build_target(cfg, go)?;
             let program = match cfg.option("kind").trim() {
                 // One file: Delve builds it like `go run file.go`.
-                "file" if target.targets.len() == 1 => {
-                    absolute(root, &goforge_lang_go::env::join(&target.cwd, &target.targets[0]))
-                }
+                "file" if target.targets.len() == 1 => absolute(
+                    root,
+                    &goforge_lang_go::env::join(&target.cwd, &target.targets[0]),
+                ),
                 _ => absolute(root, &target.package_dir),
             };
             r.program = Some(program);
@@ -270,7 +276,11 @@ pub fn request(
                 });
             }
         }
-        other => return Err(format!("'{other}' configurations are not debugged with Delve")),
+        other => {
+            return Err(format!(
+                "'{other}' configurations are not debugged with Delve"
+            ))
+        }
     }
     r.env = environment;
     Ok(r)
@@ -351,7 +361,10 @@ mod tests {
         assert_eq!(a["mode"], "test");
         assert_eq!(a["program"], "/w/ledger/internal/money");
         assert_eq!(a["cwd"], "/w/ledger/internal/money");
-        assert_eq!(a["args"], json!(["-test.run=^TestRound$/^negative$", "-test.v"]));
+        assert_eq!(
+            a["args"],
+            json!(["-test.run=^TestRound$/^negative$", "-test.v"])
+        );
         assert_eq!(a["buildFlags"], "-tags=dev");
         let file = Configuration::new("main.go", GO_BUILD)
             .with_option("kind", "file")
@@ -383,7 +396,13 @@ mod tests {
             resolved.arguments["substitutePath"],
             json!([{ "from": "/w/ledger", "to": "/app" }])
         );
-        assert!(request(&Configuration::new("x", GO_REMOTE), &BTreeMap::new(), &go(), "/w").is_err());
+        assert!(request(
+            &Configuration::new("x", GO_REMOTE),
+            &BTreeMap::new(),
+            &go(),
+            "/w"
+        )
+        .is_err());
 
         let mut pid = LaunchRequest::launch(ADAPTER, "");
         pid.program = None;
@@ -398,7 +417,10 @@ mod tests {
             core: "/tmp/core.1".into(),
         };
         let a = adapter().resolve(&core).unwrap().arguments;
-        assert_eq!((a["mode"].as_str(), a["coreFilePath"].as_str()), (Some("core"), Some("/tmp/core.1")));
+        assert_eq!(
+            (a["mode"].as_str(), a["coreFilePath"].as_str()),
+            (Some("core"), Some("/tmp/core.1"))
+        );
 
         let mut port = pid.clone();
         port.mode = LaunchMode::AttachPort {

@@ -19,12 +19,20 @@ const MAIN: &str = "package main\n\nimport \"fmt\"\n\nfunc total(items []int) in
 #[ignore]
 async fn delve_stops_at_a_breakpoint() {
     let dlv = std::env::var("FORGE_DLV").unwrap_or_else(|_| "dlv".into());
-    if std::process::Command::new(&dlv).arg("version").output().is_err() {
+    if std::process::Command::new(&dlv)
+        .arg("version")
+        .output()
+        .is_err()
+    {
         eprintln!("no dlv: skipped");
         return;
     }
     let root = tempfile::tempdir().unwrap();
-    std::fs::write(root.path().join("go.mod"), "module example.com/cart\n\ngo 1.21\n").unwrap();
+    std::fs::write(
+        root.path().join("go.mod"),
+        "module example.com/cart\n\ngo 1.21\n",
+    )
+    .unwrap();
     std::fs::write(root.path().join("main.go"), MAIN).unwrap();
 
     let (tx, mut events) = mpsc::unbounded_channel();
@@ -63,13 +71,7 @@ async fn delve_stops_at_a_breakpoint() {
         ..GoContext::default()
     };
     let cfg = Configuration::new("cart", GO_BUILD).with_option("package", ".");
-    let r = request(
-        &cfg,
-        &BTreeMap::new(),
-        &go,
-        &root.path().to_string_lossy(),
-    )
-    .unwrap();
+    let r = request(&cfg, &BTreeMap::new(), &go, &root.path().to_string_lossy()).unwrap();
     let info = match manager.start(r).await {
         Ok(i) => i,
         Err(e) => {

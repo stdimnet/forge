@@ -99,7 +99,11 @@ impl ProfileBuilder {
         for (locs, values) in &self.samples {
             let mut m = Vec::new();
             write::packed(&mut m, 1, locs);
-            write::packed(&mut m, 2, &values.iter().map(|v| *v as u64).collect::<Vec<_>>());
+            write::packed(
+                &mut m,
+                2,
+                &values.iter().map(|v| *v as u64).collect::<Vec<_>>(),
+            );
             write::bytes(&mut out, 2, &m);
         }
         for (i, (func, line)) in self.locations.iter().enumerate() {
@@ -151,11 +155,19 @@ pub fn demo_profile() -> Vec<u8> {
     const MAL: &str = "/usr/local/go/src/runtime/malloc.go";
     const TST: &str = "/usr/local/go/src/testing/benchmark.go";
     let root: [Site<'_>; 3] = [
-        ("runtime.goexit", "/usr/local/go/src/runtime/asm_amd64.s", 1700),
+        (
+            "runtime.goexit",
+            "/usr/local/go/src/runtime/asm_amd64.s",
+            1700,
+        ),
         ("testing.(*B).launch", TST, 300),
         ("testing.(*B).runN", TST, 190),
     ];
-    let bench = ("github.com/acme/ledger/internal/report.BenchmarkReport", "internal/report/report_test.go", 41);
+    let bench = (
+        "github.com/acme/ledger/internal/report.BenchmarkReport",
+        "internal/report/report_test.go",
+        41,
+    );
     let render = ("github.com/acme/ledger/internal/report.Render", R, 28);
     let line = ("github.com/acme/ledger/internal/report.formatLine", R, 55);
     let string = ("github.com/acme/ledger/internal/money.Amount.String", M, 33);
@@ -166,7 +178,11 @@ pub fn demo_profile() -> Vec<u8> {
     let doprintf = ("fmt.(*pp).doPrintf", FMT, 1021);
     let itoa = ("strconv.FormatInt", STR, 26);
     let alloc = ("runtime.mallocgc", MAL, 1009);
-    let gc = ("runtime.gcBgMarkWorker", "/usr/local/go/src/runtime/mgc.go", 1363);
+    let gc = (
+        "runtime.gcBgMarkWorker",
+        "/usr/local/go/src/runtime/mgc.go",
+        1363,
+    );
     let sched = ("runtime.schedule", RT, 3980);
     let mut b = ProfileBuilder::new(&[("samples", "count"), ("cpu", "nanoseconds")])
         .period("cpu", "nanoseconds", 10_000_000)

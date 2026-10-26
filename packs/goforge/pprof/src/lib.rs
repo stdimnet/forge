@@ -58,7 +58,15 @@ mod tests {
     fn reads_a_memory_profile() {
         let p = decode(MEM).unwrap();
         let types: Vec<_> = p.sample_types.iter().map(|t| t.kind.as_str()).collect();
-        assert_eq!(types, ["alloc_objects", "alloc_space", "inuse_objects", "inuse_space"]);
+        assert_eq!(
+            types,
+            [
+                "alloc_objects",
+                "alloc_space",
+                "inuse_objects",
+                "inuse_space"
+            ]
+        );
         assert_eq!(p.sample_types[1].unit, "bytes");
         let v = view(&p, Some(1), ViewOptions::default());
         assert_eq!(v.sample_index, 1);
@@ -82,10 +90,20 @@ mod tests {
             .unwrap();
         assert_eq!(render.cum, 166 * 10_000_000);
         assert_eq!(render.flat, 4 * 10_000_000);
-        assert_eq!((render.file.as_str(), render.line), ("internal/report/report.go", 28));
+        assert_eq!(
+            (render.file.as_str(), render.line),
+            ("internal/report/report.go", 28)
+        );
         // root → goexit (166 + gc's and the scheduler's own stacks are separate roots).
         let names: Vec<_> = v.tree.children.iter().map(|c| c.name.as_str()).collect();
-        assert_eq!(names, ["runtime.goexit", "runtime.gcBgMarkWorker", "runtime.schedule"]);
+        assert_eq!(
+            names,
+            [
+                "runtime.goexit",
+                "runtime.gcBgMarkWorker",
+                "runtime.schedule"
+            ]
+        );
         let goexit = &v.tree.children[0];
         assert_eq!(goexit.total, 166 * 10_000_000);
         // Not gzip compressed works as well; garbage does not.

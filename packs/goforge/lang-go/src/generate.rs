@@ -87,7 +87,10 @@ mod tests {
                 "./store/kind.go"
             ]
         );
-        assert_eq!(generate_args("k.go", SRC, None).unwrap(), ["generate", "-x", "k.go"]);
+        assert_eq!(
+            generate_args("k.go", SRC, None).unwrap(),
+            ["generate", "-x", "k.go"]
+        );
         assert!(generate_args("k.go", SRC, Some(0)).is_err());
     }
 }

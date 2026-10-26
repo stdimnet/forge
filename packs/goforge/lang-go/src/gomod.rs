@@ -42,7 +42,11 @@ impl Replace {
     /// Whether the replacement is a local directory (`./fork`, `../lib`, `/abs`).
     pub fn is_local(&self) -> bool {
         let p = &self.new.text;
-        p.starts_with("./") || p.starts_with("../") || p.starts_with('/') || p == "." || p == ".."
+        p.starts_with("./")
+            || p.starts_with("../")
+            || p.starts_with('/')
+            || p == "."
+            || p == ".."
             || p.get(1..3) == Some(":\\")
     }
 }
@@ -256,22 +260,29 @@ fn line_problem(l: &Line, message: &str) -> ModProblem {
 /// `path version` (require, exclude).
 fn module_version(l: &Line, problems: &mut Vec<ModProblem>, verb: &str) -> Option<Require> {
     let [path, version] = &l.words[..] else {
-        problems.push(line_problem(l, &format!("usage: {verb} module/path v1.2.3")));
+        problems.push(line_problem(
+            l,
+            &format!("usage: {verb} module/path v1.2.3"),
+        ));
         return None;
     };
     if !is_valid_version(&version.text) {
         problems.push(problem(
             version,
-            &format!("invalid version '{}': expected a semantic version like v1.2.3", version.text),
+            &format!(
+                "invalid version '{}': expected a semantic version like v1.2.3",
+                version.text
+            ),
             "error",
         ));
     }
     Some(Require {
         path: path.clone(),
         version: Some(version.clone()),
-        indirect: l.comment.as_deref().is_some_and(|c| {
-            c == "indirect" || c.starts_with("indirect;")
-        }),
+        indirect: l
+            .comment
+            .as_deref()
+            .is_some_and(|c| c == "indirect" || c.starts_with("indirect;")),
     })
 }
 
@@ -279,12 +290,18 @@ fn module_version(l: &Line, problems: &mut Vec<ModProblem>, verb: &str) -> Optio
 fn replace(l: &Line, problems: &mut Vec<ModProblem>) -> Option<Replace> {
     let arrow = l.words.iter().position(|w| w.text == "=>");
     let Some(arrow) = arrow else {
-        problems.push(line_problem(l, "usage: replace module/path [v1.2.3] => other/path [v1.4.5]"));
+        problems.push(line_problem(
+            l,
+            "usage: replace module/path [v1.2.3] => other/path [v1.4.5]",
+        ));
         return None;
     };
     let (left, right) = (&l.words[..arrow], &l.words[arrow + 1..]);
     if left.is_empty() || left.len() > 2 || right.is_empty() || right.len() > 2 {
-        problems.push(line_problem(l, "usage: replace module/path [v1.2.3] => other/path [v1.4.5]"));
+        problems.push(line_problem(
+            l,
+            "usage: replace module/path [v1.2.3] => other/path [v1.4.5]",
+        ));
         return None;
     }
     let r = Replace {
@@ -369,8 +386,7 @@ pub fn parse_go_mod(text: &str) -> GoMod {
             "require" => {
                 for l in &d.entries {
                     if let Some(r) = module_version(l, &mut problems, "require") {
-                        if let Some(prev) = m.requires.iter().find(|p| p.path.text == r.path.text)
-                        {
+                        if let Some(prev) = m.requires.iter().find(|p| p.path.text == r.path.text) {
                             if prev.version.as_ref().map(|v| &v.text)
                                 == r.version.as_ref().map(|v| &v.text)
                             {
@@ -484,7 +500,15 @@ pub enum ModCompletion {
 }
 
 pub const GO_MOD_DIRECTIVES: &[&str] = &[
-    "module", "go", "toolchain", "godebug", "require", "replace", "exclude", "retract", "tool",
+    "module",
+    "go",
+    "toolchain",
+    "godebug",
+    "require",
+    "replace",
+    "exclude",
+    "retract",
+    "tool",
     "ignore",
 ];
 pub const GO_WORK_DIRECTIVES: &[&str] = &["go", "toolchain", "godebug", "use", "replace"];
@@ -527,11 +551,7 @@ pub fn completion_context(text: &str, offset: u32) -> Option<ModCompletion> {
         let l = split(n as u32, &before);
         let ends_with_space = before.ends_with(char::is_whitespace) || before.is_empty();
         let mut words: Vec<Word> = l.words;
-        let current = if ends_with_space {
-            None
-        } else {
-            words.pop()
-        };
+        let current = if ends_with_space { None } else { words.pop() };
         let prefix = current.as_ref().map(|w| w.text.clone()).unwrap_or_default();
         let from = current.as_ref().map_or(col, |w| w.start);
         // Inside a block, the block's verb leads the line.
@@ -545,7 +565,9 @@ pub fn completion_context(text: &str, offset: u32) -> Option<ModCompletion> {
         let verb = verb.unwrap_or_default();
         let args: Vec<&str> = words.iter().map(|w| w.text.as_str()).collect();
         return match verb.as_str() {
-            "go" | "toolchain" if args.is_empty() => Some(ModCompletion::GoVersion { prefix, from }),
+            "go" | "toolchain" if args.is_empty() => {
+                Some(ModCompletion::GoVersion { prefix, from })
+            }
             "require" | "exclude" | "tool" if args.is_empty() => {
                 Some(ModCompletion::ModulePath { prefix, from })
             }
@@ -590,7 +612,13 @@ mod tests {
         let reqs: Vec<_> = m
             .requires
             .iter()
-            .map(|r| (r.path.text.as_str(), r.version.as_ref().unwrap().text.as_str(), r.indirect))
+            .map(|r| {
+                (
+                    r.path.text.as_str(),
+                    r.version.as_ref().unwrap().text.as_str(),
+                    r.indirect,
+                )
+            })
             .collect();
         assert_eq!(
             reqs,
@@ -611,14 +639,24 @@ mod tests {
 
     #[test]
     fn reports_problems() {
-        let m = parse_go_mod("module a\ngo 1.x\nrequire b v1\nrequire c\nfrob x\nrequire (\n d v1.0.0\n");
-        let msgs: Vec<_> = m.problems.iter().map(|p| (p.line, p.message.as_str())).collect();
+        let m = parse_go_mod(
+            "module a\ngo 1.x\nrequire b v1\nrequire c\nfrob x\nrequire (\n d v1.0.0\n",
+        );
+        let msgs: Vec<_> = m
+            .problems
+            .iter()
+            .map(|p| (p.line, p.message.as_str()))
+            .collect();
         assert!(msgs.contains(&(1, "invalid go version '1.x': must match format 1.23.0")));
-        assert!(msgs.iter().any(|(l, m)| *l == 2 && m.starts_with("invalid version 'v1'")));
+        assert!(msgs
+            .iter()
+            .any(|(l, m)| *l == 2 && m.starts_with("invalid version 'v1'")));
         assert!(msgs.contains(&(3, "usage: require module/path v1.2.3")));
         assert!(msgs.contains(&(4, "unknown directive: frob")));
         assert!(msgs.contains(&(5, "missing closing parenthesis")));
-        assert!(parse_go_mod("go 1.22\n").problems[0].message.contains("no module"));
+        assert!(parse_go_mod("go 1.22\n").problems[0]
+            .message
+            .contains("no module"));
         assert!(is_go_version("1.22") && is_go_version("1.23rc1") && !is_go_version("2.0"));
     }
 

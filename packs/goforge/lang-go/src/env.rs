@@ -86,7 +86,11 @@ impl GoContext {
         if root.is_empty() {
             exe.to_string()
         } else {
-            let sep = if self.windows && root.contains('\\') { "\\" } else { "/" };
+            let sep = if self.windows && root.contains('\\') {
+                "\\"
+            } else {
+                "/"
+            };
             format!("{root}{sep}bin{sep}{exe}")
         }
     }
@@ -271,9 +275,15 @@ mod tests {
         let c = ctx();
         assert_eq!(c.module_of("tools/gen").unwrap().dir, "tools");
         assert_eq!(c.module_of("toolsx").unwrap().dir, "");
-        assert_eq!(c.package_arg("internal/money", ""), (None, "./internal/money".into()));
+        assert_eq!(
+            c.package_arg("internal/money", ""),
+            (None, "./internal/money".into())
+        );
         assert_eq!(c.package_arg("", ""), (None, ".".into()));
-        assert_eq!(c.package_arg("tools/gen", ""), (Some("tools".into()), "./gen".into()));
+        assert_eq!(
+            c.package_arg("tools/gen", ""),
+            (Some("tools".into()), "./gen".into())
+        );
         assert_eq!(c.package_arg("tools", "tools"), (None, ".".into()));
         let rules = c.location_rules();
         assert_eq!(rules[0].pattern, "^github\\.com/acme/ledger/tools(?:/|$)");
