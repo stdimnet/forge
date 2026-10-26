@@ -967,6 +967,11 @@ export function python_completion_context(request_json: string): string;
 export function python_dependencies(request_json: string): string;
 
 /**
+ * `{ request, files }` -> the steps that create a new environment.
+ */
+export function python_environment_plan(request_json: string): string;
+
+/**
  * `{ path, content, installed?, imports }` -> `Problem[]`.
  */
 export function python_inspect(request_json: string): string;
@@ -975,6 +980,11 @@ export function python_inspect(request_json: string): string;
  * An interpreter -> its status bar label.
  */
 export function python_interpreter_label(request_json: string): string;
+
+/**
+ * `{ kind, uvLock, action, packages, python }` -> `{ manager, program, args }`.
+ */
+export function python_packages_command(request_json: string): string;
 
 /**
  * `{ content }` -> run markers.
@@ -1695,8 +1705,10 @@ export interface InitOutput {
     readonly python_add_requirement: (a: number, b: number, c: number) => void;
     readonly python_completion_context: (a: number, b: number, c: number) => void;
     readonly python_dependencies: (a: number, b: number, c: number) => void;
+    readonly python_environment_plan: (a: number, b: number, c: number) => void;
     readonly python_inspect: (a: number, b: number, c: number) => void;
     readonly python_interpreter_label: (a: number, b: number, c: number) => void;
+    readonly python_packages_command: (a: number, b: number, c: number) => void;
     readonly python_run_markers: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;

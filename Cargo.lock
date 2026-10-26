@@ -2643,6 +2643,7 @@ dependencies = [
  "phpforge-test-frameworks",
  "pyforge-interpreters",
  "pyforge-lang-python",
+ "pyforge-packages",
  "serde",
  "serde_json",
  "wasm-bindgen",

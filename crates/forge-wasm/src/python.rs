@@ -119,6 +119,50 @@ pub fn python_run_markers(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlanRequest {
+    request: pyforge_interpreters::create::NewEnvironment,
+    #[serde(default)]
+    files: pyforge_interpreters::create::ProjectFiles,
+}
+
+/// `{ request, files }` -> the steps that create a new environment.
+#[wasm_bindgen]
+pub fn python_environment_plan(request_json: &str) -> String {
+    let req: PlanRequest = match serde_json::from_str(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    match pyforge_interpreters::create::plan(&req.request, &req.files, false) {
+        Ok(steps) => to_json(&steps),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CommandRequest {
+    kind: pyforge_interpreters::EnvKind,
+    #[serde(default)]
+    uv_lock: bool,
+    action: pyforge_packages::Action,
+    packages: Vec<String>,
+    python: String,
+}
+
+/// `{ kind, uvLock, action, packages, python }` -> `{ manager, program, args }`.
+#[wasm_bindgen]
+pub fn python_packages_command(request_json: &str) -> String {
+    let req: CommandRequest = match serde_json::from_str(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    let manager = pyforge_packages::manager::choose(req.kind, req.uv_lock);
+    let (program, args) = pyforge_packages::manager::command(manager, req.action, &req.packages, &req.python);
+    to_json(&json!({ "manager": manager, "program": program, "args": args }))
+}
+
 /// An interpreter -> its status bar label.
 #[wasm_bindgen]
 pub fn python_interpreter_label(request_json: &str) -> String {

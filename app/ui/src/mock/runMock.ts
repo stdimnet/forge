@@ -15,13 +15,14 @@ import { isWordPressDemo, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
+import { isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 import { recordTestRun, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -32,7 +33,15 @@ const LUA_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : {
+const PYTHON_CONFIGURATIONS: RunConfigurations = {
+  selected: "shop-api",
+  configurations: [
+    { name: "shop-api", type: "python", storeAsProjectFile: true, workingDirectory: "src", options: { target: "module", script: "uvicorn" }, arguments: "shop_api.main:app --reload" },
+    { name: "seed", type: "python", options: { target: "script", script: "scripts/seed.py" } },
+  ],
+};
+
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -76,6 +85,11 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
   switch (cfg.type) {
     case "scratch":
       return scratchCommandLine(cfg);
+    case "python": {
+      const python = cfg.interpreter || `${projectRoot()}/.venv/bin/python`;
+      const target = o.target === "module" ? ["-m", o.script ?? ""] : [o.script ?? ""];
+      return { program: python, args: [...split(cfg.interpreterOptions), ...target, ...split(cfg.arguments)], cwd, env: { PYTHONUNBUFFERED: "1" } };
+    }
     case "php-script":
       return { program: php, args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)], cwd };
     case "php-builtin-server": {
@@ -400,6 +414,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
   switch (cfg.type) {
     case "phpunit":
       return phpunitSteps(cfg);
+    case "python":
+      return pythonSteps(cfg);
     case "php-builtin-server": {
       const address = `${o.host || "localhost"}:${o.port || "8080"}`;
       const when = "[Thu Oct 22 09:14:02 2026]";
@@ -538,12 +554,41 @@ function externalToolSteps(cmd: CommandLine): Step[] {
       [200, "   1) app/Models/User.php\n\nFixed 1 of 1 files in 0.042 seconds, 14.00 MB memory used\n"],
       [30, { code: 0 }],
     ];
+  if (program === "uv" || program.startsWith("python")) {
+    const verb = cmd.args.includes("uninstall") ? "Uninstalled" : "Installed";
+    const names = cmd.args.filter((a) => !a.startsWith("-") && !a.includes("/") && !["pip", "install", "uninstall", "-m"].includes(a));
+    const steps: Step[] = [
+      [250, program === "uv" ? `Resolved ${names.length + 4} packages in 412ms\n` : `Collecting ${names.join(" ")}\n`],
+      [300, program === "uv" ? `Prepared ${names.length} packages in 180ms\n` : `Downloading ${names[0] ?? "package"}.whl (153 kB)\n`],
+      [200, `${verb} ${names.length} package${names.length === 1 ? "" : "s"} in 12ms\n`],
+    ];
+    for (const n of names) steps.push([20, ` ${verb === "Installed" ? "+" : "-"} ${n}\n`]);
+    steps.push([40, { code: 0 }]);
+    return steps;
+  }
   if (program === "git")
     return [
       [150, "3f1c2d8e (Marlon 2026-09-12 10:41:07 +0200 19) class User extends Authenticatable\n"],
       [20, { code: 0 }],
     ];
   return [[100, `${cmd.program} finished.\n`], [30, { code: 0 }]];
+}
+
+/** Canned output of the Python demo: uvicorn keeps serving, scripts finish. */
+function pythonSteps(cfg: RunConfiguration): Step[] {
+  const o = cfg.options ?? {};
+  if (o.target === "module" ? o.script === "uvicorn" : (o.script ?? "").endsWith("main.py"))
+    return [
+      [250, "\x1b[32mINFO\x1b[0m:     Will watch for changes in these directories: ['" + projectRoot() + "/src']\n"],
+      [60, "\x1b[32mINFO\x1b[0m:     Uvicorn running on \x1b[1mhttp://127.0.0.1:8000\x1b[0m (Press CTRL+C to quit)\n"],
+      [60, "\x1b[32mINFO\x1b[0m:     Started reloader process [48211] using \x1b[36m\x1b[1mWatchFiles\x1b[0m\n"],
+      [300, "\x1b[32mINFO\x1b[0m:     Application startup complete.\n"],
+      [1200, '\x1b[32mINFO\x1b[0m:     127.0.0.1:51034 - "\x1b[1mGET /orders/1042 HTTP/1.1\x1b[0m" \x1b[32m200 OK\x1b[0m\n'],
+    ];
+  return [
+    [200, "seeded\n"],
+    [40, { code: 0 }],
+  ];
 }
 
 /** Canned output of the Lua demo: the LÖVE game keeps running, scripts finish. */
