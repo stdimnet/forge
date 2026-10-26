@@ -481,6 +481,16 @@ pub fn run() {
             commands::php_meta::php_libraries,
             commands::php_meta::php_library_list,
             commands::php_meta::php_source_roots,
+            commands::java::java_jdks,
+            commands::java::java_jdk_inspect,
+            commands::java::java_jdk_releases,
+            commands::java::java_jdk_download,
+            commands::java::java_status,
+            commands::java::java_jdtls_install,
+            commands::java::java_build_info,
+            commands::java::java_reload_project,
+            commands::java::java_main_methods,
+            commands::java::java_debug_prepare,
             commands::lua::lua_index_workspace,
             commands::lua::lua_files_changed,
             commands::lua::lua_search_symbols,
@@ -909,6 +919,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::php::spawn_sync_lsp_server(&handle);
+            }
+            // Eclipse JDT LS: JDKs, its installation and options, the Java plugin.
+            if commands::java::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::java::spawn_sync_lsp_server(&handle);
             }
         });
 }

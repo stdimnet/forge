@@ -1,0 +1,305 @@
+# JavaForge: Java with Maven and Gradle, in the style of IntelliJ IDEA. The logic lives in
+# packs/javaforge (javaforge-lang-java: sources, mains, JUnit/TestNG, JDT LS launch;
+# javaforge-build: Maven and Gradle; javaforge-jdk: JDK detection and downloads); Eclipse
+# JDT LS and java-debug are installed on request by forge-langservers (managed::jdtls,
+# managed::javadebug) and started by app/src-tauri/src/commands/java.rs.
+
+id = "forge.java"
+name = "Java"
+version = "0.1.0"
+pack = "javaforge"
+vendor = "Forge"
+description = "Java with Maven and Gradle: Eclipse JDT LS, JDKs (detection and Temurin downloads), Application and build tool run configurations, JUnit 5/4 and TestNG with JaCoCo coverage, and the Java debugger (java-debug)."
+projectTypes = ["javaforge"]
+
+[contributions]
+languages = ["java"]
+
+[[contributions.commands]]
+id = "java.reloadProject"
+title = "Reload All Maven and Gradle Projects"
+category = "Java"
+
+[[contributions.commands]]
+id = "java.downloadJdk"
+title = "Download JDK…"
+category = "Java"
+
+[[contributions.commands]]
+id = "java.installLanguageServer"
+title = "Install Eclipse JDT Language Server"
+category = "Java"
+
+# java-debug runs inside JDT LS and serves DAP on a port JDT LS opens on request
+# (`vscode.java.startDebugSession`); sessions attach to a JVM's JDWP port.
+[[contributions.debugAdapters]]
+type = "java"
+label = "Java (java-debug)"
+languages = ["java"]
+attachSchema = { type = "object", properties = { hostName = { type = "string", description = "Host of the JVM's JDWP agent" }, port = { type = "integer", description = "JDWP port" }, timeout = { type = "integer", description = "Milliseconds to wait for the JVM" } } }
+
+# ---- JUnit and TestNG on the shared test runner (forge-testing) -------------------------
+# The test files and the run configuration types; discovery, command lines (Gradle
+# `cleanTest test --tests`, Maven Surefire `-Dtest=`), Rerun Failed Tests and JaCoCo coverage
+# come from `javaforge_lang_java::JavaTests`, registered under the same ids.
+
+[[contributions.testFrameworks]]
+id = "junit"
+name = "JUnit"
+description = "Run JUnit 5, 4 or 3 tests through Gradle or Maven: all tests, a package, a class or a method."
+icon = "flask-conical"
+language = "java"
+detect = { files = ["pom.xml", "build.gradle", "build.gradle.kts"], dependencies = [{ file = "pom.xml", contains = "junit" }, { file = "build.gradle", contains = "junit" }, { file = "build.gradle.kts", contains = "junit" }] }
+testFiles = ["**/src/test/java/**/*.java", "*Test.java", "*Tests.java", "*IT.java"]
+report = "jUnitFile"
+junitFlavor = "java"
+coverage = { file = "build/reports/jacoco/test/jacocoTestReport.xml", format = "jacoco" }
+debuggable = true
+
+[[contributions.testFrameworks]]
+id = "testng"
+name = "TestNG"
+description = "Run TestNG tests through Gradle or Maven: all tests, a package, a class or a method."
+icon = "flask-conical"
+language = "java"
+detect = { dependencies = [{ file = "pom.xml", contains = "testng" }, { file = "build.gradle", contains = "testng" }, { file = "build.gradle.kts", contains = "testng" }] }
+testFiles = ["**/src/test/java/**/*.java", "*Test.java", "*Tests.java", "*IT.java"]
+report = "jUnitFile"
+junitFlavor = "java"
+coverage = { file = "build/reports/jacoco/test/jacocoTestReport.xml", format = "jacoco" }
+debuggable = true
+
+# ---- Settings | Build, Execution, Deployment | JDKs --------------------------------------
+
+[[contributions.settings]]
+key = "java.jdks"
+title = "Added JDKs"
+description = "JDK homes added by hand (Add JDK from Disk…); detected and downloaded JDKs are listed without this."
+type = "list"
+default = []
+group = "build.jdks"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "java.projectJdk"
+title = "Project JDK"
+description = "JDK home (or name, like temurin-21) the project builds and runs with. Empty: the newest detected JDK."
+type = "string"
+default = ""
+group = "build.jdks"
+project = true
+hidden = true
+order = 1
+
+[[contributions.settings]]
+key = "java.languageLevel"
+title = "Language level"
+description = "Java release of the sources. Empty: from the build (toolchain, maven.compiler.release) or the project JDK."
+type = "enum"
+options = [
+  { value = "", label = "SDK default" },
+  { value = "8", label = "8 - Lambdas, type annotations etc." },
+  { value = "11", label = "11 - Local variable syntax for lambda parameters" },
+  { value = "17", label = "17 - Sealed types, always-strict floating-point semantics" },
+  { value = "21", label = "21 - Record patterns, pattern matching for switch" },
+  { value = "25", label = "25 - Compact source files, instance main methods" },
+]
+default = ""
+group = "build.jdks"
+project = true
+hidden = true
+order = 2
+
+[[contributions.settings]]
+key = "java.download.adoptiumApi"
+title = "Adoptium API"
+description = "Where Download JDK… looks up Eclipse Temurin builds (and their SHA-256 checksums)."
+type = "string"
+default = "https://api.adoptium.net"
+group = "build.jdks"
+section = "Downloads"
+order = 10
+
+# ---- Settings | Build, Execution, Deployment | Build Tools | Maven / Gradle -------------
+
+[[contributions.settings]]
+key = "java.build.preferredTool"
+title = "Build tool of projects with both"
+description = "Which build Forge uses when a folder has a pom.xml and a Gradle build."
+type = "enum"
+options = [
+  { value = "gradle", label = "Gradle" },
+  { value = "maven", label = "Maven" },
+]
+default = "gradle"
+group = "build.tools.gradle"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "java.gradle.useWrapper"
+title = "Use the Gradle wrapper (gradlew)"
+description = "Run Gradle through the project's gradlew when it has one."
+type = "bool"
+default = true
+group = "build.tools.gradle"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "java.gradle.executable"
+title = "Gradle executable"
+description = "Used without a wrapper. Empty: gradle on the PATH."
+type = "path"
+default = ""
+group = "build.tools.gradle"
+order = 2
+
+[[contributions.settings]]
+key = "java.gradle.jvm"
+title = "Gradle JVM"
+description = "JDK home Gradle imports and runs with. Empty: the project JDK."
+type = "path"
+default = ""
+group = "build.tools.gradle"
+project = true
+order = 3
+
+[[contributions.settings]]
+key = "java.gradle.offline"
+title = "Offline work"
+type = "bool"
+default = false
+group = "build.tools.gradle"
+project = true
+order = 4
+
+[[contributions.settings]]
+key = "java.maven.useWrapper"
+title = "Use the Maven wrapper (mvnw)"
+description = "Run Maven through the project's mvnw when it has one."
+type = "bool"
+default = true
+group = "build.tools.maven"
+project = true
+order = 1
+
+[[contributions.settings]]
+key = "java.maven.executable"
+title = "Maven home path"
+description = "The mvn executable used without a wrapper. Empty: mvn on the PATH."
+type = "path"
+default = ""
+group = "build.tools.maven"
+order = 2
+
+[[contributions.settings]]
+key = "java.maven.offline"
+title = "Work offline"
+type = "bool"
+default = false
+group = "build.tools.maven"
+project = true
+order = 3
+
+[[contributions.settings]]
+key = "java.maven.downloadSources"
+title = "Download sources of dependencies"
+type = "bool"
+default = true
+group = "build.tools.maven"
+order = 4
+
+# ---- Settings | Languages & Frameworks | Java ------------------------------------------
+
+[[contributions.settings]]
+key = "java.jdtls.autoInstall"
+title = "Install Eclipse JDT LS"
+description = "When a Java project opens without the language server: ask, install it from download.eclipse.org, or never."
+type = "enum"
+options = [
+  { value = "ask", label = "Ask" },
+  { value = "always", label = "Always" },
+  { value = "never", label = "Never" },
+]
+default = "ask"
+group = "lang.java"
+section = "Eclipse JDT Language Server"
+order = 0
+
+[[contributions.settings]]
+key = "java.jdtls.path"
+title = "JDT LS installation"
+description = "A folder with an unpacked JDT LS (plugins/, config_*/). Empty: the one Forge installed."
+type = "path"
+default = ""
+group = "lang.java"
+section = "Eclipse JDT Language Server"
+order = 1
+
+[[contributions.settings]]
+key = "java.jdtls.jdk"
+title = "JDK for the language server"
+description = "JDT LS needs Java 21 or newer. Empty: the newest detected JDK 21+."
+type = "path"
+default = ""
+group = "lang.java"
+section = "Eclipse JDT Language Server"
+order = 2
+
+[[contributions.settings]]
+key = "java.jdtls.vmOptions"
+title = "VM options"
+type = "string"
+default = "-Xmx1G"
+group = "lang.java"
+section = "Eclipse JDT Language Server"
+order = 3
+
+[[contributions.settings]]
+key = "java.jdtls.channel"
+title = "Release channel"
+type = "enum"
+options = [
+  { value = "milestones", label = "Milestones" },
+  { value = "snapshots", label = "Snapshots" },
+]
+default = "milestones"
+group = "lang.java"
+section = "Eclipse JDT Language Server"
+order = 4
+
+[[contributions.settings]]
+key = "java.jdtls.downloadSite"
+title = "Download site"
+type = "string"
+default = "https://download.eclipse.org/jdtls"
+group = "lang.java"
+section = "Eclipse JDT Language Server"
+order = 5
+
+[[contributions.settings]]
+key = "java.debug.hotCodeReplace"
+title = "Hot code replace"
+description = "Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never."
+type = "enum"
+options = [
+  { value = "auto", label = "Automatically" },
+  { value = "manual", label = "On request" },
+  { value = "never", label = "Never" },
+]
+default = "auto"
+group = "lang.java"
+section = "Debugger"
+order = 10
+
+[[contributions.settings]]
+key = "java.debug.repository"
+title = "java-debug repository"
+description = "Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked)."
+type = "string"
+default = "https://repo1.maven.org/maven2"
+group = "lang.java"
+section = "Debugger"
+order = 11
