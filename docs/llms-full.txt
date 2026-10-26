@@ -10995,28 +10995,130 @@ API publishes and unpacks it into `<data dir>/forge/jdks/<release>`.
 ## Maven and Gradle
 
 Forge reads the build in the project root: the tool (with both a `pom.xml` and a Gradle build,
-setting **Build tool of projects with both**), the wrapper (`mvnw`, `gradlew`), the Kotlin or
-Groovy DSL, modules (`include` in `settings.gradle(.kts)`, `<modules>` in `pom.xml`), JaCoCo,
-the `application` plugin and its main class, Spring Boot, custom tasks and the Java release.
-
-Runs use the wrapper when the project has one (settings **Use the Gradle wrapper** / **Use the
-Maven wrapper**); otherwise the configured **Gradle executable** / **Maven home path**, or
-`gradle` / `mvn` on `PATH`. **Offline work** adds `--offline` / `-o`. These options live in
-Settings | Build, Execution, Deployment | Build Tools | Maven and Gradle.
+setting **Build tool of projects with both**), the wrapper (`mvnw`, `gradlew`) and its Gradle
+version, the Kotlin or Groovy DSL, modules (`include` in `settings.gradle(.kts)`, `<modules>` in
+`pom.xml`), JaCoCo, the `application` plugin and its main class, Spring Boot, custom tasks and
+the Java release.
 
 - **Build Project** (`Ctrl+F9`) compiles main and test sources through the build tool
-  (Gradle `classes testClasses`, Maven `test-compile`).
-- The **Gradle** and **Maven** tool windows (right stripe) list the build's tasks by group, or
-  Maven's lifecycle phases and plugin goals. Double-click runs one; the toolbar reloads the
-  project.
+  (Gradle `classes testClasses`, Maven `test-compile`), or through Eclipse JDT LS with
+  **Build and run using: IntelliJ IDEA**.
+- **Reload All Maven and Gradle Projects** (the tool windows' ⟳, Build menu) syncs: the build
+  tool reports tasks and resolved dependencies, then JDT LS re-imports the build files.
+  Gradle and Maven run the project's build scripts and plugins, so
+  [Safe Mode](docs/guide/user/project-trust.md) refuses a sync until you trust the project.
 
-![The Gradle tool window](docs/screenshots/java-gradle-tool-window.png)
+### Gradle tool window
+
+The **Gradle** tool window (right stripe) shows the root project and its subprojects with:
+
+- **Tasks** grouped like `gradle tasks --all` (application, build, build setup, documentation,
+  help, verification, other). Double-click or ▶ runs one as a temporary Gradle configuration
+  (`:app:test` in a subproject).
+- **Dependencies** per configuration (`compileClasspath`, `runtimeClasspath`,
+  `testCompileClasspath`, `testRuntimeClasspath`, `annotationProcessor`) as resolved trees:
+  `1.0 → 1.2` where conflict resolution picked another version, `(*)` for dependencies listed
+  above, unresolved ones in red. Before the first sync the tool window lists the dependencies
+  the build file declares.
+- **Run Configurations**: the project's Gradle configurations.
+
+The toolbar: **Reload All Gradle Projects**, **Execute Gradle Task…** (a command line with
+completion of every task, `clean :app:test --info`), **Run**, **Expand All** / **Collapse
+All**, **Toggle Offline Mode** (`--offline` for syncs and runs), **Show Dependencies** and
+**Gradle Settings**.
+
+A sync runs Gradle with a small init script (`forge-model.gradle`, written to the user cache
+directory) whose `forgeModel` task writes the projects, tasks and dependency trees as JSON
+(`--no-configuration-cache`). The result is cached in `<cache>/forge/javaforge/sync`, never in
+the project, so the tool window shows it again after a restart.
+
+![The Gradle tool window after a sync](docs/screenshots/java-gradle-tool-window.png)
+
+![Execute Gradle Task](docs/screenshots/java-gradle-execute-task.png)
+
+### Maven tool window
+
+The **Maven** tool window shows **Profiles** with checkboxes (`activeByDefault` profiles start
+checked; unchecking one deactivates it with `!id`), then the project and its modules with
+**Lifecycle** (clean … deploy), **Plugins** (the default lifecycle plugins and those in
+`<build><plugins>`, each with its goals, `jacoco:report`) and **Dependencies** (the tree of
+`mvn dependency:tree` with scopes after a sync, the declared ones before).
+
+The toolbar: **Reload All Maven Projects**, **Execute Maven Goal…**, **Run Maven Build**,
+**Toggle Offline Mode** (`-o`), **Toggle 'Skip Tests' Mode** (`-DskipTests`; test runs ignore
+it), **Expand All** / **Collapse All**, **Show Dependencies** and **Maven Settings**. The
+selected profiles (`-Pdev,!prod`) apply to every Maven run.
+
+![The Maven tool window with profiles](docs/screenshots/java-maven-tool-window.png)
+
+### Gradle settings and the wrapper
+
+Settings | Build, Execution, Deployment | Build Tools | Gradle:
+
+| Setting | |
+| --- | --- |
+| **Use Gradle from** | `'gradle-wrapper.properties' file` (the wrapper, default), **Specified location** (**Gradle home**: a Gradle installation or its `bin/gradle`) or **Local installation** (`gradle` on the `PATH`). |
+| **Gradle JVM** | The JDK Gradle syncs, builds and runs with (empty: the project JDK). |
+| **Offline work** | `--offline`. |
+| **Build and run using** | **Gradle** (default): Build Project runs `classes testClasses`, Application configurations run through Gradle (`forgeRun`, a `JavaExec` task of the init script `forge-run.gradle`, with the main class, arguments, VM options and the source set's runtime class path and toolchain). **IntelliJ IDEA**: JDT LS compiles, Forge runs `java` with the class path java-debug resolves. |
+| **Run tests using** | **Gradle** (default) or **IntelliJ IDEA**: JUnit tests run on the JUnit Platform Console Launcher (`junit-platform-console-standalone.jar`: the **JUnit Platform Console Launcher** setting, else the newest in `~/.m2` or Gradle's cache) with JDT LS's class path; TestNG and Run with Coverage always use Gradle. |
+
+The page shows the project's **Gradle wrapper**: the version and distribution from
+`gradle/wrapper/gradle-wrapper.properties` and its `distributionSha256Sum`. **Verify** compares
+the checksum with the one Gradle publishes on services.gradle.org (the wrapper refuses a
+download whose checksum does not match). **Update Wrapper** (also the action *Update Gradle
+Wrapper…*) points `distributionUrl` at the newest release, or the version you enter, and writes
+the published SHA-256 sum as `distributionSha256Sum`; it edits the properties file only, so it
+runs no project code. The new Gradle is downloaded by the wrapper on its next run.
+
+![Settings | Build Tools | Gradle](docs/screenshots/java-gradle-settings.png)
+
+Maven's page has **Use the Maven wrapper**, **Maven home path**, **Work offline**, **Skip
+tests** and **Download sources of dependencies**.
+
+### Editing build scripts
+
+`build.gradle.kts` (Kotlin DSL) and `build.gradle` (Groovy DSL) are highlighted as Kotlin and
+Groovy. Completion knows the common blocks and functions of the block the caret is in, with
+insert texts in the script's DSL (`implementation("…")` / `implementation '…'`):
+
+- top level: `plugins`, `dependencies`, `repositories`, `java`, `application`, `jacoco`,
+  `tasks`, `group`, `version`, `sourceSets`, `configurations`, `buildscript`, `allprojects`,
+  `subprojects`, `testing`; settings scripts: `rootProject.name`, `include`, `includeBuild`,
+  `pluginManagement`, `dependencyResolutionManagement`;
+- `plugins` (core plugins, `id(…) version …`, `kotlin(…)`, plugin ids in `id("…")`),
+  `dependencies` (`implementation`, `api`, `compileOnly`, `runtimeOnly`, `annotationProcessor`,
+  `testImplementation`, … and `platform`, `project`, `files`, `testFixtures`), `repositories`,
+  `java { toolchain { languageVersion, vendor } }`, `application { mainClass }`, `jacoco`,
+  `tasks.register<Type>("name")`, `named`, `withType`, `test { useJUnitPlatform() … }`,
+  `jacocoTestReport { reports { … } }`, `jar { manifest { … } }`;
+- members after `tasks.`, `JavaLanguageVersion.`, `JvmVendorSpec.`, `JavaVersion.`.
+
+In a dependency string (`implementation("guav")`) and in `<groupId>`, `<artifactId>` and
+`<version>` of `pom.xml`, completion offers coordinates and versions from **Maven Central**
+(newest first; typing `:` after the group or artifact moves on to artifacts and versions).
+Answers are cached in `<cache>/forge/maven-central`; offline, the cache and a few well-known
+artifacts answer.
+
+**A newer version is available**: declared versions older than the newest release of the same
+variant (Guava's `-jre` stays `-jre`; pre-releases only replace pre-releases) get a weak
+warning and a gutter icon; **Alt+Enter → Change to …** (or a click on the icon) writes the new
+version, in `pom.xml` into the property that holds it (`${guava.version}`).
+
+Settings | Build, Execution, Deployment | Build Tools: **Search Maven Central** turns the lookups
+off; **Search API** and **Repository** point them at a mirror.
+
+![Kotlin DSL completion](docs/screenshots/java-gradle-kts-dsl-completion.png)
+
+![Coordinate completion from Maven Central](docs/screenshots/java-gradle-kts-completion.png)
+
+![The newer-version quick fix in pom.xml](docs/screenshots/java-pom-outdated.png)
 
 ## Run configurations
 
 | Type | |
 | --- | --- |
-| **Application** | Runs a main class with the configuration's JDK (empty: the project JDK), VM options, program arguments, environment and working directory. The class path comes from the build through JDT LS (java-debug resolves it after JDT LS compiled the project); without JDT LS it is the module's build output (`build/classes/java/main`, `target/classes`). **Class path** and **Java module** (`-m module/class`) override it. |
+| **Application** | Runs a main class with the configuration's JDK (empty: the project JDK), VM options, program arguments, environment and working directory. In Gradle projects it runs through Gradle by default (**Build and run using**, see [Gradle settings](#gradle-settings-and-the-wrapper)). Otherwise the class path comes from the build through JDT LS (java-debug resolves it after JDT LS compiled the project); without JDT LS it is the module's build output (`build/classes/java/main`, `target/classes`). **Class path** and **Java module** (`-m module/class`) override it. |
 | **Gradle** | Runs tasks (`clean build`), optionally in a module (`:app:build`). |
 | **Maven** | Runs goals (`clean install -DskipTests`), optionally in a module (`-pl app -am`). |
 | **JUnit**, **TestNG** | Runs all tests, a package, a class, a method or a list of tests through the build tool; see [Tests](#tests). |
@@ -11071,7 +11173,9 @@ into the running JVM after JDT LS rebuilt them on save.
 ## Browser mode
 
 `pnpm dev` with `?project=java` opens the demo Gradle service `inventory-service`
-(`?project=java&jdtls=missing` starts without JDT LS to try the install offer).
+(`?project=java&jdtls=missing` starts without JDT LS to try the install offer;
+`?project=java&build=maven` builds it with Maven, with profiles). Syncs, Update Wrapper and
+Maven Central answer from recorded data; nothing runs or goes to the network.
 
 
 ---
@@ -17272,17 +17376,31 @@ Page id `build.jdks` (plugin `forge.java`, a custom page: the project JDK, langu
 | `java.languageLevel` | enum: ``, `8`, `11`, `17`, `21`, `25` | `""` | user, project |  | Language level — Java release of the sources. Empty: from the build (toolchain, maven.compiler.release) or the project JDK. |
 | `java.download.adoptiumApi` | string | `https://api.adoptium.net` | user | Downloads | Adoptium API — Where Download JDK… looks up Eclipse Temurin builds (and their SHA-256 checksums). |
 
+### Build, Execution, Deployment | Build Tools
+
+Page id `build.tools` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.md#editing-build-scripts).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.mavenCentral.enabled` | bool | `true` | user | Maven Central | Search Maven Central — Complete dependency coordinates and versions in build.gradle(.kts) and pom.xml and report newer versions (cached in the user cache dir). |
+| `java.mavenCentral.searchUrl` | string | `""` | user | Maven Central | Search API — Empty: https://search.maven.org. |
+| `java.mavenCentral.repositoryUrl` | string | `""` | user | Maven Central | Repository — Where maven-metadata.xml (the versions) comes from. Empty: https://repo1.maven.org/maven2. |
+
 ### Build, Execution, Deployment | Build Tools | Gradle
 
-Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.md#maven-and-gradle).
+Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.md#gradle-settings-and-the-wrapper).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `java.build.preferredTool` | enum: `gradle`, `maven` | `gradle` | user, project |  | Build tool of projects with both — Which build Forge uses when a folder has a pom.xml and a Gradle build. |
-| `java.gradle.useWrapper` | bool | `true` | user, project |  | Use the Gradle wrapper (gradlew) — Run Gradle through the project's gradlew when it has one. |
-| `java.gradle.executable` | path | `""` | user |  | Gradle executable — Used without a wrapper. Empty: gradle on the PATH. |
-| `java.gradle.jvm` | path | `""` | user, project |  | Gradle JVM — JDK home Gradle imports and runs with. Empty: the project JDK. |
-| `java.gradle.offline` | bool | `false` | user, project |  | Offline work |
+| `java.gradle.distribution` | enum: `wrapper`, `specified`, `local` | `wrapper` | user, project | Gradle | Use Gradle from — The wrapper (gradle/wrapper/gradle-wrapper.properties), a Gradle home you choose, or gradle on the PATH. |
+| `java.gradle.home` | path | `""` | user | Gradle | Gradle home — Used with "Specified location": the Gradle installation folder (or its bin/gradle). |
+| `java.gradle.jvm` | path | `""` | user, project | Gradle | Gradle JVM — JDK home (or name, like temurin-21) Gradle syncs, builds and runs with. Empty: the project JDK. |
+| `java.gradle.offline` | bool | `false` | user, project | Gradle | Offline work — Gradle resolves dependencies from its caches only (--offline). |
+| `java.gradle.buildAndRunUsing` | enum: `gradle`, `idea` | `gradle` | user, project | Build and run | Build and run using — Build Project and Application configurations run through Gradle (forgeRun) or Eclipse JDT LS compiles and Forge runs java itself. |
+| `java.gradle.runTestsUsing` | enum: `gradle`, `idea` | `gradle` | user, project | Build and run | Run tests using — JUnit tests run through Gradle's test task or the JUnit Platform Console Launcher on JDT LS's class path (TestNG always runs through Gradle). |
+| `java.junit.consoleLauncher` | path | `""` | user | Build and run | JUnit Platform Console Launcher — junit-platform-console-standalone.jar for "Run tests using: IntelliJ IDEA". Empty: the newest in ~/.m2 or Gradle's cache. |
+| `java.gradle.servicesUrl` | string | `""` | user |  | Gradle services (hidden) — Where Update Wrapper looks up Gradle releases and their SHA-256 sums. Empty: https://services.gradle.org. |
 
 ### Build, Execution, Deployment | Build Tools | Maven
 
@@ -17293,6 +17411,8 @@ Page id `build.tools.maven` (plugin `forge.java`).
 | `java.maven.useWrapper` | bool | `true` | user, project |  | Use the Maven wrapper (mvnw) — Run Maven through the project's mvnw when it has one. |
 | `java.maven.executable` | path | `""` | user |  | Maven home path — The mvn executable used without a wrapper. Empty: mvn on the PATH. |
 | `java.maven.offline` | bool | `false` | user, project |  | Work offline |
+| `java.maven.skipTests` | bool | `false` | user, project |  | Skip tests — Maven goals run with -DskipTests (the Maven tool window's Skip Tests toggle; test runs ignore it). |
+| `java.maven.profiles` | list | `[]` | user, project |  | Profiles — Profiles the Maven tool window selected: id to activate, !id to deactivate. |
 | `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
 
 ### Build, Execution, Deployment | Debugger
@@ -24062,7 +24182,7 @@ Source: docs/guide/developer/crates/javaforge-build.md
 
 # javaforge-build
 
-`packs/javaforge/build` — JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly).
+`packs/javaforge/build` — JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines, sync models, dependency trees, Gradle DSL and pom.xml completion, outdated dependencies; pure, also built to WebAssembly).
 
 ## Purpose
 
@@ -24079,15 +24199,40 @@ browser mode (WebAssembly) share it.
 - `command` builds command lines: goals and tasks (Gradle `:module:task`, Maven `-pl module
   -am`), Build Project (`classes testClasses`, `test-compile`) and test runs (Gradle `cleanTest
   test --tests`, Maven Surefire `test -Dtest=` with `-Dsurefire.failIfNoSpecifiedTests=false`)
-  with their JUnit XML report folders and JaCoCo reports.
+  with their JUnit XML report folders and JaCoCo reports; Maven profiles (`-Pdev,!prod`) and
+  Skip Tests; Application runs through Gradle (`forgeRun` of `GRADLE_RUN_INIT_SCRIPT`) and the
+  sync command lines.
+- `model` is the Gradle / Maven tool window's model (`BuildModel`: projects, tasks, Maven
+  plugins and profiles, dependency trees): `static_model` from the build files,
+  `GRADLE_INIT_SCRIPT` (`forgeModel` writes projects, tasks and resolved dependencies as JSON)
+  with `parse_gradle_model`, `parse_maven_tree` for `mvn dependency:tree` (plain and `[INFO]`
+  output) and `merge`.
+- `wrapper` reads and updates `gradle-wrapper.properties` and compares
+  `distributionSha256Sum` with the published checksum (`Checksum`).
+- `dsl` completes Gradle Kotlin / Groovy DSL scripts from a hand-written model of the common
+  blocks and in `pom.xml`; `request` says what Maven Central must answer (coordinates,
+  versions), `complete` builds the items (`forge_jsonschema::CompletionOut`).
+- `deps` finds declared dependencies with the place of their version (Maven properties
+  resolved) and the "newer version available" markers; `version` orders Maven versions
+  (qualifiers, variants like `-jre` / `-android`).
+- `central` has Maven Central's search and `maven-metadata.xml` URLs and parsers; `net`
+  (feature `net`, desktop only) downloads them with a cache in `<cache>/forge/maven-central`
+  and asks services.gradle.org for releases and SHA-256 sums.
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
-| `command.rs` | `ExecOptions` (wrapper, executable, build folder, offline), `executable`, `goals_command`, `build_project_command`, `TestFilter` (all, package, class, method, a list) and `test_command` → `TestRun { command, report_dirs, coverage_report }`. |
+| `central.rs` | `search_query`, `search_url`, `parse_search` → `Artifact`, `metadata_url`, `parse_metadata` → `Versions`. |
+| `command.rs` | `ExecOptions` (wrapper, executable, build folder, offline, profiles, skip tests), `executable`, `goals_command`, `build_project_command`, `TestFilter` and `test_command` → `TestRun`, `GRADLE_RUN_INIT_SCRIPT`, `GradleAppRun` and `gradle_application_command`, `gradle_sync_command`, `maven_sync_command`. |
+| `deps.rs` | `FileKind`, `Declared`, `declarations`, `versioned_coordinates`, `OutdatedMarker` and `outdated`. |
 | `detect.rs` | `BuildTool`, `Module`, `BuildProject` (`module_of`, `module`, `minimal`) and `detect(folder, files, read, prefer)`. |
+| `dsl.rs` | `Script`, `Request`, `CentralData`, `request` and `complete`. |
 | `goals.rs` | `Goal { name, group, description }` and `goals(&BuildProject)`. |
+| `model.rs` | `BuildModel`, `ProjectModel`, `DependencyScope`, `DependencyNode`, `MavenPlugin`, `Profile`, `GRADLE_INIT_SCRIPT`, `parse_gradle_model`, `parse_maven_tree`, `maven_sync_model`, `maven_plugins`, `maven_profiles`, `profiles_argument`, `static_model`, `merge`, `task_names`. |
+| `net.rs` | `MavenCentral` (`search`, `versions`, `answer`, `versions_of`), `gradle_current`, `gradle_sha256` (feature `net`). |
+| `version.rs` | `compare`, `is_prerelease`, `latest`, `is_newer`, `update_for`. |
+| `wrapper.rs` | `GradleWrapper`, `parse_properties`, `distribution_url`, `update_properties`, `GradleRelease`, `parse_current`, `parse_sha256`, `Checksum` and `check`. |
 
 ## Main public items
 
@@ -24099,18 +24244,19 @@ pub use goals::{goals, Goal};
 
 ## Used by
 
-- [`javaforge-lang-java`](docs/guide/developer/crates/javaforge-lang-java.md) (test commands), the app (`app/src-tauri/src/commands/java.rs`: `java_build_info`, Maven / Gradle runs, Build Project) and [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) (`java_build_info`, `java_command_line`).
+- [`javaforge-lang-java`](docs/guide/developer/crates/javaforge-lang-java.md) (test commands), the app (`app/src-tauri/src/commands/java.rs`: `java_build_info`, Maven / Gradle runs, Build Project; `java_build.rs`: `java_build_model`, `java_sync_project`, the wrapper commands, `java_build_complete`, `java_build_outdated`) and [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) (`java_build_info`, `java_command_line`, `java_build_model`, `java_build_request`, `java_build_complete`, `java_build_outdated`, `java_wrapper`).
 
 ## Dependencies
 
-- External: `serde`, `regex-lite`
+- Workspace: `forge-jsonschema` (completion types, UTF-16 offsets)
+- External: `serde`, `serde_json`, `regex-lite`; with `net`: `reqwest`, `sha2`, `tokio`, `dirs`
 
 ## Tests
 
-4 source files, about 1190 lines; 9 unit tests (Gradle Kotlin and Groovy builds, Maven modules, wrappers, goals, test filters, JaCoCo).
+12 source files; 33 unit tests (Gradle Kotlin and Groovy builds, Maven modules, wrappers, goals, test filters, JaCoCo, profiles, Gradle runs and syncs, recorded Gradle model JSON and `mvn dependency:tree` output in `tests/fixtures`, Maven plugins and profiles, version ordering, the wrapper properties, DSL and pom completion, declared and outdated dependencies, Maven Central and services.gradle.org against a local test server).
 
 ```sh
-cargo test -p javaforge-build
+cargo test -p javaforge-build --features net
 ```
 
 
@@ -24203,9 +24349,13 @@ itself comes from Eclipse JDT LS through `forge-lsp`.
   gutter targets with temporary configurations, Rerun Failed Tests (`Class#method` lists) and
   commands through `javaforge-build` with `TestReport::JUnitFile`, `JUnitFlavor::Java`, the
   build's report folders (`TestCommand::report_dirs`), location rules from the source root and
-  JaCoCo coverage with its own rules (main sources).
+  JaCoCo coverage with its own rules (main sources). With the option `runner = junit` ("Run
+  tests using: IntelliJ IDEA") JUnit runs on the JUnit Platform Console Launcher instead, on
+  the class path the backend resolved (`resolvedClasspath`, `launcherJar`, `reportsDir`).
 - `launch` builds Application command lines (`java` with VM options, `-p` / `-cp`, `-m`, the
-  JDWP agent of debug runs) and the debug arguments of Gradle (`--debug-jvm`) and Surefire.
+  JDWP agent of debug runs), the debug arguments of Gradle (`--debug-jvm`) and Surefire, and
+  `junit_console_command` (`java -jar junit-platform-console-standalone.jar execute
+  --select-… --reports-dir …`).
 - `jdtls` describes how JDT LS starts: the command line (read-only installation, OSGi
   configuration and `-data` in the cache dir), `initializationOptions` (java-debug bundle,
   extended client capabilities) and the `java.*` settings (JDKs as runtimes, Gradle / Maven
@@ -24217,7 +24367,7 @@ itself comes from Eclipse JDT LS through `forge-lsp`.
 | --- | --- |
 | `discovery.rs` | `main_methods`, `discover_tests`, `Framework`, `TestDiscovery`, `source_root`. |
 | `jdtls.rs` | `JdtlsSetup` (`args`, `settings`, `initialization_options`), `Runtime`, `execution_environment`, `config_folder`, `commands`. |
-| `launch.rs` | `AppLaunch`, `application_command`, `jdwp_listen`, `remote_jvm_arguments`, `build_output_classpath`, `build_tool_debug_args`, `DEBUG_PORT_ENV`. |
+| `launch.rs` | `AppLaunch`, `application_command`, `jdwp_listen`, `remote_jvm_arguments`, `build_output_classpath`, `build_tool_debug_args`, `JUnitSelector`, `junit_console_command`, `DEBUG_PORT_ENV`. |
 | `source.rs` | The tolerant scanner: `parse(text) -> JavaFile { package, imports, types, top_level_methods }`. |
 | `tests.rs` | `JavaTests` (`TestFrameworkProvider`) and `module_of_source_root`. |
 
@@ -24241,7 +24391,7 @@ pub use tests::JavaTests;
 
 ## Tests
 
-6 source files, about 2110 lines; 14 unit tests.
+6 source files; 16 unit tests.
 
 ```sh
 cargo test -p javaforge-lang-java

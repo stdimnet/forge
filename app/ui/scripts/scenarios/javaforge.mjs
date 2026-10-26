@@ -1,7 +1,10 @@
 /**
  * JavaForge screenshots on the Gradle demo service (`?project=java`): the Java editor with
  * Eclipse JDT LS completion, Settings | JDKs, the Run gutter on `main`, a JUnit 5 test tree
- * from Gradle's reports, a java-debug session and the Gradle tool window.
+ * from Gradle's reports, a java-debug session, the Gradle tool window after a sync (tasks,
+ * resolved dependencies), Execute Gradle Task, the Maven tool window with profiles
+ * (`?build=maven`), Kotlin DSL and coordinate completion, the outdated-version quick fix and
+ * Settings | Build Tools | Gradle with the wrapper.
  */
 
 const java = (fn) => Object.assign(fn, { query: "?project=java" });
@@ -166,8 +169,91 @@ export default {
     await closeBalloons(page);
     await page.waitForSelector('[data-tool-window="gradle"]', { timeout: 10000 });
     await page.click('[data-tool-window="gradle"]');
-    await page.waitForSelector('.java-tree-goal[data-goal="test"]');
-    await page.click('.java-tree-goal[data-goal="bundleConfig"]');
+    await page.waitForSelector('[data-testid="gradle-sync"]');
+    await page.click('[data-testid="gradle-sync"]');
+    await page.waitForSelector('.java-bt-row[data-configuration="testRuntimeClasspath"]', { timeout: 15000 });
+    await closeBalloons(page);
+    await page.click('.java-bt-row[data-build-group="build"] .java-bt-twisty').catch(() => {});
+    for (const cfg of ["compileClasspath", "testRuntimeClasspath"]) await page.click(`.java-bt-row[data-configuration="${cfg}"] .java-bt-twisty`);
+    await page.click('.java-bt-row[data-dependency="com.google.guava:guava:33.3.1-jre"] .java-bt-twisty');
+    await page.click('.java-bt-row[data-goal="test"]').catch(() => {});
+    await page.waitForTimeout(300);
+  }),
+  "java-gradle-execute-task": java(async (page) => {
+    await closeBalloons(page);
+    await page.waitForSelector('[data-tool-window="gradle"]', { timeout: 10000 });
+    await page.click('[data-tool-window="gradle"]');
+    await page.click('[data-testid="gradle-execute"]');
+    await page.waitForSelector('[data-testid="java-execute-input"]');
+    await page.keyboard.type("clean jaco");
+    await page.waitForTimeout(300);
+  }),
+  "java-maven-tool-window": Object.assign(
+    async (page) => {
+      await closeBalloons(page);
+      await page.waitForSelector('[data-tool-window="maven"]', { timeout: 10000 });
+      await page.click('[data-tool-window="maven"]');
+      await page.waitForSelector('.java-bt-row[data-profile="dev"]');
+      await page.click('.java-bt-row[data-profile="integration-tests"] .java-bt-check');
+      await page.click('[data-testid="maven-skip-tests"]');
+      await page.click('[data-testid="maven-sync"]');
+      await page.waitForSelector('.java-bt-row[data-dependency="org.junit.jupiter:junit-jupiter:5.10.2"]', { timeout: 15000 });
+      await closeBalloons(page);
+      await page.click('.java-bt-row:has-text("Lifecycle") .java-bt-twisty');
+      await page.click('.java-bt-row[data-dependency="com.google.guava:guava:32.1.3-jre"] .java-bt-twisty');
+      await page.click('.java-bt-row[data-dependency="org.junit.jupiter:junit-jupiter:5.10.2"] .java-bt-twisty');
+      await page.waitForTimeout(300);
+    },
+    { query: "?project=java&build=maven" },
+  ),
+  "java-gradle-kts-completion": java(async (page) => {
+    await closeBalloons(page);
+    await openFile(page, "build.gradle.kts");
+    await caretAfter(page, 'implementation("com.google.guava:guava:33.3.1-jre")');
+    await page.keyboard.press("Enter");
+    await page.keyboard.type('testImplementation("org.assertj:');
+    await page.waitForSelector(".cm-tooltip-autocomplete", { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(600);
+  }),
+  "java-gradle-kts-dsl-completion": java(async (page) => {
+    await closeBalloons(page);
+    await openFile(page, "build.gradle.kts");
+    await caretAfter(page, 'implementation("com.google.guava:guava:33.3.1-jre")');
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("test");
+    await page.waitForSelector(".cm-tooltip-autocomplete", { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
+  }),
+  "java-pom-outdated": Object.assign(
+    async (page) => {
+      await closeBalloons(page);
+      await openFile(page, "pom.xml");
+      await page.waitForSelector(".marker-composer-outdated", { timeout: 10000 }).catch(() => {});
+      await caretAfter(page, "<guava.version>");
+      await page.keyboard.press("Alt+Enter");
+      await page.waitForTimeout(600);
+    },
+    { query: "?project=java&build=maven" },
+  ),
+  "java-gradle-settings": java(async (page) => {
+    await closeBalloons(page);
+    await page.evaluate(async () => {
+      const { openSettings } = await import("/src/features/settings/dialogState.ts");
+      openSettings("build.tools.gradle");
+    });
+    await page.waitForSelector('[data-testid="gradle-wrapper"]');
+    await page.waitForTimeout(400);
+  }),
+  "java-gradle-settings-light": java(async (page) => {
+    await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
+    await closeBalloons(page);
+    await page.evaluate(async () => {
+      const { openSettings } = await import("/src/features/settings/dialogState.ts");
+      openSettings("build.tools.gradle");
+    });
+    await page.waitForSelector('[data-testid="gradle-wrapper"]');
+    await page.click('[data-testid="gradle-update-wrapper"]');
+    await page.waitForSelector(".java-hint", { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(300);
   }),
   "java-jdtls-install": Object.assign(

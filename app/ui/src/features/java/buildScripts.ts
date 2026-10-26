@@ -9,7 +9,7 @@
 import { createSignal } from "solid-js";
 import { EditorState, type Extension } from "@codemirror/state";
 import { ViewPlugin } from "@codemirror/view";
-import { startCompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
+import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { CircleArrowUp } from "lucide-solid";
 import { javaApi, type OutdatedDependency } from "@/ipc/java";
 import type { ContextAction } from "@/ipc/codeintel";
@@ -101,26 +101,11 @@ function completionSource(path: string) {
     return {
       from: answer.from,
       options: answer.items.map((item, i) => toOption(item, i, answer, ctx.pos)),
-      validFor: /^[\w$.\-:]*$/,
+      // `:` ends the word: typing it after the group or artifact asks again (artifacts, versions).
+      validFor: /^[\w$.\-]*$/,
     };
   };
 }
-
-/** Typing `:` in a coordinate string (`"com.google.guava:`) asks again (artifacts, versions). */
-const reopenAfterColon = ViewPlugin.define((view) => ({
-  update(u) {
-    if (!u.docChanged || !active()) return;
-    let at = -1;
-    u.changes.iterChanges((_a, _b, _from, to, inserted) => {
-      if (inserted.toString() === ":") at = to;
-    });
-    if (at < 0) return;
-    const line = u.state.doc.lineAt(at);
-    const before = line.text.slice(0, at - line.from);
-    const quotes = (before.match(/["']/g) ?? []).length;
-    if (quotes % 2 === 1) setTimeout(() => startCompletion(view), 0);
-  },
-}));
 
 const cleanup = (path: string) =>
   ViewPlugin.define(() => ({
@@ -138,5 +123,5 @@ const cleanup = (path: string) =>
 export function buildScriptEditor(path: string): Extension | null {
   if (!isBuildScript(path)) return null;
   const data = [{ autocomplete: completionSource(path) }];
-  return [EditorState.languageData.of(() => data), reopenAfterColon, cleanup(path)];
+  return [EditorState.languageData.of(() => data), cleanup(path)];
 }

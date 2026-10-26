@@ -26,9 +26,13 @@ itself comes from Eclipse JDT LS through `forge-lsp`.
   gutter targets with temporary configurations, Rerun Failed Tests (`Class#method` lists) and
   commands through `javaforge-build` with `TestReport::JUnitFile`, `JUnitFlavor::Java`, the
   build's report folders (`TestCommand::report_dirs`), location rules from the source root and
-  JaCoCo coverage with its own rules (main sources).
+  JaCoCo coverage with its own rules (main sources). With the option `runner = junit` ("Run
+  tests using: IntelliJ IDEA") JUnit runs on the JUnit Platform Console Launcher instead, on
+  the class path the backend resolved (`resolvedClasspath`, `launcherJar`, `reportsDir`).
 - `launch` builds Application command lines (`java` with VM options, `-p` / `-cp`, `-m`, the
-  JDWP agent of debug runs) and the debug arguments of Gradle (`--debug-jvm`) and Surefire.
+  JDWP agent of debug runs), the debug arguments of Gradle (`--debug-jvm`) and Surefire, and
+  `junit_console_command` (`java -jar junit-platform-console-standalone.jar execute
+  --select-… --reports-dir …`).
 - `jdtls` describes how JDT LS starts: the command line (read-only installation, OSGi
   configuration and `-data` in the cache dir), `initializationOptions` (java-debug bundle,
   extended client capabilities) and the `java.*` settings (JDKs as runtimes, Gradle / Maven
@@ -40,7 +44,7 @@ itself comes from Eclipse JDT LS through `forge-lsp`.
 | --- | --- |
 | `discovery.rs` | `main_methods`, `discover_tests`, `Framework`, `TestDiscovery`, `source_root`. |
 | `jdtls.rs` | `JdtlsSetup` (`args`, `settings`, `initialization_options`), `Runtime`, `execution_environment`, `config_folder`, `commands`. |
-| `launch.rs` | `AppLaunch`, `application_command`, `jdwp_listen`, `remote_jvm_arguments`, `build_output_classpath`, `build_tool_debug_args`, `DEBUG_PORT_ENV`. |
+| `launch.rs` | `AppLaunch`, `application_command`, `jdwp_listen`, `remote_jvm_arguments`, `build_output_classpath`, `build_tool_debug_args`, `JUnitSelector`, `junit_console_command`, `DEBUG_PORT_ENV`. |
 | `source.rs` | The tolerant scanner: `parse(text) -> JavaFile { package, imports, types, top_level_methods }`. |
 | `tests.rs` | `JavaTests` (`TestFrameworkProvider`) and `module_of_source_root`. |
 
@@ -64,7 +68,7 @@ pub use tests::JavaTests;
 
 ## Tests
 
-6 source files, about 2110 lines; 14 unit tests.
+6 source files; 16 unit tests.
 
 ```sh
 cargo test -p javaforge-lang-java

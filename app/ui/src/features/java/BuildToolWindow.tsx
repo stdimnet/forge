@@ -350,7 +350,7 @@ function mavenProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[]):
 
 export function MavenToolWindow() {
   const model = useModel();
-  const tree = createTreeState(["profiles", "m:", "m:/lifecycle"]);
+  const tree = createTreeState(["profiles", "m:", "m:/lifecycle", "m:/deps"]);
   const offline = () => getSetting<boolean>("java.maven.offline", false);
   const skipTests = () => getSetting<boolean>("java.maven.skipTests", false);
   const nodes = createMemo<TreeNode[]>(() => {
