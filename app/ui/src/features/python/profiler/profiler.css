@@ -1,0 +1,170 @@
+/* Profiler tool window: call tree and method list of a cProfile snapshot. */
+.prof-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 13px;
+}
+
+.prof-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.prof-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.prof-tab {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.prof-tab:hover {
+  background: var(--bg-hover);
+}
+
+.prof-tab.active {
+  color: var(--fg);
+  background: var(--accent-soft);
+}
+
+.prof-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prof-summary b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.prof-empty {
+  padding: 16px;
+  line-height: 1.5;
+}
+
+.prof-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.prof-tree-cols {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 70px 96px 96px 150px;
+  align-items: center;
+}
+
+.prof-list-cols {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 80px 96px 150px 96px;
+  align-items: center;
+}
+
+.prof-head {
+  padding: 3px 0;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.prof-head > span {
+  padding: 0 8px;
+}
+
+.prof-sort {
+  cursor: pointer;
+  user-select: none;
+}
+
+.prof-sort.active {
+  color: var(--fg);
+}
+
+.prof-body {
+  overflow: auto;
+  flex: 1;
+}
+
+.prof-row {
+  height: 22px;
+  cursor: default;
+}
+
+.prof-row:hover {
+  background: var(--bg-hover);
+}
+
+.prof-row.selected {
+  background: var(--accent-soft);
+}
+
+.prof-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.prof-chevron {
+  width: 14px;
+  display: inline-flex;
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.prof-fn {
+  font-family: var(--font-mono);
+  color: var(--syn-function, var(--fg));
+}
+
+.prof-fn.builtin {
+  color: var(--fg-muted);
+}
+
+.prof-loc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prof-num {
+  padding: 0 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-pct {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-bar {
+  width: 70px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--bg-hover);
+  overflow: hidden;
+  flex: none;
+}
+
+.prof-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--warning);
+}
