@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" errors="0" failures="1" skipped="1" tests="3" time="0.031" timestamp="2026-10-26T10:00:00.000000" hostname="dev">
+    <testcase classname="tests.test_cart.TestCart" name="test_adds_items" time="0.001" />
+    <testcase classname="tests.test_cart.TestCart" name="test_rounds[half]" time="0.002">
+      <failure message="assert 1.1781 == 1.18">self = &lt;tests.test_cart.TestCart object at 0x7f&gt;
+
+    def test_rounds(self):
+&gt;       assert round_cents(1.1781) == 1.18
+E       assert 1.1781 == 1.18
+
+tests/test_cart.py:12: AssertionError</failure>
+    </testcase>
+    <testcase classname="tests.test_cart" name="test_vouchers" time="0.000">
+      <skipped type="pytest.skip" message="needs a database">tests/test_cart.py:21: needs a database</skipped>
+    </testcase>
+  </testsuite>
+</testsuites>

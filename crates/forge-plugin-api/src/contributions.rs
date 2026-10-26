@@ -33,6 +33,11 @@ pub struct Contributions {
     /// Debug adapters (Debug Adapter Protocol) the shared debugger can start or attach with.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub debug_adapters: Vec<DebugAdapterContribution>,
+    /// Test frameworks for the shared test runner (detection, command lines, gutter
+    /// discovery, result format, Rerun Failed Tests, coverage); each is also a run
+    /// configuration type.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub test_frameworks: Vec<TestFrameworkContribution>,
     #[serde(default)]
     pub ai_providers: Vec<AiProviderContribution>,
     #[serde(default)]
@@ -61,6 +66,10 @@ pub use forge_keymap::MenuContribution as MainMenuContribution;
 /// UI under the same `id`. Defined by the pure `forge-filetypes` crate, which also matches
 /// files against these contributions.
 pub use forge_filetypes::FileTypeSpec as FileTypeContribution;
+
+/// A test framework declared as data (`[[contributions.testFrameworks]]`). Defined by the
+/// pure `forge-testing` crate, which also builds its commands and discovers its tests.
+pub use forge_testing::TestFrameworkSpec as TestFrameworkContribution;
 
 /// An action with a PHPStorm-style id (e.g. `settings.open`), invokable from Find Action.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -586,6 +595,29 @@ mod tests {
         assert!(c.run_configuration_types.is_empty());
         assert!(c.settings[0].project);
         assert_eq!(c.lsp_servers[0].args, vec!["--stdio"]);
+    }
+
+    #[test]
+    fn test_frameworks_are_declared_as_data() {
+        let c: Contributions = toml::from_str(
+            r#"
+            [[testFrameworks]]
+            id = "busted"
+            name = "busted"
+            testFiles = ["*_spec.lua"]
+            program = "busted"
+            args = ["--output=TAP"]
+            report = "tap"
+            [testFrameworks.scopes]
+            all = []
+            file = ["${file}"]
+            "#,
+        )
+        .unwrap();
+        let f = &c.test_frameworks[0];
+        assert_eq!(f.report, forge_output::TestReport::Tap);
+        assert_eq!(f.scopes["file"], ["${file}"]);
+        assert!(f.is_test_file("spec/cart_spec.lua"));
     }
 
     #[test]

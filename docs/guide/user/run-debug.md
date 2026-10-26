@@ -1,6 +1,6 @@
 ---
 title: Run/Debug configurations
-description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Pest, Codeception, Behat, PHPSpec, Artisan, Composer, npm, shell scripts and Lua, compound configurations, Before launch tasks, Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the PHPUnit test tree.
+description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Pest, Codeception, Behat, PHPSpec, Artisan, Composer, npm, shell scripts, Lua and busted, compound configurations, Before launch tasks, Run on (run targets), Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the test tree.
 order: 140
 tags: [run, debug, configurations, phpunit, tests, npm, run anything, compound, before launch, external tools, macros]
 ---
@@ -87,6 +87,9 @@ type, so they run like configurations:
   and **Interpreter options** (PHP and Lua types), **Arguments**, **Working directory**
   (default: the project root), **Environment variables** and [Before launch](#before-launch)
   tasks.
+- **Run on** runs the configuration (runs, tests, coverage and debug runs) on the local
+  machine, in a Docker image, a Docker Compose service, over SSH, in WSL or in a Dev
+  Container, see [Run targets](run-targets.md).
 - The **Command Line** preview shows exactly what will run.
 
 ### Configuration types
@@ -314,9 +317,10 @@ Forge automatically is not supported.
 
 ## Test results
 
-Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest) or
-write JUnit reports (Codeception, Behat, PHPSpec) show a **Test Results** tree next to the
-console:
+Test runners of every pack show a **Test Results** tree next to the console: TeamCity service
+messages (PHPUnit with `--teamcity`, Pest), JUnit reports (Codeception, Behat, PHPSpec), TAP
+(busted) and the other formats of the shared [test runner](testing.md). **Run with Coverage**
+shows which lines the tests ran, see [Code coverage](coverage.md).
 
 ![PHPUnit test tree](../../screenshots/run-phpunit-tree.png)
 

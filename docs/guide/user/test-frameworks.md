@@ -12,7 +12,8 @@ PHPStorm does: gutter ▶ icons on every test, a run configuration type per fram
 tree in the Run tool window with the results of each test, **Rerun Failed Tests**, the **Test
 History** and **auto-test**. Every run goes through the project's
 [CLI interpreter](php.md#cli-interpreters), so tests run locally, in Docker, Docker Compose,
-over SSH or in WSL alike.
+over SSH or in WSL alike. The frameworks are part of the shared [test runner](testing.md) of
+every pack; PHPUnit and Pest also run with [coverage](coverage.md) (Xdebug or PCOV).
 
 ![Pest tests from the gutter](../../screenshots/test-frameworks-pest.png)
 

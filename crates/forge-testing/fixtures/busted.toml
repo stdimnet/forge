@@ -1,0 +1,28 @@
+# The busted contribution of app/src-tauri/plugins/luaforge.toml.
+id = "busted"
+name = "busted"
+description = "Run busted specs: all specs, a directory, a spec file, one test or a name pattern."
+icon = "flask-conical"
+language = "lua"
+detect = { files = [".busted", "spec/*_spec.lua", "spec/**/*_spec.lua"], dependencies = [{ file = "*.rockspec", contains = "busted" }] }
+testFiles = ["*_spec.lua"]
+program = "busted"
+programSetting = "lua.busted.path"
+args = ["--output=TAP"]
+report = "tap"
+nameSeparator = " "
+escape = "lua"
+discovery = [
+  { kind = "describe", pattern = '''^\s*(?:describe|context|insulate|expose)\s*\(?\s*["'](?P<name>[^"']+)["']''' },
+  { kind = "test", pattern = '''^\s*(?:it|spec|test|pending)\s*\(?\s*["'](?P<name>[^"']+)["']''' },
+]
+rerun = { join = "\n" }
+coverage = { args = ["--coverage"], file = "luacov.report.out", format = "lcov" }
+debuggable = false
+
+[scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--filter=${testPattern}"]
+pattern = ["--filter=${pattern}"]

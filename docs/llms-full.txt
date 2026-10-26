@@ -770,6 +770,9 @@ not finished, the page says so.
 | --- | --- |
 | [Project trust and Safe Mode](docs/guide/user/project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
+| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest, pytest, Jest / Vitest) |
+| [Code coverage](docs/guide/user/coverage.md) | Run with Coverage, the Coverage tool window (line and branch coverage per directory and file), coverage marks with hits in the editor gutter, the Project view, Show Coverage Data (`Ctrl+Alt+F6`), importing LCOV, Cobertura, Clover, JaCoCo and Go reports |
+| [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
 | [Command Line Tool Support](docs/guide/user/command-line-tools.md) | Tools \| Run Command… (`Ctrl+Shift+X`): Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools with completion, the Command Line Tools Console, Settings \| Tools \| Command Line Tool Support |
 | [Debugging](docs/guide/user/debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
@@ -10649,6 +10652,23 @@ Settings | Languages & Frameworks | Lua | **Lua interpreter** (`lua.interpreter`
 
 ![Run Lua](docs/screenshots/lua-run.png)
 
+## Tests with busted
+
+LuaForge registers [busted](https://lunarmodules.github.io/busted/) on the shared
+[test runner](docs/guide/user/testing.md): `*_spec.lua` files get ▶ gutter icons on every `describe` block and
+`it` test, a **busted** run configuration type runs all specs, a directory, a spec file, one
+test (by its full name, `--filter`) or a name pattern, and the results arrive as TAP
+(`busted --output=TAP`) in the test tree with **Click to see difference** for failed
+`assert.are.equal` comparisons. **Rerun Failed Tests** passes one `--filter` per failed test.
+The executable is Settings | Languages & Frameworks | Lua | **busted executable**
+(`lua.busted.path`, `busted`) unless the configuration sets its own.
+
+**Run with Coverage** runs `busted --coverage`; with luacov's LCOV reporter in `.luacov`
+(`runreport = true`, `reporter = "lcov"`) the report `luacov.report.out` is shown in the
+[Coverage](docs/guide/user/coverage.md) tool window and the editor.
+
+![busted tests](docs/screenshots/test-runner-busted.png)
+
 ## Settings summary
 
 ![Lua settings](docs/screenshots/lua-settings.png)
@@ -11826,6 +11846,9 @@ type, so they run like configurations:
   and **Interpreter options** (PHP and Lua types), **Arguments**, **Working directory**
   (default: the project root), **Environment variables** and [Before launch](#before-launch)
   tasks.
+- **Run on** runs the configuration (runs, tests, coverage and debug runs) on the local
+  machine, in a Docker image, a Docker Compose service, over SSH, in WSL or in a Dev
+  Container, see [Run targets](docs/guide/user/run-targets.md).
 - The **Command Line** preview shows exactly what will run.
 
 ### Configuration types
@@ -12053,9 +12076,10 @@ Forge automatically is not supported.
 
 ## Test results
 
-Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest) or
-write JUnit reports (Codeception, Behat, PHPSpec) show a **Test Results** tree next to the
-console:
+Test runners of every pack show a **Test Results** tree next to the console: TeamCity service
+messages (PHPUnit with `--teamcity`, Pest), JUnit reports (Codeception, Behat, PHPSpec), TAP
+(busted) and the other formats of the shared [test runner](docs/guide/user/testing.md). **Run with Coverage**
+shows which lines the tests ran, see [Code coverage](docs/guide/user/coverage.md).
 
 ![PHPUnit test tree](docs/screenshots/run-phpunit-tree.png)
 
@@ -12084,6 +12108,235 @@ pack registers a debug adapter, starts a [debug adapter session](docs/guide/user
 
 ---
 
+Source: docs/guide/user/testing.md
+
+# Testing
+
+Every pack runs its tests through the same test runner, so tests look and behave the same in
+PHP, Lua and every language pack that follows:
+
+- green ▶ **gutter icons** on test files, classes, `describe` blocks and single tests;
+- a **run configuration type** per test framework (Run | Edit Configurations…);
+- the **test tree** in the Run tool window with statuses, durations, output per test and
+  **Click to see difference** for failed comparisons;
+- **Rerun Failed Tests**, the **Test History**, **auto-test**;
+- **Run with Coverage** ([Coverage](docs/guide/user/coverage.md)) and **Run on** a Docker image, a Docker
+  Compose service, an SSH host, WSL or a Dev Container ([Run targets](docs/guide/user/run-targets.md)).
+
+![A busted test run in the Lua demo](docs/screenshots/test-runner-busted.png)
+
+## Test frameworks
+
+| Framework | Pack | Results | Coverage |
+| --- | --- | --- | --- |
+| PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](docs/guide/user/test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
+| busted | LuaForge ([LuaForge](docs/guide/user/luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
+
+Language packs declare their frameworks in their plugin manifest
+(`[[contributions.testFrameworks]]`, see [Contribution points](docs/guide/developer/contribution-points.md#test-frameworks));
+the framework then appears everywhere on this page without further code.
+
+A framework is used in a project when its files are there (`.busted`, `spec/*_spec.lua`) or a
+project file names it (a rockspec that depends on busted).
+
+## Running tests
+
+- **Gutter icons** — click the ▶ next to a test, a `describe` block, a class or the file:
+  **Run '…'** (`Ctrl+Shift+F10`), **Run '…' with Coverage**, **Debug '…'** (`Shift+F9`) and
+  **Modify Run Configuration…**. After a run the icon shows the test's last result (✓ or ✗).
+- **Run Context Configuration** (`Ctrl+Shift+F10`) runs the test at the caret, else the whole
+  test file.
+- **Run configurations** — each framework is a configuration type. Manifest frameworks have a
+  **Test scope**: *All tests*, *Directory*, *File*, *Test* (a test or a `describe` block by its
+  full name) or *Pattern*, plus **Executable** (default: the framework's setting, e.g.
+  `lua.busted.path`) and **Test runner options**.
+
+![The gutter menu of a busted test](docs/screenshots/test-runner-gutter-menu.png)
+
+## The test tree
+
+The Run tool window (`Alt+4`) shows a test run as a tree next to the console, like PHPStorm:
+
+- suites (files, classes, packages, `describe` blocks) with their tests; statuses (passed,
+  failed, ignored, running) and durations; the status line "Tests failed: 1, passed: 3 of 4
+  tests – 51 ms" with a progress bar;
+- selecting a test shows its own output and failure; **Click to see difference** opens the
+  expected and actual values in the diff viewer;
+- double-click or `F4` jumps to the test (by line, else by its function, method, `it` / `test`
+  call or scenario);
+- **Show Passed** / **Show Ignored**, **Sort Alphabetically** / **by Duration**, **Expand /
+  Collapse All**, **Previous / Next Failed Test**;
+- **Rerun Failed Tests** runs only the failed tests (PHPUnit / Pest `--filter`, busted
+  `--filter` per test, …), **Toggle Auto-Test** reruns the tab a few seconds after files are
+  saved (`run.autoTest.delay`), the **Test History** reopens one of the last 10 runs.
+
+## Result formats
+
+Forge reads what the tools print; the parsers live in Rust (`forge-output`) and turn every
+format into the same test events:
+
+| Format | Tools | Arrives |
+| --- | --- | --- |
+| TeamCity service messages | PHPUnit `--teamcity`, Pest, Jest and Mocha TeamCity reporters | streamed on stdout |
+| JUnit XML | Codeception, Behat, PHPSpec, PHPUnit `--log-junit`, pytest `--junitxml`, Gradle, Maven | a report file or a document on stdout |
+| TAP 12–14 | busted `--output=TAP`, `node --test --test-reporter=tap`, prove, Bats, node-tap | streamed on stdout |
+| Go `test2json` | `go test -json` | streamed on stdout |
+| libtest JSON | `cargo test -- -Z unstable-options --format json`, nextest | streamed on stdout |
+| pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
+| Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
+
+Failures keep their message, the failure location (a stack frame) and, where the tool reports
+them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`
+(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted).
+
+## Safe Mode
+
+Running tests runs the project's code: in [Safe Mode](docs/guide/user/project-trust.md) every test run,
+coverage run and debug run is refused until the project is trusted.
+
+
+---
+
+Source: docs/guide/user/coverage.md
+
+# Code coverage
+
+**Run with Coverage** runs tests and shows which lines they executed, like PHPStorm:
+
+![Coverage of the PHP demo](docs/screenshots/coverage-tool-window.png)
+
+## Run with Coverage
+
+- the gutter menu of a test: **Run '…' with Coverage**;
+- **Run | Run with Coverage** for the selected configuration (action `Coverage`) and
+  **Run Context Configuration with Coverage** (`RunCoverage`) for the test at the caret.
+
+| Framework | How | Report |
+| --- | --- | --- |
+| PHPUnit, Pest | `--coverage-clover <file>` with `XDEBUG_MODE=coverage` (Xdebug) or PCOV, whichever the interpreter loads | Clover XML |
+| busted (LuaForge) | `busted --coverage` with luacov; `.luacov` sets `runreport = true` and `reporter = "lcov"` (luacov-reporter-lcov) | LCOV (`luacov.report.out`) |
+| any manifest framework | its `coverage` arguments | LCOV, Cobertura, Clover, JaCoCo or a Go profile |
+
+When the run ends, Forge reads the report, maps its paths into the project (container and
+remote paths through the run's path mappings) and shows the suite. Coverage runs work on
+every [run target](docs/guide/user/run-targets.md) and through every PHP CLI interpreter (Docker, Compose,
+SSH, WSL). In [Safe Mode](docs/guide/user/project-trust.md) they are refused like every run.
+
+## Coverage tool window
+
+**View | Tool Windows | Coverage** (on the right, shown once there is coverage data) lists the
+directories and files of the suite:
+
+| Column | Shows |
+| --- | --- |
+| Element | the project, folders (single-child folders compacted: `src/main/java`) and files |
+| Line, % | covered and total lines: `85% (17/20)` with a bar |
+| Branch, % | taken and total branches (Clover conditions, Cobertura and LCOV branches, JaCoCo) |
+
+Double-click a file to open it, a folder to collapse it. The toolbar **hides / shows** the
+coverage in the editor and the Project view, **Show Coverage Data…** switches between the
+session's last 10 suites, **Import External Coverage Report…** reads a report, and **Close**
+drops the suite.
+
+## Coverage in the editor and the Project view
+
+While coverage is shown, the editor gutter marks every line of the report:
+
+- green: the line ran (and all its branches were taken);
+- yellow: the line ran, but some branches (or, in Go, some blocks on the line) did not;
+- red: the line never ran.
+
+Hovering a mark shows the hits: "Hits: 3, branches: 1 of 2 covered". The Project view shows
+"62% lines covered" next to covered files and folders.
+
+![Coverage in the light theme](docs/screenshots/coverage-light.png)
+
+## Show Coverage Data
+
+**Run | Show Coverage Data…** (`Ctrl+Alt+F6`, action `SwitchCoverage`) picks one of the
+session's suites; **Run | Hide Coverage** (`HideCoverageInfo`) hides the marks and hints.
+**Import External Coverage Report…** (desktop app: a file dialog; the Project view: right-click
+a report, **Show Coverage Data from This Report**) reads:
+
+| Format | Written by |
+| --- | --- |
+| LCOV (`lcov.info`) | c8, Istanbul / nyc, Jest and Vitest `lcov`, luacov-reporter-lcov, grcov, cargo-llvm-cov |
+| Cobertura XML | coverage.py `coverage xml`, Istanbul `cobertura`, cargo-llvm-cov, gcovr |
+| Clover XML | PHPUnit `--coverage-clover`, Istanbul `clover` |
+| JaCoCo XML | JaCoCo, Kover |
+| Go coverprofile | `go test -coverprofile` |
+
+The format is recognized from the content.
+
+
+---
+
+Source: docs/guide/user/run-targets.md
+
+# Run targets (Run on)
+
+Like IntelliJ's run targets, every run configuration can **run on** another machine: the
+configuration's runs, test runs, coverage runs and debug runs then execute there, while Forge
+keeps the project, the test tree, the console links and the debugger local.
+
+![Run on: Docker image](docs/screenshots/run-on-selector.png)
+
+## Choosing a target
+
+**Run | Edit Configurations…** → the configuration → **Run on**:
+
+| Target | Fields | Runs as |
+| --- | --- | --- |
+| Local machine | — | the program itself |
+| Docker image | Image, Docker run options, Project path on target (default `/opt/project`) | `docker run --rm -i -v <project>:<path> -w <dir> -e K=V <options> <image> <program> …` |
+| Docker Compose service | Compose files, Service, Lifecycle (*Always start a new container* / *Connect to existing container*) | `docker compose -f … run --rm -T …` or `exec -T …` |
+| SSH | Host, Port, User name, Private key file, Project path on target | `ssh -o BatchMode=yes … user@host "cd <dir> && env K=V <program> …"` |
+| WSL | Distribution, User name | `wsl.exe -d <distribution> --cd <dir> --exec env K=V <program> …` |
+| Dev Container | Container, User name, Project path in the container | `docker exec -i -u <user> -w <dir> -e K=V <container> <program> …` |
+
+The configuration's **Working directory** and **Environment variables** apply on the target;
+the target's own environment is added to every run. The Docker CLI is `docker.cliPath`
+(Settings | Build, Execution, Deployment | Docker). The run configuration stores the target in
+`runOn`, so a shared configuration (`.forge/runConfigurations.toml`) carries it for the team.
+
+PHP configurations whose **CLI interpreter** is itself a Docker, Compose, SSH or WSL
+interpreter run through that interpreter ([PHP](docs/guide/user/php.md#cli-interpreters)); the run target
+applies to PHP configurations with a local interpreter and to every other configuration type.
+
+## Path mappings
+
+Forge maps paths both ways:
+
+- the project folder and the working directory, and absolute project paths in the arguments,
+  become paths on the target;
+- paths in the output, test locations and coverage reports become project files again, so
+  console links, the test tree's navigation and the [coverage](docs/guide/user/coverage.md) marks work;
+- debuggers get the same pairs for breakpoints.
+
+Automatic mappings: a Docker image mounts the project at its project path, a Compose service
+uses the bind mounts of its `volumes`, WSL sees `C:\work\shop` as `/mnt/c/work/shop`, SSH hosts
+and Dev Containers use their project path. **Path mappings** (`<project folder>=<path on
+target>; …`) add your own; yours win for the same folder.
+
+## Debugging on a target
+
+Debug runs make the debugger's port reachable:
+
+- debuggers that connect back to the IDE (Xdebug) reach it as `host.docker.internal` in
+  containers (`--add-host=host.docker.internal:host-gateway`) and through a reverse tunnel
+  (`ssh -R`) over SSH; PHP runs also get `PHP_IDE_CONFIG=serverName=<target>` and a debugger
+  server with the target's path mappings;
+- debuggers the IDE connects to (debug adapters listening in the program) get their port
+  published (`-p`) or forwarded (`ssh -L`).
+
+## Safe Mode
+
+Runs on a target run the project's code like local runs: in [Safe Mode](docs/guide/user/project-trust.md)
+they are refused until the project is trusted.
+
+
+---
+
 Source: docs/guide/user/test-frameworks.md
 
 # PHP test frameworks
@@ -12093,7 +12346,8 @@ PHPStorm does: gutter ▶ icons on every test, a run configuration type per fram
 tree in the Run tool window with the results of each test, **Rerun Failed Tests**, the **Test
 History** and **auto-test**. Every run goes through the project's
 [CLI interpreter](docs/guide/user/php.md#cli-interpreters), so tests run locally, in Docker, Docker Compose,
-over SSH or in WSL alike.
+over SSH or in WSL alike. The frameworks are part of the shared [test runner](docs/guide/user/testing.md) of
+every pack; PHPUnit and Pest also run with [coverage](docs/guide/user/coverage.md) (Xdebug or PCOV).
 
 ![Pest tests from the gutter](docs/screenshots/test-frameworks-pest.png)
 
@@ -15377,6 +15631,9 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | --- | --- | --- | --- | --- |
 | Run | `Shift+F10` | `Ctrl+R` | yes | Runs the configuration selected in the run widget. [More](docs/guide/user/run-debug.md) |
 | Debug | `Shift+F9` | `Ctrl+D` | yes | Debugs the selected configuration (Xdebug for PHP, `--inspect` for npm). [More](docs/guide/user/run-debug.md#debugging) |
+| Run with Coverage | — | — | yes | Runs the selected configuration's tests with coverage (PHPUnit, Pest, busted, manifest frameworks). [More](docs/guide/user/coverage.md#run-with-coverage) |
+| Show Coverage Data… | `Ctrl+Alt+F6` | `Cmd+Alt+F6` | yes | Picks one of the session's coverage suites or imports a report. [More](docs/guide/user/coverage.md#show-coverage-data) |
+| Hide Coverage | — | — | yes | Hides (or shows again) the coverage marks in the editor and the Project view. [More](docs/guide/user/coverage.md#coverage-in-the-editor-and-the-project-view) |
 | Run… | `Alt+Shift+F10` | `Ctrl+Alt+R` | yes | Lists the run configurations to run one; hold `Shift` to debug instead. [More](docs/guide/user/run-debug.md#run-widget) ([screenshot](docs/screenshots/docs-run-chooser.png)) |
 | Debug… | `Alt+Shift+F9` | `Ctrl+Alt+D` | yes | Lists the run configurations to debug one. [More](docs/guide/user/run-debug.md#run-widget) |
 | Attach to Process… | `Ctrl+Alt+F5` | `Cmd+Alt+F5` | not yet | Not available yet; the entry is disabled. |
@@ -16242,6 +16499,7 @@ Page id `lang.lua`.
 | `langservers.lua.libraries` | list | `[]` | user, project | Lua Language Server | Library paths — Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4. |
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
+| `lua.busted.path` | path | `busted` | user | Testing | busted executable — Runs busted test configurations that do not set their own executable. |
 
 ### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
 
@@ -17720,6 +17978,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
+| `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
@@ -17958,6 +18217,55 @@ watchpoints, exception filters, logpoints, threads, memory, disassembly and regi
 when the adapter's capabilities say so. Starting a program is refused in Safe Mode; attaching
 is not. Tests use the fake adapter (`forge_dap::fake`, binary `forge-dap-fake`) instead of a
 real debugger.
+## Test frameworks
+
+A pack's test framework plugs into the shared test runner (`crates/forge-testing`): the gutter
+▶ icons, a run configuration type, the test tree, Rerun Failed Tests, the Test History,
+auto-test, Run with Coverage and Run on (run targets) then work without UI code. Declare it in
+the plugin manifest:
+
+```toml
+[[contributions.testFrameworks]]
+id = "busted"                       # also the run configuration type
+name = "busted"
+detect = { files = [".busted", "spec/**/*_spec.lua"], dependencies = [{ file = "*.rockspec", contains = "busted" }] }
+testFiles = ["*_spec.lua"]          # gutter icons in these files
+program = "busted"
+programSetting = "lua.busted.path"  # setting with the executable
+args = ["--output=TAP"]
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | pytestReportLog | jestJson
+junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
+nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
+escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
+discovery = [
+  { kind = "describe", pattern = '''^\s*describe\(\s*["'](docs/guide/developer/?P<name>[^"']+)''' },
+  { kind = "test", pattern = '''^\s*it\(\s*["'](docs/guide/developer/?P<name>[^"']+)''' },
+]
+locationRules = [{ pattern = '^example\.com/shop/', replacement = "" }]  # reported paths → project paths
+rerun = { join = "\n" }             # Rerun Failed Tests: the `pattern` scope with the failed names
+coverage = { args = ["--coverage"], file = "luacov.report.out", format = "lcov" }
+
+[contributions.testFrameworks.scopes]   # arguments per Test scope
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--filter=${testPattern}"]
+pattern = ["--filter=${pattern}"]
+```
+
+Placeholders: `${file}`, `${directory}`, `${test}` (full name), `${testName}`, `${testPattern}`,
+`${pattern}`, `${reportDir}` (report files of `jUnitFile` frameworks), `${coverageFile}`. An
+argument whose placeholders are all empty is dropped; a multi-line `${pattern}` repeats its
+argument per line. Discovery nests by indentation; `kind` is `class`, `describe`, `suite` or
+`file` for groups and `test`, `method` or `example` for tests. Coverage formats: `lcov`,
+`cobertura`, `clover`, `jacoco`, `goCover`.
+
+Frameworks that need code implement `forge_testing::TestFrameworkProvider` (types, `accepts`,
+`discover`, `rerun_failed`, optionally `command` and `supports_coverage`) and register it in
+the backend's `TestFrameworks` registry (`RunState::new`) and in `forge-wasm`'s `registry()`,
+as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). New output formats
+go into `forge-output` (`formats/`): a `LineParser` for streamed lines or a document parser,
+both producing `TestEvent`s.
 
 ## Run Anything providers
 
@@ -19060,12 +19368,13 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
-| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links and TeamCity test trees (pure, also built to WebAssembly) |
+| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](docs/guide/developer/crates/forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
+| [forge-runtargets](docs/guide/developer/crates/forge-runtargets.md) | Run targets (Run on: local machine, Docker image, Docker Compose service, SSH, WSL, Dev Container): path mappings and the command lines that run, test and debug there (pure, also built to WebAssembly) |
 | [forge-runtools](docs/guide/developer/crates/forge-runtools.md) | Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly) |
 | [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
@@ -19073,6 +19382,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](docs/guide/developer/crates/forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-testing](docs/guide/developer/crates/forge-testing.md) | The shared test runner and coverage model of every pack: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) (pure, also built to WebAssembly) |
 | [forge-trust](docs/guide/developer/crates/forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
@@ -21650,8 +21960,13 @@ renders it.
 - `links`: clickable file references (`app/User.php:42`, stack traces) and URLs.
 - `teamcity`: TeamCity service messages (`phpunit --teamcity`, Pest, Jest) into a test
   tree that is sent to the UI as node updates.
-- `junit`: JUnit XML reports (Codeception, Behat, PHPSpec) as service messages for the
-  same test tree.
+- `junit`: JUnit XML reports (Codeception, Behat, PHPSpec, pytest) as service messages for
+  the same test tree.
+- `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
+  started / failed with expected, actual and a failure location / ignored / output /
+  finished with a duration) every format is turned into, and the `LineParser` trait.
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON, Jest / Vitest JSON and pytest
+  report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
   link targets.
@@ -21668,12 +21983,19 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `ansi.rs` | ANSI escape handling: SGR colors and styles become styled segments, other control sequences (cursor movement, OSC titles) are dropped. Colors are CSS values, either a theme variable (`var(--ansi-red)`) or `rgb(…)`. |
 | `console.rs` | Console lines built from styled segments, sent to the UI as deltas. |
 | `filters.rs` | External Tools output filters: a regular expression with `$FILE_PATH$`, `$LINE$` and `$COLUMN$` (`$FILE_PATH$:$LINE$`); `RunOutputOptions.outputFilters` links their matches before the built-in patterns. |
+| `testevents.rs` | The test event protocol: `TestEvent` (serde, `event` tag) and `TestEvent::from_service_message`; `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`) for formats streamed on stdout; `TeamCityParser`. |
+| `formats/tap.rs` | TAP 12–14: `ok` / `not ok`, `# SKIP` / `# TODO`, YAML diagnostics (`message`, `expected`/`actual`, `at`, `duration_ms`), busted's comments (`# file @ line`, `Failure message`, `Passed in` / `Expected`), `# Subtest:` nesting (node `--test`, node-tap), plans. |
+| `formats/gotest.rs` | Go `test2json`: packages as suites, tests and subtests, output per test, the first `file_test.go:12:` line as message and failure location, `got … want …` values. |
+| `formats/libtest.rs` | libtest JSON (`cargo test -- --format json`): a suite per test binary (`Running …` lines), module paths as locations, panic locations and `left` / `right` values. |
+| `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
+| `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
+| `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
 | `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class). |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
-| `run.rs` | The output of one run: console lines for every stream, and for test runners the test tree built from TeamCity service messages on stdout (those lines are not shown in the console). Output while a test runs is attributed to that test. `TestReport` says where results come from: TeamCity messages, a JUnit document on stdout (collected and parsed at the exit) or JUnit files handed in as `RunInput::Report` before the exit. |
-| `teamcity.rs` | TeamCity service messages (`phpunit --teamcity`, Pest, Jest reporters) turned into the test tree of the Run tool window. The tree lives here; the UI receives changed nodes. `TestTree::export` / `import` store a finished tree as `StoredNode`s for the Test History. |
+| `run.rs` | The output of one run: console lines for every stream, and for test runners the test tree built from TeamCity service messages on stdout (those lines are not shown in the console). Output while a test runs is attributed to that test. `TestReport` says where results come from and in which format: streamed lines (TeamCity, TAP, `test2json`, libtest JSON, pytest report logs), a document on stdout (JUnit, Jest JSON; collected and parsed at the exit) or report files handed in as `RunInput::Report` before the exit. `RunOutputOptions.locationRules` and `defaultTestFile` map reported locations to project files. |
+| `teamcity.rs` | TeamCity service messages (`phpunit --teamcity`, Pest, Jest reporters) and the test tree of the Run tool window, built from `TestEvent`s (`TestTree::apply_event`; `apply` takes service messages) with location rules (`LocationRule`) and a default file. The tree lives here; the UI receives changed nodes. `TestTree::export` / `import` store a finished tree as `StoredNode`s for the Test History. |
 | `utf16.rs` | Offsets for the UI: JavaScript strings and CodeMirror count UTF-16 code units, Rust counts bytes. |
 
 ## Main public items
@@ -21685,12 +22007,15 @@ pub use links::{…};
 pub use osc::{link_target, parse_osc, LinkTarget, OscAction, Progress, ProgressState};
 pub use junit::{junit_messages, JUnitFlavor};
 pub use run::{OutputEvent, RunInput, RunOutput, RunOutputOptions, TestReport};
+pub use testevents::{LineParser, ParsedLine, TestEvent};
+pub mod formats { pub fn line_parser(..); pub fn document_events(..); pub fn jest_events(..); … }
 pub use teamcity::{…};
 pub use utf16::{byte_to_utf16, utf16_to_byte};
 ```
 
 ## Used by
 
+- Crates: `forge-testing` (test framework commands name a `TestReport`), `forge-process`
 - IPC: `output_file_links`, the `console`/`tests` events of `run://<runId>` and
   `stacktrace_analyze` (`app/src-tauri/src/commands/stacktrace.rs`)
 - UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`, `app/ui/src/features/stacktrace`
@@ -21703,7 +22028,8 @@ pub use utf16::{byte_to_utf16, utf16_to_byte};
 
 ## Tests
 
-8 source files, about 2559 lines; 30 unit tests.
+Unit tests per module, with recorded outputs of every format in `crates/forge-output/fixtures/`
+(busted and node TAP, `go test -json`, libtest JSON, Jest JSON, pytest report log and JUnit).
 
 ```sh
 cargo test -p forge-output
@@ -21724,8 +22050,9 @@ The contract between Forge and its plugins.
 
 A plugin (a language pack like PHPForge, or a feature like Git) describes itself with a
 `PluginManifest` and contributes capabilities through `Contributions`: commands,
-keybindings, tool windows, typed settings, language servers, run configuration types and
-AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
+keybindings, tool windows, typed settings, language servers, run configuration types, test
+frameworks of the shared test runner (`testFrameworks`, defined by
+[`forge-testing`](docs/guide/developer/crates/forge-testing.md)) and AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
 enablement, and answers lookups over the contributions of enabled plugins. Packs depend
 only on this crate, never on app internals.
 
@@ -22006,6 +22333,65 @@ pub async fn serve<R, W>(reader: R, writer: W) -> Result<()>
 
 ```sh
 cargo test -p forge-remote-agent
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-runtargets.md
+
+# forge-runtargets
+
+`crates/forge-runtargets` — run targets ("Run on") and path mappings (pure, also built to
+WebAssembly).
+
+## Purpose
+
+What [Run targets](docs/guide/user/run-targets.md) compute: where a run executes and the command
+line that starts it there from this machine. The PHP CLI interpreters
+([`phpforge-interpreters`](docs/guide/user/php.md#cli-interpreters)) build their Docker, Compose,
+SSH and WSL command lines with it, and Dev Container projects ([`forge-devenv`](docs/guide/developer/crates/forge-devenv.md))
+share its `docker exec` command line.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `mapping.rs` | `PathMapping` (local ↔ remote), `Mapper` (most specific pair wins, both directions, `map_arg` for `--opt=/path` arguments), `normalize`, `join`, `is_absolute`, Docker Compose bind mounts (`parse_volume`, `compose_mappings`) and WSL paths (`wsl_path`). |
+| `target.rs` | `RunTarget` (`kind`: `local`, `dockerImage`, `composeService`, `ssh`, `wsl`, `devContainer`, plus image, run options, Docker context, compose files, service, lifecycle, host, port, user, key file, distribution, container, project path, mappings, environment), `automatic` / `effective` mappings, `Invocation` (program, unmapped program arguments, arguments, working directory, environment, published ports, `DebugPort`), `wrap` (the local command line), `debug_target` (`DebugTarget`: IDE host, target host, mappings for debuggers), `docker_exec_args`, `Launcher` / `run_on` (starting through a launcher; fakes in tests). |
+
+## Main public items
+
+```rust
+pub struct RunTarget { pub kind: TargetKind, … }
+pub fn wrap(target: &RunTarget, inv: &Invocation, ctx: &TargetContext) -> Result<Wrapped, String>;
+pub fn context(target: &RunTarget, root: &str, compose: Option<(&str, &[String])>, docker: &str) -> TargetContext;
+pub fn debug_target(target: &RunTarget, mappings: &[PathMapping]) -> DebugTarget;
+pub enum DebugDirection { ConnectsToIde, IdeConnects }
+```
+
+## Used by
+
+- `forge-process` (`RunConfiguration.run_on`), `phpforge-interpreters` (`wrap`, `mapping`),
+  `forge-devenv` (`docker exec`)
+- IPC: `run_start` / `run_command_line` (configurations with `runOn`), `run_target_info`
+  (`app/src-tauri/src/commands/run.rs`, `commands/testing.rs`)
+- UI: `app/ui/src/features/run/RunOn.tsx` (the Run on row of the Run/Debug Configurations dialog)
+- Browser mode: built into `forge-wasm` (`run_target_wrap`)
+
+## Dependencies
+
+- Workspace crates: [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md) (argument splitting)
+- External: `serde`
+
+## Tests
+
+Command lines of every target with a fake launcher (Docker image mounts and options, Compose
+exec, SSH quoting with `-L` / `-R`, WSL drive paths, Dev Container exec), path mappings and the
+serialized form.
+
+```sh
+cargo test -p forge-runtargets
 ```
 
 
@@ -22498,6 +22884,71 @@ pub use split::{leading_keyword, split_statements, statement_at, Statement};
 
 ```sh
 cargo test -p forge-sql
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-testing.md
+
+# forge-testing
+
+`crates/forge-testing` — the shared test runner and coverage model of every pack (pure, also
+built to WebAssembly).
+
+## Purpose
+
+What [Testing](docs/guide/user/testing.md) and [Code coverage](docs/guide/user/coverage.md) compute
+besides the test results themselves (those are [`forge-output`](docs/guide/developer/crates/forge-output.md)'s test event
+protocol and parsers). Packs register test frameworks as manifest data or as code; the backend
+asks one registry for gutter discovery, command lines and Rerun Failed Tests, and reads
+coverage reports into one model.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `targets.rs` | `TestFile` (the tests of a file with their temporary configurations and result keys), `TestTarget`, `TargetKind` (`class`, `method`, `file`, `describe`, `test`, `dataset`, `feature`, `scenario`, `example`, `suite`), `FailedTest`. |
+| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
+| `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
+| `coverage/mod.rs` | `CoverageReport` (files with `LineHits`: hits, branches, partial), `LineStatus` (covered, partial, uncovered), `merge`, `resolve` (reported paths → project paths), `sniff` / `parse_any`, `Counter` ("85% (17/20)"), `summary` (the Coverage tool window's project, compacted directories and files) and `FileCoverage::marks` (gutter marks with hover texts). |
+| `coverage/lcov.rs` | LCOV tracefiles (`SF`, `DA`, `BRDA`). |
+| `coverage/xml.rs` | Cobertura (`<source>` folders, class lines without the method duplicates), Clover (`stmt`, `method`, `cond` with true/false counts) and JaCoCo (covered/missed instructions and branches) in one streaming pass. |
+| `coverage/gocover.rs` | Go coverage profiles: blocks over lines, partly covered lines. |
+
+## Main public items
+
+```rust
+pub trait TestFrameworkProvider: Send + Sync { fn id(&self) -> &str; fn types(&self) -> Vec<String>; fn accepts(&self, path: &str) -> bool; fn discover(..) -> Option<TestFile>; fn rerun_failed(..) -> Option<Configuration>; fn command(..) -> Option<Result<TestCommand, String>>; fn supports_coverage(&self, type_id: &str) -> bool; }
+pub struct TestFrameworks { … }        // register, register_specs, for_type, discover, rerun_failed, command
+pub struct TestFrameworkSpec { … }     // re-exported by forge-plugin-api as TestFrameworkContribution
+pub struct CoverageReport { pub files: Vec<FileCoverage> }
+pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<CoverageNode>;
+```
+
+## Used by
+
+- IPC: `test_discover`, `test_rerun_failed`, `test_frameworks_detect`, `coverage_suites`,
+  `coverage_view`, `coverage_file`, `coverage_remove`, `coverage_import`, and the command
+  lines of manifest frameworks in `run_start` / `run_command_line`
+  (`app/src-tauri/src/commands/testing.rs`, `commands/run.rs`)
+- Crates: [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md) (the `testFrameworks` contribution),
+  [`phpforge-test-frameworks`](docs/guide/developer/crates/phpforge-test-frameworks.md) (the PHP provider)
+- UI: `app/ui/src/features/run` (manifest framework types, gutter), `app/ui/src/features/coverage`
+- Browser mode: built into `forge-wasm` (`testing.rs`)
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md)
+- External: `quick-xml`, `regex-lite`, `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module with the busted manifest table and recorded coverage reports (LCOV,
+Cobertura, Clover, JaCoCo, Go profile) in `crates/forge-testing/fixtures/`.
+
+```sh
+cargo test -p forge-testing
 ```
 
 
@@ -23070,7 +23521,11 @@ gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests.
 Everything [PHP test frameworks](docs/guide/user/test-frameworks.md) computes. The crate is pure
 (no processes, files or network) and builds to WebAssembly for browser mode; the app runs the
 tests through the project backend and the PHP interpreter, and the results are parsed by
-[`forge-output`](docs/guide/developer/crates/forge-output.md) (TeamCity messages and JUnit reports).
+[`forge-output`](docs/guide/developer/crates/forge-output.md) (TeamCity messages and JUnit reports). The frameworks
+register on the shared test runner as one provider (`PhpTestFrameworks`, see
+[`forge-testing`](docs/guide/developer/crates/forge-testing.md)), so discovery, Rerun Failed Tests and Run with Coverage
+go through the same registry as every other pack's frameworks; the discovery types
+(`TestFile`, `TestTarget`, `TargetKind`, `FailedTest`) are `forge-testing`'s.
 
 ## Modules
 
@@ -23082,6 +23537,7 @@ tests through the project backend and the PHP interpreter, and the results are p
 | `gherkin.rs` | `parse`: features, background, scenarios and outlines with tags, steps (`Given`, `When`, `Then`, `And`, `But`, `*`) and example rows (1-based lines, doc strings skipped); `split_step`. |
 | `steps.rs` | Behat step definitions from doc comments (`@Given …`) and attributes (`#[Given('…')]`, `#[\Behat\Step\Then("…")]`); `pattern_regex` (delimited regular expressions with flags, turnip `:placeholders`, optional `(s)` and `word/other` alternatives); `step_at` (a step's text, outline placeholders replaced by the first example row) and `step_targets`. |
 | `rerun.rs` | `rerun_failed`: PHPUnit / Pest `--filter`, Codeception `-g failed`, Behat `--rerun`, PHPSpec the failed spec file. |
+| `provider.rs` | `PhpTestFrameworks`: the `forge_testing::TestFrameworkProvider` of the five types (commands stay with the PHP interpreter path of the backend); `coverage_args` (`--coverage-clover <file>`, `XDEBUG_MODE=coverage`) for PHPUnit and Pest. |
 
 ## Used by
 
@@ -23095,7 +23551,8 @@ tests through the project backend and the PHP interpreter, and the results are p
 
 ## Dependencies
 
-- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md)
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
 - External: `regex-lite`, `serde`, `serde_json`
 
 ## Tests

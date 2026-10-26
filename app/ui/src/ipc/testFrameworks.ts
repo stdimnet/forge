@@ -1,7 +1,9 @@
 /**
- * PHP test frameworks (Rust: `phpforge-test-frameworks`, `commands/test_frameworks.rs`):
- * Settings | PHP | Test Frameworks, the tests of a file for the gutter, Rerun Failed Tests,
- * Behat step definitions and the Test History of the Run tool window.
+ * Test frameworks (Rust: `forge-testing` with the PHP frameworks of
+ * `phpforge-test-frameworks` and the manifests' frameworks; `commands/test_frameworks.rs`,
+ * `commands/testing.rs`): Settings | PHP | Test Frameworks, the tests of a file for the
+ * gutter, Rerun Failed Tests, Behat step definitions and the Test History of the Run tool
+ * window.
  */
 import { invoke } from "./index";
 import type { RunConfiguration, TestNodeData, TestSummary } from "./run";
@@ -22,7 +24,7 @@ export interface FrameworkConfig {
   detected?: boolean;
 }
 
-export type TargetKind = "class" | "method" | "file" | "describe" | "test" | "dataset" | "feature" | "scenario" | "example";
+export type TargetKind = "class" | "method" | "file" | "describe" | "test" | "dataset" | "feature" | "scenario" | "example" | "suite";
 
 /** A test of a file (gutter ▶ icon). */
 export interface TestTarget {
@@ -36,7 +38,8 @@ export interface TestTarget {
 }
 
 export interface TestFile {
-  framework?: FrameworkId | null;
+  /** The framework that found the tests (`phpunit`, `busted`, …). */
+  framework?: string | null;
   targets: TestTarget[];
   /** Runs every test of the file. */
   file?: RunConfiguration;

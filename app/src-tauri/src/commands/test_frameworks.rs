@@ -15,15 +15,16 @@ use forge_backend::Backend;
 use forge_core::project_state;
 use forge_core::{CollectRequest, ForgeError, Result};
 use forge_process::output::links::LinkContext;
-use forge_process::output::{JUnitFlavor, TestNode, TestReport, TestSummary, TestTree};
+use forge_process::output::{
+    JUnitFlavor, LocationRule, TestNode, TestReport, TestSummary, TestTree,
+};
 use forge_process::test_history::{self, TestRunEntry, TestRunRecord};
 use forge_process::{split_args, CommandLine, RunConfiguration};
 use forge_runtools::Configuration;
 use phpforge_interpreters::InterpreterKind;
-use phpforge_test_frameworks::discover::TestFile;
+use phpforge_test_frameworks::command;
 use phpforge_test_frameworks::frameworks::{self, Framework, FrameworkConfig};
 use phpforge_test_frameworks::steps::{self, StepDefinition};
-use phpforge_test_frameworks::{command, rerun, FailedTest};
 use serde::Serialize;
 use tauri::State;
 
@@ -64,13 +65,16 @@ pub async fn test_frameworks_list(state: State<'_, AppState>) -> Result<Vec<Fram
     blocking(move || Ok(frameworks::effective(configured, detect(backend.as_ref())))).await
 }
 
-fn to_runtools(cfg: &RunConfiguration) -> Result<Configuration> {
+pub(crate) fn to_runtools(cfg: &RunConfiguration) -> Result<Configuration> {
     serde_json::to_value(cfg)
         .and_then(serde_json::from_value)
         .map_err(|e| ForgeError::Other(e.to_string()))
 }
 
-fn from_runtools(cfg: Configuration, like: &RunConfiguration) -> Result<RunConfiguration> {
+pub(crate) fn from_runtools(
+    cfg: Configuration,
+    like: &RunConfiguration,
+) -> Result<RunConfiguration> {
     let mut out: RunConfiguration = serde_json::to_value(cfg)
         .and_then(serde_json::from_value)
         .map_err(|e| ForgeError::Other(e.to_string()))?;
@@ -78,6 +82,7 @@ fn from_runtools(cfg: Configuration, like: &RunConfiguration) -> Result<RunConfi
     out.env = like.env.clone();
     out.interpreter = like.interpreter.clone();
     out.store_as_project_file = like.store_as_project_file;
+    out.run_on = like.run_on.clone();
     Ok(out)
 }
 
@@ -105,7 +110,27 @@ impl ReportDir {
         }
     }
 
-    /// The JUnit XML texts in the folder; the folder is removed.
+    /// The text of one file of the folder (a coverage report).
+    pub(crate) fn read(&self, backend: &dyn Backend, name: &str) -> Option<String> {
+        match self {
+            ReportDir::Local(dir) => std::fs::read_to_string(dir.join(name)).ok(),
+            ReportDir::Project(rel) => backend.read_file(&format!("{rel}/{name}")).ok(),
+        }
+    }
+
+    /// Remove the folder.
+    pub(crate) fn remove(&self, backend: &dyn Backend) {
+        match self {
+            ReportDir::Local(dir) => {
+                let _ = std::fs::remove_dir_all(dir);
+            }
+            ReportDir::Project(rel) => {
+                let _ = backend.delete(rel);
+            }
+        }
+    }
+
+    /// The report texts in the folder (JUnit XML, JSON); the folder is removed.
     pub(crate) fn take(&self, backend: &dyn Backend) -> Vec<String> {
         let mut out = Vec::new();
         match self {
@@ -113,10 +138,10 @@ impl ReportDir {
                 if let Ok(entries) = std::fs::read_dir(dir) {
                     let mut files: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
                     files.sort();
-                    for f in files
-                        .iter()
-                        .filter(|f| f.extension().is_some_and(|x| x == "xml"))
-                    {
+                    for f in files.iter().filter(|f| {
+                        f.extension()
+                            .is_some_and(|x| x == "xml" || x == "json" || x == "jsonl")
+                    }) {
                         if let Ok(t) = std::fs::read_to_string(f) {
                             out.push(t);
                         }
@@ -127,7 +152,11 @@ impl ReportDir {
             ReportDir::Project(rel) => {
                 if let Ok(mut entries) = backend.list_dir(rel) {
                     entries.sort_by(|a, b| a.path.cmp(&b.path));
-                    for e in entries.iter().filter(|e| e.path.ends_with(".xml")) {
+                    for e in entries.iter().filter(|e| {
+                        e.path.ends_with(".xml")
+                            || e.path.ends_with(".json")
+                            || e.path.ends_with(".jsonl")
+                    }) {
                         if let Ok(t) = backend.read_file(&e.path) {
                             out.push(t);
                         }
@@ -140,6 +169,41 @@ impl ReportDir {
     }
 }
 
+/// The folder a run's reports go to and the path the tool gets for it: the system temp
+/// dir when the project and the program are local (`local`), otherwise
+/// `.forge/test-reports/<run>[-<suffix>]` in the project, which interpreters and run
+/// targets (Docker, SSH, WSL, a remote project) reach through their path mappings.
+pub(crate) fn report_dir(
+    local: bool,
+    root: &std::path::Path,
+    run_id: &str,
+    suffix: &str,
+) -> (String, ReportDir) {
+    let mut safe: String = run_id
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if !suffix.is_empty() {
+        safe = format!("{safe}-{suffix}");
+    }
+    if local {
+        let dir = std::env::temp_dir().join("forge-test-reports").join(&safe);
+        (dir.to_string_lossy().into_owned(), ReportDir::Local(dir))
+    } else {
+        let rel = format!("{PROJECT_REPORTS}/{safe}");
+        (
+            root.join(&rel).to_string_lossy().into_owned(),
+            ReportDir::Project(rel),
+        )
+    }
+}
+
 /// What a test run needs besides its command line.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct TestSetup {
@@ -148,6 +212,12 @@ pub(crate) struct TestSetup {
     pub report_dir: Option<ReportDir>,
     /// The configuration, stored with the results in the Test History.
     pub configuration: Option<RunConfiguration>,
+    /// The framework's rewrites of reported locations.
+    pub location_rules: Vec<LocationRule>,
+    /// The file of a single-file run (tests without a location belong to it).
+    pub default_file: Option<String>,
+    /// Run with Coverage: where the report is read after the run.
+    pub coverage: Option<crate::commands::testing::CoverageSetup>,
 }
 
 fn framework_for(
@@ -191,27 +261,9 @@ pub(crate) fn command_line(
         .ok_or_else(|| ForgeError::Other(format!("unknown test framework `{}`", cfg.type_id)))?;
     let fw = framework_for(state, backend.as_ref(), framework, &cfg.interpreter);
     let local = backend.info().remote.is_none()
-        && interpreters::resolve(state, &cfg.interpreter).kind == InterpreterKind::Local;
-    let safe: String = run_id
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '-' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    let (arg_dir, dir) = if local {
-        let dir = std::env::temp_dir().join("forge-test-reports").join(&safe);
-        (dir.to_string_lossy().into_owned(), ReportDir::Local(dir))
-    } else {
-        let rel = format!("{PROJECT_REPORTS}/{safe}");
-        (
-            root.join(&rel).to_string_lossy().into_owned(),
-            ReportDir::Project(rel),
-        )
-    };
+        && interpreters::resolve(state, &cfg.interpreter).kind == InterpreterKind::Local
+        && cfg.run_on.as_ref().is_none_or(|t| t.is_local());
+    let (arg_dir, dir) = report_dir(local, root, run_id, "");
     let built =
         command::build(&to_runtools(cfg)?, fw.as_ref(), &arg_dir).map_err(ForgeError::Other)?;
     let uses_dir = built.report == TestReport::JUnitFile;
@@ -236,26 +288,9 @@ pub(crate) fn command_line(
             flavor: built.flavor,
             report_dir: uses_dir.then_some(dir),
             configuration: Some(cfg.clone()),
+            ..TestSetup::default()
         },
     ))
-}
-
-/// The tests of a file for the gutter icons and Run Context Configuration.
-#[tauri::command]
-pub fn test_discover(path: String, text: String) -> TestFile {
-    phpforge_test_frameworks::discover(&path, &text)
-}
-
-/// The configuration that reruns the failed tests of a run.
-#[tauri::command]
-pub fn test_rerun_failed(
-    configuration: RunConfiguration,
-    failed: Vec<FailedTest>,
-) -> Result<Option<RunConfiguration>> {
-    match rerun::rerun_failed(&to_runtools(&configuration)?, &failed) {
-        Some(c) => from_runtools(c, &configuration).map(Some),
-        None => Ok(None),
-    }
 }
 
 /// The Behat step definitions the step on `line` (0-based) of a feature file uses; context

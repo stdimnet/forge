@@ -6558,6 +6558,17 @@
           "section": "StyLua",
           "project": false,
           "order": 21
+        },
+        {
+          "key": "lua.busted.path",
+          "title": "busted executable",
+          "description": "Runs busted test configurations that do not set their own executable.",
+          "type": "path",
+          "default": "busted",
+          "group": "lang.lua",
+          "section": "Testing",
+          "project": false,
+          "order": 30
         }
       ],
       "lspServers": [
@@ -6599,6 +6610,80 @@
           ],
           "defaultInterpreter": "lua",
           "interpreterSetting": "lua.interpreter"
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "busted",
+          "name": "busted",
+          "description": "Run busted specs: all specs, a directory, a spec file, one test or a name pattern.",
+          "icon": "flask-conical",
+          "language": "lua",
+          "detect": {
+            "files": [
+              ".busted",
+              "spec/*_spec.lua",
+              "spec/**/*_spec.lua"
+            ],
+            "dependencies": [
+              {
+                "file": "*.rockspec",
+                "contains": "busted"
+              }
+            ]
+          },
+          "testFiles": [
+            "*_spec.lua"
+          ],
+          "program": "busted",
+          "programSetting": "lua.busted.path",
+          "args": [
+            "--output=TAP"
+          ],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "--filter=${pattern}"
+            ],
+            "test": [
+              "${file}",
+              "--filter=${testPattern}"
+            ]
+          },
+          "report": "tap",
+          "junitFlavor": "generic",
+          "discovery": [
+            {
+              "kind": "describe",
+              "pattern": "^\\s*(?:describe|context|insulate|expose)\\s*\\(?\\s*[\"'](?P<name>[^\"']+)[\"']"
+            },
+            {
+              "kind": "test",
+              "pattern": "^\\s*(?:it|spec|test|pending)\\s*\\(?\\s*[\"'](?P<name>[^\"']+)[\"']"
+            }
+          ],
+          "nameSeparator": " ",
+          "escape": "lua",
+          "rerun": {
+            "join": "\n",
+            "template": ""
+          },
+          "locationRules": [],
+          "coverage": {
+            "args": [
+              "--coverage"
+            ],
+            "file": "luacov.report.out",
+            "format": "lcov",
+            "env": {}
+          },
+          "debuggable": false
         }
       ],
       "aiProviders": [],

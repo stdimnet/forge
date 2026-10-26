@@ -627,6 +627,7 @@ Page id `lang.lua`.
 | `langservers.lua.libraries` | list | `[]` | user, project | Lua Language Server | Library paths — Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4. |
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
+| `lua.busted.path` | path | `busted` | user | Testing | busted executable — Runs busted test configurations that do not set their own executable. |
 
 ### Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings
 

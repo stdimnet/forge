@@ -210,6 +210,10 @@ impl PluginRegistry {
         self.collect(|c| &c.debug_adapters)
     }
 
+    pub fn test_frameworks(&self) -> impl Iterator<Item = &TestFrameworkContribution> {
+        self.collect(|c| &c.test_frameworks)
+    }
+
     pub fn ai_providers(&self) -> impl Iterator<Item = &AiProviderContribution> {
         self.collect(|c| &c.ai_providers)
     }

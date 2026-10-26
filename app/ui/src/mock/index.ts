@@ -54,6 +54,7 @@ import "./goToTestMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
+import "./coverageMock";
 import "./runToolsMock";
 import "./scratchesMock";
 import "./debugMock";

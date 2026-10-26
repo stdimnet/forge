@@ -45,6 +45,7 @@ import "./browserCompanion";
 import "./terminal";
 import "./run";
 import "./testFrameworks";
+import "./coverage";
 import "./runAnything";
 import "./externalTools";
 import "./debug";

@@ -1860,12 +1860,14 @@ dependencies = [
  "forge-process",
  "forge-project",
  "forge-remote",
+ "forge-runtargets",
  "forge-runtools",
  "forge-save-actions",
  "forge-scopes",
  "forge-scratches",
  "forge-spell",
  "forge-ssr",
+ "forge-testing",
  "forge-text",
  "forge-trust",
  "forge-update",
@@ -1886,6 +1888,7 @@ dependencies = [
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "phpforge-test-frameworks",
+ "regex-lite",
  "serde",
  "serde_json",
  "tauri",
@@ -2106,6 +2109,7 @@ dependencies = [
  "forge-core",
  "forge-remote",
  "forge-remote-agent",
+ "forge-runtargets",
  "serde",
  "serde_json",
  "tempfile",
@@ -2339,6 +2343,8 @@ dependencies = [
  "forge-core",
  "forge-filetypes",
  "forge-keymap",
+ "forge-output",
+ "forge-testing",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -2351,6 +2357,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-output",
+ "forge-runtargets",
  "forge-runtools",
  "libc",
  "portable-pty",
@@ -2423,6 +2430,15 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "webforge-lang-web",
+]
+
+[[package]]
+name = "forge-runtargets"
+version = "0.1.0"
+dependencies = [
+ "forge-runtools",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2542,6 +2558,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-testing"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "quick-xml",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "forge-text"
 version = "0.1.0"
 dependencies = [
@@ -2635,6 +2664,7 @@ dependencies = [
  "forge-output",
  "forge-plugin-api",
  "forge-remote",
+ "forge-runtargets",
  "forge-runtools",
  "forge-save-actions",
  "forge-scopes",
@@ -2643,6 +2673,7 @@ dependencies = [
  "forge-spell",
  "forge-sql",
  "forge-ssr",
+ "forge-testing",
  "forge-text",
  "forge-vcs",
  "forge-viewers",
@@ -2656,6 +2687,7 @@ dependencies = [
  "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
+ "regex-lite",
  "serde",
  "serde_json",
  "wasm-bindgen",
@@ -5035,6 +5067,7 @@ dependencies = [
 name = "phpforge-interpreters"
 version = "0.1.0"
 dependencies = [
+ "forge-runtargets",
  "serde",
  "serde_json",
  "tempfile",
@@ -5083,6 +5116,7 @@ version = "0.1.0"
 dependencies = [
  "forge-output",
  "forge-runtools",
+ "forge-testing",
  "regex-lite",
  "serde",
  "serde_json",

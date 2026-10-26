@@ -1,0 +1,157 @@
+/* Coverage tool window, gutter marks and Project view hints. */
+.coverage-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 13px;
+}
+
+.coverage-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.coverage-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+}
+
+.coverage-spacer {
+  flex: 1;
+}
+
+.coverage-empty {
+  padding: 16px;
+  line-height: 1.5;
+}
+
+.coverage-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.coverage-head,
+.coverage-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(118px, auto) minmax(118px, auto);
+  align-items: center;
+}
+
+.coverage-head {
+  padding: 3px 0;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.coverage-head span {
+  padding: 0 8px;
+}
+
+.coverage-body {
+  overflow: auto;
+  flex: 1;
+}
+
+.coverage-row {
+  height: 24px;
+  cursor: default;
+}
+
+.coverage-row:hover {
+  background: var(--bg-hover);
+}
+
+.coverage-row.selected {
+  background: var(--accent-soft);
+}
+
+.coverage-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coverage-chevron {
+  display: inline-flex;
+  width: 14px;
+  color: var(--fg-muted);
+}
+
+.coverage-icon {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.coverage-icon.folder {
+  color: var(--syn-function);
+}
+
+.coverage-pct {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.coverage-bar {
+  flex: none;
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--danger) 55%, transparent);
+  overflow: hidden;
+}
+
+.coverage-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--success);
+}
+
+/* Editor gutter: a bar per line, like PHPStorm's coverage marks. */
+.cm-coverage-gutter {
+  width: 5px;
+}
+
+.cm-coverage-gutter .cm-gutterElement {
+  padding: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.coverage-mark {
+  display: block;
+  width: 4px;
+  height: 100%;
+  min-height: 1.2em;
+}
+
+.coverage-mark.covered {
+  background: color-mix(in srgb, var(--success) 75%, transparent);
+}
+
+.coverage-mark.partial {
+  background: color-mix(in srgb, var(--warning) 85%, transparent);
+}
+
+.coverage-mark.uncovered {
+  background: color-mix(in srgb, var(--danger) 75%, transparent);
+}
+
+/* Project view */
+.coverage-tree-row .tree-hint {
+  color: var(--fg-muted);
+}

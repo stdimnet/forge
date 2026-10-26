@@ -107,6 +107,7 @@ pub fn run() {
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
         .manage(run_state)
+        .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::workbench::BookmarksState::default())
         .manage(commands::local_history::LocalHistoryState::default())
@@ -527,8 +528,15 @@ pub fn run() {
             commands::run::run_command_line,
             commands::run::run_start,
             commands::test_frameworks::test_frameworks_list,
-            commands::test_frameworks::test_discover,
-            commands::test_frameworks::test_rerun_failed,
+            commands::testing::test_discover,
+            commands::testing::test_rerun_failed,
+            commands::testing::test_frameworks_detect,
+            commands::testing::coverage_suites,
+            commands::testing::coverage_view,
+            commands::testing::coverage_file,
+            commands::testing::coverage_remove,
+            commands::testing::coverage_import,
+            commands::testing::run_target_info,
             commands::test_frameworks::behat_step_definitions,
             commands::test_frameworks::test_history_list,
             commands::test_frameworks::test_history_open,

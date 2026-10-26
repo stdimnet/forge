@@ -21,6 +21,7 @@ runtime = [
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+forge-runtargets.workspace = true
 forge-backend = { workspace = true, optional = true }
 forge-core = { workspace = true, optional = true }
 forge-remote = { workspace = true, optional = true }

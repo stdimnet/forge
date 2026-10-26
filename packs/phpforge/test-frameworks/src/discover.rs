@@ -14,48 +14,11 @@
 
 use forge_runtools::Configuration;
 use regex_lite::Regex;
-use serde::Serialize;
 
 use crate::frameworks::Framework;
 use crate::gherkin;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum TargetKind {
-    Class,
-    Method,
-    File,
-    Describe,
-    Test,
-    Dataset,
-    Feature,
-    Scenario,
-    Example,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TestTarget {
-    /// 0-based line of the declaration.
-    pub line: u32,
-    pub kind: TargetKind,
-    /// Shown as `Run '<label>'`.
-    pub label: String,
-    /// Result key (empty: no result is shown for it).
-    pub key: String,
-    pub configuration: Configuration,
-}
-
-/// The tests of a file and the configuration that runs the whole file.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TestFile {
-    pub framework: Option<Framework>,
-    pub targets: Vec<TestTarget>,
-    /// Runs every test of the file (Run Context Configuration outside a test).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub file: Option<Configuration>,
-}
+pub use forge_testing::targets::{TargetKind, TestFile, TestTarget};
 
 fn base_name(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
@@ -651,7 +614,7 @@ pub fn discover(path: &str, text: &str) -> TestFile {
     };
     if lower.ends_with(".feature") {
         return TestFile {
-            framework: Some(Framework::Behat),
+            framework: Some(Framework::Behat.id().into()),
             targets: behat(path, text),
             file: file_config(Framework::Behat),
         };
@@ -666,7 +629,7 @@ pub fn discover(path: &str, text: &str) -> TestFile {
     if is_pest(text) {
         let targets = pest(path, text);
         return TestFile {
-            framework: Some(Framework::Pest),
+            framework: Some(Framework::Pest.id().into()),
             file: (!targets.is_empty())
                 .then(|| file_config(Framework::Pest))
                 .flatten(),
@@ -692,7 +655,7 @@ pub fn discover(path: &str, text: &str) -> TestFile {
         f => file_config(f),
     };
     TestFile {
-        framework: (!targets.is_empty()).then_some(framework),
+        framework: (!targets.is_empty()).then(|| framework.id().to_string()),
         targets,
         file,
     }
@@ -720,7 +683,7 @@ mod tests {
     fn phpunit_classes_and_methods() {
         let text = "<?php\nnamespace Tests\\Unit;\n\nuse PHPUnit\\Framework\\Attributes\\Test;\n\nfinal class UserTest extends TestCase\n{\n    public function test_full_name(): void {}\n\n    #[Test]\n    public function email_is_normalized(): void {}\n\n    private function helper() {}\n    public function setUp(): void {}\n}\n";
         let f = discover("tests/Unit/UserTest.php", text);
-        assert_eq!(f.framework, Some(Framework::Phpunit));
+        assert_eq!(f.framework.as_deref(), Some(Framework::Phpunit.id()));
         assert_eq!(
             summary(&f),
             [
@@ -792,7 +755,7 @@ it('has emails', function (string $email) {
     #[test]
     fn pest_tests_describes_and_dataset_rows() {
         let f = discover("tests/Unit/CartTest.php", PEST);
-        assert_eq!(f.framework, Some(Framework::Pest));
+        assert_eq!(f.framework.as_deref(), Some(Framework::Pest.id()));
         let p = "tests/Unit/CartTest.php";
         assert_eq!(
             summary(&f),
@@ -864,7 +827,7 @@ it('has emails', function (string $email) {
     fn codeception_cests_cepts_and_unit_tests() {
         let cest = "<?php\nnamespace Tests\\Acceptance;\n\nclass LoginCest\n{\n    public function _before(AcceptanceTester $I) {}\n\n    public function tryToLogin(AcceptanceTester $I) {}\n    protected function helper() {}\n}\n";
         let f = discover("tests/Acceptance/LoginCest.php", cest);
-        assert_eq!(f.framework, Some(Framework::Codeception));
+        assert_eq!(f.framework.as_deref(), Some(Framework::Codeception.id()));
         assert_eq!(f.targets.len(), 2);
         let m = &f.targets[1].configuration;
         assert_eq!(
@@ -886,7 +849,7 @@ it('has emails', function (string $email) {
         );
         let unit = "<?php\nuse Codeception\\Test\\Unit;\n\nclass CartTest extends Unit\n{\n    public function testTotal() {}\n}\n";
         let u = discover("tests/Unit/CartTest.php", unit);
-        assert_eq!(u.framework, Some(Framework::Codeception));
+        assert_eq!(u.framework.as_deref(), Some(Framework::Codeception.id()));
         assert_eq!(u.targets[1].configuration.type_id, "codeception");
     }
 
@@ -937,7 +900,7 @@ it('has emails', function (string $email) {
     fn phpspec_examples() {
         let text = "<?php\n\nnamespace spec\\Acme;\n\nuse PhpSpec\\ObjectBehavior;\n\nclass MarkdownSpec extends ObjectBehavior\n{\n    function it_is_initializable() {}\n\n    function its_title_is_empty() {}\n\n    function let() {}\n}\n";
         let f = discover("spec/Acme/MarkdownSpec.php", text);
-        assert_eq!(f.framework, Some(Framework::Phpspec));
+        assert_eq!(f.framework.as_deref(), Some(Framework::Phpspec.id()));
         let names: Vec<_> = f.targets.iter().map(|t| t.label.as_str()).collect();
         assert_eq!(
             names,

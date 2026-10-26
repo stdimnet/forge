@@ -49,6 +49,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
+| `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
@@ -287,6 +288,55 @@ watchpoints, exception filters, logpoints, threads, memory, disassembly and regi
 when the adapter's capabilities say so. Starting a program is refused in Safe Mode; attaching
 is not. Tests use the fake adapter (`forge_dap::fake`, binary `forge-dap-fake`) instead of a
 real debugger.
+## Test frameworks
+
+A pack's test framework plugs into the shared test runner (`crates/forge-testing`): the gutter
+▶ icons, a run configuration type, the test tree, Rerun Failed Tests, the Test History,
+auto-test, Run with Coverage and Run on (run targets) then work without UI code. Declare it in
+the plugin manifest:
+
+```toml
+[[contributions.testFrameworks]]
+id = "busted"                       # also the run configuration type
+name = "busted"
+detect = { files = [".busted", "spec/**/*_spec.lua"], dependencies = [{ file = "*.rockspec", contains = "busted" }] }
+testFiles = ["*_spec.lua"]          # gutter icons in these files
+program = "busted"
+programSetting = "lua.busted.path"  # setting with the executable
+args = ["--output=TAP"]
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | pytestReportLog | jestJson
+junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
+nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
+escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
+discovery = [
+  { kind = "describe", pattern = '''^\s*describe\(\s*["'](?P<name>[^"']+)''' },
+  { kind = "test", pattern = '''^\s*it\(\s*["'](?P<name>[^"']+)''' },
+]
+locationRules = [{ pattern = '^example\.com/shop/', replacement = "" }]  # reported paths → project paths
+rerun = { join = "\n" }             # Rerun Failed Tests: the `pattern` scope with the failed names
+coverage = { args = ["--coverage"], file = "luacov.report.out", format = "lcov" }
+
+[contributions.testFrameworks.scopes]   # arguments per Test scope
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--filter=${testPattern}"]
+pattern = ["--filter=${pattern}"]
+```
+
+Placeholders: `${file}`, `${directory}`, `${test}` (full name), `${testName}`, `${testPattern}`,
+`${pattern}`, `${reportDir}` (report files of `jUnitFile` frameworks), `${coverageFile}`. An
+argument whose placeholders are all empty is dropped; a multi-line `${pattern}` repeats its
+argument per line. Discovery nests by indentation; `kind` is `class`, `describe`, `suite` or
+`file` for groups and `test`, `method` or `example` for tests. Coverage formats: `lcov`,
+`cobertura`, `clover`, `jacoco`, `goCover`.
+
+Frameworks that need code implement `forge_testing::TestFrameworkProvider` (types, `accepts`,
+`discover`, `rerun_failed`, optionally `command` and `supports_coverage`) and register it in
+the backend's `TestFrameworks` registry (`RunState::new`) and in `forge-wasm`'s `registry()`,
+as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). New output formats
+go into `forge-output` (`formats/`): a `LineParser` for streamed lines or a document parser,
+both producing `TestEvent`s.
 
 ## Run Anything providers
 

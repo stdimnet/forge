@@ -1,21 +1,23 @@
 /**
- * Green ▶ gutter icons on tests: PHPUnit classes and methods, Pest `test()` / `it()` /
- * `describe()` calls and dataset rows, Codeception Cest/Cept files and methods, Behat
- * features, scenarios and example rows, PHPSpec specs and examples. The tests of a file and
- * their temporary configurations come from Rust (`test_discover`). Clicking an icon offers
- * Run / Debug and Modify Run Configuration; after a run the icon shows the test's last
- * result.
+ * Green ▶ gutter icons on tests of every registered test framework: PHPUnit classes and
+ * methods, Pest `test()` / `it()` / `describe()` calls and dataset rows, Codeception
+ * Cest/Cept files and methods, Behat features, scenarios and example rows, PHPSpec specs and
+ * examples, and the tests of manifest frameworks (busted `describe` / `it`). The tests of a
+ * file and their temporary configurations come from Rust (`test_discover`, `forge-testing`).
+ * Clicking an icon offers Run / Run with Coverage / Debug and Modify Run Configuration;
+ * after a run the icon shows the test's last result.
  */
 import { gutter, GutterMarker, ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import { StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
-import { Bug, Play, Settings2 } from "lucide-solid";
+import { Bug, Play, Settings2, ShieldCheck } from "lucide-solid";
 import { shortcutLabel } from "@/keymap";
 import { testFrameworksApi, type TestFile, type TestTarget } from "@/ipc/testFrameworks";
 import type { TestStatus } from "./tests";
 import { onTestResults } from "./testResults";
 import { openMenu } from "./PopupMenu";
 import { useTemporary } from "./configStore";
-import { debugConfiguration, launch } from "./runStore";
+import { debugConfiguration, launch, runWithCoverage } from "./runStore";
+import { findType } from "./types";
 import { openRunConfigurations } from "./dialogState";
 
 /** Last results by result key (`path`, `path::test`). */
@@ -93,6 +95,16 @@ function showMenu(target: TestTarget, x: number, y: number) {
         shortcut: shortcutLabel("RunClass"),
         run: () => void launch(useTemporary(cfg)),
       },
+      ...(findType(cfg.type)?.coverage
+        ? [
+            {
+              label: `Run '${target.label}' with Coverage`,
+              icon: ShieldCheck,
+              iconColor: "var(--success)",
+              run: () => void runWithCoverage(useTemporary(cfg)),
+            },
+          ]
+        : []),
       {
         label: `Debug '${target.label}'`,
         icon: Bug,
