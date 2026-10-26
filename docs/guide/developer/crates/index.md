@@ -90,4 +90,6 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [webforge-fw-angular](webforge-fw-angular.md) | WebForge: Angular support (components, directives, pipes, templates and styles) |
 | [webforge-fw-react](webforge-fw-react.md) | WebForge: React support (JSX components, props and usages) |
 | [webforge-fw-vue](webforge-fw-vue.md) | WebForge: Vue.js support (single-file components, props, emits and usages) |
+| [webforge-js-debug](webforge-js-debug.md) | WebForge: the JavaScript debugger (js-debug downloaded on consent, the pwa-node / pwa-chrome / pwa-msedge adapters, browser detection, launch requests) |
+| [webforge-js-testing](webforge-js-testing.md) | WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright, Cypress, node --test): discovery, command lines, Rerun Failed Tests, debug programs (pure, also built to WebAssembly) |
 | [webforge-lang-web](webforge-lang-web.md) | WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins |

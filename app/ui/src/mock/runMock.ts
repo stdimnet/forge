@@ -66,8 +66,20 @@ let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isPythonDemo(
   ],
 };
 
+/** The Node.js demo (`?project=node`): the API server, a browser, attach and its tests. */
+const NODE_CONFIGURATIONS: RunConfigurations = {
+  selected: "server",
+  configurations: [
+    { name: "server", type: "node", storeAsProjectFile: true, interpreterOptions: "--import tsx", env: { PORT: "3000" }, options: { file: "src/server.ts" } },
+    { name: "Order 1042 in Chrome", type: "javascript-debug", options: { url: "http://localhost:3000/orders/1042/total" } },
+    { name: "Attach to server", type: "js-attach", options: { debugger: "node", host: "localhost", port: "9229" } },
+    { name: "Unit tests", type: "vitest", storeAsProjectFile: true, options: { scope: "all" } },
+    { name: "E2E tests", type: "playwright", options: { scope: "all" } },
+  ],
+};
+
 // The WebForge demos start without configurations; npm scripts add temporary ones.
-if (webDemo()) stored = { configurations: [] };
+if (webDemo()) stored = webDemo()?.name === "orders-api" ? NODE_CONFIGURATIONS : { configurations: [] };
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -122,6 +134,8 @@ export function mockCommandLine(cfg: RunConfiguration): CommandLine {
         args: [o.command || "run", ...(o.command && o.command !== "run" ? [] : [o.script ?? ""]), ...split(cfg.arguments)],
         cwd,
       };
+    case "node":
+      return { program: cfg.interpreter || "node", args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)].filter(Boolean), cwd };
     case "lua-script":
       return { program: cfg.interpreter || "lua", args: [...split(cfg.interpreterOptions), o.file ?? "", ...split(cfg.arguments)].filter(Boolean), cwd };
     case "shell":
@@ -514,6 +528,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
           [100, { code: 0 }],
         ];
       return [[200, `\n   \x1b[44;37m INFO \x1b[0m Command [${o.command}] finished.\n\n`], [50, { code: 0 }]];
+    case "node":
+      return [[350, "Orders API listening on http://localhost:3000\n"]];
     case "npm":
       if (webDemo()) return webNpmSteps(cfg);
       return [

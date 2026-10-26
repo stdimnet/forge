@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="2.1000" tests="3" failures="1">
+  <testsuite name="Root Suite" timestamp="2026-10-26T08:00:00" tests="0" file="cypress/e2e/cart.cy.ts" time="0.0000" failures="0">
+  </testsuite>
+  <testsuite name="Cart" timestamp="2026-10-26T08:00:00" tests="3" time="2.1000" failures="1">
+    <testcase name="Cart opens the cart" time="0.8000" classname="opens the cart">
+    </testcase>
+    <testcase name="Cart applies a voucher" time="1.2000" classname="applies a voucher">
+      <failure message="Timed out retrying after 4000ms: expected &apos;9.00&apos; to equal &apos;10.00&apos;" type="AssertionError"><![CDATA[AssertionError: Timed out retrying after 4000ms: expected '9.00' to equal '10.00'
+    at Context.eval (webpack://shop/./cypress/e2e/cart.cy.ts:14:31)]]></failure>
+    </testcase>
+    <testcase name="Cart keeps the items" time="0.1000" classname="keeps the items">
+    </testcase>
+  </testsuite>
+</testsuites>

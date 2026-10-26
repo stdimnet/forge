@@ -24,7 +24,7 @@ use crate::client::{DapClient, Trace};
 use crate::error::{DapError, DapResult};
 use crate::protocol::StartDebuggingArgs;
 use crate::session::DapSession;
-use crate::transport;
+use crate::transport::{self, Transport};
 
 /// Where breakpoints live. The app uses the project's store in [`DebugServer`].
 pub trait BreakpointHost: Send + Sync {
@@ -168,7 +168,7 @@ impl Inner {
             request.name = Some(name.to_string());
         }
         let resolved = ResolvedLaunch {
-            transport: parent.resolved().transport.clone(),
+            transport: child_transport(&parent.resolved().transport, parent.peer()),
             request: if args.request.is_empty() {
                 "launch".into()
             } else {
@@ -183,6 +183,30 @@ impl Inner {
             me.start_resolved(info, request, resolved, Some(parent_id))
                 .await
         })
+    }
+}
+
+/// How a child session (`startDebugging`) reaches its adapter: an adapter server that Forge
+/// started for the parent (js-debug's DAP server) serves the child over a new connection to
+/// the same port; other adapters are started again.
+fn child_transport(parent: &Transport, peer: &str) -> Transport {
+    match parent {
+        Transport::Connect {
+            host,
+            adapter: Some(_),
+            ..
+        } => match peer
+            .rsplit_once(':')
+            .and_then(|(_, p)| p.parse::<u16>().ok())
+        {
+            Some(port) => Transport::Connect {
+                host: host.clone(),
+                port,
+                adapter: None,
+            },
+            None => parent.clone(),
+        },
+        other => other.clone(),
     }
 }
 
@@ -258,6 +282,20 @@ impl DapManager {
             .write()
             .expect("registry lock")
             .register(adapter);
+    }
+
+    /// Remove an adapter registered in Rust (its plugin was disabled).
+    pub fn unregister_adapter(&self, r#type: &str) {
+        self.inner
+            .native
+            .write()
+            .expect("native lock")
+            .retain(|a| a.info().r#type != r#type);
+        self.inner
+            .registry
+            .write()
+            .expect("registry lock")
+            .remove(r#type);
     }
 
     /// Replace the manifest adapters (e.g. after plugins were enabled or disabled or an
@@ -411,5 +449,29 @@ mod tests {
         m.set_registry(manifests);
         let types: Vec<String> = m.adapters().into_iter().map(|a| a.r#type).collect();
         assert_eq!(types, ["lldb", "native"]);
+        m.unregister_adapter("native");
+        m.set_registry(AdapterRegistry::new());
+        assert!(m.adapters().is_empty());
+    }
+
+    #[test]
+    fn child_sessions_share_a_server_that_forge_started() {
+        let started = Transport::Connect {
+            host: "127.0.0.1".into(),
+            port: 0,
+            adapter: Some(crate::AdapterCommand::new("node", vec!["${port}".into()])),
+        };
+        assert_eq!(
+            child_transport(&started, "127.0.0.1:41234"),
+            Transport::Connect {
+                host: "127.0.0.1".into(),
+                port: 41234,
+                adapter: None
+            }
+        );
+        let stdio = Transport::Stdio {
+            adapter: crate::AdapterCommand::new("lldb-dap", vec![]),
+        };
+        assert_eq!(child_transport(&stdio, "lldb-dap"), stdio);
     }
 }

@@ -1906,6 +1906,8 @@ dependencies = [
  "tracing-subscriber",
  "webforge-fw-react",
  "webforge-fw-vue",
+ "webforge-js-debug",
+ "webforge-js-testing",
  "webforge-lang-web",
 ]
 
@@ -2700,6 +2702,7 @@ dependencies = [
  "webforge-fw-angular",
  "webforge-fw-react",
  "webforge-fw-vue",
+ "webforge-js-testing",
  "webforge-lang-web",
 ]
 
@@ -8556,6 +8559,36 @@ name = "webforge-fw-vue"
 version = "0.1.0"
 dependencies = [
  "webforge-lang-web",
+]
+
+[[package]]
+name = "webforge-js-debug"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "forge-dap",
+ "forge-debug",
+ "forge-langservers",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "tokio",
+ "webforge-js-testing",
+]
+
+[[package]]
+name = "webforge-js-testing"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
 ]
 
 [[package]]

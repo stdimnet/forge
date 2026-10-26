@@ -276,3 +276,295 @@ default = true
 group = "lang.typescript"
 section = "Angular"
 order = 10
+
+# ---- JavaScript debugger (js-debug over the Debug Adapter Protocol) ----------------------
+# Microsoft's js-debug (MIT) is downloaded on first use, with consent, from its GitHub
+# release (pinned version, SHA-256 checked) and runs on Node.js. The adapters pwa-node,
+# pwa-chrome and pwa-msedge are registered in Rust (packs/webforge/js-debug).
+
+[[plugin]]
+id = "forge.js-debugger"
+name = "JavaScript Debugger"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web", "forge.debugger"]
+description = "Debug Node.js programs, npm scripts, tests and pages in Chrome or Edge with js-debug: breakpoints in TypeScript through source maps, attach to Node.js and Chrome."
+projectTypes = ["webforge"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "node"
+name = "Node.js"
+description = "Run a JavaScript or TypeScript file with Node.js; Debug starts it under js-debug."
+icon = "hexagon"
+debuggable = true
+command = ["${interpreter}", "${interpreterOptions}", "${file}", "${arguments}"]
+defaultInterpreter = "node"
+interpreterSetting = "web.node.interpreter"
+fields = [
+  { key = "file", label = "JavaScript file", kind = "path", required = true },
+]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "javascript-debug"
+name = "JavaScript Debug"
+description = "Open a URL in Chrome or Edge; Debug launches the browser under js-debug."
+icon = "globe"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "js-attach"
+name = "Attach to Node.js/Chrome"
+description = "Attach the debugger to a Node.js process started with --inspect or a browser with remote debugging."
+icon = "plug"
+debuggable = true
+
+[[plugin.contributions.commands]]
+id = "jsDebug.install"
+title = "Download JavaScript Debugger (js-debug)"
+category = "Run"
+
+[[plugin.contributions.settings]]
+key = "web.node.interpreter"
+title = "Node interpreter"
+description = "Runs Node.js configurations, test runners and the JavaScript debugger. Empty: node on the PATH, else the Node.js Forge downloaded."
+type = "path"
+default = ""
+group = "lang.node"
+section = "Node Interpreter"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "web.jsDebug.path"
+title = "js-debug folder"
+description = "A js-debug DAP server you unpacked yourself (the folder with src/dapDebugServer.js). Empty: the version Forge downloads."
+type = "path"
+default = ""
+group = "lang.node"
+section = "JavaScript Debugger"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "web.jsDebug.browser"
+title = "Browser for JavaScript Debug"
+description = "Auto picks the first installed of Chrome, Edge and Chromium."
+type = "enum"
+options = [
+  { value = "auto", label = "Auto (first installed)" },
+  { value = "chrome", label = "Google Chrome" },
+  { value = "edge", label = "Microsoft Edge" },
+  { value = "chromium", label = "Chromium" },
+]
+default = "auto"
+group = "lang.node"
+section = "JavaScript Debugger"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "web.jsDebug.skipFiles"
+title = "Do not step into"
+description = "Glob patterns of scripts the debugger steps over, separated by `;` (`<node_internals>/**` are Node.js' own modules)."
+type = "string"
+default = "<node_internals>/**"
+group = "lang.node"
+section = "JavaScript Debugger"
+order = 22
+
+# ---- Node.js test runners on the shared test runner (forge-testing) --------------------
+# Each runner's CLI script runs with Node.js (packs/webforge/js-testing wraps these specs):
+# gutter icons on describe/it/test, a run configuration type, the test tree from the
+# runner's report, Rerun Failed Tests, Run with Coverage (LCOV) and Debug through js-debug.
+
+[[plugin]]
+id = "forge.js-testing"
+name = "JavaScript Test Runners"
+version = "0.1.0"
+pack = "webforge"
+vendor = "Forge"
+depends = ["forge.web"]
+description = "Jest, Vitest, Mocha, Playwright Test, Cypress and node --test: gutter icons, the test tree, Rerun Failed Tests, coverage and Debug."
+projectTypes = ["webforge"]
+
+[[plugin.contributions.commands]]
+id = "playwright.showReport"
+title = "Show Playwright Report"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "cypress.open"
+title = "Open Cypress"
+category = "Tools"
+
+[[plugin.contributions.testFrameworks]]
+id = "playwright"
+name = "Playwright"
+description = "Run Playwright tests: all tests, a directory, a file, a test or describe block, or a title pattern."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["playwright.config.ts", "playwright.config.js", "playwright.config.mts", "playwright.config.mjs"], dependencies = [{ file = "package.json", contains = "\"@playwright/test\"" }] }
+testFiles = ["*.spec.ts", "*.spec.js", "*.spec.mts", "*.spec.mjs", "*.test.ts", "*.test.js", "e2e/**/*.ts", "e2e/**/*.js"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["test", "--reporter=list,json"]
+report = "jUnitFile"
+nameSeparator = " "
+rerun = { join = "|" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Playwright package", kind = "path", placeholder = "node_modules/@playwright/test" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "playwright.config.ts" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--grep=${testPattern}"]
+pattern = ["--grep=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "cypress"
+name = "Cypress"
+description = "Run Cypress specs headlessly: all specs, a directory, a spec file, or tests by name with @cypress/grep."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["cypress.config.ts", "cypress.config.js", "cypress.config.mjs", "cypress.config.cjs", "cypress.json"], dependencies = [{ file = "package.json", contains = "\"cypress\"" }] }
+testFiles = ["*.cy.ts", "*.cy.js", "*.cy.tsx", "*.cy.jsx", "cypress/e2e/**/*.ts", "cypress/e2e/**/*.js", "cypress/integration/**/*.js"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["run", "--reporter", "junit", "--reporter-options", "mochaFile=${reportDir}/cypress-[hash].xml"]
+report = "jUnitFile"
+nameSeparator = " "
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "package", label = "Cypress package", kind = "path", placeholder = "node_modules/cypress" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "cypress.config.ts" },
+  { key = "browser", label = "Browser", placeholder = "electron, chrome, edge, firefox" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["--spec", "${directory}/**/*"]
+file = ["--spec", "${file}"]
+test = ["--spec", "${file}", "--env", "grep=${test}"]
+pattern = ["--env", "grep=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "vitest"
+name = "Vitest"
+description = "Run Vitest tests: all tests, a directory, a file, a test or describe block, or a name pattern."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs", "vitest.config.cts", "vitest.config.cjs", "vitest.workspace.ts", "vitest.workspace.js"], dependencies = [{ file = "package.json", contains = "\"vitest\"" }] }
+testFiles = ["*.test.ts", "*.test.tsx", "*.test.js", "*.test.jsx", "*.test.mts", "*.test.mjs", "*.test.cts", "*.test.cjs", "*.spec.ts", "*.spec.tsx", "*.spec.js", "*.spec.jsx", "*.spec.mts", "*.spec.mjs"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["run", "--reporter=default", "--reporter=json", "--outputFile.json=${reportDir}/vitest.json"]
+report = "jUnitFile"
+nameSeparator = " "
+rerun = { join = "|" }
+coverage = { args = ["--coverage.enabled=true", "--coverage.reporter=lcov", "--coverage.reportsDirectory=${coverageFile}"], file = "${coverageFile}/lcov.info", format = "lcov" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Vitest package", kind = "path", placeholder = "node_modules/vitest" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "vitest.config.ts" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--testNamePattern=^${testPattern}"]
+pattern = ["--testNamePattern=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "jest"
+name = "Jest"
+description = "Run Jest tests: all tests, a directory, a file, a test or describe block, or a name pattern."
+icon = "flask-conical"
+language = "typescript"
+detect = { files = ["jest.config.js", "jest.config.ts", "jest.config.mjs", "jest.config.cjs", "jest.config.json"], dependencies = [{ file = "package.json", contains = "\"jest\"" }] }
+testFiles = ["*.test.js", "*.test.jsx", "*.test.ts", "*.test.tsx", "*.test.mjs", "*.test.cjs", "*.spec.js", "*.spec.jsx", "*.spec.ts", "*.spec.tsx", "*.spec.mjs", "*.spec.cjs", "__tests__/**/*.js", "__tests__/**/*.jsx", "__tests__/**/*.ts", "__tests__/**/*.tsx"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["--json", "--outputFile=${reportDir}/jest.json", "--testLocationInResults"]
+report = "jUnitFile"
+nameSeparator = " "
+rerun = { join = "|" }
+coverage = { args = ["--coverage", "--coverageReporters=lcov", "--coverageDirectory=${coverageFile}"], file = "${coverageFile}/lcov.info", format = "lcov" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Jest package", kind = "path", placeholder = "node_modules/jest" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = "jest.config.ts" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--testNamePattern=^${testPattern}"]
+pattern = ["--testNamePattern=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "mocha"
+name = "Mocha"
+description = "Run Mocha tests: all tests, a directory, a file, a test or describe block, or a grep pattern; coverage through c8."
+icon = "flask-conical"
+language = "javascript"
+detect = { files = [".mocharc.js", ".mocharc.cjs", ".mocharc.mjs", ".mocharc.json", ".mocharc.jsonc", ".mocharc.yml", ".mocharc.yaml"], dependencies = [{ file = "package.json", contains = "\"mocha\"" }] }
+testFiles = ["test/**/*.js", "test/**/*.mjs", "test/**/*.cjs", "test/**/*.ts", "*.spec.js", "*.spec.ts", "*.spec.mjs", "*.test.js", "*.test.ts", "*.test.mjs"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["--reporter=tap"]
+report = "tap"
+nameSeparator = " "
+rerun = { join = "|", template = "^(?:${names})$" }
+coverage = { file = "${coverageFile}/lcov.info", format = "lcov" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+  { key = "package", label = "Mocha package", kind = "path", placeholder = "node_modules/mocha" },
+  { key = "configFile", label = "Configuration file", kind = "path", placeholder = ".mocharc.yml" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}", "--recursive"]
+file = ["${file}"]
+test = ["${file}", "--grep=^${testPattern}"]
+pattern = ["--grep=${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "node-test"
+name = "Node.js Test Runner"
+description = "Run node --test: all tests, a file, a test or a name pattern; coverage with Node's LCOV reporter."
+icon = "flask-conical"
+language = "javascript"
+detect = { dependencies = [{ file = "package.json", contains = "node --test" }] }
+testFiles = ["*.test.js", "*.test.mjs", "*.test.cjs", "*.test.ts", "*.test.mts", "test/**/*.js", "test/**/*.mjs"]
+program = "node"
+programSetting = "web.node.interpreter"
+args = ["--test", "--test-reporter=tap"]
+report = "tap"
+nameSeparator = " "
+rerun = { join = "|" }
+coverage = { args = ["--experimental-test-coverage", "--test-reporter-destination=stdout", "--test-reporter=lcov", "--test-reporter-destination=${coverageFile}.info"], file = "${coverageFile}.info", format = "lcov" }
+debuggable = true
+fields = [
+  { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
+  { key = "nodeOptions", label = "Node options" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+file = ["${file}"]
+test = ["${file}", "--test-name-pattern=^${testPattern}"]
+pattern = ["--test-name-pattern=${pattern}"]

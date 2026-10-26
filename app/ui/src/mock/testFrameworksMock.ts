@@ -14,6 +14,8 @@ import { mockSettingValue, mockTestFrameworkSpecs } from "./settingsMock";
 import type { TestFrameworkSpec } from "@/ipc/testing";
 import { mockFiles } from "./workspaceMock";
 import type { Step } from "./runMock";
+import { jsTestSteps } from "./jsTestsMock";
+import { webDemo } from "./demoWebProjects";
 
 export const TEST_TYPES = new Set(["pest", "codeception", "behat", "phpspec"]);
 
@@ -35,9 +37,13 @@ async function frameworks(): Promise<FrameworkConfig[]> {
 registerMock("test_frameworks_list", () => frameworks());
 
 // Discovery and Rerun Failed Tests of every framework: the PHP ones and the manifests'.
-registerMock("test_discover", async ({ path, text }) =>
-  callWasm((await forgeWasm()).testing_discover, { path, text, specs: mockTestFrameworkSpecs() }),
-);
+registerMock("test_discover", async ({ path, text }) => {
+  const wasm = await forgeWasm();
+  const specs = mockTestFrameworkSpecs();
+  const texts = mockFiles["package.json"] ? { "package.json": mockFiles["package.json"] } : {};
+  const detected = callWasmSync<string[]>(wasm.testing_detect, { specs, files: Object.keys(mockFiles), texts });
+  return callWasm(wasm.testing_discover, { path, text, specs, detected });
+});
 
 registerMock("test_rerun_failed", async ({ configuration, failed }) =>
   callWasm((await forgeWasm()).testing_rerun_failed, { configuration, failed, specs: mockTestFrameworkSpecs() }),
@@ -127,6 +133,8 @@ function bustedSteps(cfg: RunConfiguration): Step[] {
 /** Canned output of a manifest framework's run. */
 export function frameworkSteps(cfg: RunConfiguration): Step[] {
   if (cfg.type === "busted") return bustedSteps(cfg);
+  const js = jsTestSteps(cfg, `~/Projects/${webDemo()?.name ?? "acme-shop"}`);
+  if (js) return js;
   return [[100, "Done.\n"], [20, { code: 0 }]];
 }
 

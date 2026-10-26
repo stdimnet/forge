@@ -16,6 +16,7 @@ import { NpmActions, NpmView } from "./NpmView";
 import { loadPackages, npmActive, packages } from "./store";
 import { installDependencies } from "./npm";
 import "./editor";
+import "./jsDebug";
 import "./popup";
 import "./webforge.css";
 
