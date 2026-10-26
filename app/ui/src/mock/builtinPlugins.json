@@ -7744,6 +7744,686 @@
     }
   },
   {
+    "id": "forge.python-tools",
+    "name": "Python Tests, Debugger, Console and Profiler",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "pytest, unittest and tox in the test runner (gutter icons, Rerun Failed Tests, coverage with pytest-cov), debugging with debugpy (launch, Attach to Process, Attach to DAP Server, the debug console), the Python Console with IPython and a variables view, and the cProfile profiler with call tree and hot spots.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-env"
+    ],
+    "required": false,
+    "projectTypes": [
+      "pyforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "ExecuteInPyConsoleAction",
+          "title": "Run Selection in Python Console",
+          "category": "Python"
+        },
+        {
+          "id": "RunFileInPythonConsole",
+          "title": "Run File in Python Console",
+          "category": "Python"
+        },
+        {
+          "id": "ActivatePythonConsoleToolWindow",
+          "title": "Python Console",
+          "category": "View"
+        },
+        {
+          "id": "python.profile",
+          "title": "Profile",
+          "category": "Run"
+        },
+        {
+          "id": "python.runToxEnvironment",
+          "title": "Run tox Environment…",
+          "category": "Python"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "pythonConsole",
+          "title": "Python Console",
+          "anchor": "bottom",
+          "icon": "square-terminal",
+          "order": 46
+        },
+        {
+          "id": "profiler",
+          "title": "Profiler",
+          "anchor": "bottom",
+          "icon": "gauge",
+          "order": 47
+        }
+      ],
+      "settings": [
+        {
+          "key": "python.testing.runner",
+          "title": "Default test runner",
+          "description": "Runs tests from the gutter and Run Context Configuration. Autodetect: pytest when the project uses it (configuration or dependency), unittest for files with only test cases.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Autodetect"
+            },
+            {
+              "value": "pytest",
+              "label": "pytest"
+            },
+            {
+              "value": "unittest",
+              "label": "Unittests"
+            }
+          ],
+          "default": "auto",
+          "group": "tools.python-integrated-tools",
+          "section": "Testing",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "python.pytest.reporter",
+          "title": "pytest results",
+          "description": "JUnit XML is built into pytest; a report log needs the pytest-reportlog plugin.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "junitxml",
+              "label": "JUnit XML (--junitxml)"
+            },
+            {
+              "value": "reportLog",
+              "label": "Report log (--report-log)"
+            }
+          ],
+          "default": "junitxml",
+          "group": "tools.python-integrated-tools",
+          "section": "Testing",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "python.tox.path",
+          "title": "tox executable",
+          "description": "Leave empty to run tox with the project's interpreter (python -m tox).",
+          "type": "path",
+          "default": "",
+          "group": "tools.python-integrated-tools",
+          "section": "tox",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "python.debugger.justMyCode",
+          "title": "Step only through the project's code (justMyCode)",
+          "description": "Library and standard library frames are skipped while stepping and break only on exceptions raised in the project.",
+          "type": "bool",
+          "default": true,
+          "group": "build.python-debugger",
+          "section": "debugpy",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "python.debugger.subProcess",
+          "title": "Attach to subprocesses automatically",
+          "description": "Child Python processes (multiprocessing, subprocess) are debugged too.",
+          "type": "bool",
+          "default": true,
+          "group": "build.python-debugger",
+          "section": "debugpy",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "python.debugger.installWithoutAsking",
+          "title": "Install debugpy without asking",
+          "description": "When the interpreter has no debugpy, Debug installs it (pip install debugpy) instead of asking first.",
+          "type": "bool",
+          "default": false,
+          "group": "build.python-debugger",
+          "section": "debugpy",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "python.console.ipython",
+          "title": "Use IPython if available",
+          "description": "The Python Console runs IPython when the interpreter has it (magics, Out[] history).",
+          "type": "bool",
+          "default": true,
+          "group": "build.python-console",
+          "section": "Python Console",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "python.console.interpreterOptions",
+          "title": "Interpreter options",
+          "description": "Passed to the interpreter that runs the console, for example -X dev.",
+          "type": "string",
+          "default": "",
+          "group": "build.python-console",
+          "section": "Python Console",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "python.profiler.snapshots",
+          "title": "Profiler snapshots to keep",
+          "description": "cProfile snapshots (.pstats) of a project kept in Forge's cache folder.",
+          "type": "int",
+          "min": 1,
+          "max": 200,
+          "default": 20,
+          "group": "tools.python-integrated-tools",
+          "section": "Profiler",
+          "project": false,
+          "order": 20
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "pytest",
+          "name": "pytest",
+          "description": "Run pytest: a directory, a file, a class, a test or parametrized case, or tests matching a keyword (-k).",
+          "icon": "flask-conical",
+          "debuggable": false
+        },
+        {
+          "id": "unittest",
+          "name": "Unittests",
+          "description": "Run unittest test cases: discovery in a directory, a file, a class or a test method.",
+          "icon": "test-tube-diagonal",
+          "debuggable": false
+        },
+        {
+          "id": "tox",
+          "name": "tox",
+          "description": "Run tox environments; every environment is a test of the tree.",
+          "icon": "box",
+          "debuggable": false
+        }
+      ],
+      "debugAdapters": [
+        {
+          "type": "python",
+          "label": "Python (debugpy)",
+          "command": "python3",
+          "args": [
+            "-m",
+            "debugpy.adapter"
+          ],
+          "transport": "stdio",
+          "languages": [
+            "py",
+            "pyw"
+          ],
+          "launch": {
+            "args": "${args}",
+            "console": "internalConsole",
+            "cwd": "${cwd}",
+            "env": "${env}",
+            "justMyCode": true,
+            "program": "${program}",
+            "stopOnEntry": "${stopOnEntry}"
+          },
+          "attach": {
+            "justMyCode": true,
+            "processId": "${pid}"
+          },
+          "attachSchema": {
+            "properties": {
+              "justMyCode": {
+                "description": "Step only through the project's code",
+                "type": "boolean"
+              },
+              "pathMappings": {
+                "description": "[{ \"localRoot\": \"…\", \"remoteRoot\": \"…\" }] for programs in containers or on other hosts",
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.go",
+    "name": "Go",
+    "version": "0.1.0",
+    "pack": "goforge",
+    "description": "Go SDK and GOPATH, go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve debugging (launch, attach, remote) and the pprof Profiler.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "goforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "go"
+      ],
+      "fileTypes": [
+        {
+          "id": "go-mod",
+          "name": "Go Module",
+          "extensions": [],
+          "fileNames": [
+            "go.mod"
+          ],
+          "indentSize": 4
+        },
+        {
+          "id": "go-work",
+          "name": "Go Workspace",
+          "extensions": [],
+          "fileNames": [
+            "go.work"
+          ],
+          "indentSize": 4
+        },
+        {
+          "id": "go-sum",
+          "name": "Go Checksums",
+          "extensions": [],
+          "fileNames": [
+            "go.sum",
+            "go.work.sum"
+          ]
+        }
+      ],
+      "commands": [
+        {
+          "id": "go.syncDependencies",
+          "title": "Sync Dependencies (go mod tidy)",
+          "category": "Go"
+        },
+        {
+          "id": "go.downloadDependencies",
+          "title": "Download Dependencies (go mod download)",
+          "category": "Go"
+        },
+        {
+          "id": "go.addDependency",
+          "title": "Add Dependency…",
+          "category": "Go"
+        },
+        {
+          "id": "go.vet",
+          "title": "Run go vet",
+          "category": "Go"
+        },
+        {
+          "id": "go.golangciLint",
+          "title": "Run golangci-lint",
+          "category": "Go"
+        },
+        {
+          "id": "go.generate",
+          "title": "Run go generate for File",
+          "category": "Go"
+        },
+        {
+          "id": "go.downloadSdk",
+          "title": "Download Go SDK…",
+          "category": "Go"
+        },
+        {
+          "id": "go.openProfile",
+          "title": "Open Profile (pprof)…",
+          "category": "Go"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "go.goroot",
+          "title": "GOROOT",
+          "description": "The Go SDK of the project. Empty: the newest SDK Forge finds (PATH, /usr/local/go, ~/sdk, Homebrew, Program Files, Forge's downloads).",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "GOROOT",
+          "project": true,
+          "hidden": true,
+          "order": 0
+        },
+        {
+          "key": "go.gopath",
+          "title": "Project GOPATH",
+          "description": "GOPATH for builds, runs and tests of this project. Empty: Go's default (GOPATH or ~/go).",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "GOPATH",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "go.goflags",
+          "title": "GOFLAGS",
+          "description": "Flags every go command of the project gets, e.g. -mod=mod or -buildvcs=false.",
+          "type": "string",
+          "default": "",
+          "group": "lang.go",
+          "section": "Build Tags and Environment",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "go.buildTags",
+          "title": "Build tags",
+          "description": "Tags for builds, runs, tests and gopls (-tags), e.g. integration.",
+          "type": "list",
+          "default": [],
+          "group": "lang.go",
+          "section": "Build Tags and Environment",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "go.environment",
+          "title": "Environment",
+          "description": "Variables for go commands of the project, one KEY=VALUE per entry (GOPRIVATE, CGO_ENABLED, GOEXPERIMENT).",
+          "type": "list",
+          "default": [],
+          "group": "lang.go",
+          "section": "Build Tags and Environment",
+          "project": true,
+          "order": 22
+        },
+        {
+          "key": "go.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Go files.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "gofmt",
+              "label": "gofmt"
+            },
+            {
+              "value": "goimports",
+              "label": "goimports (gofmt and imports)"
+            },
+            {
+              "value": "lsp",
+              "label": "gopls"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "gofmt",
+          "group": "lang.go",
+          "section": "Code Style",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "go.goimports.path",
+          "title": "goimports executable",
+          "description": "Empty: Forge's tools folder, GOPATH/bin or PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "Code Style",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "go.vet.onSave",
+          "title": "Run go vet on save",
+          "description": "Problems of the saved file's package appear in the editor and the Problems tool window. go vet builds the package, so it runs only in trusted projects.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.go",
+          "section": "External Annotators",
+          "project": true,
+          "order": 40
+        },
+        {
+          "key": "go.golangciLint.onSave",
+          "title": "Run golangci-lint on save",
+          "description": "Runs the project's .golangci.yml configuration for the saved file's package (trusted projects only).",
+          "type": "bool",
+          "default": false,
+          "group": "lang.go",
+          "section": "External Annotators",
+          "project": true,
+          "order": 41
+        },
+        {
+          "key": "go.golangciLint.path",
+          "title": "golangci-lint executable",
+          "description": "golangci-lint is not installed by Forge (GPL-3.0). Empty: GOPATH/bin or PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "External Annotators",
+          "project": false,
+          "order": 42
+        },
+        {
+          "key": "go.delve.path",
+          "title": "Delve (dlv) executable",
+          "description": "Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain.",
+          "type": "path",
+          "default": "",
+          "group": "lang.go",
+          "section": "Debugger",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "go.test.fuzztime",
+          "title": "Default fuzz time",
+          "description": "How long fuzzing runs when a Go Test configuration does not set it (-fuzztime).",
+          "type": "string",
+          "default": "10s",
+          "group": "lang.go",
+          "section": "Tests",
+          "project": true,
+          "order": 60
+        },
+        {
+          "key": "go.modules.proxyLookups",
+          "title": "Look up module versions on the module proxy",
+          "description": "Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.go",
+          "section": "Go Modules",
+          "project": false,
+          "order": 70
+        },
+        {
+          "key": "go.sdk.downloadSource",
+          "title": "SDK download source",
+          "description": "Where Download Go SDK gets the release list (?mode=json, with SHA-256 checksums) and the archives.",
+          "type": "string",
+          "default": "https://go.dev/dl",
+          "group": "lang.go",
+          "section": "SDK Downloads",
+          "project": false,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "go-build",
+          "name": "Go Build",
+          "description": "Build a Go package, folder or files, and run the program (go run) or only build it (go build -o).",
+          "icon": "box",
+          "debuggable": true
+        },
+        {
+          "id": "go-remote",
+          "name": "Go Remote",
+          "description": "Attach the debugger to a dlv --headless --accept-multiclient server, e.g. in a container or on another machine.",
+          "icon": "plug",
+          "debuggable": true
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "go-test",
+          "name": "Go Test",
+          "description": "Run go test: all packages, a folder, a file, one test or subtest, or a name pattern; benchmarks and fuzzing; coverage and profiles.",
+          "icon": "flask-conical",
+          "language": "go",
+          "detect": {
+            "files": [
+              "go.mod",
+              "go.work",
+              "*_test.go",
+              "**/*_test.go"
+            ],
+            "dependencies": []
+          },
+          "testFiles": [
+            "*_test.go"
+          ],
+          "program": "go",
+          "programSetting": "go.goroot",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${file}",
+              "${test}"
+            ]
+          },
+          "report": "goTestJson",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "rerun": {
+            "join": "|",
+            "template": "^(${names})$"
+          },
+          "locationRules": [],
+          "coverage": {
+            "args": [],
+            "file": "${coverageFile}",
+            "format": "goCover",
+            "env": {}
+          },
+          "debuggable": true,
+          "fields": [
+            {
+              "key": "kind",
+              "label": "Run",
+              "kind": "enum",
+              "default": "test",
+              "options": [
+                {
+                  "value": "test",
+                  "label": "Tests"
+                },
+                {
+                  "value": "bench",
+                  "label": "Benchmarks"
+                },
+                {
+                  "value": "fuzz",
+                  "label": "Fuzzing"
+                }
+              ]
+            },
+            {
+              "key": "tags",
+              "label": "Build tags",
+              "placeholder": "integration,e2e"
+            },
+            {
+              "key": "count",
+              "label": "Count (-count)",
+              "placeholder": "1 disables the test cache"
+            },
+            {
+              "key": "benchtime",
+              "label": "Benchmark time",
+              "placeholder": "1s or 100x"
+            },
+            {
+              "key": "fuzztime",
+              "label": "Fuzz time",
+              "placeholder": "10s"
+            },
+            {
+              "key": "flags",
+              "label": "Go tool arguments",
+              "placeholder": "-race -v"
+            },
+            {
+              "key": "profile",
+              "label": "Profile",
+              "kind": "enum",
+              "default": "none",
+              "options": [
+                {
+                  "value": "none",
+                  "label": "None"
+                },
+                {
+                  "value": "cpu",
+                  "label": "CPU (-cpuprofile)"
+                },
+                {
+                  "value": "mem",
+                  "label": "Memory (-memprofile)"
+                },
+                {
+                  "value": "block",
+                  "label": "Blocking (-blockprofile)"
+                },
+                {
+                  "value": "mutex",
+                  "label": "Mutex (-mutexprofile)"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.java",
     "name": "Java",
     "version": "0.1.0",

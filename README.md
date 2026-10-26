@@ -11,6 +11,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun scripts, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim: EmmyLua/LuaLS annotations, lua-language-server, StyLua |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
+| **GoForge** | Go: SDK / GOPATH with SDK downloads, go.mod / go.work, gofmt / goimports, go vet, golangci-lint, go generate, Go Build / Go Test (benchmarks, fuzzing, coverage), Delve (attach, remote), pprof Profiler |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS (installed on request), JDK detection and Temurin downloads, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) |
 
 AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),

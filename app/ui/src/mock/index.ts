@@ -69,6 +69,7 @@ import "./symfonyMock";
 import "./wordpressMock";
 import "./luaMock";
 import "./pythonMock";
+import "./goMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";
 import "./pythonDebugMock";

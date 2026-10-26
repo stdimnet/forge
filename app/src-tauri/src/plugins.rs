@@ -31,6 +31,7 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("webforge.toml", include_str!("../plugins/webforge.toml")),
     ("luaforge.toml", include_str!("../plugins/luaforge.toml")),
     ("pyforge.toml", include_str!("../plugins/pyforge.toml")),
+    ("goforge.toml", include_str!("../plugins/goforge.toml")),
     ("javaforge.toml", include_str!("../plugins/javaforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
@@ -200,6 +201,12 @@ mod tests {
             ("src/game/world.lua", "lua"),
             ("penlight-1.14.0-1.rockspec", "lua"),
             (".luacheckrc", "lua"),
+            ("cmd/ledger/main.go", "go"),
+            ("go.mod", "go-mod"),
+            ("services/api/go.mod", "go-mod"),
+            ("go.work", "go-work"),
+            ("go.sum", "go-sum"),
+            ("go.work.sum", "go-sum"),
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }

@@ -26,7 +26,7 @@ and a plain Lua project does not start PHP language servers.
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` |
-| Go | `go.mod` |
+| Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -53,7 +53,7 @@ version constraints in the manifests. The PHP version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -87,6 +87,7 @@ The primary type appears
 | WebForge | JavaScript, TypeScript, HTML or CSS; React for `react`/`next`, Vue.js for `vue`/`nuxt`, Angular for `angular` |
 | LuaForge | Lua projects |
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
+| GoForge | Go projects |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are

@@ -35,7 +35,8 @@ pub struct ProjectInfo {
     /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `rust`, `go`, `python`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
-    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`.
+    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
+    /// `goforge`.
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
     /// `conda`, `maven`, `gradle`, `docker`, `git`.
@@ -88,6 +89,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "javascript" | "typescript" | "html" | "css" => Some("webforge"),
         "lua" => Some("luaforge"),
         "python" => Some("pyforge"),
+        "go" => Some("goforge"),
         "java" => Some("javaforge"),
         _ => None,
     }
@@ -388,8 +390,14 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     if has("Cargo.toml") {
         c.language("rust");
     }
-    if has("go.mod") {
+    // ---- Go
+    // A module or workspace file, Go files in the root, or several in a folder.
+    let go_files = files.iter().filter(|f| f.ends_with(".go")).count();
+    if has("go.mod") || has("go.work") || go_files >= 2 || (rel.is_empty() && go_files > 0) {
         c.language("go");
+    }
+    if has("go.work") {
+        c.tool("go-workspace");
     }
     // ---- Python
     // Like Lua: Python files in the root, several of them in a folder, or a packaging /
@@ -1111,8 +1119,31 @@ mod tests {
         write(dir.path(), "pyproject.toml", "");
         let info = detect(dir.path());
         assert_eq!(info.languages, vec!["rust", "go", "python"]);
-        assert_eq!(info.packs, vec!["pyforge"]);
+        assert_eq!(info.packs, vec!["goforge", "pyforge"]);
         assert_eq!(info.primary.unwrap().name, "Rust");
+    }
+
+    #[test]
+    fn go_projects() {
+        for marker in ["go.mod", "go.work", "main.go"] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "module x");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["goforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().id, "go", "{marker}");
+        }
+        // A module in a sub folder, and go.work workspaces.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "tools/gen.go", "");
+        assert!(!detect(dir.path()).uses("go"));
+        write(dir.path(), "api/go.mod", "module x");
+        assert!(detect(dir.path()).uses("goforge"));
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "go.work", "go 1.23");
+        assert!(detect(dir.path())
+            .tools
+            .contains(&"go-workspace".to_string()));
     }
 
     #[test]
