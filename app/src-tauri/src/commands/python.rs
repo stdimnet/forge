@@ -66,11 +66,11 @@ impl PythonState {
     }
 }
 
-fn setting_bool(state: &AppState, key: &str, default: bool) -> bool {
+pub(crate) fn setting_bool(state: &AppState, key: &str, default: bool) -> bool {
     state.read_settings().get_as::<bool>(key).unwrap_or(default)
 }
 
-fn setting_string(state: &AppState, key: &str) -> String {
+pub(crate) fn setting_string(state: &AppState, key: &str) -> String {
     state
         .read_settings()
         .get_as::<String>(key)
@@ -196,7 +196,20 @@ fn through(
     backend: &dyn Backend,
     interp: &PythonInterpreter,
     program: Option<&str>,
+    cmd: CommandLine,
+) -> Result<(CommandLine, Vec<OutputPathMapping>)> {
+    through_serving(state, backend, interp, program, cmd, Vec::new())
+}
+
+/// `through` for a program that serves `publish` ports (a debugger listening in a
+/// container).
+pub(crate) fn through_serving(
+    state: &AppState,
+    backend: &dyn Backend,
+    interp: &PythonInterpreter,
+    program: Option<&str>,
     mut cmd: CommandLine,
+    publish: Vec<u16>,
 ) -> Result<(CommandLine, Vec<OutputPathMapping>)> {
     if cmd.cwd.as_os_str().is_empty() {
         cmd.cwd = backend.info().root.clone();
@@ -207,14 +220,14 @@ fn through(
     }
     let prepared = php_interpreters::prepare(state, backend, interp.wrap_target());
     let program = program.unwrap_or(interp.python()).to_string();
-    let wrapped = prepared.wrap(Program::Other(program), &cmd)?;
+    let wrapped = prepared.wrap_serving(Program::Other(program), &cmd, publish)?;
     Ok((wrapped, prepared.output_mappings()))
 }
 
 /// `python <args>` through the interpreter; refused in Safe Mode for an interpreter inside
 /// the project (a project `.venv` runs the project's `.pth` files and `sitecustomize`) or a
 /// Docker Compose service built from it.
-fn python_command(
+pub(crate) fn python_command(
     state: &AppState,
     backend: &dyn Backend,
     interp: &PythonInterpreter,
@@ -235,7 +248,11 @@ fn python_command(
 }
 
 /// Run a command and fail with its last error line unless it succeeds.
-fn run_captured(backend: &dyn Backend, cmd: &CommandLine, timeout: Duration) -> Result<String> {
+pub(crate) fn run_captured(
+    backend: &dyn Backend,
+    cmd: &CommandLine,
+    timeout: Duration,
+) -> Result<String> {
     let out = capture(backend, cmd, "", timeout)
         .map_err(|e| ForgeError::Other(format!("Cannot run {}: {e}", cmd.program)))?;
     if out.code != Some(0) {
@@ -878,37 +895,51 @@ fn managed_tool(name: &str) -> Option<PathBuf> {
     p.is_file().then_some(p)
 }
 
-/// The "Python" run configuration: `python [options] (<script> | -m <module>) [parameters]`
-/// through the configuration's interpreter (or the project's).
-pub(crate) fn build_run(
+/// The "Python" run configuration: `python [options] [head] (<script> | -m <module>)
+/// [parameters]` (as if local; `head`: a debugger or the profiler) and its interpreter.
+pub(crate) fn run_command(
     state: &AppState,
     cfg: &RunConfiguration,
-) -> Result<(CommandLine, Vec<OutputPathMapping>)> {
-    let (interp, _) = resolve(state, &cfg.interpreter).ok_or_else(|| {
-        ForgeError::Other("No Python interpreter is configured: choose one in Settings | Project | Python Interpreter".into())
-    })?;
+    head: &[String],
+) -> Result<(CommandLine, PythonInterpreter)> {
+    let (interp, _) = resolve(state, &cfg.interpreter).ok_or_else(no_interpreter)?;
     let target = Target::parse(cfg.option("target"));
-    let args = run::arguments(
+    let options = forge_process::split_args(&cfg.interpreter_options);
+    let mut args = run::arguments(
         target,
         cfg.option("script"),
-        &forge_process::split_args(&cfg.interpreter_options),
+        &options,
         &forge_process::split_args(&cfg.arguments),
     )
     .map_err(ForgeError::Other)?;
+    let at = options.len().min(args.len());
+    args.splice(at..at, head.iter().cloned());
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     let mut cmd = CommandLine::new("python").args(args);
-    cmd.cwd = match cfg.working_directory.trim() {
-        "" => root.clone(),
-        d if Path::new(d).is_absolute() => PathBuf::from(d),
-        d => root.join(d),
-    };
+    cmd.cwd = working_dir(&root, &cfg.working_directory);
     cmd.env.insert("PYTHONUNBUFFERED".into(), "1".into());
     cmd.env.insert("PYTHONIOENCODING".into(), "utf-8".into());
     for (k, v) in &cfg.env {
         cmd.env.insert(k.clone(), v.clone());
     }
-    through(state, backend.as_ref(), &interp, None, cmd)
+    Ok((cmd, interp))
+}
+
+pub(crate) fn no_interpreter() -> ForgeError {
+    ForgeError::Other(
+        "No Python interpreter is configured: choose one in Settings | Project | Python Interpreter"
+            .into(),
+    )
+}
+
+/// A configuration's working directory: absolute, relative to the root, or the root.
+pub(crate) fn working_dir(root: &Path, dir: &str) -> PathBuf {
+    match dir.trim() {
+        "" => root.to_path_buf(),
+        d if Path::new(d).is_absolute() => PathBuf::from(d),
+        d => root.join(d),
+    }
 }
 
 #[derive(Debug, Deserialize)]

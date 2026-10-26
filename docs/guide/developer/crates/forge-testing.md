@@ -50,6 +50,7 @@ pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<Coverage
   (`app/src-tauri/src/commands/testing.rs`, `commands/run.rs`)
 - Crates: [`forge-plugin-api`](forge-plugin-api.md) (the `testFrameworks` contribution),
   [`phpforge-test-frameworks`](phpforge-test-frameworks.md) (the PHP provider),
+  [`pyforge-testing`](pyforge-testing.md) (pytest, unittest and tox),
   [`webforge-js-testing`](webforge-js-testing.md) (the Node.js runners wrap their specs)
 - UI: `app/ui/src/features/run` (manifest framework types, gutter), `app/ui/src/features/coverage`
 - Browser mode: built into `forge-wasm` (`testing.rs`)

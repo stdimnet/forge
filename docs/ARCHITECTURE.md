@@ -66,6 +66,9 @@ app/ui/            SolidJS UI
   - Test frameworks: `[[contributions.testFrameworks]]` in a manifest (or a Rust
     `forge_testing::TestFrameworkProvider`) — gutter icons, a run configuration type, the test
     tree, Rerun Failed Tests and Run with Coverage for a pack's test framework.
+    Code-backed frameworks add `registerTestFileMatcher(path => bool)` (files that get the
+    test gutter) and `registerContextConfiguration(path => cfg | null)` (Run Context
+    Configuration outside tests) from `@/features/run` (PyForge).
   - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
     Anything (double Ctrl), e.g. Artisan and Symfony console commands.
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
@@ -1060,7 +1063,7 @@ or without Git, for local and remote projects.
   report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is
@@ -1068,7 +1071,8 @@ or without Git, for local and remote projects.
   `discover(path, text) -> TestFile`, `rerun_failed(cfg, failed)`, `command(cfg, ctx) ->
   TestCommand` (optional) and `supports_coverage`) in the `TestFrameworks` registry
   (`RunState.tests`). The PHP frameworks register as `PhpTestFrameworks` (their commands keep
-  going through the PHP CLI interpreter); manifest frameworks (`[[contributions.testFrameworks]]`,
+  going through the PHP CLI interpreter) and PyForge's as `PythonTestFrameworks` (pytest,
+  unittest, tox through the Python interpreter, see "PyForge"); manifest frameworks (`[[contributions.testFrameworks]]`,
   `TestFrameworkSpec`, re-exported as `forge_plugin_api::TestFrameworkContribution`) are
   `SpecProvider`s: detection (globs, dependency files), `testFiles` globs, line-pattern
   discovery nested by indentation (full names with `nameSeparator`), per-scope arguments
@@ -1146,8 +1150,9 @@ or without Git, for local and remote projects.
   through `run_start`). Degraded instead
   of refused: `laravel_routes` (static parsing), `cli_tools_commands` (built-in commands),
   `lua_format`, `python_format` and the interpreter probes (`python_interpreter_info`,
-  `python_packages_list`; refused only for programs inside the project, such as a project
-  `.venv`, or Docker Compose services), `python_interpreters_detect` (asks `poetry` / `pipenv`
+  `python_packages_list`, `python_debugpy_status`; refused only for programs inside the
+  project, such as a project `.venv`, or Docker Compose services; `python_console_start` is
+  refused), `python_interpreters_detect` (asks `poetry` / `pipenv`
   only outside Safe Mode), `terminal_open` (shell and environment from the user layer only,
   `Settings::get_without_project_as`). Language servers: `commands::lsp::SafeModeLauncher`
   wraps the backend's launcher and refuses project-local binaries and
@@ -2149,7 +2154,8 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 
 ## PyForge (`packs/pyforge/*`)
 
-- Plugins (`app/src-tauri/plugins/pyforge.toml`): `forge.python` (file types `python` and
+- Plugins (`app/src-tauri/plugins/pyforge.toml`): `forge.python-tools` (tests, debugpy,
+  Python Console, Profiler; see below), `forge.python` (file types `python` and
   `pip-requirements`, Reformat Code, the language server settings; always active) and
   `forge.python-env` (`projectTypes = ["pyforge"]`: interpreters, the `pythonPackages` tool
   window, requirements inspections, the `python` run configuration type). `forge-project`
@@ -2193,9 +2199,54 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   new environments) are started by the UI through `run_start` (hidden run configuration type
   `python-command` with `buildCommand`), so they stream into the Run tool window and are
   refused in Safe Mode.
-- Runs: `run::build` builds the `python` type with `commands::python::build_run` (`[options]
-  (<script> | -m <module>) [parameters]`, `PYTHONUNBUFFERED=1`) through the configuration's or
-  the project's interpreter, with output path mappings for remote ones.
+- Runs: `run::build` hands the `python`, `pytest`, `unittest` and `tox` types to
+  `commands::python_tools::build`: `python [options] [head] (<script> | -m <module>)
+  [parameters]` (`commands::python::run_command`, `PYTHONUNBUFFERED=1`) or the test runner's
+  arguments from `pyforge-testing`, through the configuration's or the project's interpreter
+  (`python::through_serving`, which publishes a debug port of container interpreters), or on
+  the configuration's run target (`run::on_target`, program `python3`), with output path
+  mappings for remote ones. `RunRequest.interpreterArgs` of these types go after the
+  interpreter options (`-m debugpy --listen …`), `RunRequest.profile` adds `-m cProfile -o
+  <snapshot>` and ends the run with `{ type: "profile", profile | error }` on `run://<runId>`
+  (`TestSetup.profile`, `python_tools::record_profile`).
+- Tests, debugger, console, profiler (`packs/pyforge/testing`, plugin `forge.python-tools`,
+  IPC `commands/python_tools.rs`, `src/ipc/pythonTools.ts`): `PythonTestFrameworks` registers
+  `pytest` / `unittest` / `tox` in the `forge-testing` registry; `test_discover` for `.py`
+  files scans the source (`discover::scan`) and picks the runner from `python.testing.runner`
+  and the project's files (`detect`, cached for 10 s), `test_rerun_failed` reads the failed
+  tests' files for their classes (node ids / unittest ids). pytest reports JUnit XML
+  (`--junitxml <dir>/pytest.xml -o junit_family=xunit1`, flavor `pytest`) or a report log
+  into the run's report folder, unittest runs `helpers/forge_unittest.py` inline (`-c`, base64)
+  with TeamCity messages, tox output is read by `forge_output::formats::tox`
+  (`TestReport::Tox`, environments as tests); Run with Coverage adds pytest-cov's Cobertura
+  report. `python_testing_detect() -> { pytest, tox, reasons }`,
+  `python_tox_environments() -> { name, default, description?, file, line? }[]`,
+  `python_debugpy_status({ interpreter? }) -> { installed, version?, interpreter }`,
+  `python_debug_plan({ configuration }) -> { listenHost, connectHost, port, pathMappings:
+  { localRoot, remoteRoot }[], justMyCode, subProcess }`; the UI's `debugpy` launcher
+  (`features/python/debug.ts`) installs debugpy with consent (`python_packages_command`),
+  starts the run with `-m debugpy --listen <listenHost>:<port> --wait-for-client` and
+  `debugPort { ideConnects }`, then `dap_start({ adapter: "python", mode: "attachServer" })`
+  (retried until it listens). The manifest's `python` adapter (`python -m debugpy.adapter`,
+  command = the project's local interpreter, `python_tools::adapter_python`) serves Attach to
+  Process / DAP Server. Python Console: `python_console_start({ id? }) -> { id, commandLine,
+  interpreter }` runs `helpers/forge_console.py` (IPython when `python.console.ipython`) and
+  streams `python-console://<id>`: `{ type: "console", …ConsoleDelta }` (rendered by
+  `RunOutput`), `{ type: "message", message: ready | more | done | vars | children | input }`
+  (`\x1e` + JSON lines separated by `console::Splitter`) and `{ type: "exited", code }`;
+  `python_console_send({ id, op, fields?, echo? })` writes a JSON request to stdin,
+  `python_console_stop`, `python_console_history()` / `python_console_history_add({ entry })`
+  (state dir). Profiler: `python_profiles() -> ProfileInfo[]`, `python_profile_view({ id })
+  -> { info, view: { totalMs, functions, calls, hotSpots, callTree } }` (`pstats::parse`,
+  files mapped back and made project-relative), `python_profile_open({ path })`,
+  `python_profile_delete({ id })`; snapshots in `<cache dir>/forge/profiles/<project>`.
+  UI: `features/python/testing.ts` (types, `registerTestFileMatcher`,
+  `registerContextConfiguration`, Run tox Environment…), `console/` (Python Console tool
+  window, `ExecuteInPyConsoleAction` `Alt+Shift+E`, `RunFileInPythonConsole`), `profiler/`
+  (Profiler tool window, `onProfileSnapshot`), settings pages
+  `tools.python-integrated-tools`, `build.python-debugger`, `build.python-console`. Browser
+  mode: `mock/pythonToolsMock.ts`, `mock/pythonDebugMock.ts`, WebAssembly
+  `crates/forge-wasm/src/python_testing.rs`.
 - UI (`app/ui/src/features/python`): the status item `python.interpreter` with the switch popup,
   Settings | Project | Python Interpreter (`project.python-interpreter`, settings group
   `Project`) and Languages & Frameworks | Python (`lang.python`, schema plus
