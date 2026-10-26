@@ -168,3 +168,7 @@
   height: 100%;
   background: var(--warning);
 }
+
+.prof-list-cols .prof-name {
+  padding-left: 8px;
+}
