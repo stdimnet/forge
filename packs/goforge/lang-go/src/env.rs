@@ -38,7 +38,8 @@ pub struct GoContext {
 /// (`forge_testing::CommandContext::settings`).
 pub const CONTEXT_KEY: &str = "go.context";
 
-pub(crate) fn join(a: &str, b: &str) -> String {
+/// Join two project-relative paths (`a` may be empty, `b` may start with `./`).
+pub fn join(a: &str, b: &str) -> String {
     match (a.trim_end_matches('/'), b.trim_start_matches("./")) {
         ("", b) => b.to_string(),
         (a, "") => a.to_string(),

@@ -3135,6 +3135,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "goforge-delve"
+version = "0.1.0"
+dependencies = [
+ "forge-dap",
+ "forge-debug",
+ "forge-runtools",
+ "goforge-lang-go",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "goforge-lang-go"
 version = "0.1.0"
 dependencies = [

@@ -1,0 +1,18 @@
+[package]
+name = "goforge-delve"
+description = "GoForge: the Go debugger — Delve (dlv dap, MIT) as the `go` debug adapter of the shared debugger: launch and test debugging of Go Build and Go Test configurations, attach to a local process, connect to a remote dlv --headless server, core dumps"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-dap.workspace = true
+forge-runtools.workspace = true
+goforge-lang-go.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile.workspace = true
+forge-debug.workspace = true

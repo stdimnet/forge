@@ -389,6 +389,62 @@ impl GoTestProvider {
     }
 }
 
+/// What Delve needs to debug a Go Test configuration: the package folder (project
+/// relative), the test binary's flags and the build flags.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DebugTest {
+    pub package_dir: String,
+    pub args: Vec<String>,
+    pub build_flags: Vec<String>,
+}
+
+/// The Go Test configuration as a single-package test binary run (Delve's `test` mode).
+/// Fuzz tests run their seed corpus; benchmarks run once per `-test.benchtime`.
+pub fn debug_test(cfg: &Configuration, go: &GoContext) -> Result<DebugTest, String> {
+    let opt = |k: &str| cfg.option(k).trim().to_string();
+    let file = opt("file").replace('\\', "/");
+    let directory = match opt("directory") {
+        d if d.is_empty() && !file.is_empty() => dir_of(&file).to_string(),
+        d => d.trim_matches('/').to_string(),
+    };
+    let scope = opt("scope");
+    let mut args = Vec::new();
+    let filter = match scope.as_str() {
+        "test" => Some(run_pattern(&opt("test"))),
+        "file" => Some(opt("tests"))
+            .filter(|t| !t.is_empty())
+            .map(|t| format!("^({})$", t.split('|').map(quote_meta).collect::<Vec<_>>().join("|"))),
+        "pattern" => Some(opt("pattern")),
+        "directory" if opt("recursive") == "false" => None,
+        _ => {
+            return Err(
+                "Debugging runs the tests of one package: choose a file, a test or a package folder"
+                    .into(),
+            )
+        }
+    };
+    match (opt("kind").as_str(), filter) {
+        ("bench", f) => {
+            args.push("-test.run=^$".to_string());
+            args.push(format!("-test.bench={}", f.as_deref().unwrap_or(".")));
+            args.push("-test.benchmem".into());
+        }
+        (_, Some(f)) => args.push(format!("-test.run={f}")),
+        (_, None) => {}
+    }
+    args.push("-test.v".into());
+    let mut build_flags = Vec::new();
+    let tags = go.tags(&opt("tags"));
+    if !tags.is_empty() {
+        build_flags.push(format!("-tags={}", tags.join(",")));
+    }
+    Ok(DebugTest {
+        package_dir: directory,
+        args,
+        build_flags,
+    })
+}
+
 impl TestFrameworkProvider for GoTestProvider {
     fn id(&self) -> &str {
         &self.spec.id
@@ -568,6 +624,25 @@ mod tests {
                 "-update"
             ]
         );
+    }
+
+    #[test]
+    fn debug_runs_one_package() {
+        let go = GoContext {
+            build_tags: vec!["integration".into()],
+            ..GoContext::default()
+        };
+        let cfg = Configuration::new("t", GO_TEST)
+            .with_option("scope", "test")
+            .with_option("file", "internal/money/money_test.go")
+            .with_option("test", "TestRound/half_up");
+        let d = debug_test(&cfg, &go).unwrap();
+        assert_eq!(d.package_dir, "internal/money");
+        assert_eq!(d.args, ["-test.run=^TestRound$/^half_up$", "-test.v"]);
+        assert_eq!(d.build_flags, ["-tags=integration"]);
+        let bench = cfg.clone().with_option("kind", "bench").with_option("test", "BenchmarkString");
+        assert_eq!(debug_test(&bench, &go).unwrap().args[1], "-test.bench=^BenchmarkString$");
+        assert!(debug_test(&Configuration::new("all", GO_TEST), &go).is_err());
     }
 
     #[test]

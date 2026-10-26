@@ -28,7 +28,7 @@ pub use env::{parse_go_env, GoContext, GoEnv, ModuleRoot, CONTEXT_KEY};
 pub use generate::{directives as generate_directives, generate_args, GenerateDirective};
 pub use gomod::{parse_go_mod, parse_go_work, GoMod, GoWork, ModCompletion};
 pub use lint::{parse_golangci, parse_vet, GoProblem};
-pub use provider::{GoTestProvider, GO_TEST};
+pub use provider::{debug_test, DebugTest, GoTestProvider, GO_TEST};
 
 /// Whether a project file belongs to Go (sources, `go.mod`, `go.work`, `go.sum`).
 pub fn is_go_path(path: &str) -> bool {
