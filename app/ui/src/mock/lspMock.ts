@@ -18,6 +18,7 @@ import type {
 import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo } from "./demoPythonProject";
+import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./demoJavaProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -97,10 +98,13 @@ function publish(path: string) {
 // ---------- server status ----------
 
 // The Lua demo game (`?project=lua`) runs lua-language-server instead.
+// The Java demo (`?project=java`) runs Eclipse JDT LS, which imports the Gradle build first.
 const SERVER = isLuaDemo()
   ? { id: "lua-language-server", name: "Lua Language Server" }
   : isPythonDemo()
     ? { id: "basedpyright", name: "basedpyright" }
+    : isJavaDemo()
+      ? { id: "jdtls", name: "Eclipse JDT LS" }
     : { id: "intelephense", name: "Intelephense" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
@@ -131,7 +135,9 @@ export function onMockDidOpen(cb: (path: string) => void): void {
  */
 export const intelephenseMissingAtStart = () =>
   typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
-let serverInstalled = isLuaDemo() || isPythonDemo() || !intelephenseMissingAtStart();
+/** `?project=java&jdtls=missing`: the Java demo starts without Eclipse JDT LS. */
+const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
+let serverInstalled = isLuaDemo() || isPythonDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : !intelephenseMissingAtStart());
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {
@@ -145,8 +151,10 @@ function startServer() {
   const base = SERVER;
   setStatus({ ...base, state: "starting" });
   const steps = [0, 35, 70, 100];
+  // JDT LS reports its startup and the Gradle import (`language/status`).
+  const message = (p: number) => (isJavaDemo() ? (p < 70 ? "Importing Gradle project(s)" : "Building workspace") : "Indexing");
   steps.forEach((p, i) =>
-    setTimeout(() => setStatus({ ...base, state: "busy", message: "Indexing", percentage: p }), 120 + i * 150),
+    setTimeout(() => setStatus({ ...base, state: "busy", message: message(p), percentage: p }), 120 + i * 150),
   );
   setTimeout(
     () => {
@@ -174,7 +182,22 @@ export function hoverAt(path: string, pos: LspPosition): { contents: string; ran
 
 // ---------- completion ----------
 
+/** JDT LS in the Java demo: members of `Inventory` and `StockItem`, else types and keywords. */
+function javaCompletionAt(text: string, offset: number): EditorCompletionList {
+  const line = text.slice(text.lastIndexOf("\n", offset - 1) + 1, offset);
+  const prefix = /\w*$/.exec(line)![0];
+  const before = line.slice(0, line.length - prefix.length);
+  const items = /\binventory\.$/.test(before) ? inventoryMembers : /\b(item|current|other)\.$/.test(before) ? stockItemMembers : /\.$/.test(before) ? [] : javaGlobals;
+  return {
+    isIncomplete: false,
+    items: items
+      .filter((i) => i.label.toLowerCase().startsWith(prefix.toLowerCase()))
+      .map((i, idx) => ({ ...i, sortText: String(idx).padStart(3, "0"), raw: { label: i.label } })),
+  };
+}
+
 export function completionAt(path: string, pos: LspPosition): EditorCompletionList {
+  if (isJavaDemo()) return path.endsWith(".java") ? javaCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
   // The simulated server is Intelephense: it completes PHP files only.
   if (!/\.php$/.test(path)) return { isIncomplete: false, items: [] };
   const text = docs[path] ?? "";

@@ -2,7 +2,7 @@
 title: Plugins and packs
 description: How Forge is split into packs and plugins, which plugins exist, when they activate, and how to enable or disable them in Settings | Plugins.
 order: 250
-tags: [plugins, packs, phpforge, webforge, luaforge]
+tags: [plugins, packs, phpforge, webforge, luaforge, javaforge]
 ---
 
 # Plugins and packs
@@ -16,6 +16,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **WebForge** | HTML, CSS & JavaScript, React, Vue.js, Angular |
 | **LuaForge** | Lua |
 | **PyForge** | Python: interpreters, packages, requirements inspections |
+| **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
 All plugins are built in; there is no separate download.

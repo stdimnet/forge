@@ -613,6 +613,21 @@ Page id `lang.servers`.
 | `langservers.download.npmRegistry` | string | `https://registry.npmjs.org` | user | Downloads | npm registry — Where Forge downloads npm language servers from. Every tarball is checked against the registry's sha512 integrity hash. |
 | `langservers.download.nodeMirror` | string | `https://nodejs.org/dist` | user | Downloads | Node.js download mirror — Used only when no Node.js 18 or newer is installed. Downloads are checked against the release's SHASUMS256.txt. |
 
+### Languages & Frameworks | Java
+
+Page id `lang.java` (plugin `forge.java`). See [JavaForge](../user/java.md#eclipse-jdt-language-server).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.jdtls.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Eclipse JDT Language Server | Install Eclipse JDT LS — When a Java project opens without the language server: ask, install it from download.eclipse.org, or never. |
+| `java.jdtls.path` | path | `""` | user | Eclipse JDT Language Server | JDT LS installation — A folder with an unpacked JDT LS (plugins/, config_*/). Empty: the one Forge installed. |
+| `java.jdtls.jdk` | path | `""` | user | Eclipse JDT Language Server | JDK for the language server — JDT LS needs Java 21 or newer (Java 25 for releases since 2026). Empty: the project JDK when it is new enough, else the newest detected JDK that is. |
+| `java.jdtls.vmOptions` | string | `-Xmx1G` | user | Eclipse JDT Language Server | VM options |
+| `java.jdtls.channel` | enum: `milestones`, `snapshots` | `milestones` | user | Eclipse JDT Language Server | Release channel |
+| `java.jdtls.downloadSite` | string | `https://download.eclipse.org/jdtls` | user | Eclipse JDT Language Server | Download site |
+| `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
+| `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.
@@ -818,6 +833,40 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+
+### Build, Execution, Deployment | JDKs
+
+Page id `build.jdks` (plugin `forge.java`, a custom page: the project JDK, language level and JDK list are edited there). See [JavaForge](../user/java.md#jdks).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.jdks` | list | `[]` | user |  | Added JDKs — JDK homes added by hand (Add JDK from Disk…); detected and downloaded JDKs are listed without this. |
+| `java.projectJdk` | string | `""` | user, project |  | Project JDK — JDK home (or name, like temurin-21) the project builds and runs with. Empty: the newest detected JDK. |
+| `java.languageLevel` | enum: ``, `8`, `11`, `17`, `21`, `25` | `""` | user, project |  | Language level — Java release of the sources. Empty: from the build (toolchain, maven.compiler.release) or the project JDK. |
+| `java.download.adoptiumApi` | string | `https://api.adoptium.net` | user | Downloads | Adoptium API — Where Download JDK… looks up Eclipse Temurin builds (and their SHA-256 checksums). |
+
+### Build, Execution, Deployment | Build Tools | Gradle
+
+Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](../user/java.md#maven-and-gradle).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.build.preferredTool` | enum: `gradle`, `maven` | `gradle` | user, project |  | Build tool of projects with both — Which build Forge uses when a folder has a pom.xml and a Gradle build. |
+| `java.gradle.useWrapper` | bool | `true` | user, project |  | Use the Gradle wrapper (gradlew) — Run Gradle through the project's gradlew when it has one. |
+| `java.gradle.executable` | path | `""` | user |  | Gradle executable — Used without a wrapper. Empty: gradle on the PATH. |
+| `java.gradle.jvm` | path | `""` | user, project |  | Gradle JVM — JDK home Gradle imports and runs with. Empty: the project JDK. |
+| `java.gradle.offline` | bool | `false` | user, project |  | Offline work |
+
+### Build, Execution, Deployment | Build Tools | Maven
+
+Page id `build.tools.maven` (plugin `forge.java`).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.maven.useWrapper` | bool | `true` | user, project |  | Use the Maven wrapper (mvnw) — Run Maven through the project's mvnw when it has one. |
+| `java.maven.executable` | path | `""` | user |  | Maven home path — The mvn executable used without a wrapper. Empty: mvn on the PATH. |
+| `java.maven.offline` | bool | `false` | user, project |  | Work offline |
+| `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
 
 ### Build, Execution, Deployment | Debugger
 

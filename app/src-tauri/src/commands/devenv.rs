@@ -473,6 +473,7 @@ async fn open_project(
             }
             handle.state::<LspState>().reset();
             crate::commands::php::sync_lsp_server(&handle, None);
+            crate::commands::java::sync_lsp_server(&handle, None);
         });
     }
     forward_status(app, id.clone(), conn.clone());

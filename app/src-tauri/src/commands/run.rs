@@ -61,6 +61,9 @@ impl RunState {
         tests.register_specs(plugins.test_frameworks());
         // Node.js test runners: their manifest specs with WebForge's Node.js specifics.
         webforge_js_testing::register(&mut tests, plugins.test_frameworks().cloned());
+        // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
+        tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
+        tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
         let program_settings = plugins
             .test_frameworks()
             .filter_map(|f| f.program_setting.clone())
@@ -216,8 +219,10 @@ pub(crate) struct Built {
     pub tests: TestSetup,
 }
 
-fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
+fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built> {
     let run_id = req.run_id.clone().unwrap_or_else(|| "preview".into());
+    // Java debug runs: the JDWP port the JVM listens on (JavaForge's debugger).
+    let java_debug = crate::commands::java::take_debug_port(&mut req.env);
     let root = root(state)?;
     let mut through: Option<(PhpInterpreter, bool)> = None;
     let output_filters = req.output_filters;
@@ -255,6 +260,9 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
             });
         }
         (Some(mut cfg), None) => {
+            if crate::commands::java::handles(&cfg.type_id) {
+                crate::commands::java::prepare(state, &mut cfg, java_debug)?;
+            }
             run_on = cfg.run_on.clone().filter(|t| !t.is_local()).or(run_on);
             let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
             let own = cfg.interpreter.trim();
@@ -341,7 +349,10 @@ fn build(state: &AppState, runs: &RunState, req: RunRequest) -> Result<Built> {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
                 }
-                runs.kinds.build(&cfg, &ctx)?
+                match crate::commands::java::command_line(state, &cfg, java_debug)? {
+                    Some(cmd) => cmd,
+                    None => runs.kinds.build(&cfg, &ctx)?,
+                }
             };
             // PHPUnit and Pest: a Clover report with Xdebug or PCOV.
             if coverage && tests.coverage.is_none() {
@@ -491,7 +502,11 @@ fn framework_command(
             file,
             format: c.format,
             name: cfg.name.clone(),
-            location_rules: built.location_rules.clone(),
+            location_rules: if c.location_rules.is_empty() {
+                built.location_rules.clone()
+            } else {
+                c.location_rules
+            },
         }
     });
     Ok((
@@ -499,8 +514,13 @@ fn framework_command(
         TestSetup {
             report: built.report,
             flavor: built.flavor,
-            report_dir: (built.report == forge_process::output::TestReport::JUnitFile)
-                .then_some(report_dir),
+            report_dir: if !built.report_dirs.is_empty() {
+                Some(test_frameworks::ReportDir::Builds(
+                    built.report_dirs.clone(),
+                ))
+            } else {
+                (built.report == forge_process::output::TestReport::JUnitFile).then_some(report_dir)
+            },
             configuration: Some(cfg.clone()),
             location_rules: built.location_rules,
             default_file: built.default_file,
@@ -613,6 +633,11 @@ pub async fn run_start(
         format!("run-{n}")
     });
     let test_runner = request.test_runner;
+    let mut request = request;
+    // Application runs get their class path from JDT LS (java-debug).
+    if let Some(cfg) = request.configuration.as_mut() {
+        crate::commands::java::resolve_launch(&app, cfg).await;
+    }
     let built = build(&state, &runs, request)?;
     start_built(run_id, built, test_runner, app, &state, &runs).await
 }

@@ -20,6 +20,7 @@ tags: [coverage, run with coverage, xdebug, pcov, clover, lcov, cobertura, jacoc
 | Framework | How | Report |
 | --- | --- | --- |
 | PHPUnit, Pest | `--coverage-clover <file>` with `XDEBUG_MODE=coverage` (Xdebug) or PCOV, whichever the interpreter loads | Clover XML |
+| JUnit, TestNG (JavaForge) | Gradle `jacocoTestReport` (XML report enabled) or Maven `org.jacoco:jacoco-maven-plugin:report`, when the build configures JaCoCo | JaCoCo (`build/reports/jacoco/test/jacocoTestReport.xml`, `target/site/jacoco/jacoco.xml`) |
 | busted (LuaForge) | `busted --coverage` with luacov; `.luacov` sets `runreport = true` and `reporter = "lcov"` (luacov-reporter-lcov) | LCOV (`luacov.report.out`) |
 | any manifest framework | its `coverage` arguments | LCOV, Cobertura, Clover, JaCoCo or a Go profile |
 

@@ -1,6 +1,6 @@
 //! Turning a catalog entry into a [`LspServerConfig`] for one project: file routing,
 //! user overrides and the project specific bits some servers need (TypeScript SDK, the
-//! Vue TypeScript plugin, ESLint's workspace folder, jdtls' data directory, Lua runtime).
+//! Vue TypeScript plugin, ESLint's workspace folder, Lua runtime).
 
 use std::path::{Path, PathBuf};
 
@@ -73,16 +73,6 @@ fn vue_plugin(ctx: &ConfigContext, catalog: &Catalog) -> Option<PathBuf> {
     let dirs = node_modules_dirs(ctx, exe.as_deref());
     find_package(&dirs, "@vue/typescript-plugin")
         .or_else(|| find_package(&dirs, "@vue/language-server"))
-}
-
-fn short_hash(s: &str) -> String {
-    // FNV-1a: stable across runs and platforms, enough to keep project dirs apart.
-    let mut h: u64 = 0xcbf29ce484222325;
-    for b in s.bytes() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x100000001b3);
-    }
-    format!("{:08x}", h as u32)
 }
 
 /// Build the config for `spec`, started from `executable`.
@@ -307,18 +297,6 @@ pub fn build_config(
                     }
                 }
             }
-        }
-        "jdtls" => {
-            let name = ctx
-                .root
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "project".into());
-            let data = ctx.cache_dir.join("jdtls").join(format!(
-                "{name}-{}",
-                short_hash(&ctx.root.display().to_string())
-            ));
-            args.extend(["-data".into(), data.display().to_string()]);
         }
         _ => {}
     }
@@ -560,15 +538,6 @@ mod tests {
         let mut prefs = Prefs::default();
         let scan = ProjectScan::default();
         let c = Catalog::builtin();
-
-        let jdtls = build_config(
-            c,
-            c.server("jdtls").unwrap(),
-            Path::new("j"),
-            &ctx(&root, &d, &prefs, &scan),
-        );
-        assert_eq!(jdtls.args[0], "-data");
-        assert!(jdtls.args[1].starts_with(&root.join(".cache/jdtls/shop-").display().to_string()));
 
         let ng = build_config(
             c,
