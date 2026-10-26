@@ -9,7 +9,7 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Braces, History, Variable } from "lucide-solid";
 import type { Completion } from "./api";
-import { completeExpression, expressionHistory } from "./store";
+import { completeExpression, expressionHistory, isDapSession } from "./store";
 
 export interface ExpressionInputProps {
   value: string;
@@ -27,8 +27,12 @@ export interface ExpressionInputProps {
 /** The identifier being typed at the end of `text` (what a completion replaces). */
 export const typedPrefix = (text: string): string => /[\p{L}\p{N}_]*$/u.exec(text)?.[0] ?? "";
 
-/** Whether typing `text` should ask for completions (after `$` or `->`). */
-export const wantsCompletion = (text: string): boolean => /(\$|->)[\p{L}\p{N}_]*$/u.test(text);
+/**
+ * Whether typing `text` should ask for completions: after `$` or `->` in PHP; in debug
+ * adapter sessions also on identifiers and after `.`.
+ */
+export const wantsCompletion = (text: string, dap = false): boolean =>
+  dap ? /(?:[\p{L}_][\p{L}\p{N}_]*|\.|->)$/u.test(text) : /(\$|->)[\p{L}\p{N}_]*$/u.test(text);
 
 export function ExpressionInput(props: ExpressionInputProps) {
   let input!: HTMLInputElement;
@@ -47,7 +51,7 @@ export function ExpressionInput(props: ExpressionInputProps) {
   };
   const requestCompletions = (text: string) => {
     clearTimeout(timer);
-    if (!wantsCompletion(text)) return setItems([]);
+    if (!wantsCompletion(text, isDapSession())) return setItems([]);
     const n = ++request;
     timer = setTimeout(async () => {
       const list = await completeExpression(text);

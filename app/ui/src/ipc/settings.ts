@@ -140,6 +140,8 @@ export interface Contributions {
   settings: SettingSpec[];
   lspServers: LspServerSpec[];
   runConfigurationTypes: RunConfigurationType[];
+  /** Test frameworks for the shared test runner (each is also a run configuration type). */
+  testFrameworks?: import("./testing").TestFrameworkSpec[];
   aiProviders: AiProviderContribution[];
   chatAgents: ChatAgentContribution[];
   codeGenerators: CodeGeneratorContribution[];

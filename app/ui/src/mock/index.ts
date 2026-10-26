@@ -54,9 +54,12 @@ import "./goToTestMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
+import "./coverageMock";
 import "./runToolsMock";
 import "./scratchesMock";
 import "./debugMock";
+// Wraps the debug_* mocks for debug adapter sessions.
+import "./dapMock";
 import "./dbMock";
 import "./laravelMock";
 import "./laravelDashboardMock";

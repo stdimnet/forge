@@ -1,15 +1,28 @@
 ---
-title: Xdebug debugging
-description: Step-debug PHP with Xdebug 3 - listening for connections, web pages and HTTP requests, breakpoints, logpoints and temporary breakpoints, stepping, variables and Set Value, watches, Evaluate Expression, the debugger console, servers and path mappings, Web Server Debug Validation.
+title: Debugging
+description: The debugger shared by every language - Xdebug for PHP and Debug Adapter Protocol sessions (LLDB, GDB and the adapters of language packs) with Attach to Process, Attach to DAP server, core dumps, breakpoints, logpoints, watchpoints, threads, memory, disassembly and registers; plus listening for Xdebug, web pages and HTTP requests, stepping, Set Value, watches, Evaluate Expression, the debugger console, servers and path mappings, Web Server Debug Validation.
 order: 150
-tags: [debug, xdebug, php, breakpoints, logpoints, dbgp, web server, validation]
+tags: [debug, xdebug, php, dap, lldb, gdb, attach, breakpoints, logpoints, watchpoints, memory, disassembly, dbgp, web server, validation]
 ---
 
-# Xdebug debugging
+# Debugging
 
-The Xdebug plugin (`forge.xdebug`, PHPForge pack) is a DBGp server for **Xdebug 3**. It
-accepts any number of connections at once, from the CLI, a web server, Docker containers or
-another machine.
+Forge has one debugger for every language. The **Debug** tool window (`Alt+5`), breakpoints in
+the editor, stepping, variables, watches, Evaluate Expression and the console work the same
+for every session; only how a session starts differs:
+
+- **PHP** uses the Xdebug plugin (`forge.xdebug`, PHPForge pack): a DBGp server for **Xdebug 3**
+  that accepts any number of connections at once, from the CLI, a web server, Docker
+  containers or another machine.
+- **Every other language** uses a **debug adapter** that speaks the
+  [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) (DAP), through
+  the Debugger plugin (`forge.debugger`). **LLDB** (`lldb-dap`) and **GDB** (14 or newer,
+  `gdb -i dap`) are built in for C, C++, Rust, Go and other native code; language packs add
+  their own adapters. Adapters are programs installed on your machine; Forge does not bundle
+  them. See [Debug adapter sessions](#debug-adapter-sessions) below.
+
+The sections up to [Debug adapter sessions](#debug-adapter-sessions) describe Xdebug; the
+breakpoints and the Debug tool window are shared.
 
 ## Preparing PHP
 
@@ -77,12 +90,14 @@ connections silently.
 
 ## Breakpoints
 
-- Click a line number in a PHP file, or press **Toggle Line Breakpoint** (`Ctrl+F8`, macOS
-  `Cmd+F8`).
-- Right-click a breakpoint to set a **condition** (a PHP expression; the script suspends only
-  when it is true) or disable it.
-- **View Breakpoints…** (`Ctrl+Shift+F8`) lists all breakpoints, including **PHP Exception
-  Breakpoints** (an exception class, or `*` for any).
+- Click a line number in a PHP file, or in a file of a debug adapter's languages (`.c`, `.cpp`,
+  `.rs`, `.go`, …), or press **Toggle Line Breakpoint** (`Ctrl+F8`, macOS `Cmd+F8`).
+- Right-click a breakpoint to set a **condition** (an expression of the file's language; the
+  program suspends only when it is true) or disable it.
+- **View Breakpoints…** (`Ctrl+Shift+F8`) lists all breakpoints: **PHP Line Breakpoints**,
+  **Line Breakpoints** of other languages, **Function Breakpoints**, **Watchpoints**, **PHP
+  Exception Breakpoints** (an exception class, or `*` for any) and the exception filters of
+  debug adapters (for example LLDB's "C++: on throw").
 - **Mute Breakpoints** turns all of them off temporarily.
 
 ![Breakpoint condition](../../screenshots/debugger-condition-popup.png)
@@ -100,12 +115,12 @@ PHPStorm's properties:
 | --- | --- |
 | **Enabled** | off keeps the breakpoint without stopping |
 | **Suspend execution** | off makes a **logpoint**: Forge logs and lets the script run on (yellow dot) |
-| **Condition** | a PHP expression; Xdebug stops only when it is true |
+| **Condition** | an expression; Xdebug or the debug adapter stops only when it is true |
 | **Log: "Breakpoint hit" message** | prints `Breakpoint reached at <file>:<line>` to the session's Console |
 | **Log: Stack trace** | prints the frames |
-| **Evaluate and log** | evaluates a PHP expression in the frame and prints its value |
+| **Evaluate and log** | evaluates an expression in the frame and prints its value (debug adapters: `{expr}` in the text is replaced, e.g. `i={i} sum={sum}`) |
 | **Remove once hit** | a **temporary breakpoint**: removed after it suspended once (dot with a ring) |
-| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`) |
+| **Pass count** | stops only from the n-th hit on (Xdebug's hit condition `>=`, a DAP hit condition) |
 
 - **Shift+click** on a line number adds a logpoint ("Breakpoint hit" message, no suspend) and
   opens its properties.
@@ -180,6 +195,98 @@ results are trees that expand like variables.
 
 Smart Step Into currently behaves like Step Into. Pause depends on the engine and may
 report "Pause is not supported by this engine".
+
+## Debug adapter sessions
+
+A debug adapter session drives the same Debug tool window as Xdebug. What the window offers
+depends on the adapter (its capabilities): threads, memory, disassembly and registers appear
+only when the adapter supports them.
+
+![Debug adapter session](../../screenshots/dap-session.png)
+
+### Starting a session
+
+| How | Where |
+| --- | --- |
+| **Debug** a run configuration (`Shift+F9`) | a **Native Application** configuration (executable, program arguments, working directory, debugger, "Stop at the beginning of the program", launch options as JSON), or a configuration type of a language pack that uses an adapter |
+| **Attach to Process…** (`Ctrl+Alt+F5`, macOS `Cmd+Alt+F5`) | Run menu: pick a local process (filter by name, command line or PID) and an adapter that can attach |
+| **Attach to DAP Server…** | Run menu: connect to an adapter that already listens on a TCP port (`dlv dap --listen 127.0.0.1:4711`, `debugpy --listen 5678`), with optional attach options as JSON |
+| **Debug Core Dump…** | Run menu: open a core file with the executable that crashed (LLDB); nothing runs, frames, variables, memory and registers show the state at the crash |
+
+![Attach to Process](../../screenshots/dap-attach-process.png)
+
+> **Note:** starting a program under the debugger runs project code, so it is refused in
+> [Safe Mode](project-trust.md). Attaching to a running process or DAP server and opening a
+> core dump are allowed.
+
+Program output and the adapter's messages appear in the **Console** tab. Programs that need a
+terminal (the adapter's `runInTerminal` request) are started by Forge with their output in the
+console; adapters that start child sessions (`startDebugging`, e.g. for subprocesses) get a
+session tab per child.
+
+### Threads, variables and the console
+
+- The frames pane has a thread selector; the thread that stopped is marked "(stopped)".
+- Variables expand lazily. Scopes other than the locals (globals, statics) are groups at the
+  end of the tree.
+- Watches belong to the debugger: PHP sessions keep their watches, a C session has its own.
+- The console and Evaluate (`Alt+F8`) evaluate in the adapter's language (LLDB also accepts
+  its commands) and complete names while you type.
+- Values are shown inline in the editor (`debugger.showInlineValues`).
+- **Rerun** in the toolbar restarts the session (in place when the adapter supports it).
+
+### Logpoints and watchpoints
+
+Logpoints (**Suspend execution** off, `Shift`+click on a line number) are evaluated by the
+adapter when it supports them, so the program does not stop at all; otherwise Forge logs and
+resumes. In **Evaluate and log**, `{expression}` is replaced by its value: `i={i} sum={sum}`
+prints `i=2 sum=1`; a plain expression `counter` prints `counter = 6`.
+
+![Logpoint output and completion](../../screenshots/dap-console-logpoint.png)
+
+![Breakpoints dialog with a logpoint](../../screenshots/dap-breakpoints.png)
+
+**Add Watchpoint** in the context menu of a variable adds a data breakpoint: the program stops
+when the value changes. It is listed under **Watchpoints** in View Breakpoints…, where
+**Suspend on** chooses write, read or both (as far as the adapter supports it). **Function
+Breakpoints** (**+** in the dialog) stop when a function is entered (`main`,
+`MyClass::method`).
+
+### Memory, disassembly and registers
+
+| Tab | Shows |
+| --- | --- |
+| **Memory** | hex and ASCII from an address; type an address or `&variable`, page with the arrows, or choose **View Memory** on a variable. Double-click a byte to change it (when the adapter can write memory). |
+| **Disassembly** | the instructions around the selected frame's instruction pointer with symbols and source lines; **Step Over Instruction** and **Step Into Instruction** step one machine instruction |
+| **Registers** | the registers of the selected frame |
+
+![Memory view](../../screenshots/dap-memory.png)
+
+![Disassembly](../../screenshots/dap-disassembly.png)
+
+![Registers](../../screenshots/dap-registers.png)
+
+| Action | Default shortcut |
+| --- | --- |
+| Attach to Process… | `Ctrl+Alt+F5` (macOS `Cmd+Alt+F5`) |
+| Attach to DAP Server…, Debug Core Dump… | Run menu |
+| Step Over Instruction, Step Into Instruction | Disassembly tab (assign keys in Settings \| Keymap) |
+| Add Watchpoint, Set Execution Point to Cursor | context menu / Find Action |
+| Rerun Debug Session | Debug toolbar |
+
+### Settings | Build, Execution, Deployment | Debugger
+
+| Option | Setting | Default |
+| --- | --- | --- |
+| LLDB DAP executable | `debugger.lldb.path` | empty: `lldb-dap` on the PATH |
+| GDB executable | `debugger.gdb.path` | empty: `gdb` on the PATH |
+| Debug adapter request timeout (ms) | `debugger.dap.requestTimeout` | 10000 |
+| Log Debug Adapter Protocol messages | `debugger.dap.trace` | off |
+| Show variable values in editor while debugging | `debugger.showInlineValues` | on |
+| Memory view: bytes per row | `debugger.memory.bytesPerRow` | 16 |
+
+Language packs add their adapters to the same settings page and dialogs (see
+[contribution points](../developer/contribution-points.md)).
 
 ## Servers and path mappings
 

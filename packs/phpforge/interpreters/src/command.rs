@@ -21,7 +21,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::mapping::{Mapper, PathMapping};
+use forge_runtargets::{DebugDirection, DebugPort, RunTarget, TargetContext, TargetKind};
+
+use crate::mapping::PathMapping;
 use crate::model::{InterpreterKind, Lifecycle, PhpInterpreter};
 
 /// The program to start where the interpreter runs.
@@ -73,16 +75,8 @@ pub struct WrapContext {
     pub ssh: Option<SshTarget>,
 }
 
-/// The process to start on this machine.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Wrapped {
-    pub program: String,
-    pub args: Vec<String>,
-    /// Absolute local working directory.
-    pub cwd: String,
-    pub env: BTreeMap<String, String>,
-}
+/// The process to start on this machine (the generic run target command line).
+pub use forge_runtargets::Wrapped;
 
 /// Whether the environment starts an Xdebug session.
 pub fn is_debug(env: &BTreeMap<String, String>) -> bool {
@@ -98,7 +92,7 @@ pub fn debug_port(env: &BTreeMap<String, String>) -> Option<u16> {
 }
 
 /// `XDEBUG_CONFIG` with `client_host` pointing at `host`.
-fn with_client_host(config: &str, host: &str) -> String {
+pub fn with_client_host(config: &str, host: &str) -> String {
     let mut parts: Vec<String> = config
         .split_whitespace()
         .filter(|p| !p.starts_with("client_host="))
@@ -109,24 +103,43 @@ fn with_client_host(config: &str, host: &str) -> String {
 }
 
 /// POSIX shell quoting for SSH command strings.
-pub fn sh_quote(s: &str) -> String {
-    if !s.is_empty()
-        && s.chars()
-            .all(|c| c.is_ascii_alphanumeric() || "-_./=:@%+,".contains(c))
-    {
-        return s.to_string();
+pub use forge_runtargets::target::sh_quote;
+
+/// The run target an interpreter stands for: where PHP runs and how to reach it.
+pub fn run_target(interp: &PhpInterpreter, ssh: Option<&SshTarget>) -> RunTarget {
+    let kind = match interp.kind {
+        InterpreterKind::Local => TargetKind::Local,
+        InterpreterKind::Docker => TargetKind::DockerImage,
+        InterpreterKind::Compose => TargetKind::ComposeService,
+        InterpreterKind::Ssh => TargetKind::Ssh,
+        InterpreterKind::Wsl => TargetKind::Wsl,
+    };
+    let ssh = ssh.filter(|t| !t.host.trim().is_empty());
+    RunTarget {
+        kind,
+        image: interp.image.trim().to_string(),
+        docker_context: interp.docker_server.trim().to_string(),
+        compose_files: interp.compose_files.clone(),
+        service: interp.service.trim().to_string(),
+        lifecycle: match interp.lifecycle {
+            Lifecycle::Run => forge_runtargets::Lifecycle::Run,
+            Lifecycle::Exec => forge_runtargets::Lifecycle::Exec,
+        },
+        host: ssh.map(|t| t.host.trim().to_string()).unwrap_or_default(),
+        port: ssh.map_or(0, |t| t.port),
+        user: ssh.map(|t| t.user.trim().to_string()).unwrap_or_default(),
+        key_file: ssh
+            .and_then(|t| t.key_file.as_deref())
+            .map(|k| k.trim().to_string())
+            .unwrap_or_default(),
+        distribution: interp.distribution.trim().to_string(),
+        mappings: interp.mappings.clone(),
+        ..RunTarget::default()
     }
-    format!("'{}'", s.replace('\'', "'\\''"))
 }
 
-fn or<'a>(s: &'a str, default: &'a str) -> &'a str {
-    match s.trim() {
-        "" => default,
-        s => s,
-    }
-}
-
-/// The command line that runs `inv` with `interp`.
+/// The command line that runs `inv` with `interp`: PHP's own options and Xdebug's
+/// settings here, the target's command line from `forge-runtargets`.
 pub fn wrap(
     interp: &PhpInterpreter,
     inv: &Invocation,
@@ -141,40 +154,26 @@ pub fn wrap(
     };
 
     // The program and its leading arguments where PHP runs.
-    let mut inner: Vec<String> = Vec::new();
-    match &inv.program {
+    let (program, program_args) = match &inv.program {
         Program::Php => {
-            inner.push(interp.php().to_string());
+            let mut options = Vec::new();
             for o in &interp.options {
                 if !o.name.trim().is_empty() {
-                    inner.push(format!("-d{}={}", o.name.trim(), o.value.trim()));
+                    options.push(format!("-d{}={}", o.name.trim(), o.value.trim()));
                 }
             }
             if debug && interp.xdebug.trim().is_empty() && !interp.debugger_extension.is_empty() {
-                inner.push(format!(
+                options.push(format!(
                     "-dzend_extension={}",
                     interp.debugger_extension.trim()
                 ));
             }
+            (interp.php().to_string(), options)
         }
-        Program::Other(p) => inner.push(p.clone()),
-    }
+        Program::Other(p) => (p.clone(), Vec::new()),
+    };
 
-    if interp.kind == InterpreterKind::Local {
-        let mut args = inner.split_off(1);
-        args.extend(inv.args.iter().cloned());
-        return Ok(Wrapped {
-            program: inner.remove(0),
-            args,
-            cwd,
-            env,
-        });
-    }
-
-    let mapper = Mapper::new(&ctx.root, &ctx.mappings);
-    inner.extend(inv.args.iter().map(|a| mapper.map_arg(a)));
-    let remote_cwd = mapper.to_remote(&cwd);
-    if debug {
+    if interp.kind != InterpreterKind::Local && debug {
         if !env.contains_key("PHP_IDE_CONFIG") {
             env.insert(
                 "PHP_IDE_CONFIG".into(),
@@ -190,152 +189,29 @@ pub fn wrap(
             }
         }
     }
-    let docker = or(&ctx.docker, "docker").to_string();
-    let context_args = || -> Vec<String> {
-        match interp.docker_server.trim() {
-            "" | "Docker" | "default" => Vec::new(),
-            c => vec!["--context".into(), c.into()],
-        }
-    };
-    let env_args = |flag: &str| -> Vec<String> {
-        env.iter()
-            .flat_map(|(k, v)| [flag.to_string(), format!("{k}={v}")])
-            .collect()
-    };
-
-    let (program, args) = match interp.kind {
-        InterpreterKind::Local => unreachable!("handled above"),
-        InterpreterKind::Docker => {
-            if interp.image.trim().is_empty() {
-                return Err("Image name is not specified".into());
-            }
-            let mut args = context_args();
-            args.extend(["run", "--rm", "-i"].map(String::from));
-            if debug {
-                args.push("--add-host=host.docker.internal:host-gateway".into());
-            }
-            for (local, remote) in mapper.pairs() {
-                args.push("-v".into());
-                args.push(format!("{local}:{remote}"));
-            }
-            for p in &inv.publish {
-                args.push("-p".into());
-                args.push(format!("{p}:{p}"));
-            }
-            if let Some(dir) = &remote_cwd {
-                args.push("-w".into());
-                args.push(dir.clone());
-            }
-            args.extend(env_args("-e"));
-            args.push(interp.image.trim().to_string());
-            args.extend(inner);
-            (docker, args)
-        }
-        InterpreterKind::Compose => {
-            if interp.service.trim().is_empty() {
-                return Err("Service is not specified".into());
-            }
-            let mut args = context_args();
-            args.push("compose".into());
-            for f in &interp.compose_files {
-                args.push("-f".into());
-                args.push(crate::mapping::join(&ctx.root, f));
-            }
-            match interp.lifecycle {
-                Lifecycle::Run => {
-                    args.extend(["run", "--rm", "-T"].map(String::from));
-                    for p in &inv.publish {
-                        args.push("-p".into());
-                        args.push(format!("{p}:{p}"));
-                    }
-                }
-                // A running container keeps the ports it was started with.
-                Lifecycle::Exec => args.extend(["exec", "-T"].map(String::from)),
-            }
-            if let Some(dir) = &remote_cwd {
-                args.push("-w".into());
-                args.push(dir.clone());
-            }
-            args.extend(env_args("-e"));
-            args.push(interp.service.trim().to_string());
-            args.extend(inner);
-            (docker, args)
-        }
-        InterpreterKind::Ssh => {
-            let target = ctx
-                .ssh
-                .as_ref()
-                .filter(|t| !t.host.trim().is_empty())
-                .ok_or("SSH configuration is not specified")?;
-            let mut args: Vec<String> = vec!["-o".into(), "BatchMode=yes".into()];
-            if target.port != 0 && target.port != 22 {
-                args.push("-p".into());
-                args.push(target.port.to_string());
-            }
-            if let Some(key) = target.key_file.as_deref().filter(|k| !k.trim().is_empty()) {
-                args.push("-i".into());
-                args.push(key.trim().to_string());
-            }
-            if let Some(port) = debug.then(|| debug_port(&env)).flatten() {
-                args.push("-R".into());
-                args.push(format!("{port}:127.0.0.1:{port}"));
-            }
-            for p in &inv.publish {
-                args.push("-L".into());
-                args.push(format!("{p}:127.0.0.1:{p}"));
-            }
-            args.push(if target.user.trim().is_empty() {
-                target.host.trim().to_string()
-            } else {
-                format!("{}@{}", target.user.trim(), target.host.trim())
-            });
-            let mut remote = String::new();
-            if let Some(dir) = &remote_cwd {
-                remote.push_str(&format!("cd {} && ", sh_quote(dir)));
-            }
-            if !env.is_empty() {
-                remote.push_str("env ");
-                for (k, v) in &env {
-                    remote.push_str(&sh_quote(&format!("{k}={v}")));
-                    remote.push(' ');
-                }
-            }
-            remote.push_str(
-                &inner
-                    .iter()
-                    .map(|a| sh_quote(a))
-                    .collect::<Vec<_>>()
-                    .join(" "),
-            );
-            args.push(remote);
-            ("ssh".to_string(), args)
-        }
-        InterpreterKind::Wsl => {
-            let mut args: Vec<String> = Vec::new();
-            if !interp.distribution.trim().is_empty() {
-                args.push("-d".into());
-                args.push(interp.distribution.trim().to_string());
-            }
-            if let Some(dir) = &remote_cwd {
-                args.push("--cd".into());
-                args.push(dir.clone());
-            }
-            args.push("--exec".into());
-            if !env.is_empty() {
-                args.push("env".into());
-                args.extend(env.iter().map(|(k, v)| format!("{k}={v}")));
-            }
-            args.extend(inner);
-            ("wsl.exe".to_string(), args)
-        }
-    };
-    // The environment travels inside the command line; the local process gets none.
-    Ok(Wrapped {
+    let target = run_target(interp, ctx.ssh.as_ref());
+    let generic = forge_runtargets::Invocation {
         program,
-        args,
-        cwd: ctx.root.clone(),
-        env: BTreeMap::new(),
-    })
+        program_args,
+        args: inv.args.clone(),
+        cwd,
+        // Port 0: Xdebug connects back without a known port (no SSH tunnel).
+        debug: debug.then(|| DebugPort {
+            port: debug_port(&env).unwrap_or(0),
+            direction: DebugDirection::ConnectsToIde,
+        }),
+        env,
+        publish: inv.publish.clone(),
+    };
+    forge_runtargets::wrap(
+        &target,
+        &generic,
+        &TargetContext {
+            root: ctx.root.clone(),
+            mappings: ctx.mappings.clone(),
+            docker: ctx.docker.clone(),
+        },
+    )
 }
 
 #[cfg(test)]

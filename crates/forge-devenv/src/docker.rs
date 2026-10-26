@@ -296,38 +296,9 @@ pub fn parse_find(output: &str) -> Option<(String, bool)> {
     })
 }
 
-/// `docker exec` running `argv` in the container. `interactive` keeps stdin open (`-i`).
-pub fn exec_args(
-    container: &str,
-    user: Option<&str>,
-    workdir: Option<&str>,
-    env: &BTreeMap<String, String>,
-    interactive: bool,
-    argv: &[String],
-) -> Vec<String> {
-    let mut a = vec![s("exec")];
-    if interactive {
-        a.push(s("-i"));
-    }
-    if let Some(u) = user.filter(|u| !u.is_empty()) {
-        a.push(s("-u"));
-        a.push(u.to_string());
-    }
-    if let Some(w) = workdir.filter(|w| !w.is_empty()) {
-        a.push(s("-w"));
-        a.push(w.to_string());
-    }
-    for (k, v) in env {
-        // `${containerEnv:…}` cannot be expanded from outside; leave such entries out.
-        if !v.contains("${containerEnv:") {
-            a.push(s("-e"));
-            a.push(format!("{k}={v}"));
-        }
-    }
-    a.push(container.to_string());
-    a.extend(argv.iter().cloned());
-    a
-}
+/// `docker exec` running `argv` in the container (shared with the run targets of
+/// `forge-runtargets`).
+pub use forge_runtargets::target::docker_exec_args as exec_args;
 
 /// `docker exec -it … <shell>` for a terminal in the container.
 pub fn terminal_args(container: &str, user: Option<&str>, workdir: &str) -> Vec<String> {

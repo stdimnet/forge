@@ -16,6 +16,8 @@ app/ui/            SolidJS UI
   and remote development").
 - `forge-plugin-api` — `Plugin` trait, `PluginManifest`, `Contributions`. Packs depend only on this.
 - `forge-project` — project type detection and the New Project generators/templates.
+- `forge-testing` / `forge-runtargets` — the shared test runner and coverage model of every
+  pack, and run targets ("Run on"); see "Shared test runner, coverage and run targets".
 - Plugins declare contributions (commands, keybindings, tool windows, typed settings, LSP
   servers, run configuration types, AI providers, chat agents, code generators) as serde data;
   `PluginRegistry` tracks enablement (cascading over `depends`) and answers lookups. Built-in
@@ -57,6 +59,13 @@ app/ui/            SolidJS UI
   - `registerRunConfigurationType` / `registerDebugLauncher` / `registerBeforeLaunchHandler`
     (`src/features/run`) — Run/Debug configuration types, debuggers and Before launch task
     kinds (see "Terminal and Run/Debug" below).
+  - `registerDebugAdapter({ type, label?, runConfigurationTypes?, languages?, launchSchema?,
+    attachSchema?, resolve? })` (`src/features/debug/adapters.ts`) — a Debug Adapter Protocol
+    debugger for a pack, together with `[[contributions.debugAdapters]]` in its manifest or a
+    Rust `forge_dap::DebugAdapterDescriptor` (see "Shared debugging layer" below).
+  - Test frameworks: `[[contributions.testFrameworks]]` in a manifest (or a Rust
+    `forge_testing::TestFrameworkProvider`) — gutter icons, a run configuration type, the test
+    tree, Rerun Failed Tests and Run with Coverage for a pack's test framework.
   - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
     Anything (double Ctrl), e.g. Artisan and Symfony console commands.
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
@@ -1017,10 +1026,11 @@ or without Git, for local and remote projects.
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
   `{ started, exited }`.
-- Test runners: the backend turns TeamCity service messages and JUnit reports into the test
-  tree (`forge-output`; `RunOutputOptions.testReport`: `teamCity`, `jUnitStdout` (parsed at the
-  exit) or `jUnitFile` (files handed in as `RunInput::Report { xml }` before the exit),
-  `junitFlavor` for locations). PHP test frameworks (`packs/phpforge/test-frameworks`, also in
+- Test runners: the backend turns test tool output into the test tree (`forge-output`; see
+  "Shared test runner, coverage and run targets" for every format: TeamCity, JUnit, TAP, Go,
+  libtest, pytest, Jest / Vitest; `RunOutputOptions.testReport`, `jUnitStdout` / `jestJson`
+  parsed at the exit, `jUnitFile` files handed in as `RunInput::Report { xml }` before the
+  exit, `junitFlavor` for locations). PHP test frameworks (`packs/phpforge/test-frameworks`, also in
   `forge-wasm`; IPC in `commands/test_frameworks.rs`): the `pest`, `codeception`, `behat` and
   `phpspec` types are built there (not by the `KindRegistry`) with the entry of the setting
   `php.testFrameworks` for the run's interpreter (`phpunit` configurations get its executable,
@@ -1036,6 +1046,80 @@ or without Git, for local and remote projects.
   are stored by `run_start` (`forge_process::test_history`, `<data dir>/forge/test-history`, last
   10 per project); `test_history_list() -> { id, name, type, at, summary, counts }[]`,
   `test_history_open({ id }) -> { entry, configuration, nodes, summary }`.
+
+## Shared test runner, coverage and run targets (`forge-testing`, `forge-runtargets`)
+
+- **Test events** (`forge-output`): every test tool's output becomes `TestEvent`s
+  (`testevents.rs`: count, suite started / finished, test started / failed {message,
+  details, expected, actual, location} / ignored / output / finished {duration}), which
+  `TestTree::apply_event` turns into the test tree (TeamCity messages go through
+  `TestEvent::from_service_message`). Parsers in `formats/`: streamed lines implement
+  `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`):
+  TeamCity, TAP (`tap.rs`), Go `test2json` (`gotest.rs`), libtest JSON (`libtest.rs`), pytest
+  report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
+  `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
+  `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
+  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`); `locationRules`
+  (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
+  project files.
+- **Test frameworks** (`forge-testing`): the contribution point is
+  `TestFrameworkProvider` (`id`, `types` (run configuration types), `accepts(path)`,
+  `discover(path, text) -> TestFile`, `rerun_failed(cfg, failed)`, `command(cfg, ctx) ->
+  TestCommand` (optional) and `supports_coverage`) in the `TestFrameworks` registry
+  (`RunState.tests`). The PHP frameworks register as `PhpTestFrameworks` (their commands keep
+  going through the PHP CLI interpreter); manifest frameworks (`[[contributions.testFrameworks]]`,
+  `TestFrameworkSpec`, re-exported as `forge_plugin_api::TestFrameworkContribution`) are
+  `SpecProvider`s: detection (globs, dependency files), `testFiles` globs, line-pattern
+  discovery nested by indentation (full names with `nameSeparator`), per-scope arguments
+  (`all`, `directory`, `file`, `test`, `pattern`) with `${file}`, `${test}`, `${testPattern}`,
+  `${pattern}`, `${reportDir}`, `${coverageFile}`, the `report` format, `locationRules`,
+  `rerun` and `coverage`. LuaForge declares busted. `TestCommand { program, args, env,
+  report, flavor, locationRules, defaultFile, coverage }`.
+- IPC (`commands/testing.rs`, `src/ipc/testing.ts`): `test_discover({ path, text }) ->
+  TestFile` and `test_rerun_failed({ configuration, failed }) -> RunConfiguration | null` ask
+  the registry; `test_frameworks_detect() -> string[]` (manifest frameworks the project
+  uses). `run_start` / `run_command_line` build manifest framework configurations through
+  the registry (report files in the temp dir or `.forge/test-reports/<run>` like the PHP
+  ones). The UI turns every manifest framework into a run configuration type
+  (`testFrameworkType`, `features/run/types.ts`) and attaches the test gutter to its
+  `testFiles` (`features/run/frameworkFiles.ts`).
+- **Coverage** (`forge_testing::coverage`): `CoverageReport` (files with `LineHits { line,
+  hits, branches: (covered, total)?, partial }`) from LCOV, Cobertura, Clover, JaCoCo and Go
+  profiles (`parse`, `sniff`, `parse_any`), `resolve` (reported paths → project paths:
+  location rules, the run's path mappings, the working directory), `summary` (the Coverage
+  tool window's rows: project, compacted directories, files with line and branch
+  `Counter`s) and `FileCoverage::marks` (gutter marks: `covered` / `partial` / `uncovered`
+  with a hover text). Run with Coverage: `RunRequest.coverage` → manifest frameworks add
+  their `coverage.args` (`${coverageFile}` in a report folder, or a file the tool writes
+  relative to the working dir), PHPUnit and Pest add `--coverage-clover <dir>/clover.xml`
+  and `XDEBUG_MODE=coverage`; when the run exits the backend reads the report
+  (`testing::record_coverage`) and emits `{ type: "coverage", suite } | { type: "coverage",
+  error }` on `run://<runId>` before `exited`. Suites live in `CoverageState` (session, newest
+  10): `coverage_suites() -> CoverageSuite[]`, `coverage_view({ id? }) -> { suite, nodes } |
+  null`, `coverage_file({ path, id? }) -> LineMark[]`, `coverage_remove({ id })`,
+  `coverage_import({ path }) -> CoverageSuite` (a report of the project). UI:
+  `features/coverage` (tool window, gutter extension, Project view hints through
+  `registerRowDecorator`, actions `Coverage`, `RunCoverage`, `SwitchCoverage` (`Ctrl+Alt+F6`),
+  `HideCoverageInfo`, `ImportCoverage`), `onCoverageSuite` (`features/run`).
+- **Run targets** (`forge-runtargets`): `RunConfiguration.runOn` (`RunTarget { kind: local |
+  dockerImage | composeService | ssh | wsl | devContainer, image, runOptions, dockerContext,
+  composeFiles, service, lifecycle, host, port, user, keyFile, distribution, container,
+  projectPath, mappings, env }`, stored in the run configuration files). `run.rs` builds the
+  command as if local, then `forge_runtargets::wrap(target, Invocation, TargetContext)` turns
+  it into the local command line (`docker run`, `docker compose run|exec`, `ssh`, `wsl.exe`,
+  `docker exec`), with paths in arguments and the working directory mapped; the mappings
+  (`automatic` + the user's) become the run's `pathMappings` for console links, test
+  locations and coverage. A remote PHP CLI interpreter wins over the target. Debugging:
+  `RunRequest.debugPort { port, direction: connectsToIde | ideConnects }` asks the target to
+  reach the debugger (`--add-host=host.docker.internal:host-gateway`, `ssh -R`) or the
+  program (`-p`, `ssh -L`); PHP debug runs get `PHP_IDE_CONFIG=serverName=<target>`, Xdebug's
+  `client_host` and a `forge_debug::ServerConfig` with the target's mappings.
+  `run_target_info({ configuration }) -> DebugTarget { target, ideHost, targetHost, mappings }
+  | null` gives debuggers (DAP launchers: `DebugLaunchContext.target()`) the same data;
+  `RunRequest.runOn` carries the target of UI-built command lines. The PHP interpreters'
+  `wrap` and mappings, and Dev Container projects' `docker exec`, are built on this crate.
+- Safe Mode: tests, coverage runs and runs on targets all start in `run::start_built`, which
+  requires a trusted project.
 
 ## Project trust and Safe Mode (`forge-trust`)
 
@@ -1592,6 +1676,77 @@ libraries.tsx, sourceRoots.tsx}`).
   `debugLauncher.setStopFallback(fn)` lets "Stop" (Ctrl+F2) stop a run when no debug session is active.
 - Main toolbar widgets left of the run configuration selector: `registerToolbarItem`
   (`src/features/toolbarItems.ts`).
+## Shared debugging layer (`forge-dap`)
+
+Every language except PHP debugs through the Debug Adapter Protocol. `forge-dap` is the
+client; its sessions are mapped onto `forge_debug`'s model (`SessionInfo` with `adapter`,
+`features`, `threadId`, `parentId`; `Frame` with `id` and `address`; `Property` with
+`reference`, `container`, `memoryReference`; breakpoint kinds `function` and `data`;
+`StepKind::StepIntoInstruction|StepOverInstruction`; `DebugEvent::Invalidated`), so one Debug
+tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stream
+(`debug://*`) serve Xdebug and DAP sessions.
+
+- **Contribution point.** Adapters come from manifests:
+
+  ```toml
+  [[contributions.debugAdapters]]
+  type = "lldb"                       # adapter type, also the launch configuration's type
+  label = "LLDB"
+  command = "lldb-dap"                # empty: only reachable as a DAP server
+  args = []
+  commandSetting = "debugger.lldb.path"
+  transport = "stdio"                 # stdio | connect (${port}) | listen (adapter connects back)
+  languages = ["c", "cpp", "rs"]      # line breakpoints in these files
+  launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}" }
+  attach = { pid = "${pid}" }         # Attach to Process
+  coreDump = { program = "${program}", coreFile = "${core}" }
+  coreDumpRequest = "attach"
+  launchSchema = { … }                # JSON schema of extra options
+  ```
+
+  or from Rust: `impl DebugAdapterDescriptor { fn info() -> AdapterInfo; fn resolve(&LaunchRequest)
+  -> ResolvedLaunch { transport, request, arguments } }`, registered with
+  `DapManager::register_adapter`. The UI adds `registerDebugAdapter` (run configuration types
+  and `resolve(cfg) -> LaunchRequest`). The built-in Debugger plugin (`forge.debugger`,
+  `plugins/debugger.toml`) declares LLDB (`lldb-dap`) and GDB (`gdb -i dap`), the "Native
+  Application" run configuration type and Settings | Build, Execution, Deployment | Debugger
+  (`debugger.*`).
+- **Sessions.** `DapManager::start(LaunchRequest { adapter, mode: launch | attachProcess{pid} |
+  attachServer{host,port} | coreDump{core}, program, args, arguments, cwd, env, stopOnEntry,
+  configuration })` resolves the descriptor, opens the transport, and runs initialize →
+  (breakpoints first when `initialized` comes right after `initialize`) → launch/attach →
+  breakpoints → configurationDone. Session ids are `dap-<n>`; the app's `debug_*` commands
+  route them to `DapSession` (`commands/debug.rs`), so stepping, frames, variables, evaluate,
+  completion, Set Value and Run to Cursor are shared. Breakpoint changes reach DAP sessions
+  through the event sink (`DebugEvent::Breakpoints` → `DapManager::breakpoints_changed`).
+  Logpoints use the adapter's `logMessage` (templates with `{expr}`) or are emulated; exception
+  filters are stored as exception breakpoints with `adapter`; watchpoints are data
+  breakpoints (`dataBreakpointInfo`). Reverse requests: `runInTerminal` (Forge starts the
+  program, output in the console) and `startDebugging` (child sessions with `parentId`).
+- **Trust.** `dap_start` / `dap_restart` refuse launching in Safe Mode
+  (`require_trusted`); attaching to a process or a DAP server and core dumps are allowed.
+- **IPC** (`commands/dap.rs`): `dap_adapters() -> AdapterInfo[]`, `dap_start({ request }) ->
+  SessionInfo`, `dap_restart({ sessionId })`, `dap_threads({ sessionId })`, `dap_goto({
+  sessionId, file, line })`, `dap_registers({ sessionId, depth })`, `dap_read_memory({
+  sessionId, memoryReference, offset?, count }) -> { address, rows: { address, hex[], ascii
+  }[], unreadable }`, `dap_write_memory({ sessionId, memoryReference, offset?, data })` (hex
+  bytes), `dap_disassemble({ sessionId, memoryReference, instructionOffset?, count, current? })
+  -> Instruction[]`, `dap_modules`, `dap_loaded_sources`, `dap_data_breakpoint({ sessionId,
+  container, name, accessType? }) -> Breakpoint`, `dap_processes({ filter? }) ->
+  ProcessInfo[]`. Shared commands gained optional arguments: `debug_stack({ threadId })`,
+  `debug_property({ reference })`, `debug_eval({ context: watch|repl|hover })`,
+  `debug_set_value({ container, name })`, `debug_watches({ scope })` /
+  `debug_watches_set({ watches, scope })` (`php` or an adapter type). Typed clients:
+  `features/debug/api.ts`, `features/debug/dapApi.ts`; browser mock: `mock/dapMock.ts`.
+- **UI.** The Debug tool window shows a thread selector and, when the session's `features`
+  allow, the Memory, Disassembly (instruction stepping) and Registers tabs
+  (`features/debug/nativeViews.tsx`); variables offer Add Watchpoint and View Memory; the
+  Breakpoints dialog lists line, function, watchpoint and adapter exception breakpoints;
+  `AttachDialogs.tsx` has Attach to Process (`XDebugger.AttachToProcess`, `Ctrl+Alt+F5`),
+  Attach to DAP Server and Debug Core Dump. Inline values use `inlineValuesGeneric`.
+- **Tests.** `crates/forge-dap/tests/fake_adapter.rs` drives the simulated adapter
+  (`forge_dap::fake`, binary `forge-dap-fake`) over every transport; no debugger downloads.
+
 ## PHP CLI interpreters (`packs/phpforge/interpreters`)
 
 - `phpforge-interpreters` (pure except `detect`; also in `forge-wasm`,

@@ -1,0 +1,17 @@
+[package]
+name = "forge-testing"
+description = "Forge shared test runner and coverage model: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) — pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex-lite = "0.1"
+quick-xml = "0.42"
+forge-output.workspace = true
+forge-runtools.workspace = true
+
+[dev-dependencies]
+toml.workspace = true

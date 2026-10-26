@@ -73,7 +73,7 @@ run as an `http-request` run configuration.
 The ▶ menu also offers **Debug '…' with Xdebug**: it starts
 listening for Xdebug and sends the request with the cookie `XDEBUG_SESSION=FORGE`, so the PHP
 application stops at your breakpoints (see
-[Xdebug debugging](debugging.md#debugging-web-pages-and-http-requests)).
+[Debugging](debugging.md#debugging-web-pages-and-http-requests)).
 
 ![HTTP request](../../screenshots/scratches-http-request.png)
 

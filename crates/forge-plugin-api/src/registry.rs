@@ -206,6 +206,14 @@ impl PluginRegistry {
         self.collect(|c| &c.run_configuration_types)
     }
 
+    pub fn debug_adapters(&self) -> impl Iterator<Item = &DebugAdapterContribution> {
+        self.collect(|c| &c.debug_adapters)
+    }
+
+    pub fn test_frameworks(&self) -> impl Iterator<Item = &TestFrameworkContribution> {
+        self.collect(|c| &c.test_frameworks)
+    }
+
     pub fn ai_providers(&self) -> impl Iterator<Item = &AiProviderContribution> {
         self.collect(|c| &c.ai_providers)
     }
@@ -292,6 +300,37 @@ mod tests {
         r.register_descriptor(descriptor("forge.lua", &[], ""))
             .unwrap();
         r
+    }
+
+    #[test]
+    fn parses_debug_adapters() {
+        let d = descriptor(
+            "forge.native",
+            &[],
+            r#"[[contributions.debugAdapters]]
+               type = "lldb"
+               label = "LLDB"
+               command = "lldb-dap"
+               commandSetting = "debugger.lldb.path"
+               languages = ["c", "cpp"]
+               launch = { program = "${program}", args = "${args}" }
+               attach = { pid = "${pid}" }
+               [[contributions.debugAdapters]]
+               type = "go"
+               label = "Delve"
+               command = "dlv"
+               args = ["dap", "--listen", "127.0.0.1:${port}"]
+               transport = "connect""#,
+        );
+        let mut r = PluginRegistry::new();
+        r.register_descriptor(d).unwrap();
+        let adapters: Vec<_> = r.debug_adapters().collect();
+        assert_eq!(adapters.len(), 2);
+        assert_eq!(adapters[0].r#type, "lldb");
+        assert_eq!(adapters[0].transport, DebugAdapterTransport::Stdio);
+        assert_eq!(adapters[0].launch["program"], "${program}");
+        assert!(adapters[0].core_dump.is_null());
+        assert_eq!(adapters[1].transport, DebugAdapterTransport::Connect);
     }
 
     #[test]

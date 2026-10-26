@@ -11,6 +11,11 @@ function quote(s: string): string {
 /** `{int}`, `{App\Models\Order}`, `{array}` … or "" for strings/bools/null (shown bare). */
 export function typeLabel(p: Property): string {
   switch (p.type) {
+    // Debug adapter values carry the language's type name (`int`, `struct point`).
+    case "dap":
+      return p.classname ? `{${p.classname}}` : "";
+    case "scope":
+      return "";
     case "object":
       return `{${p.classname ?? "object"}}`;
     case "array":
@@ -30,6 +35,10 @@ export function typeLabel(p: Property): string {
 /** The value part: `42`, `"text"`, `true`, `[3]`. */
 export function valueText(p: Property): string {
   switch (p.type) {
+    case "dap":
+      return p.value ?? "";
+    case "scope":
+      return "";
     case "object":
     case "array":
       return `[${p.numChildren}]`;
@@ -55,6 +64,7 @@ export function formatValue(p: Property): string {
 
 /** Short class name for compact places (inline values): `{Order} [3]`. */
 export function formatValueShort(p: Property): string {
+  if (p.type === "dap") return p.value ?? "";
   if (p.type === "object") return `{${(p.classname ?? "object").split("\\").pop()}} [${p.numChildren}]`;
   if (p.type === "array") return formatValue(p);
   return valueText(p);
@@ -69,6 +79,12 @@ export function basename(path: string): string {
 
 /** `OrderController.php:24, App\Http\Controllers\OrderController->show()` */
 export function frameLabel(f: Frame): { location: string; where: string } {
+  // Debug adapter frames: `main, demo.c:17` like CLion; frames without source show the address.
+  if (f.id !== undefined) {
+    const file = f.file ?? f.fileUri;
+    const location = file && f.line > 0 ? `${basename(file)}:${f.line}` : (f.address ?? "<unknown>");
+    return { location, where: f.where };
+  }
   const file = f.file ?? f.fileUri.replace(/^file:\/\//, "");
   const where = f.where === "{main}" ? "{main}()" : f.where.endsWith(")") ? f.where : `${f.where}()`;
   return { location: `${basename(file)}:${f.line}`, where };
@@ -115,6 +131,41 @@ export function inlineValues(lines: string[], execLine: number, vars: Property[]
   return out;
 }
 
+const IDENT_RE = /[A-Za-z_][\w]*/g;
+
+/** Start of the function containing `line` in C-like, Python, Go, Rust, Lua … sources. */
+export function genericScopeStart(lines: string[], line: number, limit = 80): number {
+  const def = /^(?:\s*(?:def|fn|func|function|local\s+function|sub|proc)\b|[A-Za-z_][\w\s*&:<>,]*\b[A-Za-z_][\w:]*\s*\([^;]*\)\s*(?:const\s*)?\{?\s*$)/;
+  for (let l = line; l >= Math.max(1, line - limit); l--) {
+    if (def.test(lines[l - 1] ?? "")) return l;
+  }
+  return Math.max(1, line - 30);
+}
+
+/**
+ * Inline values for debug adapter languages: identifiers on the lines from the start of the
+ * function to the execution line that name a variable in scope (`counter: 6   name: "forge"`).
+ */
+export function inlineValuesGeneric(lines: string[], execLine: number, vars: Property[]): Map<number, string> {
+  const byName = new Map(vars.filter((v) => v.type !== "scope").map((v) => [v.name, v]));
+  const out = new Map<number, string>();
+  if (!byName.size || execLine < 1) return out;
+  const start = genericScopeStart(lines, execLine);
+  for (let l = start; l <= Math.min(execLine, lines.length); l++) {
+    const text = lines[l - 1].replace(/\/\/.*$|#.*$|--.*$/, "").replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, "");
+    const seen = new Set<string>();
+    const parts: string[] = [];
+    for (const m of text.matchAll(IDENT_RE)) {
+      const v = byName.get(m[0]);
+      if (!v || seen.has(m[0])) continue;
+      seen.add(m[0]);
+      parts.push(`${m[0]}: ${formatValueShort(v)}`);
+    }
+    if (parts.length) out.set(l, parts.join("   "));
+  }
+  return out;
+}
+
 /** Identifier or `$variable` (with `->prop` chains) around a column, for Evaluate/Quick Evaluate. */
 export function expressionAt(line: string, col: number): string {
   const re = /\$?[A-Za-z_\u0080-￿][\w\u0080-￿]*(?:(?:->|::)[A-Za-z_\u0080-￿][\w\u0080-￿]*)*/g;
@@ -128,6 +179,8 @@ export function expressionAt(line: string, col: number): string {
 /** The PHP literal Set Value starts with: `'text'`, `42`, `true`, `null` ("" for compound values). */
 export function phpLiteral(p: Property): string {
   switch (p.type) {
+    case "dap":
+      return p.value ?? "";
     case "string":
       return `'${(p.value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
     case "bool":

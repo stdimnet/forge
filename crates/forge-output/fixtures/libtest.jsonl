@@ -1,0 +1,14 @@
+     Running unittests src/lib.rs (target/debug/deps/shop-1a2b3c4d)
+{ "type": "suite", "event": "started", "test_count": 3 }
+{ "type": "test", "event": "started", "name": "cart::tests::adds_items" }
+{ "type": "test", "event": "started", "name": "cart::tests::rounds_to_cents" }
+{ "type": "test", "event": "started", "name": "cart::tests::vouchers" }
+{ "type": "test", "name": "cart::tests::vouchers", "event": "ignored", "message": "needs a database" }
+{ "type": "test", "name": "cart::tests::adds_items", "event": "ok", "exec_time": 0.0004 }
+{ "type": "test", "name": "cart::tests::rounds_to_cents", "event": "failed", "exec_time": 0.0021, "stdout": "\nthread 'cart::tests::rounds_to_cents' panicked at src/cart.rs:42:9:\nassertion `left == right` failed\n  left: 118\n right: 117\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+{ "type": "suite", "event": "failed", "passed": 1, "failed": 1, "ignored": 1, "measured": 0, "filtered_out": 0, "exec_time": 0.003 }
+     Running tests/checkout.rs (target/debug/deps/checkout-5e6f7a8b)
+{ "type": "suite", "event": "started", "test_count": 1 }
+{ "type": "test", "event": "started", "name": "checkout_works" }
+{ "type": "test", "name": "checkout_works", "event": "ok", "exec_time": 0.0012 }
+{ "type": "suite", "event": "ok", "passed": 1, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0, "exec_time": 0.002 }

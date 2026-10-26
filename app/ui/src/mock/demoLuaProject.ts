@@ -288,6 +288,59 @@ print("Built dist/pixel-dungeon.love")
   "diagnostics.globals": ["love"]
 }
 `,
+  "spec/entity_spec.lua": `local Entity = require("src.entity")
+local Vec2 = require("lib.vector")
+
+describe("Entity", function()
+  it("starts with 10 hit points", function()
+    local e = Entity.new(Vec2.new(1, 1))
+    assert.are.equal(10, e.hp)
+  end)
+
+  describe("damage", function()
+    it("never goes below zero", function()
+      local e = Entity.new(Vec2.new(1, 1), 5)
+      assert.are.equal(0, e:damage(8))
+    end)
+
+    it("kills at zero hit points", function()
+      local e = Entity.new(Vec2.new(1, 1), 3)
+      e:damage(3)
+      assert.is_false(e:isAlive())
+    end)
+  end)
+end)
+`,
+  "spec/player_spec.lua": `local Player = require("src.player")
+local Vec2 = require("lib.vector")
+
+describe("Player", function()
+  it("picks up gold", function()
+    local p = Player.new("Ada", Vec2.new(1, 1))
+    p:pickUpGold(15)
+    assert.are.equal(15, p.gold)
+  end)
+
+  it("moves by speed and frame time", function()
+    local p = Player.new("Ada", Vec2.new(1, 1))
+    local pos = p:move(Vec2.new(1, 0), 0.5)
+    assert.are.equal(5, pos.x)
+  end)
+
+  pending("drops gold on death")
+end)
+`,
+  ".busted": `return {
+  _all = { lpath = "src/?.lua;lib/?.lua" },
+  default = { ROOT = { "spec" } },
+}
+`,
+  ".luacov": `-- luacov writes an LCOV report after each busted --coverage run (Run with Coverage).
+runreport = true
+reporter = "lcov"
+reportfile = "luacov.report.out"
+include = { "src", "lib" }
+`,
   "stylua.toml": `column_width = 120
 indent_type = "Spaces"
 indent_width = 2

@@ -627,6 +627,7 @@ Page id `lang.lua`.
 | `langservers.lua.libraries` | list | `[]` | user, project | Lua Language Server | Library paths — Extra folders with Lua definitions or third-party code (workspace.library), e.g. ~/.luarocks/share/lua/5.4. |
 | `lua.stylua.enabled` | bool | `true` | user | StyLua | Reformat Code with StyLua — Ctrl+Alt+L formats Lua files with StyLua when it is installed; stylua.toml in the project is honoured. |
 | `lua.stylua.path` | path | `stylua` | user | StyLua | StyLua executable |
+| `lua.busted.path` | path | `busted` | user | Testing | busted executable — Runs busted test configurations that do not set their own executable. |
 
 ### Languages & Frameworks | Python
 
@@ -817,6 +818,19 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+
+### Build, Execution, Deployment | Debugger
+
+Page id `build.debugger`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `debugger.lldb.path` | path | `""` | user | Debug Adapters | LLDB DAP executable — Path of lldb-dap (lldb-vscode in older LLVM releases). Empty: lldb-dap on the PATH. |
+| `debugger.gdb.path` | path | `""` | user | Debug Adapters | GDB executable — GDB 14 or newer (its built-in DAP server, gdb -i dap). Empty: gdb on the PATH. |
+| `debugger.dap.requestTimeout` | int (1000–120000) | `10000` | user | Debug Adapter Protocol | Debug adapter request timeout (ms) — How long Forge waits for an answer of a debug adapter before it reports an error. |
+| `debugger.dap.trace` | bool | `false` | user | Debug Adapter Protocol | Log Debug Adapter Protocol messages — Write every message to and from debug adapters to the Forge log (trace level). |
+| `debugger.showInlineValues` | bool | `true` | user | Data Views | Show variable values in editor while debugging — For debug adapter sessions; PHP uses the setting under Languages & Frameworks \| PHP \| Debug. |
+| `debugger.memory.bytesPerRow` | int (4–64) | `16` | user | Data Views | Memory view: bytes per row |
 
 ### Build, Execution, Deployment | Deployment
 

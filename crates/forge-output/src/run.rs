@@ -8,23 +8,44 @@ use serde::{Deserialize, Serialize};
 
 use crate::ansi::{AnsiParser, Style};
 use crate::console::{ConsoleDelta, ConsoleModel};
-use crate::junit::{junit_messages, JUnitFlavor};
+use crate::formats::{document_events, line_parser};
+use crate::junit::JUnitFlavor;
 use crate::links::{LinkContext, OutputPathMapping};
-use crate::teamcity::{parse_service_message, TestNode, TestSummary, TestTree};
+use crate::teamcity::{LocationRule, TestNode, TestSummary, TestTree};
+use crate::testevents::{LineParser, TestEvent};
 
-/// Where a test run reports its results.
+/// Where a test run reports its results, and in which format.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TestReport {
-    /// TeamCity service messages on stdout (PHPUnit `--teamcity`, Pest, Jest).
+    /// TeamCity service messages on stdout (PHPUnit `--teamcity`, Pest, Jest reporters).
     #[default]
     TeamCity,
     /// A JUnit XML document on stdout (PHPSpec `--format=junit`): stdout is collected and
     /// turned into the tree when the process exits.
     JUnitStdout,
-    /// JUnit XML files the runner writes (Codeception `--xml`, Behat `--format=junit`): the
+    /// Report files the runner writes (JUnit XML of Codeception `--xml`, Behat
+    /// `--format=junit`, pytest `--junitxml`; Jest / Vitest JSON; pytest report logs): the
     /// console shows stdout, the backend hands the files over as [`RunInput::Report`].
     JUnitFile,
+    /// TAP on stdout (busted `-o TAP`, node `--test-reporter=tap`, prove, Bats).
+    Tap,
+    /// Go `test2json` lines on stdout (`go test -json`).
+    GoTestJson,
+    /// libtest JSON lines on stdout (`cargo test -- -Z unstable-options --format json`).
+    LibtestJson,
+    /// A pytest report log on stdout (`--report-log=/dev/stdout`).
+    PytestReportLog,
+    /// A Jest / Vitest JSON document on stdout (`jest --json`, `vitest --reporter=json`),
+    /// read when the process exits.
+    JestJson,
+}
+
+impl TestReport {
+    /// Formats that print one whole document on stdout, read at the exit.
+    pub fn is_stdout_document(self) -> bool {
+        matches!(self, TestReport::JUnitStdout | TestReport::JestJson)
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -56,6 +77,12 @@ pub struct RunOutputOptions {
     /// The tool that writes JUnit reports (locations are derived differently).
     #[serde(default)]
     pub junit_flavor: JUnitFlavor,
+    /// Rewrites of reported test locations (a test framework's location rules).
+    #[serde(default)]
+    pub location_rules: Vec<LocationRule>,
+    /// The file a single-file test run tests (tests without a location belong to it).
+    #[serde(default)]
+    pub default_test_file: Option<String>,
 }
 
 /// What happened to the process.
@@ -103,7 +130,10 @@ pub struct RunOutput {
     tests: Option<TestTree>,
     report: TestReport,
     flavor: JUnitFlavor,
-    /// Stdout of a [`TestReport::JUnitStdout`] run, parsed when it exits.
+    /// The line parser of a streaming format.
+    parser: Option<Box<dyn LineParser>>,
+    /// Stdout of a run that prints one document ([`TestReport::is_stdout_document`]),
+    /// parsed when it exits.
     junit: String,
     /// Incomplete stdout line of a test run (service messages are line based).
     partial: String,
@@ -141,11 +171,17 @@ impl RunOutput {
         RunOutput {
             ansi: AnsiParser::new(),
             console: ConsoleModel::new(links.clone()),
-            tests: opts
-                .test_runner
-                .then(|| TestTree::new("Test Results", links)),
+            tests: opts.test_runner.then(|| {
+                TestTree::new("Test Results", links)
+                    .with_location_rules(&opts.location_rules)
+                    .with_default_file(opts.default_test_file.clone())
+            }),
             report: opts.test_report,
             flavor: opts.junit_flavor,
+            parser: opts
+                .test_runner
+                .then(|| line_parser(opts.test_report))
+                .flatten(),
             junit: String::new(),
             partial: String::new(),
             current_test: None,
@@ -192,13 +228,10 @@ impl RunOutput {
                 };
                 if self.tests.is_some()
                     && stream == Stream::Stdout
-                    && self.report == TestReport::JUnitStdout
+                    && self.report.is_stdout_document()
                 {
                     self.junit.push_str(text);
-                } else if self.tests.is_some()
-                    && stream == Stream::Stdout
-                    && self.report == TestReport::TeamCity
-                {
+                } else if self.parser.is_some() && stream == Stream::Stdout {
                     self.write_test_output(text, false);
                 } else {
                     self.write(text, stream);
@@ -209,16 +242,26 @@ impl RunOutput {
                 self.apply_report(xml);
             }
             RunInput::Exited { code, signal } => {
-                if self.tests.is_some() && !self.partial.is_empty() {
-                    self.write_test_output("", true);
+                if self.parser.is_some() {
+                    if !self.partial.is_empty() {
+                        self.write_test_output("", true);
+                    }
+                    let rest = self.parser.as_mut().map(|p| p.finish()).unwrap_or_default();
+                    self.apply_events(&rest);
                 }
                 if self.tests.is_some() && !self.junit.is_empty() {
                     let all = std::mem::take(&mut self.junit);
                     // Anything before the document (warnings, deprecations) is console text.
-                    let start = all
-                        .find("<?xml")
-                        .or_else(|| all.find("<testsuites"))
-                        .unwrap_or(all.len());
+                    let start = if self.report == TestReport::JestJson {
+                        if all.trim_start().starts_with('{') {
+                            Some(all.len() - all.trim_start().len())
+                        } else {
+                            all.find("\n{").map(|i| i + 1)
+                        }
+                    } else {
+                        all.find("<?xml").or_else(|| all.find("<testsuites"))
+                    }
+                    .unwrap_or(all.len());
                     if start > 0 {
                         self.write(&all[..start], Stream::Stdout);
                     }
@@ -270,6 +313,11 @@ impl RunOutput {
     }
 
     fn write(&mut self, text: &str, stream: Stream) {
+        self.write_attributed(text, stream, true);
+    }
+
+    /// Console text; `attribute` adds it to the output of the running test.
+    fn write_attributed(&mut self, text: &str, stream: Stream, attribute: bool) {
         let style = match stream {
             Stream::Stderr => Some(Style::fg("var(--danger)")),
             Stream::System => Some(Style::fg("var(--fg-muted)")),
@@ -279,22 +327,21 @@ impl RunOutput {
         let delta = self.console.append(&segments, style.as_ref());
         self.delta.then(delta);
         if let (Some(test), Some(tree)) = (self.current_test, &mut self.tests) {
-            if stream != Stream::System {
+            if stream != Stream::System && attribute {
                 tree.add_output(test, text);
             }
         }
     }
 
-    /// Apply a JUnit report to the tree; `false` when it is not one.
+    /// Apply a report (JUnit XML, Jest JSON, a report log) to the tree; `false` when it is
+    /// not one.
     fn apply_report(&mut self, xml: &str) -> bool {
-        let Some(tree) = self.tests.as_mut() else {
+        if self.tests.is_none() {
             return false;
-        };
-        match junit_messages(xml, self.flavor) {
-            Ok(messages) => {
-                for m in &messages {
-                    self.tests_changed |= tree.apply(m);
-                }
+        }
+        match document_events(xml, self.flavor) {
+            Ok(events) => {
+                self.apply_events(&events);
                 true
             }
             Err(e) => {
@@ -307,12 +354,28 @@ impl RunOutput {
         }
     }
 
+    /// Apply events to the tree and follow the running test (its output is attributed to it).
+    fn apply_events(&mut self, events: &[TestEvent]) {
+        let Some(tree) = self.tests.as_mut() else {
+            return;
+        };
+        for e in events {
+            self.tests_changed |= tree.apply_event(e);
+            match e {
+                TestEvent::TestStarted { .. } => self.current_test = tree.running_test(),
+                TestEvent::TestFinished { .. } => self.current_test = None,
+                _ => {}
+            }
+        }
+    }
+
     /// The test tree (for the test history), `None` for runs without tests.
     pub fn tests(&self) -> Option<&TestTree> {
         self.tests.as_ref()
     }
 
-    /// Test output: `##teamcity[...]` lines go to the tree, the rest to the console.
+    /// Test output of a streaming format: protocol lines go to the tree, the rest to the
+    /// console.
     fn write_test_output(&mut self, text: &str, flush_all: bool) {
         let all = std::mem::take(&mut self.partial) + text;
         let mut parts: Vec<&str> = all.split('\n').collect();
@@ -325,20 +388,26 @@ impl RunOutput {
         }
         let mut console_text = String::new();
         for line in parts {
-            let Some(msg) = parse_service_message(line) else {
-                console_text.push_str(line);
-                console_text.push('\n');
-                continue;
+            let parsed = match self.parser.as_mut() {
+                Some(p) => p.line(line),
+                None => return,
             };
+            if parsed.events.is_empty() && !parsed.attributed {
+                if let Some(c) = parsed.console {
+                    console_text.push_str(&c);
+                }
+                continue;
+            }
             if !console_text.is_empty() {
                 self.write(&std::mem::take(&mut console_text), Stream::Stdout);
             }
-            let tree = self.tests.as_mut().expect("test run");
-            self.tests_changed |= tree.apply(&msg);
-            match msg.name.as_str() {
-                "testStarted" => self.current_test = tree.running_test(),
-                "testFinished" => self.current_test = None,
-                _ => {}
+            self.apply_events(&parsed.events);
+            if let Some(c) = parsed.console {
+                if parsed.attributed {
+                    self.write_attributed(&c, Stream::Stdout, false);
+                } else {
+                    console_text.push_str(&c);
+                }
             }
         }
         if !console_text.is_empty() {
@@ -531,6 +600,84 @@ mod tests {
         assert!(text[1].starts_with("Cannot read the test report"));
         let c = o.tests().unwrap().counts();
         assert_eq!((c.passed, c.failed), (1, 1));
+    }
+
+    #[test]
+    fn streaming_formats_keep_their_protocol_out_of_the_console() {
+        let mut o = RunOutput::new(&RunOutputOptions {
+            test_runner: true,
+            test_report: TestReport::Tap,
+            root: Some("/p".into()),
+            ..RunOutputOptions::default()
+        });
+        let (lines, _) = run(
+            &mut o,
+            &[
+                out("busted 2.2\nok 1 - Cart adds"),
+                out(" items\nnot ok 2 - Cart rounds\n# spec/cart_spec.lua @ 12\n"),
+                out("# Failure message: boom\n1..2\n"),
+                RunInput::Exited {
+                    code: Some(1),
+                    signal: None,
+                },
+            ],
+        );
+        let texts: Vec<String> = lines.iter().map(ConsoleLine::text).collect();
+        assert_eq!(texts[0], "busted 2.2");
+        assert!(!texts
+            .iter()
+            .any(|t| t.starts_with("ok ") || t.starts_with('#')));
+        let nodes = o.tests().unwrap().snapshot();
+        assert_eq!(nodes[1].name, "Cart adds items");
+        assert_eq!(nodes[2].status, TestStatus::Failed);
+        assert_eq!(nodes[2].message.as_deref(), Some("boom"));
+
+        // Go: test output shows in the console and in the test's own console.
+        let mut go = RunOutput::new(&RunOutputOptions {
+            test_runner: true,
+            test_report: TestReport::GoTestJson,
+            ..RunOutputOptions::default()
+        });
+        let (lines, _) = run(
+            &mut go,
+            &[
+                out("{\"Action\":\"run\",\"Package\":\"p\",\"Test\":\"TestA\"}\n"),
+                out("{\"Action\":\"output\",\"Package\":\"p\",\"Test\":\"TestA\",\"Output\":\"hello\\n\"}\n"),
+                out("{\"Action\":\"pass\",\"Package\":\"p\",\"Test\":\"TestA\",\"Elapsed\":0.5}\n"),
+                RunInput::Exited {
+                    code: Some(0),
+                    signal: None,
+                },
+            ],
+        );
+        assert_eq!(lines[0].text(), "hello");
+        let nodes = go.tests().unwrap().snapshot();
+        let console: Vec<String> = nodes[2].console.iter().map(ConsoleLine::text).collect();
+        assert_eq!(console, ["hello"]);
+        assert_eq!(nodes[2].duration, Some(500));
+    }
+
+    #[test]
+    fn jest_json_on_stdout_is_read_at_the_exit() {
+        let mut o = RunOutput::new(&RunOutputOptions {
+            test_runner: true,
+            test_report: TestReport::JestJson,
+            ..RunOutputOptions::default()
+        });
+        let json = r#"{"numTotalTests":1,"testResults":[{"name":"/p/a.test.js","status":"passed","assertionResults":[{"ancestorTitles":[],"title":"works","status":"passed","duration":2}]}]}"#;
+        let (lines, _) = run(
+            &mut o,
+            &[
+                out("Determining test suites to run...\n"),
+                out(json),
+                RunInput::Exited {
+                    code: Some(0),
+                    signal: None,
+                },
+            ],
+        );
+        assert_eq!(lines[0].text(), "Determining test suites to run...");
+        assert_eq!(o.tests().unwrap().counts().passed, 1);
     }
 
     #[test]

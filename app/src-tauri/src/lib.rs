@@ -108,6 +108,7 @@ pub fn run() {
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
         .manage(run_state)
+        .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::workbench::BookmarksState::default())
         .manage(commands::local_history::LocalHistoryState::default())
@@ -543,8 +544,15 @@ pub fn run() {
             commands::run::run_command_line,
             commands::run::run_start,
             commands::test_frameworks::test_frameworks_list,
-            commands::test_frameworks::test_discover,
-            commands::test_frameworks::test_rerun_failed,
+            commands::testing::test_discover,
+            commands::testing::test_rerun_failed,
+            commands::testing::test_frameworks_detect,
+            commands::testing::coverage_suites,
+            commands::testing::coverage_view,
+            commands::testing::coverage_file,
+            commands::testing::coverage_remove,
+            commands::testing::coverage_import,
+            commands::testing::run_target_info,
             commands::test_frameworks::behat_step_definitions,
             commands::test_frameworks::test_history_list,
             commands::test_frameworks::test_history_open,
@@ -658,6 +666,19 @@ pub fn run() {
             commands::debug::debug_servers,
             commands::debug::debug_servers_save,
             commands::debug::debug_launch_env,
+            commands::dap::dap_adapters,
+            commands::dap::dap_start,
+            commands::dap::dap_restart,
+            commands::dap::dap_threads,
+            commands::dap::dap_goto,
+            commands::dap::dap_registers,
+            commands::dap::dap_read_memory,
+            commands::dap::dap_write_memory,
+            commands::dap::dap_disassemble,
+            commands::dap::dap_modules,
+            commands::dap::dap_loaded_sources,
+            commands::dap::dap_data_breakpoint,
+            commands::dap::dap_processes,
             commands::db::db_data_sources_list,
             commands::db::db_data_source_save,
             commands::db::db_data_source_delete,

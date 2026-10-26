@@ -28,7 +28,10 @@ pub use breakpoints::{
 };
 pub use config::DebugConfig;
 pub use error::{DebugError, DebugResult};
-pub use events::{BreakReason, DebugEvent, EventSink, Location, SessionInfo, SessionStatus};
+pub use events::{
+    BreakReason, DebugEvent, EventSink, ExceptionFilter, ExceptionInfo, Location, SessionFeatures,
+    SessionInfo, SessionStatus,
+};
 pub use mapping::{PathMapper, PathMapping};
 pub use protocol::{ContextName, Property, RemoteBreakpoint};
 pub use server::DebugServer;

@@ -18,7 +18,8 @@ import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
-import { recordTestRun, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
+import { frameworkCommand, frameworkSteps, recordTestRun, specFor, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
+import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
@@ -171,20 +172,67 @@ export async function throughInterpreter(cfg: RunConfiguration | undefined, cmd:
 }
 
 /** The command line of a configuration; test frameworks are built by Rust (WebAssembly). */
-async function commandLineOf(cfg: RunConfiguration): Promise<CommandLine> {
-  if (!TEST_TYPES.has(cfg.type)) return mockCommandLine(cfg);
-  const { report: _, ...cmd } = await testCommandLine(cfg);
+async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<CommandLine> {
+  if (specFor(cfg.type)) {
+    const c = await frameworkCommand(cfg, coverage);
+    return { program: c.program, args: c.args, cwd: cfg.workingDirectory || "", env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
+  }
+  const cmd = TEST_TYPES.has(cfg.type) ? (({ report: _, ...c }) => c)(await testCommandLine(cfg)) : mockCommandLine(cfg);
+  // PHPUnit and Pest write Clover XML with Xdebug's coverage mode.
+  if (coverage && (cfg.type === "phpunit" || cfg.type === "pest"))
+    return { ...cmd, args: [...cmd.args, "--coverage-clover", "/tmp/forge-test-reports/run-coverage/clover.xml"], env: { ...(cmd.env ?? {}), XDEBUG_MODE: "coverage" } };
   return cmd;
 }
 
+/**
+ * A command on the configuration's run target ("Run on"), built by the Rust
+ * `forge-runtargets` crate like in the desktop app; `null` for local runs.
+ */
+async function onTarget(cfg: RunConfiguration | undefined, cmd: CommandLine, runOn = cfg?.runOn): Promise<Wrapped | null> {
+  if (!runOn || runOn.kind === "local") return null;
+  const root = projectRoot();
+  const wasm = await forgeWasm();
+  const php = !!cfg && PHP_KINDS.has(cfg.type);
+  const out = callWasmSync<{ program: string; args: string[]; pathMappings: Wrapped["pathMappings"] }>(wasm.run_target_wrap, {
+    target: runOn,
+    invocation: {
+      program: php ? "php" : cmd.program,
+      args: cmd.args,
+      cwd: cmd.cwd ? (cmd.cwd.startsWith("/") || cmd.cwd.startsWith("~") ? cmd.cwd : `${root}/${cmd.cwd}`) : root,
+      env: { ...(cfg?.env ?? {}), ...(cmd.env ?? {}) },
+    },
+    root,
+    compose: runOn.kind === "composeService" ? [root, DEMO_COMPOSE_VOLUMES[runOn.service ?? ""] ?? [".:/var/www/html"]] : null,
+    docker: "",
+  });
+  return { cmd: { program: out.program, args: out.args, cwd: cmd.cwd }, pathMappings: out.pathMappings };
+}
+
+registerMock("run_target_info", async ({ configuration }) => {
+  const cfg = configuration as RunConfiguration;
+  if (!cfg.runOn || cfg.runOn.kind === "local") return null;
+  const root = projectRoot();
+  const wasm = await forgeWasm();
+  return callWasmSync<{ debug: unknown }>(wasm.run_target_wrap, {
+    target: cfg.runOn,
+    invocation: { program: "true", cwd: root },
+    root,
+    docker: "",
+  }).debug;
+});
+
 registerMock("run_command_line", async ({ request }) => {
   const r = request as RunRequest;
-  return r.command ?? (await throughInterpreter(r.configuration, await commandLineOf(r.configuration!))).cmd;
+  if (r.command) return (await onTarget(undefined, r.command, r.runOn))?.cmd ?? r.command;
+  const local = await commandLineOf(r.configuration!, !!r.coverage);
+  return (await onTarget(r.configuration, local))?.cmd ?? (await throughInterpreter(r.configuration, local)).cmd;
 });
 
 interface MockRun {
   timers: ReturnType<typeof setTimeout>[];
   done: boolean;
+  /** Run with Coverage: the report read when the run exits. */
+  coverage?: MockCoverage;
   /** Handle of the run's `RunOutput` in the WebAssembly module. */
   output: number;
   /** Test runs: the configuration stored in the Test History. */
@@ -226,6 +274,30 @@ function emitReport(runId: string, xml: string): void {
   rendered.forEach((r) => emitMock(`run://${runId}`, r));
 }
 
+/** The canned report of a Run with Coverage run. */
+export interface MockCoverage {
+  name: string;
+  text: () => string;
+  cwd?: string;
+  rules?: { pattern: string; replacement: string }[];
+}
+
+/** Read the run's coverage report into a suite, then report the exit (like the backend). */
+async function exitWithCoverage(runId: string, code: number): Promise<void> {
+  const run = runs.get(runId);
+  if (run?.coverage) {
+    const root = projectRoot();
+    const suite = await addMockCoverage(run.coverage.name, run.coverage.text(), {
+      root,
+      project: root.split("/").pop() ?? "",
+      cwd: run.coverage.cwd,
+      rules: run.coverage.rules,
+    }).catch(() => null);
+    if (suite) emitMock(`run://${runId}`, { type: "coverage", suite });
+  }
+  emitRun(runId, { type: "exited", code, signal: null });
+}
+
 export type Step =
   | [delayMs: number, text: string, stream?: "stdout" | "stderr"]
   | [delayMs: number, exit: { code: number }]
@@ -244,7 +316,7 @@ function play(runId: string, steps: Step[]): void {
         else if ("report" in step[1]) emitReport(runId, step[1].report);
         else {
           run.done = true;
-          emit({ type: "exited", code: step[1].code, signal: null });
+          void exitWithCoverage(runId, step[1].code);
         }
       }, at),
     );
@@ -625,6 +697,9 @@ export async function startMockRun(
     testReport?: string;
     junitFlavor?: string;
     configuration?: RunConfiguration;
+    locationRules?: { pattern: string; replacement: string }[];
+    defaultTestFile?: string;
+    coverage?: MockCoverage;
   } = {},
 ): Promise<{ runId: string; commandLine: string }> {
   wasm ??= await forgeWasm();
@@ -638,6 +713,8 @@ export async function startMockRun(
     outputFilters: opts.outputFilters ?? [],
     testReport: opts.testReport ?? "teamCity",
     junitFlavor: opts.junitFlavor ?? "generic",
+    locationRules: opts.locationRules ?? [],
+    defaultTestFile: opts.defaultTestFile ?? null,
   };
   const old = runs.get(runId);
   if (old) wasm.run_output_drop(JSON.stringify({ handle: old.output }));
@@ -647,6 +724,7 @@ export async function startMockRun(
     output: Number(wasm.run_output_new(JSON.stringify(options))),
     configuration: opts.testRunner ? opts.configuration : undefined,
     startedAt: Date.now(),
+    coverage: opts.coverage,
   });
   const pid = 40000 + ++seq;
   setTimeout(() => emitRun(runId, { type: "started", pid, commandLine }), 0);
@@ -657,18 +735,31 @@ export async function startMockRun(
 registerMock("run_start", async ({ request }) => {
   const r = request as RunRequest;
   const runId = r.runId ?? `mock-run-${++seq}`;
-  const test = !r.command && r.configuration && TEST_TYPES.has(r.configuration.type) ? (await testCommandLine(r.configuration)).report : undefined;
-  const local = r.command ?? (await commandLineOf(r.configuration!));
-  const { cmd, pathMappings } = await throughInterpreter(r.command ? undefined : r.configuration, { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] }, r.env);
-  const steps = stepsFor(r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration, local);
-  const recorded = r.configuration && (r.configuration.type === "phpunit" || test) ? r.configuration : undefined;
+  const cfg = r.command ? undefined : r.configuration;
+  const spec = cfg ? specFor(cfg.type) : undefined;
+  const framework = cfg && spec ? await frameworkCommand(cfg, !!r.coverage) : undefined;
+  const test = cfg && TEST_TYPES.has(cfg.type) ? (await testCommandLine(cfg)).report : undefined;
+  const local = r.command ?? (await commandLineOf(r.configuration!, !!r.coverage));
+  const withArgs = { ...local, args: [...(r.interpreterArgs ?? []), ...local.args] };
+  const { cmd, pathMappings } = (await onTarget(cfg, withArgs, cfg ? cfg.runOn : r.runOn)) ?? (await throughInterpreter(cfg, withArgs, r.env));
+  const withEnv = r.configuration && r.env ? { ...r.configuration, env: { ...r.configuration.env, ...r.env } } : r.configuration;
+  const steps = framework && withEnv ? frameworkSteps(withEnv) : stepsFor(withEnv, local);
+  const recorded = cfg && (cfg.type === "phpunit" || test || framework) ? cfg : undefined;
+  let coverage: MockCoverage | undefined;
+  if (r.coverage && cfg) {
+    if (framework?.coverage) coverage = { name: cfg.name, text: demoLcov, cwd: cfg.workingDirectory || undefined, rules: framework.locationRules };
+    else if (cfg.type === "phpunit" || cfg.type === "pest") coverage = { name: cfg.name, text: () => demoClover(ROOT) };
+  }
   return startMockRun(runId, cmd, steps, {
     testRunner: !!r.testRunner,
     pathMappings,
     outputFilters: r.outputFilters,
-    testReport: test?.report,
-    junitFlavor: test?.flavor,
+    testReport: framework?.report ?? test?.report,
+    junitFlavor: framework?.flavor ?? test?.flavor,
     configuration: recorded,
+    locationRules: framework?.locationRules,
+    defaultTestFile: framework?.defaultFile,
+    coverage,
   });
 });
 

@@ -29,6 +29,9 @@ pub enum JUnitFlavor {
     Behat,
     /// PHPSpec: `classname` is the spec class, names are example descriptions.
     PhpSpec,
+    /// pytest (`--junitxml`): `classname` is the dotted module path plus class, `line` is
+    /// 0-based, names may carry parameters (`test_total[ten]`).
+    Pytest,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -210,6 +213,26 @@ impl Converter {
                 ),
                 None => String::new(),
             },
+            JUnitFlavor::Pytest => {
+                let (derived, _) = crate::formats::pytest::module_file(class.unwrap_or_default());
+                let file = case
+                    .attr_nonempty("file")
+                    .map(str::to_string)
+                    .or_else(|| class.map(|_| derived));
+                let Some(file) = file else {
+                    return String::new();
+                };
+                match case
+                    .attr_nonempty("line")
+                    .and_then(|l| l.parse::<u32>().ok())
+                {
+                    Some(l) => format!("python://{file}:{}", l + 1),
+                    None => format!(
+                        "python://{file}::{}",
+                        name.split('[').next().unwrap_or(name)
+                    ),
+                }
+            }
             JUnitFlavor::Behat => match case.attr_nonempty("file").or(suite_file) {
                 Some(f) => format!("file://{f}::{name}"),
                 None => String::new(),
@@ -289,7 +312,12 @@ impl Converter {
                     },
                 ),
             ];
-            if let Some((expected, actual)) = comparison(&text) {
+            let values = comparison(&text).or_else(|| {
+                (self.flavor == JUnitFlavor::Pytest)
+                    .then(|| crate::formats::pytest::assert_values(&message))
+                    .flatten()
+            });
+            if let Some((expected, actual)) = values {
                 attrs.push(("type", "comparisonFailure".into()));
                 attrs.push(("expected", expected));
                 attrs.push(("actual", actual));
@@ -339,7 +367,7 @@ impl Converter {
                 }
                 "testcase" => {
                     let class = match self.flavor {
-                        JUnitFlavor::Generic => child
+                        JUnitFlavor::Generic | JUnitFlavor::Pytest => child
                             .attr_nonempty("class")
                             .or(child.attr_nonempty("classname"))
                             .map(|c| c.trim_start_matches('\\').to_string())
@@ -354,10 +382,19 @@ impl Converter {
                             self.out.push(msg("testSuiteFinished", &[("name", c)]));
                         }
                         if let Some(c) = &class {
-                            let hint = child
-                                .attr_nonempty("file")
-                                .map(|f| format!("php_qn://{f}::\\{c}"))
-                                .unwrap_or_default();
+                            let hint = if self.flavor == JUnitFlavor::Pytest {
+                                let (file, cls) = crate::formats::pytest::module_file(c);
+                                let file = child.attr_nonempty("file").map_or(file, str::to_string);
+                                match cls {
+                                    Some(cls) => format!("python://{file}::{cls}"),
+                                    None => format!("python://{file}"),
+                                }
+                            } else {
+                                child
+                                    .attr_nonempty("file")
+                                    .map(|f| format!("php_qn://{f}::\\{c}"))
+                                    .unwrap_or_default()
+                            };
                             self.out.push(msg(
                                 "testSuiteStarted",
                                 &[("name", c.clone()), ("locationHint", hint)],
@@ -555,6 +592,40 @@ Failed asserting that two strings are identical.
             nodes[4].message.as_deref(),
             Some("todo: write pending example")
         );
+    }
+
+    #[test]
+    fn pytest_reports_derive_files_from_module_paths() {
+        let xml = crate::formats::tests::fixture("pytest-junit.xml");
+        let t = tree(&xml, JUnitFlavor::Pytest);
+        let nodes = t.snapshot();
+        let rows: Vec<_> = nodes
+            .iter()
+            .map(|n| (n.name.as_str(), n.parent_id, n.status))
+            .collect();
+        assert_eq!(
+            rows,
+            [
+                ("Test Results", None, TestStatus::Failed),
+                ("pytest", Some(0), TestStatus::Failed),
+                ("tests.test_cart.TestCart", Some(1), TestStatus::Failed),
+                ("test_adds_items", Some(2), TestStatus::Passed),
+                ("test_rounds[half]", Some(2), TestStatus::Failed),
+                ("tests.test_cart", Some(1), TestStatus::Ignored),
+                ("test_vouchers", Some(5), TestStatus::Ignored),
+            ]
+        );
+        let failed = &nodes[4];
+        assert_eq!(failed.message.as_deref(), Some("assert 1.1781 == 1.18"));
+        assert_eq!(
+            (failed.expected.as_deref(), failed.actual.as_deref()),
+            (Some("1.18"), Some("1.1781"))
+        );
+        let loc = failed.location.as_ref().unwrap();
+        assert_eq!(loc.workspace_path.as_deref(), Some("tests/test_cart.py"));
+        assert_eq!(loc.member.as_deref(), Some("test_rounds"));
+        let suite = nodes[2].location.as_ref().unwrap();
+        assert_eq!(suite.member.as_deref(), Some("TestCart"));
     }
 
     #[test]

@@ -28,7 +28,7 @@ From left to right:
   project.
 - **Branch widget**: the current Git branch; click it for the [Branches popup](git.md#branches).
 - Toolbar items of plugins, for example Xdebug's **Start Listening for PHP Debug Connections**
-  button (see [Xdebug debugging](debugging.md)).
+  button (see [Debugging](debugging.md)).
 - **Run widget**: the selected run configuration with **Run** and **Debug** buttons, see
   [Run/Debug configurations](run-debug.md).
 - **AI Chat**, **Search Everywhere** (`Double Shift`), the **theme toggle** (dark/light) and
@@ -91,7 +91,7 @@ where each tool window sits by default; you can move every one of them (see
 | npm | left | — | [WebForge](webforge.md) |
 | Find | bottom | `Alt+3` (macOS `Cmd+3`) | [below](#find-tool-window) |
 | Run | bottom | `Alt+4` (macOS `Cmd+4`) | [Run/Debug configurations](run-debug.md) |
-| Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Xdebug debugging](debugging.md) |
+| Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Debugging](debugging.md) |
 | Services | bottom | `Alt+8` (macOS `Cmd+8`) | [Services](services.md) |
 | Routes (Laravel) | bottom | — | [Laravel](laravel.md) |
 | Symfony | bottom | — | [Symfony](symfony.md) |
@@ -504,7 +504,7 @@ Left: the project name and the path of the current file. Right, depending on the
 | Widget | Shows | Click |
 | --- | --- | --- |
 | Remote connection | host and latency of a remote project | connection popup, see [Remote development](remote-development.md) |
-| Xdebug | listening state and port | [Xdebug debugging](debugging.md) |
+| Xdebug | listening state and port | [Debugging](debugging.md) |
 | PHP indexing | "Indexing… 45%" while the PHP index is built | — |
 | Language servers | "Indexing… TypeScript 45%" or the running servers | opens Settings | Languages & Frameworks | Language Servers |
 | Docker | connection to the Docker daemon | [Services](services.md) |

@@ -388,6 +388,22 @@ export function containers_terminal_command(request_json: string): string;
 export function containers_workloads_parse(raw_json: string): string;
 
 /**
+ * `{ report, path }` → `LineMark[]` (the editor's coverage gutter).
+ */
+export function coverage_marks(request_json: string): string;
+
+/**
+ * `{ text, root, cwd?, mappings, rules }` → `{ report, format, lines, branches }`: a
+ * coverage report with project paths.
+ */
+export function coverage_parse(request_json: string): string;
+
+/**
+ * `{ report, project }` → `CoverageNode[]` (the Coverage tool window).
+ */
+export function coverage_summary(request_json: string): string;
+
+/**
  * `{ text, delimiter, edits }` → the new text.
  */
 export function csv_edit(request_json: string): string;
@@ -1057,6 +1073,12 @@ export function run_output_handle(request_json: string): string;
 export function run_output_new(options_json: string): string;
 
 /**
+ * `{ target, invocation, root, compose?, docker }` → `{ program, args, cwd, pathMappings,
+ * debug }`: a command line on a run target.
+ */
+export function run_target_wrap(request_json: string): string;
+
+/**
  * `{ base, original, formatted }` → the text with only changed lines reformatted.
  */
 export function save_actions_changed_lines(request_json: string): string;
@@ -1334,6 +1356,27 @@ export function test_history_import(request_json: string): string;
 export function test_rerun_failed(request_json: string): string;
 
 /**
+ * `{ configuration, spec, reportDir, coverageFile? }` → `TestCommand` of a manifest
+ * framework.
+ */
+export function testing_command(request_json: string): string;
+
+/**
+ * `{ specs, files, texts }` → ids of the frameworks the project uses.
+ */
+export function testing_detect(request_json: string): string;
+
+/**
+ * `{ path, text, specs }` → `TestFile` (`test_discover`, every framework).
+ */
+export function testing_discover(request_json: string): string;
+
+/**
+ * `{ configuration, failed, specs }` → `Configuration | null` (`test_rerun_failed`).
+ */
+export function testing_rerun_failed(request_json: string): string;
+
+/**
  * `FormatRequest` (settings and `.editorconfig` files included) → `FileFormat`.
  */
 export function text_file_format(request_json: string): string;
@@ -1590,6 +1633,9 @@ export interface InitOutput {
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;
     readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
+    readonly coverage_marks: (a: number, b: number, c: number) => void;
+    readonly coverage_parse: (a: number, b: number, c: number) => void;
+    readonly coverage_summary: (a: number, b: number, c: number) => void;
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
@@ -1723,6 +1769,7 @@ export interface InitOutput {
     readonly run_output_export: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly run_target_wrap: (a: number, b: number, c: number) => void;
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
     readonly save_actions_file_types: (a: number, b: number, c: number) => void;
     readonly save_actions_plan: (a: number, b: number, c: number) => void;
@@ -1777,6 +1824,10 @@ export interface InitOutput {
     readonly test_frameworks_effective: (a: number, b: number, c: number) => void;
     readonly test_history_import: (a: number, b: number, c: number) => void;
     readonly test_rerun_failed: (a: number, b: number, c: number) => void;
+    readonly testing_command: (a: number, b: number, c: number) => void;
+    readonly testing_detect: (a: number, b: number, c: number) => void;
+    readonly testing_discover: (a: number, b: number, c: number) => void;
+    readonly testing_rerun_failed: (a: number, b: number, c: number) => void;
     readonly text_file_format: (a: number, b: number, c: number) => void;
     readonly text_inspect_commit_message: (a: number, b: number, c: number) => void;
     readonly text_prepare_save: (a: number, b: number, c: number) => void;

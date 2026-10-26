@@ -1,6 +1,6 @@
 ---
 title: Run/Debug configurations
-description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Pest, Codeception, Behat, PHPSpec, Artisan, Composer, npm, shell scripts and Lua, compound configurations, Before launch tasks, Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the PHPUnit test tree.
+description: Create and run Run/Debug configurations for PHP scripts, PHPUnit, Pest, Codeception, Behat, PHPSpec, Artisan, Composer, npm, shell scripts, Lua and busted, compound configurations, Before launch tasks, Run on (run targets), Run Anything (double Ctrl), External Tools, the run widget, the Run tool window and the test tree.
 order: 140
 tags: [run, debug, configurations, phpunit, tests, npm, run anything, compound, before launch, external tools, macros]
 ---
@@ -87,6 +87,9 @@ type, so they run like configurations:
   and **Interpreter options** (PHP and Lua types), **Arguments**, **Working directory**
   (default: the project root), **Environment variables** and [Before launch](#before-launch)
   tasks.
+- **Run on** runs the configuration (runs, tests, coverage and debug runs) on the local
+  machine, in a Docker image, a Docker Compose service, over SSH, in WSL or in a Dev
+  Container, see [Run targets](run-targets.md).
 - The **Command Line** preview shows exactly what will run.
 
 ### Configuration types
@@ -104,6 +107,7 @@ type, so they run like configurations:
 | npm | package.json, Command (`run`, `install`, …), Scripts, Package manager | `npm`/`pnpm`/`yarn`/`bun` | sets `NODE_OPTIONS=--inspect` |
 | Shell Script | Execute: Script file or Script text; Script path / text | the shell | — |
 | Lua Script | File | `<lua> <options> <file> <arguments>`, LÖVE games as `love <dir>` | — |
+| Native Application | Executable, Debugger (LLDB, GDB or a pack's adapter), Stop at the beginning of the program, Launch options (JSON) | `<executable> <program arguments>` | the chosen [debug adapter](debugging.md#debug-adapter-sessions) |
 | Compound | Configurations, Allow multiple instances | starts every configuration, each in its own Run tab | debugs every member |
 
 The PHP interpreter defaults to the project's CLI interpreter (`php.interpreter`, Settings |
@@ -301,7 +305,7 @@ lines first.
 Paths of a server or container are mapped into the project:
 
 1. the path mappings of the PHP servers (Settings | PHP | Servers,
-   [Xdebug debugging](debugging.md)),
+   [Debugging](debugging.md)),
 2. the bind mounts of the project's Docker Compose file (`./:/var/www/html`),
 3. the project root,
 4. otherwise the longest trailing part of the path that exists in the project
@@ -313,9 +317,10 @@ Forge automatically is not supported.
 
 ## Test results
 
-Test runners that speak TeamCity service messages (PHPUnit with `--teamcity`, Pest, Jest) or
-write JUnit reports (Codeception, Behat, PHPSpec) show a **Test Results** tree next to the
-console:
+Test runners of every pack show a **Test Results** tree next to the console: TeamCity service
+messages (PHPUnit with `--teamcity`, Pest), JUnit reports (Codeception, Behat, PHPSpec), TAP
+(busted) and the other formats of the shared [test runner](testing.md). **Run with Coverage**
+shows which lines the tests ran, see [Code coverage](coverage.md).
 
 ![PHPUnit test tree](../../screenshots/run-phpunit-tree.png)
 
@@ -333,7 +338,10 @@ console:
 Server) starts Forge's Xdebug listener and runs the process with the Xdebug environment
 (`XDEBUG_MODE=debug`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`). **Debug** on PHP Web Page, PHP HTTP
 Request and requests of `.http` files starts listening and adds the Xdebug trigger to the
-request. See [Xdebug debugging](debugging.md#debugging-web-pages-and-http-requests).
+request. See [Debugging](debugging.md#debugging-web-pages-and-http-requests).
+
+**Debug** on a Native Application configuration, or on a configuration type whose language
+pack registers a debug adapter, starts a [debug adapter session](debugging.md#debug-adapter-sessions).
 
 > **Note:** Run/Debug configurations work in [remote projects](remote-development.md): the
 > process runs on the remote host.

@@ -13,6 +13,8 @@
 //! - [`steps`]: Behat step definitions (`@Given /regex/`, turnip `:param` patterns,
 //!   `#[Given('…')]` attributes) and which of them a step uses.
 //! - [`rerun`]: the configuration that reruns only the failed tests of a run.
+//! - [`provider`]: the frameworks as one provider of the shared test runner
+//!   (`forge_testing::TestFrameworks`), plus Run with Coverage (`--coverage-clover`).
 //!
 //! Pure (no I/O), so the desktop backend runs it next to the project and browser mode runs
 //! it as WebAssembly.
@@ -21,10 +23,12 @@ pub mod command;
 pub mod discover;
 pub mod frameworks;
 pub mod gherkin;
+pub mod provider;
 pub mod rerun;
 pub mod steps;
 
 pub use command::{build, TestCommand};
 pub use discover::{discover, TestTarget};
 pub use frameworks::{detect, effective, Framework, FrameworkConfig, SETTINGS_KEY};
+pub use provider::PhpTestFrameworks;
 pub use rerun::{rerun_failed, FailedTest};

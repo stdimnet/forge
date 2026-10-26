@@ -57,6 +57,7 @@ mod structure;
 mod templates;
 mod terminal;
 mod test_frameworks;
+mod testing;
 mod text;
 mod vcs;
 mod viewers;

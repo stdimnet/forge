@@ -1,0 +1,52 @@
+{
+  "numFailedTestSuites": 2,
+  "numFailedTests": 1,
+  "numPassedTests": 1,
+  "numPendingTests": 1,
+  "numTotalTests": 4,
+  "success": false,
+  "testResults": [
+    {
+      "name": "/p/src/cart.test.ts",
+      "status": "failed",
+      "message": "",
+      "startTime": 1761472800000,
+      "endTime": 1761472800012,
+      "assertionResults": [
+        {
+          "ancestorTitles": ["Cart"],
+          "fullName": "Cart adds items",
+          "title": "adds items",
+          "status": "passed",
+          "duration": 3,
+          "failureMessages": [],
+          "location": { "line": 4, "column": 3 }
+        },
+        {
+          "ancestorTitles": ["Cart", "totals"],
+          "fullName": "Cart totals rounds to cents",
+          "title": "rounds to cents",
+          "status": "failed",
+          "duration": 5,
+          "failureMessages": [
+            "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1.18\u001b[39m\nReceived: \u001b[31m1.1781\u001b[39m\n    at Object.<anonymous> (/p/src/cart.test.ts:14:22)\n    at Promise.then.completed (/p/node_modules/jest-circus/build/utils.js:298:28)"
+          ]
+        },
+        {
+          "ancestorTitles": ["Cart"],
+          "fullName": "Cart applies vouchers",
+          "title": "applies vouchers",
+          "status": "pending",
+          "duration": null,
+          "failureMessages": []
+        }
+      ]
+    },
+    {
+      "name": "/p/src/broken.test.ts",
+      "status": "failed",
+      "message": "  \u001b[1m● \u001b[22mTest suite failed to run\n\n    SyntaxError: /p/src/broken.test.ts: Unexpected token (3:4)\n",
+      "assertionResults": []
+    }
+  ]
+}

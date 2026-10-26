@@ -15,8 +15,9 @@ The contract between Forge and its plugins.
 
 A plugin (a language pack like PHPForge, or a feature like Git) describes itself with a
 `PluginManifest` and contributes capabilities through `Contributions`: commands,
-keybindings, tool windows, typed settings, language servers, run configuration types and
-AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
+keybindings, tool windows, typed settings, language servers, run configuration types, test
+frameworks of the shared test runner (`testFrameworks`, defined by
+[`forge-testing`](forge-testing.md)) and AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
 enablement, and answers lookups over the contributions of enabled plugins. Packs depend
 only on this crate, never on app internals.
 
