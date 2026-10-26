@@ -20,6 +20,7 @@ import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyP
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoFiles, pythonDemoName } from "./demoPythonProject";
+import { goDemoFiles, goDemoName, isGoDemo } from "./demoGoProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
@@ -27,7 +28,7 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
 // `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
-// the FastAPI service of PyForge.
+// the FastAPI service of PyForge, `?project=go` the `ledger` module of GoForge.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
   : isWordPressDemo()
@@ -38,6 +39,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...luaDemoFiles }
     : isPythonDemo()
     ? { ...pythonDemoFiles }
+    : isGoDemo()
+    ? { ...goDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -53,6 +56,8 @@ export const mockProjectName = isSymfonyDemo()
     ? luaDemoName
     : isPythonDemo()
     ? pythonDemoName
+    : isGoDemo()
+    ? goDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.

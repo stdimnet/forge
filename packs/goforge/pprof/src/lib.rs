@@ -92,7 +92,7 @@ mod tests {
         assert_eq!(render.flat, 4 * 10_000_000);
         assert_eq!(
             (render.file.as_str(), render.line),
-            ("internal/report/report.go", 28)
+            ("internal/report/report.go", 29)
         );
         // root → goexit (166 + gc's and the scheduler's own stacks are separate roots).
         let names: Vec<_> = v.tree.children.iter().map(|c| c.name.as_str()).collect();

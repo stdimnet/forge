@@ -16,6 +16,7 @@ import { mockFiles } from "./workspaceMock";
 import type { Step } from "./runMock";
 import { jsTestSteps } from "./jsTestsMock";
 import { webDemo } from "./demoWebProjects";
+import { goContext, goTestSteps } from "./goTestsMock";
 
 export const TEST_TYPES = new Set(["pest", "codeception", "behat", "phpspec"]);
 
@@ -79,6 +80,7 @@ export async function frameworkCommand(cfg: RunConfiguration, coverage = false):
     spec: specFor(cfg.type),
     reportDir: "/tmp/forge-test-reports/run",
     coverageFile: coverage ? "/tmp/forge-test-reports/run-coverage/coverage" : null,
+    goContext: cfg.type === "go-test" ? goContext() : null,
   });
 }
 
@@ -133,6 +135,7 @@ function bustedSteps(cfg: RunConfiguration): Step[] {
 /** Canned output of a manifest framework's run. */
 export function frameworkSteps(cfg: RunConfiguration): Step[] {
   if (cfg.type === "busted") return bustedSteps(cfg);
+  if (cfg.type === "go-test") return goTestSteps(cfg);
   const js = jsTestSteps(cfg, `~/Projects/${webDemo()?.name ?? "acme-shop"}`);
   if (js) return js;
   return [[100, "Done.\n"], [20, { code: 0 }]];

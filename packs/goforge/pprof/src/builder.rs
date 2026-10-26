@@ -166,12 +166,12 @@ pub fn demo_profile() -> Vec<u8> {
     let bench = (
         "github.com/acme/ledger/internal/report.BenchmarkReport",
         "internal/report/report_test.go",
-        41,
+        28,
     );
-    let render = ("github.com/acme/ledger/internal/report.Render", R, 28);
-    let line = ("github.com/acme/ledger/internal/report.formatLine", R, 55);
+    let render = ("github.com/acme/ledger/internal/report.Render", R, 29);
+    let line = ("github.com/acme/ledger/internal/report.formatLine", R, 54);
     let string = ("github.com/acme/ledger/internal/money.Amount.String", M, 33);
-    let total = ("github.com/acme/ledger/internal/report.Total", R, 17);
+    let total = ("github.com/acme/ledger/internal/report.Total", R, 18);
     let round = ("github.com/acme/ledger/internal/money.Round", M, 28);
     let parse = ("github.com/acme/ledger/internal/money.Parse", M, 14);
     let sprintf = ("fmt.Sprintf", FMT, 237);
