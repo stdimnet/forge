@@ -5561,6 +5561,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyforge-frameworks"
+version = "0.1.0"
+dependencies = [
+ "forge-runtools",
+ "pyforge-lang-python",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "pyforge-interpreters"
 version = "0.1.0"
 dependencies = [
