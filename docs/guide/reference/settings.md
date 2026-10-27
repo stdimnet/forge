@@ -704,6 +704,19 @@ Page ids `lang.flask`, `lang.fastapi` and `lang.celery`.
 | `fastapi.app` | string | `""` | user, project |  | Application — module:attribute that uvicorn serves. Empty: the module that creates FastAPI(...). |
 | `celery.app` | string | `""` | user, project |  | Application (-A) — The Celery application. Empty: the module that creates Celery(...). |
 
+### Languages & Frameworks | Jupyter
+
+Page id `lang.jupyter`. See [Jupyter notebooks](../user/jupyter.md). The server token is stored in the OS keychain, not in settings.
+
+| Key | Type | Default | Scope | Section | Description |
+| --- | --- | --- | --- | --- | --- |
+| `jupyter.server.url` | string | `""` | user, project | Kernels | Jupyter server URL — Run kernels on this server instead of starting ipykernel in the project's interpreter, for example http://localhost:8888 (a pasted URL's ?token= is moved to the keychain). Needed for Docker, SSH and WSL interpreters and remote projects. |
+| `jupyter.kernel.installWithoutAsking` | bool | `false` | user | Kernels | Install ipykernel without asking — Install ipykernel into the interpreter with its package manager when a notebook starts a kernel and it is missing. |
+| `jupyter.kernel.shutdownOnClose` | bool | `true` | user | Kernels | Shut down the kernel when the notebook is closed |
+| `jupyter.outputs.limitHeight` | bool | `true` | user | Outputs | Scroll long outputs — Outputs taller than 400 pixels get their own scroll bar. |
+| `jupyter.dataframe.pageSize` | int | `50` | user | Outputs | DataFrame rows per page |
+| `jupyter.diff.view` | enum: `cells`, `json` | `cells` | user | Diff | Show notebook diffs — How the diff viewer shows .ipynb files first. |
+
 ### Languages & Frameworks | Go
 
 Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).

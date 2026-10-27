@@ -22,7 +22,8 @@ tags: [python, pyforge, interpreter, venv, uv, poetry, conda, pip, ruff, basedpy
   the same projects.
 
 Django, Flask, FastAPI and Celery projects get more plugins: see
-[Django, Flask, FastAPI and Celery](python-web-frameworks.md).
+[Django, Flask, FastAPI and Celery](python-web-frameworks.md). Jupyter notebooks (`.ipynb`)
+open in the notebook editor: see [Jupyter notebooks](jupyter.md).
 
 ![A Python file with basedpyright's errors and the requirements inspection](../../screenshots/python-editor.png)
 
