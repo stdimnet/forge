@@ -28,10 +28,12 @@ use crate::ssh::{host_key, ForgeSsh, SshConnector};
 use crate::tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 mod explorer;
+mod objects;
 mod plan;
 mod search;
 
 pub use explorer::natural_cmp;
+pub use objects::{ImportError, ImportProgress, ImportSummary, ScriptResult};
 pub use plan::ExplainResult;
 pub use search::{SearchProgress, SearchRequest, SearchScope, SearchSummary, TableMatches};
 

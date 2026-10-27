@@ -1965,6 +1965,29 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 
 ## Database tools (`forge-db`)
 
+- Database objects (`commands/db_objects.rs`, `app/ui/src/ipc/dbObjects.ts`, UI in
+  `features/database/objects/`): the Create/Modify Table dialogs edit a `TableSpec`
+  (`forge_dbmodel::design`); `db_design_load({ id, schema, table })` gives the spec of an
+  existing table (columns remember their `original` name), `db_design_preview({ dialect, old?,
+  table, options? }) -> { sql, statements, warnings }` is `CREATE TABLE` or the rename-aware
+  `ALTER` diff with destructive-change warnings, `db_design_info({ dialect })` the types and
+  table options; `db_drop_sql({ dialect, requests })`, `db_rename_sql`. Scripts run with
+  `db_objects_guard({ id, sql })` (read-only refused, any change confirmed on production) and
+  `db_run_script({ id, sql, confirmed? }) -> { executed, total, failed?, error? }`.
+  `db_generate_ddl({ id, objects, options, path? })` orders the selection
+  (`forge_dbmodel::script`) and formats it with the SQL code style. Import
+  (`forge-dbtransfer`): `db_import_preview({ source: { path? | data (base64) }, options, rows?,
+  dialect? }) -> { table, guesses, names, types, totalRows }` and `db_import_run({ id,
+  importId, source, options, plan, confirmed? }) -> ImportSummary` with `db://import` progress,
+  `db_import_cancel({ importId })`. `db_export_xlsx({ sheet, columns, rows, path? })` writes or
+  returns (base64) an Excel workbook. Dumps: `db_dump_tools`, `db_dump_command` (preview),
+  `db_restore_guard` and `db_dump_start({ id, request, runId, confirmed? })`, which runs the
+  tool through `run::start_built` (Run tool window, `run://<runId>`; refused in Safe Mode) with
+  the password in the tool's environment and the data source's SSH tunnel kept open by a run
+  observer until the tool exits. The UI starts dumps as runs of the hidden run configuration
+  type `db-dump`. Browser mode: `mock/dbObjectsMock.ts` on the `dbobjects_*` WebAssembly
+  functions; scripts are checked and counted, not applied to the demo database.
+
 - Data sources live in `<root>/.forge/dataSources.toml` (project) and
   `<config dir>/forge/dataSources.toml` (global) as `[[dataSource]]` tables; passwords go to the
   OS keychain (service `forge-db`, account = data source id). MySQL/MariaDB, PostgreSQL and SQLite

@@ -588,6 +588,62 @@ export function dbmodel_parse_ddl(request_json: string): string;
 export function dbmodel_search_rows(request_json: string): string;
 
 /**
+ * Mirrors `db_design_info`: `{ dialect }` → `DesignDialect`.
+ */
+export function dbobjects_design_info(json: string): string;
+
+/**
+ * Mirrors `db_design_preview`: `{ dialect, old?, table, options? }` → `{ sql, statements, warnings }`.
+ */
+export function dbobjects_design_preview(json: string): string;
+
+/**
+ * Mirrors `db_design_load` with the mock's table: `{ schema, table }` → `TableSpec`.
+ */
+export function dbobjects_design_spec(json: string): string;
+
+/**
+ * Mirrors `db_drop_sql`.
+ */
+export function dbobjects_drop_sql(json: string): string;
+
+/**
+ * Mirrors `db_dump_command`: `{ request, target }` → `{ display, program, args }`.
+ */
+export function dbobjects_dump_command(json: string): string;
+
+/**
+ * Mirrors `db_dump_tools`: `{ driver }`.
+ */
+export function dbobjects_dump_tools(json: string): string;
+
+/**
+ * Mirrors `db_export_xlsx` without a path: the workbook as base64.
+ */
+export function dbobjects_export_xlsx(json: string): string;
+
+/**
+ * Mirrors `db_generate_ddl` with the mock's model: `{ model, objects, options?, values }`.
+ */
+export function dbobjects_generate_ddl(json: string): string;
+
+/**
+ * The statements of an import (the mock runs them on the demo database):
+ * `{ dialect, data, options, plan }` → `{ create: string[], batches: Batch[], rows }`.
+ */
+export function dbobjects_import_batches(json: string): string;
+
+/**
+ * Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows?, dialect? }`.
+ */
+export function dbobjects_import_preview(json: string): string;
+
+/**
+ * Mirrors `db_rename_sql`.
+ */
+export function dbobjects_rename_sql(json: string): string;
+
+/**
  * Mirrors `db_schema_compare`: `CompareRequest` → `CompareResult` or `{ error }`.
  */
 export function dbschema_compare(request_json: string): string;
@@ -2364,6 +2420,17 @@ export interface InitOutput {
     readonly dbmodel_object_doc: (a: number, b: number, c: number) => void;
     readonly dbmodel_parse_ddl: (a: number, b: number, c: number) => void;
     readonly dbmodel_search_rows: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_info: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_spec: (a: number, b: number, c: number) => void;
+    readonly dbobjects_drop_sql: (a: number, b: number, c: number) => void;
+    readonly dbobjects_dump_command: (a: number, b: number, c: number) => void;
+    readonly dbobjects_dump_tools: (a: number, b: number, c: number) => void;
+    readonly dbobjects_export_xlsx: (a: number, b: number, c: number) => void;
+    readonly dbobjects_generate_ddl: (a: number, b: number, c: number) => void;
+    readonly dbobjects_import_batches: (a: number, b: number, c: number) => void;
+    readonly dbobjects_import_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_rename_sql: (a: number, b: number, c: number) => void;
     readonly dbschema_compare: (a: number, b: number, c: number) => void;
     readonly dbschema_diagram: (a: number, b: number, c: number) => void;
     readonly dbschema_explain_script: (a: number, b: number, c: number) => void;

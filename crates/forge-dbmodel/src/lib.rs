@@ -6,12 +6,16 @@
 //! - [`ddl`]: DDL data sources, SQL files parsed into the same model.
 //! - [`search`]: full-text search queries per dialect and cell matching.
 //! - [`generate`], [`doc`]: DDL from the model and Quick Documentation of tree nodes.
+//! - [`design`]: the Create/Modify Table dialogs (CREATE and rename-aware ALTER per
+//!   dialect), Drop and Rename; [`script`]: Generate DDL in dependency order.
 
 pub mod ddl;
+pub mod design;
 pub mod doc;
 pub mod filter;
 pub mod generate;
 pub mod model;
+pub mod script;
 pub mod search;
 pub mod virtuals;
 

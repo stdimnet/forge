@@ -110,6 +110,7 @@ import { QuickDocPopup, showQuickDoc } from "./QuickDoc";
 import { openVirtualDialog, VirtualDialogs } from "./VirtualDialogs";
 import { openFullTextSearch } from "./FullTextSearch";
 import { openCompare, openDiagram } from "./schema/model";
+import { multi, objectMenu, ObjectDialogs, setMulti } from "./objects";
 
 type Kind =
   | "ds"
@@ -754,9 +755,10 @@ export function DatabaseActions() {
   );
 }
 
-function rowMenu(row: Row): MenuItem[] {
+function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   const ds = sourceById(row.ds);
   const items: MenuItem[] = [];
+  const objects = objectMenu(row, selection);
   const relational = !!ds && modelOf(ds.driver) === "relational";
   const live = !!ds && ds.driver !== "ddl";
   if (row.kind === "rkey") {
@@ -792,6 +794,7 @@ function rowMenu(row: Row): MenuItem[] {
     if (row.kind === "table" && relational) items.push({ label: "Add Virtual Column…", icon: <Sigma size={13} />, run: () => openVirtualDialog({ kind: "column", ds: row.ds, schema: row.schema!, table: row.table! }) });
     items.push({ separator: true, label: "" });
   }
+  items.push(...objects);
   if (row.kind === "column" && relational) {
     if (row.isVirtual) items.push({ label: "Remove Virtual Column", icon: <Trash2 size={13} />, run: () => void removeVirtualColumn(row.ds, row.schema!, row.table!, row.name!) });
     else items.push({ label: "Add Virtual Foreign Key…", icon: <Link2 size={13} />, run: () => openVirtualDialog({ kind: "fk", ds: row.ds, schema: row.schema!, table: row.table!, column: row.name! }) });
@@ -857,6 +860,23 @@ export function DatabaseView() {
   const rows = createMemo(buildRows);
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const byKey = () => new Map(rows().map((r) => [r.key, r]));
+  /** Ctrl+click adds a node to the selection, Shift+click a range (Generate DDL, Drop). */
+  const select = (row: Row, e: MouseEvent) => {
+    const list = rows();
+    if (e.ctrlKey || e.metaKey) {
+      const next = new Set(multi());
+      if (!next.size && selectedNode()) next.add(selectedNode()!);
+      if (next.has(row.key)) next.delete(row.key);
+      else next.add(row.key);
+      setMulti(next);
+    } else if (e.shiftKey && selectedNode()) {
+      const a = list.findIndex((r) => r.key === selectedNode());
+      const b = list.findIndex((r) => r.key === row.key);
+      if (a >= 0 && b >= 0) setMulti(new Set(list.slice(Math.min(a, b), Math.max(a, b) + 1).map((r) => r.key)));
+      return;
+    } else setMulti(new Set<string>());
+    setSelectedNode(row.key);
+  };
 
   const onKeyDown = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement).closest(".db-key-filter")) return;
@@ -906,16 +926,18 @@ export function DatabaseView() {
             >
             <div
               class={`tree-row db-row ${row.cls ?? ""}`}
-              classList={{ selected: selectedNode() === row.key, tinted: !!row.tint }}
+              classList={{ selected: selectedNode() === row.key || multi().has(row.key), tinted: !!row.tint }}
               style={{ "padding-left": `${6 + row.depth * 16}px`, "--db-tint": row.tint }}
               data-key={row.key}
               data-kind={row.kind}
-              onClick={() => setSelectedNode(row.key)}
+              onClick={(e) => select(row, e)}
               onDblClick={() => activate(row)}
               onContextMenu={(e) => {
                 e.preventDefault();
+                if (!multi().has(row.key)) setMulti(new Set<string>());
                 setSelectedNode(row.key);
-                setMenu({ x: e.clientX, y: e.clientY, items: rowMenu(row) });
+                const selection = rows().filter((r) => multi().has(r.key));
+                setMenu({ x: e.clientX, y: e.clientY, items: rowMenu(row, selection) });
               }}
             >
               <span
@@ -945,6 +967,7 @@ export function DatabaseView() {
       <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
       <QuickDocPopup />
       <VirtualDialogs />
+      <ObjectDialogs />
     </div>
     </Show>
   );

@@ -625,6 +625,11 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Compare Structure… (database) | `Database.CompareStructure` |  |  | any |
 | Explain Plan (database console) | `Console.Jdbc.ExplainPlan` |  |  | editor |
 | Explain Plan (Raw) (database console) | `Console.Jdbc.ExplainPlan.Raw` |  |  | editor |
+| Modify Table… | `Database.ModifyTable` | `Ctrl+F6` | `Cmd+F6` | tool window |
+| New Table… | `Database.NewTable` |  |  | any |
+| SQL Generator… (Generate DDL) | `Database.GenerateDdl` |  |  | any |
+| Import Data from File… | `Database.ImportData` |  |  | any |
+| Export with Dump Tool… | `Database.DumpData` |  |  | any |
 | Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
 | Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
 | Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |

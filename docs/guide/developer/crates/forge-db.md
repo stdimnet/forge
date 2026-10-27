@@ -108,18 +108,21 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 ## Used by
 
+- IPC (`app/src-tauri/src/commands/db_objects.rs`): `db_objects_guard`, `db_run_script`,
+  `db_design_load`, `db_generate_ddl`, `db_import_run`, `db_import_cancel`, `db_dump_tools`,
+  `db_dump_command`, `db_restore_guard`, `db_dump_start`
 - IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_preview_changes`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at`, `db_diagram`, `db_schema_compare`, `db_explain`, `db_save_export` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](forge-core.md), [`forge-dataedit`](forge-dataedit.md), [`forge-dbmodel`](forge-dbmodel.md), [`forge-dbschema`](forge-dbschema.md), [`forge-remote`](forge-remote.md), [`forge-sql`](forge-sql.md)
+- Workspace crates: [`forge-core`](forge-core.md), [`forge-dataedit`](forge-dataedit.md), [`forge-dbmodel`](forge-dbmodel.md), [`forge-dbschema`](forge-dbschema.md), [`forge-dbtransfer`](forge-dbtransfer.md), [`forge-remote`](forge-remote.md), [`forge-sql`](forge-sql.md)
 - External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
 
-22 source files; 30 unit tests and 35 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `explorer.rs` (a real SQLite file: object tree with checks, triggers and views, the model cache, incremental table refresh, schema filter, virtual objects in the project, full-text search, DDL data sources over migration folders), `schema_tools.rs` (two real SQLite files: Compare Structure, the generated migration run on the target and compared again, the ER diagram, Explain Plan in a session), `catalog.rs` (MySQL, PostgreSQL, SQL Server, Oracle and ClickHouse introspection against recorded catalog rows in `tests/fixtures/catalog/<dialect>.json`, keyed by query tag; every recorded query must be asked), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`. No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
+22 source files; 30 unit tests and 35 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `explorer.rs` (a real SQLite file: object tree with checks, triggers and views, the model cache, incremental table refresh, schema filter, virtual objects in the project, full-text search, DDL data sources over migration folders), `schema_tools.rs` (two real SQLite files: Compare Structure, the generated migration run on the target and compared again, the ER diagram, Explain Plan in a session), `catalog.rs` (MySQL, PostgreSQL, SQL Server, Oracle and ClickHouse introspection against recorded catalog rows in `tests/fixtures/catalog/<dialect>.json`, keyed by query tag; every recorded query must be asked), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`, `objects.rs` (a real SQLite file: Create/Modify Table scripts including a rebuild that keeps the rows, Drop, errors naming the failed statement, read-only refused and production confirmed, imports with skip / abort (rolled back) / cancel and progress, the native tool target). No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
 
 ```sh
 cargo test -p forge-db
