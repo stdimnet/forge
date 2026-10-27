@@ -16,6 +16,8 @@
 //! - [`service::DbService`]: consoles with own or shared sessions, transactions and cancel,
 //!   the read-only / production [`guard`], table paging, row editing ([`edit`]) and export
 //!   ([`export`]).
+//! - [`schema`]: ER diagrams, schema compare, migrations and query plans (the pure
+//!   `forge-dbschema` crate); [`DbService::explain`] runs Explain Plan in a console session.
 //! - [`value`], [`split`], [`export`], [`guard`]: re-exported from the pure `forge-sql` crate.
 
 pub mod config;
@@ -46,6 +48,7 @@ pub use error::{DbError, DbResult};
 /// The explorer model (also built to WebAssembly for browser mode).
 pub use forge_dbmodel as model;
 pub use forge_dbmodel::{DbModel, ObjectDoc, ObjectRef, VirtualObjects};
+pub use forge_dbschema as schema;
 pub use forge_sql::ExportFormat;
 pub use forge_sql::{Guard, GuardPolicy};
 pub use introspect::{
@@ -54,9 +57,9 @@ pub use introspect::{
 };
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
 pub use service::{
-    ApplyResult, DataSourceInfo, DbService, QueryPage, SearchProgress, SearchRequest, SearchScope,
-    SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey, StatementResult,
-    TableDataRequest, TableMatches, TestResult,
+    ApplyResult, DataSourceInfo, DbService, ExplainResult, QueryPage, SearchProgress,
+    SearchRequest, SearchScope, SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey,
+    StatementResult, TableDataRequest, TableMatches, TestResult,
 };
 pub use split::{split_statements, Statement};
 pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
