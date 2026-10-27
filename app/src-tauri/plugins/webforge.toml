@@ -804,13 +804,18 @@ args = ["run", "--reporter=default", "--reporter=json", "--outputFile.json=${rep
 report = "jUnitFile"
 nameSeparator = " "
 rerun = { join = "|" }
-coverage = { args = ["--coverage.enabled=true", "--coverage.reporter=lcov", "--coverage.reportsDirectory=${coverageFile}"], file = "${coverageFile}/lcov.info", format = "lcov" }
+coverage = { args = ["--coverage.enabled=true", "--coverage.reporter=json", "--coverage.reportsDirectory=${coverageFile}"], file = "${coverageFile}/coverage-final.json", format = "istanbulJson" }
 debuggable = true
 fields = [
   { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
   { key = "nodeOptions", label = "Node options" },
   { key = "package", label = "Vitest package", kind = "path", placeholder = "node_modules/vitest" },
   { key = "configFile", label = "Configuration file", kind = "path", placeholder = "vitest.config.ts" },
+  { key = "coverageProvider", label = "Coverage provider", kind = "enum", default = "", options = [
+    { value = "", label = "From the configuration file" },
+    { value = "v8", label = "v8 (@vitest/coverage-v8)" },
+    { value = "istanbul", label = "istanbul (@vitest/coverage-istanbul)" },
+  ] },
 ]
 
 [plugin.contributions.testFrameworks.scopes]
@@ -834,13 +839,18 @@ args = ["--json", "--outputFile=${reportDir}/jest.json", "--testLocationInResult
 report = "jUnitFile"
 nameSeparator = " "
 rerun = { join = "|" }
-coverage = { args = ["--coverage", "--coverageReporters=lcov", "--coverageDirectory=${coverageFile}"], file = "${coverageFile}/lcov.info", format = "lcov" }
+coverage = { args = ["--coverage", "--coverageReporters=json", "--coverageDirectory=${coverageFile}"], file = "${coverageFile}/coverage-final.json", format = "istanbulJson" }
 debuggable = true
 fields = [
   { key = "executable", label = "Node interpreter", kind = "path", placeholder = "node (Settings | Node.js)" },
   { key = "nodeOptions", label = "Node options" },
   { key = "package", label = "Jest package", kind = "path", placeholder = "node_modules/jest" },
   { key = "configFile", label = "Configuration file", kind = "path", placeholder = "jest.config.ts" },
+  { key = "coverageProvider", label = "Coverage provider", kind = "enum", default = "", options = [
+    { value = "", label = "From the configuration file" },
+    { value = "babel", label = "babel (Istanbul instrumentation)" },
+    { value = "v8", label = "v8" },
+  ] },
 ]
 
 [plugin.contributions.testFrameworks.scopes]
@@ -853,7 +863,7 @@ pattern = ["--testNamePattern=${pattern}"]
 [[plugin.contributions.testFrameworks]]
 id = "mocha"
 name = "Mocha"
-description = "Run Mocha tests: all tests, a directory, a file, a test or describe block, or a grep pattern; coverage through c8."
+description = "Run Mocha tests: all tests, a directory, a file, a test or describe block, or a grep pattern; coverage through c8 or nyc."
 icon = "flask-conical"
 language = "javascript"
 detect = { files = [".mocharc.js", ".mocharc.cjs", ".mocharc.mjs", ".mocharc.json", ".mocharc.jsonc", ".mocharc.yml", ".mocharc.yaml"], dependencies = [{ file = "package.json", contains = "\"mocha\"" }] }
@@ -871,6 +881,10 @@ fields = [
   { key = "nodeOptions", label = "Node options" },
   { key = "package", label = "Mocha package", kind = "path", placeholder = "node_modules/mocha" },
   { key = "configFile", label = "Configuration file", kind = "path", placeholder = ".mocharc.yml" },
+  { key = "coverageTool", label = "Coverage tool", kind = "enum", default = "c8", options = [
+    { value = "c8", label = "c8 (V8 coverage)" },
+    { value = "nyc", label = "nyc (Istanbul)" },
+  ] },
 ]
 
 [plugin.contributions.testFrameworks.scopes]

@@ -14,7 +14,7 @@
 pub mod discovery;
 pub mod runner;
 
-pub use runner::{register, JsTestRunner, NodeProgram, Runner};
+pub use runner::{coverage_wrap, register, CoverageTool, JsTestRunner, NodeProgram, Runner};
 
 #[cfg(test)]
 mod tests;

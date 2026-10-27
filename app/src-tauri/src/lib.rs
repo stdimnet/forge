@@ -669,6 +669,8 @@ pub fn run() {
             commands::testing::coverage_file,
             commands::testing::coverage_remove,
             commands::testing::coverage_import,
+            commands::testing::coverage_merge,
+            commands::testing::coverage_export_html,
             commands::testing::run_target_info,
             commands::test_frameworks::behat_step_definitions,
             commands::test_frameworks::test_history_list,

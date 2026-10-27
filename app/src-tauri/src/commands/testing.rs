@@ -8,8 +8,10 @@
 //! - Coverage: Run with Coverage runs (`RunRequest.coverage`) read their report when they
 //!   exit ([`record_coverage`]); the Coverage tool window lists the suites
 //!   (`coverage_suites`, `coverage_view`), the editor asks for line marks
-//!   (`coverage_file`), and "Import a report" reads LCOV, Cobertura, Clover, JaCoCo or a Go
-//!   profile from the project (`coverage_import`).
+//!   (`coverage_file`), and "Import a report" reads LCOV, Cobertura, Clover, JaCoCo, a Go
+//!   profile or Istanbul JSON from the project (`coverage_import`). Show Coverage Data with
+//!   several suites merges them (`coverage_merge`); Generate Coverage Report writes a suite
+//!   as HTML (`coverage_export_html`).
 //! - Run targets: `run_target_info` gives a debugger the target, the host names and the
 //!   path mappings of a configuration's "Run on".
 
@@ -22,7 +24,11 @@ use forge_process::output::links::LinkContext;
 use forge_process::output::{LocationRule, OutputPathMapping};
 use forge_process::RunConfiguration;
 use forge_runtargets::{DebugTarget, RunTarget};
-use forge_testing::coverage::{summary, Counter, CoverageNode, CoverageReport};
+use std::collections::BTreeMap;
+
+use forge_testing::coverage::{
+    folders, project_hint, summary, Counter, CoverageNode, CoverageReport,
+};
 use forge_testing::{CoverageFormat, FailedTest, TestFile};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -42,6 +48,8 @@ pub(crate) struct CoverageSetup {
     pub format: CoverageFormat,
     /// Raw data a pack's collector turns into the report first (CForge's gcov / llvm-cov).
     pub collect: Option<forge_testing::CoverageCollect>,
+    /// A folder in `dir` with PHPUnit's XML report: the tests of each covered line.
+    pub tests_dir: Option<String>,
     /// The configuration's name (the suite's name).
     pub name: String,
     pub location_rules: Vec<LocationRule>,
@@ -60,9 +68,13 @@ pub struct CoverageSuiteInfo {
     pub files: usize,
     pub lines: Counter,
     pub branches: Counter,
+    pub methods: Counter,
     /// "85% (17/20)".
     pub line_text: String,
     pub branch_text: String,
+    pub method_text: String,
+    /// The report names the tests of its lines (Show tests covering this line).
+    pub per_test: bool,
 }
 
 struct Suite {
@@ -85,26 +97,21 @@ fn now() -> u64 {
 }
 
 impl CoverageState {
-    fn add(&self, name: &str, format: CoverageFormat, report: CoverageReport) -> CoverageSuiteInfo {
-        let mut lines = Counter::default();
-        let mut branches = Counter::default();
-        for f in &report.files {
-            let (l, b) = (f.line_counter(), f.branch_counter());
-            lines.covered += l.covered;
-            lines.total += l.total;
-            branches.covered += b.covered;
-            branches.total += b.total;
-        }
+    fn add(&self, name: &str, format: &str, report: CoverageReport) -> CoverageSuiteInfo {
+        let t = report.totals();
         let info = CoverageSuiteInfo {
             id: format!("coverage-{}", self.next.fetch_add(1, Ordering::SeqCst) + 1),
             name: name.to_string(),
             at: now(),
-            format: format.label().to_string(),
+            format: format.to_string(),
             files: report.files.len(),
-            lines,
-            branches,
-            line_text: lines.text(),
-            branch_text: branches.text(),
+            lines: t.lines,
+            branches: t.branches,
+            methods: t.methods,
+            line_text: t.lines.text(),
+            branch_text: t.branches.text(),
+            method_text: t.methods.text(),
+            per_test: report.has_tests(),
         };
         let mut suites = self.suites.lock().expect("coverage poisoned");
         suites.insert(
@@ -165,6 +172,7 @@ pub(crate) fn record_coverage(
     cwd: &str,
     mappings: &[OutputPathMapping],
 ) -> std::result::Result<CoverageSuiteInfo, String> {
+    let mut per_test = Vec::new();
     let text = if let Some(collect) = setup.collect.as_ref().filter(|c| c.kind == "cpp") {
         let dir = match &setup.dir {
             Some(ReportDir::Local(d)) => d.clone(),
@@ -180,6 +188,13 @@ pub(crate) fn record_coverage(
         match &setup.dir {
             Some(dir) => {
                 let t = dir.read(backend, &setup.file);
+                // PHPUnit's XML report: the tests of each covered line.
+                if let Some(sub) = &setup.tests_dir {
+                    per_test = forge_testing::coverage::phpunit_xml::collect(|name| {
+                        dir.read(backend, &format!("{sub}/{name}"))
+                    })
+                    .unwrap_or_default();
+                }
                 dir.remove(backend);
                 t
             }
@@ -187,11 +202,14 @@ pub(crate) fn record_coverage(
         }
         .ok_or_else(|| format!("no coverage report was written ({})", setup.file))?
     };
-    let report = CoverageReport::parse(&text, setup.format)
+    let mut report = CoverageReport::parse(&text, setup.format)
         .or_else(|_| CoverageReport::parse_any(&text).map(|(r, _)| r))?;
+    for (path, lines) in &per_test {
+        report.attach_tests(path, lines);
+    }
     let report = report.resolve(resolver(root, Some(cwd), mappings, &setup.location_rules));
     let state = app.state::<CoverageState>();
-    Ok(state.add(&setup.name, setup.format, report))
+    Ok(state.add(&setup.name, setup.format.label(), report))
 }
 
 /// Manifest test frameworks the project uses (ids), from their `detect` rules.
@@ -323,6 +341,24 @@ pub fn coverage_suites(coverage: State<'_, CoverageState>) -> Vec<CoverageSuiteI
 pub struct CoverageView {
     pub suite: CoverageSuiteInfo,
     pub nodes: Vec<CoverageNode>,
+    /// The Project view's hints of every covered file and folder (folded, not compacted):
+    /// "62% lines covered", "50% files, 62% lines covered".
+    pub hints: BTreeMap<String, String>,
+}
+
+/// The Project view hints of a report.
+pub(crate) fn hints(report: &CoverageReport) -> BTreeMap<String, String> {
+    let mut out: BTreeMap<String, String> = folders(report)
+        .iter()
+        .filter(|(path, _)| !path.is_empty())
+        .filter_map(|(path, t)| project_hint(t, true).map(|h| (path.clone(), h)))
+        .collect();
+    for f in &report.files {
+        if let Some(h) = project_hint(&f.totals(), false) {
+            out.insert(f.path.clone(), h);
+        }
+    }
+    out
 }
 
 #[tauri::command]
@@ -335,7 +371,86 @@ pub fn coverage_view(
     coverage.with(id.as_deref(), |s| CoverageView {
         suite: s.info.clone(),
         nodes: summary(&s.report, &project),
+        hints: hints(&s.report),
     })
+}
+
+/// Show Coverage Data with several suites: one suite of their merged reports.
+#[tauri::command]
+pub fn coverage_merge(
+    ids: Vec<String>,
+    coverage: State<'_, CoverageState>,
+) -> Result<CoverageSuiteInfo> {
+    let (names, reports): (Vec<String>, Vec<CoverageReport>) = {
+        let suites = coverage.suites.lock().expect("coverage poisoned");
+        ids.iter()
+            .filter_map(|id| suites.iter().find(|s| &s.info.id == id))
+            .map(|s| (s.info.name.clone(), s.report.clone()))
+            .unzip()
+    };
+    if reports.len() < 2 {
+        return Err(ForgeError::Other(
+            "choose at least two coverage suites".into(),
+        ));
+    }
+    Ok(coverage.add(
+        &names.join(" + "),
+        "Merged",
+        CoverageReport::merged(reports),
+    ))
+}
+
+/// Generate Coverage Report: a suite as one HTML file, written to `path` (desktop) and
+/// returned (browser mode downloads it).
+#[tauri::command]
+pub async fn coverage_export_html(
+    id: Option<String>,
+    path: Option<String>,
+    state: State<'_, AppState>,
+    coverage: State<'_, CoverageState>,
+) -> Result<String> {
+    let (info, report) = coverage
+        .with(id.as_deref(), |s| (s.info.clone(), s.report.clone()))
+        .ok_or_else(|| ForgeError::Other("no coverage suite".into()))?;
+    let project = state.project_info().map(|i| i.name).unwrap_or_default();
+    let backend = state.backend()?;
+    let html = blocking(move || {
+        Ok(forge_testing::coverage::html::render(
+            &report,
+            &project,
+            &info.name,
+            &generated_at(info.at),
+            |p| backend.read_file(p).ok(),
+        ))
+    })
+    .await?;
+    if let Some(p) = path {
+        tokio::fs::write(&p, &html)
+            .await
+            .map_err(|e| ForgeError::io(p.clone(), e))?;
+    }
+    Ok(html)
+}
+
+/// "2026-10-28 10:41 UTC" for a time in milliseconds since the epoch.
+fn generated_at(ms: u64) -> String {
+    let secs = ms / 1000;
+    let (days, rest) = (secs / 86_400, secs % 86_400);
+    // Civil date from days since 1970-01-01 (Howard Hinnant's algorithm).
+    let z = days as i64 + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!(
+        "{y:04}-{m:02}-{d:02} {:02}:{:02} UTC",
+        rest / 3600,
+        rest % 3600 / 60
+    )
 }
 
 /// The gutter marks of a project file in a suite (the newest without `id`).
@@ -375,7 +490,9 @@ pub async fn coverage_import(
         let (report, format) = CoverageReport::parse_any(&text).map_err(ForgeError::Other)?;
         let report = report.resolve(resolver(&root, None, &[], &[]));
         let name = path.rsplit('/').next().unwrap_or(&path).to_string();
-        Ok(app.state::<CoverageState>().add(&name, format, report))
+        Ok(app
+            .state::<CoverageState>()
+            .add(&name, format.label(), report))
     })
     .await
 }
@@ -430,4 +547,24 @@ pub(crate) fn target_context(
         compose.as_ref().map(|(d, v)| (d.as_str(), v.as_slice())),
         docker,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn report_times_and_project_view_hints() {
+        assert_eq!(generated_at(0), "1970-01-01 00:00 UTC");
+        assert_eq!(generated_at(1_803_811_260_000), "2027-02-28 10:41 UTC");
+        let (r, _) = CoverageReport::parse_any(
+            "SF:src/a/x.js\nDA:1,1\nDA:2,0\nend_of_record\nSF:src/b.js\nDA:1,0\nend_of_record\n",
+        )
+        .unwrap();
+        let h = hints(&r);
+        assert_eq!(h["src"], "50% files, 33% lines covered");
+        assert_eq!(h["src/a"], "100% files, 50% lines covered");
+        assert_eq!(h["src/a/x.js"], "50% lines covered");
+        assert!(!h.contains_key(""));
+    }
 }

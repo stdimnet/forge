@@ -11,7 +11,9 @@
 //!   (the runner's package folder) change it,
 //! - gutter discovery that follows the calls (`describe` / `it` / `test`, `test.describe`),
 //! - Playwright's JSON report file (`PLAYWRIGHT_JSON_OUTPUT_NAME`), Mocha coverage through
-//!   c8, options before file arguments for `node --test`,
+//!   c8 or nyc ([`coverage_wrap`], also Run with Coverage of Node.js configurations), the
+//!   coverage provider of Vitest (v8 / istanbul) and Jest (babel / v8), options before file
+//!   arguments for `node --test`,
 //! - Rerun Failed Tests also limits the run to the failed tests' files,
 //! - the program and arguments of Debug ([`JsTestRunner::debug_program`]).
 
@@ -206,6 +208,15 @@ impl JsTestRunner {
                 join(&ctx.report_dir, "playwright.json"),
             );
         }
+        // The coverage provider: Vitest's v8 or istanbul, Jest's babel or v8.
+        let provider = cfg.option("coverageProvider").trim();
+        if ctx.coverage_file.is_some() && !provider.is_empty() {
+            match self.runner {
+                Runner::Vitest => built.args.push(format!("--coverage.provider={provider}")),
+                Runner::Jest => built.args.push(format!("--coverageProvider={provider}")),
+                _ => {}
+            }
+        }
         if self.runner == Runner::NodeTest {
             built.args = options_first(std::mem::take(&mut built.args));
         }
@@ -221,21 +232,10 @@ impl JsTestRunner {
             args.push(script);
         }
         args.append(&mut built.args);
-        // Mocha has no coverage of its own: c8 runs it (`c8 --reporter=lcov node mocha …`).
+        // Mocha has no coverage of its own: c8 or nyc runs it (`c8 --reporter=lcov node mocha …`).
         if self.runner == Runner::Mocha {
             if let Some(dir) = ctx.coverage_file.as_deref() {
-                let c8 = match cfg.option("c8Package").trim() {
-                    "" => "node_modules/c8/bin/c8.js".to_string(),
-                    p => join(p, "bin/c8.js"),
-                };
-                let mut wrapped = vec![
-                    c8,
-                    "--reporter=lcov".to_string(),
-                    format!("--reports-dir={dir}"),
-                    node.clone(),
-                ];
-                wrapped.append(&mut args);
-                args = wrapped;
+                args = coverage_wrap(cfg, &node, dir, args);
             }
         }
         built.program = node;
@@ -442,6 +442,55 @@ impl TestFrameworkProvider for JsTestRunner {
     fn supports_coverage(&self, _type_id: &str) -> bool {
         self.spec.coverage.is_some()
     }
+}
+
+/// The coverage tool that runs a Node.js program (option `coverageTool`): c8 (V8's own
+/// coverage, the default) or nyc (Istanbul instrumentation).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageTool {
+    C8,
+    Nyc,
+}
+
+impl CoverageTool {
+    pub fn from_option(value: &str) -> Self {
+        match value.trim() {
+            "nyc" => CoverageTool::Nyc,
+            _ => CoverageTool::C8,
+        }
+    }
+}
+
+/// Run with Coverage of a Node.js program that has no coverage of its own (Mocha, a Node.js
+/// configuration): `<node> [options] <program …>` becomes
+/// `<c8.js> --reporter=lcov --reports-dir=<dir> <node> [options] <program …>` (nyc:
+/// `<nyc.js> --reporter=lcov --report-dir=<dir> …`), run with Node.js; the LCOV report is
+/// `<dir>/lcov.info`. The tool comes from the project's `node_modules` or the
+/// `c8Package` / `nycPackage` option.
+pub fn coverage_wrap(cfg: &Configuration, node: &str, dir: &str, args: Vec<String>) -> Vec<String> {
+    let tool = CoverageTool::from_option(cfg.option("coverageTool"));
+    let (option, package, bin, dir_flag) = match tool {
+        CoverageTool::C8 => ("c8Package", "node_modules/c8", "bin/c8.js", "--reports-dir"),
+        CoverageTool::Nyc => (
+            "nycPackage",
+            "node_modules/nyc",
+            "bin/nyc.js",
+            "--report-dir",
+        ),
+    };
+    let script = match cfg.option(option).trim() {
+        "" => join(package, bin),
+        p if p.ends_with(".js") => p.to_string(),
+        p => join(p, bin),
+    };
+    let mut wrapped = vec![
+        script,
+        "--reporter=lcov".to_string(),
+        format!("{dir_flag}={dir}"),
+        node.to_string(),
+    ];
+    wrapped.extend(args);
+    wrapped
 }
 
 /// Wrap the Node.js runners among manifest specs and register them (replacing the plain
