@@ -6,7 +6,8 @@
  * LS so the install offer and its progress can be tried. Nothing is downloaded or run.
  */
 import { emitMock, mockHandler, registerMock } from "@/ipc";
-import type { AvailableReleases, BuildView, DebugPlan, InstallProgress, Jdk, JavaStatus } from "@/ipc/java";
+import type { AvailableReleases, BuildModel, BuildView, DebugPlan, GradleWrapper, InstallProgress, Jdk, JavaStatus, OutdatedDependency, SyncLine, WrapperInfo } from "@/ipc/java";
+import type { SchemaCompletion } from "@/ipc/jsonSchema";
 import type { CommandLine, RunConfiguration, RunRequest } from "@/ipc/run";
 import { callWasm, callWasmSync, forgeWasm } from "@/wasm";
 import { isJavaDemo, JAVA_TEST_PKG, javaDemoInfo, javaDemoName } from "./demoJavaProject";
@@ -53,12 +54,31 @@ async function buildView(): Promise<BuildView | null> {
 
 function buildRequest() {
   const files: Record<string, string> = {};
-  for (const [path, text] of Object.entries(mockFiles)) if (!path.includes("/") || /(^|\/)(build\.gradle(\.kts)?|pom\.xml)$/.test(path)) files[path] = text;
+  for (const [path, text] of Object.entries(mockFiles))
+    if (!path.includes("/") || /(^|\/)(build\.gradle(\.kts)?|pom\.xml|gradle-wrapper\.properties)$/.test(path)) files[path] = text;
+  const maven = "pom.xml" in files && !("build.gradle.kts" in files || "build.gradle" in files);
+  const distribution = setting("java.gradle.distribution") || "wrapper";
   return {
     folder: javaDemoName,
     files,
     prefer: setting("java.build.preferredTool") || null,
-    exec: { useWrapper: mockSettingValue("java.gradle.useWrapper") !== false, buildDir: ROOT(), windows: false },
+    exec: maven
+      ? {
+          useWrapper: mockSettingValue("java.maven.useWrapper") !== false,
+          executable: setting("java.maven.executable") || null,
+          buildDir: ROOT(),
+          windows: false,
+          offline: mockSettingValue("java.maven.offline") === true,
+          profiles: (mockSettingValue("java.maven.profiles") as string[] | null) ?? [],
+          skipTests: mockSettingValue("java.maven.skipTests") === true,
+        }
+      : {
+          useWrapper: distribution === "wrapper",
+          executable: distribution === "specified" && setting("java.gradle.home") ? `${setting("java.gradle.home")}/bin/gradle` : null,
+          buildDir: ROOT(),
+          windows: false,
+          offline: mockSettingValue("java.gradle.offline") === true,
+        },
   };
 }
 
@@ -168,7 +188,30 @@ interface JavaCommand {
 async function javaCommand(cfg: RunConfiguration, coverage: boolean, debugPort: number | null): Promise<JavaCommand> {
   const wasm = await forgeWasm();
   const java = `${(cfg.options?.jdk || projectJdk()?.home) ?? "/usr"}/bin/java`;
-  return callWasmSync<JavaCommand>(wasm.java_command_line, { configuration: cfg, build: buildRequest(), coverage, java, debugPort });
+  let configuration = cfg;
+  // Settings | Build Tools | Gradle | Run tests using: IntelliJ IDEA (the JUnit runner).
+  if (cfg.type === "junit" && setting("java.gradle.runTestsUsing") === "idea") {
+    configuration = {
+      ...cfg,
+      options: {
+        ...cfg.options,
+        runner: "junit",
+        java,
+        launcherJar: `${HOME}/.m2/repository/org/junit/platform/junit-platform-console-standalone/1.11.3/junit-platform-console-standalone-1.11.3.jar`,
+        resolvedClasspath: `${ROOT()}/bin/main\n${ROOT()}/bin/test`,
+        reportsDir: "build/test-results/forge-junit",
+      },
+    };
+  }
+  return callWasmSync<JavaCommand>(wasm.java_command_line, {
+    configuration,
+    build: buildRequest(),
+    coverage,
+    java,
+    debugPort,
+    gradleRun: setting("java.gradle.buildAndRunUsing") !== "idea",
+    initScript: `${HOME}/.cache/forge/javaforge/forge-run.gradle`,
+  });
 }
 
 interface DemoTest {
@@ -331,3 +374,198 @@ if (isJavaDemo()) {
   });
 }
 
+
+// ---- Gradle / Maven tool windows, wrapper, build scripts ----------------------------------
+
+/** What the init script `forge-model.gradle` writes for the demo (a recorded sync). */
+function demoGradleModel(): string {
+  const t = (name: string, group: string, description = "") => ({ name, group, description });
+  const dep = (id: string, children: unknown[] = [], extra: Record<string, unknown> = {}) => ({ id, requested: id, omitted: false, children, ...extra });
+  const guava = () =>
+    dep("com.google.guava:guava:33.3.1-jre", [
+      dep("com.google.guava:failureaccess:1.0.2"),
+      dep("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava"),
+      dep("com.google.code.findbugs:jsr305:3.0.2"),
+      dep("org.checkerframework:checker-qual:3.43.0"),
+      dep("com.google.errorprone:error_prone_annotations:2.28.0"),
+      dep("com.google.j2objc:j2objc-annotations:3.0.0"),
+    ]);
+  const junit = () => [
+    dep("org.junit:junit-bom:5.11.3", [dep("org.junit.jupiter:junit-jupiter:5.11.3"), dep("org.junit.platform:junit-platform-launcher:1.11.3")]),
+    dep("org.junit.jupiter:junit-jupiter:5.11.3", [
+      dep("org.junit.jupiter:junit-jupiter-api:5.11.3", [dep("org.opentest4j:opentest4j:1.3.0"), dep("org.junit.platform:junit-platform-commons:1.11.3"), dep("org.apiguardian:apiguardian-api:1.1.2")]),
+      dep("org.junit.jupiter:junit-jupiter-params:5.11.3", [dep("org.junit.jupiter:junit-jupiter-api:5.11.3", [], { omitted: true })]),
+    ], { requested: "org.junit.jupiter:junit-jupiter" }),
+  ];
+  return JSON.stringify({
+    gradleVersion: "8.10.2",
+    projects: [
+      {
+        name: javaDemoName,
+        path: ":",
+        dir: "",
+        tasks: [
+          t("run", "application", "Runs this project as a JVM application"),
+          t("assemble", "build", "Assembles the outputs of this project."),
+          t("build", "build", "Assembles and tests this project."),
+          t("buildDependents", "build", "Assembles and tests this project and all projects that depend on it."),
+          t("classes", "build", "Assembles main classes."),
+          t("clean", "build", "Deletes the build directory."),
+          t("jar", "build", "Assembles a jar archive containing the classes of the 'main' feature."),
+          t("testClasses", "build", "Assembles test classes."),
+          t("init", "build setup", "Initializes a new Gradle build."),
+          t("wrapper", "build setup", "Generates Gradle wrapper files."),
+          t("distTar", "distribution", "Bundles the project as a distribution."),
+          t("distZip", "distribution", "Bundles the project as a distribution."),
+          t("installDist", "distribution", "Installs the project as a distribution as-is."),
+          t("javadoc", "documentation", "Generates Javadoc API documentation for the 'main' feature."),
+          t("dependencies", "help", "Displays all dependencies declared in root project 'inventory-service'."),
+          t("dependencyInsight", "help", "Displays the insight into a specific dependency in root project 'inventory-service'."),
+          t("help", "help", "Displays a help message."),
+          t("projects", "help", "Displays the sub-projects of root project 'inventory-service'."),
+          t("properties", "help", "Displays the properties of root project 'inventory-service'."),
+          t("tasks", "help", "Displays the tasks runnable from root project 'inventory-service'."),
+          t("check", "verification", "Runs all checks."),
+          t("jacocoTestCoverageVerification", "verification", "Verifies code coverage metrics based on specified rules for the test task."),
+          t("jacocoTestReport", "verification", "Generates code coverage report for the test task."),
+          t("test", "verification", "Runs the test suite."),
+          t("bundleConfig", "other"),
+          t("compileJava", "other", "Compiles main Java source."),
+          t("compileTestJava", "other", "Compiles test Java source."),
+          t("processResources", "other", "Processes main resources."),
+          t("startScripts", "other", "Creates OS specific scripts to run the project as a JVM application."),
+        ],
+        dependencies: [
+          { name: "annotationProcessor", description: "Annotation processors and their dependencies for source set 'main'.", dependencies: [] },
+          { name: "compileClasspath", description: "Compile classpath for source set 'main'.", dependencies: [guava()] },
+          { name: "runtimeClasspath", description: "Runtime classpath of source set 'main'.", dependencies: [guava()] },
+          { name: "testCompileClasspath", description: "Compile classpath for source set 'test'.", dependencies: [guava(), ...junit()] },
+          { name: "testRuntimeClasspath", description: "Runtime classpath of source set 'test'.", dependencies: [guava(), ...junit(), dep("org.slf4j:slf4j-api:2.0.16", [], { requested: "org.slf4j:slf4j-api:2.0.9" })] },
+        ],
+      },
+    ],
+  });
+}
+
+const DEMO_MAVEN_TREE = `com.acme:inventory-service:jar:1.4.0
++- com.google.guava:guava:jar:32.1.3-jre:compile
+|  +- com.google.guava:failureaccess:jar:1.0.1:compile
+|  +- com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava:compile
+|  +- com.google.code.findbugs:jsr305:jar:3.0.2:compile
+|  +- org.checkerframework:checker-qual:jar:3.37.0:compile
+|  \\- com.google.errorprone:error_prone_annotations:jar:2.21.1:compile
+\\- org.junit.jupiter:junit-jupiter:jar:5.10.2:test
+   +- org.junit.jupiter:junit-jupiter-api:jar:5.10.2:test
+   |  +- org.opentest4j:opentest4j:jar:1.3.0:test
+   |  \\- org.junit.platform:junit-platform-commons:jar:1.10.2:test
+   +- org.junit.jupiter:junit-jupiter-params:jar:5.10.2:test
+   \\- org.junit.jupiter:junit-jupiter-engine:jar:5.10.2:runtime
+      \\- org.junit.platform:junit-platform-engine:jar:1.10.2:runtime
+`;
+
+let demoSynced = false;
+let demoSyncedAt: number | undefined;
+
+async function demoModel(): Promise<BuildModel | null> {
+  const wasm = await forgeWasm();
+  const req = buildRequest();
+  const maven = "pom.xml" in req.files && !("build.gradle.kts" in req.files);
+  const m = callWasmSync<BuildModel | null>(wasm.java_build_model, {
+    ...req,
+    gradleModel: demoSynced && !maven ? demoGradleModel() : null,
+    mavenTree: demoSynced && maven ? DEMO_MAVEN_TREE : null,
+  });
+  if (m && demoSynced) m.syncedAt = demoSyncedAt;
+  return m;
+}
+
+registerMock("java_build_model", () => demoModel());
+registerMock("java_sync_project", async () => {
+  const req = buildRequest();
+  const maven = "pom.xml" in req.files && !("build.gradle.kts" in req.files);
+  const out = (line: string, stderr = false) => emitMock("java://sync", { line, stderr } satisfies SyncLine);
+  const steps = maven
+    ? [`${ROOT()}/mvnw dependency:tree -B -DoutputFile=${HOME}/.cache/forge/javaforge/sync/inventory.out -DappendOutput=true`, "[INFO] Scanning for projects...", "[INFO] Building inventory-service 1.4.0", "[INFO] --- dependency:3.7.0:tree (default-cli) @ inventory-service ---", "[INFO] BUILD SUCCESS"]
+    : [`${ROOT()}/gradlew -I ${HOME}/.cache/forge/javaforge/forge-model.gradle forgeModel --no-configuration-cache -q`, "Starting a Gradle Daemon (subsequent builds will be faster)", "> Configure project :", "> Task :forgeModel"];
+  for (const l of steps) {
+    out(l);
+    await sleep(260);
+  }
+  demoSynced = true;
+  demoSyncedAt = Math.floor(Date.now() / 1000);
+  return (await demoModel())!;
+});
+registerMock("java_sync_cancel", () => undefined);
+registerMock("java_build_workspace", async () => {
+  await sleep(400);
+  return 1;
+});
+
+// The wrapper: read and updated in the demo's files (nothing is downloaded).
+const WRAPPER = "gradle/wrapper/gradle-wrapper.properties";
+registerMock("java_wrapper_info", async (): Promise<WrapperInfo | null> => {
+  const text = mockFiles[WRAPPER];
+  if (!text) return null;
+  const r = callWasmSync<{ wrapper: GradleWrapper | null }>((await forgeWasm()).java_wrapper, { text });
+  return r.wrapper ? { wrapper: r.wrapper, path: WRAPPER } : null;
+});
+registerMock("java_wrapper_verify", async () => {
+  await sleep(300);
+  return /distributionSha256Sum=/.test(mockFiles[WRAPPER] ?? "") ? "matches" : "notSet";
+});
+registerMock("java_wrapper_update", async ({ version }) => {
+  const text = mockFiles[WRAPPER];
+  if (!text) throw new Error("the project has no Gradle wrapper");
+  await sleep(500);
+  const v = String(version || "8.11.1");
+  const r = callWasmSync<{ wrapper: GradleWrapper; text: string }>((await forgeWasm()).java_wrapper, {
+    text,
+    update: [v, "89d4e70e4e84e2d2dfbb63e4daa53e21b25017cc70c37e4eea31ee51fb15098a"],
+  });
+  mockFiles[WRAPPER] = r.text;
+  return r.wrapper;
+});
+
+// Maven Central for the demo (recorded answers; nothing goes to the network).
+const CENTRAL: { g: string; a: string; versions: string[] }[] = [
+  { g: "com.google.guava", a: "guava", versions: ["31.1-jre", "32.1.3-jre", "33.3.1-jre", "33.4.0-jre", "31.1-android", "33.4.0-android"] },
+  { g: "com.google.guava", a: "guava-testlib", versions: ["33.3.1-jre", "33.4.0-jre"] },
+  { g: "org.junit.jupiter", a: "junit-jupiter", versions: ["5.10.0", "5.10.2", "5.11.3", "5.11.4", "5.12.0-M1"] },
+  { g: "org.junit.jupiter", a: "junit-jupiter-api", versions: ["5.10.2", "5.11.3", "5.11.4"] },
+  { g: "org.junit.jupiter", a: "junit-jupiter-params", versions: ["5.10.2", "5.11.3", "5.11.4"] },
+  { g: "org.junit", a: "junit-bom", versions: ["5.10.2", "5.11.3", "5.11.4"] },
+  { g: "org.junit.platform", a: "junit-platform-launcher", versions: ["1.11.3", "1.11.4"] },
+  { g: "org.assertj", a: "assertj-core", versions: ["3.25.3", "3.26.3", "3.27.0"] },
+  { g: "org.mockito", a: "mockito-core", versions: ["5.12.0", "5.14.2"] },
+  { g: "org.slf4j", a: "slf4j-api", versions: ["2.0.9", "2.0.16"] },
+  { g: "com.fasterxml.jackson.core", a: "jackson-databind", versions: ["2.17.2", "2.18.2"] },
+  { g: "org.apache.commons", a: "commons-lang3", versions: ["3.14.0", "3.17.0"] },
+];
+
+const newestFirst = (versions: string[]) => [...versions].reverse();
+
+registerMock("java_build_complete", async ({ path, text, offset }) => {
+  const wasm = await forgeWasm();
+  const request = callWasmSync<{ kind: "coordinates"; prefix: string } | { kind: "versions"; group: string; artifact: string } | null>(wasm.java_build_request, { path, text, offset });
+  let data: { artifacts: { group: string; artifact: string; latestVersion: string }[]; versions: { versions: string[]; latest: string | null } | null } = { artifacts: [], versions: null };
+  if (request?.kind === "coordinates") {
+    const p = request.prefix.toLowerCase();
+    const [g, a] = p.includes(":") ? p.split(":") : [null, null];
+    data.artifacts = CENTRAL.filter((c) => (g !== null ? c.g === g && c.a.startsWith(a ?? "") : `${c.g}:${c.a}`.includes(p))).map((c) => ({
+      group: c.g,
+      artifact: c.a,
+      latestVersion: c.versions.filter((v) => !/-M\d|rc|alpha|beta/i.test(v)).at(-1) ?? c.versions.at(-1)!,
+    }));
+  } else if (request?.kind === "versions") {
+    const c = CENTRAL.find((x) => x.g === request.group && x.a === request.artifact);
+    if (c) data = { artifacts: [], versions: { versions: newestFirst(c.versions), latest: c.versions.filter((v) => !/-M\d|rc|alpha|beta|android/i.test(v)).at(-1) ?? null } };
+  }
+  return callWasmSync<SchemaCompletion | null>(wasm.java_build_complete, { path, text, offset, data });
+});
+
+registerMock("java_build_outdated", async ({ path, text }) => {
+  const wasm = await forgeWasm();
+  const versions: Record<string, string[]> = {};
+  for (const c of CENTRAL) versions[`${c.g}:${c.a}`] = c.versions;
+  return callWasmSync<{ markers: OutdatedDependency[] }>(wasm.java_build_outdated, { path, text, versions }).markers;
+});

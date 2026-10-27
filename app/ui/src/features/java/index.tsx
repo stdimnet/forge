@@ -9,7 +9,9 @@
  * - run configuration types (`runTypes.tsx`), the Java debugger (`debug.ts`);
  * - gutter ▶ on `main` methods and Run Context Configuration (Ctrl+Shift+F10);
  * - Build Project (Ctrl+F9), Reload All Maven and Gradle Projects, Download JDK…;
- * - small Gradle / Maven tool windows;
+ * - the Gradle / Maven tool windows (tasks, dependencies, sync, offline mode, profiles, Skip
+ *   Tests, Execute Gradle Task / Maven Goal…), the Gradle wrapper on the Gradle settings page;
+ * - completion and the newer-version inspection in build scripts and pom.xml (`buildScripts.ts`);
  * - the JDT LS install offer and its progress in the status bar.
  */
 import { createEffect, createRoot, on, Show } from "solid-js";
@@ -34,10 +36,14 @@ import { onProjectDetected } from "@/state/project";
 import { workspace } from "@/state/workspace";
 import { JdksPage, openDownloadForm } from "./JdksPage";
 import { JavaPage } from "./JavaPage";
-import { BuildToolWindow } from "./BuildToolWindow";
+import { GradleToolWindow, MavenToolWindow } from "./BuildToolWindow";
+import { GradlePage } from "./GradlePage";
+import { openExecuteDialog } from "./ExecuteDialog";
+import { buildScriptEditor } from "./buildScripts";
+import { registerEditorExtension } from "@/editor/extensions";
 import { buildProject, reloadProject } from "./actions";
 import { checkJavaSetup, installLanguageServer } from "./install";
-import { active, activeInstall, buildView, refreshBuild, refreshJdks } from "./store";
+import { active, activeInstall, buildView, refreshBuild, refreshJdks, refreshModel } from "./store";
 import { APPLICATION } from "./runTypes";
 import "./debug";
 import "./java.css";
@@ -58,8 +64,8 @@ registerSettingsPage({
   title: "Build Tools",
   group: "Build, Execution, Deployment",
   order: 2,
-  keywords: ["maven", "gradle", "build tools"],
-  component: () => <p class="muted java-pad">Settings of the Maven and Gradle builds: choose Maven or Gradle below.</p>,
+  keywords: ["maven", "gradle", "build tools", "maven central", "dependency completion"],
+  component: () => <SchemaPage pageId="build.tools" />,
 });
 
 registerSettingsPage({
@@ -68,8 +74,8 @@ registerSettingsPage({
   group: "Build, Execution, Deployment",
   parent: "build.tools",
   order: 0,
-  keywords: ["gradle", "gradlew", "wrapper", "gradle jvm", "offline"],
-  component: () => <SchemaPage pageId="build.tools.gradle" />,
+  keywords: ["gradle", "gradlew", "wrapper", "gradle jvm", "offline", "distributionSha256Sum", "update wrapper", "build and run using", "run tests using", "junit runner"],
+  component: GradlePage,
 });
 
 registerSettingsPage({
@@ -78,7 +84,7 @@ registerSettingsPage({
   group: "Build, Execution, Deployment",
   parent: "build.tools",
   order: 1,
-  keywords: ["maven", "mvnw", "wrapper", "maven home", "offline", "sources"],
+  keywords: ["maven", "mvnw", "wrapper", "maven home", "offline", "sources", "skip tests", "profiles"],
   component: () => <SchemaPage pageId="build.tools.maven" />,
 });
 
@@ -95,6 +101,9 @@ registerSettingsPage({
 
 registerCommand({ id: "CompileDirty", title: "Build Project", category: "Build", run: () => void buildProject() });
 registerCommand({ id: "java.reloadProject", title: "Reload All Maven and Gradle Projects", category: "Java", run: () => void reloadProject() });
+registerCommand({ id: "java.syncProject", title: "Reload All Gradle and Maven Projects (Sync)", category: "Java", run: () => void reloadProject() });
+registerCommand({ id: "java.executeTask", title: "Execute Gradle Task / Maven Goal…", category: "Java", run: () => openExecuteDialog() });
+registerCommand({ id: "java.updateWrapper", title: "Update Gradle Wrapper…", category: "Java", run: () => openSettings("build.tools.gradle") });
 registerCommand({
   id: "java.downloadJdk",
   title: "Download JDK…",
@@ -106,7 +115,15 @@ registerCommand({
 });
 registerCommand({ id: "java.installLanguageServer", title: "Install Eclipse JDT Language Server", category: "Java", run: () => void installLanguageServer() });
 
-registerMainMenuEntries("_Build", [action("CompileDirty", "_Build Project"), action("java.reloadProject", "_Reload All Maven and Gradle Projects")], { when: active });
+registerMainMenuEntries(
+  "_Build",
+  [action("CompileDirty", "_Build Project"), action("java.reloadProject", "_Reload All Maven and Gradle Projects"), action("java.executeTask", "E_xecute Gradle Task / Maven Goal…")],
+  { when: active },
+);
+
+// ---- Build scripts in the editor ----------------------------------------------------------
+
+registerEditorExtension(({ path }) => buildScriptEditor(path));
 
 // ---- Tool windows -----------------------------------------------------------------------
 
@@ -116,7 +133,7 @@ registerToolWindow({
   icon: Boxes,
   anchor: "right",
   order: 40,
-  component: BuildToolWindow,
+  component: GradleToolWindow,
   when: () => active() && buildView()?.project.tool === "gradle",
 });
 
@@ -126,7 +143,7 @@ registerToolWindow({
   icon: Hammer,
   anchor: "right",
   order: 40,
-  component: BuildToolWindow,
+  component: MavenToolWindow,
   when: () => active() && buildView()?.project.tool === "maven",
 });
 
@@ -160,6 +177,7 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
     if (!active()) return;
     void refreshJdks();
     void refreshBuild();
+    void refreshModel();
     void checkJavaSetup();
   });
   createRoot(() => {
@@ -167,7 +185,10 @@ if (typeof document !== "undefined" && !isDialogWindow()) {
       on(
         () => !!workspace() && active(),
         (on) => {
-          if (on) void refreshBuild();
+          if (on) {
+            void refreshBuild();
+            void refreshModel();
+          }
         },
       ),
     );

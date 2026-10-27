@@ -94,6 +94,9 @@ pub struct BuildProject {
     /// Java release of the sources (`JavaLanguageVersion.of(21)`, `maven.compiler.release`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub java_version: Option<String>,
+    /// The Gradle version of the wrapper (`gradle-wrapper.properties`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gradle_version: Option<String>,
     #[serde(default)]
     pub test_frameworks: Vec<TestFrameworkUse>,
 }
@@ -115,6 +118,7 @@ impl BuildProject {
             spring_boot: false,
             custom_tasks: Vec::new(),
             java_version: None,
+            gradle_version: None,
             test_frameworks: Vec::new(),
         }
     }
@@ -228,6 +232,10 @@ fn gradle(
         spring_boot: all.contains("org.springframework.boot"),
         custom_tasks,
         java_version: java_version_gradle(&all),
+        gradle_version: read(crate::wrapper::PROPERTIES)
+            .and_then(|t| crate::wrapper::parse_properties(&t))
+            .map(|w| w.version)
+            .filter(|v| !v.is_empty()),
         test_frameworks: test_frameworks(&all, true),
     }
 }
@@ -424,6 +432,7 @@ fn maven(
         spring_boot: all.contains("spring-boot"),
         custom_tasks: Vec::new(),
         java_version,
+        gradle_version: None,
         test_frameworks: test_frameworks(&all, false),
     }
 }
