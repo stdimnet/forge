@@ -100,7 +100,10 @@ impl DbService {
             let refuse = if ds.driver == Driver::Ddl {
                 Some("DDL data sources have no data".to_string())
             } else if !ds.dialect().is_sql() {
-                Some(format!("{} cannot be searched; use its console", ds.driver.label()))
+                Some(format!(
+                    "{} cannot be searched; use its console",
+                    ds.driver.label()
+                ))
             } else {
                 None
             };

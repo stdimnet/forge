@@ -585,7 +585,9 @@ impl DbService {
             let old_scope = old.map(|i| s.list[i].scope);
             let retarget = old.is_some_and(|i| {
                 let o = &s.list[i];
-                !o.same_target(&ds) || o.user != ds.user || o.options.ddl_dialect != ds.options.ddl_dialect
+                !o.same_target(&ds)
+                    || o.user != ds.user
+                    || o.options.ddl_dialect != ds.options.ddl_dialect
             });
             match old {
                 Some(i) => s.list[i] = ds.clone(),

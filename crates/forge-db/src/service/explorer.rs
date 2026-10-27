@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 
 use forge_dbmodel::ddl::{self, DdlFile};
 use forge_dbmodel::{
-    DbModel, ModelWarning, ObjectDoc, ObjectRef, SchemaFilter, SchemaInfo, SchemaName,
-    TableInfo, VirtualObjects, VIRTUAL_FILE,
+    DbModel, ModelWarning, ObjectDoc, ObjectRef, SchemaFilter, SchemaInfo, SchemaName, TableInfo,
+    VirtualObjects, VIRTUAL_FILE,
 };
 
 use super::DbService;
@@ -113,9 +113,18 @@ impl DbService {
             .unwrap_or_default();
         let safe: String = id
             .chars()
-            .map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' })
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '-' {
+                    c
+                } else {
+                    '_'
+                }
+            })
             .collect();
-        Some(dir.join(format!("{safe}-{:016x}.json", fnv1a(&format!("{root}\0{id}")))))
+        Some(dir.join(format!(
+            "{safe}-{:016x}.json",
+            fnv1a(&format!("{root}\0{id}"))
+        )))
     }
 
     fn cached_model(&self, id: &str) -> Option<DbModel> {
@@ -149,9 +158,7 @@ impl DbService {
             .parent()
             .map(std::fs::create_dir_all)
             .transpose()
-            .and_then(|_| {
-                std::fs::write(&path, serde_json::to_vec(&file).unwrap_or_default())
-            });
+            .and_then(|_| std::fs::write(&path, serde_json::to_vec(&file).unwrap_or_default()));
         if let Err(e) = written {
             tracing::warn!("cannot cache the model of {id}: {e}");
         }
@@ -487,6 +494,9 @@ mod tests {
     fn natural_order_of_migrations() {
         let mut v = vec!["V10__c.sql", "V2__b.sql", "v1__a.sql", "2024_01_02_x.sql"];
         v.sort_by(|a, b| natural_cmp(a, b));
-        assert_eq!(v, ["2024_01_02_x.sql", "v1__a.sql", "V2__b.sql", "V10__c.sql"]);
+        assert_eq!(
+            v,
+            ["2024_01_02_x.sql", "v1__a.sql", "V2__b.sql", "V10__c.sql"]
+        );
     }
 }

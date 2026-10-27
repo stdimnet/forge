@@ -409,7 +409,14 @@ pub fn parse_arguments(text: &str) -> Vec<RoutineArg> {
         }
     }
     parts.push(&text[start..]);
-    const MULTI: [&str; 6] = ["character", "double", "timestamp", "time", "bit", "interval"];
+    const MULTI: [&str; 6] = [
+        "character",
+        "double",
+        "timestamp",
+        "time",
+        "bit",
+        "interval",
+    ];
     parts
         .into_iter()
         .map(str::trim)
@@ -431,8 +438,8 @@ pub fn parse_arguments(text: &str) -> Vec<RoutineArg> {
                 }
                 _ => String::new(),
             };
-            let named = words.len() >= 2
-                && !MULTI.contains(&words[0].to_ascii_lowercase().as_str());
+            let named =
+                words.len() >= 2 && !MULTI.contains(&words[0].to_ascii_lowercase().as_str());
             let (name, ty) = if named {
                 (words[0].to_string(), words[1..].join(" "))
             } else {
@@ -844,7 +851,11 @@ async fn sqlite(conn: &mut Conn, schema: &str, only: Option<&str>) -> DbResult<S
         let sql = s(r, 3);
         tables.add(TableInfo {
             name: s(r, 1),
-            kind: if is_view { TableKind::View } else { TableKind::Table },
+            kind: if is_view {
+                TableKind::View
+            } else {
+                TableKind::Table
+            },
             definition: if is_view {
                 view_query(&sql)
             } else {
@@ -1444,7 +1455,9 @@ async fn oracle(conn: &mut Conn, schema: &str, only: Option<&str>) -> DbResult<S
         let types = opt_rows(
             conn,
             "oracle.types",
-            &format!("SELECT type_name, typecode FROM all_types WHERE owner = {sch} ORDER BY type_name"),
+            &format!(
+                "SELECT type_name, typecode FROM all_types WHERE owner = {sch} ORDER BY type_name"
+            ),
         )
         .await
         .into_iter()
@@ -1489,11 +1502,24 @@ mod tests {
             "o_id bigint, OUT total numeric(10,2), character varying, VARIADIC tags text[] DEFAULT '{}'::text[]",
         );
         assert_eq!(a.len(), 4);
-        assert_eq!((a[0].name.as_str(), a[0].data_type.as_str()), ("o_id", "bigint"));
+        assert_eq!(
+            (a[0].name.as_str(), a[0].data_type.as_str()),
+            ("o_id", "bigint")
+        );
         assert_eq!(a[1].mode, "OUT");
         assert_eq!(a[1].data_type, "numeric(10,2)");
-        assert_eq!((a[2].name.as_str(), a[2].data_type.as_str()), ("", "character varying"));
-        assert_eq!((a[3].mode.as_str(), a[3].name.as_str(), a[3].data_type.as_str()), ("VARIADIC", "tags", "text[]"));
+        assert_eq!(
+            (a[2].name.as_str(), a[2].data_type.as_str()),
+            ("", "character varying")
+        );
+        assert_eq!(
+            (
+                a[3].mode.as_str(),
+                a[3].name.as_str(),
+                a[3].data_type.as_str()
+            ),
+            ("VARIADIC", "tags", "text[]")
+        );
         assert!(parse_arguments("").is_empty());
     }
 }

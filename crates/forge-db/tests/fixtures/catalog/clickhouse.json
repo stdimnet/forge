@@ -1,0 +1,20 @@
+{
+  "clickhouse.current_schema": [["shop"]],
+  "clickhouse.schemas": [["default"], ["shop"], ["system"]],
+  "clickhouse.tables": [
+    ["daily_mv", "MaterializedView", "", null, "SELECT toDate(at) AS day, count() AS hits FROM shop.events GROUP BY day"],
+    ["events", "MergeTree", "Click stream", "1200", ""],
+    ["v_users", "View", "", null, "SELECT DISTINCT user FROM shop.events"]
+  ],
+  "clickhouse.columns": [
+    ["daily_mv", "day", "Date", "", "", "", 0],
+    ["daily_mv", "hits", "UInt64", "", "", "", 0],
+    ["events", "id", "UInt64", "", "", "", 1],
+    ["events", "at", "DateTime", "DEFAULT", "now()", "", 0],
+    ["events", "user", "Nullable(String)", "", "", "who", 0],
+    ["events", "day", "Date", "MATERIALIZED", "toDate(at)", "", 0],
+    ["v_users", "user", "Nullable(String)", "", "", "", 0]
+  ],
+  "clickhouse.indexes": [["events", "idx_user", "user"]],
+  "clickhouse.roles": [["analyst", "role"], ["default", "user"]]
+}

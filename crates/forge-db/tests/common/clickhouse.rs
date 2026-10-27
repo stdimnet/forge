@@ -45,7 +45,10 @@ fn respond(req: &Request) -> (u16, Vec<(String, String)>, String) {
     }
     let sql = req.body.trim();
     // Catalog queries start with a `/* forge:… */` tag.
-    let sql = match sql.strip_prefix("/* forge:").and_then(|r| r.split_once(" */")) {
+    let sql = match sql
+        .strip_prefix("/* forge:")
+        .and_then(|r| r.split_once(" */"))
+    {
         Some((_, rest)) => rest.trim(),
         None => sql,
     };

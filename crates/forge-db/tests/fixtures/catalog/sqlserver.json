@@ -1,0 +1,33 @@
+{
+  "sqlserver.current_schema": [["dbo"]],
+  "sqlserver.schemas": [["dbo"], ["sales"]],
+  "sqlserver.tables": [
+    ["customers", "U ", "Customers", "2", null],
+    ["v_customers", "V ", null, null, "CREATE VIEW dbo.v_customers AS SELECT id, name FROM dbo.customers"]
+  ],
+  "sqlserver.columns": [
+    ["customers", "id", "int", "NO", null, "1", null, null],
+    ["customers", "name", "nvarchar(100)", "YES", null, "0", "Display name", null],
+    ["customers", "name_upper", "nvarchar(100)", "YES", null, "0", null, "(upper([name]))"],
+    ["v_customers", "id", "int", "NO", null, "0", null, null],
+    ["v_customers", "name", "nvarchar(100)", "YES", null, "0", null, null]
+  ],
+  "sqlserver.indexes": [["customers", "PK_customers", "1", "1", "id"]],
+  "sqlserver.foreign_keys": [],
+  "sqlserver.checks": [["customers", "CK_customers_name", "([name]<>'')"]],
+  "sqlserver.triggers": [["customers", "tr_customers_audit", "AFTER", "INSERT OR UPDATE", "CREATE TRIGGER dbo.tr_customers_audit ON dbo.customers AFTER INSERT, UPDATE AS SET NOCOUNT ON;"]],
+  "sqlserver.routines": [
+    ["fn_total", "FUNCTION", "decimal", "CREATE FUNCTION dbo.fn_total(@customer_id int) RETURNS decimal AS BEGIN RETURN 0 END", "SQL"],
+    ["usp_archive", "PROCEDURE", null, "CREATE PROCEDURE dbo.usp_archive @before date, @moved int OUTPUT AS SET @moved = 0", "SQL"]
+  ],
+  "sqlserver.parameters": [
+    ["fn_total", "@customer_id", "int", "IN"],
+    ["usp_archive", "@before", "date", "IN"],
+    ["usp_archive", "@moved", "int", "INOUT"]
+  ],
+  "sqlserver.sequences": [["seq_invoice", "bigint", "1000", "1"]],
+  "sqlserver.types": [["phone", "domain", "varchar"]],
+  "sqlserver.catalog": [["shop"]],
+  "sqlserver.catalogs": [["master"], ["shop"], ["tempdb"]],
+  "sqlserver.roles": [["sa", "S", "1", "1"], ["shop_app", "S", "0", "1"], ["sysadmin", "R", "1", "0"]]
+}
