@@ -455,13 +455,9 @@ fn apply_properties(file: &MsBuildFile, props: &mut Properties, problems: &mut V
     for p in &file.properties {
         match eval_condition(&p.condition, props) {
             Some(false) => continue,
-            None if !p.condition.is_empty() => {
-                // Undecidable: the first value wins (TFM-specific values do not replace
-                // the general one).
-                if props.get(&p.name).is_some() {
-                    continue;
-                }
-            }
+            // Undecidable: the first value wins (TFM-specific values do not replace the
+            // general one).
+            None if !p.condition.is_empty() && props.get(&p.name).is_some() => continue,
             _ => {}
         }
         let value = props.expand(&p.value);
@@ -811,7 +807,7 @@ mod tests {
         assert_eq!(eval_condition("Exists('foo.props')", &p), None);
         assert_eq!(eval_condition("", &p), Some(true));
         assert_eq!(p.expand("$(Configuration)/$(Nope)/x"), "Debug//x");
-        assert_eq!(p.expand_known("a$(Nope)").1, false);
+        assert!(!p.expand_known("a$(Nope)").1);
     }
 
     #[test]
