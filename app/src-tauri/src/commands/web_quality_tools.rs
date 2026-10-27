@@ -412,9 +412,15 @@ fn located_for(backend: &dyn Backend, env: &Env, tool: WebTool, path: &str) -> R
     let cfg = env.settings.config(tool);
     locate(&fs, &cfg, path).map_err(|skip| {
         ForgeError::Other(match skip {
-            Skip::Disabled => format!("{} is disabled in Settings | Languages & Frameworks | Code Quality Tools", tool.label()),
+            Skip::Disabled => format!(
+                "{} is disabled in Settings | Languages & Frameworks | Code Quality Tools",
+                tool.label()
+            ),
             Skip::NotMatched => format!("{} does not run for {path} (Run for files)", tool.label()),
-            Skip::NoConfig => format!("No {} configuration file was found for {path}", tool.label()),
+            Skip::NoConfig => format!(
+                "No {} configuration file was found for {path}",
+                tool.label()
+            ),
             Skip::NoPackage => missing(tool).message,
             Skip::BiomeFirst => format!("Biome handles {path}"),
         })

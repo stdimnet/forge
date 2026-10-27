@@ -6899,7 +6899,7 @@
         {
           "key": "actionsOnSave.biome",
           "title": "Run biome check --write",
-          "description": "Fix and format saved files where Biome is configured (Languages & Frameworks > Code Quality Tools > Biome).",
+          "description": "Fix and format saved files where Biome is configured.",
           "type": "bool",
           "default": false,
           "group": "tools.actions-on-save",
