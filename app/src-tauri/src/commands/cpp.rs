@@ -83,8 +83,11 @@ fn path_string(p: &Path) -> String {
 
 // ---- Toolchains -----------------------------------------------------------------------------
 
-/// Detected toolchains with the entries they were built from, looked up again after a minute.
-static TOOLCHAINS: Mutex<Option<(Instant, Vec<ToolchainEntry>, Vec<Toolchain>)>> = Mutex::new(None);
+/// When the toolchains were detected, the entries they were built from, and the toolchains.
+type ToolchainCache = (Instant, Vec<ToolchainEntry>, Vec<Toolchain>);
+
+/// Detected toolchains, looked up again after a minute.
+static TOOLCHAINS: Mutex<Option<ToolchainCache>> = Mutex::new(None);
 
 fn entries(state: &AppState) -> Vec<ToolchainEntry> {
     state

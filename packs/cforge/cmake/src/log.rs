@@ -44,8 +44,11 @@ impl ConfigureMessage {
     }
 }
 
+/// A block header: severity, file, line and command.
+type Header = (Severity, Option<String>, Option<u32>, Option<String>);
+
 /// `Error at CMakeLists.txt:6 (find_package)`, `Warning (dev) in CMakeLists.txt`, `Error`.
-fn header(line: &str) -> Option<(Severity, Option<String>, Option<u32>, Option<String>)> {
+fn header(line: &str) -> Option<Header> {
     let rest = line.strip_prefix("CMake ")?;
     let (kind, rest) = [
         ("Deprecation Warning", Severity::Deprecation),

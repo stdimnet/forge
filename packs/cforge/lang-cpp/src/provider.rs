@@ -96,7 +96,7 @@ impl CppContext {
         }
         self.targets
             .iter()
-            .find(|t| t.sources.iter().any(|s| *s == file))
+            .find(|t| t.sources.contains(&file))
             .map(|t| t.executable.clone())
             .ok_or_else(|| {
                 format!(
@@ -114,7 +114,7 @@ impl CppContext {
         let file = cfg.option("file").replace('\\', "/");
         self.targets
             .iter()
-            .find(|t| t.sources.iter().any(|s| *s == file))
+            .find(|t| t.sources.contains(&file))
             .map(|t| t.name.clone())
     }
 }
