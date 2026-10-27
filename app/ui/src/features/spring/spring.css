@@ -1,0 +1,463 @@
+/* Spring Boot and Jakarta EE: Endpoints and Spring tool windows, gutter icons.
+   Colors come from theme.css variables only. */
+
+.sp-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.sp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-width: 0;
+}
+.sp-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px 0 8px;
+  width: min(360px, 40%);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+.sp-search-wide {
+  width: 100%;
+}
+.sp-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.sp-search-input,
+.sp-search-input:focus {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--fg-strong);
+  padding: 0;
+}
+.sp-clear {
+  width: 20px;
+  height: 20px;
+}
+.sp-segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sp-seg {
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.sp-seg + .sp-seg {
+  border-left: 1px solid var(--border);
+}
+.sp-seg:hover {
+  background: var(--bg-hover);
+}
+.sp-seg.active {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
+.sp-summary {
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.sp-live {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+.sp-scroll,
+.sp-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+.sp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-ui);
+}
+.sp-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-weight: 500;
+  font-size: var(--fs-small);
+  text-align: left;
+  height: 24px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.sp-table td {
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-table tbody tr {
+  cursor: pointer;
+}
+.sp-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.sp-table tbody tr.selected {
+  background: var(--bg-selection);
+}
+.sp-table tbody tr.runtime td {
+  color: var(--fg-muted);
+}
+.sp-table .col-method {
+  width: 84px;
+}
+.sp-table .col-path {
+  width: 32%;
+}
+.sp-table .col-handler {
+  width: 30%;
+}
+.sp-table .col-media {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.sp-table .col-fw {
+  width: 110px;
+}
+.sp-table .col-actions {
+  width: 34px;
+  padding: 0 4px;
+}
+.sp-row-btn {
+  width: 22px;
+  height: 22px;
+  visibility: hidden;
+  color: var(--success);
+}
+.sp-table tr:hover .sp-row-btn,
+.sp-table tr.selected .sp-row-btn {
+  visibility: visible;
+}
+.sp-verb {
+  display: inline-block;
+  min-width: 50px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 17px;
+  text-align: center;
+  color: var(--fg-muted);
+  background: color-mix(in srgb, var(--fg-muted) 14%, transparent);
+}
+.sp-verb.verb-get {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+.sp-verb.verb-post {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+}
+.sp-verb.verb-put,
+.sp-verb.verb-patch {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+.sp-verb.verb-delete {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+.sp-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-strong);
+}
+.sp-path-param {
+  color: var(--syn-variable);
+}
+.sp-handler,
+.sp-handler-text {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.sp-handler-text {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+.sp-handler-class {
+  color: var(--syn-type);
+}
+.sp-handler-dot {
+  color: var(--fg-faint);
+}
+.sp-handler-method {
+  color: var(--syn-function);
+}
+.sp-badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  line-height: 16px;
+  color: var(--fg-muted);
+  background: color-mix(in srgb, var(--fg-muted) 12%, transparent);
+  white-space: nowrap;
+}
+.sp-badge.fw-spring {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 13%, transparent);
+}
+.sp-badge.fw-jaxrs {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 13%, transparent);
+}
+.sp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--fg-muted);
+}
+.sp-spin {
+  animation: sp-spin 0.9s linear infinite;
+}
+@keyframes sp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Spring tool window ---------- */
+.sp-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sp-tab {
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--fs-ui);
+}
+.sp-tab:hover {
+  color: var(--fg-strong);
+}
+.sp-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.sp-count {
+  margin-left: 4px;
+  font-size: var(--fs-small);
+  color: var(--fg-faint);
+}
+.sp-tree {
+  outline: none;
+  padding: 2px 0;
+}
+.sp-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  font-size: var(--fs-ui);
+}
+.sp-tree-row:hover {
+  background: var(--bg-hover);
+}
+.sp-group {
+  color: var(--fg-strong);
+  font-weight: 500;
+}
+.sp-bean,
+.sp-entity {
+  padding-left: 24px;
+}
+.sp-tree > .sp-entity {
+  padding-left: 8px;
+}
+.sp-field {
+  padding-left: 46px;
+}
+.sp-bean.runtime .sp-bean-name {
+  color: var(--fg-muted);
+}
+.sp-bean-icon,
+.sp-entity-icon,
+.sp-file-icon {
+  flex-shrink: 0;
+  color: var(--success);
+}
+.sp-entity-icon {
+  color: var(--info);
+}
+.sp-file-icon {
+  color: var(--fg-muted);
+}
+.sp-bean-icon.kind-configuration,
+.sp-bean-icon.kind-application {
+  color: var(--warning);
+}
+.sp-bean-icon.kind-cdi,
+.sp-bean-icon.kind-producer,
+.sp-bean-icon.kind-resource,
+.sp-bean-icon.kind-ejb {
+  color: var(--info);
+}
+.sp-bean-icon.kind-runtime {
+  color: var(--fg-faint);
+}
+.sp-bean-name {
+  color: var(--fg-strong);
+}
+.sp-bean-type,
+.sp-field-type {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--syn-type);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-field-name {
+  color: var(--syn-variable);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.sp-field-dot {
+  width: 11px;
+  flex-shrink: 0;
+}
+.sp-key {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+.sp-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.sp-dir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-spacer {
+  flex: 1;
+}
+.sp-usages {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.sp-config {
+  padding: 4px 0 12px;
+  outline: none;
+}
+.sp-config section {
+  padding: 6px 0;
+}
+.sp-config h4 {
+  margin: 0 0 2px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.sp-config .muted,
+.sp-hint-block {
+  padding: 2px 8px;
+  font-size: var(--fs-small);
+}
+.sp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 8px;
+}
+.sp-problem {
+  padding: 2px 8px;
+  font-size: var(--fs-small);
+  color: var(--warning);
+}
+.sp-ns {
+  min-width: 52px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+}
+.sp-ns.ns-jakarta {
+  color: var(--info);
+}
+.sp-ns.ns-spring {
+  color: var(--success);
+}
+
+/* ---------- Gutter ---------- */
+.cm-line-marker.marker-spring-bean,
+.cm-line-marker.marker-spring-injection {
+  color: var(--success);
+}
+.cm-line-marker.marker-spring-endpoint {
+  color: var(--info);
+}
+.cm-line-marker.marker-spring-entity,
+.cm-line-marker.marker-spring-repository {
+  color: var(--graph-4);
+}
+.cm-line-marker.marker-spring-configProperties {
+  color: var(--warning);
+}

@@ -331,9 +331,12 @@ pub struct Problem {
     pub message: String,
     /// `unknownProperty`, `deprecatedProperty` or `invalidValue`.
     pub code: &'static str,
-    /// The replacement of a deprecated key (the quick fix).
+    /// The replacement of a deprecated key.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub replacement: Option<String>,
+    /// The quick fix: what replaces `from..to` (in YAML the key relative to its parents).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fix: Option<String>,
 }
 
 fn is_placeholder(v: &str) -> bool {
@@ -386,6 +389,15 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                         },
                         message,
                         code: "deprecatedProperty",
+                        fix: dep.replacement.as_ref().map(|r| {
+                            // The key text may be the last segments of the full key (YAML).
+                            let written = &text[e.key_from..e.key_to];
+                            let parent = &key[..key.len().saturating_sub(written.len())];
+                            match r.strip_prefix(parent) {
+                                Some(rest) if !parent.is_empty() => rest.to_string(),
+                                _ => r.clone(),
+                            }
+                        }),
                         replacement: dep.replacement,
                     });
                 }
@@ -400,6 +412,7 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                         message: format!("Cannot convert '{value}' to boolean"),
                         code: "invalidValue",
                         replacement: None,
+                        fix: None,
                     });
                 } else if let Some(consts) =
                     p.type_name.as_deref().and_then(|t| meta.enum_values(t))
@@ -420,6 +433,7 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                             ),
                             code: "invalidValue",
                             replacement: None,
+                            fix: None,
                         });
                     }
                 }
@@ -432,6 +446,7 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                 message: format!("Cannot resolve configuration property '{key}'"),
                 code: "unknownProperty",
                 replacement: None,
+                fix: None,
             }),
         }
     }
@@ -609,6 +624,19 @@ mod tests {
         assert_eq!(
             problems[3].replacement.as_deref(),
             Some("server.max-http-request-header-size")
+        );
+        assert_eq!(
+            problems[3].fix.as_deref(),
+            Some("server.max-http-request-header-size")
+        );
+        let nested = inspect(
+            "application.yml",
+            "server:\n  max-http-header-size: 1KB\n",
+            &ctx,
+        );
+        assert_eq!(
+            nested[0].fix.as_deref(),
+            Some("max-http-request-header-size")
         );
         // Without metadata nothing is reported.
         let empty = Metadata::default();
