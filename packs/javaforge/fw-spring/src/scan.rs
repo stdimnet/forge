@@ -246,6 +246,12 @@ pub struct Param {
     /// Kotlin `val` / `var` constructor parameter (also a property).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub property: bool,
+    /// The doc comment before the parameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub doc: Option<String>,
+    /// A literal default value (Kotlin `= 10`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -274,6 +280,12 @@ pub struct Field {
     pub modifiers: Vec<String>,
     /// Has an initializer (`= …`, Kotlin `by …`).
     pub initialized: bool,
+    /// The doc comment before the declaration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub doc: Option<String>,
+    /// A literal initializer (`10`, `"EUR"`, `true`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
 }
 
 impl Field {
@@ -349,8 +361,8 @@ impl SourceFile {
 enum Tok {
     Ident(String),
     Str(String),
-    /// Numbers and character literals.
-    Lit,
+    /// Numbers and character literals, as written.
+    Lit(String),
     Punct(char),
 }
 
@@ -359,6 +371,8 @@ struct Token {
     tok: Tok,
     line: u32,
     col: u32,
+    /// The `/** … */` comment right before this token (its text without the stars).
+    doc: Option<String>,
 }
 
 impl Token {
@@ -374,11 +388,26 @@ impl Token {
     }
 }
 
+/// The text of a doc comment: leading `*` and blank lines removed, `@param` tags dropped.
+fn doc_text(body: &[char]) -> String {
+    let text: String = body.iter().collect();
+    let mut lines = Vec::new();
+    for line in text.lines() {
+        let l = line.trim().trim_start_matches('*').trim();
+        if l.starts_with('@') {
+            break;
+        }
+        lines.push(l);
+    }
+    lines.join(" ").split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 fn lex(text: &str) -> Vec<Token> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
     let (mut i, mut line, mut line_start) = (0usize, 0u32, 0usize);
     let n = chars.len();
+    let mut doc: Option<String> = None;
     // Advance over `chars[i]`, counting lines.
     macro_rules! bump {
         () => {{
@@ -403,9 +432,14 @@ fn lex(text: &str) -> Vec<Token> {
             continue;
         }
         if c == '/' && chars.get(i + 1) == Some(&'*') {
+            let is_doc = chars.get(i + 2) == Some(&'*') && chars.get(i + 3) != Some(&'/');
             i += 2;
+            let start = i;
             while i < n && !(chars[i] == '*' && chars.get(i + 1) == Some(&'/')) {
                 bump!();
+            }
+            if is_doc {
+                doc = Some(doc_text(&chars[start + 1..i.min(n)]));
             }
             i = (i + 2).min(n);
             continue;
@@ -470,10 +504,12 @@ fn lex(text: &str) -> Vec<Token> {
                 tok: Tok::Str(s),
                 line: start_line,
                 col: start_col,
+                doc: doc.take(),
             });
             continue;
         }
         if c == '\'' {
+            let lit_start = i;
             i += 1;
             while i < n && chars[i] != '\'' && chars[i] != '\n' {
                 if chars[i] == '\\' {
@@ -483,9 +519,10 @@ fn lex(text: &str) -> Vec<Token> {
             }
             i = (i + 1).min(n);
             out.push(Token {
-                tok: Tok::Lit,
+                tok: Tok::Lit(chars[lit_start..i].iter().collect()),
                 line,
                 col,
+                doc: doc.take(),
             });
             continue;
         }
@@ -501,10 +538,12 @@ fn lex(text: &str) -> Vec<Token> {
                 tok: Tok::Ident(s),
                 line,
                 col,
+                doc: doc.take(),
             });
             continue;
         }
         if c.is_ascii_digit() {
+            let lit_start = i;
             while i < n
                 && (chars[i].is_alphanumeric()
                     || chars[i] == '_'
@@ -513,9 +552,10 @@ fn lex(text: &str) -> Vec<Token> {
                 i += 1;
             }
             out.push(Token {
-                tok: Tok::Lit,
+                tok: Tok::Lit(chars[lit_start..i].iter().collect()),
                 line,
                 col,
+                doc: doc.take(),
             });
             continue;
         }
@@ -529,6 +569,7 @@ fn lex(text: &str) -> Vec<Token> {
                 tok: Tok::Ident(s),
                 line,
                 col,
+                doc: doc.take(),
             });
             continue;
         }
@@ -536,6 +577,7 @@ fn lex(text: &str) -> Vec<Token> {
             tok: Tok::Punct(c),
             line,
             col,
+            doc: if c == '@' { doc.take() } else { None },
         });
         i += 1;
     }
@@ -595,6 +637,7 @@ struct Parser<'a> {
 struct Header {
     annotations: Vec<Annotation>,
     modifiers: Vec<String>,
+    doc: Option<String>,
 }
 
 impl<'a> Parser<'a> {
@@ -697,7 +740,10 @@ impl<'a> Parser<'a> {
 
     /// Annotations and modifiers before a declaration.
     fn header(&mut self) -> Header {
-        let mut h = Header::default();
+        let mut h = Header {
+            doc: self.peek(0).and_then(|t| t.doc.clone()),
+            ..Header::default()
+        };
         loop {
             if self.punct_at(0, '@') {
                 match self.annotation() {
@@ -997,7 +1043,9 @@ impl<'a> Parser<'a> {
                         column: p.column,
                         annotations: p.annotations.clone(),
                         modifiers: Vec::new(),
-                        initialized: false,
+                        initialized: p.default.is_some(),
+                        doc: p.doc.clone(),
+                        default: p.default.clone(),
                     });
                 }
             }
@@ -1180,6 +1228,12 @@ impl<'a> Parser<'a> {
                     } else {
                         String::new()
                     };
+                    let default = if p.punct_at(0, '=') {
+                        p.i += 1;
+                        p.single_literal()
+                    } else {
+                        None
+                    };
                     Param {
                         name: name_tok.ident().unwrap_or_default().to_string(),
                         type_name,
@@ -1187,6 +1241,8 @@ impl<'a> Parser<'a> {
                         line: name_tok.line,
                         column: name_tok.col,
                         property,
+                        doc: header.doc,
+                        default,
                     }
                 }
                 Lang::Java => {
@@ -1202,6 +1258,8 @@ impl<'a> Parser<'a> {
                         line: name_tok.line,
                         column: name_tok.col,
                         property: false,
+                        doc: header.doc,
+                        default: None,
                     }
                 }
             };
@@ -1272,6 +1330,7 @@ impl<'a> Parser<'a> {
         while let Some((fname, line, column)) = current.take() {
             let mut initialized = false;
             let mut literal: Option<String> = None;
+            let mut default = None;
             if self.punct_at(0, '=') {
                 initialized = true;
                 self.i += 1;
@@ -1281,6 +1340,7 @@ impl<'a> Parser<'a> {
                 ) {
                     literal = Some(s.clone());
                 }
+                default = self.single_literal();
                 self.skip_initializer();
             }
             if let Some(s) = literal {
@@ -1296,6 +1356,8 @@ impl<'a> Parser<'a> {
                 annotations: header.annotations.clone(),
                 modifiers: header.modifiers.clone(),
                 initialized,
+                doc: header.doc.clone(),
+                default,
             });
             if self.punct_at(0, ',') {
                 self.i += 1;
@@ -1457,9 +1519,11 @@ impl<'a> Parser<'a> {
         }
         let mut initialized = false;
         let mut literal = None;
+        let mut default = None;
         if self.punct_at(0, '=') || self.ident_at(0) == Some("by") {
             initialized = true;
             self.i += 1;
+            default = self.single_literal();
             if let Some(Tok::Str(s)) = self.peek(0).map(|t| &t.tok) {
                 let next_line = self.peek(1).map(|t| t.line);
                 if next_line != Some(self.toks[self.i].line) || self.punct_at(1, ';') {
@@ -1483,8 +1547,34 @@ impl<'a> Parser<'a> {
                 annotations: header.annotations,
                 modifiers: header.modifiers,
                 initialized,
+                doc: header.doc,
+                default,
             });
         }
+    }
+
+    /// A literal that is the whole initializer (`10`, `"EUR"`, `true`, `-1`).
+    fn single_literal(&self) -> Option<String> {
+        let (neg, t) = match self.peek(0) {
+            Some(t) if t.is('-') => (true, self.peek(1)?),
+            Some(t) => (false, t),
+            None => return None,
+        };
+        let next = self.peek(if neg { 2 } else { 1 });
+        let ends = match next {
+            None => true,
+            Some(n) => matches!(n.tok, Tok::Punct(';' | ',' | ')' | '}')) || n.line > t.line,
+        };
+        if !ends {
+            return None;
+        }
+        let text = match &t.tok {
+            Tok::Str(s) if !neg => s.clone(),
+            Tok::Lit(l) => l.trim_end_matches(['L', 'l', 'f', 'F', 'd', 'D']).replace('_', ""),
+            Tok::Ident(i) if !neg && matches!(i.as_str(), "true" | "false") => i.clone(),
+            _ => return None,
+        };
+        Some(if neg { format!("-{text}") } else { text })
     }
 }
 
@@ -1634,11 +1724,11 @@ fn render(toks: &[Token]) -> String {
                 out.push('"');
                 prev_word = true;
             }
-            Tok::Lit => {
+            Tok::Lit(l) => {
                 if prev_word {
                     out.push(' ');
                 }
-                out.push('0');
+                out.push_str(l);
                 prev_word = true;
             }
             Tok::Punct(c) => {
@@ -1806,6 +1896,23 @@ enum class Status { NEW, PAID }
         let status = f.classes.iter().find(|c| c.name == "Status").unwrap();
         assert_eq!((status.kind, status.constants.clone()), (ClassKind::Enum, vec!["NEW".to_string(), "PAID".to_string()]));
         assert!(f.classes.iter().any(|c| c.name == "Companion"));
+    }
+
+    #[test]
+    fn doc_comments_and_literal_defaults() {
+        let f = parse(
+            "P.java",
+            "class P {\n  /**\n   * Maximum number of orders.\n   * @since 2\n   */\n  private int limit = 10_000;\n  /** Currency. */ String currency = \"EUR\";\n  Duration d = Duration.ofSeconds(1);\n}",
+        );
+        let fields = &f.classes[0].fields;
+        assert_eq!(fields[0].doc.as_deref(), Some("Maximum number of orders."));
+        assert_eq!(fields[0].default.as_deref(), Some("10000"));
+        assert_eq!((fields[1].doc.as_deref(), fields[1].default.as_deref()), (Some("Currency."), Some("EUR")));
+        assert_eq!(fields[2].default, None);
+        let k = parse("P.kt", "class P(\n  /** Retries. */\n  val retries: Int = 3,\n  val on: Boolean = true\n)");
+        let ps = &k.classes[0].fields;
+        assert_eq!((ps[0].doc.as_deref(), ps[0].default.as_deref()), (Some("Retries."), Some("3")));
+        assert_eq!(ps[1].default.as_deref(), Some("true"));
     }
 
     #[test]
