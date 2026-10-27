@@ -42,6 +42,7 @@ import "./phpMock";
 import "./phpMetaMock";
 import "./phpInterpretersMock";
 import "./composerMock";
+import "./vulnerabilitiesMock";
 import "./qualityToolsMock";
 import "./webQualityToolsMock";
 import "./codeintelMock";

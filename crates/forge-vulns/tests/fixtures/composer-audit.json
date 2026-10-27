@@ -1,0 +1,36 @@
+{
+    "advisories": {
+        "guzzlehttp/psr7": [
+            {
+                "advisoryId": "PKSA-8qx3-n5y5-vvnd",
+                "packageName": "guzzlehttp/psr7",
+                "affectedVersions": ">=2,<2.4.5|<1.9.1",
+                "title": "Improper header validation",
+                "cve": "CVE-2023-29197",
+                "link": "https://github.com/guzzle/psr7/security/advisories/GHSA-wxmh-65f7-jcvw",
+                "reportedAt": "2023-04-17T16:00:00+00:00",
+                "sources": [
+                    {"name": "GitHub", "remoteId": "GHSA-wxmh-65f7-jcvw"},
+                    {"name": "FriendsOfPHP/security-advisories", "remoteId": "guzzlehttp/psr7/CVE-2023-29197.yaml"}
+                ],
+                "severity": "medium"
+            }
+        ],
+        "laravel/framework": [
+            {
+                "advisoryId": "PKSA-yhcn-xrg3-68b1",
+                "packageName": "laravel/framework",
+                "affectedVersions": ">=12.0.0,<12.1.1",
+                "title": "File validation bypass with uppercase extensions",
+                "cve": "CVE-2025-27515",
+                "link": "https://github.com/laravel/framework/security/advisories/GHSA-78fx-h6xr-vch4",
+                "reportedAt": "2025-03-05T18:00:00+00:00",
+                "sources": [{"name": "GitHub", "remoteId": "GHSA-78fx-h6xr-vch4"}],
+                "severity": "medium"
+            }
+        ]
+    },
+    "abandoned": {
+        "swiftmailer/swiftmailer": "symfony/mailer"
+    }
+}

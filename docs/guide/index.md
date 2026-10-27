@@ -52,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Vulnerable dependencies**: the Package Checker runs each ecosystem's audit tool
+  (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP
+  dependency-check reports) on project open, when a lock file changes and with Code | Analyze
+  Code | Check for Vulnerable Dependencies; vulnerable packages are marked in composer.json,
+  package.json, requirements files, pyproject.toml, Cargo.toml and go.mod with the quick fix
+  "Upgrade '<package>' to <version>", and listed in the Vulnerable Dependencies tab of the
+  Problems tool window ([Vulnerable dependencies](user/vulnerable-dependencies.md)).
 - **Inspections**: inspection profiles (Default, Project Default, copies; PHPStorm XML import
   and export) with severities, scope-specific settings and options for every problem Forge
   shows, Inspect Code with the Inspection Results tool window, Run Inspection by Name, Code

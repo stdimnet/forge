@@ -65,6 +65,7 @@ forge-colors.workspace = true
 forge-colorscheme.workspace = true
 forge-spell.workspace = true
 forge-jsonschema.workspace = true
+forge-vulns.workspace = true
 wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true
 forge-find.workspace = true

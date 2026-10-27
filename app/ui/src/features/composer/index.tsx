@@ -1,20 +1,20 @@
 /**
  * Composer (plugin `forge.composer`), like PHPStorm: Tools | Composer (Add Dependency…,
  * Install, Update, Validate, Show Outdated, Audit), the composer.json editor (toolbar,
- * outdated packages, completion, hover), the Manage Composer Dependencies dialog, the
- * "Vulnerable Dependencies" tab of the Problems tool window and Settings | PHP | Composer.
+ * outdated packages, completion, hover), the Manage Composer Dependencies dialog and
+ * Settings | PHP | Composer. Audit runs `composer audit` through the vulnerable dependency
+ * check, which shows it in the Vulnerable Dependencies tab of the Problems tool window.
  * Logic lives in Rust (`packs/phpforge/composer`, `commands/composer.rs`).
  */
 import { render } from "solid-js/web";
 import { Package } from "lucide-solid";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerKeymapActions, balloonsFor } from "@/keymap";
-import { registerProblemsTab } from "@/features/lsp/problemsTabs";
 import { registerRunConfigurationType } from "@/features/run/types";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerCommand } from "@/state/commands";
 import { isDialogWindow } from "@/shell/window/mode";
-import { AUDIT_TAB, AuditView, auditCount, runAudit } from "./audit";
+import { runCheck } from "@/features/vulnerabilities/store";
 import { ComposerSettingsPage } from "./ComposerSettingsPage";
 import { DependenciesDialogHost, openDependenciesDialog } from "./DependenciesDialog";
 import { composerEditor } from "./editor";
@@ -43,7 +43,8 @@ const ACTIONS: { id: string; title: string; run: () => unknown }[] = [
   { id: "Composer.Update", title: "Update", run: () => runComposer("update") },
   { id: "Composer.Validate", title: "Validate", run: () => runComposer("validate") },
   { id: "Composer.ShowOutdated", title: "Show Outdated", run: () => runComposer("outdated --direct") },
-  { id: "Composer.Audit", title: "Audit", run: () => runAudit() },
+  // `composer audit` runs with the vulnerable dependency check (features/vulnerabilities).
+  { id: "Composer.Audit", title: "Audit", run: () => runCheck({ force: true, tools: ["composer"], reveal: true }) },
 ];
 
 registerKeymapActions(ACTIONS.map((a) => ({ id: a.id, title: `Composer: ${a.title}`, group: "Composer" })));
@@ -64,15 +65,6 @@ for (const a of ACTIONS) {
 }
 
 registerEditorExtension(({ path }) => composerEditor(path));
-
-registerProblemsTab({
-  id: AUDIT_TAB,
-  title: "Vulnerable Dependencies",
-  order: 10,
-  count: auditCount,
-  visible: composerActive,
-  component: AuditView,
-});
 
 registerSettingsPage({
   id: "lang.php.composer",

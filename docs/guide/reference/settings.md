@@ -1086,6 +1086,17 @@ Page id `lang.sqlDialects` (its own page, see [SQL editor](../user/sql-editor.md
 | `sql.dialect.project` | enum: empty (global), `generic`, `mysql`, `postgres`, `sqlite`, `sqlserver`, `oracle`, `clickhouse` | empty | user, project | — | Project SQL dialect |
 | `sql.dialect.mappings` | objects | `[]` | user, project | — | SQL dialect and data source mappings — Files and folders with their SQL dialect and the data source their names resolve against: `path`, `dialect`, `dataSource`. The most specific path wins. |
 
+### Tools | Package Checker
+
+Page id `tools.vulnerabilities`. See [Vulnerable dependencies](../user/vulnerable-dependencies.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vulnerabilities.enabled` | bool | `true` | user |  | Check dependencies for known vulnerabilities — Runs the project's audit tools, which send the names and versions of the installed packages to their advisory databases. Off: Forge never runs an audit and shows no vulnerabilities. |
+| `vulnerabilities.checkOnOpen` | bool | `true` | user |  | Check when a project is opened and when a lock file changes — Results are cached per lock file in Forge's cache folder; Check for Vulnerable Dependencies always runs the tools. |
+| `vulnerabilities.cacheHours` | int | `24` | user |  | Re-check unchanged projects after (hours) — How long the result of an unchanged manifest and lock file is reused on project open. |
+| `vulnerabilities.dependencyCheckReport` | string | (empty) | user, project |  | OWASP dependency-check report (Maven / Gradle) — The JSON report your build writes with dependency-check; Forge reads it and does not run dependency-check. Empty: Maven and Gradle projects are not checked. |
+
 ### Tools | AI Agents
 
 Page id `tools.ai-agents`.
