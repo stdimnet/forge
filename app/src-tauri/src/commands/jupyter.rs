@@ -310,8 +310,9 @@ async fn start(
     let connected = tokio::select! {
         r = Session::connect_zmq(&info, root, sink, START_TIMEOUT) => r.map_err(|e| e.to_string()),
         code = async {
-            match exit_rx.wait_for(Option::is_some).await {
-                Ok(code) => (*code).flatten(),
+            let exit = exit_rx.wait_for(Option::is_some).await.map(|code| *code);
+            match exit {
+                Ok(code) => code.flatten(),
                 // The process ended without reporting an exit: let the connection time out.
                 Err(_) => std::future::pending().await,
             }

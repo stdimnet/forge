@@ -441,8 +441,8 @@ pub async fn python_debug_plan(
     configuration: RunConfiguration,
     state: State<'_, AppState>,
 ) -> Result<DebugPlan> {
-    let port = forge_ports::free_port()
-        .map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
+    let port =
+        forge_ports::free_port().map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
     let backend = state.backend()?;
     let root = root_string(&backend.info().root);
     let just_my_code = setting_bool(&state, "python.debugger.justMyCode", true);
