@@ -1,0 +1,34 @@
+[info] welcome to sbt 1.10.5 (Eclipse Adoptium Java 21.0.5)
+[info] loading settings for project shop-build from plugins.sbt ...
+[info] loading project definition from /home/me/shop/project
+[info] loading settings for project root from build.sbt ...
+[info] set current project to shop (in build file:/home/me/shop/)
+[info] In file:/home/me/shop/
+[info] 	   api
+[info] 	   core
+[info] 	 * root
+[info] api / scalaVersion
+[info] 	2.13.15
+[info] core / scalaVersion
+[info] 	3.3.4
+[info] scalaVersion
+[info] 	3.3.4
+[info] api / baseDirectory
+[info] 	/home/me/shop/modules/api
+[info] core / baseDirectory
+[info] 	/home/me/shop/core
+[info] baseDirectory
+[info] 	/home/me/shop
+[info] api / libraryDependencies
+[info] 	* org.scala-lang:scala-library:2.13.15
+[info] 	* org.scalameta:munit:1.0.2:test
+[info] 	* com.softwaremill.sttp.tapir:tapir-core:1.11.7
+[info] 	* ch.qos.logback:logback-classic:1.5.12:runtime
+[info] core / libraryDependencies
+[info] 	* org.scala-lang:scala3-library:3.3.4
+[info] 	* org.scalameta:munit:1.0.2:test
+[info] 	* org.typelevel:cats-core:2.12.0
+[info] 	* org.scalatest:scalatest:3.2.19:test
+[info] libraryDependencies
+[info] 	* org.scala-lang:scala3-library:3.3.4
+[success] Total time: 0 s, completed Oct 27, 2026, 10:14:03 AM

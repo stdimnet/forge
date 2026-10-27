@@ -1880,9 +1880,12 @@ dependencies = [
  "goforge-lang-go",
  "goforge-pprof",
  "goforge-sdk",
+ "javaforge-android",
  "javaforge-build",
  "javaforge-jdk",
+ "javaforge-lang-groovy",
  "javaforge-lang-java",
+ "javaforge-lang-scala",
  "kotlinforge-lang-kotlin",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
@@ -2699,8 +2702,11 @@ dependencies = [
  "forge-window",
  "goforge-lang-go",
  "goforge-pprof",
+ "javaforge-android",
  "javaforge-build",
+ "javaforge-lang-groovy",
  "javaforge-lang-java",
+ "javaforge-lang-scala",
  "kotlinforge-lang-kotlin",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
@@ -3775,6 +3781,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "javaforge-android"
+version = "0.1.0"
+dependencies = [
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "javaforge-build"
 version = "0.1.0"
 dependencies = [
@@ -3806,6 +3821,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "javaforge-lang-groovy"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "javaforge-lang-java",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "javaforge-lang-java"
 version = "0.1.0"
 dependencies = [
@@ -3813,6 +3840,18 @@ dependencies = [
  "forge-runtools",
  "forge-testing",
  "javaforge-build",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "javaforge-lang-scala"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "regex-lite",
  "serde",
  "serde_json",
 ]

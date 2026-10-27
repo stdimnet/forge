@@ -29,6 +29,9 @@ itself comes from Eclipse JDT LS through `forge-lsp`.
   JaCoCo coverage with its own rules (main sources). With the option `runner = junit` ("Run
   tests using: IntelliJ IDEA") JUnit runs on the JUnit Platform Console Launcher instead, on
   the class path the backend resolved (`resolvedClasspath`, `launcherJar`, `reportsDir`).
+  `build_command` also serves KotlinForge (`language = kotlin`) and Spock
+  (`language = groovy`: `src/<set>/groovy/` roots, `JUnitFlavor::Kotlin` names with spaces,
+  locations renamed to `.groovy`).
 - `launch` builds Application command lines (`java` with VM options, `-p` / `-cp`, `-m`, the
   JDWP agent of debug runs), the debug arguments of Gradle (`--debug-jvm`) and Surefire, and
   `junit_console_command` (`java -jar junit-platform-console-standalone.jar execute

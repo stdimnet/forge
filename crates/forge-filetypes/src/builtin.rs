@@ -126,7 +126,7 @@ const ROWS: &[Row] = &[
     ("c", "C", &["c", "h"], &[]),
     ("csharp", "C#", &["cs", "csx"], &[]),
     ("kotlin", "Kotlin", &["kt", "kts"], &[]),
-    ("scala", "Scala", &["scala", "sc"], &[]),
+    ("scala", "Scala", &["scala", "sc", "sbt"], &[]),
     ("dart", "Dart", &["dart"], &[]),
     ("objc", "Objective-C", &["m", "mm"], &[]),
     ("swift", "Swift", &["swift"], &[]),
@@ -142,7 +142,7 @@ const ROWS: &[Row] = &[
     (
         "groovy",
         "Groovy",
-        &["groovy", "gradle", "gvy"],
+        &["groovy", "gradle", "gvy", "gy"],
         &["jenkinsfile"],
     ),
     ("haskell", "Haskell", &["hs", "lhs"], &[]),

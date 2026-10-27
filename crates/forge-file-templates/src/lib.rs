@@ -625,13 +625,14 @@ pub fn code_overrides(custom: &[CustomTemplate]) -> BTreeMap<String, String> {
         .collect()
 }
 
-/// The JVM package of a folder: the path below its source root (`app/src/main/kotlin/com/acme`
+/// The JVM package of a folder: the path below its source root (`app/src/main/kotlin/com/acme`,
+/// `src/test/groovy/com/acme`, `src/main/scala/com/acme`
 /// → `com.acme`), else the folder path with dots.
 pub fn package_of_dir(dir: &str) -> String {
     let d = dir.trim_matches('/');
     let parts: Vec<&str> = d.split('/').collect();
     for i in 0..parts.len().saturating_sub(2) {
-        if parts[i] == "src" && matches!(parts[i + 2], "kotlin" | "java") {
+        if parts[i] == "src" && matches!(parts[i + 2], "kotlin" | "java" | "groovy" | "scala") {
             return parts[i + 3..].join(".");
         }
     }

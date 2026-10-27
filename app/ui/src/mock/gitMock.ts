@@ -29,6 +29,8 @@ import { goDemoFiles, isGoDemo } from "./demoGoProject";
 import { isRustDemo, rustDemoFiles } from "./demoRustProject";
 import { isJavaDemo, JAVA_PKG, javaDemoFiles } from "./demoJavaProject";
 import { isKotlinDemo, KT_PKG, kotlinDemoFiles } from "./demoKotlinProject";
+import { isScalaDemo, scalaDemoFiles } from "./demoScalaProject";
+import { androidDemoFiles, isAndroidDemo } from "./demoAndroidProject";
 import { demoStatus } from "./demoStatus";
 import { CONFLICT_BRANCH, demoConflicts, type DemoConflict } from "./demoConflicts";
 import { callWasm, forgeWasm } from "@/wasm";
@@ -282,9 +284,21 @@ if (isKotlinDemo()) {
   head[`${KT_PKG}/OrderService.kt`] = kotlinDemoFiles[`${KT_PKG}/OrderService.kt`].replace("        val discount = if (order.items.size > 3) 10 else 0\n        return cart.total(discount)", "        return cart.total()");
 }
 
+// The Scala and Android demos (`?project=scala`, `?project=android`) are committed except
+// for the change in progress (the MUnit suite, the title check).
+if (isScalaDemo() || isAndroidDemo()) {
+  const files = isScalaDemo() ? scalaDemoFiles : androidDemoFiles;
+  for (const snapshot of [head, index]) {
+    for (const k of Object.keys(snapshot)) delete snapshot[k];
+    Object.assign(snapshot, files);
+  }
+  if (isScalaDemo()) delete head["core/src/test/scala/com/acme/shop/PriceSuite.scala"];
+  else head["app/src/main/java/com/acme/notes/NoteRepository.kt"] = androidDemoFiles["app/src/main/java/com/acme/notes/NoteRepository.kt"].replace(/\n        \/\/ A note needs a title[^\n]*\n[^\n]*\n/, "\n");
+}
+
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock). The web demos and the Lua demo game have no PHP tests.
-if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isJavaDemo() && !isKotlinDemo()) void Promise.resolve().then(() =>
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo()) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
@@ -822,7 +836,7 @@ async function startConflictMerge(rev: string): Promise<void> {
 }
 
 // `?conflicts` opens the demo in the middle of that merge (screenshots).
-if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isJavaDemo() && !isKotlinDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)
