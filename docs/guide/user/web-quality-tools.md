@@ -76,7 +76,7 @@ Biome's problems carry its rule category (`lint/suspicious/noDoubleEquals`):
 
 ![Biome problems](../../screenshots/web-quality-tools-biome.png)
 
-In Settings | Editor | Inspections the problems belong to the **ESLint**, **Stylelint** and
+In Settings | Editor | [Inspections](inspections.md) the problems belong to the **ESLint**, **Stylelint** and
 **Biome** inspections (JavaScript and TypeScript / CSS › Code quality tools): they keep the
 tool's level until the profile sets a severity, and `Alt+Enter` › *Inspection '…' options*
 suppresses or configures them.
