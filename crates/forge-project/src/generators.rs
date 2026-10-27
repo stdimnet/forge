@@ -408,6 +408,50 @@ pub fn generators() -> Vec<Generator> {
         ),
         generator(
             Def {
+                id: "ruby-gem",
+                name: "Ruby Gem",
+                group: "Ruby",
+                pack: "rubyforge",
+                icon: "ruby",
+                default_name: "my_gem",
+                description:
+                    "A gem created with Bundler (bundle gem): gemspec, Rakefile, tests and RuboCop.",
+                tools: &["bundle"],
+                fallback: Some("ruby-script"),
+            },
+            vec![
+                enum_opt(
+                    "testFramework",
+                    "Test framework",
+                    "minitest",
+                    vec![
+                        choice("minitest", "Minitest"),
+                        choice("rspec", "RSpec"),
+                        choice("test-unit", "test-unit"),
+                    ],
+                ),
+                bool_opt("rubocop", "RuboCop", true, None),
+                bool_opt("exe", "Executable (exe/)", false, None),
+                git(),
+            ],
+        ),
+        generator(
+            Def {
+                id: "ruby-script",
+                name: "Ruby Project",
+                group: "Ruby",
+                pack: "rubyforge",
+                icon: "ruby",
+                default_name: "ruby-project",
+                description:
+                    "A Ruby project with a Gemfile, a Rakefile, Minitest tests and RuboCop.",
+                tools: &[],
+                fallback: None,
+            },
+            vec![sample(), git()],
+        ),
+        generator(
+            Def {
                 id: "empty",
                 name: "Empty Project",
                 group: "Other",
@@ -718,6 +762,36 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
             }
             steps.push(run("npx", &args, loc));
         }
+        "ruby-gem" => {
+            need("bundle");
+            let test = format!("--test={}", req.string(&gen, "testFramework"));
+            let linter = if req.bool(&gen, "rubocop") {
+                "--linter=rubocop"
+            } else {
+                "--linter=none"
+            };
+            let exe = if req.bool(&gen, "exe") {
+                "--exe"
+            } else {
+                "--no-exe"
+            };
+            steps.push(run(
+                "bundle",
+                &[
+                    "gem",
+                    n,
+                    &test,
+                    linter,
+                    exe,
+                    "--no-coc",
+                    "--no-mit",
+                    "--no-changelog",
+                    "--no-ci",
+                    "--no-git",
+                ],
+                loc,
+            ));
+        }
         template => {
             let sample = gen.options.iter().any(|o| o.id == "sample") && req.bool(&gen, "sample")
                 || !gen.options.iter().any(|o| o.id == "sample");
@@ -800,7 +874,7 @@ mod tests {
         let groups: Vec<_> = gens.iter().map(|g| g.group.as_str()).collect();
         let mut dedup = groups.clone();
         dedup.dedup();
-        assert_eq!(dedup, vec!["PHP", "Web", "Lua", "Other"]);
+        assert_eq!(dedup, vec!["PHP", "Web", "Lua", "Ruby", "Other"]);
         for g in gens.iter().filter(|g| g.tools.is_empty()) {
             assert!(
                 crate::templates::template(&g.id).is_some(),
@@ -913,6 +987,30 @@ mod tests {
         assert!(matches!(&p.steps[0], Step::Template { sample: true, .. }));
         assert_eq!(p.preview, vec!["Create demo/ from the built-in template"]);
         assert!(p.files.contains(&"includes/class-demo.php".to_string()));
+    }
+
+    #[test]
+    fn ruby_generators() {
+        let p = plan(
+            &req("ruby-gem", &[("testFramework", json!("rspec"))]),
+            &all_tools,
+        )
+        .unwrap();
+        assert_eq!(
+            p.preview[0],
+            "bundle gem demo --test=rspec --linter=rubocop --no-exe --no-coc --no-mit --no-changelog --no-ci --no-git"
+        );
+        let p = plan(&req("ruby-gem", &[]), &|t| t == "git").unwrap();
+        assert_eq!(p.missing_tools, ["bundle"]);
+        assert_eq!(p.fallback.as_deref(), Some("ruby-script"));
+        let p = plan(&req("ruby-script", &[]), &all_tools).unwrap();
+        assert!(
+            p.files.contains(&"lib/demo.rb".to_string()),
+            "{:?}",
+            p.files
+        );
+        assert!(p.files.contains(&"test/greeter_test.rb".to_string()));
+        assert!(p.files.contains(&"bin/demo".to_string()));
     }
 
     #[test]

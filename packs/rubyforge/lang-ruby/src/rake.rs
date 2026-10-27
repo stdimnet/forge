@@ -54,6 +54,8 @@ pub fn parse_tasks(output: &str) -> Vec<RakeTask> {
         let Some(rest) = line.trim_end().strip_prefix("rake ") else {
             continue;
         };
+        // Tasks without a description end in `#` (`rake -AT`) or have no comment.
+        let rest = rest.strip_suffix(" #").unwrap_or(rest);
         let (head, description) = match rest.split_once(" # ") {
             Some((h, d)) => (h.trim(), d.trim()),
             None => (rest.trim(), ""),
@@ -278,6 +280,32 @@ mod tests {
         assert_eq!(tasks[3].file.as_deref(), Some("Rakefile"));
         assert_eq!(tasks[3].line, Some(6));
         assert_eq!(tasks[4].file.as_deref(), Some("lib/tasks/test.rake"));
+    }
+
+    #[test]
+    fn rake_all_tasks_of_a_gem() {
+        let text = std::fs::read_to_string(format!(
+            "{}/tests/fixtures/rake-tasks-all.txt",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let tasks = parse_tasks(&text);
+        assert_eq!(tasks.len(), 15);
+        let guard = tasks
+            .iter()
+            .find(|t| t.name == "release:guard_clean")
+            .unwrap();
+        assert_eq!(guard.description, "");
+        let push = tasks
+            .iter()
+            .find(|t| t.name == "release:source_control_push")
+            .unwrap();
+        assert_eq!(push.args, ["remote"]);
+        assert_eq!(push.namespace(), "release");
+        assert_eq!(
+            tasks.iter().find(|t| t.name == "test").unwrap().description,
+            "Run the test suite"
+        );
     }
 
     #[test]
