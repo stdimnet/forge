@@ -1,0 +1,9 @@
+[info] welcome to sbt 1.10.5 (Eclipse Adoptium Java 21.0.5)
+[info] loading settings for project shop-build from plugins.sbt ...
+[info] loading project definition from /home/me/shop/project
+[info] loading settings for project root from build.sbt ...
+[info] set current project to shop (in build file:/home/me/shop/)
+[info] In file:/home/me/shop/
+[info] 	   api
+[info] 	   core
+[info] 	 * root
