@@ -677,7 +677,7 @@ order = 43
 [[contributions.inspections]]
 id = "CppBuildProblems"
 name = "Build problems"
-group = "C/C++/External tools"
+group = "C and C++/External tools"
 language = "c"
 severity = "ERROR"
 external = true
