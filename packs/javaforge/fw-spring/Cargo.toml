@@ -1,0 +1,22 @@
+[package]
+name = "javaforge-fw-spring"
+description = "JavaForge: Spring Boot and Jakarta EE (beans and injection points, Spring MVC and JAX-RS endpoints, JPA entities, application.properties / application.yml completion and inspections from spring-configuration-metadata.json, the Spring Boot run configuration and run dashboard with actuator data; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Reading spring-configuration-metadata.json (and enum constants from class files) out of the
+# dependency jars, and finding those jars in the local Maven / Gradle caches.
+jars = ["dep:zip"]
+# The actuator client (plain HTTP/1.1 to the running app on localhost).
+net = []
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+zip = { version = "2", default-features = false, features = ["deflate"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

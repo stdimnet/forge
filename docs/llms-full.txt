@@ -23,7 +23,7 @@ Languages and large feature sets ship as **packs**:
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
-| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger; Groovy (scripts, Spock), Scala (sbt, Metals, ScalaTest/MUnit) and Android (Device Manager, Logcat, Android App runs) |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger; Groovy (scripts, Spock), Scala (sbt, Metals, ScalaTest/MUnit) and Android (Device Manager, Logcat, Android App runs); Spring Boot and Jakarta EE |
 | **KotlinForge** | Kotlin/JVM: kotlin-lsp, Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with coroutines, ktlint and detekt |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
@@ -54,6 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
+  navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
+  entities, `application.properties` / `application.yml` completion, documentation and
+  inspections from the `spring-configuration-metadata.json` of the dependency jars, and the
+  Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator
+  health, mappings and beans) ([Spring Boot and Jakarta EE](docs/guide/user/spring.md)).
 - **RustForge**: Settings | Languages & Frameworks | Rust with rustup toolchains, the active
   toolchain and its `rust-toolchain.toml`, the sysroot and the standard library sources; the
   Cargo tool window with members, targets, feature checkboxes and dependencies; Cargo and
@@ -635,7 +641,7 @@ The primary type appears
 | GoForge | Go projects |
 | RustForge | Rust projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
-| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
+| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
 | JavaForge: Scala | an sbt build (`build.sbt`, `project/build.properties`; tool `sbt`), Scala sources (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin; ScalaTest and MUnit in `build.sbt` |
 | JavaForge: Android | a Gradle module applying `com.android.application` / `com.android.library` (also catalog aliases) or a `src/main/AndroidManifest.xml`; the framework `android` with the AGP version, tool `android` |
@@ -795,6 +801,7 @@ not finished, the page says so.
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [Spring Boot and Jakarta EE](docs/guide/user/spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
 | [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
@@ -10779,6 +10786,9 @@ Switch any of the plugins off in Settings | Plugins.
 
 ![Django URL patterns in the Endpoints tool window](docs/screenshots/django-endpoints.png)
 
+The tool window is shared with [Spring Boot and Jakarta EE](docs/guide/user/spring.md): in a project with both,
+it has a **Python** and a **Spring and JAX-RS** tab.
+
 Type to filter by path, method, name or view; with several frameworks a switch filters by
 framework. Clicking a row opens the view function or class. The context menu also offers:
 
@@ -11888,6 +11898,9 @@ off; **Search API** and **Repository** point them at a mirror.
 | **JUnit**, **TestNG** | Runs all tests, a package, a class, a method or a list of tests through the build tool; see [Tests](#tests). |
 | **Remote JVM Debug** | Attaches the debugger to a JVM started with `-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005`. |
 
+Spring Boot applications have their own **Spring Boot** configuration type with profiles and
+override properties, see [Spring Boot and Jakarta EE](docs/guide/user/spring.md#spring-boot-run-configuration).
+
 A green ▶ in the gutter next to a `main` method (`public static void main(String[] args)`, and
 Java 25's instance `void main()` and compact source files) offers Run, Debug and Modify Run
 Configuration; `Ctrl+Shift+F10` runs the class at the caret.
@@ -11940,6 +11953,225 @@ into the running JVM after JDT LS rebuilt them on save.
 (`?project=java&jdtls=missing` starts without JDT LS to try the install offer;
 `?project=java&build=maven` builds it with Maven, with profiles). Syncs, Update Wrapper and
 Maven Central answer from recorded data; nothing runs or goes to the network.
+
+
+---
+
+Source: docs/guide/user/spring.md
+
+# Spring Boot and Jakarta EE
+
+The plugin **Spring Boot and Jakarta EE** (`forge.spring`, JavaForge pack) adds the Spring
+support of IntelliJ IDEA Ultimate to [JavaForge](docs/guide/user/java.md) and [KotlinForge](docs/guide/user/kotlin.md). It is
+active when the [project detection](docs/guide/getting-started/project-detection.md) finds:
+
+- **Spring Boot**: the `org.springframework.boot` Gradle plugin, the
+  `spring-boot-starter-parent` / `spring-boot-dependencies` Maven parent or BOM, or a
+  `spring-boot-starter-*` dependency. The status bar shows "Spring Boot 3".
+- **Jakarta EE**: the Jakarta EE / Java EE platform APIs (`jakarta.platform`,
+  `javaee-api`), JAX-RS, CDI or MicroProfile in the build.
+
+Everything below comes from reading the Java and Kotlin sources and the configuration files.
+Forge never starts the application to find beans or endpoints; only the
+[run dashboard](#run-dashboard) talks to an application you started.
+
+![The Endpoints tool window](docs/screenshots/spring-endpoints.png)
+
+## Beans and injection points
+
+Forge finds the beans of the project:
+
+- Spring stereotypes: `@Component`, `@Service`, `@Repository`, `@Controller`,
+  `@RestController`, `@Configuration`, `@SpringBootApplication`, `@ControllerAdvice` and your
+  own annotations that are meta-annotated with one of them;
+- `@Bean` methods (in `@Configuration` classes or any bean), with `@Bean("name")`, `@Primary`,
+  `@Qualifier`, `@Scope` and `@Profile`;
+- Spring Data repository interfaces (`extends JpaRepository<Order, Long>`, also through your
+  own base interfaces);
+- `@ConfigurationProperties` classes (named `<prefix>-<class>` like Spring does);
+- Jakarta EE / CDI: `@ApplicationScoped`, `@RequestScoped`, `@SessionScoped`, `@Dependent`,
+  `@Singleton`, `@Named`, EJB `@Stateless` / `@Stateful`, JAX-RS resources and `@Produces`
+  producer methods.
+
+Injection points are constructor parameters (the only constructor, the Kotlin primary
+constructor, or the `@Autowired` / `@Inject` one; Lombok's `@RequiredArgsConstructor` final
+fields), `@Autowired` / `@Inject` / `@Resource` fields and setters, and the parameters of `@Bean`
+methods. `Optional<T>`, `ObjectProvider<T>`, `Provider<T>`, `Instance<T>`, `List<T>`, `Set<T>` and
+`Map<String, T>` inject `T`. A bean matches when its class or one of its supertypes is the
+injected type; `@Qualifier` / `@Named` narrow the candidates, `@Primary` beans come first, and
+without a qualifier Spring's fallback to the parameter name applies.
+
+**Gutter icons** (Settings | Languages & Frameworks | Java | Spring Boot, `spring.gutterIcons`):
+
+| Icon | On | Click |
+| --- | --- | --- |
+| Leaf | a bean class or `@Bean` method | the injection points it is a candidate for |
+| Link | an injection point | the matching beans (**Autowired Candidates**) |
+| Globe | a request handler | Open in HTTP Client, Show in Endpoints |
+| Table | a JPA entity | its Spring Data repositories |
+| Database | a repository | its entity |
+| Sliders | a `@ConfigurationProperties` class | its values in the configuration files |
+| ▶ | a `@SpringBootApplication` class | Run, Debug or modify its Spring Boot configuration |
+
+With several targets the **Choose Declaration** popup lists them.
+
+![Autowired candidates of an injection point](docs/screenshots/spring-bean-gutter.png)
+
+The **Spring** tool window (right stripe) lists the beans by Spring and CDI with their kind,
+scope, profiles and how often they are injected. While an application runs with the actuator,
+its beans are marked live and the beans that only exist at runtime (auto-configuration) are
+listed too. **View | Tool Windows | Spring**, or **Tools | Spring | Show Beans**.
+
+![The Spring tool window](docs/screenshots/spring-tool-window.png)
+
+## Endpoints
+
+The **Endpoints** tool window (bottom stripe, **Tools | Spring | Show Endpoints**) lists every
+HTTP endpoint with its method, path, handler, produced media types and framework (in a project
+that also has Python web frameworks, the window has a tab per language):
+
+- **Spring MVC / WebFlux**: `@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`,
+  `@DeleteMapping` and `@PatchMapping` on `@RestController` / `@Controller` methods, under the
+  class-level `@RequestMapping` prefix. Paths may be constants (`ApiPaths.STOCK`, also
+  `API + "/stock"`) and Kotlin templates (`"$BASE/{id}"`).
+- **JAX-RS**: `@GET`, `@POST`, `@PUT`, `@DELETE`, `@PATCH`, `@HEAD` and `@OPTIONS` methods of
+  `@Path` resources (`jakarta.ws.rs` or `javax.ws.rs`), below the `@ApplicationPath`.
+
+Click a row to open the handler. The row's ✈ button, the toolbar and the context menu **Open in
+HTTP Client**: a new `.http` scratch with the request, path variables as `{{variables}}`
+declared above it, query parameters, `Accept` and, for request bodies, `Content-Type` and an
+empty JSON object. Requests go to the running application, else to `server.port` and
+`server.servlet.context-path` of the configuration files. Run them with the ▶ icon like any
+[HTTP request](docs/guide/user/scratches-and-http.md). The context menu also copies the URL or the path.
+
+While an application runs, endpoints it serves are marked with a green dot, and mappings that
+only the application knows (actuator endpoints, `/error`, library controllers) are listed as
+**Runtime**.
+
+![An endpoint opened in the HTTP Client](docs/screenshots/spring-http-client.png)
+
+## application.properties and application.yml
+
+`application.properties`, `application.yml` / `.yaml`, their profile variants
+(`application-dev.yml`) and `bootstrap.*` get:
+
+- **completion of keys** with type, default and description. YAML keys are inserted as nested
+  mappings with the file's indentation (`servlet.context-path` under `server:` becomes
+  `servlet:` / `context-path:`); keys of maps with known keys (`logging.level.root`) are offered
+  too;
+- **completion of values**: `true` / `false`, the constants of enum types (in Spring's lower
+  case form: `banner-mode: off`), the values of the metadata's hints
+  (`ddl-auto: create-drop`) and profile names for `spring.profiles.active`,
+  `spring.profiles.include` and `spring.config.activate.on-profile`;
+- **documentation** on hover and in the completion popup;
+- **inspections**: unknown keys ("Cannot resolve configuration property", only reported when
+  metadata was found; turn it off with `spring.inspections.unknownProperties`), deprecated keys
+  (with **Alt+Enter → Replace with '…'**) and values that are not a boolean or a constant of
+  the property's enum;
+- **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) from a key to the field of its
+  `@ConfigurationProperties` class, or to the class that declares it.
+
+Relaxed binding applies: `spring.jpa.showSql`, `spring.jpa.show_sql` and `spring.jpa.show-sql`
+are the same key, and keys below a `Map` property (`logging.level.com.acme`) are valid.
+
+![application.yml completion with documentation](docs/screenshots/spring-yaml-completion.png)
+
+### Where the metadata comes from
+
+The keys are those of `META-INF/spring-configuration-metadata.json` and
+`additional-spring-configuration-metadata.json`:
+
+1. in the dependency jars of the last **Gradle / Maven sync** (Reload All Gradle and Maven
+   Projects in the [Gradle or Maven tool window](docs/guide/user/java.md)), looked up in the local Maven
+   repository (`~/.m2/repository`) and Gradle's cache
+   (`~/.gradle/caches/modules-2/files-2.1`);
+2. without a sync, in Spring Boot's own jars (`spring-boot`, `spring-boot-autoconfigure`,
+   `spring-boot-actuator-autoconfigure`, …) of the build's Spring Boot version, or the newest
+   one in the caches;
+3. in the project: `@ConfigurationProperties` classes (fields, record components and Kotlin
+   constructor properties, nested classes, Javadoc as description, literal defaults) and
+   `src/main/resources/META-INF/additional-spring-configuration-metadata.json`.
+
+The jars are read as zip files; enum constants are read from their class files. Nothing is
+downloaded: build the project once (or sync) so the jars are in the caches. The
+**Configuration** tab of the Spring tool window shows how many properties were found and from
+which jars, the configuration files with their profiles, the `@ConfigurationProperties`
+classes, the profiles and the `jakarta.*` / `javax.*` / Spring APIs the sources import.
+
+## Jakarta EE
+
+Besides JAX-RS endpoints and CDI beans (see above), the **Persistence** tab of the Spring tool
+window lists the JPA entities (`@Entity`, `@Embeddable`, `@MappedSuperclass` from
+`jakarta.persistence` or `javax.persistence`) with their table, id and generated fields,
+columns and relations (`@ManyToOne` → `Customer`), and their Spring Data repositories. Click an
+entity or field to open it.
+
+## Spring Boot run configuration
+
+**Run | Edit Configurations… | + | Spring Boot** has:
+
+| Field | Meaning |
+| --- | --- |
+| Main class | The `@SpringBootApplication` class; for a Kotlin application with a top-level `main`, the file facade (`ShopApplicationKt`). |
+| Active profiles | Comma-separated, passed as `-Dspring.profiles.active`. |
+| Override properties | One `key=value` per line, passed as `--key=value` (they win over the configuration files). |
+| VM options, Program arguments, JDK, Module | As for [Application](docs/guide/user/java.md) configurations. |
+| Run dashboard | Expose the actuator's `health`, `info`, `beans` and `mappings` endpoints (`--management.endpoints.web.exposure.include=…`, unless you override it) so the dashboard can read them, or leave the actuator as configured. |
+
+The configuration runs as an Application configuration: through Gradle's `forgeRun` or with the
+class path from Eclipse JDT LS, with the [Java debugger](docs/guide/user/java.md) for **Debug**, and the
+console in color (`spring.output.ansi.enabled=always`). The ▶ icon on the
+`@SpringBootApplication` class creates a temporary one. Starting an application runs project
+code, so it is refused in [Safe Mode](docs/guide/user/project-trust.md).
+
+## Run dashboard
+
+Spring Boot configurations appear in the [Services](docs/guide/user/services.md) tool window (`Alt+8`) under **Spring
+Boot**, grouped into **Running** and **Not Started**, with the port and the active profiles. The
+toolbar starts, stops and restarts them.
+
+For a running application the details show its status, main class, active profiles, URL (from
+the console: "Tomcat started on port 8080 … with context path …"), startup time, PID, web
+server and Spring Boot version. With
+[Spring Boot Actuator](https://docs.spring.io/spring-boot/reference/actuator/) in the build,
+Forge asks the application on `localhost` (`management.server.port` and
+`management.endpoints.web.base-path` are respected) for:
+
+- **Health**: the status and each component (database, disk space, …);
+- **Request Mappings**: method, path and handler of every mapping;
+- **Beans**: name, type, scope and dependencies.
+
+The tree refreshes the health every few seconds while an application runs
+(`spring.dashboard.refreshSeconds`); `spring.dashboard.actuator` turns the requests off.
+Without the actuator the details say so.
+
+![A running application in Services](docs/screenshots/spring-run-dashboard.png)
+
+## Settings
+
+Settings | Languages & Frameworks | Java | Spring Boot:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `spring.metadata.fromJars` | on | Read the configuration metadata from the dependency jars. |
+| `spring.inspections.unknownProperties` | on | Report keys the metadata does not know. |
+| `spring.metadata.mavenRepository` | empty (`~/.m2/repository`) | The local Maven repository. |
+| `spring.metadata.gradleUserHome` | empty (`GRADLE_USER_HOME` or `~/.gradle`) | Gradle's user home. |
+| `spring.gutterIcons` | on | The gutter icons above. |
+| `spring.dashboard.actuator` | on | Ask running applications' actuators. |
+| `spring.dashboard.refreshSeconds` | 5 | How often the dashboard refreshes running applications. |
+
+> **Note:** The analysis is structural (no type checking): beans are matched by their class
+> and supertype names, conditional beans (`@ConditionalOn…`) are always listed, and functional
+> routes (`RouterFunction`) and Spring's XML configuration are not read. The actuator data of
+> the running application fills the gaps.
+
+## Try it in the browser
+
+`pnpm dev` and open `http://localhost:1420/?project=spring`: the Java demo
+`inventory-service` as a Spring Boot application with REST controllers, a JAX-RS resource,
+Spring Data JPA entities, `@ConfigurationProperties` and two Spring Boot configurations. The
+metadata, the console and the actuator answers are canned.
 
 
 ---
@@ -15416,6 +15648,9 @@ The tree has three roots:
 | **Docker Compose** | compose projects found in the project root and one folder below, with their services and containers |
 | **Kubernetes** | contexts → namespaces → Pods, Deployments, Services; the node says where the contexts come from (`~/.kube/config`, or `from host deploy@shop.example.com` in a remote project) |
 
+Spring Boot run configurations add a **Spring Boot** root with their running and not started
+applications, see [Spring Boot and Jakarta EE](docs/guide/user/spring.md#run-dashboard).
+
 The status bar shows the Docker connection ("Docker 27.3.1", "Docker: connecting…",
 "Docker: not connected"). Forge follows Docker's event stream, so the tree updates by itself,
 and retries the connection every 10 seconds.
@@ -18452,6 +18687,20 @@ Page id `lang.java` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.
 | `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
 | `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
 
+### Languages & Frameworks | Java | Spring Boot
+
+Page id `lang.java.spring-boot` (plugin `forge.spring`). See [Spring Boot and Jakarta EE](docs/guide/user/spring.md#settings).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `spring.metadata.fromJars` | bool | `true` | user | Configuration files | Read configuration metadata from the dependency jars — Completion, documentation and inspections in application.properties / application.yml use META-INF/spring-configuration-metadata.json of the jars of the last Gradle / Maven sync, or Spring Boot's jars in the local Maven and Gradle caches. |
+| `spring.inspections.unknownProperties` | bool | `true` | user | Configuration files | Report unknown configuration properties — Keys the metadata does not know (and that no Map property covers) are warnings. Never reported without metadata. |
+| `spring.metadata.mavenRepository` | path | `""` | user | Configuration files | Local Maven repository — Where the dependency jars are looked up. Empty: ~/.m2/repository. |
+| `spring.metadata.gradleUserHome` | path | `""` | user | Configuration files | Gradle user home — Gradle's module cache is `<home>/caches/modules-2/files-2.1`. Empty: `GRADLE_USER_HOME` or `~/.gradle`. |
+| `spring.gutterIcons` | bool | `true` | user | Editor | Show gutter icons — Beans and their injection points, endpoints, JPA entities and repositories, @ConfigurationProperties classes. |
+| `spring.dashboard.actuator` | bool | `true` | user | Run dashboard | Read the actuator of running applications — The run dashboard (Services) and the Beans and Endpoints views ask /actuator/health, /actuator/beans and /actuator/mappings of applications started from Spring Boot configurations, on localhost. |
+| `spring.dashboard.refreshSeconds` | int (2–300) | `5` | user | Run dashboard | Refresh running applications every (seconds) |
+
 ### Languages & Frameworks | Kotlin
 
 Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](docs/guide/user/kotlin.md#language-server).
@@ -19678,6 +19927,7 @@ script and config language plugins.
 | FastAPI | `forge.fastapi` | pyforge | `forge.python-web` | `fastapi` | 1 settings; run types: FastAPI |
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
 | Android | `forge.android` | javaforge | `forge.java` | `android` | tool windows (UI): Device Manager, Logcat; 2 commands; 4 settings; run types (UI): Android App |
@@ -20209,6 +20459,8 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
 | `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
+| `registerEndpointsView` | `features/endpoints/registry.ts` | a view of the shared Endpoints tool window (one tab per pack when several apply: Python web frameworks, Spring and JAX-RS) |
+| `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
@@ -21639,6 +21891,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | Crate | Description |
 | --- | --- |
 | [javaforge-build](docs/guide/developer/crates/javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
+| [javaforge-fw-spring](docs/guide/developer/crates/javaforge-fw-spring.md) | JavaForge: Spring Boot and Jakarta EE (Java / Kotlin declaration scanner, beans and injection points, Spring MVC and JAX-RS endpoints, JPA entities, application.properties / application.yml assistance from spring-configuration-metadata.json and the dependency jars, the Spring Boot run configuration, actuator client and run dashboard; pure, also built to WebAssembly) |
 | [javaforge-jdk](docs/guide/developer/crates/javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
 | [javaforge-android](docs/guide/developer/crates/javaforge-android.md) | JavaForge: Android basics (Gradle Android modules, AndroidManifest.xml, the Android SDK location, adb devices and emulator AVDs, Android App run command lines, Logcat parsing, filtering and stack trace links; pure, also built to WebAssembly) |
 | [javaforge-lang-groovy](docs/guide/developer/crates/javaforge-lang-groovy.md) | JavaForge: Groovy basics (source scanner, scripts and main classes, Spock for the shared test runner, Groovy script command lines with groovy or Gradle, Groovy SDK lookup; pure, also built to WebAssembly) |
@@ -24455,7 +24708,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -25556,6 +25809,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
+| `spring.rs` | Spring Boot and Jakarta EE (`javaforge-fw-spring`): `spring_overview` (model and tool window rows, with canned actuator answers), `spring_gutter`, `spring_config` (complete, inspect, hover, goto with canned metadata), `spring_http_request`, `spring_launch`, `spring_observe` and `spring_dashboard` (nodes and details). |
 | `kotlin.rs` | KotlinForge (`kotlinforge-lang-kotlin`): `kotlin_main_functions`, `kotlin_coroutines`, `kotlin_lint_report` (ktlint JSON, SARIF, Checkstyle) and `kotlin_command_line` (Kotlin applications, scripts, Kotest). `testing.rs` registers `KotlinTests` like the app. |
 | `jvm_extras.rs` | JavaForge's JVM extras (`javaforge-lang-groovy`, `javaforge-lang-scala`, `javaforge-android`): `groovy_runnable`, `groovy_script_command`, `scala_main_objects`, `scala_sbt_build` (static build, optionally merged with a recorded import), `scala_command_line` (sbt Task, ScalaTest, MUnit), `android_adb`, `android_module`, `android_app_command`, `android_logcat_view`. `testing.rs` registers `SpockTests` and both `ScalaTests` like the app. |
 | `java.rs` | JavaForge (`javaforge-build`, `javaforge-lang-java`), mirroring `java_main_methods`, `java_build_info` and the backend's Java run building (`java_command_line`: Application, Maven, Gradle, JUnit and TestNG with their `TestCommand`). `testing.rs` registers `JavaTests` like the app. |
@@ -25758,6 +26012,104 @@ pub use goals::{goals, Goal};
 ```sh
 cargo test -p javaforge-build --features net
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-fw-spring.md
+
+# javaforge-fw-spring
+
+`packs/javaforge/fw-spring` — JavaForge: Spring Boot and Jakarta EE (Java / Kotlin declaration
+scanner, beans and injection points, Spring MVC and JAX-RS endpoints, JPA entities,
+application.properties / application.yml assistance from spring-configuration-metadata.json and
+the dependency jars, the Spring Boot run configuration, actuator client and run dashboard; pure,
+also built to WebAssembly).
+
+## Purpose
+
+The logic of the plugin `forge.spring`; see [Spring Boot and Jakarta EE](docs/guide/user/spring.md).
+Everything is static analysis of the texts the caller hands in: the application is never
+started to find beans or endpoints. Two features add I/O for the desktop: `jars` (reading the
+dependency jars as zip files) and `net` (a plain HTTP/1.1 client for the actuator on
+localhost). Without them the crate builds to WebAssembly.
+
+- `scan` lexes Java and Kotlin (comments, text blocks, raw strings, string templates, backtick
+  names) and reads package, imports, classes (kind, supertypes with type arguments, enum
+  constants), constructors (Kotlin primary constructors with `val` / `var` properties),
+  methods, fields and parameters with their annotations **and annotation arguments** (string
+  literals, concatenations, constants, class literals, arrays), doc comments, literal
+  defaults and string constants (also `API + "/stock"` across files). Half-typed code still
+  yields the declarations around it.
+- `model` builds the project model: beans (stereotypes and custom meta-annotated ones, `@Bean`
+  methods, Spring Data repositories, `@ConfigurationProperties`, CDI scopes, EJB, JAX-RS
+  resources, `@Produces`), injection points (constructors, Lombok's required-args fields,
+  `@Autowired` / `@Inject` / `@Resource` fields and setters, `@Bean` parameters) matched by
+  type and supertypes with qualifiers, `@Primary` and name fallback; Spring MVC endpoints with
+  class prefixes, methods, media types and parameters, JAX-RS endpoints below the
+  `@ApplicationPath`; JPA entities with columns, ids and relations linked to their
+  repositories; `@ConfigurationProperties` classes turned into metadata; the APIs in use
+  (`jakarta.*`, `javax.*`, Spring); profiles; configuration values per profile; and the gutter
+  markers of a file. `Project` keeps the scanned files so an edited file is scanned again on its
+  own.
+- `config` reads `application*.properties` / `application*.yml` (documents, lists, block
+  scalars, quoted keys, continuation lines) into dotted keys with byte ranges, finds where the
+  cursor is (a key being typed with its YAML parent path, or a value), and implements relaxed
+  binding (`canonical`).
+- `metadata` holds `spring-configuration-metadata.json` (properties, groups, hints, deprecations)
+  plus enum constants; `assist` completes keys (nested YAML insertion) and values (booleans,
+  enums, hints, profiles) with Markdown documentation, inspects unknown / deprecated keys and
+  invalid values (with the replacement text of the quick fix), hovers and navigates to
+  `@ConfigurationProperties`.
+- `jars` (feature `jars`) finds the jars of the synced coordinates in `~/.m2/repository` and
+  Gradle's `modules-2/files-2.1` cache (or Spring Boot's own jars of the build's version, else
+  the newest cached), reads their metadata files and the enum constants of property types from
+  class files (`class_enum_constants`).
+- `run` turns the `spring-boot` configuration into an Application run (profiles, colored
+  output, `--key=value` overrides, actuator exposure) and follows the console (`Observed`:
+  port, context path, server, profiles, PID, startup time, failures, Spring Boot version).
+- `actuator` parses `/actuator/health`, `/beans` and `/mappings` (Spring Boot 2 and 3, MVC and
+  WebFlux); with `net`, `probe` reads them from `127.0.0.1` (chunked and length-delimited
+  bodies, 503 health).
+- `dashboard` builds the Services nodes and details of the run dashboard; `views` merges the
+  model with a running application's beans and mappings and writes "Open in HTTP Client"
+  requests.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `scan.rs` | `parse(path, text) -> SourceFile`, `Lang`, `ClassInfo`, `Callable`, `Field`, `Param`, `Annotation`, `AnnArg`, `Val`, `TypeRef`, `resolve_constants`. |
+| `model.rs` | `analyze(files) -> Model`, `Project`, `Bean`, `Injection`, `Endpoint`, `Entity`, `ConfigClass`, `Application`, `Api`, `gutter(model, path) -> Marker[]`, `setting(model, key, profiles)`, `injected_type`, `join_paths`. |
+| `config.rs` | `config_file`, `Format`, `parse`, `Entry`, `place_at`, `Place`, `canonical`, `kebab`. |
+| `metadata.rs` | `Metadata`, `Property`, `Hint`, `Group`, `Deprecation`, `short_type`. |
+| `assist.rs` | `complete`, `inspect`, `hover`, `goto`, `documentation`, `Context`, `Completion`, `Problem`, `Hover`. |
+| `jars.rs` | `Caches`, `Coordinate`, `jars_for`, `jar_metadata`, `load`, `enum_constants`, `class_enum_constants` (feature `jars`). |
+| `run.rs` | `TYPE`, `launch`, `Launch`, `profiles`, `overrides`, `Observed`, `strip_ansi`. |
+| `actuator.rs` | `parse_health`, `parse_beans`, `parse_mappings`, `Snapshot`; `get`, `probe` (feature `net`). |
+| `dashboard.rs` | `DashboardApp`, `tree`, `details`, `node_id`, `app_name`. |
+| `views.rs` | `EndpointRow`, `BeanRow`, `endpoint_rows`, `bean_rows`, `http_request`. |
+
+## Used by
+
+- The app: `commands/spring.rs` (the `spring_*` IPC commands: model cache, jar metadata cache,
+  run tracking and actuator probes) and `commands/run.rs` (Spring Boot runs become Application
+  runs; their output goes to the dashboard's observer).
+- [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `spring_overview`, `spring_gutter`, `spring_config`,
+  `spring_http_request`, `spring_launch`, `spring_observe`, `spring_dashboard` for the browser
+  mode (`?project=spring`).
+- [`forge-project`](docs/guide/developer/crates/forge-project.md) detects the `spring-boot` and `jakarta-ee` frameworks
+  that activate the plugin.
+
+## Dependencies
+
+- External: `serde`, `serde_json`; `zip` (feature `jars`).
+
+## Tests
+
+12 source files; unit tests on inline Java / Kotlin / YAML / properties fixtures, a fake
+metadata JSON, jars and class files written by the tests, and a local mock HTTP server for the
+actuator (no network).
 
 
 ---

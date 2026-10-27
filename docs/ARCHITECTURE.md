@@ -71,6 +71,14 @@ app/ui/            SolidJS UI
     Configuration outside tests) from `@/features/run` (PyForge).
   - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
     Anything (double Ctrl), e.g. Artisan and Symfony console commands.
+  - `registerEndpointsView({ id, title, order, when, component, actions? })`
+    (`src/features/endpoints/registry.ts`) — a view of the shared Endpoints tool window; with
+    several active views (a polyglot project) the window shows a tab per view
+    (`showEndpointsView(id)` opens one).
+  - `registerServicesProvider({ id, nodes, owns, details, action, refresh? })`
+    (`src/features/services/providers.ts`) — nodes of the Services tool window before
+    Docker / Compose / Kubernetes, with their own details (the `ServiceDetails` shape) and
+    toolbar actions (the Spring Boot run dashboard).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
 - Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
@@ -2525,6 +2533,58 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   templates are in `forge-file-templates` (group `kotlin`, `package_of_dir`). Browser mode:
   `?project=kotlin` opens the Gradle demo `orders-service` (`mock/demoKotlinProject.ts`,
   `kotlinMock.ts`, `kotlinDebugMock.ts`, WebAssembly `crates/forge-wasm/src/kotlin.rs`).
+
+## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
+
+- The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,
+  `projectTypes = ["spring-boot", "jakarta-ee"]`) is active when `forge-project` reports the
+  `spring-boot` framework (the `org.springframework.boot` Gradle plugin, the
+  `spring-boot-starter-parent` / `spring-boot-dependencies` parent or BOM, starters; version from
+  `spring_boot_version`) or `jakarta-ee` (platform APIs, JAX-RS, CDI, MicroProfile in a build).
+- `javaforge-fw-spring` (pure, also in `forge-wasm`; features `jars` and `net` for the desktop):
+  the Java / Kotlin declaration scanner with annotation arguments (`scan`), the project model
+  (`model`: beans, injection points with their candidates, Spring MVC and JAX-RS endpoints, JPA
+  entities and repositories, `@ConfigurationProperties` classes as metadata, APIs, profiles,
+  configuration values, gutter markers; `Project` rescans one file), configuration files and
+  relaxed binding (`config`), metadata (`metadata`), completion / inspections / hover / goto
+  (`assist`), the jars of the sync or the local Maven / Gradle caches with enum constants from
+  class files (`jars`), the run configuration and console observation (`run`), the actuator
+  (`actuator`), the run dashboard (`dashboard`) and runtime-merged rows plus `.http` requests
+  (`views`).
+- IPC (`commands/spring.rs`, `src/ipc/spring.ts`): `spring_model({ refresh? }) ->
+  SpringOverview { spring, jakarta, beans: BeanRow[], endpoints: EndpointRow[], entities,
+  configClasses, applications, apis, profiles, configFiles, metadata: { properties, sources,
+  problems }, runtime? }` (the model is cached for 10 s and scanned through
+  `Backend::collect_files`; a running application's actuator adds `live` rows and `runtime`
+  beans and mappings), `spring_gutter({ path, content }) -> Marker[]` (`{ line, kind: "bean" |
+  "injection" | "endpoint" | "entity" | "repository" | "configProperties", title, targets: {
+  path, line, column, preview }[], endpoints? }`), `spring_config_complete({ path, content,
+  offset }) -> { from, replaceFrom, replaceTo, items, incomplete } | null` (the JSON Schema
+  completion item shape), `spring_config_inspect({ path, content }) -> { from, to, severity,
+  message, code: "unknownProperty" | "deprecatedProperty" | "invalidValue", replacement?, fix?
+  }[]`, `spring_config_hover`, `spring_config_goto -> Location[]`, `spring_http_request({
+  endpoint }) -> string`, `spring_dashboard() -> ServiceNode[]`, `spring_dashboard_details({
+  nodeId }) -> ServiceDetails | null`. Offsets are UTF-16. `spring://dashboard` is emitted when a
+  Spring Boot run changes. The jars' metadata is cached by jar path and modification time.
+- Runs: the `spring-boot` type (options `mainClass`, `activeProfiles`, `overrideProperties`,
+  `exposeActuator`, `jdk`, `module`, `kotlin`) becomes JavaForge's `java-application` in
+  `run_start` / `run::build` (`commands::spring::to_application`, `run::launch`), so Gradle's
+  `forgeRun`, JDT LS class paths, Kotlin applications and the Java debugger apply.
+  `run_start` registers a `RunObserver` (`RunState::observers`) that `start_built`'s sink
+  calls with every event; `commands::spring::track_run` feeds the output to `run::Observed`
+  per configuration. `spring_dashboard_details` asks `/actuator/health|beans|mappings` on
+  127.0.0.1 (management port and base path from the configuration) with a 1.5 s timeout,
+  cached for `spring.dashboard.refreshSeconds`.
+- UI (`app/ui/src/features/spring`): the "Spring and JAX-RS" view of the shared Endpoints tool
+  window (`registerEndpointsView`) and the Spring tool window (right: Beans, Persistence,
+  Configuration), gutter icons and the configuration file editor
+  support (`editor.ts`: completion with `toOption` of the JSON Schema feature, diagnostics
+  source `spring-config`, hover, `registerDeclarationProvider`, the deprecated-key quick fix),
+  the Spring Boot run type and ▶ on `@SpringBootApplication` (`runType.tsx`), the Services
+  provider (`dashboard.ts`), settings page `lang.java.spring-boot`. "Open in HTTP Client" creates
+  an `.http` scratch (`openHttpRequest` in `features/scratches/store.ts`). Browser mode:
+  `?project=spring` (`mock/demoSpringProject.ts` over the Java demo, `springMock.ts`,
+  WebAssembly `crates/forge-wasm/src/spring.rs`).
 
 ## JavaForge JVM extras: Groovy, Scala and Android (`packs/javaforge/{lang-groovy,lang-scala,android}`)
 

@@ -21,6 +21,8 @@ export type NodeIcon =
   | "pod"
   | "deployment"
   | "kubeService"
+  | "springBoot"
+  | "springApp"
   | "error";
 
 export type NodeStatus = "running" | "stopped" | "paused" | "pending" | "error" | "busy";

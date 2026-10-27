@@ -58,6 +58,7 @@ mod scratches;
 mod search;
 mod settings;
 mod spell;
+mod spring;
 mod ssr;
 mod stacktrace;
 mod structure;

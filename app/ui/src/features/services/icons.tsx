@@ -11,6 +11,7 @@ import {
   FolderKanban,
   HardDrive,
   Layers,
+  Leaf,
   LoaderCircle,
   Network,
   Package,
@@ -38,6 +39,8 @@ export const NODE_ICONS: Record<NodeIcon, IconComp> = {
   pod: Cuboid,
   deployment: Rocket,
   kubeService: Waypoints,
+  springBoot: Leaf,
+  springApp: Leaf,
   error: CircleAlert,
 };
 

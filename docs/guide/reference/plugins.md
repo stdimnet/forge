@@ -47,6 +47,7 @@ script and config language plugins.
 | FastAPI | `forge.fastapi` | pyforge | `forge.python-web` | `fastapi` | 1 settings; run types: FastAPI |
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
 | Android | `forge.android` | javaforge | `forge.java` | `android` | tool windows (UI): Device Manager, Logcat; 2 commands; 4 settings; run types (UI): Android App |

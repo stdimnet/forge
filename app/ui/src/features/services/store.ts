@@ -3,7 +3,7 @@
  * the Docker connection for the status bar and the consoles (Log tabs) fed by
  * `services://event`.
  */
-import { createSignal, type Accessor, type Setter } from "solid-js";
+import { createEffect, createRoot, createSignal, on, type Accessor, type Setter } from "solid-js";
 import { balloonsFor } from "@/keymap";
 import { setInputDialog } from "@/features/git/overlays";
 import { openTerminalWith } from "@/features/terminal";
@@ -18,10 +18,13 @@ import {
   type ServiceNode,
   type ServicesEvent,
 } from "@/ipc/services";
+import { providerFor, providerNodes, providers } from "./providers";
 
 const showBalloon = balloonsFor("Services");
 
-const [nodes, setNodes] = createSignal<ServiceNode[]>([]);
+const [backendNodes, setNodes] = createSignal<ServiceNode[]>([]);
+/** The providers' nodes (Spring Boot run dashboard) first, then Docker, Compose, Kubernetes. */
+const nodes = (): ServiceNode[] => [...providerNodes(), ...backendNodes()];
 const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set());
 const [selected, setSelected] = createSignal<string | null>(null);
 const [tab, setTab] = createSignal<DetailsTab>("dashboard");
@@ -75,7 +78,8 @@ export function pickContainer(nodeId: string, name: string): void {
 
 const seen = new Set<string>();
 
-function applyNodes(list: ServiceNode[]): void {
+/** Expand nodes that ask for it the first time they show up. */
+function expandNew(list: ServiceNode[]): void {
   const open = new Set(expanded());
   const walk = (ns: ServiceNode[]) => {
     for (const n of ns) {
@@ -89,11 +93,35 @@ function applyNodes(list: ServiceNode[]): void {
   };
   walk(list);
   setExpanded(open);
+}
+
+function applyNodes(list: ServiceNode[]): void {
+  expandNew(list);
   setNodes(list);
   setVersion((v) => v + 1);
   reloadKubeSelection();
-  if (!selected() && list.length) setSelected(list[0].id);
+  if (!selected() && nodes().length) setSelected(nodes()[0].id);
 }
+
+// Providers' nodes change on their own (an application started): expand and re-read details.
+if (typeof document !== "undefined") {
+  createRoot(() =>
+    createEffect(
+      on(providerNodes, (list) => {
+        expandNew(list);
+        setVersion((v) => v + 1);
+        if (!selected() && list.length) setSelected(list[0].id);
+      }),
+    ),
+  );
+}
+
+/** Re-read the details of the selected node (a provider's data changed). */
+export const bumpDetails = () => setVersion((v) => v + 1);
+
+/** Details of a node from its provider or the backend. */
+export const detailsOf = (nodeId: string): Promise<ServiceDetails | null> =>
+  providerFor(nodeId)?.details(nodeId) ?? servicesApi.details(nodeId);
 
 export function findNode(id: string | null, list = nodes()): ServiceNode | undefined {
   if (!id) return undefined;
@@ -186,6 +214,7 @@ export function initServices(): Promise<void> {
 }
 
 export async function refresh(): Promise<void> {
+  await Promise.all(providers().map((p) => p.refresh?.().catch(() => undefined)));
   try {
     applyNodes(await servicesApi.refresh());
   } catch (err) {
@@ -254,6 +283,15 @@ const CONFIRM: Partial<Record<ServiceAction, (d: ServiceDetails) => string>> = {
 
 /** Toolbar action on the details' node; asks before destructive ones. */
 export async function runAction(d: ServiceDetails, action: ServiceAction): Promise<void> {
+  const provider = providerFor(d.nodeId);
+  if (provider) {
+    try {
+      await provider.action(d, action);
+    } catch (err) {
+      showBalloon(`${action[0].toUpperCase()}${action.slice(1)} failed`, String(err).replace(/^Error: /, ""), 6000);
+    }
+    return;
+  }
   if (action === "logs") {
     setTab("log");
     return;

@@ -1,0 +1,104 @@
+/**
+ * The Spring Boot run configuration (IntelliJ IDEA's "Spring Boot"): main class, active
+ * profiles, override properties, VM options, the JDK and the actuator endpoints the run
+ * dashboard reads. The backend runs it as an Application configuration
+ * (`commands/spring.rs`, `javaforge_fw_spring::run`), so Gradle's `forgeRun`, JDT LS's class
+ * path, Kotlin applications and the Java debugger work as for Application runs. Also the ▶
+ * gutter icon on `@SpringBootApplication` classes.
+ */
+import { Bug, Leaf, Play, Settings2 } from "lucide-solid";
+import { SPRING_BOOT, type SpringApplication } from "@/ipc/spring";
+import type { RunConfiguration } from "@/ipc/run";
+import { registerRunConfigurationType } from "@/features/run/types";
+import { registerLineMarkerProvider } from "@/editor/lineMarkers";
+import { useTemporary } from "@/features/run/configStore";
+import { debugConfiguration, launch } from "@/features/run/runStore";
+import { openMenu } from "@/features/run/PopupMenu";
+import { openRunConfigurations } from "@/features/run/dialogState";
+import { shortcutLabel } from "@/keymap";
+import { DEBUG_TYPES } from "@/features/java/runTypes";
+import { jdkChoices } from "@/features/java/store";
+import { overview, PLUGIN_ID, springActive } from "./store";
+
+const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
+const simple = (cls: string) => cls.split(/[.$]/).pop() || undefined;
+const springApps = () => (overview()?.applications ?? []).filter((a) => a.kind === "spring");
+
+registerRunConfigurationType({
+  id: SPRING_BOOT,
+  name: "Spring Boot",
+  description: "Run a Spring Boot application: main class, active profiles and override properties. Running applications show in Services with port, profiles and actuator health.",
+  icon: Leaf,
+  color: "var(--success)",
+  pluginId: PLUGIN_ID,
+  argumentsLabel: "Program arguments",
+  debuggable: true,
+  fields: [
+    { key: "mainClass", label: "Main class", required: true, placeholder: springApps()[0]?.mainClass ?? "com.acme.shop.ShopApplication" },
+    { key: "activeProfiles", label: "Active profiles", placeholder: "dev, local (comma-separated)" },
+    { key: "overrideProperties", label: "Override properties", kind: "text", placeholder: "server.port=9090 (one key=value per line)" },
+    { key: "interpreterOptions", label: "VM options", placeholder: "-Xmx1g" },
+    {
+      key: "jdk",
+      label: "JDK",
+      kind: "enum",
+      options: () => [{ value: "", label: "Project JDK" }, ...jdkChoices()],
+    },
+    { key: "module", label: "Module", placeholder: "app (empty: the root project)" },
+    {
+      key: "exposeActuator",
+      label: "Run dashboard",
+      kind: "segmented",
+      default: "true",
+      options: [
+        { value: "true", label: "Expose actuator health, beans, mappings" },
+        { value: "false", label: "Leave the actuator as configured" },
+      ],
+    },
+  ],
+  defaults: () => {
+    const app = springApps()[0];
+    return app ? { options: { mainClass: app.mainClass, ...(app.kotlin ? { kotlin: "true" } : {}), exposeActuator: "true" } } : {};
+  },
+  suggestName: (cfg) => simple(opt(cfg, "mainClass"))?.replace(/Kt$/, ""),
+  validate: (cfg) => (/^[\w$.]+$/.test(opt(cfg, "mainClass").trim()) ? null : "Main class must be a fully qualified class name"),
+});
+
+// The Java debugger debugs Spring Boot runs (they are Application runs).
+DEBUG_TYPES.add(SPRING_BOOT);
+
+/** The temporary Spring Boot configuration of an application class. */
+export function bootConfiguration(app: SpringApplication) {
+  return useTemporary({
+    name: app.name,
+    type: SPRING_BOOT,
+    options: { mainClass: app.mainClass, exposeActuator: "true", ...(app.kotlin ? { kotlin: "true" } : {}) },
+  });
+}
+
+registerLineMarkerProvider({
+  appliesTo: (path) => /\.(java|kt)$/.test(path),
+  watch: () => [springActive(), overview()],
+  markers: async (path) => {
+    if (!springActive()) return [];
+    return springApps()
+      .filter((a) => a.location.path === path)
+      .map((a) => ({
+        line: a.location.line,
+        icon: Play,
+        title: `Run '${a.name}' (Spring Boot)`,
+        className: "marker-run",
+        onClick: (_view, e) =>
+          openMenu({
+            x: e.clientX,
+            y: e.clientY + 6,
+            items: [
+              { label: `Run '${a.name}'`, icon: Play, iconColor: "var(--success)", shortcut: shortcutLabel("RunClass"), run: () => void launch(bootConfiguration(a)) },
+              { label: `Debug '${a.name}'`, icon: Bug, iconColor: "var(--success)", shortcut: shortcutLabel("DebugClass"), run: () => void debugConfiguration(bootConfiguration(a)) },
+              { separator: true },
+              { label: "Modify Run Configuration…", icon: Settings2, run: () => openRunConfigurations(bootConfiguration(a).name) },
+            ],
+          }),
+      }));
+  },
+});

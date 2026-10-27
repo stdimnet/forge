@@ -6,7 +6,7 @@
 import type { Component } from "solid-js";
 import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Atom, Code, Folder, Heart, Moon, Mountain, Package, Zap } from "lucide-solid";
+import { Atom, Code, Folder, Heart, Leaf, Moon, Mountain, Package, Zap } from "lucide-solid";
 import "./projectTypeIcon.css";
 
 type Glyph = { icon?: Component<{ size?: number; "stroke-width"?: number }>; text?: string };
@@ -39,6 +39,8 @@ const GLYPHS: Record<string, Glyph> = {
   rust: { text: "Rs" },
   go: { text: "Go" },
   python: { text: "Py" },
+  "spring-boot": { icon: Leaf },
+  "jakarta-ee": { text: "EE" },
   django: { text: "dj" },
   flask: { text: "Fl" },
   fastapi: { icon: Zap },

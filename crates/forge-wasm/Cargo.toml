@@ -41,6 +41,7 @@ pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 javaforge-build.workspace = true
 javaforge-lang-java.workspace = true
+javaforge-fw-spring.workspace = true
 kotlinforge-lang-kotlin.workspace = true
 javaforge-lang-groovy.workspace = true
 javaforge-lang-scala.workspace = true
