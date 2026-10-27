@@ -29,6 +29,7 @@ import { salesNotebookHead } from "./demoNotebooks";
 import { goDemoFiles, isGoDemo } from "./demoGoProject";
 import { cppDemoFiles, isCppDemo } from "./demoCppProject";
 import { isRustDemo, rustDemoFiles } from "./demoRustProject";
+import { isRubyDemo, rubyDemoFiles } from "./demoRubyProject";
 import { isJavaDemo, JAVA_PKG, javaDemoFiles } from "./demoJavaProject";
 import { isKotlinDemo, KT_PKG, kotlinDemoFiles } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoFiles } from "./demoScalaProject";
@@ -257,10 +258,10 @@ index["app/Http/Controllers/OrderController.php"] = controllerWorking;
 
 // The WebForge demos (`?project=react|vue|angular`) are committed as they are.
 const web = webDemo();
-if (web || isPythonDemo() || isGoDemo() || isRustDemo() || isCppDemo()) {
+if (web || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isCppDemo()) {
   for (const snapshot of [head, index]) {
     for (const k of Object.keys(snapshot)) delete snapshot[k];
-    Object.assign(snapshot, web ? web.files : isGoDemo() ? goDemoFiles : isRustDemo() ? rustDemoFiles : isCppDemo() ? cppDemoFiles : pythonDemoFiles);
+    Object.assign(snapshot, web ? web.files : isGoDemo() ? goDemoFiles : isRustDemo() ? rustDemoFiles : isRubyDemo() ? rubyDemoFiles : isCppDemo() ? cppDemoFiles : pythonDemoFiles);
   }
   // The FastAPI demo has one change: the new import in main.py.
   if (!web && isPythonDemo() && pythonDemoFiles["src/shop_api/main.py"]) {
@@ -302,7 +303,7 @@ if (isScalaDemo() || isAndroidDemo()) {
 
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock). The web demos and the Lua demo game have no PHP tests.
-if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isCppDemo()) void Promise.resolve().then(() =>
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isCppDemo()) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
@@ -840,7 +841,7 @@ async function startConflictMerge(rev: string): Promise<void> {
 }
 
 // `?conflicts` opens the demo in the middle of that merge (screenshots).
-if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isCppDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isCppDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)

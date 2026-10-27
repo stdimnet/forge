@@ -22,7 +22,7 @@ pub struct RubyProblem {
     pub column: u32,
     pub end_line: u32,
     pub end_column: u32,
-    /// `error`, `warning`, `info` (Forge's levels).
+    /// `error`, `warning`, `weak`, `info` (Forge's levels).
     pub severity: String,
     /// RuboCop's own severity (`convention`, `refactor`, …).
     pub level: String,
@@ -85,7 +85,7 @@ pub fn severity(level: &str) -> &'static str {
     match level {
         "error" | "fatal" => "error",
         "warning" => "warning",
-        "convention" | "refactor" => "weak_warning",
+        "convention" | "refactor" => "weak",
         _ => "info",
     }
 }
@@ -228,7 +228,7 @@ mod tests {
                     0,
                     0,
                     1,
-                    "weak_warning",
+                    "weak",
                     "Style/FrozenStringLiteralComment",
                     true
                 ),
@@ -246,7 +246,7 @@ mod tests {
                     15,
                     12,
                     20,
-                    "weak_warning",
+                    "weak",
                     "Style/StringLiterals",
                     true
                 ),
