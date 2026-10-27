@@ -22,7 +22,7 @@ export function CppSettingsPage() {
   const [status, { refetch }] = createResource(() => refreshCppStatus(true));
   return (
     <div class="cpp-settings" data-testid="cpp-settings">
-      <h3 class="set-section-title">Clangd</h3>
+      <h3 class="set-section-title">Language Server and Tools</h3>
       <div class="cpp-status-row">
         <Show when={status()?.clangd.path} fallback={<span class="tc-missing">clangd is not installed</span>}>
           <span class="tc-value">{status()!.clangd.path}</span>

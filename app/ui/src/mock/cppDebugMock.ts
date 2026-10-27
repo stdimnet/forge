@@ -211,6 +211,7 @@ route("debug_step", (s, args) => {
     stopped(s, "step");
   }, 120);
 });
+route("dap_threads", (s) => [{ id: 1, name: s.info.serverName ?? "shapes_app" }]);
 route("debug_pause", () => undefined);
 route("debug_stop", (s) => end(s, 9));
 route("debug_detach", (s) => end(s, 0));

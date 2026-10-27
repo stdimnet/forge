@@ -34,6 +34,7 @@ export function App() {
       go: "cmd/ledger/main.go",
       java: "src/main/java/com/acme/inventory/App.java",
       kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
+      cpp: "src/geometry/polygon.cpp",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
       react: "src/App.tsx",

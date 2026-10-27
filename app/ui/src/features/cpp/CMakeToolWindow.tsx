@@ -149,7 +149,13 @@ function Log() {
     }
     return out;
   });
-  const scroll = () => queueMicrotask(() => el && (el.scrollTop = el.scrollHeight));
+  // Show the first error or warning of the run, else the end of the log.
+  const scroll = () =>
+    queueMicrotask(() => {
+      if (!el) return;
+      const first = el.querySelector<HTMLElement>(".cmake-log-line.error, .cmake-log-line.warning, .cmake-log-line.deprecation");
+      el.scrollTop = first ? Math.max(0, first.offsetTop - el.offsetTop - 24) : el.scrollHeight;
+    });
   onMount(scroll);
   return (
     <div class="cmake-log" ref={el} data-testid="cmake-log">

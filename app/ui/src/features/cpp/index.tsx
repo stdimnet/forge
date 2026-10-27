@@ -26,6 +26,7 @@ import { refreshDebugAdapters } from "@/features/debug/adapters";
 import { dapApi } from "@/features/debug/dapApi";
 import { setInputDialog } from "@/features/git/overlays";
 import { baseName, registerDebugLauncher, registerRunConfigurationType, testFrameworkType } from "@/features/run/types";
+import { activeSessionId, setActiveSession } from "@/features/run/runStore";
 import { isDialogWindow } from "@/shell/window/mode";
 import { commands, registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
@@ -109,12 +110,13 @@ registerProblemsTab({
 /** Build a configuration's CMake target first (`cmake.buildBeforeRun`); false when it failed. */
 async function buildFirst(cfg: RunConfiguration): Promise<boolean> {
   if (!getSetting<boolean>("cmake.buildBeforeRun", true)) return true;
-  if (cfg.type === "ctest") {
-    return (await runBuild("build", undefined, "Build All")) === 0;
-  }
-  const target = await cppApi.targetOf(cfg).catch(() => null);
-  if (!target) return true;
-  return (await runBuild("build", [target], `Build ${target}`)) === 0;
+  const target = cfg.type === "ctest" ? null : await cppApi.targetOf(cfg).catch(() => null);
+  if (cfg.type !== "ctest" && !target) return true;
+  // The run's own tab comes back to the front once its target is built.
+  const run = activeSessionId();
+  const code = await runBuild("build", target ? [target] : undefined, target ? `Build ${target}` : "Build All");
+  if (code === 0 && run) setActiveSession(run);
+  return code === 0;
 }
 
 registerRunConfigurationType({
