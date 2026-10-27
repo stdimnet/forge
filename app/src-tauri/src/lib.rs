@@ -55,6 +55,7 @@ pub fn run() {
         .manage(commands::ai::AiState::load())
         .manage(commands::agent::AgentState::default())
         .manage(commands::db::DbState::load())
+        .manage(commands::db_objects::DbObjectsState::default())
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
@@ -893,6 +894,17 @@ pub fn run() {
             commands::db::db_table_ddl,
             commands::db::db_table_data,
             commands::db::db_apply_changes,
+            commands::db::db_preview_changes,
+            commands::dataedit::db_data_view,
+            commands::dataedit::db_data_aggregate,
+            commands::dataedit::db_data_compare,
+            commands::dataedit::db_data_chart,
+            commands::dataedit::db_fk_navigate,
+            commands::dataedit::db_fk_incoming,
+            commands::dataedit::db_value_editor,
+            commands::dataedit::db_value_format,
+            commands::dataedit::db_value_binary,
+            commands::dataedit::db_value_temporal,
             commands::db::db_session_open,
             commands::db::db_session_close,
             commands::db::db_sessions_list,
@@ -931,6 +943,22 @@ pub fn run() {
             commands::db::db_match_schemas,
             commands::db::db_search,
             commands::db::db_search_cancel,
+            commands::db_objects::db_design_info,
+            commands::db_objects::db_design_load,
+            commands::db_objects::db_design_preview,
+            commands::db_objects::db_drop_sql,
+            commands::db_objects::db_rename_sql,
+            commands::db_objects::db_objects_guard,
+            commands::db_objects::db_run_script,
+            commands::db_objects::db_generate_ddl,
+            commands::db_objects::db_import_preview,
+            commands::db_objects::db_import_run,
+            commands::db_objects::db_import_cancel,
+            commands::db_objects::db_export_xlsx,
+            commands::db_objects::db_dump_tools,
+            commands::db_objects::db_dump_command,
+            commands::db_objects::db_restore_guard,
+            commands::db_objects::db_dump_start,
             commands::wordpress::wordpress_detect,
             commands::wordpress::wordpress_refresh,
             commands::wordpress::wordpress_hooks,

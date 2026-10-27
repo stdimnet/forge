@@ -499,6 +499,67 @@ export function csv_parse(request_json: string): string;
 export function csv_sort_order(request_json: string): string;
 
 /**
+ * `db_data_aggregate`: `{ columns, rows }` → `{ total, columns }`.
+ */
+export function dataedit_aggregate(request_json: string): string;
+
+/**
+ * `db_data_chart`: `{ columns, rows, spec }` → `ChartData`.
+ */
+export function dataedit_chart(request_json: string): string;
+
+/**
+ * `db_data_compare`: `{ left, right, key }` → `DataDiff`.
+ */
+export function dataedit_compare(request_json: string): string;
+
+/**
+ * `db_fk_incoming` → `Incoming[]`.
+ */
+export function dataedit_incoming(request_json: string): string;
+
+/**
+ * `db_fk_navigate` → `Navigation`.
+ */
+export function dataedit_navigate(request_json: string): string;
+
+/**
+ * `{ dialect, schema, table, info, changes }` → `{ statements, key }` (the mock's
+ * `db_preview_changes` and `db_apply_changes`).
+ */
+export function dataedit_preview(request_json: string): string;
+
+/**
+ * `{ dialect, query }` → `TableSql` (the mock's `db_table_data`).
+ */
+export function dataedit_table_query(request_json: string): string;
+
+/**
+ * `db_value_binary` → `BinaryInfo | null`.
+ */
+export function dataedit_value_binary(request_json: string): string;
+
+/**
+ * `db_value_editor` → `EditorKind`.
+ */
+export function dataedit_value_editor(request_json: string): string;
+
+/**
+ * `db_value_format` → `{ text?, error? }`.
+ */
+export function dataedit_value_format(request_json: string): string;
+
+/**
+ * `db_value_temporal` → `string | null`.
+ */
+export function dataedit_value_temporal(request_json: string): string;
+
+/**
+ * `db_data_view`: `{ columns, rows, view }` → row indexes.
+ */
+export function dataedit_view(request_json: string): string;
+
+/**
  * `{ dataSource, objects, schema? }` → the schema with the virtual objects merged in, or
  * `{ ok: true }` when the objects are valid and no schema was given; `{ error }` otherwise.
  */
@@ -525,6 +586,62 @@ export function dbmodel_parse_ddl(request_json: string): string;
  * cut them.
  */
 export function dbmodel_search_rows(request_json: string): string;
+
+/**
+ * Mirrors `db_design_info`: `{ dialect }` → `DesignDialect`.
+ */
+export function dbobjects_design_info(json: string): string;
+
+/**
+ * Mirrors `db_design_preview`: `{ dialect, old?, table, options? }` → `{ sql, statements, warnings }`.
+ */
+export function dbobjects_design_preview(json: string): string;
+
+/**
+ * Mirrors `db_design_load` with the mock's table: `{ schema, table }` → `TableSpec`.
+ */
+export function dbobjects_design_spec(json: string): string;
+
+/**
+ * Mirrors `db_drop_sql`.
+ */
+export function dbobjects_drop_sql(json: string): string;
+
+/**
+ * Mirrors `db_dump_command`: `{ request, target }` → `{ display, program, args }`.
+ */
+export function dbobjects_dump_command(json: string): string;
+
+/**
+ * Mirrors `db_dump_tools`: `{ driver }`.
+ */
+export function dbobjects_dump_tools(json: string): string;
+
+/**
+ * Mirrors `db_export_xlsx` without a path: the workbook as base64.
+ */
+export function dbobjects_export_xlsx(json: string): string;
+
+/**
+ * Mirrors `db_generate_ddl` with the mock's model: `{ model, objects, options?, values }`.
+ */
+export function dbobjects_generate_ddl(json: string): string;
+
+/**
+ * The statements of an import (the mock runs them on the demo database):
+ * `{ dialect, data, options, plan }` → `{ create: string[], batches: Batch[], rows }`.
+ */
+export function dbobjects_import_batches(json: string): string;
+
+/**
+ * Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows?, dialect? }`.
+ */
+export function dbobjects_import_preview(json: string): string;
+
+/**
+ * Mirrors `db_rename_sql`.
+ */
+export function dbobjects_rename_sql(json: string): string;
 
 /**
  * `{ text }` -> `Task[]`.
@@ -2367,11 +2484,34 @@ export interface InitOutput {
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
+    readonly dataedit_aggregate: (a: number, b: number, c: number) => void;
+    readonly dataedit_chart: (a: number, b: number, c: number) => void;
+    readonly dataedit_compare: (a: number, b: number, c: number) => void;
+    readonly dataedit_incoming: (a: number, b: number, c: number) => void;
+    readonly dataedit_navigate: (a: number, b: number, c: number) => void;
+    readonly dataedit_preview: (a: number, b: number, c: number) => void;
+    readonly dataedit_table_query: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_binary: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_editor: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_format: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_temporal: (a: number, b: number, c: number) => void;
+    readonly dataedit_view: (a: number, b: number, c: number) => void;
     readonly dbmodel_apply_virtual: (a: number, b: number, c: number) => void;
     readonly dbmodel_match_schemas: (a: number, b: number, c: number) => void;
     readonly dbmodel_object_doc: (a: number, b: number, c: number) => void;
     readonly dbmodel_parse_ddl: (a: number, b: number, c: number) => void;
     readonly dbmodel_search_rows: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_info: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_spec: (a: number, b: number, c: number) => void;
+    readonly dbobjects_drop_sql: (a: number, b: number, c: number) => void;
+    readonly dbobjects_dump_command: (a: number, b: number, c: number) => void;
+    readonly dbobjects_dump_tools: (a: number, b: number, c: number) => void;
+    readonly dbobjects_export_xlsx: (a: number, b: number, c: number) => void;
+    readonly dbobjects_generate_ddl: (a: number, b: number, c: number) => void;
+    readonly dbobjects_import_batches: (a: number, b: number, c: number) => void;
+    readonly dbobjects_import_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_rename_sql: (a: number, b: number, c: number) => void;
     readonly deno_tasks: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
     readonly deploy_entry_path: (a: number, b: number, c: number) => void;

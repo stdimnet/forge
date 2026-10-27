@@ -1,8 +1,8 @@
 ---
 title: Database tools and SQL console
-description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), query consoles with sessions and transactions, read-only and production data sources, the data grid with editing, and export.
+description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), query consoles with sessions and transactions, read-only and production data sources, the data editor (server-side sort and filter, value editor, pending changes with DML preview, foreign-key navigation, transpose, aggregates, compare data, charts), Create/Modify Table, Drop and Rename, Generate DDL, import from CSV/Excel/JSON, export, and dump/restore with the native tools.
 order: 170
-tags: [database, sql, sql editor, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl]
+tags: [database, sql, sql editor, data editor, value editor, compare data, chart, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl, create table, modify table, alter table, generate ddl, import, csv, excel, json, export, dump, restore, mysqldump, pg_dump]
 ---
 
 # Database tools and SQL console
@@ -53,8 +53,11 @@ Toolbar: **+** (add data source), **Refresh**, **Data Source Properties** (`Shif
 **Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**, **Sessions** (see
 [Sessions](#sessions)). Context menu of a node: **Quick Documentation**, **Full-Text Search…**,
 **New Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Add Virtual
-Foreign Key…** (columns), **Add Virtual Column…** (tables), **Schemas…**, **Properties**,
-**Refresh**, **Disconnect**, **Delete**.
+Foreign Key…** (columns), **Add Virtual Column…** (tables), **New › Table…**, **Modify
+Table…**, **Rename…**, **Drop…**, **SQL Scripts ›**, **Import/Export ›** (see
+[Database objects](#database-objects)), **Schemas…**, **Properties**, **Refresh**,
+**Disconnect**, **Delete**. `Ctrl+click` adds nodes to the selection and `Shift+click` selects a
+range, for Generate DDL and Drop of several objects.
 
 ### Quick Documentation
 
@@ -366,23 +369,278 @@ Previous, Next, Last Page**), a **WHERE** filter and an **ORDER BY** field.
 | Action | Windows/Linux | macOS |
 | --- | --- | --- |
 | Edit a cell | double-click or `Enter` | same |
+| Value Editor | `Shift+Enter` | `Shift+Enter` |
+| Go to Referenced Data | `Ctrl+B` | `Cmd+B` |
+| Find Referencing Rows | `Alt+F7` | `Alt+F7` |
 | Add Row | `Alt+Insert` | `Cmd+N` |
 | Delete Rows | `Ctrl+Y` | `Cmd+Backspace` |
 | Revert Selected | `Ctrl+Alt+Z` | `Cmd+Alt+Z` |
 | Submit | `Ctrl+Enter` | `Cmd+Enter` |
 | Reload Page | toolbar | toolbar |
 
-Cell context menu: **Copy**, **Copy with Header**, **Set NULL**. Changes are applied in one
-transaction on **Submit**. Tables without a primary key cannot identify changed rows: only new
-rows can be submitted there.
+Cell context menu: **Copy**, **Copy with Header**, **Edit**, **Set NULL**, **Edit Value…**,
+**Set DEFAULT**, **Filter by** the cell's value, **Go to** the referenced table and **Find
+Referencing Rows…**. Changes are applied in one transaction on **Submit**.
 
 NULL is displayed as `<null>` (**Show NULL as**, `database.showNullAs`). Binary values are shown
 as hex.
 
+## Data editor
+
+The table editor and console results work like DataGrip's data editor. Everything that needs
+the database runs there (sort, filter, the DML), and everything else is computed by Forge's Rust
+core (crate [`forge-dataedit`](../developer/crates/forge-dataedit.md)).
+
+### Sort and filter
+
+- **Click a column header** to sort by it: ascending, descending, then off. **Ctrl+Click**
+  (`Cmd+Click`) adds the column to the sort, so several columns sort in order (the header shows
+  the position). The header context menu has **Sort Ascending**, **Sort Descending**, **Add to
+  Sort**, **Clear Sort** and `IS NULL` / `IS NOT NULL` filters.
+- **WHERE** takes any condition of the database's SQL. Column names are completed while you
+  type (`↑`/`↓`, `Enter` or `Tab`); `Enter` applies the filter.
+- **Filter by value** in a cell's context menu adds a condition such as `status <> 'cancelled'`
+  or `shipped_at IS NULL`. The conditions show as chips under the filter row; `×` removes one.
+
+![Filter and sort](../../screenshots/data-editor-filter-sort.png)
+
+Table editors sort and filter **on the server**: Forge builds the `SELECT … WHERE … ORDER BY`
+for the data source's dialect (quoting, `LIMIT`/`OFFSET` or `OFFSET … FETCH`) and shows it in the
+status. The typed condition must stay one read-only condition: Forge refuses it when it holds a
+`;`, unbalanced brackets, an unclosed quote or comment, or writes (`DELETE`, `UPDATE`,
+`INSERT`, `DROP`, `SELECT … INTO`, …, also in subqueries).
+
+Console results come from arbitrary queries, so header sort and **Filter by value** run
+**locally** on the fetched rows (NULLs first, numbers and decimals numerically).
+
+### Value editor
+
+**Shift+Enter** (or the panel icon, or **Edit Value…**) opens the value editor of the current
+cell at the right. It picks the editor from the column type and the value:
+
+| Value | Editor |
+| --- | --- |
+| Text | multi-line text |
+| JSON (`json`, `jsonb`, or text that holds JSON) | formatted, validated while you type (line and column of the error), **Reformat** and **Minify**; the key order is kept |
+| XML | indented and checked for well-nested tags |
+| Binary | size, hex dump and an image preview for PNG, JPEG, GIF, WebP and BMP |
+| `date`, `datetime`, `timestamp`, `time` | a date/time picker plus the text, normalized on **Apply** (`2025-1-6 9:05` → `2025-01-06 09:05:00`) |
+| `enum(…)`, `set(…)` | a list of the allowed values (check boxes for `set`) |
+| Boolean, number | a selector or a number field |
+
+**Apply** writes the value into the grid as a pending change. **Set NULL** and **Set DEFAULT**
+(for columns with a default or auto increment) are there too. In console results the value
+editor is a read-only viewer.
+
+![Value editor with JSON](../../screenshots/data-editor-value-json.png)
+
+### Pending changes and the DML preview
+
+Edits, new rows, deleted rows, `NULL` and `DEFAULT` stay **pending** until you **Submit** them;
+**Revert** drops them. **Preview Pending Changes** (the list icon next to Submit) shows the
+statements Forge will run, generated for the dialect:
+
+![Pending changes with the DML preview](../../screenshots/data-editor-pending-dml.png)
+
+Rows are identified by the **primary key**; a table without one uses a **unique key whose columns
+are all NOT NULL**. A table with neither refuses updates and deletes (new rows still work):
+edit it with an `UPDATE` in a console instead. A statement that would change more than one row
+rolls the whole batch back.
+
+Writes honour the data source: **read-only** data sources refuse them, and on **production** (red)
+data sources Submit shows the statements and asks for confirmation first.
+
+### Foreign-key navigation
+
+**Ctrl+B** on a cell of a foreign-key column opens the referenced table filtered to the
+referenced row (`id = 23`); with several keys on the column, a popup lets you choose.
+**Alt+F7** (**Find Referencing Rows…**) goes the other way: it lists the tables whose foreign
+keys reference this table and opens the rows that reference the current one. Both work with real
+and [virtual foreign keys](#virtual-foreign-keys-and-columns).
+
+![Jump to the referenced row](../../screenshots/data-editor-fk-jump.png)
+
+### Transpose
+
+**Transpose** shows each row as a column, with one line per column of the table — handy for wide
+tables. Click a cell to select it; double-click opens it in the value editor.
+
+![Transposed view](../../screenshots/data-editor-transposed.png)
+
+### Aggregates
+
+When several cells are selected, the line under the grid shows their **Count**, **Sum**, **Avg**,
+**Min**, **Max**, **Distinct** count and NULLs. Decimals are summed exactly. **Aggregate View**
+(the Σ icon, or a click on the line) lists the aggregates per selected column.
+
+![Aggregates](../../screenshots/data-editor-aggregates.png)
+
+### Compare data
+
+**Compare With…** (toolbar or context menu, in table editors and console results) compares the
+rows with another open result, an open table or any table of a connected data source. Pick the
+**key** columns (the primary key is preselected); Forge matches rows by key and opens a
+comparison tab with **changed** rows (old → new in each changed cell), **added** and **removed**
+rows. The counters filter the rows; **unchanged** rows are hidden at first. Without a key, whole
+rows are matched. Tables are compared on their first 5,000 rows.
+
+![Compare data](../../screenshots/data-editor-compare.png)
+
+### Charts
+
+**Show Chart** turns the result into a chart: **bar**, **line**, **area**, **pie** or
+**scatter**. Pick the **X** column, one or more **Y** columns, an optional **Group by** column
+(one series per value) and how values of the same X are combined (**SUM**, **AVG**, **MIN**,
+**MAX** or **COUNT**). Numbers and dates on the X axis are sorted.
+
+![Chart](../../screenshots/data-editor-chart.png)
+
+## Database objects
+
+DataGrip's object dialogs work on every SQL data source (MySQL, MariaDB, PostgreSQL, SQLite,
+SQL Server, Oracle and ClickHouse). The SQL they show is generated by Forge for the data
+source's dialect; it runs only when you confirm.
+
+![Context menu with SQL Scripts](../../screenshots/database-objects-menu.png)
+
+### Create Table and Modify Table
+
+**New › Table…** (context menu of a data source, schema or table) and **Modify Table…**
+(`Ctrl+F6` on a table) open the table dialog:
+
+- the **structure tree** on the left: the table, its **columns**, **keys** (primary and unique),
+  **foreign keys**, **indexes** and **checks**; **+** adds a column, key, foreign key, index or
+  check, **−** removes the selected one, the arrows reorder columns;
+- the **properties** of the selected node on the right: a column's name, **type** (with the
+  dialect's types as completion), **default**, **comment**, **Not null**, **Auto increment**
+  (`AUTO_INCREMENT`, `IDENTITY(1,1)`, `GENERATED BY DEFAULT AS IDENTITY`) and **Primary key**; a
+  foreign key's columns, **target table** and **target columns** (from the loaded schemas),
+  **On update** and **On delete**; an index's columns, **Unique** and **method** (PostgreSQL,
+  MySQL); a check's expression;
+- the table node holds the name, comment and the dialect's **table options**: MySQL engine,
+  charset and collation; PostgreSQL tablespace and `UNLOGGED`; SQLite `WITHOUT ROWID` and
+  `STRICT`; ClickHouse engine, `ORDER BY` and `PARTITION BY`; Oracle tablespace; temporary
+  tables;
+- a live **SQL preview** below.
+
+![Create Table](../../screenshots/database-create-table.png)
+
+**Modify Table** compares the table as loaded with your edits and shows the `ALTER` script.
+Columns keep their original names, so changing a name is a **rename** (`RENAME COLUMN`,
+`sp_rename`, MySQL `CHANGE COLUMN` when the definition changes too), not a drop and an add. Keys,
+foreign keys and indexes follow renamed columns. Changes that may lose data — a dropped column,
+a type change, SQLite tables that must be rebuilt — are listed as **warnings** in red above the
+script, and **OK** asks again before running it; a column that becomes `NOT NULL` is a warning
+too.
+
+![Modify Table](../../screenshots/database-modify-table.png)
+
+Per dialect: PostgreSQL uses `ALTER COLUMN … TYPE … USING`, `SET/DROP NOT NULL`, `SET/DROP
+DEFAULT` and `COMMENT ON`; SQL Server looks up the generated name of a default constraint before
+it drops it and keeps comments as `MS_Description` extended properties; Oracle uses `MODIFY (…)`;
+ClickHouse `MODIFY COLUMN` and `COMMENT COLUMN`. SQLite can only rename and add columns in
+place: for other changes Forge rebuilds the table (create `<table>_new`, copy the rows, drop the
+old table, rename, recreate the indexes) and says so.
+
+At the bottom choose **Execute in database** or **Open in console** (to review or edit the
+script first). Executing runs the statements one by one on their own connection and stops at the
+first error, naming the failed statement. A **read-only** data source refuses the script; a
+**production** (red) data source asks before *any* change, not only unfiltered ones. The schema
+is refreshed afterwards.
+
+### Rename and Drop
+
+**Rename…** (tables, views) and **Rename Column…** (columns) show the `RENAME` statement for the
+dialect. **Drop…** drops tables, views, materialized views, sequences, routines, types, indexes
+and triggers — one or several selected nodes — with a preview and a **Cascade** option:
+`CASCADE` (PostgreSQL), `CASCADE CONSTRAINTS` (Oracle), or, where the database has no cascade
+(MySQL, SQLite, SQL Server), the foreign keys of other tables that reference the dropped table
+are dropped first.
+
+### Generate DDL
+
+**SQL Scripts ›** on one or several selected objects (tables, views, routines, sequences, types,
+indexes, triggers, or a whole schema):
+
+- **Generate DDL to Clipboard**, **to Query Console** or **to File…**;
+- **SQL Generator…**: pick the objects in a list and set the options **Include DROP
+  statements**, **IF NOT EXISTS / OR REPLACE** and **Qualify names with schema**; the script
+  updates as you change them; **Copy**, **File…** or **Open in Console**.
+
+![SQL Generator](../../screenshots/database-generate-ddl.png)
+
+The script is in **dependency order**: types, sequences, tables ordered by their foreign keys
+(referenced tables first), views ordered by the views they read, routines, indexes, triggers.
+Foreign keys between tables that reference each other are added with `ALTER TABLE` after both
+tables exist. `DROP … IF EXISTS` statements come first, in reverse order. The script is formatted
+with your SQL code style (Settings | Editor | Code Style | SQL) and works for DDL data sources
+too.
+
+## Import data
+
+**Import/Export › Import Data from File…** (on a data source, schema or table) imports a file
+into an existing table or a new one:
+
+- **Source**: **CSV**, **TSV**, **Excel** (`.xlsx`, `.xls`, `.ods`; choose the **sheet**) or
+  **JSON** (an array of objects, an array of arrays with a header row, or one object per line —
+  NDJSON). For CSV: **delimiter** (detected from the first lines: comma, semicolon, tab or pipe),
+  **quote**, **encoding** (detected from a byte order mark, else UTF-8, else Windows-1252; or
+  choose one), **First row is header**, **Trim whitespace** and **Skip rows**. Quoted fields may
+  contain delimiters, line breaks and doubled quotes; rows with missing fields are padded and
+  reported. An empty unquoted field is `NULL`, `""` an empty string.
+- **Columns**: every source column with its **detected type** (integer, decimal, boolean, date,
+  date-time or text; values with leading zeros stay text), the **target column** (a column of the
+  existing table, matched by name; or a name for the new table) and, for a new table, its SQL
+  **type** in the target dialect. Untick a column to leave it out.
+- **Preview**: the first 10 to 100 rows; a new table shows its `CREATE TABLE`.
+- **Target**: schema and an existing table, or **New** with a name (the file's name by
+  default).
+- **Options**: **On error** — *Skip the row and continue* (a failing batch is retried row by row
+  and the failing rows are reported) or *Abort* (stops at the first error and, where the driver
+  has transactions, keeps nothing); **Batch size**; **Empty values as NULL**.
+
+![Import mapping dialog](../../screenshots/database-import.png)
+
+Rows are inserted with multi-row `INSERT` statements per batch (at most 1000 rows per statement
+on SQL Server, `INSERT ALL … SELECT 1 FROM dual` on Oracle; booleans, dates and numbers as
+literals of the dialect). A progress bar shows the rows done; **Cancel** stops after the current
+batch. Read-only data sources refuse imports; production data sources ask first.
+
 ## Export
 
-**Export Data** (the download icon in a result or table) writes the rows as **CSV**, **JSON**
-or SQL **INSERT** statements for the dialect.
+**Export Data** (the download icon in a result or table) writes the rows as **CSV**, **JSON**,
+SQL **INSERT** statements for the dialect, a **Markdown** table, or an **Excel** workbook
+(`.xlsx`, with a bold, frozen header row; numbers and booleans stay numbers and booleans).
+**Copy as** puts CSV, JSON, SQL or Markdown on the clipboard.
+
+## Dump and restore with native tools
+
+**Import/Export ›** on a data source, schema or table also offers the database's own dump and
+restore tools, **installed by you** (Forge does not ship them):
+
+| Data source | Dump | Restore |
+| --- | --- | --- |
+| MySQL, MariaDB | `mysqldump` | `mysql` (`source <file>`) |
+| PostgreSQL | `pg_dump` (plain, custom, directory or tar) | `pg_restore` (custom, directory, tar) or `psql` (plain SQL) |
+| SQLite | `sqlite3 .dump` / `.schema` | `sqlite3 .read` |
+| SQL Server | `sqlcmd` `BACKUP DATABASE … TO DISK` | `sqlcmd -i script.sql`, or `RESTORE DATABASE` for a `.bak` |
+
+The dialog has the **path** to the tool (empty: found on the `PATH`), the **output** or **input
+file**, the **schemas** (MySQL: databases) and **tables** to include (selected tables are
+preselected) and the options: **Structure**, **Data**, **Drop objects first** (`--add-drop-table`,
+`--clean --if-exists`), **Create database**, **Single transaction**, **No owner**, the pg_dump
+**format** and parallel **jobs**, and **More arguments**. The **command line** is shown as it
+will run.
+
+![pg_dump dialog](../../screenshots/database-dump.png)
+
+**Run** starts the tool in the **Run** tool window with the data source's connection: host,
+port, user and database come from the data source, the password is passed in the tool's
+environment variable (`MYSQL_PWD`, `PGPASSWORD`, `SQLCMDPASSWORD`) and **never on the command
+line**, and a data source with an SSH tunnel is reached through the tunnel (open while the tool
+runs). A restore asks for confirmation, is **refused on read-only** data sources and asks again
+on **production** ones. Running tools is refused in Safe Mode (an untrusted project). In a remote
+project the tools run on the host, so the file paths are paths on the host.
 
 ## Settings | Tools | Database
 

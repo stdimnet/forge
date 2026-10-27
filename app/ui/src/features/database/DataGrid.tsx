@@ -23,6 +23,10 @@ export interface GridSelection {
 
 export interface GridApi {
   selection: () => GridSelection | null;
+  /** The shown value of a cell (pending edits included); `undefined` for an untouched new cell. */
+  valueAt: (row: number, col: number) => Cell | undefined;
+  /** Selected range as row-major values with its column indexes. */
+  selectedCells: () => { cols: number[]; rows: number[]; values: Cell[][] } | null;
   /** Selected row indexes (loaded and inserted rows share one index space). */
   selectedRows: () => number[];
   focus: () => void;
@@ -47,6 +51,12 @@ export interface DataGridProps {
   emptyText?: string;
   /** Extra context menu entries for the selection. */
   menu?: (api: GridApi) => MenuItem[];
+  /** Context menu of a column header. */
+  headerMenu?: (column: GridColumn, index: number) => MenuItem[];
+  /** The selection changed (aggregates, value editor). */
+  onSelect?: (sel: GridSelection | null) => void;
+  /** Extra CSS class of a cell (e.g. compare highlights). */
+  cellClass?: (row: number, col: number) => string | undefined;
   ref?: (api: GridApi) => void;
 }
 
@@ -58,6 +68,7 @@ export function DataGrid(props: DataGridProps) {
   const [editing, setEditing] = createSignal<{ row: number; col: number; text: string } | null>(null);
   const [widths, setWidths] = createSignal<number[]>([]);
   const [menu, setMenu] = createSignal<{ x: number; y: number } | null>(null);
+  const [headerMenu, setHeaderMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
 
   const total = () => props.rows.length + (props.inserted?.length ?? 0);
   const rowAt = (i: number): (Cell | undefined)[] => (i < props.rows.length ? props.rows[i] : (props.inserted?.[i - props.rows.length] ?? []));
@@ -143,6 +154,14 @@ export function DataGrid(props: DataGridProps) {
 
   const api: GridApi = {
     selection: sel,
+    valueAt,
+    selectedCells: () => {
+      const n = norm();
+      if (!n) return null;
+      const cols = Array.from({ length: n.c1 - n.c0 + 1 }, (_, k) => n.c0 + k);
+      const rows = Array.from({ length: n.r1 - n.r0 + 1 }, (_, k) => n.r0 + k);
+      return { cols, rows, values: rows.map((r) => cols.map((c) => valueAt(r, c) ?? null)) };
+    },
     selectedRows: () => {
       const n = norm();
       if (!n) return [];
@@ -153,6 +172,8 @@ export function DataGrid(props: DataGridProps) {
     startEdit: () => startEdit(),
   };
   props.ref?.(api);
+
+  createEffect(on(sel, (s) => props.onSelect?.(s), { defer: true }));
 
   // Selection outside the data after a reload: clamp it.
   createEffect(() => {
@@ -192,7 +213,8 @@ export function DataGrid(props: DataGridProps) {
         return select(e.ctrlKey ? total() - 1 : (s?.row ?? 0), props.columns.length - 1);
       case "Enter":
       case "F2":
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        // Shift+Enter is the value editor (keymap).
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
         e.preventDefault();
         return startEdit();
       default:
@@ -282,8 +304,14 @@ export function DataGrid(props: DataGridProps) {
                 class="dg-th"
                 classList={{ sortable: !!props.onSort, sorted: !!s() }}
                 style={{ width: `${widths()[i()] ?? 100}px` }}
-                title={`${c.name}: ${c.dataType ?? c.typeName}${c.nullable === false ? " (not null)" : ""}${c.autoIncrement ? " auto_increment" : ""}${c.defaultValue != null ? `\ndefault ${c.defaultValue}` : ""}`}
-                onClick={(e) => props.onSort?.(c.name, e.shiftKey || e.ctrlKey)}
+                title={`${c.name}: ${c.dataType ?? c.typeName}${c.nullable === false ? " (not null)" : ""}${c.autoIncrement ? " auto_increment" : ""}${c.defaultValue != null ? `\ndefault ${c.defaultValue}` : ""}${props.onSort ? "\nClick to sort, Ctrl+Click to add to the sort" : ""}`}
+                onClick={(e) => props.onSort?.(c.name, e.shiftKey || e.ctrlKey || e.metaKey)}
+                onContextMenu={(e) => {
+                  const items = props.headerMenu?.(c, i());
+                  if (!items?.length) return;
+                  e.preventDefault();
+                  setHeaderMenu({ x: e.clientX, y: e.clientY, items });
+                }}
               >
                 <Show when={c.primary} fallback={<Show when={c.foreign}><Link2 size={12} class="dg-fk" /></Show>}>
                   <KeyRound size={12} class="dg-pk" />
@@ -339,7 +367,7 @@ export function DataGrid(props: DataGridProps) {
                     const isEditing = () => editing()?.row === r && editing()?.col === ci();
                     return (
                       <div
-                        class={`dg-td ${shown().cls ?? ""}`}
+                        class={`dg-td ${shown().cls ?? ""} ${props.cellClass?.(r, ci()) ?? ""}`}
                         classList={{
                           selected: inSel(r, ci()),
                           cursor: isCursor(r, ci()),
@@ -405,6 +433,7 @@ export function DataGrid(props: DataGridProps) {
         <div class="dg-empty">{props.emptyText ?? "No rows"}</div>
       </Show>
       <Show when={menu()}>{(m) => <ContextMenu x={m().x} y={m().y} items={menuItems()} onClose={() => setMenu(null)} />}</Show>
+      <Show when={headerMenu()}>{(m) => <ContextMenu {...m()} onClose={() => setHeaderMenu(null)} />}</Show>
     </div>
   );
 }

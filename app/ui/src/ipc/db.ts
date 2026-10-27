@@ -337,8 +337,9 @@ export interface SearchSummary {
   elapsedMs: number;
 }
 
-/** A cell: JSON scalars; big numbers/decimals/dates as strings; binary as `{ $hex }`. */
-export type Cell = null | boolean | number | string | { $hex: string };
+/** A cell: JSON scalars; big numbers/decimals/dates as strings; binary as `{ $hex }`; the
+ * value editor's "Set DEFAULT" as `{ $default: true }` (pending changes only). */
+export type Cell = null | boolean | number | string | { $hex: string } | { $default: true };
 
 export interface ColumnMeta {
   name: string;
@@ -380,7 +381,10 @@ export interface SortKey {
 export interface TableDataRequest {
   schema: string;
   table: string;
+  /** The typed WHERE condition (checked by the backend: one read-only condition). */
   filter?: string;
+  /** "Filter by value" conditions (`forge_dataedit::ColumnFilter`). */
+  columnFilters?: import("./dataedit").ColumnFilter[];
   order?: SortKey[];
   offset?: number;
   limit?: number;
@@ -456,7 +460,7 @@ export interface DetectedDataSource {
   origin: string;
 }
 
-export type ExportFormat = "csv" | "json" | "sql";
+export type ExportFormat = "csv" | "json" | "sql" | "markdown";
 
 export const DATA_SOURCES_EVENT = "db://dataSources";
 export const SESSION_EVENT = "db://session";
@@ -488,8 +492,9 @@ export const dbApi = {
   tableInfo: (id: string, schema: string, table: string) => invoke<TableInfo>("db_table_info", { id, schema, table }),
   tableDdl: (id: string, schema: string, table: string) => invoke<string>("db_table_ddl", { id, schema, table }),
   tableData: (id: string, request: TableDataRequest) => invoke<QueryPage>("db_table_data", { id, request }),
-  applyChanges: (id: string, schema: string, table: string, changes: RowChange[]) =>
-    invoke<ApplyResult>("db_apply_changes", { id, schema, table, changes }),
+  /** Submit pending changes; production data sources need `confirmed`. */
+  applyChanges: (id: string, schema: string, table: string, changes: RowChange[], confirmed?: boolean) =>
+    invoke<ApplyResult>("db_apply_changes", { id, schema, table, changes, confirmed }),
   /** A console session: its own connection, or with `shared` the data source's shared one. */
   openSession: (id: string, shared?: boolean) => invoke<SessionInfo>("db_session_open", { id, shared }),
   closeSession: (sessionId: string) => invoke<void>("db_session_close", { sessionId }),

@@ -62,6 +62,7 @@ async fn introspects_and_queries_over_http() {
                 schema: "shop".into(),
                 table: "events".into(),
                 filter: None,
+                column_filters: Vec::new(),
                 order: Vec::new(),
                 offset: 0,
                 limit: None,

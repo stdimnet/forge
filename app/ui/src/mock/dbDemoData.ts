@@ -64,6 +64,10 @@ const PRODUCTS: [string, string, number][] = [
   ["Coffee Beans 1kg", "Kitchen", 26.0],
 ];
 
+/** A 16×16 PNG (an ember on a dark background) for the avatar column's image preview. */
+const AVATAR_PNG =
+  "89504e470d0a1a0a0000000d494844520000001000000010080200000090916836000000924944415478dab552bb0a853014eb776474f22fdd1c1c0497d2416e11a182f88ff118900b72ef70142143d32487f411aaaa76213c0d700517b008b658f137c04d8e19cce047c8a2b6b9e157c084091cc1044621894e47e61a389acc92cd3780bd30888e92ce6ee13b3e6ba4993ab0153ad12469b9048a4a470d366b23b4a25152791a7057f21eda7dad771ecefd35defaad3b33fb0af498a8d9fb0000000049454e44ae426082";
+
 const STATUSES = ["delivered", "delivered", "shipped", "paid", "pending", "cancelled"];
 
 const col = (name: string, dataType: string, opts: Partial<TableInfo["columns"][number]> = {}) => ({
@@ -95,7 +99,7 @@ export function createDemoDatabase(): DemoDatabase {
       "$2y$12$" + Math.floor(r() * 1e16).toString(36).padEnd(11, "x") + "Qe7rJb1aM9cW",
       i <= 2 ? "admin" : "customer",
       (Math.round(r() * 50000) / 100).toFixed(2),
-      i % 4 === 1 ? { $hex: "89504e470d0a1a0a0000000d49484452" } : null,
+      i % 4 === 1 ? { $hex: AVATAR_PNG } : null,
       i % 3 === 0 ? null : Math.floor(r() * 1e12).toString(36),
       created,
       i % 6 === 0 ? stamp(i * 3 + 20, 300) : created,
@@ -158,7 +162,13 @@ export function createDemoDatabase(): DemoDatabase {
     stamp(60 + i, i * 37),
     i % 2 ? "ada.lovelace@example.com" : "system",
     pick(["order.created", "order.shipped", "user.login", "product.updated"]),
-    JSON.stringify({ id: 1 + i * 3, ip: `10.0.0.${10 + i}` }),
+    JSON.stringify({
+      id: 1 + i * 3,
+      ip: `10.0.0.${10 + i}`,
+      agent: i % 3 ? "Forge/1.0 (Linux)" : "curl/8.7",
+      tags: ["shop", i % 2 ? "web" : "cli"],
+      meta: { attempt: (i % 3) + 1, ok: i % 5 !== 0, ms: 12 + ((i * 7) % 40) },
+    }),
   ]);
 
   const tables: Record<string, DemoTable> = {

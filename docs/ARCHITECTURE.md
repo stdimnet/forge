@@ -1965,6 +1965,29 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 
 ## Database tools (`forge-db`)
 
+- Database objects (`commands/db_objects.rs`, `app/ui/src/ipc/dbObjects.ts`, UI in
+  `features/database/objects/`): the Create/Modify Table dialogs edit a `TableSpec`
+  (`forge_dbmodel::design`); `db_design_load({ id, schema, table })` gives the spec of an
+  existing table (columns remember their `original` name), `db_design_preview({ dialect, old?,
+  table, options? }) -> { sql, statements, warnings }` is `CREATE TABLE` or the rename-aware
+  `ALTER` diff with destructive-change warnings, `db_design_info({ dialect })` the types and
+  table options; `db_drop_sql({ dialect, requests })`, `db_rename_sql`. Scripts run with
+  `db_objects_guard({ id, sql })` (read-only refused, any change confirmed on production) and
+  `db_run_script({ id, sql, confirmed? }) -> { executed, total, failed?, error? }`.
+  `db_generate_ddl({ id, objects, options, path? })` orders the selection
+  (`forge_dbmodel::script`) and formats it with the SQL code style. Import
+  (`forge-dbtransfer`): `db_import_preview({ source: { path? | data (base64) }, options, rows?,
+  dialect? }) -> { table, guesses, names, types, totalRows }` and `db_import_run({ id,
+  importId, source, options, plan, confirmed? }) -> ImportSummary` with `db://import` progress,
+  `db_import_cancel({ importId })`. `db_export_xlsx({ sheet, columns, rows, path? })` writes or
+  returns (base64) an Excel workbook. Dumps: `db_dump_tools`, `db_dump_command` (preview),
+  `db_restore_guard` and `db_dump_start({ id, request, runId, confirmed? })`, which runs the
+  tool through `run::start_built` (Run tool window, `run://<runId>`; refused in Safe Mode) with
+  the password in the tool's environment and the data source's SSH tunnel kept open by a run
+  observer until the tool exits. The UI starts dumps as runs of the hidden run configuration
+  type `db-dump`. Browser mode: `mock/dbObjectsMock.ts` on the `dbobjects_*` WebAssembly
+  functions; scripts are checked and counted, not applied to the demo database.
+
 - Data sources live in `<root>/.forge/dataSources.toml` (project) and
   `<config dir>/forge/dataSources.toml` (global) as `[[dataSource]]` tables; passwords go to the
   OS keychain (service `forge-db`, account = data source id). MySQL/MariaDB, PostgreSQL and SQLite
@@ -1973,14 +1996,27 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 - IPC (`app/ui/src/ipc/db.ts`): `db_data_sources_list`, `db_data_source_save({ source, password? })`,
   `db_data_source_delete({ id })`, `db_test_connection({ source, password? })`, `db_disconnect`,
   `db_schemas`, `db_introspect({ id, schema })`, `db_table_info`, `db_table_ddl`,
-  `db_table_data({ id, request: { schema, table, filter?, order?, offset?, limit? } })`,
-  `db_apply_changes({ id, schema, table, changes })` (one transaction, refused without a primary key),
+  `db_table_data({ id, request: { schema, table, filter?, columnFilters?, order?, offset?, limit? } })`
+  (SQL per dialect from `forge-dataedit`; the typed filter must be one read-only condition),
+  `db_preview_changes({ id, schema, table, changes }) -> { statements, key?, blocked?, confirm? }`
+  and `db_apply_changes({ id, schema, table, changes, confirmed? })` (one transaction; rows by
+  primary key, else a NOT NULL unique key; refused on read-only data sources and on production
+  ones unless `confirmed`),
   consoles `db_session_open|close`, `db_execute({ sessionId, sql, pageSize? })`, `db_fetch`,
   `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `.env` suggestions
   `db_detect_env` / `db_add_from_env`, `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`
   and `db_statement_at({ sql, from, to, dialect }) -> { text, start, end } | null` (what Ctrl+Enter
   runs; editor offsets). SQL text handling (dialects, splitting, literals, row changes, export) is
   the pure crate `forge-sql`, re-exported by `forge-db`.
+- Data editor: the pure crate `forge-dataedit` (also in WebAssembly as `dataedit_*`), IPC in
+  `commands/dataedit.rs`: `db_data_view({ request: { columns, rows, view } }) -> number[]` (local
+  sort and filter of console results), `db_data_aggregate` (`{ total, columns }`),
+  `db_data_compare({ request: { left, right, key } }) -> DataDiff`, `db_data_chart`,
+  `db_fk_navigate` (`direction: "referenced" | "referencing"` → table and WHERE text),
+  `db_fk_incoming`, `db_value_editor`, `db_value_format`, `db_value_binary`, `db_value_temporal`.
+  UI: `TableEditor`, `ResultGrid`, `ValueEditor`, `ChartView` (plain SVG), `CompareView`
+  (`db-compare://` tabs); grids register a `GridController` (`data-grid-id`) for Ctrl+B
+  (`Console.TableResult.GotoReferencedData`), Alt+F7 and Shift+Enter.
 - Database Explorer: the model types are the pure crate `forge-dbmodel` (also in WebAssembly as
   `dbmodel_*`). `db_model({ id, refresh? }) -> DbModel` (dialect, `catalog`/`catalogs`, every
   schema with `visible` from the data source's schema filter `options.schemas`, introspected

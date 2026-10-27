@@ -14,8 +14,8 @@ use std::sync::Arc;
 use forge_core::FsChanges;
 use forge_core::{ForgeError, Result};
 use forge_db::{
-    ApplyResult, DataSource, DataSourceInfo, DbError, DbModel, DbResult, DbService, DbTunnel,
-    DetectedDataSource, Dialect, ExportFormat, Guard, KeyringStore, ObjectDoc, ObjectRef,
+    ApplyResult, ChangePreview, DataSource, DataSourceInfo, DbError, DbModel, DbResult, DbService,
+    DbTunnel, DetectedDataSource, Dialect, ExportFormat, Guard, KeyringStore, ObjectDoc, ObjectRef,
     ProjectContext, QueryPage, RedisKeys, RedisValue, RowChange, SchemaInfo, SchemaName,
     SearchProgress, SearchRequest, SearchSummary, SecretUpdate, SessionInfo, SessionMode,
     StatementResult, TableDataRequest, TableInfo, TestResult, TunnelEndpoint, VirtualObjects,
@@ -255,18 +255,36 @@ pub async fn db_table_data(
     Ok(state.service.table_data(&id, &request).await?)
 }
 
-/// Submit the data editor's pending changes (one transaction; refused without a PK).
+/// Submit the data editor's pending changes (one transaction; refused without a primary or
+/// unique key, on read-only data sources, and on production ones unless `confirmed`).
 #[tauri::command]
 pub async fn db_apply_changes(
     id: String,
     schema: String,
     table: String,
     changes: Vec<RowChange>,
+    confirmed: Option<bool>,
     state: State<'_, DbState>,
 ) -> Result<ApplyResult> {
     Ok(state
         .service
-        .apply_changes(&id, &schema, &table, &changes)
+        .apply_changes(&id, &schema, &table, &changes, confirmed.unwrap_or(false))
+        .await?)
+}
+
+/// The DML of the data editor's pending changes, the key it uses, and whether the data
+/// source refuses (read-only) or asks first (production).
+#[tauri::command]
+pub async fn db_preview_changes(
+    id: String,
+    schema: String,
+    table: String,
+    changes: Vec<RowChange>,
+    state: State<'_, DbState>,
+) -> Result<ChangePreview> {
+    Ok(state
+        .service
+        .preview_changes(&id, &schema, &table, &changes)
         .await?)
 }
 
