@@ -2,7 +2,7 @@
 title: Database tools and SQL console
 description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), query consoles with sessions and transactions, read-only and production data sources, the data grid with editing, and export.
 order: 170
-tags: [database, sql, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl]
+tags: [database, sql, sql editor, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl]
 ---
 
 # Database tools and SQL console
@@ -286,6 +286,12 @@ from .env files** (`database.suggestFromEnv`).
 
 SQL [scratch files](scratches-and-http.md) attached to a data source open as consoles too.
 
+Consoles are full [SQL editors](sql-editor.md): names resolve against the data source with the
+SQL inspections and their quick fixes, `Ctrl+B` jumps to a table or column in the tree,
+`Shift+F6` renames aliases, user parameters (`:id`, `?`, …) are asked before running, and
+**Browse Query History** (`Ctrl+Alt+E`, the clock icon) searches, inserts or re-runs every
+statement the data source ran.
+
 ### Sessions
 
 Every console runs in a **session** (an open connection). By default each console has its own
@@ -385,6 +391,9 @@ or SQL **INSERT** statements for the dialect.
 | Result set page size | `database.pageSize` | 500 |
 | Show NULL as | `database.showNullAs` | `<null>` |
 | Suggest data sources from .env files | `database.suggestFromEnv` | on |
+| User parameters `?`, `:name`, `$1`, `${name}`, `#{name}` | `database.parameters.*` | on |
+| Query history entries per data source | `database.history.limit` | 1000 |
+| Run SQL Script: stop at the first error | `database.runFile.stopOnError` | on |
 
 ## Remote projects
 

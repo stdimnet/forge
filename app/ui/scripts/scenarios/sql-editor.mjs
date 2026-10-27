@@ -13,13 +13,10 @@ async function addShop(page) {
 
 /** @param {import("playwright-core").Page} page */
 async function openReports(page) {
-  await page.click('[data-tool-window="project"]').catch(() => undefined);
-  if (!(await page.locator(`.tree-row[data-path="${FILE}"]`).count())) {
-    await page.dblclick('.tree-row[data-path="database"]');
-    await page.dblclick('.tree-row[data-path="database/queries"]');
-  }
-  await page.dblclick(`.tree-row[data-path="${FILE}"]`);
-  await page.waitForSelector(".cm-content");
+  await page.evaluate(async (p) => {
+    const { openFileAt } = await import("/src/editor/views.ts");
+    await openFileAt(p, 1, 1, { flash: false });
+  }, FILE);
   await page.waitForSelector('[data-status="sql-dialect"]');
 }
 
@@ -28,11 +25,11 @@ async function dialectMenu(page, label, sub) {
   await page.click('[data-status="sql-dialect"]');
   await page.waitForSelector(".context-menu");
   if (sub) {
-    await page.hover(`.context-menu-item:has-text("${label}")`);
+    await page.hover(`.context-menu-label:text-is("${label}")`);
     await page.waitForTimeout(250);
-    await page.click(`.context-menu-item:has-text("${sub}")`);
+    await page.click(`.context-menu-label:text-is("${sub}")`);
   } else {
-    await page.click(`.context-menu-item:has-text("${label}")`);
+    await page.click(`.context-menu-label:text-is("${label}")`);
   }
   await page.waitForTimeout(300);
 }
@@ -112,7 +109,7 @@ export default {
   "sql-editor-run-file": async (page) => {
     await addShop(page);
     await openReports(page);
-    await page.click(`.tree-row[data-path="${FILE}"]`, { button: "right" });
+    await page.locator(".cm-line", { hasText: "UPDATE orders" }).click({ button: "right" });
     await page.click('.context-menu-item:has-text("Run \'reports.sql\'")');
     await page.waitForSelector('[data-testid="sql-run-file-dialog"]');
     await page.click('[data-testid="sql-run-file-dialog"] .set-check input');

@@ -1067,6 +1067,23 @@ Page id `tools.database`.
 | `database.pageSize` | int (10–100000) | `500` | user | Data Editor and Viewer | Result set page size — Rows fetched per page in consoles and table editors. |
 | `database.showNullAs` | string | `<null>` | user | Data Editor and Viewer | Show NULL as |
 | `database.suggestFromEnv` | bool | `true` | user | General | Suggest data sources from .env files — Offer to add the database configured in Laravel's DB_* or Symfony's DATABASE_URL. |
+| `database.parameters.question` | bool | `true` | user | User Parameters | `?` (positional) is a user parameter. |
+| `database.parameters.colon` | bool | `true` | user | User Parameters | `:name` is a user parameter. |
+| `database.parameters.dollar` | bool | `true` | user | User Parameters | `$1` is a user parameter. |
+| `database.parameters.dollarBrace` | bool | `true` | user | User Parameters | `${name}` is a user parameter. |
+| `database.parameters.hashBrace` | bool | `true` | user | User Parameters | `#{name}` is a user parameter. |
+| `database.history.limit` | int (10–100000) | `1000` | user | Query History | Query history entries per data source — Executed statements kept in the query history of each data source (in Forge's data directory). |
+| `database.runFile.stopOnError` | bool | `true` | user | Query History | Run SQL Script: stop at the first error |
+
+### Languages & Frameworks | SQL Dialects
+
+Page id `lang.sqlDialects` (its own page, see [SQL editor](../user/sql-editor.md#dialects)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `sql.dialect.default` | enum: `generic`, `mysql`, `postgres`, `sqlite`, `sqlserver`, `oracle`, `clickhouse` | `generic` | user | — | Global SQL dialect |
+| `sql.dialect.project` | enum: empty (global), `generic`, `mysql`, `postgres`, `sqlite`, `sqlserver`, `oracle`, `clickhouse` | empty | user, project | — | Project SQL dialect |
+| `sql.dialect.mappings` | objects | `[]` | user, project | — | SQL dialect and data source mappings — Files and folders with their SQL dialect and the data source their names resolve against: `path`, `dialect`, `dataSource`. The most specific path wins. |
 
 ### Tools | AI Agents
 

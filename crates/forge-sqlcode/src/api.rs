@@ -233,15 +233,23 @@ pub struct PlannedStatement {
     pub line: u32,
 }
 
-/// The statements Run SQL file executes, in order.
+/// The statements Run SQL file executes, in order (without their leading comments; `line`
+/// is where the code starts).
 pub fn plan_run(text: &str, d: SqlDialect) -> Vec<PlannedStatement> {
     forge_sql::split_statements(text, d.db())
         .into_iter()
         .enumerate()
-        .map(|(index, st)| PlannedStatement {
-            index,
-            line: text[..st.start].matches('\n').count() as u32,
-            text: st.text,
+        .map(|(index, st)| {
+            let code = crate::lex::lex(&st.text, d)
+                .into_iter()
+                .find(|t| t.kind != crate::lex::Kind::Comment)
+                .map(|t| t.start)
+                .unwrap_or(0);
+            PlannedStatement {
+                index,
+                line: text[..st.start + code].matches('\n').count() as u32,
+                text: st.text[code..].to_string(),
+            }
         })
         .collect()
 }
@@ -263,7 +271,7 @@ mod tests {
     fn plans_statements_with_lines() {
         let plan = plan_run("SELECT 1;\n\n-- two\nSELECT 2;\nGO", SqlDialect::Postgres);
         assert_eq!(plan.len(), 3);
-        assert_eq!(plan[1].text, "-- two\nSELECT 2");
-        assert_eq!(plan[1].line, 2);
+        assert_eq!(plan[1].text, "SELECT 2");
+        assert_eq!(plan[1].line, 3);
     }
 }

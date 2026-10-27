@@ -97,6 +97,7 @@ not finished, the page says so.
 | [Debugging](debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
 | [Terminal](terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](database.md) | data sources, consoles, data grid, export |
+| [SQL editor](sql-editor.md) | dialects, resolve and SQL inspections, formatter, parameters, query history, Run SQL Script |
 | [Scratches, consoles and HTTP client](scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](remote-development.md) | SSH, the Forge agent, what runs remotely |

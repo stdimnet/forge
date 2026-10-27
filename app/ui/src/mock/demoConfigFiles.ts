@@ -159,17 +159,13 @@ ORDER BY revenue DESC
 LIMIT 10;
 `,
   "database/queries/reports.sql": `-- Shop reports (MySQL): resolved against the shop data source, run with Run SQL Script
-SELECT u.name, sum(o.total) AS revenue
-FROM users u
-JOIN orders o ON o.user_id = u.id
-WHERE o.status = 'paid'
-GROUP BY u.name
-ORDER BY revenue DESC
-LIMIT 10;
+SELECT name, email FROM users WHERE role = 'admin' ORDER BY name ASC;
 
 SELECT id, emial FROM users WHERE id = 'abc';
 
 SELECT number, total FROM orders o WHERE status = 'paid';
+
+SELECT count(*) FROM order_items;
 
 UPDATE orders SET notes = 'checked';
 `,

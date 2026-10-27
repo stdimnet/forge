@@ -64,6 +64,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-spell](forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
 | [forge-sql](forge-sql.md) | Forge console text: dialects, statement splitting, the read-only / production guard, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-sqlcode](forge-sqlcode.md) | The SQL editor (pure, also built to WebAssembly): dialects per file, resolve against the data source model, SQL inspections and quick fixes, the formatter, user parameters, query history and Run SQL Script planning |
 | [forge-testing](forge-testing.md) | The shared test runner and coverage model of every pack: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) (pure, also built to WebAssembly) |
 | [forge-trust](forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
