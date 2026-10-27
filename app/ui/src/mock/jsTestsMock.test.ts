@@ -28,6 +28,22 @@ const testsOf = (events: RunEvent[]) => {
 };
 
 describe("Node.js test runners (webforge-js-testing through WebAssembly)", () => {
+  it("runs Vitest, Jest and Node.js configurations with coverage", async () => {
+    const vitest: RunConfiguration = { name: "unit", type: "vitest", options: { scope: "all", coverageProvider: "istanbul" } };
+    const v = await invoke<CommandLine>("run_command_line", { request: { configuration: vitest, coverage: true } });
+    expect(v.args).toEqual(expect.arrayContaining(["--coverage.enabled=true", "--coverage.reporter=json", "--coverage.provider=istanbul"]));
+    const jest: RunConfiguration = { name: "jest", type: "jest", options: { scope: "all", coverageProvider: "v8" } };
+    const j = await invoke<CommandLine>("run_command_line", { request: { configuration: jest, coverage: true } });
+    expect(j.args).toEqual(expect.arrayContaining(["--coverageReporters=json", "--coverageProvider=v8"]));
+    const node: RunConfiguration = { name: "server", type: "node", options: { file: "src/server.ts" } };
+    const n = await invoke<CommandLine>("run_command_line", { request: { configuration: node, coverage: true } });
+    expect(n.args.slice(0, 3)).toEqual(["node_modules/c8/bin/c8.js", "--reporter=lcov", "--reports-dir=/tmp/forge-test-reports/run-coverage"]);
+    expect(n.args).toContain("src/server.ts");
+    const mocha: RunConfiguration = { name: "mocha", type: "mocha", options: { scope: "all", coverageTool: "nyc" } };
+    const m = await invoke<CommandLine>("run_command_line", { request: { configuration: mocha, coverage: true } });
+    expect(m.args[0]).toBe("node_modules/nyc/bin/nyc.js");
+  });
+
   it("discovers Vitest and Playwright tests of the Node.js demo", async () => {
     const unit = await invoke<TestFile>("test_discover", { path: "src/orders/pricing.test.ts", text: files["src/orders/pricing.test.ts"] });
     expect(unit.framework).toBe("vitest");

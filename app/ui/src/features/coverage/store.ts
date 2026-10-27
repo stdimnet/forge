@@ -18,6 +18,8 @@ export { suites, view, visible, revision };
 
 /** Rows by project path of the shown suite. */
 let byPath = new Map<string, CoverageNode>();
+/** Project view hints of the shown suite (every folder level, folded in Rust). */
+let hints: Record<string, string> = {};
 const marks = new Map<string, Promise<LineMark[]>>();
 
 type Listener = () => void;
@@ -42,6 +44,7 @@ export async function showSuite(id?: string, reveal = true): Promise<void> {
   setSuites(list);
   setView(v);
   byPath = new Map((v?.nodes ?? []).map((n) => [n.path, n]));
+  hints = v?.hints ?? {};
   setVisible(true);
   changed();
   if (reveal && v) showToolWindow("coverage");
@@ -63,6 +66,7 @@ export async function closeSuite(id: string): Promise<void> {
     else {
       setView(null);
       byPath = new Map();
+      hints = {};
       changed();
     }
   }
@@ -86,9 +90,19 @@ export function coverageOf(path: string): CoverageNode | undefined {
   return visible() ? byPath.get(path) : undefined;
 }
 
-/** "62% lines covered" for the Project view. */
+/** "62% lines covered" (files) or "50% files, 62% lines covered" (folders) for the Project view. */
 export function projectHint(path: string): string | undefined {
-  const n = coverageOf(path);
-  if (!n || !n.lines.total) return undefined;
-  return `${Math.floor((100 * n.lines.covered) / n.lines.total)}% lines covered`;
+  revision();
+  return visible() ? hints[path] : undefined;
+}
+
+/**
+ * Show Coverage Data with the chosen suites: one suite is shown as it is, several are merged
+ * into a new suite (Rust: `coverage_merge`); none hides the coverage.
+ */
+export async function showSuites(ids: string[]): Promise<void> {
+  if (!ids.length) return setCoverageVisible(false);
+  if (ids.length === 1) return showSuite(ids[0]);
+  const merged = await testingApi.coverageMerge(ids);
+  await showSuite(merged.id);
 }

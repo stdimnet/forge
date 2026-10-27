@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<phpunit xmlns="https://schema.phpunit.de/coverage/1.0">
+  <build time="Tue, 28 Oct 2026 10:41:00 +0000" phpunit="11.4.3" coverage="11.0.8">
+    <runtime name="PHP" version="8.3.12" url="https://secure.php.net/"/>
+    <driver name="xdebug" version="3.3.2"/>
+  </build>
+  <project source="/p/app">
+    <tests>
+      <test name="Tests\Unit\CartTest::test_adds_items" size="small" status="success" time="0.002"/>
+      <test name="Tests\Unit\CartTest::test_total with data set #0" size="small" status="success" time="0.001"/>
+    </tests>
+    <directory name="/">
+      <totals>
+        <lines total="40" comments="6" code="34" executable="6" executed="4" percent="66.67"/>
+      </totals>
+      <directory name="Services">
+        <file name="Cart.php" href="Services/Cart.php.xml"/>
+      </directory>
+      <directory name="Models">
+        <file name="User.php" href="Models/User.php.xml"/>
+      </directory>
+    </directory>
+  </project>
+</phpunit>

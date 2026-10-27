@@ -2,11 +2,13 @@
  * Run configuration types of the PHP test frameworks besides PHPUnit: Pest, Codeception,
  * Behat and PHPSpec. Their command lines are built in Rust (`phpforge-test-frameworks`)
  * with the executables and default files of Settings | PHP | Test Frameworks; results show
- * in the test tree (Pest: TeamCity messages, the others: JUnit reports).
+ * in the test tree (Pest: TeamCity messages, the others: JUnit reports). All of them run with
+ * coverage (Behat and PHPSpec through their code coverage extensions).
  */
 import { FlaskConical, TestTubeDiagonal, Leaf, Microscope } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
 import { baseName, registerRunConfigurationType, type RunConfigField } from "./types";
+import { phpCoverageFields } from "./phpCoverage";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const scope = (cfg: RunConfiguration) => opt(cfg, "scope") || "config";
@@ -32,6 +34,7 @@ registerRunConfigurationType({
   debuggable: true,
   testRunner: true,
   coverage: true,
+  coverageFields: phpCoverageFields("pest"),
   fields: [
     {
       key: "scope",
@@ -75,6 +78,8 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   testRunner: true,
+  coverage: true,
+  coverageFields: phpCoverageFields("codeception"),
   fields: [
     {
       key: "scope",
@@ -124,6 +129,8 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   testRunner: true,
+  coverage: true,
+  coverageFields: phpCoverageFields("behat"),
   fields: [
     {
       key: "scope",
@@ -168,6 +175,8 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   testRunner: true,
+  coverage: true,
+  coverageFields: phpCoverageFields("phpspec"),
   fields: [
     {
       key: "scope",

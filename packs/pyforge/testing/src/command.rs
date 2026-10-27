@@ -5,8 +5,9 @@
 //! - pytest: `python [options] [debug] -m pytest <scope> --junitxml <dir>/pytest.xml -o
 //!   junit_family=xunit1 [--cov --cov-report=xml:<file>] [arguments]`, or a report log
 //!   (`--report-log <dir>/pytest.jsonl`, the pytest-reportlog plugin).
-//! - unittest: `python [options] [debug] -c <Forge's runner> <scope>`; the runner reports
-//!   TeamCity messages on stdout (`helpers/forge_unittest.py`).
+//! - unittest: `python [options] [debug] -c <Forge's runner> <scope> [--coverage-xml
+//!   <file>]`; the runner reports TeamCity messages on stdout (`helpers/forge_unittest.py`)
+//!   and, for Run with Coverage, measures with coverage.py and writes a Cobertura report.
 //! - Django tests: `python [options] [debug] -c <Forge's Django runner> --manage manage.py
 //!   [labels]` (`manage.py test` with a runner that reports TeamCity messages), or pytest
 //!   (pytest-django) with `DJANGO_SETTINGS_MODULE`.
@@ -289,6 +290,10 @@ pub fn unittest(cfg: &Configuration, ctx: &Context) -> Result<PythonCommand, Str
         }
         other => return Err(format!("unknown unittest scope '{other}'")),
     }
+    let coverage_file = ctx.coverage_file.as_ref().map(|f| {
+        args.extend(["--coverage-xml".into(), relative_to(&ctx.cwd, f)]);
+        f.clone()
+    });
     args.extend(split_args(&cfg.arguments));
     Ok(PythonCommand {
         program: None,
@@ -298,7 +303,7 @@ pub fn unittest(cfg: &Configuration, ctx: &Context) -> Result<PythonCommand, Str
         flavor: JUnitFlavor::Generic,
         report_files: false,
         default_file,
-        coverage_file: None,
+        coverage_file,
     })
 }
 
@@ -568,6 +573,19 @@ mod tests {
             unittest(&ids, &ctx()).unwrap().args[2..],
             ["--id", "tests.test_cart.TestCart.test_add"]
         );
+        // Run with Coverage: coverage.py inside Forge's runner, a Cobertura report.
+        let mut cx = ctx();
+        cx.coverage_file =
+            Some("/home/me/shop/.forge/test-reports/run-3-coverage/coverage.xml".into());
+        let c = unittest(&ids, &cx).unwrap();
+        assert_eq!(
+            c.args[4..],
+            [
+                "--coverage-xml",
+                ".forge/test-reports/run-3-coverage/coverage.xml"
+            ]
+        );
+        assert!(c.coverage_file.is_some());
     }
 
     #[test]

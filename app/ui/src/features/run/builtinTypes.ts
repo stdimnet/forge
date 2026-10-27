@@ -6,6 +6,7 @@ import { FileCode, FlaskConical, Globe, Hexagon, Layers, Package, SquareTerminal
 import type { RunConfiguration } from "@/ipc/run";
 import { CompoundForm } from "./CompoundForm";
 import { baseName, COMPOUND, compoundMembers, registerRunConfigurationType } from "./types";
+import { phpCoverageFields } from "./phpCoverage";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const shortClass = (fqcn: string) => fqcn.split("\\").pop() ?? fqcn;
@@ -80,6 +81,7 @@ registerRunConfigurationType({
   debuggable: true,
   testRunner: true,
   coverage: true,
+  coverageFields: phpCoverageFields("phpunit"),
   fields: [
     {
       key: "scope",

@@ -24,8 +24,10 @@ in the `TestFrameworks` registry (`register`):
 - `runner`: `Runner` (`jest`, `vitest`, `mocha`, `playwright`, `cypress`, `node-test`) with
   its package, CLI script and debug arguments. `build` runs the CLI script with Node.js
   (options `executable`, `nodeOptions`, `package`, `configFile`), sets
-  `PLAYWRIGHT_JSON_OUTPUT_NAME` for Playwright's report file, wraps Mocha in c8 for
-  coverage and puts `node --test`'s options before its files. `claims` decides between
+  `PLAYWRIGHT_JSON_OUTPUT_NAME` for Playwright's report file, wraps Mocha in c8 or nyc for
+  coverage (`coverage_wrap`, also used for Run with Coverage of Node.js configurations),
+  passes the coverage provider of Vitest (`--coverage.provider`) and Jest
+  (`--coverageProvider`) and puts `node --test`'s options before its files. `claims` decides between
   runners that share file globs by the file's imports. `rerun` adds the failed tests' files
   to the spec's name pattern (Cypress reruns files). `debug_program` gives the
   `runtimeExecutable`, `runtimeArgs`, script and arguments js-debug launches.

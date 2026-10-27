@@ -1,10 +1,12 @@
 /**
  * Coverage (PHPStorm: Run with Coverage, the Coverage tool window, Show Coverage Data):
  * Run with Coverage runs of any test framework that declares coverage end with a suite
- * (`coverage` run event); the Coverage tool window shows its directories and files with line
- * and branch coverage, the editor gutter marks covered / partly covered / uncovered lines
- * with their hits, and the Project view shows "x% lines covered". Reports (LCOV, Cobertura,
- * Clover, JaCoCo, Go profiles) are read in Rust (`forge-testing`).
+ * (`coverage` run event); the Coverage tool window shows its directories and files with
+ * method, line and branch coverage, the editor gutter marks covered / partly covered /
+ * uncovered lines with their hits (and the tests covering them), and the Project view shows
+ * "x% files, y% lines covered". Show Coverage Data chooses and merges suites, Generate
+ * Coverage Report writes HTML. Reports (LCOV, Cobertura, Clover, JaCoCo, Go profiles,
+ * Istanbul JSON, PHPUnit's per-test XML) are read in Rust (`forge-testing`).
  */
 import { ShieldCheck } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
@@ -17,10 +19,11 @@ import { registerRowDecorator } from "@/features/project/ProjectView";
 import { item, registerContextMenuProvider } from "@/features/contextMenu/state";
 import type { FileEntry } from "@/ipc/workspace";
 import { onCoverageSuite } from "@/features/run";
-import { CoverageToolWindow, showSuitesMenu } from "./CoverageToolWindow";
+import { CoverageToolWindow } from "./CoverageToolWindow";
+import { showSuitesDialog } from "./SuitesDialog";
 import { coverageGutter } from "./gutter";
 import { activeSuite, projectHint, setCoverageVisible, showSuite, suites, visible } from "./store";
-import { importCoverageFile, importReport } from "./actions";
+import { generateReport, importCoverageFile, importReport } from "./actions";
 import "./coverage.css";
 
 registerToolWindow({
@@ -44,11 +47,17 @@ registerKeymapActions([
   },
   { id: "HideCoverageInfo", title: "Hide Coverage", group: "Main Menu/Run" },
   { id: "ImportCoverage", title: "Import External Coverage Report…", group: "Main Menu/Run" },
+  { id: "GenerateCoverageReport", title: "Generate Coverage Report…", group: "Main Menu/Run" },
 ]);
 
 registerMainMenuEntries(
   "Run",
-  [menuAction("Coverage", "Run with Co_verage"), menuAction("SwitchCoverage", "Show Coverage _Data..."), menuAction("HideCoverageInfo", "_Hide Coverage")],
+  [
+    menuAction("Coverage", "Run with Co_verage"),
+    menuAction("SwitchCoverage", "Show Coverage _Data..."),
+    menuAction("HideCoverageInfo", "_Hide Coverage"),
+    menuAction("GenerateCoverageReport", "Generate Coverage _Report..."),
+  ],
   { after: "Debug" },
 );
 
@@ -56,8 +65,9 @@ registerCommand({
   id: "SwitchCoverage",
   title: "Show Coverage Data…",
   category: "Run",
-  run: () => showSuitesMenu(window.innerWidth / 2 - 160, window.innerHeight / 3),
+  run: () => showSuitesDialog(),
 });
+registerCommand({ id: "GenerateCoverageReport", title: "Generate Coverage Report…", category: "Run", run: () => void generateReport() });
 registerCommand({
   id: "HideCoverageInfo",
   title: "Hide Coverage",
@@ -68,13 +78,13 @@ registerCommand({ id: "ImportCoverage", title: "Import External Coverage Report�
 
 registerEditorExtension(({ path }) => coverageGutter(path));
 
-// "62% lines covered" next to files and folders while coverage is shown.
+// "62% lines covered" next to files, "50% files, 62% lines covered" next to folders.
 registerRowDecorator((path) => {
   const hint = activeSuite() ? projectHint(path) : undefined;
   return hint ? { class: "coverage-tree-row", hint } : undefined;
 });
 
-const REPORT = /(^|\/)(lcov\.info|[^/]*\.lcov|clover\.xml|cobertura[^/]*\.xml|coverage[^/]*\.xml|jacoco[^/]*\.xml|cover(age)?\.out)$/i;
+const REPORT = /(^|\/)(lcov\.info|[^/]*\.lcov|clover\.xml|cobertura[^/]*\.xml|coverage[^/]*\.xml|jacoco[^/]*\.xml|cover(age)?\.out|coverage-final\.json)$/i;
 
 registerContextMenuProvider<FileEntry | null>("project", (entry) =>
   entry && entry.kind !== "dir" && REPORT.test(entry.path)

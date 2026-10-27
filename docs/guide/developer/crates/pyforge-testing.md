@@ -23,7 +23,8 @@ and the WebAssembly build share it.
   pytest or tox from its files and picks a file's runner (`python.testing.runner`).
 - `command` builds the interpreter arguments: `-m pytest` with a scope, `--junitxml` (or
   `--report-log`) and pytest-cov's Cobertura report; Forge's unittest runner
-  (`helpers/forge_unittest.py`, TeamCity messages, sent inline as base64 with `-c`);
+  (`helpers/forge_unittest.py`, TeamCity messages, sent inline as base64 with `-c`; with
+  `--coverage-xml` it measures with coverage.py and writes a Cobertura report);
   `-m tox -e …`; `-m debugpy --listen … --wait-for-client`; `-m cProfile -o …`; the console
   (`helpers/forge_console.py`). Report paths are made relative to the working directory, so
   they stay valid where interpreters and run targets map the project.

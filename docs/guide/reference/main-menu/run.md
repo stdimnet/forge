@@ -17,9 +17,10 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | --- | --- | --- | --- | --- |
 | Run | `Shift+F10` | `Ctrl+R` | yes | Runs the configuration selected in the run widget. [More](../../user/run-debug.md) |
 | Debug | `Shift+F9` | `Ctrl+D` | yes | Debugs the selected configuration (Xdebug for PHP, `--inspect` for npm). [More](../../user/run-debug.md#debugging) |
-| Run with Coverage | — | — | yes | Runs the selected configuration's tests with coverage (PHPUnit, Pest, busted, manifest frameworks). [More](../../user/coverage.md#run-with-coverage) |
-| Show Coverage Data… | `Ctrl+Alt+F6` | `Cmd+Alt+F6` | yes | Picks one of the session's coverage suites or imports a report. [More](../../user/coverage.md#show-coverage-data) |
+| Run with Coverage | — | — | yes | Runs the selected configuration's tests (or Node.js program) with coverage. [More](../../user/coverage.md#run-with-coverage) |
+| Show Coverage Data… | `Ctrl+Alt+F6` | `Cmd+Alt+F6` | yes | Chooses one or several (merged) coverage suites, hides them or imports a report. [More](../../user/coverage.md#show-coverage-data) |
 | Hide Coverage | — | — | yes | Hides (or shows again) the coverage marks in the editor and the Project view. [More](../../user/coverage.md#coverage-in-the-editor-and-the-project-view) |
+| Generate Coverage Report… | — | — | yes | Writes the shown suite as an HTML report. [More](../../user/coverage.md#generate-coverage-report) |
 | Run… | `Alt+Shift+F10` | `Ctrl+Alt+R` | yes | Lists the run configurations to run one; hold `Shift` to debug instead. [More](../../user/run-debug.md#run-widget) ([screenshot](../../../screenshots/docs-run-chooser.png)) |
 | Debug… | `Alt+Shift+F9` | `Ctrl+Alt+D` | yes | Lists the run configurations to debug one. [More](../../user/run-debug.md#run-widget) |
 | Attach to Process… | `Ctrl+Alt+F5` | `Cmd+Alt+F5` | not yet | Not available yet; the entry is disabled. |
