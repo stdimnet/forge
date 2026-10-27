@@ -985,12 +985,10 @@ fn split_ref(parts: &[String], default: &str) -> (String, String) {
 }
 
 fn is_ddl(text: &str) -> bool {
-    let first = text
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
-        .to_ascii_uppercase();
-    matches!(first.as_str(), "CREATE" | "ALTER" | "DROP" | "COMMENT")
+    matches!(
+        forge_sql::leading_keyword(text).as_str(),
+        "CREATE" | "ALTER" | "DROP" | "COMMENT"
+    )
 }
 
 /// Parse DDL files (in order) into schemas; unqualified names go to `default_schema`
@@ -1061,6 +1059,7 @@ mod tests {
     #[test]
     fn parses_postgres_schema_script() {
         let sql = r#"
+-- Shop schema
 CREATE SCHEMA billing;
 CREATE TYPE order_status AS ENUM ('new', 'paid', 'shipped');
 CREATE SEQUENCE invoice_no START WITH 1000 INCREMENT BY 1;

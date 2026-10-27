@@ -2933,6 +2933,7 @@ dependencies = [
  "forge-colors",
  "forge-colorscheme",
  "forge-containers",
+ "forge-dbmodel",
  "forge-deploy",
  "forge-devenv",
  "forge-diff",

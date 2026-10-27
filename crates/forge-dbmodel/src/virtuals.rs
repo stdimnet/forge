@@ -14,6 +14,8 @@ pub const VIRTUAL_FILE: &str = ".forge/database/virtual.toml";
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct VirtualForeignKey {
+    /// Set when stored; the UI leaves it out.
+    #[serde(default)]
     pub data_source: String,
     pub schema: String,
     pub table: String,
@@ -54,6 +56,7 @@ impl VirtualForeignKey {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct VirtualColumn {
+    #[serde(default)]
     pub data_source: String,
     pub schema: String,
     pub table: String,
