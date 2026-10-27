@@ -38,6 +38,7 @@ mod filetypes;
 mod go;
 mod hierarchy;
 mod injections;
+mod inspections;
 mod java;
 mod json_schema;
 mod jupyter;

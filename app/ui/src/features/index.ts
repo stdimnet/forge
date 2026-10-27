@@ -52,6 +52,7 @@ import "./debug";
 import "./debug/runIntegration";
 import "./database";
 import "./injections";
+import "./inspections";
 import "./scratches";
 import "./lua";
 import "./endpoints";

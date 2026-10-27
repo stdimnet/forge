@@ -73,6 +73,7 @@ pub async fn inspections_profiles(state: State<'_, AppState>) -> Result<Profiles
 pub async fn inspections_save(
     profiles: ProfilesState,
     state: State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<ProfilesState> {
     let registry = registry(&state);
     let old = load(&state);
@@ -112,7 +113,10 @@ pub async fn inspections_save(
         })
         .await?;
     }
-    Ok(load(&state))
+    let saved = load(&state);
+    // Every window (the main window, a Settings dialog window) reloads its profiles.
+    let _ = app.emit("inspections://changed", &saved);
+    Ok(saved)
 }
 
 /// A profile as PHPStorm XML or JSON; with `path` it is also written to that file (picked in

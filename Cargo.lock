@@ -2762,6 +2762,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-injections",
+ "forge-inspections",
  "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",

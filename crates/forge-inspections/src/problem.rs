@@ -91,12 +91,12 @@ impl Problem {
 }
 
 /// A short fingerprint of a file's text (FNV-1a), so fixes are not applied to a file that
-/// changed since it was inspected.
+/// changed since it was inspected. 53 bits, so it survives a round trip through JavaScript.
 pub fn stamp(text: &str) -> u64 {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in text.as_bytes() {
         h ^= u64::from(*b);
         h = h.wrapping_mul(0x0100_0000_01b3);
     }
-    h
+    h & ((1 << 53) - 1)
 }

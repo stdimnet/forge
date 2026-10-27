@@ -853,8 +853,15 @@ fn code_menu() -> MenuEntry {
             a("MoveLineUp"),
             SEP,
             l("InspectCode", "In_spect Code..."),
-            l("CodeInspection.OnEditor", "Code Cleanup..."),
+            l("CodeCleanup", "Code Clea_nup..."),
             l("RunInspection", "Run Inspection by _Name..."),
+            g(
+                "Analy_ze Code",
+                vec![
+                    l("CodeInspection.OnEditor", "Inspect Current _File"),
+                    l("LocateDuplicates", "Locate _Duplicates..."),
+                ],
+            ),
             SEP,
             l(
                 "AnalyzeStacktraceOnError",
