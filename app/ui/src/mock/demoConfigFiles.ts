@@ -158,6 +158,17 @@ GROUP BY u.id
 ORDER BY revenue DESC
 LIMIT 10;
 `,
+  "database/queries/reports.sql": `-- Shop reports (MySQL): resolved against the shop data source, run with Run SQL Script
+SELECT name, email FROM users WHERE role = 'admin' ORDER BY name ASC;
+
+SELECT id, emial FROM users WHERE id = 'abc';
+
+SELECT number, total FROM orders o WHERE status = 'paid';
+
+SELECT count(*) FROM order_items;
+
+UPDATE orders SET notes = 'checked';
+`,
   "database/ddl/V1__catalog.sql": `-- Catalog service schema (PostgreSQL), a DDL data source in the Database tool window
 CREATE TYPE product_state AS ENUM ('draft', 'active', 'retired');
 CREATE SEQUENCE sku_seq START WITH 1000 INCREMENT BY 1;

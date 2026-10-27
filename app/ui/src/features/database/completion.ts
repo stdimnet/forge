@@ -1,12 +1,13 @@
 /** Schema-based SQL completion: introspected tables and columns as a lang-sql namespace, and
  * `JOIN … ON` suggestions from foreign keys (real and virtual). */
-import { MSSQL, MySQL, PLSQL, PostgreSQL, SQLite, sql, type SQLNamespace } from "@codemirror/lang-sql";
+import { sql, type SQLNamespace } from "@codemirror/lang-sql";
 import { javascript } from "@codemirror/lang-javascript";
 import { StreamLanguage } from "@codemirror/language";
 import type { Completion } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import type { Dialect, SchemaInfo, TableInfo } from "@/ipc/db";
 import { joinCompletionSource } from "./joinCompletion";
+import { cmDialect } from "@/features/sqlEditor/language";
 
 function columnCompletions(t: TableInfo): Completion[] {
   return t.columns.map((c) => ({
@@ -40,7 +41,6 @@ export function buildNamespace(schemas: SchemaInfo[]): SQLNamespace {
   );
 }
 
-const DIALECTS = { mysql: MySQL, postgres: PostgreSQL, sqlite: SQLite, sqlserver: MSSQL, clickhouse: MySQL, oracle: PLSQL };
 
 /** Redis console: the command word of each line as a keyword, strings and comments. */
 const redisLanguage = StreamLanguage.define<{ start: boolean }>({
@@ -70,7 +70,7 @@ export function sqlWithSchema(dialect: Dialect, schemas: SchemaInfo[], defaultSc
   if (dialect === "redis") return redisLanguage;
   if (dialect === "mongo") return javascript();
   const support = sql({
-    dialect: DIALECTS[dialect],
+    dialect: cmDialect(dialect),
     schema: buildNamespace(schemas),
     defaultSchema: defaultSchema || undefined,
     upperCaseKeywords: true,

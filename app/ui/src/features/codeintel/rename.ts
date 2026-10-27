@@ -287,6 +287,17 @@ export function cancelRename(view: EditorView): void {
   view.dispatch({ changes: revertSpec(view, s), effects: endRenameEffect.of(null), annotations: internal });
 }
 
+/**
+ * A feature that renames names of its own files in place (SQL aliases and CTEs): returns
+ * true when it handled Shift+F6 at the caret.
+ */
+export type RenameProvider = (path: string, view: EditorView) => Promise<boolean>;
+const renameProviders: RenameProvider[] = [];
+
+export function registerRenameProvider(provider: RenameProvider): void {
+  renameProviders.push(provider);
+}
+
 /** Start the in-place rename at the caret (Shift+F6), or open the dialog when it runs. */
 export async function startRename(path: string, view: EditorView): Promise<void> {
   const running = renameSessionOf(view);
@@ -299,6 +310,9 @@ export async function startRename(path: string, view: EditorView): Promise<void>
   if (isLibraryPath(path) || view.state.readOnly) {
     showHint(view, pos, "Cannot rename in a read-only file");
     return;
+  }
+  for (const provider of renameProviders) {
+    if (await provider(path, view).catch(() => false)) return;
   }
   await syncNow(path);
   const doc = view.state.doc;
