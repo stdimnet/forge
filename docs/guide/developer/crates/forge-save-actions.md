@@ -1,6 +1,6 @@
 ---
 title: forge-save-actions
-description: "Actions on Save: which actions run for a saved file, reformatting only changed lines and running external tools (ESLint, Prettier, PHP CS Fixer, Laravel Pint) through the project's backend."
+description: "Actions on Save: which actions run for a saved file, reformatting only changed lines and running external tools (ESLint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint) through the project's backend."
 order: 225
 tags: [crate, rust]
 ---
@@ -8,8 +8,8 @@ tags: [crate, rust]
 # forge-save-actions
 
 `crates/forge-save-actions` — Actions on Save: which actions run for a saved file,
-reformatting only changed lines and running external tools (ESLint, Prettier, PHP CS Fixer,
-Laravel Pint) through the project's backend.
+reformatting only changed lines and running external tools (ESLint, Prettier, Rector, PHP CS
+Fixer, phpcbf, Laravel Pint) through the project's backend.
 
 ## Purpose
 
@@ -25,7 +25,10 @@ The logic behind Settings | Tools | [Actions on Save](../../user/actions-on-save
 - `tools` (feature `backend`, on by default) finds a tool in the project (`vendor/bin`,
   `node_modules/.bin`, `.bat` / `.cmd` too) or at its custom path and runs it on the saved
   file through a `forge_backend::Backend`, so remote projects work. A failing tool's changes
-  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success.
+  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success, and
+  phpcbf's 1 and 2 too. `run_tools_with` passes each command line through a callback first:
+  the app gives the PHP tools their Quality Tools arguments and PHP interpreter
+  ([phpforge-quality-tools](phpforge-quality-tools.md)).
 
 The PHP actions themselves are in `phpforge-lang-php` (`imports`, `rearrange`, `cleanup`).
 The UI applies the combined result as one edit (one undo step).
@@ -36,7 +39,7 @@ The UI applies the combined result as one edit (one undo step).
 | --- | --- |
 | `lib.rs` | Settings keys, `ActionsOnSave` (settings), `Trigger`, `Tool`, `SavePlan`, `plan`, `file_type_choices`. |
 | `changed.rs` | "Changed lines": a line diff (LCS) between the original and the reformatted text, applied hunk by hunk. |
-| `tools.rs` | Locating and running ESLint, Prettier, PHP CS Fixer and Laravel Pint; `run_tools`, `detect_tools`. |
+| `tools.rs` | Locating and running ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint; `run_tools`, `run_tools_with`, `detect_tools`. |
 
 ## Main public items
 
