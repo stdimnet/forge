@@ -15,7 +15,19 @@ fn opts(sheet: &str) -> ReadOptions {
 
 #[test]
 fn reads_the_first_sheet_with_types() {
-    let p = preview(FIXTURE, &opts(""), 100).unwrap();
+    let p = preview(FIXTURE, &opts(""), 100, Some(forge_sql::Dialect::Postgres)).unwrap();
+    assert_eq!(
+        p.types,
+        [
+            "bigint",
+            "text",
+            "timestamp",
+            "numeric(10,2)",
+            "boolean",
+            "text"
+        ]
+    );
+    assert_eq!(p.names[0], "id");
     let t = &p.table;
     assert_eq!(t.sheets, ["Customers", "Orders"]);
     assert_eq!(
@@ -73,12 +85,12 @@ fn reads_the_first_sheet_with_types() {
 
 #[test]
 fn reads_another_sheet_and_reports_missing_ones() {
-    let p = preview(FIXTURE, &opts("Orders"), 100).unwrap();
+    let p = preview(FIXTURE, &opts("Orders"), 100, None).unwrap();
     assert_eq!(p.table.columns, ["order", "customer"]);
     assert_eq!(
         p.table.rows,
         [vec![Some("100".to_string()), Some("1".to_string())]]
     );
-    assert!(preview(FIXTURE, &opts("Nope"), 10).is_err());
-    assert!(preview(b"not a workbook", &opts(""), 10).is_err());
+    assert!(preview(FIXTURE, &opts("Nope"), 10, None).is_err());
+    assert!(preview(b"not a workbook", &opts(""), 10, None).is_err());
 }

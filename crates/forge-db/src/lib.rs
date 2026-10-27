@@ -59,9 +59,8 @@ pub use introspect::{
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
 pub use service::{
     ApplyResult, DataSourceInfo, DbService, ImportError, ImportProgress, ImportSummary, QueryPage,
-    ScriptResult, SearchProgress, SearchRequest, SearchScope,
-    SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey, StatementResult,
-    TableDataRequest, TableMatches, TestResult,
+    ScriptResult, SearchProgress, SearchRequest, SearchScope, SearchSummary, SecretUpdate,
+    SessionInfo, SessionMode, SortKey, StatementResult, TableDataRequest, TableMatches, TestResult,
 };
 pub use split::{split_statements, Statement};
 /// Cancels running imports.

@@ -52,6 +52,19 @@ pub fn db_design_info(dialect: Dialect) -> DesignDialect {
     design::dialect_info(dialect)
 }
 
+/// Modify Table: the dialog's model of an existing table (every column remembers its
+/// name, so renames are renames).
+#[tauri::command]
+pub async fn db_design_load(
+    id: String,
+    schema: String,
+    table: String,
+    state: State<'_, DbState>,
+) -> Result<TableSpec> {
+    let t = state.service.table_info(&id, &schema, &table).await?;
+    Ok(TableSpec::from_table(&schema, &t))
+}
+
 /// The script of the table dialogs: `CREATE TABLE` without `old`, else the `ALTER`
 /// statements that turn `old` into `table` (with warnings for destructive changes).
 #[tauri::command]
@@ -64,7 +77,12 @@ pub fn db_design_preview(
     preview(dialect, old.as_ref(), &table, options.unwrap_or_default())
 }
 
-pub fn preview(d: Dialect, old: Option<&TableSpec>, table: &TableSpec, options: CreateOptions) -> DesignPreview {
+pub fn preview(
+    d: Dialect,
+    old: Option<&TableSpec>,
+    table: &TableSpec,
+    options: CreateOptions,
+) -> DesignPreview {
     match old {
         Some(old) => {
             let AlterPlan {
@@ -135,19 +153,26 @@ pub async fn db_run_script(
 }
 
 /// "SQL Scripts › Generate DDL": the selected objects in dependency order, formatted with
-/// the SQL code style.
+/// the SQL code style; with `path` also written to that file.
 #[tauri::command]
 pub async fn db_generate_ddl(
     id: String,
     objects: Vec<DdlObject>,
     options: Option<DdlOptions>,
+    path: Option<String>,
     app: State<'_, AppState>,
     state: State<'_, DbState>,
 ) -> Result<String> {
     let model = state.service.model(&id, false).await?;
     let script = generate_ddl(&model, &objects, options.unwrap_or_default());
     let style = SqlStyle::from_values(&code_style_values(&app));
-    Ok(format_ddl(model.dialect, &script, &style))
+    let text = format_ddl(model.dialect, &script, &style);
+    if let Some(p) = path {
+        tokio::fs::write(&p, &text)
+            .await
+            .map_err(|e| ForgeError::io(p.clone(), e))?;
+    }
+    Ok(text)
 }
 
 pub fn format_ddl(d: Dialect, script: &str, style: &SqlStyle) -> String {
@@ -183,16 +208,19 @@ async fn source_bytes(src: &ImportSource) -> Result<Vec<u8>> {
         .map_err(|e| ForgeError::io(path.clone(), e))
 }
 
-/// The import dialog's preview: the first `rows` rows and the detected column types.
+/// The import dialog's preview: the first `rows` rows, the detected column kinds and, for
+/// `dialect`, the SQL types of a new table.
 #[tauri::command]
 pub async fn db_import_preview(
     source: ImportSource,
     options: ReadOptions,
     rows: Option<usize>,
+    dialect: Option<Dialect>,
 ) -> Result<Preview> {
     let bytes = source_bytes(&source).await?;
     tauri::async_runtime::spawn_blocking(move || {
-        forge_dbtransfer::preview(&bytes, &options, rows.unwrap_or(50)).map_err(ForgeError::Other)
+        forge_dbtransfer::preview(&bytes, &options, rows.unwrap_or(50), dialect)
+            .map_err(ForgeError::Other)
     })
     .await
     .map_err(|e| ForgeError::Other(e.to_string()))?
@@ -213,10 +241,11 @@ pub async fn db_import_run(
     objects: State<'_, DbObjectsState>,
 ) -> Result<ImportSummary> {
     let bytes = source_bytes(&source).await?;
-    let table = tauri::async_runtime::spawn_blocking(move || forge_dbtransfer::read(&bytes, &options))
-        .await
-        .map_err(|e| ForgeError::Other(e.to_string()))?
-        .map_err(ForgeError::Other)?;
+    let table =
+        tauri::async_runtime::spawn_blocking(move || forge_dbtransfer::read(&bytes, &options))
+            .await
+            .map_err(|e| ForgeError::Other(e.to_string()))?
+            .map_err(ForgeError::Other)?;
     let token = CancellationToken::new();
     objects
         .imports
@@ -276,7 +305,9 @@ pub async fn db_export_xlsx(
                 .map_err(|e| ForgeError::io(p.clone(), e))?;
             Ok(None)
         }
-        None => Ok(Some(base64::engine::general_purpose::STANDARD.encode(bytes))),
+        None => Ok(Some(
+            base64::engine::general_purpose::STANDARD.encode(bytes),
+        )),
     }
 }
 
@@ -294,10 +325,21 @@ pub fn db_dump_tools(id: String, state: State<'_, DbState>) -> Result<Vec<ToolCh
 /// The command line a dump / restore would run (the dialog's preview; through an SSH
 /// tunnel the tool connects to the tunnel's local port).
 #[tauri::command]
-pub fn db_dump_command(id: String, request: DumpRequest, state: State<'_, DbState>) -> Result<String> {
+pub fn db_dump_command(
+    id: String,
+    request: DumpRequest,
+    state: State<'_, DbState>,
+) -> Result<String> {
     let target = state.service.dump_target_settings(&id)?;
     let cmd = dump::command(&request, &target).map_err(ForgeError::Other)?;
     Ok(cmd.display())
+}
+
+/// Before a restore: an error on read-only data sources, the warning to confirm on
+/// production ones.
+#[tauri::command]
+pub fn db_restore_guard(id: String, state: State<'_, DbState>) -> Result<Option<String>> {
+    Ok(state.service.restore_guard(&id)?)
 }
 
 /// Start a dump or restore in the Run tool window as run `run_id`. Restores are refused
@@ -314,7 +356,8 @@ pub async fn db_dump_start(
     runs: State<'_, RunState>,
 ) -> Result<RunStarted> {
     if request.action == DumpAction::Restore {
-        if let (Some(confirm), false) = (db.service.restore_guard(&id)?, confirmed.unwrap_or(false)) {
+        if let (Some(confirm), false) = (db.service.restore_guard(&id)?, confirmed.unwrap_or(false))
+        {
             return Err(forge_db::DbError::NeedsConfirmation(confirm).into());
         }
     }
@@ -329,17 +372,14 @@ pub async fn db_dump_start(
     };
     // The SSH tunnel stays open until the tool exits.
     let tunnel = Arc::new(Mutex::new(tunnel));
-    runs.observers
-        .lock()
-        .expect("observers poisoned")
-        .insert(
-            run_id.clone(),
-            Arc::new(move |e: &RunEvent| {
-                if matches!(e, RunEvent::Exited { .. }) {
-                    tunnel.lock().expect("tunnel poisoned").take();
-                }
-            }),
-        );
+    runs.observers.lock().expect("observers poisoned").insert(
+        run_id.clone(),
+        Arc::new(move |e: &RunEvent| {
+            if matches!(e, RunEvent::Exited { .. }) {
+                tunnel.lock().expect("tunnel poisoned").take();
+            }
+        }),
+    );
     let built = Built {
         cmd,
         path_mappings: Vec::new(),
@@ -374,11 +414,22 @@ mod tests {
             ..Default::default()
         };
         let p = preview(Dialect::Postgres, None, &table, CreateOptions::default());
-        assert_eq!(p.sql, "CREATE TABLE \"public\".\"t\"\n(\n    \"id\" bigint NOT NULL\n);\n");
+        assert_eq!(
+            p.sql,
+            "CREATE TABLE \"public\".\"t\"\n(\n    \"id\" bigint NOT NULL\n);\n"
+        );
         let mut renamed = table.clone();
         renamed.name = "u".into();
-        let p = preview(Dialect::Postgres, Some(&table), &renamed, CreateOptions::default());
-        assert_eq!(p.statements, ["ALTER TABLE \"public\".\"t\" RENAME TO \"u\";"]);
+        let p = preview(
+            Dialect::Postgres,
+            Some(&table),
+            &renamed,
+            CreateOptions::default(),
+        );
+        assert_eq!(
+            p.statements,
+            ["ALTER TABLE \"public\".\"t\" RENAME TO \"u\";"]
+        );
     }
 
     #[test]

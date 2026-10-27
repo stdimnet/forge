@@ -19,7 +19,10 @@ use wasm_bindgen::prelude::*;
 
 use crate::to_json;
 
-fn run<T: DeserializeOwned, R: serde::Serialize>(json: &str, f: impl FnOnce(T) -> Result<R, String>) -> String {
+fn run<T: DeserializeOwned, R: serde::Serialize>(
+    json: &str,
+    f: impl FnOnce(T) -> Result<R, String>,
+) -> String {
     match serde_json::from_str::<T>(json) {
         Ok(v) => match f(v) {
             Ok(r) => to_json(&r),
@@ -43,7 +46,23 @@ struct DialectRequest {
 /// Mirrors `db_design_info`: `{ dialect }` → `DesignDialect`.
 #[wasm_bindgen]
 pub fn dbobjects_design_info(json: &str) -> String {
-    run(json, |r: DialectRequest| Ok(design::dialect_info(r.dialect)))
+    run(json, |r: DialectRequest| {
+        Ok(design::dialect_info(r.dialect))
+    })
+}
+
+#[derive(Deserialize)]
+struct SpecRequest {
+    schema: String,
+    table: forge_dbmodel::TableInfo,
+}
+
+/// Mirrors `db_design_load` with the mock's table: `{ schema, table }` → `TableSpec`.
+#[wasm_bindgen]
+pub fn dbobjects_design_spec(json: &str) -> String {
+    run(json, |r: SpecRequest| {
+        Ok(TableSpec::from_table(&r.schema, &r.table))
+    })
 }
 
 #[derive(Deserialize)]
@@ -147,13 +166,20 @@ struct ImportPreviewRequest {
     options: ReadOptions,
     #[serde(default)]
     rows: Option<usize>,
+    #[serde(default)]
+    dialect: Option<Dialect>,
 }
 
-/// Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows? }`.
+/// Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows?, dialect? }`.
 #[wasm_bindgen]
 pub fn dbobjects_import_preview(json: &str) -> String {
     run(json, |r: ImportPreviewRequest| {
-        forge_dbtransfer::preview(&bytes(&r.data)?, &r.options, r.rows.unwrap_or(50))
+        forge_dbtransfer::preview(
+            &bytes(&r.data)?,
+            &r.options,
+            r.rows.unwrap_or(50),
+            r.dialect,
+        )
     })
 }
 
@@ -196,9 +222,11 @@ struct XlsxRequest {
 #[wasm_bindgen]
 pub fn dbobjects_export_xlsx(json: &str) -> String {
     run(json, |r: XlsxRequest| {
-        Ok(base64::engine::general_purpose::STANDARD.encode(forge_dbtransfer::xlsx::workbook(
-            &r.sheet, &r.columns, &r.rows,
-        )))
+        Ok(
+            base64::engine::general_purpose::STANDARD.encode(forge_dbtransfer::xlsx::workbook(
+                &r.sheet, &r.columns, &r.rows,
+            )),
+        )
     })
 }
 

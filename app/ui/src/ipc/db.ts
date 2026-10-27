@@ -456,7 +456,7 @@ export interface DetectedDataSource {
   origin: string;
 }
 
-export type ExportFormat = "csv" | "json" | "sql";
+export type ExportFormat = "csv" | "json" | "sql" | "markdown";
 
 export const DATA_SOURCES_EVENT = "db://dataSources";
 export const SESSION_EVENT = "db://session";

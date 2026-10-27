@@ -88,7 +88,11 @@ async fn creates_and_modifies_a_table() {
     });
     let plan = design::alter_table(Dialect::Sqlite, &old, &new);
     assert!(!plan.destructive(), "{:?}", plan.warnings);
-    let res = f.svc.run_script(&f.id, &plan.script(), false).await.unwrap();
+    let res = f
+        .svc
+        .run_script(&f.id, &plan.script(), false)
+        .await
+        .unwrap();
     assert_eq!(res.error, None);
     assert_eq!(res.executed, 2);
     let info = f.svc.table_info(&f.id, "main", "people").await.unwrap();
@@ -97,7 +101,11 @@ async fn creates_and_modifies_a_table() {
 
     // A type change rebuilds the table and keeps the rows.
     f.svc
-        .run_script(&f.id, "INSERT INTO people (name, email) VALUES ('Ada', 'ada@x')", false)
+        .run_script(
+            &f.id,
+            "INSERT INTO people (name, email) VALUES ('Ada', 'ada@x')",
+            false,
+        )
         .await
         .unwrap();
     let old = TableSpec::from_table("main", &info);
@@ -105,7 +113,11 @@ async fn creates_and_modifies_a_table() {
     new.columns[3].data_type = "REAL".into();
     let plan = design::alter_table(Dialect::Sqlite, &old, &new);
     assert!(plan.destructive());
-    let res = f.svc.run_script(&f.id, &plan.script(), false).await.unwrap();
+    let res = f
+        .svc
+        .run_script(&f.id, &plan.script(), false)
+        .await
+        .unwrap();
     assert_eq!(res.error, None, "{}", plan.script());
     let info = f.svc.table_info(&f.id, "main", "people").await.unwrap();
     assert_eq!(info.columns[3].data_type.to_uppercase(), "REAL");
@@ -118,13 +130,21 @@ async fn creates_and_modifies_a_table() {
             ..Default::default()
         },
     );
-    let res = f.svc.run_script(&f.id, &drop.join("\n"), false).await.unwrap();
+    let res = f
+        .svc
+        .run_script(&f.id, &drop.join("\n"), false)
+        .await
+        .unwrap();
     assert_eq!(res.error, None);
     assert!(f.svc.table_info(&f.id, "main", "people").await.is_err());
     // Errors stop the script and name the statement.
     let res = f
         .svc
-        .run_script(&f.id, "CREATE TABLE a (x INT); CREATE TABLE a (x INT); CREATE TABLE b (x INT)", false)
+        .run_script(
+            &f.id,
+            "CREATE TABLE a (x INT); CREATE TABLE a (x INT); CREATE TABLE b (x INT)",
+            false,
+        )
         .await
         .unwrap();
     assert_eq!((res.executed, res.total), (1, 3));
@@ -149,11 +169,29 @@ async fn read_only_and_production_checks() {
         .run_script(&prod.id, "CREATE TABLE t (x INT)", false)
         .await
         .unwrap_err();
-    assert!(matches!(err, DbError::NeedsConfirmation(m) if m.contains("production") && m.contains("CREATE")));
-    assert!(prod.svc.run_script(&prod.id, "CREATE TABLE t (x INT)", true).await.unwrap().error.is_none());
-    assert!(prod.svc.restore_guard(&prod.id).unwrap().unwrap().contains("production"));
+    assert!(
+        matches!(err, DbError::NeedsConfirmation(m) if m.contains("production") && m.contains("CREATE"))
+    );
+    assert!(prod
+        .svc
+        .run_script(&prod.id, "CREATE TABLE t (x INT)", true)
+        .await
+        .unwrap()
+        .error
+        .is_none());
+    assert!(prod
+        .svc
+        .restore_guard(&prod.id)
+        .unwrap()
+        .unwrap()
+        .contains("production"));
     // Reads need no confirmation.
-    assert!(prod.svc.objects_guard(&prod.id, "SELECT 1").unwrap().confirm.is_none());
+    assert!(prod
+        .svc
+        .objects_guard(&prod.id, "SELECT 1")
+        .unwrap()
+        .confirm
+        .is_none());
 }
 
 fn plan(on_error: OnError) -> ImportPlan {
@@ -206,9 +244,15 @@ async fn imports_with_skip_abort_and_cancel() {
     };
     let s = f
         .svc
-        .import(&f.id, "imp-1", &source, &skip, false, CancellationToken::new(), move |e| {
-            p.lock().unwrap().push((e.done, e.total))
-        })
+        .import(
+            &f.id,
+            "imp-1",
+            &source,
+            &skip,
+            false,
+            CancellationToken::new(),
+            move |e| p.lock().unwrap().push((e.done, e.total)),
+        )
         .await
         .unwrap();
     assert!(s.created);
@@ -219,10 +263,21 @@ async fn imports_with_skip_abort_and_cancel() {
     assert_eq!(count(&f).await, "3");
 
     // Abort rolls everything back.
-    f.svc.run_script(&f.id, "DELETE FROM people", false).await.unwrap();
+    f.svc
+        .run_script(&f.id, "DELETE FROM people", false)
+        .await
+        .unwrap();
     let s = f
         .svc
-        .import(&f.id, "imp-2", &source, &plan(OnError::Abort), false, CancellationToken::new(), |_| {})
+        .import(
+            &f.id,
+            "imp-2",
+            &source,
+            &plan(OnError::Abort),
+            false,
+            CancellationToken::new(),
+            |_| {},
+        )
         .await
         .unwrap();
     assert!(s.aborted);
@@ -234,7 +289,15 @@ async fn imports_with_skip_abort_and_cancel() {
     cancel.cancel();
     let s = f
         .svc
-        .import(&f.id, "imp-3", &source, &plan(OnError::Skip), false, cancel, |_| {})
+        .import(
+            &f.id,
+            "imp-3",
+            &source,
+            &plan(OnError::Skip),
+            false,
+            cancel,
+            |_| {},
+        )
         .await
         .unwrap();
     assert!(s.cancelled);
@@ -247,14 +310,30 @@ async fn imports_are_checked_like_scripts() {
     let source = read(CSV.as_bytes(), &ReadOptions::default()).unwrap();
     let err = ro
         .svc
-        .import(&ro.id, "x", &source, &plan(OnError::Skip), true, CancellationToken::new(), |_| {})
+        .import(
+            &ro.id,
+            "x",
+            &source,
+            &plan(OnError::Skip),
+            true,
+            CancellationToken::new(),
+            |_| {},
+        )
         .await
         .unwrap_err();
     assert!(matches!(err, DbError::Refused(_)));
     let prod = fixture(false, Some("red")).await;
     let err = prod
         .svc
-        .import(&prod.id, "x", &source, &plan(OnError::Skip), false, CancellationToken::new(), |_| {})
+        .import(
+            &prod.id,
+            "x",
+            &source,
+            &plan(OnError::Skip),
+            false,
+            CancellationToken::new(),
+            |_| {},
+        )
         .await
         .unwrap_err();
     assert!(matches!(err, DbError::NeedsConfirmation(_)));
@@ -266,7 +345,10 @@ async fn native_tool_target_of_a_sqlite_file() {
     let (target, tunnel) = f.svc.dump_target(&f.id).await.unwrap();
     assert!(tunnel.is_none());
     assert_eq!(target.driver, "sqlite");
-    assert_eq!(std::path::Path::new(&target.file), f.dir.path().join("app.db"));
+    assert_eq!(
+        std::path::Path::new(&target.file),
+        f.dir.path().join("app.db")
+    );
     let req = forge_dbtransfer::DumpRequest {
         tool: forge_dbtransfer::DumpTool::Sqlite3,
         file: "/tmp/out.sql".into(),

@@ -542,6 +542,11 @@ export function dbobjects_design_info(json: string): string;
 export function dbobjects_design_preview(json: string): string;
 
 /**
+ * Mirrors `db_design_load` with the mock's table: `{ schema, table }` → `TableSpec`.
+ */
+export function dbobjects_design_spec(json: string): string;
+
+/**
  * Mirrors `db_drop_sql`.
  */
 export function dbobjects_drop_sql(json: string): string;
@@ -573,7 +578,7 @@ export function dbobjects_generate_ddl(json: string): string;
 export function dbobjects_import_batches(json: string): string;
 
 /**
- * Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows? }`.
+ * Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows?, dialect? }`.
  */
 export function dbobjects_import_preview(json: string): string;
 
@@ -2309,6 +2314,7 @@ export interface InitOutput {
     readonly dbmodel_search_rows: (a: number, b: number, c: number) => void;
     readonly dbobjects_design_info: (a: number, b: number, c: number) => void;
     readonly dbobjects_design_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_spec: (a: number, b: number, c: number) => void;
     readonly dbobjects_drop_sql: (a: number, b: number, c: number) => void;
     readonly dbobjects_dump_command: (a: number, b: number, c: number) => void;
     readonly dbobjects_dump_tools: (a: number, b: number, c: number) => void;

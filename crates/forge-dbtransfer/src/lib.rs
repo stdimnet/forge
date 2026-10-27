@@ -23,17 +23,34 @@ pub use read::{read, ReadOptions, SourceFormat, SourceTable};
 pub struct Preview {
     pub table: SourceTable,
     pub guesses: Vec<ColumnGuess>,
+    /// Target column names for the source columns (`Order Date` → `order_date`).
+    pub names: Vec<String>,
+    /// SQL types of a new table's columns in the target dialect (empty without one).
+    pub types: Vec<String>,
     /// Rows of the whole source.
     pub total_rows: usize,
 }
 
-/// Read a source and keep its first `rows` rows; types are detected on up to 1000 rows.
-pub fn preview(bytes: &[u8], opts: &ReadOptions, rows: usize) -> Result<Preview, String> {
+/// Read a source and keep its first `rows` rows; types are detected on up to 1000 rows
+/// and, with a target `dialect`, mapped to SQL types for a new table.
+pub fn preview(
+    bytes: &[u8],
+    opts: &ReadOptions,
+    rows: usize,
+    dialect: Option<forge_sql::Dialect>,
+) -> Result<Preview, String> {
     let mut table = read(bytes, opts)?;
     let guesses = detect(&table, 1000);
     let total_rows = table.rows.len();
     table.rows.truncate(rows);
     Ok(Preview {
+        names: guesses
+            .iter()
+            .map(|g| detect::column_ident(&g.name))
+            .collect(),
+        types: dialect
+            .map(|d| guesses.iter().map(|g| detect::sql_type(d, g)).collect())
+            .unwrap_or_default(),
         table,
         guesses,
         total_rows,

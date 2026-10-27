@@ -105,6 +105,7 @@ export const dbmodel_parse_ddl: (a: number, b: number, c: number) => void;
 export const dbmodel_search_rows: (a: number, b: number, c: number) => void;
 export const dbobjects_design_info: (a: number, b: number, c: number) => void;
 export const dbobjects_design_preview: (a: number, b: number, c: number) => void;
+export const dbobjects_design_spec: (a: number, b: number, c: number) => void;
 export const dbobjects_drop_sql: (a: number, b: number, c: number) => void;
 export const dbobjects_dump_command: (a: number, b: number, c: number) => void;
 export const dbobjects_dump_tools: (a: number, b: number, c: number) => void;
