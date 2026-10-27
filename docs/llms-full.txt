@@ -54,6 +54,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
+  toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
+  Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and
+  `CMakePresets.json`), the CMake tool window with targets and the configure log, compilation
+  database projects, Build / Rebuild / Clean (`Ctrl+F9`) with build problems, CMake Application
+  run configurations, GoogleTest, Catch2 and CTest with gutter icons and gcov / llvm-cov
+  coverage, and LLDB / GDB debugging with STL renderers ([CForge](docs/guide/user/cpp.md)).
 - **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
   downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
   checks and version completion from the module proxy; gofmt / goimports, go vet and
@@ -562,6 +569,7 @@ and a plain Lua project does not start PHP language servers.
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
+| C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -604,7 +612,7 @@ Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `targe
 The most specific framework becomes the project's **primary** type, in this order: Laravel,
 Symfony, Drupal, WordPress, Shopware, Magento, Joomla, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
 Neovim, Vite. Without a framework the primary language is used (PHP, TypeScript, JavaScript,
-Lua, Rust, Go, Python, HTML, CSS).
+Lua, Rust, Go, C/C++, Python, HTML, CSS).
 
 The primary type appears
 
@@ -626,6 +634,7 @@ The primary type appears
 | LuaForge | Lua projects |
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
+| CForge | C and C++ projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
 
@@ -783,6 +792,7 @@ not finished, the page says so.
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [CForge (C and C++)](docs/guide/user/cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control
@@ -8781,6 +8791,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
+| **CForge** | C and C++ (clangd, toolchains, CMake, CTest / GoogleTest / Catch2, LLDB / GDB) |
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
@@ -11752,6 +11763,244 @@ Maven Central answer from recorded data; nothing runs or goes to the network.
 
 ---
 
+Source: docs/guide/user/cpp.md
+
+# CForge (C and C++)
+
+**CForge** brings CLion's C and C++ support to Forge. Its plugin **C/C++** (`forge.cpp`) is
+active in [C and C++ projects](docs/guide/getting-started/project-detection.md): a `CMakeLists.txt`,
+a `compile_commands.json` (in the root or `build/`), a `meson.build`, a `Makefile` next to
+C/C++ sources (or with them in `src/`), C/C++ files in the root, or two or more in a folder.
+
+- Highlighting of C, C++ and CMake files is bundled (CodeMirror's C++ grammar and the CMake
+  mode); completion, navigation, hover, rename, code actions and diagnostics (with
+  clang-tidy) come from **clangd** (Apache-2.0 WITH LLVM-exception).
+- Everything else — toolchain detection, CMake presets and profiles, the CMake code model,
+  build problems, test discovery and command lines, coverage and debugger setup — is
+  computed in Rust (`packs/cforge/*`).
+
+![GoogleTest tests with run icons in the gutter](docs/screenshots/cpp-editor.png)
+
+## Toolchains
+
+**Settings | Build, Execution, Deployment | Toolchains** lists the toolchains of the machine,
+like CLion: a C and C++ compiler with CMake, a build tool (Ninja or Make) and a debugger.
+Forge reads every version itself (`gcc -v`, `clang -v`, MSVC's `cl` banner, `--version` of
+the tools) and shows what is missing.
+
+![Settings | Build, Execution, Deployment | Toolchains](docs/screenshots/cpp-toolchains.png)
+
+| Toolchain | Found as |
+| --- | --- |
+| System GCC / Clang | `gcc` / `g++`, `clang` / `clang++` on the `PATH`, and versioned ones (`gcc-14`, `clang-19`) |
+| Cross compilers | `<triple>-gcc` / `<triple>-g++` on the `PATH` (`arm-none-eabi-gcc`, `aarch64-linux-gnu-gcc`), with `<triple>-gdb` or `gdb-multiarch` |
+| MinGW-w64 | MSYS2's `ucrt64`, `mingw64` and `clang64`, `C:\mingw64`, `C:\MinGW`, or a GCC on the `PATH` that targets `*-w64-mingw32` |
+| Visual Studio | every installation with the C++ tools that `vswhere` reports: the newest `cl.exe`, `vcvarsall.bat` and the CMake and Ninja Visual Studio bundles |
+
+- The debugger of a toolchain is GDB for GCC and LLDB (`lldb-dap`) for Clang, the other one
+  when only that is installed. GDB needs version 14 or newer (its DAP server, `gdb -i dap`).
+  Microsoft's debugger is not redistributable: MSVC programs are debugged with LLDB.
+- **+** adds your own toolchain (`cpp.toolchains`): name, kind, CMake, build tool, C and C++
+  compilers, debugger and an environment script (a cross SDK's `environment-setup-*`). Empty
+  fields are detected. The page checks the entry while you type. The first toolchain of the
+  list is the default; **Copy** turns a detected toolchain into an editable one.
+- Remote projects use the compilers of the remote host; the page lists this machine's.
+
+## CMake
+
+### Profiles and presets
+
+**Settings | Build, Execution, Deployment | CMake** holds the project's **profiles**
+(`cmake.profiles`, stored with the project): name, build type (Debug, Release,
+RelWithDebInfo, MinSizeRel), toolchain, generator, CMake options, build directory (default
+`cmake-build-<name>`), build options (`-j 8`) and environment. Without a profile the project
+has CLion's **Debug** profile.
+
+![Settings | Build, Execution, Deployment | CMake](docs/screenshots/cmake-profiles.png)
+
+The configure presets of `CMakePresets.json` and `CMakeUserPresets.json` become profiles too
+(read-only; **Copy** turns one into a profile). Forge reads them in Rust: schema versions 1
+to 10, `include` files, `inherits` chains, `hidden` presets, `condition`s (`equals`,
+`inList`, `anyOf`, `not`, …) and the macros `${sourceDir}`, `${presetName}`,
+`${hostSystemName}`, `$env{…}` and `$penv{…}`. Preset profiles configure with
+`cmake --preset=<name>`.
+
+- **Reload CMake project on editing CMakeLists.txt** (`cmake.reloadOnChange`) reloads after
+  saving a CMake file or a presets file.
+- **Build the target before running or debugging** (`cmake.buildBeforeRun`).
+- **CMake executable** (`cmake.executable`): empty uses the toolchain's CMake.
+
+### The CMake tool window
+
+The **CMake** tool window shows one tab per enabled profile (the active one is selected;
+clicking another one switches the active profile, `cmake.activeProfile`), the targets of the
+profile's code model and the configure output.
+
+![The CMake tool window with targets and the configure log](docs/screenshots/cmake-tool-window.png)
+
+- **Reload CMake Project** writes a query for CMake's file API
+  (`<build>/.cmake/api/v1/query/client-forge/query.json`), runs the configure with the
+  toolchain's compilers and `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, and reads the reply:
+  configurations, projects, targets (executables, libraries, utilities) with their sources,
+  artifacts and the line of `CMakeLists.txt` that defines them. Double-click a target to go
+  there; its row has Build, Run and Debug buttons.
+- **Reset Cache and Reload Project** deletes `CMakeCache.txt` and `CMakeFiles` first;
+  **Stop** ends a configure; **Clean** runs the `clean` target.
+- `CMake Error at CMakeLists.txt:6 (find_package):` and warning lines of the log link to the
+  file and line; the summary counts errors and warnings.
+- Forge loads the CMake project when a trusted project opens. Configuring runs project code,
+  so it is refused in [Safe Mode](docs/guide/user/project-trust.md); a model an earlier configure wrote is
+  shown anyway.
+
+CMake files get completion of commands (with their signatures), of the keywords of the
+command the caret is in (`PRIVATE`, `REQUIRED`, `STATIC`, …) and of `${VARIABLES}` (CMake's
+and the ones the file sets).
+
+## Compilation database projects
+
+A folder with a `compile_commands.json` (written by Bear, Meson or another generator) opens
+as a C/C++ project without CMake. clangd reads the database in the project root or in
+`build/`; **Settings | Languages & Frameworks | C/C++ | Compilation database**
+(`cpp.compileCommands`) points at another one. The page shows how many files it lists and
+which language standards they use.
+
+## clangd
+
+**Settings | Languages & Frameworks | C/C++** shows the clangd in use, the compilation
+database it reads and clang-format.
+
+![Settings | Languages & Frameworks | C/C++](docs/screenshots/cpp-settings.png)
+
+- clangd comes from **clangd executable** (`cpp.clangd.path`), the toolchain's LLVM
+  (`clangd` next to `clang++`), the `PATH`, or Forge's download.
+- **Download clangd** fetches the pinned release (`19.1.2`) from the official
+  [clangd releases](https://github.com/clangd/clangd/releases) after you agree, checks its
+  SHA-256 and unpacks it into `<data dir>/forge/langservers/clangd/<version>`. The release
+  publishes no checksum files: the SHA-256 is read from the GitHub API's asset digest of the
+  pinned release (`api.github.com/repos/clangd/clangd/releases/tags/19.1.2`), and a download
+  without one is refused. When a C/C++ project opens without clangd, a balloon offers the
+  download.
+- clangd starts with `--compile-commands-dir` set to the active profile's build folder (or
+  the compilation database), `--background-index`, `--clang-tidy`
+  (`cpp.clangd.clangTidy`; the project's `.clang-tidy` files choose the checks),
+  `--header-insertion` (`cpp.clangd.headerInsertion`), `--completion-style`
+  (`cpp.clangd.completionStyle`) and `--query-driver` with the toolchain's compilers, so
+  cross compilers' system headers are found. **Additional clangd arguments**
+  (`cpp.clangd.arguments`) adds more. It restarts after a CMake reload, so it reads the new
+  database.
+
+### Reformat Code
+
+**Reformat Code** (`Ctrl+Alt+L`) and **Actions on Save | Reformat code** run clang-format
+(`cpp.formatter`): it reads the `.clang-format` of the file's folder; **Style without a
+.clang-format file** (`cpp.clangFormat.fallbackStyle`) applies otherwise. **clangd** formats
+through the language server, **Do not format** leaves C and C++ files alone. `.clang-format`,
+`.clang-tidy` and `.clangd` files are highlighted as YAML.
+
+## Build
+
+| Action | Shortcut | What it runs |
+| --- | --- | --- |
+| Build Project | `Ctrl+F9` (macOS `Cmd+F9`) | `cmake --build <build dir>` |
+| Rebuild Project | | `cmake --build <build dir> --clean-first` |
+| Clean | | `cmake --build <build dir> --target clean` |
+| Build Target… | | `cmake --build <build dir> --target <target>` |
+
+The build runs in the Run tool window. When it finishes, Forge parses the compiler and
+linker messages in Rust — GCC and Clang (`file:line:col: error: …`, with their notes), MSVC
+(`file(line,col): error C2065: …`) and the linkers (`ld`, `lld`, Apple's `ld`, `link.exe`) —
+and shows them in the **Build** tab of the Problems tool window and as editor diagnostics.
+Notes (candidates, declarations) are nested under their message; a click opens the line.
+
+![Build problems in the Problems tool window](docs/screenshots/cpp-build-problems.png)
+
+Build Project in other projects (JavaForge) keeps its own meaning.
+
+## Run configurations
+
+**CMake Application** runs an executable target of the active profile: **Target**, an
+optional **Executable**, **Program arguments**, working directory (default: the folder of
+the executable), environment and **Debugger** (the toolchain's, GDB or LLDB). The target is
+built first. The CMake tool window's Run and Debug buttons create one.
+
+## Tests
+
+| Framework | Run configuration | How it runs | Gutter |
+| --- | --- | --- | --- |
+| GoogleTest | Google Test | the target's executable with `--gtest_filter` and `--gtest_output=xml:<report>` | `TEST`, `TEST_F`, `TEST_P`, `TYPED_TEST` |
+| Catch2 | Catch2 | the target's executable with a test spec, `-c <section>` and `--reporter junit --out <report>` | `TEST_CASE`, `TEST_CASE_METHOD`, `SCENARIO`, `TEMPLATE_TEST_CASE` and their `SECTION`s / `GIVEN` / `WHEN` / `THEN` |
+| CTest | CTest | `ctest --test-dir <build dir> --output-junit <report>` with `-R`, `-L` and `-j` | — |
+
+- The test executable is the configuration's **Target**, else the CMake target that compiles
+  the test file. It is built first (CTest builds the project).
+- Results come from the JUnit XML reports into the test tree, with the file and line of every
+  GoogleTest test; disabled tests show as ignored. **Rerun Failed Tests** runs
+  `--gtest_filter=*.<test>:…`, the failed Catch2 test cases, or `ctest -R '^(…)$'`.
+- Test discovery finds the macros with a small tokenizer that skips comments and keeps string
+  literals; a file that includes `gtest/` or `catch2/` belongs to that framework.
+
+![A GoogleTest run](docs/screenshots/cpp-gtest-tree.png)
+
+![A Catch2 run with a failing section](docs/screenshots/cpp-catch2-tree.png)
+
+### Coverage
+
+**Run with Coverage** works for all three: build the profile with coverage instrumentation
+(CMake options `-DCMAKE_CXX_FLAGS=--coverage` for GCC, or
+`-DCMAKE_CXX_FLAGS="-fprofile-instr-generate -fcoverage-mapping"` for Clang). Forge clears old
+`.gcda` files before the run and turns the data into an LCOV report afterwards: Clang's
+`.profraw` files (`LLVM_PROFILE_FILE`) with `llvm-profdata merge` and `llvm-cov export
+-format=lcov`, else gcov's `.gcda` files with `gcov --json-format` (the `gcov` that belongs to
+the toolchain's GCC). Only project files are kept. The result opens in the
+[Coverage](docs/guide/user/coverage.md) tool window. Coverage is collected for local projects.
+
+## Debugging
+
+Debug (`Shift+F9`) on a CMake Application, Google Test or Catch2 configuration builds the
+target and starts it under the built-in [LLDB or GDB adapter](docs/guide/user/debugging.md) of the
+toolchain (cross toolchains use their own GDB, for example `gdb-multiarch`). Breakpoints,
+stepping, watches, the Memory, Disassembly and Registers views, Attach to Process and core
+dumps work as for every native program.
+
+![GDB stopped in main with STL containers](docs/screenshots/cpp-debug.png)
+
+**Show STL containers with their elements** (`cpp.debugger.stlRenderers`): GDB registers
+libstdc++'s Python pretty printers of the toolchain before the program loads
+(`-iex "python …register_libstdcxx_printers…"` from `<prefix>/share/gcc*/python`) and prints
+structures on several lines; LLDB uses its built-in C++ formatters (libc++, libstdc++, MSVC
+STL). A `std::vector` shows its length and elements, which expand like any other variable.
+
+## Settings
+
+| Key | Page | Default | What it does |
+| --- | --- | --- | --- |
+| `cpp.toolchains` | Toolchains | `[]` | Your own toolchains; the first is the default |
+| `cmake.profiles` | CMake | `[]` | The project's CMake profiles (a Debug profile without any) |
+| `cmake.activeProfile` | CMake tool window | `""` | The profile builds, runs, tests and clangd use |
+| `cmake.executable` | CMake | `""` | CMake to run; empty: the toolchain's |
+| `cmake.reloadOnChange` | CMake | `true` | Reload after saving CMake files |
+| `cmake.buildBeforeRun` | CMake | `true` | Build the target before running, testing or debugging |
+| `cpp.clangd.path` | C/C++ | `""` | clangd executable |
+| `cpp.clangd.clangTidy` | C/C++ | `true` | clang-tidy diagnostics |
+| `cpp.clangd.headerInsertion` | C/C++ | `iwyu` | `#include` insertion of completion |
+| `cpp.clangd.completionStyle` | C/C++ | `detailed` | One item per overload or bundled |
+| `cpp.clangd.arguments` | C/C++ | `""` | More clangd arguments |
+| `cpp.compileCommands` | C/C++ | `""` | Compilation database of projects without CMake |
+| `cpp.formatter` | C/C++ | `clangFormat` | clang-format, clangd or none |
+| `cpp.clangFormat.path` | C/C++ | `""` | clang-format executable |
+| `cpp.clangFormat.fallbackStyle` | C/C++ | `LLVM` | Style without a `.clang-format` |
+| `cpp.debugger.stlRenderers` | C/C++ | `true` | STL pretty printers / formatters |
+
+## Browser mode
+
+`?project=cpp` opens the `shapes` demo: a C++20 library with an app, GoogleTest and Catch2
+tests, CMake presets and a `.clang-format`. `&build=broken` makes its build fail with
+compiler errors. Toolchains, the CMake model and all output are canned; the parsing and the
+command lines run the Rust crates through WebAssembly.
+
+
+---
+
 Source: docs/guide/user/kotlin.md
 
 # KotlinForge
@@ -13394,6 +13643,7 @@ PHP, Lua and every language pack that follows:
 | JUnit 5/4/3, TestNG | JavaForge ([JavaForge](docs/guide/user/java.md#tests)), through Gradle or Maven | JUnit XML of the build (`build/test-results/test`, `target/surefire-reports`) | JaCoCo XML |
 | Kotest, JUnit 5 in Kotlin | KotlinForge ([KotlinForge](docs/guide/user/kotlin.md#tests)), through Gradle or Maven | JUnit XML of the build | JaCoCo XML |
 | Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](docs/guide/user/javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
+| GoogleTest, Catch2, CTest | CForge ([CForge](docs/guide/user/cpp.md#tests)), the CMake target's executable or `ctest` | JUnit XML (`--gtest_output=xml`, Catch2's JUnit reporter, `ctest --output-junit`) | LCOV from gcov or llvm-cov |
 | pytest, unittest, tox | PyForge ([PyForge](docs/guide/user/python.md#testing-with-pytest-unittest-and-tox)) | JUnit XML or report log (pytest), TeamCity (Forge's unittest runner), environments as tests (tox) | pytest-cov (Cobertura) |
 
 Language packs declare their frameworks in their plugin manifest
@@ -18004,6 +18254,23 @@ Page ids `lang.flask`, `lang.fastapi` and `lang.celery`.
 | `fastapi.app` | string | `""` | user, project |  | Application — module:attribute that uvicorn serves. Empty: the module that creates FastAPI(...). |
 | `celery.app` | string | `""` | user, project |  | Application (-A) — The Celery application. Empty: the module that creates Celery(...). |
 
+### Languages & Frameworks | C/C++
+
+Page id `lang.cpp` (plugin `forge.cpp`; the page also shows clangd, the compilation database and clang-format). See [CForge](docs/guide/user/cpp.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.clangd.path` | path | `""` | user | Clangd | clangd executable — Empty: clangd of the active toolchain (LLVM), on the PATH, or the one Forge downloaded. |
+| `cpp.clangd.clangTidy` | bool | `true` | user, project | Clangd | Show clang-tidy diagnostics — clangd runs the checks of the project's .clang-tidy files (--clang-tidy). |
+| `cpp.clangd.headerInsertion` | enum: `iwyu`, `never` | `iwyu` | user, project | Clangd | Insert #include for completed symbols. |
+| `cpp.clangd.completionStyle` | enum: `detailed`, `bundled` | `detailed` | user | Clangd | Completion style. |
+| `cpp.clangd.arguments` | string | `""` | user | Clangd | Additional clangd arguments — For example --log=verbose or -j=4. |
+| `cpp.compileCommands` | path | `""` | user, project | Compilation Database | Compilation database — compile_commands.json of a project without CMake (Bear, Meson, other generators). Empty: the project root or build/. |
+| `cpp.formatter` | enum: `clangFormat`, `lsp`, `none` | `clangFormat` | user, project | Code Style | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for C and C++ files; clang-format reads the project's .clang-format. |
+| `cpp.clangFormat.path` | path | `""` | user | Code Style | clang-format executable — Empty: clang-format of the active toolchain or on the PATH. |
+| `cpp.clangFormat.fallbackStyle` | enum: `LLVM`, `Google`, `Chromium`, `Mozilla`, `WebKit`, `Microsoft`, `GNU`, `none` | `LLVM` | user, project | Code Style | Style without a .clang-format file. |
+| `cpp.debugger.stlRenderers` | bool | `true` | user | Debugger | Show STL containers with their elements — GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters. |
+
 ### Languages & Frameworks | Go
 
 Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
@@ -18277,6 +18544,26 @@ Page id `build.tools.maven` (plugin `forge.java`).
 | `java.maven.skipTests` | bool | `false` | user, project |  | Skip tests — Maven goals run with -DskipTests (the Maven tool window's Skip Tests toggle; test runs ignore it). |
 | `java.maven.profiles` | list | `[]` | user, project |  | Profiles — Profiles the Maven tool window selected: id to activate, !id to deactivate. |
 | `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
+
+### Build, Execution, Deployment | Toolchains
+
+Page id `build.toolchains` (plugin `forge.cpp`, a custom page: detected toolchains and your own). See [CForge](docs/guide/user/cpp.md#toolchains).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.toolchains` | objects | `[]` | user |  | Toolchains — Toolchains added by hand (name, kind, compilers, CMake, Make, Ninja, debugger, environment script). The first one is the default; detected toolchains follow. |
+
+### Build, Execution, Deployment | CMake
+
+Page id `build.cmake` (plugin `forge.cpp`; profiles are edited in the page's list, presets are read from `CMakePresets.json`). See [CForge](docs/guide/user/cpp.md#cmake).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cmake.profiles` | objects | `[]` | user, project |  | CMake profiles — name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled. |
+| `cmake.activeProfile` | string | `""` | user, project |  | Active CMake profile (chosen in the CMake tool window). |
+| `cmake.executable` | path | `""` | user | CMake | CMake executable — Empty: the active toolchain's CMake (bundled with Visual Studio for MSVC), else cmake on the PATH. |
+| `cmake.reloadOnChange` | bool | `true` | user, project | CMake | Reload CMake project on editing CMakeLists.txt or other CMake configuration files. |
+| `cmake.buildBeforeRun` | bool | `true` | user, project | CMake | Build the target before running or debugging — CMake Application, Google Test and Catch2 configurations build their target first (cmake --build --target). |
 
 ### Build, Execution, Deployment | Debugger
 
@@ -18669,7 +18956,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | `clangd --background-index --clang-tidy --header-insertion=iwyu` | `brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results. |
+| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | started by CForge (`forge.cpp`) | Download from Settings \| Languages & Frameworks \| C/C++ (GitHub releases, SHA-256 checked)<br>`brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | A pack server: CForge starts it with the compilation database of the active CMake profile, clang-tidy and the toolchain's compilers as query drivers. See [CForge](docs/guide/user/cpp.md#clangd). |
 
 ### Zig
 
@@ -19055,7 +19342,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -19088,6 +19375,7 @@ script and config language plugins.
 | FastAPI | `forge.fastapi` | pyforge | `forge.python-web` | `fastapi` | 1 settings; run types: FastAPI |
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake; 6 commands; 16 settings; file types: Clang Configuration; run types: CMake Application; test frameworks: Google Test, Catch2, CTest |
 | Kotlin | `forge.kotlin` | kotlinforge | `forge.java` | `kotlinforge` | 4 commands; 16 settings; 1 debug adapters (kotlin-lsp); 1 test frameworks (Kotest); run types (UI): Kotlin Script, Kotest |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
@@ -21057,6 +21345,9 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
 | [goforge-pprof](docs/guide/developer/crates/goforge-pprof.md) | GoForge: pprof profiles (profile.proto, gzip) with top, call tree and flame graph views; pure, also built to WebAssembly |
+| [cforge-toolchains](docs/guide/developer/crates/cforge-toolchains.md) | CForge: C/C++ toolchains on the user's machine (GCC, Clang, Apple Clang, MinGW, MSVC through vswhere, cross compilers) with CMake, Ninja, Make, GDB and LLDB; version outputs parsed in Rust |
+| [cforge-cmake](docs/guide/developer/crates/cforge-cmake.md) | CForge: CMake profiles, CMakePresets.json / CMakeUserPresets.json, the cmake-file-api query and codemodel-v2 reply, configure logs, configure / build / clean / CTest command lines, CMakeLists completion (pure, also built to WebAssembly) |
+| [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) | CForge: C/C++ build problems (GCC, Clang, MSVC, linkers), compilation databases, GoogleTest and Catch2 discovery, the GoogleTest / Catch2 / CTest providers with gcov and llvm-cov coverage, clangd / clang-format command lines and debugger setup (pure, also built to WebAssembly) |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
@@ -22081,7 +22372,10 @@ with the same `debug_*` commands and `debug://*` events.
   `${cwd}`, `${env}`, `${pid}`, `${core}`, `${stopOnEntry}`), `AdapterRegistry` and
   `LaunchRequest` (launch, attach to a process, attach to a DAP server, attach to a
   debuggee's port (`AttachPort`: `node --inspect`, a browser's remote debugging port), core
-  dump).
+  dump). `adapterArgs` and `adapterCommand` change a manifest adapter's command line for one
+  session (CForge's GDB `-iex` commands for STL pretty printers, a cross toolchain's
+  `gdb-multiarch`); such requests count as running code (`runs_code`), so Safe Mode refuses
+  them.
 - `manager::DapManager` starts and tracks sessions (`register_adapter` / `unregister_adapter`
   for adapters implemented in Rust, such as [webforge-js-debug](docs/guide/developer/crates/webforge-js-debug.md)'s js-debug), shares the project's breakpoints with
   Xdebug through a `BreakpointHost` (the app's `DebugServer`) and resends them when they
@@ -23090,6 +23384,7 @@ these rows.
 | `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
+| `managed/clangd.rs` | CForge's clangd download from the official GitHub releases at a pinned version (`CLANGD_VERSION`, `clangd_release` per platform): the SHA-256 recorded in `CLANGD_BUILDS`, else the asset `digest` of the GitHub REST API for the pinned release (`asset_digest`); without one the install is refused. Unpacked into `<data dir>/forge/langservers/clangd/<version>` (`installed_clangd`). clangd is a pack server (plugin `forge.cpp`). |
 | `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`). |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
@@ -23668,7 +23963,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
-| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
+| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), GoogleTest's and CTest's `status="notrun"` / `result="suppressed"` as ignored, durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
@@ -23856,7 +24151,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`. |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -24587,7 +24882,7 @@ coverage reports into one model.
 | Module | Summary |
 | --- | --- |
 | `targets.rs` | `TestFile` (the tests of a file with their temporary configurations and result keys), `TestTarget`, `TargetKind` (`class`, `method`, `file`, `describe`, `test`, `dataset`, `feature`, `scenario`, `example`, `suite`), `FailedTest`. |
-| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request with its own location rules, `report_dirs`: project folders a build tool writes its JUnit XML into, emptied before and read after the run) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
+| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request with its own location rules and an optional `CoverageCollect` (raw data a pack's collector turns into the report after the run: CForge's gcov `.gcda` / LLVM `.profraw` → LCOV), `report_dirs`: project folders a build tool writes its JUnit XML into, emptied before and read after the run) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
 | `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
 | `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `discover_in_project` (the frameworks the project uses first), `rerun_failed`, `command`, `info`). |
 | `spec.rs` | `TestFrameworkSpec` (with `fields`: extra run configuration form fields), the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
@@ -25839,6 +26134,205 @@ Source: docs/guide/developer/crates/goforge-pprof.md
 
 ```sh
 cargo test -p goforge-pprof
+```
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-toolchains.md
+
+# cforge-toolchains
+
+`packs/cforge/toolchains` — CForge: the toolchains of Settings | Build, Execution,
+Deployment | Toolchains, like CLion's. A toolchain is a C and C++ compiler with CMake, a build
+tool (Ninja, Make) and a debugger (GDB or LLDB).
+
+## Purpose
+
+- `version`: `gcc -v` / `clang -v` (target, thread model, installed dir, vendor such as
+  `Ubuntu`, `MSYS2 project`, `Arm GNU Toolchain 13.3.Rel1`), Apple Clang, MSVC's `cl` banner
+  and the first line of `--version` of CMake, Ninja, Make, GDB, LLDB and clang-format;
+  `at_least` / `version_key` compare versions.
+- `vswhere`: `vswhere -format json` installations (newest first), the newest MSVC tool set in
+  `VC\Tools\MSVC`, `cl.exe` for a host / target architecture, `vcvarsall.bat` and the CMake and
+  Ninja that Visual Studio bundles.
+- `detect`: the toolchains of a machine — the system GCC and Clang, versioned compilers
+  (`gcc-14`), cross compilers `<triple>-gcc` (with `<triple>-gdb` or `gdb-multiarch`; Debian's
+  host aliases are skipped), MinGW-w64 folders on Windows and Visual Studio — with their
+  problems ("GDB 12.1 has no DAP server", "No build tool"), the user's toolchains from the
+  setting `cpp.toolchains` (`ToolchainEntry`, empty fields detected) and the CMake variables a
+  toolchain sets (`CMAKE_C_COMPILER`, `CMAKE_CXX_COMPILER`, `CMAKE_MAKE_PROGRAM`).
+
+Everything detection does to the machine goes through the `Probe` trait (`SystemProbe` for
+the real one), so the tests describe Linux and Windows machines with a fake.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `version.rs` | `parse_compiler`, `parse_tool_version`, `CompilerInfo`, `CompilerFamily`, `at_least`, `version_key`. |
+| `vswhere.rs` | `parse`, `VsInstallation`, `newest_toolset`, `msvc_paths`, `VSWHERE_ARGS`. |
+| `detect.rs` | `detect`, `all`, `from_entry`, `which`, `cmake_variables`, `Toolchain`, `ToolchainEntry`, `Probe`, `SystemProbe`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp.rs` (`cpp_toolchains`, `cpp_toolchain_inspect`, the
+  configure command, the debugger and coverage tools of a profile).
+
+## Dependencies
+
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests with fixtures recorded on Ubuntu 24.04 (`gcc -v`, `clang -v`, `cmake --version`,
+`ninja --version`, `make --version`, `gdb --version`, `lldb --version`,
+`clang-format --version`) and documented-format samples (MinGW, `arm-none-eabi-gcc`, Apple
+Clang, the `cl` banner, `vswhere` JSON) in `tests/fixtures/`.
+
+```sh
+cargo test -p cforge-toolchains
+```
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-cmake.md
+
+# cforge-cmake
+
+`packs/cforge/cmake` — CForge: everything about CMake that needs no I/O. The desktop backend
+reads files and runs CMake; this crate decides. The WebAssembly build of browser mode shares
+it.
+
+## Purpose
+
+- `presets`: `CMakePresets.json` and `CMakeUserPresets.json` (which includes the project
+  file) with `include` files (cycles reported), configure, build and test presets,
+  `inherits` (depth first, the first parent that sets a field wins; cache variables and
+  environments merge, `null` unsets), `condition`s (`const`, `equals`, `notEquals`,
+  `inList`, `notInList`, `matches`, `anyOf`, `allOf`, `not`) and macros (`${sourceDir}`,
+  `${sourceParentDir}`, `${sourceDirName}`, `${presetName}`, `${generator}`,
+  `${hostSystemName}`, `${fileDir}`, `${dollar}`, `${pathListSep}`, `$env{}`, `$penv{}`).
+- `profile`: CMake profiles (`Profile`; the setting `cmake.profiles` holds `ProfileEntry`
+  tables) with CLion's defaults (a Debug profile, `cmake-build-<name>`), preset profiles, and
+  the command lines of configure (`-S`, `-B`, `-G`, `CMAKE_BUILD_TYPE`, the toolchain's
+  variables, `CMAKE_EXPORT_COMPILE_COMMANDS`, options; `--preset=<name>` for presets), build,
+  rebuild (`--clean-first`), clean and CTest's location.
+- `fileapi`: the stateful client query (`.cmake/api/v1/query/client-forge/query.json`:
+  `codemodel` 2, `toolchains` 1, `cmakeFiles` 1) and the reply: the newest index, the
+  client's responses, configurations, projects, targets (kind, artifacts, sources with their
+  language, dependencies, the `CMakeLists.txt` line that defines them from the backtrace
+  graph), compilers and the project's CMake files.
+- `log`: `CMake Error/Warning/Deprecation Warning/Warning (dev) at file:line (command):` blocks
+  and `in file` / one-line `CMake Error:` messages of a configure, and whether it failed.
+- `complete`: completion of CMake commands (signatures), the keywords of the command the
+  caret is in, and `${VARIABLES}`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `presets.rs` | `load`, `Presets`, `RawPreset`, `ResolvedConfigure`, `ResolvedBuild`, `MacroContext`, `expand`, `condition_holds`. |
+| `profile.rs` | `Profile`, `ProfileEntry`, `profiles`, `configure_command`, `build_command`, `BuildAction`, `Command`, `ConfigureContext`, `split_args`, `ctest_next_to`, `build_dir_of`. |
+| `fileapi.rs` | `query_json`, `parse_reply`, `CMakeModel`, `Configuration`, `Target`, `TargetKind`, `Source`, `Location`, `QUERY_DIR`, `REPLY_DIR`. |
+| `log.rs` | `parse_log`, `failed`, `ConfigureMessage`, `Severity`. |
+| `complete.rs` | `complete`, `COMMANDS`, `VARIABLES`, `Completion`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp.rs` (`cmake_*`).
+- [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) (command type, argument splitting).
+- Browser mode: `crates/forge-wasm/src/cpp.rs`.
+
+## Dependencies
+
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module. `tests/fixtures/reply/` is a file API reply recorded from CMake 3.28
+configuring a small project with Ninja (paths replaced by `/home/dev/shapes`);
+`tests/fixtures/cmake-configure-*.txt` are recorded configure logs with errors and warnings.
+
+```sh
+cargo test -p cforge-cmake
+```
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-lang-cpp.md
+
+# cforge-lang-cpp
+
+`packs/cforge/lang-cpp` — CForge: everything about C and C++ that needs no I/O. The desktop
+backend and the WebAssembly build of browser mode share it.
+
+## Purpose
+
+- `diagnostics`: compiler and linker messages of a build — GCC and Clang
+  (`file:line:col: error: …` with `[-Wflag]` codes; source excerpts and `In function`
+  context skipped; notes attached to their message), MSVC (`file(line,col): error C2065: …`,
+  `link.exe` `LNK` errors), GNU `ld` (`file.cpp:(.text+0x9): undefined reference …`), `lld`
+  and Apple's `ld` — and `project_path`, which makes paths project-relative (relative paths
+  resolve against the build folder).
+- `compdb`: `compile_commands.json` (`command` strings split like a shell, or `arguments`),
+  standards, include folders, a summary and `--query-driver` globs.
+- `discovery`: GoogleTest (`TEST`, `TEST_F`, `TEST_P`, `TYPED_TEST`, `TYPED_TEST_P`) and
+  Catch2 (`TEST_CASE`, `TEST_CASE_METHOD`, `SCENARIO`, `TEMPLATE_TEST_CASE`, nested `SECTION`,
+  `GIVEN` / `WHEN` / `THEN` with Catch2's prefixes, tags) with a tokenizer that skips comments
+  and reads string and raw string literals; the included header decides the framework.
+- `provider`: `CppTests`, the `forge-testing` providers of `gtest`, `catch2` and `ctest`
+  (replacing the manifest's declarations): gutter targets keyed like the test tree,
+  command lines per scope (`--gtest_filter` for tests, suites, parameterized and typed tests;
+  Catch2 test specs with escaping and `-c` sections; `ctest -R/-L/-j`), JUnit reports, Rerun
+  Failed Tests and Run with Coverage (`LLVM_PROFILE_FILE` and a `CoverageCollect` for the
+  backend). The executable comes from a `CppContext` (build folder, CTest, executable targets
+  with their sources) in `CommandContext.settings["cpp.context"]`; `debug_command` gives the
+  debugger a test's program and filter.
+- `coverage`: gcov's JSON (`gcov --json-format --stdout`) to LCOV (project files only, counts
+  of several objects added, branches and functions), the `llvm-profdata merge` and `llvm-cov
+  export -format=lcov` command lines, and the tools that belong to a compiler
+  (`g++-14` → `gcov-14`).
+- `tools`: clangd's arguments (`--compile-commands-dir`, `--background-index`,
+  `--clang-tidy`, `--header-insertion`, `--completion-style`, `--query-driver`), its version,
+  clang-format's arguments (`--assume-filename`, `--style=file`, `--fallback-style`) and the
+  debug setup with STL renderers (GDB `-iex` commands that register libstdc++'s printers,
+  LLDB `initCommands`), with the folders where GCC keeps its printers.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `diagnostics.rs` | `parse_build_output`, `project_path`, `BuildProblem`, `Severity`. |
+| `compdb.rs` | `parse`, `summary`, `query_drivers`, `entry_for`, `CompileCommand`. |
+| `discovery.rs` | `discover`, `included_framework`, `CppTest`, `Discovered`, `Framework`, `Kind`. |
+| `provider.rs` | `CppTests`, `register`, `CppContext`, `ContextTarget`, `debug_command`, `gtest_test_filter`, `catch2_escape`, `is_cpp_source`. |
+| `coverage.rs` | `gcov_json_to_lcov`, `gcov_command`, `llvm_merge_command`, `llvm_export_command`, `llvm_profile_env`, `tool_next_to`. |
+| `tools.rs` | `clangd_args`, `ClangdOptions`, `clangd_version`, `clang_format_args`, `debug_setup`, `printer_dir_candidates`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp.rs`, `commands/run.rs` (the providers in
+  `RunState.tests`, CMake Application command lines), `commands/testing.rs` (coverage).
+- Browser mode: `crates/forge-wasm/src/cpp.rs` and `testing.rs`.
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md), [`cforge-cmake`](docs/guide/developer/crates/cforge-cmake.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module with recorded fixtures in `tests/fixtures/`: GCC 13 and Clang 18 errors,
+a GNU `ld` error, a failed Ninja build, CTest's `--output-junit` report and console output,
+gcov JSON of a test run; documented-format samples of MSVC errors, a GoogleTest XML report
+and a Catch2 JUnit report.
+
+```sh
+cargo test -p cforge-lang-cpp
 ```
 
 

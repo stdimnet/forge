@@ -119,7 +119,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] PyForge: Jupyter notebooks (editor, kernels, outputs, DataFrame views, notebook diffs)
 - [x] GoForge: SDK/GOPATH, `go.mod`/`go.work`, gofmt/goimports/vet/generate, golangci-lint, Go Build/Test (bench, fuzz), Delve attach/remote, pprof
 - [ ] RustForge: rustup toolchains, Cargo tool window and configurations, Clippy, rustfmt, doctest/nextest, LLDB/GDB renderers
-- [ ] CForge: clangd (managed), CMake profiles/presets and tool window, compilation database, toolchains (GCC/Clang/MSVC/MinGW), build actions, CTest/GoogleTest/Catch2, debugger
+- [x] CForge: clangd (managed), CMake profiles/presets and tool window, compilation database, toolchains (GCC/Clang/MSVC/MinGW), build actions, CTest/GoogleTest/Catch2, debugger
 - [ ] CForge v2: sanitizers, Valgrind, perf, vcpkg/Conan, embedded (OpenOCD, SVD, PlatformIO, ESP-IDF, Zephyr)
 
 ## Milestone 4 — Code quality, tooling and databases

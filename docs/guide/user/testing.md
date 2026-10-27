@@ -29,6 +29,7 @@ PHP, Lua and every language pack that follows:
 | JUnit 5/4/3, TestNG | JavaForge ([JavaForge](java.md#tests)), through Gradle or Maven | JUnit XML of the build (`build/test-results/test`, `target/surefire-reports`) | JaCoCo XML |
 | Kotest, JUnit 5 in Kotlin | KotlinForge ([KotlinForge](kotlin.md#tests)), through Gradle or Maven | JUnit XML of the build | JaCoCo XML |
 | Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
+| GoogleTest, Catch2, CTest | CForge ([CForge](cpp.md#tests)), the CMake target's executable or `ctest` | JUnit XML (`--gtest_output=xml`, Catch2's JUnit reporter, `ctest --output-junit`) | LCOV from gcov or llvm-cov |
 | pytest, unittest, tox | PyForge ([PyForge](python.md#testing-with-pytest-unittest-and-tox)) | JUnit XML or report log (pytest), TeamCity (Forge's unittest runner), environments as tests (tox) | pytest-cov (Cobertura) |
 
 Language packs declare their frameworks in their plugin manifest

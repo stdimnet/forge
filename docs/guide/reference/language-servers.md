@@ -156,7 +156,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | `clangd --background-index --clang-tidy --header-insertion=iwyu` | `brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results. |
+| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | started by CForge (`forge.cpp`) | Download from Settings \| Languages & Frameworks \| C/C++ (GitHub releases, SHA-256 checked)<br>`brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | A pack server: CForge starts it with the compilation database of the active CMake profile, clang-tidy and the toolchain's compilers as query drivers. See [CForge](../user/cpp.md#clangd). |
 
 ### Zig
 

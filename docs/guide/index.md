@@ -52,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
+  toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
+  Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and
+  `CMakePresets.json`), the CMake tool window with targets and the configure log, compilation
+  database projects, Build / Rebuild / Clean (`Ctrl+F9`) with build problems, CMake Application
+  run configurations, GoogleTest, Catch2 and CTest with gutter icons and gcov / llvm-cov
+  coverage, and LLDB / GDB debugging with STL renderers ([CForge](user/cpp.md)).
 - **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
   downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
   checks and version completion from the module proxy; gofmt / goimports, go vet and

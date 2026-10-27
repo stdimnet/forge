@@ -29,7 +29,10 @@ with the same `debug_*` commands and `debug://*` events.
   `${cwd}`, `${env}`, `${pid}`, `${core}`, `${stopOnEntry}`), `AdapterRegistry` and
   `LaunchRequest` (launch, attach to a process, attach to a DAP server, attach to a
   debuggee's port (`AttachPort`: `node --inspect`, a browser's remote debugging port), core
-  dump).
+  dump). `adapterArgs` and `adapterCommand` change a manifest adapter's command line for one
+  session (CForge's GDB `-iex` commands for STL pretty printers, a cross toolchain's
+  `gdb-multiarch`); such requests count as running code (`runs_code`), so Safe Mode refuses
+  them.
 - `manager::DapManager` starts and tracks sessions (`register_adapter` / `unregister_adapter`
   for adapters implemented in Rust, such as [webforge-js-debug](webforge-js-debug.md)'s js-debug), shares the project's breakpoints with
   Xdebug through a `BreakpointHost` (the app's `DebugServer`) and resends them when they
