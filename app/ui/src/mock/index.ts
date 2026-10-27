@@ -80,6 +80,8 @@ import "./pythonWebMock";
 import "./javaMock";
 import "./javaDebugMock";
 import "./kotlinMock";
+import "./jvmExtrasMock";
+import "./androidMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";
