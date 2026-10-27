@@ -835,6 +835,11 @@
   flex: 1;
   min-width: 0;
 }
+/* In the page's column a row of fields keeps its height. */
+.dsd-page > .dsd-row-fields,
+.dsd-schemas > .dsd-row-fields {
+  flex: none;
+}
 .dsd-row-fields > .dsd-field:first-child {
   flex: 1;
   min-width: 0;
