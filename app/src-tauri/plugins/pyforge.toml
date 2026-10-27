@@ -80,6 +80,39 @@ group = "lang.python"
 section = "Language Servers"
 order = 10
 
+[[plugin.contributions.inspections]]
+id = "PyPackageRequirements"
+name = "Package requirements"
+group = "Python/Requirements"
+language = "python"
+severity = "WARNING"
+batch = false
+description = "Reports dependencies of requirements files and pyproject.toml that are not installed in the project interpreter, or not in a matching version."
+
+[[plugin.contributions.inspections]]
+id = "PyUndeclaredRequirement"
+name = "Imported package is not listed in the requirements"
+group = "Python/Requirements"
+language = "python"
+severity = "WEAK WARNING"
+batch = false
+description = "Reports imports of third-party packages that no dependency file declares."
+
+[[plugin.contributions.inspectionMappings]]
+source = "pyforge"
+code = "python.requirementNotSatisfied"
+inspection = "PyPackageRequirements"
+
+[[plugin.contributions.inspectionMappings]]
+source = "pyforge"
+code = "python.requirementSyntax"
+inspection = "PyPackageRequirements"
+
+[[plugin.contributions.inspectionMappings]]
+source = "pyforge"
+code = "python.undeclaredImport"
+inspection = "PyUndeclaredRequirement"
+
 [[plugin]]
 id = "forge.python-env"
 name = "Python Interpreters and Packages"

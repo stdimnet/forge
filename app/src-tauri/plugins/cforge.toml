@@ -673,3 +673,17 @@ group = "build.embedded"
 section = "Zephyr"
 project = true
 order = 43
+
+[[contributions.inspections]]
+id = "CppBuildProblems"
+name = "Build problems"
+group = "C/C++/External tools"
+language = "c"
+severity = "ERROR"
+external = true
+batch = false
+description = "Compiler errors and warnings of the last CMake build."
+
+[[contributions.inspectionMappings]]
+source = "cmake-build"
+inspection = "CppBuildProblems"

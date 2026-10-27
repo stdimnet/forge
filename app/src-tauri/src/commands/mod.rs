@@ -38,6 +38,7 @@ pub mod groovy;
 pub mod hierarchy;
 pub mod imports;
 pub mod injections;
+pub mod inspections;
 pub mod java;
 pub mod java_build;
 pub mod js_debug;

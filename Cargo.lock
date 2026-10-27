@@ -1915,6 +1915,7 @@ dependencies = [
  "forge-forges",
  "forge-fuzzy",
  "forge-injections",
+ "forge-inspections",
  "forge-jsonschema",
  "forge-keymap",
  "forge-langservers",
@@ -2443,6 +2444,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-filetypes",
+ "forge-inspections",
  "forge-keymap",
  "forge-output",
  "forge-testing",

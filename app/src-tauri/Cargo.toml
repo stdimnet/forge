@@ -22,6 +22,7 @@ forge-trust.workspace = true
 forge-bookmarks.workspace = true
 forge-localhistory = { workspace = true, features = ["disk"] }
 forge-scopes.workspace = true
+forge-inspections.workspace = true
 forge-ssr.workspace = true
 forge-plugin-api.workspace = true
 forge-fuzzy.workspace = true

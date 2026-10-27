@@ -247,3 +247,31 @@ default = "https://repo1.maven.org/maven2"
 group = "lang.kotlin"
 section = "Downloads"
 order = 50
+
+[[contributions.inspections]]
+id = "KtLint"
+name = "ktlint"
+group = "Kotlin/External tools"
+language = "kotlin"
+severity = "WEAK WARNING"
+external = true
+batch = false
+description = "Style problems reported by ktlint."
+
+[[contributions.inspections]]
+id = "Detekt"
+name = "detekt"
+group = "Kotlin/External tools"
+language = "kotlin"
+severity = "WARNING"
+external = true
+batch = false
+description = "Code smells reported by detekt."
+
+[[contributions.inspectionMappings]]
+source = "kotlin-ktlint"
+inspection = "KtLint"
+
+[[contributions.inspectionMappings]]
+source = "kotlin-detekt"
+inspection = "Detekt"

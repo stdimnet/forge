@@ -188,3 +188,16 @@ default = true
 group = "editor.natural-languages.grammar"
 section = "Rules"
 order = 13
+
+[[contributions.inspections]]
+id = "SpellCheckingInspection"
+name = "Typo"
+group = "Proofreading"
+severity = "TYPO"
+external = true
+batch = false
+description = "Spelling and grammar problems in comments, strings, identifiers and commit messages."
+
+[[contributions.inspectionMappings]]
+source = "spelling"
+inspection = "SpellCheckingInspection"
