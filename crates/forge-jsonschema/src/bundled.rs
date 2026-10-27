@@ -37,7 +37,24 @@ pub const GITHUB_WORKFLOW: &str = "https://json.schemastore.org/github-workflow.
 pub const GITHUB_ACTION: &str = "https://json.schemastore.org/github-action.json";
 pub const GITLAB_CI: &str = "https://gitlab.com/gitlab-org/gitlab-foss/-/raw/master/app/assets/javascripts/editor/schema/ci.json";
 
+pub const OPENAPI_30: &str = "https://spec.openapis.org/oas/3.0/schema/2021-09-28";
+pub const OPENAPI_31: &str = "https://spec.openapis.org/oas/3.1/schema/2022-10-07";
+
 pub static BUNDLED: &[Bundled] = &[
+    bundled!(
+        "openapi-3.0.json",
+        [
+            "https://spec.openapis.org/oas/3.0/schema/2021-09-28",
+            "https://spec.openapis.org/oas/3.0/schema/2019-04-02"
+        ]
+    ),
+    bundled!(
+        "openapi-3.1.json",
+        [
+            "https://spec.openapis.org/oas/3.1/schema/2022-10-07",
+            "https://spec.openapis.org/oas/3.1/schema/2022-02-27"
+        ]
+    ),
     bundled!("composer.json", ["https://getcomposer.org/schema.json"]),
     bundled!(
         "package.json",
