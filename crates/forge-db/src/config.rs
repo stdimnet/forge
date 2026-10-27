@@ -27,6 +27,9 @@ pub enum Driver {
     Mongodb,
     /// Oracle through SQL*Plus or SQLcl installed by the user.
     Oracle,
+    /// A DDL data source: SQL DDL files of the project (`CREATE TABLE …` scripts or SQL
+    /// migrations) parsed into the model, without a database.
+    Ddl,
 }
 
 /// How a driver's data is organised, which decides the tree and the console.
@@ -42,7 +45,7 @@ pub enum DataModel {
 }
 
 impl Driver {
-    pub const ALL: [Driver; 9] = [
+    pub const ALL: [Driver; 10] = [
         Driver::Mysql,
         Driver::Mariadb,
         Driver::Postgres,
@@ -52,6 +55,7 @@ impl Driver {
         Driver::Oracle,
         Driver::Redis,
         Driver::Mongodb,
+        Driver::Ddl,
     ];
 
     pub fn label(self) -> &'static str {
@@ -65,6 +69,7 @@ impl Driver {
             Driver::Redis => "Redis",
             Driver::Mongodb => "MongoDB",
             Driver::Oracle => "Oracle",
+            Driver::Ddl => "DDL Data Source",
         }
     }
 
@@ -78,6 +83,7 @@ impl Driver {
             Driver::Redis => Some(6379),
             Driver::Mongodb => Some(27017),
             Driver::Oracle => Some(1521),
+            Driver::Ddl => None,
         }
     }
 
@@ -91,6 +97,8 @@ impl Driver {
             Driver::Redis => Dialect::Redis,
             Driver::Mongodb => Dialect::Mongo,
             Driver::Oracle => Dialect::Oracle,
+            // The files' dialect is an option of the data source.
+            Driver::Ddl => Dialect::Postgres,
         }
     }
 
@@ -112,7 +120,7 @@ impl Driver {
 
     /// Whether the data source is a file (no host, port or credentials).
     pub fn is_file(self) -> bool {
-        self == Driver::Sqlite
+        matches!(self, Driver::Sqlite | Driver::Ddl)
     }
 }
 
@@ -277,6 +285,12 @@ pub struct DataSourceOptions {
     /// "Single session mode": every console of the data source shares one connection.
     #[serde(default)]
     pub single_session: bool,
+    /// DDL data sources: project-relative SQL files and folders, parsed in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ddl_files: Vec<String>,
+    /// DDL data sources: the files' dialect (PostgreSQL when not set).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ddl_dialect: Option<Dialect>,
 }
 
 impl Default for DataSourceOptions {
@@ -294,6 +308,8 @@ impl Default for DataSourceOptions {
             page_size: None,
             color: None,
             single_session: false,
+            ddl_files: Vec::new(),
+            ddl_dialect: None,
         }
     }
 }
@@ -327,7 +343,10 @@ pub struct DataSource {
 
 impl DataSource {
     pub fn dialect(&self) -> Dialect {
-        self.driver.dialect()
+        match self.driver {
+            Driver::Ddl => self.options.ddl_dialect.unwrap_or(Dialect::Postgres),
+            d => d.dialect(),
+        }
     }
 
     /// Production data sources ask before unfiltered changes.
@@ -352,6 +371,11 @@ impl DataSource {
     pub fn summary(&self) -> String {
         match self.driver {
             Driver::Sqlite => self.file.clone(),
+            Driver::Ddl => match self.options.ddl_files.as_slice() {
+                [] => "no DDL files".into(),
+                [one] => one.clone(),
+                [first, rest @ ..] => format!("{first} +{}", rest.len()),
+            },
             Driver::Redis => format!(
                 "{}:{}/{}",
                 if self.host.is_empty() {
@@ -384,11 +408,14 @@ impl DataSource {
     /// Whether `other` points at the same database (used to skip `.env` suggestions that
     /// are already configured).
     pub fn same_target(&self, other: &DataSource) -> bool {
-        if self.driver.dialect() != other.driver.dialect() {
+        if self.driver.dialect() != other.driver.dialect()
+            || (self.driver == Driver::Ddl) != (other.driver == Driver::Ddl)
+        {
             return false;
         }
         match self.driver {
             Driver::Sqlite => self.file == other.file,
+            Driver::Ddl => self.options.ddl_files == other.options.ddl_files,
             _ => {
                 let norm = |h: &str| match h {
                     "" | "localhost" | "127.0.0.1" | "::1" => "localhost".to_string(),

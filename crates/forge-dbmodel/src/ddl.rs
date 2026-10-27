@@ -883,7 +883,6 @@ impl Builder {
             return true;
         }
         static HEAD: OnceLock<Regex> = OnceLock::new();
-        static TRIGGER: OnceLock<Regex> = OnceLock::new();
         let head = HEAD.get_or_init(|| {
             Regex::new(r#"(?is)^\s*create\s+(?:or\s+(?:replace|alter)\s+)?(?:definer\s*=\s*\S+\s+)?(function|procedure|trigger)\s+(?:if\s+not\s+exists\s+)?([\w$."`\[\]]+)"#)
                 .expect("valid regex")
@@ -896,11 +895,7 @@ impl Builder {
         let (schema, name) = split_ref(&parts, &self.default_schema);
         let key = self.schema_key(&schema);
         if kind == "trigger" {
-            let re = TRIGGER.get_or_init(|| {
-                Regex::new(r#"(?is)\b(before|after|instead\s+of)\s+((?:insert|update|delete|truncate)(?:\s+of\s+[\w\s,]+?)?(?:\s+or\s+(?:insert|update|delete|truncate))*)\s+on\s+([\w$."`\[\]]+)"#)
-                    .expect("valid regex")
-            });
-            let Some(t) = re.captures(text) else {
+            let Some(t) = trigger_regex().captures(text) else {
                 return false;
             };
             let tparts: Vec<String> = t[3].split('.').map(unquote).collect();
@@ -952,6 +947,31 @@ impl Builder {
                 s
             })
             .collect()
+    }
+}
+
+fn trigger_regex() -> &'static Regex {
+    static TRIGGER: OnceLock<Regex> = OnceLock::new();
+    TRIGGER.get_or_init(|| {
+        Regex::new(r#"(?is)\b(before|after|instead\s+of)\s+((?:insert|update|delete|truncate)(?:\s+of\s+[\w\s,]+?)?(?:\s+or\s+(?:insert|update|delete|truncate))*)\s+on\s+([\w$."`\[\]]+)"#)
+            .expect("valid regex")
+    })
+}
+
+/// Timing (`BEFORE`) and events (`INSERT OR UPDATE`) of a `CREATE TRIGGER` statement.
+pub fn trigger_head(sql: &str) -> (String, String) {
+    match trigger_regex().captures(sql) {
+        Some(t) => (
+            t[1].split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .to_uppercase(),
+            t[2].split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .to_uppercase(),
+        ),
+        None => (String::new(), String::new()),
     }
 }
 

@@ -2302,6 +2302,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "forge-core",
+ "forge-dbmodel",
  "forge-remote",
  "forge-sql",
  "futures-util",
