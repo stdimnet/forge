@@ -1,5 +1,7 @@
+pub mod cli;
 mod commands;
 mod companion;
+mod inspections;
 mod plugins;
 mod recent;
 mod startup;
@@ -56,6 +58,7 @@ pub fn run() {
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
+        .manage(commands::inspections::InspectionsState::default())
         .manage(commands::json_schema::JsonSchemaState::default())
         .manage(commands::composer::ComposerState::default())
         .manage(commands::window::DialogWindowsState::default())
@@ -324,6 +327,17 @@ pub fn run() {
             commands::workbench::todo_scan,
             commands::project_structure::project_tree_list,
             commands::scopes::scopes_files,
+            commands::inspections::inspections_registry,
+            commands::inspections::inspections_profiles,
+            commands::inspections::inspections_save,
+            commands::inspections::inspections_export_profile,
+            commands::inspections::inspections_import_profile,
+            commands::inspections::inspections_run,
+            commands::inspections::inspections_cancel,
+            commands::inspections::inspections_cleanup_plan,
+            commands::inspections::inspections_cleanup_apply,
+            commands::inspections::inspections_apply_fix,
+            commands::inspections::inspections_export_report,
             commands::scopes::scopes_test_roots,
             commands::ssr::ssr_templates,
             commands::ssr::ssr_check,

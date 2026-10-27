@@ -99,6 +99,12 @@ const byId = (id: string) => plugins.find((p) => p.id === id);
 /** Test frameworks the enabled plugins declare (`contributions.testFrameworks`). */
 export const mockTestFrameworkSpecs = () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.testFrameworks ?? []);
 
+/** Inspections and tool mappings of the enabled plugins (`contributions.inspections`). */
+export function mockInspectionContributions(): { inspections: unknown[]; mappings: unknown[] } {
+  const enabled = plugins.filter((p) => p.enabled).map((p) => p.contributions as unknown as { inspections?: unknown[]; inspectionMappings?: unknown[] });
+  return { inspections: enabled.flatMap((c) => c.inspections ?? []), mappings: enabled.flatMap((c) => c.inspectionMappings ?? []) };
+}
+
 /** Same cascade as `PluginRegistry::set_enabled` in Rust. */
 export function setPluginEnabled(id: string, enabled: boolean): string[] {
   const plugin = byId(id);

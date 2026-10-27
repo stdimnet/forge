@@ -126,7 +126,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 - [x] PHP quality tools: PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector (on the fly and on save, also in Docker/remote interpreters)
 - [ ] Web quality tools: ESLint, Prettier, Stylelint, Biome with fix on save
-- [ ] Inspections: Forge's own inspections with severities and profiles, Inspect Code, Run Inspection by Name, Code Cleanup, suppressions, duplicates, data flow, command-line inspector
+- [x] Inspections: Forge's own inspections with severities and profiles, Inspect Code, Run Inspection by Name, Code Cleanup, suppressions, duplicates, data flow, command-line inspector
 - [ ] Code coverage for PHP (Xdebug/PCOV), JS (c8/Istanbul) and the language packs
 - [ ] Profiling: Xdebug and SPX snapshots, V8 CPU/heap
 - [ ] Vulnerable dependency check (`composer audit`, npm audit)
