@@ -25,6 +25,8 @@ const K = {
   prettierFiles: "actionsOnSave.prettier.files",
   phpCsFixer: "actionsOnSave.phpCsFixer",
   pint: "actionsOnSave.pint",
+  phpcbf: "actionsOnSave.phpcbf",
+  rector: "actionsOnSave.rector",
   autosave: "actionsOnSave.runOnAutosave",
 };
 
@@ -157,10 +159,22 @@ export function ActionsOnSavePage() {
       configure: { page: TOOL_PAGES.prettier, title: "Prettier" },
     },
     {
+      key: K.rector,
+      title: "Run Rector",
+      extra: () => <ToolStatus info={info()} tool="rector" />,
+      configure: { page: TOOL_PAGES.rector, title: "Quality Tools" },
+    },
+    {
       key: K.phpCsFixer,
       title: "Run PHP CS Fixer",
       extra: () => <ToolStatus info={info()} tool="phpCsFixer" />,
       configure: { page: TOOL_PAGES.phpCsFixer, title: "Quality Tools" },
+    },
+    {
+      key: K.phpcbf,
+      title: "Run phpcbf",
+      extra: () => <ToolStatus info={info()} tool="phpcbf" />,
+      configure: { page: TOOL_PAGES.phpcbf, title: "Quality Tools" },
     },
     {
       key: K.pint,

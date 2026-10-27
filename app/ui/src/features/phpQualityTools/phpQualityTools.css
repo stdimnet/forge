@@ -1,0 +1,203 @@
+/* Settings | Languages & Frameworks | PHP | Quality Tools */
+.qt-page {
+  max-width: 760px;
+}
+.qt-intro {
+  margin: 0 0 10px;
+}
+.qt-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.qt-tool {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.qt-tool.hit {
+  background: color-mix(in srgb, var(--warning) 9%, var(--bg-input));
+}
+.qt-tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 2px 10px 2px 4px;
+}
+.qt-tool-name {
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qt-tool.modified .qt-tool-name {
+  color: var(--accent);
+}
+.qt-tool-status {
+  flex: 1;
+  min-width: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qt-missing {
+  color: color-mix(in srgb, var(--warning) 75%, var(--fg));
+}
+.qt-tool-body {
+  border-top: 1px solid var(--border);
+  padding: 8px 12px 10px 30px;
+}
+.qt-found {
+  margin-bottom: 6px;
+}
+.qt-interpreter {
+  min-width: 260px;
+}
+
+/* On/Off switch of a tool's inspection */
+.qt-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.qt-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.qt-switch-track {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  transition: background 0.12s;
+}
+.qt-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  transition: left 0.12s;
+}
+.qt-switch input:checked + .qt-switch-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.qt-switch input:checked + .qt-switch-track .qt-switch-thumb {
+  left: 14px;
+  background: var(--accent-fg);
+}
+.qt-switch input:focus-visible + .qt-switch-track {
+  outline: 2px solid var(--accent-soft);
+}
+.qt-switch-label {
+  width: 26px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.qt-tool.on .qt-switch-label {
+  color: var(--fg);
+}
+
+.qt-validate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.qt-validation {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+}
+.qt-validation.ok {
+  color: var(--success);
+}
+.qt-validation.failed {
+  color: var(--danger);
+}
+.qt-spin {
+  animation: qt-spin 0.9s linear infinite;
+}
+@keyframes qt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Rector: preview changes */
+.qt-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  outline: none;
+}
+.qt-dialog-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+}
+.qt-dialog-file {
+  font-weight: 600;
+}
+.qt-dialog-label {
+  color: var(--fg-muted);
+}
+.qt-rules {
+  margin: 0;
+  padding-left: 18px;
+}
+.qt-diff {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--editor-fg, var(--fg));
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.qt-diff > div {
+  padding: 0 10px;
+  white-space: pre;
+}
+.qt-diff-add {
+  background: var(--diff-inserted-bg);
+}
+.qt-diff-del {
+  background: var(--diff-deleted-bg);
+}
+.qt-diff-hunk {
+  color: var(--info);
+}
+.qt-diff-file {
+  color: var(--fg-muted);
+}
+.qt-dialog-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+.qt-spacer {
+  flex: 1;
+}
