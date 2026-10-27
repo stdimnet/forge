@@ -1093,11 +1093,57 @@ Page id `build.cmake` (plugin `forge.cpp`; profiles are edited in the page's lis
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `cmake.profiles` | objects | `[]` | user, project |  | CMake profiles — name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled. |
+| `cmake.profiles` | objects | `[]` | user, project |  | CMake profiles — name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled, sanitizers (`address,undefined`). |
 | `cmake.activeProfile` | string | `""` | user, project |  | Active CMake profile (chosen in the CMake tool window). |
 | `cmake.executable` | path | `""` | user | CMake | CMake executable — Empty: the active toolchain's CMake (bundled with Visual Studio for MSVC), else cmake on the PATH. |
 | `cmake.reloadOnChange` | bool | `true` | user, project | CMake | Reload CMake project on editing CMakeLists.txt or other CMake configuration files. |
 | `cmake.buildBeforeRun` | bool | `true` | user, project | CMake | Build the target before running or debugging — CMake Application, Google Test and Catch2 configurations build their target first (cmake --build --target). |
+
+### Build, Execution, Deployment | Dynamic Analysis Tools
+
+Page id `build.analysis` (plugin `forge.cpp`). See [C/C++ dynamic analysis and packages](../user/cpp-tools.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.valgrind.path` | path | `""` | user | Valgrind | Valgrind executable — Empty: valgrind on the PATH. Valgrind runs on Linux (and in WSL). |
+| `cpp.valgrind.options` | string | `--leak-check=full --track-origins=yes` | user | Valgrind | Analysis options — Memcheck options; Forge adds --tool=memcheck --xml=yes and its XML file. |
+| `cpp.perf.path` | path | `""` | user | Profiler (perf) | perf executable — Empty: perf on the PATH. Profiling with perf works on Linux only; /proc/sys/kernel/perf_event_paranoid must allow it (2 or lower). |
+| `cpp.perf.frequency` | int | `999` | user | Profiler (perf) | Sampling frequency (Hz). |
+| `cpp.perf.callGraph` | enum: `dwarf`, `fp`, `lbr` | `dwarf` | user | Profiler (perf) | Call stacks — DWARF works without frame pointers but writes more data; frame pointers need -fno-omit-frame-pointer. |
+| `cpp.perf.options` | string | `""` | user | Profiler (perf) | Additional perf record options. |
+
+### Build, Execution, Deployment | Package Managers
+
+Page id `build.packages` (plugin `forge.cpp`). See [C/C++ dynamic analysis and packages](../user/cpp-tools.md#package-managers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.vcpkg.root` | path | `""` | user | vcpkg | vcpkg root — The vcpkg installation of manifest-mode projects (vcpkg.json). Empty: VCPKG_ROOT or VCPKG_INSTALLATION_ROOT. Forge never downloads vcpkg. |
+| `cpp.vcpkg.useToolchain` | bool | `true` | user, project | vcpkg | Pass vcpkg's toolchain file to CMake profiles — Adds -DCMAKE_TOOLCHAIN_FILE=<vcpkg root>/scripts/buildsystems/vcpkg.cmake unless the profile sets its own. |
+| `cpp.conan.path` | path | `""` | user | Conan | Conan executable — Conan 2. Empty: conan on the PATH. Forge never downloads Conan. |
+| `cpp.conan.profile` | string | `""` | user, project | Conan | Conan profile (-pr) — Empty: Conan's default profile. |
+| `cpp.conan.arguments` | string | `""` | user, project | Conan | Additional conan install arguments. |
+| `cpp.conan.useToolchain` | bool | `true` | user, project | Conan | Pass conan_toolchain.cmake to CMake profiles — After Conan Install, the profile configures with the toolchain file Conan generated in its build folder. |
+
+### Build, Execution, Deployment | Embedded Development
+
+Page id `build.embedded` (plugin `forge.cpp`). See [Embedded development](../user/embedded.md#settings).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `openocd.path` | path | `""` | user | OpenOCD | OpenOCD executable — Empty: openocd on the PATH. |
+| `openocd.boardConfig` | string | `""` | user, project | OpenOCD | Board configuration file — Default for OpenOCD Download & Run configurations: board/st_nucleo_f4.cfg, or a .cfg file of the project. Separate several files with ;. |
+| `cpp.embedded.gdb` | path | `""` | user | OpenOCD | GDB for embedded targets — Empty: the cross toolchain's GDB, gdb-multiarch or arm-none-eabi-gdb on the PATH. GDB 14 or newer (its DAP server). |
+| `cpp.embedded.svdFile` | path | `""` | user, project | OpenOCD | SVD file — Default CMSIS-SVD file of the Peripherals view (a configuration can choose its own). |
+| `platformio.path` | path | `""` | user | PlatformIO | PlatformIO Core (pio) executable — Empty: pio on the PATH or ~/.platformio/penv. |
+| `espIdf.path` | path | `""` | user | ESP-IDF | ESP-IDF folder (IDF_PATH) — Empty: idf.py on the PATH (a shell with ESP-IDF's export script). |
+| `espIdf.python` | path | `""` | user | ESP-IDF | Python of the ESP-IDF environment — Runs idf.py when the ESP-IDF folder is set. Empty: python3. |
+| `espIdf.port` | string | `""` | user, project | ESP-IDF | Serial port — For Flash and Monitor (/dev/ttyUSB0, COM3). Empty: idf.py looks for one. |
+| `espIdf.baud` | string | `""` | user, project | ESP-IDF | Flash baud rate. |
+| `zephyr.west` | path | `""` | user | Zephyr | west executable — Empty: west on the PATH. |
+| `zephyr.board` | string | `""` | user, project | Zephyr | Board — The board west build builds for (nrf52840dk/nrf52840, qemu_x86). |
+| `zephyr.appDir` | string | `""` | user, project | Zephyr | Application folder — Relative to the project. Empty: the project folder. |
+| `zephyr.buildDir` | string | `build` | user, project | Zephyr | Build folder. |
 
 ### Build, Execution, Deployment | Debugger
 

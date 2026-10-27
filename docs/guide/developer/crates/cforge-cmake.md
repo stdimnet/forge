@@ -34,6 +34,15 @@ it.
   and `in file` / one-line `CMake Error:` messages of a configure, and whether it failed.
 - `complete`: completion of CMake commands (signatures), the keywords of the command the
   caret is in, and `${VARIABLES}`.
+- `sanitizers`: a profile's sanitizers (`address`, `undefined`, `thread`, `memory`, `leak`;
+  `ProfileEntry.sanitizers`) as `-fsanitize=…` compiler and linker flags appended to the
+  flags the options set, the combinations compilers reject (`Profile.sanitizerError`) and
+  the runtime options of runs (`UBSAN_OPTIONS`, `ASAN_OPTIONS`).
+- `packages`: vcpkg manifest mode (`vcpkg.json` dependencies, the root from the setting,
+  `VCPKG_ROOT` or `VCPKG_INSTALLATION_ROOT`, its toolchain file, port completion in
+  `vcpkg.json`) and Conan 2 (`conan install . -of <build> -s build_type=… --build=missing`,
+  where `conan_toolchain.cmake` is generated). `ConfigureContext.package_toolchain` becomes
+  `-DCMAKE_TOOLCHAIN_FILE` unless the profile sets its own.
 
 ## Modules
 
@@ -44,10 +53,13 @@ it.
 | `fileapi.rs` | `query_json`, `parse_reply`, `CMakeModel`, `Configuration`, `Target`, `TargetKind`, `Source`, `Location`, `QUERY_DIR`, `REPLY_DIR`. |
 | `log.rs` | `parse_log`, `failed`, `ConfigureMessage`, `Severity`. |
 | `complete.rs` | `complete`, `COMMANDS`, `VARIABLES`, `Completion`. |
+| `sanitizers.rs` | `SANITIZERS`, `parse_list`, `conflict`, `compile_flags`, `link_flags`, `run_env`, `cmake_definitions`. |
+| `packages.rs` | `PackageManagers`, `vcpkg_dependencies`, `vcpkg_root`, `vcpkg_toolchain`, `complete_vcpkg`, `conan_install_command`, `conan_toolchain_candidates`. |
 
 ## Used by
 
-- IPC: `app/src-tauri/src/commands/cpp.rs` (`cmake_*`).
+- IPC: `app/src-tauri/src/commands/cpp.rs` (`cmake_*`), `commands/cpp_tools.rs`
+  (`cpp_packages`, `cpp_vcpkg_complete`, `cpp_conan_install_command`).
 - [cforge-lang-cpp](cforge-lang-cpp.md) (command type, argument splitting).
 - Browser mode: `crates/forge-wasm/src/cpp.rs`.
 

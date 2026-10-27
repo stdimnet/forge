@@ -1,6 +1,6 @@
 ---
 title: CForge (C and C++)
-description: The CForge pack - clangd with clang-tidy (from the PATH, a toolchain or a verified download), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation database projects, Build / Rebuild / Clean with build problems, CMake Application run configurations, CTest, GoogleTest and Catch2 with coverage, and LLDB / GDB debugging with STL renderers.
+description: The CForge pack - clangd with clang-tidy (from the PATH, a toolchain or a verified download), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation database projects, Build / Rebuild / Clean with build problems, CMake Application run configurations, CTest, GoogleTest and Catch2 with coverage, LLDB / GDB debugging with STL renderers, sanitizers, Valgrind, perf, vcpkg / Conan and embedded development.
 order: 118
 tags: [c, cpp, c++, cforge, clion, clangd, clang-tidy, clang-format, cmake, presets, toolchains, gcc, clang, msvc, mingw, ctest, googletest, catch2, gdb, lldb, coverage]
 ---
@@ -18,6 +18,13 @@ C/C++ sources (or with them in `src/`), C/C++ files in the root, or two or more 
 - Everything else — toolchain detection, CMake presets and profiles, the CMake code model,
   build problems, test discovery and command lines, coverage and debugger setup — is
   computed in Rust (`packs/cforge/*`).
+
+Two more pages cover the rest of CForge:
+
+- [C/C++ dynamic analysis and packages](cpp-tools.md): sanitizers in CMake profiles and the
+  Sanitizers tab, Run with Valgrind Memcheck, Profile with perf, vcpkg and Conan.
+- [Embedded development](embedded.md): PlatformIO, ESP-IDF, Zephyr, OpenOCD Download & Run,
+  Embedded GDB Server and the SVD Peripherals view.
 
 ![GoogleTest tests with run icons in the gutter](../../screenshots/cpp-editor.png)
 
@@ -163,6 +170,11 @@ optional **Executable**, **Program arguments**, working directory (default: the 
 the executable), environment and **Debugger** (the toolchain's, GDB or LLDB). The target is
 built first. The CMake tool window's Run and Debug buttons create one.
 
+**OpenOCD Download & Run** and **Embedded GDB Server** flash and debug boards; see
+[Embedded development](embedded.md). CMake Application, Google Test and Catch2 configurations
+also run under [Valgrind Memcheck and perf](cpp-tools.md), and their output is searched for
+[sanitizer reports](cpp-tools.md#sanitizers).
+
 ## Tests
 
 | Framework | Run configuration | How it runs | Gutter |
@@ -231,9 +243,14 @@ STL). A `std::vector` shows its length and elements, which expand like any other
 | `cpp.clangFormat.fallbackStyle` | C/C++ | `LLVM` | Style without a `.clang-format` |
 | `cpp.debugger.stlRenderers` | C/C++ | `true` | STL pretty printers / formatters |
 
+The settings of Valgrind, perf, vcpkg and Conan are in
+[C/C++ dynamic analysis and packages](cpp-tools.md); the embedded ones in
+[Embedded development](embedded.md#settings).
+
 ## Browser mode
 
 `?project=cpp` opens the `shapes` demo: a C++20 library with an app, GoogleTest and Catch2
 tests, CMake presets and a `.clang-format`. `&build=broken` makes its build fail with
 compiler errors. Toolchains, the CMake model and all output are canned; the parsing and the
-command lines run the Rust crates through WebAssembly.
+command lines run the Rust crates through WebAssembly. `?project=pio` opens the PlatformIO
+demo `blinky` ([Embedded development](embedded.md#browser-mode)).
