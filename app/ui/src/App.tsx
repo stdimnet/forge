@@ -31,6 +31,7 @@ export function App() {
       lua: "main.lua",
       python: "src/shop_api/main.py",
       go: "cmd/ledger/main.go",
+      rust: "crates/shop-cli/src/main.rs",
       java: "src/main/java/com/acme/inventory/App.java",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
