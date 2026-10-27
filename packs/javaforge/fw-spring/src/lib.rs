@@ -9,12 +9,14 @@
 
 use serde::{Deserialize, Serialize};
 
+pub mod actuator;
 pub mod assist;
 pub mod config;
 #[cfg(feature = "jars")]
 pub mod jars;
 pub mod metadata;
 pub mod model;
+pub mod run;
 pub mod scan;
 
 /// A place in a project file (0-based line and column).
