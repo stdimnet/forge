@@ -79,7 +79,8 @@ export function docRequest(path: string, view: EditorView) {
   return {
     text: view.state.doc.toString(),
     path,
-    languageId: languageIdFor(path),
+    // Database consoles hold SQL (their file type is unknown).
+    languageId: languageIdFor(path) ?? (path.startsWith("db-console://") ? "sql" : undefined),
     settings: templateSettings(),
   };
 }

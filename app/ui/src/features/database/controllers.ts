@@ -8,6 +8,8 @@ export interface ConsoleController {
   execute: () => Promise<void>;
   cancel: () => void;
   focus: () => void;
+  /** Browse Query History (SQL consoles). */
+  history?: () => void;
 }
 
 export interface DataEditorController {

@@ -864,6 +864,7 @@ not finished, the page says so.
 | [Debugging](docs/guide/user/debugging.md) | Xdebug and debug adapters (LLDB, GDB): Attach to Process, breakpoints, logpoints, watchpoints, stepping, evaluate, memory, disassembly, registers, servers and path mappings |
 | [Terminal](docs/guide/user/terminal.md) | tabs, shells, links |
 | [Database tools and SQL console](docs/guide/user/database.md) | data sources, consoles, data grid, export |
+| [SQL editor](docs/guide/user/sql-editor.md) | dialects, resolve and SQL inspections, formatter, parameters, query history, Run SQL Script |
 | [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](docs/guide/user/services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](docs/guide/user/remote-development.md) | SSH, the Forge agent, what runs remotely |
@@ -2918,6 +2919,7 @@ Each template says where it applies ("Applicable in"), with PHPStorm's contexts:
 | HTML, CSS | markup (including the HTML parts of PHP files) and `<style>` blocks |
 | Blade, Twig | Blade and Twig templates |
 | Lua | Lua files |
+| SQL | SQL files and query consoles, outside comments and strings |
 | Other | every other file type |
 
 ## Variables and expressions
@@ -2949,6 +2951,7 @@ and "Skip if defined" is filled in without a tab stop.
 | PHP | always | `fore`, `forek`, `fori`, `__c` (closure), `__fn` (arrow function), `eco`, `thr`, `inc`, `inco`, `rqr`, `rqro`, `pubf`, `prof`, `prif`, `pubsf`, `prosf`, `prisf`, `con`, `ctor`, `dc` |
 | JavaScript | always (also TypeScript) | `fori`, `itar`, `ritar`, `iter`, `itin`, `log`, `anf`, `arf`, `imp`, `imd` |
 | Lua | always | `fori`, `forp`, `forip`, `fun`, `lfun`, `req` |
+| SQL | always (also consoles) | `sel`, `selc`, `selw`, `ins`, `upd`, `del`, `join`, `lj`, `rj`, `tab` (create table), `col` |
 | Twig | always | `for`, `if`, `block`, `extends`, `include` |
 | Laravel | Laravel projects | `rget`, `rpost`, `rres`, `rgroup`, `dd`, `validate`, `hasmany`, `belongsto`, `scope` |
 | Blade | Laravel projects | `bif`, `bforeach`, `bforelse`, `bsection`, `bextends`, `binclude` |
@@ -17068,6 +17071,12 @@ from .env files** (`database.suggestFromEnv`).
 
 SQL [scratch files](docs/guide/user/scratches-and-http.md) attached to a data source open as consoles too.
 
+Consoles are full [SQL editors](docs/guide/user/sql-editor.md): names resolve against the data source with the
+SQL inspections and their quick fixes, `Ctrl+B` jumps to a table or column in the tree,
+`Shift+F6` renames aliases, user parameters (`:id`, `?`, …) are asked before running, and
+**Browse Query History** (`Ctrl+Alt+E`, the clock icon) searches, inserts or re-runs every
+statement the data source ran.
+
 ### Sessions
 
 Every console runs in a **session** (an open connection). By default each console has its own
@@ -17280,6 +17289,9 @@ or SQL **INSERT** statements for the dialect.
 | Result set page size | `database.pageSize` | 500 |
 | Show NULL as | `database.showNullAs` | `<null>` |
 | Suggest data sources from .env files | `database.suggestFromEnv` | on |
+| User parameters `?`, `:name`, `$1`, `${name}`, `#{name}` | `database.parameters.*` | on |
+| Query history entries per data source | `database.history.limit` | 1000 |
+| Run SQL Script: stop at the first error | `database.runFile.stopOnError` | on |
 
 ## Remote projects
 
@@ -17296,6 +17308,141 @@ from your machine.
 A data source with its own SSH tunnel uses that tunnel instead.
 
 > **Note:** SQLite files on the remote host cannot be opened.
+
+
+---
+
+Source: docs/guide/user/sql-editor.md
+
+# SQL editor
+
+`.sql` files and [query consoles](docs/guide/user/database.md#query-console) share one SQL editor, DataGrip's.
+The work is done in Rust (`forge-sqlcode`); it never connects to a database while you type:
+names resolve against the data source's **cached model** (the schemas the Database tool window
+has loaded) or a [DDL data source](docs/guide/user/database.md#ddl-data-sources)'s files.
+
+![Unresolved column, type mismatch, unused alias and the Add WHERE clause quick fix](docs/screenshots/sql-editor-unresolved-quick-fix.png)
+
+## Dialects
+
+Every SQL file has a dialect: **Generic SQL**, **MySQL**, **PostgreSQL**, **SQLite**, **SQL
+Server**, **Oracle** or **ClickHouse**. The dialect decides the highlighting and keywords, how
+names are quoted (`` `name` ``, `"name"`, `[name]`), comments (`#` in MySQL), strings (`$$`
+bodies in PostgreSQL, backslash escapes in MySQL), the statement separators (`GO`, `/`) and the
+formatter's quirks.
+
+- **Settings | Languages & Frameworks | SQL Dialects**: the **Global SQL Dialect**, the
+  **Project SQL Dialect** and a table of mappings — a file or folder, its dialect and the
+  **data source** its names resolve against. The most specific path wins, so a folder of
+  migrations can be PostgreSQL while one file in it is SQLite.
+- The **status bar widget** of the active SQL editor shows the dialect and the data source
+  (`MySQL · shop@localhost`). Its popup switches both for the file (it writes a mapping) and
+  opens the settings page.
+- **Consoles** use their data source's dialect and resolve against their data source.
+
+![The SQL dialect widget](docs/screenshots/sql-editor-dialect-widget.png)
+
+![Settings | Languages & Frameworks | SQL Dialects](docs/screenshots/sql-dialects-settings.png)
+
+## Resolve and navigation
+
+Names are mapped to the model: tables and views (with aliases, `schema.table`), columns
+(qualified or not; an unqualified column is looked up in the query's tables, then in the
+enclosing queries, so correlated subqueries work), CTEs and their columns (`WITH … AS`, also
+`RECURSIVE` and explicit column lists), subqueries in `FROM` with their aliases, select-list
+aliases in `ORDER BY`, `GROUP BY` and `HAVING`, schemas, and routines of the model. `INSERT`
+column lists, `UPDATE … SET`, `DELETE … USING`, `ON CONFLICT` / `ON DUPLICATE KEY UPDATE`,
+`RETURNING`, `CREATE VIEW … AS`, `ALTER TABLE`, `DROP`, `TRUNCATE` and `CREATE INDEX` resolve
+too. Schemas that were not introspected and table functions resolve to "unknown" and are never
+reported.
+
+| Action | Shortcut | What it does |
+| --- | --- | --- |
+| Go to Declaration | `Ctrl+B`, `Ctrl+Click` | an alias or CTE: its definition; a table, view or column: the node in the Database tool window; with a DDL data source: the `CREATE TABLE` (or `ALTER TABLE … ADD`) in its files. On a definition it shows the usages |
+| Find Usages | `Alt+F7` | the usages of the column, table, alias or CTE in the file |
+| Rename | `Shift+F6` | renames an alias, CTE or select-list alias with all its usages in place |
+| Show Context Actions | `Alt+Enter` | the quick fixes of the problem at the caret |
+
+## SQL inspections
+
+The inspections are part of the inspection profile (**Settings | Editor | Inspections**,
+group **SQL**), so they can be turned off, get another severity or be suppressed like any other.
+
+| Inspection | Id | Reports | Quick fix |
+| --- | --- | --- | --- |
+| Unresolved reference | `SqlResolve` | tables, columns, schemas and aliases that do not exist (red) | — |
+| Ambiguous column reference | `SqlAmbiguousColumn` | an unqualified column that several tables of the query have | Qualify with `u.` (one per table) |
+| Delete or update statement without where clauses | `SqlWithoutWhere` | `DELETE` / `UPDATE` without `WHERE` | Add WHERE clause (`WHERE FALSE`, selected to type over) |
+| Unused table alias | `SqlUnusedAlias` | an alias no column uses (greyed out) | Remove alias |
+| Unused common table expression | `SqlUnusedCte` | a CTE the statement never reads | Remove unused CTE |
+| Types compatibility | `SqlType` | a column compared with a value of another type family (`id = 'abc'`, `name = 5`) when the model knows the column's type | Quote the value |
+| Redundant ordering direction | `SqlRedundantOrderingDirection` | `ASC` | Remove redundant ASC |
+| Redundant ELSE NULL clause | `SqlRedundantElseNull` | `ELSE NULL` in `CASE` | Remove ELSE NULL |
+| Redundant alias expressions | `SqlRedundantAlias` | `users users`, `name AS name` | Remove redundant alias |
+
+Without a data source, only the script's own names are checked (aliases, CTEs and their
+columns). SQLite skips the type check (it compares values of any type).
+
+## Formatter
+
+**Code | Reformat Code** (`Ctrl+Alt+L`) and the **Reformat code** action of
+[Actions on Save](docs/guide/user/actions-on-save.md) format SQL with **Settings | Editor | Code Style | SQL**:
+
+| Tab | Options |
+| --- | --- |
+| Tabs and Indents | tab size, indent, tabs or spaces |
+| Spaces | after comma, around operators, within parentheses |
+| Wrapping and Braces | clauses on a new line, clause keywords aligned left or right ("river"), AND / OR on a new line, select / SET / ORDER BY items on separate lines, comma at the end or the start of the line |
+| Blank Lines | blank lines kept between statements |
+| Case | keywords and identifiers: as is, upper or lower case |
+
+Subqueries and `CREATE TABLE` column lists are indented blocks. Comments and string contents
+never change; routines and procedural blocks (`CREATE FUNCTION`, `BEGIN … END`) keep their
+layout and only get the keyword case; `GO` batches and Oracle's `/` stay on their own lines.
+
+![Code Style | SQL with the preview](docs/screenshots/sql-editor-formatter-settings.png)
+
+## User parameters
+
+Before a console runs a statement with placeholders, the **Parameters** dialog asks for their
+values: `?` (positional), `:name`, `$1`, `${name}` and `#{name}`. Values are inserted as
+written, so strings need quotes (`'admin'`). The console remembers the last values. Each
+pattern can be turned off in **Settings | Tools | Database | User Parameters**; placeholders in
+strings and comments are ignored, and PostgreSQL casts (`x::int`) are not parameters.
+
+![The Parameters dialog](docs/screenshots/sql-editor-parameters.png)
+
+## Query history
+
+Every statement a console or Run SQL Script executes is recorded per data source with its
+time, duration and row count (`<data dir>/forge/sql-history/<data source>.json`, at most
+**Query history entries per data source**, 1000). **Browse Query History** (`Ctrl+Alt+E`, or
+the clock icon of the console toolbar) searches it by words, optionally only the current
+console; **Insert** adds the statement to the console, **Run** adds and executes it.
+
+![Query history](docs/screenshots/sql-editor-history.png)
+
+## Run SQL Script
+
+**Run 'file.sql'…** in the Project view's context menu, the editor's context menu or Find
+Action (**Run SQL Script…**) runs a `.sql` file against a data source (the file's mapped data
+source comes first). Statements run in order on a new session, with a progress bar and one row
+per statement (rows, time or the error). **Stop at the first error** (on by default) or
+continue; **Stop** cancels the running statement. Read-only data sources refuse the script and
+production data sources ask first, like consoles.
+
+![Run SQL Script](docs/screenshots/sql-editor-run-file.png)
+
+## Live templates
+
+The **SQL** live template group works in SQL files and consoles: `sel`, `selc`, `selw`, `ins`,
+`upd`, `del`, `join`, `lj`, `rj`, `tab` (create table) and `col`. See
+[Live templates](docs/guide/user/live-templates.md).
+
+## For developers
+
+See [forge-sqlcode](docs/guide/developer/crates/forge-sqlcode.md) and
+[Architecture](docs/guide/developer/architecture.md).
 
 
 ---
@@ -21043,6 +21190,23 @@ Page id `tools.database`.
 | `database.pageSize` | int (10–100000) | `500` | user | Data Editor and Viewer | Result set page size — Rows fetched per page in consoles and table editors. |
 | `database.showNullAs` | string | `<null>` | user | Data Editor and Viewer | Show NULL as |
 | `database.suggestFromEnv` | bool | `true` | user | General | Suggest data sources from .env files — Offer to add the database configured in Laravel's DB_* or Symfony's DATABASE_URL. |
+| `database.parameters.question` | bool | `true` | user | User Parameters | `?` (positional) is a user parameter. |
+| `database.parameters.colon` | bool | `true` | user | User Parameters | `:name` is a user parameter. |
+| `database.parameters.dollar` | bool | `true` | user | User Parameters | `$1` is a user parameter. |
+| `database.parameters.dollarBrace` | bool | `true` | user | User Parameters | `${name}` is a user parameter. |
+| `database.parameters.hashBrace` | bool | `true` | user | User Parameters | `#{name}` is a user parameter. |
+| `database.history.limit` | int (10–100000) | `1000` | user | Query History | Query history entries per data source — Executed statements kept in the query history of each data source (in Forge's data directory). |
+| `database.runFile.stopOnError` | bool | `true` | user | Query History | Run SQL Script: stop at the first error |
+
+### Languages & Frameworks | SQL Dialects
+
+Page id `lang.sqlDialects` (its own page, see [SQL editor](docs/guide/user/sql-editor.md#dialects)).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `sql.dialect.default` | enum: `generic`, `mysql`, `postgres`, `sqlite`, `sqlserver`, `oracle`, `clickhouse` | `generic` | user | — | Global SQL dialect |
+| `sql.dialect.project` | enum: empty (global), `generic`, `mysql`, `postgres`, `sqlite`, `sqlserver`, `oracle`, `clickhouse` | empty | user, project | — | Project SQL dialect |
+| `sql.dialect.mappings` | objects | `[]` | user, project | — | SQL dialect and data source mappings — Files and folders with their SQL dialect and the data source their names resolve against: `path`, `dialect`, `dataSource`. The most specific path wins. |
 
 ### Tools | AI Agents
 
@@ -24029,6 +24193,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](docs/guide/developer/crates/forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
 | [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge console text: dialects, statement splitting, the read-only / production guard, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-sqlcode](docs/guide/developer/crates/forge-sqlcode.md) | The SQL editor (pure, also built to WebAssembly): dialects per file, resolve against the data source model, SQL inspections and quick fixes, the formatter, user parameters, query history and Run SQL Script planning |
 | [forge-testing](docs/guide/developer/crates/forge-testing.md) | The shared test runner and coverage model of every pack: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) (pure, also built to WebAssembly) |
 | [forge-trust](docs/guide/developer/crates/forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
@@ -28033,6 +28198,78 @@ pub use split::{leading_keyword, split_statements, statement_at, Statement};
 
 ```sh
 cargo test -p forge-sql
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-sqlcode.md
+
+# forge-sqlcode
+
+`crates/forge-sqlcode` — the SQL editor of Forge, modelled on DataGrip (pure; also built to
+WebAssembly for browser mode). User documentation: [SQL editor](docs/guide/user/sql-editor.md).
+
+## Purpose
+
+Everything the SQL editor computes: which dialect a file has, what each name of a script is
+(a table, column, schema or routine of the data source model, or an alias, CTE or subquery of
+the script), the SQL inspections with their quick fixes, Go to Declaration / Find Usages /
+alias rename, the formatter behind Reformat Code and the SQL code style preview, user
+parameters, the query history model and the statements Run SQL Script executes. It works on
+an error-tolerant tokenizer, so half-typed queries still resolve; it never connects to a
+database (the app passes the cached `DbModel`).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `lang.rs` | `SqlDialect` (generic, MySQL, PostgreSQL, SQLite, SQL Server, Oracle, ClickHouse): lexer quirks, keywords, types; `DialectMapping`, `dialect_for` and `data_source_for` (most specific path wins). |
+| `lex.rs` | Tokens with byte offsets: words, quoted identifiers (`"…"`, `` `…` ``, `[…]`), strings (`E''`, `N''`, `$$`, `$tag$`), numbers, comments (`--`, `/* */`, `#`), parameters, variables, operators. |
+| `catalog.rs` | The model as the resolver sees it: tables, schemas, routines and sequences by name, with `Lookup::Unknown` for schemas that were not introspected. |
+| `resolve.rs` | `analyze(text, dialect, model, default_schema) -> Analysis`: statements split like the console, then scopes per query (FROM items with aliases, CTEs, subqueries, table functions, `USING` / `NATURAL`), references with `Target`s and `State`s, definitions, and findings (without `WHERE`, redundant code, type mismatches). |
+| `inspect.rs` | `inspect(&Analysis) -> Vec<Problem>`: the inspections `SqlResolve`, `SqlAmbiguousColumn`, `SqlWithoutWhere`, `SqlUnusedAlias`, `SqlUnusedCte`, `SqlType`, `SqlRedundantOrderingDirection`, `SqlRedundantElseNull`, `SqlRedundantAlias` with their fixes (edits and the selection after them). |
+| `navigate.rs` | `symbol_at`, `occurrences` (Find Usages in the file), `rename_ranges` (aliases, CTEs and select-list aliases only) and `ddl_location` (the `CREATE TABLE` / `ALTER TABLE … ADD` of an object in a DDL data source's files). |
+| `format.rs` | `SqlStyle` (from the code style values `sql.*`) and `format(text, dialect, style)`: keyword / identifier case, clause lines, river alignment, list items, comma position, AND / OR lines, indented subqueries and column lists, spaces, terminators and comments between statements; routines keep their layout. `change_case` is the case-only pass. |
+| `params.rs` | `ParamPatterns`, `find_params`, `param_names`, `substitute`. |
+| `history.rs` | `History` (newest first, consecutive repeats merged, capped), `HistoryQuery` search and the per-data-source file name. |
+| `api.rs` | Requests and answers of the IPC commands and the WebAssembly bridge with UTF-16 offsets (`Offsets`), `plan_run` for Run SQL Script. |
+
+## Main public items
+
+```rust
+pub use format::{format, SqlStyle};
+pub use lang::{data_source_for, dialect_for, DialectMapping, SqlDialect};
+pub use params::ParamPatterns;
+// api::{analyze_text, declaration, usages, rename, params, plan_run, SqlContext}
+// resolve::{analyze, Analysis, Ref, Def, Target, Role, State}
+```
+
+## Used by
+
+- IPC (`app/src-tauri/src/commands/sql.rs`): `sql_dialects`, `sql_file_info`, `sql_analyze`,
+  `sql_declaration`, `sql_usages`, `sql_rename`, `sql_format`, `sql_params`, `sql_substitute`,
+  `sql_history_list` / `_add` / `_clear`, `sql_run_file` (events `sql://runFile`) and
+  `sql_run_file_cancel`.
+- `forge-codestyle`: the SQL preview of Settings | Editor | Code Style | SQL.
+- Browser mode: `forge-wasm` (`sql_*` functions, `app/ui/src/mock/sqlMock.ts`).
+- UI: `app/ui/src/features/sqlEditor` and the console in `features/database`.
+
+## Dependencies
+
+- Workspace crates: `forge-sql` (statement splitting, console dialects), `forge-dbmodel`
+  (the model types, DDL files)
+- External: `serde`, `serde_json`
+
+## Tests
+
+13 source files, about 6100 lines; unit tests for the lexer, dialect mappings, resolve, every
+inspection and its fix, parameters, history and offsets, plus the formatter's fixture corpus
+(`tests/format/*.sql`: input, `-- @expected` output, `-- @dialect` / `-- @style` headers; each
+expected output must be stable when formatted again; `FORGE_UPDATE_SNAPSHOTS=1` rewrites them).
+
+```sh
+cargo test -p forge-sqlcode
 ```
 
 

@@ -1,6 +1,6 @@
 ---
 title: Live templates
-description: Live templates (abbreviation + Tab), Insert Live Template (Ctrl+J), Surround With (Ctrl+Alt+T), Unwrap/Remove (Ctrl+Shift+Delete), Save as Live Template, the built-in PHP, JavaScript, Lua, Twig, Laravel, Blade and Symfony sets and Settings | Editor | Live Templates.
+description: Live templates (abbreviation + Tab), Insert Live Template (Ctrl+J), Surround With (Ctrl+Alt+T), Unwrap/Remove (Ctrl+Shift+Delete), Save as Live Template, the built-in PHP, JavaScript, Lua, SQL, Twig, Laravel, Blade and Symfony sets and Settings | Editor | Live Templates.
 order: 25
 tags: [editor, live templates, surround with, unwrap, snippets]
 ---
@@ -52,6 +52,7 @@ Each template says where it applies ("Applicable in"), with PHPStorm's contexts:
 | HTML, CSS | markup (including the HTML parts of PHP files) and `<style>` blocks |
 | Blade, Twig | Blade and Twig templates |
 | Lua | Lua files |
+| SQL | SQL files and query consoles, outside comments and strings |
 | Other | every other file type |
 
 ## Variables and expressions
@@ -83,6 +84,7 @@ and "Skip if defined" is filled in without a tab stop.
 | PHP | always | `fore`, `forek`, `fori`, `__c` (closure), `__fn` (arrow function), `eco`, `thr`, `inc`, `inco`, `rqr`, `rqro`, `pubf`, `prof`, `prif`, `pubsf`, `prosf`, `prisf`, `con`, `ctor`, `dc` |
 | JavaScript | always (also TypeScript) | `fori`, `itar`, `ritar`, `iter`, `itin`, `log`, `anf`, `arf`, `imp`, `imd` |
 | Lua | always | `fori`, `forp`, `forip`, `fun`, `lfun`, `req` |
+| SQL | always (also consoles) | `sel`, `selc`, `selw`, `ins`, `upd`, `del`, `join`, `lj`, `rj`, `tab` (create table), `col` |
 | Twig | always | `for`, `if`, `block`, `extends`, `include` |
 | Laravel | Laravel projects | `rget`, `rpost`, `rres`, `rgroup`, `dd`, `validate`, `hasmany`, `belongsto`, `scope` |
 | Blade | Laravel projects | `bif`, `bforeach`, `bforelse`, `bsection`, `bextends`, `binclude` |

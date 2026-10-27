@@ -36,6 +36,7 @@ import {
   Table2,
   Undo2,
   ScrollText,
+  History,
 } from "lucide-solid";
 import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { registerView } from "@/editor/views";
@@ -51,6 +52,9 @@ import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, s
 import { consoles } from "./controllers";
 import { sqlWithSchema } from "./completion";
 import { exportMenu } from "./exporting";
+import { recordHistory, sqlConsoleExtensions, withParameters } from "@/features/sqlEditor/console";
+import { consoleDialect } from "@/features/sqlEditor/language";
+import { openHistory } from "@/features/sqlEditor/SqlDialogs";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -293,11 +297,26 @@ export function ConsoleView(props: { tab: EditorTab }) {
     if (!st || !st.text.trim() || !view) return;
     view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
     setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
-    const check = await allowed(st.text);
+    // User parameters (?, :name, $1, ${name}, #{name}): their values first.
+    const sqlDialect = consoleDialect(dialect());
+    let sql: string | null = st.text;
+    try {
+      sql = sqlDialect ? await withParameters(props.tab.path, st.text, sqlDialect) : st.text;
+    } catch (e) {
+      append("error", errorText(e));
+      setActive("output");
+      return;
+    }
+    if (sql == null) {
+      append("info", "Execution cancelled");
+      return;
+    }
+    const check = await allowed(sql);
     if (!check.ok) return;
     setRunning(true);
     try {
-      const res = await run(st.text, check.confirmed);
+      const res = await run(sql, check.confirmed);
+      recordHistory(loc.id, props.tab.name, res);
       const tabs: ResultTab[] = [];
       let failed = false;
       for (const r of res) {
@@ -392,7 +411,29 @@ export function ConsoleView(props: { tab: EditorTab }) {
     }
   }
 
-  consoles.set(props.tab.path, { execute: () => execute(), cancel, focus: () => view?.focus() });
+  /** Query History: insert a past statement at the end, or insert and run it. */
+  const showHistory = () =>
+    openHistory({
+      dataSourceId: loc.id,
+      console: props.tab.name,
+      onInsert: (sql) => insertStatement(sql),
+      onRun: (sql) => {
+        insertStatement(sql);
+        void execute();
+      },
+    });
+
+  function insertStatement(sql: string): void {
+    if (!view) return;
+    const doc = view.state.doc;
+    const sep = doc.length && !doc.toString().endsWith("\n") ? "\n" : "";
+    const text = /;\s*$/.test(sql) ? sql : `${sql};`;
+    const from = doc.length + sep.length;
+    view.dispatch({ changes: { from: doc.length, insert: `${sep}${text}` }, selection: { anchor: from, head: from + text.length }, scrollIntoView: true });
+    view.focus();
+  }
+
+  consoles.set(props.tab.path, { execute: () => execute(), cancel, focus: () => view?.focus(), history: showHistory });
   onCleanup(() => {
     consoles.delete(props.tab.path);
     const s = session();
@@ -424,6 +465,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
           forgeHighlight,
           flashField,
           language.of(languageExt()),
+          ...(consoleDialect(dialect()) ? sqlConsoleExtensions(props.tab.path) : []),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) updateContent(props.tab.path, u.state.doc.toString());
           }),
@@ -499,6 +541,9 @@ export function ConsoleView(props: { tab: EditorTab }) {
         </button>
         <button class="icon-btn db-tool db-stop" title="Cancel Running Statements" disabled={!running()} onClick={cancel}>
           <Square size={13} />
+        </button>
+        <button class="icon-btn db-tool" title={`Browse Query History (${shortcutLabel("Console.History.Browse")})`} data-testid="db-history" onClick={showHistory}>
+          <History size={14} />
         </button>
         <span class="db-sep" />
         <button class="db-chip-btn" classList={{ open: shared() }} title="Session" data-testid="db-session-mode" onClick={sessionMenu}>

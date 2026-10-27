@@ -106,7 +106,7 @@ struct SetTemplate {
     variables: Vec<Variable>,
 }
 
-const SET_FILES: [&str; 7] = [
+const SET_FILES: [&str; 8] = [
     include_str!("../data/php.toml"),
     include_str!("../data/javascript.toml"),
     include_str!("../data/lua.toml"),
@@ -114,6 +114,7 @@ const SET_FILES: [&str; 7] = [
     include_str!("../data/laravel.toml"),
     include_str!("../data/blade.toml"),
     include_str!("../data/symfony.toml"),
+    include_str!("../data/sql.toml"),
 ];
 
 pub(crate) fn template_id(group: &str, abbreviation: &str) -> String {
@@ -297,6 +298,7 @@ mod tests {
                 "Laravel",
                 "Lua",
                 "PHP",
+                "SQL",
                 "Symfony",
                 "Twig"
             ]

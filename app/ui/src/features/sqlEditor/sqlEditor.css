@@ -1,0 +1,185 @@
+/* SQL editor: dialect widget, SQL Dialects page, Parameters / Query History / Run SQL Script. */
+
+.sql-status-ds {
+  color: var(--fg-muted);
+}
+
+.sql-dialects-page {
+  display: grid;
+  gap: 10px;
+}
+.sql-dialects-intro {
+  max-width: 620px;
+}
+.sql-mappings {
+  max-width: 720px;
+}
+.sql-mappings-table td {
+  padding: 2px 4px;
+}
+.sql-mappings-table .set-input {
+  width: 100%;
+  height: 24px;
+}
+.sql-map-path {
+  min-width: 220px;
+}
+
+.sql-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+.sql-modal.sql-history,
+.sql-modal.sql-run-file {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.sql-params-hint {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.sql-params-table td {
+  padding: 2px 8px;
+}
+.sql-param-name {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+.sql-param-value {
+  width: 100%;
+  height: 26px;
+  font-family: var(--font-mono);
+}
+.sql-params-preview,
+.sql-history-preview pre {
+  margin: 0;
+  max-height: 140px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+}
+
+.sql-history-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sql-history-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+.sql-history-search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+.sql-history-list,
+.sql-run-list {
+  max-height: 260px;
+  min-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+}
+.sql-history-row,
+.sql-run-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+  cursor: default;
+}
+.sql-history-row:hover {
+  background: var(--bg-hover);
+}
+.sql-history-row.selected {
+  background: var(--accent-soft);
+}
+.sql-history-time,
+.sql-history-meta,
+.sql-run-meta {
+  flex: none;
+  color: var(--fg-muted);
+}
+.sql-history-sql,
+.sql-run-sql {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.sql-history-row.failed .sql-history-meta,
+.sql-run-row.failed .sql-run-meta,
+.sql-error {
+  color: var(--danger);
+}
+.sql-ok {
+  color: var(--success);
+  flex: none;
+}
+.sql-run-row .sql-error {
+  flex: none;
+}
+.sql-run-meta {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sql-history-preview {
+  display: grid;
+  gap: 4px;
+}
+.sql-history-preview-head {
+  font-size: var(--fs-small);
+}
+.sql-run-line {
+  flex: none;
+  width: 28px;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+.sql-run-progress {
+  display: grid;
+  gap: 6px;
+}
+.sql-run-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.sql-run-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+.sql-run-fill.failed {
+  background: var(--danger);
+}
+.sql-run-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}

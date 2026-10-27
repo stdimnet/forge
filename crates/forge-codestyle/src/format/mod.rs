@@ -115,7 +115,11 @@ pub fn preview(language: &str, values: &Values) -> Option<String> {
         "css" => clike::format(src, lexer::Lang::Css, &opts, clike::Mode::Layout),
         "json" => clike::format(src, lexer::Lang::Json, &opts, clike::Mode::Layout),
         "lua" => clike::format(src, lexer::Lang::Lua, &opts, clike::Mode::Layout),
-        "sql" => sql::format(src, &opts, true),
+        "sql" => forge_sqlcode::format(
+            src,
+            forge_sqlcode::SqlDialect::Generic,
+            &forge_sqlcode::SqlStyle::from_values(values),
+        ),
         "yaml" => yaml::format(src, &opts, true),
         "markdown" => markdown::format(src, &opts),
         "html" | "xml" | "blade" | "twig" => markup::format(src, &opts, true),
