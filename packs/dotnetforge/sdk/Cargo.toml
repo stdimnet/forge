@@ -1,0 +1,18 @@
+[package]
+name = "dotnetforge-sdk"
+description = "DotNetForge: .NET on the user's machine — dotnet host and SDK detection (DOTNET_ROOT, PATH, the default install folders, Forge's settings) with `dotnet --list-sdks` / `--list-runtimes`, the netcoredbg debugger (setting, Forge's consented download, PATH), and the NuGet v3 client (search, versions, updates) with a cache in the user cache dir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+tokio.workspace = true
+dotnetforge-lang-dotnet.workspace = true
+forge-langservers.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+forge-langservers = { workspace = true, features = ["testserver"] }

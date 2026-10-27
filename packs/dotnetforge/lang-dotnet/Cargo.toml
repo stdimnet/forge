@@ -1,0 +1,15 @@
+[package]
+name = "dotnetforge-lang-dotnet"
+description = "DotNetForge: .NET support in the style of Rider (solutions in .sln / .slnx, MSBuild project files with Directory.Build.props and central package management, target frameworks, references and package references, launchSettings.json profiles, global.json and SDK lists, MSBuild build output as problems, xUnit / NUnit / MSTest discovery and the .NET test provider with TRX reports, dotnet command lines for builds, runs, watch, tests, NuGet and dotnet new templates, dotnet format and NuGet v3 answers; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+quick-xml = "0.42"
+regex-lite = "0.1"
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
