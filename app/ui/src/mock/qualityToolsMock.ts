@@ -333,7 +333,7 @@ export function mockFixedText(tool: QualityTool, text: string): string {
       return text.replace(/[ \t]+$/gm, "");
     case "phpCsFixer":
     case "pint":
-      return text.replace(/^(\s*)use HasFactory, Notifiable;$/m, "$1use HasFactory;\n$1use Notifiable;").replace(/[ \t]+$/gm, "");
+      return text.replace(/[ \t]+$/gm, "").replace(/^(\s*)use HasFactory, Notifiable;$/m, "$1use HasFactory;\n$1use Notifiable;");
     case "rector":
       return text.replace(/^class PaymentGateway$/m, "final class PaymentGateway");
     default:

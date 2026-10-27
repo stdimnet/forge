@@ -33,6 +33,13 @@ function indentOf(path: string, line: number): number {
   return text.length - text.trimStart().length;
 }
 
+/** "PHPStan: …" like PHPStorm (the fixers' messages name their tool already). */
+function withTool(p: QualityProblem): string {
+  const label = TOOL_LABELS[p.tool];
+  const message = p.message.startsWith(`${label}:`) || p.message.startsWith("Rector:") ? p.message : `${label}: ${p.message}`;
+  return p.link ? `${message} (${p.link})` : message;
+}
+
 export function toDiagnostic(p: QualityProblem): EditorDiagnostic {
   const whole = p.endLine === undefined && p.endColumn === undefined;
   const start = whole && p.column === 0 ? indentOf(p.file, p.line) : p.column;
@@ -43,7 +50,7 @@ export function toDiagnostic(p: QualityProblem): EditorDiagnostic {
   return {
     range: { start: { line: p.line, character: start }, end },
     severity: p.severity,
-    message: p.link ? `${p.message} (${p.link})` : p.message,
+    message: withTool(p),
     source: TOOL_LABELS[p.tool],
     code: p.rule ?? null,
     data,

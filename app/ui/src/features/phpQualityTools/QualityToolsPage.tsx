@@ -54,7 +54,7 @@ function InterpreterRow(props: { tool: QualityTool; interpreters: string[] }) {
         </select>
       </div>
       <div class="set-desc">
-        Docker, Docker Compose, SSH and WSL interpreters run the tool where PHP is and map the paths with their path mappings.
+        Interpreters run the tool where their PHP is and map paths with their path mappings.
       </div>
     </div>
   );

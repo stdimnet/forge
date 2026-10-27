@@ -4320,7 +4320,7 @@
         {
           "key": "php.tools.phpcs.path",
           "title": "PHP_CodeSniffer path",
-          "description": "Empty: vendor/bin/phpcs of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/phpcs of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4342,7 +4342,7 @@
         {
           "key": "php.tools.phpcs.config",
           "title": "Configuration file",
-          "description": "Empty: .phpcs.xml, phpcs.xml, .phpcs.xml.dist or phpcs.xml.dist (it is the standard) in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4375,7 +4375,7 @@
         {
           "key": "php.tools.phpcs.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,
@@ -4439,7 +4439,7 @@
         {
           "key": "php.tools.phpCsFixer.path",
           "title": "PHP CS Fixer path",
-          "description": "Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/php-cs-fixer of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4450,7 +4450,7 @@
         {
           "key": "php.tools.phpCsFixer.config",
           "title": "Configuration file",
-          "description": "Empty: .php-cs-fixer.php or .php-cs-fixer.dist.php in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4483,7 +4483,7 @@
         {
           "key": "php.tools.phpCsFixer.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,
@@ -4547,7 +4547,7 @@
         {
           "key": "php.tools.phpmd.path",
           "title": "PHP Mess Detector path",
-          "description": "Empty: vendor/bin/phpmd of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/phpmd of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4558,7 +4558,7 @@
         {
           "key": "php.tools.phpmd.config",
           "title": "Configuration file",
-          "description": "Empty: phpmd.xml, phpmd.xml.dist or .phpmd.xml in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4591,7 +4591,7 @@
         {
           "key": "php.tools.phpmd.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,
@@ -4655,7 +4655,7 @@
         {
           "key": "php.tools.phpstan.path",
           "title": "PHPStan path",
-          "description": "Empty: vendor/bin/phpstan of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/phpstan of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4666,7 +4666,7 @@
         {
           "key": "php.tools.phpstan.config",
           "title": "Configuration file",
-          "description": "Empty: phpstan.neon, phpstan.neon.dist or phpstan.dist.neon in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4677,7 +4677,7 @@
         {
           "key": "php.tools.phpstan.level",
           "title": "Level",
-          "description": "Rule level 0–10 or max. Empty: the configuration file's level.",
+          "description": "0–10 or max. Empty: the configuration file's level.",
           "type": "string",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4699,7 +4699,7 @@
         {
           "key": "php.tools.phpstan.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,
@@ -4763,7 +4763,7 @@
         {
           "key": "php.tools.psalm.path",
           "title": "Psalm path",
-          "description": "Empty: vendor/bin/psalm of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/psalm of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4774,7 +4774,7 @@
         {
           "key": "php.tools.psalm.config",
           "title": "Configuration file",
-          "description": "Empty: psalm.xml or psalm.xml.dist in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4796,7 +4796,7 @@
         {
           "key": "php.tools.psalm.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,
@@ -4860,7 +4860,7 @@
         {
           "key": "php.tools.pint.path",
           "title": "Laravel Pint path",
-          "description": "Empty: vendor/bin/pint of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/pint of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4871,7 +4871,7 @@
         {
           "key": "php.tools.pint.config",
           "title": "Configuration file",
-          "description": "Empty: pint.json in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4904,7 +4904,7 @@
         {
           "key": "php.tools.pint.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,
@@ -4968,7 +4968,7 @@
         {
           "key": "php.tools.rector.path",
           "title": "Rector path",
-          "description": "Empty: vendor/bin/rector of the project. A relative path starts at the project root.",
+          "description": "Empty: vendor/bin/rector of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -4979,7 +4979,7 @@
         {
           "key": "php.tools.rector.config",
           "title": "Configuration file",
-          "description": "Empty: rector.php in the project root.",
+          "description": "Empty: the one the tool finds in the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
@@ -5001,7 +5001,7 @@
         {
           "key": "php.tools.rector.timeout",
           "title": "Timeout (seconds)",
-          "description": "A run that takes longer is stopped. Inspect Code allows at least 300 seconds.",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
           "type": "int",
           "min": 1,
           "max": 3600,

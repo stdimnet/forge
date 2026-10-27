@@ -14,6 +14,7 @@
  * Rust runs the tools and parses their reports (`commands/php_quality_tools.rs`,
  * `phpforge-quality-tools`); Actions on Save run the fixers through `forge-save-actions`.
  */
+import { createEffect, createRoot, on } from "solid-js";
 import { ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import type { ContextAction } from "@/ipc/codeintel";
 import type { QualityTool } from "@/ipc/qualityTools";
@@ -22,13 +23,16 @@ import { registerContextActionHandler, registerContextActionProvider } from "@/f
 import { action, registerMainMenuEntries, separator } from "@/features/mainMenu/model";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { registerCommand } from "@/state/commands";
-import { activeTab, onFileSaved } from "@/state/editor";
+import { activeTab, editor, onFileSaved } from "@/state/editor";
+import { getSetting } from "@/state/settings";
+import { safeMode } from "@/features/trust/store";
+import { viewFor } from "@/editor/views";
 import { isPluginActive } from "@/state/project";
 import { registerDialog } from "@/shell/window/dialogs";
-import { problemsOf } from "./problems";
+import { clearAll, problemsOf } from "./problems";
 import { QualityToolsPage } from "./QualityToolsPage";
 import { RECTOR_DIALOG, RectorPreviewDialog, type RectorPreviewProps } from "./RectorPreviewDialog";
-import { active, checkFile, enabledTools, FIXERS, fixWith, inspectWithQualityTools, isPhpCode, onTheFly } from "./run";
+import { active, ALL_TOOLS, checkFile, enabledTools, FIXERS, fixWith, inspectWithQualityTools, isPhpCode, onTheFly } from "./run";
 import "./phpQualityTools.css";
 
 export { inspectWithQualityTools } from "./run";
@@ -92,7 +96,24 @@ registerEditorExtension(({ path }) => {
   });
 });
 
+/** The settings that change what the tools report. */
+const configSignature = () =>
+  ALL_TOOLS.map((t) =>
+    ["inspection", "interpreter", "path", "config", "level", "options", "severity"].map((o) => String(getSetting(`php.tools.${t}.${o}`, ""))).join(","),
+  ).join("|") + `|${safeMode()}`;
+
+/** After the tools' settings changed (or Safe Mode): forget switched-off tools, check the open PHP files again. */
+function recheckOpenFiles(): void {
+  const on = new Set(enabledTools());
+  clearAll(active() ? ALL_TOOLS.filter((t) => !on.has(t)) : undefined);
+  if (!active() || !on.size) return;
+  for (const tab of editor.tabs) {
+    if (isPhpCode(tab.path) && viewFor(tab.path)) void checkFile(tab.path, viewFor(tab.path)!.state.doc.toString());
+  }
+}
+
 if (typeof document !== "undefined") {
+  createRoot(() => createEffect(on(configSignature, recheckOpenFiles, { defer: true })));
   onFileSaved((path) => {
     // After the Actions on Save tools (Pint, PHP CS Fixer) rewrote the file.
     if (isPhpCode(path)) setTimeout(() => void checkFile(path, null), 200);
