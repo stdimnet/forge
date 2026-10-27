@@ -56,6 +56,7 @@ import "./scratches";
 import "./lua";
 import "./python";
 import "./pythonWeb";
+import "./jupyter";
 import "./go";
 import "./java";
 import "./kotlin";
