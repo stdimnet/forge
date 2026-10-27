@@ -79,6 +79,7 @@ import "./pythonWebMock";
 import "./javaMock";
 import "./javaDebugMock";
 import "./kotlinMock";
+import "./cppMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

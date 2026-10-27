@@ -17,6 +17,7 @@ import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { isDjangoDemo, isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { goDemoName, isGoDemo } from "./demoGoProject";
+import { cppDemoName, isCppDemo } from "./demoCppProject";
 import { goContext } from "./goTestsMock";
 import { isJavaDemo, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoName } from "./demoKotlinProject";
@@ -27,7 +28,7 @@ import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isCppDemo() ? cppDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {

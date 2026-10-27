@@ -35,6 +35,8 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
     r.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
+    // CForge's GoogleTest, Catch2 and CTest replace their manifest declarations.
+    cforge_lang_cpp::register(&mut r);
     r
 }
 
@@ -92,6 +94,10 @@ struct CommandRequest {
     /// The project's Go context for Go Test configurations.
     #[serde(default)]
     go_context: Option<serde_json::Value>,
+    /// The project's C++ context (CMake targets, build folder) for GoogleTest, Catch2 and
+    /// CTest configurations.
+    #[serde(default)]
+    cpp_context: Option<serde_json::Value>,
 }
 
 /// `{ configuration, spec, reportDir, coverageFile? }` → `TestCommand` of a manifest
@@ -109,8 +115,19 @@ pub fn testing_command(request_json: &str) -> String {
                 ctx.settings
                     .insert(goforge_lang_go::CONTEXT_KEY.into(), go.to_string());
             }
+            if let Some(cpp) = &r.cpp_context {
+                ctx.settings
+                    .insert(cforge_lang_cpp::CONTEXT_KEY.into(), cpp.to_string());
+            }
+            let cpp = cforge_lang_cpp::CppTests::all()
+                .into_iter()
+                .find(|p| forge_testing::TestFrameworkProvider::id(p) == r.spec.id);
             // Node.js test runners and Go Test wrap their spec.
-            let built = if let Some(js) = webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
+            let built = if let Some(cpp) = cpp {
+                use forge_testing::TestFrameworkProvider;
+                cpp.command(&r.configuration, &ctx)
+                    .unwrap_or_else(|| Err("no command".into()))
+            } else if let Some(js) = webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
                 js.build(&r.configuration, &ctx)
             } else if let Some(go) = goforge_lang_go::GoTestProvider::new(r.spec.clone()) {
                 use forge_testing::TestFrameworkProvider;

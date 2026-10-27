@@ -28,6 +28,7 @@ mod colorscheme;
 mod compare;
 mod composer;
 mod containers;
+mod cpp;
 mod deploy;
 mod devenv;
 mod editing;

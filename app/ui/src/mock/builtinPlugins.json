@@ -10044,16 +10044,6 @@
           "order": 32
         },
         {
-          "key": "cpp.formatOnSave",
-          "title": "Reformat C and C++ files on save",
-          "type": "bool",
-          "default": false,
-          "group": "lang.cpp",
-          "section": "Code Style",
-          "project": true,
-          "order": 33
-        },
-        {
           "key": "cpp.debugger.stlRenderers",
           "title": "Show STL containers with their elements",
           "description": "GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters.",
