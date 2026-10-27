@@ -118,7 +118,9 @@ pub fn sql_literal(dialect: Dialect, v: &Value) -> String {
     match v {
         Value::Null => "NULL".into(),
         Value::Bool(b) => match dialect {
-            Dialect::Sqlite => if *b { "1" } else { "0" }.into(),
+            Dialect::Sqlite | Dialect::SqlServer | Dialect::Oracle => {
+                if *b { "1" } else { "0" }.into()
+            }
             _ => if *b { "TRUE" } else { "FALSE" }.into(),
         },
         Value::Number(n) => n.to_string(),
@@ -127,7 +129,10 @@ pub fn sql_literal(dialect: Dialect, v: &Value) -> String {
             let h = hex::encode(as_binary(v).unwrap_or_default());
             match dialect {
                 Dialect::Postgres => format!("'\\x{h}'::bytea"),
-                Dialect::MySql | Dialect::Sqlite => format!("X'{h}'"),
+                Dialect::SqlServer => format!("0x{h}"),
+                Dialect::Oracle => format!("HEXTORAW('{h}')"),
+                Dialect::ClickHouse => format!("unhex('{h}')"),
+                _ => format!("X'{h}'"),
             }
         }
         other => dialect.quote_str(&other.to_string()),

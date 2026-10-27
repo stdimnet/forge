@@ -181,9 +181,22 @@ export function fileColor(path: string, dir = false): string | undefined {
   return color ?? undefined;
 }
 
+/** Features that colour their own tabs (e.g. database consoles of a production data source). */
+const tabColorProviders: ((path: string) => string | undefined)[] = [];
+
+/** Add a provider of editor tab backgrounds (a CSS colour); it wins over file colours. */
+export function registerTabColorProvider(provider: (path: string) => string | undefined): void {
+  tabColorProviders.push(provider);
+}
+
 /** The background of an editor tab (with "Use in editor tabs"). */
-export const tabColor = (path: string): string | undefined =>
-  getSetting<boolean>("fileColors.useInEditorTabs", true) !== false ? colorValue(fileColor(path)) : undefined;
+export const tabColor = (path: string): string | undefined => {
+  for (const p of tabColorProviders) {
+    const c = p(path);
+    if (c) return c;
+  }
+  return getSetting<boolean>("fileColors.useInEditorTabs", true) !== false ? colorValue(fileColor(path)) : undefined;
+};
 
 /** The background of a Project view row (with "Use in project view"). */
 export const projectViewColor = (path: string, dir: boolean): string | undefined =>

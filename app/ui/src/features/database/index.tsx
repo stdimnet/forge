@@ -3,7 +3,7 @@
  * dialog, query consoles and table data editors as editor tabs, and the `.env` suggestion.
  */
 import { createEffect, createRoot, on } from "solid-js";
-import { Database, SquareTerminal, Table2, Eye } from "lucide-solid";
+import { Database, SquareTerminal, Table2, Eye, KeySquare } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
@@ -21,20 +21,26 @@ import { DatabaseActions, DatabaseView } from "./DatabaseView";
 import { DataSourceDialog } from "./DataSourceDialog";
 import { ConsoleView } from "./ConsoleView";
 import { TableEditor } from "./TableEditor";
+import { RedisValueView } from "./RedisValueView";
+import { registerTabColorProvider } from "@/features/scopes/model";
 import { activeConsole, activeDataEditor, focusedConsole } from "./controllers";
 import { checkEnv } from "./envDetect";
 import {
   CONSOLE_VIEW,
   DATA_SOURCES_DIALOG,
+  REDIS_VIEW,
   TABLE_VIEW,
   dataSourcesSaved,
   loadSources,
   openConsole,
   openDataSources,
   parseConsolePath,
+  parseRedisPath,
   parseTablePath,
   selectedSourceId,
   sourceById,
+  sourceColor,
+  tabSourceId,
   tableInfo,
   type DataSourcesSaved,
   type DialogRequest,
@@ -73,6 +79,22 @@ registerEditorView({
     const loc = parseTablePath(tab.path);
     return loc ? [sourceById(loc.id)?.name ?? loc.id, loc.schema, loc.table] : [tab.name];
   },
+});
+
+registerEditorView({
+  id: REDIS_VIEW,
+  component: RedisValueView,
+  icon: (p) => <KeySquare size={p.size} class="db-tab-icon table" />,
+  breadcrumbs: (tab: EditorTab) => {
+    const loc = parseRedisPath(tab.path);
+    return loc ? [sourceById(loc.id)?.name ?? loc.id, loc.schema, loc.key] : [tab.name];
+  },
+});
+
+// Consoles, tables and keys of coloured data sources (production, staging, …) get tinted tabs.
+registerTabColorProvider((path) => {
+  const id = tabSourceId(path);
+  return id ? sourceColor(id)?.tint : undefined;
 });
 
 registerSettingsPage({
@@ -165,8 +187,8 @@ registerCommand({
 registerDialog<DialogRequest>({
   id: DATA_SOURCES_DIALOG,
   title: "Data Sources and Drivers",
-  width: 900,
-  height: 620,
+  width: 920,
+  height: 760,
   minWidth: 680,
   minHeight: 420,
   component: DataSourceDialog,

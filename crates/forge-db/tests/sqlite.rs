@@ -472,3 +472,109 @@ async fn detects_env_data_sources_once() {
     assert_eq!(added[0].source.comment, "From .env");
     assert!(svc.detect_env().is_empty());
 }
+
+#[tokio::test]
+async fn shared_sessions_and_the_sessions_view() {
+    let f = fixture().await;
+    let a = f
+        .svc
+        .open_session_with(&f.id, forge_db::SessionMode::Shared)
+        .await
+        .unwrap();
+    let b = f
+        .svc
+        .open_session_with(&f.id, forge_db::SessionMode::Shared)
+        .await
+        .unwrap();
+    assert_eq!(a.id, b.id);
+    assert!(b.shared);
+    assert_eq!(b.consoles, 2);
+    let own = f.svc.open_session(&f.id).await.unwrap();
+    assert_ne!(own.id, a.id);
+    assert_eq!(f.svc.sessions().len(), 2);
+
+    // A transaction of the shared session is visible to every console using it.
+    f.svc.set_auto_commit(&a.id, false).await.unwrap();
+    f.svc
+        .execute(
+            &a.id,
+            "INSERT INTO audit_log VALUES ('a'); INSERT INTO audit_log VALUES ('b')",
+            None,
+        )
+        .await
+        .unwrap();
+    let info = f.svc.sessions().into_iter().find(|s| s.shared).unwrap();
+    assert!(info.tx_open);
+    assert_eq!(info.tx_statements, 2);
+    assert!(info.tx_started_at.is_some());
+    assert_eq!(
+        info.last_sql.as_deref(),
+        Some("INSERT INTO audit_log VALUES ('b')")
+    );
+    let info = f.svc.commit(&b.id).await.unwrap();
+    assert!(!info.tx_open);
+    assert_eq!(info.tx_statements, 0);
+
+    // Closing one console keeps the shared connection for the other.
+    f.svc.close_session(&a.id).await.unwrap();
+    assert_eq!(f.svc.session(&b.id).unwrap().info().consoles, 1);
+    f.svc.close_session(&b.id).await.unwrap();
+    assert!(f.svc.session(&b.id).is_err());
+    // The Sessions view closes a session whatever uses it.
+    f.svc.terminate_session(&own.id).await.unwrap();
+    assert!(f.svc.sessions().is_empty());
+}
+
+#[tokio::test]
+async fn read_only_and_production_data_sources() {
+    let f = fixture().await;
+    let mut ds = f.svc.get(&f.id).unwrap();
+    ds.options.read_only = true;
+    f.svc.save(ds.clone(), None).await.unwrap();
+    let s = f.svc.open_session(&f.id).await.unwrap();
+    let err = f
+        .svc
+        .execute(&s.id, "DELETE FROM audit_log WHERE 1 = 1", None)
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("app is read-only: DELETE"),
+        "{err}"
+    );
+    // SQLite opens the file read-only too.
+    let pool = f.svc.pool(&f.id).await.unwrap();
+    let mut conn = pool.acquire().await.unwrap();
+    assert!(conn.execute("DELETE FROM audit_log").await.is_err());
+    drop(conn);
+
+    ds.options.read_only = false;
+    ds.options.color = Some("red".into());
+    f.svc.save(ds, None).await.unwrap();
+    let guard = f.svc.guard(&f.id, "UPDATE users SET balance = 0").unwrap();
+    assert!(guard.confirm.unwrap().contains("every row of users"));
+    assert!(f
+        .svc
+        .guard(&f.id, "UPDATE users SET balance = 0 WHERE id = 1")
+        .unwrap()
+        .confirm
+        .is_none());
+    let s = f.svc.open_session(&f.id).await.unwrap();
+    let err = f
+        .svc
+        .execute(&s.id, "DELETE FROM audit_log", None)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, forge_db::DbError::NeedsConfirmation(_)));
+    assert_eq!(
+        scalar(&f.svc, &s.id, "SELECT COUNT(*) FROM audit_log").await,
+        json!(1)
+    );
+    f.svc
+        .execute_with(&s.id, "DELETE FROM audit_log", None, true)
+        .await
+        .unwrap();
+    assert_eq!(
+        scalar(&f.svc, &s.id, "SELECT COUNT(*) FROM audit_log").await,
+        json!(0)
+    );
+}

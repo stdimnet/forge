@@ -1,6 +1,8 @@
-//! Database tools IPC (`forge_db`): data sources, introspection, consoles, table editing
-//! and export. Events: `db://dataSources` (the full list after a change) and `db://session`
-//! (a console's [`SessionInfo`] when it starts/stops running or its transaction changes).
+//! Database tools IPC (`forge_db`): data sources (SSH tunnels, SSL), introspection,
+//! consoles and their sessions, the read-only / production guard, table editing, the Redis
+//! keys tree and export. Events: `db://dataSources` (the full list after a change),
+//! `db://session` (a console's [`SessionInfo`] when it starts/stops running or its
+//! transaction changes) and `db://sessions` (all open sessions, for the Sessions view).
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -8,9 +10,9 @@ use std::sync::Arc;
 use forge_core::{ForgeError, Result};
 use forge_db::{
     ApplyResult, DataSource, DataSourceInfo, DbError, DbResult, DbService, DbTunnel,
-    DetectedDataSource, Dialect, ExportFormat, KeyringStore, ProjectContext, QueryPage, RowChange,
-    SchemaInfo, SchemaName, SessionInfo, StatementResult, TableDataRequest, TableInfo, TestResult,
-    TunnelEndpoint,
+    DetectedDataSource, Dialect, ExportFormat, Guard, KeyringStore, ProjectContext, QueryPage,
+    RedisKeys, RedisValue, RowChange, SchemaInfo, SchemaName, SecretUpdate, SessionInfo,
+    SessionMode, StatementResult, TableDataRequest, TableInfo, TestResult, TunnelEndpoint,
 };
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -19,6 +21,7 @@ use crate::state::AppState;
 
 pub const DATA_SOURCES_EVENT: &str = "db://dataSources";
 pub const SESSION_EVENT: &str = "db://session";
+pub const SESSIONS_EVENT: &str = "db://sessions";
 
 /// Managed state: one [`DbService`] for the app.
 pub struct DbState {
@@ -124,6 +127,14 @@ fn emit_session(app: &AppHandle, info: &SessionInfo) {
     if let Err(e) = app.emit(SESSION_EVENT, info) {
         tracing::warn!("cannot emit {SESSION_EVENT}: {e}");
     }
+    emit_sessions(app);
+}
+
+fn emit_sessions(app: &AppHandle) {
+    let list = app.state::<DbState>().service.sessions();
+    if let Err(e) = app.emit(SESSIONS_EVENT, list) {
+        tracing::warn!("cannot emit {SESSIONS_EVENT}: {e}");
+    }
 }
 
 #[tauri::command]
@@ -131,15 +142,20 @@ pub fn db_data_sources_list(state: State<'_, DbState>) -> Vec<DataSourceInfo> {
     state.service.list()
 }
 
-/// Create or update a data source. `password`: omitted keeps the stored one, `""` clears it.
+/// Create or update a data source. `password` and the SSH/SSL `secrets`: omitted keeps the
+/// stored one, `""` clears it.
 #[tauri::command]
 pub async fn db_data_source_save(
     source: DataSource,
     password: Option<String>,
+    secrets: Option<SecretUpdate>,
     app: AppHandle,
     state: State<'_, DbState>,
 ) -> Result<DataSourceInfo> {
-    let info = state.service.save(source, password).await?;
+    let info = state
+        .service
+        .save_with(source, password, secrets.unwrap_or_default())
+        .await?;
     emit_sources(&app, &state.service);
     Ok(info)
 }
@@ -155,19 +171,31 @@ pub async fn db_data_source_delete(
     Ok(())
 }
 
-/// "Test Connection" with the dialog's unsaved settings.
+/// "Test Connection" with the dialog's unsaved settings; `accept_host_key` is the SSH host
+/// key fingerprint the user chose to trust.
 #[tauri::command]
 pub async fn db_test_connection(
     source: DataSource,
     password: Option<String>,
+    secrets: Option<SecretUpdate>,
+    accept_host_key: Option<String>,
     state: State<'_, DbState>,
 ) -> Result<TestResult> {
-    Ok(state.service.test(&source, password).await)
+    Ok(state
+        .service
+        .test_with(
+            &source,
+            password,
+            secrets.unwrap_or_default(),
+            accept_host_key,
+        )
+        .await)
 }
 
 #[tauri::command]
-pub async fn db_disconnect(id: String, state: State<'_, DbState>) -> Result<()> {
+pub async fn db_disconnect(id: String, app: AppHandle, state: State<'_, DbState>) -> Result<()> {
     state.service.disconnect(&id).await;
+    emit_sessions(&app);
     Ok(())
 }
 
@@ -230,22 +258,69 @@ pub async fn db_apply_changes(
         .await?)
 }
 
+/// Open a console session: its own connection, or with `shared` the data source's shared
+/// session.
 #[tauri::command]
-pub async fn db_session_open(id: String, state: State<'_, DbState>) -> Result<SessionInfo> {
-    Ok(state.service.open_session(&id).await?)
+pub async fn db_session_open(
+    id: String,
+    shared: Option<bool>,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<SessionInfo> {
+    let mode = if shared.unwrap_or(false) {
+        SessionMode::Shared
+    } else {
+        SessionMode::Own
+    };
+    let info = state.service.open_session_with(&id, mode).await?;
+    emit_sessions(&app);
+    Ok(info)
 }
 
 #[tauri::command]
-pub async fn db_session_close(session_id: String, state: State<'_, DbState>) -> Result<()> {
-    Ok(state.service.close_session(&session_id).await?)
+pub async fn db_session_close(
+    session_id: String,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    state.service.close_session(&session_id).await?;
+    emit_sessions(&app);
+    Ok(())
+}
+
+/// Open sessions for the Sessions view.
+#[tauri::command]
+pub fn db_sessions_list(state: State<'_, DbState>) -> Vec<SessionInfo> {
+    state.service.sessions()
+}
+
+/// The Sessions view's "Close Session": closes the connection whatever console uses it.
+#[tauri::command]
+pub async fn db_session_terminate(
+    session_id: String,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    state.service.terminate_session(&session_id).await?;
+    emit_sessions(&app);
+    Ok(())
+}
+
+/// What the console must do before running `sql`: refuse it (read-only data source) or ask
+/// (UPDATE/DELETE without WHERE on a production data source).
+#[tauri::command]
+pub fn db_guard(id: String, sql: String, state: State<'_, DbState>) -> Result<Guard> {
+    Ok(state.service.guard(&id, &sql)?)
 }
 
 /// Run a script in a console; returns one result per statement (stops at an error).
+/// `confirmed`: the user agreed to the production warning of `db_guard`.
 #[tauri::command]
 pub async fn db_execute(
     session_id: String,
     sql: String,
     page_size: Option<u32>,
+    confirmed: Option<bool>,
     app: AppHandle,
     state: State<'_, DbState>,
 ) -> Result<Vec<StatementResult>> {
@@ -254,9 +329,37 @@ pub async fn db_execute(
     let mut running = session.info();
     running.running = true;
     emit_session(&app, &running);
-    let res = svc.execute(&session_id, &sql, page_size).await;
+    let res = svc
+        .execute_with(&session_id, &sql, page_size, confirmed.unwrap_or(false))
+        .await;
     emit_session(&app, &session.info());
     Ok(res?)
+}
+
+/// Keys of a Redis database (`db0`) matching a pattern, with type and TTL.
+#[tauri::command]
+pub async fn db_redis_keys(
+    id: String,
+    schema: String,
+    pattern: String,
+    limit: Option<u32>,
+    state: State<'_, DbState>,
+) -> Result<RedisKeys> {
+    Ok(state
+        .service
+        .redis_keys(&id, &schema, &pattern, limit)
+        .await?)
+}
+
+/// A Redis key's value for the value viewer.
+#[tauri::command]
+pub async fn db_redis_value(
+    id: String,
+    schema: String,
+    key: String,
+    state: State<'_, DbState>,
+) -> Result<RedisValue> {
+    Ok(state.service.redis_value(&id, &schema, &key).await?)
 }
 
 #[tauri::command]

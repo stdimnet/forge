@@ -14,6 +14,8 @@ pub enum TableKind {
     #[default]
     Table,
     View,
+    /// A MongoDB collection.
+    Collection,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
@@ -104,6 +106,11 @@ fn flag(v: &Option<String>) -> bool {
 
 /// Schemas (MySQL databases) visible on the connection.
 pub async fn schemas(conn: &mut Conn) -> DbResult<Vec<SchemaName>> {
+    if let Conn::Engine(e) = conn {
+        if !e.dialect().is_sql() {
+            return e.schemas().await;
+        }
+    }
     let (list, current) = match conn.dialect() {
         Dialect::MySql => (
             "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME",
@@ -114,6 +121,19 @@ pub async fn schemas(conn: &mut Conn) -> DbResult<Vec<SchemaName>> {
             "SELECT current_schema()",
         ),
         Dialect::Sqlite => ("SELECT name FROM pragma_database_list WHERE name <> 'temp' ORDER BY seq", "SELECT 'main'"),
+        Dialect::SqlServer => (
+            "SELECT name FROM sys.schemas WHERE schema_id < 16384 AND name NOT IN ('sys', 'INFORMATION_SCHEMA', 'guest') ORDER BY name",
+            "SELECT SCHEMA_NAME()",
+        ),
+        Dialect::ClickHouse => (
+            "SELECT name FROM system.databases WHERE name NOT IN ('INFORMATION_SCHEMA', 'information_schema') ORDER BY name",
+            "SELECT currentDatabase()",
+        ),
+        Dialect::Oracle => (
+            "SELECT username FROM all_users WHERE oracle_maintained = 'N' OR username = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') ORDER BY username",
+            "SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM dual",
+        ),
+        Dialect::Redis | Dialect::Mongo => unreachable!("answered by the engine"),
     };
     let current = conn
         .text_rows(current)
@@ -143,6 +163,13 @@ pub async fn schema(
         Dialect::MySql => mysql(conn, schema, only_table).await,
         Dialect::Postgres => postgres(conn, schema, only_table).await,
         Dialect::Sqlite => sqlite(conn, schema, only_table).await,
+        Dialect::SqlServer => sqlserver(conn, schema, only_table).await,
+        Dialect::ClickHouse => clickhouse(conn, schema, only_table).await,
+        Dialect::Oracle => oracle(conn, schema, only_table).await,
+        Dialect::Redis | Dialect::Mongo => match conn {
+            Conn::Engine(e) => e.schema(schema, only_table).await,
+            _ => unreachable!("Redis and MongoDB are engines"),
+        },
     }
 }
 
@@ -515,5 +542,261 @@ async fn sqlite(conn: &mut Conn, schema: &str, only: Option<&str>) -> DbResult<S
         name: schema.into(),
         tables: tables.finish(),
         routines: Vec::new(),
+    })
+}
+
+fn sqlserver_rule(rule: &str) -> String {
+    rule.replace('_', " ")
+}
+
+async fn sqlserver(conn: &mut Conn, schema: &str, only: Option<&str>) -> DbResult<SchemaInfo> {
+    let d = Dialect::SqlServer;
+    let sch = d.quote_str(schema);
+    let tf = |col: &str| {
+        only.map(|t| format!(" AND {col} = {}", d.quote_str(t)))
+            .unwrap_or_default()
+    };
+    let mut tables = Tables::default();
+    for r in conn
+        .text_rows(&format!(
+            "SELECT o.name, o.type, CAST(ep.value AS nvarchar(4000)), \
+             (SELECT SUM(p.rows) FROM sys.partitions p WHERE p.object_id = o.object_id AND p.index_id IN (0, 1)) \
+             FROM sys.objects o LEFT JOIN sys.extended_properties ep ON ep.major_id = o.object_id AND ep.minor_id = 0 AND ep.name = 'MS_Description' \
+             WHERE o.type IN ('U', 'V') AND SCHEMA_NAME(o.schema_id) = {sch}{} ORDER BY o.name",
+            tf("o.name")
+        ))
+        .await?
+    {
+        tables.add(TableInfo {
+            name: s(&r[0]),
+            kind: if s(&r[1]).trim() == "V" { TableKind::View } else { TableKind::Table },
+            comment: s(&r[2]),
+            row_estimate: r[3].as_deref().and_then(|n| n.parse().ok()),
+            ..Default::default()
+        });
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT c.TABLE_NAME, c.COLUMN_NAME, \
+             c.DATA_TYPE + CASE WHEN c.CHARACTER_MAXIMUM_LENGTH = -1 THEN '(max)' WHEN c.CHARACTER_MAXIMUM_LENGTH IS NOT NULL THEN '(' + CAST(c.CHARACTER_MAXIMUM_LENGTH AS varchar(10)) + ')' \
+             WHEN c.DATA_TYPE IN ('decimal', 'numeric') THEN '(' + CAST(c.NUMERIC_PRECISION AS varchar(5)) + ',' + CAST(c.NUMERIC_SCALE AS varchar(5)) + ')' ELSE '' END, \
+             c.IS_NULLABLE, c.COLUMN_DEFAULT, COLUMNPROPERTY(OBJECT_ID(QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)), c.COLUMN_NAME, 'IsIdentity') \
+             FROM INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_SCHEMA = {sch}{} ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION",
+            tf("c.TABLE_NAME")
+        ))
+        .await?
+    {
+        if let Some(t) = tables.get(&s(&r[0])) {
+            t.columns.push(ColumnInfo {
+                name: s(&r[1]),
+                data_type: s(&r[2]),
+                nullable: s(&r[3]) == "YES",
+                default: r[4].clone(),
+                auto_increment: flag(&r[5]),
+                comment: String::new(),
+            });
+        }
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT t.name, i.name, i.is_unique, i.is_primary_key, c.name FROM sys.indexes i \
+             JOIN sys.tables t ON t.object_id = i.object_id \
+             JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id \
+             JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id \
+             WHERE i.name IS NOT NULL AND ic.is_included_column = 0 AND SCHEMA_NAME(t.schema_id) = {sch}{} \
+             ORDER BY t.name, i.name, ic.key_ordinal",
+            tf("t.name")
+        ))
+        .await?
+    {
+        tables.index(&s(&r[0]), &s(&r[1]), s(&r[4]), flag(&r[2]), flag(&r[3]));
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT tp.name, fk.name, cp.name, SCHEMA_NAME(tr.schema_id), tr.name, cr.name, fk.update_referential_action_desc, fk.delete_referential_action_desc \
+             FROM sys.foreign_keys fk JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id \
+             JOIN sys.tables tp ON tp.object_id = fk.parent_object_id JOIN sys.columns cp ON cp.object_id = fkc.parent_object_id AND cp.column_id = fkc.parent_column_id \
+             JOIN sys.tables tr ON tr.object_id = fk.referenced_object_id JOIN sys.columns cr ON cr.object_id = fkc.referenced_object_id AND cr.column_id = fkc.referenced_column_id \
+             WHERE SCHEMA_NAME(tp.schema_id) = {sch}{} ORDER BY tp.name, fk.name, fkc.constraint_column_id",
+            tf("tp.name")
+        ))
+        .await?
+    {
+        tables.fk(&s(&r[0]), &s(&r[1]), s(&r[2]), s(&r[3]), s(&r[4]), s(&r[5]), sqlserver_rule(&s(&r[6])), sqlserver_rule(&s(&r[7])));
+    }
+    let routines = if only.is_some() {
+        Vec::new()
+    } else {
+        conn.text_rows(&format!(
+            "SELECT ROUTINE_NAME, ROUTINE_TYPE, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = {sch} ORDER BY ROUTINE_NAME"
+        ))
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| RoutineInfo {
+            name: s(&r[0]),
+            kind: s(&r[1]).to_ascii_lowercase(),
+            returns: s(&r[2]),
+        })
+        .collect()
+    };
+    Ok(SchemaInfo {
+        name: schema.into(),
+        tables: tables.finish(),
+        routines,
+    })
+}
+
+async fn clickhouse(conn: &mut Conn, schema: &str, only: Option<&str>) -> DbResult<SchemaInfo> {
+    let d = Dialect::ClickHouse;
+    let sch = d.quote_str(schema);
+    let tf = |col: &str| {
+        only.map(|t| format!(" AND {col} = {}", d.quote_str(t)))
+            .unwrap_or_default()
+    };
+    let mut tables = Tables::default();
+    for r in conn
+        .text_rows(&format!(
+            "SELECT name, engine, comment, total_rows FROM system.tables WHERE database = {sch}{} ORDER BY name",
+            tf("name")
+        ))
+        .await?
+    {
+        let engine = s(&r[1]);
+        tables.add(TableInfo {
+            name: s(&r[0]),
+            kind: if engine.contains("View") { TableKind::View } else { TableKind::Table },
+            comment: s(&r[2]),
+            row_estimate: r[3].as_deref().and_then(|n| n.parse().ok()),
+            ..Default::default()
+        });
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT table, name, type, default_kind, default_expression, comment, is_in_primary_key FROM system.columns WHERE database = {sch}{} ORDER BY table, position",
+            tf("table")
+        ))
+        .await?
+    {
+        let table = s(&r[0]);
+        let col = s(&r[1]);
+        let pk = flag(&r[6]);
+        if let Some(t) = tables.get(&table) {
+            let data_type = s(&r[2]);
+            let default = r[4].clone().filter(|d| !d.is_empty());
+            t.columns.push(ColumnInfo {
+                nullable: data_type.starts_with("Nullable("),
+                data_type,
+                default: default.map(|d| match s(&r[3]).as_str() {
+                    "" | "DEFAULT" => d,
+                    kind => format!("{kind} {d}"),
+                }),
+                auto_increment: false,
+                comment: s(&r[5]),
+                name: col.clone(),
+            });
+            if pk {
+                t.primary_key.push(col);
+            }
+        }
+    }
+    Ok(SchemaInfo {
+        name: schema.into(),
+        tables: tables.finish(),
+        routines: Vec::new(),
+    })
+}
+
+async fn oracle(conn: &mut Conn, schema: &str, only: Option<&str>) -> DbResult<SchemaInfo> {
+    let d = Dialect::Oracle;
+    let sch = d.quote_str(schema);
+    let tf = |col: &str| {
+        only.map(|t| format!(" AND {col} = {}", d.quote_str(t)))
+            .unwrap_or_default()
+    };
+    let mut tables = Tables::default();
+    for r in conn
+        .text_rows(&format!(
+            "SELECT o.object_name, o.object_type, c.comments, t.num_rows FROM all_objects o \
+             LEFT JOIN all_tab_comments c ON c.owner = o.owner AND c.table_name = o.object_name \
+             LEFT JOIN all_tables t ON t.owner = o.owner AND t.table_name = o.object_name \
+             WHERE o.owner = {sch} AND o.object_type IN ('TABLE', 'VIEW') AND o.object_name NOT LIKE 'BIN$%'{} ORDER BY o.object_name",
+            tf("o.object_name")
+        ))
+        .await?
+    {
+        tables.add(TableInfo {
+            name: s(&r[0]),
+            kind: if s(&r[1]) == "VIEW" { TableKind::View } else { TableKind::Table },
+            comment: s(&r[2]),
+            row_estimate: r[3].as_deref().and_then(|n| n.parse().ok()),
+            ..Default::default()
+        });
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT table_name, column_name, data_type || CASE WHEN data_type IN ('VARCHAR2', 'NVARCHAR2', 'CHAR', 'NCHAR', 'RAW') THEN '(' || char_length || ')' \
+             WHEN data_type = 'NUMBER' AND data_precision IS NOT NULL THEN '(' || data_precision || ',' || data_scale || ')' ELSE '' END, \
+             nullable, data_default, identity_column FROM all_tab_columns WHERE owner = {sch}{} ORDER BY table_name, column_id",
+            tf("table_name")
+        ))
+        .await?
+    {
+        if let Some(t) = tables.get(&s(&r[0])) {
+            t.columns.push(ColumnInfo {
+                name: s(&r[1]),
+                data_type: s(&r[2]),
+                nullable: s(&r[3]) == "Y",
+                default: r[4].clone().map(|d| d.trim().to_string()).filter(|d| !d.is_empty()),
+                auto_increment: s(&r[5]) == "YES",
+                comment: String::new(),
+            });
+        }
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT i.table_name, i.index_name, i.uniqueness, CASE WHEN c.constraint_type = 'P' THEN 'Y' ELSE 'N' END, ic.column_name \
+             FROM all_indexes i JOIN all_ind_columns ic ON ic.index_owner = i.owner AND ic.index_name = i.index_name \
+             LEFT JOIN all_constraints c ON c.owner = i.owner AND c.index_name = i.index_name AND c.constraint_type = 'P' \
+             WHERE i.table_owner = {sch}{} ORDER BY i.table_name, i.index_name, ic.column_position",
+            tf("i.table_name")
+        ))
+        .await?
+    {
+        tables.index(&s(&r[0]), &s(&r[1]), s(&r[4]), s(&r[2]) == "UNIQUE", s(&r[3]) == "Y");
+    }
+    for r in conn
+        .text_rows(&format!(
+            "SELECT c.table_name, c.constraint_name, cc.column_name, r.owner, r.table_name, rc.column_name, 'NO ACTION', c.delete_rule \
+             FROM all_constraints c JOIN all_cons_columns cc ON cc.owner = c.owner AND cc.constraint_name = c.constraint_name \
+             JOIN all_constraints r ON r.owner = c.r_owner AND r.constraint_name = c.r_constraint_name \
+             JOIN all_cons_columns rc ON rc.owner = r.owner AND rc.constraint_name = r.constraint_name AND rc.position = cc.position \
+             WHERE c.constraint_type = 'R' AND c.owner = {sch}{} ORDER BY c.table_name, c.constraint_name, cc.position",
+            tf("c.table_name")
+        ))
+        .await?
+    {
+        tables.fk(&s(&r[0]), &s(&r[1]), s(&r[2]), s(&r[3]), s(&r[4]), s(&r[5]), s(&r[6]), s(&r[7]));
+    }
+    let routines = if only.is_some() {
+        Vec::new()
+    } else {
+        conn.text_rows(&format!(
+            "SELECT object_name, LOWER(object_type) FROM all_objects WHERE owner = {sch} AND object_type IN ('PROCEDURE', 'FUNCTION', 'PACKAGE') ORDER BY object_name"
+        ))
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| RoutineInfo {
+            name: s(&r[0]),
+            kind: s(&r[1]),
+            returns: String::new(),
+        })
+        .collect()
+    };
+    Ok(SchemaInfo {
+        name: schema.into(),
+        tables: tables.finish(),
+        routines,
     })
 }

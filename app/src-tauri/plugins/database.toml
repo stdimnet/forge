@@ -3,7 +3,7 @@ name = "Database Tools and SQL"
 version = "0.1.0"
 pack = "core"
 vendor = "Forge"
-description = "Data sources, SQL consoles, schema browsing and table editing for MySQL, MariaDB, PostgreSQL and SQLite."
+description = "Data sources, SQL consoles, schema browsing and table editing for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse and Oracle, plus Redis and MongoDB, with SSH tunnels, SSL, sessions and read-only / production data sources."
 
 [[contributions.commands]]
 id = "database.newDataSource"

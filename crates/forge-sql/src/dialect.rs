@@ -1,30 +1,48 @@
-//! SQL dialects: quoting of identifiers and literals.
+//! Console dialects: quoting of identifiers and literals, transactions and paging. Redis
+//! and MongoDB consoles are not SQL; they only use the statement splitting and the guard.
 
 use serde::{Deserialize, Serialize};
 
-/// SQL flavour used to quote identifiers and literals.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Language of a console: a SQL flavour, Redis commands or MongoDB shell calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Dialect {
     MySql,
     Postgres,
     Sqlite,
+    /// Microsoft SQL Server (T-SQL).
+    SqlServer,
+    ClickHouse,
+    Oracle,
+    /// Redis commands, one per line.
+    Redis,
+    /// MongoDB shell calls: `db.users.find({...})`.
+    Mongo,
 }
 
 impl Dialect {
-    /// Quote an identifier (`users` → `` `users` `` or `"users"`).
+    /// Whether consoles of this dialect run SQL.
+    pub fn is_sql(self) -> bool {
+        !matches!(self, Dialect::Redis | Dialect::Mongo)
+    }
+
+    /// Quote an identifier (`users` → `` `users` ``, `"users"` or `[users]`).
     pub fn quote_ident(self, name: &str) -> String {
         match self {
-            Dialect::MySql => format!("`{}`", name.replace('`', "``")),
-            Dialect::Postgres | Dialect::Sqlite => format!("\"{}\"", name.replace('"', "\"\"")),
+            Dialect::MySql | Dialect::ClickHouse => format!("`{}`", name.replace('`', "``")),
+            Dialect::SqlServer => format!("[{}]", name.replace(']', "]]")),
+            _ => format!("\"{}\"", name.replace('"', "\"\"")),
         }
     }
 
     /// Quote a string literal.
     pub fn quote_str(self, s: &str) -> String {
         match self {
-            Dialect::MySql => format!("'{}'", s.replace('\\', "\\\\").replace('\'', "''")),
-            Dialect::Postgres | Dialect::Sqlite => format!("'{}'", s.replace('\'', "''")),
+            Dialect::MySql | Dialect::ClickHouse => {
+                format!("'{}'", s.replace('\\', "\\\\").replace('\'', "''"))
+            }
+            Dialect::SqlServer => format!("N'{}'", s.replace('\'', "''")),
+            _ => format!("'{}'", s.replace('\'', "''")),
         }
     }
 
@@ -41,7 +59,76 @@ impl Dialect {
     pub fn begin(self) -> &'static str {
         match self {
             Dialect::MySql => "START TRANSACTION",
-            Dialect::Postgres | Dialect::Sqlite => "BEGIN",
+            Dialect::SqlServer => "BEGIN TRANSACTION",
+            // Oracle starts transactions implicitly; this is a harmless statement.
+            Dialect::Oracle => "SET TRANSACTION READ WRITE",
+            _ => "BEGIN",
         }
+    }
+
+    /// `select` (without `ORDER BY`) limited to `limit` rows after skipping `offset`, ordered
+    /// by `order` (`"a", "b" DESC`, may be empty).
+    pub fn page(self, select: &str, order: &str, limit: usize, offset: u64) -> String {
+        let order_by = if order.is_empty() {
+            String::new()
+        } else {
+            format!(" ORDER BY {order}")
+        };
+        match self {
+            // OFFSET … FETCH needs an ORDER BY in T-SQL.
+            Dialect::SqlServer => format!(
+                "{select}{} OFFSET {offset} ROWS FETCH NEXT {limit} ROWS ONLY",
+                if order.is_empty() {
+                    " ORDER BY (SELECT NULL)".to_string()
+                } else {
+                    order_by
+                }
+            ),
+            Dialect::Oracle => {
+                format!("{select}{order_by} OFFSET {offset} ROWS FETCH NEXT {limit} ROWS ONLY")
+            }
+            _ => format!("{select}{order_by} LIMIT {limit} OFFSET {offset}"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quotes_new_dialects() {
+        assert_eq!(Dialect::SqlServer.quote_ident("a]b"), "[a]]b]");
+        assert_eq!(Dialect::SqlServer.quote_str("it's"), "N'it''s'");
+        assert_eq!(Dialect::ClickHouse.quote_ident("t"), "`t`");
+        assert_eq!(Dialect::Oracle.qualified("HR", "EMP"), "\"HR\".\"EMP\"");
+    }
+
+    #[test]
+    fn pages_per_dialect() {
+        assert_eq!(
+            Dialect::SqlServer.page("SELECT * FROM [t]", "", 11, 20),
+            "SELECT * FROM [t] ORDER BY (SELECT NULL) OFFSET 20 ROWS FETCH NEXT 11 ROWS ONLY"
+        );
+        assert_eq!(
+            Dialect::Oracle.page("SELECT * FROM \"T\"", "\"ID\" DESC", 5, 0),
+            "SELECT * FROM \"T\" ORDER BY \"ID\" DESC OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY"
+        );
+        assert_eq!(
+            Dialect::MySql.page("SELECT * FROM `t`", "", 501, 0),
+            "SELECT * FROM `t` LIMIT 501 OFFSET 0"
+        );
+    }
+
+    #[test]
+    fn serializes_lowercase() {
+        assert_eq!(
+            serde_json::to_string(&Dialect::SqlServer).unwrap(),
+            "\"sqlserver\""
+        );
+        assert_eq!(
+            serde_json::from_str::<Dialect>("\"clickhouse\"").unwrap(),
+            Dialect::ClickHouse
+        );
     }
 }
