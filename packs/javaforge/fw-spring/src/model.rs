@@ -558,6 +558,12 @@ impl<'a> Index<'a> {
                 consts.entry(k.clone()).or_insert_with(|| v.clone());
             }
         }
+        // Constants made of other files' constants.
+        let exprs: BTreeMap<String, String> = files
+            .iter()
+            .flat_map(|f| f.constant_exprs.iter().map(|(k, v)| (k.clone(), v.clone())))
+            .collect();
+        scan::resolve_constants(&mut consts, &exprs);
         let mut custom_stereotypes = HashMap::new();
         for f in files {
             for c in f.classes.iter().filter(|c| c.kind == ClassKind::Annotation) {

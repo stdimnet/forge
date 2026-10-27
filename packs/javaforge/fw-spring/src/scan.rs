@@ -346,6 +346,9 @@ pub struct SourceFile {
     /// String constants (`static final String X = "…"`, `const val X = "…"`) by simple name.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub constants: BTreeMap<String, String>,
+    /// String constants made of other constants (`STOCK = API + "/stock"`), as written.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub constant_exprs: BTreeMap<String, String>,
 }
 
 impl SourceFile {
@@ -848,6 +851,7 @@ impl<'a> Parser<'a> {
             imports: Vec::new(),
             classes: Vec::new(),
             constants: BTreeMap::new(),
+            constant_exprs: BTreeMap::new(),
         };
         while !self.done() {
             match self.ident_at(0) {
@@ -1361,7 +1365,15 @@ impl<'a> Parser<'a> {
                     literal = Some(s.clone());
                 }
                 default = self.single_literal();
+                let start = self.i;
                 self.skip_initializer();
+                let expr = &self.toks[start..self.i];
+                if literal.is_none()
+                    && header.modifiers.iter().any(|m| m == "final")
+                    && is_string_concat(expr)
+                {
+                    file.constant_exprs.insert(fname.clone(), render(expr));
+                }
             }
             if let Some(s) = literal {
                 if header.modifiers.iter().any(|m| m == "final") {
@@ -1566,7 +1578,16 @@ impl<'a> Parser<'a> {
                     literal = Some(s.clone());
                 }
             }
+            let start = self.i;
             self.kotlin_skip_expr();
+            let expr = &self.toks[start..self.i];
+            let name = name_tok.ident().unwrap_or_default();
+            if literal.is_none()
+                && header.modifiers.iter().any(|m| m == "const")
+                && is_string_concat(expr)
+            {
+                file.constant_exprs.insert(name.to_string(), render(expr));
+            }
         }
         let name = name_tok.ident().unwrap_or_default().to_string();
         if let Some(s) = literal {
@@ -1745,6 +1766,37 @@ fn values(toks: &[Token]) -> Vec<Val> {
     vec![Val::Expr(render(toks))]
 }
 
+/// `A + "/x" + Paths.B`: literals and (dotted) names joined with `+`.
+fn is_string_concat(toks: &[Token]) -> bool {
+    let has_plus = toks.iter().any(|t| t.is('+'));
+    has_plus
+        && toks
+            .iter()
+            .all(|t| matches!(t.tok, Tok::Str(_) | Tok::Ident(_)) || t.is('+') || t.is('.'))
+}
+
+/// Resolve constant expressions against literal constants (and each other) by simple name.
+pub fn resolve_constants(
+    constants: &mut BTreeMap<String, String>,
+    exprs: &BTreeMap<String, String>,
+) {
+    for _ in 0..4 {
+        let mut changed = false;
+        for (name, expr) in exprs {
+            if constants.contains_key(name) {
+                continue;
+            }
+            if let Some(v) = Val::Expr(expr.clone()).resolve(constants) {
+                constants.insert(name.clone(), v);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+}
+
 /// Tokens as compact source text.
 fn render(toks: &[Token]) -> String {
     let mut out = String::new();
@@ -1794,7 +1846,10 @@ fn render(toks: &[Token]) -> String {
 pub fn parse(path: &str, text: &str) -> SourceFile {
     let lang = Lang::of_path(path).unwrap_or(Lang::Java);
     let toks = lex(text);
-    Parser::new(&toks, lang).file(path)
+    let mut file = Parser::new(&toks, lang).file(path);
+    let exprs = file.constant_exprs.clone();
+    resolve_constants(&mut file.constants, &exprs);
+    file
 }
 
 #[cfg(test)]
@@ -2042,6 +2097,27 @@ enum class Status { NEW, PAID }
             (Some("Retries."), Some("3"))
         );
         assert_eq!(ps[1].default.as_deref(), Some("true"));
+    }
+
+    #[test]
+    fn constant_expressions() {
+        let f = parse("P.java", "class P { static final String API = \"/api\"; static final String STOCK = API + \"/stock\"; static final String X = Other.BASE + \"/x\"; }");
+        assert_eq!(
+            f.constants.get("STOCK").map(String::as_str),
+            Some("/api/stock")
+        );
+        assert_eq!(
+            f.constant_exprs.get("X").map(String::as_str),
+            Some("Other.BASE + \"/x\"")
+        );
+        let k = parse(
+            "P.kt",
+            "const val API = \"/api\"\nconst val ORDERS = API + \"/orders\"\n",
+        );
+        assert_eq!(
+            k.constants.get("ORDERS").map(String::as_str),
+            Some("/api/orders")
+        );
     }
 
     #[test]

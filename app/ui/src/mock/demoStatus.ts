@@ -23,6 +23,7 @@ export interface DemoStatus {
 export function currentDemo(): DemoId {
   if (typeof location === "undefined") return "laravel";
   const p = new URLSearchParams(location.search).get("project");
+  if (p === "spring") return "java";
   return p === "remote" || p === "symfony" || p === "lua" || p === "python" || p === "java" || p === "react" || p === "vue" || p === "angular" ? p : "laravel";
 }
 

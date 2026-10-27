@@ -31,7 +31,8 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
 // `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
 // the FastAPI service of PyForge, `?project=go` the `ledger` module of GoForge,
-// `?project=java` a Gradle Java service, `?project=kotlin` a Gradle Kotlin service.
+// `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application),
+// `?project=kotlin` a Gradle Kotlin service.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
   : isWordPressDemo()
