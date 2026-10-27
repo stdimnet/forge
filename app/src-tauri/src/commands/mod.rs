@@ -72,6 +72,7 @@ pub mod search;
 pub mod services;
 pub mod settings;
 pub mod spell;
+pub mod spring;
 pub mod ssr;
 pub mod stacktrace;
 pub mod symfony;

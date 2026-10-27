@@ -74,6 +74,11 @@ fn cached_sync(root: &std::path::Path) -> Option<BuildModel> {
     serde_json::from_str(&std::fs::read_to_string(sync_cache(root).ok()?).ok()?).ok()
 }
 
+/// The resolved dependencies of the last sync (Spring Boot's configuration metadata).
+pub(crate) fn synced_model(root: &std::path::Path) -> Option<BuildModel> {
+    cached_sync(root)
+}
+
 fn static_model(state: &AppState) -> Result<Option<(BuildProject, BuildModel, PathBuf)>> {
     let backend = state.backend()?;
     let Some(build) = read_build(state, backend.as_ref()) else {

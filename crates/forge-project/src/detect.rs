@@ -510,7 +510,7 @@ fn scan_java(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
 }
 
 /// The Spring Boot version of a build: the Gradle plugin, the Maven parent or BOM.
-fn spring_boot_version(build: &str) -> Option<String> {
+pub fn spring_boot_version(build: &str) -> Option<String> {
     let after = |marker: &str| -> Option<String> {
         let i = build.find(marker)? + marker.len();
         let rest = &build[i..];

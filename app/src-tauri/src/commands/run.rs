@@ -38,6 +38,8 @@ type RunHandles = (Arc<dyn Process>, Arc<Mutex<RunOutput>>);
 
 pub struct RunState {
     runs: Mutex<HashMap<String, Run>>,
+    /// Observers of runs about to start (the Spring Boot run dashboard), by run id.
+    pub observers: Mutex<HashMap<String, crate::commands::spring::RunObserver>>,
     next_id: AtomicU64,
     /// Configuration kinds known to the backend; plugins register more at startup.
     pub kinds: KindRegistry,
@@ -93,6 +95,7 @@ impl RunState {
         }
         Self {
             runs: Mutex::default(),
+            observers: Mutex::default(),
             next_id: AtomicU64::new(0),
             kinds,
             interpreter_settings,
@@ -275,6 +278,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
             )));
         }
         (Some(mut cfg), None) => {
+            // Spring Boot configurations run as Application configurations.
+            crate::commands::spring::to_application(&mut cfg);
             if crate::commands::java::handles(&cfg.type_id) {
                 crate::commands::java::prepare(state, &mut cfg, java_debug)?;
             }
@@ -656,12 +661,46 @@ pub async fn run_start(
     });
     let test_runner = request.test_runner;
     let mut request = request;
-    // Application runs get their class path from JDT LS (java-debug).
+    let mut spring_run = false;
     if let Some(cfg) = request.configuration.as_mut() {
+        // The run dashboard follows Spring Boot runs through their output.
+        if cfg.type_id == javaforge_fw_spring::run::TYPE {
+            let debug = request
+                .env
+                .contains_key(javaforge_lang_java::launch::DEBUG_PORT_ENV);
+            let observer = crate::commands::spring::track_run(&app, &run_id, cfg, debug);
+            runs.observers
+                .lock()
+                .expect("observers poisoned")
+                .insert(run_id.clone(), observer);
+            crate::commands::spring::to_application(cfg);
+            spring_run = true;
+        }
+        // Application runs get their class path from JDT LS (java-debug).
         crate::commands::java::resolve_launch(&app, cfg).await;
     }
-    let built = build(&state, &runs, request)?;
-    start_built(run_id, built, test_runner, app, &state, &runs).await
+    let started = match build(&state, &runs, request) {
+        Ok(built) => {
+            start_built(
+                run_id.clone(),
+                built,
+                test_runner,
+                app.clone(),
+                &state,
+                &runs,
+            )
+            .await
+        }
+        Err(e) => Err(e),
+    };
+    if started.is_err() && spring_run {
+        runs.observers
+            .lock()
+            .expect("observers poisoned")
+            .remove(&run_id);
+        crate::commands::spring::forget_run(&app, &run_id);
+    }
+    started
 }
 
 /// Start a built command line as run `run_id`, streaming `run://<runId>` (also used by
@@ -725,7 +764,15 @@ pub(crate) async fn start_built(
         .map(|d| d.as_millis() as u64)
         .unwrap_or_default();
     let sink_app = app.clone();
+    let observer = runs
+        .observers
+        .lock()
+        .expect("observers poisoned")
+        .remove(&run_id);
     let sink: RunSink = Arc::new(move |e: RunEvent| {
+        if let Some(observe) = &observer {
+            observe(&e);
+        }
         let input = match &e {
             RunEvent::Started { command_line, .. } => RunInput::Started {
                 command_line: command_line.clone(),

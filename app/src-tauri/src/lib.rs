@@ -112,6 +112,7 @@ pub fn run() {
         .manage(run_state)
         .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
+        .manage(commands::spring::SpringState::default())
         .manage(commands::workbench::BookmarksState::default())
         .manage(commands::local_history::LocalHistoryState::default())
         .manage(commands::clipboard::ClipboardState::default())
@@ -531,6 +532,15 @@ pub fn run() {
             commands::java_build::java_build_complete,
             commands::java_build::java_build_outdated,
             commands::java_build::java_build_workspace,
+            commands::spring::spring_model,
+            commands::spring::spring_gutter,
+            commands::spring::spring_config_complete,
+            commands::spring::spring_config_inspect,
+            commands::spring::spring_config_hover,
+            commands::spring::spring_config_goto,
+            commands::spring::spring_http_request,
+            commands::spring::spring_dashboard,
+            commands::spring::spring_dashboard_details,
             commands::kotlin::kotlin_status,
             commands::kotlin::kotlin_lsp_install,
             commands::kotlin::kotlin_linters_install,

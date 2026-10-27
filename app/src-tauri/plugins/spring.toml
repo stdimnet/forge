@@ -1,0 +1,125 @@
+# Spring Boot and Jakarta EE for JavaForge, in the style of IntelliJ IDEA Ultimate. The logic
+# lives in packs/javaforge/fw-spring (javaforge-fw-spring: the Java / Kotlin scanner, beans and
+# injection points, Spring MVC and JAX-RS endpoints, JPA entities, application.properties /
+# application.yml with spring-configuration-metadata.json from the dependency jars, the Spring
+# Boot run configuration and the actuator); app/src-tauri/src/commands/spring.rs wires it up.
+
+id = "forge.spring"
+name = "Spring Boot and Jakarta EE"
+version = "0.1.0"
+pack = "javaforge"
+vendor = "Forge"
+depends = ["forge.java"]
+description = "Spring Boot and Jakarta EE: beans with injection point navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, and the Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator health, beans and mappings)."
+projectTypes = ["spring-boot", "jakarta-ee"]
+
+[[contributions.commands]]
+id = "spring.refresh"
+title = "Refresh Spring Model"
+category = "Spring"
+
+[[contributions.commands]]
+id = "spring.showEndpoints"
+title = "Endpoints"
+category = "View"
+
+[[contributions.commands]]
+id = "spring.showBeans"
+title = "Spring Beans"
+category = "View"
+
+[[contributions.toolWindows]]
+id = "endpoints"
+title = "Endpoints"
+anchor = "bottom"
+icon = "globe"
+order = 36
+
+[[contributions.toolWindows]]
+id = "spring"
+title = "Spring"
+anchor = "right"
+icon = "leaf"
+order = 45
+
+[[contributions.mainMenu]]
+path = "Tools/_Spring"
+items = [
+  { type = "action", id = "spring.showEndpoints", label = "Show _Endpoints" },
+  { type = "action", id = "spring.showBeans", label = "Show _Beans" },
+  { type = "separator" },
+  { type = "action", id = "spring.refresh", label = "Re_fresh Spring Model" },
+]
+
+# ---- Settings | Languages & Frameworks | Java | Spring Boot -------------------------------
+
+[[contributions.settings]]
+key = "spring.metadata.fromJars"
+title = "Read configuration metadata from the dependency jars"
+description = "Completion, documentation and inspections in application.properties / application.yml use META-INF/spring-configuration-metadata.json of the jars of the last Gradle / Maven sync, or Spring Boot's jars in the local Maven and Gradle caches."
+type = "bool"
+default = true
+group = "lang.java.spring-boot"
+section = "Configuration files"
+order = 0
+
+[[contributions.settings]]
+key = "spring.inspections.unknownProperties"
+title = "Report unknown configuration properties"
+description = "Keys the metadata does not know (and that no Map property covers) are warnings. Never reported without metadata."
+type = "bool"
+default = true
+group = "lang.java.spring-boot"
+section = "Configuration files"
+order = 1
+
+[[contributions.settings]]
+key = "spring.metadata.mavenRepository"
+title = "Local Maven repository"
+description = "Where the dependency jars are looked up. Empty: ~/.m2/repository."
+type = "path"
+default = ""
+group = "lang.java.spring-boot"
+section = "Configuration files"
+order = 2
+
+[[contributions.settings]]
+key = "spring.metadata.gradleUserHome"
+title = "Gradle user home"
+description = "Gradle's module cache is <home>/caches/modules-2/files-2.1. Empty: GRADLE_USER_HOME or ~/.gradle."
+type = "path"
+default = ""
+group = "lang.java.spring-boot"
+section = "Configuration files"
+order = 3
+
+[[contributions.settings]]
+key = "spring.gutterIcons"
+title = "Show gutter icons"
+description = "Beans and their injection points, endpoints, JPA entities and repositories, @ConfigurationProperties classes."
+type = "bool"
+default = true
+group = "lang.java.spring-boot"
+section = "Editor"
+order = 10
+
+[[contributions.settings]]
+key = "spring.dashboard.actuator"
+title = "Read the actuator of running applications"
+description = "The run dashboard (Services) and the Beans and Endpoints views ask /actuator/health, /actuator/beans and /actuator/mappings of applications started from Spring Boot configurations, on localhost."
+type = "bool"
+default = true
+group = "lang.java.spring-boot"
+section = "Run dashboard"
+order = 20
+
+[[contributions.settings]]
+key = "spring.dashboard.refreshSeconds"
+title = "Refresh running applications every (seconds)"
+type = "int"
+min = 2
+max = 300
+default = 5
+group = "lang.java.spring-boot"
+section = "Run dashboard"
+order = 21

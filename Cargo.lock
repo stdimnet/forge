@@ -1881,6 +1881,7 @@ dependencies = [
  "goforge-pprof",
  "goforge-sdk",
  "javaforge-build",
+ "javaforge-fw-spring",
  "javaforge-jdk",
  "javaforge-lang-java",
  "kotlinforge-lang-kotlin",
