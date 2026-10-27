@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 pub mod assist;
 pub mod config;
+#[cfg(feature = "jars")]
+pub mod jars;
 pub mod metadata;
 pub mod model;
 pub mod scan;
