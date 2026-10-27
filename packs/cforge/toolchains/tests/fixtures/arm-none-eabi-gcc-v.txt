@@ -1,0 +1,8 @@
+Using built-in specs.
+COLLECT_GCC=arm-none-eabi-gcc
+COLLECT_LTO_WRAPPER=/opt/arm-gnu-toolchain/bin/../libexec/gcc/arm-none-eabi/13.3.1/lto-wrapper
+Target: arm-none-eabi
+Configured with: /data/jenkins/workspace/GNU-toolchain/arm-13/src/gcc/configure --target=arm-none-eabi --prefix=/data/jenkins/workspace/GNU-toolchain/arm-13/build-arm-none-eabi/install --enable-multilib --with-newlib
+Thread model: single
+Supported LTO compression algorithms: zlib
+gcc version 13.3.1 20240614 (Arm GNU Toolchain 13.3.Rel1 (Build arm-13.24))

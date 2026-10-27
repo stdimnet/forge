@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/js-testing", "packs/webforge/js-debug", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/luaforge/lang-lua", "packs/pyforge/lang-python", "packs/pyforge/interpreters", "packs/pyforge/packages", "packs/goforge/lang-go", "packs/goforge/pprof", "packs/goforge/delve", "packs/goforge/sdk", "packs/pyforge/testing", "packs/pyforge/frameworks", "packs/javaforge/build", "packs/javaforge/lang-java", "packs/javaforge/jdk", "packs/kotlinforge/lang-kotlin", "app/src-tauri"]
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/js-testing", "packs/webforge/js-debug", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/luaforge/lang-lua", "packs/pyforge/lang-python", "packs/pyforge/interpreters", "packs/pyforge/packages", "packs/goforge/lang-go", "packs/goforge/pprof", "packs/goforge/delve", "packs/goforge/sdk", "packs/pyforge/testing", "packs/pyforge/frameworks", "packs/javaforge/build", "packs/javaforge/lang-java", "packs/javaforge/jdk", "packs/kotlinforge/lang-kotlin", "packs/cforge/toolchains", "packs/cforge/cmake", "packs/cforge/lang-cpp", "app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -89,6 +89,9 @@ javaforge-build = { path = "packs/javaforge/build" }
 javaforge-lang-java = { path = "packs/javaforge/lang-java", default-features = false }
 javaforge-jdk = { path = "packs/javaforge/jdk" }
 kotlinforge-lang-kotlin = { path = "packs/kotlinforge/lang-kotlin" }
+cforge-toolchains = { path = "packs/cforge/toolchains" }
+cforge-cmake = { path = "packs/cforge/cmake" }
+cforge-lang-cpp = { path = "packs/cforge/lang-cpp" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
