@@ -21,11 +21,11 @@ export const svdOf = (sessionId: string): string | undefined => svds()[sessionId
 
 const hex = (n: number, digits = 8) => `0x${n.toString(16).toUpperCase().padStart(digits, "0")}`;
 
-function RegisterRow(props: { reg: RegisterValue; changed: boolean }) {
-  const [open, setOpen] = createSignal(false);
+function RegisterRow(props: { reg: RegisterValue; changed: boolean; open: boolean; onToggle: () => void }) {
+  const open = () => props.open;
   return (
     <>
-      <div class="tree-row periph-row periph-register" data-register={props.reg.name} onClick={() => setOpen(!open())} title={props.reg.description}>
+      <div class="tree-row periph-row periph-register" data-register={props.reg.name} onClick={() => props.onToggle()} title={props.reg.description}>
         <span class="periph-toggle">{props.reg.fields.length ? open() ? <ChevronDown size={12} /> : <ChevronRight size={12} /> : null}</span>
         <span class="periph-name">{props.reg.name}</span>
         <span class="periph-address muted">{hex(props.reg.address)}</span>
@@ -56,6 +56,15 @@ function PeripheralNode(props: { path: string; name: string; base: number; descr
   const [values, setValues] = createSignal<RegisterValue[] | null>(null);
   const [previous, setPrevious] = createSignal<Map<string, number | null | undefined>>(new Map());
   const [error, setError] = createSignal<string | null>(null);
+  // Expanded registers survive reloads (new values replace the rows).
+  const [openRegs, setOpenRegs] = createSignal<Set<string>>(new Set());
+  const toggleReg = (name: string) =>
+    setOpenRegs((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
   const load = async () => {
     try {
       const list = await cppToolsApi.svdRead(props.path, props.name, props.sessionId);
@@ -75,13 +84,21 @@ function PeripheralNode(props: { path: string; name: string; base: number; descr
         <span class="periph-toggle">{open() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
         <span class="periph-name">{props.name}</span>
         <span class="periph-address muted">{hex(props.base)}</span>
-        <span class="periph-value muted">{props.description ?? ""}</span>
+        <span />
+        <span class="periph-access muted">{props.description ?? ""}</span>
       </div>
       <Show when={open()}>
         <Show when={error()}>
           <div class="periph-error">{error()}</div>
         </Show>
-        <For each={values() ?? []}>{(r) => <RegisterRow reg={r} changed={previous().has(r.name) && previous().get(r.name) !== r.value} />}</For>
+        <For each={values() ?? []}>{(r) => (
+            <RegisterRow
+              reg={r}
+              open={openRegs().has(r.name)}
+              onToggle={() => toggleReg(r.name)}
+              changed={previous().has(r.name) && previous().get(r.name) !== r.value}
+            />
+          )}</For>
       </Show>
     </>
   );
