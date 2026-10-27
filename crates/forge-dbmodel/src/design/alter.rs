@@ -71,7 +71,10 @@ fn norm_default(d: &Option<String>) -> Option<String> {
 
 /// Pairs (old index, new index) of matched columns; unmatched old columns are dropped and
 /// unmatched new ones added.
-pub fn match_columns(old: &[ColumnSpec], new: &[ColumnSpec]) -> Vec<(Option<usize>, Option<usize>)> {
+pub fn match_columns(
+    old: &[ColumnSpec],
+    new: &[ColumnSpec],
+) -> Vec<(Option<usize>, Option<usize>)> {
     let mut old_used = vec![false; old.len()];
     let mut new_match: Vec<Option<usize>> = vec![None; new.len()];
     let tracked = new.iter().any(|c| c.original.is_some());
@@ -113,7 +116,11 @@ pub(crate) fn rename_table(d: Dialect, schema: &str, from: &str, to: &str) -> St
     match d {
         Dialect::SqlServer => format!(
             "EXEC sp_rename {}, {};",
-            d.quote_str(&format!("{}.{}", if schema.is_empty() { "dbo" } else { schema }, from)),
+            d.quote_str(&format!(
+                "{}.{}",
+                if schema.is_empty() { "dbo" } else { schema },
+                from
+            )),
             d.quote_str(to)
         ),
         Dialect::MySql => format!(
@@ -231,7 +238,11 @@ fn renamed_cols(cols: &[String], renames: &[(String, String)]) -> Vec<String> {
 
 /// What SQLite's `ALTER TABLE` cannot do: everything except renames, plain added columns,
 /// dropped columns and index changes needs a rebuilt table.
-fn sqlite_needs_rebuild(old: &TableSpec, new: &TableSpec, pairs: &[(Option<usize>, Option<usize>)]) -> bool {
+fn sqlite_needs_rebuild(
+    old: &TableSpec,
+    new: &TableSpec,
+    pairs: &[(Option<usize>, Option<usize>)],
+) -> bool {
     let keys_changed = old.primary_key.as_ref().map(|k| &k.columns)
         != new.primary_key.as_ref().map(|k| &k.columns)
         || old.unique_keys.len() != new.unique_keys.len()
@@ -274,7 +285,12 @@ fn sqlite_needs_rebuild(old: &TableSpec, new: &TableSpec, pairs: &[(Option<usize
 }
 
 /// SQLite: create the new table, copy the rows, drop the old one and rename.
-fn sqlite_rebuild(old: &TableSpec, new: &TableSpec, pairs: &[(Option<usize>, Option<usize>)], plan: &mut AlterPlan) {
+fn sqlite_rebuild(
+    old: &TableSpec,
+    new: &TableSpec,
+    pairs: &[(Option<usize>, Option<usize>)],
+    plan: &mut AlterPlan,
+) {
     let d = Dialect::Sqlite;
     let tmp = format!("{}_new", new.name);
     let mut staged = new.clone();
@@ -319,7 +335,14 @@ fn sqlite_rebuild(old: &TableSpec, new: &TableSpec, pairs: &[(Option<usize>, Opt
 }
 
 /// Statements that change one matched column (type, nullability, default, identity).
-fn modify_column(d: Dialect, t: &str, schema: &str, o: &ColumnSpec, n: &ColumnSpec, plan: &mut AlterPlan) {
+fn modify_column(
+    d: Dialect,
+    t: &str,
+    schema: &str,
+    o: &ColumnSpec,
+    n: &ColumnSpec,
+    plan: &mut AlterPlan,
+) {
     let target = d.qualified(schema, t);
     let col = d.quote_ident(&n.name);
     let type_changed = norm_type(&o.data_type) != norm_type(&n.data_type);
@@ -340,14 +363,22 @@ fn modify_column(d: Dialect, t: &str, schema: &str, o: &ColumnSpec, n: &ColumnSp
     }
     if null_changed && !n.nullable {
         plan.warn(
-            format!("{} becomes NOT NULL: fails if the column has NULL values", n.name),
+            format!(
+                "{} becomes NOT NULL: fails if the column has NULL values",
+                n.name
+            ),
             false,
         );
     }
     match d {
         Dialect::MySql => {
             // MODIFY restates the whole column; comments are part of it.
-            if type_changed || null_changed || default_changed || identity_changed || comment_changed {
+            if type_changed
+                || null_changed
+                || default_changed
+                || identity_changed
+                || comment_changed
+            {
                 plan.statements.push(format!(
                     "ALTER TABLE {target} MODIFY COLUMN {};",
                     column_def(d, n, false)
@@ -449,7 +480,10 @@ fn modify_column(d: Dialect, t: &str, schema: &str, o: &ColumnSpec, n: &ColumnSp
         }
         Dialect::ClickHouse => {
             if type_changed || null_changed || default_changed {
-                let mut l = format!("ALTER TABLE {target} MODIFY COLUMN {col} {}", column_type(d, n));
+                let mut l = format!(
+                    "ALTER TABLE {target} MODIFY COLUMN {col} {}",
+                    column_type(d, n)
+                );
                 if let Some(v) = norm_default(&n.default) {
                     l.push_str(&format!(" DEFAULT {v}"));
                 }
@@ -470,7 +504,14 @@ fn modify_column(d: Dialect, t: &str, schema: &str, o: &ColumnSpec, n: &ColumnSp
     }
 }
 
-fn column_comment(d: Dialect, schema: &str, t: &str, o: &ColumnSpec, n: &ColumnSpec, plan: &mut AlterPlan) {
+fn column_comment(
+    d: Dialect,
+    schema: &str,
+    t: &str,
+    o: &ColumnSpec,
+    n: &ColumnSpec,
+    plan: &mut AlterPlan,
+) {
     match d {
         Dialect::Postgres | Dialect::Oracle => plan.statements.push(format!(
             "COMMENT ON COLUMN {}.{} IS {};",
@@ -488,8 +529,13 @@ fn column_comment(d: Dialect, schema: &str, t: &str, o: &ColumnSpec, n: &ColumnS
                 (false, true) => "sp_dropextendedproperty",
                 (false, false) => "sp_updateextendedproperty",
             };
-            plan.statements
-                .push(sqlserver_comment(schema, t, Some(&n.name), &n.comment, proc_name));
+            plan.statements.push(sqlserver_comment(
+                schema,
+                t,
+                Some(&n.name),
+                &n.comment,
+                proc_name,
+            ));
         }
         _ => {}
     }
@@ -521,9 +567,17 @@ fn add_column(d: Dialect, t: &TableSpec, c: &ColumnSpec, plan: &mut AlterPlan) {
 fn drop_key(d: Dialect, target: &str, k: &KeySpec, primary: bool) -> String {
     match (d, primary) {
         (Dialect::MySql, true) => format!("ALTER TABLE {target} DROP PRIMARY KEY;"),
-        (Dialect::MySql, false) => format!("ALTER TABLE {target} DROP INDEX {};", d.quote_ident(&k.name)),
-        (Dialect::Oracle, true) if k.name.is_empty() => format!("ALTER TABLE {target} DROP PRIMARY KEY;"),
-        _ => format!("ALTER TABLE {target} DROP CONSTRAINT {};", d.quote_ident(&k.name)),
+        (Dialect::MySql, false) => format!(
+            "ALTER TABLE {target} DROP INDEX {};",
+            d.quote_ident(&k.name)
+        ),
+        (Dialect::Oracle, true) if k.name.is_empty() => {
+            format!("ALTER TABLE {target} DROP PRIMARY KEY;")
+        }
+        _ => format!(
+            "ALTER TABLE {target} DROP CONSTRAINT {};",
+            d.quote_ident(&k.name)
+        ),
     }
 }
 
@@ -540,8 +594,14 @@ fn drop_index(d: Dialect, schema: &str, table: &str, i: &IndexSpec) -> String {
 
 fn drop_check(d: Dialect, target: &str, c: &CheckInfo) -> String {
     match d {
-        Dialect::MySql => format!("ALTER TABLE {target} DROP CHECK {};", d.quote_ident(&c.name)),
-        _ => format!("ALTER TABLE {target} DROP CONSTRAINT {};", d.quote_ident(&c.name)),
+        Dialect::MySql => format!(
+            "ALTER TABLE {target} DROP CHECK {};",
+            d.quote_ident(&c.name)
+        ),
+        _ => format!(
+            "ALTER TABLE {target} DROP CONSTRAINT {};",
+            d.quote_ident(&c.name)
+        ),
     }
 }
 
@@ -613,11 +673,11 @@ fn table_level(d: Dialect, old: &TableSpec, new: &TableSpec, plan: &mut AlterPla
                 ));
             }
         }
-        Dialect::ClickHouse => {
-            if o.order_by != n.order_by && !n.order_by.is_empty() {
-                plan.statements
-                    .push(format!("ALTER TABLE {target} MODIFY ORDER BY {};", n.order_by));
-            }
+        Dialect::ClickHouse if o.order_by != n.order_by && !n.order_by.is_empty() => {
+            plan.statements.push(format!(
+                "ALTER TABLE {target} MODIFY ORDER BY {};",
+                n.order_by
+            ));
         }
         _ => {}
     }
@@ -650,10 +710,9 @@ pub fn alter_table(d: Dialect, old: &TableSpec, new: &TableSpec) -> AlterPlan {
     let renames: Vec<(String, String)> = pairs
         .iter()
         .filter_map(|p| match p {
-            (Some(oi), Some(ni)) if old.columns[*oi].name != new.columns[*ni].name => Some((
-                old.columns[*oi].name.clone(),
-                new.columns[*ni].name.clone(),
-            )),
+            (Some(oi), Some(ni)) if old.columns[*oi].name != new.columns[*ni].name => {
+                Some((old.columns[*oi].name.clone(), new.columns[*ni].name.clone()))
+            }
             _ => None,
         })
         .collect();
@@ -673,12 +732,18 @@ pub fn alter_table(d: Dialect, old: &TableSpec, new: &TableSpec) -> AlterPlan {
     let constraints = d != Dialect::ClickHouse;
     let (fk_gone, fk_new) = diff_named(&old_r.foreign_keys, &new.foreign_keys, |f| &f.name, fk_eq);
     let (ck_gone, ck_new) = diff_named(&old_r.checks, &new.checks, |c| &c.name, check_eq);
-    let (uk_gone, uk_new) = diff_named(&old_r.unique_keys, &new.unique_keys, |k| &k.name, |a, b| {
-        a.columns == b.columns
-    });
-    let (ix_gone, ix_new) = diff_named(&old_r.indexes, &new.indexes, |i| &i.name, |a, b| {
-        a.columns == b.columns && a.unique == b.unique && same(&a.method, &b.method)
-    });
+    let (uk_gone, uk_new) = diff_named(
+        &old_r.unique_keys,
+        &new.unique_keys,
+        |k| &k.name,
+        |a, b| a.columns == b.columns,
+    );
+    let (ix_gone, ix_new) = diff_named(
+        &old_r.indexes,
+        &new.indexes,
+        |i| &i.name,
+        |a, b| a.columns == b.columns && a.unique == b.unique && same(&a.method, &b.method),
+    );
     let pk_changed = old_r.primary_key.as_ref().map(|k| &k.columns)
         != new.primary_key.as_ref().map(|k| &k.columns);
     // Drops first.

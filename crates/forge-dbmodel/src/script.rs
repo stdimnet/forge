@@ -12,8 +12,8 @@ use forge_sql::Dialect;
 use serde::{Deserialize, Serialize};
 
 use crate::design::{
-    self, add_foreign_key, create_index, create_statements, drop_statements, supports_if_not_exists,
-    CreateOptions, DropRequest, IndexSpec, TableSpec,
+    self, add_foreign_key, create_index, create_statements, drop_statements,
+    supports_if_not_exists, CreateOptions, DropRequest, IndexSpec, TableSpec,
 };
 use crate::generate;
 use crate::model::{DbModel, SchemaInfo, TableInfo, TableKind};
@@ -68,7 +68,10 @@ fn key(schema: &str, name: &str) -> String {
 
 /// Order `nodes` so every node comes after the ones it depends on; nodes in a cycle keep
 /// their (name) order, and the edges that close a cycle are returned.
-fn topo(nodes: &[String], deps: &HashMap<String, Vec<String>>) -> (Vec<String>, Vec<(String, String)>) {
+fn topo(
+    nodes: &[String],
+    deps: &HashMap<String, Vec<String>>,
+) -> (Vec<String>, Vec<(String, String)>) {
     #[derive(Clone, Copy, PartialEq)]
     enum Mark {
         New,
@@ -138,12 +141,20 @@ fn collect<'a>(model: &'a DbModel, sel: &[DdlObject]) -> Vec<Item<'a>> {
         let all = o.kind == "schema";
         for t in &s.types {
             if all || (o.kind == "type" && t.name.eq_ignore_ascii_case(&o.name)) {
-                push(format!("type:{sn}.{}", t.name), Item::Type(sn, t), &mut items);
+                push(
+                    format!("type:{sn}.{}", t.name),
+                    Item::Type(sn, t),
+                    &mut items,
+                );
             }
         }
         for q in &s.sequences {
             if all || (o.kind == "sequence" && q.name.eq_ignore_ascii_case(&o.name)) {
-                push(format!("seq:{sn}.{}", q.name), Item::Sequence(sn, q), &mut items);
+                push(
+                    format!("seq:{sn}.{}", q.name),
+                    Item::Sequence(sn, q),
+                    &mut items,
+                );
             }
         }
         for t in &s.tables {
@@ -166,7 +177,11 @@ fn collect<'a>(model: &'a DbModel, sel: &[DdlObject]) -> Vec<Item<'a>> {
                 }
             }
             if o.kind == "index" && t.name.eq_ignore_ascii_case(&o.table) {
-                if let Some(i) = t.indexes.iter().find(|i| i.name.eq_ignore_ascii_case(&o.name)) {
+                if let Some(i) = t
+                    .indexes
+                    .iter()
+                    .find(|i| i.name.eq_ignore_ascii_case(&o.name))
+                {
                     push(
                         format!("idx:{sn}.{}.{}", t.name, i.name),
                         Item::Index(sn, t, i),
@@ -175,7 +190,11 @@ fn collect<'a>(model: &'a DbModel, sel: &[DdlObject]) -> Vec<Item<'a>> {
                 }
             }
             if o.kind == "trigger" && t.name.eq_ignore_ascii_case(&o.table) {
-                if let Some(tr) = t.triggers.iter().find(|x| x.name.eq_ignore_ascii_case(&o.name)) {
+                if let Some(tr) = t
+                    .triggers
+                    .iter()
+                    .find(|x| x.name.eq_ignore_ascii_case(&o.name))
+                {
                     push(
                         format!("trg:{sn}.{}.{}", t.name, tr.name),
                         Item::Trigger(sn, t, tr),
@@ -186,7 +205,11 @@ fn collect<'a>(model: &'a DbModel, sel: &[DdlObject]) -> Vec<Item<'a>> {
         }
         for r in &s.routines {
             if all || (o.kind == "routine" && r.name.eq_ignore_ascii_case(&o.name)) {
-                push(format!("rtn:{sn}.{}", r.name), Item::Routine(sn, r), &mut items);
+                push(
+                    format!("rtn:{sn}.{}", r.name),
+                    Item::Routine(sn, r),
+                    &mut items,
+                );
             }
         }
     }
@@ -216,7 +239,9 @@ fn or_replace(d: Dialect, sql: &str, kind: &str) -> String {
         Dialect::Postgres | Dialect::Oracle | Dialect::MySql if kind == "VIEW" => {
             format!("CREATE OR REPLACE {kind}{rest}")
         }
-        Dialect::Postgres | Dialect::Oracle if kind != "VIEW" => format!("CREATE OR REPLACE {kind}{rest}"),
+        Dialect::Postgres | Dialect::Oracle if kind != "VIEW" => {
+            format!("CREATE OR REPLACE {kind}{rest}")
+        }
         Dialect::SqlServer => format!("CREATE OR ALTER {kind}{rest}"),
         Dialect::Sqlite | Dialect::ClickHouse if kind == "VIEW" => {
             format!("CREATE {kind} IF NOT EXISTS{rest}")
@@ -238,7 +263,13 @@ pub fn generate_ddl(model: &DbModel, sel: &[DdlObject], opts: DdlOptions) -> Str
     let d = model.dialect;
     let mut items = collect(model, sel);
     items.sort_by_key(rank);
-    let qual = |schema: &str| if opts.qualify { schema.to_string() } else { String::new() };
+    let qual = |schema: &str| {
+        if opts.qualify {
+            schema.to_string()
+        } else {
+            String::new()
+        }
+    };
 
     // Tables by their foreign keys, views by what they read.
     let tables: Vec<(&str, &TableInfo)> = items
@@ -254,7 +285,11 @@ pub fn generate_ddl(model: &DbModel, sel: &[DdlObject], opts: DdlOptions) -> Str
         let k = key(s, &t.name);
         let mut ds = Vec::new();
         for f in t.foreign_keys.iter().filter(|f| !f.is_virtual) {
-            let rs = if f.ref_schema.is_empty() { s } else { f.ref_schema.as_str() };
+            let rs = if f.ref_schema.is_empty() {
+                s
+            } else {
+                f.ref_schema.as_str()
+            };
             let rk = key(rs, &f.ref_table);
             if rk != k && table_keys.contains(&rk) {
                 ds.push(rk);
@@ -368,7 +403,11 @@ pub fn generate_ddl(model: &DbModel, sel: &[DdlObject], opts: DdlOptions) -> Str
                     .foreign_keys
                     .iter()
                     .filter(|f| {
-                        let rs = if f.ref_schema.is_empty() { s } else { f.ref_schema.as_str() };
+                        let rs = if f.ref_schema.is_empty() {
+                            s
+                        } else {
+                            f.ref_schema.as_str()
+                        };
                         let rk = key(rs, &f.ref_table);
                         cyclic.iter().any(|(a, b)| *a == me && *b == rk)
                     })
@@ -416,7 +455,11 @@ pub fn generate_ddl(model: &DbModel, sel: &[DdlObject], opts: DdlOptions) -> Str
                 }
                 creates.push(sql);
                 drops.push(drop(
-                    if r.kind == "procedure" { "procedure" } else { "routine" },
+                    if r.kind == "procedure" {
+                        "procedure"
+                    } else {
+                        "routine"
+                    },
                     s,
                     &r.name,
                     "",
@@ -592,7 +635,8 @@ mod tests {
     }
 
     fn pos(s: &str, what: &str) -> usize {
-        s.find(what).unwrap_or_else(|| panic!("{what} missing in\n{s}"))
+        s.find(what)
+            .unwrap_or_else(|| panic!("{what} missing in\n{s}"))
     }
 
     #[test]
@@ -620,14 +664,21 @@ mod tests {
         let func = pos(&out, "CREATE FUNCTION \"shop\".\"touch\"");
         let trig = pos(&out, "CREATE TRIGGER \"items_touch\"");
         assert!(seq < users && users < orders && orders < items, "{out}");
-        assert!(items < totals && totals < big && big < func && func < trig, "{out}");
+        assert!(
+            items < totals && totals < big && big < func && func < trig,
+            "{out}"
+        );
         assert!(out.contains("CREATE INDEX \"items_order_idx\""));
     }
 
     #[test]
     fn cycles_add_foreign_keys_afterwards() {
         let m = model();
-        let out = generate_ddl(&m, &[sel("table", "a"), sel("table", "b")], DdlOptions::default());
+        let out = generate_ddl(
+            &m,
+            &[sel("table", "a"), sel("table", "b")],
+            DdlOptions::default(),
+        );
         let a = pos(&out, "CREATE TABLE \"shop\".\"a\"");
         let b = pos(&out, "CREATE TABLE \"shop\".\"b\"");
         let alter = pos(&out, "ALTER TABLE");
@@ -640,7 +691,11 @@ mod tests {
         let m = model();
         let out = generate_ddl(
             &m,
-            &[sel("table", "orders"), sel("table", "users"), sel("view", "order_totals")],
+            &[
+                sel("table", "orders"),
+                sel("table", "users"),
+                sel("view", "order_totals"),
+            ],
             DdlOptions {
                 include_drops: true,
                 if_not_exists: true,
@@ -663,7 +718,9 @@ mod tests {
         let out = generate_ddl(&m, &[sel("schema", "")], DdlOptions::default());
         assert_eq!(out.matches("CREATE TABLE").count(), 5);
         let objs = schema_objects(m.loaded.get("shop").unwrap());
-        assert!(objs.iter().any(|o| o.kind == "view" && o.name == "big_orders"));
+        assert!(objs
+            .iter()
+            .any(|o| o.kind == "view" && o.name == "big_orders"));
         assert!(objs.iter().any(|o| o.kind == "sequence"));
     }
 }

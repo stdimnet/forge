@@ -295,7 +295,13 @@ pub(crate) fn fk_clause(d: Dialect, f: &ForeignKey) -> String {
     l
 }
 
-pub(crate) fn create_index(d: Dialect, table: &str, schema: &str, i: &IndexSpec, ine: bool) -> String {
+pub(crate) fn create_index(
+    d: Dialect,
+    table: &str,
+    schema: &str,
+    i: &IndexSpec,
+    ine: bool,
+) -> String {
     let unique = if i.unique { "UNIQUE " } else { "" };
     let ine = if ine && supports_if_not_exists(d, "index") {
         "IF NOT EXISTS "
@@ -324,13 +330,13 @@ pub(crate) fn create_index(d: Dialect, table: &str, schema: &str, i: &IndexSpec,
 
 /// Whether `CREATE <kind> IF NOT EXISTS` is accepted (`table`, `index`, `sequence`, `view`).
 pub fn supports_if_not_exists(d: Dialect, kind: &str) -> bool {
-    match (d, kind) {
-        (Dialect::Oracle | Dialect::SqlServer, _) => false,
-        (Dialect::MySql, "index" | "sequence") => false,
-        (Dialect::Sqlite, "sequence") => false,
-        (Dialect::Postgres, "view") => false,
-        _ => true,
-    }
+    !matches!(
+        (d, kind),
+        (Dialect::Oracle | Dialect::SqlServer, _)
+            | (Dialect::MySql, "index" | "sequence")
+            | (Dialect::Sqlite, "sequence")
+            | (Dialect::Postgres, "view")
+    )
 }
 
 pub(crate) fn sqlserver_comment(
