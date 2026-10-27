@@ -694,15 +694,16 @@ impl DbService {
     }
 
     async fn drop_pool(&self, id: &str) {
-        let pool = self.pools.lock().await.remove(id);
-        if let Some(p) = pool {
-            p.close().await;
-        }
-        self.tunnels.lock().expect("poisoned").remove(id);
+        // Consoles give their connections back first: closing a pool waits for them.
         self.sessions
             .lock()
             .expect("poisoned")
             .retain(|_, s| s.ds_id != id);
+        let pool = self.pools.lock().await.remove(id);
+        if let Some(p) = pool {
+            close_pool(p).await;
+        }
+        self.tunnels.lock().expect("poisoned").remove(id);
     }
 
     /// Close every pool and console (project switch, app exit).
@@ -710,7 +711,7 @@ impl DbService {
         self.sessions.lock().expect("poisoned").clear();
         let pools: Vec<_> = self.pools.lock().await.drain().map(|(_, p)| p).collect();
         for p in pools {
-            p.close().await;
+            close_pool(p).await;
         }
         self.tunnels.lock().expect("poisoned").clear();
     }
@@ -1277,6 +1278,17 @@ impl DbService {
             added.push(self.save(ds, d.password).await?);
         }
         Ok(added)
+    }
+}
+
+/// Close a pool; a statement still running on one of its connections (it ends with the
+/// connection) does not hold up the caller.
+async fn close_pool(pool: DbPool) {
+    if tokio::time::timeout(std::time::Duration::from_secs(2), pool.close())
+        .await
+        .is_err()
+    {
+        tracing::warn!("a connection was still in use while closing its pool");
     }
 }
 
