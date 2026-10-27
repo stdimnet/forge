@@ -114,12 +114,32 @@ order = 0
 [[plugin.contributions.settings]]
 key = "actionsOnSave.eslint"
 title = "Run eslint --fix"
-description = "Fix ESLint problems in saved JavaScript, TypeScript and Vue files."
+description = "Fix ESLint problems in saved files that match ESLint's Run for files patterns."
 type = "bool"
 default = false
 group = "tools.actions-on-save"
 project = true
 order = 40
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.biome"
+title = "Run biome check --write"
+description = "Fix and format saved files where Biome is configured (Languages & Frameworks | JavaScript | Code Quality Tools | Biome)."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 38
+
+[[plugin.contributions.settings]]
+key = "actionsOnSave.stylelint"
+title = "Run stylelint --fix"
+description = "Fix Stylelint problems in saved CSS, SCSS, Less and Vue files."
+type = "bool"
+default = false
+group = "tools.actions-on-save"
+project = true
+order = 45
 
 [[plugin.contributions.settings]]
 key = "actionsOnSave.prettier.enabled"
@@ -141,27 +161,301 @@ group = "tools.actions-on-save"
 project = true
 order = 51
 
-# ---- Languages & Frameworks > ESLint / Prettier -----------------------------------------
+# ---- Languages & Frameworks > JavaScript > Code Quality Tools (ESLint, Prettier, Stylelint, Biome)
+[[plugin.contributions.settings]]
+key = "web.tools.onTheFly"
+title = "Run inspections on the fly"
+description = "Check the edited file while you type (after a short pause) with ESLint, Stylelint and Biome. They also check a file when it is opened and saved."
+type = "bool"
+default = true
+group = "lang.web.quality-tools"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "web.tools.timeout"
+title = "Timeout (seconds)"
+description = "Longer runs are stopped (Inspect Code: at least 300 seconds)."
+type = "int"
+min = 1
+max = 3600
+default = 30
+group = "lang.web.quality-tools"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "web.eslint.mode"
+title = "ESLint"
+description = "Automatic: node_modules/eslint nearest to the file, for files below a configuration file (eslint.config.* or .eslintrc*). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 10
 
 [[plugin.contributions.settings]]
 key = "web.eslint.path"
 title = "ESLint package"
-description = "Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used."
+description = "Manual: the package folder (node_modules/eslint) or an executable; relative paths start at the project root. Empty: node_modules/eslint nearest to the file."
 type = "path"
 default = ""
-group = "lang.eslint"
+group = "lang.web.quality-tools"
+section = "ESLint"
 project = true
-order = 0
+order = 11
+
+[[plugin.contributions.settings]]
+key = "web.eslint.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 12
+
+[[plugin.contributions.settings]]
+key = "web.eslint.workingDirectories"
+title = "Working directories"
+description = "Manual: folders separated by `;`. ESLint runs in the deepest one holding the file. Empty: the folder of the nearest configuration file."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 13
+
+[[plugin.contributions.settings]]
+key = "web.eslint.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 14
+
+[[plugin.contributions.settings]]
+key = "web.eslint.files"
+title = "Run for files"
+description = "Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}"
+group = "lang.web.quality-tools"
+section = "ESLint"
+project = true
+order = 15
+
+[[plugin.contributions.settings]]
+key = "web.prettier.mode"
+title = "Prettier"
+description = "Automatic: node_modules/prettier nearest to the file, for files below a configuration file (.prettierrc*, prettier.config.* or the prettier key of package.json). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 20
 
 [[plugin.contributions.settings]]
 key = "web.prettier.path"
 title = "Prettier package"
-description = "Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used."
+description = "Manual: the package folder (node_modules/prettier) or an executable; relative paths start at the project root. Empty: node_modules/prettier nearest to the file."
 type = "path"
 default = ""
-group = "lang.prettier"
+group = "lang.web.quality-tools"
+section = "Prettier"
 project = true
-order = 0
+order = 21
+
+[[plugin.contributions.settings]]
+key = "web.prettier.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 22
+
+[[plugin.contributions.settings]]
+key = "web.prettier.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 24
+
+[[plugin.contributions.settings]]
+key = "web.prettier.onReformat"
+title = "Run on Reformat Code action"
+description = "Reformat Code (Ctrl+Alt+L) formats matching files with Prettier instead of the built-in formatter."
+type = "bool"
+default = false
+group = "lang.web.quality-tools"
+section = "Prettier"
+project = true
+order = 26
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.mode"
+title = "Stylelint"
+description = "Automatic: node_modules/stylelint nearest to the file, for files below a configuration file (stylelint.config.* or .stylelintrc*). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.path"
+title = "Stylelint package"
+description = "Manual: the package folder (node_modules/stylelint) or an executable; relative paths start at the project root. Empty: node_modules/stylelint nearest to the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 31
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 32
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 34
+
+[[plugin.contributions.settings]]
+key = "web.stylelint.files"
+title = "Run for files"
+description = "Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "{**/*,*}.{css,scss,less,vue}"
+group = "lang.web.quality-tools"
+section = "Stylelint"
+project = true
+order = 35
+
+[[plugin.contributions.settings]]
+key = "web.biome.mode"
+title = "Biome"
+description = "Automatic: node_modules/@biomejs/biome nearest to the file, for files below a configuration file (biome.json or biome.jsonc). Manual: the package, configuration file and options below, for every matching file."
+type = "enum"
+options = [
+  { value = "disabled", label = "Disabled" },
+  { value = "automatic", label = "Automatic configuration" },
+  { value = "manual", label = "Manual configuration" },
+]
+default = "automatic"
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 40
+
+[[plugin.contributions.settings]]
+key = "web.biome.path"
+title = "Biome package"
+description = "Manual: the package folder (node_modules/@biomejs/biome) or an executable; relative paths start at the project root. Empty: node_modules/@biomejs/biome nearest to the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 41
+
+[[plugin.contributions.settings]]
+key = "web.biome.config"
+title = "Configuration file"
+description = "Manual: the configuration file. Empty: the one the tool finds for the file."
+type = "path"
+default = ""
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 42
+
+[[plugin.contributions.settings]]
+key = "web.biome.options"
+title = "Extra options"
+description = "Manual: extra command line options, quoted like in a shell."
+type = "string"
+default = ""
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 44
+
+[[plugin.contributions.settings]]
+key = "web.biome.files"
+title = "Run for files"
+description = "Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name."
+type = "string"
+default = "{**/*,*}.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,jsonc,css}"
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 45
+
+[[plugin.contributions.settings]]
+key = "web.biome.onReformat"
+title = "Run on Reformat Code action"
+description = "Reformat Code (Ctrl+Alt+L) formats matching files with Biome instead of the built-in formatter."
+type = "bool"
+default = false
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 46
+
+[[plugin.contributions.settings]]
+key = "web.biome.priority"
+title = "Prefer Biome over ESLint and Prettier"
+description = "Where Biome is configured, it checks, fixes and formats its file types and ESLint and Prettier do not."
+type = "bool"
+default = true
+group = "lang.web.quality-tools"
+section = "Biome"
+project = true
+order = 47
 
 # ---- Editor > General > Auto Import (JavaScript and TypeScript) --------------------------
 

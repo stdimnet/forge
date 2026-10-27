@@ -86,6 +86,7 @@ import "./todo";
 import "./notifications";
 import "./actionsOnSave";
 import "./phpQualityTools";
+import "./webQualityTools";
 import "./updates";
 import "./fileTemplates";
 import "./emmet";
