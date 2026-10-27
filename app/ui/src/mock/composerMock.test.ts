@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { invoke } from "@/ipc";
-import type { AuditResult, ComposerProject, OutdatedMarker, PackageDetails, SearchHit } from "@/ipc/composer";
+import type { ComposerProject, OutdatedMarker, PackageDetails, SearchHit } from "@/ipc/composer";
 import type { SchemaCompletion, SchemaHover } from "@/ipc/jsonSchema";
 import { formatDownloads, updateCommand } from "@/features/composer/model";
 import { composerConfiguration, isComposerJson, requireCommand, siblingOf } from "@/features/composer/state";
@@ -47,16 +47,11 @@ describe("Composer mock (Rust analysis through WebAssembly)", () => {
     expect(hover?.markdown).toContain("Installed: `v12.1.0` · Latest: `v12.3.0`");
   });
 
-  it("searches the demo catalog and audits the lock file", async () => {
+  it("searches the demo catalog", async () => {
     const hits = await invoke<SearchHit[]>("composer_search", { query: "laravel" });
     expect(hits[0].name).toBe("laravel/framework");
     const details = await invoke<PackageDetails>("composer_package", { name: "laravel/sanctum" });
     expect(details.suggested).toBe("^4.0");
-
-    const audit = await invoke<AuditResult>("composer_audit");
-    expect(audit.advisories.map((a) => a.packageName)).toEqual(["guzzlehttp/psr7", "laravel/framework"]);
-    expect(audit.jsonProblems.map((p) => p.package)).toEqual(["laravel/framework"]);
-    expect(audit.lockProblems).toHaveLength(2);
   });
 });
 

@@ -1,8 +1,9 @@
 /**
  * Composer (Rust: `packs/phpforge/composer`, `commands/composer.rs`): outdated markers,
  * completion and hover in composer.json, Packagist search and versions for the Manage
- * Composer Dependencies dialog, `composer audit` and the composer.phar download. Offsets
- * are UTF-16 (CodeMirror positions).
+ * Composer Dependencies dialog and the composer.phar download (`composer audit` runs with
+ * the vulnerable dependency check, `ipc/vulnerabilities.ts`). Offsets are UTF-16
+ * (CodeMirror positions).
  */
 import { invoke } from "./index";
 import type { SchemaCompletion, SchemaHover } from "./jsonSchema";
@@ -80,40 +81,6 @@ export interface PackageDetails {
   url: string;
 }
 
-export interface Advisory {
-  advisoryId: string;
-  packageName: string;
-  affectedVersions: string;
-  title: string;
-  cve?: string;
-  link?: string;
-  severity?: string;
-  reportedAt?: string;
-  sources?: string[];
-}
-
-export interface AbandonedPackage {
-  packageName: string;
-  replacement?: string | null;
-}
-
-export interface FileProblem {
-  start: Position;
-  end: Position;
-  message: string;
-  severity: "error" | "warning";
-  package: string;
-}
-
-export interface AuditResult {
-  advisories: Advisory[];
-  abandoned: AbandonedPackage[];
-  composerJson: string;
-  composerLock: string;
-  jsonProblems: FileProblem[];
-  lockProblems: FileProblem[];
-}
-
 export const composerApi = {
   project: () => invoke<ComposerProject>("composer_project"),
   markers: (path: string, text: string) => invoke<OutdatedMarker[]>("composer_markers", { path, text }),
@@ -122,6 +89,5 @@ export const composerApi = {
   hover: (path: string, text: string, offset: number) => invoke<SchemaHover | null>("composer_hover", { path, text, offset }),
   search: (query: string) => invoke<SearchHit[]>("composer_search", { query }),
   package: (name: string) => invoke<PackageDetails>("composer_package", { name }),
-  audit: () => invoke<AuditResult>("composer_audit"),
   downloadPhar: () => invoke<string>("composer_download_phar"),
 };

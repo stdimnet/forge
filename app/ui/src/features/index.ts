@@ -32,6 +32,7 @@ import "./forges";
 import "./php";
 import "./projectStructure";
 import "./composer";
+import "./vulnerabilities";
 import "./laravel";
 import "./cliTools";
 import "./symfony";

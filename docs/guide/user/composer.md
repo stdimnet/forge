@@ -1,6 +1,6 @@
 ---
 title: Composer
-description: Composer like PHPStorm — the composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated package markers with the Update package quick fix, completion of package names and versions from Packagist, package documentation on hover, Manage Composer Dependencies, composer audit in the Problems tool window and Settings | PHP | Composer.
+description: Composer like PHPStorm — the composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated package markers with the Update package quick fix, completion of package names and versions from Packagist, package documentation on hover, Manage Composer Dependencies, composer audit in the Problems tool window (with the Upgrade quick fix) and Settings | PHP | Composer.
 order: 62
 tags: [php, composer, composer.json, composer.lock, packagist, dependencies, outdated, audit, security, vulnerabilities, composer.phar]
 ---
@@ -109,19 +109,23 @@ Manage Composer Dependencies dialog:
 ## Composer audit
 
 **Tools | Composer | Audit** (or "Audit" in the toolbar) runs `composer audit --format=json`
-(with `--locked` when there is a composer.lock) on the project's machine. The result is shown
+(with `--locked` when there is a composer.lock) on the project's machine. It is the Composer
+part of the [vulnerable dependency check](vulnerable-dependencies.md), which also runs it on
+project open and when composer.lock changes. The result is shown
 
 - in the **Vulnerable Dependencies** tab of the [Problems tool window](editor.md#problems) (`Alt+6`):
-  package, advisory (CVE or Packagist advisory id, linking to the advisory), affected
-  versions, severity and title; click a row to go to the package; the refresh button runs the
-  audit again,
-- as errors on the package in composer.json (direct dependencies) and in composer.lock (every
-  affected package), so they also appear under Current File and Project Errors,
+  each package with its installed version from composer.lock, its advisories (CVE or Packagist
+  advisory id, linking to the advisory), severity, affected and fixed versions, and
+  **Upgrade to <version>**; click a package to go to it,
+- as problems on the package in composer.json (direct dependencies, with the quick fix
+  **Upgrade '<package>' to <version>** and then `composer update <package>`) and in
+  composer.lock (every affected package), so they also appear under Current File and Project
+  Errors,
 - as warnings for abandoned packages ("Package swiftmailer/swiftmailer is abandoned, use
   symfony/mailer instead"),
-- in a balloon: "Found 2 security vulnerability advisories affecting 2 packages".
+- in a balloon: "Found 2 vulnerabilities in 2 packages".
 
-![Vulnerable Dependencies tab of the Problems tool window](../../screenshots/composer-audit.png)
+![Vulnerable Dependencies tab after composer audit](../../screenshots/composer-audit.png)
 
 ## Settings
 

@@ -2,7 +2,7 @@
  * Composer: the composer.json toolbar with outdated packages (gutter icons, weak warnings,
  * the "Update package" quick fix), completion of package names and versions, the package
  * hover, Manage Composer Dependencies, `composer install` in the Run tool window, the
- * Vulnerable Dependencies tab of `composer audit` and Settings | PHP | Composer.
+ * Vulnerable Dependencies tab after `composer audit` and Settings | PHP | Composer.
  */
 
 /** @param {import("playwright-core").Page} page @param {string} path */
@@ -100,7 +100,7 @@ export default {
   "composer-audit": async (page) => {
     await open(page, "composer.json");
     await run(page, "Composer.Audit");
-    await page.waitForSelector(".composer-audit-table", { timeout: 8000 });
+    await page.waitForSelector(".vuln-package", { timeout: 8000 });
     await page.waitForTimeout(1200);
   },
 

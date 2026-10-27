@@ -61,6 +61,7 @@ pub fn run() {
         .manage(commands::inspections::InspectionsState::default())
         .manage(commands::json_schema::JsonSchemaState::default())
         .manage(commands::composer::ComposerState::default())
+        .manage(commands::vulnerabilities::VulnerabilitiesState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
@@ -490,8 +491,11 @@ pub fn run() {
             commands::composer::composer_hover,
             commands::composer::composer_search,
             commands::composer::composer_package,
-            commands::composer::composer_audit,
             commands::composer::composer_download_phar,
+            commands::vulnerabilities::vulnerabilities_check,
+            commands::vulnerabilities::vulnerabilities_problems,
+            commands::vulnerabilities::vulnerabilities_upgrade,
+            commands::vulnerabilities::vulnerabilities_install_command,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
             commands::php_meta::php_inspect,

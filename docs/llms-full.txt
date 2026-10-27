@@ -54,6 +54,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Vulnerable dependencies**: the Package Checker runs each ecosystem's audit tool
+  (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP
+  dependency-check reports) on project open, when a lock file changes and with Code | Analyze
+  Code | Check for Vulnerable Dependencies; vulnerable packages are marked in composer.json,
+  package.json, requirements files, pyproject.toml, Cargo.toml and go.mod with the quick fix
+  "Upgrade '<package>' to <version>", and listed in the Vulnerable Dependencies tab of the
+  Problems tool window ([Vulnerable dependencies](docs/guide/user/vulnerable-dependencies.md)).
 - **Inspections**: inspection profiles (Default, Project Default, copies; PHPStorm XML import
   and export) with severities, scope-specific settings and options for every problem Forge
   shows, Inspect Code with the Inspection Results tool window, Run Inspection by Name, Code
@@ -797,6 +804,7 @@ not finished, the page says so.
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
 | [Inspections](docs/guide/user/inspections.md) | Settings \| Editor \| Inspections (profiles, severities, scopes, options, import/export of PHPStorm profiles), Inspect Code, Run Inspection by Name (`Ctrl+Alt+Shift+I`), Code Cleanup with preview, Inspection Results, `@noinspection` / `noinspection` suppressions, duplicated code, PHP data flow, `forge inspect` for CI |
+| [Vulnerable dependencies](docs/guide/user/vulnerable-dependencies.md) | Package Checker: composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck and OWASP dependency-check reports as Vulnerable Dependencies problems in the manifests, Upgrade '<package>' to <version> quick fix, the Vulnerable Dependencies tab of Problems, checks on project open and lock file changes (cached), Safe Mode and the network switch |
 | [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md) | named scopes in PHPStorm's scope language (`file:app//*.php`, `src:`, `test:`, `lib:`, `&&`, `\|\|`, `!`), predefined scopes, scopes in Find in Files, Replace in Files and Find Usages, file colors in editor tabs and the Project view |
 | [Structural Search and Replace](docs/guide/user/structural-search.md) | templates with `$variables$` for PHP, JavaScript and TypeScript, Count / Text / Type filters, the template library, Replace with preview, Replace All and Undo |
 | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
@@ -818,7 +826,7 @@ not finished, the page says so.
 | [PHP](docs/guide/user/php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
 | [PHP Quality Tools](docs/guide/user/php-quality-tools.md) | PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: problems on the fly and on save, Reformat with …, Fix with … quick fixes, Rector's preview, Inspect Code, PHP interpreters and remote projects |
 | [Web Code Quality Tools](docs/guide/user/web-quality-tools.md) | ESLint, Prettier, Stylelint and Biome: automatic or manual configuration, problems on the fly, Fix … problems, Reformat with Prettier, Prettier/Biome on Reformat Code, fix on save, Biome priority, Inspect Code |
-| [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
+| [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` ([Vulnerable Dependencies](docs/guide/user/vulnerable-dependencies.md)), composer.phar download |
 | [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](docs/guide/user/symfony.md) | services, routes, Twig, console, Symfony tool window |
 | [WordPress](docs/guide/user/wordpress.md) | hook completion, navigation, gutter icons and Find Usages, the WordPress tool window, WP-CLI, stubs, the WordPress code style with Yoda hints, plugin and theme templates |
@@ -4379,6 +4387,187 @@ forge inspect . "Project Default" build/inspections -format xml -fail-on ERROR
 > **Note:** on Windows the release build is a GUI application: it writes the results and
 > sets the exit code (`start /wait forge.exe inspect …` waits for it), but prints nothing to
 > the console.
+
+
+---
+
+Source: docs/guide/user/vulnerable-dependencies.md
+
+# Vulnerable dependencies
+
+Forge checks the packages your project depends on for known vulnerabilities, like the Package
+Checker of PHPStorm and IntelliJ IDEA. It does not keep its own advisory database: each
+ecosystem's own audit tool does the lookup, on the project's machine, and Forge shows the
+result in three places:
+
+- as **Vulnerable Dependencies** problems on the declaration of the package in its manifest
+  (composer.json, package.json, requirements files, pyproject.toml, Cargo.toml, go.mod, pom.xml,
+  Gradle scripts), with the quick fix **Upgrade '<package>' to <version>** (`Alt+Enter`),
+- in the **Vulnerable Dependencies** tab of the [Problems tool window](docs/guide/user/editor.md#problems)
+  (`Alt+6`), grouped by package,
+- in a balloon when something was found.
+
+![Upgrade quick fix on a vulnerable package in composer.json](docs/screenshots/vulnerabilities-quick-fix.png)
+
+## Supported ecosystems
+
+Forge looks at the project's root folder (and at the composer.json set in Settings | PHP |
+Composer) and runs one audit per ecosystem it finds:
+
+| Ecosystem | Found by | Tool Forge runs | Needs |
+| --- | --- | --- | --- |
+| Composer | composer.json | `composer audit --format=json --locked` (without `--locked` when there is no composer.lock) | Composer (Settings \| PHP \| Composer) |
+| npm | package.json with package-lock.json (or no other lock file) | `npm audit --json` | npm and a lock file |
+| pnpm | `packageManager: pnpm@…` or pnpm-lock.yaml | `pnpm audit --json` | pnpm and a lock file |
+| Yarn 1 | yarn.lock (classic format) | `yarn audit --json` | Yarn and yarn.lock |
+| Yarn 2+ | `packageManager: yarn@2…`, `.yarnrc.yml` or a Berry yarn.lock | `yarn npm audit --json --recursive` | Yarn and yarn.lock |
+| Python | requirements\*.txt, pyproject.toml, setup.py or Pipfile | `python -m pip_audit -f json` in the project interpreter | pip-audit in that interpreter (Forge offers to install it) |
+| Rust | Cargo.toml with Cargo.lock | `cargo audit --json` | `cargo install cargo-audit --locked` |
+| Go | go.mod | `govulncheck -json ./...` | `go install golang.org/x/vuln/cmd/govulncheck@latest` |
+| Maven / Gradle | pom.xml or build.gradle(.kts), and a report path in the settings | nothing: Forge reads the JSON report of OWASP dependency-check | dependency-check run by your build with the JSON format |
+
+The package manager is chosen like the npm tool window does: the `packageManager` field of
+package.json first, then the lock file. Bun projects are not audited (Bun writes no npm audit
+report). A project without a lock file shows "There is no lock file yet: run `npm install`
+first." in the tab.
+
+pip-audit checks the packages installed in the [project interpreter](docs/guide/user/python.md), not the
+requirement files themselves, so install the requirements first. When the interpreter has no
+pip-audit, the tab offers **Install pip-audit…**; Forge asks before it installs it from PyPI
+with the interpreter's package manager (pip, uv, Poetry or Pipenv), in the Run tool window.
+
+Maven and Gradle are optional: Forge never runs dependency-check itself (it downloads the
+whole NVD database). Run it in your build, for example
+`mvn org.owasp:dependency-check-maven:check -Dformat=JSON` or the Gradle plugin with
+`formats = ["JSON"]`, and set **OWASP dependency-check report** in Settings | Tools | Package
+Checker to the report, e.g. `target/dependency-check-report.json` or
+`build/reports/dependency-check-report.json`.
+
+## When the check runs
+
+- **When a project is opened**, a few seconds after the window appears. Results are cached in
+  Forge's cache folder per manifest and lock file, so an unchanged project is not audited
+  again until the cache is older than **Re-check unchanged projects after** (24 hours).
+- **When a manifest or lock file changes** on disk (after `composer update`, `npm install`, a
+  git checkout, …). Only the audits whose files changed run again; the others answer from the
+  cache.
+- **Code | Analyze Code | Check for Vulnerable Dependencies** (also in Find Action,
+  `Ctrl+Shift+A`, and the refresh button of the tab) always runs every tool.
+- **Tools | Composer | Audit** and the **Audit** link in the composer.json toolbar run
+  `composer audit` only.
+
+The audit tools run the project's tooling (Composer and Yarn load the project's plugins,
+pip-audit runs the project's Python environment) and send the names and versions of the
+installed packages to their advisory databases (Packagist, the npm registry, OSV / PyPI,
+RustSec, vuln.go.dev). So:
+
+- in [Safe Mode](docs/guide/user/project-trust.md) nothing runs: trust the project to check it,
+- **Check dependencies for known vulnerabilities** in Settings | Tools | Package Checker
+  turns the check off completely; Forge then never runs an audit.
+
+## Problems in the manifest
+
+Each vulnerable package gets one problem on its name in the manifest, rated by its worst
+advisory:
+
+| Advisory severity | Problem |
+| --- | --- |
+| Critical, High | error |
+| Moderate, or no rating (PyPI, Go) | warning |
+| Low | weak warning |
+
+The message lists every advisory with its id (a CVE when there is one, else `GHSA-…`,
+`PYSEC-…`, `RUSTSEC-…`, `GO-…`) and the version that fixes all of them: "laravel/framework
+v12.1.0 is vulnerable: File validation bypass with uppercase extensions (CVE-2025-27515,
+Moderate). Fixed in 12.1.1".
+
+![Vulnerable Dependencies problem on hover](docs/screenshots/vulnerabilities-hover.png)
+
+A vulnerable package that the manifest does not declare itself (a transitive dependency) is
+reported on the direct dependency that pulls it in, when the tool says which one (npm, pnpm,
+Yarn): "react-router 7.5.3 (a dependency of react-router-dom) is vulnerable: …". composer.lock
+gets a problem on every affected package, so transitive Composer packages show up there.
+Abandoned Composer packages and unmaintained or yanked crates are reported as warnings / weak
+warnings.
+
+The problems belong to the inspection **Security | Vulnerable declared dependency**
+(`VulnerableDependencies`) in Settings | Editor | [Inspections](docs/guide/user/inspections.md): turn it off
+or change its severity there, or suppress it per file.
+
+### Upgrade quick fix
+
+Press `Alt+Enter` on the package and choose **Upgrade '<package>' to <version>**. Forge
+rewrites the constraint to require the fixed version, keeping its style:
+
+| File | Before | After |
+| --- | --- | --- |
+| composer.json | `"laravel/framework": "^12.0"` | `"laravel/framework": "^12.1.1"` |
+| package.json | `"vite": "^6.3.5"` / `"lodash": "4.17.20"` | `"vite": "^6.3.6"` / `"lodash": "4.17.21"` |
+| requirements.txt | `Django==3.2.0` / `urllib3>=1.26` | `Django==3.2.4` / `urllib3>=1.26.17` |
+| pyproject.toml (Poetry) | `aiohttp = "^3.8.0"` | `aiohttp = "^3.9.4"` |
+| Cargo.toml | `mio = { version = "0.8.10" }` | `mio = { version = "0.8.11" }` |
+| go.mod | `golang.org/x/net v0.17.0` | `golang.org/x/net v0.23.0` |
+| pom.xml / Gradle | `<version>2.14.1</version>` / `"g:a:2.14.1"` | the fixed version |
+
+The fix edits the file in the editor (undo with `Ctrl+Z`), or on disk when it is not open. A
+balloon then offers to install the new version: `composer update <package>
+--with-dependencies`, `npm install` / `pnpm install` / `yarn install`, `pip install
+"<package>>=<version>"` with the interpreter's package manager, `cargo update -p <package>` or
+`go mod tidy`. It runs in the Run tool window, and the check runs again afterwards. Until
+then the problem stays: it is about the installed version, which only the install changes.
+
+![After Upgrade: the new constraint and the install balloon](docs/screenshots/vulnerabilities-upgraded.png)
+
+The fix is not offered when an advisory has no fixed version yet, for transitive packages,
+for workspace, file or git dependencies and for the Go standard library (update Go itself).
+
+`Alt+Enter` also offers **Open advisory <id>**, which opens the advisory in the browser.
+
+## Vulnerable Dependencies tab
+
+![Vulnerable Dependencies tab of the Problems tool window](docs/screenshots/vulnerabilities-view.png)
+
+The tab of the Problems tool window lists each audited manifest with its tool and when it was
+checked ("checked 2 min ago (cached)"), and under it the vulnerable packages, worst first:
+
+- the package with its installed version, the direct dependencies it comes through ("via
+  react-router-dom"), the number of advisories and the version that fixes them,
+- **Upgrade to <version>** when the manifest declares the package (the same fix as
+  `Alt+Enter`),
+- one row per advisory (expand with the arrow): severity, the id linking to the advisory,
+  title, affected versions, fixed version and, for govulncheck, "called by the project" when
+  your code reaches the vulnerable function.
+
+Click a package to go to its declaration. Tools that could not run say why (not installed, no
+lock file, the tool's error), and abandoned or unmaintained packages are listed after the
+vulnerable ones. The refresh button runs Check for Vulnerable Dependencies; the tab's badge
+counts the advisories.
+
+![Vulnerable Dependencies in the light theme](docs/screenshots/vulnerabilities-view-light.png)
+
+## Settings
+
+Settings | Tools | Package Checker:
+
+| Option | Setting | Default | What it does |
+| --- | --- | --- | --- |
+| Check dependencies for known vulnerabilities | `vulnerabilities.enabled` | on | Off: no audit ever runs and no vulnerabilities are shown. |
+| Check when a project is opened and when a lock file changes | `vulnerabilities.checkOnOpen` | on | Off: only Check for Vulnerable Dependencies and Composer \| Audit run the tools. |
+| Re-check unchanged projects after (hours) | `vulnerabilities.cacheHours` | 24 | How long the cached result of an unchanged manifest and lock file is reused. |
+| OWASP dependency-check report (Maven / Gradle) | `vulnerabilities.dependencyCheckReport` | empty | The JSON report your build writes (project setting). Empty: Maven and Gradle are not checked. |
+
+The cache lives in `<cache dir>/forge/vulnerabilities/<project>/` (see
+[File locations](docs/guide/reference/file-locations.md)); deleting it only makes the next check run
+the tools again.
+
+## Remote projects
+
+The tools run where the project lives: on the SSH host, in WSL or in the dev container, with
+the executables found there. Install cargo-audit, govulncheck or pip-audit on that machine.
+
+> **Note:** Forge audits the project root (plus the configured composer.json). Manifests in
+> sub-folders of a monorepo are not checked separately yet; npm, pnpm and Yarn workspaces are
+> covered by the root lock file.
 
 
 ---
@@ -10206,19 +10395,23 @@ Manage Composer Dependencies dialog:
 ## Composer audit
 
 **Tools | Composer | Audit** (or "Audit" in the toolbar) runs `composer audit --format=json`
-(with `--locked` when there is a composer.lock) on the project's machine. The result is shown
+(with `--locked` when there is a composer.lock) on the project's machine. It is the Composer
+part of the [vulnerable dependency check](docs/guide/user/vulnerable-dependencies.md), which also runs it on
+project open and when composer.lock changes. The result is shown
 
 - in the **Vulnerable Dependencies** tab of the [Problems tool window](docs/guide/user/editor.md#problems) (`Alt+6`):
-  package, advisory (CVE or Packagist advisory id, linking to the advisory), affected
-  versions, severity and title; click a row to go to the package; the refresh button runs the
-  audit again,
-- as errors on the package in composer.json (direct dependencies) and in composer.lock (every
-  affected package), so they also appear under Current File and Project Errors,
+  each package with its installed version from composer.lock, its advisories (CVE or Packagist
+  advisory id, linking to the advisory), severity, affected and fixed versions, and
+  **Upgrade to <version>**; click a package to go to it,
+- as problems on the package in composer.json (direct dependencies, with the quick fix
+  **Upgrade '<package>' to <version>** and then `composer update <package>`) and in
+  composer.lock (every affected package), so they also appear under Current File and Project
+  Errors,
 - as warnings for abandoned packages ("Package swiftmailer/swiftmailer is abandoned, use
   symfony/mailer instead"),
-- in a balloon: "Found 2 security vulnerability advisories affecting 2 packages".
+- in a balloon: "Found 2 vulnerabilities in 2 packages".
 
-![Vulnerable Dependencies tab of the Problems tool window](docs/screenshots/composer-audit.png)
+![Vulnerable Dependencies tab after composer audit](docs/screenshots/composer-audit.png)
 
 ## Settings
 
@@ -15079,6 +15272,7 @@ blocked even if a plugin or the UI tries to start them:
 | Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
 | Xdebug: Start Listening, PHP Web Page | refused |
 | Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
+| [Vulnerable dependency check](docs/guide/user/vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
 | Laravel routes | parsed from the route files instead of `php artisan route:list` |
 | Docker Compose up and Dockerfile ▶ in the gutter, Compose **Up** in Services | refused |
 | PHP interpreters: version and `phpinfo()` of an interpreter inside the project or a Docker Compose service | refused |
@@ -19699,6 +19893,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes | Runs one inspection, picked by name, over a scope. [More](docs/guide/user/inspections.md#run-inspection-by-name) |
 | Analyze Code ▸ Inspect Current File | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes | Inspects the file of the current editor. [More](docs/guide/user/inspections.md#inspect-code) |
 | Analyze Code ▸ Locate Duplicates… | — | — | yes | Runs the duplicated code inspection over a scope; the Duplicates view lists the groups. [More](docs/guide/user/inspections.md#duplicated-code) |
+| Analyze Code ▸ Check for Vulnerable Dependencies | — | — | yes | Runs the audit tools of every ecosystem in the project (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) and opens the Vulnerable Dependencies tab of Problems. [More](docs/guide/user/vulnerable-dependencies.md) ([screenshot](docs/screenshots/vulnerabilities-view.png)) |
 | Analyze Stack Trace or Thread Dump… | — | — | yes | Opens a pasted stack trace in a Stack Trace tab of the Run tool window with frames linked to project files; server and container paths are mapped. [More](docs/guide/user/run-debug.md#analyze-stack-trace) ([screenshot](docs/screenshots/stack-trace-tab.png)) |
 
 
@@ -19824,7 +20019,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Composer › Update | — | — | yes | Runs `composer update`. [More](docs/guide/user/composer.md#the-composerjson-toolbar) |
 | Composer › Validate | — | — | yes | Runs `composer validate`. [More](docs/guide/user/composer.md#the-composerjson-toolbar) |
 | Composer › Show Outdated | — | — | yes | Runs `composer outdated --direct`. [More](docs/guide/user/composer.md#outdated-packages) |
-| Composer › Audit | — | — | yes | Runs `composer audit` and shows the advisories in the Problems tool window. [More](docs/guide/user/composer.md#composer-audit) ([screenshot](docs/screenshots/composer-audit.png)) |
+| Composer › Audit | — | — | yes | Runs `composer audit` (the Composer part of the [vulnerable dependency check](docs/guide/user/vulnerable-dependencies.md)) and shows the advisories in the Problems tool window. [More](docs/guide/user/composer.md#composer-audit) ([screenshot](docs/screenshots/composer-audit.png)) |
 | **Deployment** | | | | submenu |
 | Deployment › Upload to Default Server | — | — | yes | Uploads the selected files or the open file to the default server. [More](docs/guide/user/deployment.md#uploading-and-downloading) ([screenshot](docs/screenshots/deployment-file-transfer.png)) |
 | Deployment › Upload to… | `Ctrl+Alt+Shift+X` | `Cmd+Alt+Shift+X` | yes | Asks for the server, then uploads. [More](docs/guide/user/deployment.md#uploading-and-downloading) ([screenshot](docs/screenshots/deployment-choose-server.png)) |
@@ -21089,6 +21284,17 @@ Page id `lang.sqlDialects` (its own page, see [SQL editor](docs/guide/user/sql-e
 | `sql.dialect.project` | enum: empty (global), `generic`, `mysql`, `postgres`, `sqlite`, `sqlserver`, `oracle`, `clickhouse` | empty | user, project | — | Project SQL dialect |
 | `sql.dialect.mappings` | objects | `[]` | user, project | — | SQL dialect and data source mappings — Files and folders with their SQL dialect and the data source their names resolve against: `path`, `dialect`, `dataSource`. The most specific path wins. |
 
+### Tools | Package Checker
+
+Page id `tools.vulnerabilities`. See [Vulnerable dependencies](docs/guide/user/vulnerable-dependencies.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `vulnerabilities.enabled` | bool | `true` | user |  | Check dependencies for known vulnerabilities — Runs the project's audit tools, which send the names and versions of the installed packages to their advisory databases. Off: Forge never runs an audit and shows no vulnerabilities. |
+| `vulnerabilities.checkOnOpen` | bool | `true` | user |  | Check when a project is opened and when a lock file changes — Results are cached per lock file in Forge's cache folder; Check for Vulnerable Dependencies always runs the tools. |
+| `vulnerabilities.cacheHours` | int | `24` | user |  | Re-check unchanged projects after (hours) — How long the result of an unchanged manifest and lock file is reused on project open. |
+| `vulnerabilities.dependencyCheckReport` | string | (empty) | user, project |  | OWASP dependency-check report (Maven / Gradle) — The JSON report your build writes with dependency-check; Forge reads it and does not run dependency-check. Empty: Maven and Gradle projects are not checked. |
+
 ### Tools | AI Agents
 
 Page id `tools.ai-agents`.
@@ -21866,6 +22072,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
+| `vulnerabilities/<project hash>/<tool>-<folder hash>.json` | the last result of each audit tool of the vulnerable dependency check, with the hash of the manifest and lock file it was made from; reused on project open while the files are unchanged and younger than `vulnerabilities.cacheHours` |
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
@@ -24079,6 +24286,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](docs/guide/developer/crates/forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
 | [forge-vim](docs/guide/developer/crates/forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |
+| [forge-vulns](docs/guide/developer/crates/forge-vulns.md) | Vulnerable dependency check: a shared vulnerability model, the JSON reports of each ecosystem's audit tool (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP dependency-check), what to audit in a project, where dependencies are declared and the Upgrade quick fix (pure, also built to WebAssembly) |
 | [forge-wasm](docs/guide/developer/crates/forge-wasm.md) | WebAssembly build of Forge's pure Rust logic for the browser-mode UI |
 | [forge-window](docs/guide/developer/crates/forge-window.md) | Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly) |
 
@@ -28432,6 +28640,71 @@ with the caret marked as `|` (`check("foo b|ar", "ciwqux<Esc>", "foo qu|x")`).
 
 ---
 
+Source: docs/guide/developer/crates/forge-vulns.md
+
+# forge-vulns
+
+`crates/forge-vulns` — Vulnerable dependency check: a shared vulnerability model, the JSON
+reports of each ecosystem's audit tool (composer audit, npm / pnpm / yarn audit, pip-audit,
+cargo audit, govulncheck, OWASP dependency-check), what to audit in a project, where
+dependencies are declared and the Upgrade quick fix.
+
+## Purpose
+
+Everything the [Vulnerable dependencies](docs/guide/user/vulnerable-dependencies.md) UI shows is
+computed here. Forge has no advisory database of its own: each ecosystem's tool does the
+lookup and this crate turns its JSON into one model. The crate is pure (no processes, files or
+network): the desktop app runs the tools through the project's backend
+(`app/src-tauri/src/commands/vulnerabilities.rs`) and browser mode feeds recorded reports of
+the demo projects through `forge-wasm`.
+
+The ecosystem parsers it builds on are reused, not copied: `phpforge-composer` reads
+`composer audit` and composer.json / composer.lock, `pyforge-lang-python` the requirements
+files and pyproject.toml, `goforge-lang-go` go.mod, `webforge-lang-web` the package manager
+of package.json and `forge-jsonschema` the positions in package.json.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `model.rs` | `Vulnerability` (ecosystem, package, installed version, advisory id and aliases, severity, title, affected range, fixed version, URL, `via` direct dependencies, `reachable`), `Notice` (abandoned, unmaintained, yanked), `Findings`, `Severity` with its editor severity, version comparison and the fixed version of an affected range or patched list. |
+| `cvss.rs` | CVSS 3.0 / 3.1 base scores from a vector, for advisories without a rating (cargo audit). |
+| `parse/` | One module per report: `composer` (through `phpforge_composer::audit`), `npm` (npm 7+ `auditReportVersion: 2`, the npm 6 format of pnpm and Yarn 2/3, Yarn 1 NDJSON, Yarn 4 trees), `pip` (pip-audit), `cargo` (cargo audit with warnings), `go` (the govulncheck message stream), `depcheck` (dependency-check JSON with Maven coordinates from package URLs). |
+| `tool.rs` | `Tool` (id, label, executable, arguments, install hint), `detect` (which audits a project's root needs, with the lock file, the files to annotate and why one is blocked) and `cache_key` (FNV-1a over the tool and its input files). |
+| `declare.rs` | Declarations with name and constraint positions in composer.json, composer.lock, package.json, requirements files, pyproject.toml (PEP 621, dependency groups, Poetry), Cargo.toml (tables, inline tables, renames, workspaces), go.mod (plus `go` / `toolchain` for the standard library), pom.xml and Gradle scripts; `upgraded_constraint` keeps the constraint's style. |
+| `problems.rs` | The Vulnerable Dependencies problems of a file (direct packages with `Upgrade`, transitive ones on the dependency that pulls them in, notices) and `upgrade` (the edited text). |
+| `report.rs` | `TargetResult` (status ok / blocked / missing / failed), `from_output` (a run's stdout and stderr, tolerant of the tools' error exit codes), `fill_installed` (installed versions from composer.lock / package-lock.json) and `CacheEntry`. |
+| `text.rs` | Byte offsets ↔ 0-based lines and UTF-16 columns. |
+
+## Used by
+
+- IPC: `vulnerabilities_check`, `vulnerabilities_problems`, `vulnerabilities_upgrade`,
+  `vulnerabilities_install_command` (`app/src-tauri/src/commands/vulnerabilities.rs`; the
+  results are cached in `<cache dir>/forge/vulnerabilities/<project>/`)
+- UI: `app/ui/src/features/vulnerabilities/` (and Composer | Audit in `features/composer`)
+- Browser mode: built into `forge-wasm` (`vulnerabilities.rs`), used by
+  `app/ui/src/mock/vulnerabilitiesMock.ts`
+
+## Dependencies
+
+- Workspace crates: forge-jsonschema, phpforge-composer, pyforge-lang-python, goforge-lang-go,
+  webforge-lang-web (without its `fs` feature)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests for every module, plus `tests/reports.rs` with output recorded from each tool in
+`tests/fixtures/` (composer audit, npm audit with and without a lock file, pnpm audit, Yarn 1
+and Yarn 4, pip-audit, cargo audit, govulncheck, dependency-check). No test runs a tool or
+needs network.
+
+```sh
+cargo test -p forge-vulns
+```
+
+
+---
+
 Source: docs/guide/developer/crates/forge-wasm.md
 
 # forge-wasm
@@ -30522,8 +30795,8 @@ Packagist client and the composer.phar download.
   ranges, `@dev`/`@beta` stability flags, branches and aliases, the recommended constraint of
   `composer require`.
 - composer.json requirements with their source ranges, installed packages from composer.lock or
-  installed.json, outdated markers with Composer's statuses, `composer audit` reports placed as
-  problems in composer.json and composer.lock.
+  installed.json, outdated markers with Composer's statuses, `composer audit` reports (which
+  [forge-vulns](docs/guide/developer/crates/forge-vulns.md) adapts to the shared vulnerability model).
 - Packagist's Composer 2 metadata (minified version lists) and search results; completion and
   hover in `require` / `require-dev` built on `forge_jsonschema::complete::json_cursor`.
 
@@ -30537,17 +30810,18 @@ Packagist client and the composer.phar download.
 | `manifest.rs` | Requirements of composer.json with byte ranges, platform packages, package name validation, lock file entries and UTF-16 / line-column offsets. |
 | `packagist.rs` | Packagist p2 metadata (minified lists expanded, `__unset`), search results, URLs. |
 | `outdated.rs` | Outdated markers (installed vs latest, `semver-safe-update` / `update-possible`, the constraint for the update) and `composer outdated --format=json`. |
-| `audit.rs` | `composer audit --format=json` (advisories as arrays or index-keyed objects, abandoned packages) and their problems in composer.json and composer.lock. |
+| `audit.rs` | `composer audit --format=json` (advisories as arrays or index-keyed objects, abandoned packages); forge-vulns places them in composer.json and composer.lock. |
 | `complete.rs` | Completion of package names and versions and the package hover, in two steps (`request` / `hover_target`, then `items` / `hover` with the fetched data). |
 | `net.rs` (`net`) | `Packagist`: metadata and search cached in `<cache dir>/forge/packagist` with a time to live and a stale fallback offline; `download_phar` (getcomposer.org, SHA-256 checked, into `<data dir>/forge/composer`). |
 
 ## Used by
 
 - IPC: `composer_project`, `composer_markers`, `composer_complete`, `composer_hover`,
-  `composer_search`, `composer_package`, `composer_audit`, `composer_download_phar`
+  `composer_search`, `composer_package`, `composer_download_phar`
   (`app/src-tauri/src/commands/composer.rs`); `php_composer_outdated` (through
   phpforge-lang-php)
 - UI: `app/ui/src/features/composer/`
+- Vulnerable dependency check: [forge-vulns](docs/guide/developer/crates/forge-vulns.md) (`composer audit`, declarations)
 - Browser mode: built into `forge-wasm` (`composer.rs`)
 
 ## Dependencies
@@ -30557,7 +30831,7 @@ Packagist client and the composer.phar download.
 
 ## Tests
 
-10 source files, about 2800 lines; 29 unit tests. Network tests talk to a local fake server
+10 source files, about 2800 lines; 28 unit tests. Network tests talk to a local fake server
 (`testserver.rs`), never to Packagist.
 
 ```sh

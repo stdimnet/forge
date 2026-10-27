@@ -71,6 +71,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-update](forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
 | [forge-vim](forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |
+| [forge-vulns](forge-vulns.md) | Vulnerable dependency check: a shared vulnerability model, the JSON reports of each ecosystem's audit tool (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP dependency-check), what to audit in a project, where dependencies are declared and the Upgrade quick fix (pure, also built to WebAssembly) |
 | [forge-wasm](forge-wasm.md) | WebAssembly build of Forge's pure Rust logic for the browser-mode UI |
 | [forge-window](forge-window.md) | Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly) |
 

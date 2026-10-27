@@ -66,6 +66,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         "json-schema.toml",
         include_str!("../plugins/json-schema.toml"),
     ),
+    (
+        "vulnerabilities.toml",
+        include_str!("../plugins/vulnerabilities.toml"),
+    ),
 ];
 
 /// Setting holding the ids of plugins the user disabled.

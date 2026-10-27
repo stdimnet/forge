@@ -2103,6 +2103,7 @@ dependencies = [
  "forge-vcs",
  "forge-viewers",
  "forge-vim",
+ "forge-vulns",
  "forge-window",
  "futures-util",
  "goforge-delve",
@@ -2958,6 +2959,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-vulns"
+version = "0.1.0"
+dependencies = [
+ "forge-jsonschema",
+ "goforge-lang-go",
+ "phpforge-composer",
+ "pyforge-lang-python",
+ "serde",
+ "serde_json",
+ "webforge-lang-web",
+]
+
+[[package]]
 name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
@@ -3010,6 +3024,7 @@ dependencies = [
  "forge-vcs",
  "forge-viewers",
  "forge-vim",
+ "forge-vulns",
  "forge-window",
  "goforge-lang-go",
  "goforge-pprof",
