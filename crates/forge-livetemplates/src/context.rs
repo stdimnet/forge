@@ -3,7 +3,7 @@
 //! Context ids follow PHPStorm's tree: `PHP` with `PHP_STATEMENT`, `PHP_CLASS_MEMBER`,
 //! `PHP_EXPRESSION`, `PHP_COMMENT` and `PHP_STRING`; `JAVASCRIPT` ("JavaScript and
 //! TypeScript") with `JS_STATEMENT` and `JS_EXPRESSION`; `TYPESCRIPT`, `HTML`, `CSS`, `LUA`,
-//! `BLADE`, `TWIG` and `OTHER`. A template enabled for a parent applies in its children,
+//! `SQL`, `BLADE`, `TWIG` and `OTHER`. A template enabled for a parent applies in its children,
 //! except comments and strings, which only match when chosen explicitly.
 
 use serde::Serialize;
@@ -54,6 +54,7 @@ pub fn context_tree() -> Vec<ContextNode> {
                 node("PHP_STRING", "String", vec![]),
             ],
         ),
+        node("SQL", "SQL", vec![]),
         node("TWIG", "Twig", vec![]),
         node("TYPESCRIPT", "TypeScript", vec![]),
         node("OTHER", "Other", vec![]),
@@ -111,6 +112,7 @@ pub enum Lang {
     JavaScript,
     TypeScript,
     Lua,
+    Sql,
     Blade,
     Twig,
     Other,
@@ -136,6 +138,7 @@ impl Lang {
             "typescript" | "ts" | "tsx" | "mts" | "cts" => Lang::TypeScript,
             "css" | "scss" | "sass" | "less" | "pcss" => Lang::Css,
             "lua" => Lang::Lua,
+            "sql" | "ddl" | "mysql" | "pgsql" | "plsql" => Lang::Sql,
             _ => Lang::Other,
         }
     }
@@ -164,12 +167,25 @@ pub fn analyze(text: &str, at: usize, language_id: Option<&str>, path: &str) -> 
         Lang::JavaScript => analyze_js(text, at, false),
         Lang::TypeScript => analyze_js(text, at, true),
         Lang::Lua => analyze_lua(text, at),
+        Lang::Sql => analyze_sql(text, at),
         Lang::Css => contexts(&["CSS"]),
         Lang::Html => analyze_markup(text, at, None),
         Lang::Blade => analyze_markup(text, at, Some("BLADE")),
         Lang::Twig => analyze_markup(text, at, Some("TWIG")),
         Lang::Other => contexts(&["OTHER"]),
     }
+}
+
+/// SQL: everywhere except in comments and strings.
+fn analyze_sql(text: &str, at: usize) -> CaretInfo {
+    let line_start = text[..at].rfind('\n').map(|p| p + 1).unwrap_or(0);
+    let line = &text[line_start..at];
+    let quotes = line.matches('\'').count();
+    let open_block = text[..at].rfind("/*").is_some_and(|p| !text[p..at].contains("*/"));
+    if line.contains("--") || quotes % 2 == 1 || open_block {
+        return CaretInfo::default();
+    }
+    contexts(&["SQL"])
 }
 
 fn contexts(ids: &[&str]) -> CaretInfo {
@@ -640,5 +656,12 @@ mod tests {
         );
         assert_eq!(Lang::of(None, "resources/views/a.blade.php"), Lang::Blade);
         assert_eq!(Lang::of(None, "src/app.ts"), Lang::TypeScript);
+    }
+
+    #[test]
+    fn sql_context_outside_comments_and_strings() {
+        assert_eq!(analyze("sel", 3, Some("sql"), "q.sql").contexts, ["SQL"]);
+        assert!(analyze("-- sel", 6, None, "q.sql").contexts.is_empty());
+        assert!(analyze("SELECT 'sel", 11, None, "q.sql").contexts.is_empty());
     }
 }

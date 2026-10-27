@@ -1,0 +1,108 @@
+# DataGrip's "SQL" live templates.
+
+[group]
+name = "SQL"
+
+[[template]]
+abbreviation = "sel"
+description = "select * from table"
+contexts = ["SQL"]
+text = "SELECT * FROM $TABLE$$END$;"
+variables = [{ name = "TABLE" }]
+
+[[template]]
+abbreviation = "selc"
+description = "select count(*) from table"
+contexts = ["SQL"]
+text = "SELECT count(*) FROM $TABLE$ $ALIAS$ WHERE $ALIAS$.$END$;"
+variables = [
+  { name = "TABLE" },
+  { name = "ALIAS", defaultValue = '"t"' },
+]
+
+[[template]]
+abbreviation = "selw"
+description = "select * from table where"
+contexts = ["SQL"]
+text = "SELECT * FROM $TABLE$ $ALIAS$ WHERE $ALIAS$.$END$;"
+variables = [
+  { name = "TABLE" },
+  { name = "ALIAS", defaultValue = '"t"' },
+]
+
+[[template]]
+abbreviation = "ins"
+description = "insert into table values"
+contexts = ["SQL"]
+text = "INSERT INTO $TABLE$ ($COLUMNS$) VALUES ($VALUES$);$END$"
+variables = [{ name = "TABLE" }, { name = "COLUMNS" }, { name = "VALUES" }]
+
+[[template]]
+abbreviation = "upd"
+description = "update table set column = value where"
+contexts = ["SQL"]
+text = "UPDATE $TABLE$ SET $COLUMN$ = $VALUE$ WHERE $CONDITION$;$END$"
+variables = [{ name = "TABLE" }, { name = "COLUMN" }, { name = "VALUE" }, { name = "CONDITION" }]
+
+[[template]]
+abbreviation = "del"
+description = "delete from table where"
+contexts = ["SQL"]
+text = "DELETE FROM $TABLE$ WHERE $CONDITION$;$END$"
+variables = [{ name = "TABLE" }, { name = "CONDITION" }]
+
+[[template]]
+abbreviation = "join"
+description = "inner join table on condition"
+contexts = ["SQL"]
+text = "JOIN $TABLE$ $ALIAS$ ON $ALIAS$.$COLUMN$ = $END$"
+variables = [
+  { name = "TABLE" },
+  { name = "ALIAS", defaultValue = '"j"' },
+  { name = "COLUMN", defaultValue = '"id"' },
+]
+
+[[template]]
+abbreviation = "lj"
+description = "left join table on condition"
+contexts = ["SQL"]
+text = "LEFT JOIN $TABLE$ $ALIAS$ ON $ALIAS$.$COLUMN$ = $END$"
+variables = [
+  { name = "TABLE" },
+  { name = "ALIAS", defaultValue = '"j"' },
+  { name = "COLUMN", defaultValue = '"id"' },
+]
+
+[[template]]
+abbreviation = "rj"
+description = "right join table on condition"
+contexts = ["SQL"]
+text = "RIGHT JOIN $TABLE$ $ALIAS$ ON $ALIAS$.$COLUMN$ = $END$"
+variables = [
+  { name = "TABLE" },
+  { name = "ALIAS", defaultValue = '"j"' },
+  { name = "COLUMN", defaultValue = '"id"' },
+]
+
+[[template]]
+abbreviation = "tab"
+description = "create table"
+contexts = ["SQL"]
+text = '''
+CREATE TABLE $TABLE$
+(
+    id $ID_TYPE$ PRIMARY KEY,
+    $END$
+);'''
+variables = [{ name = "TABLE" }, { name = "ID_TYPE", defaultValue = '"bigint"' }]
+
+[[template]]
+abbreviation = "col"
+description = "new column definition"
+contexts = ["SQL"]
+text = "$NAME$ $TYPE$ $NULL$$END$"
+variables = [
+  { name = "NAME" },
+  { name = "TYPE", defaultValue = '"varchar(255)"' },
+  { name = "NULL", defaultValue = '"not null"' },
+]
