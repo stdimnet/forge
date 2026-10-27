@@ -5744,27 +5744,12 @@
           "description": "Dependencies of composer.json with a newer version available.",
           "external": true,
           "batch": false
-        },
-        {
-          "id": "ComposerVulnerablePackages",
-          "name": "Vulnerable Composer packages",
-          "group": "PHP/Composer",
-          "language": "json",
-          "severity": "WARNING",
-          "enabled": true,
-          "description": "Packages with security advisories (composer audit).",
-          "external": true,
-          "batch": false
         }
       ],
       "inspectionMappings": [
         {
           "source": "composer-outdated",
           "inspection": "ComposerOutdatedPackages"
-        },
-        {
-          "source": "composer-audit",
-          "inspection": "ComposerVulnerablePackages"
         }
       ]
     }
@@ -14503,6 +14488,109 @@
         {
           "source": "json-schema",
           "inspection": "JsonSchemaCompliance"
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.vulnerabilities",
+    "name": "Package Checker",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Checks the project's dependencies for known vulnerabilities with each ecosystem's own audit tool (Composer, npm, pnpm, Yarn, pip-audit, cargo audit, govulncheck, OWASP dependency-check) and reports them in the manifests and the Problems tool window.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.core"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "Vulnerabilities.Check",
+          "title": "Check for Vulnerable Dependencies",
+          "category": "Code"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "vulnerabilities.enabled",
+          "title": "Check dependencies for known vulnerabilities",
+          "description": "Runs the project's audit tools, which send the names and versions of the installed packages to their advisory databases (Packagist, the npm registry, PyPI / OSV, RustSec, vuln.go.dev). Off: Forge never runs an audit and shows no vulnerabilities.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.vulnerabilities",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "vulnerabilities.checkOnOpen",
+          "title": "Check when a project is opened and when a lock file changes",
+          "description": "Results are cached per lock file in Forge's cache folder, so an unchanged project is not audited again until the cache expires. Code | Analyze Code | Check for Vulnerable Dependencies always runs the tools.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.vulnerabilities",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "vulnerabilities.cacheHours",
+          "title": "Re-check unchanged projects after (hours)",
+          "description": "How long the result of an unchanged manifest and lock file is reused on project open.",
+          "type": "int",
+          "default": 24,
+          "group": "tools.vulnerabilities",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "vulnerabilities.dependencyCheckReport",
+          "title": "OWASP dependency-check report (Maven / Gradle)",
+          "description": "The JSON report your build writes with dependency-check (format JSON), e.g. target/dependency-check-report.json or build/reports/dependency-check-report.json. Forge reads it; it does not run dependency-check. Empty: Maven and Gradle projects are not checked.",
+          "type": "string",
+          "default": "",
+          "group": "tools.vulnerabilities",
+          "project": true,
+          "order": 3
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Code/Analyze Code",
+          "items": [
+            {
+              "type": "action",
+              "id": "Vulnerabilities.Check",
+              "label": "Check for _Vulnerable Dependencies"
+            }
+          ]
+        }
+      ],
+      "inspections": [
+        {
+          "id": "VulnerableDependencies",
+          "name": "Vulnerable declared dependency",
+          "group": "Security",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Dependencies with known vulnerabilities, as the ecosystem's audit tool reports them (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP dependency-check), in composer.json, package.json, requirements files, pyproject.toml, Cargo.toml, go.mod, pom.xml and Gradle scripts. The severity follows the advisory's rating: critical and high are errors, low ones weak warnings. Quick fix: Upgrade to the fixed version.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "vulnerabilities",
+          "inspection": "VulnerableDependencies"
         }
       ]
     }

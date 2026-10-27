@@ -5,23 +5,38 @@
  */
 import type { ContextAction } from "@/ipc/codeintel";
 import type { Upgrade } from "@/ipc/vulnerabilities";
-import { registerLineMarkerProvider } from "@/editor/lineMarkers";
+import { ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import { registerEditorExtension } from "@/editor/extensions";
 import { registerContextActionHandler, registerContextActionProvider } from "@/features/codeintel/intentions";
-import { applyUpgrade, publishFile, resultFor, vulnerabilityProblems, vulnerabilityResults } from "./store";
+import { applyUpgrade, publishFile, resultFor, vulnerabilityProblems } from "./store";
 
 interface UpgradeData {
   path: string;
   upgrade: Upgrade;
 }
 
-registerLineMarkerProvider({
-  appliesTo: (path) => !!resultFor(path),
-  watch: () => vulnerabilityResults(),
-  markers: async (path, text) => {
-    await publishFile(path, text);
-    return [];
-  },
-});
+/** Files that can declare dependencies (see `forge_vulns::declare::FileKind`). */
+const MANIFEST = /(^|\/)(composer\.(json|lock)|package\.json|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle(\.kts)?|(requirements|constraints)[^/]*\.(txt|in))$/;
+
+// Recompute a manifest's problems while it is edited (the check itself publishes them for
+// every annotated file, open or not).
+registerEditorExtension(({ path }) =>
+  MANIFEST.test(path)
+    ? ViewPlugin.define((view) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        return {
+          update(u: ViewUpdate) {
+            if (!u.docChanged || !resultFor(path)) return;
+            clearTimeout(timer);
+            timer = setTimeout(() => void publishFile(path, view.state.doc.toString()), 400);
+          },
+          destroy() {
+            clearTimeout(timer);
+          },
+        };
+      })
+    : null,
+);
 
 const openUrl = (url: string): void => void window.open(url, "_blank", "noopener");
 

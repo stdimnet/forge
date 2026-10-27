@@ -64,7 +64,7 @@ let published = new Set<string>();
 /** Compute and publish the problems of one manifest (its editor text when it is open). */
 export async function publishFile(path: string, text?: string): Promise<VulnerabilityProblem[]> {
   const r = resultFor(path);
-  if (!r || !r.vulnerabilities.length && !r.notices?.length) {
+  if (!r || (!r.vulnerabilities.length && !r.notices?.length)) {
     if (published.has(path)) publishDiagnostics(path, [], SOURCE);
     setProblems((prev) => ({ ...prev, [path]: [] }));
     return [];
