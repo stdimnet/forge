@@ -1787,6 +1787,30 @@
           "order": 1
         },
         {
+          "key": "httpClient.grpc.protoFiles",
+          "title": ".proto files for gRPC requests",
+          "description": "Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service.",
+          "type": "list",
+          "default": [],
+          "group": "tools.http-client",
+          "section": "gRPC",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "tools.fileWatchers",
+          "title": "File Watchers",
+          "description": "Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, \"Track only root files\", console and output filters.",
+          "type": "objects",
+          "unique": [
+            "name"
+          ],
+          "default": [],
+          "group": "tools.file-watchers",
+          "project": true,
+          "order": 0
+        },
+        {
           "key": "actionsOnSave.reformat.enabled",
           "title": "Reformat code",
           "description": "Reformat Code (Ctrl+Alt+L) when the file is saved.",
@@ -8108,7 +8132,7 @@
         {
           "key": "web.node.interpreter",
           "title": "Node interpreter",
-          "description": "Runs Node.js configurations, test runners and the JavaScript debugger. Empty: node on the PATH, else the Node.js Forge downloaded.",
+          "description": "Runs Node.js configurations, test runners and the JavaScript debugger. Empty: node on the PATH, else the Node.js Forge downloaded. Enter bun (or the path of a bun executable) to run them with Bun instead.",
           "type": "path",
           "default": "",
           "group": "lang.node",
@@ -8879,6 +8903,319 @@
               "label": "Node options"
             }
           ]
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.graphql",
+    "name": "GraphQL",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "GraphQL files: highlighting, validation and completion against the project's schema (SDL files or introspection), graphql.config files and GRAPHQL requests in the HTTP client.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "GraphQL.Introspect",
+          "title": "Get GraphQL Schema from Endpoint",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "graphql.validation",
+          "title": "Check queries against the schema",
+          "type": "bool",
+          "default": true,
+          "group": "lang.graphql",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "graphql.endpoint",
+          "title": "Introspection endpoint",
+          "description": "URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint.",
+          "type": "string",
+          "default": "",
+          "group": "lang.graphql",
+          "project": true,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.openapi",
+    "name": "OpenAPI Specifications",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "OpenAPI 3 and Swagger 2 files: validation with the bundled official schemas, endpoints in the Endpoints tool window, a native Swagger-UI-like preview and Generate HTTP Request.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "OpenAPI.GenerateHttpRequest",
+          "title": "Generate HTTP Request",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "openapi.preview",
+          "title": "Show the preview next to OpenAPI files",
+          "type": "bool",
+          "default": true,
+          "group": "lang.openapi",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.prisma",
+    "name": "Prisma",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Prisma schema files: highlighting, the Prisma language server and prisma generate / migrate actions.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "prisma"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "Prisma.Generate",
+          "title": "Prisma: Generate Client",
+          "category": "Tools"
+        },
+        {
+          "id": "Prisma.MigrateDev",
+          "title": "Prisma: Migrate Dev…",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.nx",
+    "name": "Nx",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Nx workspaces: projects, targets and the project graph in the Nx tool window, targets as run configurations and in Run Anything.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "nx"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "nx",
+          "title": "Nx",
+          "anchor": "left",
+          "icon": "network",
+          "order": 32
+        }
+      ],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "nx",
+          "name": "Nx",
+          "description": "Run an Nx target (nx run project:target).",
+          "icon": "network",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.deno",
+    "name": "Deno",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Deno projects (deno.json): deno lsp instead of the TypeScript server, deno tasks, and Deno run configurations.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "deno"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "deno.executable",
+          "title": "Deno executable",
+          "type": "string",
+          "default": "deno",
+          "group": "lang.deno",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "deno",
+          "name": "Deno",
+          "description": "Run a script with deno run, a task with deno task, or deno test.",
+          "icon": "feather",
+          "debuggable": false,
+          "fields": [
+            {
+              "key": "command",
+              "label": "Command",
+              "kind": "string",
+              "required": true
+            },
+            {
+              "key": "file",
+              "label": "Script or task",
+              "kind": "string",
+              "required": false
+            }
+          ],
+          "command": [
+            "${interpreter}",
+            "${command}",
+            "${interpreterOptions}",
+            "${file}",
+            "${arguments}"
+          ],
+          "defaultInterpreter": "deno",
+          "interpreterSetting": "deno.executable"
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.bun",
+    "name": "Bun",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Bun projects (bun.lock, bunfig.toml): bun run and bun test run configurations, and Bun as the JavaScript runtime.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "bun"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "bun.executable",
+          "title": "Bun executable",
+          "type": "string",
+          "default": "bun",
+          "group": "lang.bun",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "bun",
+          "name": "Bun",
+          "description": "Run a file or package.json script with bun run, or tests with bun test.",
+          "icon": "croissant",
+          "debuggable": false,
+          "fields": [
+            {
+              "key": "command",
+              "label": "Command",
+              "kind": "string",
+              "required": true
+            },
+            {
+              "key": "file",
+              "label": "File or script",
+              "kind": "string",
+              "required": false
+            }
+          ],
+          "command": [
+            "${interpreter}",
+            "${command}",
+            "${interpreterOptions}",
+            "${file}",
+            "${arguments}"
+          ],
+          "defaultInterpreter": "bun",
+          "interpreterSetting": "bun.executable"
         }
       ],
       "aiProviders": [],
@@ -14927,6 +15264,50 @@
           "section": "Built-in Server",
           "project": false,
           "order": 2
+        },
+        {
+          "key": "liveEdit.enabled",
+          "title": "Live Edit: update open pages in paired browsers",
+          "description": "Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "liveEdit.updateWhileTyping",
+          "title": "Update style sheets while typing",
+          "description": "Push the editor's CSS into the page after a short pause, before the file is saved.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "liveEdit.reloadOnSave",
+          "title": "Reload pages when HTML, scripts or templates are saved",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "liveEdit.delayMs",
+          "title": "Delay before updating (ms)",
+          "type": "int",
+          "min": 100,
+          "max": 5000,
+          "default": 400,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 13
         }
       ],
       "lspServers": [],

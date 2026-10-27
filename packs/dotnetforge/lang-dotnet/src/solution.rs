@@ -241,7 +241,9 @@ pub fn parse_sln(path: &str, text: &str) -> Result<Solution, String> {
             language: ProjectLanguage::of_path(&e.path),
             path: e.path.clone(),
             id: e.id.clone(),
-            folder: parent_of(&e.id).map(|p| folder_path(&p)).unwrap_or_default(),
+            folder: parent_of(&e.id)
+                .map(|p| folder_path(&p))
+                .unwrap_or_default(),
         })
         .collect();
     Ok(Solution {
@@ -379,10 +381,7 @@ mod tests {
         assert_eq!(s.projects[3].language, ProjectLanguage::FSharp);
         assert_eq!(s.projects[3].folder, "");
         assert_eq!(s.folders, vec!["src", "tests", "src/Services"]);
-        assert_eq!(
-            s.configurations,
-            vec!["Debug|Any CPU", "Release|Any CPU"]
-        );
+        assert_eq!(s.configurations, vec!["Debug|Any CPU", "Release|Any CPU"]);
         assert_eq!(s.build_types(), vec!["Debug", "Release"]);
         assert!(s.problems.is_empty());
     }
@@ -407,10 +406,19 @@ mod tests {
         assert_eq!(s.folders, vec!["src", "tests"]);
         assert_eq!(
             s.configurations,
-            vec!["Debug|Any CPU", "Debug|x64", "Release|Any CPU", "Release|x64"]
+            vec![
+                "Debug|Any CPU",
+                "Debug|x64",
+                "Release|Any CPU",
+                "Release|x64"
+            ]
         );
         assert!(parse_slnx("x.slnx", "<Project/>").is_err());
-        let minimal = parse_solution("a/b.slnx", "<Solution><Project Path=\"c/c.vbproj\"/></Solution>").unwrap();
+        let minimal = parse_solution(
+            "a/b.slnx",
+            "<Solution><Project Path=\"c/c.vbproj\"/></Solution>",
+        )
+        .unwrap();
         assert_eq!(minimal.projects[0].path, "a/c/c.vbproj");
         assert_eq!(minimal.projects[0].language, ProjectLanguage::VisualBasic);
         assert_eq!(minimal.configurations.len(), 2);

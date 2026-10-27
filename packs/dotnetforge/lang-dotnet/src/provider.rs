@@ -240,12 +240,18 @@ pub fn filter_of(cfg: &Configuration, dotnet: &DotnetContext) -> Result<String, 
 }
 
 /// The `dotnet test` arguments of a configuration.
-pub fn test_args(cfg: &Configuration, dotnet: &DotnetContext, report_dir: &str) -> Result<Vec<String>, String> {
+pub fn test_args(
+    cfg: &Configuration,
+    dotnet: &DotnetContext,
+    report_dir: &str,
+) -> Result<Vec<String>, String> {
     let opt = |k: &str| cfg.option(k).trim().to_string();
     let scope = opt("scope");
     let mut args = vec!["test".to_string()];
     let target = match opt("project") {
-        p if !p.is_empty() && scope != "all" => dotnet.project(&p).map(|x| x.path.clone()).unwrap_or(p),
+        p if !p.is_empty() && scope != "all" => {
+            dotnet.project(&p).map(|x| x.path.clone()).unwrap_or(p)
+        }
         _ if scope == "project" => return Err("Choose the test project".into()),
         _ => dotnet.solution.clone().unwrap_or_default(),
     };
@@ -273,7 +279,11 @@ pub fn test_args(cfg: &Configuration, dotnet: &DotnetContext, report_dir: &str) 
             args.extend(["--filter".to_string(), filter]);
         }
         if !report_dir.is_empty() {
-            args.extend(["--results-directory".to_string(), report_dir.to_string(), "--report-trx".into()]);
+            args.extend([
+                "--results-directory".to_string(),
+                report_dir.to_string(),
+                "--report-trx".into(),
+            ]);
         }
     } else {
         if !filter.is_empty() {
@@ -322,7 +332,14 @@ impl DotnetTests {
                 .member
                 .clone()
                 .filter(|m| !m.is_empty())
-                .unwrap_or_else(|| f.name.split('(').next().unwrap_or(&f.name).trim().to_string());
+                .unwrap_or_else(|| {
+                    f.name
+                        .split('(')
+                        .next()
+                        .unwrap_or(&f.name)
+                        .trim()
+                        .to_string()
+                });
             if method.is_empty() {
                 continue;
             }
@@ -374,7 +391,11 @@ impl TestFrameworkProvider for DotnetTests {
         self.rerun(cfg, failed)
     }
 
-    fn command(&self, cfg: &Configuration, ctx: &CommandContext) -> Option<Result<TestCommand, String>> {
+    fn command(
+        &self,
+        cfg: &Configuration,
+        ctx: &CommandContext,
+    ) -> Option<Result<TestCommand, String>> {
         Some(self.build(cfg, ctx))
     }
 }
@@ -388,8 +409,14 @@ mod tests {
     fn dotnet() -> DotnetContext {
         let ws = load_workspace(&bookstore_files(), &fixture_reader("bookstore"), "", "");
         let mut c = DotnetContext::default().with_workspace(&ws);
-        c.classes.insert("Bookstore.Tests.CartTests".into(), "tests/Bookstore.Tests/CartTests.cs".into());
-        c.classes.insert("Bookstore.Tests.CartTests+WhenEmpty".into(), "tests/Bookstore.Tests/CartTests.cs".into());
+        c.classes.insert(
+            "Bookstore.Tests.CartTests".into(),
+            "tests/Bookstore.Tests/CartTests.cs".into(),
+        );
+        c.classes.insert(
+            "Bookstore.Tests.CartTests+WhenEmpty".into(),
+            "tests/Bookstore.Tests/CartTests.cs".into(),
+        );
         c
     }
 
@@ -400,9 +427,19 @@ mod tests {
         let f = discover_file(path, &fixture(&format!("bookstore/{path}")), Some(&ctx));
         assert_eq!(f.framework.as_deref(), Some(DOTNET_TEST));
         let class = &f.targets[0];
-        assert_eq!((class.kind, class.key.as_str(), class.line), (TargetKind::Class, path, 6));
-        assert_eq!(class.configuration.option("project"), "tests/Bookstore.Tests/Bookstore.Tests.csproj");
-        let m = f.targets.iter().find(|t| t.label == "Total_AddsLines").unwrap();
+        assert_eq!(
+            (class.kind, class.key.as_str(), class.line),
+            (TargetKind::Class, path, 6)
+        );
+        assert_eq!(
+            class.configuration.option("project"),
+            "tests/Bookstore.Tests/Bookstore.Tests.csproj"
+        );
+        let m = f
+            .targets
+            .iter()
+            .find(|t| t.label == "Total_AddsLines")
+            .unwrap();
         assert_eq!(m.key, format!("{path}::Total_AddsLines"));
         assert_eq!(m.configuration.option("class"), "Bookstore.Tests.CartTests");
         assert_eq!(m.configuration.name, "CartTests.Total_AddsLines");
@@ -411,7 +448,12 @@ mod tests {
             file.option("filter"),
             "FullyQualifiedName~Bookstore.Tests.CartTests.|FullyQualifiedName~Bookstore.Tests.CartTests+|FullyQualifiedName~Bookstore.Tests.CartTests+WhenEmpty.|FullyQualifiedName~Bookstore.Tests.CartTests+WhenEmpty+"
         );
-        assert!(DotnetTests::standalone().discover("src/Bookstore.Core/Catalog/Cart.cs", &fixture("bookstore/src/Bookstore.Core/Catalog/Cart.cs")).is_none());
+        assert!(DotnetTests::standalone()
+            .discover(
+                "src/Bookstore.Core/Catalog/Cart.cs",
+                &fixture("bookstore/src/Bookstore.Core/Catalog/Cart.cs")
+            )
+            .is_none());
     }
 
     #[test]
@@ -421,21 +463,38 @@ mod tests {
             report_dir: "/tmp/r".into(),
             ..CommandContext::default()
         };
-        ctx.settings.insert(CONTEXT_KEY.into(), serde_json::to_string(&dotnet).unwrap());
+        ctx.settings
+            .insert(CONTEXT_KEY.into(), serde_json::to_string(&dotnet).unwrap());
         let p = DotnetTests::standalone();
         let mut cfg = Configuration::new("All tests", DOTNET_TEST);
         let all = p.command(&cfg, &ctx).unwrap().unwrap();
         assert_eq!(all.program, "dotnet");
         assert_eq!(
             all.args,
-            vec!["test", "Bookstore.sln", "-c", "Debug", "--logger", "trx;LogFilePrefix=forge", "--results-directory", "/tmp/r", "--logger", "console;verbosity=normal"]
+            vec![
+                "test",
+                "Bookstore.sln",
+                "-c",
+                "Debug",
+                "--logger",
+                "trx;LogFilePrefix=forge",
+                "--results-directory",
+                "/tmp/r",
+                "--logger",
+                "console;verbosity=normal"
+            ]
         );
         assert_eq!(all.report, TestReport::JUnitFile);
         assert_eq!(all.location_rules.len(), 2);
         cfg.options.insert("scope".into(), "method".into());
-        cfg.options.insert("project".into(), "tests/Bookstore.Tests/Bookstore.Tests.csproj".into());
-        cfg.options.insert("class".into(), "Bookstore.Tests.CartTests".into());
-        cfg.options.insert("method".into(), "Total_AddsLines".into());
+        cfg.options.insert(
+            "project".into(),
+            "tests/Bookstore.Tests/Bookstore.Tests.csproj".into(),
+        );
+        cfg.options
+            .insert("class".into(), "Bookstore.Tests.CartTests".into());
+        cfg.options
+            .insert("method".into(), "Total_AddsLines".into());
         let m = p.command(&cfg, &ctx).unwrap().unwrap();
         assert_eq!(m.args[1], "tests/Bookstore.Tests/Bookstore.Tests.csproj");
         let f = m.args.iter().position(|a| a == "--filter").unwrap();
@@ -452,16 +511,26 @@ mod tests {
             .rerun_failed(
                 &cfg,
                 &[
-                    FailedTest { name: "Total_AddsLines".into(), member: Some("Total_AddsLines".into()), path: Some("tests/Bookstore.Tests/CartTests.cs".into()) },
-                    FailedTest { name: "Add_RejectsNonPositiveQuantities(quantity: 0)".into(), member: None, path: None },
+                    FailedTest {
+                        name: "Total_AddsLines".into(),
+                        member: Some("Total_AddsLines".into()),
+                        path: Some("tests/Bookstore.Tests/CartTests.cs".into()),
+                    },
+                    FailedTest {
+                        name: "Add_RejectsNonPositiveQuantities(quantity: 0)".into(),
+                        member: None,
+                        path: None,
+                    },
                 ],
             )
             .unwrap();
         assert_eq!(rerun.option("scope"), "filter");
         let args = test_args(&rerun, &dotnet, "").unwrap();
         let f = args.iter().position(|a| a == "--filter").unwrap();
-        assert!(args[f + 1].starts_with("FullyQualifiedName=Bookstore.Tests.CartTests.Total_AddsLines|"));
-        assert!(args[f + 1].contains("FullyQualifiedName=Bookstore.Tests.CartTests+WhenEmpty.Total_AddsLines"));
+        assert!(args[f + 1]
+            .starts_with("FullyQualifiedName=Bookstore.Tests.CartTests.Total_AddsLines|"));
+        assert!(args[f + 1]
+            .contains("FullyQualifiedName=Bookstore.Tests.CartTests+WhenEmpty.Total_AddsLines"));
         assert!(args[f + 1].ends_with("FullyQualifiedName~.Add_RejectsNonPositiveQuantities"));
         assert!(!args.contains(&"--results-directory".to_string()));
         assert!(p.rerun_failed(&cfg, &[]).is_none());
@@ -470,7 +539,11 @@ mod tests {
         let mut mtp = dotnet.clone();
         mtp.testing_platform = true;
         let a = test_args(&Configuration::new("x", DOTNET_TEST), &mtp, "/tmp/r").unwrap();
-        assert!(a.ends_with(&["--results-directory".to_string(), "/tmp/r".into(), "--report-trx".into()]));
+        assert!(a.ends_with(&[
+            "--results-directory".to_string(),
+            "/tmp/r".into(),
+            "--report-trx".into()
+        ]));
         assert_eq!(filter_escape("A(1)|B"), "A\\(1\\)\\|B");
     }
 }

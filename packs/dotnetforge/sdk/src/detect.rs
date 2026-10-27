@@ -151,7 +151,11 @@ pub fn sdks_in(root: &Path) -> Vec<Sdk> {
 /// Runtimes of a host without running it (`<root>/shared/<name>/<version>`).
 pub fn runtimes_in(root: &Path) -> Vec<Runtime> {
     let mut out = Vec::new();
-    for fw in std::fs::read_dir(root.join("shared")).into_iter().flatten().flatten() {
+    for fw in std::fs::read_dir(root.join("shared"))
+        .into_iter()
+        .flatten()
+        .flatten()
+    {
         let name = fw.file_name().to_string_lossy().into_owned();
         for v in std::fs::read_dir(fw.path()).into_iter().flatten().flatten() {
             if v.path().is_dir() {
@@ -208,14 +212,14 @@ pub fn detect(
         ..DotnetStatus::default()
     };
     if !custom.trim().is_empty() && hosts.first().map(|h| h.source.as_str()) != Some("Settings") {
-        status
-            .problems
-            .push(format!("The dotnet executable of Settings | .NET was not found: {custom}"));
+        status.problems.push(format!(
+            "The dotnet executable of Settings | .NET was not found: {custom}"
+        ));
     }
     let Some(host) = hosts.first().cloned() else {
-        status.problems.push(
-            "No .NET SDK was found. Install one, then detect again.".into(),
-        );
+        status
+            .problems
+            .push("No .NET SDK was found. Install one, then detect again.".into());
         status.hosts = hosts;
         return status;
     };
@@ -318,7 +322,13 @@ mod tests {
         assert!(s.problems[0].contains("10.0.100"));
         assert!(s.install[0].command.contains("dotnet-sdk-10.0"));
         // The custom path wins; a wrong one is reported.
-        let custom = detect(&env, &root.join("dotnet").to_string_lossy(), None, "linux", &no_run);
+        let custom = detect(
+            &env,
+            &root.join("dotnet").to_string_lossy(),
+            None,
+            "linux",
+            &no_run,
+        );
         assert_eq!(custom.host.unwrap().source, "Settings");
         let wrong = detect(&env, "/nope/dotnet", None, "linux", &no_run);
         assert!(wrong.problems[0].contains("/nope/dotnet"));
@@ -334,7 +344,9 @@ mod tests {
         };
         let run = |_: &Path, args: &[&str]| match args {
             ["--list-sdks"] => Some("8.0.110 [/x/sdk]\n8.0.404 [/x/sdk]\n".to_string()),
-            ["--list-runtimes"] => Some("Microsoft.NETCore.App 8.0.11 [/x/shared/Microsoft.NETCore.App]\n".to_string()),
+            ["--list-runtimes"] => {
+                Some("Microsoft.NETCore.App 8.0.11 [/x/shared/Microsoft.NETCore.App]\n".to_string())
+            }
             _ => None,
         };
         let s = detect(&env, "", None, "macos", &run);

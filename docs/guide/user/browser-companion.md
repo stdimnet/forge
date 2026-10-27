@@ -130,3 +130,10 @@ and applies `.env` changes on the host, and files the browser asks for open in t
 project: the host's absolute paths below the project, paths relative to it, and paths of other
 machines or containers (`/app/src/App.tsx`, `C:\Users\…\src\App.tsx`), which are matched by
 their longest tail that exists in the project. Symbol lookups search the host's files.
+
+## Live Edit
+
+With the extension paired, saved style sheets are swapped in the open pages without a reload
+(also while typing), and pages reload when HTML, scripts or templates they loaded are saved.
+The extension asks Forge for changes with `GET /api/forge/live-edit` (paired browsers only).
+See [Web tooling](web-tooling.md#live-edit) for the settings.

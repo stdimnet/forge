@@ -11,12 +11,16 @@
 //!   ordered "Before launch" tasks, with missing configurations and cycles reported.
 //! - [`anything`]: Run Anything (double Ctrl): grouped, ranked suggestions, help, history
 //!   and turning a typed command into a temporary run configuration.
+//! - [`watchers`]: File Watchers (Settings | Tools | File Watchers): templates, which
+//!   watchers run for saved files (with "Track only root files"), their command lines and
+//!   the Problems found in their output.
 
 pub mod anything;
 pub mod args;
 pub mod external;
 pub mod launch;
 pub mod macros;
+pub mod watchers;
 
 use std::collections::BTreeMap;
 

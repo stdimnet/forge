@@ -2034,6 +2034,17 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `options.ddlDialect`; the project watcher drops their model when a listed file changes and
   emits `db://modelChanged` with their ids (and after `db_virtual_objects_save`). Catalog queries are tagged
   `/* forge:<dialect>.<what> */`.
+- Schema tools: the pure crate `forge-dbschema` (re-exported as `forge_db::schema`, in
+  WebAssembly as `dbschema_*`). `db_diagram({ request: { schema, tables?, neighbours?,
+  columns?: "all"|"keys"|"none", hideViews? } }) -> Diagram` (positioned nodes with column rows,
+  foreign key polylines; the UI only draws), `db_schema_compare({ request: { dialect, source,
+  target, options?: { drops?, compare? }, framework?: "laravel"|"doctrine", now? } }) ->
+  { diff, migration, file?, warnings? }` where each side is `{ schema }` or a DDL snapshot
+  `{ ddl, name? }` (pure; the script is never run by the command), `db_explain({ sessionId, sql,
+  raw?, confirmed? }) -> { sql, columns, rows, plan?, error?, elapsedMs }` (the dialect's
+  `EXPLAIN` on the console's connection, never `ANALYZE`; a statement that already is an
+  `EXPLAIN` goes through the guard) and `db_save_export({ path, text? | base64? })` for diagram
+  exports.
 - Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
   `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes),
   `db://modelChanged` (data source ids to reload) and `db://search` (`SearchProgress`).
@@ -2361,6 +2372,58 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   declaration provider per framework (several targets open a chooser), Angular line markers and
   the Node.js / TypeScript settings pages. Debug on an `npm` configuration sets `NODE_OPTIONS`
   (`--inspect` by default) for an external inspector client.
+
+## Web tooling (`packs/webforge/web-tooling`, File Watchers, Live Edit, HTTP client extras)
+
+- **File Watchers** (`forge_runtools::watchers`, pure, also WebAssembly): project setting
+  `tools.fileWatchers` (objects; `FileWatcher::from_object`), templates, `plan(watchers,
+  PlanInput { paths, trigger: save | change | external, root, in_scope, sources,
+  resolve_program })` (file type, scope via `forge-scopes`, "Track only root files" over the
+  `@use`/`@import`/`@forward` and relative-import graph, outputs never retrigger) and
+  `problems(output, filters, cwd, root)` (`forge_output::filters`). IPC
+  (`commands/web_tooling.rs`, `src/ipc/webTooling.ts`): `file_watchers_templates()`,
+  `file_watchers_validate({ watcher, others })`, `file_watchers_plan({ paths, trigger }) ->
+  WatcherRun[]` (**refused in Safe Mode**), `file_watchers_problems({ output, filters, cwd })`.
+  The UI (`features/webTooling/fileWatchers`) plans after `onFileSaved`, on `fs://changed` for
+  watchers with external changes, and saves typed-in files for auto-save watchers; runs are
+  hidden `file-watcher` configurations built in the UI (`launch`), problems go to the
+  Problems tab "File Watchers".
+- **Live Edit** (`forge_open::live_edit`): `LiveEditHub` events (`css` with optional text,
+  `reload`), served to paired browsers by `GET /api/forge/live-edit?since=<seq>`
+  (`OpenHost::live_edit`, settings `liveEdit.*`). IPC `companion_live_edit({ path, text? })`
+  is called by the UI after saves, while typing in CSS and for CSS changed on disk; the
+  extension (`browser-extension/src/lib/liveEdit.ts`) polls from the top frame through the
+  background worker and swaps `<link>` style sheets or reloads pages that loaded the file.
+- **Aliases** (`webforge_lang_web::aliases`, `import_paths`): `Sources` adds `resolve.alias` of
+  `vite.config.*` / `webpack.config.*` (root and one level down) to the `tsconfig` paths.
+  `WebCall::{ImportGoto, ImportComplete, Aliases}` and IPC `web_import_goto({ path, content,
+  offset }) -> Location | null`, `web_import_complete(...) -> { from, items } | null`,
+  `web_aliases()`. The UI adds a declaration provider and a completion source for import
+  strings.
+- **Models** (`webforge-web-tooling`, pure, WebAssembly): `openapi` (endpoints, preview,
+  `http_request`), `graphql` (apollo-compiler `SchemaSet`, validation, completion,
+  introspection to SDL, `graphql.config` / `.graphqlrc`), `nx`, `nuxt`, `deno`. IPC:
+  `openapi_endpoints() -> { path, title, spec, endpoints }[]`, `openapi_preview({ path,
+  content })`, `openapi_http_request({ path, content, method, opPath })`, `graphql_info()`,
+  `graphql_validate({ path, content })`, `graphql_complete({ content, offset })`,
+  `graphql_introspect({ url, headers?, target? }) -> path` (writes SDL through the backend),
+  `nx_workspace()`, `nuxt_project({ root? })`, `deno_tasks()`. OpenAPI validation is
+  `forge-jsonschema` with the bundled OpenAPI 3.0 / 3.1 schemas, selected by content
+  (`mapping::CONTENT_BUILTINS`).
+- **Frameworks**: `forge-project` detects `nx`, `deno`, `prisma`, `astro`, `nuxt` / `svelte`
+  configs and the `bun` / `graphql` tools; plugins `forge.graphql`, `forge.openapi`,
+  `forge.prisma`, `forge.nx`, `forge.deno`, `forge.bun` (`webforge.toml`); the catalog's
+  `deno` server needs a root `deno.json(c)` and `When.absent` keeps the TypeScript servers off
+  there; `prisma-language-server` serves `.prisma`.
+- **HTTP client extras** (`forge-scratches`): request methods `GRAPHQL` (`graphql_as_http`),
+  `WEBSOCKET` (`ws::run`, registered as a `Process` in `RunState::register` so Stop and
+  console input work) and `GRPC` (`grpc::call`: h2 + prost-reflect, server reflection or
+  `.proto` files from `httpClient.grpc.protoFiles` compiled with protox); OAuth 2.0
+  (`oauth`, `oauth_client`: `{{$auth.token("id")}}` / `$auth.idToken`, Client Credentials,
+  Password, Authorization Code with PKCE through the browser (`http-client://open-browser`)
+  and a loopback listener, refresh; tokens in memory in `HttpClientState`), resolved through
+  `Resolver::with_values`. IPC: `scratches_http_curl({ content, line, env?, source? }) ->
+  string`, `scratches_http_from_curl({ command }) -> string`, `scratches_http_clear_tokens()`.
 
 ## LuaForge (`packs/luaforge/lang-lua`)
 

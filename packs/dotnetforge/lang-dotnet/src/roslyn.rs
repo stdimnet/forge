@@ -152,14 +152,30 @@ mod tests {
         assert_eq!(s.command(), "/usr/bin/dotnet");
         assert_eq!(
             s.args(),
-            vec!["/d/roslyn/Microsoft.CodeAnalysis.LanguageServer.dll", "--logLevel", "Information", "--extensionLogDirectory", "/c/roslyn", "--stdio"]
+            vec![
+                "/d/roslyn/Microsoft.CodeAnalysis.LanguageServer.dll",
+                "--logLevel",
+                "Information",
+                "--extensionLogDirectory",
+                "/c/roslyn",
+                "--stdio"
+            ]
         );
         let (method, params) = s.open_notification().unwrap();
         assert_eq!(method, "solution/open");
-        assert_eq!(params["solution"], "file:///home/anna/My%20Projects/Bookstore/Bookstore.sln");
+        assert_eq!(
+            params["solution"],
+            "file:///home/anna/My%20Projects/Bookstore/Bookstore.sln"
+        );
         let settings = s.settings();
-        assert_eq!(settings["csharp|background_analysis"]["dotnet_analyzer_diagnostics_scope"], "fullSolution");
-        assert_eq!(settings["csharp|inlay_hints"]["csharp_enable_inlay_hints_for_types"], true);
+        assert_eq!(
+            settings["csharp|background_analysis"]["dotnet_analyzer_diagnostics_scope"],
+            "fullSolution"
+        );
+        assert_eq!(
+            settings["csharp|inlay_hints"]["csharp_enable_inlay_hints_for_types"],
+            true
+        );
         let projects = RoslynSetup {
             projects: vec!["C:\\src\\A\\A.csproj".into()],
             ..RoslynSetup::default()
@@ -168,6 +184,10 @@ mod tests {
         assert_eq!(m, "project/open");
         assert_eq!(p["projects"][0], "file:///C:/src/A/A.csproj");
         assert!(RoslynSetup::default().open_notification().is_none());
-        assert_eq!(RoslynSetup::default().settings()["csharp|background_analysis"]["dotnet_compiler_diagnostics_scope"], "openFiles");
+        assert_eq!(
+            RoslynSetup::default().settings()["csharp|background_analysis"]
+                ["dotnet_compiler_diagnostics_scope"],
+            "openFiles"
+        );
     }
 }

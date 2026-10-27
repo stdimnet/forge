@@ -44,7 +44,11 @@ impl NuGetClient {
     /// A client of the feed whose service index is `index_url`, caching in
     /// `<cache dir>/forge/nuget`.
     pub fn new(index_url: &str) -> Result<Self, String> {
-        Ok(Self::with(Http::new()?, index_url, default_cache_dir(index_url)))
+        Ok(Self::with(
+            Http::new()?,
+            index_url,
+            default_cache_dir(index_url),
+        ))
     }
 
     /// A client for a local server (tests).
@@ -82,12 +86,16 @@ impl NuGetClient {
         prerelease: bool,
     ) -> Result<SearchResult, String> {
         let index = self.service_index().await?;
-        let search = index
-            .search
-            .ok_or("the feed has no search service")?;
+        let search = index.search.ok_or("the feed has no search service")?;
         let text = self
             .http
-            .text(&search_url(&search, query, skip, take.clamp(1, 100), prerelease))
+            .text(&search_url(
+                &search,
+                query,
+                skip,
+                take.clamp(1, 100),
+                prerelease,
+            ))
             .await?;
         parse_search(&text)
     }
@@ -110,7 +118,9 @@ impl NuGetClient {
             }
         }
         let text = std::fs::read_to_string(f).ok()?;
-        serde_json::from_str::<Cached>(&text).ok().map(|c| c.versions)
+        serde_json::from_str::<Cached>(&text)
+            .ok()
+            .map(|c| c.versions)
     }
 
     /// The versions of a package, oldest first.
@@ -133,7 +143,9 @@ impl NuGetClient {
                     if let Some(parent) = f.parent() {
                         let _ = std::fs::create_dir_all(parent);
                     }
-                    if let Ok(t) = serde_json::to_string(&Cached { versions: v.clone() }) {
+                    if let Ok(t) = serde_json::to_string(&Cached {
+                        versions: v.clone(),
+                    }) {
                         let _ = std::fs::write(f, t);
                     }
                 }
@@ -174,7 +186,11 @@ impl NuGetClient {
 pub fn default_cache_dir(index_url: &str) -> Option<PathBuf> {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     index_url.trim().hash(&mut h);
-    dirs::cache_dir().map(|d| d.join("forge").join("nuget").join(format!("{:016x}", h.finish())))
+    dirs::cache_dir().map(|d| {
+        d.join("forge")
+            .join("nuget")
+            .join(format!("{:016x}", h.finish()))
+    })
 }
 
 #[cfg(test)]
@@ -218,7 +234,11 @@ mod tests {
     async fn searches_and_finds_updates() {
         let server = feed().await;
         let cache = tempfile::tempdir().unwrap();
-        let client = NuGetClient::direct(&format!("{}/v3/index.json", server.url), Some(cache.path().to_path_buf())).unwrap();
+        let client = NuGetClient::direct(
+            &format!("{}/v3/index.json", server.url),
+            Some(cache.path().to_path_buf()),
+        )
+        .unwrap();
         let r = client.search("serilog", 0, 20, false).await.unwrap();
         assert_eq!(r.packages[0].id, "Serilog");
         assert_eq!(r.total_hits, 1784);
@@ -231,26 +251,46 @@ mod tests {
         let u = client.updates(&installed, false).await;
         assert_eq!(
             u,
-            vec![PackageUpdate { id: "Swashbuckle.AspNetCore".into(), installed: "6.5.0".into(), latest: "6.6.2".into() }]
+            vec![PackageUpdate {
+                id: "Swashbuckle.AspNetCore".into(),
+                installed: "6.5.0".into(),
+                latest: "6.6.2".into()
+            }]
         );
         // The service index is read once; versions come from the cache afterwards.
         client.versions("Swashbuckle.AspNetCore").await.unwrap();
         assert_eq!(server.routes.hits("/v3/index.json"), 1);
-        assert_eq!(server.routes.hits("/flat/swashbuckle.aspnetcore/index.json"), 1);
+        assert_eq!(
+            server
+                .routes
+                .hits("/flat/swashbuckle.aspnetcore/index.json"),
+            1
+        );
         assert!(cache.path().join("swashbuckle.aspnetcore.json").is_file());
     }
 
     #[tokio::test]
     async fn falls_back_to_the_cache_offline() {
         let cache = tempfile::tempdir().unwrap();
-        std::fs::write(cache.path().join("xunit.json"), r#"{"versions":["2.7.0","2.9.2"]}"#).unwrap();
+        std::fs::write(
+            cache.path().join("xunit.json"),
+            r#"{"versions":["2.7.0","2.9.2"]}"#,
+        )
+        .unwrap();
         // A feed that does not answer.
-        let client = NuGetClient::direct("http://127.0.0.1:9/v3/index.json", Some(cache.path().to_path_buf())).unwrap();
+        let client = NuGetClient::direct(
+            "http://127.0.0.1:9/v3/index.json",
+            Some(cache.path().to_path_buf()),
+        )
+        .unwrap();
         let mut stale = client.clone();
         stale.ttl = Duration::ZERO;
         assert_eq!(stale.versions("xunit").await.unwrap().len(), 2);
         assert!(client.search("x", 0, 10, false).await.is_err());
         assert!(stale.versions("other").await.is_err());
-        assert!(default_cache_dir("https://api.nuget.org/v3/index.json").is_some() || dirs::cache_dir().is_none());
+        assert!(
+            default_cache_dir("https://api.nuget.org/v3/index.json").is_some()
+                || dirs::cache_dir().is_none()
+        );
     }
 }

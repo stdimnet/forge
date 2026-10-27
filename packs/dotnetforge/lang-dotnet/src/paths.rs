@@ -81,11 +81,17 @@ mod tests {
         assert_eq!(normalize("/a/b/../c"), "/a/c");
         assert_eq!(parent("a/b/c.cs"), "a/b");
         assert_eq!(parent("c.cs"), "");
-        assert_eq!(join("src/App", "..\\Core\\Core.csproj"), "src/Core/Core.csproj");
+        assert_eq!(
+            join("src/App", "..\\Core\\Core.csproj"),
+            "src/Core/Core.csproj"
+        );
         assert_eq!(join("", "x.cs"), "x.cs");
         assert_eq!(join("a", "/abs/x"), "/abs/x");
         assert_eq!(file_name("a\\b/c.sln"), "c.sln");
-        assert_eq!(relative_to("/p/shop", "/p/shop/src/A.cs").as_deref(), Some("src/A.cs"));
+        assert_eq!(
+            relative_to("/p/shop", "/p/shop/src/A.cs").as_deref(),
+            Some("src/A.cs")
+        );
         assert_eq!(relative_to("/p/shop", "/p/other/A.cs"), None);
         assert_eq!(relative_to("C:/p", "c:\\p\\x.cs").as_deref(), Some("x.cs"));
     }

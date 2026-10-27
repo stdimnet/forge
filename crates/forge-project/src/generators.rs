@@ -796,7 +796,11 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
                 _ => "csproj",
             };
             let solution = req.bool(&gen, "solution");
-            let out_dir = if solution { format!("src/{n}") } else { n.to_string() };
+            let out_dir = if solution {
+                format!("src/{n}")
+            } else {
+                n.to_string()
+            };
             let mut args: Vec<String> = vec![
                 "new".into(),
                 template.clone(),
@@ -946,7 +950,14 @@ mod tests {
             p.preview,
             vec!["dotnet new classlib -n demo -o demo -lang F# --framework net8.0"]
         );
-        let other = plan(&req("dotnet", &[("otherTemplate", json!("grpc")), ("solution", json!(false))]), &all_tools).unwrap();
+        let other = plan(
+            &req(
+                "dotnet",
+                &[("otherTemplate", json!("grpc")), ("solution", json!(false))],
+            ),
+            &all_tools,
+        )
+        .unwrap();
         assert!(other.preview[0].starts_with("dotnet new grpc "));
         let missing = plan(&req("dotnet", &[]), &|t| t != "dotnet").unwrap();
         assert_eq!(missing.missing_tools, vec!["dotnet"]);

@@ -205,9 +205,7 @@ impl Properties {
     }
 
     pub fn names(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.values
-            .values()
-            .map(|(n, v)| (n.as_str(), v.as_str()))
+        self.values.values().map(|(n, v)| (n.as_str(), v.as_str()))
     }
 }
 
@@ -539,7 +537,10 @@ pub fn evaluate_project(
         .map(str::to_string)
         .collect();
     if frameworks.is_empty() {
-        if let Some(tf) = props.get("TargetFramework").filter(|t| !t.trim().is_empty()) {
+        if let Some(tf) = props
+            .get("TargetFramework")
+            .filter(|t| !t.trim().is_empty())
+        {
             frameworks.push(tf.trim().to_string());
         }
     }
@@ -548,9 +549,16 @@ pub fn evaluate_project(
     let web = sdk_lower.starts_with("microsoft.net.sdk.web")
         || sdk_lower.starts_with("microsoft.net.sdk.blazorwebassembly")
         || sdk_lower.starts_with("microsoft.net.sdk.worker")
-        || sdk_lower.starts_with("microsoft.net.sdk.razor") && props.get("OutputType").unwrap_or("").eq_ignore_ascii_case("exe");
+        || sdk_lower.starts_with("microsoft.net.sdk.razor")
+            && props
+                .get("OutputType")
+                .unwrap_or("")
+                .eq_ignore_ascii_case("exe");
     let mut output_type = props.get("OutputType").unwrap_or("Library").to_string();
-    if web && output_type.eq_ignore_ascii_case("library") && !sdk_lower.starts_with("microsoft.net.sdk.razor") {
+    if web
+        && output_type.eq_ignore_ascii_case("library")
+        && !sdk_lower.starts_with("microsoft.net.sdk.razor")
+    {
         output_type = "Exe".into();
     }
     let central = props
@@ -560,11 +568,19 @@ pub fn evaluate_project(
     // Central versions (Directory.Packages.props).
     let mut central_versions: BTreeMap<String, String> = BTreeMap::new();
     if let Some(f) = &packages_props {
-        for i in f.items.iter().filter(|i| i.kind.eq_ignore_ascii_case("PackageVersion")) {
+        for i in f
+            .items
+            .iter()
+            .filter(|i| i.kind.eq_ignore_ascii_case("PackageVersion"))
+        {
             if eval_condition(&i.condition, &props) == Some(false) {
                 continue;
             }
-            let id = if i.include.is_empty() { &i.update } else { &i.include };
+            let id = if i.include.is_empty() {
+                &i.update
+            } else {
+                &i.include
+            };
             if let Some(v) = i.meta("Version") {
                 central_versions.insert(id.to_ascii_lowercase(), props.expand(v));
             }
@@ -583,7 +599,10 @@ pub fn evaluate_project(
         let (version, source) = if let Some(v) = i.meta("VersionOverride") {
             (props.expand(v), "override")
         } else if let Some(v) = i.meta("Version") {
-            (props.expand(v), if from_props { "props" } else { "project" })
+            (
+                props.expand(v),
+                if from_props { "props" } else { "project" },
+            )
         } else if let Some(v) = central_versions.get(&id.to_ascii_lowercase()) {
             (v.clone(), "central")
         } else {
@@ -626,7 +645,11 @@ pub fn evaluate_project(
                     add_package(&u, from_props, &props);
                 }
                 "projectreference" if !i.include.is_empty() => {
-                    let base = if from_props { String::new() } else { dir.clone() };
+                    let base = if from_props {
+                        String::new()
+                    } else {
+                        dir.clone()
+                    };
                     let p = join(&base, &props.expand(&i.include));
                     if !project_references.contains(&p) {
                         project_references.push(p);
@@ -636,7 +659,11 @@ pub fn evaluate_project(
                     framework_references.push(props.expand(&i.include))
                 }
                 "compile" if language == ProjectLanguage::FSharp && !i.include.is_empty() => {
-                    for inc in props.expand(&i.include).split(';').filter(|s| !s.trim().is_empty()) {
+                    for inc in props
+                        .expand(&i.include)
+                        .split(';')
+                        .filter(|s| !s.trim().is_empty())
+                    {
                         compile_order.push(join(&dir, inc.trim()));
                     }
                 }
@@ -644,10 +671,19 @@ pub fn evaluate_project(
             }
         }
     }
-    if web && sdk_lower.starts_with("microsoft.net.sdk.web") && !framework_references.iter().any(|f| f == "Microsoft.AspNetCore.App") {
+    if web
+        && sdk_lower.starts_with("microsoft.net.sdk.web")
+        && !framework_references
+            .iter()
+            .any(|f| f == "Microsoft.AspNetCore.App")
+    {
         framework_references.insert(0, "Microsoft.AspNetCore.App".into());
     }
-    if language == ProjectLanguage::FSharp && !packages.iter().any(|p| p.id.eq_ignore_ascii_case("FSharp.Core")) {
+    if language == ProjectLanguage::FSharp
+        && !packages
+            .iter()
+            .any(|p| p.id.eq_ignore_ascii_case("FSharp.Core"))
+    {
         packages.push(PackageReference {
             id: "FSharp.Core".into(),
             version: String::new(),
@@ -657,7 +693,9 @@ pub fn evaluate_project(
             line: None,
         });
     }
-    let test_framework = packages.iter().find_map(|p| TestFramework::of_package(&p.id));
+    let test_framework = packages
+        .iter()
+        .find_map(|p| TestFramework::of_package(&p.id));
     let is_test_project = props
         .get("IsTestProject")
         .map(|v| v.trim().eq_ignore_ascii_case("true"))
@@ -678,8 +716,16 @@ pub fn evaluate_project(
         .filter(|(_, v)| !v.is_empty())
         .collect();
     DotnetProject {
-        assembly_name: props.get("AssemblyName").unwrap_or(&name).trim().to_string(),
-        root_namespace: props.get("RootNamespace").unwrap_or(&name).trim().to_string(),
+        assembly_name: props
+            .get("AssemblyName")
+            .unwrap_or(&name)
+            .trim()
+            .to_string(),
+        root_namespace: props
+            .get("RootNamespace")
+            .unwrap_or(&name)
+            .trim()
+            .to_string(),
         name,
         path,
         language,
@@ -735,18 +781,33 @@ mod tests {
     #[test]
     fn conditions() {
         let p = props(&[("Configuration", "Debug"), ("TargetFramework", "net8.0")]);
-        assert_eq!(eval_condition("'$(Configuration)' == 'Debug'", &p), Some(true));
-        assert_eq!(eval_condition("'$(configuration)'=='Release'", &p), Some(false));
-        assert_eq!(eval_condition("'$(Configuration)' != 'Release'", &p), Some(true));
         assert_eq!(
-            eval_condition("'$(Configuration)' == 'Debug' and '$(TargetFramework)' == 'net8.0'", &p),
+            eval_condition("'$(Configuration)' == 'Debug'", &p),
+            Some(true)
+        );
+        assert_eq!(
+            eval_condition("'$(configuration)'=='Release'", &p),
+            Some(false)
+        );
+        assert_eq!(
+            eval_condition("'$(Configuration)' != 'Release'", &p),
+            Some(true)
+        );
+        assert_eq!(
+            eval_condition(
+                "'$(Configuration)' == 'Debug' and '$(TargetFramework)' == 'net8.0'",
+                &p
+            ),
             Some(true)
         );
         assert_eq!(
             eval_condition("'$(Configuration)' == 'Release' OR '$(Unknown)' == 'x'", &p),
             None
         );
-        assert_eq!(eval_condition("!('$(Configuration)' == 'Debug')", &p), Some(false));
+        assert_eq!(
+            eval_condition("!('$(Configuration)' == 'Debug')", &p),
+            Some(false)
+        );
         assert_eq!(eval_condition("Exists('foo.props')", &p), None);
         assert_eq!(eval_condition("", &p), Some(true));
         assert_eq!(p.expand("$(Configuration)/$(Nope)/x"), "Debug//x");
@@ -755,12 +816,21 @@ mod tests {
 
     #[test]
     fn reads_raw_files() {
-        let f = parse_msbuild(&fixture("bookstore/tests/Bookstore.Tests/Bookstore.Tests.csproj")).unwrap();
+        let f = parse_msbuild(&fixture(
+            "bookstore/tests/Bookstore.Tests/Bookstore.Tests.csproj",
+        ))
+        .unwrap();
         assert_eq!(f.sdk.as_deref(), Some("Microsoft.NET.Sdk"));
-        let runner = f.items.iter().find(|i| i.include == "xunit.runner.visualstudio").unwrap();
+        let runner = f
+            .items
+            .iter()
+            .find(|i| i.include == "xunit.runner.visualstudio")
+            .unwrap();
         assert_eq!(runner.meta("PrivateAssets"), Some("all"));
         assert!(parse_msbuild("<Solution/>").is_err());
-        let sdk_element = parse_msbuild("<Project><Sdk Name=\"MSTest.Sdk\" Version=\"3.6.0\" /></Project>").unwrap();
+        let sdk_element =
+            parse_msbuild("<Project><Sdk Name=\"MSTest.Sdk\" Version=\"3.6.0\" /></Project>")
+                .unwrap();
         assert_eq!(sdk_element.sdk.as_deref(), Some("MSTest.Sdk"));
     }
 
@@ -787,17 +857,35 @@ mod tests {
         assert_eq!(api.target_frameworks, vec!["net8.0"]);
         assert!(api.central_package_management);
         let swagger = api.package("swashbuckle.aspnetcore").unwrap();
-        assert_eq!((swagger.version.as_str(), swagger.source.as_str()), ("6.5.0", "central"));
+        assert_eq!(
+            (swagger.version.as_str(), swagger.source.as_str()),
+            ("6.5.0", "central")
+        );
         assert_eq!(swagger.line, Some(10));
         let serilog = api.package("Serilog.AspNetCore").unwrap();
-        assert_eq!((serilog.version.as_str(), serilog.source.as_str()), ("8.0.1", "override"));
-        assert_eq!(api.project_references, vec!["src/Bookstore.Core/Bookstore.Core.csproj"]);
+        assert_eq!(
+            (serilog.version.as_str(), serilog.source.as_str()),
+            ("8.0.1", "override")
+        );
+        assert_eq!(
+            api.project_references,
+            vec!["src/Bookstore.Core/Bookstore.Core.csproj"]
+        );
         assert_eq!(api.framework_references, vec!["Microsoft.AspNetCore.App"]);
-        assert_eq!(api.properties.get("Nullable").map(String::as_str), Some("enable"));
-        assert_eq!(api.properties.get("LangVersion").map(String::as_str), Some("12.0"));
+        assert_eq!(
+            api.properties.get("Nullable").map(String::as_str),
+            Some("enable")
+        );
+        assert_eq!(
+            api.properties.get("LangVersion").map(String::as_str),
+            Some("12.0")
+        );
         // Release-only property is not in effect in Debug.
         assert!(!api.properties.contains_key("TreatWarningsAsErrors"));
-        assert_eq!(api.output_dll("Debug", ""), "src/Bookstore.Api/bin/Debug/net8.0/Bookstore.Api.dll");
+        assert_eq!(
+            api.output_dll("Debug", ""),
+            "src/Bookstore.Api/bin/Debug/net8.0/Bookstore.Api.dll"
+        );
     }
 
     #[test]
@@ -806,12 +894,18 @@ mod tests {
         assert_eq!(core.target_frameworks, vec!["net8.0", "netstandard2.0"]);
         assert_eq!(core.assembly_name, "Acme.Bookstore.Core");
         assert!(!core.is_runnable());
-        assert_eq!(core.properties.get("Description").map(String::as_str), Some("Catalog and cart of Acme Books"));
+        assert_eq!(
+            core.properties.get("Description").map(String::as_str),
+            Some("Catalog and cart of Acme Books")
+        );
         // A TFM-conditioned reference is listed with its condition.
         let json = core.package("System.Text.Json").unwrap();
         assert_eq!(json.version, "8.0.4");
         assert!(json.condition.contains("netstandard2.0"));
-        assert_eq!(core.output_dll("Release", "netstandard2.0"), "src/Bookstore.Core/bin/Release/netstandard2.0/Acme.Bookstore.Core.dll");
+        assert_eq!(
+            core.output_dll("Release", "netstandard2.0"),
+            "src/Bookstore.Core/bin/Release/netstandard2.0/Acme.Bookstore.Core.dll"
+        );
     }
 
     #[test]
@@ -819,13 +913,20 @@ mod tests {
         let t = evaluate("tests/Bookstore.Tests/Bookstore.Tests.csproj");
         assert!(t.is_test_project);
         assert_eq!(t.test_framework, Some(TestFramework::Xunit));
-        assert!(t.package("xunit.runner.visualstudio").unwrap().private_assets);
+        assert!(
+            t.package("xunit.runner.visualstudio")
+                .unwrap()
+                .private_assets
+        );
         assert_eq!(t.package("xunit").unwrap().version, "2.7.0");
         assert!(!t.is_runnable());
         let fs = evaluate("tools/Reports/Reports.fsproj");
         assert_eq!(fs.language, ProjectLanguage::FSharp);
         assert!(fs.is_runnable());
-        assert_eq!(fs.compile_order, vec!["tools/Reports/Sales.fs", "tools/Reports/Program.fs"]);
+        assert_eq!(
+            fs.compile_order,
+            vec!["tools/Reports/Sales.fs", "tools/Reports/Program.fs"]
+        );
         let core = fs.package("FSharp.Core").unwrap();
         assert_eq!(core.version, "8.0.300");
         // Without central management a missing version is "implicit".
@@ -846,7 +947,11 @@ mod tests {
     fn import_folders() {
         assert_eq!(
             import_candidates("src/App/App.csproj", "Directory.Build.props"),
-            vec!["src/App/Directory.Build.props", "src/Directory.Build.props", "Directory.Build.props"]
+            vec![
+                "src/App/Directory.Build.props",
+                "src/Directory.Build.props",
+                "Directory.Build.props"
+            ]
         );
         assert_eq!(import_candidates("App.csproj", "x"), vec!["x"]);
     }

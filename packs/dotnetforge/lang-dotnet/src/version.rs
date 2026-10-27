@@ -101,7 +101,9 @@ pub fn range_minimum(range: &str) -> Option<String> {
         return None;
     }
     if r.starts_with('[') || r.starts_with('(') {
-        let inner = r.trim_start_matches(['[', '(']).trim_end_matches([']', ')']);
+        let inner = r
+            .trim_start_matches(['[', '('])
+            .trim_end_matches([']', ')']);
         let low = inner.split(',').next().unwrap_or("").trim();
         return (!low.is_empty()).then(|| low.to_string());
     }
@@ -119,12 +121,13 @@ pub fn range_minimum(range: &str) -> Option<String> {
 }
 
 /// The newest of `versions` (prereleases only with `prerelease`).
-pub fn latest<'a>(versions: impl IntoIterator<Item = &'a str>, prerelease: bool) -> Option<&'a str> {
+pub fn latest<'a>(
+    versions: impl IntoIterator<Item = &'a str>,
+    prerelease: bool,
+) -> Option<&'a str> {
     versions
         .into_iter()
-        .filter(|v| {
-            NuGetVersion::parse(v).is_some_and(|p| prerelease || !p.is_prerelease())
-        })
+        .filter(|v| NuGetVersion::parse(v).is_some_and(|p| prerelease || !p.is_prerelease()))
         .max_by(|a, b| compare(a, b))
 }
 
@@ -144,8 +147,13 @@ mod tests {
 
     #[test]
     fn parses_and_compares() {
-        assert_eq!(NuGetVersion::parse("1.2.3.4").unwrap().numbers, [1, 2, 3, 4]);
-        assert!(NuGetVersion::parse("2.0.0-beta.1+sha.abc").unwrap().is_prerelease());
+        assert_eq!(
+            NuGetVersion::parse("1.2.3.4").unwrap().numbers,
+            [1, 2, 3, 4]
+        );
+        assert!(NuGetVersion::parse("2.0.0-beta.1+sha.abc")
+            .unwrap()
+            .is_prerelease());
         assert!(NuGetVersion::parse("x.1").is_none());
         assert!(NuGetVersion::parse("1.2.3.4.5").is_none());
         assert_eq!(compare("1.10.0", "1.9.0"), Ordering::Greater);
@@ -170,7 +178,10 @@ mod tests {
         assert_eq!(upgrade("6.5.0", &versions, false), Some("6.6.2"));
         assert_eq!(upgrade("6.5.0", &versions, true), Some("7.0.0-preview.1"));
         assert_eq!(upgrade("6.6.2", &versions, false), None);
-        assert_eq!(upgrade("7.0.0-alpha", &versions, false), Some("7.0.0-preview.1"));
+        assert_eq!(
+            upgrade("7.0.0-alpha", &versions, false),
+            Some("7.0.0-preview.1")
+        );
         assert_eq!(upgrade("", &versions, false), None);
         assert_eq!(latest(["1.0.0", "bad", "1.2.0"], false), Some("1.2.0"));
     }

@@ -137,8 +137,10 @@ pub fn testing_command(request_json: &str) -> String {
                     .insert(rustforge_lang_rust::CONTEXT_KEY.into(), rust.to_string());
             }
             if let Some(dotnet) = &r.dotnet_context {
-                ctx.settings
-                    .insert(dotnetforge_lang_dotnet::CONTEXT_KEY.into(), dotnet.to_string());
+                ctx.settings.insert(
+                    dotnetforge_lang_dotnet::CONTEXT_KEY.into(),
+                    dotnet.to_string(),
+                );
             }
             let cpp = cforge_lang_cpp::CppTests::all()
                 .into_iter()

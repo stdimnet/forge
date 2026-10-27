@@ -50,15 +50,30 @@ impl BuildProblem {
         let c = self.code.to_ascii_uppercase();
         let lower = c.to_ascii_lowercase();
         if c.starts_with("CS") {
-            Some(format!("https://learn.microsoft.com/dotnet/csharp/misc/{lower}"))
+            Some(format!(
+                "https://learn.microsoft.com/dotnet/csharp/misc/{lower}"
+            ))
         } else if c.starts_with("NU") {
-            Some(format!("https://learn.microsoft.com/nuget/reference/errors-and-warnings/{lower}"))
+            Some(format!(
+                "https://learn.microsoft.com/nuget/reference/errors-and-warnings/{lower}"
+            ))
         } else if c.starts_with("MSB") {
-            Some(format!("https://learn.microsoft.com/visualstudio/msbuild/errors/{lower}"))
+            Some(format!(
+                "https://learn.microsoft.com/visualstudio/msbuild/errors/{lower}"
+            ))
         } else if c.starts_with("NETSDK") {
-            Some(format!("https://learn.microsoft.com/dotnet/core/tools/sdk-errors/{lower}"))
+            Some(format!(
+                "https://learn.microsoft.com/dotnet/core/tools/sdk-errors/{lower}"
+            ))
         } else if c.starts_with("CA") || c.starts_with("IDE") {
-            Some(format!("https://learn.microsoft.com/dotnet/fundamentals/code-analysis/{}/{lower}", if c.starts_with("CA") { "quality-rules" } else { "style-rules" }))
+            Some(format!(
+                "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/{}/{lower}",
+                if c.starts_with("CA") {
+                    "quality-rules"
+                } else {
+                    "style-rules"
+                }
+            ))
         } else {
             None
         }
@@ -104,7 +119,11 @@ fn split_project(rest: &str) -> (String, String) {
         if let Some(open) = t.rfind(" [") {
             let proj = &t[open + 2..t.len() - 1];
             let lower = proj.to_ascii_lowercase();
-            if lower.ends_with("proj") || lower.ends_with(".sln") || lower.ends_with(".slnx") || lower.contains("proj::") {
+            if lower.ends_with("proj")
+                || lower.ends_with(".sln")
+                || lower.ends_with(".slnx")
+                || lower.contains("proj::")
+            {
                 let proj = proj.split("::").next().unwrap_or(proj);
                 return (t[..open].trim().to_string(), proj.to_string());
             }
@@ -182,7 +201,9 @@ pub fn parse_problem_line(line: &str, root: &str) -> Option<BuildProblem> {
     }
     // Strip a leading `  1>` (msbuild -m node prefix) or timestamps.
     let l = match l.find('>') {
-        Some(i) if i <= 4 && l[..i].chars().all(|c| c.is_ascii_digit()) && i > 0 => l[i + 1..].trim_start(),
+        Some(i) if i <= 4 && l[..i].chars().all(|c| c.is_ascii_digit()) && i > 0 => {
+            l[i + 1..].trim_start()
+        }
         _ => l,
     };
     // Find `: <severity>` that follows the location / origin.
@@ -198,12 +219,20 @@ pub fn parse_problem_line(line: &str, root: &str) -> Option<BuildProblem> {
                     let h = head.trim();
                     // `MSBUILD`, `CSC`, `/abs/App.csproj` (problems of a project file),
                     // `EXEC`; never a sentence.
-                    if h.is_empty() || h.contains("  ") || (h.contains(' ') && !h.contains('/') && !h.contains('\\')) {
+                    if h.is_empty()
+                        || h.contains("  ")
+                        || (h.contains(' ') && !h.contains('/') && !h.contains('\\'))
+                    {
                         search = at + 2;
                         continue;
                     }
                     let lower = h.to_ascii_lowercase();
-                    if lower.ends_with("proj") || lower.ends_with(".props") || lower.ends_with(".targets") || lower.ends_with(".sln") || lower.ends_with(".slnx") {
+                    if lower.ends_with("proj")
+                        || lower.ends_with(".props")
+                        || lower.ends_with(".targets")
+                        || lower.ends_with(".sln")
+                        || lower.ends_with(".slnx")
+                    {
                         (h.to_string(), [0; 4], String::new())
                     } else {
                         (String::new(), [0; 4], h.to_string())
@@ -235,11 +264,17 @@ pub fn parse_build_output(output: &str, root: &str) -> BuildReport {
     for raw in output.lines() {
         let line = raw.trim_end_matches('\r');
         let t = line.trim();
-        if t == "Build succeeded." || t.starts_with("Build succeeded with") || t.starts_with("Build succeeded in") {
+        if t == "Build succeeded."
+            || t.starts_with("Build succeeded with")
+            || t.starts_with("Build succeeded in")
+        {
             report.succeeded = Some(true);
             continue;
         }
-        if t == "Build FAILED." || t.starts_with("Build failed with") || t.starts_with("Build failed in") {
+        if t == "Build FAILED."
+            || t.starts_with("Build failed with")
+            || t.starts_with("Build failed in")
+        {
             report.succeeded = Some(false);
             continue;
         }
@@ -320,15 +355,33 @@ mod tests {
         let err = r.problems.iter().find(|p| p.code == "CS0103").unwrap();
         assert_eq!(err.path, "src/Bookstore.Api/Program.cs");
         assert_eq!((err.line, err.column), (11, 29));
-        assert_eq!(err.message, "The name 'inventry' does not exist in the current context");
+        assert_eq!(
+            err.message,
+            "The name 'inventry' does not exist in the current context"
+        );
         let nu = r.problems.iter().find(|p| p.code == "NU1603").unwrap();
         assert_eq!(nu.path, "tests/Bookstore.Tests/Bookstore.Tests.csproj");
         let fs = r.problems.iter().find(|p| p.code == "FS0039").unwrap();
-        assert_eq!((fs.path.as_str(), fs.line, fs.column, fs.end_line, fs.end_column), ("tools/Reports/Sales.fs", 4, 10, 4, 17));
+        assert_eq!(
+            (
+                fs.path.as_str(),
+                fs.line,
+                fs.column,
+                fs.end_line,
+                fs.end_column
+            ),
+            ("tools/Reports/Sales.fs", 4, 10, 4, 17)
+        );
         assert_eq!(r.elapsed, "00:00:03.71");
         assert_eq!(r.outputs.len(), 1);
-        assert_eq!(r.outputs[0].path, "src/Bookstore.Core/bin/Debug/net8.0/Acme.Bookstore.Core.dll");
-        assert_eq!(cs.help_url().unwrap(), "https://learn.microsoft.com/dotnet/csharp/misc/cs8618");
+        assert_eq!(
+            r.outputs[0].path,
+            "src/Bookstore.Core/bin/Debug/net8.0/Acme.Bookstore.Core.dll"
+        );
+        assert_eq!(
+            cs.help_url().unwrap(),
+            "https://learn.microsoft.com/dotnet/csharp/misc/cs8618"
+        );
     }
 
     #[test]
@@ -337,20 +390,48 @@ mod tests {
         assert_eq!(r.succeeded, Some(true));
         assert!(r.problems.is_empty());
         assert_eq!(r.outputs.len(), 4);
-        assert_eq!(output_of(&r, "Bookstore.Api").unwrap().path, "src/Bookstore.Api/bin/Debug/net8.0/Bookstore.Api.dll");
+        assert_eq!(
+            output_of(&r, "Bookstore.Api").unwrap().path,
+            "src/Bookstore.Api/bin/Debug/net8.0/Bookstore.Api.dll"
+        );
         assert!(output_of(&r, "Nope").is_none());
-        let msb = parse_problem_line("MSBUILD : error MSB1009: Project file does not exist.", ROOT).unwrap();
-        assert_eq!((msb.origin.as_str(), msb.code.as_str(), msb.path.as_str()), ("MSBUILD", "MSB1009", ""));
-        let fatal = parse_problem_line("CSC : fatal error CS2001: Source file 'x.cs' could not be found.", ROOT).unwrap();
+        let msb = parse_problem_line(
+            "MSBUILD : error MSB1009: Project file does not exist.",
+            ROOT,
+        )
+        .unwrap();
+        assert_eq!(
+            (msb.origin.as_str(), msb.code.as_str(), msb.path.as_str()),
+            ("MSBUILD", "MSB1009", "")
+        );
+        let fatal = parse_problem_line(
+            "CSC : fatal error CS2001: Source file 'x.cs' could not be found.",
+            ROOT,
+        )
+        .unwrap();
         assert_eq!(fatal.severity, Severity::Error);
-        let node = parse_problem_line("  3>/home/anna/Projects/Bookstore/a.cs(1,2): error CS1002: ; expected", ROOT).unwrap();
+        let node = parse_problem_line(
+            "  3>/home/anna/Projects/Bookstore/a.cs(1,2): error CS1002: ; expected",
+            ROOT,
+        )
+        .unwrap();
         assert_eq!(node.path, "a.cs");
         assert!(parse_problem_line("Determining projects to restore...", ROOT).is_none());
-        assert!(parse_problem_line("  Warning: this sentence is not a diagnostic: really", ROOT).is_none());
+        assert!(
+            parse_problem_line("  Warning: this sentence is not a diagnostic: really", ROOT)
+                .is_none()
+        );
         assert!(parse_problem_line("Restore complete (0.4s)", ROOT).is_none());
-        let outside = parse_problem_line("/opt/sdk/Microsoft.Common.targets(2413,5): warning MSB3277: Conflicts", ROOT).unwrap();
+        let outside = parse_problem_line(
+            "/opt/sdk/Microsoft.Common.targets(2413,5): warning MSB3277: Conflicts",
+            ROOT,
+        )
+        .unwrap();
         assert_eq!(outside.path, "/opt/sdk/Microsoft.Common.targets");
         let win = parse_problem_line("C:\\src\\Shop\\Program.cs(3,1): error CS0246: Type 'X' not found [C:\\src\\Shop\\Shop.csproj]", "C:/src/Shop").unwrap();
-        assert_eq!((win.path.as_str(), win.project.as_str()), ("Program.cs", "Shop.csproj"));
+        assert_eq!(
+            (win.path.as_str(), win.project.as_str()),
+            ("Program.cs", "Shop.csproj")
+        );
     }
 }

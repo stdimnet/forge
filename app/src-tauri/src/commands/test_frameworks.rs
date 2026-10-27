@@ -151,8 +151,9 @@ impl ReportDir {
                     let mut files: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
                     files.sort();
                     for f in files.iter().filter(|f| {
-                        f.extension()
-                            .is_some_and(|x| x == "xml" || x == "json" || x == "jsonl" || x == "trx")
+                        f.extension().is_some_and(|x| {
+                            x == "xml" || x == "json" || x == "jsonl" || x == "trx"
+                        })
                     }) {
                         if let Ok(t) = std::fs::read_to_string(f) {
                             out.push(t);

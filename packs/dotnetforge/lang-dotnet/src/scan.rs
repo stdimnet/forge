@@ -388,9 +388,9 @@ pub fn scan_csharp(src: &str, hint: Option<TestFramework>) -> SourceScan {
             Tok::Punct('(') => {
                 // `Name(` or `Name<T>(` in a type body: a method (not after `=`, `new`, `=>`).
                 if let Some((owner, class_line, index)) = enclosing_type(&scopes) {
-                    let assigned = stmt
-                        .iter()
-                        .any(|(t, _)| matches!(t, Tok::Punct('=')) || *t == Tok::Ident("new".into()));
+                    let assigned = stmt.iter().any(|(t, _)| {
+                        matches!(t, Tok::Punct('=')) || *t == Tok::Ident("new".into())
+                    });
                     let name = method_name(&stmt);
                     if let (false, Some((name, name_line))) = (assigned, name) {
                         let is_static = stmt.iter().any(|(t, _)| *t == Tok::Ident("static".into()));
@@ -404,13 +404,27 @@ pub fn scan_csharp(src: &str, hint: Option<TestFramework>) -> SourceScan {
                         if let Some((framework, parameterized)) = found {
                             let ignored = attrs.iter().any(|a| a == "Ignore");
                             let parameterized = parameterized
-                                || attrs.iter().any(|a| matches!(a.as_str(), "TestCase" | "DataRow" | "InlineData" | "MemberData" | "ClassData" | "TestCaseSource"));
+                                || attrs.iter().any(|a| {
+                                    matches!(
+                                        a.as_str(),
+                                        "TestCase"
+                                            | "DataRow"
+                                            | "InlineData"
+                                            | "MemberData"
+                                            | "ClassData"
+                                            | "TestCaseSource"
+                                    )
+                                });
                             let idx = match index {
                                 Some(ix) => ix,
                                 None => {
                                     let ix = out.classes.len();
                                     out.classes.push(TestClass {
-                                        name: owner.rsplit(['.', '+']).next().unwrap_or(&owner).to_string(),
+                                        name: owner
+                                            .rsplit(['.', '+'])
+                                            .next()
+                                            .unwrap_or(&owner)
+                                            .to_string(),
                                         full_name: owner.clone(),
                                         line: class_line,
                                         tests: Vec::new(),
@@ -515,8 +529,22 @@ fn method_name(stmt: &[(Tok, u32)]) -> Option<(String, u32)> {
 fn is_keyword(s: &str) -> bool {
     matches!(
         s,
-        "if" | "for" | "foreach" | "while" | "switch" | "using" | "lock" | "catch" | "return"
-            | "nameof" | "typeof" | "sizeof" | "default" | "base" | "this" | "fixed" | "when"
+        "if" | "for"
+            | "foreach"
+            | "while"
+            | "switch"
+            | "using"
+            | "lock"
+            | "catch"
+            | "return"
+            | "nameof"
+            | "typeof"
+            | "sizeof"
+            | "default"
+            | "base"
+            | "this"
+            | "fixed"
+            | "when"
     )
 }
 
@@ -681,7 +709,8 @@ pub fn scan_fsharp(src: &str, hint: Option<TestFramework>) -> SourceScan {
             .or_else(|| t.strip_prefix("static member "));
         if let Some(rest) = decl {
             let found = attrs.iter().find_map(|a| test_attribute(a, hint));
-            if let (Some((framework, parameterized)), Some((_, owner))) = (found, containers.last()) {
+            if let (Some((framework, parameterized)), Some((_, owner))) = (found, containers.last())
+            {
                 let rest = rest.trim_start_matches("async ").trim_start_matches("rec ");
                 // `_.Name`, `this.Name`, ``name with spaces``, `name`.
                 let rest = match rest.split_once('.') {
@@ -695,7 +724,11 @@ pub fn scan_fsharp(src: &str, hint: Option<TestFramework>) -> SourceScan {
                         Some(i) => i,
                         None => {
                             out.classes.push(TestClass {
-                                name: owner.rsplit(['.', '+']).next().unwrap_or(&owner).to_string(),
+                                name: owner
+                                    .rsplit(['.', '+'])
+                                    .next()
+                                    .unwrap_or(&owner)
+                                    .to_string(),
                                 full_name: owner.clone(),
                                 line,
                                 tests: Vec::new(),
@@ -708,13 +741,17 @@ pub fn scan_fsharp(src: &str, hint: Option<TestFramework>) -> SourceScan {
                         line,
                         framework,
                         skipped: skip || attrs.iter().any(|a| a == "Ignore"),
-                        parameterized: parameterized || attrs.iter().any(|a| a == "InlineData" || a == "TestCase"),
+                        parameterized: parameterized
+                            || attrs.iter().any(|a| a == "InlineData" || a == "TestCase"),
                     });
                 }
             }
             if attrs.iter().any(|a| a == "EntryPoint") {
                 out.entry_points.push(EntryPoint {
-                    class_full_name: containers.last().map(|(_, n)| n.clone()).unwrap_or_default(),
+                    class_full_name: containers
+                        .last()
+                        .map(|(_, n)| n.clone())
+                        .unwrap_or_default(),
                     line,
                 });
             }
@@ -744,22 +781,35 @@ mod tests {
 
     #[test]
     fn xunit_tests_with_nested_classes() {
-        let s = scan_csharp(&fixture("bookstore/tests/Bookstore.Tests/CartTests.cs"), None);
+        let s = scan_csharp(
+            &fixture("bookstore/tests/Bookstore.Tests/CartTests.cs"),
+            None,
+        );
         assert_eq!(s.classes.len(), 2);
         let c = &s.classes[0];
         assert_eq!(c.full_name, "Bookstore.Tests.CartTests");
         let names: Vec<&str> = c.tests.iter().map(|t| t.name.as_str()).collect();
         assert_eq!(
             names,
-            vec!["Total_IsZero_ForAnEmptyCart", "Total_AddsLines", "Add_RejectsNonPositiveQuantities", "Total_AppliesVouchers"]
+            vec![
+                "Total_IsZero_ForAnEmptyCart",
+                "Total_AddsLines",
+                "Add_RejectsNonPositiveQuantities",
+                "Total_AppliesVouchers"
+            ]
         );
         assert_eq!(c.tests[0].line, 11);
         assert!(c.tests[2].parameterized && !c.tests[0].parameterized);
         assert!(c.tests[3].skipped);
         assert_eq!(c.tests[0].framework, TestFramework::Xunit);
-        assert_eq!(s.classes[1].full_name, "Bookstore.Tests.CartTests+WhenEmpty");
+        assert_eq!(
+            s.classes[1].full_name,
+            "Bookstore.Tests.CartTests+WhenEmpty"
+        );
         assert_eq!(s.classes[1].tests[0].name, "HasNoLines");
-        assert!(s.declared.contains(&"Bookstore.Tests.CartTests".to_string()));
+        assert!(s
+            .declared
+            .contains(&"Bookstore.Tests.CartTests".to_string()));
     }
 
     #[test]
@@ -826,8 +876,16 @@ public sealed class StockTests
         assert_eq!(t[0].framework, TestFramework::Mstest);
         assert!(t[1].parameterized);
         assert!(t[2].skipped);
-        assert_eq!(s.entry_points, vec![EntryPoint { class_full_name: "Shop.Tests.StockTests".into(), line: 14 }]);
-        assert!(s.declared.contains(&"Shop.Tests.StockTests+Line".to_string()));
+        assert_eq!(
+            s.entry_points,
+            vec![EntryPoint {
+                class_full_name: "Shop.Tests.StockTests".into(),
+                line: 14
+            }]
+        );
+        assert!(s
+            .declared
+            .contains(&"Shop.Tests.StockTests+Line".to_string()));
     }
 
     #[test]
@@ -838,7 +896,10 @@ public sealed class StockTests
         assert_eq!(s.classes[0].tests[0].name, "Generic");
         assert_eq!(s.classes[0].tests[0].line, 4);
         assert_eq!(s.entry_points.len(), 1);
-        let plain = scan_csharp(&fixture("bookstore/src/Bookstore.Core/Catalog/Cart.cs"), None);
+        let plain = scan_csharp(
+            &fixture("bookstore/src/Bookstore.Core/Catalog/Cart.cs"),
+            None,
+        );
         assert!(plain.classes.is_empty());
         assert_eq!(plain.declared, vec!["Bookstore.Core.Catalog.Cart"]);
     }

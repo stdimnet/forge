@@ -169,14 +169,25 @@ mod tests {
         assert_eq!(ctx.solution.as_deref(), Some("Bookstore.sln"));
         assert_eq!(ctx.projects.len(), 4);
         assert!(ctx.project("Bookstore.Tests").unwrap().test);
-        assert_eq!(ctx.project_of_file("tests/Bookstore.Tests/CartTests.cs").unwrap().name, "Bookstore.Tests");
+        assert_eq!(
+            ctx.project_of_file("tests/Bookstore.Tests/CartTests.cs")
+                .unwrap()
+                .name,
+            "Bookstore.Tests"
+        );
         assert_eq!(ctx.dotnet(), "dotnet");
         assert_eq!(ctx.configuration(), "Debug");
         assert_eq!(ctx.environment()["DOTNET_NOLOGO"], "1");
-        ctx.classes.insert("Bookstore.Tests.CartTests".into(), "tests/Bookstore.Tests/CartTests.cs".into());
+        ctx.classes.insert(
+            "Bookstore.Tests.CartTests".into(),
+            "tests/Bookstore.Tests/CartTests.cs".into(),
+        );
         let rules = ctx.location_rules();
         assert_eq!(rules[0].pattern, "^Bookstore\\.Tests\\.CartTests(\\+.*)?$");
-        assert_eq!(ctx.classes_in("tests/Bookstore.Tests/CartTests.cs"), vec!["Bookstore.Tests.CartTests"]);
+        assert_eq!(
+            ctx.classes_in("tests/Bookstore.Tests/CartTests.cs"),
+            vec!["Bookstore.Tests.CartTests"]
+        );
         assert!(!ctx.testing_platform);
     }
 }

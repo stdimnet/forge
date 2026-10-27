@@ -1,0 +1,12 @@
+[package]
+name = "forge-dbschema"
+description = "Forge database schema tools (pure, also built to WebAssembly): ER diagram layout, schema compare, dialect-aware migration scripts with Laravel and Doctrine migration files, and query plans parsed from EXPLAIN output"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-sql.workspace = true
+forge-dbmodel.workspace = true
+serde.workspace = true
+serde_json.workspace = true

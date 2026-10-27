@@ -144,6 +144,10 @@ const NPM_FRAMEWORKS: &[(&str, &str, &str)] = &[
     ("vue", "vue", "Vue.js"),
     ("svelte", "svelte", "Svelte"),
     ("solid-js", "solid", "Solid"),
+    ("astro", "astro", "Astro"),
+    ("nx", "nx", "Nx"),
+    ("prisma", "prisma", "Prisma"),
+    ("@prisma/client", "prisma", "Prisma"),
     ("vite", "vite", "Vite"),
 ];
 
@@ -163,6 +167,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "next",
     "nuxt",
     "angular",
+    "astro",
     "svelte",
     "vue",
     "react",
@@ -172,6 +177,8 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "flask",
     "love",
     "neovim",
+    "deno",
+    "nx",
     "vite",
 ];
 
@@ -359,6 +366,32 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     if files.iter().any(|f| f.starts_with("vite.config.")) {
         c.framework("vite", "Vite", "javascript", None, rel);
     }
+    let config = |prefix: &str| files.iter().any(|f| f.starts_with(prefix));
+    if config("nuxt.config.") {
+        c.framework("nuxt", "Nuxt", "javascript", None, rel);
+    }
+    if config("astro.config.") {
+        c.framework("astro", "Astro", "javascript", None, rel);
+    }
+    if config("svelte.config.") {
+        c.framework("svelte", "Svelte", "javascript", None, rel);
+    }
+    if has("nx.json") {
+        c.framework("nx", "Nx", "javascript", None, rel);
+    }
+    if has("deno.json") || has("deno.jsonc") {
+        c.framework("deno", "Deno", "typescript", None, rel);
+        c.tool("deno");
+    }
+    if has("bunfig.toml") || has("bun.lockb") || has("bun.lock") {
+        c.tool("bun");
+    }
+    if has("schema.prisma") || dir.join("prisma/schema.prisma").is_file() {
+        c.framework("prisma", "Prisma", "javascript", None, rel);
+    }
+    if config("graphql.config.") || config(".graphqlrc") {
+        c.tool("graphql");
+    }
     if has("tsconfig.json") || has_ext(".ts") || has_ext(".tsx") {
         c.language("typescript");
     }
@@ -501,7 +534,12 @@ fn is_cpp_file(name: &str) -> bool {
 /// project file (`.csproj`, `.fsproj`, `.vbproj`), `global.json`, or C# / F# sources in
 /// the root (or several in a folder). A web SDK project is ASP.NET Core.
 fn scan_dotnet(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
-    let ext = |e: &str| files.iter().filter(|f| f.to_ascii_lowercase().ends_with(e)).count();
+    let ext = |e: &str| {
+        files
+            .iter()
+            .filter(|f| f.to_ascii_lowercase().ends_with(e))
+            .count()
+    };
     let solutions: Vec<&String> = files
         .iter()
         .filter(|f| {
@@ -562,11 +600,18 @@ fn scan_dotnet(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
         })
         .any(|f| {
             fs::read_to_string(dir.join(f))
-                .map(|t| t.contains("Microsoft.NET.Sdk.Web") || t.contains("Microsoft.NET.Sdk.BlazorWebAssembly"))
+                .map(|t| {
+                    t.contains("Microsoft.NET.Sdk.Web")
+                        || t.contains("Microsoft.NET.Sdk.BlazorWebAssembly")
+                })
                 .unwrap_or(false)
         });
     if web {
-        let lang = if fs > 0 && cs == 0 { "fsharp" } else { "csharp" };
+        let lang = if fs > 0 && cs == 0 {
+            "fsharp"
+        } else {
+            "csharp"
+        };
         c.framework("aspnetcore", "ASP.NET Core", lang, None, rel);
     }
 }
@@ -1498,6 +1543,35 @@ mod tests {
     }
 
     #[test]
+    fn web_tooling_markers() {
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "nx.json", "{}");
+        write(dir.path(), "deno.jsonc", "{}");
+        write(dir.path(), "bunfig.toml", "");
+        write(dir.path(), "prisma/schema.prisma", "datasource db {}");
+        write(dir.path(), ".graphqlrc.yml", "schema: s.graphql");
+        write(dir.path(), "site/astro.config.mjs", "");
+        write(
+            dir.path(),
+            "site/package.json",
+            r#"{"dependencies": {"astro": "^5.1.0"}}"#,
+        );
+        write(dir.path(), "web/nuxt.config.ts", "");
+        let info = detect(dir.path());
+        let ids: Vec<&str> = info.frameworks.iter().map(|f| f.id.as_str()).collect();
+        for id in ["nx", "deno", "prisma", "astro", "nuxt"] {
+            assert!(ids.contains(&id), "{id} in {ids:?}");
+        }
+        for tool in ["deno", "bun", "graphql"] {
+            assert!(info.tools.iter().any(|t| t == tool), "{tool}");
+        }
+        assert_eq!(
+            info.framework("astro").unwrap().version.as_deref(),
+            Some("5.1.0")
+        );
+    }
+
+    #[test]
     fn version_from_package_lock() {
         let dir = tempfile::tempdir().unwrap();
         write(
@@ -1814,9 +1888,21 @@ mod tests {
     #[test]
     fn dotnet_projects() {
         for (marker, content, lang) in [
-            ("Shop.sln", "Project(\"{9A19103F}\") = \"Api\", \"Api\\\\Api.csproj\", \"{1}\"", "csharp"),
-            ("Shop.slnx", "<Solution><Project Path=\"Reports/Reports.fsproj\" /></Solution>", "fsharp"),
-            ("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />", "csharp"),
+            (
+                "Shop.sln",
+                "Project(\"{9A19103F}\") = \"Api\", \"Api\\\\Api.csproj\", \"{1}\"",
+                "csharp",
+            ),
+            (
+                "Shop.slnx",
+                "<Solution><Project Path=\"Reports/Reports.fsproj\" /></Solution>",
+                "fsharp",
+            ),
+            (
+                "App.csproj",
+                "<Project Sdk=\"Microsoft.NET.Sdk\" />",
+                "csharp",
+            ),
             ("Lib.vbproj", "<Project />", "vbnet"),
             ("Program.cs", "Console.WriteLine();", "csharp"),
             ("script.fsx", "printfn \"hi\"", "fsharp"),
@@ -1830,7 +1916,11 @@ mod tests {
         // A solution with projects one level below, ASP.NET Core.
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), "Bookstore.sln", "Microsoft Visual Studio Solution File\nProject(\"x\") = \"Api\", \"Api\\\\Api.csproj\", \"y\"");
-        write(dir.path(), "Api/Api.csproj", "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />");
+        write(
+            dir.path(),
+            "Api/Api.csproj",
+            "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />",
+        );
         let info = detect(dir.path());
         assert!(info.uses("dotnet") && info.uses("aspnetcore"));
         assert_eq!(info.primary.as_ref().unwrap().id, "aspnetcore");

@@ -54,6 +54,19 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
+  "Track only root files", problems from output filters), Live Edit through the Browser
+  Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
+  completion, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun basics, OpenAPI validation, preview,
+  endpoints and Generate HTTP Request, GraphQL validation and completion against the schema,
+  and the HTTP client's OAuth 2.0, cURL import/export, WebSocket and gRPC requests
+  ([Web tooling](docs/guide/user/web-tooling.md)).
+- **ER diagrams, Compare Structure and Explain Plan**: Diagrams | Show Diagram
+  (`Ctrl+Alt+Shift+U`) draws a schema or a table with its relations (zoom, pan, SVG/PNG
+  export); Compare Structure diffs two schemas or a schema and a DDL snapshot and generates the
+  migration script for the target's dialect (or a Laravel / Doctrine migration file), run only
+  after confirmation; Explain Plan shows a console statement's plan as a tree and a flame graph
+  ([Database tools](docs/guide/user/database.md#er-diagrams)).
 - **Vulnerable dependencies**: the Package Checker runs each ecosystem's audit tool
   (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP
   dependency-check reports) on project open, when a lock file changes and with Code | Analyze
@@ -843,6 +856,7 @@ not finished, the page says so.
 | [Drupal, Joomla and Shopware](docs/guide/user/cms.md) | CMS detection, Drupal file types and hook completion with Go to the hook docs, Shopware Twig tags, Drush and Shopware console |
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
+| [Web tooling](docs/guide/user/web-tooling.md) | File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, OAuth 2.0, cURL, WebSocket and gRPC requests |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
@@ -11344,6 +11358,266 @@ In [remote projects](docs/guide/user/remote-development.md) the npm tool window,
 component navigation and gutter icons are computed by the Forge agent on the host, and scripts
 run there like every run configuration.
 
+## More web tooling
+
+File Watchers, Live Edit, Vite/Webpack aliases in imports, Svelte, Astro, Nuxt, Nx, Prisma,
+Deno and Bun, OpenAPI and GraphQL are described in [Web tooling](docs/guide/user/web-tooling.md).
+
+
+---
+
+Source: docs/guide/user/web-tooling.md
+
+# Web tooling
+
+Tooling around the web languages of [WebForge](docs/guide/user/webforge.md), modelled on PHPStorm and
+WebStorm. Everything works at a solid basic level; the notes at the end of each section say
+what is not there yet. In browser mode the demo `?project=webtools` (an Nx workspace with a
+Nuxt storefront, an OpenAPI document, GraphQL, Prisma, Sass and `.http` requests) shows all of
+it.
+
+## File Watchers
+
+Settings | Tools | File Watchers runs a program whenever a file of some type changes, such as
+`sass`, `lessc`, `tsc`, `babel` or `prettier`. Watchers belong to the project (setting
+`tools.fileWatchers`).
+
+![File Watchers page](docs/screenshots/web-tooling-file-watchers.png)
+
+- **+** adds a watcher from a template: **SCSS**, **Sass**, **Less**, **TypeScript** (`tsc`),
+  **Babel**, **Prettier** or **Custom**. The check box turns a watcher off.
+- **Files to Watch**: the file type and the scope (Project Files or any scope from
+  Settings | Appearance & Behavior | Scopes).
+- **Tool to Run on Changes**: program, arguments, output paths to refresh and working
+  directory, all with macros such as `$FileName$`, `$FileNameWithoutExtension$`,
+  `$FileDir$`, `$FilePathRelativeToProjectRoot$` and `$ProjectFileDir$`, plus environment
+  variables. A bare program name (`sass`) runs the project's `node_modules/.bin/sass` when
+  there is one.
+- **Advanced Options**:
+  - **Auto-save edited files to trigger the watcher**: the file is saved after a short pause
+    in typing, so the watcher runs while you type.
+  - **Trigger the watcher on external changes**: also run for files changed outside Forge
+    (git checkout, another editor).
+  - **Track only root files**: a changed partial (`_variables.scss`) or imported module runs
+    the files that import it (`app.scss`, `print.scss`) instead of itself. `@use`, `@import`
+    and `@forward` (Sass, Less) and relative ES imports are followed.
+  - **Show console**: Always, On error (default) or Never.
+- **Output filters** (`$FILE_PATH$:$LINE$:$COLUMN$`, one regular expression per line, as for
+  External Tools) turn the program's error messages into links in the console and into
+  problems in the **File Watchers** tab of the Problems tool window.
+
+![A watcher run after saving a Sass partial](docs/screenshots/web-tooling-file-watcher-run.png)
+
+Watchers run in the Run tool window like any program, and never in
+[Safe Mode](docs/guide/user/project-trust.md): an untrusted project shows "File Watchers did not run" instead.
+Files a watcher writes (its output paths) never start it again.
+
+![Edit Watcher dialog](docs/screenshots/web-tooling-file-watcher-edit.png)
+
+> **Note:** watchers run one file at a time; PHPStorm's "Create output file from stdout" and
+> per-watcher "Level" (global watchers) are not available yet.
+
+## Live Edit
+
+With the [Browser Companion](docs/guide/user/browser-companion.md) extension paired, Forge updates the pages
+open in the browser:
+
+- **Style sheets** are swapped in place without a reload (CSS hot swap): while typing (after
+  `liveEdit.delayMs`, setting `liveEdit.updateWhileTyping`) with the editor's text, and on save
+  by reloading the `<link>`. CSS that a File Watcher writes (Sass, Less) is pushed when it
+  changes on disk.
+- **HTML, scripts, templates and images**: pages that loaded the saved file reload
+  (`liveEdit.reloadOnSave`).
+
+The extension matches changed files to what the page loaded by their path below the web root
+(`public/css/app.css` is `/css/app.css`), so other tabs are left alone. Turn it off with
+`liveEdit.enabled` (Settings | Tools | Browser Companion, section Live Edit).
+
+![Live Edit settings](docs/screenshots/web-tooling-live-edit.png)
+
+> **Note:** JavaScript is not hot-swapped (pages reload); use your dev server's HMR for that.
+> Style sheets a bundler injects from JavaScript reload the page instead of being swapped.
+
+## Vite and Webpack aliases
+
+`resolve.alias` of `vite.config.*` and `webpack.config.*` (in the root or one folder below) is
+read statically, together with `tsconfig.json` / `jsconfig.json` `paths`. Supported forms:
+object and array aliases, `path.resolve(__dirname, …)`, `path.join`,
+`fileURLToPath(new URL('./src', import.meta.url))`, `` `${__dirname}/src` ``, root-relative
+strings (`'/src'`) and Webpack's exact `name$`. Aliases to packages and computed values are
+skipped.
+
+- **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) on an import string such as
+  `'@ui/format'` opens the file, also where the TypeScript language server does not know the
+  alias.
+- **Completion** in import strings offers folders and modules through the aliases
+  (`'@/compo…'`), and the alias names themselves.
+
+## Svelte, Astro, Nuxt, Nx, Prisma, Deno and Bun
+
+| Framework | Detected by | What Forge does |
+| --- | --- | --- |
+| Svelte | `svelte` dependency, `svelte.config.*` | `.svelte` highlighting (HTML with script and style), the Svelte language server (npm, installed by Forge with your consent) |
+| Astro | `astro` dependency, `astro.config.*` | `.astro` highlighting, `@astrojs/language-server` |
+| Nuxt | `nuxt` dependency, `nuxt.config.*` | the **Nuxt** view of the Endpoints tool window (pages as routes, `[id]` → `:id`, catch-all and optional parameters, route groups; auto-imported components), Go to Declaration on component tags (`<BaseButton>`, `<base-button>`, `<LazyBaseButton>`) |
+| Nx | `nx.json` | the **Nx** tool window (projects, targets with their executors, dependencies, a project graph), double-click runs `nx run project:target` as an `Nx` run configuration, targets in Run Anything |
+| Prisma | `prisma` / `@prisma/client` dependency, `schema.prisma` | `.prisma` highlighting, the Prisma language server, Tools \| Prisma \| Generate Client / Migrate Dev…, Prisma commands in Run Anything |
+| Deno | `deno.json` / `deno.jsonc` | `deno lsp` replaces the TypeScript language server, `Deno` run configurations (`deno run`, `deno task`, `deno test`), tasks in Run Anything |
+| Bun | `bun.lock` / `bun.lockb` / `bunfig.toml` | `Bun` run configurations (`bun run`, `bun test`), scripts in Run Anything, and Bun as the Node interpreter: enter `bun` in Settings \| Languages & Frameworks \| Node.js |
+
+![Nx tool window](docs/screenshots/web-tooling-nx.png)
+
+![Nuxt pages in the Endpoints tool window](docs/screenshots/web-tooling-nuxt-pages.png)
+
+> **Note:** the Nx project graph lists dependencies as layers instead of drawing edges, and
+> dependencies Nx infers from imports are not shown (only `implicitDependencies` and
+> package.json dependencies between workspace packages).
+
+## OpenAPI
+
+YAML and JSON files with a top-level `openapi: 3.x` (or `swagger: "2.0"`) key are OpenAPI
+documents, whatever their name.
+
+- **Validation** uses the bundled official OpenAPI 3.0 and 3.1 JSON schemas (Apache-2.0, from
+  the OpenAPI Initiative) through the [JSON Schema](docs/guide/user/json-schema.md) support; the status bar
+  shows "JSON schema: OpenAPI 3.0".
+- **Preview**: OpenAPI files open with a Swagger-UI-like preview next to the text, rendered by
+  Forge itself (no remote JavaScript): title, version, servers, operations by tag with
+  parameters, request body and responses with examples generated from the schemas, and the
+  schemas. The layout buttons switch between editor, preview and both.
+- **Endpoints**: the **OpenAPI** view of the Endpoints tool window lists every operation of
+  the project's documents with speed search; a click opens it in the file.
+- **Generate HTTP Request** (the send button of an operation, the endpoint's context menu, or
+  the Generate HTTP Request action at the caret) opens a new HTTP scratch with the request: path
+  parameters and required query parameters as `{{variables}}`, the server URL as
+  `@baseUrl`, an `Accept` header and the example body.
+
+![OpenAPI preview](docs/screenshots/web-tooling-openapi-preview.png)
+
+![OpenAPI endpoints](docs/screenshots/web-tooling-openapi-endpoints.png)
+
+> **Note:** Swagger 2.0 documents get the preview and endpoints but no schema validation;
+> external `$ref`s to other files are not followed.
+
+## GraphQL
+
+`.graphql`, `.gql` and `.graphqls` files are highlighted and checked against the project's
+schema with apollo-compiler (MIT / Apache-2.0):
+
+- **Schema**: the `schema` of `graphql.config.*` / `.graphqlrc*` (files or globs; an
+  introspection result in JSON works too), else every `.graphql` file that defines types.
+- **Validation**: unknown fields and types, missing required arguments, wrong variables and
+  syntax errors are reported as you type. Schema files are checked against each other.
+- **Completion** (`Ctrl+Space`): fields with their types and descriptions (deprecated ones
+  struck through), arguments, types after `on` and in variable definitions, and the top-level
+  keywords.
+- **Get GraphQL Schema from Endpoint** (Tools menu) runs the introspection query against the
+  endpoint of `graphql.config` (`extensions.endpoints`, with its headers) or one you enter, and
+  saves the schema as SDL (`schema.graphql` by default).
+- Queries run in the HTTP client as `GRAPHQL` requests (below).
+
+![GraphQL validation and completion](docs/screenshots/web-tooling-graphql.png)
+
+> **Note:** fragments are not resolved for completion inside spreads; `graphql-tag` strings in
+> JavaScript are not checked yet.
+
+## HTTP client extras
+
+These extend [Scratches and the HTTP client](docs/guide/user/scratches-and-http.md).
+
+### OAuth 2.0
+
+Configure authorization in `http-client.env.json` (secrets in
+`http-client.private.env.json`) under `Security.Auth`, like PHPStorm, and use the token with
+`{{$auth.token("id")}}` (or `{{$auth.idToken("id")}}`):
+
+```json
+{
+  "dev": {
+    "Security": {
+      "Auth": {
+        "shop-api": {
+          "Type": "OAuth2",
+          "Grant Type": "Authorization Code",
+          "Auth URL": "https://id.example.com/authorize",
+          "Token URL": "https://id.example.com/token",
+          "Redirect URL": "http://localhost:51234/callback",
+          "Client ID": "storefront",
+          "Scope": "openid products:read",
+          "PKCE": true
+        }
+      }
+    }
+  }
+}
+```
+
+```http
+GET https://api.example.com/products
+Authorization: Bearer {{$auth.token("shop-api")}}
+```
+
+- Grant types: **Client Credentials**, **Password** and **Authorization Code** (with PKCE,
+  S256). The Authorization Code grant opens the login page in your browser and receives the
+  code on a loopback port (the `Redirect URL`'s, else a free one).
+- `Client Credentials: "in body"` sends the client secret in the form instead of
+  `Authorization: Basic`.
+- Tokens are kept in memory for the IDE session and refreshed with their refresh token when
+  they expire. Tools | HTTP Client | Clear OAuth Tokens forgets them.
+
+![An OAuth request](docs/screenshots/web-tooling-http-oauth.png)
+
+### cURL
+
+- **Import from cURL** (toolbar of `.http` editors, Tools | HTTP Client): paste a `curl`
+  command, for example from the browser's dev tools; it becomes a request (method, headers,
+  `-d`/`--data-*`/`--json` bodies, `-F` multipart forms, `-u` basic auth, cookies, `-G`).
+- **Copy as cURL**: the request at the caret, resolved with the environment, as a `curl`
+  command line in the clipboard.
+
+![Import from cURL](docs/screenshots/web-tooling-curl-import.png)
+
+### GraphQL, WebSocket and gRPC requests
+
+```http
+GRAPHQL https://api.example.com/graphql
+
+query Product($id: ID!) {
+  product(id: $id) { name price }
+}
+
+{ "id": "42" }
+
+###
+WEBSOCKET ws://localhost:8080/orders/live
+
+{"subscribe": "orders"}
+=== wait-for-server
+{"ping": 1}
+
+###
+GRPC localhost:50051/acme.inventory.v1.Stock/GetLevel
+
+{ "productId": 42 }
+```
+
+- **`GRAPHQL`** sends the query (and the JSON variables block after it) as a GraphQL-over-HTTP
+  `POST`.
+- **`WEBSOCKET`** connects, sends the messages (separated by `===`; `=== wait-for-server` waits
+  for a message from the server first) and keeps a live message log in the Run tool window
+  (`▶` sent, `◀` received). Text typed into the console is sent as a message; Stop closes the
+  connection.
+- **`GRPC`** makes a unary call with the JSON body. The message types come from the server's
+  reflection service (`grpc.reflection.v1`, then `v1alpha`); servers without reflection need
+  their `.proto` files in Settings | Tools | HTTP Client (`httpClient.grpc.protoFiles`, files or
+  import folders). `grpcs://` and `https://` use TLS.
+
+![WebSocket message log](docs/screenshots/web-tooling-http-websocket.png)
+
+> **Note:** streaming gRPC methods, GraphQL subscriptions over WebSocket and sending WebSocket
+> or gRPC requests from a remote project's host are not supported yet; they connect from this
+> machine.
+
 
 ---
 
@@ -17351,6 +17625,92 @@ Data sources with a colour tint their rows (see [Colours](#read-only-and-product
 
 ![SQL Server tree](docs/screenshots/database-sqlserver-tree.png)
 
+## ER diagrams
+
+**Diagrams | Show Diagram** (`Ctrl+Alt+Shift+U`, macOS `Cmd+Alt+Shift+U`, or the context
+menu of the Database tool window) opens an entity–relationship diagram in an editor tab:
+
+- on a **schema** or a **data source**: every table and view of the schema (of a data source:
+  its current schema);
+- on a **table** or **view**: that table with the tables it references and the tables that
+  reference it;
+- in a console or table tab: the schema of its data source (a table tab: that table).
+
+![ER diagram](docs/screenshots/database-er-diagram.png)
+
+Each table lists its columns with their types; primary key columns have a key icon, foreign
+key columns a link icon, and nullable columns are dimmed. Foreign keys are drawn from the row of
+their column to the row of the referenced column, with an arrow at the referenced table;
+nullable and [virtual](#virtual-foreign-keys-and-columns) foreign keys are dashed. Referenced
+tables are placed above the tables that reference them, related tables next to each other, and
+tables without relations in a grid below. Very long types are shortened (the tooltip shows the
+full type).
+
+| Action | How |
+| --- | --- |
+| Pan | scroll, `Shift`+scroll sideways, or drag the background |
+| Zoom | `Ctrl`+scroll (macOS `Cmd`+scroll), or **Zoom In** / **Zoom Out** / **Actual Size** / **Fit Content** |
+| Highlight a table's relations | click the table |
+| Open the table's data | double-click the table |
+| Columns | **All Columns**, **Keys** (primary and foreign key columns only) or **No Columns** |
+| Views | show or hide views and materialized views |
+| Export | **Export Diagram** → **Export to SVG…** or **Export to PNG…** (twice the size) |
+| Refresh | introspect the schema again |
+
+![ER diagram of a table (light theme)](docs/screenshots/database-er-diagram-light.png)
+
+The status bar counts the tables and relations and the foreign keys that point to tables not in
+the diagram (other schemas, or not related to the selected table).
+
+## Compare Structure and migrations
+
+**Compare Structure…** (context menu of a data source, schema or table, or `Ctrl+D`, macOS
+`Cmd+D`, in the Database tool window) opens DataGrip's structure comparison in an editor tab.
+
+![Compare Structure](docs/screenshots/database-compare-structure.png)
+
+- **Source** is how the schema should be, **Target** the schema to migrate. Each side is a
+  schema of any relational data source — including a [DDL data source](#ddl-data-sources),
+  so you can compare a database with the `CREATE TABLE` scripts or migrations in the project —
+  or **DDL snapshot (paste SQL)** for a script you paste. **Swap** exchanges them.
+- **Compare** shows the differences as a tree: tables and views only in the source (**+**,
+  created by the migration), only in the target (**−**, dropped) and changed ones, with their
+  columns (type, nullability, default, auto increment, comment), primary keys, indexes,
+  foreign keys (with their `ON DELETE` / `ON UPDATE` rules), checks, view queries and comments.
+  Types are compared normalized (`int4` = `integer`, `character varying` = `varchar`),
+  indexes SQLite names itself and the generated names of SQLite's foreign keys are not
+  differences. Virtual foreign keys and columns are not part of the database and are ignored.
+- **Drop missing objects** (on by default) drops tables, views and columns that exist only in
+  the target; off, they are kept and listed as warnings. **Ignore comments** and **Ignore
+  defaults** leave those out of the comparison.
+
+The right side is the **migration script** in the target's dialect, ordered so every
+statement can run: foreign keys and views that change are dropped first, then indexes, keys
+and checks, then tables; new tables, columns, keys, indexes and checks follow, foreign keys and
+views come last. Each dialect gets its own syntax (`ALTER COLUMN … TYPE … USING` and
+`SET NOT NULL` on PostgreSQL, `MODIFY COLUMN` on MySQL, `ALTER COLUMN … NULL` on SQL Server,
+`MODIFY (…)` on Oracle, `DROP FOREIGN KEY` on MySQL, …). SQLite cannot alter most of a table,
+so a changed SQLite table is rebuilt: the new table is created, the common columns are copied,
+the old table is dropped and the new one renamed, with foreign key enforcement off; its indexes
+and triggers are created again. Statements that drop data are marked `-- Destructive`, and what
+needs a look (a new `NOT NULL` column without a default, a SQL Server default constraint,
+ClickHouse tables without an `ENGINE`) is listed as warnings above the script.
+
+The script never runs on its own:
+
+- **Open in Console** opens it in a new console of the target; nothing runs until you execute
+  it there.
+- **Run Migration…** asks first, naming how many statements drop data and whether the target is
+  a production data source; on a [read-only](#read-only-and-production-data-sources) target it
+  is disabled (and the console guard would refuse it). After running, the target is
+  introspected again and compared once more.
+- **Copy** copies the script.
+- With the [Laravel](docs/guide/user/laravel.md) plugin active, **Laravel Migration** writes the migration as
+  `database/migrations/<date>_update_<schema>_schema.php` (schema builder calls in `up()`, the
+  way back in `down()`) and opens it; with the [Doctrine](docs/guide/user/doctrine.md) plugin active,
+  **Doctrine Migration** writes `migrations/Version<date>.php` with the script's statements as
+  `addSql()` calls.
+
 ## Data sources
 
 **New Data Source…** (the **+** button or Find Action) opens **Data Sources and Drivers**:
@@ -17496,6 +17856,38 @@ SQL inspections and their quick fixes, `Ctrl+B` jumps to a table or column in th
 `Shift+F6` renames aliases, user parameters (`:id`, `?`, …) are asked before running, and
 **Browse Query History** (`Ctrl+Alt+E`, the clock icon) searches, inserts or re-runs every
 statement the data source ran.
+
+### Explain Plan
+
+**Explain Plan** and **Explain Plan (Raw)** (the plan icon in the console toolbar, or Find
+Action) show how the database would run the statement at the caret (or the selection),
+without running it:
+
+| Dialect | Explain Plan runs | Explain Plan (Raw) runs |
+| --- | --- | --- |
+| PostgreSQL | `EXPLAIN (FORMAT JSON) …` | `EXPLAIN …` |
+| MySQL | `EXPLAIN FORMAT=TREE …` (MariaDB: `EXPLAIN …`) | `EXPLAIN …` |
+| SQLite | `EXPLAIN QUERY PLAN …` | the same |
+| SQL Server | `SET SHOWPLAN_ALL ON`, the statement, `SET SHOWPLAN_ALL OFF` | the same |
+| ClickHouse | `EXPLAIN json = 1, description = 1 …` | `EXPLAIN …` |
+
+**Explain Plan** opens a **Plan** result tab with the plan as a tree — operation, object
+(table or index), estimated cost, the operation's own cost (its cost minus its children's),
+estimated rows and details such as filters and join conditions — and, with **Flame Graph**,
+as bars whose width is the share of the estimated cost (or of the rows, or equal shares when
+the database gives no estimates, as SQLite). **Explain Plan (Raw)** shows the rows of the
+`EXPLAIN` as they are.
+
+![Explain Plan](docs/screenshots/database-explain-plan.png)
+
+![Explain Plan as a flame graph](docs/screenshots/database-explain-flame.png)
+
+A statement that already starts with `EXPLAIN` runs as it is; since that may be
+`EXPLAIN ANALYZE`, which executes the statement, it goes through the read-only and production
+checks like **Execute**.
+
+> **Note:** Explain Plan is not available for Oracle (Forge runs every Oracle statement in its
+> own SQL\*Plus session, so the plan table is empty afterwards), Redis and MongoDB.
 
 ### Sessions
 
@@ -18209,6 +18601,13 @@ Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, 
 **Remote host** (default) or **This machine**.
 
 ![HTTP request sent from the remote host](docs/screenshots/remote-finish-http.png)
+
+## OAuth 2.0, cURL, GraphQL, WebSocket and gRPC
+
+The HTTP client also acquires OAuth 2.0 tokens (`{{$auth.token("id")}}` with `Security.Auth`
+in the environment file), imports and copies cURL commands, and runs `GRAPHQL`, `WEBSOCKET`
+(with a live message log) and `GRPC` requests. See
+[Web tooling](docs/guide/user/web-tooling.md#http-client-extras).
 
 
 ---
@@ -19358,6 +19757,13 @@ project: the host's absolute paths below the project, paths relative to it, and 
 machines or containers (`/app/src/App.tsx`, `C:\Users\…\src\App.tsx`), which are matched by
 their longest tail that exists in the project. Symbol lookups search the host's files.
 
+## Live Edit
+
+With the extension paired, saved style sheets are swapped in the open pages without a reload
+(also while typing), and pages reload when HTML, scripts or templates they loaded are saved.
+The extension asks Forge for changes with `GET /api/forge/live-edit` (paired browsers only).
+See [Web tooling](docs/guide/user/web-tooling.md#live-edit) for the settings.
+
 
 ---
 
@@ -20000,6 +20406,10 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
 | Full-Text Search… (database) | `DatabaseView.FullTextSearch` | `Ctrl+Alt+Shift+F` | `Cmd+Alt+Shift+F` | any |
+| Show Diagram… (ER diagram) | `ShowUmlDiagram` | `Ctrl+Alt+Shift+U` | `Cmd+Alt+Shift+U` | any |
+| Compare Structure… (database) | `Database.CompareStructure` |  |  | any |
+| Explain Plan (database console) | `Console.Jdbc.ExplainPlan` |  |  | editor |
+| Explain Plan (Raw) (database console) | `Console.Jdbc.ExplainPlan.Raw` |  |  | editor |
 | Modify Table… | `Database.ModifyTable` | `Ctrl+F6` | `Cmd+F6` | tool window |
 | New Table… | `Database.NewTable` |  |  | any |
 | SQL Generator… (Generate DDL) | `Database.GenerateDdl` |  |  | any |
@@ -21598,6 +22008,18 @@ Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
 | `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
 | `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
 | `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
+### Languages & Frameworks | GraphQL, OpenAPI, Deno and Bun
+
+Page ids `lang.graphql`, `lang.openapi`, `lang.deno` and `lang.bun`. See [Web tooling](docs/guide/user/web-tooling.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `graphql.validation` | bool | `true` | user |  | Check queries against the schema |
+| `graphql.endpoint` | string | `""` | user, project |  | Introspection endpoint — URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint. |
+| `openapi.preview` | bool | `true` | user |  | Show the preview next to OpenAPI files |
+| `deno.executable` | string | `deno` | user |  | Deno executable |
+| `bun.executable` | string | `bun` | user |  | Bun executable |
+
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -21833,6 +22255,10 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+| `liveEdit.enabled` | bool | `true` | user | Live Edit | Live Edit: update open pages in paired browsers — Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them. See [Web tooling](docs/guide/user/web-tooling.md#live-edit). |
+| `liveEdit.updateWhileTyping` | bool | `true` | user | Live Edit | Update style sheets while typing — Push the editor's CSS into the page after a short pause, before the file is saved. |
+| `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
+| `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
 ### Tools | External Tools
 
@@ -21849,6 +22275,15 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+| `httpClient.grpc.protoFiles` | list | `[]` | user, project | gRPC | .proto files for gRPC requests — Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service. |
+
+### Tools | File Watchers
+
+Page id `tools.file-watchers`. See [Web tooling](docs/guide/user/web-tooling.md#file-watchers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.fileWatchers` | objects | `[]` | user, project |  | File Watchers — Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, "Track only root files", console and output filters. |
 
 ### Build, Execution, Deployment | JDKs
 
@@ -22074,7 +22509,11 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
 | `stylus` | Stylus | `.styl`, `.stylus` |  |  |
-| `html` | HTML | `.html`, `.htm`, `.xhtml`, `.svelte`, `.astro` |  |  |
+| `html` | HTML | `.html`, `.htm`, `.xhtml` |  |  |
+| `svelte` | Svelte | `.svelte` |  |  |
+| `astro` | Astro | `.astro` |  |  |
+| `graphql` | GraphQL | `.graphql`, `.gql`, `.graphqls` |  |  |
+| `prisma` | Prisma | `.prisma` |  |  |
 | `vue` | Vue | `.vue` |  |  |
 | `twig` | Twig | `.twig`, `.html.twig` |  | yes |
 | `smarty` | Smarty | `.tpl`, `.smarty` |  | yes |
@@ -22256,6 +22695,8 @@ settings work.
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | [Astro Language Server](https://github.com/withastro/language-tools) | `astro-ls` | Astro | `astro-ls --stdio` | `npm install -g @astrojs/language-server typescript` | MIT | needs plugin `forge.web` |
+| [Deno Language Server](https://docs.deno.com/runtime/reference/lsp_integration/) | `deno` | TypeScript, JavaScript | `deno lsp` | `npm install -g deno`, `brew install deno`, `cargo install deno --locked` | MIT | needs plugin `forge.deno`; only with a root `deno.json` / `deno.jsonc`, where it replaces the TypeScript language server |
+| [Prisma Language Server](https://github.com/prisma/language-tools) | `prisma-language-server` | Prisma | `prisma-language-server --stdio` | `npm install -g @prisma/language-server` | Apache-2.0 | needs plugin `forge.prisma` |
 
 ### HTML & CSS
 
@@ -24762,6 +25203,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, the Database Explorer (object tree, schema filter, virtual foreign keys, full-text search, DDL data sources), consoles with sessions, the read-only / production guard and data editing |
 | [forge-dbmodel](docs/guide/developer/crates/forge-dbmodel.md) | Forge database explorer model (pure, also built to WebAssembly): object tree, schema filter, virtual foreign keys and columns, DDL parsing, full-text search queries, Quick Documentation, Create/Modify Table scripts and Generate DDL |
 | [forge-dataedit](docs/guide/developer/crates/forge-dataedit.md) | Forge data editor logic (pure, also built to WebAssembly): sort and filter SQL per dialect, local sort and filter, row keys and DML preview, foreign-key navigation, aggregates, data compare, charts and the value editor |
+| [forge-dbschema](docs/guide/developer/crates/forge-dbschema.md) | Forge database schema tools (pure, also built to WebAssembly): ER diagram layout, Compare Structure, dialect-aware migration scripts, Laravel and Doctrine migration files, and Explain Plan per dialect |
 | [forge-dbtransfer](docs/guide/developer/crates/forge-dbtransfer.md) | Forge database import, export and dump (pure, also built to WebAssembly): CSV/TSV, Excel and JSON sources with type detection, batched INSERTs, Excel export and native dump / restore command lines |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
@@ -24859,6 +25301,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [webforge-js-testing](docs/guide/developer/crates/webforge-js-testing.md) | WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright, Cypress, node --test): discovery, command lines, Rerun Failed Tests, debug programs (pure, also built to WebAssembly) |
 | [webforge-quality-tools](docs/guide/developer/crates/webforge-quality-tools.md) | WebForge: web code quality tools (ESLint, Prettier, Stylelint, Biome): configurations, automatic detection of packages and configuration files, command lines, JSON report parsing (pure) |
 | [webforge-lang-web](docs/guide/developer/crates/webforge-lang-web.md) | WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins |
+| [webforge-web-tooling](docs/guide/developer/crates/webforge-web-tooling.md) | WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly) |
 
 
 ---
@@ -26007,6 +26450,12 @@ Forge database tools (the DataGrip part of Forge).
 - `service::DbService`: consoles with own or shared sessions, transactions and cancel, the
   Sessions view, the read-only / production `guard`, table paging, row editing (`edit`),
   export (`export`) and the Redis keys and values.
+- `service::plan`: Explain Plan in a console session (`DbService::explain`): the dialect's
+  explain statements from [`forge-dbschema`](docs/guide/developer/crates/forge-dbschema.md) on the console's connection
+  (with the MariaDB fallback and SQL Server's `SHOWPLAN_ALL OFF` cleanup) and the rows parsed
+  into a plan; a statement that already is an `EXPLAIN` goes through the guard.
+- `schema`: the pure [`forge-dbschema`](docs/guide/developer/crates/forge-dbschema.md) (ER diagram layout, Compare
+  Structure, migrations, plan parsing), re-exported.
 - `value`, `split`, `export`, `guard`: re-exported from the pure `forge-sql` crate.
 
 ### Decisions
@@ -26039,6 +26488,7 @@ Forge database tools (the DataGrip part of Forge).
 | `secrets.rs` | Data source secrets in the OS keychain (service `forge-db`): password (`<id>`), SSH secret (`<id>#ssh`), SSL key passphrase (`<id>#ssl-key`). |
 | `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging with the data editor's filter and sort (SQL by `forge-dataedit`), the DML preview and row editing (by primary or unique key, production writes confirmed) and the Redis keys tree. |
 | `service/explorer.rs` | The Database Explorer: cached models, schema filter, incremental refresh, virtual objects, DDL data sources, Quick Documentation. |
+| `service/plan.rs` | Explain Plan in a console session: `ExplainResult` (the shown statement, raw rows, the parsed plan or why there is none). |
 | `service/search.rs` | Full-text search: targets from scopes (data sources, schemas, table patterns), one read-only query per table, progress callback, cancel. |
 | `ssh.rs` | The SSH tab: `SshConnector` / `ForgeSsh` open a `forge-remote` session (saved configuration or ad-hoc, `~/.ssh/config`, `known_hosts`) and forward a local port. |
 | `tls.rs` | Certificate files of the SSL tab, resolved against the project; encrypted PKCS#8 client keys decrypted in memory. |
@@ -26068,18 +26518,18 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 - IPC (`app/src-tauri/src/commands/db_objects.rs`): `db_objects_guard`, `db_run_script`,
   `db_design_load`, `db_generate_ddl`, `db_import_run`, `db_import_cancel`, `db_dump_tools`,
   `db_dump_command`, `db_restore_guard`, `db_dump_start`
-- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_preview_changes`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
+- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_preview_changes`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at`, `db_diagram`, `db_schema_compare`, `db_explain`, `db_save_export` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-dataedit`](docs/guide/developer/crates/forge-dataedit.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-dbtransfer`](docs/guide/developer/crates/forge-dbtransfer.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-dataedit`](docs/guide/developer/crates/forge-dataedit.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-dbschema`](docs/guide/developer/crates/forge-dbschema.md), [`forge-dbtransfer`](docs/guide/developer/crates/forge-dbtransfer.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
 - External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
 
-21 source files; 30 unit tests and 33 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `explorer.rs` (a real SQLite file: object tree with checks, triggers and views, the model cache, incremental table refresh, schema filter, virtual objects in the project, full-text search, DDL data sources over migration folders), `catalog.rs` (MySQL, PostgreSQL, SQL Server, Oracle and ClickHouse introspection against recorded catalog rows in `tests/fixtures/catalog/<dialect>.json`, keyed by query tag; every recorded query must be asked), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`, `objects.rs` (a real SQLite file: Create/Modify Table scripts including a rebuild that keeps the rows, Drop, errors naming the failed statement, read-only refused and production confirmed, imports with skip / abort (rolled back) / cancel and progress, the native tool target). No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
+22 source files; 30 unit tests and 35 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `explorer.rs` (a real SQLite file: object tree with checks, triggers and views, the model cache, incremental table refresh, schema filter, virtual objects in the project, full-text search, DDL data sources over migration folders), `schema_tools.rs` (two real SQLite files: Compare Structure, the generated migration run on the target and compared again, the ER diagram, Explain Plan in a session), `catalog.rs` (MySQL, PostgreSQL, SQL Server, Oracle and ClickHouse introspection against recorded catalog rows in `tests/fixtures/catalog/<dialect>.json`, keyed by query tag; every recorded query must be asked), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`, `objects.rs` (a real SQLite file: Create/Modify Table scripts including a rebuild that keeps the rows, Drop, errors naming the failed statement, read-only refused and production confirmed, imports with skip / abort (rolled back) / cancel and progress, the native tool target). No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
 
 ```sh
 cargo test -p forge-db
@@ -26282,6 +26732,109 @@ aggregates, data compare, charts and the value editor. End-to-end against SQLite
 ```sh
 cargo test -p forge-dataedit
 cargo test -p forge-db --test sqlite
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-dbschema.md
+
+# forge-dbschema
+
+`crates/forge-dbschema` — the schema tools of Forge's database support, modelled on
+DataGrip: ER diagrams, Compare Structure with migrations, and query plans. Pure code over the
+[`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md) types, shared by `forge-db` (desktop) and the
+browser-mode backend (WebAssembly). User documentation:
+[Database tools](docs/guide/user/database.md#er-diagrams).
+
+## Purpose
+
+- `diagram`: the ER diagram of a schema or of selected tables (with the tables they reference
+  and that reference them). Nodes are sized for a 12px monospace font (`CHAR_WIDTH`,
+  `HEADER_HEIGHT`, `ROW_HEIGHT`; at most `MAX_COLUMNS` columns, long types shortened), laid out
+  in layers per connected component — referenced tables above the tables referencing them,
+  cycles broken at back edges, layers ordered by barycenter sweeps, each node pulled under the
+  tables it references — and tables without relations in a grid below. Foreign keys become
+  polylines from the column row to the referenced column row, with lanes so parallel edges stay
+  apart. The UI only draws.
+- `compare`: `compare(source, target, options) -> SchemaDiff`: tables and views added
+  (source only), removed (target only) or changed, with column (type, nullability, default,
+  auto increment, comment), primary key, index, foreign key, check, view query and comment
+  differences. Types are normalized (`int4` = `integer`), indexes match by name or, when the
+  database named them (`sqlite_autoindex_*`), by columns; foreign keys and checks match by
+  definition; virtual objects are skipped.
+- `migrate`: `migration(dialect, source, target, options) -> Migration`: the statements that
+  turn the target into the source, in phases (drop foreign keys and views, drop indexes / keys /
+  checks, drop tables, create tables and change columns, add keys / indexes / checks, add
+  foreign keys and views) with per-dialect syntax; SQLite tables are rebuilt (create, copy the
+  common columns, drop, rename; `PRAGMA foreign_keys` off and on; indexes and triggers created
+  again). Drops are marked destructive and can be left out; warnings name what needs a look.
+- `framework`: `framework_migration(kind, …) -> MigrationFile`: a Laravel migration (schema
+  builder calls; `down()` is the migration back) or a Doctrine Migrations class (`addSql`).
+- `plan`: `explain_script(dialect, statement, raw)` — `EXPLAIN (FORMAT JSON)`,
+  `EXPLAIN FORMAT=TREE` (falling back to `EXPLAIN` for MariaDB), `EXPLAIN QUERY PLAN`,
+  `SET SHOWPLAN_ALL ON/OFF`, ClickHouse `EXPLAIN json = 1`; never `ANALYZE` — and
+  `parse_plan(columns, rows) -> Plan`: the format is recognized from the result (JSON plans,
+  MySQL tree, the classic MySQL table, SQLite query plan rows, SQL Server SHOWPLAN rows, Oracle
+  `PLAN_TABLE` rows, PostgreSQL text) and becomes a `PlanNode` tree with cost, startup cost,
+  own cost, rows, details and properties, plus the flame bars (width by cost, rows or equal
+  shares).
+- `api`: `compare_schemas(CompareRequest) -> CompareResult`, the request of `db_schema_compare`
+  and the WebAssembly bridge: each side a schema or a DDL snapshot (parsed with
+  `forge_dbmodel::ddl`), the migration and optionally a framework file.
+
+### Decisions
+
+- **Layout in Rust, drawing in the UI**: the layout is deterministic and testable, and the
+  same code runs in browser mode; the UI renders SVG and exports it (SVG, PNG).
+- **SQLite rebuilds** follow SQLite's documented procedure for changes `ALTER TABLE` cannot
+  make; adding a nullable column (or one with a default) and changing plain indexes stay
+  `ALTER TABLE` / `CREATE INDEX`.
+- **Oracle Explain Plan** is refused: Forge runs each Oracle statement in its own SQL*Plus
+  process, so `PLAN_TABLE` rows of `EXPLAIN PLAN FOR` are gone before they can be read. The
+  parser still reads `PLAN_TABLE` rows.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `diagram.rs` | `DiagramRequest` → `Diagram { nodes, edges, width, height, external_edges }`; `ColumnsMode` (`all`, `keys`, `none`). |
+| `compare.rs` | `compare`, `CompareOptions` (`ignoreComments`, `ignoreDefaults`, `ignoreViews`), `SchemaDiff` / `TableDiff` / `ItemDiff`, type normalization and matching helpers. |
+| `migrate.rs` | `migration`, `MigrationOptions` (`drops`, `compare`), `Migration { sql, statements, warnings, destructive }`. |
+| `framework.rs` | `framework_migration`, `FrameworkKind` (`laravel`, `doctrine`), `MigrationFile { path, text }`. |
+| `plan.rs` | `explain_script` → `ExplainScript { statements, result, cleanup, fallback }`; `parse_plan` → `Plan { format, root, total_cost, weight, flame }`. |
+| `api.rs` | `CompareRequest`, `CompareSide`, `CompareResult`, `compare_schemas`. |
+
+## Used by
+
+- [`forge-db`](docs/guide/developer/crates/forge-db.md): re-exported as `forge_db::schema`; `DbService::explain` runs the
+  explain script in a console session.
+- IPC (`app/src-tauri/src/commands/db.rs`): `db_diagram`, `db_schema_compare`, `db_explain`
+  (and `db_save_export` for diagram exports).
+- Browser mode: [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) `dbschema_diagram`, `dbschema_compare`,
+  `dbschema_explain_script`, `dbschema_parse_plan` (`parsers/dbschema.rs`;
+  `app/ui/src/mock/dbSchemaMock.ts`).
+- UI: `app/ui/src/features/database/schema` (diagram and compare tabs, the console's Plan tab).
+
+## Dependencies
+
+- Workspace crates: [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- External: `serde`, `serde_json` (MIT or Apache-2.0)
+
+## Tests
+
+6 source files; 21 unit tests: layout (layers, no overlaps, edges between column rows, self
+references, cycles, neighbours, column modes, long types), compare (diff tree, normalization,
+generated names, views and options), migrations per dialect (PostgreSQL order, MySQL, SQL
+Server, Oracle and ClickHouse syntax, no drops, SQLite rebuilds with triggers), Laravel and
+Doctrine files, explain statements and every plan format, and a DDL snapshot comparison. The
+end-to-end tests are in `forge-db` (`tests/schema_tools.rs`): two real SQLite databases are
+compared, the generated migration runs on the target (rows survive the rebuilds) and a second
+comparison finds no differences; Explain Plan runs in a console session.
+
+```sh
+cargo test -p forge-dbschema
+cargo test -p forge-db --test schema_tools
 ```
 
 
@@ -27155,12 +27708,12 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `yaml.rs` | Tolerant YAML parser: block mappings and sequences (`- key: v` compact items), flow collections, plain/quoted/block scalars, comments, documents, anchors, aliases, `<<` merge keys (reported at the `<<` key), tags (`!!str`; other tags mark the node as not judged). YAML 1.2 core schema scalars. |
 | `uri.rs` | `$id`/`$ref` resolution (RFC 3986 section 5), fragments, JSON pointer decoding; project files are `project:/<path>`. |
 | `schema.rs` | `SchemaDoc` (a parsed schema file with its `$id`s, anchors and external refs), `Registry` (loaded documents, aliases, failed URIs, `missing()`), `Sch` (a subschema with its base URI), `Draft`. |
-| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under. |
+| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under, including the official OpenAPI 3.0 and 3.1 schemas (Apache-2.0). |
 | `validate.rs` | The validator: every keyword of draft 4–2020-12 (see the user page), best-branch reporting for `anyOf`/`oneOf`, evaluated properties/items for `unevaluated*`, ECMAScript patterns through `regex-lite`. |
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, the SchemaStore catalog; glob matching. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
 | `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
 
@@ -27813,6 +28366,7 @@ Opening files in Forge from the outside world:
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
+| `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
 | `project.rs` | What the Browser Companion settings page needs to know about the open project to show the relevant framework snippets first, and the one config change it may apply itself: setting a variable in a dotenv file. |
 | `request.rs` | Open requests as they arrive from the browser extension, `forge://` links and the CLI, plus their validation. |
@@ -28462,6 +29016,7 @@ PHP files, settings) through the project backend and starts the processes with `
 | `args.rs` | Splitting and quoting of argument strings (shared with `forge-process`, which re-exports it). |
 | `macros.rs` | PHPStorm's macros (`$FilePath$`, `$ProjectFileDir$`, `$LineNumber$`, `$SelectedText$`, `$ClipboardContent$`, `$Prompt$`, `$PhpExecutable$`, …): the list with descriptions and previews for "Insert Macro…", and expansion with an `Expander` that hands out `$Prompt$` answers in order. Unknown `$Names$` stay as they are; macros without a value expand to nothing and are reported. |
 | `external.rs` | External Tools: the model, its settings object (`tools.externalTools`, string values), validation (name, program, output filters), the command of a run (arguments split first, then expanded) and grouping for menus; `action_id` is PHPStorm's `Tool_<group>_<name>`. |
+| `watchers.rs` | File Watchers: the model and its settings object (`tools.fileWatchers`), the templates (SCSS, Sass, Less, TypeScript, Babel, Prettier, Custom), validation, `plan` (which enabled watchers run for saved, typed-in or externally changed files by file type, scope and trigger; "Track only root files" follows `@use`/`@import`/`@forward` and relative imports to the root files; outputs never retrigger), `command` (macros expanded, `node_modules/.bin` programs) and `problems` (output filters to Problems). |
 | `launch.rs` | Launch plans: `plan(configurations, target)` returns the configurations to start (a compound's members, nested compounds expanded, duplicates once) and each one's ordered before-launch tasks, with "Run Another Configuration" flattened; missing configurations and cycles are errors. npm, Composer, Artisan and shell tasks come with the temporary configuration that runs them. |
 | `anything.rs` | Run Anything: `suggest` groups and ranks (with `forge-fuzzy`) the history, run configurations, npm and Composer scripts, PHP files, plugin commands and the typed command; `?` returns help. `resolve` turns a command into a temporary configuration (`php file.php` → PHP Script, `php artisan …` → Artisan, `composer …`, `npm`/`pnpm`/`yarn`/`bun` → npm, else Shell Script); `push_history` keeps the newest 50 entries. |
 
@@ -28612,6 +29167,11 @@ Everything except `store` and `client` is pure, so browser mode runs it as WebAs
 | Module | Summary |
 | --- | --- |
 | `client.rs` | Sends the requests of `.http` scratches (feature `client`). |
+| `curl.rs` | cURL commands: `parse_curl` (Import from cURL: shell quoting, `-X`, `-H`, `-d`/`--data-*`, `--json`, `-F`, `-u`, `-b`, `-A`, `-e`, `-G`, `-I`) and `to_curl` (Copy as cURL); `to_http`. |
+| `grpc.rs` | `GRPC` requests (feature `client`): unary calls over HTTP/2 (h2, rustls for TLS) with JSON bodies encoded by prost-reflect; message types from server reflection (`grpc.reflection.v1`, then `v1alpha`) or `.proto` files compiled with protox. |
+| `oauth.rs` | OAuth 2.0 of `Security.Auth` in the environment files: configs, `$auth.token("id")` references, PKCE (S256), authorization URLs, token request forms and responses (pure). |
+| `oauth_client.rs` | The OAuth flows (feature `client`): Client Credentials, Password, Authorization Code with PKCE through the browser and a loopback listener, refresh tokens, a session `TokenCache`. |
+| `ws.rs` | `WEBSOCKET` requests (feature `client`, tokio-tungstenite): messages with `=== wait-for-server`, a live event log, console input as messages and Stop as close. |
 | `handler.rs` | Response handler scripts of `.http` requests (`> {% … %}`), PHPStorm's HTTP Client API as a small, safe subset: no JavaScript engine, no loops, no access to anything but the response and the global variables. |
 | `http.rs` | `.http` request files (PHPStorm's HTTP Client, lite): parsing, `{{variable}}` substitution and the console text of a response. |
 | `languages.rs` | Languages of the "New Scratch File" popup (Ctrl+Alt+Shift+Insert): every file type of `forge-filetypes` with an extension, the extension a new scratch gets, and the popup's ordering and speed search. |
@@ -29494,6 +30054,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
 | `dbobjects.rs` | Database objects (`forge-dbmodel` design and Generate DDL, `forge-dbtransfer` import, Excel export and dump command lines) for the browser-mode backend. |
 | `parsers/dbmodel.rs` | The Database Explorer model (`forge-dbmodel`) for the browser-mode database backend: schema filter, DDL data sources, virtual objects, Quick Documentation and full-text search over demo rows. |
+| `parsers/dbschema.rs` | The schema tools (`forge-dbschema`) for the browser-mode database backend: ER diagram layout, Compare Structure with the migration script, and Explain Plan (explain statements and plan parsing). |
 | `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
 | `inspections.rs` | Inspections (`forge-inspections`), called synchronously by the UI in the desktop app and in browser mode: `inspections_configure` / `inspections_apply` (the selected profile applied to every published diagnostic: inspection ids, severities, disabled inspections, suppression comments), `inspections_view` and `inspections_profile_op` (the Settings page), `inspections_suppress_actions` (Alt+Enter), `inspections_find` (Run Inspection by Name), `inspections_report_tree`, profile export / import; for the browser-mode mock `inspections_run`, `inspections_cleanup_plan`, `inspections_apply_edits` and `inspections_export_report`. |
 | `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
@@ -29520,7 +30081,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-dbtransfer`](docs/guide/developer/crates/forge-dbtransfer.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-dbschema`](docs/guide/developer/crates/forge-dbschema.md), [`forge-dbtransfer`](docs/guide/developer/crates/forge-dbtransfer.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests
@@ -32548,6 +33109,8 @@ WebAssembly (`crates/forge-wasm/src/web.rs`).
 
 | Module | Summary |
 | --- | --- |
+| `aliases.rs` | `resolve.alias` of `vite.config.*` / `webpack.config.*` read statically: object and array forms, `path.resolve`/`path.join`, `fileURLToPath(new URL(…))`, template strings, root-relative strings, Webpack's exact `name$`. |
+| `import_paths.rs` | The import specifier under the caret: Go to Declaration and path completion through relative paths, `tsconfig` paths and bundler aliases. |
 | `component.rs` | The component model shared by the React, Vue and Angular plugins, and the gutter marks and navigation answers they return to the UI. |
 | `fs.rs` | Loading `Sources` from disk (desktop app only; the browser mock passes its demo files). |
 | `imports.rs` | ES module imports and re-exports, read lexically from JavaScript/TypeScript source. |
@@ -32591,6 +33154,53 @@ pub trait FrameworkIndex { … }
 ```sh
 cargo test -p webforge-lang-web
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/webforge-web-tooling.md
+
+# webforge-web-tooling
+
+`packs/webforge/web-tooling` — WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly).
+
+## Purpose
+
+The pure models behind [Web tooling](docs/guide/user/web-tooling.md). The desktop app reads the
+project through its backend (`app/src-tauri/src/commands/web_tooling.rs`); browser mode runs
+the same code as WebAssembly (`crates/forge-wasm/src/web_tooling.rs`) over the demo files.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `openapi.rs` | OpenAPI 3.x / Swagger 2.0 documents (YAML or JSON through `forge-jsonschema`'s parsers): `version`/`is_openapi` by the top-level key, `endpoints` (method, path, operationId, summary, tags, line), `preview` (servers, operations grouped by tag with parameters, request body and responses, examples generated from schemas with local `$ref`s, schemas) and `http_request` ("Generate HTTP Request" as `.http` text). |
+| `graphql.rs` | GraphQL with apollo-compiler (MIT / Apache-2.0): `SchemaSet` (SDL files, schema problems, `validate` of operations, `complete` of fields, arguments, types and keywords from a token scan of the text before the caret), `syntax_problems`, `introspection_to_sdl`, `parse_config` for `graphql.config.*` / `.graphqlrc*` (schema files, documents, endpoints with headers) and `request_body`. Offsets are UTF-16. |
+| `nx.rs` | Nx workspaces: `workspace` reads `nx.json` (`targetDefaults`, `defaultBase`), `project.json` files and workspace `package.json` files (the `nx` key, scripts as targets) into projects with kind, tags, targets (executor or command, line) and dependencies (`implicitDependencies` and dependencies between workspace packages); `run_args`. |
+| `nuxt.rs` | Nuxt: `routes` from `pages/` (index, `[id]`, `[[optional]]`, `[...slug]`, route groups, Nuxt 4's `app/`), `components` from `components/` with path prefixes collapsed like Nuxt, `component_for_tag` (`<base-button>`, `<LazyX>`). |
+| `deno.rs` | Tasks of `deno.json` / `deno.jsonc` (string and object tasks). |
+
+## Main public items
+
+```rust
+pub mod deno;
+pub mod graphql;
+pub mod nuxt;
+pub mod nx;
+pub mod openapi;
+```
+
+## Dependencies
+
+`serde`, `serde_json`, `forge-jsonschema` (YAML/JSON trees with positions), `apollo-compiler`
+(GraphQL parsing and validation).
+
+## Tests
+
+Unit tests in each module: endpoint extraction and the preview of a Pet Store document,
+Swagger 2.0, Generate HTTP Request, GraphQL validation (unknown fields, missing arguments,
+syntax errors), schema problems, completion contexts, introspection to SDL, config files, Nx
+projects and graph, Nuxt routes and components, Deno tasks.
 
 
 ---

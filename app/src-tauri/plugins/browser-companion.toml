@@ -41,3 +41,45 @@ default = true
 group = "tools.browser-companion"
 section = "Built-in Server"
 order = 2
+
+# ---- Live Edit ----------------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "liveEdit.enabled"
+title = "Live Edit: update open pages in paired browsers"
+description = "Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them."
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 10
+
+[[contributions.settings]]
+key = "liveEdit.updateWhileTyping"
+title = "Update style sheets while typing"
+description = "Push the editor's CSS into the page after a short pause, before the file is saved."
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 11
+
+[[contributions.settings]]
+key = "liveEdit.reloadOnSave"
+title = "Reload pages when HTML, scripts or templates are saved"
+type = "bool"
+default = true
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 12
+
+[[contributions.settings]]
+key = "liveEdit.delayMs"
+title = "Delay before updating (ms)"
+type = "int"
+min = 100
+max = 5000
+default = 400
+group = "tools.browser-companion"
+section = "Live Edit"
+order = 13

@@ -104,6 +104,9 @@ fn decide(
     {
         return Err(Skip::NotUsed);
     }
+    if !spec.when.absent.is_empty() && ctx.scan.has_root_file(&spec.when.absent) {
+        return Err(Skip::NotUsed);
+    }
     if let Some(used) = spec.alternative.as_ref().and_then(|g| taken.get(g)) {
         return Err(Skip::Alternative { used: used.clone() });
     }
@@ -449,6 +452,33 @@ mod tests {
                 plugin: "forge.web".into()
             })
         );
+    }
+
+    #[test]
+    fn deno_projects_use_deno_lsp_instead_of_typescript() {
+        let f = fixture(&["typescript-language-server", "deno"]);
+        let prefs = Prefs::default();
+        let s = scan(&["typescript"]);
+        let ctx = ConfigContext {
+            root: &f.root,
+            cache_dir: f.root.join("cache"),
+            detector: &f.detector,
+            prefs: &prefs,
+            scan: &s,
+        };
+        let d = plan(Catalog::builtin(), &ctx, |_| true);
+        assert!(outcome(&d, "typescript-language-server").is_ok());
+        assert_eq!(outcome(&d, "deno"), &Err(Skip::NotUsed));
+        let mut s2 = s.clone();
+        s2.root_files.insert("deno.jsonc".into());
+        let ctx = ConfigContext { scan: &s2, ..ctx };
+        let d = plan(Catalog::builtin(), &ctx, |_| true);
+        assert_eq!(
+            outcome(&d, "typescript-language-server"),
+            &Err(Skip::NotUsed)
+        );
+        let deno = outcome(&d, "deno").as_ref().unwrap();
+        assert_eq!(deno.args, vec!["lsp"]);
     }
 
     #[test]

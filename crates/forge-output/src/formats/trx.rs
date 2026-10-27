@@ -22,7 +22,10 @@ use crate::testevents::{location, TestEvent};
 pub fn is_trx(xml: &str) -> bool {
     let head: String = xml.chars().take(600).collect();
     head.contains("<TestRun") && (head.contains("TeamTest") || head.contains("runUser"))
-        || head.trim_start_matches('\u{feff}').trim_start().starts_with("<TestRun")
+        || head
+            .trim_start_matches('\u{feff}')
+            .trim_start()
+            .starts_with("<TestRun")
 }
 
 struct Definition {
@@ -62,7 +65,9 @@ pub fn comparison(message: &str) -> Option<(String, String)> {
     if let (Some(e), Some(a)) = (message.find("Expected:<"), message.find("Actual:<")) {
         let take = |from: usize, key: &str| -> Option<String> {
             let rest = &message[from + key.len()..];
-            rest.find(">.").or_else(|| rest.rfind('>')).map(|end| rest[..end].to_string())
+            rest.find(">.")
+                .or_else(|| rest.rfind('>'))
+                .map(|end| rest[..end].to_string())
         };
         if let (Some(x), Some(y)) = (take(e, "Expected:<"), take(a, "Actual:<")) {
             return Some((x, y));
@@ -79,7 +84,11 @@ pub fn comparison(message: &str) -> Option<(String, String)> {
         if message.starts_with("Expected") {
             let rest = &message[i + 7..];
             if let Some(j) = rest.find(", but found ") {
-                let actual = rest[j + 12..].lines().next().unwrap_or("").trim_end_matches('.');
+                let actual = rest[j + 12..]
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .trim_end_matches('.');
                 return Some((rest[..j].to_string(), actual.to_string()));
             }
         }
@@ -93,7 +102,9 @@ pub fn stack_location(trace: &str) -> Option<(String, u32)> {
         let l = line.trim();
         let Some(i) = l.rfind(" in ") else { continue };
         let rest = &l[i + 4..];
-        let Some(j) = rest.rfind(":line ") else { continue };
+        let Some(j) = rest.rfind(":line ") else {
+            continue;
+        };
         if let Ok(n) = rest[j + 6..].trim().parse::<u32>() {
             return Some((rest[..j].to_string(), n));
         }
@@ -115,7 +126,10 @@ pub fn trx_events(xml: &str) -> Result<Vec<TestEvent>, String> {
             defs.push((
                 id,
                 Definition {
-                    class: m.and_then(|m| m.attr("className")).unwrap_or("").to_string(),
+                    class: m
+                        .and_then(|m| m.attr("className"))
+                        .unwrap_or("")
+                        .to_string(),
                     method: m
                         .and_then(|m| m.attr("name"))
                         .or_else(|| t.attr("name"))
@@ -178,11 +192,7 @@ pub fn trx_events(xml: &str) -> Result<Vec<TestEvent>, String> {
         let suite = if class.is_empty() {
             "Tests".to_string()
         } else {
-            class
-                .rsplit('.')
-                .next()
-                .unwrap_or(class)
-                .to_string()
+            class.rsplit('.').next().unwrap_or(class).to_string()
         };
         out.push(TestEvent::SuiteStarted {
             name: suite.clone(),
@@ -196,8 +206,7 @@ pub fn trx_events(xml: &str) -> Result<Vec<TestEvent>, String> {
                 .and_then(|o| text_of(o, &["ErrorInfo", "Message"]))
                 .unwrap_or_default();
             let trace = output.and_then(|o| text_of(o, &["ErrorInfo", "StackTrace"]));
-            let loc = (!r.class.is_empty())
-                .then(|| location(&r.class, None, Some(&r.method)));
+            let loc = (!r.class.is_empty()).then(|| location(&r.class, None, Some(&r.method)));
             match outcome.as_str() {
                 "NotExecuted" | "Inconclusive" | "Pending" | "Disconnected" | "Warning" => {
                     out.push(TestEvent::TestIgnored {
@@ -217,14 +226,22 @@ pub fn trx_events(xml: &str) -> Result<Vec<TestEvent>, String> {
                 if let Some(t) = text_of(o, &["StdOut"]) {
                     out.push(TestEvent::TestOutput {
                         name: r.name.clone(),
-                        text: if t.ends_with('\n') { t } else { format!("{t}\n") },
+                        text: if t.ends_with('\n') {
+                            t
+                        } else {
+                            format!("{t}\n")
+                        },
                         stderr: false,
                     });
                 }
                 if let Some(t) = text_of(o, &["StdErr"]) {
                     out.push(TestEvent::TestOutput {
                         name: r.name.clone(),
-                        text: if t.ends_with('\n') { t } else { format!("{t}\n") },
+                        text: if t.ends_with('\n') {
+                            t
+                        } else {
+                            format!("{t}\n")
+                        },
                         stderr: true,
                     });
                 }
@@ -234,7 +251,14 @@ pub fn trx_events(xml: &str) -> Result<Vec<TestEvent>, String> {
                 out.push(TestEvent::TestFailed {
                     name: r.name.clone(),
                     message: if message.trim().is_empty() {
-                        format!("Test {}", if outcome.is_empty() { "failed" } else { &outcome })
+                        format!(
+                            "Test {}",
+                            if outcome.is_empty() {
+                                "failed"
+                            } else {
+                                &outcome
+                            }
+                        )
                     } else {
                         message.trim().to_string()
                     },
@@ -298,7 +322,9 @@ mod tests {
         assert_eq!(total.expected.as_deref(), Some("19.98"));
         assert_eq!(total.actual.as_deref(), Some("19.97"));
         assert_eq!(total.duration, Some(12));
-        assert!(nodes.iter().any(|n| n.name == "WhenEmpty+HasNoLines" || n.name == "HasNoLines"));
+        assert!(nodes
+            .iter()
+            .any(|n| n.name == "WhenEmpty+HasNoLines" || n.name == "HasNoLines"));
         // Through the sniffing reader of report files.
         let sniffed = document_events(&xml, JUnitFlavor::Generic).unwrap();
         assert_eq!(sniffed, events);
@@ -309,7 +335,11 @@ mod tests {
         let events = trx_events(&fixture("mstest.trx")).unwrap();
         let tree = tree_with(&events, &[]);
         let c = tree.counts();
-        assert_eq!((c.total, c.passed, c.failed, c.ignored), (3, 1, 1, 1), "{events:#?}");
+        assert_eq!(
+            (c.total, c.passed, c.failed, c.ignored),
+            (3, 1, 1, 1),
+            "{events:#?}"
+        );
         assert_eq!(
             comparison("Assert.AreEqual failed. Expected:<3>. Actual:<2>. "),
             Some(("3".into(), "2".into()))

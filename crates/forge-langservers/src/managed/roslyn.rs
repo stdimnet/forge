@@ -174,7 +174,10 @@ pub fn install_roslyn_package(
     archive::extract_zip_prefix(data, &staging, &format!("content/LanguageServer/{}", d.rid))?;
     if !staging.join(SERVER_DLL).is_file() {
         let _ = std::fs::remove_dir_all(&staging);
-        return Err(format!("the package has no content/LanguageServer/{}/{SERVER_DLL}", d.rid));
+        return Err(format!(
+            "the package has no content/LanguageServer/{}/{SERVER_DLL}",
+            d.rid
+        ));
     }
     std::fs::write(staging.join(COMPLETE), &d.version)
         .map_err(|e| format!("cannot write into {}: {e}", staging.display()))?;
@@ -208,7 +211,9 @@ pub async fn install_roslyn(
     on(Event::step(format!("Downloading {}…", d.url)));
     let label = format!("Downloading the Roslyn language server {}", d.version);
     let data = http
-        .bytes(&d.url, |done, total| on(Event::progress(&label, done, total)))
+        .bytes(&d.url, |done, total| {
+            on(Event::progress(&label, done, total))
+        })
         .await?;
     on(Event::step("Unpacking the Roslyn language server…"));
     let inst = install_roslyn_package(&data, base, d)?;
@@ -244,7 +249,10 @@ mod tests {
         );
         assert_eq!(d.sha256.len(), 64);
         assert!(ROSLYN_BUILDS.iter().all(|b| b.3.len() == 64 && b.4 > 0));
-        assert_eq!(roslyn_release("windows", "aarch64").unwrap().rid, "win-arm64");
+        assert_eq!(
+            roslyn_release("windows", "aarch64").unwrap().rid,
+            "win-arm64"
+        );
         assert!(roslyn_release("freebsd", "x86_64").is_none());
     }
 
@@ -287,12 +295,16 @@ mod tests {
         .unwrap();
         assert!(inst.dll.is_file());
         assert!(steps.last().unwrap().starts_with("Verified SHA-256"));
-        install_roslyn(&http, dir.path(), &d, &mut |_| {}).await.unwrap();
+        install_roslyn(&http, dir.path(), &d, &mut |_| {})
+            .await
+            .unwrap();
         assert_eq!(server.routes.hits("/roslyn.nupkg"), 1);
         // No recorded hash: refused before downloading.
         d.sha256.clear();
         let other = tempfile::tempdir().unwrap();
-        let err = install_roslyn(&http, other.path(), &d, &mut |_| {}).await.unwrap_err();
+        let err = install_roslyn(&http, other.path(), &d, &mut |_| {})
+            .await
+            .unwrap_err();
         assert!(err.contains("unverified"), "{err}");
         assert_eq!(server.routes.hits("/roslyn.nupkg"), 1);
     }

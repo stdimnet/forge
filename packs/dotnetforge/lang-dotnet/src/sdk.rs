@@ -191,7 +191,10 @@ pub fn select_sdk<'a>(sdks: &'a [Sdk], global: Option<&GlobalJson>) -> Option<&'
     };
     let Some(g) = global else {
         // Without global.json: the newest release, previews only when nothing else exists.
-        let releases: Vec<_> = parsed.iter().filter(|(_, v)| v.prerelease.is_empty()).collect();
+        let releases: Vec<_> = parsed
+            .iter()
+            .filter(|(_, v)| v.prerelease.is_empty())
+            .collect();
         return if releases.is_empty() {
             newest(parsed.iter().collect())
         } else {
@@ -207,7 +210,13 @@ pub fn select_sdk<'a>(sdks: &'a [Sdk], global: Option<&GlobalJson>) -> Option<&'
     };
     let at_least = |v: &SdkVersion| v.key() >= want.key();
     let pick = |f: &dyn Fn(&SdkVersion) -> bool| -> Option<&'a Sdk> {
-        newest(candidates.iter().copied().filter(|(_, v)| at_least(v) && f(v)).collect())
+        newest(
+            candidates
+                .iter()
+                .copied()
+                .filter(|(_, v)| at_least(v) && f(v))
+                .collect(),
+        )
     };
     let lowest = |f: &dyn Fn(&SdkVersion) -> bool| -> Option<&'a Sdk> {
         candidates
@@ -217,7 +226,9 @@ pub fn select_sdk<'a>(sdks: &'a [Sdk], global: Option<&GlobalJson>) -> Option<&'
             .min_by(|a, b| compare_versions(&a.0.version, &b.0.version))
             .map(|(s, _)| *s)
     };
-    let same_band = |v: &SdkVersion| v.major == want.major && v.minor == want.minor && v.feature == want.feature;
+    let same_band = |v: &SdkVersion| {
+        v.major == want.major && v.minor == want.minor && v.feature == want.feature
+    };
     let same_minor = |v: &SdkVersion| v.major == want.major && v.minor == want.minor;
     let same_major = |v: &SdkVersion| v.major == want.major;
     match g.roll_forward.to_ascii_lowercase().as_str() {
@@ -230,10 +241,14 @@ pub fn select_sdk<'a>(sdks: &'a [Sdk], global: Option<&GlobalJson>) -> Option<&'
             // The lowest higher band of the same minor, then its newest patch.
             let band = lowest(&same_minor)?;
             let b = SdkVersion::parse(&band.version)?;
-            pick(&|v: &SdkVersion| v.major == b.major && v.minor == b.minor && v.feature == b.feature)
+            pick(&|v: &SdkVersion| {
+                v.major == b.major && v.minor == b.minor && v.feature == b.feature
+            })
         }),
         "latestfeature" => pick(&same_minor),
-        "minor" => pick(&same_band).or_else(|| pick(&same_minor)).or_else(|| lowest(&same_major)),
+        "minor" => pick(&same_band)
+            .or_else(|| pick(&same_minor))
+            .or_else(|| lowest(&same_major)),
         "latestminor" => pick(&same_major),
         "major" => pick(&same_band)
             .or_else(|| pick(&same_minor))
@@ -270,15 +285,30 @@ pub fn install_options(os: &str, channel: &str) -> Vec<InstallOption> {
     };
     match os {
         "windows" => {
-            out.push(cmd("winget", format!("winget install Microsoft.DotNet.SDK.{}", ch.split('.').next().unwrap_or("8"))));
+            out.push(cmd(
+                "winget",
+                format!(
+                    "winget install Microsoft.DotNet.SDK.{}",
+                    ch.split('.').next().unwrap_or("8")
+                ),
+            ));
         }
         "macos" => {
             out.push(cmd("Homebrew", "brew install --cask dotnet-sdk".into()));
         }
         _ => {
-            out.push(cmd("Ubuntu / Debian (apt)", format!("sudo apt-get install -y dotnet-sdk-{ch}")));
-            out.push(cmd("Fedora / RHEL (dnf)", format!("sudo dnf install dotnet-sdk-{ch}")));
-            out.push(cmd("Arch Linux (pacman)", "sudo pacman -S dotnet-sdk".into()));
+            out.push(cmd(
+                "Ubuntu / Debian (apt)",
+                format!("sudo apt-get install -y dotnet-sdk-{ch}"),
+            ));
+            out.push(cmd(
+                "Fedora / RHEL (dnf)",
+                format!("sudo dnf install dotnet-sdk-{ch}"),
+            ));
+            out.push(cmd(
+                "Arch Linux (pacman)",
+                "sudo pacman -S dotnet-sdk".into(),
+            ));
         }
     }
     out.push(InstallOption {
@@ -308,21 +338,39 @@ mod tests {
     fn lists() {
         let s = parse_list_sdks(&fixture("dotnet-list-sdks.txt"));
         let versions: Vec<&str> = s.iter().map(|s| s.version.as_str()).collect();
-        assert_eq!(versions, vec!["6.0.428", "8.0.110", "8.0.404", "9.0.100-rc.2.24474.11", "9.0.101"]);
+        assert_eq!(
+            versions,
+            vec![
+                "6.0.428",
+                "8.0.110",
+                "8.0.404",
+                "9.0.100-rc.2.24474.11",
+                "9.0.101"
+            ]
+        );
         assert_eq!(s[2].path, "/usr/share/dotnet/sdk/8.0.404");
         let r = parse_list_runtimes(&fixture("dotnet-list-runtimes.txt"));
         assert_eq!(r.len(), 4);
         assert_eq!(r[0].name, "Microsoft.AspNetCore.App");
         assert_eq!(r[0].version, "8.0.11");
-        assert_eq!(r[3].path, "/usr/share/dotnet/shared/Microsoft.NETCore.App/9.0.0");
+        assert_eq!(
+            r[3].path,
+            "/usr/share/dotnet/shared/Microsoft.NETCore.App/9.0.0"
+        );
         assert!(parse_list_sdks("command not found").is_empty());
     }
 
     #[test]
     fn versions() {
         assert_eq!(compare_versions("8.0.404", "8.0.110"), Ordering::Greater);
-        assert_eq!(compare_versions("9.0.100-rc.2.24474.11", "9.0.100"), Ordering::Less);
-        assert_eq!(compare_versions("9.0.100-preview.7", "9.0.100-rc.1"), Ordering::Less);
+        assert_eq!(
+            compare_versions("9.0.100-rc.2.24474.11", "9.0.100"),
+            Ordering::Less
+        );
+        assert_eq!(
+            compare_versions("9.0.100-preview.7", "9.0.100-rc.1"),
+            Ordering::Less
+        );
         let v = SdkVersion::parse("8.0.404").unwrap();
         assert_eq!((v.feature, v.patch), (4, 4));
     }
@@ -333,8 +381,18 @@ mod tests {
         assert_eq!(g.version.as_deref(), Some("8.0.400"));
         assert_eq!(g.roll_forward, "latestFeature");
         assert!(!g.allow_prerelease);
-        assert_eq!(g.msbuild_sdks, vec![("Microsoft.Build.Traversal".to_string(), "4.1.0".to_string())]);
-        let all = sdks(&["6.0.428", "8.0.110", "8.0.404", "8.0.405", "9.0.100-rc.2", "9.0.101"]);
+        assert_eq!(
+            g.msbuild_sdks,
+            vec![("Microsoft.Build.Traversal".to_string(), "4.1.0".to_string())]
+        );
+        let all = sdks(&[
+            "6.0.428",
+            "8.0.110",
+            "8.0.404",
+            "8.0.405",
+            "9.0.100-rc.2",
+            "9.0.101",
+        ]);
         assert_eq!(select_sdk(&all, Some(&g)).unwrap().version, "8.0.405");
         let with = |rf: &str, v: &str| GlobalJson {
             version: Some(v.into()),
@@ -348,12 +406,23 @@ mod tests {
         assert_eq!(pick(with("feature", "8.0.300")).as_deref(), Some("8.0.405"));
         assert_eq!(pick(with("disable", "8.0.404")).as_deref(), Some("8.0.404"));
         assert_eq!(pick(with("disable", "8.0.403")), None);
-        assert_eq!(pick(with("latestMajor", "6.0.100")).as_deref(), Some("9.0.101"));
+        assert_eq!(
+            pick(with("latestMajor", "6.0.100")).as_deref(),
+            Some("9.0.101")
+        );
         assert_eq!(pick(with("major", "7.0.100")).as_deref(), Some("8.0.110"));
-        assert_eq!(pick(with("latestMinor", "8.0.100")).as_deref(), Some("8.0.405"));
+        assert_eq!(
+            pick(with("latestMinor", "8.0.100")).as_deref(),
+            Some("8.0.405")
+        );
         // Without global.json: the newest release.
         assert_eq!(select_sdk(&all, None).unwrap().version, "9.0.101");
-        assert_eq!(select_sdk(&sdks(&["10.0.100-preview.1"]), None).unwrap().version, "10.0.100-preview.1");
+        assert_eq!(
+            select_sdk(&sdks(&["10.0.100-preview.1"]), None)
+                .unwrap()
+                .version,
+            "10.0.100-preview.1"
+        );
         let defaults = parse_global_json("{}").unwrap();
         assert_eq!(defaults.roll_forward, "latestMajor");
         assert!(parse_global_json("{").is_err());
@@ -361,8 +430,16 @@ mod tests {
 
     #[test]
     fn install_hints() {
-        assert!(install_options("linux", "8.0")[0].command.contains("dotnet-sdk-8.0"));
-        assert_eq!(install_options("windows", "9.0")[0].command, "winget install Microsoft.DotNet.SDK.9");
-        assert_eq!(install_options("macos", "").last().unwrap().url, DOWNLOAD_PAGE);
+        assert!(install_options("linux", "8.0")[0]
+            .command
+            .contains("dotnet-sdk-8.0"));
+        assert_eq!(
+            install_options("windows", "9.0")[0].command,
+            "winget install Microsoft.DotNet.SDK.9"
+        );
+        assert_eq!(
+            install_options("macos", "").last().unwrap().url,
+            DOWNLOAD_PAGE
+        );
     }
 }

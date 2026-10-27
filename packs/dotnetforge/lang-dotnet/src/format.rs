@@ -120,7 +120,11 @@ mod tests {
         assert_eq!(parse_format_report("[]", "/p").unwrap().len(), 0);
         assert_eq!(
             editorconfig_candidates("src/App/Program.cs"),
-            vec![".editorconfig", "src/.editorconfig", "src/App/.editorconfig"]
+            vec![
+                ".editorconfig",
+                "src/.editorconfig",
+                "src/App/.editorconfig"
+            ]
         );
         assert!(is_root_editorconfig("# x\nroot = true\n[*]\n"));
         assert!(!is_root_editorconfig("[*]\nroot = true\n"));

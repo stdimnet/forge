@@ -95,7 +95,12 @@ pub fn extract_zip_prefix(bytes: &[u8], dest: &Path, prefix: &str) -> Result<(),
     extract_zip_filtered(bytes, dest, strip, prefix)
 }
 
-fn extract_zip_filtered(bytes: &[u8], dest: &Path, strip: usize, prefix: &str) -> Result<(), String> {
+fn extract_zip_filtered(
+    bytes: &[u8],
+    dest: &Path,
+    strip: usize,
+    prefix: &str,
+) -> Result<(), String> {
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes))
         .map_err(|e| format!("not a zip archive: {e}"))?;
     std::fs::create_dir_all(dest).map_err(|e| format!("cannot create {}: {e}", dest.display()))?;

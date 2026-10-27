@@ -753,3 +753,36 @@ fn json_cursor_reports_keys_and_values() {
     );
     assert!(!empty.comma);
 }
+
+#[test]
+fn openapi_documents_by_content() {
+    let ok30 = "openapi: 3.0.3\ninfo:\n  title: Shop\n  version: '1.0'\npaths:\n  /users/{id}:\n    get:\n      operationId: getUser\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: integer\n      responses:\n        '200':\n          description: The user\n";
+    let s = mapping::select("api/shop.yaml", ok30, DocKind::Yaml, &[], None).unwrap();
+    assert_eq!(s.uri, bundled::OPENAPI_30);
+    assert_eq!(s.name, "OpenAPI 3.0");
+    assert_eq!(mapping::name_of(bundled::OPENAPI_30), "OpenAPI 3.0");
+    assert_eq!(
+        bundled_problems(bundled::OPENAPI_30, DocKind::Yaml, ok30),
+        Vec::<String>::new()
+    );
+    // `info` is required and responses need a description.
+    let bad = "openapi: 3.0.3\npaths:\n  /a:\n    get:\n      responses:\n        '200': {}\n";
+    let problems = bundled_problems(bundled::OPENAPI_30, DocKind::Yaml, bad);
+    assert!(!problems.is_empty(), "{problems:?}");
+
+    let ok31 = r#"{"openapi": "3.1.0", "info": {"title": "T", "version": "1"}, "paths": {}}"#;
+    let s = mapping::select("spec.json", ok31, DocKind::Json, &[], None).unwrap();
+    assert_eq!(s.uri, bundled::OPENAPI_31);
+    assert_eq!(
+        bundled_problems(bundled::OPENAPI_31, DocKind::Json, ok31),
+        Vec::<String>::new()
+    );
+    assert!(!bundled_problems(
+        bundled::OPENAPI_31,
+        DocKind::Json,
+        r#"{"openapi": "3.1.0"}"#
+    )
+    .is_empty());
+    assert_eq!(mapping::openapi_version("swagger: '2.0'\n"), None);
+    assert!(mapping::select("config.yaml", "name: x\n", DocKind::Yaml, &[], None).is_none());
+}

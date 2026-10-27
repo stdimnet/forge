@@ -67,9 +67,9 @@ impl DotnetWorkspace {
     /// What `dotnet build` / `test` builds without a target: the solution, else the only
     /// project (`None`: the project root, where dotnet finds one itself).
     pub fn build_target(&self) -> Option<String> {
-        self.solution.clone().or_else(|| {
-            (self.projects.len() == 1).then(|| self.projects[0].path.clone())
-        })
+        self.solution
+            .clone()
+            .or_else(|| (self.projects.len() == 1).then(|| self.projects[0].path.clone()))
     }
 }
 
@@ -131,7 +131,11 @@ pub fn load_workspace(
             .filter(|p| is_project_file(&p.path))
             .map(|p| p.path.clone())
             .collect(),
-        None => files.iter().filter(|f| is_project_file(f)).cloned().collect(),
+        None => files
+            .iter()
+            .filter(|f| is_project_file(f))
+            .cloned()
+            .collect(),
     };
     ws.other_projects = files
         .iter()
@@ -145,8 +149,9 @@ pub fn load_workspace(
     };
     for path in &project_paths {
         let Some(text) = read(path) else {
-            ws.problems
-                .push(format!("{path}: the project file of the solution does not exist"));
+            ws.problems.push(format!(
+                "{path}: the project file of the solution does not exist"
+            ));
             continue;
         };
         let build = nearest(path, "Directory.Build.props");
@@ -167,11 +172,7 @@ pub fn load_workspace(
         }
         ws.projects.push(project);
     }
-    let global_dir = ws
-        .solution
-        .as_deref()
-        .map(parent)
-        .unwrap_or_default();
+    let global_dir = ws.solution.as_deref().map(parent).unwrap_or_default();
     for candidate in import_candidates(&format!("{global_dir}/x"), "global.json")
         .into_iter()
         .map(|c| c.trim_start_matches('/').to_string())
@@ -194,7 +195,10 @@ pub fn affects_workspace(path: &str) -> bool {
         || is_project_file(path)
         || matches!(
             name.as_str(),
-            "directory.build.props" | "directory.packages.props" | "global.json" | "launchsettings.json"
+            "directory.build.props"
+                | "directory.packages.props"
+                | "global.json"
+                | "launchsettings.json"
         )
 }
 
@@ -211,12 +215,33 @@ mod tests {
         assert_eq!(ws.solutions.len(), 2);
         assert_eq!(ws.configuration, "Debug");
         let names: Vec<&str> = ws.projects.iter().map(|p| p.name.as_str()).collect();
-        assert_eq!(names, vec!["Bookstore.Api", "Bookstore.Core", "Bookstore.Tests", "Reports"]);
-        let api = ws.project("src/Bookstore.Api/Bookstore.Api.csproj").unwrap();
+        assert_eq!(
+            names,
+            vec![
+                "Bookstore.Api",
+                "Bookstore.Core",
+                "Bookstore.Tests",
+                "Reports"
+            ]
+        );
+        let api = ws
+            .project("src/Bookstore.Api/Bookstore.Api.csproj")
+            .unwrap();
         assert_eq!(api.launch_profiles.len(), 3);
-        assert_eq!(api.package("Swashbuckle.AspNetCore").unwrap().version, "6.5.0");
-        assert_eq!(ws.global_json.as_ref().unwrap().version.as_deref(), Some("8.0.400"));
-        assert_eq!(ws.project_of_file("src/Bookstore.Core/Catalog/Cart.cs").unwrap().name, "Bookstore.Core");
+        assert_eq!(
+            api.package("Swashbuckle.AspNetCore").unwrap().version,
+            "6.5.0"
+        );
+        assert_eq!(
+            ws.global_json.as_ref().unwrap().version.as_deref(),
+            Some("8.0.400")
+        );
+        assert_eq!(
+            ws.project_of_file("src/Bookstore.Core/Catalog/Cart.cs")
+                .unwrap()
+                .name,
+            "Bookstore.Core"
+        );
         assert!(ws.project_of_file("README.md").is_none());
         assert_eq!(ws.test_projects().count(), 1);
         assert_eq!(ws.runnable_projects().count(), 2);
@@ -231,10 +256,12 @@ mod tests {
     #[test]
     fn projects_without_a_solution() {
         let files = vec!["App/App.csproj".to_string(), "Lib/Lib.fsproj".to_string()];
-        let read = |p: &str| match p {
+        let read = |p: &str| {
+            match p {
             "App/App.csproj" => Some("<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework></PropertyGroup></Project>".to_string()),
             "Lib/Lib.fsproj" => Some("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>".to_string()),
             _ => None,
+        }
         };
         let ws = load_workspace(&files, &read, "", "Debug");
         assert!(ws.solution.is_none());
@@ -242,7 +269,9 @@ mod tests {
         assert_eq!(ws.build_target(), None);
         let missing = load_workspace(
             &["S.sln".to_string()],
-            &|p: &str| (p == "S.sln").then(|| "Microsoft Visual Studio Solution File, Format Version 12.00\nProject(\"{9A19103F-16F7-4668-BE54-9A1E7A4F7556}\") = \"Gone\", \"Gone\\Gone.csproj\", \"{1}\"\nEndProject\n".to_string()),
+            &|p: &str| {
+                (p == "S.sln").then(|| "Microsoft Visual Studio Solution File, Format Version 12.00\nProject(\"{9A19103F-16F7-4668-BE54-9A1E7A4F7556}\") = \"Gone\", \"Gone\\Gone.csproj\", \"{1}\"\nEndProject\n".to_string())
+            },
             "",
             "",
         );

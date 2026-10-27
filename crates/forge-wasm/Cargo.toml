@@ -20,6 +20,7 @@ regex-lite = "0.1"
 forge-sql.workspace = true
 forge-dataedit.workspace = true
 forge-dbmodel.workspace = true
+forge-dbschema.workspace = true
 forge-sqlcode.workspace = true
 forge-dbtransfer.workspace = true
 forge-markdown.workspace = true
@@ -97,3 +98,9 @@ webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features =
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
+webforge-web-tooling.workspace = true
+
+# apollo-compiler (GraphQL) hashes with ahash, whose random seeds need getrandom's
+# JavaScript backend in the browser.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom_03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }

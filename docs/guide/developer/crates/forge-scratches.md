@@ -35,6 +35,11 @@ Everything except `store` and `client` is pure, so browser mode runs it as WebAs
 | Module | Summary |
 | --- | --- |
 | `client.rs` | Sends the requests of `.http` scratches (feature `client`). |
+| `curl.rs` | cURL commands: `parse_curl` (Import from cURL: shell quoting, `-X`, `-H`, `-d`/`--data-*`, `--json`, `-F`, `-u`, `-b`, `-A`, `-e`, `-G`, `-I`) and `to_curl` (Copy as cURL); `to_http`. |
+| `grpc.rs` | `GRPC` requests (feature `client`): unary calls over HTTP/2 (h2, rustls for TLS) with JSON bodies encoded by prost-reflect; message types from server reflection (`grpc.reflection.v1`, then `v1alpha`) or `.proto` files compiled with protox. |
+| `oauth.rs` | OAuth 2.0 of `Security.Auth` in the environment files: configs, `$auth.token("id")` references, PKCE (S256), authorization URLs, token request forms and responses (pure). |
+| `oauth_client.rs` | The OAuth flows (feature `client`): Client Credentials, Password, Authorization Code with PKCE through the browser and a loopback listener, refresh tokens, a session `TokenCache`. |
+| `ws.rs` | `WEBSOCKET` requests (feature `client`, tokio-tungstenite): messages with `=== wait-for-server`, a live event log, console input as messages and Stop as close. |
 | `handler.rs` | Response handler scripts of `.http` requests (`> {% … %}`), PHPStorm's HTTP Client API as a small, safe subset: no JavaScript engine, no loops, no access to anything but the response and the global variables. |
 | `http.rs` | `.http` request files (PHPStorm's HTTP Client, lite): parsing, `{{variable}}` substitution and the console text of a response. |
 | `languages.rs` | Languages of the "New Scratch File" popup (Ctrl+Alt+Shift+Insert): every file type of `forge-filetypes` with an extension, the extension a new scratch gets, and the popup's ordering and speed search. |

@@ -72,7 +72,9 @@ pub fn find_roslyn(custom: &str, managed: Option<&Path>) -> Result<ToolLocation,
                 source: "setting".into(),
                 version: i.version,
             })
-            .ok_or_else(|| format!("Microsoft.CodeAnalysis.LanguageServer.dll was not found in {custom}"));
+            .ok_or_else(|| {
+                format!("Microsoft.CodeAnalysis.LanguageServer.dll was not found in {custom}")
+            });
     }
     managed
         .and_then(installed_roslyn)
@@ -102,7 +104,11 @@ mod tests {
         assert!(find_netcoredbg("/nope", None, &on_path).is_err());
 
         assert!(find_roslyn("", Some(dir.path())).is_err());
-        std::fs::write(dir.path().join("Microsoft.CodeAnalysis.LanguageServer.dll"), "").unwrap();
+        std::fs::write(
+            dir.path().join("Microsoft.CodeAnalysis.LanguageServer.dll"),
+            "",
+        )
+        .unwrap();
         let r = find_roslyn(&dir.path().to_string_lossy(), None).unwrap();
         assert_eq!(r.source, "setting");
         assert!(find_roslyn("/nope", None).is_err());

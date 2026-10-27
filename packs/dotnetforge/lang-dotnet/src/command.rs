@@ -101,9 +101,16 @@ pub fn action_command(
     if action == "rebuild" {
         args.push(s("--no-incremental"));
     }
-    if matches!(action, "build" | "rebuild" | "clean" | "restore" | "pack" | "publish") {
+    if matches!(
+        action,
+        "build" | "rebuild" | "clean" | "restore" | "pack" | "publish"
+    ) {
         args.push(s("-nologo"));
-        let v = if ctx.verbosity.is_empty() { "minimal" } else { ctx.verbosity.as_str() };
+        let v = if ctx.verbosity.is_empty() {
+            "minimal"
+        } else {
+            ctx.verbosity.as_str()
+        };
         args.extend([s("-v"), v.to_string()]);
     }
     Ok(DotnetCommand::new(ctx, args))
@@ -113,7 +120,10 @@ pub fn action_command(
 fn run_project(cfg: &Configuration, ctx: &DotnetContext) -> Result<String, String> {
     let p = cfg.option("project").trim();
     if !p.is_empty() {
-        return Ok(ctx.project(p).map(|x| x.path.clone()).unwrap_or_else(|| normalize(p)));
+        return Ok(ctx
+            .project(p)
+            .map(|x| x.path.clone())
+            .unwrap_or_else(|| normalize(p)));
     }
     let runnable: Vec<_> = ctx.projects.iter().filter(|p| p.runnable).collect();
     match runnable.as_slice() {
@@ -161,7 +171,8 @@ pub fn run_command(cfg: &Configuration, ctx: &DotnetContext) -> Result<DotnetCom
     let mut c = DotnetCommand::new(ctx, args);
     if watch {
         // Restart without asking on rude edits (the console cannot answer).
-        c.env.insert("DOTNET_WATCH_RESTART_ON_RUDE_EDIT".into(), "1".into());
+        c.env
+            .insert("DOTNET_WATCH_RESTART_ON_RUDE_EDIT".into(), "1".into());
     }
     c.cwd = cfg.working_directory.trim().to_string();
     Ok(c)
@@ -169,7 +180,10 @@ pub fn run_command(cfg: &Configuration, ctx: &DotnetContext) -> Result<DotnetCom
 
 /// The build before debugging a ".NET Project" configuration (`dotnet build <project>`),
 /// whose output names the assembly to start.
-pub fn debug_build_command(cfg: &Configuration, ctx: &DotnetContext) -> Result<DotnetCommand, String> {
+pub fn debug_build_command(
+    cfg: &Configuration,
+    ctx: &DotnetContext,
+) -> Result<DotnetCommand, String> {
     let project = run_project(cfg, ctx)?;
     let mut args = vec![s("build"), project, s("-c")];
     args.push(match cfg.option("configuration").trim() {
@@ -234,7 +248,10 @@ pub struct NewProject {
 }
 
 /// `dotnet new <template> -n <name> -o <dir>` and `dotnet sln <sln> add <project>`.
-pub fn new_project_commands(req: &NewProject, ctx: &DotnetContext) -> Result<Vec<DotnetCommand>, String> {
+pub fn new_project_commands(
+    req: &NewProject,
+    ctx: &DotnetContext,
+) -> Result<Vec<DotnetCommand>, String> {
     let template = req.template.trim();
     if template.is_empty() || template.starts_with('-') || template.contains(char::is_whitespace) {
         return Err("Choose a template".into());
@@ -247,7 +264,14 @@ pub fn new_project_commands(req: &NewProject, ctx: &DotnetContext) -> Result<Vec
         d if d.is_empty() => name.to_string(),
         d => d,
     };
-    let mut args = vec![s("new"), template.to_string(), s("-n"), name.to_string(), s("-o"), dir.clone()];
+    let mut args = vec![
+        s("new"),
+        template.to_string(),
+        s("-n"),
+        name.to_string(),
+        s("-o"),
+        dir.clone(),
+    ];
     if !req.language.trim().is_empty() {
         args.extend([s("-lang"), req.language.trim().to_string()]);
     }
@@ -256,7 +280,18 @@ pub fn new_project_commands(req: &NewProject, ctx: &DotnetContext) -> Result<Vec
     }
     let mut out = vec![DotnetCommand::new(ctx, args)];
     let solution = normalize(&req.solution);
-    if !solution.is_empty() && !matches!(template, "sln" | "solution" | "gitignore" | "editorconfig" | "globaljson" | "nugetconfig" | "tool-manifest") {
+    if !solution.is_empty()
+        && !matches!(
+            template,
+            "sln"
+                | "solution"
+                | "gitignore"
+                | "editorconfig"
+                | "globaljson"
+                | "nugetconfig"
+                | "tool-manifest"
+        )
+    {
         let ext = match req.language.trim() {
             "F#" | "f#" | "fsharp" => ProjectLanguage::FSharp,
             "VB" | "vb" | "vbnet" => ProjectLanguage::VisualBasic,
@@ -317,7 +352,12 @@ pub fn format_command(req: &FormatRequest, ctx: &DotnetContext) -> Result<Dotnet
         }
         args.push(s("--folder"));
     }
-    let include: Vec<String> = req.include.iter().map(|i| normalize(i)).filter(|i| !i.is_empty()).collect();
+    let include: Vec<String> = req
+        .include
+        .iter()
+        .map(|i| normalize(i))
+        .filter(|i| !i.is_empty())
+        .collect();
     if !include.is_empty() {
         args.push(s("--include"));
         args.extend(include);
@@ -363,12 +403,38 @@ mod tests {
     fn builds() {
         let c = ctx();
         let b = action_command("build", None, &c).unwrap();
-        assert_eq!(b.display(), "dotnet build Bookstore.sln -c Debug -nologo -v minimal");
+        assert_eq!(
+            b.display(),
+            "dotnet build Bookstore.sln -c Debug -nologo -v minimal"
+        );
         assert_eq!(b.env["DOTNET_NOLOGO"], "1");
-        let r = action_command("rebuild", Some("src/Bookstore.Api/Bookstore.Api.csproj"), &c).unwrap();
-        assert_eq!(r.args, vec!["build", "src/Bookstore.Api/Bookstore.Api.csproj", "-c", "Debug", "--no-incremental", "-nologo", "-v", "minimal"]);
-        assert_eq!(action_command("restore", None, &c).unwrap().args, vec!["restore", "Bookstore.sln", "-nologo", "-v", "minimal"]);
-        assert_eq!(action_command("watch", None, &c).unwrap().args[..3], ["watch", "--project", "Bookstore.sln"]);
+        let r = action_command(
+            "rebuild",
+            Some("src/Bookstore.Api/Bookstore.Api.csproj"),
+            &c,
+        )
+        .unwrap();
+        assert_eq!(
+            r.args,
+            vec![
+                "build",
+                "src/Bookstore.Api/Bookstore.Api.csproj",
+                "-c",
+                "Debug",
+                "--no-incremental",
+                "-nologo",
+                "-v",
+                "minimal"
+            ]
+        );
+        assert_eq!(
+            action_command("restore", None, &c).unwrap().args,
+            vec!["restore", "Bookstore.sln", "-nologo", "-v", "minimal"]
+        );
+        assert_eq!(
+            action_command("watch", None, &c).unwrap().args[..3],
+            ["watch", "--project", "Bookstore.sln"]
+        );
         assert!(action_command("explode", None, &c).is_err());
     }
 
@@ -389,20 +455,45 @@ mod tests {
         cfg.options.insert("noBuild".into(), "true".into());
         cfg.arguments.clear();
         let w = run_command(&cfg, &c).unwrap();
-        assert_eq!(w.args, vec!["watch", "--project", "src/Bookstore.Api/Bookstore.Api.csproj", "run", "-c", "Debug", "--no-launch-profile"]);
+        assert_eq!(
+            w.args,
+            vec![
+                "watch",
+                "--project",
+                "src/Bookstore.Api/Bookstore.Api.csproj",
+                "run",
+                "-c",
+                "Debug",
+                "--no-launch-profile"
+            ]
+        );
         assert_eq!(w.env["DOTNET_WATCH_RESTART_ON_RUDE_EDIT"], "1");
         // Two runnable projects: the project must be chosen.
         let none = Configuration::new("x", DOTNET_RUN);
         assert!(run_command(&none, &c).unwrap_err().contains("several"));
         let d = debug_build_command(&cfg, &c).unwrap();
-        assert_eq!(d.args[..2], ["build", "src/Bookstore.Api/Bookstore.Api.csproj"]);
+        assert_eq!(
+            d.args[..2],
+            ["build", "src/Bookstore.Api/Bookstore.Api.csproj"]
+        );
     }
 
     #[test]
     fn nuget_new_and_format() {
         let c = ctx();
-        let add = package_command("add", "src/Bookstore.Api/Bookstore.Api.csproj", "Serilog", Some("4.0.1"), false, &c).unwrap();
-        assert_eq!(add.display(), "dotnet add src/Bookstore.Api/Bookstore.Api.csproj package Serilog --version 4.0.1");
+        let add = package_command(
+            "add",
+            "src/Bookstore.Api/Bookstore.Api.csproj",
+            "Serilog",
+            Some("4.0.1"),
+            false,
+            &c,
+        )
+        .unwrap();
+        assert_eq!(
+            add.display(),
+            "dotnet add src/Bookstore.Api/Bookstore.Api.csproj package Serilog --version 4.0.1"
+        );
         let pre = package_command("add", "a.csproj", "X", None, true, &c).unwrap();
         assert_eq!(pre.args.last().unwrap(), "--prerelease");
         let rm = package_command("remove", "a.csproj", "X", Some("1"), false, &c).unwrap();
@@ -423,11 +514,39 @@ mod tests {
         )
         .unwrap();
         assert_eq!(cmds[0].display(), "dotnet new classlib -n Bookstore.Shipping -o src/Bookstore.Shipping -lang F# --framework net8.0");
-        assert_eq!(cmds[1].display(), "dotnet sln Bookstore.sln add src/Bookstore.Shipping/Bookstore.Shipping.fsproj");
-        let cs = new_project_commands(&NewProject { template: "xunit".into(), name: "T".into(), solution: "S.sln".into(), ..NewProject::default() }, &c).unwrap();
+        assert_eq!(
+            cmds[1].display(),
+            "dotnet sln Bookstore.sln add src/Bookstore.Shipping/Bookstore.Shipping.fsproj"
+        );
+        let cs = new_project_commands(
+            &NewProject {
+                template: "xunit".into(),
+                name: "T".into(),
+                solution: "S.sln".into(),
+                ..NewProject::default()
+            },
+            &c,
+        )
+        .unwrap();
         assert_eq!(cs[1].args.last().unwrap(), "T/T.csproj");
-        assert!(new_project_commands(&NewProject { template: "-x".into(), name: "a".into(), ..NewProject::default() }, &c).is_err());
-        assert!(new_project_commands(&NewProject { template: "console".into(), name: "a/b".into(), ..NewProject::default() }, &c).is_err());
+        assert!(new_project_commands(
+            &NewProject {
+                template: "-x".into(),
+                name: "a".into(),
+                ..NewProject::default()
+            },
+            &c
+        )
+        .is_err());
+        assert!(new_project_commands(
+            &NewProject {
+                template: "console".into(),
+                name: "a/b".into(),
+                ..NewProject::default()
+            },
+            &c
+        )
+        .is_err());
         assert_eq!(template_list_command(&c).args, vec!["new", "list"]);
 
         let f = format_command(
@@ -442,10 +561,47 @@ mod tests {
         )
         .unwrap();
         assert_eq!(f.display(), "dotnet format style Bookstore.sln --include src/Bookstore.Api/Program.cs --severity info --report /tmp/r -v minimal");
-        let folder = format_command(&FormatRequest { scope: "whitespace".into(), target: "/tmp/x".into(), folder: true, include: vec!["a.cs".into()], ..FormatRequest::default() }, &c).unwrap();
-        assert_eq!(folder.args, vec!["format", "whitespace", "/tmp/x", "--folder", "--include", "a.cs", "-v", "minimal"]);
-        assert!(format_command(&FormatRequest { scope: "style".into(), folder: true, ..FormatRequest::default() }, &c).is_err());
-        assert!(format_command(&FormatRequest { scope: "bogus".into(), ..FormatRequest::default() }, &c).is_err());
+        let folder = format_command(
+            &FormatRequest {
+                scope: "whitespace".into(),
+                target: "/tmp/x".into(),
+                folder: true,
+                include: vec!["a.cs".into()],
+                ..FormatRequest::default()
+            },
+            &c,
+        )
+        .unwrap();
+        assert_eq!(
+            folder.args,
+            vec![
+                "format",
+                "whitespace",
+                "/tmp/x",
+                "--folder",
+                "--include",
+                "a.cs",
+                "-v",
+                "minimal"
+            ]
+        );
+        assert!(format_command(
+            &FormatRequest {
+                scope: "style".into(),
+                folder: true,
+                ..FormatRequest::default()
+            },
+            &c
+        )
+        .is_err());
+        assert!(format_command(
+            &FormatRequest {
+                scope: "bogus".into(),
+                ..FormatRequest::default()
+            },
+            &c
+        )
+        .is_err());
         assert_eq!(probe_command(&c, "--list-sdks").args, vec!["--list-sdks"]);
     }
 }

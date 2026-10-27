@@ -166,7 +166,13 @@ pub fn parse_launch_settings(text: &str) -> Result<Vec<LaunchProfile>, String> {
         .map(|k| {
             let needle = format!("\"{}\"", k.replace('\\', "\\\\").replace('"', "\\\""));
             let at = text.find("\"profiles\"").unwrap_or(0);
-            (text[at..].find(&needle).map(|i| i + at).unwrap_or(usize::MAX), k.clone())
+            (
+                text[at..]
+                    .find(&needle)
+                    .map(|i| i + at)
+                    .unwrap_or(usize::MAX),
+                k.clone(),
+            )
         })
         .collect();
     names.sort();
@@ -199,7 +205,10 @@ pub fn parse_launch_settings(text: &str) -> Result<Vec<LaunchProfile>, String> {
             working_directory: string(p, "workingDirectory"),
             executable_path: string(p, "executablePath"),
             application_url: string(p, "applicationUrl"),
-            launch_browser: p.get("launchBrowser").and_then(Value::as_bool).unwrap_or(false),
+            launch_browser: p
+                .get("launchBrowser")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
             launch_url: string(p, "launchUrl"),
             environment_variables: env,
             line: if pos == usize::MAX {
@@ -242,19 +251,31 @@ mod tests {
 
     #[test]
     fn reads_profiles_in_file_order() {
-        let p = parse_launch_settings(&fixture("bookstore/src/Bookstore.Api/Properties/launchSettings.json")).unwrap();
+        let p = parse_launch_settings(&fixture(
+            "bookstore/src/Bookstore.Api/Properties/launchSettings.json",
+        ))
+        .unwrap();
         let names: Vec<&str> = p.iter().map(|p| p.name.as_str()).collect();
         assert_eq!(names, vec!["http", "https", "IIS Express"]);
         assert!(p[0].is_runnable() && !p[2].is_runnable());
-        assert_eq!(p[0].browser_url().as_deref(), Some("http://localhost:5180/swagger"));
+        assert_eq!(
+            p[0].browser_url().as_deref(),
+            Some("http://localhost:5180/swagger")
+        );
         assert_eq!(p[1].browser_url(), None);
         assert_eq!(p[1].command_line_args, "--seed-data");
         let env = p[1].environment();
-        assert_eq!(env["ASPNETCORE_URLS"], "https://localhost:7180;http://localhost:5180");
+        assert_eq!(
+            env["ASPNETCORE_URLS"],
+            "https://localhost:7180;http://localhost:5180"
+        );
         assert_eq!(env["BOOKSTORE_CACHE"], "memory");
         assert_eq!(p[0].line, 8);
         assert!(parse_launch_settings("{}").unwrap().is_empty());
         assert!(parse_launch_settings("{").is_err());
-        assert_eq!(launch_settings_paths("src/App")[0], "src/App/Properties/launchSettings.json");
+        assert_eq!(
+            launch_settings_paths("src/App")[0],
+            "src/App/Properties/launchSettings.json"
+        );
     }
 }

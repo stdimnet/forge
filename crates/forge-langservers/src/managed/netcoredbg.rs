@@ -191,7 +191,9 @@ pub async fn install_netcoredbg(
     on(Event::step(format!("Downloading {}…", d.url)));
     let label = format!("Downloading netcoredbg {}", d.version);
     let data = http
-        .bytes(&d.url, |done, total| on(Event::progress(&label, done, total)))
+        .bytes(&d.url, |done, total| {
+            on(Event::progress(&label, done, total))
+        })
         .await?;
     on(Event::step("Unpacking netcoredbg…"));
     let inst = install_netcoredbg_archive(&data, base, d, &sha256)?;
@@ -210,7 +212,11 @@ mod tests {
 
     fn archive() -> Vec<u8> {
         tar_gz(&[
-            ("netcoredbg/netcoredbg", b"#!/bin/sh\necho NET Core debugger 3.1.2\n".as_slice(), 0o755),
+            (
+                "netcoredbg/netcoredbg",
+                b"#!/bin/sh\necho NET Core debugger 3.1.2\n".as_slice(),
+                0o755,
+            ),
             ("netcoredbg/libdbgshim.so", b"elf".as_slice(), 0o644),
         ])
     }
@@ -222,8 +228,14 @@ mod tests {
             d.url,
             "https://github.com/Samsung/netcoredbg/releases/download/3.1.2-1054/netcoredbg-linux-amd64.tar.gz"
         );
-        assert_eq!(d.api_url, "https://api.github.com/repos/Samsung/netcoredbg/releases/tags/3.1.2-1054");
-        assert_eq!(netcoredbg_release("windows", "x86_64").unwrap().asset, "netcoredbg-win64.zip");
+        assert_eq!(
+            d.api_url,
+            "https://api.github.com/repos/Samsung/netcoredbg/releases/tags/3.1.2-1054"
+        );
+        assert_eq!(
+            netcoredbg_release("windows", "x86_64").unwrap().asset,
+            "netcoredbg-win64.zip"
+        );
         assert!(netcoredbg_release("windows", "aarch64").is_none());
     }
 
@@ -232,9 +244,11 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let data = archive();
         let d = netcoredbg_release("linux", "x86_64").unwrap();
-        assert!(install_netcoredbg_archive(&data, dir.path(), &d, &"00".repeat(32))
-            .unwrap_err()
-            .contains("checksum mismatch"));
+        assert!(
+            install_netcoredbg_archive(&data, dir.path(), &d, &"00".repeat(32))
+                .unwrap_err()
+                .contains("checksum mismatch")
+        );
         let inst = install_netcoredbg_archive(&data, dir.path(), &d, &sha256_hex(&data)).unwrap();
         assert_eq!(inst.binary, dir.path().join("3.1.2-1054/netcoredbg"));
         assert!(dir.path().join("3.1.2-1054/libdbgshim.so").is_file());
@@ -248,18 +262,28 @@ mod tests {
         let mut d = netcoredbg_release("linux", "x86_64").unwrap();
         d.url = format!("{}/download/{}", server.url, d.asset);
         d.api_url = format!("{}/release", server.url);
-        server.routes.set(&format!("/download/{}", d.asset), data.clone());
+        server
+            .routes
+            .set(&format!("/download/{}", d.asset), data.clone());
         server.routes.set(
             "/release",
-            format!(r#"{{"assets": [{{"name": "{}", "digest": "sha256:{}"}}]}}"#, d.asset, sha256_hex(&data)),
+            format!(
+                r#"{{"assets": [{{"name": "{}", "digest": "sha256:{}"}}]}}"#,
+                d.asset,
+                sha256_hex(&data)
+            ),
         );
         let dir = tempfile::tempdir().unwrap();
         let http = Http::direct().unwrap();
-        let inst = install_netcoredbg(&http, dir.path(), &d, &mut |_| {}).await.unwrap();
+        let inst = install_netcoredbg(&http, dir.path(), &d, &mut |_| {})
+            .await
+            .unwrap();
         assert!(inst.binary.is_file());
         let other = tempfile::tempdir().unwrap();
         server.routes.set("/release", r#"{"assets": []}"#);
-        let err = install_netcoredbg(&http, other.path(), &d, &mut |_| {}).await.unwrap_err();
+        let err = install_netcoredbg(&http, other.path(), &d, &mut |_| {})
+            .await
+            .unwrap_err();
         assert!(err.contains("no SHA-256"), "{err}");
         assert_eq!(server.routes.hits(&format!("/download/{}", d.asset)), 1);
     }

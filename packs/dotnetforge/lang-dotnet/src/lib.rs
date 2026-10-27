@@ -51,9 +51,11 @@ pub use workspace::{load_workspace, DotnetWorkspace};
 /// Whether a path belongs to .NET (sources, projects, solutions, launch settings).
 pub fn is_dotnet_path(path: &str) -> bool {
     let l = path.to_ascii_lowercase();
-    [".cs", ".fs", ".fsi", ".fsx", ".vb", ".csx", ".razor", ".cshtml"]
-        .iter()
-        .any(|e| l.ends_with(e))
+    [
+        ".cs", ".fs", ".fsi", ".fsx", ".vb", ".csx", ".razor", ".cshtml",
+    ]
+    .iter()
+    .any(|e| l.ends_with(e))
         || workspace::affects_workspace(path)
 }
 

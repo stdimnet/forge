@@ -18,7 +18,9 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use dotnetforge_lang_dotnet::command::{self as cmdline, DotnetCommand, FormatRequest, NewProject};
-use dotnetforge_lang_dotnet::format::{editorconfig_candidates, is_root_editorconfig, parse_format_report, FormatChange};
+use dotnetforge_lang_dotnet::format::{
+    editorconfig_candidates, is_root_editorconfig, parse_format_report, FormatChange,
+};
 use dotnetforge_lang_dotnet::nuget::SearchResult;
 use dotnetforge_lang_dotnet::roslyn::{RoslynSettings, RoslynSetup, SERVER_ID as ROSLYN_ID};
 use dotnetforge_lang_dotnet::templates::{common_templates, parse_template_list, Template};
@@ -31,7 +33,9 @@ use forge_backend::process_io::capture;
 use forge_backend::Backend;
 use forge_core::{ForgeError, Result};
 use forge_dap::{LaunchMode, LaunchRequest};
-use forge_langservers::managed::{netcoredbg as managed_dbg, roslyn as managed_roslyn, Event, Http};
+use forge_langservers::managed::{
+    netcoredbg as managed_dbg, roslyn as managed_roslyn, Event, Http,
+};
 use forge_lsp::{LspManager, LspNotification, LspServerConfig};
 use forge_process::{CommandLine, RunConfiguration};
 use serde::{Deserialize, Serialize};
@@ -210,7 +214,8 @@ fn emitter(app: &AppHandle, id: &'static str) -> impl FnMut(Event) + Send {
 /// start it. Returns its version.
 #[tauri::command]
 pub async fn dotnet_roslyn_install(app: AppHandle) -> Result<String> {
-    let base = managed_roslyn::roslyn_dir().ok_or_else(|| other("no user data folder for the Roslyn server"))?;
+    let base = managed_roslyn::roslyn_dir()
+        .ok_or_else(|| other("no user data folder for the Roslyn server"))?;
     let d = managed_roslyn::current_roslyn_release()
         .ok_or_else(|| other("The Roslyn language server has no build for this platform"))?;
     let http = Http::new().map_err(ForgeError::Other)?;
@@ -228,7 +233,8 @@ pub async fn dotnet_roslyn_install(app: AppHandle) -> Result<String> {
 /// Download the pinned netcoredbg (GitHub release, SHA-256). Returns its version.
 #[tauri::command]
 pub async fn dotnet_netcoredbg_install(app: AppHandle) -> Result<String> {
-    let base = managed_dbg::netcoredbg_dir().ok_or_else(|| other("no user data folder for netcoredbg"))?;
+    let base =
+        managed_dbg::netcoredbg_dir().ok_or_else(|| other("no user data folder for netcoredbg"))?;
     let d = managed_dbg::current_netcoredbg_release()
         .ok_or_else(|| other("netcoredbg has no build for this platform"))?;
     let http = Http::new().map_err(ForgeError::Other)?;
@@ -345,7 +351,10 @@ fn test_classes(backend: &dyn Backend, ws: &DotnetWorkspace) -> BTreeMap<String,
     };
     let mut out = BTreeMap::new();
     for f in backend.collect_files(&req).unwrap_or_default() {
-        if !dirs.iter().any(|d| d.is_empty() || f.path.starts_with(&format!("{d}/"))) {
+        if !dirs
+            .iter()
+            .any(|d| d.is_empty() || f.path.starts_with(&format!("{d}/")))
+        {
             continue;
         }
         let hint = ws.project_of_file(&f.path).and_then(|p| p.test_framework);
@@ -361,7 +370,11 @@ fn test_classes(backend: &dyn Backend, ws: &DotnetWorkspace) -> BTreeMap<String,
 }
 
 /// Hand the .NET context to the test provider of a test run (`run.rs`).
-pub(crate) fn extend_test_context(state: &AppState, type_id: &str, ctx: &mut forge_testing::CommandContext) {
+pub(crate) fn extend_test_context(
+    state: &AppState,
+    type_id: &str,
+    ctx: &mut forge_testing::CommandContext,
+) {
     if type_id != DOTNET_TEST {
         return;
     }
@@ -417,11 +430,16 @@ pub(crate) fn run_command_line(state: &AppState, cfg: &RunConfiguration) -> Resu
 /// A build action (`build`, `rebuild`, `clean`, `restore`, `test`, `pack`, `publish`,
 /// `watch`) of the solution or a project (started by the UI with `run_start`).
 #[tauri::command]
-pub async fn dotnet_command(action: String, target: Option<String>, app: AppHandle) -> Result<CommandLine> {
+pub async fn dotnet_command(
+    action: String,
+    target: Option<String>,
+    app: AppHandle,
+) -> Result<CommandLine> {
     blocking(move || {
         let state = app.state::<AppState>();
         let ctx = context(&state);
-        let c = cmdline::action_command(&action, target.as_deref(), &ctx).map_err(ForgeError::Other)?;
+        let c =
+            cmdline::action_command(&action, target.as_deref(), &ctx).map_err(ForgeError::Other)?;
         Ok(to_command_line(c, &state.project_root()?))
     })
     .await
@@ -474,7 +492,14 @@ pub async fn dotnet_templates(app: AppHandle) -> Result<TemplatesPayload> {
                     }
                 }
             }
-            Ok(out) => fallback(out.stderr.trim().lines().last().unwrap_or("dotnet new list failed").to_string()),
+            Ok(out) => fallback(
+                out.stderr
+                    .trim()
+                    .lines()
+                    .last()
+                    .unwrap_or("dotnet new list failed")
+                    .to_string(),
+            ),
             Err(e) => fallback(e.to_string()),
         })
     })
@@ -608,7 +633,11 @@ fn temp_dir(kind: &str) -> PathBuf {
 /// copied into a temporary folder, so the project is not touched and the same rules
 /// apply. `None` when formatting is left to the language server or off.
 #[tauri::command]
-pub async fn dotnet_format(path: String, content: String, app: AppHandle) -> Result<Option<String>> {
+pub async fn dotnet_format(
+    path: String,
+    content: String,
+    app: AppHandle,
+) -> Result<Option<String>> {
     blocking(move || {
         let state = app.state::<AppState>();
         if setting(&state, "dotnet.formatter") != "dotnetFormat" {
@@ -619,7 +648,9 @@ pub async fn dotnet_format(path: String, content: String, app: AppHandle) -> Res
         }
         let backend = state.backend()?;
         let program = dotnet_program(&state);
-        if state.safe_mode.is_on() && forge_trust::runs_project_program(&backend.info().root, &program, &[]) {
+        if state.safe_mode.is_on()
+            && forge_trust::runs_project_program(&backend.info().root, &program, &[])
+        {
             return Err(other(forge_trust::refusal("Running the project's dotnet")));
         }
         let rel = path.trim_start_matches('/').replace('\\', "/");
@@ -664,9 +695,15 @@ pub async fn dotnet_format(path: String, content: String, app: AppHandle) -> Res
             let out = capture(backend.as_ref(), &cmd, "", FORMAT_TIMEOUT)?;
             if out.code != Some(0) {
                 let err = out.stderr.trim();
-                return Err(other(if err.is_empty() { out.stdout.trim() } else { err }));
+                return Err(other(if err.is_empty() {
+                    out.stdout.trim()
+                } else {
+                    err
+                }));
             }
-            Ok(Some(std::fs::read_to_string(&file).map_err(|e| ForgeError::io(&file, e))?))
+            Ok(Some(
+                std::fs::read_to_string(&file).map_err(|e| ForgeError::io(&file, e))?,
+            ))
         })();
         let _ = std::fs::remove_dir_all(&dir);
         result
@@ -685,7 +722,10 @@ pub struct CleanupCommand {
 /// Code Cleanup: `dotnet format` on files or folders (all of the solution without
 /// `paths`) with the rules of `.editorconfig` (started by the UI with `run_start`).
 #[tauri::command]
-pub async fn dotnet_cleanup_command(paths: Option<Vec<String>>, app: AppHandle) -> Result<CleanupCommand> {
+pub async fn dotnet_cleanup_command(
+    paths: Option<Vec<String>>,
+    app: AppHandle,
+) -> Result<CleanupCommand> {
     blocking(move || {
         let state = app.state::<AppState>();
         let ctx = context(&state);
@@ -724,7 +764,10 @@ pub async fn dotnet_cleanup_command(paths: Option<Vec<String>>, app: AppHandle) 
 
 /// The fixes of a Code Cleanup run (its `format-report.json`); the folder is removed.
 #[tauri::command]
-pub fn dotnet_format_report(report_dir: String, state: State<'_, AppState>) -> Result<Vec<FormatChange>> {
+pub fn dotnet_format_report(
+    report_dir: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<FormatChange>> {
     let dir = PathBuf::from(&report_dir);
     if report_dir.is_empty() || !dir.starts_with(std::env::temp_dir()) {
         return Ok(Vec::new());
@@ -740,19 +783,29 @@ pub fn dotnet_format_report(report_dir: String, state: State<'_, AppState>) -> R
 fn adapter_command(state: &AppState) -> Result<String> {
     netcoredbg(state)
         .map(|t| path_string(&t.path))
-        .map_err(|e| other(format!("{e}. Download it in Settings | Languages & Frameworks | .NET or set its path.")))
+        .map_err(|e| {
+            other(format!(
+                "{e}. Download it in Settings | Languages & Frameworks | .NET or set its path."
+            ))
+        })
 }
 
 /// Build a ".NET Project" configuration and return the launch request of its assembly
 /// under netcoredbg (`dotnet <assembly>`), with the launch profile's arguments, working
 /// folder and environment.
 #[tauri::command]
-pub async fn dotnet_debug_request(configuration: RunConfiguration, app: AppHandle) -> Result<LaunchRequest> {
+pub async fn dotnet_debug_request(
+    configuration: RunConfiguration,
+    app: AppHandle,
+) -> Result<LaunchRequest> {
     blocking(move || {
         let state = app.state::<AppState>();
         state.require_trusted("Building the program to debug")?;
         if configuration.type_id != DOTNET_RUN {
-            return Err(other(format!("'{}' cannot be debugged as a .NET project", configuration.name)));
+            return Err(other(format!(
+                "'{}' cannot be debugged as a .NET project",
+                configuration.name
+            )));
         }
         let adapter = adapter_command(&state)?;
         let ws = load_workspace(&state)?;
@@ -766,8 +819,16 @@ pub async fn dotnet_debug_request(configuration: RunConfiguration, app: AppHandl
             .project(&project_path)
             .cloned()
             .ok_or_else(|| other(format!("{project_path} is not a project of the solution")))?;
-        let out = capture(backend.as_ref(), &to_command_line(build, &root), "", BUILD_TIMEOUT)?;
-        let report = dotnetforge_lang_dotnet::parse_build_output(&format!("{}\n{}", out.stdout, out.stderr), &path_string(&root));
+        let out = capture(
+            backend.as_ref(),
+            &to_command_line(build, &root),
+            "",
+            BUILD_TIMEOUT,
+        )?;
+        let report = dotnetforge_lang_dotnet::parse_build_output(
+            &format!("{}\n{}", out.stdout, out.stderr),
+            &path_string(&root),
+        );
         if out.code != Some(0) || report.succeeded == Some(false) {
             let first = report
                 .problems
@@ -780,14 +841,21 @@ pub async fn dotnet_debug_request(configuration: RunConfiguration, app: AppHandl
         let dll = dotnetforge_lang_dotnet::build::output_of(&report, &project.name)
             .map(|o| o.path.clone())
             .unwrap_or_else(|| project.output_dll(&ctx.configuration(), cfg.option("framework")));
-        let dll = if Path::new(&dll).is_absolute() { dll } else { path_string(&root.join(&dll)) };
+        let dll = if Path::new(&dll).is_absolute() {
+            dll
+        } else {
+            path_string(&root.join(&dll))
+        };
         let profile_name = cfg.option("profile").trim().to_string();
         let profile = if profile_name == "none" {
             None
         } else if profile_name.is_empty() {
             project.launch_profiles.iter().find(|p| p.is_runnable())
         } else {
-            project.launch_profiles.iter().find(|p| p.name == profile_name)
+            project
+                .launch_profiles
+                .iter()
+                .find(|p| p.name == profile_name)
         };
         let mut args = vec![dll];
         if let Some(p) = profile {
@@ -795,9 +863,16 @@ pub async fn dotnet_debug_request(configuration: RunConfiguration, app: AppHandl
         }
         args.extend(forge_process::split_args(&configuration.arguments));
         let project_dir = root.join(project.dir());
-        let cwd = match (configuration.working_directory.trim(), profile.map(|p| p.working_directory.as_str())) {
+        let cwd = match (
+            configuration.working_directory.trim(),
+            profile.map(|p| p.working_directory.as_str()),
+        ) {
             (w, _) if !w.is_empty() => {
-                if Path::new(w).is_absolute() { PathBuf::from(w) } else { root.join(w) }
+                if Path::new(w).is_absolute() {
+                    PathBuf::from(w)
+                } else {
+                    root.join(w)
+                }
             }
             (_, Some(w)) if !w.is_empty() => project_dir.join(w.replace("$(ProjectDir)", "")),
             _ => project_dir,
@@ -821,7 +896,11 @@ pub async fn dotnet_debug_request(configuration: RunConfiguration, app: AppHandl
 
 /// Attach netcoredbg to a test host that waits for a debugger (`VSTEST_HOST_DEBUG=1`).
 #[tauri::command]
-pub async fn dotnet_attach_request(pid: u32, name: Option<String>, app: AppHandle) -> Result<LaunchRequest> {
+pub async fn dotnet_attach_request(
+    pid: u32,
+    name: Option<String>,
+    app: AppHandle,
+) -> Result<LaunchRequest> {
     blocking(move || {
         let state = app.state::<AppState>();
         state.require_trusted("Debugging tests")?;
@@ -839,12 +918,20 @@ pub async fn dotnet_attach_request(pid: u32, name: Option<String>, app: AppHandl
 
 // ---- The Roslyn language server -----------------------------------------------------------------
 
-fn roslyn_config(state: &AppState, root: &Path, ws: &DotnetWorkspace, dll: &Path) -> LspServerConfig {
+fn roslyn_config(
+    state: &AppState,
+    root: &Path,
+    ws: &DotnetWorkspace,
+    dll: &Path,
+) -> LspServerConfig {
     let solution = ws.solution.as_deref().map(|s| path_string(&root.join(s)));
     let projects = if solution.is_some() {
         Vec::new()
     } else {
-        ws.projects.iter().map(|p| path_string(&root.join(&p.path))).collect()
+        ws.projects
+            .iter()
+            .map(|p| path_string(&root.join(&p.path)))
+            .collect()
     };
     let setup = RoslynSetup {
         dotnet: dotnet_program(state),
@@ -944,7 +1031,10 @@ pub(crate) fn configure_servers(manager: &LspManager, state: &AppState) {
 /// Whether a changed setting reconfigures the Roslyn server.
 pub fn affects_server(key: &str) -> bool {
     key.starts_with("dotnet.roslyn.")
-        || matches!(key, "dotnet.path" | "dotnet.solution" | "dotnet.environment" | "dotnet.configuration")
+        || matches!(
+            key,
+            "dotnet.path" | "dotnet.solution" | "dotnet.environment" | "dotnet.configuration"
+        )
 }
 
 pub fn spawn_sync_lsp_server(app: &AppHandle) {

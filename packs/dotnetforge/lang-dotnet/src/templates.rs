@@ -57,10 +57,21 @@ pub fn parse_template_list(text: &str) -> Vec<Template> {
         if start >= row.len() {
             return String::new();
         }
-        row[start..end.min(row.len())].iter().collect::<String>().trim().to_string()
+        row[start..end.min(row.len())]
+            .iter()
+            .collect::<String>()
+            .trim()
+            .to_string()
     };
-    let names: Vec<String> = (0..starts.len()).map(|k| column(&header, k).to_ascii_lowercase()).collect();
-    let find = |label: &str, fallback: usize| names.iter().position(|n| n.starts_with(label)).unwrap_or(fallback);
+    let names: Vec<String> = (0..starts.len())
+        .map(|k| column(&header, k).to_ascii_lowercase())
+        .collect();
+    let find = |label: &str, fallback: usize| {
+        names
+            .iter()
+            .position(|n| n.starts_with(label))
+            .unwrap_or(fallback)
+    };
     let (name_col, short_col, lang_col, tags_col) = (
         find("template", 0),
         find("short", 1),
@@ -93,7 +104,8 @@ pub fn parse_template_list(text: &str) -> Vec<Template> {
             }
         }
         let tags = split(column(&row, tags_col), '/');
-        let project = !tags.iter().any(|t| ITEM_TAGS.contains(&t.as_str())) && !languages.is_empty();
+        let project =
+            !tags.iter().any(|t| ITEM_TAGS.contains(&t.as_str())) && !languages.is_empty();
         out.push(Template {
             name,
             short_names: split(short, ','),
@@ -115,18 +127,73 @@ pub fn common_templates() -> Vec<Template> {
         project: true,
     };
     vec![
-        t("Console App", "console", &["C#", "F#", "VB"], "Common/Console"),
-        t("Class Library", "classlib", &["C#", "F#", "VB"], "Common/Library"),
-        t("ASP.NET Core Web API", "webapi", &["C#", "F#"], "Web/Web API/API/Service"),
+        t(
+            "Console App",
+            "console",
+            &["C#", "F#", "VB"],
+            "Common/Console",
+        ),
+        t(
+            "Class Library",
+            "classlib",
+            &["C#", "F#", "VB"],
+            "Common/Library",
+        ),
+        t(
+            "ASP.NET Core Web API",
+            "webapi",
+            &["C#", "F#"],
+            "Web/Web API/API/Service",
+        ),
         t("ASP.NET Core Empty", "web", &["C#", "F#"], "Web/Empty"),
-        t("ASP.NET Core Web App (Model-View-Controller)", "mvc", &["C#", "F#"], "Web/MVC"),
-        t("ASP.NET Core Web App (Razor Pages)", "webapp", &["C#"], "Web/MVC/Razor Pages"),
-        t("Blazor Web App", "blazor", &["C#"], "Web/Blazor/WebAssembly"),
-        t("Worker Service", "worker", &["C#", "F#"], "Common/Worker/Web"),
-        t("ASP.NET Core gRPC Service", "grpc", &["C#"], "Web/gRPC/API/Service"),
-        t("xUnit Test Project", "xunit", &["C#", "F#", "VB"], "Test/xUnit/Desktop/Web"),
-        t("NUnit 3 Test Project", "nunit", &["C#", "F#", "VB"], "Test/NUnit/Desktop/Web"),
-        t("MSTest Test Project", "mstest", &["C#", "F#", "VB"], "Test/MSTest/Desktop/Web"),
+        t(
+            "ASP.NET Core Web App (Model-View-Controller)",
+            "mvc",
+            &["C#", "F#"],
+            "Web/MVC",
+        ),
+        t(
+            "ASP.NET Core Web App (Razor Pages)",
+            "webapp",
+            &["C#"],
+            "Web/MVC/Razor Pages",
+        ),
+        t(
+            "Blazor Web App",
+            "blazor",
+            &["C#"],
+            "Web/Blazor/WebAssembly",
+        ),
+        t(
+            "Worker Service",
+            "worker",
+            &["C#", "F#"],
+            "Common/Worker/Web",
+        ),
+        t(
+            "ASP.NET Core gRPC Service",
+            "grpc",
+            &["C#"],
+            "Web/gRPC/API/Service",
+        ),
+        t(
+            "xUnit Test Project",
+            "xunit",
+            &["C#", "F#", "VB"],
+            "Test/xUnit/Desktop/Web",
+        ),
+        t(
+            "NUnit 3 Test Project",
+            "nunit",
+            &["C#", "F#", "VB"],
+            "Test/NUnit/Desktop/Web",
+        ),
+        t(
+            "MSTest Test Project",
+            "mstest",
+            &["C#", "F#", "VB"],
+            "Test/MSTest/Desktop/Web",
+        ),
     ]
 }
 
@@ -144,7 +211,10 @@ mod tests {
         assert_eq!(console.languages, vec!["C#", "F#", "VB"]);
         assert_eq!(console.tags, vec!["Common", "Console"]);
         assert!(console.project);
-        let webapp = t.iter().find(|x| x.name.starts_with("ASP.NET Core Web App (Razor")).unwrap();
+        let webapp = t
+            .iter()
+            .find(|x| x.name.starts_with("ASP.NET Core Web App (Razor"))
+            .unwrap();
         assert_eq!(webapp.short_names, vec!["webapp", "razor"]);
         assert_eq!(webapp.languages, vec!["C#"]);
         let gitignore = t.iter().find(|x| x.short_name() == "gitignore").unwrap();

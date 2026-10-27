@@ -61,7 +61,9 @@ struct BuildRequest {
 #[wasm_bindgen]
 pub fn dotnet_build_report(request_json: &str) -> String {
     match parse::<BuildRequest>(request_json) {
-        Ok(r) => to_json(&dotnetforge_lang_dotnet::parse_build_output(&r.output, &r.root)),
+        Ok(r) => to_json(&dotnetforge_lang_dotnet::parse_build_output(
+            &r.output, &r.root,
+        )),
         Err(e) => error(e),
     }
 }
@@ -78,7 +80,11 @@ struct FileRequest {
 #[wasm_bindgen]
 pub fn dotnet_discover(request_json: &str) -> String {
     match parse::<FileRequest>(request_json) {
-        Ok(r) => to_json(&dotnetforge_lang_dotnet::discover_file(&r.path, &r.text, r.context.as_ref())),
+        Ok(r) => to_json(&dotnetforge_lang_dotnet::discover_file(
+            &r.path,
+            &r.text,
+            r.context.as_ref(),
+        )),
         Err(e) => error(e),
     }
 }
@@ -87,7 +93,9 @@ pub fn dotnet_discover(request_json: &str) -> String {
 #[wasm_bindgen]
 pub fn dotnet_scan(request_json: &str) -> String {
     match parse::<FileRequest>(request_json) {
-        Ok(r) => to_json(&dotnetforge_lang_dotnet::scan::scan_source(&r.path, &r.text, None)),
+        Ok(r) => to_json(&dotnetforge_lang_dotnet::scan::scan_source(
+            &r.path, &r.text, None,
+        )),
         Err(e) => error(e),
     }
 }
@@ -102,7 +110,9 @@ struct RunRequest {
 /// `{ configuration, context }` → `DotnetCommand` of a ".NET Project" configuration.
 #[wasm_bindgen]
 pub fn dotnet_run_command(request_json: &str) -> String {
-    match parse::<RunRequest>(request_json).and_then(|r| cmdline::run_command(&r.configuration, &r.context)) {
+    match parse::<RunRequest>(request_json)
+        .and_then(|r| cmdline::run_command(&r.configuration, &r.context))
+    {
         Ok(c) => to_json(&c),
         Err(e) => error(e),
     }
@@ -146,7 +156,14 @@ struct PackageRequest {
 #[wasm_bindgen]
 pub fn dotnet_package_command(request_json: &str) -> String {
     match parse::<PackageRequest>(request_json).and_then(|r| {
-        cmdline::package_command(&r.action, &r.project, &r.package, r.version.as_deref(), r.prerelease, &r.context)
+        cmdline::package_command(
+            &r.action,
+            &r.project,
+            &r.package,
+            r.version.as_deref(),
+            r.prerelease,
+            &r.context,
+        )
     }) {
         Ok(c) => to_json(&c),
         Err(e) => error(e),
@@ -163,7 +180,9 @@ struct NewRequest {
 /// `{ request, context }` → `DotnetCommand[]` (`dotnet_new_project`).
 #[wasm_bindgen]
 pub fn dotnet_new_project(request_json: &str) -> String {
-    match parse::<NewRequest>(request_json).and_then(|r| cmdline::new_project_commands(&r.request, &r.context)) {
+    match parse::<NewRequest>(request_json)
+        .and_then(|r| cmdline::new_project_commands(&r.request, &r.context))
+    {
         Ok(c) => to_json(&c),
         Err(e) => error(e),
     }
@@ -179,7 +198,9 @@ struct FormatCommandRequest {
 /// `{ request, context }` → `DotnetCommand` (`dotnet_cleanup_command`).
 #[wasm_bindgen]
 pub fn dotnet_format_command(request_json: &str) -> String {
-    match parse::<FormatCommandRequest>(request_json).and_then(|r| cmdline::format_command(&r.request, &r.context)) {
+    match parse::<FormatCommandRequest>(request_json)
+        .and_then(|r| cmdline::format_command(&r.request, &r.context))
+    {
         Ok(c) => to_json(&c),
         Err(e) => error(e),
     }
@@ -209,7 +230,9 @@ pub fn dotnet_templates(request_json: &str) -> String {
 /// `{ text }` → `SearchResult` of a NuGet search answer.
 #[wasm_bindgen]
 pub fn nuget_parse_search(request_json: &str) -> String {
-    match parse::<TextRequest>(request_json).and_then(|r| dotnetforge_lang_dotnet::nuget::parse_search(&r.text)) {
+    match parse::<TextRequest>(request_json)
+        .and_then(|r| dotnetforge_lang_dotnet::nuget::parse_search(&r.text))
+    {
         Ok(s) => to_json(&s),
         Err(e) => error(e),
     }
@@ -227,7 +250,11 @@ struct UpgradeRequest {
 #[wasm_bindgen]
 pub fn nuget_upgrade(request_json: &str) -> String {
     match parse::<UpgradeRequest>(request_json) {
-        Ok(r) => to_json(&dotnetforge_lang_dotnet::version::upgrade(&r.installed, &r.versions, r.prerelease)),
+        Ok(r) => to_json(&dotnetforge_lang_dotnet::version::upgrade(
+            &r.installed,
+            &r.versions,
+            r.prerelease,
+        )),
         Err(e) => error(e),
     }
 }

@@ -5,10 +5,12 @@
 //! - [`resolve`]: which project a file belongs to (open, recent, or none),
 //! - [`symbols`]: find a component/class declaration by name,
 //! - [`server`] + [`pairing`]: the Browser Companion's local HTTP API,
+//! - [`live_edit`]: Live Edit events the extension applies to open pages,
 //! - [`project`]: project detection and dotenv edits for framework integrations.
 
 pub mod cli;
 pub mod http;
+pub mod live_edit;
 pub mod pairing;
 pub mod project;
 pub mod remote;

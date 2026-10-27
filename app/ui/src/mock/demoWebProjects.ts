@@ -2,12 +2,15 @@
  * WebForge demo projects for browser mode: `?project=react` (a Vite + React storefront in a
  * pnpm workspace), `?project=vue` (a Vue 3 dashboard with yarn) and `?project=angular` (an
  * Angular admin portal with npm) and `?project=node` (a Node.js + TypeScript API with Vitest
- * and Playwright tests, for the JavaScript debugger and the test runners). The default demo
+ * and Playwright tests, for the JavaScript debugger and the test runners) and
+ * `?project=webtools` (an Nx workspace with Nuxt, OpenAPI, GraphQL, Prisma, Sass watchers and
+ * `.http` requests, demoWebTooling.ts). The default demo
  * is the Laravel shop in demoProject.ts.
  */
 import type { ProjectInfo } from "@/ipc/project";
+import { webToolingFiles } from "./demoWebTooling";
 
-export type WebDemoId = "react" | "vue" | "angular" | "node";
+export type WebDemoId = "react" | "vue" | "angular" | "node" | "webtools";
 
 export interface WebDemo {
   name: string;
@@ -21,7 +24,7 @@ export interface WebDemo {
 export function webDemoId(): WebDemoId | null {
   if (typeof location === "undefined") return null;
   const p = new URLSearchParams(location.search).get("project");
-  return p === "react" || p === "vue" || p === "angular" || p === "node" ? p : null;
+  return p === "react" || p === "vue" || p === "angular" || p === "node" || p === "webtools" ? p : null;
 }
 
 const fw = (id: string, name: string, version: string, language = "javascript") => ({ id, name, version, language });
@@ -946,6 +949,24 @@ export const webDemos: Record<WebDemoId, WebDemo> = {
       frameworks: [fw("node", "Node.js", "22.11.0", "typescript")],
       tools: ["git", "npm"],
       primary: fw("node", "Node.js", "22.11.0", "typescript"),
+    },
+  },
+  webtools: {
+    name: "shop-platform",
+    initialFile: "apps/api/openapi.yaml",
+    files: webToolingFiles,
+    info: {
+      packs: ["webforge"],
+      languages: ["typescript", "javascript", "html", "css"],
+      frameworks: [
+        { ...fw("nx", "Nx", "20.4.0"), dir: "" },
+        { ...fw("nuxt", "Nuxt", "3.15.4"), dir: "apps/storefront" },
+        { ...fw("vue", "Vue.js", "3.5.13"), dir: "apps/storefront" },
+        fw("prisma", "Prisma", "6.3.0"),
+        fw("vite", "Vite", "6.3.5"),
+      ],
+      tools: ["git", "pnpm", "bun", "graphql"],
+      primary: fw("nuxt", "Nuxt", "3.15.4"),
     },
   },
   angular: {

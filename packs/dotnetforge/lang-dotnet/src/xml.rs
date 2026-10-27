@@ -98,7 +98,10 @@ pub fn parse(xml: &str) -> Result<Element, String> {
     let mut root: Option<Element> = None;
     let line_at = |pos: u64| -> u32 {
         let end = (pos as usize).min(text.len());
-        text.as_bytes()[..end].iter().filter(|b| **b == b'\n').count() as u32
+        text.as_bytes()[..end]
+            .iter()
+            .filter(|b| **b == b'\n')
+            .count() as u32
     };
     let done = |stack: &mut Vec<Element>, root: &mut Option<Element>, el: Element| match stack
         .last_mut()
@@ -154,7 +157,10 @@ pub fn parse(xml: &str) -> Result<Element, String> {
         }
     }
     if !stack.is_empty() {
-        return Err(format!("unexpected end of the document (<{}> is not closed)", stack.last().map(|e| e.name.as_str()).unwrap_or("")));
+        return Err(format!(
+            "unexpected end of the document (<{}> is not closed)",
+            stack.last().map(|e| e.name.as_str()).unwrap_or("")
+        ));
     }
     root.ok_or_else(|| "empty document".into())
 }
@@ -173,7 +179,11 @@ mod tests {
         assert_eq!(doc.attr("sdk"), Some("Microsoft.NET.Sdk"));
         assert!(doc.attr("xmlns").is_none());
         assert_eq!(
-            doc.child("propertygroup").unwrap().child("TargetFramework").unwrap().text,
+            doc.child("propertygroup")
+                .unwrap()
+                .child("TargetFramework")
+                .unwrap()
+                .text,
             "net8.0"
         );
         let item = &doc.children_named("ItemGroup").next().unwrap().children[0];

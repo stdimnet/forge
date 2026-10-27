@@ -11,7 +11,8 @@
 #                 installed one starts (e.g. basedpyright before pyright)
 #   plugin        Forge plugin that must be enabled (Settings > Plugins)
 #   when          start only if the project has one of these root `files` (a trailing `*`
-#                 is a prefix match) or `packages` (package.json dependencies)
+#                 is a prefix match) or `packages` (package.json dependencies), and none
+#                 of the `absent` root files
 #   enabled       default for the per-server toggle (true when omitted)
 #   install       ways to install it; `command` is run without a shell. apt / pacman need
 #                 root and are only shown. `platforms`: linux, macos, windows (all if empty)
@@ -44,6 +45,16 @@ extensions = ["svelte"]
 id = "astro"
 name = "Astro"
 extensions = ["astro"]
+
+[[language]]
+id = "prisma"
+name = "Prisma"
+extensions = ["prisma"]
+
+[[language]]
+id = "graphql"
+name = "GraphQL"
+extensions = ["graphql", "gql"]
 
 [[language]]
 id = "html"
@@ -199,6 +210,7 @@ command = "typescript-language-server"
 args = ["--stdio"]
 alternative = "typescript"
 plugin = "forge.web"
+when = { absent = ["deno.json", "deno.jsonc"] }
 homepage = "https://github.com/typescript-language-server/typescript-language-server"
 license = "MIT"
 note = "Uses the project's TypeScript (node_modules) or a global one. Serves .vue files too when the Vue language server is installed (hybrid mode)."
@@ -225,6 +237,7 @@ command = "vtsls"
 args = ["--stdio"]
 alternative = "typescript"
 plugin = "forge.web"
+when = { absent = ["deno.json", "deno.jsonc"] }
 homepage = "https://github.com/yioneko/vtsls"
 license = "MIT"
 note = "Alternative to typescript-language-server built on VS Code's TypeScript extension. Starts only when typescript-language-server is missing or disabled."
@@ -335,6 +348,43 @@ homepage = "https://github.com/withastro/language-tools"
 license = "MIT"
 install = [
   { tool = "npm", command = ["npm", "install", "-g", "@astrojs/language-server", "typescript"] },
+]
+
+[[server]]
+id = "deno"
+name = "Deno Language Server"
+group = "Deno"
+languages = ["typescript", "javascript"]
+command = "deno"
+args = ["lsp"]
+plugin = "forge.deno"
+homepage = "https://docs.deno.com/runtime/reference/lsp_integration/"
+license = "MIT"
+note = "Replaces the TypeScript language server in projects with a deno.json or deno.jsonc."
+when = { files = ["deno.json", "deno.jsonc"] }
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "deno"] },
+  { tool = "brew", command = ["brew", "install", "deno"], platforms = ["macos", "linux"] },
+  { tool = "cargo", command = ["cargo", "install", "deno", "--locked"] },
+]
+
+[server.initialization_options]
+enable = true
+lint = true
+unstable = false
+
+[[server]]
+id = "prisma-language-server"
+name = "Prisma Language Server"
+group = "Prisma"
+languages = ["prisma"]
+command = "prisma-language-server"
+args = ["--stdio"]
+plugin = "forge.prisma"
+homepage = "https://github.com/prisma/language-tools"
+license = "Apache-2.0"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@prisma/language-server"] },
 ]
 
 # ---- HTML & CSS --------------------------------------------------------------------------

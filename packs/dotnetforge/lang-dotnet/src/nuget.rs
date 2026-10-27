@@ -100,13 +100,20 @@ fn opt_url(v: &Value, key: &str) -> Option<String> {
 
 pub fn parse_search(json: &str) -> Result<SearchResult, String> {
     let v: Value = serde_json::from_str(json).map_err(|e| format!("search: {e}"))?;
-    let data = v.get("data").and_then(Value::as_array).ok_or("the search answer has no data")?;
+    let data = v
+        .get("data")
+        .and_then(Value::as_array)
+        .ok_or("the search answer has no data")?;
     let packages = data
         .iter()
         .filter_map(|p| {
             let id = p.get("id")?.as_str()?.to_string();
             let tags = match p.get("tags") {
-                Some(Value::Array(a)) => a.iter().filter_map(Value::as_str).map(str::to_string).collect(),
+                Some(Value::Array(a)) => a
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_string)
+                    .collect(),
                 Some(Value::String(s)) => s.split_whitespace().map(str::to_string).collect(),
                 _ => Vec::new(),
             };
@@ -122,10 +129,18 @@ pub fn parse_search(json: &str) -> Result<SearchResult, String> {
                 .unwrap_or_default();
             let description = match p.get("summary").and_then(Value::as_str) {
                 Some(s) if !s.trim().is_empty() => s.to_string(),
-                _ => p.get("description").and_then(Value::as_str).unwrap_or("").to_string(),
+                _ => p
+                    .get("description")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
             };
             Some(NuGetPackage {
-                version: p.get("version").and_then(Value::as_str).unwrap_or("").to_string(),
+                version: p
+                    .get("version")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
                 description: description.trim().to_string(),
                 authors: text_or_list(p.get("authors")),
                 total_downloads: p.get("totalDownloads").and_then(Value::as_u64).unwrap_or(0),
@@ -166,7 +181,9 @@ fn encode(s: &str) -> String {
     let mut out = String::new();
     for b in s.bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
             b' ' => out.push('+'),
             _ => out.push_str(&format!("%{b:02X}")),
         }
@@ -220,8 +237,14 @@ mod tests {
     #[test]
     fn service_index_search_and_versions() {
         let idx = parse_service_index(&fixture("nuget-index.json")).unwrap();
-        assert_eq!(idx.search.as_deref(), Some("https://azuresearch-usnc.nuget.org/query"));
-        assert_eq!(idx.package_base.as_deref(), Some("https://api.nuget.org/v3-flatcontainer"));
+        assert_eq!(
+            idx.search.as_deref(),
+            Some("https://azuresearch-usnc.nuget.org/query")
+        );
+        assert_eq!(
+            idx.package_base.as_deref(),
+            Some("https://api.nuget.org/v3-flatcontainer")
+        );
         assert!(parse_service_index("{}").is_err());
 
         let r = parse_search(&fixture("nuget-search-serilog.json")).unwrap();
@@ -236,7 +259,12 @@ mod tests {
         assert!(r.packages[2].deprecated && r.packages[2].vulnerable);
         assert_eq!(r.packages[2].tags, vec!["serilog", "sinks"]);
 
-        assert_eq!(parse_versions("{\"versions\":[\"1.0.0\",\"2.0.0-beta\"]}").unwrap().len(), 2);
+        assert_eq!(
+            parse_versions("{\"versions\":[\"1.0.0\",\"2.0.0-beta\"]}")
+                .unwrap()
+                .len(),
+            2
+        );
         assert!(parse_versions("{}").is_err());
     }
 
@@ -246,11 +274,17 @@ mod tests {
             search_url("https://s/query/", "serilog sinks", 0, 25, false),
             "https://s/query?q=serilog+sinks&skip=0&take=25&prerelease=false&semVerLevel=2.0.0"
         );
-        assert_eq!(versions_url("https://f/", "Serilog.Sinks.Console"), "https://f/serilog.sinks.console/index.json");
+        assert_eq!(
+            versions_url("https://f/", "Serilog.Sinks.Console"),
+            "https://f/serilog.sinks.console/index.json"
+        );
         assert_eq!(encode("a&b"), "a%26b");
         assert_eq!(short_count(1_234_567), "1.2M");
         assert_eq!(short_count(2_000), "2K");
         assert_eq!(short_count(999), "999");
-        assert_eq!(gallery_url("X", "1.0"), "https://www.nuget.org/packages/X/1.0");
+        assert_eq!(
+            gallery_url("X", "1.0"),
+            "https://www.nuget.org/packages/X/1.0"
+        );
     }
 }
