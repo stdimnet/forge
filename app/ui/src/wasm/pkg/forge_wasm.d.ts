@@ -1146,6 +1146,36 @@ export function python_testing_detect(request_json: string): string;
 export function python_tox_environments(request_json: string): string;
 
 /**
+ * `{ files, options, path, content, offset }` -> `Completions | null`.
+ */
+export function python_web_complete(request_json: string): string;
+
+/**
+ * `{ files, options, path, content, offset }` -> `Location[]`.
+ */
+export function python_web_goto(request_json: string): string;
+
+/**
+ * `{ files, options }` -> Django's commands plus the project's `management/commands`.
+ */
+export function python_web_manage_commands(request_json: string): string;
+
+/**
+ * `{ files, options, path, content }` -> `FileMarks`.
+ */
+export function python_web_marks(request_json: string): string;
+
+/**
+ * `{ files, options }` -> `WebProject`.
+ */
+export function python_web_project(request_json: string): string;
+
+/**
+ * `{ files, options, configuration }` -> `PythonRun`.
+ */
+export function python_web_run_info(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1215,6 +1245,41 @@ export function run_output_new(options_json: string): string;
  * debug }`: a command line on a run target.
  */
 export function run_target_wrap(request_json: string): string;
+
+/**
+ * `{ action, package?, target?, context }` → `CargoCommand` (`cargo_command`).
+ */
+export function rust_action_command(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `CargoCommand` of a "Cargo" configuration.
+ */
+export function rust_command_line(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `TestFile` (`test_discover` for Rust files).
+ */
+export function rust_discover(request_json: string): string;
+
+/**
+ * `{ json, root }` → `CargoWorkspace` (`cargo_workspace`).
+ */
+export function rust_parse_metadata(request_json: string): string;
+
+/**
+ * `{ json, workspace }` → `RustProblem[]` (`rust_clippy`).
+ */
+export function rust_problems(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `RunTarget[]` (`rust_file_targets`).
+ */
+export function rust_run_targets(request_json: string): string;
+
+/**
+ * `{ text }` → `ToolchainFile` of a `rust-toolchain.toml`.
+ */
+export function rust_toolchain_file(request_json: string): string;
 
 /**
  * `{ base, original, formatted }` → the text with only changed lines reformatted.
@@ -1957,6 +2022,12 @@ export interface InitOutput {
     readonly python_test_discover: (a: number, b: number, c: number) => void;
     readonly python_testing_detect: (a: number, b: number, c: number) => void;
     readonly python_tox_environments: (a: number, b: number, c: number) => void;
+    readonly python_web_complete: (a: number, b: number, c: number) => void;
+    readonly python_web_goto: (a: number, b: number, c: number) => void;
+    readonly python_web_manage_commands: (a: number, b: number, c: number) => void;
+    readonly python_web_marks: (a: number, b: number, c: number) => void;
+    readonly python_web_project: (a: number, b: number, c: number) => void;
+    readonly python_web_run_info: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
@@ -1971,6 +2042,13 @@ export interface InitOutput {
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
     readonly run_target_wrap: (a: number, b: number, c: number) => void;
+    readonly rust_action_command: (a: number, b: number, c: number) => void;
+    readonly rust_command_line: (a: number, b: number, c: number) => void;
+    readonly rust_discover: (a: number, b: number, c: number) => void;
+    readonly rust_parse_metadata: (a: number, b: number, c: number) => void;
+    readonly rust_problems: (a: number, b: number, c: number) => void;
+    readonly rust_run_targets: (a: number, b: number, c: number) => void;
+    readonly rust_toolchain_file: (a: number, b: number, c: number) => void;
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
     readonly save_actions_file_types: (a: number, b: number, c: number) => void;
     readonly save_actions_plan: (a: number, b: number, c: number) => void;

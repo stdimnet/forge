@@ -23,6 +23,7 @@
 .pt-icon[data-type="joomla"],
 .pt-icon[data-type="angular"] { --pt: var(--danger); }
 .pt-icon[data-type="symfony"],
+.pt-icon[data-type="flask"],
 .pt-icon[data-type="next"] { --pt: var(--fg-strong); }
 .pt-icon[data-type="spring-boot"] { --pt: var(--success); }
 .pt-icon[data-type="composer"],
@@ -42,6 +43,9 @@
 .pt-icon[data-type="go"] { --pt: var(--graph-5); }
 .pt-icon[data-type="vue"],
 .pt-icon[data-type="nuxt"],
+.pt-icon[data-type="django"],
+.pt-icon[data-type="fastapi"],
+.pt-icon[data-type="celery"],
 .pt-icon[data-type="neovim"] { --pt: var(--success); }
 .pt-icon[data-type="lua"] { --pt: var(--graph-1); }
 .pt-icon[data-type="love"] { --pt: var(--graph-6); }

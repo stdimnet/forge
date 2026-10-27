@@ -7,6 +7,11 @@
 //!   `directory` and `pattern` (discovery), `file`, `test` (`TestCart.test_add`) and `nodes`
 //!   (dotted test ids, one per line).
 //! - `tox`: `environments` (comma separated; empty: tox's `env_list`).
+//! - `django-tests`: `manage.py test` (`runner` = `django`, Forge's runner on Django's
+//!   DiscoverRunner) or pytest with pytest-django (`runner` = `pytest`), with `manage` (the
+//!   project's `manage.py`), `settings` (`DJANGO_SETTINGS_MODULE`), `target` (test labels,
+//!   space separated: `shop.tests.test_models.ProductTests`) and `nodes` (Rerun Failed
+//!   Tests).
 //!
 //! Common fields: the interpreter, interpreter options, the working directory,
 //! environment variables and `arguments` (extra arguments of the runner).
@@ -16,9 +21,10 @@ use forge_runtools::Configuration;
 pub const PYTEST: &str = "pytest";
 pub const UNITTEST: &str = "unittest";
 pub const TOX: &str = "tox";
+pub const DJANGO: &str = "django-tests";
 
 /// Every Python test configuration type.
-pub const TYPES: [&str; 3] = [PYTEST, UNITTEST, TOX];
+pub const TYPES: [&str; 4] = [PYTEST, UNITTEST, TOX, DJANGO];
 
 pub fn pytest_file(path: &str, name: &str) -> Configuration {
     Configuration::new(name, PYTEST)

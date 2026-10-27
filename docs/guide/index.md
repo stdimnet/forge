@@ -58,6 +58,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   inspections from the `spring-configuration-metadata.json` of the dependency jars, and the
   Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator
   health, mappings and beans) ([Spring Boot and Jakarta EE](user/spring.md)).
+- **RustForge**: Settings | Languages & Frameworks | Rust with rustup toolchains, the active
+  toolchain and its `rust-toolchain.toml`, the sysroot and the standard library sources; the
+  Cargo tool window with members, targets, feature checkboxes and dependencies; Cargo and
+  Cargo Test run configurations with ▶ on `fn main`, tests, test modules and doctests
+  (libtest on stable and nightly, cargo-nextest, coverage with cargo-llvm-cov); Clippy
+  problems with quick fixes, rustfmt, rust-analyzer settings and LLDB / GDB debugging with
+  rustc's pretty printers ([RustForge](user/rust.md)).
 - **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
   downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
   checks and version completion from the module proxy; gofmt / goimports, go vet and

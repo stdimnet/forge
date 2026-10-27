@@ -15,9 +15,11 @@ import { isWordPressDemo, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoName } from "./demoLuaProject";
-import { isPythonDemo, pythonDemoName } from "./demoPythonProject";
+import { isDjangoDemo, isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { goDemoName, isGoDemo } from "./demoGoProject";
 import { goContext } from "./goTestsMock";
+import { isRustDemo, rustDemoName } from "./demoRustProject";
+import { cargoRunSteps, RUST_ROOT, rustContext } from "./rustTestsMock";
 import { isJavaDemo, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoName } from "./demoKotlinProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
@@ -27,7 +29,7 @@ import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -43,6 +45,18 @@ const PYTHON_CONFIGURATIONS: RunConfigurations = {
   configurations: [
     { name: "shop-api", type: "python", storeAsProjectFile: true, workingDirectory: "src", options: { target: "module", script: "uvicorn" }, arguments: "shop_api.main:app --reload" },
     { name: "seed", type: "python", options: { target: "script", script: "scripts/seed.py" } },
+    { name: "shop-api (uvicorn)", type: "fastapi", options: { host: "127.0.0.1", port: "8000", reload: "true" } },
+  ],
+};
+
+/** The Django demo (`?project=django`): the development server, the tests and a Celery worker. */
+const DJANGO_CONFIGURATIONS: RunConfigurations = {
+  selected: "bookshop",
+  configurations: [
+    { name: "bookshop", type: "django-server", storeAsProjectFile: true, options: { host: "127.0.0.1", port: "8000" } },
+    { name: "Django tests", type: "django-tests", storeAsProjectFile: true, options: { runner: "django" } },
+    { name: "Celery worker", type: "celery-worker", options: { loglevel: "INFO", concurrency: "4" } },
+    { name: "Celery beat", type: "celery-beat", options: { loglevel: "INFO" } },
   ],
 };
 
@@ -57,7 +71,18 @@ const GO_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : {
+/** The Rust demo (`?project=rust`): the shop binary, the workspace's tests and a doctest. */
+const RUST_CONFIGURATIONS: RunConfigurations = {
+  selected: "shop",
+  configurations: [
+    { name: "shop", type: "cargo", storeAsProjectFile: true, options: { command: "run", package: "shop-cli", target: "bin:shop" } },
+    { name: "All tests", type: "cargo-test", storeAsProjectFile: true, options: { scope: "all" } },
+    { name: "Doctests in shop-core", type: "cargo-test", options: { scope: "target", package: "shop-core", target: "doc" } },
+    { name: "cargo build --release", type: "cargo", options: { command: "build", profile: "release" } },
+  ],
+};
+
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -205,6 +230,10 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
   if (specFor(cfg.type)) {
     const c = await frameworkCommand(cfg, coverage);
     return { program: c.program, args: c.args, cwd: cfg.workingDirectory || "", env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
+  }
+  if (cfg.type === "cargo") {
+    const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).rust_command_line, { configuration: cfg, context: rustContext() });
+    return { ...c, cwd: c.cwd ? `${RUST_ROOT}/${c.cwd}` : RUST_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
   if (cfg.type === "go-build") {
     const c = callWasmSync<CommandLine>((await forgeWasm()).go_build_command, { configuration: cfg, context: goContext() });
@@ -541,6 +570,17 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       return phpunitSteps(cfg);
     case "python":
       return pythonSteps(cfg);
+    case "cargo":
+      return cargoRunSteps(cfg);
+    case "cargo-command": {
+      // Cargo tool window actions: `cargo build`, `check`, `clean`, `update`, `run`.
+      const args = (JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? [];
+      const sub = args.find((a) => !a.startsWith("+")) ?? "build";
+      if (sub === "clean") return [[300, "     Removed 412 files, 187.3MiB total\n", "stderr"], [10, { code: 0 }]];
+      if (sub === "update") return [[600, "    Updating crates.io index\n     Locking 0 packages to latest compatible versions\n", "stderr"], [10, { code: 0 }]];
+      const target = args.includes("--example") ? `example:${args[args.indexOf("--example") + 1]}` : "bin:shop";
+      return cargoRunSteps({ ...cfg, options: { command: sub, target } });
+    }
     case "go-build":
       return o.runAfterBuild === "false"
         ? [[900, ""], [10, { code: 0 }]]

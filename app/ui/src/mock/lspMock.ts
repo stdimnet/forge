@@ -19,6 +19,7 @@ import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo } from "./demoPythonProject";
 import { isGoDemo } from "./demoGoProject";
+import { isRustDemo } from "./demoRustProject";
 import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./demoJavaProject";
 import { cartMembers, isKotlinDemo, kotlinGlobals, orderMembers as kotlinOrderMembers } from "./demoKotlinProject";
 import {
@@ -107,6 +108,8 @@ const SERVER = isLuaDemo()
     ? { id: "basedpyright", name: "basedpyright" }
     : isGoDemo()
     ? { id: "gopls", name: "gopls" }
+    : isRustDemo()
+    ? { id: "rust-analyzer", name: "rust-analyzer" }
     : isJavaDemo()
       ? { id: "jdtls", name: "Eclipse JDT LS" }
     : isKotlinDemo()
@@ -146,7 +149,7 @@ const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.s
 /** `?project=kotlin&kotlin-lsp=missing`: the Kotlin demo starts without kotlin-lsp. */
 const kotlinLspMissingAtStart = () => isKotlinDemo() && new URLSearchParams(location.search).get("kotlin-lsp") === "missing";
 let serverInstalled =
-  isLuaDemo() || isPythonDemo() || isGoDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : !intelephenseMissingAtStart());
+  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : !intelephenseMissingAtStart());
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {

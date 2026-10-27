@@ -74,6 +74,8 @@ const ROWS: &[Row] = &[
         &["j2", "jinja", "jinja2", "njk", "nunjucks"],
         &[],
     ),
+    // Django templates; the Django plugin also claims `.html` files in `templates/` folders.
+    ("django", "Django Template", &["djhtml"], &[]),
     (
         "handlebars",
         "Handlebars",
@@ -199,6 +201,7 @@ const TEMPLATES: &[&str] = &[
     "latte",
     "gotemplate",
     "jinja",
+    "django",
     "handlebars",
 ];
 

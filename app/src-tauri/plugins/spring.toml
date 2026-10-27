@@ -28,12 +28,8 @@ id = "spring.showBeans"
 title = "Spring Beans"
 category = "View"
 
-[[contributions.toolWindows]]
-id = "endpoints"
-title = "Endpoints"
-anchor = "bottom"
-icon = "globe"
-order = 36
+# The Endpoints tool window is shared with PyForge's web frameworks (`forge.python-web`
+# declares it); the UI adds a "Spring and JAX-RS" view to it.
 
 [[contributions.toolWindows]]
 id = "spring"

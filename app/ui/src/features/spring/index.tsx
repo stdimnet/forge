@@ -16,8 +16,9 @@
  * Active only for projects whose build uses Spring Boot or Jakarta EE.
  */
 import { createEffect, createRoot, on } from "solid-js";
-import { Globe, Leaf } from "lucide-solid";
+import { Leaf } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
+import { registerEndpointsView, showEndpointsView } from "@/features/endpoints/registry";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { registerCommand } from "@/state/commands";
@@ -32,16 +33,8 @@ import "./runType";
 import "./dashboard";
 import "./spring.css";
 
-registerToolWindow({
-  id: "endpoints",
-  title: "Endpoints",
-  icon: Globe,
-  anchor: "bottom",
-  order: 36,
-  component: EndpointsView,
-  actions: EndpointsActions,
-  when: springActive,
-});
+// The shared Endpoints tool window (features/endpoints) shows this view in Spring / Jakarta EE projects.
+registerEndpointsView({ id: "spring", title: "Spring and JAX-RS", order: 20, when: springActive, component: EndpointsView, actions: EndpointsActions });
 
 registerToolWindow({
   id: "spring",
@@ -65,7 +58,7 @@ registerSettingsPage({
 });
 
 registerCommand({ id: "spring.refresh", title: "Refresh Spring Model", category: "Spring", run: () => void loadSpring(true) });
-registerCommand({ id: "spring.showEndpoints", title: "Endpoints", category: "View", run: () => showToolWindow("endpoints") });
+registerCommand({ id: "spring.showEndpoints", title: "Endpoints", category: "View", run: () => showEndpointsView("spring") });
 registerCommand({
   id: "spring.showBeans",
   title: "Spring Beans",

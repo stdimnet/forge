@@ -72,8 +72,9 @@ listed too. **View | Tool Windows | Spring**, or **Tools | Spring | Show Beans**
 
 ## Endpoints
 
-The **Endpoints** tool window (bottom stripe) lists every HTTP endpoint with its method, path,
-handler, produced media types and framework:
+The **Endpoints** tool window (bottom stripe, **Tools | Spring | Show Endpoints**) lists every
+HTTP endpoint with its method, path, handler, produced media types and framework (in a project
+that also has Python web frameworks, the window has a tab per language):
 
 - **Spring MVC / WebFlux**: `@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`,
   `@DeleteMapping` and `@PatchMapping` on `@RestController` / `@Controller` methods, under the

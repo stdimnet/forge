@@ -17,6 +17,7 @@ import { isDrupalDemo } from "./demoDrupalProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo } from "./demoPythonProject";
 import { isGoDemo } from "./demoGoProject";
+import { isRustDemo } from "./demoRustProject";
 import { isJavaDemo } from "./demoJavaProject";
 import { isKotlinDemo } from "./demoKotlinProject";
 import { webDemo } from "./demoWebProjects";
@@ -24,7 +25,7 @@ import { mockSettingValue } from "./settingsMock";
 
 /** Project files the detection looks at. */
 function demoFiles(): string[] {
-  if (isLuaDemo() || isPythonDemo() || isGoDemo() || isJavaDemo() || isKotlinDemo() || webDemo()) return [];
+  if (isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isJavaDemo() || isKotlinDemo() || webDemo()) return [];
   if (isSymfonyDemo()) return ["composer.json", "bin/console"];
   if (isWordPressDemo()) return ["composer.json", "vendor/bin/wp"];
   if (isDrupalDemo()) return ["composer.json", "vendor/bin/drush"];

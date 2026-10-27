@@ -41,6 +41,10 @@ const GLYPHS: Record<string, Glyph> = {
   python: { text: "Py" },
   "spring-boot": { icon: Leaf },
   "jakarta-ee": { text: "EE" },
+  django: { text: "dj" },
+  flask: { text: "Fl" },
+  fastapi: { icon: Zap },
+  celery: { text: "Ce" },
   folder: { icon: Folder },
 };
 

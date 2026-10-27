@@ -21,6 +21,9 @@ tags: [python, pyforge, interpreter, venv, uv, poetry, conda, pip, ruff, basedpy
   and tox in the test runner, debugging with debugpy, the Python Console and the profiler, in
   the same projects.
 
+Django, Flask, FastAPI and Celery projects get more plugins: see
+[Django, Flask, FastAPI and Celery](python-web-frameworks.md).
+
 ![A Python file with basedpyright's errors and the requirements inspection](../../screenshots/python-editor.png)
 
 ## Python interpreter

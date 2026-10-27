@@ -71,6 +71,10 @@ app/ui/            SolidJS UI
     Configuration outside tests) from `@/features/run` (PyForge).
   - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
     Anything (double Ctrl), e.g. Artisan and Symfony console commands.
+  - `registerEndpointsView({ id, title, order, when, component, actions? })`
+    (`src/features/endpoints/registry.ts`) — a view of the shared Endpoints tool window; with
+    several active views (a polyglot project) the window shows a tab per view
+    (`showEndpointsView(id)` opens one).
   - `registerServicesProvider({ id, nodes, owns, details, action, refresh? })`
     (`src/features/services/providers.ts`) — nodes of the Services tool window before
     Docker / Compose / Kubernetes, with their own details (the `ServiceDetails` shape) and
@@ -1067,7 +1071,7 @@ or without Git, for local and remote projects.
   report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is
@@ -2263,6 +2267,31 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
   `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
 
+- Web frameworks (`packs/pyforge/frameworks`, plugins `forge.python-web`, `forge.django`,
+  `forge.flask`, `forge.fastapi`, `forge.celery`; IPC `commands/python_web.rs`,
+  `src/ipc/pythonWeb.ts`, UI `features/pythonWeb/`): `forge-project` reports the frameworks
+  `django` (with `manage.py`), `flask`, `fastapi`, `celery` from the dependency files. The
+  crate scans Python into tokens and logical lines (`source`), follows imports (`modules`) and
+  builds a `Project` from the files (`EXTENSIONS`, one `collect_files` round trip, cached 5 s
+  in the app): settings, URL patterns through `include()`, Flask / FastAPI routes with blueprint
+  and router prefixes, models, Celery tasks, template folders and names.
+  `python_web_project({ refresh }) -> WebProject { frameworks, django?, flask?, fastapi?,
+  celery?, routes: { framework, methods, path, name?, handler, location, handlerLocation?,
+  samplePath }[], models, tasks, templateRoots, templates }`,
+  `python_web_goto({ path, content, offset }) -> { path, line, character }[]`,
+  `python_web_complete({ path, content, offset }) -> { from, to, items: { label, kind:
+  template | url, detail }[] } | null`, `python_web_marks({ path, content }) -> { gutter:
+  { line, kind: template | route | view | task, tooltip, targets }[], problems }` (offsets
+  UTF-16), `python_manage_commands({ refresh }) -> { commands: { name, app, description,
+  location? }[], source: manage.py | static, message? }` (`manage.py help --commands` only
+  when trusted, else static), `python_web_run_info({ configuration }) -> PythonRun`.
+  `run::build` turns `django-server`, `django-manage`, `flask-server`, `fastapi`,
+  `celery-worker`, `celery-beat` into `python` configurations (`python_web::to_python`, the
+  server port is published for container interpreters); `django-tests` is a
+  `pyforge-testing` type (`helpers/forge_django_tests.py` on Django's `DiscoverRunner`, or
+  pytest-django). The browser mock (`mock/pythonWebMock.ts`) calls the same functions through
+  `crates/forge-wasm/src/python_web.rs`; `?project=django` opens the Django demo.
+
 ## GoForge (`packs/goforge/*`)
 
 - Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):
@@ -2314,6 +2343,55 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   golangci-lint on save (`editor.ts`). Browser mode: `?project=go` opens the `ledger` demo
   (`mock/demoGoProject.ts`, `mock/goMock.ts`, `mock/goTestsMock.ts`, WebAssembly
   `crates/forge-wasm/src/go.rs`).
+## RustForge (`packs/rustforge/*`)
+
+- Plugin (`app/src-tauri/plugins/rustforge.toml`): `forge.rust` (`projectTypes =
+  ["rustforge"]`): the TOML file type also for `Cargo.lock` and `rust-toolchain` (`.rs` is
+  bundled), the run configuration type `cargo`, the `cargo-test` test framework (wrapped in
+  Rust by `CargoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
+  Settings | Languages & Frameworks | Rust (`lang.rust`, `rust.*`). `forge-project` reports
+  the `rust` language (pack `rustforge`) for `Cargo.toml`, Rust files in the root or two or
+  more in a folder, and the tool `cargo`. rust-analyzer comes from the language server
+  catalog; `commands::rust::configure_analyzer` (called at the end of
+  `langservers::apply`) sets its command (toolchain component, Forge's download) and its
+  initialization options / settings from `rust.*` (`AnalyzerSettings`); setting changes call
+  `spawn_sync_analyzer`.
+- Crates: `rustforge-lang-rust` (pure, also WebAssembly: cargo metadata, toolchain files,
+  discovery, the Cargo Test provider, Cargo command lines, Clippy messages, rustfmt,
+  rust-analyzer settings, pretty printers) and `rustforge-toolchain` (rustup / toolchain
+  detection with `RUSTUP_AUTO_INSTALL=0`, rustup install command lines, the pinned
+  rust-analyzer download with SHA-256, the `rust-gdb` adapter).
+- The Cargo context (`commands::rust::context`: cargo and toolchain from the status, test
+  runner and format, `rust.environment`, features, the workspace from `cargo metadata` cached
+  in `<cache>/forge/rust/<project hash>.json` and keyed by the manifests, the project's `.rs`
+  files) reaches the provider through `CommandContext.settings["rust.context"]`
+  (`run.rs::framework_command` calls `rust::extend_test_context`); Cargo runs are built by
+  `rust::cargo_run` in `run.rs::build`; `testing.rs::test_discover` hands `.rs` files to
+  `rust::discover_file`. Test keys are `<file>::<libtest name>`; `CargoContext::location_rules`
+  maps libtest's `<crate>::<module>` locations (see `forge-output`'s libtest parsers) to the
+  module files.
+- IPC (`app/ui/src/ipc/rust.ts`, `commands/rust.rs`; lines 0-based, columns UTF-16):
+  `rust_status({ refresh? }) -> RustStatus & { chosen }`,
+  `rust_install_command({ kind: "toolchain" | "component" | "cargoPlugin", name, toolchain? })
+  -> CommandLine`, `rust_analyzer_download() -> string` (events `rust://install`),
+  `cargo_workspace({ refresh? }) -> CargoWorkspace { root, targetDirectory, members, trees }`
+  (event `rust://workspace`; trusted projects only when cargo has to run),
+  `cargo_command({ action, package?, target? }) -> CommandLine`,
+  `rust_file_targets({ path, content }) -> RunTarget[]`, `rust_format({ path, content }) ->
+  string | null`, `rust_clippy({ path? }) -> RustProblem[]` (with `fixes`: edits per file;
+  trusted projects only), `rust_debug_request({ configuration }) -> LaunchRequest` (builds
+  first; trusted projects only). Command lines are started by the UI through `run_start`
+  (hidden type `cargo-command`), so they are refused in Safe Mode.
+- Debugging: LLDB launch requests carry rustc's pretty printers as `initCommands`;
+  `commands::rust::sync_debug` (called from `dap.rs::sync`) registers the `rust-gdb` adapter
+  (GDB with the printers as `-iex` arguments) while `forge.rust` is enabled.
+- UI (`app/ui/src/features/rust`): settings page, the `cargo` tool window, run configuration
+  types `cargo` and `cargo-test`, the `rust` debug launcher, `fn main` line markers, the
+  format provider, Clippy problems with quick fixes (`registerContextActionProvider`) and
+  Clippy on save (`editor.ts`). Browser mode: `?project=rust` opens the `shop` demo
+  (`mock/demoRustProject.ts`, `mock/rustMock.ts`, `mock/rustTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/rust.rs`).
+
 ## JavaForge (`packs/javaforge/*`)
 
 - The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)
@@ -2497,8 +2575,9 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   per configuration. `spring_dashboard_details` asks `/actuator/health|beans|mappings` on
   127.0.0.1 (management port and base path from the configuration) with a 1.5 s timeout,
   cached for `spring.dashboard.refreshSeconds`.
-- UI (`app/ui/src/features/spring`): the Endpoints (bottom) and Spring (right: Beans,
-  Persistence, Configuration) tool windows, gutter icons and the configuration file editor
+- UI (`app/ui/src/features/spring`): the "Spring and JAX-RS" view of the shared Endpoints tool
+  window (`registerEndpointsView`) and the Spring tool window (right: Beans, Persistence,
+  Configuration), gutter icons and the configuration file editor
   support (`editor.ts`: completion with `toOption` of the JSON Schema feature, diagnostics
   source `spring-config`, hover, `registerDeclarationProvider`, the deprecated-key quick fix),
   the Spring Boot run type and ▶ on `@SpringBootApplication` (`runType.tsx`), the Services

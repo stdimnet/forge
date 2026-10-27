@@ -1,0 +1,9 @@
+cargo-x86_64-unknown-linux-gnu
+clippy-x86_64-unknown-linux-gnu
+rust-src
+rust-std-wasm32-unknown-unknown
+rust-std-x86_64-pc-windows-msvc
+rust-std-x86_64-unknown-linux-gnu
+rust-std-x86_64-unknown-linux-musl
+rustc-x86_64-unknown-linux-gnu
+rustfmt-x86_64-unknown-linux-gnu

@@ -41,6 +41,10 @@ const byExt: Record<string, Spec> = {
   xml: { icon: FileCode, color: "#e8a050" },
   html: { icon: FileCode, color: "#e8734a" },
   twig: { icon: FileCode, color: "#9ccc65" },
+  djhtml: { icon: FileCode, color: "#44b78b" },
+  j2: { icon: FileCode, color: "#d05050" },
+  jinja: { icon: FileCode, color: "#d05050" },
+  jinja2: { icon: FileCode, color: "#d05050" },
   tmpl: { icon: FileCode, color: "#4fc3e0" },
   gotmpl: { icon: FileCode, color: "#4fc3e0" },
   gohtml: { icon: FileCode, color: "#4fc3e0" },
@@ -87,6 +91,9 @@ function specFor(name: string): Spec {
   // Go modules and workspaces.
   if (/^go\.(?:mod|work)$/.test(name)) return { icon: Package, color: "#4fc3e0" };
   if (/^go\.(?:work\.)?sum$/.test(name)) return { icon: Lock, color: "#4fc3e0" };
+  // Cargo manifests and lock files.
+  if (name === "Cargo.toml") return { icon: Package, color: "#dea584" };
+  if (name === "Cargo.lock") return { icon: Lock, color: "#dea584" };
   if (/^\.env(?:\..+)?$/.test(name)) return byExt.env;
   const ext = name.startsWith(".") ? name.slice(1).split(".")[0] : name.split(".").pop()!;
   return byExt[ext.toLowerCase()] ?? { icon: File, color: "var(--fg-muted)" };

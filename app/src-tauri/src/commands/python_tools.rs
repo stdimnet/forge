@@ -45,7 +45,9 @@ use crate::state::AppState;
 
 /// Configuration types built here.
 pub(crate) fn is_python_type(type_id: &str) -> bool {
-    type_id == "python" || config::TYPES.contains(&type_id)
+    type_id == "python"
+        || config::TYPES.contains(&type_id)
+        || pyforge_frameworks::run::handles(type_id)
 }
 
 /// What a run request adds to a configuration.
@@ -111,6 +113,23 @@ fn safe_name(name: &str) -> String {
 
 /// The command of a Python configuration, as `run::build` returns it.
 pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Result<Built> {
+    // Django Server, Flask, FastAPI and Celery run as Python configurations; Django tests
+    // take the project's manage.py and settings.
+    let mut server_port: Option<u16> = None;
+    let prepared;
+    let cfg = if pyforge_frameworks::run::handles(&cfg.type_id) {
+        let (c, port) = crate::commands::python_web::to_python(state, cfg)?;
+        server_port = port;
+        prepared = c;
+        &prepared
+    } else if cfg.type_id == config::DJANGO {
+        let mut c = cfg.clone();
+        crate::commands::python_web::fill_django_tests(state, &mut c)?;
+        prepared = c;
+        &prepared
+    } else {
+        cfg
+    };
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     let run_on = cfg.run_on.clone().filter(|t| !t.is_local());
@@ -203,12 +222,14 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
         cmd
     };
     cmd.env.extend(x.env);
-    let publish: Vec<u16> = x
+    let mut publish: Vec<u16> = x
         .debug_port
         .as_ref()
         .filter(|d| d.direction == forge_runtargets::DebugDirection::IdeConnects && d.port > 0)
         .map(|d| vec![d.port])
         .unwrap_or_default();
+    // A web server in a container or on a remote host is published like the debugger.
+    publish.extend(server_port);
     if let Some(target) = run_on {
         if program.is_none() {
             cmd.program = "python3".into();

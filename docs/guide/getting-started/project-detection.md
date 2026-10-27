@@ -25,7 +25,7 @@ and a plain Lua project does not start PHP language servers.
 | HTML | `.html` or `.htm` files |
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
-| Rust | `Cargo.toml` |
+| Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
@@ -47,13 +47,16 @@ and a plain Lua project does not start PHP language servers.
 | Angular | `@angular/core` in `package.json`, or `angular.json` |
 | LÖVE | `conf.lua`, or a `main.lua` that uses `love.` |
 | Neovim | `init.lua` next to a `lua/` folder (or one that uses `vim.`), or `lua/` together with `plugin/` |
+| Django | `django` in `requirements*.txt` (also `requirements/*.txt`), `pyproject.toml` or `Pipfile`, together with a `manage.py` |
+| Flask, FastAPI, Celery | `flask`, `fastapi`, `celery` in `requirements*.txt`, `pyproject.toml` or `Pipfile` |
 
 Versions come from `composer.lock` / the npm lock files when present, otherwise from the
-version constraints in the manifests. The PHP version comes from `require.php`.
+version constraints in the manifests (Python frameworks: `uv.lock` / `poetry.lock`). The PHP
+version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -88,6 +91,7 @@ The primary type appears
 | LuaForge | Lua projects |
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
+| RustForge | Rust projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](../user/spring.md) |
 

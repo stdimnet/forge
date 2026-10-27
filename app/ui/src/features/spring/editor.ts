@@ -25,7 +25,7 @@ import { registerContextActionHandler, registerContextActionProvider } from "@/f
 import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { revealSymbol } from "@/features/php/editorViews";
 import { openMenu } from "@/features/run/PopupMenu";
-import { showToolWindow } from "@/state/layout";
+import { showEndpointsView } from "@/features/endpoints/registry";
 import { getSetting } from "@/state/settings";
 import { openInHttpClient, overview, springActive } from "./store";
 import { setEndpointsQuery } from "./EndpointsView";
@@ -83,7 +83,7 @@ registerLineMarkerProvider({
                   icon: Globe,
                   run: () => {
                     setEndpointsQuery(rows[0]?.path ?? "");
-                    showToolWindow("endpoints");
+                    showEndpointsView("spring");
                   },
                 },
               ],

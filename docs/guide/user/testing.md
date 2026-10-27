@@ -1,6 +1,6 @@
 ---
 title: Testing
-description: The shared test runner of every pack — test frameworks of PHP and the language packs, gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, and the result formats Forge reads (TeamCity, JUnit XML, TAP, Go test2json, libtest JSON, pytest, Jest and Vitest JSON, Playwright JSON).
+description: The shared test runner of every pack — test frameworks of PHP and the language packs, gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, and the result formats Forge reads (TeamCity, JUnit XML, TAP, Go test2json, libtest JSON and plain text, pytest, Jest and Vitest JSON, Playwright JSON).
 order: 141
 tags: [tests, test runner, test tree, gutter, rerun failed tests, test history, auto-test, busted, tap, junit, jest, vitest, mocha, playwright, cypress, pytest, go test, cargo test]
 ---
@@ -81,7 +81,8 @@ format into the same test events:
 | JUnit XML | Codeception, Behat, PHPSpec, PHPUnit `--log-junit`, pytest `--junitxml`, Gradle, Maven | a report file or a document on stdout |
 | TAP 12–14 | busted `--output=TAP`, `node --test --test-reporter=tap`, prove, Bats, node-tap | streamed on stdout |
 | Go `test2json` | `go test -json` | streamed on stdout |
-| libtest JSON | `cargo test -- -Z unstable-options --format json`, nextest | streamed on stdout |
+| libtest JSON | `cargo test -- -Z unstable-options --format json` (nightly), nextest | streamed on stdout; cargo's `Running` lines on stderr name the suites |
+| libtest plain text | `cargo test` on stable toolchains | streamed on stdout; failures are read from their `---- <test> stdout ----` sections |
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
 | Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |

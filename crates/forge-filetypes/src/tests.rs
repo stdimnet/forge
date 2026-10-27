@@ -48,6 +48,7 @@ fn bundled_types_by_name_and_extension() {
         ("legacy/templates/cart.tpl", "Smarty"),
         ("app/Presenters/templates/Home.latte", "Latte"),
         ("templates/mail.hbs", "Handlebars"),
+        ("shop/templates/base.djhtml", "Django Template"),
         ("deploy.tmpl", "Go Template"),
         ("views/index.html.tmpl", "Go Template"),
         ("db/query.sql.tmpl", "Go Template (SQL)"),
