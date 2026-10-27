@@ -1941,8 +1941,25 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   and `db_statement_at({ sql, from, to, dialect }) -> { text, start, end } | null` (what Ctrl+Enter
   runs; editor offsets). SQL text handling (dialects, splitting, literals, row changes, export) is
   the pure crate `forge-sql`, re-exported by `forge-db`.
+- Database Explorer: the model types are the pure crate `forge-dbmodel` (also in WebAssembly as
+  `dbmodel_*`). `db_model({ id, refresh? }) -> DbModel` (dialect, `catalog`/`catalogs`, every
+  schema with `visible` from the data source's schema filter `options.schemas`, introspected
+  schemas in `loaded`, `roles`, DDL `warnings`) is cached per data source in
+  `<cache dir>/forge/db-models/` and served without connecting unless `refresh`;
+  `db_introspect` loads one schema lazily (refused for hidden schemas) and `db_table_info`
+  refreshes one table, both merged into the cache. `db_object_doc({ id, schema, object: { kind,
+  table?, name } }) -> ObjectDoc` (Quick Documentation), `db_virtual_objects` /
+  `db_virtual_objects_save({ id, objects })` (`.forge/database/virtual.toml`, merged into every
+  served schema with `virtual: true`), `db_match_schemas({ patterns, schemas })` (Schemas tab
+  preview), `db_search({ searchId, request: { scopes, text, mode, caseSensitive, allColumns,
+  limit } }) -> SearchSummary` with `db://search` progress and per-table `TableMatches`, and
+  `db_search_cancel`. DDL data sources are `driver = "ddl"` with `options.ddlFiles` and
+  `options.ddlDialect`; the project watcher drops their model when a listed file changes and
+  emits `db://modelChanged` with their ids (also for `virtual.toml`). Catalog queries are tagged
+  `/* forge:<dialect>.<what> */`.
 - Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
-  `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes).
+  `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes),
+  `db://modelChanged` (data source ids to reload) and `db://search` (`SearchProgress`).
 - UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
   opened with `openViewTab`; consoles and table editors use it. Editor-area panels can opt into the
   tool-window key context with `data-focus-context="toolwindow"`.

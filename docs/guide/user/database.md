@@ -1,8 +1,8 @@
 ---
 title: Database tools and SQL console
-description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, the Database tool window, query consoles with sessions and transactions, read-only and production data sources, the data grid with editing, and export.
+description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), query consoles with sessions and transactions, read-only and production data sources, the data grid with editing, and export.
 order: 170
-tags: [database, sql, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console]
+tags: [database, sql, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl]
 ---
 
 # Database tools and SQL console
@@ -12,27 +12,134 @@ built into Forge — there are no JDBC drivers to download:
 
 | Engine | Driver | Tree | Console |
 | --- | --- | --- | --- |
-| MySQL, MariaDB, PostgreSQL, SQLite | `sqlx` | schemas, tables, views, columns, keys, indexes, routines | SQL, transactions |
-| SQL Server, Azure SQL | `tiberius` (pure-Rust TDS over rustls) | schemas, tables, views, columns, keys, indexes, procedures and functions | T-SQL (`GO` separates batches), transactions |
-| ClickHouse | HTTP interface (port 8123, 8443 with TLS), JSON results | databases, tables, views, columns, primary key | SQL; every statement on its own |
-| Oracle | SQL\*Plus or SQLcl **installed by you** (see [Oracle](#oracle)) | schemas, tables, views, columns, keys, indexes, procedures and packages | SQL and PL/SQL blocks ending with `/`; every statement on its own |
+| MySQL, MariaDB | `sqlx` | schemas, tables, views, columns (generated), keys, indexes, checks, triggers, routines with arguments, users | SQL, transactions |
+| PostgreSQL | `sqlx` | database, schemas, tables, views, materialized views, sequences, routines with arguments, enum/domain/composite types, columns (identity, generated), keys, indexes, checks, triggers, roles | SQL, transactions |
+| SQLite | `sqlx` | tables, views, columns, keys, indexes, checks, triggers | SQL, transactions |
+| SQL Server, Azure SQL | `tiberius` (pure-Rust TDS over rustls) | database, schemas, tables, views, sequences, alias types, columns (computed), keys, indexes, checks, triggers, procedures and functions with parameters, logins and server roles | T-SQL (`GO` separates batches), transactions |
+| ClickHouse | HTTP interface (port 8123, 8443 with TLS), JSON results | databases, tables, views, materialized views, columns (materialized, alias), primary key, data skipping indexes, users and roles | SQL; every statement on its own |
+| Oracle | SQL\*Plus or SQLcl **installed by you** (see [Oracle](#oracle)) | schemas, tables, views, materialized views, sequences, object types, columns, keys, indexes, checks, triggers, procedures, functions (with arguments) and packages | SQL and PL/SQL blocks ending with `/`; every statement on its own |
 | Redis | `redis-rs` | databases → keys with type and TTL | Redis commands, one per line |
 | MongoDB | official MongoDB driver | databases → collections → fields | shell calls: `db.users.find({...})`, `aggregate`, … |
+| DDL data source | SQL files of the project, parsed by Forge (see [DDL data sources](#ddl-data-sources)) | the same tree as the files' dialect | none (no database) |
 
 ODBC is not supported: no permissive Rust crate makes generic ODBC drivers work without a
 system driver manager, so Forge supports the engines above natively instead.
 
 ## Database tool window
 
-The **Database** tool window (right stripe) shows your data sources as a tree:
-data source → schema → tables (with comments) → columns, keys and indexes.
+The **Database** tool window (right stripe) is DataGrip's Database Explorer. It shows your data
+sources as a tree: data source → database (PostgreSQL, SQL Server) → schemas → tables, views,
+materialized views, sequences, routines and types → columns, keys, foreign keys, indexes,
+checks and triggers, and the **server objects** (roles and users).
 
 ![Database tree](../../screenshots/database-tree.png)
 
+![Full object tree with routines, triggers and checks](../../screenshots/database-explorer-tree.png)
+
+- **Routines** show their arguments and result: `close_stale_orders (days int, OUT closed int)
+  procedure`, `order_total (o_id bigint): numeric`.
+- **Types** list enums with their labels, domains with their base type and composite types.
+- Other databases of the server are listed below the connected one (`not introspected`); create
+  another data source to browse them.
+- **Lazy loading**: schemas are introspected when you open them (the current schema right
+  away). Forge caches the model of every data source in its cache folder
+  (`<cache dir>/forge/db-models/`, see [File locations](../reference/file-locations.md)), so
+  after a restart the tree shows at once, without connecting.
+- **Refresh** works per node: on a table it re-reads only that table (columns, keys, indexes,
+  checks, triggers), on a schema that schema, on the data source the schema list, the server
+  objects and every loaded schema. The toolbar's **Refresh** refreshes the selected data source.
+
 Toolbar: **+** (add data source), **Refresh**, **Data Source Properties** (`Shift+Enter`),
 **Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**, **Sessions** (see
-[Sessions](#sessions)). Context menu of a node: **New Query Console**, **Edit Data** (tables),
-**Go to DDL**, **Copy Name**, **Properties**, **Refresh**, **Disconnect**, **Delete**.
+[Sessions](#sessions)). Context menu of a node: **Quick Documentation**, **Full-Text Search…**,
+**New Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Add Virtual
+Foreign Key…** (columns), **Add Virtual Column…** (tables), **Schemas…**, **Properties**,
+**Refresh**, **Disconnect**, **Delete**.
+
+### Quick Documentation
+
+`Ctrl+Q` (or double-click on a routine, sequence or type) on a node shows its documentation:
+the kind and location, the comment, properties (type, nullability, default, auto-increment,
+primary key, references and referencing tables, arguments, language, enum labels) and the DDL —
+the routine or trigger source when the database keeps it, otherwise generated from the model.
+`Escape` closes it.
+
+![Quick Documentation of a procedure](../../screenshots/database-quick-doc.png)
+
+### Schema filter
+
+The **Schemas** tab of a data source (context menu **Schemas…**) chooses which schemas (MySQL and
+ClickHouse: databases; Redis and MongoDB: databases) Forge introspects and shows, like
+DataGrip's introspection scope. Hidden schemas are never introspected.
+
+![Schemas tab](../../screenshots/database-schema-filter.png)
+
+One pattern per line:
+
+| Pattern | Selects |
+| --- | --- |
+| `shop` | the schema `shop` (names ignore case) |
+| `*`, `tenant_*`, `db_?` | wildcards: every schema, schemas starting with `tenant_`, … |
+| `:current` | the connection's current schema |
+| `/tenant_\d+/`, `/sales/i` | a regular expression (with `i`: ignoring case) |
+| `!pattern` | excludes what `pattern` selects, e.g. `*` and `!pg_*` |
+
+No pattern means `:current` (the first schema when there is no current one); only exclusions
+start from every schema. **All schemas** and **Current schema** add `*` and `:current`; the
+list below shows the result for the server's schemas, and its check boxes add or exclude single
+schemas. The tree shows `4 of 6` next to the data source when schemas are hidden.
+
+### Virtual foreign keys and columns
+
+Databases without declared foreign keys (MyISAM tables, legacy schemas, `user_id` columns
+without constraints) can get **virtual foreign keys**: right-click a column → **Add Virtual
+Foreign Key…**, choose the referenced table and column. **Add Virtual Column…** on a table adds a
+computed column (`price * quantity`).
+
+![A virtual foreign key](../../screenshots/database-virtual-fk.png)
+
+They are stored in the project in `.forge/database/virtual.toml` (share it with your team) and
+merged into the model: the tree shows them in italics with the accent colour, Quick
+Documentation lists them, the data grid marks their columns, and the console's completion
+offers joins over them (see [completion](#query-console)). **Remove Virtual Foreign Key** /
+**Remove Virtual Column** delete them. The file looks like this:
+
+```toml
+[[foreignKey]]
+dataSource = "shop-local-1f3a"
+schema = "shop"
+table = "orders"
+columns = ["customer"]
+refTable = "users"
+refColumns = ["id"]
+
+[[column]]
+dataSource = "shop-local-1f3a"
+schema = "shop"
+table = "order_items"
+name = "line_total"
+expression = "quantity * unit_price"
+type = "decimal(10,2)"
+```
+
+### Full-text search
+
+**Full-Text Search…** (`Ctrl+Alt+Shift+F` in the Database tool window, or the context menu)
+finds a text in the **data** of tables and views. It opens a tab with the text, the mode
+(**Contains**, **Exact match**, **Regular expression**), **Match case**, **All column types**
+(also numbers and dates; otherwise text columns only), **Rows per table** (default 100), table
+patterns (`users, order_*, !audit_*`) and the scope: data sources and their schemas (none
+checked means all shown schemas).
+
+![Full-text search results](../../screenshots/database-full-text-search.png)
+
+Forge searches table by table with read-only `SELECT`s and shows each table with matches as
+soon as it is done, the matching cells highlighted; the progress bar shows how far it is, and
+**Cancel** stops it. Double-click a table or row to open the table. The text is always sent as a
+quoted literal, with a per-dialect condition: `ILIKE`/`~*` (PostgreSQL), `LIKE`/`REGEXP_LIKE`
+(MySQL, Oracle), `LIKE … ESCAPE` (SQLite, SQL Server), `positionCaseInsensitiveUTF8`/`match`
+(ClickHouse). SQLite and SQL Server have no regular expressions; Redis, MongoDB and DDL data
+sources cannot be searched.
 
 Data sources with a colour tint their rows (see [Colours](#read-only-and-production-data-sources));
 `read-only` and the SSH host appear next to the name.
@@ -48,11 +155,12 @@ Data sources with a colour tint their rows (see [Colours](#read-only-and-product
 | Field | Notes |
 | --- | --- |
 | Name, Comment | |
-| Driver | MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis, MongoDB |
+| Driver | MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis, MongoDB, [DDL Data Source](#ddl-data-sources) |
 | Host, Port, Database / SQLite file | SQLite files are chosen with a file picker. Oracle: **Service** (e.g. `FREEPDB1`); Redis: **Database index** (`0`); MongoDB: also a full `mongodb://` or `mongodb+srv://` URL as the host |
 | Authentication | User & Password, or none |
 | Password | stored in the OS keychain (service `forge-db`), never in project files |
 | SSH/SSL tab | SSH tunnel and SSL/TLS, see below |
+| Schemas tab | the [schema filter](#schema-filter): which schemas are introspected and shown |
 | Options | read-only, colour, transaction control (Auto / Manual), single session mode, connect timeout, startup script |
 | Scope | **Project Data Sources** (`<project>/.forge/dataSources.toml`, shareable) or **Global Data Sources** (`dataSources.toml` in Forge's config folder) |
 
@@ -122,6 +230,28 @@ process's input (the password never appears on a command line), prints CSV and e
 - **Cancel** stops the process,
 - PL/SQL blocks (`BEGIN … END;`, `CREATE PROCEDURE …`) end with a line containing only `/`.
 
+### DDL data sources
+
+A **DDL data source** (**+** → **DDL Data Source**) has no database: Forge builds its model from
+SQL DDL files of the project — a `schema.sql`, a dump without data, or a folder of SQL migrations
+(Flyway `V1__…`, `V2__…`). It needs no server and works offline.
+
+- **Files**: one file or folder per line, relative to the project. Folders are read with their
+  subfolders in natural name order (`V2` before `V10`), and the statements are applied in
+  order: `CREATE TABLE`/`VIEW`/`MATERIALIZED VIEW`/`INDEX`/`SEQUENCE`/`TYPE`/`DOMAIN`/
+  `FUNCTION`/`PROCEDURE`/`TRIGGER`/`SCHEMA`, `ALTER TABLE` (add/drop/rename columns and
+  constraints, rename tables), `DROP` and `COMMENT ON`, so migrations give the final schema.
+- **Dialect**: PostgreSQL, MySQL / MariaDB, SQLite, SQL Server, Oracle or ClickHouse; MySQL
+  scripts may use `DELIMITER`.
+- **Default schema**: where unqualified names go (by default `public`, `main` or `dbo`).
+
+![A DDL data source](../../screenshots/database-ddl-source.png)
+
+The tree, Quick Documentation, **Go to DDL** and SQL completion of consoles use the parsed
+model. Statements Forge cannot parse are skipped and listed under **problems** with their
+file and line (double-click opens it). Forge parses the files again when they change on disk.
+Consoles of a DDL data source complete names but cannot run queries.
+
 ### From `.env`
 
 When a project's `.env` has Laravel's `DB_*` variables or Symfony's `DATABASE_URL`, Forge shows
@@ -137,6 +267,9 @@ from .env files** (`database.suggestFromEnv`).
 
 - SQL highlighting for the data source's dialect and completion of keywords, tables and
   columns.
+- After `JOIN`, completion offers the tables related to the ones already in the statement by a
+  foreign key — real or [virtual](#virtual-foreign-keys-and-columns) — with the whole
+  condition: `JOIN ` → `users u ON u.id = o.user_id`.
 - **Execute** (`Ctrl+Enter`, macOS `Cmd+Enter`) runs the statement at the caret, or the
   selection. Several statements separated by `;` run one after another.
 - SQL in PHP and JavaScript strings runs the same way: `Ctrl+Enter` in an injected SQL string
