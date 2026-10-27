@@ -78,12 +78,17 @@ mod tests {
     #[test]
     fn mirrors_profiler_open() {
         let x = profiler_demo(r#"{"kind":"xdebug","root":"~/Projects/acme-shop"}"#);
-        assert!(x.contains("\"functions\"") && x.contains("PriceCalculator"), "{x}");
+        assert!(
+            x.contains("\"functions\"") && x.contains("PriceCalculator"),
+            "{x}"
+        );
         let heap = profiler_demo(r#"{"kind":"v8-heap"}"#);
         assert!(heap.contains("\"classes\""));
         let text = forge_profiler::demo::cachegrind_text("/p");
         let b64 = base64::engine::general_purpose::STANDARD.encode(text);
-        let s = profiler_parse(&format!(r#"{{"name":"cachegrind.out.1","base64":"{b64}","metric":1}}"#));
+        let s = profiler_parse(&format!(
+            r#"{{"name":"cachegrind.out.1","base64":"{b64}","metric":1}}"#
+        ));
         assert!(s.contains("\"metric\":1"), "{s}");
         assert!(profiler_parse(r#"{"name":"x.txt","base64":"aGVsbG8="}"#).contains("error"));
     }
