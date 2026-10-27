@@ -93,7 +93,7 @@ registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => 
         end: nameAt + m[2].length,
         severity: "weak",
         message: `Method '${m[2]}' is deprecated${info.deprecated.reason ? `: ${info.deprecated.reason}` : ""}`,
-        code: "deprecated",
+        code: "PhpDeprecation",
         deprecated: true,
         fix: replacement ? { title: `Replace with '${replacement}'`, edits: [{ start: m.index!, end: m.index! + m[0].length, newText: replacement }] } : undefined,
       });
@@ -103,12 +103,12 @@ registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => 
       const expected = info.expected[i];
       if (!expected || !/^'[^']*'$/.test(arg) || expected.map(unquote).includes(unquote(arg))) return;
       const at = m.index! + m[0].indexOf(arg, m[1].length + m[2].length + 3);
-      out.push({ start: at, end: at + arg.length, severity: "warning", message: `Value should be one of: ${expected.join(", ")}`, code: "expectedValues" });
+      out.push({ start: at, end: at + arg.length, severity: "warning", message: `Value should be one of: ${expected.join(", ")}`, code: "PhpExpectedValuesShouldBeUsed" });
     });
     // A pure call as a statement of its own.
     const lineStart = text.lastIndexOf("\n", m.index!) + 1;
     if (info.pure && /^\s*$/.test(text.slice(lineStart, m.index!)) && text.slice(m.index! + m[0].length).startsWith(";")) {
-      out.push({ start: m.index!, end: m.index! + m[0].length, severity: "weak", message: "The result of the pure method call is not used", code: "pureFunction" });
+      out.push({ start: m.index!, end: m.index! + m[0].length, severity: "weak", message: "The result of the pure method call is not used", code: "PhpExpressionResultUnused" });
     }
   }
   const ns = /^namespace\s+([\w\\]+)\s*;/m.exec(text);
@@ -121,7 +121,7 @@ registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => 
         end: start + ns[1].length,
         severity: "warning",
         message: "Namespace name doesn't match PSR-0/PSR-4 project structure",
-        code: "psr4Namespace",
+        code: "PhpIllegalPsrClassPath",
         fix: { title: `Set namespace to '${expected}'`, edits: [{ start, end: start + ns[1].length, newText: expected }] },
       });
     }
