@@ -1735,6 +1735,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
+name = "dotnetforge-lang-dotnet"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "quick-xml",
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "dotnetforge-sdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "dotnetforge-lang-dotnet",
+ "forge-langservers",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2167,6 +2193,8 @@ dependencies = [
  "cforge-lang-cpp",
  "cforge-toolchains",
  "dirs 6.0.0",
+ "dotnetforge-lang-dotnet",
+ "dotnetforge-sdk",
  "forge-agent-cli",
  "forge-ai",
  "forge-backend",
@@ -3147,6 +3175,7 @@ dependencies = [
  "cforge-cmake",
  "cforge-embedded",
  "cforge-lang-cpp",
+ "dotnetforge-lang-dotnet",
  "forge-agent-cli",
  "forge-bookmarks",
  "forge-codeintel",

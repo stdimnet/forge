@@ -14,7 +14,7 @@ export interface Framework {
 export interface ProjectInfo {
   languages: string[];
   frameworks: Framework[];
-  /** `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`. */
+  /** `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, `dotnetforge`. */
   packs: string[];
   tools: string[];
   primary?: Framework;

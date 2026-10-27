@@ -33,11 +33,12 @@ pub struct Framework {
 #[serde(rename_all = "camelCase")]
 pub struct ProjectInfo {
     /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `kotlin`,
-    /// `groovy`, `scala`, `rust`, `go`, `python`, `cpp` (C and C++).
+    /// `groovy`, `scala`, `rust`, `go`, `python`, `cpp` (C and C++), `csharp`, `fsharp`,
+    /// `vbnet`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
     /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
-    /// `goforge`, `rustforge`, `kotlinforge`, `cforge`.
+    /// `goforge`, `rustforge`, `kotlinforge`, `cforge`, `dotnetforge`.
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
     /// `conda`, `maven`, `gradle`, `sbt`, `docker`, `git`, `cmake`, `compile-commands`, `meson`,
@@ -85,6 +86,9 @@ pub fn language_name(id: &str) -> &str {
         "scala" => "Scala",
         "groovy" => "Groovy",
         "cpp" => "C/C++",
+        "csharp" => "C#",
+        "fsharp" => "F#",
+        "vbnet" => "Visual Basic",
         other => other,
     }
 }
@@ -102,6 +106,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "java" | "groovy" | "scala" => Some("javaforge"),
         "kotlin" => Some("kotlinforge"),
         "cpp" => Some("cforge"),
+        "csharp" | "fsharp" | "vbnet" => Some("dotnetforge"),
         _ => None,
     }
 }
@@ -158,6 +163,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "magento",
     "joomla",
     "android",
+    "aspnetcore",
     "next",
     "nuxt",
     "angular",
@@ -182,6 +188,9 @@ const LANGUAGE_PRIORITY: &[&str] = &[
     "scala",
     "groovy",
     "java",
+    "csharp",
+    "fsharp",
+    "vbnet",
     "typescript",
     "javascript",
     "lua",
@@ -465,6 +474,8 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
     // ---- C and C++ (CForge)
     scan_cpp(dir, rel, c, &files);
+    // ---- .NET (DotNetForge)
+    scan_dotnet(dir, rel, c, &files);
     // ---- Python
     // Like Lua: Python files in the root, several of them in a folder, or a packaging /
     // environment file make it a Python project.
@@ -517,6 +528,92 @@ const CPP_EXTENSIONS: &[&str] = &[
 
 fn is_cpp_file(name: &str) -> bool {
     CPP_EXTENSIONS.iter().any(|e| name.ends_with(e))
+}
+
+/// .NET: a solution (`.sln`, `.slnx`; its projects decide C#, F# or Visual Basic), a
+/// project file (`.csproj`, `.fsproj`, `.vbproj`), `global.json`, or C# / F# sources in
+/// the root (or several in a folder). A web SDK project is ASP.NET Core.
+fn scan_dotnet(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let ext = |e: &str| {
+        files
+            .iter()
+            .filter(|f| f.to_ascii_lowercase().ends_with(e))
+            .count()
+    };
+    let solutions: Vec<&String> = files
+        .iter()
+        .filter(|f| {
+            let l = f.to_ascii_lowercase();
+            l.ends_with(".sln") || l.ends_with(".slnx")
+        })
+        .collect();
+    let (cs, fs, vb) = (ext(".csproj"), ext(".fsproj"), ext(".vbproj"));
+    let mut langs: Vec<&str> = Vec::new();
+    for s in &solutions {
+        let text = fs::read_to_string(dir.join(s))
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        if text.contains(".csproj") {
+            langs.push("csharp");
+        }
+        if text.contains(".fsproj") {
+            langs.push("fsharp");
+        }
+        if text.contains(".vbproj") {
+            langs.push("vbnet");
+        }
+        if !text.contains("proj") {
+            langs.push("csharp");
+        }
+    }
+    if cs > 0 {
+        langs.push("csharp");
+    }
+    if fs > 0 {
+        langs.push("fsharp");
+    }
+    if vb > 0 {
+        langs.push("vbnet");
+    }
+    let cs_sources = ext(".cs");
+    let fs_sources = ext(".fs") + ext(".fsx");
+    if cs_sources >= 2 || (rel.is_empty() && cs_sources > 0) {
+        langs.push("csharp");
+    }
+    if fs_sources >= 2 || (rel.is_empty() && fs_sources > 0) {
+        langs.push("fsharp");
+    }
+    if langs.is_empty() && files.iter().any(|f| f == "global.json") {
+        langs.push("csharp");
+    }
+    for l in langs {
+        c.language(l);
+    }
+    if !solutions.is_empty() || cs + fs + vb > 0 {
+        c.tool("dotnet");
+    }
+    let web = files
+        .iter()
+        .filter(|f| {
+            let l = f.to_ascii_lowercase();
+            l.ends_with(".csproj") || l.ends_with(".fsproj")
+        })
+        .any(|f| {
+            fs::read_to_string(dir.join(f))
+                .map(|t| {
+                    t.contains("Microsoft.NET.Sdk.Web")
+                        || t.contains("Microsoft.NET.Sdk.BlazorWebAssembly")
+                })
+                .unwrap_or(false)
+        });
+    if web {
+        let lang = if fs > 0 && cs == 0 {
+            "fsharp"
+        } else {
+            "csharp"
+        };
+        c.framework("aspnetcore", "ASP.NET Core", lang, None, rel);
+    }
 }
 
 /// A CMake project, a compilation database (also in `build/`), a Meson build, a Makefile
@@ -1786,6 +1883,53 @@ mod tests {
         write(dir.path(), "package.json", "{}");
         write(dir.path(), "native/addon.h", "");
         assert!(!detect(dir.path()).uses("cpp"));
+    }
+
+    #[test]
+    fn dotnet_projects() {
+        for (marker, content, lang) in [
+            (
+                "Shop.sln",
+                "Project(\"{9A19103F}\") = \"Api\", \"Api\\\\Api.csproj\", \"{1}\"",
+                "csharp",
+            ),
+            (
+                "Shop.slnx",
+                "<Solution><Project Path=\"Reports/Reports.fsproj\" /></Solution>",
+                "fsharp",
+            ),
+            (
+                "App.csproj",
+                "<Project Sdk=\"Microsoft.NET.Sdk\" />",
+                "csharp",
+            ),
+            ("Lib.vbproj", "<Project />", "vbnet"),
+            ("Program.cs", "Console.WriteLine();", "csharp"),
+            ("script.fsx", "printfn \"hi\"", "fsharp"),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, content);
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["dotnetforge"], "{marker}");
+            assert_eq!(info.languages, vec![lang], "{marker}");
+        }
+        // A solution with projects one level below, ASP.NET Core.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Bookstore.sln", "Microsoft Visual Studio Solution File\nProject(\"x\") = \"Api\", \"Api\\\\Api.csproj\", \"y\"");
+        write(
+            dir.path(),
+            "Api/Api.csproj",
+            "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />",
+        );
+        let info = detect(dir.path());
+        assert!(info.uses("dotnet") && info.uses("aspnetcore"));
+        assert_eq!(info.primary.as_ref().unwrap().id, "aspnetcore");
+        assert_eq!(language_name("csharp"), "C#");
+        // One stray C# file in a subfolder of another project is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "tools/gen.cs", "");
+        assert!(!detect(dir.path()).uses("dotnetforge"));
     }
 
     #[test]

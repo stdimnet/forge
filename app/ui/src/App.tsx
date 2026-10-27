@@ -39,6 +39,7 @@ export function App() {
       scala: "core/src/main/scala/com/acme/shop/Cart.scala",
       android: "app/src/main/java/com/acme/notes/NoteRepository.kt",
       cpp: "src/geometry/polygon.cpp",
+      dotnet: "tests/Bookstore.Tests/CartTests.cs",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
       react: "src/App.tsx",

@@ -42,6 +42,8 @@ pub const SERVERS_RUNNING_PROJECT_CODE: &[&str] = &[
     "kotlin-lsp",
     "metals",
     "csharp-ls",
+    "roslyn",
+    "fsautocomplete",
 ];
 
 /// Why a project is trusted.

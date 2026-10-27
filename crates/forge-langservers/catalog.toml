@@ -179,6 +179,11 @@ name = "C#"
 extensions = ["cs", "csx"]
 
 [[language]]
+id = "fsharp"
+name = "F#"
+extensions = ["fs", "fsi", "fsx"]
+
+[[language]]
 id = "ruby"
 name = "Ruby"
 extensions = ["rb", "rake", "gemspec", "ru", "erb:erb"]
@@ -843,6 +848,19 @@ license = "MIT"
 note = "Needs the .NET SDK."
 install = [
   { tool = "dotnet", command = ["dotnet", "tool", "install", "--global", "csharp-ls"] },
+]
+
+[[server]]
+id = "fsautocomplete"
+name = "FsAutoComplete"
+group = "F#"
+languages = ["fsharp"]
+command = "fsautocomplete"
+homepage = "https://github.com/ionide/FsAutoComplete"
+license = "Apache-2.0"
+note = "Needs the .NET SDK."
+install = [
+  { tool = "dotnet", command = ["dotnet", "tool", "install", "--global", "fsautocomplete"] },
 ]
 
 [[server]]

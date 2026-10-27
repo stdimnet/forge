@@ -85,15 +85,15 @@ pub fn java_method(name: &str) -> &str {
 }
 
 #[derive(Debug, Clone, Default)]
-struct Element {
-    name: String,
-    attrs: Vec<(String, String)>,
-    text: String,
-    children: Vec<Element>,
+pub(crate) struct Element {
+    pub(crate) name: String,
+    pub(crate) attrs: Vec<(String, String)>,
+    pub(crate) text: String,
+    pub(crate) children: Vec<Element>,
 }
 
 impl Element {
-    fn attr(&self, name: &str) -> Option<&str> {
+    pub(crate) fn attr(&self, name: &str) -> Option<&str> {
         self.attrs
             .iter()
             .find(|(k, _)| k == name)
@@ -132,7 +132,7 @@ fn entity(name: &str) -> Option<char> {
     })
 }
 
-fn parse_dom(xml: &str) -> Result<Element, String> {
+pub(crate) fn parse_dom(xml: &str) -> Result<Element, String> {
     let mut reader = Reader::from_str(xml);
     let mut stack: Vec<Element> = Vec::new();
     let mut root: Option<Element> = None;

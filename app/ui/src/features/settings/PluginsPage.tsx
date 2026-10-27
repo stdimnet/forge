@@ -20,8 +20,9 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   javaforge: { label: "JavaForge", order: 7 },
   kotlinforge: { label: "KotlinForge", order: 8 },
   cforge: { label: "CForge", order: 9 },
-  scriptforge: { label: "ScriptForge", order: 10 },
-  configforge: { label: "ConfigForge", order: 11 },
+  dotnetforge: { label: "DotNetForge", order: 10 },
+  scriptforge: { label: "ScriptForge", order: 11 },
+  configforge: { label: "ConfigForge", order: 12 },
 };
 
 const packLabel = (pack: string) => PACKS[pack]?.label ?? pack;

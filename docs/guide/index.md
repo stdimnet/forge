@@ -78,6 +78,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
   null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
   CI ([Inspections](user/inspections.md)).
+- **DotNetForge**: .NET in the style of Rider: SDKs and `global.json`, `.sln` / `.slnx`
+  solutions and MSBuild projects (central package management, launch profiles), the Build
+  tool window with compiler, NuGet and MSBuild problems, .NET Project run configurations with
+  launch profiles and `dotnet watch`, xUnit / NUnit / MSTest through `dotnet test` with TRX
+  results, netcoredbg debugging, the NuGet tool window (search, upgrades, install / remove),
+  `dotnet new` templates, Code Cleanup with `dotnet format` and EditorConfig, and the Roslyn
+  language server downloaded on request ([DotNetForge](user/dotnet.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
