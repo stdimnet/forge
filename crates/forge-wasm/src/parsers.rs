@@ -2,6 +2,7 @@
 //! IPC commands of the desktop app for the browser-mode mocks.
 
 pub mod chat;
+pub mod dbmodel;
 pub mod dql;
 pub mod markdown;
 pub mod output;

@@ -344,7 +344,7 @@ fn builds_node_commands_per_runner_and_scope() {
 }
 
 #[test]
-fn coverage_writes_lcov() {
+fn coverage_writes_istanbul_json_or_lcov() {
     let cov = CommandContext {
         coverage_file: Some("/tmp/c/coverage".into()),
         ..ctx()
@@ -353,18 +353,32 @@ fn coverage_writes_lcov() {
     let jest = runner("jest").build(&all("jest"), &cov).unwrap();
     assert!(jest.args.ends_with(&[
         "--coverage".to_string(),
-        "--coverageReporters=lcov".into(),
+        "--coverageReporters=json".into(),
         "--coverageDirectory=/tmp/c/coverage".into()
     ]));
     let c = jest.coverage.unwrap();
     assert_eq!(
         (c.file.as_str(), c.format),
-        ("/tmp/c/coverage/lcov.info", CoverageFormat::Lcov)
+        (
+            "/tmp/c/coverage/coverage-final.json",
+            CoverageFormat::IstanbulJson
+        )
     );
     let vitest = runner("vitest").build(&all("vitest"), &cov).unwrap();
     assert!(vitest
         .args
         .contains(&"--coverage.reportsDirectory=/tmp/c/coverage".to_string()));
+    assert!(!vitest.args.iter().any(|a| a.contains("provider")));
+    // The coverage provider of the configuration (only with coverage).
+    let istanbul = all("vitest").with_option("coverageProvider", "istanbul");
+    let v = runner("vitest").build(&istanbul, &cov).unwrap();
+    assert!(v.args.contains(&"--coverage.provider=istanbul".to_string()));
+    let plain = runner("vitest").build(&istanbul, &ctx()).unwrap();
+    assert!(!plain.args.iter().any(|a| a.contains("provider")));
+    let j = runner("jest")
+        .build(&all("jest").with_option("coverageProvider", "v8"), &cov)
+        .unwrap();
+    assert!(j.args.contains(&"--coverageProvider=v8".to_string()));
     let mocha = runner("mocha").build(&all("mocha"), &cov).unwrap();
     assert_eq!(
         mocha.args,
@@ -378,6 +392,35 @@ fn coverage_writes_lcov() {
         ]
     );
     assert_eq!(mocha.coverage.unwrap().file, "/tmp/c/coverage/lcov.info");
+    let nyc = runner("mocha")
+        .build(&all("mocha").with_option("coverageTool", "nyc"), &cov)
+        .unwrap();
+    assert_eq!(
+        nyc.args[..4],
+        [
+            "node_modules/nyc/bin/nyc.js",
+            "--reporter=lcov",
+            "--report-dir=/tmp/c/coverage",
+            "node"
+        ]
+    );
+    // A Node.js configuration's program under c8 (Run with Coverage).
+    let app = Configuration::new("server", "node").with_option("c8Package", "tools/c8");
+    assert_eq!(
+        crate::runner::coverage_wrap(
+            &app,
+            "/usr/bin/node",
+            "/tmp/r",
+            vec!["src/server.js".into()]
+        ),
+        [
+            "tools/c8/bin/c8.js",
+            "--reporter=lcov",
+            "--reports-dir=/tmp/r",
+            "/usr/bin/node",
+            "src/server.js"
+        ]
+    );
     let node = runner("node-test").build(&all("node-test"), &cov).unwrap();
     assert_eq!(
         node.args,

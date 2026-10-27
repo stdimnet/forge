@@ -5,7 +5,22 @@
 import { createSignal } from "solid-js";
 import { closeDialog, openDialogWindow } from "@/shell/window/dialogs";
 import { createStore, produce } from "solid-js/store";
-import { dbApi, DS_COLORS, type DataSourceInfo, type RedisKeys, type SchemaInfo, type SchemaName, type SessionInfo, type TableInfo } from "@/ipc/db";
+import {
+  dbApi,
+  DS_COLORS,
+  type DataSourceInfo,
+  type DbModel,
+  type ModelWarning,
+  type RedisKeys,
+  type RoleInfo,
+  type SchemaInfo,
+  type SchemaName,
+  type SessionInfo,
+  type TableInfo,
+  type VirtualColumn,
+  type VirtualForeignKey,
+  type VirtualObjects,
+} from "@/ipc/db";
 import { openViewTab } from "@/state/editor";
 import { balloonsFor } from "@/keymap";
 
@@ -23,9 +38,17 @@ export type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
 export interface SourceState {
   status: ConnectionStatus;
   error?: string;
+  /** Every schema with its filter result (`visible`). */
   schemas: SchemaName[];
   introspected: Record<string, SchemaInfo>;
   loading: Record<string, boolean>;
+  /** The connected database of engines with databases above schemas, and the others. */
+  catalog?: string;
+  catalogs?: string[];
+  roles?: RoleInfo[];
+  /** DDL data sources: statements that did not parse. */
+  warnings?: ModelWarning[];
+  refreshedAt?: number;
 }
 
 const [states, setStates] = createStore<Record<string, SourceState>>({});
@@ -50,6 +73,10 @@ export async function loadSources(): Promise<void> {
   if (!subscribed) {
     subscribed = true;
     void dbApi.onDataSources((list) => setSources(list));
+    // DDL files or virtual objects changed: reload those models (no reconnect).
+    void dbApi.onModelChanged((ids) => {
+      for (const id of ids) if (states[id]?.status === "connected") void reloadModel(id);
+    });
   }
   try {
     setSources(await dbApi.list());
@@ -58,21 +85,16 @@ export async function loadSources(): Promise<void> {
   }
 }
 
-/** Schemas shown in the tree: the configured ones, otherwise the connection's current one. */
+/** Schemas shown in the tree: those the data source's schema filter selects (applied by
+ * the backend, which never introspects the others). */
 export function visibleSchemas(id: string): SchemaName[] {
-  const st = states[id];
-  const ds = sourceById(id);
-  if (!st || !ds) return [];
-  const wanted = ds.options.schemas;
-  if (wanted.includes("*")) return st.schemas;
-  if (wanted.length) return st.schemas.filter((s) => wanted.includes(s.name));
-  const current = st.schemas.filter((s) => s.current);
-  return current.length ? current : st.schemas.slice(0, 1);
+  return (states[id]?.schemas ?? []).filter((s) => s.visible !== false);
 }
 
 /** Schema new consoles and unqualified names use. */
 export function defaultSchema(id: string): string {
-  return states[id]?.schemas.find((s) => s.current)?.name ?? visibleSchemas(id)[0]?.name ?? "";
+  const visible = visibleSchemas(id);
+  return visible.find((s) => s.current)?.name ?? visible[0]?.name ?? states[id]?.schemas.find((s) => s.current)?.name ?? "";
 }
 
 export function tableInfo(id: string, schema: string, table: string): TableInfo | undefined {
@@ -81,6 +103,8 @@ export function tableInfo(id: string, schema: string, table: string): TableInfo 
 
 export const isConnected = (id: string) => states[id]?.status === "connected";
 
+/** Introspect (or with the cache, re-introspect) one schema: lazy loading and its node's
+ * "Refresh". */
 export async function introspect(id: string, schema: string): Promise<void> {
   setStates(id, "loading", schema, true);
   try {
@@ -90,6 +114,54 @@ export async function introspect(id: string, schema: string): Promise<void> {
     showBalloon(`Cannot load schema ${schema}`, errorText(e));
   } finally {
     setStates(id, "loading", schema, false);
+  }
+}
+
+/** Load a visible schema the first time its node opens. */
+export function ensureSchema(id: string, schema: string): void {
+  const st = states[id];
+  if (st && !st.introspected[schema] && !st.loading[schema]) void introspect(id, schema);
+}
+
+/** Refresh one table (incremental): its columns, keys, indexes, checks and triggers. */
+export async function refreshTable(id: string, schema: string, table: string): Promise<void> {
+  try {
+    const info = await dbApi.tableInfo(id, schema, table);
+    setStates(
+      id,
+      "introspected",
+      schema,
+      produce((s: SchemaInfo) => {
+        const i = s.tables.findIndex((t) => t.name === table);
+        if (i >= 0) s.tables[i] = info;
+        else s.tables.push(info);
+      }),
+    );
+  } catch (e) {
+    showBalloon(`Cannot refresh ${table}`, errorText(e));
+  }
+}
+
+function applyModel(id: string, model: DbModel): void {
+  setStates(id, {
+    status: "connected",
+    error: undefined,
+    schemas: model.schemas,
+    introspected: { ...model.loaded },
+    catalog: model.catalog,
+    catalogs: model.catalogs ?? [],
+    roles: model.roles ?? [],
+    warnings: model.warnings ?? [],
+    refreshedAt: model.refreshedAt,
+  });
+}
+
+/** Reload the model without reconnecting (DDL files or virtual objects changed). */
+export async function reloadModel(id: string): Promise<void> {
+  try {
+    applyModel(id, await dbApi.model(id, false));
+  } catch (e) {
+    showBalloon(`Cannot reload ${sourceById(id)?.name ?? id}`, errorText(e));
   }
 }
 
@@ -105,9 +177,11 @@ export function connect(id: string, force = false): Promise<boolean> {
   const attempt = (async () => {
     setStates(id, { status: "connecting", error: undefined, schemas: st?.schemas ?? [], introspected: st?.introspected ?? {}, loading: {} });
     try {
-      const schemas = await dbApi.schemas(id);
-      setStates(id, { status: "connected", schemas });
-      await Promise.all(visibleSchemas(id).map((s) => introspect(id, s.name)));
+      // The cached model shows at once; Refresh (force) reconnects and reloads it.
+      applyModel(id, await dbApi.model(id, force));
+      // Lazy loading: only the default schema now, the others when their node opens.
+      const first = defaultSchema(id);
+      if (first && visibleSchemas(id).some((s) => s.name === first)) ensureSchema(id, first);
       return true;
     } catch (e) {
       setStates(id, { status: "error", error: errorText(e) });
@@ -123,6 +197,42 @@ export function connect(id: string, force = false): Promise<boolean> {
 
 /** "Refresh" (Ctrl+F5): reconnect and reload the metadata. */
 export const refresh = (id: string) => connect(id, true);
+
+// ---- virtual foreign keys and columns ----------------------------------------------------
+
+async function editVirtuals(id: string, fn: (v: VirtualObjects) => void, done: string): Promise<boolean> {
+  try {
+    const v = await dbApi.virtualObjects(id);
+    fn(v);
+    await dbApi.saveVirtualObjects(id, v);
+    await reloadModel(id);
+    showBalloon(done, ".forge/database/virtual.toml");
+    return true;
+  } catch (e) {
+    showBalloon("Cannot save virtual objects", errorText(e));
+    return false;
+  }
+}
+
+export const addVirtualForeignKey = (id: string, fk: VirtualForeignKey) =>
+  editVirtuals(id, (v) => (v.foreignKey = [...(v.foreignKey ?? []), fk]), `Virtual foreign key ${fk.table}(${fk.columns.join(", ")}) → ${fk.refTable} added`);
+
+/** Remove a virtual foreign key by its (effective) name. */
+export const removeVirtualForeignKey = (id: string, schema: string, table: string, name: string) =>
+  editVirtuals(
+    id,
+    (v) =>
+      (v.foreignKey = (v.foreignKey ?? []).filter(
+        (f) => !(f.schema === schema && f.table === table && (f.name || `vfk_${f.table}_${f.columns.join("_")}_${f.refTable}`) === name),
+      )),
+    `Virtual foreign key ${name} removed`,
+  );
+
+export const addVirtualColumn = (id: string, c: VirtualColumn) =>
+  editVirtuals(id, (v) => (v.column = [...(v.column ?? []), c]), `Virtual column ${c.table}.${c.name} added`);
+
+export const removeVirtualColumn = (id: string, schema: string, table: string, name: string) =>
+  editVirtuals(id, (v) => (v.column = (v.column ?? []).filter((c) => !(c.schema === schema && c.table === table && c.name === name))), `Virtual column ${name} removed`);
 
 export async function disconnect(id: string): Promise<void> {
   await dbApi.disconnect(id).catch(() => undefined);
@@ -158,6 +268,8 @@ export const toggleNode = (key: string) => setNodeOpen(key, !expanded().has(key)
 /** Expand a data source and its default schema/tables folder (after connecting). */
 export function revealSource(id: string): void {
   setNodeOpen(`ds:${id}`, true);
+  const catalog = states[id]?.catalog;
+  if (catalog) setNodeOpen(`catalog:${id}/${catalog}`, true);
   const schema = defaultSchema(id);
   if (schema) {
     setNodeOpen(`schema:${id}/${schema}`, true);
@@ -304,7 +416,7 @@ export interface DialogRequest {
   select?: string;
   newDriver?: DataSourceInfo["driver"];
   /** Tab to show first. */
-  tab?: "general" | "ssh" | "options";
+  tab?: "general" | "ssh" | "schemas" | "options";
 }
 
 export const DATA_SOURCES_DIALOG = "data-sources";

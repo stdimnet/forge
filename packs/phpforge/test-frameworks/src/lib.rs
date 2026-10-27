@@ -14,7 +14,8 @@
 //!   `#[Given('…')]` attributes) and which of them a step uses.
 //! - [`rerun`]: the configuration that reruns only the failed tests of a run.
 //! - [`provider`]: the frameworks as one provider of the shared test runner
-//!   (`forge_testing::TestFrameworks`), plus Run with Coverage (`--coverage-clover`).
+//!   (`forge_testing::TestFrameworks`), plus Run with Coverage (Clover reports with Xdebug or PCOV, per-test data, Behat and
+//!   PHPSpec through their coverage extensions: `provider::coverage_plan`).
 //!
 //! Pure (no I/O), so the desktop backend runs it next to the project and browser mode runs
 //! it as WebAssembly.

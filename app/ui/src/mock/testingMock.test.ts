@@ -74,6 +74,57 @@ describe("shared test runner mock (forge-testing through WebAssembly)", () => {
     const marks = await invoke<LineMark[]>("coverage_file", { path: "app/Models/User.php" });
     expect(marks.length).toBeGreaterThan(3);
     expect(new Set(marks.map((m) => m.status)).has("covered")).toBe(true);
+    expect(view.hints["app/Models"]).toMatch(/^\d+% files, \d+% lines covered$/);
+    expect(view.hints["app/Models/User.php"]).toMatch(/^\d+% lines covered$/);
+    expect(view.nodes[0].methods.total).toBeGreaterThan(0);
+  });
+
+  it("runs PHPUnit with PCOV and per-test coverage, merges suites and writes HTML", async () => {
+    const cfg: RunConfiguration = { name: "Per test", type: "phpunit", options: { scope: "config", coverageDriver: "pcov", perTestCoverage: "true" } };
+    const line = await invoke<CommandLine>("run_command_line", { request: { configuration: cfg, coverage: true } });
+    expect(line.args[0]).toBe("-dpcov.enabled=1");
+    expect(line.args.slice(-2)).toEqual(["--coverage-xml", "/tmp/forge-test-reports/run-coverage/xml"]);
+    expect(line.env?.XDEBUG_MODE).toBe("off");
+    const events = await run("coverage-2", cfg, { coverage: true }, 2500);
+    const cov = events.find((e) => e.type === "coverage") as Extract<RunEvent, { type: "coverage" }>;
+    expect(cov.suite?.perTest).toBe(true);
+    const marks = await invoke<LineMark[]>("coverage_file", { path: "app/Models/User.php", id: cov.suite!.id });
+    const withTests = marks.find((m) => m.tests?.length);
+    expect(withTests?.tests?.[0]).toMatch(/^Tests\\.+::test\w+$/);
+    expect(withTests?.hint).toMatch(/\d+ tests?$/);
+    // Path coverage needs Xdebug.
+    await expect(
+      invoke("run_command_line", { request: { configuration: { ...cfg, options: { ...cfg.options, pathCoverage: "true" } }, coverage: true } }),
+    ).rejects.toThrow(/Xdebug/);
+    // Show Coverage Data with two suites: merged into a new one.
+    const suites = await invoke<CoverageSuite[]>("coverage_suites");
+    const merged = await invoke<CoverageSuite>("coverage_merge", { ids: [suites[0].id, suites[1].id] });
+    expect(merged.name).toBe(`${suites[0].name} + ${suites[1].name}`);
+    expect(merged.format).toBe("Merged");
+    expect(merged.perTest).toBe(true);
+    const html = await invoke<string>("coverage_export_html", { id: merged.id });
+    expect(html).toContain("<title>Coverage: Per test + All tests</title>");
+    expect(html).toContain("Method, %");
+    expect(html).toMatch(/<tr class="covered" title="Hits: \d+/);
+  });
+
+  it("reads Istanbul JSON with branches and functions", async () => {
+    const { addMockCoverage } = await import("./coverageMock");
+    const json = JSON.stringify({
+      "/p/src/cart.ts": {
+        path: "/p/src/cart.ts",
+        statementMap: { "0": { start: { line: 1, column: 0 }, end: { line: 1, column: 9 } }, "1": { start: { line: 2, column: 0 }, end: { line: 2, column: 9 } } },
+        fnMap: { "0": { name: "add", decl: { start: { line: 1, column: 0 } }, loc: { start: { line: 1, column: 0 } }, line: 1 } },
+        branchMap: { "0": { type: "if", line: 2, locations: [{}, {}] } },
+        s: { "0": 2, "1": 2 },
+        f: { "0": 2 },
+        b: { "0": [2, 0] },
+      },
+    });
+    const suite = await addMockCoverage("vitest", json, { root: "/p", project: "p" });
+    expect([suite.format, suite.lineText, suite.branchText, suite.methodText]).toEqual(["Istanbul JSON", "100% (2/2)", "50% (1/2)", "100% (1/1)"]);
+    const marks = await invoke<LineMark[]>("coverage_file", { path: "src/cart.ts", id: suite.id });
+    expect(marks.map((m) => m.status)).toEqual(["covered", "partial"]);
   });
 
   it("builds command lines on run targets", async () => {

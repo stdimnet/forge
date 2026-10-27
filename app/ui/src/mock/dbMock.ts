@@ -5,6 +5,13 @@
  * MongoDB data sources serve the demo keyspace and documents of `dbNoSqlDemo.ts`. The
  * read-only / production guard is the real one (`forge-sql` through WebAssembly). The demo
  * project's `.env` suggests `shop@localhost`.
+ *
+ * The Database Explorer runs on the real model code (`forge-dbmodel` through WebAssembly):
+ * the schema filter, DDL data sources (parsing the demo project's SQL files), virtual
+ * foreign keys and columns (kept in memory, never in the project), Quick Documentation and
+ * the full-text search over the demo rows. The demo schema is enriched with checks,
+ * triggers, routines with arguments, and (PostgreSQL) materialized views, sequences and
+ * types, roles and other databases.
  */
 import { emitMock, registerMock } from "@/ipc";
 import { isLuaDemo } from "./demoLuaProject";
@@ -18,6 +25,8 @@ import { isScalaDemo } from "./demoScalaProject";
 import { isAndroidDemo } from "./demoAndroidProject";
 import {
   DATA_SOURCES_EVENT,
+  MODEL_EVENT,
+  SEARCH_EVENT,
   SESSION_EVENT,
   SESSIONS_EVENT,
   DRIVER_LABELS,
@@ -27,6 +36,17 @@ import {
   type Guard,
   type SecretUpdate,
   type TableInfo,
+  type DbModel,
+  type ModelWarning,
+  type ObjectDoc,
+  type ObjectRef,
+  type RoleInfo,
+  type SchemaInfo,
+  type SchemaName,
+  type SearchRequest,
+  type SearchSummary,
+  type TableMatches,
+  type VirtualObjects,
   type DataSource,
   type DataSourceInfo,
   type DetectedDataSource,
@@ -39,6 +59,8 @@ import {
   type TestResult,
 } from "@/ipc/db";
 import { callWasm, forgeWasm } from "@/wasm";
+import { invoke } from "@/ipc";
+import type { FileEntry } from "@/ipc/workspace";
 import { createDemoDatabase, type DemoDatabase } from "./dbDemoData";
 import { cloneDatabase, runStatement } from "./dbEngine";
 import {
@@ -112,6 +134,10 @@ const envSource = (): DataSource => ({
 
 function summary(ds: DataSource): string {
   if (ds.driver === "sqlite") return ds.file;
+  if (ds.driver === "ddl") {
+    const f = ds.options.ddlFiles ?? [];
+    return f.length > 1 ? `${f[0]} +${f.length - 1}` : (f[0] ?? "no DDL files");
+  }
   const host = !ds.host || ds.host === "127.0.0.1" ? "localhost" : ds.host;
   return ds.database ? `${ds.database}@${host}` : host;
 }
@@ -261,6 +287,7 @@ function testResult(ds: DataSource, password?: string): TestResult {
     oracle: "Oracle Database 23ai Free Release 23.0.0.0.0",
     redis: "Redis 7.2.4",
     mongodb: "MongoDB 7.0.12",
+    ddl: undefined,
   }[ds.driver];
   return { ok: true, driver, serverVersion, latencyMs: 46 };
 }
@@ -345,6 +372,7 @@ registerMock("db_data_source_save", (a) => {
     if (secrets.sslKey !== undefined) existing.sslKey = secrets.sslKey || undefined;
   } else sources.push({ source, password: password || undefined, sshSecret: secrets.ssh || undefined, sslKey: secrets.sslKey || undefined });
   connected.delete(source.id);
+  models.delete(source.id);
   emitSources();
   return info(get(source.id));
 });
@@ -369,47 +397,373 @@ registerMock("db_disconnect", (a) => {
   emitSessions();
 });
 
-registerMock("db_schemas", async (a) => {
-  const s = await ensureConnected(a.id as string);
+/** Every schema of a data source (before the schema filter). */
+async function schemaList(s: MockSource): Promise<SchemaName[]> {
   const current = schemaName(s.source);
   if (s.source.driver === "redis") return redisSchemas(redisOf(s.source.id), Number(s.source.database) || 0);
   if (s.source.driver === "mongodb") return [...mongoOf(s.source.id).keys()].sort().map((name) => ({ name, current: name === current }));
   const extra = (
     {
-      mysql: ["information_schema", "mysql", "performance_schema", "sys"],
+      mysql: ["information_schema", "mysql", "performance_schema", "sys", "shop_archive"],
       mariadb: ["information_schema", "mysql", "performance_schema", "sys"],
+      postgres: ["audit", "billing", "tenant_acme", "tenant_globex", "tenant_initech"],
       sqlserver: ["sales", "staging"],
       clickhouse: ["default", "system"],
       oracle: ["HR", "SALES"],
     } as Partial<Record<DataSource["driver"], string[]>>
   )[s.source.driver] ?? [];
   return [current, ...extra].sort().map((name) => ({ name, current: name === current }));
-});
+}
 
-registerMock("db_introspect", async (a) => {
-  const s = await ensureConnected(a.id as string);
-  await delay(120);
-  if (s.source.driver === "mongodb") return mongoSchema(mongoOf(s.source.id), a.schema as string);
-  if (s.source.driver === "redis") return { name: a.schema, tables: [], routines: [] };
-  if (a.schema !== schemaName(s.source)) return { name: a.schema, tables: [], routines: [] };
-  const d = db(s.source.id);
+/** The schema filter, by the real `forge-dbmodel` code. */
+async function applyFilter(s: MockSource, list: SchemaName[]): Promise<SchemaName[]> {
+  const wasm = await forgeWasm();
+  return callWasm<SchemaName[]>(wasm.dbmodel_match_schemas, { patterns: s.source.options.schemas, schemas: list });
+}
+
+/** Virtual foreign keys and columns per data source (memory only, never the project). */
+const virtuals = new Map<string, VirtualObjects>();
+
+async function withVirtuals(id: string, info: SchemaInfo): Promise<SchemaInfo> {
+  const v = virtuals.get(id);
+  if (!v || (!v.foreignKey?.length && !v.column?.length)) return info;
+  const wasm = await forgeWasm();
+  return callWasm<SchemaInfo>(wasm.dbmodel_apply_virtual, { dataSource: id, objects: v, schema: info });
+}
+
+const TRIGGER_BODY = "BEGIN\n    INSERT INTO audit_log (occurred_at, actor, action, payload)\n    VALUES (NOW(), CURRENT_USER(), 'order.status', JSON_OBJECT('id', NEW.id, 'status', NEW.status));\nEND";
+
+/** The demo schema with the objects a real catalog has: checks, triggers, routines with
+ * arguments, and per dialect materialized views, sequences and types. */
+function enrich(driver: DataSource["driver"], schema: string, info: SchemaInfo): SchemaInfo {
+  const pg = driver === "postgres";
+  const tables = info.tables.map((x) => ({ ...x, foreignKeys: x.foreignKeys.map((f) => ({ ...f, refSchema: schema })) })).map((t) => {
+    if (t.name === "orders")
+      return {
+        ...t,
+        checks: [{ name: "orders_total_positive", expression: "(`total` >= 0)" }],
+        triggers: [{ name: "orders_status_audit", timing: "AFTER", events: "UPDATE", definition: `CREATE TRIGGER orders_status_audit AFTER UPDATE ON orders FOR EACH ROW\n${TRIGGER_BODY}` }],
+      };
+    if (t.name === "order_items") return { ...t, checks: [{ name: "order_items_quantity_check", expression: "(`quantity` > 0)" }] };
+    if (t.name === "products")
+      return {
+        ...t,
+        triggers: [
+          { name: "products_touch", timing: "BEFORE", events: "UPDATE", definition: "CREATE TRIGGER products_touch BEFORE UPDATE ON products FOR EACH ROW SET NEW.updated_at = NOW()" },
+        ],
+      };
+    if (t.name === "customer_totals")
+      return { ...t, definition: "SELECT u.id AS user_id, u.name, COUNT(o.id) AS orders, SUM(o.total) AS spent\nFROM users u JOIN orders o ON o.user_id = u.id\nGROUP BY u.id, u.name" };
+    return t;
+  });
+  if (pg)
+    tables.push({
+      name: "daily_revenue",
+      kind: "matview",
+      columns: [
+        { name: "day", dataType: "date", nullable: true, autoIncrement: false },
+        { name: "orders", dataType: "bigint", nullable: true, autoIncrement: false },
+        { name: "revenue", dataType: "numeric", nullable: true, autoIncrement: false },
+      ],
+      primaryKey: [],
+      foreignKeys: [],
+      indexes: [{ name: "daily_revenue_day_idx", columns: ["day"], unique: true, primary: false }],
+      definition: "SELECT date(placed_at) AS day, count(*) AS orders, sum(total) AS revenue\nFROM orders\nGROUP BY date(placed_at)",
+    });
+  const routines = info.routines.map((r) =>
+    r.name === "order_total"
+      ? {
+          ...r,
+          arguments: [{ name: "o_id", dataType: "bigint unsigned" }],
+          language: "SQL",
+          definition: `CREATE FUNCTION order_total(o_id BIGINT UNSIGNED) RETURNS DECIMAL(10,2)\n    READS SQL DATA\nBEGIN\n    RETURN (SELECT SUM(quantity * unit_price) FROM order_items WHERE order_id = o_id);\nEND`,
+        }
+      : r.name === "close_stale_orders"
+        ? {
+            ...r,
+            arguments: [{ name: "days", dataType: "int" }, { name: "closed", dataType: "int", mode: "OUT" }],
+            language: "SQL",
+            definition: `CREATE PROCEDURE close_stale_orders(IN days INT, OUT closed INT)\nBEGIN\n    UPDATE orders SET status = 'cancelled' WHERE status = 'pending' AND placed_at < NOW() - INTERVAL days DAY;\n    SET closed = ROW_COUNT();\nEND`,
+          }
+        : r,
+  );
+  if (pg) routines.push({ name: "touch_updated_at", kind: "function", returns: "trigger", arguments: [], language: "plpgsql", definition: "" });
   return {
-    name: a.schema,
+    ...info,
+    name: schema,
+    tables: tables.sort((x, y) => x.name.localeCompare(y.name)),
+    routines,
+    sequences: pg
+      ? [
+          { name: "orders_id_seq", dataType: "bigint", start: 1, increment: 1 },
+          { name: "invoice_number_seq", dataType: "bigint", start: 10000, increment: 1 },
+        ]
+      : undefined,
+    types: pg
+      ? [
+          { name: "order_status", kind: "enum", labels: ["pending", "paid", "shipped", "delivered", "cancelled"] },
+          { name: "email", kind: "domain", definition: "character varying(255)" },
+        ]
+      : undefined,
+  };
+}
+
+/** One schema as the backend introspects it (before virtual objects). */
+async function introspectSchema(s: MockSource, schema: string): Promise<SchemaInfo> {
+  if (s.source.driver === "mongodb") return mongoSchema(mongoOf(s.source.id), schema);
+  if (s.source.driver === "redis") return { name: schema, tables: [], routines: [] };
+  if (schema !== schemaName(s.source)) return { name: schema, tables: [], routines: [] };
+  const d = db(s.source.id);
+  return enrich(s.source.driver, schema, {
+    name: schema,
     tables: Object.values(d.tables)
       .map((t) => tableFor(s.source.driver, { ...t.info, rowEstimate: t.info.kind === "table" ? t.rows.length : undefined }))
       .sort((x, y) => x.name.localeCompare(y.name)),
     routines: ROUTINES[s.source.driver] ?? d.routines,
+  });
+}
+
+const ROLES: Partial<Record<DataSource["driver"], RoleInfo[]>> = {
+  mysql: [
+    { name: "root@localhost", kind: "user", superuser: true, canLogin: true },
+    { name: "shop@%", kind: "user", canLogin: true },
+    { name: "reporting@%", kind: "user", canLogin: true },
+  ],
+  postgres: [
+    { name: "postgres", kind: "user", superuser: true, canLogin: true },
+    { name: "shop", kind: "user", canLogin: true },
+    { name: "readonly", kind: "role" },
+  ],
+  sqlserver: [
+    { name: "sa", kind: "user", superuser: true, canLogin: true },
+    { name: "shop_app", kind: "user", canLogin: true },
+    { name: "sysadmin", kind: "role", superuser: true },
+  ],
+};
+
+/** Files of a DDL data source from the demo project (folders: their `.sql` files). */
+async function ddlFiles(paths: string[]): Promise<{ path: string; text: string }[]> {
+  const out: { path: string; text: string }[] = [];
+  const walk = async (path: string) => {
+    try {
+      out.push({ path, text: await invoke<string>("fs_read_file", { path }) });
+      return;
+    } catch {
+      // A folder.
+    }
+    const entries = await invoke<FileEntry[]>("fs_list_dir", { path }).catch(() => [] as FileEntry[]);
+    const sorted = [...entries].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    for (const e of sorted) {
+      if (e.kind === "dir") await walk(e.path);
+      else if (/\.(sql|ddl)$/i.test(e.name)) out.push({ path: e.path, text: await invoke<string>("fs_read_file", { path: e.path }) });
+    }
   };
+  for (const p of paths) await walk(p.replace(/^\.\//, "").replace(/\/$/, ""));
+  return out;
+}
+
+/** Explorer models: introspected schemas per data source. */
+const models = new Map<string, Record<string, SchemaInfo>>();
+
+async function buildModel(id: string, refresh: boolean): Promise<DbModel> {
+  const s = get(id);
+  const dialect = dialectOf(s.source.driver, s.source.options.ddlDialect);
+  if (s.source.driver === "ddl") {
+    const wasm = await forgeWasm();
+    const parsed = await callWasm<{ schemas: SchemaInfo[]; warnings: ModelWarning[] }>(wasm.dbmodel_parse_ddl, {
+      dialect,
+      defaultSchema: s.source.database,
+      files: await ddlFiles(s.source.options.ddlFiles ?? []),
+    });
+    const fallback = { postgres: "public", sqlite: "main", sqlserver: "dbo", clickhouse: "default", oracle: "PUBLIC" }[dialect as string] ?? "public";
+    const current = s.source.database || fallback;
+    const schemas = await applyFilter(
+      s,
+      parsed.schemas.map((x) => ({ name: x.name, current: x.name === current })),
+    );
+    const loaded: Record<string, SchemaInfo> = {};
+    for (const x of parsed.schemas) if (schemas.find((n) => n.name === x.name)?.visible) loaded[x.name] = await withVirtuals(id, x);
+    return { dialect, schemas, loaded, refreshedAt: Date.now(), warnings: parsed.warnings };
+  }
+  await ensureConnected(id);
+  await delay(80);
+  const schemas = await applyFilter(s, await schemaList(s));
+  let cached = models.get(id) ?? {};
+  if (refresh) {
+    const again: Record<string, SchemaInfo> = {};
+    for (const name of Object.keys(cached)) if (schemas.find((x) => x.name === name)?.visible) again[name] = await introspectSchema(s, name);
+    cached = again;
+  }
+  models.set(id, cached);
+  const loaded: Record<string, SchemaInfo> = {};
+  for (const [name, info] of Object.entries(cached)) if (schemas.find((x) => x.name === name)?.visible) loaded[name] = await withVirtuals(id, info);
+  const multi = s.source.driver === "postgres" || s.source.driver === "sqlserver";
+  return {
+    dialect,
+    catalog: multi ? s.source.database || "shop" : undefined,
+    catalogs: s.source.driver === "postgres" ? ["postgres", s.source.database || "shop", "shop_test"] : s.source.driver === "sqlserver" ? ["master", s.source.database || "shop", "tempdb"] : undefined,
+    schemas,
+    loaded,
+    roles: ROLES[s.source.driver] ?? [],
+    refreshedAt: Date.now(),
+  };
+}
+
+registerMock("db_model", (a) => buildModel(a.id as string, !!a.refresh));
+
+registerMock("db_schemas", async (a) => (await buildModel(a.id as string, false)).schemas);
+
+registerMock("db_introspect", async (a) => {
+  const id = a.id as string;
+  const s = get(id);
+  const model = await buildModel(id, false);
+  const schema = a.schema as string;
+  if (s.source.driver === "ddl") {
+    const info = model.loaded[schema];
+    if (!info) throw new Error(`schema ${schema} not found`);
+    return info;
+  }
+  if (!model.schemas.find((x) => x.name === schema)?.visible) throw new Error(`schema ${schema} is hidden by the schema filter of ${s.source.name}`);
+  await delay(120);
+  const info = await introspectSchema(s, schema);
+  models.set(id, { ...(models.get(id) ?? {}), [schema]: info });
+  return withVirtuals(id, info);
+});
+
+registerMock("db_match_schemas", async (a) => {
+  const wasm = await forgeWasm();
+  return callWasm<SchemaName[]>(wasm.dbmodel_match_schemas, { patterns: a.patterns, schemas: a.schemas });
+});
+
+registerMock("db_object_doc", async (a): Promise<ObjectDoc> => {
+  const id = a.id as string;
+  const object = a.object as ObjectRef;
+  const model = await buildModel(id, false);
+  if (object.kind === "role") {
+    const r = model.roles?.find((x) => x.name === object.name);
+    if (!r) throw new Error(`role ${object.name} not found`);
+    return {
+      kind: r.kind,
+      name: r.name,
+      location: "",
+      ddl: `CREATE ${r.kind === "user" ? "USER" : "ROLE"} ${r.name};\n`,
+      properties: [
+        { name: "Superuser", value: r.superuser ? "yes" : "no" },
+        { name: "Can log in", value: r.canLogin ? "yes" : "no" },
+      ],
+    };
+  }
+  const schema = model.loaded[a.schema as string] ?? (await withVirtuals(id, await introspectSchema(get(id), a.schema as string)));
+  const wasm = await forgeWasm();
+  const doc = await callWasm<ObjectDoc | null>(wasm.dbmodel_object_doc, { dialect: model.dialect, schema, object });
+  if (!doc) throw new Error(`${object.kind} ${object.name} not found`);
+  return doc;
+});
+
+registerMock("db_virtual_objects", (a) => structuredClone(virtuals.get(a.id as string) ?? {}));
+
+registerMock("db_virtual_objects_save", async (a) => {
+  const id = a.id as string;
+  const objects = a.objects as VirtualObjects;
+  const wasm = await forgeWasm();
+  await callWasm(wasm.dbmodel_apply_virtual, { dataSource: id, objects });
+  virtuals.set(id, {
+    foreignKey: (objects.foreignKey ?? []).map((f) => ({ ...f, dataSource: id })),
+    column: (objects.column ?? []).map((c) => ({ ...c, dataSource: id })),
+  });
+  emitMock(MODEL_EVENT, [id]);
+});
+
+const cancelledSearches = new Set<string>();
+
+registerMock("db_search_cancel", (a) => {
+  cancelledSearches.add(a.searchId as string);
+});
+
+registerMock("db_search", async (a): Promise<SearchSummary> => {
+  const searchId = a.searchId as string;
+  const req = a.request as SearchRequest;
+  const started = Date.now();
+  const wasm = await forgeWasm();
+  const targets: { id: string; schema: string; table: TableInfo; error?: string }[] = [];
+  for (const scope of req.scopes) {
+    const s = get(scope.dataSource);
+    if (s.source.driver === "ddl" || modelOf(s.source.driver) !== "relational") {
+      targets.push({ id: s.source.id, schema: "", table: { name: "", kind: "table", columns: [], primaryKey: [], foreignKeys: [], indexes: [] }, error: s.source.driver === "ddl" ? "DDL data sources have no data" : `${DRIVER_LABELS[s.source.driver]} cannot be searched; use its console` });
+      continue;
+    }
+    const model = await buildModel(s.source.id, false);
+    const schemas = scope.schemas?.length ? scope.schemas : model.schemas.filter((x) => x.visible).map((x) => x.name);
+    const patterns = scope.tables ?? [];
+    for (const schema of schemas) {
+      const info = model.loaded[schema] ?? (await introspectSchema(s, schema));
+      const names = patterns.length
+        ? await callWasm<SchemaName[]>(wasm.dbmodel_match_schemas, { patterns, schemas: info.tables.map((t) => ({ name: t.name, current: false })) })
+        : info.tables.map((t) => ({ name: t.name, current: false, visible: true }));
+      for (const t of info.tables) if (t.kind !== "collection" && names.find((n) => n.name === t.name)?.visible) targets.push({ id: s.source.id, schema, table: t });
+    }
+  }
+  const summary: SearchSummary = { tables: targets.length, matchedTables: 0, rows: 0, errors: 0, cancelled: false, elapsedMs: 0 };
+  for (let i = 0; i < targets.length; i++) {
+    if (cancelledSearches.has(searchId)) {
+      summary.cancelled = true;
+      break;
+    }
+    await delay(70);
+    const t = targets[i];
+    const result: TableMatches = { dataSource: t.id, schema: t.schema, table: t.table.name, columns: [], rows: [], matches: [], truncated: false, sql: "" };
+    if (t.error) result.error = t.error;
+    else {
+      const demo = db(t.id).tables[t.table.name];
+      const columns = t.table.columns.filter((c) => !c.virtual).map((c) => c.name);
+      const res = await callWasm<{ sql: string; rows: TableMatches["rows"]; matches: number[][]; truncated: boolean } | { error: string }>(wasm.dbmodel_search_rows, {
+        dialect: dialectOf(get(t.id).source.driver),
+        schema: t.schema,
+        table: t.table,
+        options: { text: req.text, mode: req.mode, caseSensitive: req.caseSensitive, allColumns: req.allColumns, limit: req.limit },
+        columns,
+        rows: demo?.rows ?? [],
+      }).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) }));
+      if ("error" in res) result.error = res.error;
+      else Object.assign(result, { ...res, columns });
+    }
+    if (result.error) summary.errors++;
+    if (result.rows.length) {
+      summary.matchedTables++;
+      summary.rows += result.rows.length;
+    }
+    emitMock(SEARCH_EVENT, {
+      searchId,
+      done: i + 1,
+      total: targets.length,
+      current: `${t.id} › ${t.schema}.${t.table.name}`,
+      result: result.error || result.rows.length ? result : undefined,
+    });
+  }
+  cancelledSearches.delete(searchId);
+  summary.elapsedMs = Date.now() - started;
+  return summary;
 });
 
 registerMock("db_table_info", async (a) => {
-  const s = await ensureConnected(a.id as string);
-  const t = db(a.id as string).tables[a.table as string];
+  const id = a.id as string;
+  if (get(id).source.driver === "ddl") {
+    const t = (await buildModel(id, false)).loaded[a.schema as string]?.tables.find((x) => x.name === a.table);
+    if (!t) throw new Error(`table ${a.schema}.${a.table} not found`);
+    return t;
+  }
+  const s = await ensureConnected(id);
+  const info = await withVirtuals(id, await introspectSchema(s, a.schema as string));
+  const t = info.tables.find((x) => x.name === a.table);
   if (!t) throw new Error(`table ${a.schema}.${a.table} not found`);
-  return tableFor(s.source.driver, t.info);
+  return t;
 });
 
 registerMock("db_table_ddl", async (a) => {
+  if (get(a.id as string).source.driver === "ddl") {
+    const doc = await invoke<ObjectDoc>("db_object_doc", { id: a.id, schema: a.schema, object: { kind: "table", name: a.table } });
+    return doc.ddl;
+  }
   await ensureConnected(a.id as string);
   const t = db(a.id as string).tables[a.table as string];
   if (!t) throw new Error(`no DDL for ${a.table}`);
@@ -685,6 +1039,27 @@ export function resetDbMock(): void {
   redisDemos.clear();
   mongoDemos.clear();
   trustedHosts.clear();
+  models.clear();
+  virtuals.clear();
+}
+
+/** A PostgreSQL shop with schemas, roles and a virtual foreign key, and a DDL data source
+ * over the demo project's `database/ddl` migrations (screenshots of the explorer). */
+export function addExplorerSources(): void {
+  const base = envSource();
+  if (!sources.some((x) => x.source.id === "shop-pg"))
+    sources.push({
+      source: { ...base, id: "shop-pg", name: "shop@postgres", driver: "postgres", port: 5432, user: "shop", options: { ...base.options, schemas: [":current", "tenant_*"] } },
+      password: "secret",
+    });
+  if (!sources.some((x) => x.source.id === "catalog-ddl"))
+    sources.push({
+      source: { ...base, id: "catalog-ddl", name: "catalog (DDL)", driver: "ddl", host: "", port: null, user: "", database: "", options: { ...base.options, ddlFiles: ["database/ddl"], ddlDialect: "postgres" } },
+    });
+  virtuals.set("shop-pg", {
+    foreignKey: [{ dataSource: "shop-pg", schema: "public", table: "audit_log", columns: ["actor"], refTable: "users", refColumns: ["email"], name: "vfk_audit_log_actor_users" }],
+  });
+  emitSources();
 }
 
 /** Demo data sources of every engine (screenshots, `window.__forgeDbMock.addDemoSources()`). */
@@ -709,8 +1084,8 @@ export function addDemoSources(): void {
 
 declare global {
   interface Window {
-    __forgeDbMock?: { addDemoSources: () => void };
+    __forgeDbMock?: { addDemoSources: () => void; addExplorerSources: () => void };
   }
 }
 
-if (typeof window !== "undefined") window.__forgeDbMock = { addDemoSources };
+if (typeof window !== "undefined") window.__forgeDbMock = { addDemoSources, addExplorerSources };

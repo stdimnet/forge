@@ -158,6 +158,53 @@ GROUP BY u.id
 ORDER BY revenue DESC
 LIMIT 10;
 `,
+  "database/ddl/V1__catalog.sql": `-- Catalog service schema (PostgreSQL), a DDL data source in the Database tool window
+CREATE TYPE product_state AS ENUM ('draft', 'active', 'retired');
+CREATE SEQUENCE sku_seq START WITH 1000 INCREMENT BY 1;
+
+CREATE TABLE categories (
+    id bigserial PRIMARY KEY,
+    parent_id bigint REFERENCES categories (id),
+    name varchar(120) NOT NULL UNIQUE
+);
+
+CREATE TABLE catalog_products (
+    id bigserial PRIMARY KEY,
+    category_id bigint NOT NULL,
+    sku varchar(32) NOT NULL DEFAULT 'SKU-' || nextval('sku_seq'),
+    title text NOT NULL,
+    state product_state NOT NULL DEFAULT 'draft',
+    price numeric(10, 2) NOT NULL CHECK (price >= 0),
+    CONSTRAINT catalog_products_category_fk FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
+);
+COMMENT ON TABLE catalog_products IS 'Products of the public catalog';
+CREATE INDEX catalog_products_state_idx ON catalog_products (state);
+`,
+  "database/ddl/V2__reviews.sql": `CREATE TABLE reviews (
+    id bigserial PRIMARY KEY,
+    product_id bigint NOT NULL REFERENCES catalog_products (id) ON DELETE CASCADE,
+    rating smallint NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    body text,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE VIEW product_ratings AS
+SELECT r.product_id, avg(r.rating) AS rating, count(*) AS reviews
+FROM reviews r
+GROUP BY r.product_id;
+
+CREATE FUNCTION touch_created() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.created_at := now();
+    RETURN NEW;
+END $$;
+
+CREATE TRIGGER reviews_touch BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION touch_created();
+
+ALTER TABLE reviews ADD COLUMN verified boolean NOT NULL DEFAULT false;
+
+CREATE TABLE drafts (id int,, title text);
+`,
   "package.json": `{
   "private": true,
   "type": "module",

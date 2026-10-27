@@ -95,6 +95,7 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   testRunner: true,
+  coverage: true,
   defaults: () => ({ options: { scope: "file" } }),
   fields: [
     {

@@ -1,18 +1,24 @@
 //! Database tools IPC (`forge_db`): data sources (SSH tunnels, SSL), introspection,
 //! consoles and their sessions, the read-only / production guard, table editing, the Redis
-//! keys tree and export. Events: `db://dataSources` (the full list after a change),
-//! `db://session` (a console's [`SessionInfo`] when it starts/stops running or its
-//! transaction changes) and `db://sessions` (all open sessions, for the Sessions view).
+//! keys tree and export, and the Database Explorer (cached models, schema filter, virtual
+//! foreign keys, DDL data sources, Quick Documentation, full-text search). Events:
+//! `db://dataSources` (the full list after a change), `db://session` (a console's
+//! [`SessionInfo`] when it starts/stops running or its transaction changes),
+//! `db://sessions` (all open sessions, for the Sessions view), `db://modelChanged` (ids of
+//! data sources whose model must be reloaded: DDL files or virtual objects changed) and
+//! `db://search` (progress and results of a full-text search).
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use forge_core::FsChanges;
 use forge_core::{ForgeError, Result};
 use forge_db::{
-    ApplyResult, DataSource, DataSourceInfo, DbError, DbResult, DbService, DbTunnel,
-    DetectedDataSource, Dialect, ExportFormat, Guard, KeyringStore, ProjectContext, QueryPage,
-    RedisKeys, RedisValue, RowChange, SchemaInfo, SchemaName, SecretUpdate, SessionInfo,
-    SessionMode, StatementResult, TableDataRequest, TableInfo, TestResult, TunnelEndpoint,
+    ApplyResult, DataSource, DataSourceInfo, DbError, DbModel, DbResult, DbService, DbTunnel,
+    DetectedDataSource, Dialect, ExportFormat, Guard, KeyringStore, ObjectDoc, ObjectRef,
+    ProjectContext, QueryPage, RedisKeys, RedisValue, RowChange, SchemaInfo, SchemaName,
+    SearchProgress, SearchRequest, SearchSummary, SecretUpdate, SessionInfo, SessionMode,
+    StatementResult, TableDataRequest, TableInfo, TestResult, TunnelEndpoint, VirtualObjects,
 };
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -22,6 +28,8 @@ use crate::state::AppState;
 pub const DATA_SOURCES_EVENT: &str = "db://dataSources";
 pub const SESSION_EVENT: &str = "db://session";
 pub const SESSIONS_EVENT: &str = "db://sessions";
+pub const MODEL_EVENT: &str = "db://modelChanged";
+pub const SEARCH_EVENT: &str = "db://search";
 
 /// Managed state: one [`DbService`] for the app.
 pub struct DbState {
@@ -31,10 +39,14 @@ pub struct DbState {
 impl DbState {
     pub fn load() -> Self {
         Self {
-            service: Arc::new(DbService::new(
-                forge_db::config::global_file(),
-                Arc::new(KeyringStore),
-            )),
+            service: Arc::new({
+                let svc = DbService::new(forge_db::config::global_file(), Arc::new(KeyringStore));
+                // Explorer models are cached per data source in the user cache dir.
+                match dirs::cache_dir() {
+                    Some(d) => svc.with_cache_dir(d.join("forge").join("db-models")),
+                    None => svc,
+                }
+            }),
         }
     }
 }
@@ -465,4 +477,103 @@ pub fn db_statement_at(
     dialect: Dialect,
 ) -> Option<forge_db::split::Statement> {
     forge_db::split::statement_at(&sql, from, to, dialect)
+}
+
+// ---- Database Explorer -------------------------------------------------------------------
+
+fn emit_model_changed(app: &AppHandle, ids: Vec<String>) {
+    if ids.is_empty() {
+        return;
+    }
+    if let Err(e) = app.emit(MODEL_EVENT, ids) {
+        tracing::warn!("cannot emit {MODEL_EVENT}: {e}");
+    }
+}
+
+/// Project files changed: DDL data sources over them are parsed again.
+pub fn fs_changed(app: &AppHandle, changes: &FsChanges) {
+    let svc = app.state::<DbState>().service.clone();
+    let mut paths = changes.changed.clone();
+    paths.extend(changes.removed.iter().cloned());
+    // `.forge/` (and so `virtual.toml`) is not watched; virtual objects are read per request.
+    emit_model_changed(app, svc.ddl_sources_touched(&paths));
+}
+
+/// The explorer model of a data source: the cached one (no connection needed) unless
+/// `refresh`, which reloads schemas and server objects and re-introspects loaded schemas.
+#[tauri::command]
+pub async fn db_model(
+    id: String,
+    refresh: Option<bool>,
+    state: State<'_, DbState>,
+) -> Result<DbModel> {
+    Ok(state.service.model(&id, refresh.unwrap_or(false)).await?)
+}
+
+/// Quick Documentation (Ctrl+Q) of a tree node.
+#[tauri::command]
+pub async fn db_object_doc(
+    id: String,
+    schema: String,
+    object: ObjectRef,
+    state: State<'_, DbState>,
+) -> Result<ObjectDoc> {
+    Ok(state.service.object_doc(&id, &schema, &object).await?)
+}
+
+/// Virtual foreign keys and columns of a data source (`.forge/database/virtual.toml`).
+#[tauri::command]
+pub async fn db_virtual_objects(id: String, state: State<'_, DbState>) -> Result<VirtualObjects> {
+    let svc = state.service.clone();
+    crate::commands::workspace::blocking(move || Ok(svc.virtual_objects(&id)?)).await
+}
+
+/// Replace the virtual foreign keys and columns of a data source.
+#[tauri::command]
+pub async fn db_virtual_objects_save(
+    id: String,
+    objects: VirtualObjects,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    let svc = state.service.clone();
+    let ds = id.clone();
+    crate::commands::workspace::blocking(move || Ok(svc.save_virtual_objects(&ds, objects)?))
+        .await?;
+    emit_model_changed(&app, vec![id]);
+    Ok(())
+}
+
+/// The schema filter of the Schemas tab applied to `schemas` (preview while editing).
+#[tauri::command]
+pub fn db_match_schemas(
+    patterns: Vec<String>,
+    mut schemas: Vec<forge_db::SchemaName>,
+) -> Result<Vec<forge_db::SchemaName>> {
+    forge_db::model::apply_patterns(&patterns, &mut schemas).map_err(ForgeError::Other)?;
+    Ok(schemas)
+}
+
+/// Full-text search across data; progress and per-table results arrive as `db://search`.
+#[tauri::command]
+pub async fn db_search(
+    search_id: String,
+    request: SearchRequest,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<SearchSummary> {
+    let emitter = app.clone();
+    Ok(state
+        .service
+        .full_text_search(&search_id, request, move |p: SearchProgress| {
+            if let Err(e) = emitter.emit(SEARCH_EVENT, p) {
+                tracing::warn!("cannot emit {SEARCH_EVENT}: {e}");
+            }
+        })
+        .await?)
+}
+
+#[tauri::command]
+pub fn db_search_cancel(search_id: String, state: State<'_, DbState>) {
+    state.service.cancel_search(&search_id);
 }

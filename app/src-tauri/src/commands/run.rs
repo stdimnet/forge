@@ -230,6 +230,8 @@ const PHP_KINDS: &[&str] = &[
     "artisan",
     "php-builtin-server",
 ];
+/// The Node.js configuration type (Run with Coverage through c8 or nyc).
+const NODE: &str = "node";
 /// Composer types: they run through an interpreter only when they name one.
 const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
 
@@ -322,7 +324,7 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
             if !own.is_empty() && interpreters::interpreter_set(state).find(own).is_none() {
                 php_on_target = own.to_string();
             }
-            if coverage && !runs.tests.supports_coverage(&cfg.type_id) {
+            if coverage && cfg.type_id != NODE && !runs.tests.supports_coverage(&cfg.type_id) {
                 return Err(ForgeError::Other(format!(
                     "'{}' configurations cannot run with coverage",
                     cfg.type_id
@@ -420,32 +422,68 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                     },
                 }
             };
-            // PHPUnit and Pest: a Clover report with Xdebug or PCOV.
-            if coverage && tests.coverage.is_none() {
+            // Node.js: the program runs under c8 (or nyc), which writes LCOV.
+            if coverage && cfg.type_id == NODE && tests.coverage.is_none() {
                 let (dir_arg, dir) =
                     test_frameworks::report_dir(local, &ctx.root, &run_id, "coverage");
-                let file = "clover.xml";
-                let (args, env) = phpforge_test_frameworks::provider::coverage_args(
-                    &cfg.type_id,
-                    &format!("{dir_arg}/{file}"),
-                )
-                .ok_or_else(|| {
-                    ForgeError::Other(format!(
-                        "'{}' configurations cannot run with coverage",
-                        cfg.type_id
-                    ))
-                })?;
-                cmd.args.extend(args);
-                for (k, v) in env {
-                    cmd.env.entry(k).or_insert(v);
-                }
+                let node = cmd.program.clone();
+                cmd.args = webforge_js_testing::coverage_wrap(
+                    &test_frameworks::to_runtools(&cfg)?,
+                    &node,
+                    &dir_arg,
+                    std::mem::take(&mut cmd.args),
+                );
                 tests.coverage = Some(CoverageSetup {
                     dir: Some(dir),
-                    file: file.into(),
-                    format: phpforge_test_frameworks::provider::COVERAGE_FORMAT,
+                    file: "lcov.info".into(),
+                    format: forge_testing::CoverageFormat::Lcov,
                     collect: None,
                     name: cfg.name.clone(),
                     location_rules: Vec::new(),
+                    tests_dir: None,
+                });
+            }
+            // PHP test frameworks: a Clover report with Xdebug or PCOV (the configuration's
+            // driver), plus PHPUnit's XML report for the tests of each line.
+            if coverage && tests.coverage.is_none() {
+                let (dir_arg, dir) =
+                    test_frameworks::report_dir(local, &ctx.root, &run_id, "coverage");
+                let backend = state.backend()?;
+                // Paths relative to the working directory, as project paths.
+                let cwd = cmd.cwd.clone();
+                let project_path = |f: &str| {
+                    let abs = if std::path::Path::new(f).is_absolute() {
+                        std::path::PathBuf::from(f)
+                    } else {
+                        cwd.join(f)
+                    };
+                    abs.strip_prefix(&ctx.root)
+                        .map(|p| p.to_string_lossy().replace('\\', "/"))
+                        .unwrap_or_else(|_| f.to_string())
+                };
+                let plan = phpforge_test_frameworks::provider::coverage_plan(
+                    &test_frameworks::to_runtools(&cfg)?,
+                    &dir_arg,
+                    &|f| backend.read_file(&project_path(f)).ok(),
+                )
+                .map_err(ForgeError::Other)?;
+                cmd.args.splice(0..0, plan.interpreter_args);
+                cmd.args.extend(plan.args);
+                for (k, v) in plan.env {
+                    cmd.env.entry(k).or_insert(v);
+                }
+                tests.coverage = Some(CoverageSetup {
+                    dir: plan.in_dir.then_some(dir),
+                    file: if plan.in_dir {
+                        plan.file
+                    } else {
+                        project_path(&plan.file)
+                    },
+                    format: plan.format,
+                    collect: None,
+                    name: cfg.name.clone(),
+                    location_rules: Vec::new(),
+                    tests_dir: plan.tests_dir,
                 });
             }
             cmd
@@ -616,6 +654,7 @@ fn framework_command(
             dir,
             file,
             format: c.format,
+            tests_dir: None,
             collect: c.collect,
             name: cfg.name.clone(),
             location_rules: if c.location_rules.is_empty() {

@@ -84,7 +84,7 @@ async function coverage(page) {
   await page.waitForSelector('[data-tool-window-panel="coverage"] .coverage-row', { timeout: 20000 });
   await page.evaluate(async () => {
     const { resizePanel } = await import("/src/state/layout.ts");
-    resizePanel("right", 520);
+    resizePanel("right", 640);
   });
   await openFile(page, "app/Services/InvoiceService.php");
   await page.waitForSelector(".editor-slot:not(.hidden) .coverage-mark");

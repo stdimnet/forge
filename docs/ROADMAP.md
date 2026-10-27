@@ -127,11 +127,11 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] PHP quality tools: PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector (on the fly and on save, also in Docker/remote interpreters)
 - [x] Web quality tools: ESLint, Prettier, Stylelint, Biome with fix on save
 - [x] Inspections: Forge's own inspections with severities and profiles, Inspect Code, Run Inspection by Name, Code Cleanup, suppressions, duplicates, data flow, command-line inspector
-- [ ] Code coverage for PHP (Xdebug/PCOV), JS (c8/Istanbul) and the language packs
+- [x] Code coverage for PHP (Xdebug/PCOV), JS (c8/Istanbul) and the language packs
 - [x] Profiling: Xdebug and SPX snapshots, V8 CPU/heap
 - [ ] Vulnerable dependency check (`composer audit`, npm audit)
 - [x] Database connectivity: SSH/SSL per data source, SQL Server, more engines (ClickHouse, Redis, MongoDB, Oracle, …), sessions, read-only/production colors
-- [ ] Database explorer: full object tree, schema filter, virtual foreign keys, full-text search, DDL data sources
+- [x] Database explorer: full object tree, schema filter, virtual foreign keys, full-text search, DDL data sources
 - [ ] SQL editor: resolve and inspections, dialect per file, formatter, user parameters, query history, Run SQL file, live templates
 - [ ] Data editor: header sort/filter, value editor, foreign-key navigation, transpose, aggregates, compare data, charts
 - [ ] Database objects: Create/Modify Table dialogs, Generate DDL, import (CSV/Excel/JSON), dump/restore with native tools

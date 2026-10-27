@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { invoke } from "@/ipc";
-import type { DataSourceInfo, QueryPage, SessionInfo, StatementResult, TestResult } from "@/ipc/db";
+import { invoke, listen } from "@/ipc";
+import "./workspaceMock";
+import type { DataSourceInfo, DbModel, ObjectDoc, QueryPage, SchemaInfo, SearchProgress, SearchSummary, SessionInfo, StatementResult, TestResult, VirtualObjects } from "@/ipc/db";
 import { createDemoDatabase } from "./dbDemoData";
 import { runStatement } from "./dbEngine";
-import { resetDbMock } from "./dbMock";
+import { addExplorerSources, resetDbMock } from "./dbMock";
 
 async function addShop(): Promise<DataSourceInfo> {
   const [ds] = await invoke<DataSourceInfo[]>("db_add_from_env");
@@ -215,5 +216,58 @@ describe("db mock: more engines, guard and sessions", () => {
     expect(first.hostKey?.fingerprint).toMatch(/^SHA256:/);
     const second = await invoke<TestResult>("db_test_connection", { source: prod, acceptHostKey: first.hostKey!.fingerprint });
     expect(second.ok).toBe(true);
+  });
+});
+
+describe("db explorer mock", () => {
+  beforeEach(() => resetDbMock());
+
+  it("filters schemas and loads them lazily with the full object tree", async () => {
+    addExplorerSources();
+    const model = await invoke<DbModel>("db_model", { id: "shop-pg" });
+    expect(model.catalog).toBe("shop");
+    expect(model.schemas.filter((s) => s.visible).map((s) => s.name)).toEqual(["public", "tenant_acme", "tenant_globex", "tenant_initech"]);
+    expect(model.loaded).toEqual({});
+    await expect(invoke("db_introspect", { id: "shop-pg", schema: "audit" })).rejects.toThrow("hidden by the schema filter");
+    const pub = await invoke<SchemaInfo>("db_introspect", { id: "shop-pg", schema: "public" });
+    expect(pub.tables.find((t) => t.name === "daily_revenue")?.kind).toBe("matview");
+    expect(pub.tables.find((t) => t.name === "orders")?.triggers?.[0]?.name).toBe("orders_status_audit");
+    expect(pub.routines.find((r) => r.name === "close_stale_orders")?.arguments?.[1]).toEqual({ name: "closed", dataType: "int", mode: "OUT" });
+    expect(pub.types?.[0]?.labels).toContain("paid");
+    const audit = pub.tables.find((t) => t.name === "audit_log")!;
+    expect(audit.foreignKeys).toEqual([expect.objectContaining({ refTable: "users", virtual: true })]);
+    const cached = await invoke<DbModel>("db_model", { id: "shop-pg" });
+    expect(Object.keys(cached.loaded)).toEqual(["public"]);
+  });
+
+  it("parses the demo DDL data source and documents its objects", async () => {
+    addExplorerSources();
+    const model = await invoke<DbModel>("db_model", { id: "catalog-ddl" });
+    const pub = model.loaded.public!;
+    expect(pub.tables.map((t) => t.name)).toEqual(["catalog_products", "categories", "product_ratings", "reviews"]);
+    expect(pub.tables.find((t) => t.name === "reviews")?.columns.at(-1)?.name).toBe("verified");
+    expect(model.warnings).toEqual([expect.objectContaining({ file: "database/ddl/V2__reviews.sql" })]);
+    const doc = await invoke<ObjectDoc>("db_object_doc", { id: "catalog-ddl", schema: "public", object: { kind: "type", name: "product_state" } });
+    expect(doc.ddl).toContain("AS ENUM ('draft', 'active', 'retired')");
+  });
+
+  it("stores virtual foreign keys in memory and validates them", async () => {
+    const ds = await addShop();
+    await invoke("db_virtual_objects_save", { id: ds.id, objects: { foreignKey: [{ schema: "shop", table: "orders", columns: ["number"], refTable: "users", refColumns: ["email"] }] } });
+    expect((await invoke<VirtualObjects>("db_virtual_objects", { id: ds.id })).foreignKey).toHaveLength(1);
+    await expect(invoke("db_virtual_objects_save", { id: ds.id, objects: { foreignKey: [{ schema: "shop", table: "orders", columns: ["a", "b"], refTable: "users", refColumns: ["id"] }] } })).rejects.toThrow("pair up");
+  });
+
+  it("searches the demo rows table by table", async () => {
+    const ds = await addShop();
+    const seen: SearchProgress[] = [];
+    const stop = await listen<SearchProgress>("db://search", (p) => seen.push(p));
+    const summary = await invoke<SearchSummary>("db_search", { searchId: "s1", request: { scopes: [{ dataSource: ds.id, tables: ["users", "orders"] }], text: "lovelace", limit: 5 } });
+    stop();
+    expect(summary).toMatchObject({ tables: 2, matchedTables: 1 });
+    const users = seen.find((p) => p.result?.table === "users")!.result!;
+    expect(users.rows[0]).toContain("Ada Lovelace");
+    expect(users.matches[0]!.length).toBeGreaterThan(0);
+    expect(users.sql).toContain("LIKE '%lovelace%'");
   });
 });

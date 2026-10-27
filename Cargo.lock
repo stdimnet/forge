@@ -2306,6 +2306,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "forge-core",
+ "forge-dbmodel",
  "forge-ports",
  "forge-remote",
  "forge-sql",
@@ -2328,6 +2329,18 @@ dependencies = [
  "tokio-util",
  "toml 0.8.23",
  "tracing",
+]
+
+[[package]]
+name = "forge-dbmodel"
+version = "0.1.0"
+dependencies = [
+ "forge-sql",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "sqlparser",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -2948,6 +2961,7 @@ dependencies = [
  "forge-colors",
  "forge-colorscheme",
  "forge-containers",
+ "forge-dbmodel",
  "forge-deploy",
  "forge-devenv",
  "forge-diff",
@@ -7869,6 +7883,15 @@ name = "sponge-cursor"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
+
+[[package]]
+name = "sqlparser"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4591acadbcf52f0af60eafbb2c003232b2b4cd8de5f0e9437cb8b1b59046cc0f"
+dependencies = [
+ "log",
+]
 
 [[package]]
 name = "sqlx"

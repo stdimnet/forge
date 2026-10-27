@@ -8,13 +8,23 @@
 //! | Clover XML | PHPUnit `--coverage-clover` (Xdebug, PCOV), Istanbul `clover` | [`xml`] |
 //! | JaCoCo XML | JaCoCo, Kover | [`xml`] |
 //! | Go coverprofile | `go test -coverprofile` | [`gocover`] |
+//! | Istanbul JSON (`coverage-final.json`) | Istanbul / nyc `json`, Jest and Vitest `json` (v8 and istanbul providers), c8 `json` | [`istanbul`] |
+//!
+//! Besides lines and branches a report may name **functions** (LCOV `FN`/`FNDA`, Clover
+//! `method` lines, JaCoCo `<method>`, Istanbul `fnMap`; the Coverage tool window's
+//! "Method, %") and the **tests that covered a line** (LCOV test names `TN`, PHPUnit's XML
+//! report through [`phpunit_xml`]; "Show tests covering this line"). [`html`] renders a
+//! suite as a standalone HTML report (Generate Coverage Report).
 //!
 //! A line is **covered** when it ran and all its branches were taken, **partly covered**
 //! when it ran but some branches (or, in Go, some blocks on it) did not, and **uncovered**
 //! when it never ran.
 
 pub mod gocover;
+pub mod html;
+pub mod istanbul;
 pub mod lcov;
+pub mod phpunit_xml;
 pub mod xml;
 
 use std::collections::BTreeMap;
@@ -30,6 +40,8 @@ pub enum CoverageFormat {
     Clover,
     Jacoco,
     GoCover,
+    /// Istanbul's `coverage-final.json`.
+    IstanbulJson,
 }
 
 impl CoverageFormat {
@@ -40,6 +52,7 @@ impl CoverageFormat {
             CoverageFormat::Clover => "Clover",
             CoverageFormat::Jacoco => "JaCoCo",
             CoverageFormat::GoCover => "Go coverprofile",
+            CoverageFormat::IstanbulJson => "Istanbul JSON",
         }
     }
 }
@@ -57,6 +70,9 @@ pub struct LineHits {
     /// Only some code on the line ran (Go blocks).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub partial: bool,
+    /// The tests that ran the line (sorted, unique), when the report names them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tests: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,7 +104,28 @@ impl LineHits {
             (a, b) => a.or(b),
         };
         self.partial = !full && (self.partial || other.partial);
+        add_tests(&mut self.tests, &other.tests);
     }
+}
+
+/// Add test names to a sorted, unique list.
+fn add_tests(list: &mut Vec<String>, more: &[String]) {
+    if more.is_empty() {
+        return;
+    }
+    list.extend(more.iter().cloned());
+    list.sort();
+    list.dedup();
+}
+
+/// A function or method of a file: where it starts and how often it was called.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FunctionHits {
+    pub name: String,
+    /// 1-based line of its declaration.
+    pub line: u32,
+    pub hits: u64,
 }
 
 /// The lines of one source file.
@@ -99,6 +136,9 @@ pub struct FileCoverage {
     pub path: String,
     /// Sorted by line, one entry per line.
     pub lines: Vec<LineHits>,
+    /// Functions and methods, sorted by line (empty when the format has none).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub functions: Vec<FunctionHits>,
 }
 
 /// A coverage report: the files in the order they were first seen.
@@ -113,6 +153,8 @@ pub struct CoverageReport {
 pub(crate) struct Builder {
     order: Vec<String>,
     files: BTreeMap<String, BTreeMap<u32, LineHits>>,
+    /// Functions per file by (line, name).
+    functions: BTreeMap<String, BTreeMap<(u32, String), u64>>,
 }
 
 impl Builder {
@@ -137,6 +179,29 @@ impl Builder {
         }
     }
 
+    /// A function (several entries of the same name and line add up).
+    pub(crate) fn function(&mut self, path: &str, name: &str, line: u32, hits: u64) {
+        self.file(path);
+        let e = self
+            .functions
+            .entry(path.to_string())
+            .or_default()
+            .entry((line, name.to_string()))
+            .or_default();
+        *e = e.saturating_add(hits);
+    }
+
+    /// Add a whole file (merging and resolving reports).
+    fn add(&mut self, path: &str, f: FileCoverage) {
+        self.file(path);
+        for l in f.lines {
+            self.line(path, l);
+        }
+        for func in f.functions {
+            self.function(path, &func.name, func.line, func.hits);
+        }
+    }
+
     pub(crate) fn finish(mut self) -> CoverageReport {
         CoverageReport {
             files: self
@@ -150,6 +215,13 @@ impl Builder {
                         .unwrap_or_default()
                         .into_values()
                         .collect(),
+                    functions: self
+                        .functions
+                        .remove(p)
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|((line, name), hits)| FunctionHits { name, line, hits })
+                        .collect(),
                 })
                 .collect(),
         }
@@ -162,6 +234,7 @@ impl CoverageReport {
         match format {
             CoverageFormat::Lcov => lcov::parse(text),
             CoverageFormat::GoCover => gocover::parse(text),
+            CoverageFormat::IstanbulJson => istanbul::parse(text),
             CoverageFormat::Cobertura | CoverageFormat::Clover | CoverageFormat::Jacoco => {
                 xml::parse(text)
             }
@@ -176,6 +249,9 @@ impl CoverageReport {
         }
         if t.starts_with('<') {
             return xml::sniff(t);
+        }
+        if t.starts_with('{') {
+            return istanbul::sniff(t).then_some(CoverageFormat::IstanbulJson);
         }
         t.lines()
             .any(|l| l.starts_with("SF:") || l.starts_with("TN:"))
@@ -192,12 +268,69 @@ impl CoverageReport {
     pub fn merge(&mut self, other: CoverageReport) {
         let mut b = Builder::default();
         for f in self.files.drain(..).chain(other.files) {
-            b.file(&f.path);
-            for l in f.lines {
-                b.line(&f.path, l);
-            }
+            let path = f.path.clone();
+            b.add(&path, f);
         }
         *self = b.finish();
+    }
+
+    /// Several reports as one (Show Coverage Data with more than one suite selected).
+    pub fn merged(reports: impl IntoIterator<Item = CoverageReport>) -> CoverageReport {
+        let mut out = CoverageReport::default();
+        for r in reports {
+            out.merge(r);
+        }
+        out
+    }
+
+    /// Record the tests that ran some lines of a file (`path` as the report names it):
+    /// lines the report lacks are added as run.
+    pub fn attach_tests(&mut self, path: &str, lines: &[(u32, Vec<String>)]) {
+        if lines.is_empty() {
+            return;
+        }
+        let i = match self.files.iter().position(|f| f.path == path) {
+            Some(i) => i,
+            None => {
+                self.files.push(FileCoverage {
+                    path: path.to_string(),
+                    ..FileCoverage::default()
+                });
+                self.files.len() - 1
+            }
+        };
+        let f = &mut self.files[i];
+        for (line, tests) in lines {
+            match f.lines.binary_search_by_key(line, |l| l.line) {
+                Ok(at) => add_tests(&mut f.lines[at].tests, tests),
+                Err(at) if *line > 0 => {
+                    let mut l = LineHits {
+                        line: *line,
+                        hits: tests.len() as u64,
+                        ..LineHits::default()
+                    };
+                    add_tests(&mut l.tests, tests);
+                    f.lines.insert(at, l);
+                }
+                Err(_) => {}
+            }
+        }
+    }
+
+    /// Whether some line names the tests that ran it.
+    pub fn has_tests(&self) -> bool {
+        self.files
+            .iter()
+            .any(|f| f.lines.iter().any(|l| !l.tests.is_empty()))
+    }
+
+    /// Lines, branches, methods and files of the whole report.
+    pub fn totals(&self) -> Totals {
+        let mut t = Totals::default();
+        for f in &self.files {
+            t.add_file(f);
+        }
+        t
     }
 
     /// Paths as project paths: `resolve` maps a reported path into the project (`None`:
@@ -208,10 +341,7 @@ impl CoverageReport {
             let Some(path) = resolve(&f.path) else {
                 continue;
             };
-            b.file(&path);
-            for l in f.lines {
-                b.line(&path, l);
-            }
+            b.add(&path, f);
         }
         b.finish()
     }
@@ -221,15 +351,39 @@ impl CoverageReport {
     }
 }
 
-/// Covered and total units (lines or branches).
+/// Covered and total units (lines, branches, methods or files).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Counter {
     pub covered: u32,
     pub total: u32,
 }
 
+/// The counters of a report, a directory or a file.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Totals {
+    pub lines: Counter,
+    pub branches: Counter,
+    pub methods: Counter,
+    /// Files with at least one line that ran.
+    pub files: Counter,
+}
+
+impl Totals {
+    fn add(&mut self, other: Totals) {
+        self.lines.add(other.lines);
+        self.branches.add(other.branches);
+        self.methods.add(other.methods);
+        self.files.add(other.files);
+    }
+
+    fn add_file(&mut self, f: &FileCoverage) {
+        self.add(f.totals());
+    }
+}
+
 impl Counter {
-    fn add(&mut self, other: Counter) {
+    pub fn add(&mut self, other: Counter) {
         self.covered += other.covered;
         self.total += other.total;
     }
@@ -264,6 +418,27 @@ impl FileCoverage {
         c
     }
 
+    /// Functions and methods that were called.
+    pub fn method_counter(&self) -> Counter {
+        Counter {
+            covered: self.functions.iter().filter(|f| f.hits > 0).count() as u32,
+            total: self.functions.len() as u32,
+        }
+    }
+
+    pub fn totals(&self) -> Totals {
+        let lines = self.line_counter();
+        Totals {
+            lines,
+            branches: self.branch_counter(),
+            methods: self.method_counter(),
+            files: Counter {
+                covered: u32::from(lines.covered > 0),
+                total: 1,
+            },
+        }
+    }
+
     /// The gutter marks of the file.
     pub fn marks(&self) -> Vec<LineMark> {
         self.lines
@@ -274,6 +449,7 @@ impl FileCoverage {
                 status: l.status(),
                 branches: l.branches,
                 hint: hint(l),
+                tests: l.tests.clone(),
             })
             .collect()
     }
@@ -290,6 +466,9 @@ pub struct LineMark {
     pub branches: Option<(u32, u32)>,
     /// "Hits: 3", "Hits: 3, branches: 1 of 2 covered", "Line was not executed".
     pub hint: String,
+    /// The tests that ran the line (Show tests covering this line).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tests: Vec<String>,
 }
 
 fn hint(l: &LineHits) -> String {
@@ -301,6 +480,11 @@ fn hint(l: &LineHits) -> String {
         s.push_str(&format!(", branches: {c} of {t} covered"));
     } else if l.partial {
         s.push_str(", partly covered");
+    }
+    match l.tests.len() {
+        0 => {}
+        1 => s.push_str(", 1 test"),
+        n => s.push_str(&format!(", {n} tests")),
     }
     s
 }
@@ -316,9 +500,14 @@ pub struct CoverageNode {
     pub depth: u32,
     pub lines: Counter,
     pub branches: Counter,
+    /// Functions and methods (Method, %).
+    pub methods: Counter,
+    /// Files with lines that ran (directories: "x% files" in the Project view).
+    pub files: Counter,
     /// "85% (17/20)", "n/a".
     pub line_text: String,
     pub branch_text: String,
+    pub method_text: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -332,62 +521,88 @@ pub enum CoverageNodeKind {
 #[derive(Debug, Default)]
 struct Dir {
     dirs: BTreeMap<String, Dir>,
-    files: BTreeMap<String, (Counter, Counter)>,
+    files: BTreeMap<String, Totals>,
 }
 
 impl Dir {
-    fn totals(&self) -> (Counter, Counter) {
-        let mut lines = Counter::default();
-        let mut branches = Counter::default();
+    fn totals(&self) -> Totals {
+        let mut t = Totals::default();
         for d in self.dirs.values() {
-            let (l, b) = d.totals();
-            lines.add(l);
-            branches.add(b);
+            t.add(d.totals());
         }
-        for (l, b) in self.files.values() {
-            lines.add(*l);
-            branches.add(*b);
+        for f in self.files.values() {
+            t.add(*f);
         }
-        (lines, branches)
+        t
+    }
+
+    fn of(report: &CoverageReport) -> Dir {
+        let mut root = Dir::default();
+        for f in &report.files {
+            let parts: Vec<&str> = f.path.split('/').filter(|p| !p.is_empty()).collect();
+            let Some((file, dirs)) = parts.split_last() else {
+                continue;
+            };
+            let mut d = &mut root;
+            for p in dirs {
+                d = d.dirs.entry(p.to_string()).or_default();
+            }
+            d.files.insert(file.to_string(), f.totals());
+        }
+        root
     }
 }
 
-fn node(
-    path: String,
-    name: String,
-    kind: CoverageNodeKind,
-    depth: u32,
-    (lines, branches): (Counter, Counter),
-) -> CoverageNode {
+fn node(path: String, name: String, kind: CoverageNodeKind, depth: u32, t: Totals) -> CoverageNode {
     CoverageNode {
         path,
         name,
         kind,
         depth,
-        lines,
-        branches,
-        line_text: lines.text(),
-        branch_text: branches.text(),
+        lines: t.lines,
+        branches: t.branches,
+        methods: t.methods,
+        files: t.files,
+        line_text: t.lines.text(),
+        branch_text: t.branches.text(),
+        method_text: t.methods.text(),
     }
+}
+
+/// Every folder of the report (not compacted) with its folded counters, by project path,
+/// for the Project view ("50% files, 62% lines covered"); `""` is the project.
+pub fn folders(report: &CoverageReport) -> BTreeMap<String, Totals> {
+    fn walk(d: &Dir, prefix: &str, out: &mut BTreeMap<String, Totals>) {
+        out.insert(prefix.to_string(), d.totals());
+        for (name, sub) in &d.dirs {
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            walk(sub, &path, out);
+        }
+    }
+    let mut out = BTreeMap::new();
+    walk(&Dir::of(report), "", &mut out);
+    out
+}
+
+/// The Project view's hint of a file or folder: "62% lines covered", for folders
+/// "50% files, 62% lines covered".
+pub fn project_hint(t: &Totals, folder: bool) -> Option<String> {
+    let lines = t.lines.percent()?;
+    Some(match t.files.percent().filter(|_| folder) {
+        Some(files) => format!("{files}% files, {lines}% lines covered"),
+        None => format!("{lines}% lines covered"),
+    })
 }
 
 /// The rows of the Coverage tool window: the project, then directories (folders with a
 /// single subfolder and no files are compacted, `src/main/java`) and files, depth first,
 /// directories before files, by name.
 pub fn summary(report: &CoverageReport, project: &str) -> Vec<CoverageNode> {
-    let mut root = Dir::default();
-    for f in &report.files {
-        let parts: Vec<&str> = f.path.split('/').filter(|p| !p.is_empty()).collect();
-        let Some((file, dirs)) = parts.split_last() else {
-            continue;
-        };
-        let mut d = &mut root;
-        for p in dirs {
-            d = d.dirs.entry(p.to_string()).or_default();
-        }
-        d.files
-            .insert(file.to_string(), (f.line_counter(), f.branch_counter()));
-    }
+    let root = Dir::of(report);
     let mut out = vec![node(
         String::new(),
         project.to_string(),
@@ -522,6 +737,69 @@ pub(crate) mod tests {
         assert_eq!(marks[2].status, LineStatus::Partial);
         assert_eq!(marks[2].hint, "Hits: 2, branches: 1 of 2 covered");
         assert_eq!(marks[5].hint, "Line was not executed");
+        let rows = summary(&r, "shop");
+        assert_eq!(rows[0].method_text, "100% (1/1)");
+        assert_eq!(rows[0].files.text(), "50% (1/2)");
+    }
+
+    #[test]
+    fn folders_fold_every_level_for_the_project_view() {
+        let mut b = Builder::default();
+        for (path, hits) in [
+            ("src/main/java/a/A.java", 1),
+            ("src/main/java/a/B.java", 0),
+            ("src/main/kotlin/C.kt", 2),
+        ] {
+            b.line(
+                path,
+                LineHits {
+                    line: 1,
+                    hits,
+                    ..LineHits::default()
+                },
+            );
+        }
+        let r = b.finish();
+        let f = folders(&r);
+        assert_eq!(
+            f.keys().collect::<Vec<_>>(),
+            [
+                "",
+                "src",
+                "src/main",
+                "src/main/java",
+                "src/main/java/a",
+                "src/main/kotlin"
+            ]
+        );
+        assert_eq!(
+            project_hint(&f["src/main"], true).as_deref(),
+            Some("66% files, 66% lines covered")
+        );
+        assert_eq!(
+            project_hint(&f["src/main/java"], true).as_deref(),
+            Some("50% files, 50% lines covered")
+        );
+        let file = r.file("src/main/kotlin/C.kt").unwrap().totals();
+        assert_eq!(
+            project_hint(&file, false).as_deref(),
+            Some("100% lines covered")
+        );
+        assert_eq!(project_hint(&Totals::default(), true), None);
+        assert_eq!(r.totals().files.text(), "66% (2/3)");
+    }
+
+    #[test]
+    fn merging_suites_keeps_functions_and_tests() {
+        let (a, _) = CoverageReport::parse_any(&fixture("lcov.info")).unwrap();
+        let (b, _) = CoverageReport::parse_any(&fixture("lcov-tests.info")).unwrap();
+        let m = CoverageReport::merged([a.clone(), b, a]);
+        assert_eq!(m.files.len(), 3);
+        let cart = m.file("/p/src/cart.js").unwrap();
+        assert_eq!(cart.lines[0].hits, 6);
+        assert_eq!(cart.functions[0].hits, 6);
+        assert!(m.file("src/cart.js").unwrap().lines[0].tests.len() == 2);
+        assert!(m.has_tests());
     }
 
     #[test]
@@ -552,6 +830,7 @@ pub(crate) mod tests {
             [(1, 2, LineStatus::Covered)]
         );
         let rows = summary(&a, "p");
+        assert_eq!(rows[0].files.text(), "100% (1/1)");
         assert_eq!(rows[1].name, "src/main/java");
         assert_eq!(rows[1].path, "src/main/java");
         assert_eq!(rows[2].path, "src/main/java/Cart.java");

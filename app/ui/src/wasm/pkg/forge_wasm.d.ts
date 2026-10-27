@@ -425,13 +425,29 @@ export function containers_terminal_command(request_json: string): string;
 export function containers_workloads_parse(raw_json: string): string;
 
 /**
+ * `{ report }` → `{ path: hint }`: the Project view's hints of files and folders.
+ */
+export function coverage_hints(request_json: string): string;
+
+/**
+ * `{ report, project, title, generated, sources }` → the HTML coverage report.
+ */
+export function coverage_html(request_json: string): string;
+
+/**
  * `{ report, path }` → `LineMark[]` (the editor's coverage gutter).
  */
 export function coverage_marks(request_json: string): string;
 
 /**
- * `{ text, root, cwd?, mappings, rules }` → `{ report, format, lines, branches }`: a
- * coverage report with project paths.
+ * `{ reports }` → the suite fields of their merged report (Show Coverage Data with several
+ * suites).
+ */
+export function coverage_merge(request_json: string): string;
+
+/**
+ * `{ text, root, cwd?, mappings, rules, testsXml? }` → `{ report, format, lines, branches,
+ * methods, … }`: a coverage report with project paths.
  */
 export function coverage_parse(request_json: string): string;
 
@@ -480,6 +496,34 @@ export function csv_parse(request_json: string): string;
  * `{ rows, column, descending, headerRows }` → row indices.
  */
 export function csv_sort_order(request_json: string): string;
+
+/**
+ * `{ dataSource, objects, schema? }` → the schema with the virtual objects merged in, or
+ * `{ ok: true }` when the objects are valid and no schema was given; `{ error }` otherwise.
+ */
+export function dbmodel_apply_virtual(request_json: string): string;
+
+/**
+ * Mirrors `db_match_schemas`: `{ patterns, schemas }` → schemas with `visible` set.
+ */
+export function dbmodel_match_schemas(request_json: string): string;
+
+/**
+ * Mirrors `db_object_doc`: `{ dialect, schema, object }` → `ObjectDoc | null`.
+ */
+export function dbmodel_object_doc(request_json: string): string;
+
+/**
+ * `{ dialect, defaultSchema, files: [{ path, text }] }` → `{ schemas, warnings }`.
+ */
+export function dbmodel_parse_ddl(request_json: string): string;
+
+/**
+ * The full-text search of one table over in-memory rows: the query the backend would run,
+ * the matching rows (searched columns only), their matching cells and whether the limit
+ * cut them.
+ */
+export function dbmodel_search_rows(request_json: string): string;
 
 /**
  * `{ local: {path, dir, text, modified}[], remote: …, by }` → `DirCompare`.
@@ -1194,9 +1238,21 @@ export function markdown_parse(request_json: string): string;
 export function nav_bar_segments(request_json: string): string;
 
 /**
+ * `{ configuration, node, dir, args }` → the arguments of a Node.js program under c8 or nyc
+ * (Run with Coverage of a Node.js configuration).
+ */
+export function node_coverage_wrap(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
+
+/**
+ * `{ configuration, dir, files }` → `{ interpreterArgs, args, env, file, inDir, testsDir }`:
+ * how a PHP test configuration runs with coverage.
+ */
+export function php_coverage_plan(request_json: string): string;
 
 /**
  * `{ interpreter, root, composeDir?, volumes? }` → the automatic `PathMapping[]`.
@@ -2113,7 +2169,10 @@ export interface InitOutput {
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;
     readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
+    readonly coverage_hints: (a: number, b: number, c: number) => void;
+    readonly coverage_html: (a: number, b: number, c: number) => void;
     readonly coverage_marks: (a: number, b: number, c: number) => void;
+    readonly coverage_merge: (a: number, b: number, c: number) => void;
     readonly coverage_parse: (a: number, b: number, c: number) => void;
     readonly coverage_summary: (a: number, b: number, c: number) => void;
     readonly cpp_build_problems: (a: number, b: number, c: number) => void;
@@ -2124,6 +2183,11 @@ export interface InitOutput {
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
+    readonly dbmodel_apply_virtual: (a: number, b: number, c: number) => void;
+    readonly dbmodel_match_schemas: (a: number, b: number, c: number) => void;
+    readonly dbmodel_object_doc: (a: number, b: number, c: number) => void;
+    readonly dbmodel_parse_ddl: (a: number, b: number, c: number) => void;
+    readonly dbmodel_search_rows: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
     readonly deploy_entry_path: (a: number, b: number, c: number) => void;
     readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
@@ -2263,7 +2327,9 @@ export interface InitOutput {
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
+    readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly php_coverage_plan: (a: number, b: number, c: number) => void;
     readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
     readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
     readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;

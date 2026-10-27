@@ -760,7 +760,7 @@ impl MongoConn {
         Ok(SchemaInfo {
             name: db_name.into(),
             tables,
-            routines: Vec::new(),
+            ..Default::default()
         })
     }
 }
@@ -806,10 +806,7 @@ impl EngineConn for MongoConn {
             names.sort();
             Ok(names
                 .into_iter()
-                .map(|name| SchemaName {
-                    current: name == self.db,
-                    name,
-                })
+                .map(|name| SchemaName::new(name.clone(), name == self.db))
                 .collect())
         })
     }

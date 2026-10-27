@@ -1,41 +1,19 @@
 /**
  * Coverage tool window (PHPStorm: View | Tool Windows | Coverage): the shown suite's
  * directories and files with their line and branch coverage, computed in Rust
- * (`forge_testing::coverage::summary`). Double-click opens a file; the toolbar shows / hides
- * the coverage in the editor and the Project view, switches suites, imports a report and
- * closes the suite.
+ * (`forge_testing::coverage::summary`), plus method coverage when the report names
+ * functions. Double-click opens a file; the toolbar shows / hides the coverage in the editor
+ * and the Project view, chooses (and merges) suites, imports a report, generates the HTML
+ * report and closes the suite.
  */
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { ChevronDown, ChevronRight, Eye, EyeOff, File, FileInput, Folder, History, X } from "lucide-solid";
-import { openMenu } from "@/features/run/PopupMenu";
+import { ChevronDown, ChevronRight, Eye, EyeOff, File, FileCode2, FileInput, Folder, History, X } from "lucide-solid";
 import { openFileAt } from "@/editor/views";
 import { shortcutLabel } from "@/keymap";
 import type { CoverageNode } from "@/ipc/testing";
-import { activeSuite, closeSuite, setCoverageVisible, showSuite, suites, view, visible } from "./store";
-import { importReport } from "./actions";
-
-/** "Oct 26, 10:41". */
-const when = (at: number) => new Date(at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-
-/** Show Coverage Data: the session's suites; picking one shows it. */
-export function showSuitesMenu(x: number, y: number): void {
-  const list = suites();
-  openMenu({
-    x,
-    y,
-    items: [
-      ...(list.length
-        ? list.map((s) => ({
-            label: `${s.name} – ${s.lineText}`,
-            shortcut: when(s.at),
-            run: () => void showSuite(s.id),
-          }))
-        : [{ label: "No coverage data yet", disabled: true }]),
-      { separator: true },
-      { label: "Import External Coverage Report…", icon: FileInput, run: () => void importReport() },
-    ],
-  });
-}
+import { activeSuite, closeSuite, setCoverageVisible, view, visible } from "./store";
+import { generateReport, importReport } from "./actions";
+import { showSuitesDialog, when } from "./SuitesDialog";
 
 function Percent(props: { text: string; covered: number; total: number }) {
   const pct = () => (props.total ? (100 * props.covered) / props.total : 0);
@@ -74,6 +52,8 @@ export function CoverageToolWindow() {
       return next;
     });
   const open = (n: CoverageNode) => (n.kind === "file" ? void openFileAt(n.path, 1, 1) : toggle(n));
+  // The Method column only for reports that name functions (not Go profiles, luacov).
+  const methods = () => (view()?.nodes[0]?.methods.total ?? 0) > 0;
   return (
     <div class="coverage-window">
       <div class="coverage-toolbar" role="toolbar">
@@ -100,15 +80,15 @@ export function CoverageToolWindow() {
         <button
           class="icon-btn"
           title={`Show Coverage Data…${shortcutLabel("SwitchCoverage") ? ` (${shortcutLabel("SwitchCoverage")})` : ""}`}
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            showSuitesMenu(r.left, r.bottom + 2);
-          }}
+          onClick={() => showSuitesDialog()}
         >
           <History size={15} />
         </button>
         <button class="icon-btn" title="Import External Coverage Report…" onClick={() => void importReport()}>
           <FileInput size={15} />
+        </button>
+        <button class="icon-btn" title="Generate Coverage Report…" disabled={!activeSuite()} onClick={() => void generateReport()}>
+          <FileCode2 size={15} />
         </button>
         <button class="icon-btn" title="Close Coverage Suite" disabled={!activeSuite()} onClick={() => activeSuite() && void closeSuite(activeSuite()!.id)}>
           <X size={15} />
@@ -123,9 +103,12 @@ export function CoverageToolWindow() {
           </div>
         }
       >
-        <div class="coverage-table" role="treegrid">
+        <div class="coverage-table" classList={{ "with-methods": methods() }} role="treegrid">
           <div class="coverage-head">
             <span>Element</span>
+            <Show when={methods()}>
+              <span>Method, %</span>
+            </Show>
             <span>Line, %</span>
             <span>Branch, %</span>
           </div>
@@ -147,6 +130,9 @@ export function CoverageToolWindow() {
                     {n.kind === "file" ? <File size={14} class="coverage-icon" /> : <Folder size={14} class="coverage-icon folder" />}
                     <span>{n.kind === "project" ? n.name || "All files" : n.name}</span>
                   </span>
+                  <Show when={methods()}>
+                    <Percent text={n.methodText} covered={n.methods.covered} total={n.methods.total} />
+                  </Show>
                   <Percent text={n.lineText} covered={n.lines.covered} total={n.lines.total} />
                   <Percent text={n.branchText} covered={n.branches.covered} total={n.branches.total} />
                 </div>

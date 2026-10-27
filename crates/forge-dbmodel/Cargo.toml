@@ -1,0 +1,15 @@
+[package]
+name = "forge-dbmodel"
+description = "Forge database explorer model (pure, also built to WebAssembly): the object tree of a data source, schema filter patterns, virtual foreign keys and columns, DDL data sources parsed with sqlparser, full-text search queries and Quick Documentation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-sql.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+regex-lite = "0.1"
+# Permissive SQL parser for DDL data sources (Apache-2.0).
+sqlparser = { version = "0.59", default-features = false, features = ["std"] }
