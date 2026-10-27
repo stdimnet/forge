@@ -1,0 +1,183 @@
+/* RubyForge: the Rake tool window, External Libraries and Settings | Ruby. Theme variables only. */
+
+.rake-tw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.rake-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.rake-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.rake-toolbar .icon-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.rake-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.rake-run {
+  color: var(--success);
+}
+.icon-btn:disabled .rake-run {
+  color: var(--fg-faint);
+}
+.rake-spin {
+  animation: rake-spin 1s linear infinite;
+}
+@keyframes rake-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rake-filter {
+  flex: 1;
+  min-width: 60px;
+  margin-left: 6px;
+}
+.rake-message {
+  padding: 6px 10px;
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+  word-break: break-word;
+}
+.rake-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.rake-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+.rake-twisty {
+  display: inline-flex;
+  width: 13px;
+  flex: none;
+  color: var(--fg-muted);
+}
+.rake-ns {
+  color: var(--syn-type);
+  flex: none;
+}
+.rake-task-icon {
+  color: var(--syn-function);
+  flex: none;
+}
+.rake-label {
+  color: var(--fg);
+}
+.rake-args {
+  color: var(--syn-string);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.rake-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+
+/* External Libraries: the Ruby SDK and the bundle's gems */
+.ruby-lib-version {
+  margin-left: 6px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.ruby-gem-icon {
+  color: var(--danger);
+  flex: none;
+}
+.ruby-gem-indirect {
+  color: var(--fg-muted);
+}
+
+/* Settings | Ruby */
+.ruby-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ruby-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ruby-row select,
+.ruby-row input {
+  flex: 1;
+  min-width: 0;
+}
+.ruby-facts {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 4px 12px;
+  font-size: var(--fs-small);
+}
+.ruby-facts > span:nth-child(odd) {
+  color: var(--fg-muted);
+}
+.ruby-mono {
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ruby-interpreters {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  max-height: 180px;
+  overflow: auto;
+}
+.ruby-interpreter {
+  display: grid;
+  grid-template-columns: 18px 140px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  cursor: default;
+}
+.ruby-interpreter:hover {
+  background: var(--bg-hover);
+}
+.ruby-interpreter.selected {
+  background: var(--bg-selection);
+}
+.ruby-interpreter .ruby-mono {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.ruby-tools {
+  border-collapse: collapse;
+  width: 100%;
+}
+.ruby-tools td {
+  padding: 3px 8px 3px 0;
+  white-space: nowrap;
+}
+.ruby-tool-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ruby-missing {
+  color: var(--warning);
+}

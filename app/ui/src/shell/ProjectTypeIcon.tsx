@@ -6,7 +6,7 @@
 import type { Component } from "solid-js";
 import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Atom, Code, Folder, Heart, Leaf, Moon, Mountain, Package, Zap } from "lucide-solid";
+import { Atom, Code, Folder, Gem, Heart, Leaf, Moon, Mountain, Package, Zap } from "lucide-solid";
 import "./projectTypeIcon.css";
 
 type Glyph = { icon?: Component<{ size?: number; "stroke-width"?: number }>; text?: string };
@@ -37,6 +37,7 @@ const GLYPHS: Record<string, Glyph> = {
   love: { icon: Heart },
   neovim: { text: "nv" },
   rust: { text: "Rs" },
+  ruby: { icon: Gem },
   go: { text: "Go" },
   python: { text: "Py" },
   "spring-boot": { icon: Leaf },

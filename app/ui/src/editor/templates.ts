@@ -450,3 +450,28 @@ export function goTemplateSyntaxWith(left = "{{", right = "}}"): TemplateSyntax 
 }
 
 export const goTemplateSyntax: TemplateSyntax = goTemplateSyntaxWith();
+
+/**
+ * ERB (Embedded Ruby, Rails views `*.html.erb`): `<%= expr %>` output tags (`<%==`
+ * unescaped), `<% code %>` statement tags with `-%>` trim markers, `<%# comments %>`, and
+ * Ruby's keywords and common view helpers inside the tags.
+ */
+export const erbSyntax: TemplateSyntax = {
+  name: "erb",
+  delimiters: [
+    ["<%#", "%>", "comment"],
+    ["<%==", "%>", "expr"],
+    ["<%=", "%>", "expr"],
+    ["<%-", "%>", "block"],
+    ["<%", "%>", "block"],
+  ],
+  keywords: [
+    "if", "elsif", "else", "unless", "end", "do", "case", "when", "while", "until", "for", "in", "begin", "rescue",
+    "ensure", "yield", "then", "and", "or", "not", "nil", "true", "false", "self", "return", "next", "break", "def",
+    "class", "module", "super", "defined?",
+  ],
+  builtins: [
+    "render", "link_to", "form_with", "form_for", "image_tag", "content_tag", "content_for", "t", "l", "raw", "puts",
+    "each", "map", "button_to", "javascript_include_tag", "stylesheet_link_tag", "csrf_meta_tags", "turbo_frame_tag",
+  ],
+};
