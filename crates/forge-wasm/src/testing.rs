@@ -38,6 +38,9 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
     // CForge's GoogleTest, Catch2 and CTest replace their manifest declarations.
     cforge_lang_cpp::register(&mut r);
+    r.register(Box::new(javaforge_lang_groovy::SpockTests));
+    r.register(Box::new(javaforge_lang_scala::ScalaTests::scalatest()));
+    r.register(Box::new(javaforge_lang_scala::ScalaTests::munit()));
     r
 }
 

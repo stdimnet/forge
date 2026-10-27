@@ -23,6 +23,8 @@ import { isRustDemo, rustDemoName } from "./demoRustProject";
 import { cargoRunSteps, RUST_ROOT, rustContext } from "./rustTestsMock";
 import { isJavaDemo, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoName } from "./demoKotlinProject";
+import { isScalaDemo, scalaDemoName } from "./demoScalaProject";
+import { androidDemoName, isAndroidDemo } from "./demoAndroidProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 import { frameworkCommand, frameworkSteps, recordTestRun, specFor, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
@@ -30,7 +32,7 @@ import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isCppDemo() ? cppDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isCppDemo() ? cppDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {

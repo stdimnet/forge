@@ -59,7 +59,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `c` | C | `.c`, `.h` |  |  |
 | `csharp` | C# | `.cs`, `.csx` |  |  |
 | `kotlin` | Kotlin | `.kt`, `.kts` |  |  |
-| `scala` | Scala | `.scala`, `.sc` |  |  |
+| `scala` | Scala | `.scala`, `.sc`, `.sbt` |  |  |
 | `dart` | Dart | `.dart` |  |  |
 | `objc` | Objective-C | `.m`, `.mm` |  |  |
 | `swift` | Swift | `.swift` |  |  |
@@ -67,7 +67,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `perl` | Perl | `.pl`, `.pm`, `.t` |  |  |
 | `powershell` | PowerShell | `.ps1`, `.psm1`, `.psd1` |  |  |
 | `batch` | Batch | `.bat`, `.cmd` |  |  |
-| `groovy` | Groovy | `.groovy`, `.gradle`, `.gvy` | `jenkinsfile` |  |
+| `groovy` | Groovy | `.groovy`, `.gradle`, `.gvy`, `.gy` | `jenkinsfile` |  |
 | `haskell` | Haskell | `.hs`, `.lhs` |  |  |
 | `erlang` | Erlang | `.erl`, `.hrl` |  |  |
 | `elixir` | Elixir | `.ex`, `.exs` |  |  |

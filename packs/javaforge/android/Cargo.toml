@@ -1,0 +1,11 @@
+[package]
+name = "javaforge-android"
+description = "JavaForge: Android basics (Gradle Android modules, AndroidManifest.xml, the Android SDK location, adb devices and emulator AVDs, Android App run command lines, Logcat parsing, filtering and stack trace links; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex-lite = "0.1"

@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, goforge, javaforge, kotlinforge, cforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -2597,6 +2597,62 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   completion, clang-format and reload on change. Browser mode: `?project=cpp` opens the
   `shapes` demo (`mock/demoCppProject.ts`, `cppMock.ts`, `cppDebugMock.ts`; `&build=broken`
   for a failing build; WebAssembly `crates/forge-wasm/src/cpp.rs`).
+
+## JavaForge JVM extras: Groovy, Scala and Android (`packs/javaforge/{lang-groovy,lang-scala,android}`)
+
+- Three plugins of the `javaforge` pack, each depending on `forge.java`:
+  `app/src-tauri/plugins/javaforge-groovy.toml` (`forge.groovy`, `projectTypes = ["groovy"]`),
+  `javaforge-scala.toml` (`forge.scala`, `["scala"]`) and `javaforge-android.toml`
+  (`forge.android`, `["android"]`). `forge-project` reports the `groovy` language (Groovy
+  sources or the `groovy` plugin; `spock` for `org.spockframework`), the `scala` language (sbt
+  builds with the tool `sbt`, Scala sources, Gradle's `scala` plugin; `scalatest` / `munit`) and
+  the `android` framework (the Android Gradle Plugin or `src/main/AndroidManifest.xml`, AGP
+  version from `gradle/libs.versions.toml`); `groovy` and `scala` map to the `javaforge` pack.
+  `*.gy` and `*.sbt` are bundled file type extensions (Groovy, Scala).
+- Crates (pure, also in `forge-wasm` as `jvm_extras.rs`, tests on fixtures, no network, sbt or
+  devices): `javaforge-lang-groovy` (scanner, Spock, `SpockTests`, Groovy Script command lines,
+  Groovy SDK lookup), `javaforge-lang-scala` (scanner, main objects, ScalaTest / MUnit suites,
+  `ScalaTests`, the sbt model from `build.sbt` and from sbt's output, sbt command lines, the
+  pinned Metals version and Coursier arguments) and `javaforge-android` (Android modules,
+  manifests, SDK lookup, adb / emulator / ps output, the Android App run chain, Logcat parsing,
+  process packages, stack trace links, the query language and the ring buffer).
+- Gradle source sets: `javaforge_build::model::ProjectModel::source_sets` (conventions of the
+  applied plugins, Gradle's `sourceSets` from the sync init script) show in the Gradle and Maven
+  tool windows; `JavaTests`' `build_command` takes `language = groovy` for Spock.
+- IPC: `commands/groovy.rs` (`groovy_status() -> { groovy?, source?, version?, gradleGroovy,
+  runner }`, `groovy_runnable({ text }) -> { script, mains }`); `commands/scala.rs`
+  (`scala_status() -> { metals?, metalsVersion?, pinnedVersion, coursier?, sbt?, problems,
+  remote }`, `scala_metals_install() -> version` (the user's `cs bootstrap` into `<data
+  dir>/forge/langservers/metals/<version>`, output on `scala://install`), `scala_main_objects({
+  text })`, `scala_sbt_model() -> SbtBuild | null`, `scala_sbt_import() -> SbtBuild` (sbt
+  `projects` and `show …` in batch mode, output on `scala://sbt`, cached in
+  `<cache>/forge/javaforge/sbt`; refused in Safe Mode and on remote projects),
+  `scala_sbt_cancel()`); `commands/android.rs` (`android_status() -> { sdk?, adb?, emulator?,
+  hint?, modules, remote }`, `android_devices() -> { devices, avds, adb?, emulator?, hint?,
+  error? }`, `android_emulator_start({ avd })`, `android_logcat_start({ serial, query? })`,
+  `android_logcat_view({ query, limit? }) -> LogcatView`, `android_logcat_stop()`,
+  `android_logcat_clear()`; new matching entries on `android://logcat` `{ serial, entries,
+  cleared?, ended? }`). adb and the emulator are the user's SDK tools and run locally (local
+  projects only); the SDK is never downloaded (`sdk::NO_SDK_HINT`).
+- Language server: Metals is a pack server (`pack_servers.toml`) registered by
+  `commands::scala::sync_lsp_server` for local Scala projects (setting, Forge's install, PATH;
+  `JAVA_HOME` = the project JDK, `metals.sbtScript`); `metals` is in
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- Runs (`run.rs`): `jvm_extras_command_line` builds `groovy-script` (groovy, or Gradle's
+  `forgeRunGroovy` init script task), `sbt-task` (tasks or the sbt shell) and `android-app`
+  (`assemble<Variant>`, `adb install -r -t`, `am start`, chained in `sh -c` / `cmd /c`) before
+  KotlinForge and JavaForge; `spock` is one of JavaForge's test types for `prepare`, `scalatest`
+  / `munit` are filled by `commands::scala::prepare` (sbt, the project of the file) and built by
+  `ScalaTests` (`testOnly`, reports in `target/test-reports`). Everything starts in
+  `run::start_built`, so Safe Mode refuses it.
+- UI: `features/groovy` (settings page `lang.groovy`, Groovy Script and Spock run types, the Run
+  gutter on scripts and mains), `features/scala` (settings page `lang.scala`, the `sbt` tool
+  window `SbtToolWindow.tsx` on JavaForge's `BuildTree`, sbt Task / ScalaTest / MUnit run types,
+  the Run gutter on main objects, the Metals offer), `features/android` (settings page
+  `lang.android`, the `android-devices` (Device Manager) and `logcat` tool windows, the Android
+  App run type, the SDK hint). Browser mode: `?project=scala` (sbt demo `shop`,
+  `mock/demoScalaProject.ts`, `jvmExtrasMock.ts`) and `?project=android` (`notes-app` with a
+  Groovy script, `mock/demoAndroidProject.ts`, `androidMock.ts`; `&android-sdk=missing`).
 
 ## Scripting and config language packs
 

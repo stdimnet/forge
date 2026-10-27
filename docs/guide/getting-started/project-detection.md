@@ -96,6 +96,9 @@ The primary type appears
 | CForge | C and C++ projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
+| JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
+| JavaForge: Scala | an sbt build (`build.sbt`, `project/build.properties`; tool `sbt`), Scala sources (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin; ScalaTest and MUnit in `build.sbt` |
+| JavaForge: Android | a Gradle module applying `com.android.application` / `com.android.library` (also catalog aliases) or a `src/main/AndroidManifest.xml`; the framework `android` with the AGP version, tool `android` |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
 always active. Each plugin can still be switched off in Settings | Plugins, see

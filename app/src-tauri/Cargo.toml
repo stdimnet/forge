@@ -85,6 +85,9 @@ javaforge-build = { workspace = true, features = ["net"] }
 javaforge-lang-java.workspace = true
 javaforge-jdk.workspace = true
 kotlinforge-lang-kotlin.workspace = true
+javaforge-lang-groovy.workspace = true
+javaforge-lang-scala.workspace = true
+javaforge-android.workspace = true
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 webforge-lang-web = { path = "../../packs/webforge/lang-web" }

@@ -60,6 +60,9 @@ import "./go";
 import "./rust";
 import "./java";
 import "./kotlin";
+import "./groovy";
+import "./scala";
+import "./android";
 // After JavaForge: CForge wraps its Build Project (Ctrl+F9).
 import "./cpp";
 import "./services";

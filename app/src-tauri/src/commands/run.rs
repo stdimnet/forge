@@ -73,6 +73,10 @@ impl RunState {
         tests.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
         // CForge: GoogleTest, Catch2 and CTest replace their manifest declarations.
         cforge_lang_cpp::register(&mut tests);
+        // JavaForge's JVM extras: Spock, ScalaTest and MUnit.
+        tests.register(Box::new(javaforge_lang_groovy::SpockTests));
+        tests.register(Box::new(javaforge_lang_scala::ScalaTests::scalatest()));
+        tests.register(Box::new(javaforge_lang_scala::ScalaTests::munit()));
         let program_settings = plugins
             .test_frameworks()
             .filter_map(|f| f.program_setting.clone())
@@ -282,6 +286,9 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
             if crate::commands::java::handles(&cfg.type_id) {
                 crate::commands::java::prepare(state, &mut cfg, java_debug)?;
             }
+            if crate::commands::scala::handles_test(&cfg.type_id) {
+                crate::commands::scala::prepare(state, &mut cfg)?;
+            }
             run_on = cfg.run_on.clone().filter(|t| !t.is_local()).or(run_on);
             let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
             let own = cfg.interpreter.trim();
@@ -374,11 +381,15 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
                 }
-                match crate::commands::kotlin::command_line(state, &cfg, java_debug)? {
+                match jvm_extras_command_line(state, &cfg)? {
                     Some(cmd) => cmd,
-                    None => match crate::commands::java::command_line(state, &cfg, java_debug)? {
+                    None => match crate::commands::kotlin::command_line(state, &cfg, java_debug)? {
                         Some(cmd) => cmd,
-                        None => runs.kinds.build(&cfg, &ctx)?,
+                        None => match crate::commands::java::command_line(state, &cfg, java_debug)?
+                        {
+                            Some(cmd) => cmd,
+                            None => runs.kinds.build(&cfg, &ctx)?,
+                        },
                     },
                 }
             };
@@ -465,6 +476,20 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
         output_filters,
         tests,
     })
+}
+
+/// Groovy Script, sbt Task and Android App configurations (JavaForge's JVM extras).
+fn jvm_extras_command_line(
+    state: &AppState,
+    cfg: &RunConfiguration,
+) -> Result<Option<CommandLine>> {
+    if let Some(cmd) = super::groovy::command_line(state, cfg)? {
+        return Ok(Some(cmd));
+    }
+    if let Some(cmd) = super::scala::command_line(state, cfg)? {
+        return Ok(Some(cmd));
+    }
+    super::android::command_line(state, cfg)
 }
 
 /// The command of a test framework that a manifest declares (busted, …): built by

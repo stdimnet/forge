@@ -38,6 +38,18 @@ const MANIFESTS: &[(&str, &str)] = &[
         "kotlinforge.toml",
         include_str!("../plugins/kotlinforge.toml"),
     ),
+    (
+        "javaforge-groovy.toml",
+        include_str!("../plugins/javaforge-groovy.toml"),
+    ),
+    (
+        "javaforge-scala.toml",
+        include_str!("../plugins/javaforge-scala.toml"),
+    ),
+    (
+        "javaforge-android.toml",
+        include_str!("../plugins/javaforge-android.toml"),
+    ),
     ("cforge.toml", include_str!("../plugins/cforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
