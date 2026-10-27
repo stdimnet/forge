@@ -2298,6 +2298,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-inspections"
+version = "0.1.0"
+dependencies = [
+ "forge-scopes",
+ "quick-xml",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-jsonschema"
 version = "0.1.0"
 dependencies = [
