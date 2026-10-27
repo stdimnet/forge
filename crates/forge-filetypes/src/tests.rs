@@ -45,6 +45,7 @@ fn bundled_types_by_name_and_extension() {
         ("Cargo.toml", "TOML"),
         (".gitignore", "Ignore File"),
         ("templates/order/show.html.twig", "Twig"),
+        ("app/views/orders/show.html.erb", "ERB"),
         ("legacy/templates/cart.tpl", "Smarty"),
         ("app/Presenters/templates/Home.latte", "Latte"),
         ("templates/mail.hbs", "Handlebars"),
@@ -209,6 +210,14 @@ fn template_files_get_their_data_language() {
                 path: "README.md".into(),
                 first_line: None,
             },
+            FileRef {
+                path: "app/views/user_mailer/welcome.text.erb".into(),
+                first_line: None,
+            },
+            FileRef {
+                path: "app/views/orders/show.html.erb".into(),
+                first_line: None,
+            },
         ],
         data_languages: vec!["legacy/latex/*=latex".into()],
         soft_wrap_files: Some("*.md; *.txt".into()),
@@ -222,6 +231,9 @@ fn template_files_get_their_data_language() {
     assert_eq!(out[2].data_language.unwrap().id, "html");
     assert_eq!(out[3].data_language, None);
     assert!(out[3].soft_wrap && !out[0].soft_wrap);
+    assert_eq!(out[4].label, "ERB (Plain text)");
+    assert_eq!(out[5].label, "ERB");
+    assert_eq!(out[5].data_language.unwrap().id, "html");
 }
 
 #[test]
