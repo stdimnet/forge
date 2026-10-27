@@ -203,3 +203,10 @@ Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, 
 **Remote host** (default) or **This machine**.
 
 ![HTTP request sent from the remote host](../../screenshots/remote-finish-http.png)
+
+## OAuth 2.0, cURL, GraphQL, WebSocket and gRPC
+
+The HTTP client also acquires OAuth 2.0 tokens (`{{$auth.token("id")}}` with `Security.Auth`
+in the environment file), imports and copies cURL commands, and runs `GRAPHQL`, `WEBSOCKET`
+(with a live message log) and `GRPC` requests. See
+[Web tooling](web-tooling.md#http-client-extras).

@@ -52,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
+  "Track only root files", problems from output filters), Live Edit through the Browser
+  Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
+  completion, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun basics, OpenAPI validation, preview,
+  endpoints and Generate HTTP Request, GraphQL validation and completion against the schema,
+  and the HTTP client's OAuth 2.0, cURL import/export, WebSocket and gRPC requests
+  ([Web tooling](user/web-tooling.md)).
 - **Vulnerable dependencies**: the Package Checker runs each ecosystem's audit tool
   (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP
   dependency-check reports) on project open, when a lock file changes and with Code | Analyze

@@ -55,6 +55,8 @@ settings work.
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | [Astro Language Server](https://github.com/withastro/language-tools) | `astro-ls` | Astro | `astro-ls --stdio` | `npm install -g @astrojs/language-server typescript` | MIT | needs plugin `forge.web` |
+| [Deno Language Server](https://docs.deno.com/runtime/reference/lsp_integration/) | `deno` | TypeScript, JavaScript | `deno lsp` | `npm install -g deno`, `brew install deno`, `cargo install deno --locked` | MIT | needs plugin `forge.deno`; only with a root `deno.json` / `deno.jsonc`, where it replaces the TypeScript language server |
+| [Prisma Language Server](https://github.com/prisma/language-tools) | `prisma-language-server` | Prisma | `prisma-language-server --stdio` | `npm install -g @prisma/language-server` | Apache-2.0 | needs plugin `forge.prisma` |
 
 ### HTML & CSS
 

@@ -54,6 +54,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
+  "Track only root files", problems from output filters), Live Edit through the Browser
+  Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
+  completion, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun basics, OpenAPI validation, preview,
+  endpoints and Generate HTTP Request, GraphQL validation and completion against the schema,
+  and the HTTP client's OAuth 2.0, cURL import/export, WebSocket and gRPC requests
+  ([Web tooling](docs/guide/user/web-tooling.md)).
 - **Vulnerable dependencies**: the Package Checker runs each ecosystem's audit tool
   (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP
   dependency-check reports) on project open, when a lock file changes and with Code | Analyze
@@ -833,6 +840,7 @@ not finished, the page says so.
 | [Drupal, Joomla and Shopware](docs/guide/user/cms.md) | CMS detection, Drupal file types and hook completion with Go to the hook docs, Shopware Twig tags, Drush and Shopware console |
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
+| [Web tooling](docs/guide/user/web-tooling.md) | File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, OAuth 2.0, cURL, WebSocket and gRPC requests |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
@@ -11332,6 +11340,266 @@ In [remote projects](docs/guide/user/remote-development.md) the npm tool window,
 component navigation and gutter icons are computed by the Forge agent on the host, and scripts
 run there like every run configuration.
 
+## More web tooling
+
+File Watchers, Live Edit, Vite/Webpack aliases in imports, Svelte, Astro, Nuxt, Nx, Prisma,
+Deno and Bun, OpenAPI and GraphQL are described in [Web tooling](docs/guide/user/web-tooling.md).
+
+
+---
+
+Source: docs/guide/user/web-tooling.md
+
+# Web tooling
+
+Tooling around the web languages of [WebForge](docs/guide/user/webforge.md), modelled on PHPStorm and
+WebStorm. Everything works at a solid basic level; the notes at the end of each section say
+what is not there yet. In browser mode the demo `?project=webtools` (an Nx workspace with a
+Nuxt storefront, an OpenAPI document, GraphQL, Prisma, Sass and `.http` requests) shows all of
+it.
+
+## File Watchers
+
+Settings | Tools | File Watchers runs a program whenever a file of some type changes, such as
+`sass`, `lessc`, `tsc`, `babel` or `prettier`. Watchers belong to the project (setting
+`tools.fileWatchers`).
+
+![File Watchers page](docs/screenshots/web-tooling-file-watchers.png)
+
+- **+** adds a watcher from a template: **SCSS**, **Sass**, **Less**, **TypeScript** (`tsc`),
+  **Babel**, **Prettier** or **Custom**. The check box turns a watcher off.
+- **Files to Watch**: the file type and the scope (Project Files or any scope from
+  Settings | Appearance & Behavior | Scopes).
+- **Tool to Run on Changes**: program, arguments, output paths to refresh and working
+  directory, all with macros such as `$FileName$`, `$FileNameWithoutExtension$`,
+  `$FileDir$`, `$FilePathRelativeToProjectRoot$` and `$ProjectFileDir$`, plus environment
+  variables. A bare program name (`sass`) runs the project's `node_modules/.bin/sass` when
+  there is one.
+- **Advanced Options**:
+  - **Auto-save edited files to trigger the watcher**: the file is saved after a short pause
+    in typing, so the watcher runs while you type.
+  - **Trigger the watcher on external changes**: also run for files changed outside Forge
+    (git checkout, another editor).
+  - **Track only root files**: a changed partial (`_variables.scss`) or imported module runs
+    the files that import it (`app.scss`, `print.scss`) instead of itself. `@use`, `@import`
+    and `@forward` (Sass, Less) and relative ES imports are followed.
+  - **Show console**: Always, On error (default) or Never.
+- **Output filters** (`$FILE_PATH$:$LINE$:$COLUMN$`, one regular expression per line, as for
+  External Tools) turn the program's error messages into links in the console and into
+  problems in the **File Watchers** tab of the Problems tool window.
+
+![A watcher run after saving a Sass partial](docs/screenshots/web-tooling-file-watcher-run.png)
+
+Watchers run in the Run tool window like any program, and never in
+[Safe Mode](docs/guide/user/project-trust.md): an untrusted project shows "File Watchers did not run" instead.
+Files a watcher writes (its output paths) never start it again.
+
+![Edit Watcher dialog](docs/screenshots/web-tooling-file-watcher-edit.png)
+
+> **Note:** watchers run one file at a time; PHPStorm's "Create output file from stdout" and
+> per-watcher "Level" (global watchers) are not available yet.
+
+## Live Edit
+
+With the [Browser Companion](docs/guide/user/browser-companion.md) extension paired, Forge updates the pages
+open in the browser:
+
+- **Style sheets** are swapped in place without a reload (CSS hot swap): while typing (after
+  `liveEdit.delayMs`, setting `liveEdit.updateWhileTyping`) with the editor's text, and on save
+  by reloading the `<link>`. CSS that a File Watcher writes (Sass, Less) is pushed when it
+  changes on disk.
+- **HTML, scripts, templates and images**: pages that loaded the saved file reload
+  (`liveEdit.reloadOnSave`).
+
+The extension matches changed files to what the page loaded by their path below the web root
+(`public/css/app.css` is `/css/app.css`), so other tabs are left alone. Turn it off with
+`liveEdit.enabled` (Settings | Tools | Browser Companion, section Live Edit).
+
+![Live Edit settings](docs/screenshots/web-tooling-live-edit.png)
+
+> **Note:** JavaScript is not hot-swapped (pages reload); use your dev server's HMR for that.
+> Style sheets a bundler injects from JavaScript reload the page instead of being swapped.
+
+## Vite and Webpack aliases
+
+`resolve.alias` of `vite.config.*` and `webpack.config.*` (in the root or one folder below) is
+read statically, together with `tsconfig.json` / `jsconfig.json` `paths`. Supported forms:
+object and array aliases, `path.resolve(__dirname, …)`, `path.join`,
+`fileURLToPath(new URL('./src', import.meta.url))`, `` `${__dirname}/src` ``, root-relative
+strings (`'/src'`) and Webpack's exact `name$`. Aliases to packages and computed values are
+skipped.
+
+- **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) on an import string such as
+  `'@ui/format'` opens the file, also where the TypeScript language server does not know the
+  alias.
+- **Completion** in import strings offers folders and modules through the aliases
+  (`'@/compo…'`), and the alias names themselves.
+
+## Svelte, Astro, Nuxt, Nx, Prisma, Deno and Bun
+
+| Framework | Detected by | What Forge does |
+| --- | --- | --- |
+| Svelte | `svelte` dependency, `svelte.config.*` | `.svelte` highlighting (HTML with script and style), the Svelte language server (npm, installed by Forge with your consent) |
+| Astro | `astro` dependency, `astro.config.*` | `.astro` highlighting, `@astrojs/language-server` |
+| Nuxt | `nuxt` dependency, `nuxt.config.*` | the **Nuxt** view of the Endpoints tool window (pages as routes, `[id]` → `:id`, catch-all and optional parameters, route groups; auto-imported components), Go to Declaration on component tags (`<BaseButton>`, `<base-button>`, `<LazyBaseButton>`) |
+| Nx | `nx.json` | the **Nx** tool window (projects, targets with their executors, dependencies, a project graph), double-click runs `nx run project:target` as an `Nx` run configuration, targets in Run Anything |
+| Prisma | `prisma` / `@prisma/client` dependency, `schema.prisma` | `.prisma` highlighting, the Prisma language server, Tools \| Prisma \| Generate Client / Migrate Dev…, Prisma commands in Run Anything |
+| Deno | `deno.json` / `deno.jsonc` | `deno lsp` replaces the TypeScript language server, `Deno` run configurations (`deno run`, `deno task`, `deno test`), tasks in Run Anything |
+| Bun | `bun.lock` / `bun.lockb` / `bunfig.toml` | `Bun` run configurations (`bun run`, `bun test`), scripts in Run Anything, and Bun as the Node interpreter: enter `bun` in Settings \| Languages & Frameworks \| Node.js |
+
+![Nx tool window](docs/screenshots/web-tooling-nx.png)
+
+![Nuxt pages in the Endpoints tool window](docs/screenshots/web-tooling-nuxt-pages.png)
+
+> **Note:** the Nx project graph lists dependencies as layers instead of drawing edges, and
+> dependencies Nx infers from imports are not shown (only `implicitDependencies` and
+> package.json dependencies between workspace packages).
+
+## OpenAPI
+
+YAML and JSON files with a top-level `openapi: 3.x` (or `swagger: "2.0"`) key are OpenAPI
+documents, whatever their name.
+
+- **Validation** uses the bundled official OpenAPI 3.0 and 3.1 JSON schemas (Apache-2.0, from
+  the OpenAPI Initiative) through the [JSON Schema](docs/guide/user/json-schema.md) support; the status bar
+  shows "JSON schema: OpenAPI 3.0".
+- **Preview**: OpenAPI files open with a Swagger-UI-like preview next to the text, rendered by
+  Forge itself (no remote JavaScript): title, version, servers, operations by tag with
+  parameters, request body and responses with examples generated from the schemas, and the
+  schemas. The layout buttons switch between editor, preview and both.
+- **Endpoints**: the **OpenAPI** view of the Endpoints tool window lists every operation of
+  the project's documents with speed search; a click opens it in the file.
+- **Generate HTTP Request** (the send button of an operation, the endpoint's context menu, or
+  the Generate HTTP Request action at the caret) opens a new HTTP scratch with the request: path
+  parameters and required query parameters as `{{variables}}`, the server URL as
+  `@baseUrl`, an `Accept` header and the example body.
+
+![OpenAPI preview](docs/screenshots/web-tooling-openapi-preview.png)
+
+![OpenAPI endpoints](docs/screenshots/web-tooling-openapi-endpoints.png)
+
+> **Note:** Swagger 2.0 documents get the preview and endpoints but no schema validation;
+> external `$ref`s to other files are not followed.
+
+## GraphQL
+
+`.graphql`, `.gql` and `.graphqls` files are highlighted and checked against the project's
+schema with apollo-compiler (MIT / Apache-2.0):
+
+- **Schema**: the `schema` of `graphql.config.*` / `.graphqlrc*` (files or globs; an
+  introspection result in JSON works too), else every `.graphql` file that defines types.
+- **Validation**: unknown fields and types, missing required arguments, wrong variables and
+  syntax errors are reported as you type. Schema files are checked against each other.
+- **Completion** (`Ctrl+Space`): fields with their types and descriptions (deprecated ones
+  struck through), arguments, types after `on` and in variable definitions, and the top-level
+  keywords.
+- **Get GraphQL Schema from Endpoint** (Tools menu) runs the introspection query against the
+  endpoint of `graphql.config` (`extensions.endpoints`, with its headers) or one you enter, and
+  saves the schema as SDL (`schema.graphql` by default).
+- Queries run in the HTTP client as `GRAPHQL` requests (below).
+
+![GraphQL validation and completion](docs/screenshots/web-tooling-graphql.png)
+
+> **Note:** fragments are not resolved for completion inside spreads; `graphql-tag` strings in
+> JavaScript are not checked yet.
+
+## HTTP client extras
+
+These extend [Scratches and the HTTP client](docs/guide/user/scratches-and-http.md).
+
+### OAuth 2.0
+
+Configure authorization in `http-client.env.json` (secrets in
+`http-client.private.env.json`) under `Security.Auth`, like PHPStorm, and use the token with
+`{{$auth.token("id")}}` (or `{{$auth.idToken("id")}}`):
+
+```json
+{
+  "dev": {
+    "Security": {
+      "Auth": {
+        "shop-api": {
+          "Type": "OAuth2",
+          "Grant Type": "Authorization Code",
+          "Auth URL": "https://id.example.com/authorize",
+          "Token URL": "https://id.example.com/token",
+          "Redirect URL": "http://localhost:51234/callback",
+          "Client ID": "storefront",
+          "Scope": "openid products:read",
+          "PKCE": true
+        }
+      }
+    }
+  }
+}
+```
+
+```http
+GET https://api.example.com/products
+Authorization: Bearer {{$auth.token("shop-api")}}
+```
+
+- Grant types: **Client Credentials**, **Password** and **Authorization Code** (with PKCE,
+  S256). The Authorization Code grant opens the login page in your browser and receives the
+  code on a loopback port (the `Redirect URL`'s, else a free one).
+- `Client Credentials: "in body"` sends the client secret in the form instead of
+  `Authorization: Basic`.
+- Tokens are kept in memory for the IDE session and refreshed with their refresh token when
+  they expire. Tools | HTTP Client | Clear OAuth Tokens forgets them.
+
+![An OAuth request](docs/screenshots/web-tooling-http-oauth.png)
+
+### cURL
+
+- **Import from cURL** (toolbar of `.http` editors, Tools | HTTP Client): paste a `curl`
+  command, for example from the browser's dev tools; it becomes a request (method, headers,
+  `-d`/`--data-*`/`--json` bodies, `-F` multipart forms, `-u` basic auth, cookies, `-G`).
+- **Copy as cURL**: the request at the caret, resolved with the environment, as a `curl`
+  command line in the clipboard.
+
+![Import from cURL](docs/screenshots/web-tooling-curl-import.png)
+
+### GraphQL, WebSocket and gRPC requests
+
+```http
+GRAPHQL https://api.example.com/graphql
+
+query Product($id: ID!) {
+  product(id: $id) { name price }
+}
+
+{ "id": "42" }
+
+###
+WEBSOCKET ws://localhost:8080/orders/live
+
+{"subscribe": "orders"}
+=== wait-for-server
+{"ping": 1}
+
+###
+GRPC localhost:50051/acme.inventory.v1.Stock/GetLevel
+
+{ "productId": 42 }
+```
+
+- **`GRAPHQL`** sends the query (and the JSON variables block after it) as a GraphQL-over-HTTP
+  `POST`.
+- **`WEBSOCKET`** connects, sends the messages (separated by `===`; `=== wait-for-server` waits
+  for a message from the server first) and keeps a live message log in the Run tool window
+  (`▶` sent, `◀` received). Text typed into the console is sent as a message; Stop closes the
+  connection.
+- **`GRPC`** makes a unary call with the JSON body. The message types come from the server's
+  reflection service (`grpc.reflection.v1`, then `v1alpha`); servers without reflection need
+  their `.proto` files in Settings | Tools | HTTP Client (`httpClient.grpc.protoFiles`, files or
+  import folders). `grpcs://` and `https://` use TLS.
+
+![WebSocket message log](docs/screenshots/web-tooling-http-websocket.png)
+
+> **Note:** streaming gRPC methods, GraphQL subscriptions over WebSocket and sending WebSocket
+> or gRPC requests from a remote project's host are not supported yet; they connect from this
+> machine.
+
 
 ---
 
@@ -17729,6 +17997,13 @@ Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, 
 
 ![HTTP request sent from the remote host](docs/screenshots/remote-finish-http.png)
 
+## OAuth 2.0, cURL, GraphQL, WebSocket and gRPC
+
+The HTTP client also acquires OAuth 2.0 tokens (`{{$auth.token("id")}}` with `Security.Auth`
+in the environment file), imports and copies cURL commands, and runs `GRAPHQL`, `WEBSOCKET`
+(with a live message log) and `GRPC` requests. See
+[Web tooling](docs/guide/user/web-tooling.md#http-client-extras).
+
 
 ---
 
@@ -18876,6 +19151,13 @@ and applies `.env` changes on the host, and files the browser asks for open in t
 project: the host's absolute paths below the project, paths relative to it, and paths of other
 machines or containers (`/app/src/App.tsx`, `C:\Users\…\src\App.tsx`), which are matched by
 their longest tail that exists in the project. Symbol lookups search the host's files.
+
+## Live Edit
+
+With the extension paired, saved style sheets are swapped in the open pages without a reload
+(also while typing), and pages reload when HTML, scripts or templates they loaded are saved.
+The extension asks Forge for changes with `GET /api/forge/live-edit` (paired browsers only).
+See [Web tooling](docs/guide/user/web-tooling.md#live-edit) for the settings.
 
 
 ---
@@ -21082,6 +21364,18 @@ Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
 | `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
 | `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
 | `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
+### Languages & Frameworks | GraphQL, OpenAPI, Deno and Bun
+
+Page ids `lang.graphql`, `lang.openapi`, `lang.deno` and `lang.bun`. See [Web tooling](docs/guide/user/web-tooling.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `graphql.validation` | bool | `true` | user |  | Check queries against the schema |
+| `graphql.endpoint` | string | `""` | user, project |  | Introspection endpoint — URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint. |
+| `openapi.preview` | bool | `true` | user |  | Show the preview next to OpenAPI files |
+| `deno.executable` | string | `deno` | user |  | Deno executable |
+| `bun.executable` | string | `bun` | user |  | Bun executable |
+
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -21317,6 +21611,10 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+| `liveEdit.enabled` | bool | `true` | user | Live Edit | Live Edit: update open pages in paired browsers — Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them. See [Web tooling](docs/guide/user/web-tooling.md#live-edit). |
+| `liveEdit.updateWhileTyping` | bool | `true` | user | Live Edit | Update style sheets while typing — Push the editor's CSS into the page after a short pause, before the file is saved. |
+| `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
+| `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
 ### Tools | External Tools
 
@@ -21333,6 +21631,15 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+| `httpClient.grpc.protoFiles` | list | `[]` | user, project | gRPC | .proto files for gRPC requests — Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service. |
+
+### Tools | File Watchers
+
+Page id `tools.file-watchers`. See [Web tooling](docs/guide/user/web-tooling.md#file-watchers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.fileWatchers` | objects | `[]` | user, project |  | File Watchers — Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, "Track only root files", console and output filters. |
 
 ### Build, Execution, Deployment | JDKs
 
@@ -21558,7 +21865,11 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
 | `stylus` | Stylus | `.styl`, `.stylus` |  |  |
-| `html` | HTML | `.html`, `.htm`, `.xhtml`, `.svelte`, `.astro` |  |  |
+| `html` | HTML | `.html`, `.htm`, `.xhtml` |  |  |
+| `svelte` | Svelte | `.svelte` |  |  |
+| `astro` | Astro | `.astro` |  |  |
+| `graphql` | GraphQL | `.graphql`, `.gql`, `.graphqls` |  |  |
+| `prisma` | Prisma | `.prisma` |  |  |
 | `vue` | Vue | `.vue` |  |  |
 | `twig` | Twig | `.twig`, `.html.twig` |  | yes |
 | `smarty` | Smarty | `.tpl`, `.smarty` |  | yes |
@@ -21740,6 +22051,8 @@ settings work.
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | [Astro Language Server](https://github.com/withastro/language-tools) | `astro-ls` | Astro | `astro-ls --stdio` | `npm install -g @astrojs/language-server typescript` | MIT | needs plugin `forge.web` |
+| [Deno Language Server](https://docs.deno.com/runtime/reference/lsp_integration/) | `deno` | TypeScript, JavaScript | `deno lsp` | `npm install -g deno`, `brew install deno`, `cargo install deno --locked` | MIT | needs plugin `forge.deno`; only with a root `deno.json` / `deno.jsonc`, where it replaces the TypeScript language server |
+| [Prisma Language Server](https://github.com/prisma/language-tools) | `prisma-language-server` | Prisma | `prisma-language-server --stdio` | `npm install -g @prisma/language-server` | Apache-2.0 | needs plugin `forge.prisma` |
 
 ### HTML & CSS
 
@@ -24338,6 +24651,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [webforge-js-testing](docs/guide/developer/crates/webforge-js-testing.md) | WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright, Cypress, node --test): discovery, command lines, Rerun Failed Tests, debug programs (pure, also built to WebAssembly) |
 | [webforge-quality-tools](docs/guide/developer/crates/webforge-quality-tools.md) | WebForge: web code quality tools (ESLint, Prettier, Stylelint, Biome): configurations, automatic detection of packages and configuration files, command lines, JSON report parsing (pure) |
 | [webforge-lang-web](docs/guide/developer/crates/webforge-lang-web.md) | WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins |
+| [webforge-web-tooling](docs/guide/developer/crates/webforge-web-tooling.md) | WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly) |
 
 
 ---
@@ -26422,12 +26736,12 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `yaml.rs` | Tolerant YAML parser: block mappings and sequences (`- key: v` compact items), flow collections, plain/quoted/block scalars, comments, documents, anchors, aliases, `<<` merge keys (reported at the `<<` key), tags (`!!str`; other tags mark the node as not judged). YAML 1.2 core schema scalars. |
 | `uri.rs` | `$id`/`$ref` resolution (RFC 3986 section 5), fragments, JSON pointer decoding; project files are `project:/<path>`. |
 | `schema.rs` | `SchemaDoc` (a parsed schema file with its `$id`s, anchors and external refs), `Registry` (loaded documents, aliases, failed URIs, `missing()`), `Sch` (a subschema with its base URI), `Draft`. |
-| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under. |
+| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under, including the official OpenAPI 3.0 and 3.1 schemas (Apache-2.0). |
 | `validate.rs` | The validator: every keyword of draft 4–2020-12 (see the user page), best-branch reporting for `anyOf`/`oneOf`, evaluated properties/items for `unevaluated*`, ECMAScript patterns through `regex-lite`. |
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, the SchemaStore catalog; glob matching. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
 | `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
 
@@ -27078,6 +27392,7 @@ Opening files in Forge from the outside world:
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
+| `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
 | `project.rs` | What the Browser Companion settings page needs to know about the open project to show the relevant framework snippets first, and the one config change it may apply itself: setting a variable in a dotenv file. |
 | `request.rs` | Open requests as they arrive from the browser extension, `forge://` links and the CLI, plus their validation. |
@@ -27726,6 +28041,7 @@ PHP files, settings) through the project backend and starts the processes with `
 | `args.rs` | Splitting and quoting of argument strings (shared with `forge-process`, which re-exports it). |
 | `macros.rs` | PHPStorm's macros (`$FilePath$`, `$ProjectFileDir$`, `$LineNumber$`, `$SelectedText$`, `$ClipboardContent$`, `$Prompt$`, `$PhpExecutable$`, …): the list with descriptions and previews for "Insert Macro…", and expansion with an `Expander` that hands out `$Prompt$` answers in order. Unknown `$Names$` stay as they are; macros without a value expand to nothing and are reported. |
 | `external.rs` | External Tools: the model, its settings object (`tools.externalTools`, string values), validation (name, program, output filters), the command of a run (arguments split first, then expanded) and grouping for menus; `action_id` is PHPStorm's `Tool_<group>_<name>`. |
+| `watchers.rs` | File Watchers: the model and its settings object (`tools.fileWatchers`), the templates (SCSS, Sass, Less, TypeScript, Babel, Prettier, Custom), validation, `plan` (which enabled watchers run for saved, typed-in or externally changed files by file type, scope and trigger; "Track only root files" follows `@use`/`@import`/`@forward` and relative imports to the root files; outputs never retrigger), `command` (macros expanded, `node_modules/.bin` programs) and `problems` (output filters to Problems). |
 | `launch.rs` | Launch plans: `plan(configurations, target)` returns the configurations to start (a compound's members, nested compounds expanded, duplicates once) and each one's ordered before-launch tasks, with "Run Another Configuration" flattened; missing configurations and cycles are errors. npm, Composer, Artisan and shell tasks come with the temporary configuration that runs them. |
 | `anything.rs` | Run Anything: `suggest` groups and ranks (with `forge-fuzzy`) the history, run configurations, npm and Composer scripts, PHP files, plugin commands and the typed command; `?` returns help. `resolve` turns a command into a temporary configuration (`php file.php` → PHP Script, `php artisan …` → Artisan, `composer …`, `npm`/`pnpm`/`yarn`/`bun` → npm, else Shell Script); `push_history` keeps the newest 50 entries. |
 
@@ -27876,6 +28192,11 @@ Everything except `store` and `client` is pure, so browser mode runs it as WebAs
 | Module | Summary |
 | --- | --- |
 | `client.rs` | Sends the requests of `.http` scratches (feature `client`). |
+| `curl.rs` | cURL commands: `parse_curl` (Import from cURL: shell quoting, `-X`, `-H`, `-d`/`--data-*`, `--json`, `-F`, `-u`, `-b`, `-A`, `-e`, `-G`, `-I`) and `to_curl` (Copy as cURL); `to_http`. |
+| `grpc.rs` | `GRPC` requests (feature `client`): unary calls over HTTP/2 (h2, rustls for TLS) with JSON bodies encoded by prost-reflect; message types from server reflection (`grpc.reflection.v1`, then `v1alpha`) or `.proto` files compiled with protox. |
+| `oauth.rs` | OAuth 2.0 of `Security.Auth` in the environment files: configs, `$auth.token("id")` references, PKCE (S256), authorization URLs, token request forms and responses (pure). |
+| `oauth_client.rs` | The OAuth flows (feature `client`): Client Credentials, Password, Authorization Code with PKCE through the browser and a loopback listener, refresh tokens, a session `TokenCache`. |
+| `ws.rs` | `WEBSOCKET` requests (feature `client`, tokio-tungstenite): messages with `=== wait-for-server`, a live event log, console input as messages and Stop as close. |
 | `handler.rs` | Response handler scripts of `.http` requests (`> {% … %}`), PHPStorm's HTTP Client API as a small, safe subset: no JavaScript engine, no loops, no access to anything but the response and the global variables. |
 | `http.rs` | `.http` request files (PHPStorm's HTTP Client, lite): parsing, `{{variable}}` substitution and the console text of a response. |
 | `languages.rs` | Languages of the "New Scratch File" popup (Ctrl+Alt+Shift+Insert): every file type of `forge-filetypes` with an extension, the extension a new scratch gets, and the popup's ordering and speed search. |
@@ -31681,6 +32002,8 @@ WebAssembly (`crates/forge-wasm/src/web.rs`).
 
 | Module | Summary |
 | --- | --- |
+| `aliases.rs` | `resolve.alias` of `vite.config.*` / `webpack.config.*` read statically: object and array forms, `path.resolve`/`path.join`, `fileURLToPath(new URL(…))`, template strings, root-relative strings, Webpack's exact `name$`. |
+| `import_paths.rs` | The import specifier under the caret: Go to Declaration and path completion through relative paths, `tsconfig` paths and bundler aliases. |
 | `component.rs` | The component model shared by the React, Vue and Angular plugins, and the gutter marks and navigation answers they return to the UI. |
 | `fs.rs` | Loading `Sources` from disk (desktop app only; the browser mock passes its demo files). |
 | `imports.rs` | ES module imports and re-exports, read lexically from JavaScript/TypeScript source. |
@@ -31724,6 +32047,53 @@ pub trait FrameworkIndex { … }
 ```sh
 cargo test -p webforge-lang-web
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/webforge-web-tooling.md
+
+# webforge-web-tooling
+
+`packs/webforge/web-tooling` — WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly).
+
+## Purpose
+
+The pure models behind [Web tooling](docs/guide/user/web-tooling.md). The desktop app reads the
+project through its backend (`app/src-tauri/src/commands/web_tooling.rs`); browser mode runs
+the same code as WebAssembly (`crates/forge-wasm/src/web_tooling.rs`) over the demo files.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `openapi.rs` | OpenAPI 3.x / Swagger 2.0 documents (YAML or JSON through `forge-jsonschema`'s parsers): `version`/`is_openapi` by the top-level key, `endpoints` (method, path, operationId, summary, tags, line), `preview` (servers, operations grouped by tag with parameters, request body and responses, examples generated from schemas with local `$ref`s, schemas) and `http_request` ("Generate HTTP Request" as `.http` text). |
+| `graphql.rs` | GraphQL with apollo-compiler (MIT / Apache-2.0): `SchemaSet` (SDL files, schema problems, `validate` of operations, `complete` of fields, arguments, types and keywords from a token scan of the text before the caret), `syntax_problems`, `introspection_to_sdl`, `parse_config` for `graphql.config.*` / `.graphqlrc*` (schema files, documents, endpoints with headers) and `request_body`. Offsets are UTF-16. |
+| `nx.rs` | Nx workspaces: `workspace` reads `nx.json` (`targetDefaults`, `defaultBase`), `project.json` files and workspace `package.json` files (the `nx` key, scripts as targets) into projects with kind, tags, targets (executor or command, line) and dependencies (`implicitDependencies` and dependencies between workspace packages); `run_args`. |
+| `nuxt.rs` | Nuxt: `routes` from `pages/` (index, `[id]`, `[[optional]]`, `[...slug]`, route groups, Nuxt 4's `app/`), `components` from `components/` with path prefixes collapsed like Nuxt, `component_for_tag` (`<base-button>`, `<LazyX>`). |
+| `deno.rs` | Tasks of `deno.json` / `deno.jsonc` (string and object tasks). |
+
+## Main public items
+
+```rust
+pub mod deno;
+pub mod graphql;
+pub mod nuxt;
+pub mod nx;
+pub mod openapi;
+```
+
+## Dependencies
+
+`serde`, `serde_json`, `forge-jsonschema` (YAML/JSON trees with positions), `apollo-compiler`
+(GraphQL parsing and validation).
+
+## Tests
+
+Unit tests in each module: endpoint extraction and the preview of a Pet Store document,
+Swagger 2.0, Generate HTTP Request, GraphQL validation (unknown fields, missing arguments,
+syntax errors), schema problems, completion contexts, introspection to SDL, config files, Nx
+projects and graph, Nuxt routes and components, Deno tasks.
 
 
 ---

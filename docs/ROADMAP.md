@@ -136,7 +136,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Data editor: header sort/filter, value editor, foreign-key navigation, transpose, aggregates, compare data, charts
 - [ ] Database objects: Create/Modify Table dialogs, Generate DDL, import (CSV/Excel/JSON), dump/restore with native tools
 - [ ] ER diagrams, schema compare and migrations, query plans
-- [ ] Web tooling: File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, HTTP client extras (OAuth 2.0, cURL, WebSocket/gRPC)
+- [x] Web tooling: File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, HTTP client extras (OAuth 2.0, cURL, WebSocket/gRPC)
 
 ## Milestone 5 — Language packs II: .NET and Ruby
 
