@@ -1923,6 +1923,46 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   (`mock/qualityToolsMock.ts`): the Laravel demo "has" PHPStan, phpcs, Pint and Rector; demo
   problems are found in the current text and the fixers change the in-memory files.
 
+## Web code quality tools (`packs/webforge/quality-tools`)
+
+- `webforge-quality-tools` (pure): `model` (`WebTool`: ESLint, Prettier, Stylelint, Biome;
+  `Mode` disabled / automatic / manual; `ToolConfig` from `web.<id>.{mode, path, config,
+  options, files, onReformat}`, `web.eslint.workingDirectories` and the tools'
+  `actionsOnSave.*` keys; `WebToolsSettings` with `web.tools.{onTheFly, timeout}`,
+  `web.biome.priority`, `web.node.interpreter`), `detect` (`ProjectFs` over project-relative
+  paths; automatic mode: the nearest `node_modules/<package>` and the nearest config file or
+  package.json key above the file, the tool runs in the config's folder; manual mode: the
+  configured package folder or executable, config file and working directories; Biome's
+  priority drops ESLint and Prettier where Biome applies; `formatter` for Reformat Code),
+  `command` (`Invocation { node, program, args, stdin, env, cwd }`: the editor text always on
+  stdin, `ESLINT_USE_FLAT_CONFIG` from the config found, `fix_in_place` for on save) and
+  `parse` (ESLint / Stylelint / Biome JSON → `Problem`, ESLint's `output`, Stylelint's report
+  on stdout or stderr, Biome byte spans → line/column).
+- ESLint runs through its CLI like the other linters; the ESLint language server stays an
+  optional, separate language server.
+- App (`commands/web_quality_tools.rs`): `BackendFs` implements `ProjectFs` on the project
+  backend; the Node.js interpreter is `web.node.interpreter`, else the detected `node`
+  (locally) or `node` on the host's PATH (remote). Commands run through
+  `Backend::start_process` (`process_io::capture`), linters of one check in parallel. All
+  commands call `require_trusted` (`web_quality_tools_format` answers `null` in Safe Mode so
+  the usual formatter runs). `WebSave` gives `save_actions_run_tools` the web tools that apply
+  to the saved file, their scripts and `node <script> --fix <file>` command lines.
+- IPC (`app/ui/src/ipc/webQualityTools.ts`): `web_quality_tools_info() -> { tools: { tool,
+  label, package, configFiles, path, version, configFile, config }[], node }`,
+  `web_quality_tools_validate({ config })`, `web_quality_tools_check({ path, text? }) ->
+  WebCheckResult` (`{ files, tools, problems, outcomes }`), `web_quality_tools_inspect({ paths?
+  })`, `web_quality_tools_fix({ path, tool, text }) -> { tool, text, changed }`,
+  `web_quality_tools_format({ path, text }) -> { tool, text, changed } | null`.
+- UI (`features/webQualityTools`): the settings page `lang.web.quality-tools` (replaces the
+  former `lang.eslint` and `lang.prettier` pages), an editor extension for web files (check on
+  open and after a 1 s pause with `web.tools.onTheFly`), checks after saves, diagnostics
+  source `web-quality-tools`, Alt+Enter `WebQualityTools.Fix`, Code menu
+  `ReformatWithPrettierAction` (`Ctrl+Alt+Shift+P`), `WebQualityTools.Fix{Eslint,Stylelint,Biome}`,
+  `WebQualityTools.InspectCode` (`inspectWithWebTools(paths)`), and a format provider for
+  Reformat Code. Browser mode (`mock/webQualityToolsMock.ts`): `?project=react` has ESLint and
+  Prettier, `?project=angular` Stylelint, `?project=node` Biome; demo problems follow the
+  text, fixers and on-save runs change the in-memory files.
+
 ## Database tools (`forge-db`)
 
 - Data sources live in `<root>/.forge/dataSources.toml` (project) and
@@ -3053,10 +3093,11 @@ plugin manifest entry, and the chat UI needs no changes:
   post-processors, without touching the document) and
   `save_actions_changed_lines({ path, original, formatted }) -> string` (HEAD through the
   backend's repo); `save_actions_php({ text, actions }) -> { text, applied }`; after the file is
-  written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs ESLint,
-  Prettier, Rector, PHP CS Fixer, phpcbf and Pint through `Backend::start_process` (rolling
-  back a failing tool; `forge_save_actions::tools::run_tools_with` lets the app give the PHP
-  tools their Quality Tools arguments and PHP interpreter, see "PHP quality tools"); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
+  written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs Biome,
+  ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Pint through
+  `Backend::start_process` (rolling back a failing tool; `forge_save_actions::tools::run_tools_with`
+  lets the app give the PHP tools their Quality Tools arguments and PHP interpreter, see "PHP
+  quality tools", and the web tools their package and Node.js, see "Web code quality tools"); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
   the combined result as one transaction (`applyLineChanges` with `isolateHistory`), only
   when nobody typed meanwhile. Browser mode: plan and changed lines through WebAssembly, the
   rest mocked (no tool runs, no writes).

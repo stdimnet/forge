@@ -21,6 +21,8 @@ const K = {
   rearrange: "actionsOnSave.rearrange",
   cleanup: "actionsOnSave.codeCleanup",
   eslint: "actionsOnSave.eslint",
+  stylelint: "actionsOnSave.stylelint",
+  biome: "actionsOnSave.biome",
   prettier: "actionsOnSave.prettier.enabled",
   prettierFiles: "actionsOnSave.prettier.files",
   phpCsFixer: "actionsOnSave.phpCsFixer",
@@ -135,10 +137,22 @@ export function ActionsOnSavePage() {
       extra: () => <span class="aos-muted">PHP: unused imports, unnecessary semicolons, closing tag</span>,
     },
     {
+      key: K.biome,
+      title: "Run biome check --write",
+      extra: () => <ToolStatus info={info()} tool="biome" />,
+      configure: { page: TOOL_PAGES.biome, title: "Code Quality Tools" },
+    },
+    {
       key: K.eslint,
       title: "Run eslint --fix",
       extra: () => <ToolStatus info={info()} tool="eslint" />,
-      configure: { page: TOOL_PAGES.eslint, title: "ESLint" },
+      configure: { page: TOOL_PAGES.eslint, title: "Code Quality Tools" },
+    },
+    {
+      key: K.stylelint,
+      title: "Run stylelint --fix",
+      extra: () => <ToolStatus info={info()} tool="stylelint" />,
+      configure: { page: TOOL_PAGES.stylelint, title: "Code Quality Tools" },
     },
     {
       key: K.prettier,
@@ -156,7 +170,7 @@ export function ActionsOnSavePage() {
           <ToolStatus info={info()} tool="prettier" />
         </>
       ),
-      configure: { page: TOOL_PAGES.prettier, title: "Prettier" },
+      configure: { page: TOOL_PAGES.prettier, title: "Code Quality Tools" },
     },
     {
       key: K.rector,

@@ -66,7 +66,8 @@ blocked even if a plugin or the UI tries to start them:
 | ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin, Scala (Metals) and C# language servers | not started (they load the project's config files or build scripts) |
 | Gradle / Maven sync, Reload sbt Project | refused (the build definition is project code) |
 | Groovy scripts, sbt tasks, Android App runs (build, `adb install`, launch) | not started (they are run configurations) |
-| Actions on Save: ESLint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint | not run |
+| Actions on Save: Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint | not run |
+| Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |

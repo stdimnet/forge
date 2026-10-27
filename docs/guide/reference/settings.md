@@ -970,21 +970,37 @@ Page id `lang.typescript`.
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
 
-### Languages & Frameworks | ESLint
+### Languages & Frameworks | Code Quality Tools
 
-Page id `lang.eslint`.
-
-| Key | Type | Default | Scope | Section | Title and description |
-| --- | --- | --- | --- | --- | --- |
-| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
-
-### Languages & Frameworks | Prettier
-
-Page id `lang.prettier`.
+Page id `lang.web.quality-tools`. See [Web Code Quality Tools](../user/web-quality-tools.md).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+| `web.tools.onTheFly` | bool | `true` | user, project |  | Run inspections on the fly — Check the edited file while you type (after a short pause) with ESLint, Stylelint and Biome. They also check a file when it is opened and saved. |
+| `web.tools.timeout` | int (1–3600) | `30` | user, project |  | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `web.eslint.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | ESLint | ESLint — Automatic: node_modules/eslint nearest to the file, for files below a configuration file (eslint.config.* or .eslintrc*). Manual: the package, configuration file and options below, for every matching file. |
+| `web.eslint.path` | path | `""` | user, project | ESLint | ESLint package — Manual: the package folder (node_modules/eslint) or an executable; relative paths start at the project root. Empty: node_modules/eslint nearest to the file. |
+| `web.eslint.config` | path | `""` | user, project | ESLint | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.eslint.workingDirectories` | string | `""` | user, project | ESLint | Working directories — Manual: folders separated by `;`. ESLint runs in the deepest one holding the file. Empty: the folder of the nearest configuration file. |
+| `web.eslint.options` | string | `""` | user, project | ESLint | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.eslint.files` | string | `{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}` | user, project | ESLint | Run for files — Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name. |
+| `web.prettier.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | Prettier | Prettier — Automatic: node_modules/prettier nearest to the file, for files below a configuration file (.prettierrc*, prettier.config.* or the prettier key of package.json). Manual: the package, configuration file and options below, for every matching file. |
+| `web.prettier.path` | path | `""` | user, project | Prettier | Prettier package — Manual: the package folder (node_modules/prettier) or an executable; relative paths start at the project root. Empty: node_modules/prettier nearest to the file. |
+| `web.prettier.config` | path | `""` | user, project | Prettier | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.prettier.options` | string | `""` | user, project | Prettier | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.prettier.onReformat` | bool | `false` | user, project | Prettier | Run on Reformat Code action — Reformat Code (Ctrl+Alt+L) formats matching files with Prettier instead of the built-in formatter. |
+| `web.stylelint.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | Stylelint | Stylelint — Automatic: node_modules/stylelint nearest to the file, for files below a configuration file (stylelint.config.* or .stylelintrc*). Manual: the package, configuration file and options below, for every matching file. |
+| `web.stylelint.path` | path | `""` | user, project | Stylelint | Stylelint package — Manual: the package folder (node_modules/stylelint) or an executable; relative paths start at the project root. Empty: node_modules/stylelint nearest to the file. |
+| `web.stylelint.config` | path | `""` | user, project | Stylelint | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.stylelint.options` | string | `""` | user, project | Stylelint | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.stylelint.files` | string | `{**/*,*}.{css,scss,less,vue}` | user, project | Stylelint | Run for files — Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name. |
+| `web.biome.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | Biome | Biome — Automatic: node_modules/@biomejs/biome nearest to the file, for files below a configuration file (biome.json or biome.jsonc). Manual: the package, configuration file and options below, for every matching file. |
+| `web.biome.path` | path | `""` | user, project | Biome | Biome package — Manual: the package folder (node_modules/@biomejs/biome) or an executable; relative paths start at the project root. Empty: node_modules/@biomejs/biome nearest to the file. |
+| `web.biome.config` | path | `""` | user, project | Biome | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.biome.options` | string | `""` | user, project | Biome | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.biome.files` | string | `{**/*,*}.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,jsonc,css}` | user, project | Biome | Run for files — Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name. |
+| `web.biome.onReformat` | bool | `false` | user, project | Biome | Run on Reformat Code action — Reformat Code (Ctrl+Alt+L) formats matching files with Biome instead of the built-in formatter. |
+| `web.biome.priority` | bool | `true` | user, project | Biome | Prefer Biome over ESLint and Prettier — Where Biome is configured, it checks, fixes and formats its file types and ESLint and Prettier do not. |
 
 ### Tools | Actions on Save
 
@@ -998,8 +1014,10 @@ Page id `tools.actions-on-save`. See [Actions on Save](../user/actions-on-save.m
 | `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
 | `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
 | `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
-| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
-| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.biome` | bool | `false` | user, project |  | Run biome check --write — Fix and format saved files where Biome is configured. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved files that match ESLint's Run for files patterns. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.stylelint` | bool | `false` | user, project |  | Run stylelint --fix — Fix Stylelint problems in saved CSS, SCSS, Less and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match Prettier's Run for files patterns. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
 | `actionsOnSave.rector` | bool | `false` | user, project |  | Run Rector — Run `rector process` on saved PHP files with the project's rector.php. (PHP plugin) |
