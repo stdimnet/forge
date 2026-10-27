@@ -187,8 +187,8 @@ registerCommand({
 registerDialog<DialogRequest>({
   id: DATA_SOURCES_DIALOG,
   title: "Data Sources and Drivers",
-  width: 900,
-  height: 620,
+  width: 920,
+  height: 760,
   minWidth: 680,
   minHeight: 420,
   component: DataSourceDialog,

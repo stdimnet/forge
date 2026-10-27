@@ -93,21 +93,32 @@ export async function introspect(id: string, schema: string): Promise<void> {
   }
 }
 
+/** Connections being opened, so concurrent callers wait for the same attempt. */
+const connecting = new Map<string, Promise<boolean>>();
+
 /** Connect (once) and load the visible schemas. Returns whether it worked. */
-export async function connect(id: string, force = false): Promise<boolean> {
+export function connect(id: string, force = false): Promise<boolean> {
+  const pending = connecting.get(id);
+  if (pending && !force) return pending;
   const st = states[id];
-  if (!force && st && (st.status === "connected" || st.status === "connecting")) return st.status === "connected";
-  setStates(id, { status: "connecting", error: undefined, schemas: st?.schemas ?? [], introspected: st?.introspected ?? {}, loading: {} });
-  try {
-    const schemas = await dbApi.schemas(id);
-    setStates(id, { status: "connected", schemas });
-    await Promise.all(visibleSchemas(id).map((s) => introspect(id, s.name)));
-    return true;
-  } catch (e) {
-    setStates(id, { status: "error", error: errorText(e) });
-    showBalloon(`Connection to ${sourceById(id)?.name ?? id} failed`, errorText(e), 8000);
-    return false;
-  }
+  if (!force && st?.status === "connected") return Promise.resolve(true);
+  const attempt = (async () => {
+    setStates(id, { status: "connecting", error: undefined, schemas: st?.schemas ?? [], introspected: st?.introspected ?? {}, loading: {} });
+    try {
+      const schemas = await dbApi.schemas(id);
+      setStates(id, { status: "connected", schemas });
+      await Promise.all(visibleSchemas(id).map((s) => introspect(id, s.name)));
+      return true;
+    } catch (e) {
+      setStates(id, { status: "error", error: errorText(e) });
+      showBalloon(`Connection to ${sourceById(id)?.name ?? id} failed`, errorText(e), 8000);
+      return false;
+    } finally {
+      connecting.delete(id);
+    }
+  })();
+  connecting.set(id, attempt);
+  return attempt;
 }
 
 /** "Refresh" (Ctrl+F5): reconnect and reload the metadata. */
@@ -151,6 +162,7 @@ export function revealSource(id: string): void {
   if (schema) {
     setNodeOpen(`schema:${id}/${schema}`, true);
     setNodeOpen(`folder:${id}/${schema}/tables`, true);
+    setNodeOpen(`folder:${id}/${schema}/collections`, true);
   }
 }
 

@@ -247,9 +247,17 @@ export function ConsoleView(props: { tab: EditorTab }) {
   });
   onCleanup(() => void unlisten.then((u) => u()));
 
-  async function ensureSession(): Promise<SessionInfo> {
+  let opening: Promise<SessionInfo> | null = null;
+
+  /** The console's session, opened once even when several actions ask at the same time. */
+  function ensureSession(): Promise<SessionInfo> {
     const cur = session();
-    if (cur) return cur;
+    if (cur) return Promise.resolve(cur);
+    opening ??= openSession().finally(() => (opening = null));
+    return opening;
+  }
+
+  async function openSession(): Promise<SessionInfo> {
     if (!(await connect(loc.id))) throw new Error(states[loc.id]?.error ?? `Cannot connect to ${ds()?.name ?? loc.id}`);
     const s = await dbApi.openSession(loc.id, shared());
     setSession(s);

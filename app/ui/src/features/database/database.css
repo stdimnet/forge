@@ -867,6 +867,8 @@
 }
 .dsd-test-status {
   display: inline-flex;
+  flex: 1;
+  min-width: 0;
   align-items: flex-start;
   gap: 7px;
   padding-top: 4px;
@@ -886,6 +888,7 @@
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: var(--fs-small);
+  overflow-wrap: anywhere;
 }
 .dsd-section {
   margin-top: 6px;
@@ -970,9 +973,10 @@
 }
 .db-console.colored .db-console-editor .cm-editor,
 .db-console.colored .db-console-editor .cm-gutters {
-  background-color: var(--db-tint);
+  background-color: color-mix(in srgb, var(--db-accent) 8%, var(--bg-editor));
 }
 .db-badge {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -1154,9 +1158,13 @@
   border-radius: 3px;
   border: 1px solid var(--border-strong);
 }
-.dsd-trust {
+.dsd-test-link.dsd-trust {
   display: block;
-  margin-top: 4px;
-  padding: 0;
+  height: auto;
+  margin-top: 6px;
+  padding: 3px 8px;
+  font-weight: 500;
+  white-space: normal;
   text-align: left;
+  overflow-wrap: anywhere;
 }

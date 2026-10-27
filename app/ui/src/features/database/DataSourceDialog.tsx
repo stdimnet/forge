@@ -75,7 +75,7 @@ const USERS: Partial<Record<Driver, string>> = { postgres: "postgres", sqlserver
 
 /** What the driver does with the SSL/TLS settings. */
 const SSL_NOTES: Partial<Record<Driver, string>> = {
-  sqlserver: "SQL Server: Prefer encrypts the login, Require encrypts everything without checking the certificate. The client key must not be encrypted.",
+  sqlserver: "SQL Server: Prefer encrypts the login only, Require skips the certificate check; the client key must be unencrypted.",
   clickhouse: "ClickHouse: TLS uses the HTTPS port (usually 8443). Verify CA also checks the host name.",
   redis: "Redis: TLS (rediss://) from Require on.",
   mongodb: "MongoDB: put the client certificate and its key in one PEM file and choose it as the client certificate.",
@@ -495,16 +495,26 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                               ) : (
                                 <span class="dsd-test-status error">
                                   {r.hostKey ? <ShieldAlert size={15} /> : <CircleX size={15} />}
-                                  <span>
-                                    <b>Failed</b> <span class="dsd-test-error">{r.error}</span>
-                                    <Show when={r.hostKey}>
-                                      {(k) => (
+                                  <Show
+                                    when={r.hostKey}
+                                    fallback={
+                                      <span>
+                                        <b>Failed</b> <span class="dsd-test-error">{r.error}</span>
+                                      </span>
+                                    }
+                                  >
+                                    {(k) => (
+                                      <span>
+                                        <b>Unknown SSH host key</b>{" "}
+                                        <span class="dsd-test-error">
+                                          {k().host}:{k().port} presented {k().keyType} {k().fingerprint}
+                                        </span>
                                         <button class="dsd-test-link dsd-trust" data-testid="dsd-trust-host" onClick={() => void runTest(k().fingerprint)}>
-                                          Trust {k().keyType} key {k().fingerprint} and test again
+                                          Trust Host Key and Test Again
                                         </button>
-                                      )}
-                                    </Show>
-                                  </span>
+                                      </span>
+                                    )}
+                                  </Show>
                                 </span>
                               );
                             })()}

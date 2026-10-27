@@ -372,10 +372,10 @@ export const supportsTransactions = (d: Driver): boolean => ["mysql", "mariadb",
 
 /** Data source colours (Options tab): label, tint and accent CSS variables. */
 export const DS_COLORS: Record<string, { label: string; tint: string; accent: string }> = {
-  green: { label: "Green (development)", tint: "var(--file-color-green)", accent: "var(--success)" },
-  yellow: { label: "Yellow (staging)", tint: "var(--file-color-yellow)", accent: "var(--warning)" },
-  red: { label: "Red (production)", tint: "var(--file-color-rose)", accent: "var(--danger)" },
-  blue: { label: "Blue", tint: "var(--file-color-blue)", accent: "var(--info)" },
+  green: { label: "Green (development)", tint: "color-mix(in srgb, var(--success) 14%, transparent)", accent: "var(--success)" },
+  yellow: { label: "Yellow (staging)", tint: "color-mix(in srgb, var(--warning) 14%, transparent)", accent: "var(--warning)" },
+  red: { label: "Red (production)", tint: "color-mix(in srgb, var(--danger) 20%, transparent)", accent: "var(--danger)" },
+  blue: { label: "Blue", tint: "color-mix(in srgb, var(--info) 14%, transparent)", accent: "var(--info)" },
 };
 
 export const defaultSsh = (): SshTunnel => ({ enabled: false, configurationId: null, host: "", port: 22, user: "", auth: "password", keyFile: null });
