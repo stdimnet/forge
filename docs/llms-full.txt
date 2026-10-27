@@ -23,7 +23,7 @@ Languages and large feature sets ship as **packs**:
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
-| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger; Groovy (scripts, Spock), Scala (sbt, Metals, ScalaTest/MUnit) and Android (Device Manager, Logcat, Android App runs) |
 | **KotlinForge** | Kotlin/JVM: kotlin-lsp, Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with coroutines, ktlint and detekt |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
@@ -636,6 +636,9 @@ The primary type appears
 | RustForge | Rust projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
+| JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
+| JavaForge: Scala | an sbt build (`build.sbt`, `project/build.properties`; tool `sbt`), Scala sources (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin; ScalaTest and MUnit in `build.sbt` |
+| JavaForge: Android | a Gradle module applying `com.android.application` / `com.android.library` (also catalog aliases) or a `src/main/AndroidManifest.xml`; the framework `android` with the AGP version, tool `android` |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
 always active. Each plugin can still be switched off in Settings | Plugins, see
@@ -792,6 +795,8 @@ not finished, the page says so.
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
+| [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control
@@ -8790,7 +8795,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
 | **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
-| **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
+| **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger), Groovy, Scala with sbt, Android |
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
@@ -11775,6 +11780,10 @@ The **Gradle** tool window (right stripe) shows the root project and its subproj
   `1.0 → 1.2` where conflict resolution picked another version, `(*)` for dependencies listed
   above, unresolved ones in red. Before the first sync the tool window lists the dependencies
   the build file declares.
+- **Source Sets**: `main`, `test` and other source sets with their `java`, `groovy`, `kotlin`,
+  `scala` and `resources` folders (the applied plugins' conventions before a sync, Gradle's
+  `sourceSets` after it; see [Groovy and Scala](docs/guide/user/groovy-scala.md#groovy-source-sets)). The Maven
+  tool window shows the conventional folders too (GMavenPlus adds `groovy`).
 - **Run Configurations**: the project's Gradle configurations.
 
 The toolbar: **Reload All Gradle Projects**, **Execute Gradle Task…** (a command line with
@@ -11783,7 +11792,7 @@ All**, **Toggle Offline Mode** (`--offline` for syncs and runs), **Show Dependen
 **Gradle Settings**.
 
 A sync runs Gradle with a small init script (`forge-model.gradle`, written to the user cache
-directory) whose `forgeModel` task writes the projects, tasks and dependency trees as JSON
+directory) whose `forgeModel` task writes the projects, tasks, source sets and dependency trees as JSON
 (`--no-configuration-cache`). The result is cached in `<cache>/forge/javaforge/sync`, never in
 the project, so the tool window shows it again after a restart.
 
@@ -11931,6 +11940,333 @@ into the running JVM after JDT LS rebuilt them on save.
 (`?project=java&jdtls=missing` starts without JDT LS to try the install offer;
 `?project=java&build=maven` builds it with Maven, with profiles). Syncs, Update Wrapper and
 Maven Central answer from recorded data; nothing runs or goes to the network.
+
+
+---
+
+Source: docs/guide/user/groovy-scala.md
+
+# Groovy and Scala
+
+Groovy and Scala are JavaForge's JVM extras, in the style of IntelliJ IDEA's Groovy and Scala
+plugins. They build on [JavaForge](docs/guide/user/java.md): JDKs, Gradle and Maven, the run configurations and
+the shared [test runner](docs/guide/user/testing.md). Each is its own plugin in Settings | Plugins
+(**Groovy**, `forge.groovy`; **Scala**, `forge.scala`; both in the JavaForge pack) and
+activates only in projects that use the language (see
+[project detection](docs/guide/getting-started/project-detection.md)).
+
+## Groovy
+
+### Editing
+
+`*.groovy`, `*.gvy` and `*.gy` files (and `Jenkinsfile`) are highlighted as Groovy; Gradle build
+scripts (`*.gradle`) are too, but they belong to the Gradle DSL support of
+[JavaForge](docs/guide/user/java.md#editing-build-scripts), not to the Groovy plugin. A project is a
+Groovy project when it has Groovy sources (`*.groovy` files, a `src/main/groovy` or
+`src/test/groovy` tree) or a Gradle build that applies the `groovy` plugin (or a Maven build
+with GMavenPlus). There is no Groovy language server: highlighting, the Run gutter and Spock
+discovery come from Forge's own scanner.
+
+### Groovy source sets
+
+The [Gradle tool window](docs/guide/user/java.md#gradle-tool-window) shows a **Source Sets** node per
+project: `main` and `test` with their `java`, `groovy` (with the `groovy` plugin), `kotlin`,
+`scala` and `resources` folders. Before a sync they follow the conventions of the applied
+plugins; **Reload All Gradle Projects** replaces them with Gradle's own `sourceSets` (custom
+ones such as `integrationTest` included).
+
+![Source sets in the Gradle tool window](docs/screenshots/gradle-source-sets.png)
+
+### Running scripts
+
+A Groovy file with top-level statements is a script and gets a green ▶ on its first line; a
+class with a `static void main(String[] args)` (or `static main(args)`) gets one on `main`.
+**Run** creates a temporary **Groovy Script** configuration; `Ctrl+Shift+F10` (Run Context
+Configuration) does the same from the editor.
+
+Scripts run with **groovy** from a Groovy SDK, or **through Gradle**:
+
+- **groovy**: the launcher of **Groovy SDK** in Settings | Languages & Frameworks | Groovy (a
+  Groovy folder, its `bin` folder or the launcher), else `GROOVY_HOME`, SDKMAN!'s current Groovy
+  (`~/.sdkman/candidates/groovy/current`, or `SDKMAN_DIR`), else `groovy` on the `PATH`. VM
+  options go to `JAVA_OPTS`; `JAVA_HOME` is the configuration's or the project JDK.
+- **Gradle**: when the build applies the `groovy` plugin, an init script in Forge's cache folder
+  adds a `forgeRunGroovy` task that runs `groovy.ui.GroovyMain` with the main source set's class
+  path, so the script sees the project's classes, its Groovy version and its dependencies. No
+  Groovy SDK is needed.
+
+**Run Groovy scripts with** (project setting) chooses: *Gradle when the build applies the groovy
+plugin, else groovy* (the default), *groovy* or *Gradle*; a configuration's **Run with** field
+overrides it. Gradle build scripts are not run as scripts. Both ways run project code, so
+[Safe Mode](docs/guide/user/project-trust.md) refuses them.
+
+![A Groovy script run](docs/screenshots/groovy-script-run.png)
+
+### Spock
+
+Spock specifications (classes extending `spock.lang.Specification`, or a project base spec in
+a file that imports Spock) get test gutter icons on the class and on every feature method
+(`def "adds items"()`, or a method with Spock blocks such as `given:` / `when:` / `then:` /
+`expect:`); fixture methods (`setup`, `cleanup`, `setupSpec`, `cleanupSpec`) are not features.
+A build that depends on `org.spockframework` reports the Spock framework.
+
+The **Spock** configuration type runs everything, a package, a specification, one feature or a
+list of features through Gradle (`cleanTest test --tests 'com.acme.CartSpec.adds items'`) or
+Maven Surefire, like [JUnit](docs/guide/user/java.md#tests): Spock 2 runs on the JUnit Platform. Results come
+from the JUnit XML reports of the build and point at `src/test/groovy/…`; Rerun Failed Tests
+and Run with Coverage (JaCoCo) work as for Java.
+
+## Scala
+
+### Editing and project detection
+
+`*.scala`, `*.sc` and `*.sbt` files are highlighted as Scala. A project is a Scala project when
+it has an sbt build (`build.sbt`, or `project/build.properties` with `sbt.version`), Scala
+sources (`*.scala`, a `src/main/scala` tree) or a Gradle build with the `scala` plugin. ScalaTest
+and MUnit in `build.sbt` report their frameworks.
+
+![The Scala editor with the sbt tool window](docs/screenshots/scala-editor-sbt.png)
+
+### Metals
+
+Code intelligence comes from [Metals](https://scalameta.org/metals/) (Apache-2.0) through
+Forge's shared language server client: completion, navigation, hover, diagnostics, rename and
+code actions in `.scala`, `.sc` and `.sbt` files. Forge looks for Metals in this order: the
+**Metals** setting (Settings | Languages & Frameworks | Scala), the version Forge installed,
+`metals` on the `PATH`. It starts it with the project JDK as `JAVA_HOME` and the sbt launcher
+in the `metals.sbtScript` setting.
+
+Forge never downloads Metals by itself. When a Scala project opens without it, a balloon offers
+**Install**: Forge runs your [Coursier](https://get-coursier.io) (`cs`, or **Coursier (cs)** in
+the settings) as
+
+```sh
+cs bootstrap --java-opt -Xss4m --java-opt -Xms100m org.scalameta:metals_2.13:1.5.3 \
+  -o <data dir>/forge/langservers/metals/1.5.3/metals -f
+```
+
+which installs the pinned Metals **1.5.3** from Maven Central (Coursier verifies the
+artifacts' checksums) into Forge's data directory, never into the project. **Install Metals
+(Scala Language Server)** in Find Action does the same; **Install Metals** (Ask, Never) turns the
+offer off. Without Coursier, install it from get-coursier.io or put `metals` on the `PATH`
+(`cs install metals`). Metals imports the build with Bloop or sbt, which runs the build
+definition: it does not start in [Safe Mode](docs/guide/user/project-trust.md) and runs for local projects.
+
+### The sbt tool window
+
+The **sbt** tool window (right stripe) shows the build like IntelliJ IDEA's: the root project
+with the sbt version, every project with its folder and Scala version, and per project
+**Tasks** (compile, test, run, console, package, clean, update, doc, publishLocal, reload),
+**Dependencies** (`org.typelevel %% cats-core:2.12.0`, with their configuration such as
+`(test)`) and **Projects** (`dependsOn` and aggregated projects), plus the build's sbt plugins
+from `project/plugins.sbt`. Double-click a task to run it (`core/test`); the toolbar runs the
+selected task, opens the **sbt shell**, expands or collapses the tree and opens the settings.
+
+Before an import the tree comes from the files: projects defined with `project`,
+`project.in(file("…"))` or `project in file("…")`, `name`, `scalaVersion` (also
+`ThisBuild / scalaVersion` and `val`s), `libraryDependencies` (also from setting sequences such
+as `commonSettings`), `dependsOn` and `aggregate`. **Reload sbt Project** (the toolbar, or
+Find Action) asks sbt itself:
+
+```sh
+sbt -batch -no-colors projects "show scalaVersion" "show baseDirectory" "show libraryDependencies"
+```
+
+and shows the projects, folders, Scala versions and resolved dependency lists it prints. The
+result is cached in Forge's cache directory. sbt runs the build definition, so the import is
+refused in [Safe Mode](docs/guide/user/project-trust.md); **Reload the sbt project when it opens** (project
+setting, off by default) imports automatically in trusted projects. The sbt launcher is the
+**sbt launcher** setting, SDKMAN!'s current sbt or `sbt` on the `PATH`; **VM parameters**
+(`-Xmx2g`) are passed as `-J` options.
+
+### sbt Task configurations and the sbt shell
+
+The **sbt Task** configuration type runs sbt tasks: one per line or separated by `;`
+(`clean; test`, `~compile`, `runMain com.acme.Main 8080`), scoped to a **Project** when set
+(`api/run`). Without tasks it opens the **sbt shell** in the Run tool window, where you type
+sbt commands (**Open sbt Shell** in Find Action and the tool window's toolbar). `main`
+methods, `App` objects and Scala 3 `@main` methods get a ▶ in the gutter that runs them with
+`runMain` in their project.
+
+### ScalaTest and MUnit
+
+ScalaTest suites (FunSuite, FlatSpec with `it should`, WordSpec `when` / `should` clauses,
+FunSpec `describe` / `it`, FreeSpec `-` clauses, PropSpec) and MUnit suites (`munit.FunSuite`,
+`CatsEffectSuite`, `ScalaCheckSuite`) get test gutter icons on the suite and on every test or
+clause. The **ScalaTest** and **MUnit** configuration types run everything, a package, a suite,
+one test or a list of suites through sbt `testOnly`:
+
+| Scope | sbt command |
+| --- | --- |
+| Suite | `core/testOnly com.acme.shop.CartSpec` |
+| ScalaTest test | `core/testOnly com.acme.shop.CartSpec -- -z "A Cart should add items"` |
+| MUnit test | `core/testOnly com.acme.shop.PriceSuite -- "*formats euros"` |
+
+The project comes from the test file's folder. Results come from the JUnit XML reports sbt
+writes to `target/test-reports` (of the project's folder); test names keep their spaces and
+locations point at `src/test/scala/…`. Rerun Failed Tests reruns the failed suites.
+
+![ScalaTest results from sbt's reports](docs/screenshots/scala-test-tree.png)
+
+## Settings
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Groovy SDK | `groovy.sdk.path` | empty (GROOVY_HOME, SDKMAN!, PATH) |
+| Run Groovy scripts with | `groovy.run.runner` (project) | `auto` |
+| Metals | `scala.metals.path` | empty (Forge's install, PATH) |
+| Install Metals | `scala.metals.autoInstall` | `ask` |
+| Coursier (cs) | `scala.coursier.path` | empty (PATH) |
+| sbt launcher | `scala.sbt.path` | empty (SDKMAN!, PATH) |
+| VM parameters | `scala.sbt.vmOptions` (project) | empty |
+| Reload the sbt project when it opens | `scala.sbt.importOnOpen` (project) | off |
+
+## Not yet
+
+Groovy has no language server or debugger yet (scripts run, they do not stop at breakpoints),
+and Scala debugging through Metals' debug adapter is not wired up. sbt runs one process per
+configuration (no persistent sbt server shared between runs).
+
+
+---
+
+Source: docs/guide/user/android.md
+
+# Android
+
+Android support is one of JavaForge's JVM extras, in the style of Android Studio. It is the
+**Android** plugin (`forge.android`, JavaForge pack) and builds on [JavaForge](docs/guide/user/java.md)
+(Gradle, JDKs) and [KotlinForge](docs/guide/user/kotlin.md) for Kotlin sources.
+
+## Android projects
+
+A project is an Android project when one of its Gradle modules applies the Android Gradle
+Plugin (`com.android.application` or `com.android.library`, also as version catalog aliases
+such as `alias(libs.plugins.android.application)` and as `apply plugin:`), or has a
+`src/main/AndroidManifest.xml` (see [project detection](docs/guide/getting-started/project-detection.md)).
+The status bar shows **Android** with the AGP version of `gradle/libs.versions.toml`
+(`agp = "8.7.3"`). Gradle itself (the Gradle tool window, tasks, sync) is JavaForge's.
+
+Forge reads each module's `namespace`, `applicationId`, `minSdk`, `targetSdk` and
+`compileSdk` from its build file (Kotlin or Groovy DSL); Settings | Languages & Frameworks |
+**Android SDK** lists them.
+
+## The Android SDK
+
+Forge uses your own Android SDK and **never downloads it**. It looks in this order:
+
+1. **Android SDK location** in Settings | Languages & Frameworks | Android SDK;
+2. `ANDROID_HOME`, then `ANDROID_SDK_ROOT`;
+3. `sdk.dir` of the project's `local.properties` (Android Studio writes it);
+4. the default folder: `~/Android/Sdk` (Linux), `~/Library/Android/sdk` (macOS),
+   `%LOCALAPPDATA%\Android\Sdk` (Windows).
+
+adb is the SDK's `platform-tools/adb` (else `adb` on the `PATH`), the emulator its
+`emulator/emulator`. Without an SDK a balloon and the Device Manager show where to get one:
+install Android Studio or the command-line tools from developer.android.com/studio, then point
+Forge at it.
+
+![The Device Manager without an Android SDK](docs/screenshots/android-sdk-missing.png)
+
+## Device Manager
+
+The **Device Manager** tool window (right stripe) lists the devices adb sees
+(`adb devices -l`): emulators with their AVD name (`Pixel 8 API 35`), phones with their model,
+the serial and USB port, and the state (**Online**, **Offline**, **Unauthorized** until you
+allow USB debugging on the device, **No permissions** without udev rules). Each online device
+has **Logcat** and **Run 'app' on this device**.
+
+**Virtual** lists the emulator's AVDs (`emulator -list-avds`); ▶ starts one (it keeps running
+after Forge exits, like in Android Studio), and running ones show their serial. Create AVDs
+with Android Studio's Device Manager or `avdmanager`. **Refresh** reads the devices again
+(**Refresh Android Devices** in Find Action).
+
+![The Device Manager](docs/screenshots/android-devices.png)
+
+adb and the emulator are your SDK's tools and the devices are attached to this machine, so the
+Device Manager and Logcat work for local projects.
+
+## Android App run configurations
+
+The **Android App** configuration type builds, installs and starts the app like Android
+Studio's:
+
+1. Gradle `:<module>:assemble<Variant>` (`:app:assembleDebug`) with the project's Gradle (the
+   wrapper, offline mode and Gradle JDK of the [Gradle settings](docs/guide/user/java.md#gradle-settings-and-the-wrapper)),
+   `ANDROID_HOME` set to the SDK;
+2. `adb -s <serial> install -r -t <apk>`, by default
+   `app/build/outputs/apk/debug/app-debug.apk` (`…/apk/free/debug/app-free-debug.apk` for a
+   flavor variant), or the configuration's **APK**;
+3. `adb -s <serial> shell am start -n <applicationId>/<activity>` with the launcher activity
+   (the `MAIN` / `LAUNCHER` intent filter) of the merged manifest of the last build
+   (`build/intermediates/merged_manifests/<variant>/…`), else of `src/main/AndroidManifest.xml`
+   (relative names such as `.MainActivity` are qualified with the `namespace`). Without one the
+   app's default launcher starts (`monkey -c android.intent.category.LAUNCHER`).
+
+The steps run as one process in the Run tool window (each step is echoed, a failed step stops
+the rest). **Deploy to** picks the device; empty means the first running device. **Build
+variant**, **Launch activity** and Gradle arguments are optional. The build runs project code
+and installing touches the device, so [Safe Mode](docs/guide/user/project-trust.md) refuses the run.
+
+## Logcat
+
+The **Logcat** tool window (bottom stripe) streams `adb logcat -v threadtime` of the selected
+device, starting with the last 500 entries (**Recent entries on connect**). Each line shows the
+time, process and thread ids, tag, package and level, and is colored by level (Verbose, Debug,
+Info, Warn, Error, Assert). The package of each process comes from `adb shell ps` and from
+ActivityManager's `Start proc` messages, so processes started later (the app's `:sync`
+service) are attributed too.
+
+Stack trace frames (`at com.acme.notes.NoteRepository.save(NoteRepository.kt:17)`) link to the
+project's sources: click `NoteRepository.kt:17` to open the file at that line. Exception lines
+and frames are marked as stack traces.
+
+![Logcat filtered to the app's warnings and errors](docs/screenshots/android-logcat.png)
+
+### Filters
+
+The filter field takes Android Studio's query language, evaluated in Rust:
+
+| Query | Shows |
+| --- | --- |
+| `package:mine` | the project's apps (their application ids, also `:` processes) |
+| `package:com.acme.notes` | a package |
+| `level:warn` (or `level:W`) | that level and above; the level menu sets it |
+| `tag:OkHttp` | a tag (`tag:Net*` for a prefix) |
+| `tag~:^Note.*` | tags matching a regular expression (also `message~:`, `package~:`) |
+| `-tag:Choreographer` | everything except a tag (any key can be negated) |
+| `message:timeout` | messages containing the text |
+| `process:12034` | a process id |
+| `is:crash`, `is:stacktrace` | crashes (errors with a stack trace, `AndroidRuntime`), stack trace lines |
+| `timeout okhttp`, `"saving note"` | words (or quoted text) in the tag or message |
+
+Terms with the same key are alternatives (`tag:OkHttp tag:Notes`), different keys must all
+match. **Default filter** (`package:mine`) is where a new Logcat starts. The toolbar picks the
+device, clears the log (here and on the device, `adb logcat -c`), pauses and resumes the view,
+follows new entries and restarts the stream; the counter shows matching and buffered entries.
+The buffer keeps the last **Logcat cycle buffer size** entries (20000) in Forge's memory.
+
+## Settings
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Android SDK location | `android.sdk.path` | empty (ANDROID_HOME, ANDROID_SDK_ROOT, local.properties, default folder) |
+| Logcat cycle buffer size | `android.logcat.bufferSize` | 20000 |
+| Default filter | `android.logcat.defaultQuery` | `package:mine` |
+| Recent entries on connect | `android.logcat.history` | 500 |
+
+## Browser mode
+
+`?project=android` opens the demo app `notes-app` (Kotlin, version catalog, a Groovy release
+script) with recorded adb output: an emulator, a phone and an unauthorized device, three AVDs
+and a Logcat stream with a crash. `?project=android&android-sdk=missing` starts without an SDK.
+
+## Not yet
+
+No layout editor, resource tools, APK analyzer, profilers or Android debugger yet; Android
+Studio stays the tool for those. Kotlin and Java code intelligence comes from
+[KotlinForge](docs/guide/user/kotlin.md) and [JavaForge](docs/guide/user/java.md), which do not know the Android SDK's classes
+unless the build provides them.
 
 
 ---
@@ -13143,7 +13479,9 @@ blocked even if a plugin or the UI tries to start them:
 | Docker Compose up and Dockerfile ▶ in the gutter, Compose **Up** in Services | refused |
 | PHP interpreters: version and `phpinfo()` of an interpreter inside the project or a Docker Compose service | refused |
 | Language servers installed in the project (`node_modules/.bin`, `vendor/bin`, …) | not started |
-| ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin and C# language servers | not started (they load the project's config files or build scripts) |
+| ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin, Scala (Metals) and C# language servers | not started (they load the project's config files or build scripts) |
+| Gradle / Maven sync, Reload sbt Project | refused (the build definition is project code) |
+| Groovy scripts, sbt tasks, Android App runs (build, `adb install`, launch) | not started (they are run configurations) |
 | Actions on Save: ESLint, Prettier, PHP CS Fixer, Laravel Pint | not run |
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
@@ -13575,6 +13913,8 @@ PHP, Lua and every language pack that follows:
 | PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](docs/guide/user/test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
 | busted | LuaForge ([LuaForge](docs/guide/user/luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
 | JUnit 5/4/3, TestNG | JavaForge ([JavaForge](docs/guide/user/java.md#tests)), through Gradle or Maven | JUnit XML of the build (`build/test-results/test`, `target/surefire-reports`) | JaCoCo XML |
+| Spock | JavaForge ([Groovy and Scala](docs/guide/user/groovy-scala.md#spock)), through Gradle or Maven | JUnit XML of the build | JaCoCo XML |
+| ScalaTest, MUnit | JavaForge ([Groovy and Scala](docs/guide/user/groovy-scala.md#scalatest-and-munit)), through sbt `testOnly` | JUnit XML of `target/test-reports` | — |
 | Kotest, JUnit 5 in Kotlin | KotlinForge ([KotlinForge](docs/guide/user/kotlin.md#tests)), through Gradle or Maven | JUnit XML of the build | JaCoCo XML |
 | Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](docs/guide/user/javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
 | pytest, unittest, tox | PyForge ([PyForge](docs/guide/user/python.md#testing-with-pytest-unittest-and-tox)) | JUnit XML or report log (pytest), TeamCity (Forge's unittest runner), environments as tests (tox) | pytest-cov (Cobertura) |
@@ -18135,6 +18475,39 @@ Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](docs/guide/user
 | `kotlin.detekt.config` | path | `""` | user, project | detekt | Configuration file — Empty: config/detekt/detekt.yml when it exists. |
 | `kotlin.download.repository` | string | `https://repo1.maven.org/maven2` | user | Downloads | Maven repository for ktlint and detekt |
 
+### Languages & Frameworks | Groovy
+
+Page id `lang.groovy` (plugin `forge.groovy`). See [Groovy and Scala](docs/guide/user/groovy-scala.md#running-scripts).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `groovy.sdk.path` | path | `""` | user | Groovy SDK | Groovy SDK — A Groovy installation, its bin folder or the groovy launcher. Empty: GROOVY_HOME, SDKMAN!'s current Groovy, else the PATH. |
+| `groovy.run.runner` | enum: `auto`, `groovy`, `gradle` | `auto` | user, project | Run | Run Groovy scripts with |
+
+### Languages & Frameworks | Scala
+
+Page id `lang.scala` (plugin `forge.scala`). See [Groovy and Scala](docs/guide/user/groovy-scala.md#metals).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `scala.metals.path` | path | `""` | user | Language Server (Metals) | Metals — The metals launcher. Empty: the one Forge installed, else the PATH. |
+| `scala.metals.autoInstall` | enum: `ask`, `never` | `ask` | user | Language Server (Metals) | Install Metals — offer to install the pinned version with Coursier, or never ask. |
+| `scala.coursier.path` | path | `""` | user | Language Server (Metals) | Coursier (cs) — Empty: cs or coursier on the PATH. |
+| `scala.sbt.path` | path | `""` | user | sbt | sbt launcher — Empty: SDKMAN!'s current sbt, else the PATH. |
+| `scala.sbt.vmOptions` | string | `""` | user, project | sbt | VM parameters — JVM options of sbt (passed as -J options). |
+| `scala.sbt.importOnOpen` | bool | `false` | user, project | sbt | Reload the sbt project when it opens (trusted projects only). |
+
+### Languages & Frameworks | Android SDK
+
+Page id `lang.android` (plugin `forge.android`). See [Android](docs/guide/user/android.md#the-android-sdk).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `android.sdk.path` | path | `""` | user | Android SDK | Android SDK location — Empty: ANDROID_HOME, ANDROID_SDK_ROOT, sdk.dir of local.properties, else the default folder. Forge does not download the SDK. |
+| `android.logcat.bufferSize` | int | `20000` | user | Logcat | Logcat cycle buffer size (entries) |
+| `android.logcat.defaultQuery` | string | `package:mine` | user | Logcat | Default filter |
+| `android.logcat.history` | int | `500` | user | Logcat | Recent entries on connect (`adb logcat -T`) |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.
@@ -18623,7 +18996,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `c` | C | `.c`, `.h` |  |  |
 | `csharp` | C# | `.cs`, `.csx` |  |  |
 | `kotlin` | Kotlin | `.kt`, `.kts` |  |  |
-| `scala` | Scala | `.scala`, `.sc` |  |  |
+| `scala` | Scala | `.scala`, `.sc`, `.sbt` |  |  |
 | `dart` | Dart | `.dart` |  |  |
 | `objc` | Objective-C | `.m`, `.mm` |  |  |
 | `swift` | Swift | `.swift` |  |  |
@@ -18631,7 +19004,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `perl` | Perl | `.pl`, `.pm`, `.t` |  |  |
 | `powershell` | PowerShell | `.ps1`, `.psm1`, `.psd1` |  |  |
 | `batch` | Batch | `.bat`, `.cmd` |  |  |
-| `groovy` | Groovy | `.groovy`, `.gradle`, `.gvy` | `jenkinsfile` |  |
+| `groovy` | Groovy | `.groovy`, `.gradle`, `.gvy`, `.gy` | `jenkinsfile` |  |
 | `haskell` | Haskell | `.hs`, `.lhs` |  |  |
 | `erlang` | Erlang | `.erl`, `.hrl` |  |  |
 | `elixir` | Elixir | `.ex`, `.exs` |  |  |
@@ -18899,6 +19272,12 @@ settings work.
 | [Kotlin LSP](https://github.com/Kotlin/kotlin-lsp) | `kotlin-lsp` | Kotlin | started by KotlinForge (`forge.kotlin`) | Install from Settings \| Languages & Frameworks \| Kotlin (download.jetbrains.com, pinned SHA-256)<br>`brew install JetBrains/utils/kotlin-lsp` | Apache-2.0 (the server build includes closed JetBrains components) | A pack server: KotlinForge starts `bin/intellij-server --stdio` with the project JDK as `JAVA_HOME` and pulls its diagnostics. See [KotlinForge](docs/guide/user/kotlin.md). |
 | [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | started by KotlinForge when chosen | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT | A pack server, the alternative to kotlin-lsp. |
 
+### Scala
+
+| Server | Id | Languages | Command | Install | Licence | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| [Metals](https://scalameta.org/metals/) | `metals` | Scala | started by JavaForge's Scala plugin (`forge.scala`) | Install from Settings \| Languages & Frameworks \| Scala (your Coursier: `cs bootstrap`, pinned 1.5.3)<br>`cs install metals` | Apache-2.0 | A pack server: started with the project JDK as `JAVA_HOME`; it imports sbt builds (Bloop), so it does not start in Safe Mode. See [Groovy and Scala](docs/guide/user/groovy-scala.md#metals). |
+
 ### C#
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
@@ -18956,6 +19335,7 @@ Languages the catalog detects in a project (the project scan reads up to
 | `csharp` | C# | `.cs`, `.csx` |  |
 | `ruby` | Ruby | `.rb`, `.rake`, `.gemspec`, `.ru`, `.erb` | `Gemfile`, `Rakefile`, `Guardfile` |
 | `kotlin` | Kotlin | `.kt`, `.kts` |  |
+| `scala` | Scala | `.scala`, `.sc`, `.sbt` |  |
 | `zig` | Zig | `.zig`, `.zon` |  |
 | `php` | PHP | `.php`, `.phtml` |  |
 | `php` | PHP | `.php`, `.phtml` |  |
@@ -19298,6 +19678,9 @@ script and config language plugins.
 | FastAPI | `forge.fastapi` | pyforge | `forge.python-web` | `fastapi` | 1 settings; run types: FastAPI |
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
+| Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
+| Android | `forge.android` | javaforge | `forge.java` | `android` | tool windows (UI): Device Manager, Logcat; 2 commands; 4 settings; run types (UI): Android App |
 | Kotlin | `forge.kotlin` | kotlinforge | `forge.java` | `kotlinforge` | 4 commands; 16 settings; 1 debug adapters (kotlin-lsp); 1 test frameworks (Kotest); run types (UI): Kotlin Script, Kotest |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
@@ -21257,6 +21640,9 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | --- | --- |
 | [javaforge-build](docs/guide/developer/crates/javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
 | [javaforge-jdk](docs/guide/developer/crates/javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
+| [javaforge-android](docs/guide/developer/crates/javaforge-android.md) | JavaForge: Android basics (Gradle Android modules, AndroidManifest.xml, the Android SDK location, adb devices and emulator AVDs, Android App run command lines, Logcat parsing, filtering and stack trace links; pure, also built to WebAssembly) |
+| [javaforge-lang-groovy](docs/guide/developer/crates/javaforge-lang-groovy.md) | JavaForge: Groovy basics (source scanner, scripts and main classes, Spock for the shared test runner, Groovy script command lines with groovy or Gradle, Groovy SDK lookup; pure, also built to WebAssembly) |
+| [javaforge-lang-scala](docs/guide/developer/crates/javaforge-lang-scala.md) | JavaForge: Scala basics (source scanner, main objects, sbt builds from build.sbt and sbt output, sbt command lines, ScalaTest and MUnit for the shared test runner, Metals install with Coursier; pure, also built to WebAssembly) |
 | [javaforge-lang-java](docs/guide/developer/crates/javaforge-lang-java.md) | JavaForge: Java language support (source scanner, main methods, JUnit 5/4/3 and TestNG for the shared test runner, application command lines, Eclipse JDT LS launch configuration; pure, also built to WebAssembly) |
 | [kotlinforge-lang-kotlin](docs/guide/developer/crates/kotlinforge-lang-kotlin.md) | KotlinForge: Kotlin language support (source scanner, main functions, JUnit 5 and Kotest for the shared test runner, Kotlin/JVM and script command lines, kotlin-lsp launch, ktlint and detekt reports, coroutine dumps; pure, also built to WebAssembly) |
 | [luaforge-lang-lua](docs/guide/developer/crates/luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
@@ -23302,7 +23688,7 @@ these rows.
 | `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
-| `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`). |
+| `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`); so is Metals (plugin `forge.scala`, installed with the user's Coursier by `commands/scala.rs`). |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
@@ -24069,7 +24455,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -25171,6 +25557,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
 | `kotlin.rs` | KotlinForge (`kotlinforge-lang-kotlin`): `kotlin_main_functions`, `kotlin_coroutines`, `kotlin_lint_report` (ktlint JSON, SARIF, Checkstyle) and `kotlin_command_line` (Kotlin applications, scripts, Kotest). `testing.rs` registers `KotlinTests` like the app. |
+| `jvm_extras.rs` | JavaForge's JVM extras (`javaforge-lang-groovy`, `javaforge-lang-scala`, `javaforge-android`): `groovy_runnable`, `groovy_script_command`, `scala_main_objects`, `scala_sbt_build` (static build, optionally merged with a recorded import), `scala_command_line` (sbt Task, ScalaTest, MUnit), `android_adb`, `android_module`, `android_app_command`, `android_logcat_view`. `testing.rs` registers `SpockTests` and both `ScalaTests` like the app. |
 | `java.rs` | JavaForge (`javaforge-build`, `javaforge-lang-java`), mirroring `java_main_methods`, `java_build_info` and the backend's Java run building (`java_command_line`: Application, Maven, Gradle, JUnit and TestNG with their `TestCommand`). `testing.rs` registers `JavaTests` like the app. |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
 | `parsers.rs` | Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the IPC commands of the desktop app for the browser-mode mocks. |
@@ -25314,7 +25701,9 @@ browser mode (WebAssembly) share it.
   Skip Tests; Application runs through Gradle (`forgeRun` of `GRADLE_RUN_INIT_SCRIPT`) and the
   sync command lines.
 - `model` is the Gradle / Maven tool window's model (`BuildModel`: projects, tasks, Maven
-  plugins and profiles, dependency trees): `static_model` from the build files,
+  plugins and profiles, dependency trees, source sets with their `java` / `groovy` / `kotlin` /
+  `scala` / `resources` folders: `conventional_source_sets` of the applied plugins, Gradle's
+  `sourceSets` after a sync): `static_model` from the build files,
   `GRADLE_INIT_SCRIPT` (`forgeModel` writes projects, tasks and resolved dependencies as JSON)
   with `parse_gradle_model`, `parse_maven_tree` for `mvn dependency:tree` (plain and `[INFO]`
   output) and `merge`.
@@ -25340,7 +25729,7 @@ browser mode (WebAssembly) share it.
 | `detect.rs` | `BuildTool`, `Module`, `BuildProject` (`module_of`, `module`, `minimal`) and `detect(folder, files, read, prefer)`. |
 | `dsl.rs` | `Script`, `Request`, `CentralData`, `request` and `complete`. |
 | `goals.rs` | `Goal { name, group, description }` and `goals(&BuildProject)`. |
-| `model.rs` | `BuildModel`, `ProjectModel`, `DependencyScope`, `DependencyNode`, `MavenPlugin`, `Profile`, `GRADLE_INIT_SCRIPT`, `parse_gradle_model`, `parse_maven_tree`, `maven_sync_model`, `maven_plugins`, `maven_profiles`, `profiles_argument`, `static_model`, `merge`, `task_names`. |
+| `model.rs` | `BuildModel`, `ProjectModel`, `DependencyScope`, `DependencyNode`, `MavenPlugin`, `Profile`, `GRADLE_INIT_SCRIPT`, `parse_gradle_model`, `parse_maven_tree`, `maven_sync_model`, `maven_plugins`, `maven_profiles`, `profiles_argument`, `static_model`, `merge`, `task_names`, `SourceSet`, `SourceDir`, `conventional_source_sets`, `source_dir_kind`. |
 | `net.rs` | `MavenCentral` (`search`, `versions`, `answer`, `versions_of`), `gradle_current`, `gradle_sha256` (feature `net`). |
 | `version.rs` | `compare`, `is_prerelease`, `latest`, `is_newer`, `update_for`. |
 | `wrapper.rs` | `GradleWrapper`, `parse_properties`, `distribution_url`, `update_properties`, `GradleRelease`, `parse_current`, `parse_sha256`, `Checksum` and `check`. |
@@ -25437,6 +25826,211 @@ cargo test -p javaforge-jdk --test jdtls_smoke -- --ignored --nocapture   # netw
 
 ---
 
+Source: docs/guide/developer/crates/javaforge-android.md
+
+# javaforge-android
+
+`packs/javaforge/android` — JavaForge: Android basics (Gradle Android modules, AndroidManifest.xml, the Android SDK location, adb devices and emulator AVDs, Android App run command lines, Logcat parsing, filtering and stack trace links; pure, also built to WebAssembly).
+
+## Purpose
+
+The Android plugin's logic (`forge.android`). Pure Rust (no file system, processes or
+devices): the app runs adb and the emulator and hands their output to this crate. See
+[Android](docs/guide/user/android.md).
+
+- `gradle` recognizes Android modules in build files (AGP plugin ids, version catalog aliases,
+  `apply plugin:`; `namespace`, `applicationId`, SDK levels, Kotlin Android) and the AGP version
+  (`gradle/libs.versions.toml`, plugin versions, buildscript class paths).
+- `manifest` reads `AndroidManifest.xml` with a tolerant scanner (package, `uses-sdk`, label,
+  activities and aliases, the `MAIN` / `LAUNCHER` activity), qualifies class names with the
+  package or namespace and lists AGP's merged manifest paths.
+- `sdk` finds the SDK (setting, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `local.properties`
+  `sdk.dir` with Java properties escapes, the platform's default folder) and its tools; the
+  hint shown without one (the SDK is never downloaded).
+- `adb` parses `adb devices -l` (states such as `unauthorized` and `no permissions`, model,
+  product, transport id, USB port), `emulator -list-avds`, `emu avd name` and `ps`.
+- `run` builds the Android App run: `:<module>:assemble<Variant>`, the default APK path of a
+  variant (flavors too), `adb install -r -t` and `am start -n` (or `monkey` without an
+  activity), chained into one `sh -c` / `cmd /c` command line that echoes each step.
+- `logcat` parses `threadtime` lines (also `,year`), tracks the packages of processes (`ps`,
+  `Start proc`), marks stack traces and links frames to project sources, implements Android
+  Studio's query language (`Query`) and keeps a ring buffer (`Logcat`) that returns filtered
+  views.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `gradle.rs` | `android_module`, `AndroidModule`, `ModuleKind`, `plugin_kind`, `agp_version`. |
+| `manifest.rs` | `parse`, `Manifest`, `Activity`, `qualify`, `merged_manifest_candidates`, `capitalize`. |
+| `sdk.rs` | `locate`, `SdkEnv`, `SdkLocation`, `local_properties_sdk_dir`, `default_sdk_dir`, `adb_path`, `emulator_path`, `NO_SDK_HINT`. |
+| `adb.rs` | `parse_devices`, `Device`, `parse_avds`, `parse_avd_name`, `parse_ps`. |
+| `run.rs` | `AppRun`, `steps`, `chain`, `assemble_task`, `default_apk`. |
+| `logcat.rs` | `parse_line`, `LogEntry`, `Level`, `FrameLink`, `frame`, `resolve`, `Query`, `Logcat`, `LogcatView`, `stream_args`, `ps_args`. |
+
+## Main public items
+
+```rust
+pub use adb::Device;
+pub use logcat::{LogEntry, Logcat, LogcatView, Query};
+```
+
+## Used by
+
+- The app: `commands/android.rs` (`android_status`, `android_devices`,
+  `android_emulator_start`, the `android_logcat_*` stream and view, Android App command
+  lines). [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `android_adb`, `android_module`,
+  `android_app_command`, `android_logcat_view` for the browser mode.
+
+## Dependencies
+
+- External: `serde`, `serde_json`, `regex-lite`
+
+## Tests
+
+7 source files, about 1800 lines; 14 unit tests on fixtures (`tests/fixtures`: `adb devices
+-l`, `ps`, a `threadtime` log with a crash, a manifest, an app build file; no device, no SDK).
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-lang-groovy.md
+
+# javaforge-lang-groovy
+
+`packs/javaforge/lang-groovy` — JavaForge: Groovy basics (tolerant source scanner, scripts and main classes, Spock specification discovery and commands for the shared test runner, Groovy script command lines with groovy or through Gradle, Groovy SDK lookup; pure, also built to WebAssembly).
+
+## Purpose
+
+The Groovy plugin's logic (`forge.groovy`). Pure Rust (no file system or processes). See
+[Groovy and Scala](docs/guide/user/groovy-scala.md).
+
+- `source` tokenizes Groovy (comments, `'…'`, `"…"`, triple-quoted strings with their text,
+  shebang lines) with brace depths and scans package, imports, classes / interfaces / traits /
+  enums with binary names and supertypes, methods (also string-named Spock features, with the
+  Spock block labels of their bodies, annotations and `static`) and whether the file has
+  top-level statements (a script). Half-typed code and slashy strings are tolerated.
+- `spock` finds specifications (`extends Specification`, `spock.lang.*`, or a base spec in a file
+  importing Spock) and their features (string names or methods with blocks; fixtures excluded;
+  `@Ignore` / `@PendingFeature`, data-driven `where:`).
+- `tests` is the shared test runner's provider `SpockTests` (type `spock`): gutter targets,
+  Rerun Failed Tests (`Class#feature`) and commands through JavaForge's
+  `javaforge_lang_java::tests::build_command` with `language = groovy` (Gradle `--tests`,
+  Surefire `-Dtest=`, `src/test/groovy` location rules, JaCoCo).
+- `launch` lists what runs in a file (`runnable`: script, `main` methods), builds Groovy Script
+  command lines (`groovy` with `JAVA_OPTS`, or Gradle with the `GRADLE_INIT_SCRIPT` task
+  `forgeRunGroovy` running `groovy.ui.GroovyMain` on the main source set), finds Groovy SDK
+  candidates (GROOVY_HOME, SDKMAN!) and parses `groovy --version`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `source.rs` | `parse(text) -> GroovyFile { package, imports, types, script }`, `TypeDecl`, `Method`, `SPOCK_LABELS`. |
+| `spock.rs` | `specs`, `specs_of`, `Spec`, `Feature`. |
+| `tests.rs` | `SpockTests` (`TestFrameworkProvider`), `SPOCK`. |
+| `launch.rs` | `runnable`, `Runnable`, `MainMethod`, `Runner`, `ScriptRun`, `script_command`, `GRADLE_INIT_SCRIPT`, `gradle_applies_groovy`, `groovy_candidates`, `launcher_in`, `parse_version`. |
+
+## Main public items
+
+```rust
+pub use launch::{runnable, Runnable};
+pub use spock::{specs, Spec};
+pub use tests::SpockTests;
+```
+
+## Used by
+
+- The app: `RunState` registers `SpockTests` (`commands/run.rs`); `commands/groovy.rs`
+  (`groovy_status`, `groovy_runnable`, Groovy Script command lines) and `commands/java.rs`
+  (Spock runs are prepared like JUnit). [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `groovy_runnable`,
+  `groovy_script_command` and the test registry of the browser mode.
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md), [`forge-testing`](docs/guide/developer/crates/forge-testing.md), [`javaforge-lang-java`](docs/guide/developer/crates/javaforge-lang-java.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+5 source files, about 1300 lines; 9 unit tests on fixtures (`tests/fixtures`: a Spock
+specification, a release script; no network).
+
+
+---
+
+Source: docs/guide/developer/crates/javaforge-lang-scala.md
+
+# javaforge-lang-scala
+
+`packs/javaforge/lang-scala` — JavaForge: Scala basics (tolerant source scanner, main objects, sbt builds read from build.sbt and from sbt's output, sbt command lines, ScalaTest and MUnit discovery and commands for the shared test runner, the Metals launch and its Coursier install; pure, also built to WebAssembly).
+
+## Purpose
+
+The Scala plugin's logic (`forge.scala`). Pure Rust (no file system or processes); code
+intelligence comes from Metals through `forge-lsp`. See [Groovy and Scala](docs/guide/user/groovy-scala.md).
+
+- `source` tokenizes Scala (nested comments, strings, triple-quoted strings, character
+  literals, backtick identifiers) and scans packages (also chained clauses), imports, objects /
+  classes / traits / enums with fully qualified names and parents, `def main(args:
+  Array[String])`, `extends App` and Scala 3 `@main` methods (`main_objects`), for braces and
+  Scala 3's indentation syntax.
+- `suites` finds ScalaTest suites (FunSuite, FlatSpec with `it should`, WordSpec clauses,
+  FunSpec `describe` / `it`, FreeSpec `-`, PropSpec, async styles) and MUnit suites
+  (`munit.FunSuite`, `CatsEffectSuite`, `ScalaCheckSuite`) with the full test names the
+  frameworks report (`A Cart when empty should have no items`).
+- `tests` is the shared test runner's providers `ScalaTests::scalatest()` / `munit()` (types
+  `scalatest`, `munit`): gutter targets, Rerun Failed Tests (suites) and `sbt testOnly`
+  commands (`-z` for ScalaTest test names, a glob for MUnit) reading the JUnit XML of
+  `target/test-reports`.
+- `sbt` reads builds statically (`static_build`: projects, folders, `dependsOn`, `aggregate`,
+  names, Scala versions, `libraryDependencies` with `%%` / configurations, string `val`s and
+  setting sequences, `project/build.properties`, `project/plugins.sbt`), parses an import's
+  output (`parse_sync` of `projects` and `show scalaVersion baseDirectory
+  libraryDependencies`), merges both and builds command lines (`task_command`, `scoped_task`:
+  `core/test`, `~core/compile`, `-J` VM options).
+- `metals` holds the pinned Metals version, the Coursier `bootstrap` arguments, the
+  initialization options and workspace settings.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `source.rs` | `parse(text) -> ScalaFile`, `Template`, `main_objects`, `MainObject`. |
+| `suites.rs` | `suites`, `suites_of`, `Suite`, `SuiteTest`, `Framework`. |
+| `tests.rs` | `ScalaTests` (`TestFrameworkProvider`), `SCALATEST`, `MUNIT`, `project_dir_of`. |
+| `sbt.rs` | `SbtBuild`, `SbtProject`, `SbtDependency`, `TASKS`, `static_build`, `parse_build_properties`, `parse_sync`, `merge`, `SYNC_COMMANDS`, `sync_args`, `task_command`, `scoped_task`, `split_tasks`. |
+| `metals.rs` | `METALS_VERSION`, `SERVER_ID`, `coordinates`, `bootstrap_args`, `initialization_options`, `settings`, `version_of_install`. |
+
+## Main public items
+
+```rust
+pub use sbt::{SbtBuild, SbtProject};
+pub use source::{main_objects, MainObject};
+pub use tests::ScalaTests;
+```
+
+## Used by
+
+- The app: `RunState` registers both `ScalaTests` (`commands/run.rs`); `commands/scala.rs`
+  (Metals registration and install, the sbt model and import, sbt Task command lines, test
+  preparation). [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `scala_main_objects`, `scala_sbt_build`,
+  `scala_command_line` and the test registry of the browser mode.
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md), [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`, `regex-lite`
+
+## Tests
+
+6 source files, about 2100 lines; 11 unit tests on fixtures (`tests/fixtures`: a multi-project
+`build.sbt`, `build.properties`, recorded sbt output, ScalaTest and MUnit suites; no network,
+no sbt).
+
+
+---
+
 Source: docs/guide/developer/crates/javaforge-lang-java.md
 
 # javaforge-lang-java
@@ -25463,6 +26057,9 @@ itself comes from Eclipse JDT LS through `forge-lsp`.
   JaCoCo coverage with its own rules (main sources). With the option `runner = junit` ("Run
   tests using: IntelliJ IDEA") JUnit runs on the JUnit Platform Console Launcher instead, on
   the class path the backend resolved (`resolvedClasspath`, `launcherJar`, `reportsDir`).
+  `build_command` also serves KotlinForge (`language = kotlin`) and Spock
+  (`language = groovy`: `src/<set>/groovy/` roots, `JUnitFlavor::Kotlin` names with spaces,
+  locations renamed to `.groovy`).
 - `launch` builds Application command lines (`java` with VM options, `-p` / `-cp`, `-m`, the
   JDWP agent of debug runs), the debug arguments of Gradle (`--debug-jvm`) and Surefire, and
   `junit_console_command` (`java -jar junit-platform-console-standalone.jar execute
