@@ -24,5 +24,5 @@ pub mod params;
 pub mod resolve;
 
 pub use format::{format, SqlStyle};
-pub use lang::{dialect_for, DialectMapping, SqlDialect};
+pub use lang::{data_source_for, dialect_for, DialectMapping, SqlDialect};
 pub use params::ParamPatterns;

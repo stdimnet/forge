@@ -181,7 +181,9 @@ fn analyze_sql(text: &str, at: usize) -> CaretInfo {
     let line_start = text[..at].rfind('\n').map(|p| p + 1).unwrap_or(0);
     let line = &text[line_start..at];
     let quotes = line.matches('\'').count();
-    let open_block = text[..at].rfind("/*").is_some_and(|p| !text[p..at].contains("*/"));
+    let open_block = text[..at]
+        .rfind("/*")
+        .is_some_and(|p| !text[p..at].contains("*/"));
     if line.contains("--") || quotes % 2 == 1 || open_block {
         return CaretInfo::default();
     }
@@ -662,6 +664,8 @@ mod tests {
     fn sql_context_outside_comments_and_strings() {
         assert_eq!(analyze("sel", 3, Some("sql"), "q.sql").contexts, ["SQL"]);
         assert!(analyze("-- sel", 6, None, "q.sql").contexts.is_empty());
-        assert!(analyze("SELECT 'sel", 11, None, "q.sql").contexts.is_empty());
+        assert!(analyze("SELECT 'sel", 11, None, "q.sql")
+            .contexts
+            .is_empty());
     }
 }

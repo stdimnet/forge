@@ -473,12 +473,35 @@ const TYPES: &[&str] = &[
     "VARCHAR2",
 ];
 
-/// One SQL Dialects mapping: a project-relative file or folder and its dialect.
+/// One SQL Dialects mapping: a project-relative file or folder with its dialect and the data
+/// source its names resolve against (either may be unset: inherited from the folder above).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DialectMapping {
     pub path: String,
-    pub dialect: SqlDialect,
+    #[serde(
+        default,
+        deserialize_with = "optional_dialect",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dialect: Option<SqlDialect>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub data_source: String,
+}
+
+fn optional_dialect<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Option<SqlDialect>, D::Error> {
+    let s: Option<String> = Option::deserialize(d)?;
+    Ok(s.filter(|s| !s.is_empty()).map(|s| SqlDialect::parse(&s)))
+}
+
+fn covers(mapping: &str, path: &str) -> Option<usize> {
+    let p = mapping.trim_start_matches("./").trim_matches('/');
+    let hit = p.is_empty()
+        || path == p
+        || (path.starts_with(p) && path.as_bytes().get(p.len()) == Some(&b'/'));
+    hit.then_some(p.len())
 }
 
 /// The dialect of a project-relative `path`: the most specific mapping (the file itself, else
@@ -487,16 +510,21 @@ pub fn dialect_for(path: &str, project: SqlDialect, mappings: &[DialectMapping])
     let path = path.trim_start_matches("./").trim_matches('/');
     mappings
         .iter()
-        .filter_map(|m| {
-            let p = m.path.trim_start_matches("./").trim_matches('/');
-            let hit = p.is_empty()
-                || path == p
-                || (path.starts_with(p) && path.as_bytes().get(p.len()) == Some(&b'/'));
-            hit.then_some((p.len(), m.dialect))
-        })
+        .filter_map(|m| Some((covers(&m.path, path)?, m.dialect?)))
         .max_by_key(|(len, _)| *len)
         .map(|(_, d)| d)
         .unwrap_or(project)
+}
+
+/// The data source a file's names resolve against (the most specific mapping that has one).
+pub fn data_source_for(path: &str, mappings: &[DialectMapping]) -> Option<String> {
+    let path = path.trim_start_matches("./").trim_matches('/');
+    mappings
+        .iter()
+        .filter(|m| !m.data_source.is_empty())
+        .filter_map(|m| Some((covers(&m.path, path)?, m.data_source.clone())))
+        .max_by_key(|(len, _)| *len)
+        .map(|(_, d)| d)
 }
 
 /// What the status bar widget and the settings page show of a dialect.
@@ -537,20 +565,13 @@ mod tests {
 
     #[test]
     fn most_specific_mapping_wins() {
-        let m = vec![
-            DialectMapping {
-                path: "database".into(),
-                dialect: SqlDialect::MySql,
-            },
-            DialectMapping {
-                path: "database/pg".into(),
-                dialect: SqlDialect::Postgres,
-            },
-            DialectMapping {
-                path: "database/pg/legacy.sql".into(),
-                dialect: SqlDialect::Sqlite,
-            },
-        ];
+        let m: Vec<DialectMapping> = serde_json::from_value(serde_json::json!([
+            { "path": "database", "dialect": "mysql", "dataSource": "shop" },
+            { "path": "database/pg", "dialect": "postgres" },
+            { "path": "database/pg/legacy.sql", "dialect": "sqlite" },
+            { "path": "database/pg/x.sql", "dialect": "", "dataSource": "pg" },
+        ]))
+        .unwrap();
         let g = SqlDialect::Generic;
         assert_eq!(dialect_for("database/a.sql", g, &m), SqlDialect::MySql);
         assert_eq!(

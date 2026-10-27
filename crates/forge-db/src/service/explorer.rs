@@ -188,6 +188,20 @@ impl DbService {
         Ok(model)
     }
 
+    /// The model when it is known without connecting (cached, or a DDL data source): what
+    /// the SQL editor resolves names against while typing.
+    pub fn model_if_cached(&self, id: &str) -> DbResult<Option<DbModel>> {
+        let ds = self.get(id)?;
+        if ds.driver == Driver::Ddl {
+            let model = self.ddl_model(&ds, false)?;
+            return self.present(&ds, model).map(Some);
+        }
+        match self.cached_model(id) {
+            Some(m) => self.present(&ds, m).map(Some),
+            None => Ok(None),
+        }
+    }
+
     /// The explorer model of a data source. Without `refresh` it is the cached one (no
     /// connection needed); refreshing reloads the schema list and server objects and
     /// re-introspects the schemas that were loaded and are still visible.

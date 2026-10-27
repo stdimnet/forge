@@ -1725,9 +1725,24 @@ export function spring_observe(lines_json: string): string;
 export function spring_overview(request_json: string): string;
 
 /**
+ * `SqlContext` → `AnalyzeAnswer`.
+ */
+export function sql_analyze(json: string): string;
+
+/**
  * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
  */
 export function sql_change_statements(request_json: string): string;
+
+/**
+ * `{ …SqlContext, offset, ddlFiles? }` → `DeclarationAnswer | null`.
+ */
+export function sql_declaration(json: string): string;
+
+/**
+ * `{}` → every dialect with keywords and types.
+ */
+export function sql_dialects(_json: string): string;
 
 /**
  * Mirrors `db_export`: `{ format, dialect, table, columns, rows }` → the text.
@@ -1735,14 +1750,50 @@ export function sql_change_statements(request_json: string): string;
 export function sql_export(request_json: string): string;
 
 /**
+ * Mirrors `sql_file_info` for a file: `{ path, project, global, mappings }` →
+ * `{ dialect, source, dataSourceId? }`.
+ */
+export function sql_file_info(json: string): string;
+
+/**
+ * `{ text, dialect, values }` → the formatted text.
+ */
+export function sql_format(json: string): string;
+
+/**
  * Mirrors `db_guard`: `{ sql, dialect, readOnly, production, name }` → `{ blocked?, confirm? }`.
  */
 export function sql_guard(request_json: string): string;
 
 /**
+ * `{ history, entry, limit }` → the history with the entry added.
+ */
+export function sql_history_add(json: string): string;
+
+/**
+ * `{ history, query }` → the matching entries.
+ */
+export function sql_history_search(json: string): string;
+
+/**
  * `{ statements: string[] }` → their leading keywords, upper-cased.
  */
 export function sql_leading_keywords(request_json: string): string;
+
+/**
+ * `{ text, dialect, patterns }` → `ParamsAnswer`.
+ */
+export function sql_params(json: string): string;
+
+/**
+ * `{ text, dialect }` → the statements Run SQL Script executes.
+ */
+export function sql_plan_run(json: string): string;
+
+/**
+ * `{ …SqlContext, offset }` → `RenameAnswer`.
+ */
+export function sql_rename(json: string): string;
 
 /**
  * `{ sql, dialect }` → `Statement[]` (byte offsets, like `db_execute`).
@@ -1753,6 +1804,16 @@ export function sql_split(request_json: string): string;
  * Mirrors `db_statement_at`: `{ sql, from, to, dialect }` → `Statement | null`.
  */
 export function sql_statement_at(request_json: string): string;
+
+/**
+ * `{ text, dialect, patterns, values }` → the text with values, or `{ error }`.
+ */
+export function sql_substitute(json: string): string;
+
+/**
+ * `{ …SqlContext, offset }` → `UsagesAnswer | null`.
+ */
+export function sql_usages(json: string): string;
 
 /**
  * `{}` → `SavedTemplate[]` (the built-in templates).
@@ -2384,12 +2445,24 @@ export interface InitOutput {
     readonly spring_launch: (a: number, b: number, c: number) => void;
     readonly spring_observe: (a: number, b: number, c: number) => void;
     readonly spring_overview: (a: number, b: number, c: number) => void;
+    readonly sql_analyze: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
+    readonly sql_declaration: (a: number, b: number, c: number) => void;
+    readonly sql_dialects: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
+    readonly sql_file_info: (a: number, b: number, c: number) => void;
+    readonly sql_format: (a: number, b: number, c: number) => void;
     readonly sql_guard: (a: number, b: number, c: number) => void;
+    readonly sql_history_add: (a: number, b: number, c: number) => void;
+    readonly sql_history_search: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
+    readonly sql_params: (a: number, b: number, c: number) => void;
+    readonly sql_plan_run: (a: number, b: number, c: number) => void;
+    readonly sql_rename: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly sql_substitute: (a: number, b: number, c: number) => void;
+    readonly sql_usages: (a: number, b: number, c: number) => void;
     readonly ssr_templates: (a: number, b: number, c: number) => void;
     readonly ssr_variables: (a: number, b: number, c: number) => void;
     readonly stacktrace_analyze: (a: number, b: number, c: number) => void;
