@@ -730,11 +730,11 @@ comments and inline HTML are never changed.
 
 ### Quality Tools
 
-Settings | Languages & Frameworks | PHP | Quality Tools sets the PHP CS Fixer and Laravel Pint
-executables (`php.tools.phpCsFixer.path`, `php.tools.pint.path`); empty means
-`vendor/bin/php-cs-fixer` and `vendor/bin/pint` of the project. They run on save with
-**Run PHP CS Fixer** / **Run Laravel Pint**, and Optimize imports, Rearrange code and code
-cleanup of PHP files run there too, see [Actions on Save](actions-on-save.md).
+Settings | Languages & Frameworks | PHP | Quality Tools configures PHPStan, Psalm, PHP CS
+Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: their problems show on the
+fly and on save, the fixers reformat files and run on save, also through Docker, Docker Compose,
+SSH and WSL interpreters. See [PHP Quality Tools](php-quality-tools.md) and
+[Actions on Save](actions-on-save.md).
 
 ## Running and testing PHP
 

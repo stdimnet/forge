@@ -8,6 +8,11 @@
 //! | Prettier | `node_modules/.bin/prettier` | `prettier --write <file>` |
 //! | PHP CS Fixer | `vendor/bin/php-cs-fixer` | `php-cs-fixer fix <file>` |
 //! | Laravel Pint | `vendor/bin/pint` | `pint <file>` |
+//! | phpcbf | `vendor/bin/phpcbf` | `phpcbf <file>` |
+//! | Rector | `vendor/bin/rector` | `rector process <file>` |
+//!
+//! [`run_tools_with`] lets the caller change a tool's command line first (the PHP tools'
+//! configuration files and options, running them with a PHP interpreter).
 //!
 //! A missing tool is skipped with a message. When a tool fails, the file gets back the text
 //! it had before that tool ran, so a failing tool never loses the user's text.
@@ -37,6 +42,8 @@ impl Tool {
             ],
             Tool::PhpCsFixer => &["vendor/bin/php-cs-fixer", "vendor/bin/php-cs-fixer.bat"],
             Tool::Pint => &["vendor/bin/pint", "vendor/bin/pint.bat"],
+            Tool::Phpcbf => &["vendor/bin/phpcbf", "vendor/bin/phpcbf.bat"],
+            Tool::Rector => &["vendor/bin/rector", "vendor/bin/rector.bat"],
         }
     }
 
@@ -51,7 +58,8 @@ impl Tool {
                 "--show-progress=none".into(),
                 file,
             ],
-            Tool::Pint => vec![file],
+            Tool::Pint | Tool::Phpcbf => vec![file],
+            Tool::Rector => vec!["process".into(), "--no-progress-bar".into(), file],
         }
     }
 
@@ -60,6 +68,8 @@ impl Tool {
         match self {
             // 1: problems that `--fix` cannot fix remain; the fixes were written.
             Tool::Eslint => code == 0 || code == 1,
+            // 1: everything fixed, 2: some problems could not be fixed (fixes were written).
+            Tool::Phpcbf => (0..=2).contains(&code),
             _ => code == 0,
         }
     }
@@ -133,6 +143,21 @@ pub fn run_tools(
     custom: &dyn Fn(Tool) -> Option<String>,
     timeout: Duration,
 ) -> Result<ToolsReport> {
+    run_tools_with(backend, path, tools, custom, &|_, cmd| Ok(cmd), timeout)
+}
+
+/// Changes a tool's command line before it runs (`file` is the absolute saved file).
+pub type PrepareCommand<'a> = dyn Fn(Tool, CommandLine) -> Result<CommandLine> + 'a;
+
+/// [`run_tools`] with each command line passed through `prepare` first.
+pub fn run_tools_with(
+    backend: &dyn Backend,
+    path: &str,
+    tools: &[Tool],
+    custom: &dyn Fn(Tool) -> Option<String>,
+    prepare: &PrepareCommand<'_>,
+    timeout: Duration,
+) -> Result<ToolsReport> {
     let initial = backend.read_bytes(path)?;
     let file = backend.resolve(path)?.to_string_lossy().into_owned();
     let mut outcomes = Vec::new();
@@ -160,7 +185,7 @@ pub fn run_tools(
             cmd = cmd.arg(a);
         }
         cmd.cwd = backend.info().root.clone();
-        let result = capture(backend, &cmd, "", timeout);
+        let result = prepare(tool, cmd).and_then(|cmd| capture(backend, &cmd, "", timeout));
         let failure = match &result {
             Ok(out) => match out.code {
                 Some(code) if tool.succeeded(code) => None,
@@ -333,6 +358,45 @@ mod tests {
         assert!(report.changed);
         assert_eq!(report.outcomes[0].status, ToolStatus::Ok);
         assert_eq!(report.outcomes[0].message, "1:5 error no-undef");
+    }
+
+    #[test]
+    fn prepare_changes_the_command_line_and_its_errors_fail_the_tool() {
+        let _serial = serial();
+        let dir = tempfile::tempdir().unwrap();
+        // rector process --no-progress-bar <file>, here with a configuration file first.
+        script(
+            dir.path(),
+            "vendor/bin/rector",
+            "[ \"$1\" = --config=rector.php ] || exit 9\nsed -i 's/old/new/' \"$4\"",
+        );
+        script(dir.path(), "vendor/bin/phpcbf", "exit 0");
+        std::fs::write(dir.path().join("a.php"), "<?php old();\n").unwrap();
+        let backend = LocalBackend::open(dir.path()).unwrap();
+        let prepare = |tool: Tool, mut cmd: CommandLine| match tool {
+            Tool::Rector => {
+                cmd.args.insert(0, "--config=rector.php".into());
+                Ok(cmd)
+            }
+            _ => Err(forge_core::ForgeError::Other("no interpreter".into())),
+        };
+        let report = run_tools_with(
+            &backend,
+            "a.php",
+            &[Tool::Rector, Tool::Phpcbf],
+            &none,
+            &prepare,
+            TOOL_TIMEOUT,
+        )
+        .unwrap();
+        assert!(report.changed);
+        assert_eq!(report.outcomes[0].status, ToolStatus::Ok);
+        assert_eq!(report.outcomes[1].status, ToolStatus::Failed);
+        assert_eq!(report.outcomes[1].message, "no interpreter");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("a.php")).unwrap(),
+            "<?php new();\n"
+        );
     }
 
     #[test]

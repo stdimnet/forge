@@ -383,7 +383,8 @@ tool), `options` adds typed options to the Settings page.
 
 - **Editor problems** need no code: whatever a feature publishes with
   `publishDiagnostics(path, diagnostics, source)` goes through the selected profile (the
-  diagnostic's `code` when it is an inspection id, else the source's mapping): disabled
+  diagnostic's `code` when it is an inspection id, else the mapping of the published source,
+  else the mapping of the diagnostic's own `source`, e.g. `PHPStan`): disabled
   inspections drop out, severities follow the profile and suppression comments hide
   problems. Alt+Enter offers the Suppress actions for every problem with an inspection.
 - **Inspect Code / the command-line inspector** run Rust providers: implement

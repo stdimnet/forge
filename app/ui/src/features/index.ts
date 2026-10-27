@@ -86,6 +86,7 @@ import "./bookmarks";
 import "./todo";
 import "./notifications";
 import "./actionsOnSave";
+import "./phpQualityTools";
 import "./updates";
 import "./fileTemplates";
 import "./emmet";

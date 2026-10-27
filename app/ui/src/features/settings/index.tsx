@@ -46,7 +46,6 @@ const schemaPages: SchemaPageDef[] = [
   { id: "vcs.changelists", title: "Changelists", group: "Version Control", order: 2, keywords: ["changelist", "create changelists automatically"] },
   { id: "vcs.local-history", title: "Local History", group: "Version Control", order: 3, keywords: ["working days", "labels", "revisions", "recent changes"] },
   { id: "lang.php", title: "PHP", group: "Languages & Frameworks", order: 0, keywords: ["interpreter", "language level"] },
-  { id: "lang.php.quality-tools", title: "Quality Tools", group: "Languages & Frameworks", parent: "lang.php", order: 1, keywords: ["php cs fixer", "php-cs-fixer", "laravel pint", "code style"] },
   { id: "lang.templates", title: "Template Data Languages", group: "Languages & Frameworks", order: 50, keywords: ["twig", "smarty", "latte", "jinja", "go template", "latex", "delimiter"] },
   { id: "tools.terminal", title: "Terminal", group: "Tools", order: 0, keywords: ["shell"] },
   { id: "tools.search", title: "Search", group: "Tools", order: 10, keywords: ["find in files", "matches", "limit"] },

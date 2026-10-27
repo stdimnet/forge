@@ -2,7 +2,8 @@
 //!
 //! - [`plan`] decides which actions run when a file is saved: Reformat code (whole file or
 //!   changed lines, limited to file types), Optimize imports, Rearrange code, Run code
-//!   cleanup and the external tools (`eslint --fix`, Prettier, PHP CS Fixer, Laravel Pint).
+//!   cleanup and the external tools (`eslint --fix`, Prettier, Rector, PHP CS Fixer, phpcbf,
+//!   Laravel Pint).
 //!   They run on explicit save (Ctrl+S); with "Also run on autosave" the built-in actions run
 //!   on autosave too, the external tools never do.
 //! - [`changed::restrict_to_changed_lines`] keeps only the reformatting of lines changed
@@ -36,6 +37,8 @@ pub const PRETTIER_KEY: &str = "actionsOnSave.prettier.enabled";
 pub const PRETTIER_FILES_KEY: &str = "actionsOnSave.prettier.files";
 pub const PHP_CS_FIXER_KEY: &str = "actionsOnSave.phpCsFixer";
 pub const PINT_KEY: &str = "actionsOnSave.pint";
+pub const PHPCBF_KEY: &str = "actionsOnSave.phpcbf";
+pub const RECTOR_KEY: &str = "actionsOnSave.rector";
 
 /// PHPStorm's default of "Run for files" (Prettier).
 pub const DEFAULT_PRETTIER_FILES: &str =
@@ -74,11 +77,22 @@ pub enum Tool {
     Prettier,
     PhpCsFixer,
     Pint,
+    /// PHP_CodeSniffer's fixer.
+    Phpcbf,
+    Rector,
 }
 
 impl Tool {
     /// In the order the tools run (and the Actions on Save page lists them).
-    pub const ALL: [Tool; 4] = [Tool::Eslint, Tool::Prettier, Tool::PhpCsFixer, Tool::Pint];
+    /// Rector refactors before the code style fixers format.
+    pub const ALL: [Tool; 6] = [
+        Tool::Eslint,
+        Tool::Prettier,
+        Tool::Rector,
+        Tool::PhpCsFixer,
+        Tool::Phpcbf,
+        Tool::Pint,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -86,6 +100,8 @@ impl Tool {
             Tool::Prettier => "Prettier",
             Tool::PhpCsFixer => "PHP CS Fixer",
             Tool::Pint => "Laravel Pint",
+            Tool::Phpcbf => "phpcbf",
+            Tool::Rector => "Rector",
         }
     }
 
@@ -96,7 +112,17 @@ impl Tool {
             Tool::Prettier => "web.prettier.path",
             Tool::PhpCsFixer => "php.tools.phpCsFixer.path",
             Tool::Pint => "php.tools.pint.path",
+            Tool::Phpcbf => "php.tools.phpcs.phpcbfPath",
+            Tool::Rector => "php.tools.rector.path",
         }
+    }
+
+    /// A PHP quality tool (configured on Languages & Frameworks | PHP | Quality Tools).
+    pub fn is_php(self) -> bool {
+        matches!(
+            self,
+            Tool::PhpCsFixer | Tool::Pint | Tool::Phpcbf | Tool::Rector
+        )
     }
 }
 
@@ -117,6 +143,8 @@ pub struct ActionsOnSave {
     pub prettier_files: String,
     pub php_cs_fixer: bool,
     pub pint: bool,
+    pub phpcbf: bool,
+    pub rector: bool,
 }
 
 impl ActionsOnSave {
@@ -142,6 +170,8 @@ impl ActionsOnSave {
                 .unwrap_or_else(|| DEFAULT_PRETTIER_FILES.to_string()),
             php_cs_fixer: flag(PHP_CS_FIXER_KEY),
             pint: flag(PINT_KEY),
+            phpcbf: flag(PHPCBF_KEY),
+            rector: flag(RECTOR_KEY),
         }
     }
 }
@@ -205,8 +235,14 @@ pub fn plan(path: &str, trigger: Trigger, settings: &ActionsOnSave) -> SavePlan 
         if settings.prettier && matches_glob_list(path, &settings.prettier_files) {
             tools.push(Tool::Prettier);
         }
+        if settings.rector && php {
+            tools.push(Tool::Rector);
+        }
         if settings.php_cs_fixer && php {
             tools.push(Tool::PhpCsFixer);
+        }
+        if settings.phpcbf && php {
+            tools.push(Tool::Phpcbf);
         }
         if settings.pint && php {
             tools.push(Tool::Pint);
@@ -259,6 +295,8 @@ mod tests {
             prettier_files: DEFAULT_PRETTIER_FILES.into(),
             php_cs_fixer: true,
             pint: true,
+            phpcbf: true,
+            rector: true,
             ..Default::default()
         }
     }
@@ -268,7 +306,10 @@ mod tests {
         let p = plan("app/Models/User.php", Trigger::Explicit, &all_on());
         assert_eq!(p.reformat, Some(ReformatScope::Whole));
         assert!(p.optimize_imports && p.rearrange && p.code_cleanup);
-        assert_eq!(p.tools, vec![Tool::PhpCsFixer, Tool::Pint]);
+        assert_eq!(
+            p.tools,
+            vec![Tool::Rector, Tool::PhpCsFixer, Tool::Phpcbf, Tool::Pint]
+        );
     }
 
     #[test]

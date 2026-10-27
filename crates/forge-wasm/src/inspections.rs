@@ -207,9 +207,16 @@ pub fn inspections_apply(request_json: &str) -> String {
         let mut out = Vec::new();
         for mut d in r.diagnostics {
             let code = d.get("code").and_then(Value::as_str).map(str::to_string);
+            // The published source first, then the diagnostic's own (a feature that
+            // publishes several tools' problems: `PHPStan`, `Psalm`, ...).
+            let own = d.get("source").and_then(Value::as_str).map(str::to_string);
             let Some(id) = profile
                 .registry
                 .inspection_for(&r.source, code.as_deref())
+                .or_else(|| {
+                    own.as_deref()
+                        .and_then(|s| profile.registry.inspection_for(s, code.as_deref()))
+                })
                 .map(str::to_string)
             else {
                 out.push(d);
@@ -438,6 +445,22 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(out.len(), 1);
+        // A feature publishing several tools: the diagnostic's own source maps it.
+        let reg2: Value = serde_json::from_str(&inspections_registry(
+            &json!({"inspections": [{"id": "PhpStanGlobal", "name": "PHPStan", "group": "PHP", "external": true}],
+                    "mappings": [{"source": "PHPStan", "inspection": "PhpStanGlobal"}]})
+            .to_string(),
+        ))
+        .unwrap();
+        let profile = json!({"name": "P", "level": "ide", "tools": {"PhpStanGlobal": {"enabled": false}}});
+        inspections_configure(&json!({"registry": reg2, "profile": profile}).to_string());
+        let mut stan = diag(1);
+        stan["source"] = json!("PHPStan");
+        let out: Vec<Value> = serde_json::from_str(&inspections_apply(
+            &json!({"path": "a.php", "source": "php-quality-tools", "diagnostics": [stan]}).to_string(),
+        ))
+        .unwrap();
+        assert!(out.is_empty());
     }
 
     #[test]

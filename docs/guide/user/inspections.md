@@ -9,8 +9,9 @@ tags: [inspections, profiles, severity, inspect code, code cleanup, suppress, no
 
 Every problem Forge highlights belongs to an **inspection**: Forge's own checks (the PHP index
 inspections, PHP data flow, duplicated code, requirements, Spring Boot properties, spelling)
-as well as the problems of language servers and external tools (Clippy, go vet,
-golangci-lint, ktlint, detekt, Composer, CMake builds). Like in PHPStorm, an **inspection
+as well as the problems of language servers and external tools (the PHP quality tools
+PHPStan, Psalm, PHP_CodeSniffer, PHP CS Fixer, PHP Mess Detector and Laravel Pint, Clippy,
+go vet, golangci-lint, ktlint, detekt, Composer, CMake builds). Like in PHPStorm, an **inspection
 profile** decides which inspections run, how severe their problems are, and where.
 
 ## Settings | Editor | Inspections
