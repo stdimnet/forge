@@ -1597,6 +1597,42 @@ export function replace_in_files(request_json: string): string;
 export function replace_preview(request_json: string): string;
 
 /**
+ * `{ action, arg?, context }` → `RubyCommand` of a Bundler action, Rake task, gem install
+ * or the IRB console.
+ */
+export function ruby_action_command(request_json: string): string;
+
+/**
+ * `{ gemfile, lock? }` → `Bundle` (`ruby_bundle`).
+ */
+export function ruby_bundle(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `RubyCommand` of a Ruby or Rake configuration.
+ */
+export function ruby_command_line(request_json: string): string;
+
+/**
+ * `{ output? , files? }` → `RakeTask[]` (`ruby_rake_tasks`).
+ */
+export function ruby_rake_tasks(request_json: string): string;
+
+/**
+ * `{ files }` → the requested Ruby version (`.ruby-version`, `.tool-versions`, Gemfile).
+ */
+export function ruby_requested_version(request_json: string): string;
+
+/**
+ * `{ json, root, path? }` → `RubyProblem[]` (`ruby_rubocop`).
+ */
+export function ruby_rubocop_report(request_json: string): string;
+
+/**
+ * `{ text }` → the script ▶ line (`ruby_file_targets`), or `null`.
+ */
+export function ruby_script_entry(request_json: string): string;
+
+/**
  * `{ history, entry }` → the new history.
  */
 export function run_anything_push_history(request_json: string): string;
@@ -2617,6 +2653,13 @@ export interface InitOutput {
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
     readonly replace_in_files: (a: number, b: number, c: number) => void;
     readonly replace_preview: (a: number, b: number, c: number) => void;
+    readonly ruby_action_command: (a: number, b: number, c: number) => void;
+    readonly ruby_bundle: (a: number, b: number, c: number) => void;
+    readonly ruby_command_line: (a: number, b: number, c: number) => void;
+    readonly ruby_rake_tasks: (a: number, b: number, c: number) => void;
+    readonly ruby_requested_version: (a: number, b: number, c: number) => void;
+    readonly ruby_rubocop_report: (a: number, b: number, c: number) => void;
+    readonly ruby_script_entry: (a: number, b: number, c: number) => void;
     readonly run_anything_push_history: (a: number, b: number, c: number) => void;
     readonly run_anything_resolve: (a: number, b: number, c: number) => void;
     readonly run_anything_suggest: (a: number, b: number, c: number) => void;

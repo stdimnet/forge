@@ -34,6 +34,7 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     webforge_js_testing::register(&mut r, specs.iter().cloned());
     goforge_lang_go::provider::register(&mut r, specs.iter().cloned());
     rustforge_lang_rust::provider::register(&mut r, specs.iter().cloned());
+    rubyforge_lang_ruby::provider::register(&mut r, specs.iter().cloned());
     // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -107,6 +108,9 @@ struct CommandRequest {
     /// The project's Cargo context for Cargo Test configurations.
     #[serde(default)]
     rust_context: Option<serde_json::Value>,
+    /// The project's Ruby context for RSpec and Minitest configurations.
+    #[serde(default)]
+    ruby_context: Option<serde_json::Value>,
 }
 
 /// `{ configuration, spec, reportDir, coverageFile? }` → `TestCommand` of a manifest
@@ -132,6 +136,10 @@ pub fn testing_command(request_json: &str) -> String {
                 ctx.settings
                     .insert(rustforge_lang_rust::CONTEXT_KEY.into(), rust.to_string());
             }
+            if let Some(ruby) = &r.ruby_context {
+                ctx.settings
+                    .insert(rubyforge_lang_ruby::CONTEXT_KEY.into(), ruby.to_string());
+            }
             let cpp = cforge_lang_cpp::CppTests::all()
                 .into_iter()
                 .find(|p| forge_testing::TestFrameworkProvider::id(p) == r.spec.id);
@@ -149,6 +157,10 @@ pub fn testing_command(request_json: &str) -> String {
             } else if let Some(rust) = rustforge_lang_rust::CargoTestProvider::new(r.spec.clone()) {
                 use forge_testing::TestFrameworkProvider;
                 rust.command(&r.configuration, &ctx)
+                    .unwrap_or_else(|| Err("no command".into()))
+            } else if let Some(ruby) = rubyforge_lang_ruby::RubyTests::new(r.spec.clone()) {
+                use forge_testing::TestFrameworkProvider;
+                ruby.command(&r.configuration, &ctx)
                     .unwrap_or_else(|| Err("no command".into()))
             } else {
                 r.spec.build(&r.configuration, &ctx)
