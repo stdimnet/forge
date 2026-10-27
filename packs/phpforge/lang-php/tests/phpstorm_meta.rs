@@ -227,23 +227,41 @@ fn inspections_use_attributes_and_metadata() {
     let (_c, mut idx) = project();
     let found = problems(&mut idx, "app/Http/Checkout.php");
     let has = |code: &str, text: &str| found.iter().any(|(c, t, _)| c == code && t == text);
-    assert!(has("deprecated", "settle"), "{found:#?}");
-    let msg = &found.iter().find(|p| p.0 == "deprecated").unwrap().2;
+    assert!(has("PhpDeprecation", "settle"), "{found:#?}");
+    let msg = &found.iter().find(|p| p.0 == "PhpDeprecation").unwrap().2;
     assert_eq!(msg, "Method 'settle' is deprecated: Use pay() instead");
-    assert!(has("pureFunction", "$order->total()"), "{found:#?}");
-    assert!(has("expectedValues", "'cancelled'"), "{found:#?}");
-    assert!(has("expectedValues", "'urgent'"), "{found:#?}");
-    assert!(has("immutable", "number"), "{found:#?}");
-    assert!(has("unreachable", "$order->pay(1);"), "{found:#?}");
+    assert!(
+        has("PhpExpressionResultUnused", "$order->total()"),
+        "{found:#?}"
+    );
+    assert!(
+        has("PhpExpectedValuesShouldBeUsed", "'cancelled'"),
+        "{found:#?}"
+    );
+    assert!(
+        has("PhpExpectedValuesShouldBeUsed", "'urgent'"),
+        "{found:#?}"
+    );
+    assert!(has("PhpImmutablePropertyIsChanged", "number"), "{found:#?}");
+    assert!(
+        has("PhpUnreachableStatement", "$order->pay(1);"),
+        "{found:#?}"
+    );
     let urgent = found.iter().find(|p| p.1 == "'urgent'").unwrap();
     assert_eq!(urgent.2, "Value should be one of: 'low', 'normal', 'high'");
     // Valid values, the constructor's write and other calls are fine.
     assert!(!found.iter().any(|p| p.1 == "'a@b.c'"));
-    assert_eq!(found.iter().filter(|p| p.0 == "immutable").count(), 1);
+    assert_eq!(
+        found
+            .iter()
+            .filter(|p| p.0 == "PhpImmutablePropertyIsChanged")
+            .count(),
+        1
+    );
     // The constructor writes `number` in its own class.
     assert!(problems(&mut idx, "app/Models/Order.php")
         .iter()
-        .all(|p| p.0 != "immutable"));
+        .all(|p| p.0 != "PhpImmutablePropertyIsChanged"));
 }
 
 #[test]
@@ -269,7 +287,7 @@ fn namespace_must_match_source_roots() {
     assert_eq!(
         found,
         vec![(
-            "psr4Namespace".to_string(),
+            "PhpIllegalPsrClassPath".to_string(),
             "App\\Other".to_string(),
             "Namespace name doesn't match PSR-0/PSR-4 project structure".to_string()
         )]

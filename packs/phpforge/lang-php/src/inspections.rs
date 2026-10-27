@@ -10,6 +10,11 @@
 //! - Unreachable statements after calls that never return (`#[NoReturn]`, `exitPoint()`).
 //! - "Namespace name doesn't match PSR-0/PSR-4 project structure" with the quick-fix "Set
 //!   namespace to …" (source roots from composer.json and Mark Directory as).
+//! - The data-flow inspections of [`crate::dataflow`] (always null, undefined variables,
+//!   constant conditions, unused assignments).
+//!
+//! `PhpProblem::code` is the inspection id of `forge-inspections` (`PhpDeprecation`, ...);
+//! [`to_problem`] turns a problem into the framework's [`forge_inspections::Problem`].
 //!
 //! Offsets are bytes; [`crate::service::inspect`] converts them to UTF-16.
 
@@ -54,8 +59,10 @@ pub struct PhpProblem {
     pub end: usize,
     pub severity: ProblemSeverity,
     pub message: String,
-    /// The inspection: `deprecated`, `expectedValues`, `immutable`, `pureFunction`,
-    /// `unreachable`, `psr4Namespace`.
+    /// The inspection id: `PhpDeprecation`, `PhpExpectedValuesShouldBeUsed`,
+    /// `PhpImmutablePropertyIsChanged`, `PhpExpressionResultUnused`,
+    /// `PhpUnreachableStatement`, `PhpIllegalPsrClassPath` and the data-flow inspections
+    /// of [`crate::dataflow`].
     pub code: String,
     /// Struck through.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -282,7 +289,7 @@ impl<'a> Ctx<'a> {
             end: name.end_byte(),
             severity: ProblemSeverity::Weak,
             message,
-            code: "deprecated".into(),
+            code: "PhpDeprecation".into(),
             deprecated: true,
             unnecessary: false,
             fix,
@@ -353,7 +360,7 @@ impl<'a> Ctx<'a> {
                     end: value.end_byte(),
                     severity: ProblemSeverity::Warning,
                     message: format!("Value should be one of: {}", shown.join(", ")),
-                    code: "expectedValues".into(),
+                    code: "PhpExpectedValuesShouldBeUsed".into(),
                     deprecated: false,
                     unnecessary: false,
                     fix: None,
@@ -486,7 +493,7 @@ impl<'a> Ctx<'a> {
             end: name.end_byte(),
             severity: ProblemSeverity::Warning,
             message: format!("Immutable property '${prop}' cannot be written {where_}"),
-            code: "immutable".into(),
+            code: "PhpImmutablePropertyIsChanged".into(),
             deprecated: false,
             unnecessary: false,
             fix: None,
@@ -532,7 +539,7 @@ impl<'a> Ctx<'a> {
                             "function"
                         }
                     ),
-                    code: "pureFunction".into(),
+                    code: "PhpExpressionResultUnused".into(),
                     deprecated: false,
                     unnecessary: false,
                     fix: None,
@@ -560,7 +567,7 @@ impl<'a> Ctx<'a> {
                     end: last.end_byte(),
                     severity: ProblemSeverity::Weak,
                     message: "Unreachable statement".into(),
-                    code: "unreachable".into(),
+                    code: "PhpUnreachableStatement".into(),
                     deprecated: false,
                     unnecessary: true,
                     fix: None,
@@ -685,7 +692,7 @@ impl<'a> Ctx<'a> {
             end,
             severity: ProblemSeverity::Warning,
             message: "Namespace name doesn't match PSR-0/PSR-4 project structure".into(),
-            code: "psr4Namespace".into(),
+            code: "PhpIllegalPsrClassPath".into(),
             deprecated: false,
             unnecessary: false,
             fix: Some(ProblemFix {
@@ -747,6 +754,7 @@ pub fn inspect(index: &mut ProjectIndex, rel: &str, src: &str) -> Vec<PhpProblem
     ctx.check_namespace();
     ctx.visit(tree.root_node());
     let mut out = ctx.out;
+    out.extend(crate::dataflow::analyze(tree.root_node(), src));
     out.sort_by_key(|p| (p.start, p.end));
     out.dedup_by(|a, b| a.start == b.start && a.end == b.end && a.code == b.code);
     out
@@ -759,4 +767,37 @@ pub fn fixes_at(index: &mut ProjectIndex, rel: &str, src: &str, offset: usize) -
         .filter(|p| p.start <= offset && offset <= p.end)
         .filter_map(|p| p.fix)
         .collect()
+}
+
+/// A problem (byte offsets) as the inspection framework's problem of `path`; fixes are
+/// safe to apply without looking (Code Cleanup).
+pub fn to_problem(path: &str, p: PhpProblem) -> forge_inspections::Problem {
+    let mut out = forge_inspections::Problem::new(&p.code, path, p.start, p.end, p.message);
+    out.severity = Some(
+        match p.severity {
+            ProblemSeverity::Error => "ERROR",
+            ProblemSeverity::Warning => "WARNING",
+            ProblemSeverity::Weak => "WEAK WARNING",
+        }
+        .into(),
+    );
+    out.unnecessary = p.unnecessary;
+    out.deprecated = p.deprecated;
+    if let Some(f) = p.fix {
+        out.fixes.push(forge_inspections::Fix {
+            title: f.title,
+            edits: f
+                .edits
+                .into_iter()
+                .map(|e| forge_inspections::FileEdit {
+                    path: path.to_string(),
+                    start: e.start,
+                    end: e.end,
+                    text: e.new_text,
+                })
+                .collect(),
+            safe: true,
+        });
+    }
+    out
 }

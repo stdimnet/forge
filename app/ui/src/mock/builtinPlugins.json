@@ -5184,7 +5184,192 @@
           ]
         }
       ],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "PhpDeprecation",
+          "name": "Deprecated symbol usage",
+          "group": "PHP/General",
+          "language": "php",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Reports usages of classes, functions, methods, properties and constants marked #[Deprecated] or @deprecated. The quick fix replaces the call when the attribute names a replacement."
+        },
+        {
+          "id": "PhpIllegalPsrClassPath",
+          "name": "Namespace does not match the PSR-0/PSR-4 project structure",
+          "group": "PHP/General",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports a namespace that does not match the file's place under the source roots of composer.json (and Mark Directory as). The quick fix sets the expected namespace."
+        },
+        {
+          "id": "PhpExpectedValuesShouldBeUsed",
+          "name": "Expected values should be used",
+          "group": "PHP/Probable bugs",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports literal arguments, comparisons and return values that are not among the values #[ExpectedValues] or .phpstorm.meta.php expectedArguments() allow."
+        },
+        {
+          "id": "PhpImmutablePropertyIsChanged",
+          "name": "Immutable property written outside its scope",
+          "group": "PHP/Probable bugs",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports writes to properties marked #[Immutable] outside the constructor or the allowed write scope."
+        },
+        {
+          "id": "PhpExpressionResultUnused",
+          "name": "Result of a pure function is not used",
+          "group": "PHP/Probable bugs",
+          "language": "php",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Reports calls of functions and methods marked #[Pure] whose result is thrown away."
+        },
+        {
+          "id": "PhpUnreachableStatement",
+          "name": "Unreachable statement",
+          "group": "PHP/Control flow",
+          "language": "php",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Reports statements after calls that never return (#[NoReturn], exitPoint() in .phpstorm.meta.php)."
+        },
+        {
+          "id": "PhpVariableIsAlwaysNull",
+          "name": "Variable is always null",
+          "group": "PHP/Data flow",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports member accesses and method calls on a variable that holds null on every path that reaches them."
+        },
+        {
+          "id": "PhpUndefinedVariable",
+          "name": "Undefined variable",
+          "group": "PHP/Data flow",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports variables read inside a function before any path assigned them. Functions that use $$name, extract(), compact(), eval or include are not checked."
+        },
+        {
+          "id": "PhpConstantCondition",
+          "name": "Condition is always true or false",
+          "group": "PHP/Data flow",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports if, elseif, while and ternary conditions whose value is known from literals and variables holding known constants (while (true) loops are not reported)."
+        },
+        {
+          "id": "PhpUnusedAssignment",
+          "name": "Unused assignment",
+          "group": "PHP/Data flow",
+          "language": "php",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Reports values assigned to local variables that are overwritten before they are read, or never read afterwards. The quick fix removes the assignment and keeps an expression with side effects.",
+          "cleanup": true
+        },
+        {
+          "id": "PhpStanGlobal",
+          "name": "PHPStan validation",
+          "group": "PHP/Quality tools",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by PHPStan (Settings | Languages & Frameworks | PHP | Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "PsalmGlobal",
+          "name": "Psalm validation",
+          "group": "PHP/Quality tools",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by Psalm (Settings | Languages & Frameworks | PHP | Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "PhpCSValidation",
+          "name": "PHP_CodeSniffer validation",
+          "group": "PHP/Quality tools",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by PHP_CodeSniffer (Settings | Languages & Frameworks | PHP | Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "PhpCSFixerValidation",
+          "name": "PHP CS Fixer validation",
+          "group": "PHP/Quality tools",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by PHP CS Fixer (Settings | Languages & Frameworks | PHP | Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "MessDetectorValidation",
+          "name": "PHP Mess Detector validation",
+          "group": "PHP/Quality tools",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by PHP Mess Detector (Settings | Languages & Frameworks | PHP | Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "LaravelPintValidation",
+          "name": "Laravel Pint validation",
+          "group": "PHP/Quality tools",
+          "language": "php",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by Laravel Pint (Settings | Languages & Frameworks | PHP | Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "PHPStan",
+          "inspection": "PhpStanGlobal"
+        },
+        {
+          "source": "Psalm",
+          "inspection": "PsalmGlobal"
+        },
+        {
+          "source": "PHP_CodeSniffer",
+          "inspection": "PhpCSValidation"
+        },
+        {
+          "source": "PHP CS Fixer",
+          "inspection": "PhpCSFixerValidation"
+        },
+        {
+          "source": "PHP Mess Detector",
+          "inspection": "MessDetectorValidation"
+        },
+        {
+          "source": "Laravel Pint",
+          "inspection": "LaravelPintValidation"
+        }
+      ]
     }
   },
   {
@@ -5359,7 +5544,25 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "LanguageServerDiagnostics",
+          "name": "Language server problems",
+          "group": "General",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by language servers (Intelephense, typescript-language-server, basedpyright, rust-analyzer, gopls, ...). They keep the server's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "lsp",
+          "inspection": "LanguageServerDiagnostics"
+        }
+      ]
     }
   },
   {
@@ -5528,6 +5731,40 @@
               "label": "Au_dit"
             }
           ]
+        }
+      ],
+      "inspections": [
+        {
+          "id": "ComposerOutdatedPackages",
+          "name": "Outdated Composer packages",
+          "group": "PHP/Composer",
+          "language": "json",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Dependencies of composer.json with a newer version available.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "ComposerVulnerablePackages",
+          "name": "Vulnerable Composer packages",
+          "group": "PHP/Composer",
+          "language": "json",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Packages with security advisories (composer audit).",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "composer-outdated",
+          "inspection": "ComposerOutdatedPackages"
+        },
+        {
+          "source": "composer-audit",
+          "inspection": "ComposerVulnerablePackages"
         }
       ]
     }
@@ -7396,7 +7633,56 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "Eslint",
+          "name": "ESLint",
+          "group": "JavaScript and TypeScript/Code quality tools",
+          "language": "javascript",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by ESLint (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "Stylelint",
+          "name": "Stylelint",
+          "group": "CSS/Code quality tools",
+          "language": "css",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by Stylelint (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "Biome",
+          "name": "Biome",
+          "group": "JavaScript and TypeScript/Code quality tools",
+          "language": "javascript",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by Biome (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "ESLint",
+          "inspection": "Eslint"
+        },
+        {
+          "source": "Stylelint",
+          "inspection": "Stylelint"
+        },
+        {
+          "source": "Biome",
+          "inspection": "Biome"
+        }
+      ]
     }
   },
   {
@@ -8663,7 +8949,46 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "PyPackageRequirements",
+          "name": "Package requirements",
+          "group": "Python/Requirements",
+          "language": "python",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports dependencies of requirements files and pyproject.toml that are not installed in the project interpreter, or not in a matching version.",
+          "batch": false
+        },
+        {
+          "id": "PyUndeclaredRequirement",
+          "name": "Imported package is not listed in the requirements",
+          "group": "Python/Requirements",
+          "language": "python",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Reports imports of third-party packages that no dependency file declares.",
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "pyforge",
+          "code": "python.requirementNotSatisfied",
+          "inspection": "PyPackageRequirements"
+        },
+        {
+          "source": "pyforge",
+          "code": "python.requirementSyntax",
+          "inspection": "PyPackageRequirements"
+        },
+        {
+          "source": "pyforge",
+          "code": "python.undeclaredImport",
+          "inspection": "PyUndeclaredRequirement"
+        }
+      ]
     }
   },
   {
@@ -9998,7 +10323,41 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "GoVet",
+          "name": "go vet",
+          "group": "Go/External tools",
+          "language": "go",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by go vet.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "GolangciLint",
+          "name": "golangci-lint",
+          "group": "Go/External tools",
+          "language": "go",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by golangci-lint; they keep the linter's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "go-vet",
+          "inspection": "GoVet"
+        },
+        {
+          "source": "golangci-lint",
+          "inspection": "GolangciLint"
+        }
+      ]
     }
   },
   {
@@ -10403,7 +10762,26 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "RsClippy",
+          "name": "Clippy and rustc problems",
+          "group": "Rust/External tools",
+          "language": "rust",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems reported by cargo clippy (Run Clippy); they keep Clippy's level until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "clippy",
+          "inspection": "RsClippy"
+        }
+      ]
     }
   },
   {
@@ -11376,7 +11754,41 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "KtLint",
+          "name": "ktlint",
+          "group": "Kotlin/External tools",
+          "language": "kotlin",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Style problems reported by ktlint.",
+          "external": true,
+          "batch": false
+        },
+        {
+          "id": "Detekt",
+          "name": "detekt",
+          "group": "Kotlin/External tools",
+          "language": "kotlin",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Code smells reported by detekt.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "kotlin-ktlint",
+          "inspection": "KtLint"
+        },
+        {
+          "source": "kotlin-detekt",
+          "inspection": "Detekt"
+        }
+      ]
     }
   },
   {
@@ -11533,6 +11945,23 @@
               "label": "Re_fresh Spring Model"
             }
           ]
+        }
+      ],
+      "inspections": [
+        {
+          "id": "SpringBootApplicationProperties",
+          "name": "Spring Boot application properties",
+          "group": "Spring/Spring Boot",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports unknown, deprecated and invalid keys and values in application.properties and application.yml, checked against the configuration metadata of the classpath.",
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "spring-config",
+          "inspection": "SpringBootApplicationProperties"
         }
       ]
     }
@@ -12799,7 +13228,26 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "CppBuildProblems",
+          "name": "Build problems",
+          "group": "C and C++/External tools",
+          "language": "c",
+          "severity": "ERROR",
+          "enabled": true,
+          "description": "Compiler errors and warnings of the last CMake build.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "cmake-build",
+          "inspection": "CppBuildProblems"
+        }
+      ]
     }
   },
   {
@@ -13908,7 +14356,25 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "SpellCheckingInspection",
+          "name": "Typo",
+          "group": "Proofreading",
+          "severity": "TYPO",
+          "enabled": true,
+          "description": "Spelling and grammar problems in comments, strings, identifiers and commit messages.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "spelling",
+          "inspection": "SpellCheckingInspection"
+        }
+      ]
     }
   },
   {
@@ -13966,7 +14432,25 @@
       "aiProviders": [],
       "chatAgents": [],
       "codeGenerators": [],
-      "mainMenu": []
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "JsonSchemaCompliance",
+          "name": "Compliance with JSON schema",
+          "group": "JSON and JSON5",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Reports values that do not match the JSON schema of the file (schema mappings, $schema, SchemaStore).",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "json-schema",
+          "inspection": "JsonSchemaCompliance"
+        }
+      ]
     }
   }
 ]

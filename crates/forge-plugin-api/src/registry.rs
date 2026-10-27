@@ -198,6 +198,24 @@ impl PluginRegistry {
         self.plugins.iter().flat_map(|p| &p.contributions.settings)
     }
 
+    /// Inspections of the enabled plugins.
+    pub fn inspections(&self) -> impl Iterator<Item = &InspectionContribution> {
+        self.collect(|c| &c.inspections)
+    }
+
+    /// Tool problem mappings of the enabled plugins.
+    pub fn inspection_mappings(&self) -> impl Iterator<Item = &InspectionMappingContribution> {
+        self.collect(|c| &c.inspection_mappings)
+    }
+
+    /// The inspection registry of the enabled plugins.
+    pub fn inspection_registry(&self) -> forge_inspections::Registry {
+        forge_inspections::Registry::new(
+            self.inspections().cloned(),
+            self.inspection_mappings().cloned(),
+        )
+    }
+
     pub fn lsp_servers(&self) -> impl Iterator<Item = &LspServerSpec> {
         self.collect(|c| &c.lsp_servers)
     }

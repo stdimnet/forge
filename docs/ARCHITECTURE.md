@@ -590,6 +590,59 @@ or without Git, for local and remote projects.
   UI opens the lines in a Run tool window tab without a process (`openOutputTab`, Rerun
   reopens the dialog). Browser mode runs the analyzer as WebAssembly over the demo files.
 
+## Inspections (`forge-inspections`)
+
+- **Registry** (`crates/forge-inspections`, pure): `InspectionSpec` (`[[contributions.inspections]]`:
+  `id`, `name`, `group` path, `language`, `severity`, `enabled`, `description`, `options`,
+  `cleanup`, `external`, `batch`) and `ToolMapping` (`[[contributions.inspectionMappings]]`:
+  `source`, optional `code` or `prefix*`, `inspection`), re-exported by `forge-plugin-api`;
+  `PluginRegistry::inspection_registry()` adds the framework's own `DuplicatedCode`.
+  `Registry::inspection_for(source, code)`: a code that is an inspection id wins, else the most
+  specific mapping of the diagnostics source (the editor filter then tries the diagnostic's
+  own `source`, so `php-quality-tools` problems map per tool: `PHPStan` → `PhpStanGlobal`).
+- **Profiles**: `Profile { name, level: ide | project, tools: { <id>: { enabled?, severity?,
+  scopes: [{ scope, enabled, severity? }], options } } }` storing only differences from the
+  defaults; `ProfilesState { profiles, selected, hasProject, severities }`; `ProfileOp`
+  (`copy`, `rename`, `delete`, `reset`, `select`, `add`, `edit` with a `ToolOp`,
+  `setSeverities`). Stored in the user settings (`inspections.profiles`,
+  `inspections.severities`), `.forge/inspectionProfiles/<Name>.xml` (PHPStorm XML; others listed
+  in `inspections.projectProfiles`) and `inspections.profile` (selection).
+  `ResolvedProfile::effective(id, path)`: the first scope containing the file wins.
+- **Editor problems**: `publishDiagnostics(path, diags, source)` (`features/lsp/store.ts`) runs
+  every source's diagnostics through `setDiagnosticsFilter`; `features/inspections/model.ts`
+  installs the WebAssembly filter `inspections_apply({ path, source, text?, diagnostics })`
+  (configured with `inspections_configure({ registry, profile, severities, scopes, context })`),
+  which drops disabled and suppressed problems and sets `severity`, `inspection`,
+  `inspectionName`, `severityName`.
+- **Suppressions** (`forge_inspections::suppress`): `/** @noinspection Id */`, `// noinspection`,
+  `# noinspection` and other line comments; statement, function, class, file and line regions
+  from a parser-free statement finder (`stmts`); `inspections_suppress_actions({ path, text,
+  line, character, id, bytes? })` gives the Alt+Enter actions' text changes.
+- **IPC**: `inspections_registry() -> { registry, severities }`, `inspections_profiles() ->
+  ProfilesState`, `inspections_save({ profiles }) -> ProfilesState` (emits
+  `inspections://changed`), `inspections_export_profile({ profile, format: xml | json, path? })`,
+  `inspections_import_profile({ text? | path? }) -> Profile`, `inspections_run({ request:
+  { runId, scope: InspectScope, profile?, only? } }) -> Report` with `inspections://progress
+  { runId, done, total, text }` and `inspections_cancel({ runId })`,
+  `inspections_cleanup_plan({ request }) -> CleanupPlan`, `inspections_cleanup_apply({ files:
+  [{ path, stamp, after }] }) -> { written, skipped }`, `inspections_apply_fix({ path, stamp,
+  fix })`, `inspections_export_report({ report, format: html | xml | json, path? })`.
+  `InspectScope { kind: project | module | directory | file | files | scope, path?, paths?,
+  filter?: ScopeFilter, includeTests?, label }`. Runs read files through `Backend` (remote
+  projects too) and run `forge_inspections::run` with the PHP provider (the backend's
+  `php().inspect`: index inspections and `phpforge_lang_php::dataflow`) and duplicated code;
+  `ReportProblem` offsets are bytes, `stamp` (53-bit FNV of the file) guards fixes.
+- **Providers**: `InspectionProvider` (`inspect_file`, `inspect_project`) and `ProblemSource`
+  (an external tool's `ExternalProblem { source, code?, path, line, column, … }` mapped through
+  the registry) are the plug-in points for further checks and quality tools.
+- **Command-line inspector**: `forge inspect <project> <profile.xml|name> <out> [-format
+  xml|json|html] [-d dir] [-fail-on level] [-v0|1|2]` (`app/src-tauri/src/cli.rs`, handled in
+  `main.rs` before the window starts) writes PHPStorm-style XML per inspection,
+  `inspections.json` or `index.html`.
+- UI: `features/inspections` (Settings | Editor | Inspections, Inspect Code / Code Cleanup /
+  Run Inspection by Name dialogs, the Inspection Results tool window, Alt+Enter options);
+  browser mode runs the same Rust through `forge-wasm` (`mock/inspectionsMock.ts`).
+
 ## Workbench: editor groups, Find, TODO and Notifications
 
 - Split editors: `state/editor.ts` keeps one document per file (`editor.tabs`) shared by every

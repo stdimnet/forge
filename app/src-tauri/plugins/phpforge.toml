@@ -117,6 +117,34 @@ default = true
 group = "lang.php.composer"
 order = 5
 
+[[plugin.contributions.inspections]]
+id = "ComposerOutdatedPackages"
+name = "Outdated Composer packages"
+group = "PHP/Composer"
+language = "json"
+severity = "WEAK WARNING"
+external = true
+batch = false
+description = "Dependencies of composer.json with a newer version available."
+
+[[plugin.contributions.inspections]]
+id = "ComposerVulnerablePackages"
+name = "Vulnerable Composer packages"
+group = "PHP/Composer"
+language = "json"
+severity = "WARNING"
+external = true
+batch = false
+description = "Packages with security advisories (composer audit)."
+
+[[plugin.contributions.inspectionMappings]]
+source = "composer-outdated"
+inspection = "ComposerOutdatedPackages"
+
+[[plugin.contributions.inspectionMappings]]
+source = "composer-audit"
+inspection = "ComposerVulnerablePackages"
+
 [[plugin]]
 id = "forge.command-line-tools"
 name = "Command Line Tool Support"

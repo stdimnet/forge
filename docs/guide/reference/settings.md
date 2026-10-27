@@ -33,6 +33,10 @@ Settings written by Forge itself and not declared in a manifest:
 | `<language>.codeStyle.<option>`, `editor.codeStyle.<option>` | the code style options of the Default scheme (user settings) and the Project scheme (project settings), e.g. `php.codeStyle.indent`, `php.codeStyle.spaces.afterComma`, `editor.codeStyle.hardWrapAt`; the options are listed in [Editor](../user/editor.md#code-style) and defined in `crates/forge-codestyle` |
 | `editor.codeStyle.scheme` | the scheme the project uses: `default`, `project` or an IDE scheme id |
 | `editor.codeStyle.schemes.<id>.name`, `editor.codeStyle.schemes.<id>.values.<language>.<option>` | further IDE code style schemes (Duplicate, Copy to IDE, Import Scheme) |
+| `inspections.profiles` | IDE inspection profiles (Default when changed, and copies): a list of `{ name, level, tools }` (Settings \| Editor \| Inspections, page id `editor.inspections`) |
+| `inspections.severities` | custom severities `{ id, name, editor }` |
+| `inspections.profile` | the profile the project uses (project settings; user settings without a project) |
+| `inspections.projectProfiles` | project inspection profiles besides Project Default; each is stored in `.forge/inspectionProfiles/<Name>.xml` |
 
 ### Appearance & Behavior | Appearance
 

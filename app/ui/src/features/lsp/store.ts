@@ -23,16 +23,40 @@ export function onDiagnostics(cb: DiagnosticsListener): () => void {
 /** Diagnostics per file and source: language servers (`lsp`) and Forge's own inspections. */
 const bySource = new Map<string, Map<string, EditorDiagnostic[]>>();
 
+/**
+ * Decides which diagnostics of a source are shown and how severe they are: the inspection
+ * profile (`features/inspections`) maps every source's problems onto inspections, drops
+ * disabled and suppressed ones and applies the profile's severities.
+ */
+export type DiagnosticsFilter = (path: string, source: string, diags: EditorDiagnostic[]) => EditorDiagnostic[];
+let filter: DiagnosticsFilter | null = null;
+
+function show(path: string): void {
+  const sources = bySource.get(path);
+  if (!sources) return;
+  const merged = [...sources.entries()].flatMap(([source, list]) => (filter && list.length ? filter(path, source, list) : list));
+  setDiagnostics(path, reconcile(merged));
+  listeners.forEach((l) => l(path, merged));
+}
+
+/** Install the filter (or remove it with `null`) and apply it to everything published so far. */
+export function setDiagnosticsFilter(f: DiagnosticsFilter | null): void {
+  filter = f;
+  refilterDiagnostics();
+}
+
+/** Apply the filter again (the profile or a file's suppression comments changed). */
+export function refilterDiagnostics(path?: string): void {
+  if (path !== undefined) show(path);
+  else for (const p of bySource.keys()) show(p);
+}
+
 /** Replace the diagnostics `source` reported for `path`; the store keeps all sources merged. */
 export function publishDiagnostics(path: string, diags: EditorDiagnostic[], source = "lsp"): void {
   let sources = bySource.get(path);
   if (!sources) bySource.set(path, (sources = new Map()));
   sources.set(source, diags);
-  // Always a new array: the store adopts the first array it gets and `reconcile` updates
-  // it in place later, which must never change an array kept in `sources`.
-  const merged = sources.size === 1 ? [...diags] : [...sources.values()].flat();
-  setDiagnostics(path, reconcile(merged));
-  listeners.forEach((l) => l(path, merged));
+  show(path);
 }
 
 export function setServerStatuses(s: ServerStatus[]): void {

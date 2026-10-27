@@ -72,12 +72,54 @@ async function expectedNamespace(path: string): Promise<string | null> {
   });
 }
 
+/**
+ * What Rust's PHP data-flow analysis (`phpforge_lang_php::dataflow`, tree-sitter, not built
+ * to WebAssembly) reports for the demo files, found again by their text so edits keep them.
+ */
+const DEMO_DATA_FLOW: { path: string; needle: string; nth: number; code: string; message: string; fix?: "keepExpression" | "removeLine" }[] = [
+  {
+    path: "app/Services/InvoiceService.php",
+    needle: "$lines = array_map(fn ($line) => $line->price * $line->quantity, $order->lines)",
+    nth: 0,
+    code: "PhpUnusedAssignment",
+    message: "The value assigned to '$lines' is never used",
+    fix: "keepExpression",
+  },
+  { path: "app/Services/LegacyPricing.php", needle: "$prefix = 'ORD'", nth: 0, code: "PhpUnusedAssignment", message: "The value assigned to '$prefix' is never used", fix: "removeLine" },
+  { path: "app/Services/LegacyPricing.php", needle: "$verbose", nth: 1, code: "PhpConstantCondition", message: "Condition is always false" },
+  { path: "app/Services/LegacyPricing.php", needle: "$customer", nth: 1, code: "PhpVariableIsAlwaysNull", message: "Variable '$customer' is always null here" },
+  { path: "app/Services/LegacyPricing.php", needle: "$taxRate", nth: 0, code: "PhpUndefinedVariable", message: "Variable '$taxRate' is undefined here" },
+];
+
+function demoDataFlow(path: string, text: string): PhpProblem[] {
+  const out: PhpProblem[] = [];
+  for (const d of DEMO_DATA_FLOW.filter((x) => x.path === path)) {
+    let at = -1;
+    for (let i = 0; i <= d.nth; i++) {
+      at = text.indexOf(d.needle, at + 1);
+      if (at < 0) break;
+    }
+    if (at < 0) continue;
+    const end = at + d.needle.length;
+    const lineStart = text.lastIndexOf("\n", at) + 1;
+    const lineEnd = text.indexOf("\n", end);
+    const fix =
+      d.fix === "keepExpression"
+        ? { title: "Remove assignment, keep the expression", edits: [{ start: at, end: text.indexOf("=", at) + 2, newText: "" }] }
+        : d.fix === "removeLine"
+          ? { title: "Remove unused assignment", edits: [{ start: lineStart, end: lineEnd < 0 ? text.length : lineEnd + 1, newText: "" }] }
+          : undefined;
+    out.push({ start: at, end, severity: "warning", message: d.message, code: d.code, unnecessary: d.code === "PhpUnusedAssignment", fix });
+  }
+  return out;
+}
+
 registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => {
   const p = String(path);
   const text = (content as string | undefined) ?? mockFiles[p];
   if (!isPhp(p) || text === undefined) return [];
   const methods = demoMethods();
-  const out: PhpProblem[] = [];
+  const out: PhpProblem[] = demoDataFlow(p, text);
   for (const m of text.matchAll(/(\$\w+(?:\(\))?|\w+\([^()]*\))->(\w+)\(([^()]*)\)/g)) {
     const info = methods.get(m[2].toLowerCase());
     if (!info) continue;
@@ -93,7 +135,7 @@ registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => 
         end: nameAt + m[2].length,
         severity: "weak",
         message: `Method '${m[2]}' is deprecated${info.deprecated.reason ? `: ${info.deprecated.reason}` : ""}`,
-        code: "deprecated",
+        code: "PhpDeprecation",
         deprecated: true,
         fix: replacement ? { title: `Replace with '${replacement}'`, edits: [{ start: m.index!, end: m.index! + m[0].length, newText: replacement }] } : undefined,
       });
@@ -103,12 +145,12 @@ registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => 
       const expected = info.expected[i];
       if (!expected || !/^'[^']*'$/.test(arg) || expected.map(unquote).includes(unquote(arg))) return;
       const at = m.index! + m[0].indexOf(arg, m[1].length + m[2].length + 3);
-      out.push({ start: at, end: at + arg.length, severity: "warning", message: `Value should be one of: ${expected.join(", ")}`, code: "expectedValues" });
+      out.push({ start: at, end: at + arg.length, severity: "warning", message: `Value should be one of: ${expected.join(", ")}`, code: "PhpExpectedValuesShouldBeUsed" });
     });
     // A pure call as a statement of its own.
     const lineStart = text.lastIndexOf("\n", m.index!) + 1;
     if (info.pure && /^\s*$/.test(text.slice(lineStart, m.index!)) && text.slice(m.index! + m[0].length).startsWith(";")) {
-      out.push({ start: m.index!, end: m.index! + m[0].length, severity: "weak", message: "The result of the pure method call is not used", code: "pureFunction" });
+      out.push({ start: m.index!, end: m.index! + m[0].length, severity: "weak", message: "The result of the pure method call is not used", code: "PhpExpressionResultUnused" });
     }
   }
   const ns = /^namespace\s+([\w\\]+)\s*;/m.exec(text);
@@ -121,7 +163,7 @@ registerMock("php_inspect", async ({ path, content }): Promise<PhpProblem[]> => 
         end: start + ns[1].length,
         severity: "warning",
         message: "Namespace name doesn't match PSR-0/PSR-4 project structure",
-        code: "psr4Namespace",
+        code: "PhpIllegalPsrClassPath",
         fix: { title: `Set namespace to '${expected}'`, edits: [{ start, end: start + ns[1].length, newText: expected }] },
       });
     }

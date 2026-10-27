@@ -37,6 +37,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-forges](forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-injections](forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
+| [forge-inspections](forge-inspections.md) | Forge's inspection framework: registry, severities, profiles (PHPStorm XML), suppressions, duplicates, the batch runner, Code Cleanup and report export (pure, also built to WebAssembly) |
 | [forge-jsonschema](forge-jsonschema.md) | JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping parsers, a draft 4–2020-12 validator with PHPStorm's messages, completion, hover, Go to Declaration, schema mappings, bundled schemas and remote schema downloads |
 | [forge-keymap](forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |

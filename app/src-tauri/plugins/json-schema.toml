@@ -40,3 +40,16 @@ type = "bool"
 default = true
 group = "lang.json-schema.remote"
 order = 1
+
+[[contributions.inspections]]
+id = "JsonSchemaCompliance"
+name = "Compliance with JSON schema"
+group = "JSON and JSON5"
+severity = "WARNING"
+external = true
+batch = false
+description = "Reports values that do not match the JSON schema of the file (schema mappings, $schema, SchemaStore)."
+
+[[contributions.inspectionMappings]]
+source = "json-schema"
+inspection = "JsonSchemaCompliance"

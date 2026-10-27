@@ -25,8 +25,8 @@ describe("PHP metadata in the editor", () => {
 
   it("turns problems into struck-through or greyed diagnostics", () => {
     const doc = Text.of(["<?php", "$o->settle();"]);
-    const [d] = toDiagnostics(doc, [{ start: 10, end: 16, severity: "weak", message: "Method 'settle' is deprecated", code: "deprecated", deprecated: true }]);
-    expect(d).toMatchObject({ range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } }, deprecated: true, source: "PHP", code: "deprecated" });
+    const [d] = toDiagnostics(doc, [{ start: 10, end: 16, severity: "weak", message: "Method 'settle' is deprecated", code: "PhpDeprecation", deprecated: true }]);
+    expect(d).toMatchObject({ range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } }, deprecated: true, source: "PHP", code: "PhpDeprecation" });
   });
 });
 

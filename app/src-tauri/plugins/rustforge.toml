@@ -320,3 +320,17 @@ default = true
 group = "lang.rust"
 section = "Debugger"
 order = 61
+
+[[plugin.contributions.inspections]]
+id = "RsClippy"
+name = "Clippy and rustc problems"
+group = "Rust/External tools"
+language = "rust"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by cargo clippy (Run Clippy); they keep Clippy's level until the profile sets a severity."
+
+[[plugin.contributions.inspectionMappings]]
+source = "clippy"
+inspection = "RsClippy"

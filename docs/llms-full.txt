@@ -54,6 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Inspections**: inspection profiles (Default, Project Default, copies; PHPStorm XML import
+  and export) with severities, scope-specific settings and options for every problem Forge
+  shows, Inspect Code with the Inspection Results tool window, Run Inspection by Name, Code
+  Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
+  null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
+  CI ([Inspections](docs/guide/user/inspections.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
@@ -790,6 +796,7 @@ not finished, the page says so.
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [Inspections](docs/guide/user/inspections.md) | Settings \| Editor \| Inspections (profiles, severities, scopes, options, import/export of PHPStorm profiles), Inspect Code, Run Inspection by Name (`Ctrl+Alt+Shift+I`), Code Cleanup with preview, Inspection Results, `@noinspection` / `noinspection` suppressions, duplicated code, PHP data flow, `forge inspect` for CI |
 | [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md) | named scopes in PHPStorm's scope language (`file:app//*.php`, `src:`, `test:`, `lib:`, `&&`, `\|\|`, `!`), predefined scopes, scopes in Find in Files, Replace in Files and Find Usages, file colors in editor tabs and the Project view |
 | [Structural Search and Replace](docs/guide/user/structural-search.md) | templates with `$variables$` for PHP, JavaScript and TypeScript, Count / Text / Type filters, the template library, Replace with preview, Replace All and Undo |
 | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
@@ -4175,6 +4182,199 @@ The **Text** tab of Search Everywhere uses the same search (from two characters 
 
 **Replace in Files** (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the same tab with the selected
 text as the query and the caret in **Replace with**.
+
+
+---
+
+Source: docs/guide/user/inspections.md
+
+# Inspections
+
+Every problem Forge highlights belongs to an **inspection**: Forge's own checks (the PHP index
+inspections, PHP data flow, duplicated code, requirements, Spring Boot properties, spelling)
+as well as the problems of language servers and external tools (the PHP quality tools
+PHPStan, Psalm, PHP_CodeSniffer, PHP CS Fixer, PHP Mess Detector and Laravel Pint, Clippy,
+go vet, golangci-lint, ktlint, detekt, Composer, CMake builds). Like in PHPStorm, an **inspection
+profile** decides which inspections run, how severe their problems are, and where.
+
+## Settings | Editor | Inspections
+
+![Inspections settings](docs/screenshots/inspections-settings.png)
+
+- **Profile**: the profile the project uses. **Project Default** is stored in the project
+  (`.forge/inspectionProfiles/Project_Default.xml`, written once it differs from the
+  defaults), **Default** in your user settings. Copies are stored where you put them.
+- **⚙ menu**: **Duplicate…**, **Copy to Project…** / **Copy to IDE…**, **Rename…**,
+  **Delete**, **Restore Defaults**, **Export** (PHPStorm's inspection profile XML or Forge
+  JSON), **Import Profile…** (both formats, so PHPStorm profiles work) and **Add Custom
+  Severity…**.
+- **The tree** groups the inspections by language and group (PHP | Data flow, Rust |
+  External tools, …). The search field filters by name, id, group and description. The
+  checkboxes switch single inspections or whole groups on and off; changed inspections are
+  shown in the accent color.
+- **The selected inspection**: its id (the name suppression comments use), **Enabled**,
+  **Severity**, **Scopes**, **Options** and the description. **Reset to default** forgets the
+  profile's changes for it.
+
+### Severities
+
+**Error**, **Warning**, **Weak Warning**, **Server Problem**, **Typo** and **Info**, plus
+custom severities (⚙ | Add Custom Severity…) that the editor highlights like one of the
+built-in ones. Problems of external tools (Clippy, golangci-lint, language servers, …) keep the
+level the tool reports (**As reported by the tool**) until you choose a severity.
+
+### Scope-specific settings
+
+![Scopes of an inspection](docs/screenshots/inspections-settings-scopes.png)
+
+**Scopes | +** adds a [scope](docs/guide/user/scopes-and-file-colors.md) (a named scope or a predefined one
+such as Project Test Files) with its own checkbox and severity. The first scope that contains
+a file wins; the last row, **Everywhere else**, is the inspection's own setting. Turning an
+inspection off for tests while keeping it everywhere else is one row.
+
+### What the profile does in the editor
+
+The profile applies to every problem the editor and the Problems tool window show, whatever
+reported it: a disabled inspection's problems disappear, severities follow the profile, and
+suppression comments (below) hide problems right away.
+
+## Inspect Code
+
+**Code | Inspect Code…** opens **Specify Inspection Scope**:
+
+![Specify Inspection Scope](docs/screenshots/inspections-inspect-code-dialog.png)
+
+- **Whole project**, **Module**, **File** (the current editor), **Directory** (the current
+  file's folder) or a **Custom scope**; **Include test sources**.
+- **Inspection profile** and **Configure…** to edit it.
+
+**Analyze** runs every enabled inspection over the scope in the backend (where the project
+lives, also for remote projects). The status bar shows the progress with a **Cancel** button.
+**Code | Analyze Code | Inspect Current File** (`Alt+Shift+I`) inspects the current file
+without the dialog.
+
+> **Note:** inspections whose problems come from a running language server or tool
+> (language server problems, Clippy, ktlint, spelling, requirements, …) run in the editor
+> only; Inspect Code runs Forge's own inspections and duplicated code.
+
+## Inspection Results
+
+![Inspection Results](docs/screenshots/inspections-results.png)
+
+Every run opens a tab in the **Inspection Results** tool window (View | Tool Windows |
+Inspection Results):
+
+- The problems are grouped by inspection group, inspection and file. The toolbar adds
+  **Group by Severity** and **Group by Directory**, **Expand All** / **Collapse All**,
+  **Rerun**, **Export** (HTML or XML) and **Edit Settings**.
+- Double-click (or `Enter`) opens the problem in the editor.
+- The right pane shows the selected problem with its **quick fixes** (applied to the file,
+  which must not have changed since the run), **Suppress…** (statement, function, class or
+  file) and **Edit Inspection Profile Setting**. Fixed problems are struck through until the
+  next run.
+- **Duplicates** lists the duplicate groups of the run.
+
+## Run Inspection by Name
+
+**Code | Run Inspection by Name…** (`Ctrl+Alt+Shift+I`, macOS `Cmd+Alt+Shift+I`) picks one
+inspection by name, then asks for the scope and runs only that inspection.
+
+![Run Inspection by Name](docs/screenshots/inspections-run-by-name.png)
+
+## Code Cleanup
+
+**Code | Code Cleanup…** asks for a scope, applies every *safe* quick fix of the inspections
+marked **Code Cleanup** in the profile (for example removing unused assignments) and shows a
+preview with a diff per file. **Apply** writes the files; files that changed since the
+preview are left alone.
+
+![Code Cleanup preview](docs/screenshots/inspections-code-cleanup.png)
+
+## Suppressing problems
+
+`Alt+Enter` on a problem lists **Inspection '…' options** with **Edit inspection profile
+setting**, **Disable inspection** and **Suppress for statement / function / class / file**:
+
+![Suppress actions](docs/screenshots/inspections-suppress.png)
+
+Forge writes PHPStorm's comments, so suppressions work in both IDEs:
+
+| Language | Comment |
+| --- | --- |
+| PHP | `/** @noinspection PhpUnusedAssignment */` (or a line `@noinspection Id` in the doc comment of a function or class) |
+| JavaScript, TypeScript | `// noinspection JSUnusedLocalSymbols` |
+| Python | `# noinspection PyUnusedLocal` |
+| Other languages | the language's line comment: `// noinspection Id`, `# noinspection Id`, `-- noinspection Id`, `<!-- noinspection Id -->` |
+
+- A comment **before a statement** suppresses the listed inspections in that statement; a
+  function or class declaration counts as one statement with its body.
+- A comment **at the top of the file** followed by an empty line (in PHP also on the
+  `<?php` line) suppresses them in the whole file.
+- A comment **after code on the same line** suppresses them on that line.
+- Several ids are separated by commas; `ALL` suppresses every inspection; PHPStorm's ids with
+  the `Inspection` suffix work too.
+
+## Duplicated code
+
+The **Duplicated code fragment** inspection (General) compares the tokens of the inspected
+files, so formatting and comments do not matter. Its options:
+
+- **Minimum fragment size (tokens)**, 60 by default;
+- **Anonymize identifiers**: fragments that differ only in variable, function and field
+  names are duplicates too (on by default);
+- **Anonymize literals**: string and number values do not matter either.
+
+![Duplicates](docs/screenshots/inspections-duplicates.png)
+
+**Code | Analyze Code | Locate Duplicates…** runs only this inspection over a scope. Each copy
+is reported with links to the other copies, and the **Duplicates** view of Inspection Results
+lists the groups.
+
+## PHP data flow
+
+Forge follows the values of local variables through PHP functions (branches are merged, loops
+forget what they assign) and reports:
+
+| Inspection | Example |
+| --- | --- |
+| **Variable is always null** | `$customer = null; … $customer->name` |
+| **Undefined variable** | a variable read in a function before any path assigned it |
+| **Condition is always true or false** | `if (false)`, `if (1 === 2)`, `$debug = false; if ($debug)` (not `while (true)`) |
+| **Unused assignment** | `$prefix = 'ORD'; $prefix = 'INV';`, or a value never read again; the quick fix removes it (keeping a call with side effects) |
+
+The analysis stays quiet where it cannot be sure: functions using `$$name`, `extract()`,
+`compact()`, `get_defined_vars()`, `eval` or `include` are skipped, variables shared by
+reference (`&$x`, `global`, `static`, `use (&$x)`) are not tracked, and a variable passed to a
+call may be written by it.
+
+## Command-line inspector
+
+The `forge` binary inspects a project without a window, for CI:
+
+```sh
+forge inspect <project> <profile.xml|profile name> <output dir> [-format xml|json|html] [-d <directory>] [-fail-on <severity>] [-v0|-v1|-v2]
+```
+
+| Argument | Meaning |
+| --- | --- |
+| `<project>` | the project folder |
+| `<profile.xml\|name>` | an inspection profile file (PHPStorm XML or Forge JSON, e.g. `.forge/inspectionProfiles/Project_Default.xml`) or the name of a profile (`Project Default`, `Default`, a copy) |
+| `<output dir>` | where the results go: one XML file per inspection plus `.descriptions.xml` (PHPStorm's format, default), `inspections.json` (`-format json`) or `index.html` (`-format html`) |
+| `-d <directory>` | inspect only this folder of the project |
+| `-fail-on <severity>` | exit with code 1 when a problem of this severity or worse was found (`ERROR`, `WARNING`, `WEAK WARNING`, …) |
+| `-v0` / `-v1` / `-v2` | quiet, normal (default), verbose |
+
+It builds the PHP index, runs the profile's inspections that work without the IDE (the PHP
+inspections, PHP data flow, duplicated code) and exits with 0, 1 (`-fail-on`) or 2 (wrong
+arguments, a project or profile that cannot be found). Example for a CI job:
+
+```sh
+forge inspect . "Project Default" build/inspections -format xml -fail-on ERROR
+```
+
+> **Note:** on Windows the release build is a GUI application: it writes the results and
+> sets the exit code (`start /wait forge.exe inspect …` waits for it), but prints nothing to
+> the console.
 
 
 ---
@@ -17930,9 +18130,11 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Element Right | `MoveElementRight` | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | — |
 | Move Line Up | `MoveLineUp` | `Alt+Shift+Up` | `Alt+Shift+Up` | yes |
 | Move Line Down | `MoveLineDown` | `Alt+Shift+Down` | `Alt+Shift+Down` | yes |
-| Inspect Code… | `InspectCode` |  |  | — |
-| Code Cleanup / Inspect File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | — |
-| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | — |
+| Inspect Code… | `InspectCode` |  |  | yes |
+| Inspect Current File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes |
+| Code Cleanup… | `CodeCleanup` |  |  | yes |
+| Locate Duplicates… | `LocateDuplicates` |  |  | yes |
+| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes |
 | Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
 | Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
 
@@ -18791,9 +18993,11 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Move Element Right | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | not yet | Not available yet; the entry is disabled. |
 | Move Line Down | `Alt+Shift+Down` | `Alt+Shift+Down` | yes | Moves the current line or selection down. [More](docs/guide/user/editor.md#editing-actions) |
 | Move Line Up | `Alt+Shift+Up` | `Alt+Shift+Up` | yes | Moves the current line or selection up. [More](docs/guide/user/editor.md#editing-actions) |
-| Inspect Code… | — | — | not yet | Not available yet; the entry is disabled. |
-| Code Cleanup… | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
-| Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
+| Inspect Code… | — | — | yes | Runs the inspection profile over the whole project, a module, file, directory or custom scope; results in the Inspection Results tool window. [More](docs/guide/user/inspections.md#inspect-code) ([screenshot](docs/screenshots/inspections-results.png)) |
+| Code Cleanup… | — | — | yes | Applies the safe quick fixes of the cleanup inspections over a scope, after a preview with a diff per file. [More](docs/guide/user/inspections.md#code-cleanup) |
+| Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes | Runs one inspection, picked by name, over a scope. [More](docs/guide/user/inspections.md#run-inspection-by-name) |
+| Analyze Code ▸ Inspect Current File | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes | Inspects the file of the current editor. [More](docs/guide/user/inspections.md#inspect-code) |
+| Analyze Code ▸ Locate Duplicates… | — | — | yes | Runs the duplicated code inspection over a scope; the Duplicates view lists the groups. [More](docs/guide/user/inspections.md#duplicated-code) |
 | Analyze Stack Trace or Thread Dump… | — | — | yes | Opens a pasted stack trace in a Stack Trace tab of the Run tool window with frames linked to project files; server and container paths are mapped. [More](docs/guide/user/run-debug.md#analyze-stack-trace) ([screenshot](docs/screenshots/stack-trace-tab.png)) |
 
 
@@ -19130,6 +19334,10 @@ Settings written by Forge itself and not declared in a manifest:
 | `<language>.codeStyle.<option>`, `editor.codeStyle.<option>` | the code style options of the Default scheme (user settings) and the Project scheme (project settings), e.g. `php.codeStyle.indent`, `php.codeStyle.spaces.afterComma`, `editor.codeStyle.hardWrapAt`; the options are listed in [Editor](docs/guide/user/editor.md#code-style) and defined in `crates/forge-codestyle` |
 | `editor.codeStyle.scheme` | the scheme the project uses: `default`, `project` or an IDE scheme id |
 | `editor.codeStyle.schemes.<id>.name`, `editor.codeStyle.schemes.<id>.values.<language>.<option>` | further IDE code style schemes (Duplicate, Copy to IDE, Import Scheme) |
+| `inspections.profiles` | IDE inspection profiles (Default when changed, and copies): a list of `{ name, level, tools }` (Settings \| Editor \| Inspections, page id `editor.inspections`) |
+| `inspections.severities` | custom severities `{ id, name, editor }` |
+| `inspections.profile` | the profile the project uses (project settings; user settings without a project) |
+| `inspections.projectProfiles` | project inspection profiles besides Project Default; each is stored in `.forge/inspectionProfiles/<Name>.xml` |
 
 ### Appearance & Behavior | Appearance
 
@@ -20828,6 +21036,17 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).
 
+### `forge inspect`
+
+```text
+forge inspect <project> <profile.xml|profile name> <output dir> [-format xml|json|html] [-d <directory>] [-fail-on <severity>] [-v0|-v1|-v2]
+```
+
+The command-line inspector: runs the profile's inspections over the project without a window
+and writes the results (one XML file per inspection plus `.descriptions.xml`, `inspections.json`
+or `index.html`). Exit code 0, 1 with `-fail-on` when a problem of that severity or worse was
+found, 2 for wrong arguments. See [Inspections](docs/guide/user/inspections.md#command-line-inspector).
+
 The deb and rpm packages put `forge` on the `PATH`. For the AppImage, create a link yourself,
 e.g. `ln -s ~/Applications/Forge_0.1.0_amd64.AppImage ~/.local/bin/forge`.
 
@@ -20977,6 +21196,7 @@ first (the time is UTC).
 | `php-servers.json` | PHP servers and path mappings | yes |
 | `dataSources.toml` | project data sources (no passwords) | yes |
 | `deployment.toml` | deployment servers, mappings, excluded paths and the default server (no passwords) | yes |
+| `inspectionProfiles/*.xml` | project inspection profiles in PHPStorm's format (`Project_Default.xml` once it differs from the defaults) | yes |
 
 Add `.forge/runConfigurations.local.toml` (and `.forge/cache/` if it appears) to your
 `.gitignore`. In the project root, `http-client.env.json` and `http-client.private.env.json` are
@@ -21669,6 +21889,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
 | `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
+| `[[contributions.inspections]]` / `[[contributions.inspectionMappings]]` / `InspectionProvider` / `ProblemSource` | manifest / `forge-inspections` | an inspection (profiles, severities, suppressions, Inspect Code) and which published problems belong to it |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
 | `registerEndpointsView` | `features/endpoints/registry.ts` | a view of the shared Endpoints tool window (one tab per pack when several apply: Python web frameworks, Spring and JAX-RS) |
 | `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
@@ -21973,6 +22194,43 @@ run configuration types in the UI. `registerTestFileMatcher(path => bool)` from
 `@/features/run` attaches the test gutter to their files, and
 `registerContextConfiguration(path => cfg | null)` answers Run Context Configuration in files
 without tests.
+
+## Inspections
+
+Every problem Forge shows belongs to an inspection of `crates/forge-inspections`. Declare a
+pack's inspections in its manifest:
+
+```toml
+[[contributions.inspections]]
+id = "PhpUnusedAssignment"          # the id profiles and suppression comments use
+name = "Unused assignment"
+group = "PHP/Data flow"             # the Settings tree: language / group
+language = "php"
+severity = "WEAK WARNING"           # ERROR, WARNING, WEAK WARNING, SERVER PROBLEM, TYPO, INFO
+cleanup = true                      # its safe fixes run in Code Cleanup
+description = "Reports assignments whose value is never read."
+
+[[contributions.inspectionMappings]]   # problems published by an external tool
+source = "clippy"                      # the third argument of publishDiagnostics
+code = "clippy::*"                     # optional; a trailing * matches a prefix
+inspection = "RsClippy"
+```
+
+`external = true` keeps the level a tool reports until the profile sets one, `batch = false`
+keeps an inspection out of Inspect Code (problems that need a running language server or
+tool), `options` adds typed options to the Settings page.
+
+- **Editor problems** need no code: whatever a feature publishes with
+  `publishDiagnostics(path, diagnostics, source)` goes through the selected profile (the
+  diagnostic's `code` when it is an inspection id, else the mapping of the published source,
+  else the mapping of the diagnostic's own `source`, e.g. `PHPStan`): disabled
+  inspections drop out, severities follow the profile and suppression comments hide
+  problems. Alt+Enter offers the Suppress actions for every problem with an inspection.
+- **Inspect Code / the command-line inspector** run Rust providers: implement
+  `forge_inspections::InspectionProvider` (`inspect_file` per file, `inspect_project` across
+  files) and add it in `app/src-tauri/src/inspections.rs`. An external tool that reports
+  problems by file, position and code (PHPStan, Psalm, a linter) implements
+  `forge_inspections::ProblemSource`; its problems are mapped with the manifest mappings.
 
 ## Run Anything providers
 
@@ -23065,6 +23323,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-injections](docs/guide/developer/crates/forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
+| [forge-inspections](docs/guide/developer/crates/forge-inspections.md) | Forge's inspection framework: registry, severities, profiles (PHPStorm XML), suppressions, duplicates, the batch runner, Code Cleanup and report export (pure, also built to WebAssembly) |
 | [forge-jsonschema](docs/guide/developer/crates/forge-jsonschema.md) | JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping parsers, a draft 4–2020-12 validator with PHPStorm's messages, completion, hover, Go to Declaration, schema mappings, bundled schemas and remote schema downloads |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
@@ -24977,6 +25236,100 @@ cargo test -p forge-injections
 
 ---
 
+Source: docs/guide/developer/crates/forge-inspections.md
+
+# forge-inspections
+
+`crates/forge-inspections` — Forge's inspection framework: registry, severities, profiles (PHPStorm XML), suppressions, duplicates, the batch runner, Code Cleanup and report export (pure, also built to WebAssembly).
+
+## Purpose
+
+The common framework every problem in Forge goes through (see the
+[user guide](docs/guide/user/inspections.md)). It does not inspect code itself except for
+duplicated code; packs contribute inspections and providers.
+
+- `spec`: what a pack contributes: `InspectionSpec` (`[[contributions.inspections]]`: id,
+  name, group path, language, default severity, enabled, description, options, `cleanup`,
+  `external`, `batch`) and `ToolMapping` (`[[contributions.inspectionMappings]]`: problems
+  published with a diagnostics `source` and optionally a `code` or code prefix belong to an
+  inspection).
+- `registry`: the inspections of the enabled plugins plus the framework's own
+  (`DuplicatedCode`), the Settings tree grouped by language and group with search,
+  `inspection_for(source, code)` and Run Inspection by Name's `find_by_name`.
+- `severity`: Error, Warning, Weak Warning, Server Problem, Typo, Info and custom severities
+  (`SeverityDef`), PHPStorm's level names and how the editor highlights each.
+- `profile`: `Profile` stores only what differs from the defaults (`ToolSettings`: enabled,
+  severity, scope-specific settings, options); `ToolOp` / `ProfileOp` are the edits of the
+  Settings page (copy, rename, delete, reset, import, custom severities), `view` the Settings
+  tree with the profile's state, `ResolvedProfile::effective(id, path)` what an inspection
+  does for a file (the first matching scope wins).
+- `store`: where profiles live: IDE profiles in the user settings (`inspections.profiles`,
+  `inspections.severities`), project profiles as PHPStorm XML in
+  `.forge/inspectionProfiles/` (listed in `inspections.projectProfiles`), the selection in
+  `inspections.profile`; `load` and `plan_save` (settings writes and file writes).
+- `io`: PHPStorm inspection profile XML and Forge JSON, both ways.
+- `lang`, `stmts`: comment and string syntax per file type and a parser-free statement and
+  block finder (braces, semicolons, line breaks, indentation).
+- `suppress`: `@noinspection` / `noinspection` comments (statement, function, class, file and
+  line regions, `ALL`, ids with or without the `Inspection` suffix) and the Suppress actions
+  with the comment each one inserts (PHP doc comments get a line in an existing doc block).
+- `duplicates`: the token-based duplicate detector (rolling hashes over windows of the
+  minimum size, maximal extension, grouping of copies; anonymized identifiers and literals).
+- `engine`: `InspectionProvider` (per file and project-wide checks), `ProblemSource` (an
+  external tool that yields problems by position and code, mapped through the registry) and
+  `run`, which applies the profile, the scopes and the suppressions, with progress and
+  cancel.
+- `report`: `Report` / `ReportProblem`, the Inspection Results tree (`tree` grouped by
+  severity, group, inspection, directory and file), export as HTML, one XML document, one XML
+  file per inspection (PHPStorm's command-line format) and JSON.
+- `cleanup`: applying edits, and Code Cleanup's plan of safe fixes per file.
+
+## Main public items
+
+```rust
+pub struct InspectionSpec { id, name, group, language, severity, enabled, description, options, cleanup, external, batch }
+pub struct ToolMapping { source, code, inspection }
+pub struct Registry { inspections, mappings } // new, get, inspection_for, tree, find_by_name
+pub struct Profile { name, level, tools: BTreeMap<String, ToolSettings> }
+pub struct ProfilesState { profiles, selected, has_project, severities } // apply(ProfileOp)
+pub struct ResolvedProfile { … } // effective(id, path) -> Option<Effective>
+pub struct Suppressions { regions } // parse(path, text), is_suppressed(id, offset)
+pub fn suppress::actions(path, text, offset, id) -> Vec<SuppressAction>
+pub fn duplicates::find(files, &DuplicateOptions, cancelled) -> Vec<DuplicateGroup>
+pub trait InspectionProvider { fn inspections(); fn inspect_file(); fn inspect_project(); }
+pub trait ProblemSource { fn name(); fn problems(files, ctx) -> Result<Vec<ExternalProblem>, String>; }
+pub fn run(files, &ResolvedProfile, providers, sources, &RunOptions, progress, cancelled) -> Report
+pub fn report::tree(&Report, &[Grouping]) -> Vec<ResultNode>
+pub fn cleanup::plan(problems, texts, &Registry) -> CleanupPlan
+```
+
+## Used by
+
+- `forge-plugin-api` (`InspectionContribution`, `InspectionMappingContribution`,
+  `PluginRegistry::inspection_registry`)
+- `phpforge-lang-php` (`inspections::to_problem`; its problem codes are inspection ids)
+- `app/src-tauri`: `inspections.rs` (scope files, the PHP provider, duplicates), the IPC
+  commands in `commands/inspections.rs` and the command-line inspector `cli.rs`
+  (`forge inspect`)
+- `forge-wasm` (`inspections_*`): the UI's Settings tree, the diagnostics filter of the
+  editor, Suppress actions, Run Inspection by Name, the results tree, and browser mode's runs
+
+## Dependencies
+
+- Workspace crates: `forge-scopes`
+- External: `serde`, `serde_json`, `quick-xml`
+
+## Tests
+
+16 source files; unit tests for severities, specs and mappings, the registry tree and search,
+profile edits and scope resolution, store round trips, PHPStorm XML, the lexer and statement
+finder, suppression parsing and actions in PHP, JavaScript, Python, Rust and Go, duplicates,
+the runner (providers, sources, suppressions, cancel), the results tree and exports, and Code
+Cleanup.
+
+
+---
+
 Source: docs/guide/developer/crates/forge-jsonschema.md
 
 # forge-jsonschema
@@ -25809,7 +26162,10 @@ A plugin (a language pack like PHPForge, or a feature like Git) describes itself
 `PluginManifest` and contributes capabilities through `Contributions`: commands,
 keybindings, tool windows, typed settings, language servers, run configuration types, test
 frameworks of the shared test runner (`testFrameworks`, defined by
-[`forge-testing`](docs/guide/developer/crates/forge-testing.md)) and AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
+[`forge-testing`](docs/guide/developer/crates/forge-testing.md)), inspections and the mapping of external tools' problems
+onto them (`inspections`, `inspectionMappings`, defined by
+[`forge-inspections`](docs/guide/developer/crates/forge-inspections.md); `PluginRegistry::inspection_registry`) and AI
+providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
 enablement, and answers lookups over the contributions of enabled plugins. Packs depend
 only on this crate, never on app internals.
 
@@ -25838,7 +26194,7 @@ pub trait Plugin: Send + Sync { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md)
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md)
 - External: `serde`, `serde_json`, `thiserror`, `toml`
 
 ## Tests
@@ -27056,6 +27412,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `parsers/markdown.rs` | Markdown (`forge-markdown`) for browser mode, mirroring `markdown_parse`, `markdown_hover`, `markdown_document` and `markdown_anchor_line`. |
 | `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
 | `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
+| `inspections.rs` | Inspections (`forge-inspections`), called synchronously by the UI in the desktop app and in browser mode: `inspections_configure` / `inspections_apply` (the selected profile applied to every published diagnostic: inspection ids, severities, disabled inspections, suppression comments), `inspections_view` and `inspections_profile_op` (the Settings page), `inspections_suppress_actions` (Alt+Enter), `inspections_find` (Run Inspection by Name), `inspections_report_tree`, profile export / import; for the browser-mode mock `inspections_run`, `inspections_cleanup_plan`, `inspections_apply_edits` and `inspections_export_report`. |
 | `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
 | `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
@@ -29508,7 +29865,8 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `injections.rs` | `language_places`: every `#[Language]` parameter of the indexed functions, methods and constructors, handed to `forge-injections` (`InjectionSettings::places`). |
-| `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index). Calls and names resolve through `navigate::resolve_word`. |
+| `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index), plus the data-flow inspections. Calls and names resolve through `navigate::resolve_word`. `PhpProblem::code` is the inspection id of [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md) (`PhpDeprecation`, `PhpExpectedValuesShouldBeUsed`, `PhpImmutablePropertyIsChanged`, `PhpExpressionResultUnused`, `PhpUnreachableStatement`, `PhpIllegalPsrClassPath`, …); `to_problem` turns a problem into the framework's `Problem`. |
+| `dataflow.rs` | PHP data flow on the tree-sitter tree, per function, method and closure (and the top level): values of local variables through straight-line code and branches (merged at joins, loops forget what they assign), reporting "Variable is always null" (`PhpVariableIsAlwaysNull`), "Undefined variable" (`PhpUndefinedVariable`), "Condition is always true / false" (`PhpConstantCondition`) and "Unused assignment" (`PhpUnusedAssignment`, with "Remove unused assignment" / "Remove assignment, keep the expression"). Functions with `$$name`, `extract()`, `compact()`, `get_defined_vars()`, `eval`, `include` or `goto` are skipped; variables shared by reference are never tracked. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `meta.rs` | `.phpstorm.meta.php` (`is_meta_path`, `parse` → `PhpMeta`): `override()` with `map()` (`@` patterns, `::class` keys), `type()`, `elementType()`; `expectedArguments()`, `expectedReturnValues()`, `registerArgumentsSet()` / `argumentsSet()`, `exitPoint()`; lookups `function_return` / `method_return` (→ `MetaType`), `map_entry`, `map_keys`, `expected_arguments`, `expected_return_values`, `is_exit_point`. `ProjectIndex::meta()` merges the files of the project, vendor packages and include paths (cached with the index, read again on change). |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
@@ -29539,7 +29897,7 @@ pub enum PhpError { … }
 
 ## Dependencies
 
-- Workspace crates: `forge-codeintel`, `forge-file-templates`, `phpforge-composer`, `phpforge-interpreters`
+- Workspace crates: `forge-codeintel`, `forge-file-templates`, `forge-inspections`, `forge-scopes`, `phpforge-composer`, `phpforge-interpreters`
 - External: `dirs`, `rayon`, `serde`, `serde_json`, `thiserror`, `tracing`, `tree-sitter`, `tree-sitter-php`, `walkdir`
 
 ## Tests

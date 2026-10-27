@@ -13,14 +13,14 @@ describe("PHP metadata mock", () => {
     const text = mockFiles[CONTROLLER];
     const found = problems.map((p) => [p.code, text.slice(p.start, p.end)]);
     expect(found).toEqual([
-      ["deprecated", "payNow"],
-      ["expectedValues", "'YEN'"],
-      ["expectedValues", "'later'"],
-      ["pureFunction", "$gateway->fee(1999)"],
+      ["PhpDeprecation", "payNow"],
+      ["PhpExpectedValuesShouldBeUsed", "'YEN'"],
+      ["PhpExpectedValuesShouldBeUsed", "'later'"],
+      ["PhpExpressionResultUnused", "$gateway->fee(1999)"],
     ]);
     expect(problems[0].fix?.title).toBe("Replace with '$gateway->charge(1999, 'EUR')'");
     const money = await invoke<PhpProblem[]>("php_inspect", { path: "app/Support/Money.php" });
-    expect(money[0]).toMatchObject({ code: "psr4Namespace", fix: { title: "Set namespace to 'App\\Support'" } });
+    expect(money[0]).toMatchObject({ code: "PhpIllegalPsrClassPath", fix: { title: "Set namespace to 'App\\Support'" } });
     expect(await invoke("php_inspect", { path: "app/Models/User.php" })).toEqual([]);
   });
 

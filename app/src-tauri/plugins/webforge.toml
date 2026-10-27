@@ -457,6 +457,50 @@ section = "Biome"
 project = true
 order = 47
 
+# ---- Inspections: the web code quality tools' problems -----------------------------------
+
+[[plugin.contributions.inspections]]
+id = "Eslint"
+name = "ESLint"
+group = "JavaScript and TypeScript/Code quality tools"
+language = "javascript"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by ESLint (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity."
+
+[[plugin.contributions.inspections]]
+id = "Stylelint"
+name = "Stylelint"
+group = "CSS/Code quality tools"
+language = "css"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by Stylelint (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity."
+
+[[plugin.contributions.inspections]]
+id = "Biome"
+name = "Biome"
+group = "JavaScript and TypeScript/Code quality tools"
+language = "javascript"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by Biome (Settings | Languages & Frameworks | Code Quality Tools); they keep the tool's level until the profile sets a severity."
+
+[[plugin.contributions.inspectionMappings]]
+source = "ESLint"
+inspection = "Eslint"
+
+[[plugin.contributions.inspectionMappings]]
+source = "Stylelint"
+inspection = "Stylelint"
+
+[[plugin.contributions.inspectionMappings]]
+source = "Biome"
+inspection = "Biome"
+
 # ---- Editor > General > Auto Import (JavaScript and TypeScript) --------------------------
 
 [[plugin.contributions.settings]]

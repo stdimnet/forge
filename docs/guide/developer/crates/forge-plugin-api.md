@@ -17,7 +17,10 @@ A plugin (a language pack like PHPForge, or a feature like Git) describes itself
 `PluginManifest` and contributes capabilities through `Contributions`: commands,
 keybindings, tool windows, typed settings, language servers, run configuration types, test
 frameworks of the shared test runner (`testFrameworks`, defined by
-[`forge-testing`](forge-testing.md)) and AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
+[`forge-testing`](forge-testing.md)), inspections and the mapping of external tools' problems
+onto them (`inspections`, `inspectionMappings`, defined by
+[`forge-inspections`](forge-inspections.md); `PluginRegistry::inspection_registry`) and AI
+providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
 enablement, and answers lookups over the contributions of enabled plugins. Packs depend
 only on this crate, never on app internals.
 
@@ -46,7 +49,7 @@ pub trait Plugin: Send + Sync { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](forge-core.md), [`forge-filetypes`](forge-filetypes.md), [`forge-keymap`](forge-keymap.md)
+- Workspace crates: [`forge-core`](forge-core.md), [`forge-filetypes`](forge-filetypes.md), [`forge-inspections`](forge-inspections.md), [`forge-keymap`](forge-keymap.md)
 - External: `serde`, `serde_json`, `thiserror`, `toml`
 
 ## Tests

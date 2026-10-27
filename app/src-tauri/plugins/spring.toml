@@ -119,3 +119,15 @@ default = 5
 group = "lang.java.spring-boot"
 section = "Run dashboard"
 order = 21
+
+[[contributions.inspections]]
+id = "SpringBootApplicationProperties"
+name = "Spring Boot application properties"
+group = "Spring/Spring Boot"
+severity = "WARNING"
+batch = false
+description = "Reports unknown, deprecated and invalid keys and values in application.properties and application.yml, checked against the configuration metadata of the classpath."
+
+[[contributions.inspectionMappings]]
+source = "spring-config"
+inspection = "SpringBootApplicationProperties"
