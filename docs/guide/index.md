@@ -52,6 +52,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Jupyter notebooks**: `.ipynb` files open in the notebook editor with code, Markdown and
+  raw cells, Jupyter's command and edit mode (`Shift+Enter`, `A`, `B`, `D D`, `M`, `Y`),
+  outputs with colors, images, sanitized HTML, errors and JSON, DataFrame tables with sorting,
+  filter and pages, kernels in the project's interpreter (ipykernel over ZeroMQ, installed with
+  your consent) or on a Jupyter server, the Variables view with View as DataFrame, and notebook
+  diffs cell by cell ([Jupyter notebooks](user/jupyter.md)).
 - **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
   navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
   entities, `application.properties` / `application.yml` completion, documentation and

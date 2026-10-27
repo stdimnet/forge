@@ -102,6 +102,13 @@ export function focusContextOf(el: Element | null): FocusContext {
   const textInput =
     el.matches("textarea, select, [contenteditable=''], [contenteditable='true']") ||
     (el.matches("input") && !/^(checkbox|radio|button|submit|range|color)$/.test((el as HTMLInputElement).type));
+  // Jupyter notebooks: command mode on the cells, edit mode in a cell's editor. Outputs that
+  // take keys themselves (DataFrame tables) opt out with "notebook-output".
+  const notebook = el.closest("[data-focus-context='notebook'], [data-focus-context='notebook-output']");
+  if (notebook?.getAttribute("data-focus-context") === "notebook") {
+    if (el.closest(".cm-editor")) return textInput && !el.classList.contains("cm-content") ? "input" : "notebook-editor";
+    return textInput ? "input" : "notebook";
+  }
   if (el.closest(".cm-editor")) return textInput && !el.classList.contains("cm-content") ? "input" : "editor";
   // Text fields that also take their tool window's actions (the commit message: Ctrl+M).
   if (textInput && el.closest("[data-focus-context='toolwindow-input']")) return "toolwindow-input";

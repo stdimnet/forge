@@ -54,6 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Jupyter notebooks**: `.ipynb` files open in the notebook editor with code, Markdown and
+  raw cells, Jupyter's command and edit mode (`Shift+Enter`, `A`, `B`, `D D`, `M`, `Y`),
+  outputs with colors, images, sanitized HTML, errors and JSON, DataFrame tables with sorting,
+  filter and pages, kernels in the project's interpreter (ipykernel over ZeroMQ, installed with
+  your consent) or on a Jupyter server, the Variables view with View as DataFrame, and notebook
+  diffs cell by cell ([Jupyter notebooks](docs/guide/user/jupyter.md)).
 - **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
   navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
   entities, `application.properties` / `application.yml` completion, documentation and
@@ -798,6 +804,7 @@ not finished, the page says so.
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
+| [Jupyter notebooks](docs/guide/user/jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
@@ -10967,7 +10974,8 @@ Source: docs/guide/user/python.md
   the same projects.
 
 Django, Flask, FastAPI and Celery projects get more plugins: see
-[Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md).
+[Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md). Jupyter notebooks (`.ipynb`)
+open in the notebook editor: see [Jupyter notebooks](docs/guide/user/jupyter.md).
 
 ![A Python file with basedpyright's errors and the requirements inspection](docs/screenshots/python-editor.png)
 
@@ -11280,6 +11288,162 @@ Its tests (pytest with a failing parametrized case, a unittest test case), `tox.
 session in `Cart.total`, the Python Console and a profile of `scripts/report.py` are simulated;
 discovery, command lines, tox environments and the snapshot's call tree are computed by the
 same Rust code (WebAssembly).
+
+
+---
+
+Source: docs/guide/user/jupyter.md
+
+# Jupyter notebooks
+
+`.ipynb` files open in the notebook editor, the way PyCharm shows them: cells with their
+outputs, a toolbar to run them and a kernel that keeps the variables between runs. The
+plugin **Jupyter** (`forge.jupyter`, pack PyForge) is on in every project; switch it off in
+Settings | Plugins to open notebooks as JSON text again.
+
+![A notebook with Markdown, code and a DataFrame table](docs/screenshots/jupyter-notebook.png)
+
+Opening, editing, diffing and viewing notebooks never runs anything. Running a cell starts a
+kernel, which runs the notebook's code with the project's interpreter, so it is refused in
+[Safe Mode](docs/guide/user/project-trust.md) until you trust the project.
+
+## The notebook editor
+
+- **Cells**: code cells are editors with Python highlighting, bracket matching and the
+  editor's color scheme; Markdown cells show their rendered text (double-click or `Enter` to
+  edit them); raw cells are plain text. The gutter shows the run button and the execution
+  count: `[3]` after a run, `[*]` while the cell runs or waits for the kernel.
+- **Toolbar**: Run Cell and Select Below, Run All Cells, Interrupt Kernel, Restart Kernel,
+  Clear All Outputs, Add Code Cell, Delete Cell and the cell type (Code, Markdown, Raw); on the
+  right Show Variables, the kernel with its state (Not started, Starting…, Idle, Busy,
+  Disconnected) and Shut Down Kernel.
+- **Save** (`Ctrl+S`) writes the `.ipynb` file. Forge keeps everything it did not change:
+  cell ids, metadata, the order of the keys, texts stored as one string or as a list of lines,
+  the file's indent and its final line break. A notebook written by Jupyter and saved
+  unchanged by Forge is byte for byte the same file, so Git shows only real changes.
+- Language intelligence inside cells is limited to highlighting and editing helpers; the
+  Python language servers do not analyse notebook cells yet.
+
+### Command mode and edit mode
+
+Like Jupyter, the editor has two modes. In **edit mode** a cell's editor has the focus (the
+cell's frame is orange) and keys type text. `Escape` switches to **command mode**: a cell is
+selected and single keys act on cells. Click a cell's gutter to select it, click into its
+text to edit it.
+
+| Action | Mode | Windows / Linux | macOS |
+| --- | --- | --- | --- |
+| Run Cell and Select Below | both | `Shift+Enter` | `Shift+Enter` |
+| Run Cell | both | `Ctrl+Enter` | `Cmd+Enter` |
+| Run Cell and Insert Below | both | `Alt+Enter` | `Opt+Enter` |
+| Run All Cells | both | `Ctrl+Alt+Shift+Enter` | `Cmd+Opt+Shift+Enter` |
+| Enter Command Mode | edit | `Escape` | `Escape` |
+| Enter Edit Mode | command | `Enter` | `Enter` |
+| Insert Cell Above / Below | command | `A` / `B` | `A` / `B` |
+| Delete Cell | command | `D D` | `D D` |
+| Change Cell Type to Code / Markdown / Raw | command | `Y` / `M` / `R` | `Y` / `M` / `R` |
+| Select Cell Above / Below | command | `Up` or `K` / `Down` or `J` | same |
+| Move Cell Up / Down | command | `Ctrl+Shift+Up` / `Ctrl+Shift+Down` | `Cmd+Shift+Up` / `Cmd+Shift+Down` |
+| Interrupt Kernel | command | `I I` | `I I` |
+| Restart Kernel | command | `0 0` | `0 0` |
+
+All of them are keymap actions (group **Jupyter**): rebind them in Settings | Keymap, find them
+with Find Action (`Ctrl+Shift+A`). The notebook shortcuts win over editor actions with the same
+keys only inside notebooks; `Shift+Enter` still starts a new line in every other editor.
+
+## Outputs
+
+![Plot, result and an error with its traceback](docs/screenshots/jupyter-outputs.png)
+
+| Output | How it is shown |
+| --- | --- |
+| `stdout` / `stderr` streams, `text/plain` results | console text with ANSI colors; `\r` progress bars overwrite their line; file references in tracebacks open the file |
+| Errors | the traceback with its colors on an error background |
+| Images (`image/png`, `image/jpeg`, `image/gif`, `image/webp`) | the image at its size (the output's `width`/`height` metadata are honoured) |
+| `image/svg+xml` | the image after removing scripts, event handlers, `foreignObject` and external references |
+| `text/html` | sanitized HTML (no scripts, event handlers, frames, forms or remote resources) in a sandboxed frame that cannot run scripts or load anything |
+| `application/json` | a collapsible JSON tree |
+| `text/markdown` | rendered Markdown |
+| pandas DataFrames (`text/html` of a DataFrame, `application/vnd.dataresource+json`) | a DataFrame table, see below |
+
+Outputs taller than 400 pixels scroll (`jupyter.outputs.limitHeight`). While a cell runs its
+outputs stream in; `clear_output(wait=True)` and updated displays (`display_id`) work as in
+Jupyter. Interactive widgets (ipywidgets) and JavaScript outputs are not supported; their
+plain-text fallback is shown.
+
+## DataFrame tables
+
+DataFrame outputs become the same data grid as the database and CSV editors: the index
+columns, the column types when known, sorting by a click on a column header (numbers sort as
+numbers; again for descending, a third time for the original order), a **Filter** (rows that
+contain the text in any cell; `column: text` filters one column) and pages of
+`jupyter.dataframe.pageSize` rows (default 50). The bar shows the frame's size, for example
+`1000 rows × 5 columns`, also when pandas printed only part of it.
+
+## Kernels
+
+The first cell you run starts the kernel:
+
+- **In the project's interpreter** (default): Forge starts `ipykernel` with the interpreter
+  from the status bar (Settings | Project | Python Interpreter) in the notebook's folder and
+  talks to it over ZeroMQ, signing every message with a key of its own (HMAC-SHA256). When the
+  interpreter has no `ipykernel`, Forge asks to install it with the environment's package
+  manager (pip, uv, Poetry or Pipenv; the output appears in the Run tool window).
+  `jupyter.kernel.installWithoutAsking` skips the question.
+- **On a Jupyter server**: set Settings | Languages & Frameworks | Jupyter | Jupyter server
+  URL (`jupyter.server.url`), for example `http://localhost:8888`, to run kernels on a running
+  JupyterLab, Notebook 7 or `jupyter server`. A pasted URL with `?token=…` works; the token
+  is moved to the OS keychain and never stored in settings. Enter a token below the URL and
+  click **Test Connection** to check it; **Forget Token** removes it. Kernels of Docker, SSH and
+  WSL interpreters and of remote projects need a server that runs next to them.
+
+Interrupt Kernel stops the running cell (`KeyboardInterrupt`); cells queued behind a failed
+cell are skipped, like in Jupyter. Restart Kernel starts a fresh kernel and forgets every
+variable. Closing the notebook shuts its kernel down (`jupyter.kernel.shutdownOnClose`).
+
+## Variables
+
+![Run All with the Variables view](docs/screenshots/jupyter-kernel.png)
+
+**Show Variables** opens the Variables view of the kernel next to the cells, like the Python
+Console's: every variable with its type and value, expandable for lists, dicts and objects. It
+refreshes after each cell. DataFrames, Series and NumPy arrays have **View**, which opens
+**View as DataFrame**: the variable's rows (up to 10,000) in an editor tab with the same table,
+sorting, filter and pages.
+
+![View as DataFrame](docs/screenshots/jupyter-dataframe.png)
+
+## Notebook diffs
+
+![A notebook diff, cell by cell](docs/screenshots/jupyter-diff.png)
+
+Diffs of `.ipynb` files (Commit, Show Diff, Git history, Local History, Compare Files) compare
+the notebooks **cell by cell** instead of as JSON: added, deleted and modified cells, with the
+source and the outputs of a changed cell in separate line diffs, and notes when only the cell
+type, the execution count or the metadata changed. Runs of unchanged cells are folded. Cells are
+paired by their ids (nbformat 4.5); notebooks without ids are aligned by their sources. Images
+are compared by size and a short hash. **Text** in the diff toolbar switches to the JSON diff,
+for example to revert single lines; `jupyter.diff.view` chooses what opens first.
+
+## Settings
+
+Settings | Languages & Frameworks | Jupyter:
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Jupyter server URL (project) | `jupyter.server.url` | empty: start kernels in the project's interpreter |
+| Install ipykernel without asking | `jupyter.kernel.installWithoutAsking` | off |
+| Shut down the kernel when the notebook is closed | `jupyter.kernel.shutdownOnClose` | on |
+| Scroll long outputs | `jupyter.outputs.limitHeight` | on |
+| DataFrame rows per page | `jupyter.dataframe.pageSize` | 50 |
+| Show notebook diffs | `jupyter.diff.view` | Cell by cell |
+
+## Files Forge writes
+
+- The kernel's connection file (ports and signing key, readable only by you) in
+  `<cache dir>/forge/jupyter/`, deleted when the kernel stops.
+- Server tokens in the OS keychain (service `forge-jupyter`).
+- Nothing in the project except the notebooks you save.
 
 
 ---
@@ -17415,6 +17579,27 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
 | Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
 | Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Run Cell and Select Below | `Jupyter.RunCellSelectBelow` | `Shift+Enter` | `Shift+Enter` | notebook |
+| Run Cell | `Jupyter.RunCell` | `Ctrl+Enter` | `Cmd+Enter` | notebook |
+| Run Cell and Insert Below | `Jupyter.RunCellInsertBelow` | `Alt+Enter` | `Opt+Enter` | notebook |
+| Run All Cells | `Jupyter.RunAll` | `Ctrl+Alt+Shift+Enter` | `Cmd+Opt+Shift+Enter` | notebook |
+| Interrupt Kernel | `Jupyter.InterruptKernel` | `I I` | `I I` | notebook command mode |
+| Restart Kernel | `Jupyter.RestartKernel` | `0 0` | `0 0` | notebook command mode |
+| Shut Down Kernel | `Jupyter.ShutdownKernel` |  |  | any |
+| Enter Command Mode | `Jupyter.EnterCommandMode` | `Escape` | `Escape` | notebook |
+| Enter Edit Mode | `Jupyter.EnterEditMode` | `Enter` | `Enter` | notebook command mode |
+| Insert Cell Above | `Jupyter.InsertCellAbove` | `A` | `A` | notebook command mode |
+| Insert Cell Below | `Jupyter.InsertCellBelow` | `B` | `B` | notebook command mode |
+| Delete Cell | `Jupyter.DeleteCell` | `D D` | `D D` | notebook command mode |
+| Change Cell Type to Code | `Jupyter.ToCode` | `Y` | `Y` | notebook command mode |
+| Change Cell Type to Markdown | `Jupyter.ToMarkdown` | `M` | `M` | notebook command mode |
+| Change Cell Type to Raw | `Jupyter.ToRaw` | `R` | `R` | notebook command mode |
+| Select Cell Above | `Jupyter.SelectCellAbove` | `Up`, `K` | `Up`, `K` | notebook command mode |
+| Select Cell Below | `Jupyter.SelectCellBelow` | `Down`, `J` | `Down`, `J` | notebook command mode |
+| Move Cell Up | `Jupyter.MoveCellUp` | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | notebook command mode |
+| Move Cell Down | `Jupyter.MoveCellDown` | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | notebook command mode |
+| Clear All Outputs | `Jupyter.ClearAllOutputs` |  |  | any |
+| Show Variables (Jupyter) | `Jupyter.ShowVariables` |  |  | any |
 | Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
 | Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |
@@ -18810,6 +18995,19 @@ Page ids `lang.flask`, `lang.fastapi` and `lang.celery`.
 | `fastapi.app` | string | `""` | user, project |  | Application — module:attribute that uvicorn serves. Empty: the module that creates FastAPI(...). |
 | `celery.app` | string | `""` | user, project |  | Application (-A) — The Celery application. Empty: the module that creates Celery(...). |
 
+### Languages & Frameworks | Jupyter
+
+Page id `lang.jupyter`. See [Jupyter notebooks](docs/guide/user/jupyter.md). The server token is stored in the OS keychain, not in settings.
+
+| Key | Type | Default | Scope | Section | Description |
+| --- | --- | --- | --- | --- | --- |
+| `jupyter.server.url` | string | `""` | user, project | Kernels | Jupyter server URL — Run kernels on this server instead of starting ipykernel in the project's interpreter, for example http://localhost:8888 (a pasted URL's ?token= is moved to the keychain). Needed for Docker, SSH and WSL interpreters and remote projects. |
+| `jupyter.kernel.installWithoutAsking` | bool | `false` | user | Kernels | Install ipykernel without asking — Install ipykernel into the interpreter with its package manager when a notebook starts a kernel and it is missing. |
+| `jupyter.kernel.shutdownOnClose` | bool | `true` | user | Kernels | Shut down the kernel when the notebook is closed |
+| `jupyter.outputs.limitHeight` | bool | `true` | user | Outputs | Scroll long outputs — Outputs taller than 400 pixels get their own scroll bar. |
+| `jupyter.dataframe.pageSize` | int | `50` | user | Outputs | DataFrame rows per page |
+| `jupyter.diff.view` | enum: `cells`, `json` | `cells` | user | Diff | Show notebook diffs — How the diff viewer shows .ipynb files first. |
+
 ### Languages & Frameworks | Go
 
 Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
@@ -19723,6 +19921,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
+| `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 | `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
@@ -19788,6 +19987,7 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | `forge-db` | data source id | database password |
 | `forge-deploy` | `ftp://user@host:port` | FTP/FTPS deployment password |
 | `forge-containers` | `registry:<server>` | Docker registry password |
+| `forge-jupyter` | `server:<base URL>` | Jupyter server token |
 
 ## Remote hosts
 
@@ -19926,6 +20126,7 @@ script and config language plugins.
 | Flask | `forge.flask` | pyforge | `forge.python-web` | `flask` | 1 settings; file types: Jinja2; run types: Flask Server |
 | FastAPI | `forge.fastapi` | pyforge | `forge.python-web` | `fastapi` | 1 settings; run types: FastAPI |
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
+| Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
@@ -21909,6 +22110,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
 | [goforge-pprof](docs/guide/developer/crates/goforge-pprof.md) | GoForge: pprof profiles (profile.proto, gzip) with top, call tree and flame graph views; pure, also built to WebAssembly |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
+| [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
@@ -27185,6 +27387,62 @@ data out; the desktop app (`commands/python_web.rs`) and the WebAssembly build
 
 Unit tests per module with fixture projects (`tests/fixtures/django`), no network:
 `cargo test -p pyforge-frameworks`.
+
+
+---
+
+Source: docs/guide/developer/crates/pyforge-jupyter.md
+
+# pyforge-jupyter
+
+`packs/pyforge/jupyter` — PyForge's Jupyter support (plugin `forge.jupyter`, see
+[Jupyter notebooks](docs/guide/user/jupyter.md)). The default build is pure and also compiled to
+WebAssembly (`crates/forge-wasm/src/jupyter.rs`); the desktop app (`commands/jupyter.rs`)
+adds the features `runtime` (kernels) and `keychain` (server tokens).
+
+## Purpose
+
+- `nbformat`: `.ipynb` (nbformat 4.x) into a `Notebook` (cells with joined texts, typed
+  outputs, metadata, the cell's `origin` in the file) and back. `serialize` merges the editor's
+  model into the original JSON: unchanged cells and outputs keep their raw JSON, changed
+  fields keep the original's form (string or list of lines), new cells and outputs are written
+  like Jupyter writes them (sorted keys, lines). The indent, compact one-line files, `\u`
+  escapes of non-ASCII text and the final line break are detected and kept; key order is read into the
+  crate's own ordered JSON values (`ordered`), so serde_json's `preserve_order` stays off for
+  the workspace. nbformat 3 and older are refused.
+- `output`: stream, `execute_result`, `display_data` and error outputs with MIME bundles
+  (texts joined, JSON types as JSON) and `render`, the representation the editor shows:
+  console lines from `forge-output` (ANSI, `\r`, file links), sanitized HTML, data URLs for
+  images (SVG sanitized), JSON, Markdown or a DataFrame, chosen by JupyterLab's MIME order.
+- `html`: a small tokenizer with `sanitize_html` (allowlist of elements and attributes,
+  http(s)/mailto links, `data:image` sources, CSS without `url()`), `sanitize_svg` (scripts,
+  event handlers, `foreignObject`, doctypes and external references removed) and `tables`.
+- `dataframe`: pandas' HTML (index names, MultiIndex columns and rows through colspan /
+  rowspan, the "N rows × M columns" footer), Table Schema JSON
+  (`application/vnd.dataresource+json`) and the helper's View as DataFrame JSON into one
+  `DataFrame`; `query` sorts (numeric-aware, `forge_viewers::sort_order`), filters and pages.
+- `diff`: notebook diffs. Cells are paired by id, or by a patience alignment of their sources
+  with neighbouring removed and added cells as changed cells; sources and outputs (as text,
+  images as size and hash) get separate line diffs (`similar`).
+- `protocol`: messages, HMAC-SHA256 signing and constant-time checks, the ZeroMQ frames
+  (`<IDS|MSG>`), the WebSocket JSON form, connection files, `KernelEvent`s of iopub and shell
+  messages and `user_expressions` replies.
+- `runtime`: `kernel` (DEALER sockets for shell and control, SUB for iopub with the pure-Rust
+  `zeromq` crate, MIT; free ports and private connection files), `server` (REST
+  `/api/kernels`, `/api/kernelspecs` and the kernel WebSocket with `tokio-tungstenite`) and
+  `session` (runs cells and reports `SessionEvent`s per cell id with rendered outputs; waits
+  for both the reply and the idle status; Variables, children and View as DataFrame through
+  the helper `forge_jupyter.py` and `user_expressions`; interrupt with `interrupt_request`).
+- `keychain`: Jupyter server tokens in the OS keychain (service `forge-jupyter`).
+
+## Tests
+
+Unit tests per module, fixture notebooks in `tests/fixtures` (written by Python's `json.dumps`
+exactly as Jupyter writes them, plus an nbformat 4.2 file with another style) that round-trip
+byte for byte, and `tests/fake_kernel.rs`: the session against an in-process fake kernel on
+127.0.0.1 that checks every signature (a wrong key gets no answers). No network:
+`cargo test -p pyforge-jupyter --features runtime`. `tests/ipykernel_smoke.rs` runs a real
+ipykernel (ignored; `FORGE_JUPYTER_PYTHON=/path/to/python … -- --ignored`).
 
 
 ---

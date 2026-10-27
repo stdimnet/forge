@@ -38,6 +38,7 @@ mod hierarchy;
 mod injections;
 mod java;
 mod json_schema;
+mod jupyter;
 mod jvm_extras;
 mod keymap;
 mod kotlin;

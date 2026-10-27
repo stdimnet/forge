@@ -80,7 +80,7 @@ app/ui/            SolidJS UI
     Docker / Compose / Kubernetes, with their own details (the `ServiceDetails` shape) and
     toolbar actions (the Spring Boot run dashboard).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
-- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `notebook` (a Jupyter notebook in command mode, `[data-focus-context="notebook"]`) and `notebook-editor` (a cell's editor; editor actions apply too), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
   keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
   emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
@@ -95,6 +95,9 @@ app/ui/            SolidJS UI
     "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
     (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
     0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine, WordPress, Drupal and the LSP use it.
+  - `registerDiffRenderer({ id, title, accepts(path), preferred?, component })`
+    (`src/features/git/diffRenderers.ts`) — a view of a file type in the diff viewer instead
+    of the text diff, with a switch to Text (notebooks cell by cell).
   - `registerUsagesProvider` (`src/features/codeintel/usages.ts`) — Find Usages / Show Usages for
     framework elements a language server does not know (WordPress hooks): the provider returns a
     `UsagesAnswer` (the shape of `code_find_usages`) or null; Rerun in the Find tool window asks
@@ -2291,6 +2294,39 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `pyforge-testing` type (`helpers/forge_django_tests.py` on Django's `DiscoverRunner`, or
   pytest-django). The browser mock (`mock/pythonWebMock.ts`) calls the same functions through
   `crates/forge-wasm/src/python_web.rs`; `?project=django` opens the Django demo.
+
+- Jupyter notebooks (`packs/pyforge/jupyter`, plugin `forge.jupyter`, always active; IPC
+  `commands/jupyter.rs`, `src/ipc/jupyter.ts`, UI `features/jupyter/`): `.ipynb` files open in
+  the notebook editor (`registerFileEditor`); the tab's content stays the `.ipynb` text,
+  serialized in Rust after every change, so Save, the dirty marker and Local History work as
+  for text files. `jupyter_open({ text }) -> { notebook: Notebook, rendered: Rendered[][] }`
+  (cells with `origin`, the cell's index in the text it was read from),
+  `jupyter_serialize({ notebook, original }) -> string` (merged into the original JSON: ids,
+  metadata, key order, string-or-list texts, indent and final newline kept),
+  `jupyter_render({ outputs }) -> Rendered[]` (`text` console lines | `html` sanitized |
+  `image` data URL | `json` | `markdown` | `dataFrame`), `jupyter_diff({ left, right }) ->
+  NotebookDiff { cells: { status, left?, right?, source, outputs, typeChanged,
+  metadataChanged, executionCountChanged }[], metadataChanged, stats, language }`,
+  `jupyter_dataframe_query({ frame, query: { sort?, filter?, page?, pageSize? } }) -> { rows,
+  rowNumbers, matched, page, pages }`. Kernels: `jupyter_kernel_status({ interpreter? }) ->
+  { installed, version?, interpreter, needsServer }`, `jupyter_kernel_start({ request: {
+  path, interpreter?, server?, kernelName? } }) -> { id, label, server }` (refused in Safe
+  Mode; ipykernel with a connection file in `<cache dir>/forge/jupyter`, or a kernel of the
+  `jupyter.server.url` server), `jupyter_execute({ id, cellId, code }) -> msgId` (refused in
+  Safe Mode), `jupyter_interrupt`, `jupyter_restart` (same id), `jupyter_shutdown`,
+  `jupyter_variables({ id })`, `jupyter_variable_children({ id, expr })`,
+  `jupyter_variable_frame({ id, expr, limit? }) -> DataFrame`, `jupyter_server_test({ url,
+  token? })` (stores the token in the keychain), `jupyter_server_has_token`,
+  `jupyter_server_forget_token`. Events on `jupyter://<id>`: `{ type: status, state }`,
+  `executeInput { cellId, executionCount }`, `output { cellId, output, rendered, displayId? }`,
+  `updateDisplay`, `clearOutput { cellId, wait }`, `done { cellId, status, executionCount }`,
+  `disconnected`, `exited { code }`. Variables and View as DataFrame evaluate
+  `user_expressions` after the silent helper `forge_jupyter.py`. Keymap actions `Jupyter.*`
+  use the action contexts `notebook` (command and edit mode) and `notebook-command`; more
+  specific contexts win when several bindings match. The diff viewer shows `.ipynb` diffs
+  through `registerDiffRenderer`. Browser mode: `mock/jupyterMock.ts` (WebAssembly
+  `crates/forge-wasm/src/jupyter.rs`, a simulated kernel), the demo notebook
+  `notebooks/sales.ipynb` of `?project=python` (`mock/demoNotebooks.ts`).
 
 ## GoForge (`packs/goforge/*`)
 

@@ -304,6 +304,17 @@
   background: var(--bg-editor);
   user-select: text;
 }
+.diff-body.hidden {
+  display: none;
+}
+.diff-mode {
+  display: inline-flex;
+  gap: 2px;
+}
+.diff-mode .pill-btn.active {
+  background: var(--accent-soft);
+  color: var(--fg-strong);
+}
 .diff-body .cm-mergeView {
   min-height: 100%;
 }

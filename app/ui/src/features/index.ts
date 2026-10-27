@@ -57,6 +57,7 @@ import "./lua";
 import "./endpoints";
 import "./python";
 import "./pythonWeb";
+import "./jupyter";
 import "./go";
 import "./rust";
 import "./java";
