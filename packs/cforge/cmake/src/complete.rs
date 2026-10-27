@@ -234,7 +234,10 @@ pub fn complete(text: &str, offset: usize) -> Option<Completion> {
         return None;
     }
     let matches = |label: &str| {
-        prefix.is_empty() || label.to_ascii_lowercase().starts_with(&prefix.to_ascii_lowercase())
+        prefix.is_empty()
+            || label
+                .to_ascii_lowercase()
+                .starts_with(&prefix.to_ascii_lowercase())
     };
     // `${NAME` or `$ENV{NAME`.
     if before[..word_start].ends_with("${") || before[..word_start].ends_with("ENV{") {
@@ -319,11 +322,20 @@ mod tests {
     fn commands_at_the_top_level() {
         let text = "project(shapes)\ntarget_li";
         let c = complete(text, text.len());
-        assert_eq!(labels(&c), ["target_link_directories", "target_link_libraries", "target_link_options"]);
+        assert_eq!(
+            labels(&c),
+            [
+                "target_link_directories",
+                "target_link_libraries",
+                "target_link_options"
+            ]
+        );
         let c = c.unwrap();
         assert_eq!(c.from, 16);
         assert_eq!(c.items[1].apply, "target_link_libraries()");
-        assert!(c.items[1].detail.starts_with("target_link_libraries(<target>"));
+        assert!(c.items[1]
+            .detail
+            .starts_with("target_link_libraries(<target>"));
         assert!(complete("# add_", 6).is_none());
     }
 
@@ -344,7 +356,10 @@ mod tests {
     #[test]
     fn variables() {
         let text = "set(SHAPES_SOURCES a.cpp)\noption(SHAPES_TESTS \"tests\" ON)\nadd_library(shapes ${SHA";
-        assert_eq!(labels(&complete(text, text.len())), ["SHAPES_SOURCES", "SHAPES_TESTS"]);
+        assert_eq!(
+            labels(&complete(text, text.len())),
+            ["SHAPES_SOURCES", "SHAPES_TESTS"]
+        );
         let text = "message(${CMAKE_CXX_COMPILER_";
         assert_eq!(
             labels(&complete(text, text.len())),

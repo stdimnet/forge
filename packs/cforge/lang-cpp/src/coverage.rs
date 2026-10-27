@@ -122,7 +122,12 @@ pub fn gcov_json_to_lcov(text: &str, root: &str) -> Result<String, String> {
             .get("current_working_directory")
             .and_then(Value::as_str)
             .unwrap_or("");
-        for f in v.get("files").and_then(Value::as_array).into_iter().flatten() {
+        for f in v
+            .get("files")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
             let Some(name) = f.get("file").and_then(Value::as_str) else {
                 continue;
             };
@@ -135,7 +140,12 @@ pub fn gcov_json_to_lcov(text: &str, root: &str) -> Result<String, String> {
                 continue;
             }
             let data = files.entry(abs).or_default();
-            for l in f.get("lines").and_then(Value::as_array).into_iter().flatten() {
+            for l in f
+                .get("lines")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
                 let Some(n) = l.get("line_number").and_then(Value::as_u64) else {
                     continue;
                 };
@@ -161,7 +171,12 @@ pub fn gcov_json_to_lcov(text: &str, root: &str) -> Result<String, String> {
                     }
                 }
             }
-            for func in f.get("functions").and_then(Value::as_array).into_iter().flatten() {
+            for func in f
+                .get("functions")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
                 let name = func
                     .get("demangled_name")
                     .or_else(|| func.get("name"))
@@ -169,14 +184,19 @@ pub fn gcov_json_to_lcov(text: &str, root: &str) -> Result<String, String> {
                     .unwrap_or("")
                     .to_string();
                 let line = func.get("start_line").and_then(Value::as_u64).unwrap_or(0) as u32;
-                let count = func.get("execution_count").and_then(Value::as_u64).unwrap_or(0);
+                let count = func
+                    .get("execution_count")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0);
                 let e = data.functions.entry(name).or_insert((line, 0));
                 e.1 += count;
             }
         }
     }
     if !any {
-        return Err("gcov reported no coverage data (was the project built with --coverage?)".into());
+        return Err(
+            "gcov reported no coverage data (was the project built with --coverage?)".into(),
+        );
     }
     let mut out = String::new();
     for (file, d) in files {
@@ -230,11 +250,19 @@ mod tests {
         .unwrap();
         let lcov = gcov_json_to_lcov(&text, "/home/dev/shapes").unwrap();
         let files: Vec<&str> = lcov.lines().filter_map(|l| l.strip_prefix("SF:")).collect();
-        assert_eq!(files, ["/home/dev/shapes/src/shapes.cpp", "/home/dev/shapes/tests/shapes_test.cpp"]);
+        assert_eq!(
+            files,
+            [
+                "/home/dev/shapes/src/shapes.cpp",
+                "/home/dev/shapes/tests/shapes_test.cpp"
+            ]
+        );
         // `area` ran (the test ran with the `area` argument), `perimeter` did not.
         assert!(lcov.contains("FNDA:1,shapes::area(std::vector<shapes::Point, std::allocator<shapes::Point> > const&)\n"));
         assert!(lcov.contains("FNDA:0,shapes::perimeter(std::vector<shapes::Point, std::allocator<shapes::Point> > const&)\n"));
-        let report = forge_testing::CoverageReport::parse(&lcov, forge_testing::CoverageFormat::Lcov).unwrap();
+        let report =
+            forge_testing::CoverageReport::parse(&lcov, forge_testing::CoverageFormat::Lcov)
+                .unwrap();
         assert_eq!(report.files.len(), 2);
         assert!(gcov_json_to_lcov("", "/x").is_err());
     }
@@ -243,17 +271,39 @@ mod tests {
     fn tools_and_commands() {
         assert_eq!(tool_next_to("/usr/bin/g++-14", "gcov"), "/usr/bin/gcov-14");
         assert_eq!(tool_next_to("/usr/bin/c++", "gcov"), "/usr/bin/gcov");
-        assert_eq!(tool_next_to("/opt/arm/bin/arm-none-eabi-g++", "gcov"), "/opt/arm/bin/arm-none-eabi-gcov");
-        assert_eq!(tool_next_to("/usr/bin/clang++-18", "llvm-cov"), "/usr/bin/llvm-cov-18");
-        assert_eq!(tool_next_to("C:\\msys64\\ucrt64\\bin\\g++.exe", "gcov"), "C:\\msys64\\ucrt64\\bin\\gcov.exe");
+        assert_eq!(
+            tool_next_to("/opt/arm/bin/arm-none-eabi-g++", "gcov"),
+            "/opt/arm/bin/arm-none-eabi-gcov"
+        );
+        assert_eq!(
+            tool_next_to("/usr/bin/clang++-18", "llvm-cov"),
+            "/usr/bin/llvm-cov-18"
+        );
+        assert_eq!(
+            tool_next_to("C:\\msys64\\ucrt64\\bin\\g++.exe", "gcov"),
+            "C:\\msys64\\ucrt64\\bin\\gcov.exe"
+        );
         assert_eq!(tool_next_to("cl.exe", "gcov"), "gcov.exe");
         let c = gcov_command("gcov", &["a.gcda".into()], "/b");
         assert_eq!(c.args, ["--json-format", "--stdout", "a.gcda"]);
         assert_eq!(llvm_profile_env("/tmp/cov/").1, "/tmp/cov/forge-%p.profraw");
         let m = llvm_merge_command("llvm-profdata", &["a.profraw".into()], "m.profdata");
-        assert_eq!(m.args, ["merge", "-sparse", "a.profraw", "-o", "m.profdata"]);
+        assert_eq!(
+            m.args,
+            ["merge", "-sparse", "a.profraw", "-o", "m.profdata"]
+        );
         let e = llvm_export_command("llvm-cov", "m.profdata", &["t1".into(), "t2".into()]).unwrap();
-        assert_eq!(e.args, ["export", "-format=lcov", "-instr-profile=m.profdata", "t1", "-object", "t2"]);
+        assert_eq!(
+            e.args,
+            [
+                "export",
+                "-format=lcov",
+                "-instr-profile=m.profdata",
+                "t1",
+                "-object",
+                "t2"
+            ]
+        );
         assert!(llvm_export_command("llvm-cov", "m", &[]).is_none());
     }
 }

@@ -104,7 +104,10 @@ pub fn at_least(version: &str, min: &str) -> bool {
         return false;
     }
     for i in 0..a.len().max(b.len()) {
-        let (x, y) = (a.get(i).copied().unwrap_or(0), b.get(i).copied().unwrap_or(0));
+        let (x, y) = (
+            a.get(i).copied().unwrap_or(0),
+            b.get(i).copied().unwrap_or(0),
+        );
         if x != y {
             return x > y;
         }
@@ -179,7 +182,11 @@ fn vendor_of(text: &str) -> String {
     let text = text.split(" (").next().unwrap_or(text);
     let words: Vec<&str> = text.split_whitespace().collect();
     match words.as_slice() {
-        [first, rest @ ..] if rest.iter().all(|w| w.starts_with(|c: char| c.is_ascii_digit())) => {
+        [first, rest @ ..]
+            if rest
+                .iter()
+                .all(|w| w.starts_with(|c: char| c.is_ascii_digit())) =>
+        {
             first.to_string()
         }
         _ => text.trim().to_string(),

@@ -112,7 +112,10 @@ pub fn parse(json: &str) -> Result<Vec<CompileCommand>, String> {
             continue;
         };
         let arguments = match e.get("arguments").and_then(Value::as_array) {
-            Some(a) => a.iter().filter_map(|a| a.as_str().map(str::to_string)).collect(),
+            Some(a) => a
+                .iter()
+                .filter_map(|a| a.as_str().map(str::to_string))
+                .collect(),
             None => s("command").map(|c| split_command(&c)).unwrap_or_default(),
         };
         out.push(CompileCommand {
@@ -145,10 +148,7 @@ pub fn summary(entries: &[CompileCommand], root: &str) -> Summary {
         .collect();
     Summary {
         files: entries.len(),
-        project_files: entries
-            .iter()
-            .filter(|e| e.file.starts_with(root))
-            .count(),
+        project_files: entries.iter().filter(|e| e.file.starts_with(root)).count(),
         compilers: compilers.into_iter().filter(|c| !c.is_empty()).collect(),
         standards: standards.into_iter().collect(),
     }
@@ -197,7 +197,10 @@ mod tests {
         assert_eq!(db.len(), 2);
         assert_eq!(db[0].compiler(), "/usr/bin/c++");
         assert_eq!(db[0].standard(), Some("gnu++20"));
-        assert_eq!(db[0].include_dirs(), ["/home/dev/shapes/src", "/opt/gtest/include"]);
+        assert_eq!(
+            db[0].include_dirs(),
+            ["/home/dev/shapes/src", "/opt/gtest/include"]
+        );
         assert_eq!(db[1].file, "/home/dev/shapes/src/main.cpp");
         assert_eq!(db[1].include_dirs(), ["/home/dev/shapes/src"]);
         assert_eq!(db[1].arguments[3], "-DNAME=\"shapes app\"");

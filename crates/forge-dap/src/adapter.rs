@@ -482,10 +482,14 @@ mod tests {
         assert_eq!(adapter.command, "gdb");
         r.adapter_command = Some("/usr/bin/gdb-multiarch".into());
         r.mode = LaunchMode::AttachProcess { pid: 1 };
-        assert!(r.runs_code(), "a changed adapter command line is refused in Safe Mode");
-        let back: LaunchRequest =
-            serde_json::from_value(json!({"adapter": "gdb", "mode": "launch", "adapterArgs": ["-q"]}))
-                .unwrap();
+        assert!(
+            r.runs_code(),
+            "a changed adapter command line is refused in Safe Mode"
+        );
+        let back: LaunchRequest = serde_json::from_value(
+            json!({"adapter": "gdb", "mode": "launch", "adapterArgs": ["-q"]}),
+        )
+        .unwrap();
         assert_eq!(back.adapter_args, ["-q"]);
     }
 

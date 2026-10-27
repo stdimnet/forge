@@ -33,14 +33,31 @@ pub fn is_cpp_path(path: &str) -> bool {
     let name = p.rsplit('/').next().unwrap_or("");
     is_cpp_source(name)
         || cforge_cmake::is_cmake_file(name)
-        || matches!(name, "compile_commands.json" | "Makefile" | "GNUmakefile" | "meson.build" | ".clang-format" | ".clang-tidy" | ".clangd")
+        || matches!(
+            name,
+            "compile_commands.json"
+                | "Makefile"
+                | "GNUmakefile"
+                | "meson.build"
+                | ".clang-format"
+                | ".clang-tidy"
+                | ".clangd"
+        )
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn cpp_paths() {
-        for p in ["src/main.cpp", "include/a.hpp", "x.c", "CMakeLists.txt", "build/compile_commands.json", ".clang-format", "meson.build"] {
+        for p in [
+            "src/main.cpp",
+            "include/a.hpp",
+            "x.c",
+            "CMakeLists.txt",
+            "build/compile_commands.json",
+            ".clang-format",
+            "meson.build",
+        ] {
             assert!(super::is_cpp_path(p), "{p}");
         }
         assert!(!super::is_cpp_path("main.go"));

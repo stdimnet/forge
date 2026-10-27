@@ -40,11 +40,7 @@ fn cache_value(v: &Value) -> Option<String> {
 
 fn string_map(v: Option<&Value>) -> BTreeMap<String, Option<String>> {
     v.and_then(Value::as_object)
-        .map(|o| {
-            o.iter()
-                .map(|(k, v)| (k.clone(), cache_value(v)))
-                .collect()
-        })
+        .map(|o| o.iter().map(|(k, v)| (k.clone(), cache_value(v))).collect())
         .unwrap_or_default()
 }
 
@@ -175,8 +171,10 @@ impl Presets {
         }
         let Some(text) = read(path) else {
             if !stack.is_empty() {
-                self.errors
-                    .push(format!("{}: included file {path} not found", stack.last().unwrap()));
+                self.errors.push(format!(
+                    "{}: included file {path} not found",
+                    stack.last().unwrap()
+                ));
             }
             return;
         };
@@ -218,7 +216,12 @@ impl Presets {
             ("buildPresets", &mut self.build),
             ("testPresets", &mut self.test),
         ] {
-            for p in json.get(key).and_then(Value::as_array).into_iter().flatten() {
+            for p in json
+                .get(key)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
                 match RawPreset::parse(p, path) {
                     Some(p) if list.iter().any(|o| o.name == p.name) => {
                         self.errors
@@ -335,7 +338,10 @@ pub fn expand(
     ctx: &MacroContext,
 ) -> String {
     let source = ctx.source_dir.trim_end_matches(['/', '\\']);
-    let parent = source.rfind(['/', '\\']).map(|i| &source[..i]).unwrap_or("");
+    let parent = source
+        .rfind(['/', '\\'])
+        .map(|i| &source[..i])
+        .unwrap_or("");
     let name = source.rsplit(['/', '\\']).next().unwrap_or("");
     let file_dir = {
         let d = parent_dir(file);
@@ -456,11 +462,7 @@ impl Presets {
         ctx: &MacroContext,
     ) -> Result<Option<ResolvedConfigure>, String> {
         let chain = lineage(&self.configure, name, &mut Vec::new())?;
-        let first = |key: &str| {
-            chain
-                .iter()
-                .find_map(|p| p.fields.get(key).cloned())
-        };
+        let first = |key: &str| chain.iter().find_map(|p| p.fields.get(key).cloned());
         let me = chain[0];
         // Parents first, so children override.
         let mut env_raw: BTreeMap<String, Option<String>> = BTreeMap::new();
@@ -621,9 +623,15 @@ mod tests {
     fn loads_includes_and_user_presets() {
         let p = load(&files);
         assert!(p.errors.is_empty(), "{:?}", p.errors);
-        assert_eq!(p.files, [PROJECT_FILE, "cmake/presets/base.json", USER_FILE]);
+        assert_eq!(
+            p.files,
+            [PROJECT_FILE, "cmake/presets/base.json", USER_FILE]
+        );
         let names: Vec<&str> = p.configure.iter().map(|c| c.name.as_str()).collect();
-        assert_eq!(names, ["base", "debug", "release", "windows-only", "my-clang"]);
+        assert_eq!(
+            names,
+            ["base", "debug", "release", "windows-only", "my-clang"]
+        );
         assert_eq!(p.configure[0].file, "cmake/presets/base.json");
     }
 
@@ -633,13 +641,19 @@ mod tests {
         let debug = p.configure_preset("debug", &ctx()).unwrap().unwrap();
         assert_eq!(debug.display_name, "Debug (Ninja)");
         assert_eq!(debug.generator.as_deref(), Some("Ninja"));
-        assert_eq!(debug.binary_dir.as_deref(), Some("/home/dev/shapes/build/debug"));
+        assert_eq!(
+            debug.binary_dir.as_deref(),
+            Some("/home/dev/shapes/build/debug")
+        );
         assert_eq!(debug.build_type(), Some("Debug"));
         assert_eq!(debug.cache_variables["SHAPES_TESTS"], "TRUE");
         assert_eq!(debug.cache_variables["SHAPES_WARNINGS"], "ON");
         assert_eq!(debug.environment["CCACHE_DIR"], "/home/dev/.ccache");
         let release = p.configure_preset("release", &ctx()).unwrap().unwrap();
-        assert_eq!(release.binary_dir.as_deref(), Some("/home/dev/shapes/out/release"));
+        assert_eq!(
+            release.binary_dir.as_deref(),
+            Some("/home/dev/shapes/out/release")
+        );
         assert_eq!(release.build_type(), Some("Release"));
         assert!(!release.cache_variables.contains_key("SHAPES_WARNINGS"));
         let mine = p.configure_preset("my-clang", &ctx()).unwrap().unwrap();
@@ -648,7 +662,10 @@ mod tests {
             mine.toolchain_file.as_deref(),
             Some("/opt/vcpkg/scripts/buildsystems/vcpkg.cmake")
         );
-        assert_eq!(mine.binary_dir.as_deref(), Some("/home/dev/shapes/build/my-clang"));
+        assert_eq!(
+            mine.binary_dir.as_deref(),
+            Some("/home/dev/shapes/build/my-clang")
+        );
     }
 
     #[test]
@@ -688,7 +705,10 @@ mod tests {
     #[test]
     fn bad_files_and_cycles_are_reported() {
         let cyclic = |name: &str| match name {
-            PROJECT_FILE => Some(r#"{"include": ["a.json"], "configurePresets": [{"name": "x", "inherits": "x"}]}"#.to_string()),
+            PROJECT_FILE => Some(
+                r#"{"include": ["a.json"], "configurePresets": [{"name": "x", "inherits": "x"}]}"#
+                    .to_string(),
+            ),
             "a.json" => Some(r#"{"include": ["CMakePresets.json"]}"#.to_string()),
             USER_FILE => Some("{ not json".to_string()),
             _ => None,
@@ -697,6 +717,9 @@ mod tests {
         assert_eq!(p.errors.len(), 2, "{:?}", p.errors);
         assert!(p.errors[0].contains("include cycle"));
         assert!(p.errors[1].starts_with("CMakeUserPresets.json:"));
-        assert!(p.configure_preset("x", &ctx()).unwrap_err().contains("itself"));
+        assert!(p
+            .configure_preset("x", &ctx())
+            .unwrap_err()
+            .contains("itself"));
     }
 }

@@ -477,10 +477,9 @@ fn scan_cpp(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
         || (rel.is_empty() && dir.join("build/compile_commands.json").is_file());
     let meson = has("meson.build");
     let makefile = has("Makefile") || has("makefile") || has("GNUmakefile");
-    let make_sources = makefile
-        && (sources > 0 || file_names(&dir.join("src")).iter().any(|f| is_cpp_file(f)));
-    if cmake || compdb || meson || make_sources || sources >= 2 || (rel.is_empty() && sources > 0)
-    {
+    let make_sources =
+        makefile && (sources > 0 || file_names(&dir.join("src")).iter().any(|f| is_cpp_file(f)));
+    if cmake || compdb || meson || make_sources || sources >= 2 || (rel.is_empty() && sources > 0) {
         c.language("cpp");
     }
     if cmake {

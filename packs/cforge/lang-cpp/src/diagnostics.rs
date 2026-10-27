@@ -37,7 +37,14 @@ pub struct BuildProblem {
 }
 
 impl BuildProblem {
-    fn new(file: &str, line: u32, column: u32, severity: Severity, message: &str, tool: &str) -> Self {
+    fn new(
+        file: &str,
+        line: u32,
+        column: u32,
+        severity: Severity,
+        message: &str,
+        tool: &str,
+    ) -> Self {
         Self {
             file: file.to_string(),
             line,
@@ -145,7 +152,14 @@ fn gnu_linker(line: &str) -> Option<BuildProblem> {
             return None;
         }
         let message = &line[close + 3..];
-        return Some(BuildProblem::new(file, 0, 0, Severity::Error, message, "linker"));
+        return Some(BuildProblem::new(
+            file,
+            0,
+            0,
+            Severity::Error,
+            message,
+            "linker",
+        ));
     }
     for prefix in ["ld.lld: error: ", "ld: error: ", "lld-link: error: "] {
         if let Some(m) = line.strip_prefix(prefix) {
@@ -165,7 +179,9 @@ fn noise(line: &str) -> bool {
     let t = line.trim_start();
     t.is_empty()
         || t.starts_with('|')
-        || t.split_once('|').is_some_and(|(n, _)| n.trim().chars().all(|c| c.is_ascii_digit()) && !n.trim().is_empty())
+        || t.split_once('|').is_some_and(|(n, _)| {
+            n.trim().chars().all(|c| c.is_ascii_digit()) && !n.trim().is_empty()
+        })
         || line.starts_with("FAILED: ")
         || line.starts_with("ninja: ")
         || line.starts_with("make: ")
@@ -202,10 +218,9 @@ pub fn parse_build_output(text: &str) -> Vec<BuildProblem> {
                 continue;
             }
         }
-        if !out
-            .iter()
-            .any(|o| o.file == p.file && o.line == p.line && o.column == p.column && o.message == p.message)
-        {
+        if !out.iter().any(|o| {
+            o.file == p.file && o.line == p.line && o.column == p.column && o.message == p.message
+        }) {
             out.push(p);
         }
     }
@@ -266,7 +281,15 @@ mod tests {
 
     fn summary(p: &[BuildProblem]) -> Vec<(String, u32, u32, Severity, String)> {
         p.iter()
-            .map(|p| (p.file.clone(), p.line, p.column, p.severity, p.message.clone()))
+            .map(|p| {
+                (
+                    p.file.clone(),
+                    p.line,
+                    p.column,
+                    p.severity,
+                    p.message.clone(),
+                )
+            })
             .collect()
     }
 
@@ -296,8 +319,14 @@ mod tests {
         let p = parse_build_output(&fixture("clang-errors.txt"));
         assert_eq!(p.len(), 2);
         assert_eq!((p[0].line, p[0].column), (6, 18));
-        assert_eq!(p[0].message, "use of undeclared identifier 'undefined_name'");
-        assert_eq!(p[1].message, "no viable conversion from 'int' to 'std::string' (aka 'basic_string<char>')");
+        assert_eq!(
+            p[0].message,
+            "use of undeclared identifier 'undefined_name'"
+        );
+        assert_eq!(
+            p[1].message,
+            "no viable conversion from 'int' to 'std::string' (aka 'basic_string<char>')"
+        );
         assert_eq!(p[1].notes.len(), 6);
         assert!(p[1].notes[0].file.ends_with("bits/basic_string.h"));
         assert_eq!(p[1].notes[0].line, 547);
@@ -308,7 +337,13 @@ mod tests {
         let p = parse_build_output(&fixture("ninja-build-failed.txt"));
         assert_eq!(
             summary(&p),
-            [("/home/dev/shapes/src/shapes.cpp".into(), 11, 28, Severity::Error, "'missing' was not declared in this scope".into())]
+            [(
+                "/home/dev/shapes/src/shapes.cpp".into(),
+                11,
+                28,
+                Severity::Error,
+                "'missing' was not declared in this scope".into()
+            )]
         );
         let exists = |_: &str| false;
         assert_eq!(
@@ -322,10 +357,18 @@ mod tests {
         let p = parse_build_output(&fixture("gcc-link-error.txt"));
         assert_eq!(
             summary(&p),
-            [("link.cpp".into(), 0, 0, Severity::Error, "undefined reference to `helper()'".into())]
+            [(
+                "link.cpp".into(),
+                0,
+                0,
+                Severity::Error,
+                "undefined reference to `helper()'".into()
+            )]
         );
         assert_eq!(p[0].tool, "linker");
-        let lld = parse_build_output("ld.lld: error: undefined symbol: helper()\n>>> referenced by link.cpp\n");
+        let lld = parse_build_output(
+            "ld.lld: error: undefined symbol: helper()\n>>> referenced by link.cpp\n",
+        );
         assert_eq!(lld[0].message, "undefined symbol: helper()");
         let apple = parse_build_output("ld: symbol(s) not found for architecture arm64\nclang: error: linker command failed with exit code 1 (use -v to see invocation)\n");
         assert_eq!(apple.len(), 1);
@@ -362,9 +405,18 @@ mod tests {
     #[test]
     fn relative_files_resolve_against_the_build_folder() {
         let exists = |p: &str| p == "src/a.cpp";
-        assert_eq!(project_path("../src/a.cpp", "/p", "build", &exists).as_deref(), Some("src/a.cpp"));
-        assert_eq!(project_path("src/a.cpp", "/p", "build", &exists).as_deref(), Some("src/a.cpp"));
-        assert_eq!(project_path("/usr/include/x.h", "/p", "build", &exists).as_deref(), Some("/usr/include/x.h"));
+        assert_eq!(
+            project_path("../src/a.cpp", "/p", "build", &exists).as_deref(),
+            Some("src/a.cpp")
+        );
+        assert_eq!(
+            project_path("src/a.cpp", "/p", "build", &exists).as_deref(),
+            Some("src/a.cpp")
+        );
+        assert_eq!(
+            project_path("/usr/include/x.h", "/p", "build", &exists).as_deref(),
+            Some("/usr/include/x.h")
+        );
         assert_eq!(project_path("", "/p", "build", &exists), None);
     }
 }

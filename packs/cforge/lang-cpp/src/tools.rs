@@ -51,9 +51,17 @@ pub fn clangd_args(o: &ClangdOptions) -> Vec<String> {
     if o.clang_tidy {
         args.push("--clang-tidy".into());
     }
-    let insertion = if o.header_insertion == "never" { "never" } else { "iwyu" };
+    let insertion = if o.header_insertion == "never" {
+        "never"
+    } else {
+        "iwyu"
+    };
     args.push(format!("--header-insertion={insertion}"));
-    let style = if o.completion_style == "bundled" { "bundled" } else { "detailed" };
+    let style = if o.completion_style == "bundled" {
+        "bundled"
+    } else {
+        "detailed"
+    };
     args.push(format!("--completion-style={style}"));
     if !o.query_drivers.is_empty() {
         args.push(format!("--query-driver={}", o.query_drivers.join(",")));
@@ -67,7 +75,11 @@ pub fn clangd_args(o: &ClangdOptions) -> Vec<String> {
 /// `19.1.2`.
 pub fn clangd_version(text: &str) -> Option<String> {
     let line = text.lines().find(|l| l.contains("clangd version "))?;
-    let v = line.split_once("clangd version ")?.1.split_whitespace().next()?;
+    let v = line
+        .split_once("clangd version ")?
+        .1
+        .split_whitespace()
+        .next()?;
     Some(v.to_string())
 }
 
@@ -187,7 +199,11 @@ mod tests {
         };
         assert_eq!(
             clangd_args(&off),
-            ["--header-insertion=never", "--completion-style=detailed", "--pch-storage=memory"]
+            [
+                "--header-insertion=never",
+                "--completion-style=detailed",
+                "--pch-storage=memory"
+            ]
         );
         assert_eq!(
             clangd_version("Ubuntu clangd version 18.1.3 (1ubuntu1)\nFeatures: linux+grpc\nPlatform: x86_64-pc-linux-gnu\n").as_deref(),
@@ -200,19 +216,35 @@ mod tests {
     fn clang_format_and_debugging() {
         assert_eq!(
             clang_format_args("/p/src/a.cpp", ""),
-            ["--assume-filename=/p/src/a.cpp", "--style=file", "--fallback-style=LLVM"]
+            [
+                "--assume-filename=/p/src/a.cpp",
+                "--style=file",
+                "--fallback-style=LLVM"
+            ]
         );
         let gdb = debug_setup("gdb", Some("/usr/share/gcc/python"), true);
         assert_eq!(gdb.adapter_args.len(), 4);
-        assert!(gdb.adapter_args[3].starts_with("python exec('import sys\\nsys.path.insert(0, \\'/usr/share/gcc/python\\')"));
+        assert!(gdb.adapter_args[3].starts_with(
+            "python exec('import sys\\nsys.path.insert(0, \\'/usr/share/gcc/python\\')"
+        ));
         assert!(gdb.adapter_args[3].contains("register_libstdcxx_printers(None)"));
-        assert_eq!(debug_setup("gdb", None, true).adapter_args, ["-iex", "set print pretty on"]);
+        assert_eq!(
+            debug_setup("gdb", None, true).adapter_args,
+            ["-iex", "set print pretty on"]
+        );
         let lldb = debug_setup("lldb", None, true);
-        assert_eq!(lldb.configuration["initCommands"][0], "type category enable cplusplus");
+        assert_eq!(
+            lldb.configuration["initCommands"][0],
+            "type category enable cplusplus"
+        );
         assert_eq!(debug_setup("lldb", None, false), DebugSetup::default());
         assert_eq!(
             printer_dir_candidates("/usr/bin/g++", "13.3.0"),
-            ["/usr/share/gcc-13.3.0/python", "/usr/share/gcc-13/python", "/usr/share/gcc/python"]
+            [
+                "/usr/share/gcc-13.3.0/python",
+                "/usr/share/gcc-13/python",
+                "/usr/share/gcc/python"
+            ]
         );
         assert_eq!(
             printer_dir_candidates("C:\\msys64\\ucrt64\\bin\\g++.exe", "14.2.0")[2],

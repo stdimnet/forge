@@ -300,7 +300,11 @@ fn parse_target(
             .and_then(Value::as_array)
             .map(|a| a.iter().map(|a| join(build_root, s(a, "path"))).collect())
             .unwrap_or_default(),
-        source_dir: if src_rel == "." { String::new() } else { src_rel.to_string() },
+        source_dir: if src_rel == "." {
+            String::new()
+        } else {
+            src_rel.to_string()
+        },
         build_dir: join(build_root, build_rel),
         sources,
         dependencies: v
@@ -336,8 +340,9 @@ pub fn parse_reply(
 ) -> Result<CMakeModel, String> {
     let index_name = index_file(files.iter().map(String::as_str))
         .ok_or("CMake wrote no file API reply (CMake 3.14 or newer is needed)")?;
-    let index: Value = serde_json::from_str(&read(index_name).ok_or("cannot read the reply index")?)
-        .map_err(|e| format!("bad reply index: {e}"))?;
+    let index: Value =
+        serde_json::from_str(&read(index_name).ok_or("cannot read the reply index")?)
+            .map_err(|e| format!("bad reply index: {e}"))?;
     let load = |file: &str| -> Result<Value, String> {
         let text = read(file).ok_or_else(|| format!("cannot read {file}"))?;
         serde_json::from_str(&text).map_err(|e| format!("bad {file}: {e}"))
@@ -460,8 +465,13 @@ pub fn parse_reply(
                 inputs
                     .iter()
                     .filter(|i| {
-                        !i.get("isExternal").and_then(Value::as_bool).unwrap_or(false)
-                            && !i.get("isGenerated").and_then(Value::as_bool).unwrap_or(false)
+                        !i.get("isExternal")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                            && !i
+                                .get("isGenerated")
+                                .and_then(Value::as_bool)
+                                .unwrap_or(false)
                             && !i.get("isCMake").and_then(Value::as_bool).unwrap_or(false)
                     })
                     .map(|i| relative(&model.source_dir, s(i, "path")))
@@ -510,7 +520,10 @@ mod tests {
         assert_eq!(lib.executable(), None);
         let app = &cfg.targets[1];
         assert_eq!(app.kind, TargetKind::Executable);
-        assert_eq!(app.executable(), Some("/home/dev/shapes/build/debug/shapes_app"));
+        assert_eq!(
+            app.executable(),
+            Some("/home/dev/shapes/build/debug/shapes_app")
+        );
         assert_eq!(app.dependencies, ["shapes"]);
         assert_eq!(
             app.defined_at,
@@ -531,7 +544,9 @@ mod tests {
         assert_eq!(m.cmake_files, ["CMakeLists.txt"]);
         assert_eq!(m.toolchains[0].compiler_id, "GNU");
         assert_eq!(m.toolchains[0].version, "13.3.0");
-        let tests = m.target_of_source("Debug", "tests/shapes_test.cpp").unwrap();
+        let tests = m
+            .target_of_source("Debug", "tests/shapes_test.cpp")
+            .unwrap();
         assert_eq!(tests.name, "shapes_tests");
         assert_eq!(m.executables("Debug").len(), 2);
         assert_eq!(m.target("Debug", "shapes").unwrap().source_dir, "");
@@ -539,7 +554,9 @@ mod tests {
 
     #[test]
     fn missing_or_broken_replies() {
-        assert!(parse_reply(&[], &|_| None).unwrap_err().contains("no file API reply"));
+        assert!(parse_reply(&[], &|_| None)
+            .unwrap_err()
+            .contains("no file API reply"));
         let files = vec!["index-1.json".to_string()];
         assert!(parse_reply(&files, &|_| Some("{}".into()))
             .unwrap_err()

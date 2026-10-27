@@ -203,7 +203,11 @@ impl Toolchain {
                 .push("No build tool: install Ninja or Make".into());
         }
         match &self.debugger {
-            Some(d) if d.kind == DebuggerKind::Gdb && !d.version.is_empty() && !version::at_least(&d.version, "14") => {
+            Some(d)
+                if d.kind == DebuggerKind::Gdb
+                    && !d.version.is_empty()
+                    && !version::at_least(&d.version, "14") =>
+            {
                 self.problems.push(format!(
                     "GDB {} has no DAP server (gdb -i dap needs GDB 14 or newer)",
                     d.version
@@ -407,7 +411,10 @@ pub fn detect(probe: &dyn Probe) -> Vec<Toolchain> {
 
     // System GCC and Clang.
     let mut host_target = None;
-    for (id, cc, cxx) in [("system-gcc", "gcc", "g++"), ("system-clang", "clang", "clang++")] {
+    for (id, cc, cxx) in [
+        ("system-gcc", "gcc", "g++"),
+        ("system-clang", "clang", "clang++"),
+    ] {
         let (Some(c), Some(cpp)) = (which(probe, cc), which(probe, cxx)) else {
             continue;
         };
@@ -420,7 +427,10 @@ pub fn detect(probe: &dyn Probe) -> Vec<Toolchain> {
         if host_target.is_none() {
             host_target = info.as_ref().map(|i| i.target.clone());
         }
-        push(&mut out, assemble(id.into(), kind, Some(c), Some(cpp), info, &shared));
+        push(
+            &mut out,
+            assemble(id.into(), kind, Some(c), Some(cpp), info, &shared),
+        );
     }
 
     // Versioned and cross compilers in the PATH folders.
@@ -544,9 +554,19 @@ fn detect_mingw_folders(probe: &dyn Probe, shared: &Shared) -> Vec<Toolchain> {
         }
         let id = format!(
             "mingw-{}",
-            root.rsplit('\\').next().unwrap_or(root).to_ascii_lowercase()
+            root.rsplit('\\')
+                .next()
+                .unwrap_or(root)
+                .to_ascii_lowercase()
         );
-        out.push(assemble(id, ToolchainKind::MinGw, Some(c), Some(cpp), info, &own));
+        out.push(assemble(
+            id,
+            ToolchainKind::MinGw,
+            Some(c),
+            Some(cpp),
+            info,
+            &own,
+        ));
     }
     out
 }
@@ -805,7 +825,11 @@ mod tests {
             // Debian's host aliases and a second GCC.
             .file("/usr/bin/x86_64-linux-gnu-gcc")
             .file("/usr/bin/x86_64-linux-gnu-g++")
-            .out("/usr/bin/g++-14", "-v", fixture("gcc-v.txt").replace("13.3.0", "14.2.0"))
+            .out(
+                "/usr/bin/g++-14",
+                "-v",
+                fixture("gcc-v.txt").replace("13.3.0", "14.2.0"),
+            )
             .file("/usr/bin/gcc-14")
             .out(
                 "/usr/local/bin/arm-none-eabi-g++",
@@ -821,24 +845,41 @@ mod tests {
     fn linux_machine() {
         let list = detect(&ubuntu());
         let ids: Vec<&str> = list.iter().map(|t| t.id.as_str()).collect();
-        assert_eq!(ids, ["system-gcc", "system-clang", "cross-arm-none-eabi", "gcc-14"]);
+        assert_eq!(
+            ids,
+            [
+                "system-gcc",
+                "system-clang",
+                "cross-arm-none-eabi",
+                "gcc-14"
+            ]
+        );
         let gcc = &list[0];
         assert_eq!(gcc.name, "GCC 13.3.0");
         assert_eq!(gcc.cxx_compiler.as_deref(), Some("/usr/bin/g++"));
         assert_eq!(gcc.cmake.as_ref().unwrap().version, "3.28.3");
         assert_eq!(gcc.ninja.as_ref().unwrap().version, "1.11.1");
         let gdb = gcc.debugger.as_ref().unwrap();
-        assert_eq!((gdb.kind, gdb.version.as_str()), (DebuggerKind::Gdb, "15.1"));
+        assert_eq!(
+            (gdb.kind, gdb.version.as_str()),
+            (DebuggerKind::Gdb, "15.1")
+        );
         assert!(gcc.problems.is_empty(), "{:?}", gcc.problems);
         assert_eq!(gcc.default_generator(), "Ninja");
         let clang = &list[1];
         assert_eq!(clang.name, "Clang 18.1.3");
         let lldb = clang.debugger.as_ref().unwrap();
-        assert_eq!((lldb.kind, lldb.version.as_str()), (DebuggerKind::Lldb, "18.1.3"));
+        assert_eq!(
+            (lldb.kind, lldb.version.as_str()),
+            (DebuggerKind::Lldb, "18.1.3")
+        );
         let arm = &list[2];
         assert_eq!(arm.kind, ToolchainKind::Cross);
         assert_eq!(arm.name, "GCC 13.3.1 (arm-none-eabi)");
-        assert_eq!(arm.debugger.as_ref().unwrap().path, "/usr/bin/gdb-multiarch");
+        assert_eq!(
+            arm.debugger.as_ref().unwrap().path,
+            "/usr/bin/gdb-multiarch"
+        );
         assert_eq!(list[3].name, "GCC 14.2.0");
         let vars = cmake_variables(gcc, "Ninja");
         assert_eq!(vars["CMAKE_CXX_COMPILER"], "/usr/bin/g++");
@@ -884,15 +925,21 @@ mod tests {
             &vswhere::VSWHERE_ARGS.join(" "),
             fixture("vswhere.json"),
         )
-        .file(&format!("{vs}\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe"))
-        .file(&format!("{vs}\\VC\\Tools\\MSVC\\14.38.33130\\bin\\Hostx64\\x64\\cl.exe"))
+        .file(&format!(
+            "{vs}\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe"
+        ))
+        .file(&format!(
+            "{vs}\\VC\\Tools\\MSVC\\14.38.33130\\bin\\Hostx64\\x64\\cl.exe"
+        ))
         .out(
             &format!("{vs}\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe"),
             "",
             fixture("msvc-cl-banner.txt"),
         )
         .out(
-            &format!("{vs}\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"),
+            &format!(
+                "{vs}\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"
+            ),
             "--version",
             fixture("cmake-version.txt"),
         )
@@ -902,7 +949,11 @@ mod tests {
             fixture("ninja-version.txt"),
         )
         .file("C:\\Tools\\lldb-dap.exe")
-        .out("C:\\msys64\\ucrt64\\bin\\g++.exe", "-v", fixture("mingw-gcc-v.txt"))
+        .out(
+            "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "-v",
+            fixture("mingw-gcc-v.txt"),
+        )
         .out(
             "C:\\msys64\\ucrt64\\bin\\gdb.exe",
             "--version",
@@ -952,8 +1003,14 @@ mod tests {
         assert_eq!(list[0].source, "settings");
         assert_eq!(list[0].compiler.as_ref().unwrap().target, "arm-none-eabi");
         assert_eq!(list[1].id, "system-gcc");
-        assert_eq!(cross_triple("aarch64-linux-gnu-gcc"), Some("aarch64-linux-gnu"));
+        assert_eq!(
+            cross_triple("aarch64-linux-gnu-gcc"),
+            Some("aarch64-linux-gnu")
+        );
         assert_eq!(cross_triple("gcc"), None);
-        assert_eq!(cross_triple("x86_64-w64-mingw32-gcc.exe"), Some("x86_64-w64-mingw32"));
+        assert_eq!(
+            cross_triple("x86_64-w64-mingw32-gcc.exe"),
+            Some("x86_64-w64-mingw32")
+        );
     }
 }

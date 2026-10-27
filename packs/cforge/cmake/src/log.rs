@@ -36,7 +36,11 @@ pub struct ConfigureMessage {
 impl ConfigureMessage {
     /// The first line of the message (the Problems view's text).
     pub fn summary(&self) -> &str {
-        self.message.lines().find(|l| !l.trim().is_empty()).unwrap_or("").trim()
+        self.message
+            .lines()
+            .find(|l| !l.trim().is_empty())
+            .unwrap_or("")
+            .trim()
     }
 }
 
@@ -82,7 +86,10 @@ fn header(line: &str) -> Option<(Severity, Option<String>, Option<u32>, Option<S
 /// `CMake Error: <text>` on one line.
 fn inline(line: &str) -> Option<(Severity, String)> {
     let rest = line.strip_prefix("CMake ")?;
-    for (k, sev) in [("Error: ", Severity::Error), ("Warning: ", Severity::Warning)] {
+    for (k, sev) in [
+        ("Error: ", Severity::Error),
+        ("Warning: ", Severity::Warning),
+    ] {
         if let Some(text) = rest.strip_prefix(k) {
             return Some((sev, text.trim().to_string()));
         }
@@ -185,8 +192,10 @@ mod tests {
     fn warnings_and_generate_errors() {
         let log = fixture("cmake-configure-warning.txt");
         let m = parse_log(&log);
-        let summary: Vec<(Severity, Option<u32>, &str)> =
-            m.iter().map(|m| (m.severity, m.line, m.summary())).collect();
+        let summary: Vec<(Severity, Option<u32>, &str)> = m
+            .iter()
+            .map(|m| (m.severity, m.line, m.summary()))
+            .collect();
         assert_eq!(
             summary,
             [

@@ -59,10 +59,7 @@ fn setting(state: &AppState, key: &str) -> Option<String> {
 }
 
 fn flag(state: &AppState, key: &str, default: bool) -> bool {
-    state
-        .read_settings()
-        .get_as::<bool>(key)
-        .unwrap_or(default)
+    state.read_settings().get_as::<bool>(key).unwrap_or(default)
 }
 
 fn is_local(state: &AppState) -> bool {
@@ -293,14 +290,22 @@ fn create_dirs(backend: &dyn Backend, rel: &str) -> Result<()> {
 }
 
 /// Read the file API reply of a build folder.
-fn read_model(backend: &dyn Backend, root: &Path, build: &Path) -> std::result::Result<CMakeModel, String> {
+fn read_model(
+    backend: &dyn Backend,
+    root: &Path,
+    build: &Path,
+) -> std::result::Result<CMakeModel, String> {
     let reply = build.join(cforge_cmake::fileapi::REPLY_DIR);
     let files = list_names(backend, root, &reply);
     cforge_cmake::fileapi::parse_reply(&files, &|name| read_text(backend, root, &reply.join(name)))
 }
 
 fn has_cmake(backend: &dyn Backend) -> bool {
-    backend.read_optional("CMakeLists.txt").ok().flatten().is_some()
+    backend
+        .read_optional("CMakeLists.txt")
+        .ok()
+        .flatten()
+        .is_some()
 }
 
 /// The current state; a model a configure wrote earlier is read without running CMake.
@@ -312,7 +317,10 @@ fn current_state(state: &AppState) -> Result<CMakeState> {
     {
         let cached = CMAKE.lock().expect("cmake state");
         if let Some(s) = cached.as_ref() {
-            if s.root == path_string(&root) && s.profile == profile.name && s.build_dir == path_string(&build) {
+            if s.root == path_string(&root)
+                && s.profile == profile.name
+                && s.build_dir == path_string(&build)
+            {
                 return Ok(s.clone());
             }
         }
@@ -341,7 +349,11 @@ pub async fn cmake_state(app: AppHandle) -> Result<CMakeState> {
 
 fn cmake_executable(state: &AppState, toolchain: Option<&Toolchain>) -> String {
     setting(state, "cmake.executable")
-        .or_else(|| toolchain.and_then(|t| t.cmake.as_ref()).map(|t| t.path.clone()))
+        .or_else(|| {
+            toolchain
+                .and_then(|t| t.cmake.as_ref())
+                .map(|t| t.path.clone())
+        })
         .unwrap_or_else(|| "cmake".into())
 }
 
@@ -421,7 +433,9 @@ fn configure(app: &AppHandle, state: &AppState, reset: bool) -> Result<CMakeStat
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     if !has_cmake(backend.as_ref()) {
-        return Err(ForgeError::Other("The project has no CMakeLists.txt".into()));
+        return Err(ForgeError::Other(
+            "The project has no CMakeLists.txt".into(),
+        ));
     }
     let profile = active_profile(state);
     let build = build_dir(&root, &profile);
@@ -457,7 +471,10 @@ fn configure(app: &AppHandle, state: &AppState, reset: bool) -> Result<CMakeStat
         ..CMakeState::default()
     };
     emit_state(app, &s);
-    let _ = app.emit("cmake://log", json!({ "line": cmd.display(), "stream": "system" }));
+    let _ = app.emit(
+        "cmake://log",
+        json!({ "line": cmd.display(), "stream": "system" }),
+    );
 
     let (tx, rx) = mpsc::channel::<Option<i32>>();
     let lines: Arc<Mutex<(Vec<String>, String, String)>> = Arc::default();
@@ -618,8 +635,7 @@ pub async fn cpp_build_problems(output: String, app: AppHandle) -> Result<Vec<Bu
         let build_rel = project_relative(&root, &build).unwrap_or_default();
         let exists = |p: &str| backend.read_optional(p).ok().flatten().is_some();
         let root_s = path_string(&root);
-        let resolve =
-            |f: &str| diagnostics::project_path(f, &root_s, &build_rel, &exists);
+        let resolve = |f: &str| diagnostics::project_path(f, &root_s, &build_rel, &exists);
         Ok(diagnostics::parse_build_output(&output)
             .into_iter()
             .map(|p| view(p, &resolve))
@@ -638,12 +654,18 @@ pub(crate) fn context(state: &AppState) -> CppContext {
     let cmake = cmake_executable(state, toolchain.as_ref());
     let mut tools = BTreeMap::new();
     if let Some(cxx) = toolchain.as_ref().and_then(|t| t.cxx_compiler.as_deref()) {
-        tools.insert("gcov".into(), cforge_lang_cpp::coverage::tool_next_to(cxx, "gcov"));
+        tools.insert(
+            "gcov".into(),
+            cforge_lang_cpp::coverage::tool_next_to(cxx, "gcov"),
+        );
         tools.insert(
             "llvm-profdata".into(),
             cforge_lang_cpp::coverage::tool_next_to(cxx, "llvm-profdata"),
         );
-        tools.insert("llvm-cov".into(), cforge_lang_cpp::coverage::tool_next_to(cxx, "llvm-cov"));
+        tools.insert(
+            "llvm-cov".into(),
+            cforge_lang_cpp::coverage::tool_next_to(cxx, "llvm-cov"),
+        );
     }
     let targets = s
         .model
@@ -672,8 +694,18 @@ pub(crate) fn context(state: &AppState) -> CppContext {
 }
 
 /// Hand the C++ context to the GoogleTest, Catch2 and CTest providers (`run.rs`).
-pub(crate) fn extend_test_context(state: &AppState, type_id: &str, ctx: &mut forge_testing::CommandContext) {
-    if ![cforge_lang_cpp::GTEST, cforge_lang_cpp::CATCH2, cforge_lang_cpp::CTEST].contains(&type_id) {
+pub(crate) fn extend_test_context(
+    state: &AppState,
+    type_id: &str,
+    ctx: &mut forge_testing::CommandContext,
+) {
+    if ![
+        cforge_lang_cpp::GTEST,
+        cforge_lang_cpp::CATCH2,
+        cforge_lang_cpp::CTEST,
+    ]
+    .contains(&type_id)
+    {
         return;
     }
     let cpp = context(state);
@@ -682,7 +714,8 @@ pub(crate) fn extend_test_context(state: &AppState, type_id: &str, ctx: &mut for
         remove_gcda(Path::new(&cpp.build_dir));
     }
     if let Ok(json) = serde_json::to_string(&cpp) {
-        ctx.settings.insert(cforge_lang_cpp::CONTEXT_KEY.into(), json);
+        ctx.settings
+            .insert(cforge_lang_cpp::CONTEXT_KEY.into(), json);
     }
 }
 
@@ -700,7 +733,11 @@ fn to_runtools(cfg: &RunConfiguration) -> forge_runtools::Configuration {
 
 /// The executable of a CMake Application configuration.
 fn app_executable(state: &AppState, cfg: &RunConfiguration) -> Result<String> {
-    let exe = cfg.options.get("executable").map(|s| s.trim()).unwrap_or("");
+    let exe = cfg
+        .options
+        .get("executable")
+        .map(|s| s.trim())
+        .unwrap_or("");
     if !exe.is_empty() {
         let root = state.project_root()?;
         return Ok(if Path::new(exe).is_absolute() {
@@ -716,12 +753,19 @@ fn app_executable(state: &AppState, cfg: &RunConfiguration) -> Result<String> {
     let s = current_state(state)?;
     let profile = active_profile(state);
     let model = s.model.ok_or_else(|| {
-        ForgeError::Other("The CMake project is not loaded: reload it in the CMake tool window".into())
+        ForgeError::Other(
+            "The CMake project is not loaded: reload it in the CMake tool window".into(),
+        )
     })?;
     model
         .target(&profile.build_type, target)
         .and_then(|t| t.executable().map(str::to_string))
-        .ok_or_else(|| ForgeError::Other(format!("'{target}' is not an executable target of profile {}", profile.name)))
+        .ok_or_else(|| {
+            ForgeError::Other(format!(
+                "'{target}' is not an executable target of profile {}",
+                profile.name
+            ))
+        })
 }
 
 fn working_dir(root: &Path, cfg: &RunConfiguration, exe: &str) -> PathBuf {
@@ -748,7 +792,10 @@ pub(crate) fn app_run(state: &AppState, cfg: &RunConfiguration) -> Result<Comman
 
 /// The target a configuration builds before it runs (the UI's Before launch step).
 #[tauri::command]
-pub async fn cpp_target_of(configuration: RunConfiguration, app: AppHandle) -> Result<Option<String>> {
+pub async fn cpp_target_of(
+    configuration: RunConfiguration,
+    app: AppHandle,
+) -> Result<Option<String>> {
     blocking(move || {
         let state = app.state::<AppState>();
         Ok(match configuration.type_id.as_str() {
@@ -772,7 +819,11 @@ pub async fn cpp_target_of(configuration: RunConfiguration, app: AppHandle) -> R
 fn printers_dir(toolchain: Option<&Toolchain>) -> Option<String> {
     let t = toolchain?;
     let cxx = t.cxx_compiler.as_deref()?;
-    let version = t.compiler.as_ref().map(|c| c.version.as_str()).unwrap_or("");
+    let version = t
+        .compiler
+        .as_ref()
+        .map(|c| c.version.as_str())
+        .unwrap_or("");
     tools::printer_dir_candidates(cxx, version)
         .into_iter()
         .find(|d| Path::new(d).join("libstdcxx").is_dir())
@@ -782,7 +833,10 @@ fn printers_dir(toolchain: Option<&Toolchain>) -> Option<String> {
 /// target's executable under the toolchain's debugger (LLDB or GDB, or the configuration's
 /// `debugger`), with STL renderers.
 #[tauri::command]
-pub async fn cpp_debug_request(configuration: RunConfiguration, app: AppHandle) -> Result<LaunchRequest> {
+pub async fn cpp_debug_request(
+    configuration: RunConfiguration,
+    app: AppHandle,
+) -> Result<LaunchRequest> {
     blocking(move || debug_request(&app.state::<AppState>(), &configuration)).await
 }
 
@@ -791,7 +845,10 @@ fn debug_request(state: &AppState, cfg: &RunConfiguration) -> Result<LaunchReque
     let profile = active_profile(state);
     let toolchain = toolchain_of(state, Some(&profile));
     let (program, args) = match cfg.type_id.as_str() {
-        cforge_lang_cpp::CMAKE_APP => (app_executable(state, cfg)?, forge_process::split_args(&cfg.arguments)),
+        cforge_lang_cpp::CMAKE_APP => (
+            app_executable(state, cfg)?,
+            forge_process::split_args(&cfg.arguments),
+        ),
         _ => {
             let (p, mut a) = cforge_lang_cpp::debug_command(&to_runtools(cfg), &context(state))
                 .map_err(ForgeError::Other)?;
@@ -823,7 +880,9 @@ fn debug_request(state: &AppState, cfg: &RunConfiguration) -> Result<LaunchReque
     r.adapter_args = setup.adapter_args;
     // The toolchain's own GDB (cross toolchains: gdb-multiarch) unless the user set one.
     let user_gdb = setting(state, "debugger.gdb.path");
-    if let Some(d) = debugger.filter(|d| d.kind.adapter() == adapter && adapter == "gdb" && user_gdb.is_none()) {
+    if let Some(d) =
+        debugger.filter(|d| d.kind.adapter() == adapter && adapter == "gdb" && user_gdb.is_none())
+    {
         r.adapter_command = Some(d.path);
     }
     Ok(r)
@@ -875,7 +934,13 @@ pub(crate) fn collect_coverage(
     if backend.info().remote.is_some() {
         return Err("C++ coverage is collected for local projects only".into());
     }
-    let tool = |name: &str| collect.tools.get(name).cloned().unwrap_or_else(|| name.to_string());
+    let tool = |name: &str| {
+        collect
+            .tools
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| name.to_string())
+    };
     let run = |cmd: cforge_cmake::Command| -> std::result::Result<String, String> {
         let program = cmd.program.clone();
         let mut line = to_command_line(cmd);
@@ -899,9 +964,17 @@ pub(crate) fn collect_coverage(
         .unwrap_or_default();
     if !profraw.is_empty() {
         let profdata = path_string(&coverage_dir.join("forge.profdata"));
-        run(cforge_lang_cpp::coverage::llvm_merge_command(&tool("llvm-profdata"), &profraw, &profdata))?;
-        let export = cforge_lang_cpp::coverage::llvm_export_command(&tool("llvm-cov"), &profdata, &collect.binaries)
-            .ok_or("no test executables for llvm-cov")?;
+        run(cforge_lang_cpp::coverage::llvm_merge_command(
+            &tool("llvm-profdata"),
+            &profraw,
+            &profdata,
+        ))?;
+        let export = cforge_lang_cpp::coverage::llvm_export_command(
+            &tool("llvm-cov"),
+            &profdata,
+            &collect.binaries,
+        )
+        .ok_or("no test executables for llvm-cov")?;
         return run(export);
     }
     let build = collect.dirs.first().ok_or("no build folder")?;
@@ -909,7 +982,11 @@ pub(crate) fn collect_coverage(
     if gcda.is_empty() {
         return Err("No coverage data: build the profile with --coverage (GCC) or -fprofile-instr-generate -fcoverage-mapping (Clang)".into());
     }
-    let json = run(cforge_lang_cpp::coverage::gcov_command(&tool("gcov"), &gcda, build))?;
+    let json = run(cforge_lang_cpp::coverage::gcov_command(
+        &tool("gcov"),
+        &gcda,
+        build,
+    ))?;
     cforge_lang_cpp::coverage::gcov_json_to_lcov(&json, root)
 }
 
@@ -973,7 +1050,11 @@ fn clangd_info(state: &AppState) -> ClangdInfo {
 fn compile_commands_dir(state: &AppState, backend: &dyn Backend) -> Option<String> {
     let root = backend.info().root.clone();
     if let Some(p) = setting(state, "cpp.compileCommands") {
-        let abs = if Path::new(&p).is_absolute() { PathBuf::from(&p) } else { root.join(&p) };
+        let abs = if Path::new(&p).is_absolute() {
+            PathBuf::from(&p)
+        } else {
+            root.join(&p)
+        };
         let dir = if abs.extension().is_some_and(|e| e == "json") {
             abs.parent().map(Path::to_path_buf).unwrap_or(abs)
         } else {
@@ -986,7 +1067,10 @@ fn compile_commands_dir(state: &AppState, backend: &dyn Backend) -> Option<Strin
     }
     for rel in ["compile_commands.json", "build/compile_commands.json"] {
         if backend.read_optional(rel).ok().flatten().is_some() {
-            let dir = Path::new(rel).parent().map(|d| root.join(d)).unwrap_or(root.clone());
+            let dir = Path::new(rel)
+                .parent()
+                .map(|d| root.join(d))
+                .unwrap_or(root.clone());
             return Some(path_string(&dir));
         }
     }
@@ -1013,17 +1097,21 @@ fn lsp_config(state: &AppState, backend: &dyn Backend, command: String) -> LspSe
             .get_as::<String>("cpp.clangd.completionStyle")
             .unwrap_or_else(|| "detailed".into()),
         query_drivers,
-        extra_args: s.get_as::<String>("cpp.clangd.arguments").unwrap_or_default(),
+        extra_args: s
+            .get_as::<String>("cpp.clangd.arguments")
+            .unwrap_or_default(),
     };
     drop(s);
     LspServerConfig {
         id: SERVER_ID.into(),
         name: Some("clangd".into()),
         language_ids: vec!["c".into(), "cpp".into()],
-        file_extensions: ["c", "h", "cc", "cpp", "cxx", "c++", "hh", "hpp", "hxx", "ipp", "inl", "cu", "m", "mm"]
-            .iter()
-            .map(|e| e.to_string())
-            .collect(),
+        file_extensions: [
+            "c", "h", "cc", "cpp", "cxx", "c++", "hh", "hpp", "hxx", "ipp", "inl", "cu", "m", "mm",
+        ]
+        .iter()
+        .map(|e| e.to_string())
+        .collect(),
         command,
         args: tools::clangd_args(&options),
         initialization_options: json!({ "clangdFileStatus": true }),
@@ -1079,7 +1167,11 @@ fn restart_lsp_server(app: &AppHandle) {
 
 /// Whether a changed setting reconfigures clangd.
 pub fn affects_server(key: &str) -> bool {
-    key.starts_with("cpp.clangd.") || matches!(key, "cpp.compileCommands" | "cpp.toolchains" | "cmake.activeProfile" | "cmake.profiles")
+    key.starts_with("cpp.clangd.")
+        || matches!(
+            key,
+            "cpp.compileCommands" | "cpp.toolchains" | "cmake.activeProfile" | "cmake.profiles"
+        )
 }
 
 pub fn spawn_sync_lsp_server(app: &AppHandle) {
@@ -1119,8 +1211,14 @@ pub async fn cpp_status(refresh: Option<bool>, app: AppHandle) -> Result<CppStat
         let dir = compile_commands_dir(&state, backend.as_ref());
         let root = backend.info().root.clone();
         let summary = dir.as_ref().and_then(|d| {
-            let text = read_text(backend.as_ref(), &root, &Path::new(d).join(compdb::FILE_NAME))?;
-            compdb::parse(&text).ok().map(|e| compdb::summary(&e, &path_string(&root)))
+            let text = read_text(
+                backend.as_ref(),
+                &root,
+                &Path::new(d).join(compdb::FILE_NAME),
+            )?;
+            compdb::parse(&text)
+                .ok()
+                .map(|e| compdb::summary(&e, &path_string(&root)))
         });
         let kind = if has_cmake(backend.as_ref()) {
             "cmake"
@@ -1131,7 +1229,10 @@ pub async fn cpp_status(refresh: Option<bool>, app: AppHandle) -> Result<CppStat
         };
         Ok(CppStatus {
             clangd: clangd_info(&state),
-            clang_format: (!remote).then(|| clang_format(&state)).flatten().map(|p| path_string(&p)),
+            clang_format: (!remote)
+                .then(|| clang_format(&state))
+                .flatten()
+                .map(|p| path_string(&p)),
             toolchain,
             project_kind: kind.into(),
             compile_commands_dir: dir,
@@ -1145,15 +1246,19 @@ pub async fn cpp_status(refresh: Option<bool>, app: AppHandle) -> Result<CppStat
 /// Download the pinned clangd (the user agreed in the UI) and start it for the project.
 #[tauri::command]
 pub async fn cpp_clangd_install(app: AppHandle) -> Result<ClangdInfo> {
-    let base = managed::clangd_dir().ok_or_else(|| ForgeError::Other("no user data folder for clangd".into()))?;
-    let d = managed::current_clangd_release()
-        .ok_or_else(|| ForgeError::Other("The clangd releases have no build for this platform".into()))?;
+    let base = managed::clangd_dir()
+        .ok_or_else(|| ForgeError::Other("no user data folder for clangd".into()))?;
+    let d = managed::current_clangd_release().ok_or_else(|| {
+        ForgeError::Other("The clangd releases have no build for this platform".into())
+    })?;
     let http = Http::new().map_err(ForgeError::Other)?;
     let emitter = app.clone();
     let mut on = move |e: Event| {
         let payload = match e {
             Event::Step { message } => json!({ "message": message }),
-            Event::Progress { label, done, total } => json!({ "label": label, "done": done, "total": total }),
+            Event::Progress { label, done, total } => {
+                json!({ "label": label, "done": done, "total": total })
+            }
             Event::Output { line, .. } => json!({ "message": line }),
         };
         let _ = emitter.emit("cpp://install", payload);
@@ -1182,23 +1287,35 @@ fn clang_format(state: &AppState) -> Option<PathBuf> {
 /// Format a C/C++ file with clang-format (`.clang-format` of its folder); `None` when the
 /// project formats with clangd or not at all.
 #[tauri::command]
-pub async fn cpp_format(path: String, content: String, state: State<'_, AppState>) -> Result<Option<String>> {
+pub async fn cpp_format(
+    path: String,
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>> {
     let formatter = setting(&state, "cpp.formatter").unwrap_or_else(|| "clangFormat".into());
     if formatter != "clangFormat" {
         return Ok(None);
     }
-    let fallback = setting(&state, "cpp.clangFormat.fallbackStyle").unwrap_or_else(|| "LLVM".into());
+    let fallback =
+        setting(&state, "cpp.clangFormat.fallbackStyle").unwrap_or_else(|| "LLVM".into());
     let Some(program) = clang_format(&state) else {
-        return Err(ForgeError::Other("clang-format is not installed: install LLVM or choose it in Settings | C/C++".into()));
+        return Err(ForgeError::Other(
+            "clang-format is not installed: install LLVM or choose it in Settings | C/C++".into(),
+        ));
     };
     let backend = state.backend()?;
     let safe_mode = state.safe_mode.is_on();
     blocking(move || {
-        if safe_mode && forge_trust::runs_project_program(&backend.info().root, &path_string(&program), &[]) {
-            return Err(ForgeError::Other(forge_trust::refusal("Running the project's clang-format")));
+        if safe_mode
+            && forge_trust::runs_project_program(&backend.info().root, &path_string(&program), &[])
+        {
+            return Err(ForgeError::Other(forge_trust::refusal(
+                "Running the project's clang-format",
+            )));
         }
         let abs = backend.resolve(&path)?;
-        let mut cmd = CommandLine::new(path_string(&program)).args(tools::clang_format_args(&path_string(&abs), &fallback));
+        let mut cmd = CommandLine::new(path_string(&program))
+            .args(tools::clang_format_args(&path_string(&abs), &fallback));
         cmd.cwd = backend.info().root.clone();
         let out = capture(backend.as_ref(), &cmd, &content, FORMAT_TIMEOUT)?;
         match out.code {

@@ -99,7 +99,9 @@ impl CppContext {
             .find(|t| t.sources.iter().any(|s| *s == file))
             .map(|t| t.executable.clone())
             .ok_or_else(|| {
-                format!("No CMake target compiles {file}: reload the CMake project or choose a target")
+                format!(
+                    "No CMake target compiles {file}: reload the CMake project or choose a target"
+                )
             })
     }
 
@@ -150,7 +152,19 @@ pub fn is_cpp_source(path: &str) -> bool {
     let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     matches!(
         ext.as_str(),
-        "c" | "cc" | "cpp" | "cxx" | "c++" | "cu" | "h" | "hh" | "hpp" | "hxx" | "ipp" | "inl" | "ixx" | "cppm"
+        "c" | "cc"
+            | "cpp"
+            | "cxx"
+            | "c++"
+            | "cu"
+            | "h"
+            | "hh"
+            | "hpp"
+            | "hxx"
+            | "ipp"
+            | "inl"
+            | "ixx"
+            | "cppm"
     )
 }
 
@@ -347,13 +361,20 @@ impl CppTests {
                     other => return Err(format!("Unknown test scope '{other}'")),
                 }
                 let file = format!("{report_dir}/catch2-report.xml");
-                args.extend(["--reporter".into(), "junit".into(), "--out".into(), file.clone()]);
+                args.extend([
+                    "--reporter".into(),
+                    "junit".into(),
+                    "--out".into(),
+                    file.clone(),
+                ]);
                 let default = Some(opt("file")).filter(|f| !f.is_empty());
                 (exe.clone(), default, vec![exe])
             }
             _ => {
                 if cpp.build_dir.is_empty() {
-                    return Err("The project has no CMake build folder: reload the CMake project".into());
+                    return Err(
+                        "The project has no CMake build folder: reload the CMake project".into(),
+                    );
                 }
                 let ctest = if cpp.ctest.is_empty() {
                     "ctest".to_string()
@@ -376,7 +397,9 @@ impl CppTests {
                         args.extend(["-R".into(), opt("filter")])
                     }
                     "all" | "file" => {}
-                    "test" => args.extend(["-R".into(), format!("^{}$", regex_escape(&opt("test")))]),
+                    "test" => {
+                        args.extend(["-R".into(), format!("^{}$", regex_escape(&opt("test")))])
+                    }
                     "pattern" => args.extend(["-R".into(), pattern()]),
                     other => return Err(format!("Unknown test scope '{other}'")),
                 }
@@ -404,7 +427,10 @@ impl CppTests {
                 location_rules: Vec::new(),
                 collect: Some(CoverageCollect {
                     kind: "cpp".into(),
-                    dirs: vec![cpp.build_dir.clone()].into_iter().filter(|d| !d.is_empty()).collect(),
+                    dirs: vec![cpp.build_dir.clone()]
+                        .into_iter()
+                        .filter(|d| !d.is_empty())
+                        .collect(),
                     binaries,
                     tools: cpp.coverage_tools.clone(),
                 }),
@@ -476,7 +502,11 @@ impl TestFrameworkProvider for CppTests {
             }
             _ => format!(
                 "^({})$",
-                names.iter().map(|n| regex_escape(n)).collect::<Vec<_>>().join("|")
+                names
+                    .iter()
+                    .map(|n| regex_escape(n))
+                    .collect::<Vec<_>>()
+                    .join("|")
             ),
         };
         c.options.insert("scope".into(), "pattern".into());
@@ -484,7 +514,11 @@ impl TestFrameworkProvider for CppTests {
         Some(c)
     }
 
-    fn command(&self, cfg: &Configuration, ctx: &CommandContext) -> Option<Result<TestCommand, String>> {
+    fn command(
+        &self,
+        cfg: &Configuration,
+        ctx: &CommandContext,
+    ) -> Option<Result<TestCommand, String>> {
         Some(self.build(cfg, ctx))
     }
 
@@ -495,7 +529,10 @@ impl TestFrameworkProvider for CppTests {
 
 /// The program and arguments that debug a test configuration (the test executable with the
 /// filter, without report files).
-pub fn debug_command(cfg: &Configuration, ctx: &CppContext) -> Result<(String, Vec<String>), String> {
+pub fn debug_command(
+    cfg: &Configuration,
+    ctx: &CppContext,
+) -> Result<(String, Vec<String>), String> {
     let mut command_ctx = CommandContext {
         report_dir: String::new(),
         ..CommandContext::default()
@@ -507,7 +544,11 @@ pub fn debug_command(cfg: &Configuration, ctx: &CppContext) -> Result<(String, V
     let provider = match cfg.type_id.as_str() {
         GTEST => CppTests::gtest(),
         CATCH2 => CppTests::catch2(),
-        other => return Err(format!("'{other}' configurations are debugged through their executable")),
+        other => {
+            return Err(format!(
+                "'{other}' configurations are debugged through their executable"
+            ))
+        }
     };
     let cmd = provider.build(cfg, &command_ctx)?;
     let args = cmd
@@ -557,7 +598,8 @@ mod tests {
             coverage_file: coverage.then(|| "/tmp/forge-run-1/coverage/coverage".into()),
             ..CommandContext::default()
         };
-        c.settings.insert(CONTEXT_KEY.into(), serde_json::to_string(&cpp).unwrap());
+        c.settings
+            .insert(CONTEXT_KEY.into(), serde_json::to_string(&cpp).unwrap());
         c
     }
 
@@ -583,18 +625,38 @@ mod tests {
         assert_eq!(
             rows,
             [
-                (1, "PolygonTest.AreaOfSquare", "tests/shapes_test.cpp::AreaOfSquare"),
-                (2, "ScaleTest.KeepsRatio", "tests/shapes_test.cpp::KeepsRatio"),
+                (
+                    1,
+                    "PolygonTest.AreaOfSquare",
+                    "tests/shapes_test.cpp::AreaOfSquare"
+                ),
+                (
+                    2,
+                    "ScaleTest.KeepsRatio",
+                    "tests/shapes_test.cpp::KeepsRatio"
+                ),
             ]
         );
-        let test = r.command(&file.targets[1].configuration, &ctx(false)).unwrap().unwrap();
-        assert_eq!(test.program, "/home/dev/shapes/cmake-build-debug/shapes_tests");
+        let test = r
+            .command(&file.targets[1].configuration, &ctx(false))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            test.program,
+            "/home/dev/shapes/cmake-build-debug/shapes_tests"
+        );
         assert_eq!(
             test.args,
-            ["--gtest_output=xml:/tmp/forge-run-1/gtest-report.xml", "--gtest_filter=*/ScaleTest.KeepsRatio/*"]
+            [
+                "--gtest_output=xml:/tmp/forge-run-1/gtest-report.xml",
+                "--gtest_filter=*/ScaleTest.KeepsRatio/*"
+            ]
         );
         assert_eq!(test.report, TestReport::JUnitFile);
-        let whole = r.command(file.file.as_ref().unwrap(), &ctx(false)).unwrap().unwrap();
+        let whole = r
+            .command(file.file.as_ref().unwrap(), &ctx(false))
+            .unwrap()
+            .unwrap();
         assert_eq!(
             whole.args[1],
             "--gtest_filter=PolygonTest.*:*/PolygonTest.*:PolygonTest/*.*:ScaleTest.*:*/ScaleTest.*:ScaleTest/*.*"
@@ -602,13 +664,20 @@ mod tests {
         let rerun = r
             .rerun_failed(
                 &file.targets[0].configuration,
-                &[FailedTest { name: "PerimeterOfSquare".into(), ..FailedTest::default() }],
+                &[FailedTest {
+                    name: "PerimeterOfSquare".into(),
+                    ..FailedTest::default()
+                }],
             )
             .unwrap();
         assert_eq!(rerun.options["pattern"], "*.PerimeterOfSquare");
         let again = r.command(&rerun, &ctx(false)).unwrap().unwrap();
         assert_eq!(again.args[1], "--gtest_filter=*.PerimeterOfSquare");
-        let (program, args) = debug_command(&file.targets[0].configuration, &CppContext::from(&ctx(false)).unwrap()).unwrap();
+        let (program, args) = debug_command(
+            &file.targets[0].configuration,
+            &CppContext::from(&ctx(false)).unwrap(),
+        )
+        .unwrap();
         assert!(program.ends_with("shapes_tests"));
         assert_eq!(args, ["--gtest_filter=PolygonTest.AreaOfSquare"]);
     }
@@ -619,26 +688,53 @@ mod tests {
         let file = r.discover("tests/stats_test.cpp", CATCH_FILE, None);
         assert_eq!(file.framework.as_deref(), Some("catch2"));
         assert_eq!(file.targets.len(), 2);
-        assert_eq!(file.targets[1].key, "tests/stats_test.cpp::median/even, count");
+        assert_eq!(
+            file.targets[1].key,
+            "tests/stats_test.cpp::median/even, count"
+        );
         assert_eq!(file.targets[1].kind, TargetKind::Describe);
-        let cmd = r.command(&file.targets[1].configuration, &ctx(false)).unwrap().unwrap();
-        assert_eq!(cmd.program, "/home/dev/shapes/cmake-build-debug/stats_tests");
+        let cmd = r
+            .command(&file.targets[1].configuration, &ctx(false))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            cmd.program,
+            "/home/dev/shapes/cmake-build-debug/stats_tests"
+        );
         assert_eq!(
             cmd.args,
-            ["median", "-c", "even, count", "--reporter", "junit", "--out", "/tmp/forge-run-1/catch2-report.xml"]
+            [
+                "median",
+                "-c",
+                "even, count",
+                "--reporter",
+                "junit",
+                "--out",
+                "/tmp/forge-run-1/catch2-report.xml"
+            ]
         );
         assert_eq!(cmd.default_file.as_deref(), Some("tests/stats_test.cpp"));
         let rerun = r
             .rerun_failed(
                 &file.targets[0].configuration,
                 &[
-                    FailedTest { name: "median/even, count".into(), ..FailedTest::default() },
-                    FailedTest { name: "mean [fast]".into(), ..FailedTest::default() },
+                    FailedTest {
+                        name: "median/even, count".into(),
+                        ..FailedTest::default()
+                    },
+                    FailedTest {
+                        name: "mean [fast]".into(),
+                        ..FailedTest::default()
+                    },
                 ],
             )
             .unwrap();
         assert_eq!(rerun.options["pattern"], "median,mean \\[fast\\]");
-        let (_, args) = debug_command(&file.targets[1].configuration, &CppContext::from(&ctx(false)).unwrap()).unwrap();
+        let (_, args) = debug_command(
+            &file.targets[1].configuration,
+            &CppContext::from(&ctx(false)).unwrap(),
+        )
+        .unwrap();
         assert_eq!(args, ["median", "-c", "even, count"]);
         // A file of another framework is not Catch2's.
         assert!(CppTests::catch2().discover("a.cpp", GTEST_FILE).is_none());
@@ -663,7 +759,10 @@ mod tests {
                 "4"
             ]
         );
-        assert_eq!(cmd.env["LLVM_PROFILE_FILE"], "/tmp/forge-run-1/coverage/forge-%p.profraw");
+        assert_eq!(
+            cmd.env["LLVM_PROFILE_FILE"],
+            "/tmp/forge-run-1/coverage/forge-%p.profraw"
+        );
         let cov = cmd.coverage.unwrap();
         assert_eq!(cov.format, CoverageFormat::Lcov);
         let collect = cov.collect.unwrap();
@@ -671,10 +770,19 @@ mod tests {
         assert_eq!(collect.dirs, ["/home/dev/shapes/cmake-build-debug"]);
         assert_eq!(collect.binaries.len(), 2);
         let rerun = r
-            .rerun_failed(&cfg, &[FailedTest { name: "perimeter.square".into(), ..FailedTest::default() }])
+            .rerun_failed(
+                &cfg,
+                &[FailedTest {
+                    name: "perimeter.square".into(),
+                    ..FailedTest::default()
+                }],
+            )
             .unwrap();
         let again = r.command(&rerun, &ctx(false)).unwrap().unwrap();
-        assert_eq!(&again.args[5..], ["-R", "^(perimeter\\.square)$", "-j", "4"]);
+        assert_eq!(
+            &again.args[5..],
+            ["-R", "^(perimeter\\.square)$", "-j", "4"]
+        );
         assert!(r.supports_coverage("ctest"));
         assert!(!CppTests::ctest().accepts("a.cpp"));
         assert!(CppTests::gtest().accepts("tests/a_test.cc"));
@@ -686,7 +794,9 @@ mod tests {
         use forge_output::testevents::TestEvent;
         let read = |name: &str| {
             std::fs::read_to_string(
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name),
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("tests/fixtures")
+                    .join(name),
             )
             .unwrap()
         };
@@ -740,14 +850,26 @@ mod tests {
         let mut cfg = Configuration::new("x", "gtest");
         cfg.options.insert("file".into(), "tests/other.cpp".into());
         let err = r.command(&cfg, &ctx(false)).unwrap().unwrap_err();
-        assert!(err.contains("No CMake target compiles tests/other.cpp"), "{err}");
+        assert!(
+            err.contains("No CMake target compiles tests/other.cpp"),
+            "{err}"
+        );
         cfg.options.insert("target".into(), "nope".into());
-        assert!(r.command(&cfg, &ctx(false)).unwrap().unwrap_err().contains("'nope'"));
+        assert!(r
+            .command(&cfg, &ctx(false))
+            .unwrap()
+            .unwrap_err()
+            .contains("'nope'"));
         cfg.options.insert("executable".into(), "/opt/t".into());
-        assert_eq!(r.command(&cfg, &ctx(false)).unwrap().unwrap().program, "/opt/t");
+        assert_eq!(
+            r.command(&cfg, &ctx(false)).unwrap().unwrap().program,
+            "/opt/t"
+        );
         let c = CppContext::from(&ctx(false)).unwrap();
         let mut by_file = Configuration::new("y", "gtest");
-        by_file.options.insert("file".into(), "tests/stats_test.cpp".into());
+        by_file
+            .options
+            .insert("file".into(), "tests/stats_test.cpp".into());
         assert_eq!(c.target_name(&by_file).as_deref(), Some("stats_tests"));
     }
 }

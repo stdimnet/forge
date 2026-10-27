@@ -717,11 +717,13 @@ name = "cforge-lang-cpp"
 version = "0.1.0"
 dependencies = [
  "cforge-cmake",
+ "cforge-toolchains",
  "forge-output",
  "forge-runtools",
  "forge-testing",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -2685,6 +2687,8 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "cforge-cmake",
+ "cforge-lang-cpp",
  "forge-agent-cli",
  "forge-bookmarks",
  "forge-codeintel",

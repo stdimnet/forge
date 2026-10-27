@@ -65,7 +65,10 @@ pub fn default_build_dir(name: &str) -> String {
         }
     }
     let slug = slug.trim_matches('-').to_string();
-    format!("cmake-build-{}", if slug.is_empty() { "default" } else { &slug })
+    format!(
+        "cmake-build-{}",
+        if slug.is_empty() { "default" } else { &slug }
+    )
 }
 
 impl Profile {
@@ -138,7 +141,10 @@ pub fn profiles(entries: &[ProfileEntry], presets: &Presets, ctx: &MacroContext)
     }
     let source = ctx.source_dir.trim_end_matches(['/', '\\']);
     for p in presets.visible_configure_presets(ctx) {
-        if out.iter().any(|o| o.name == p.display_name || o.preset.as_deref() == Some(&p.name)) {
+        if out
+            .iter()
+            .any(|o| o.name == p.display_name || o.preset.as_deref() == Some(&p.name))
+        {
             continue;
         }
         let build = p
@@ -270,6 +276,8 @@ pub fn configure_command(p: &Profile, ctx: &ConfigureContext) -> Command {
             args.push(format!("-D{k}={v}"));
         }
         args.push("-DCMAKE_EXPORT_COMPILE_COMMANDS=ON".into());
+        // The toolchain names a C compiler for C++-only projects too.
+        args.push("--no-warn-unused-cli".into());
     }
     args.extend(split_args(&p.cmake_options));
     Command {
@@ -380,7 +388,10 @@ mod tests {
         assert_eq!(release.build_type, "Release");
         assert_eq!(release.build_dir(), "build/ninja-release");
         assert_eq!(release.preset.as_deref(), Some("ninja-release"));
-        assert_eq!(release.cache_variables["CMAKE_TOOLCHAIN_FILE"], "/opt/tc.cmake");
+        assert_eq!(
+            release.cache_variables["CMAKE_TOOLCHAIN_FILE"],
+            "/opt/tc.cmake"
+        );
         let entries = [ProfileEntry {
             name: "Release Clang".into(),
             build_type: "Release".into(),
@@ -423,19 +434,44 @@ mod tests {
                 "-DCMAKE_BUILD_TYPE=Debug",
                 "-DCMAKE_CXX_COMPILER=/usr/bin/g++",
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                "--no-warn-unused-cli",
                 "-DSHAPES_TESTS=ON",
                 "-DCMAKE_CXX_FLAGS=-Wall -Wextra",
             ]
         );
-        let b = build_command(&p, "/usr/bin/cmake", "/home/dev/shapes", &["shapes_app".into()], BuildAction::Rebuild, false);
+        let b = build_command(
+            &p,
+            "/usr/bin/cmake",
+            "/home/dev/shapes",
+            &["shapes_app".into()],
+            BuildAction::Rebuild,
+            false,
+        );
         assert_eq!(
             b.args,
-            ["--build", "/home/dev/shapes/cmake-build-debug", "--target", "shapes_app", "--clean-first", "-j", "8"]
+            [
+                "--build",
+                "/home/dev/shapes/cmake-build-debug",
+                "--target",
+                "shapes_app",
+                "--clean-first",
+                "-j",
+                "8"
+            ]
         );
         let clean = build_command(&p, "cmake", "/p", &[], BuildAction::Clean, true);
         assert_eq!(
             clean.args,
-            ["--build", "/p/cmake-build-debug", "--config", "Debug", "--target", "clean", "-j", "8"]
+            [
+                "--build",
+                "/p/cmake-build-debug",
+                "--config",
+                "Debug",
+                "--target",
+                "clean",
+                "-j",
+                "8"
+            ]
         );
         let mut preset = Profile::debug();
         preset.preset = Some("debug".into());
@@ -445,15 +481,24 @@ mod tests {
             ["--preset=debug", "-B", "/home/dev/shapes/build/debug"]
         );
         assert_eq!(ctest_next_to("/usr/bin/cmake"), "/usr/bin/ctest");
-        assert_eq!(ctest_next_to("C:\\CMake\\bin\\cmake.exe"), "C:\\CMake\\bin\\ctest.exe");
+        assert_eq!(
+            ctest_next_to("C:\\CMake\\bin\\cmake.exe"),
+            "C:\\CMake\\bin\\ctest.exe"
+        );
         assert_eq!(ctest_next_to("cmake"), "ctest");
         assert_eq!(build_dir_of(&p, "/x"), "/x/cmake-build-debug");
     }
 
     #[test]
     fn shell_like_splitting() {
-        assert_eq!(split_args(r#"a "b c" 'd e' f\ g "" h"#), ["a", "b c", "d e", "f g", "", "h"]);
+        assert_eq!(
+            split_args(r#"a "b c" 'd e' f\ g "" h"#),
+            ["a", "b c", "d e", "f g", "", "h"]
+        );
         assert!(split_args("   ").is_empty());
-        assert_eq!(default_build_dir("Release (Clang)"), "cmake-build-release-clang");
+        assert_eq!(
+            default_build_dir("Release (Clang)"),
+            "cmake-build-release-clang"
+        );
     }
 }

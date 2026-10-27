@@ -154,7 +154,14 @@ fn tokenize(text: &str) -> Vec<(Tok, usize)> {
     out
 }
 
-const GTEST: &[&str] = &["TEST", "TEST_F", "TEST_P", "TYPED_TEST", "TYPED_TEST_P", "GTEST_TEST"];
+const GTEST: &[&str] = &[
+    "TEST",
+    "TEST_F",
+    "TEST_P",
+    "TYPED_TEST",
+    "TYPED_TEST_P",
+    "GTEST_TEST",
+];
 const CATCH_CASES: &[&str] = &[
     "TEST_CASE",
     "TEST_CASE_METHOD",
@@ -288,7 +295,9 @@ pub fn discover(text: &str) -> Discovered {
                 let line = line_of(*pos);
                 if GTEST.contains(&id) && included != Some(Framework::Catch2) {
                     let (a, next) = args(&toks, i + 1);
-                    if let (Some(suite), Some(name), 2) = (ident_arg(a.first()), ident_arg(a.get(1)), a.len()) {
+                    if let (Some(suite), Some(name), 2) =
+                        (ident_arg(a.first()), ident_arg(a.get(1)), a.len())
+                    {
                         let kind = match id {
                             "TEST_P" => Kind::Parameterized,
                             "TYPED_TEST" | "TYPED_TEST_P" => Kind::Typed,
@@ -326,7 +335,9 @@ pub fn discover(text: &str) -> Discovered {
                             suite: String::new(),
                             name: name.clone(),
                             path: vec![name.clone()],
-                            tags: str_arg(a.get(name_at + 1)).map(|t| tags(&t)).unwrap_or_default(),
+                            tags: str_arg(a.get(name_at + 1))
+                                .map(|t| tags(&t))
+                                .unwrap_or_default(),
                             line,
                         });
                         scopes.clear();
@@ -340,7 +351,8 @@ pub fn discover(text: &str) -> Discovered {
                         let (a, next) = args(&toks, i + 1);
                         if let Some(name) = str_arg(a.first()) {
                             let name = format!("{prefix}{name}");
-                            let mut path: Vec<String> = scopes.iter().map(|(n, _)| n.clone()).collect();
+                            let mut path: Vec<String> =
+                                scopes.iter().map(|(n, _)| n.clone()).collect();
                             path.push(name.clone());
                             tests.push(CppTest {
                                 framework: Framework::Catch2,

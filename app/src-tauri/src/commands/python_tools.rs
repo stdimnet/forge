@@ -214,7 +214,7 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
                 dir: Some(coverage_dir),
                 file: "coverage.xml".into(),
                 collect: None,
-            format: CoverageFormat::Cobertura,
+                format: CoverageFormat::Cobertura,
                 name: cfg.name.clone(),
                 location_rules: Vec::new(),
             }),

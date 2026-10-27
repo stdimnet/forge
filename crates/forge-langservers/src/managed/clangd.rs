@@ -183,13 +183,19 @@ pub async fn install_clangd(
     on: &mut (dyn FnMut(Event) + Send),
 ) -> Result<ClangdInstallation, String> {
     if let Some(i) = installed_clangd(base).filter(|i| i.version == d.version) {
-        on(Event::step(format!("clangd {} is already installed.", d.version)));
+        on(Event::step(format!(
+            "clangd {} is already installed.",
+            d.version
+        )));
         return Ok(i);
     }
     let sha256 = match &d.sha256 {
         Some(s) => s.clone(),
         None => {
-            on(Event::step(format!("Reading the SHA-256 of {} from {}…", d.asset, d.api_url)));
+            on(Event::step(format!(
+                "Reading the SHA-256 of {} from {}…",
+                d.asset, d.api_url
+            )));
             let json = http.text(&d.api_url).await?;
             asset_digest(&json, &d.asset).ok_or_else(|| {
                 format!(
@@ -202,7 +208,9 @@ pub async fn install_clangd(
     on(Event::step(format!("Downloading {}…", d.url)));
     let label = format!("Downloading clangd {}", d.version);
     let data = http
-        .bytes(&d.url, |done, total| on(Event::progress(&label, done, total)))
+        .bytes(&d.url, |done, total| {
+            on(Event::progress(&label, done, total))
+        })
         .await?;
     on(Event::step("Unpacking clangd…"));
     let inst = install_clangd_archive(&data, base, d, &sha256)?;
@@ -221,8 +229,14 @@ mod tests {
 
     fn archive() -> Vec<u8> {
         zip(&[
-            ("clangd_19.1.2/bin/clangd", b"#!/bin/sh\necho clangd version 19.1.2\n".as_slice()),
-            ("clangd_19.1.2/lib/clang/19/include/stddef.h", b"/* header */".as_slice()),
+            (
+                "clangd_19.1.2/bin/clangd",
+                b"#!/bin/sh\necho clangd version 19.1.2\n".as_slice(),
+            ),
+            (
+                "clangd_19.1.2/lib/clang/19/include/stddef.h",
+                b"/* header */".as_slice(),
+            ),
         ])
     }
 
@@ -234,8 +248,14 @@ mod tests {
             linux.url,
             "https://github.com/clangd/clangd/releases/download/19.1.2/clangd-linux-19.1.2.zip"
         );
-        assert_eq!(linux.api_url, "https://api.github.com/repos/clangd/clangd/releases/tags/19.1.2");
-        assert_eq!(clangd_release("macos", "aarch64").unwrap().asset, "clangd-mac-19.1.2.zip");
+        assert_eq!(
+            linux.api_url,
+            "https://api.github.com/repos/clangd/clangd/releases/tags/19.1.2"
+        );
+        assert_eq!(
+            clangd_release("macos", "aarch64").unwrap().asset,
+            "clangd-mac-19.1.2.zip"
+        );
         assert!(clangd_release("linux", "aarch64").is_none());
         let json = r#"{"tag_name": "19.1.2", "assets": [
             {"name": "clangd-linux-19.1.2.zip", "digest": "sha256:ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef0123456789"},
@@ -260,7 +280,10 @@ mod tests {
         let inst = install_clangd_archive(&data, dir.path(), &d, &sha256_hex(&data)).unwrap();
         assert_eq!(inst.version, "19.1.2");
         assert_eq!(inst.binary, dir.path().join("19.1.2/bin/clangd"));
-        assert!(dir.path().join("19.1.2/lib/clang/19/include/stddef.h").is_file());
+        assert!(dir
+            .path()
+            .join("19.1.2/lib/clang/19/include/stddef.h")
+            .is_file());
         assert_eq!(installed_clangd(dir.path()), Some(inst));
     }
 
@@ -271,7 +294,9 @@ mod tests {
         let mut d = clangd_release("linux", "x86_64").unwrap();
         d.url = format!("{}/download/{}", server.url, d.asset);
         d.api_url = format!("{}/release", server.url);
-        server.routes.set(&format!("/download/{}", d.asset), data.clone());
+        server
+            .routes
+            .set(&format!("/download/{}", d.asset), data.clone());
         server.routes.set(
             "/release",
             format!(
@@ -293,12 +318,16 @@ mod tests {
         assert!(inst.binary.is_file());
         assert!(steps.last().unwrap().starts_with("Verified SHA-256"));
         // Installed: no second download.
-        install_clangd(&http, dir.path(), &d, &mut |_| {}).await.unwrap();
+        install_clangd(&http, dir.path(), &d, &mut |_| {})
+            .await
+            .unwrap();
         assert_eq!(server.routes.hits(&format!("/download/{}", d.asset)), 1);
         // No digest: refused before downloading.
         let other = tempfile::tempdir().unwrap();
         server.routes.set("/release", r#"{"assets": []}"#);
-        let err = install_clangd(&http, other.path(), &d, &mut |_| {}).await.unwrap_err();
+        let err = install_clangd(&http, other.path(), &d, &mut |_| {})
+            .await
+            .unwrap_err();
         assert!(err.contains("no SHA-256"), "{err}");
         assert_eq!(server.routes.hits(&format!("/download/{}", d.asset)), 1);
     }
