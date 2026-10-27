@@ -16,6 +16,10 @@
 //! - [`service::DbService`]: consoles with own or shared sessions, transactions and cancel,
 //!   the read-only / production [`guard`], table paging, row editing ([`edit`]) and export
 //!   ([`export`]).
+//! - Database objects ([`DbService::run_script`], [`DbService::import`],
+//!   [`DbService::dump_target`]): scripts of the Create/Modify Table, Drop and Rename
+//!   dialogs, data imports and the connection of the native dump tools; the SQL and
+//!   command lines come from the pure `forge-dbmodel` and `forge-dbtransfer` crates.
 //! - [`value`], [`split`], [`export`], [`guard`]: re-exported from the pure `forge-sql` crate.
 
 pub mod config;
@@ -56,8 +60,11 @@ pub use introspect::{
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
 pub use service::{
     row_key, ApplyResult, ChangePreview, ColumnFilter, DataSourceInfo, DbService, FilterOp,
-    QueryPage, SearchProgress, SearchRequest, SearchScope, SearchSummary, SecretUpdate,
-    SessionInfo, SessionMode, SortKey, StatementResult, TableDataRequest, TableMatches, TestResult,
+    ImportError, ImportProgress, ImportSummary, QueryPage, ScriptResult, SearchProgress,
+    SearchRequest, SearchScope, SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey,
+    StatementResult, TableDataRequest, TableMatches, TestResult,
 };
 pub use split::{split_statements, Statement};
+/// Cancels running imports.
+pub use tokio_util::sync::CancellationToken;
 pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};

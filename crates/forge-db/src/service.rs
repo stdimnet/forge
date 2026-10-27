@@ -28,9 +28,11 @@ use crate::ssh::{host_key, ForgeSsh, SshConnector};
 use crate::tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 mod explorer;
+mod objects;
 mod search;
 
 pub use explorer::natural_cmp;
+pub use objects::{ImportError, ImportProgress, ImportSummary, ScriptResult};
 pub use search::{SearchProgress, SearchRequest, SearchScope, SearchSummary, TableMatches};
 
 pub const DEFAULT_PAGE_SIZE: usize = 500;

@@ -1,4 +1,4 @@
-//! Export a result set as CSV, JSON or SQL `INSERT` statements.
+//! Export a result set as CSV, JSON, SQL `INSERT` statements or a Markdown table.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -12,6 +12,7 @@ pub enum ExportFormat {
     Csv,
     Json,
     Sql,
+    Markdown,
 }
 
 impl ExportFormat {
@@ -20,6 +21,7 @@ impl ExportFormat {
             ExportFormat::Csv => "csv",
             ExportFormat::Json => "json",
             ExportFormat::Sql => "sql",
+            ExportFormat::Markdown => "md",
         }
     }
 }
@@ -67,6 +69,36 @@ pub fn export(
             let mut s = serde_json::to_string_pretty(&arr).unwrap_or_else(|_| "[]".into());
             s.push('\n');
             s
+        }
+        ExportFormat::Markdown => {
+            let cell = |s: &str| {
+                s.replace('\\', "\\\\")
+                    .replace('|', "\\|")
+                    .replace(['\r', '\n'], " ")
+            };
+            let mut out = format!(
+                "| {} |\n|{}\n",
+                columns
+                    .iter()
+                    .map(|c| cell(c))
+                    .collect::<Vec<_>>()
+                    .join(" | "),
+                " --- |".repeat(columns.len())
+            );
+            for r in rows {
+                let cells: Vec<String> = r
+                    .iter()
+                    .map(|v| {
+                        if v.is_null() {
+                            "NULL".to_string()
+                        } else {
+                            cell(&display(v))
+                        }
+                    })
+                    .collect();
+                out.push_str(&format!("| {} |\n", cells.join(" | ")));
+            }
+            out
         }
         ExportFormat::Sql => {
             let target = dialect.quote_ident(table.unwrap_or("MY_TABLE"));
@@ -126,6 +158,15 @@ mod tests {
         assert_eq!(v[0]["avatar"], Value::Null);
         assert_eq!(v[1]["avatar"], json!("0xFF00"));
         assert_eq!(v[1]["id"], json!("9007199254740993"));
+    }
+
+    #[test]
+    fn markdown_table() {
+        let (c, r) = data();
+        assert_eq!(
+            export(ExportFormat::Markdown, Dialect::MySql, None, &c, &[r[0].clone(), vec![json!(2), json!("a|b\nc"), json!(true)]]),
+            "| id | name | avatar |\n| --- | --- | --- |\n| 1 | Ada, \"the\" first | NULL |\n| 2 | a\\|b c | true |\n"
+        );
     }
 
     #[test]

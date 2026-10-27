@@ -9,6 +9,7 @@ license.workspace = true
 forge-core.workspace = true
 forge-sql.workspace = true
 forge-dbmodel.workspace = true
+forge-dbtransfer.workspace = true
 forge-dataedit.workspace = true
 serde.workspace = true
 serde_json.workspace = true

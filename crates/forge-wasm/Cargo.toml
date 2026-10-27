@@ -21,6 +21,7 @@ forge-sql.workspace = true
 forge-dataedit.workspace = true
 forge-dbmodel.workspace = true
 forge-sqlcode.workspace = true
+forge-dbtransfer.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
 base64 = "0.22"
