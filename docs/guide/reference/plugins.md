@@ -13,7 +13,7 @@ them (a language, framework, pack or tool id from
 [project detection](../getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -39,6 +39,7 @@ script and config language plugins.
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
+| Rust | `forge.rust` | rustforge |  | `rustforge` | tool windows (UI): Cargo; 8 commands; 18 settings; file types: TOML (Cargo.lock, rust-toolchain); run types: Cargo; test frameworks: Cargo Test; 1 debug adapter (rust-gdb, in Rust) |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Python Web Frameworks | `forge.python-web` | pyforge | `forge.python-env` | `django`, `flask`, `fastapi` | tool windows: Endpoints; 1 commands |
 | Django | `forge.django` | pyforge | `forge.python-web` | `django` | tool windows: Django Structure; 1 commands; 4 settings; file types: Django Template; run types: Django Server, Django tests |

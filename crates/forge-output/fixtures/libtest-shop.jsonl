@@ -1,0 +1,30 @@
+     Running unittests src/main.rs (target/debug/deps/shop-3734347786b3fe60)
+{ "type": "suite", "event": "started", "test_count": 0 }
+{ "type": "suite", "event": "ok", "passed": 0, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0, "exec_time": 0.00003404 }
+     Running unittests src/lib.rs (target/debug/deps/shop_core-49a7891832f2bb85)
+{ "type": "suite", "event": "started", "test_count": 5 }
+{ "type": "test", "event": "started", "name": "cart::tests::adds_items" }
+{ "type": "test", "event": "started", "name": "cart::tests::rounds_to_cents" }
+{ "type": "test", "event": "started", "name": "cart::tests::vouchers" }
+{ "type": "test", "event": "started", "name": "money::tests::discounts_round_half_up" }
+{ "type": "test", "name": "cart::tests::vouchers", "event": "ignored", "message": "needs the voucher service" }
+{ "type": "test", "event": "started", "name": "money::tests::formats_negative_amounts" }
+{ "type": "test", "name": "cart::tests::adds_items", "event": "ok", "exec_time": 0.0000062 }
+{ "type": "test", "name": "money::tests::discounts_round_half_up", "event": "ok", "exec_time": 0.000000399 }
+{ "type": "test", "name": "cart::tests::rounds_to_cents", "event": "failed", "exec_time": 0.000067899, "stdout": "\nthread 'cart::tests::rounds_to_cents' (3399) panicked at crates/shop-core/src/cart.rs:69:9:\nassertion `left == right` failed\n  left: 588\n right: 589\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n" }
+{ "type": "test", "name": "money::tests::formats_negative_amounts", "event": "ok", "exec_time": 0.000028945 }
+{ "type": "suite", "event": "failed", "passed": 3, "failed": 1, "ignored": 1, "measured": 0, "filtered_out": 0, "exec_time": 0.000508482 }
+     Running tests/checkout.rs (target/debug/deps/checkout-aff14352b157d497)
+{ "type": "suite", "event": "started", "test_count": 1 }
+{ "type": "test", "event": "started", "name": "checkout_works" }
+{ "type": "test", "name": "checkout_works", "event": "ok", "exec_time": 0.000009724 }
+{ "type": "suite", "event": "ok", "passed": 1, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0, "exec_time": 0.000366711 }
+   Doc-tests shop_core
+{ "type": "suite", "event": "started", "test_count": 3 }
+{ "type": "test", "event": "started", "name": "crates/shop-core/src/cart.rs - cart::Cart::total (line 31)" }
+{ "type": "test", "event": "started", "name": "crates/shop-core/src/lib.rs - (line 3)" }
+{ "type": "test", "event": "started", "name": "crates/shop-core/src/lib.rs - price (line 18)" }
+{ "type": "test", "name": "crates/shop-core/src/lib.rs - price (line 18)", "event": "ok", "exec_time": 0.091499852 }
+{ "type": "test", "name": "crates/shop-core/src/lib.rs - (line 3)", "event": "ok", "exec_time": 0.098708732 }
+{ "type": "test", "name": "crates/shop-core/src/cart.rs - cart::Cart::total (line 31)", "event": "ok", "exec_time": 0.102553327 }
+{ "type": "suite", "event": "ok", "passed": 3, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0, "exec_time": 0.103123404 }

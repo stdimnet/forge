@@ -1,6 +1,6 @@
 ---
 title: forge-output
-description: "Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest, Jest/Vitest, pytest, tox) and test trees, and terminal OSC sequences (pure, also built to WebAssembly)."
+description: "Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, tox) and test trees, and terminal OSC sequences (pure, also built to WebAssembly)."
 order: 170
 tags: [crate, rust]
 ---
@@ -26,7 +26,7 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON, Jest / Vitest JSON, Playwright JSON and pytest
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON and pytest
   report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
@@ -47,7 +47,8 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `testevents.rs` | The test event protocol: `TestEvent` (serde, `event` tag) and `TestEvent::from_service_message`; `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`) for formats streamed on stdout; `TeamCityParser`. |
 | `formats/tap.rs` | TAP 12–14: `ok` / `not ok`, `# SKIP` / `# TODO`, YAML diagnostics (`message`, `expected`/`actual`, `at`, `duration_ms`), busted's comments (`# file @ line`, `Failure message`, `Passed in` / `Expected`), `# Subtest:` nesting (node `--test`, node-tap), plans. |
 | `formats/gotest.rs` | Go `test2json`: packages as suites, tests and subtests, output per test, the first `file_test.go:12:` line as message and failure location, `got … want …` values. |
-| `formats/libtest.rs` | libtest JSON (`cargo test -- --format json`): a suite per test binary (`Running …` lines), module paths as locations, panic locations and `left` / `right` values. |
+| `formats/libtest.rs` | libtest JSON (`cargo test -- --format json`, nextest's libtest-json): a suite per test binary (cargo's `Running …` / `Doc-tests …` lines, also on stderr through `LineParser::stderr`), `<crate>::<module path>` locations, doctests at their file and line, panic locations and `left` / `right` values. |
+| `formats/libtest_text.rs` | libtest's plain output (`cargo test` on stable): `running N tests`, `test <name> ... ok \| FAILED \| ignored`, failures from their `---- <name> stdout ----` sections. |
 | `formats/playwright.rs` | Playwright JSON reports: a suite per file, `test.describe` blocks as nested suites, one test per spec and project (`title [project]` with several projects), expected / unexpected / flaky / skipped, `Expected…` / `Received…` values, errors outside tests. |
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |

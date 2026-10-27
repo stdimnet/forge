@@ -7,6 +7,7 @@
 //! | TAP 12–14 | [`tap`] | lines on stdout |
 //! | Go `test2json` | [`gotest`] | lines on stdout |
 //! | libtest JSON (`cargo test`) | [`libtest`] | lines on stdout |
+//! | libtest plain text (`cargo test` on stable) | [`libtest_text`] | lines on stdout |
 //! | pytest report log / JUnit | [`pytest`] | lines on stdout or a report file / report files |
 //! | Jest / Vitest JSON | [`jest`] | a document on stdout or a report file |
 //! | Playwright JSON | [`playwright`] | a report file |
@@ -18,6 +19,7 @@
 pub mod gotest;
 pub mod jest;
 pub mod libtest;
+pub mod libtest_text;
 pub mod playwright;
 pub mod pytest;
 pub mod tap;
@@ -30,6 +32,7 @@ use crate::testevents::{LineParser, TeamCityParser, TestEvent};
 pub use gotest::GoTestParser;
 pub use jest::jest_events;
 pub use libtest::LibtestParser;
+pub use libtest_text::LibtestTextParser;
 pub use playwright::playwright_events;
 pub use pytest::PytestReportLogParser;
 pub use tap::TapParser;
@@ -42,6 +45,7 @@ pub fn line_parser(report: TestReport) -> Option<Box<dyn LineParser>> {
         TestReport::Tap => Box::new(TapParser::new()),
         TestReport::GoTestJson => Box::new(GoTestParser::new()),
         TestReport::LibtestJson => Box::new(LibtestParser::new()),
+        TestReport::LibtestText => Box::new(LibtestTextParser::new()),
         TestReport::PytestReportLog => Box::new(PytestReportLogParser::new()),
         TestReport::Tox => Box::new(ToxParser::new()),
         TestReport::JUnitStdout | TestReport::JUnitFile | TestReport::JestJson => return None,

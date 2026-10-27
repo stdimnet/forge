@@ -118,7 +118,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] PyForge: Django (manage.py, template navigation, server/tests configurations), Flask, FastAPI, Celery
 - [ ] PyForge: Jupyter notebooks (editor, kernels, outputs, DataFrame views, notebook diffs)
 - [x] GoForge: SDK/GOPATH, `go.mod`/`go.work`, gofmt/goimports/vet/generate, golangci-lint, Go Build/Test (bench, fuzz), Delve attach/remote, pprof
-- [ ] RustForge: rustup toolchains, Cargo tool window and configurations, Clippy, rustfmt, doctest/nextest, LLDB/GDB renderers
+- [x] RustForge: rustup toolchains, Cargo tool window and configurations, Clippy, rustfmt, doctest/nextest, LLDB/GDB renderers
 - [x] CForge: clangd (managed), CMake profiles/presets and tool window, compilation database, toolchains (GCC/Clang/MSVC/MinGW), build actions, CTest/GoogleTest/Catch2, debugger
 - [ ] CForge v2: sanitizers, Valgrind, perf, vcpkg/Conan, embedded (OpenOCD, SVD, PlatformIO, ESP-IDF, Zephyr)
 

@@ -36,6 +36,7 @@ pyforge-interpreters.workspace = true
 pyforge-packages.workspace = true
 goforge-lang-go.workspace = true
 goforge-pprof.workspace = true
+rustforge-lang-rust.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 javaforge-build.workspace = true

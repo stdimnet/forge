@@ -16,11 +16,12 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   luaforge: { label: "LuaForge", order: 3 },
   pyforge: { label: "PyForge", order: 4 },
   goforge: { label: "GoForge", order: 5 },
-  javaforge: { label: "JavaForge", order: 6 },
-  kotlinforge: { label: "KotlinForge", order: 7 },
-  cforge: { label: "CForge", order: 8 },
-  scriptforge: { label: "ScriptForge", order: 9 },
-  configforge: { label: "ConfigForge", order: 10 },
+  rustforge: { label: "RustForge", order: 6 },
+  javaforge: { label: "JavaForge", order: 7 },
+  kotlinforge: { label: "KotlinForge", order: 8 },
+  cforge: { label: "CForge", order: 9 },
+  scriptforge: { label: "ScriptForge", order: 10 },
+  configforge: { label: "ConfigForge", order: 11 },
 };
 
 const packLabel = (pack: string) => PACKS[pack]?.label ?? pack;

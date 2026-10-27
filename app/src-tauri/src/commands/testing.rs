@@ -249,6 +249,16 @@ pub async fn test_discover(
             &state, &python, &path, &text,
         ));
     }
+    // Rust files: the Cargo workspace knows their package, target and module.
+    if path.ends_with(".rs")
+        && state
+            .plugins
+            .read()
+            .expect("plugins lock poisoned")
+            .is_enabled(crate::commands::rust::PLUGIN)
+    {
+        return Ok(crate::commands::rust::discover_file(&state, &path, &text));
+    }
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     let specs = specs(&state);

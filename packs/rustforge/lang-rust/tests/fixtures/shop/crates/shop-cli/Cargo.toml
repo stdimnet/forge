@@ -1,0 +1,13 @@
+[package]
+name = "shop-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "shop"
+path = "src/main.rs"
+
+[dependencies]
+shop-core = { path = "../shop-core" }
+anyhow = "1"

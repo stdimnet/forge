@@ -17,6 +17,7 @@ import type { Step } from "./runMock";
 import { jsTestSteps } from "./jsTestsMock";
 import { webDemo } from "./demoWebProjects";
 import { goContext, goTestSteps } from "./goTestsMock";
+import { cargoTestSteps, rustContext } from "./rustTestsMock";
 
 export const TEST_TYPES = new Set(["pest", "codeception", "behat", "phpspec"]);
 
@@ -81,6 +82,7 @@ export async function frameworkCommand(cfg: RunConfiguration, coverage = false):
     reportDir: "/tmp/forge-test-reports/run",
     coverageFile: coverage ? "/tmp/forge-test-reports/run-coverage/coverage" : null,
     goContext: cfg.type === "go-test" ? goContext() : null,
+    rustContext: cfg.type === "cargo-test" ? rustContext() : null,
   });
 }
 
@@ -136,6 +138,7 @@ function bustedSteps(cfg: RunConfiguration): Step[] {
 export function frameworkSteps(cfg: RunConfiguration): Step[] {
   if (cfg.type === "busted") return bustedSteps(cfg);
   if (cfg.type === "go-test") return goTestSteps(cfg);
+  if (cfg.type === "cargo-test") return cargoTestSteps(cfg);
   const js = jsTestSteps(cfg, `~/Projects/${webDemo()?.name ?? "acme-shop"}`);
   if (js) return js;
   return [[100, "Done.\n"], [20, { code: 0 }]];

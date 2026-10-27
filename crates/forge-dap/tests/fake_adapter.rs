@@ -468,17 +468,28 @@ async fn run_in_terminal_and_child_sessions() {
     });
     req.stop_on_entry = true;
     let parent = h.manager.start(req).await.unwrap().id;
-    h.output(&parent, "hello from the terminal").await;
-    h.output(&parent, "Debuggee started in terminal").await;
-    let child = h
-        .next("the child session", |e| {
-            matches!(e, DebugEvent::Session { session } if session.parent_id.as_deref() == Some(parent.as_str()))
-        })
-        .await;
-    let DebugEvent::Session { session: child } = child else {
-        unreachable!()
-    };
-    assert_eq!(child.server_name, "demo (child)");
+    // The terminal's output, the adapter's output and the child session arrive in any order.
+    let (mut terminal, mut started, mut child) = (false, false, None);
+    while !(terminal && started && child.is_some()) {
+        match h
+            .next("terminal output and the child session", |_| true)
+            .await
+        {
+            DebugEvent::Output {
+                session_id, text, ..
+            } if session_id == parent => {
+                terminal |= text.contains("hello from the terminal");
+                started |= text.contains("Debuggee started in terminal");
+            }
+            DebugEvent::Session { session }
+                if session.parent_id.as_deref() == Some(parent.as_str()) =>
+            {
+                child = Some(session);
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(child.unwrap().server_name, "demo (child)");
     assert_eq!(h.manager.sessions().len(), 2);
     h.manager.stop_all().await;
     let left: Vec<_> = h
