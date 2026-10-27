@@ -1132,7 +1132,8 @@ or without Git, for local and remote projects.
   `TestEvent::from_service_message`). Parsers in `formats/`: streamed lines implement
   `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`):
   TeamCity, TAP (`tap.rs`), Go `test2json` (`gotest.rs`), libtest JSON (`libtest.rs`), pytest
-  report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
+  report logs (`pytest.rs`); whole documents are read by `document_events` (TRX of
+  `dotnet test`, `trx.rs`; JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
   `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
@@ -2912,6 +2913,76 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   ESP-IDF and Zephyr, the `openocd` / `embedded-gdb-server` types with the `cforge-embedded`
   debug launcher, the Debug tool window's Peripherals tab, page `build.embedded`). Browser
   mode: `cppToolsMock.ts`, `embeddedMock.ts`, `?project=pio` (`demoPioProject.ts`).
+## DotNetForge (`packs/dotnetforge/*`)
+
+- The plugin `forge.dotnet` (`app/src-tauri/plugins/dotnetforge.toml`, `projectTypes =
+  ["dotnetforge"]`, depends on `forge.debugger`) is active for .NET projects: `forge-project`
+  reports `csharp` / `fsharp` / `vbnet` for `.sln` / `.slnx` (the languages of their
+  projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# sources or
+  `global.json`, and the framework `aspnetcore` for `Microsoft.NET.Sdk.Web` projects. C#, F#
+  and VB highlighting is bundled; the manifest adds the file types `msbuild` (XML), `sln`
+  (its own stream parser) and `razor` (HTML), the `.NET Project` run type, the `dotnet-test`
+  test framework (wrapped by `DotnetTests`, registered in `RunState::new` and `forge-wasm`'s
+  registry), the `coreclr` debug adapter (netcoredbg, `--interpreter=vscode`), Settings |
+  Languages & Frameworks | .NET (`lang.dotnet`, `dotnet.*`) and the inspection `DotnetBuild`
+  (source `dotnet-build`).
+- Crates: `dotnetforge-lang-dotnet` (pure, also WebAssembly: `.sln` / `.slnx`, MSBuild
+  evaluation with `Directory.Build.props` and central package management, launch profiles,
+  `global.json` and SDK selection, build output problems, the C# / F# test scanner, the
+  provider with filters and TRX, command lines, `dotnet new list`, NuGet answers and
+  versions, `dotnet format` reports, the Roslyn setup) and `dotnetforge-sdk` (host / SDK
+  detection with `dotnet --list-sdks`, netcoredbg and Roslyn locations, the NuGet feed client
+  with a cache in `<cache>/forge/nuget`). TRX reports are read by `forge-output`
+  (`formats/trx.rs`, sniffed by `document_events`; report folders also pick up `.trx`).
+- The .NET context (`commands::dotnet::context`: the dotnet host, configuration, verbosity,
+  `dotnet.environment`, the workspace's projects, test classes → files) reaches the provider
+  through `CommandContext.settings["dotnet.context"]` (`run.rs::framework_command` calls
+  `dotnet::extend_test_context`); `.NET Project` runs are built by
+  `dotnet::run_command_line`; `testing.rs::test_discover` hands `.cs` / `.fs` files to
+  `dotnet::discover_file`. Test keys are `<file>::<method>`; TRX suites are located by class
+  full name and `DotnetContext::location_rules` map them to files.
+- IPC (`app/ui/src/ipc/dotnet.ts`, `commands/dotnet.rs`; lines and columns 0-based):
+  `dotnet_status({ refresh? }) -> { host, hosts, sdks, runtimes, sdk, requestedSdk,
+  problems, install, roslyn?, roslynProblem?, roslynVersion, roslynSize?, netcoredbg?,
+  netcoredbgProblem?, netcoredbgVersion, remote }`, `dotnet_roslyn_install() -> version`,
+  `dotnet_netcoredbg_install() -> version` (events `dotnet://install` `{ id, event }`),
+  `dotnet_workspace({ refresh? }) -> DotnetWorkspace` (event `dotnet://workspace`),
+  `dotnet_command({ action, target? }) -> CommandLine`, `dotnet_build_problems({ output }) ->
+  BuildReport`, `dotnet_templates() -> { templates, fromSdk, error? }` (`dotnet new list` in
+  the temp folder), `dotnet_new_project({ request }) -> CommandLine[]`, `nuget_search({
+  query, prerelease?, skip?, take? }) -> SearchResult`, `nuget_versions({ id })`,
+  `nuget_updates({ prerelease? }) -> PackageUpdate[]`, `nuget_command({ action, project,
+  package, version?, prerelease? }) -> CommandLine`, `dotnet_format({ path, content }) ->
+  string | null` (`dotnet format whitespace --folder` on a temporary copy with the file's
+  `.editorconfig` chain; trusted projects only), `dotnet_cleanup_command({ paths? }) -> {
+  command, reportDir }`, `dotnet_format_report({ reportDir }) -> FormatChange[]`,
+  `dotnet_debug_request({ configuration }) -> LaunchRequest` (builds, finds the assembly in
+  the build output, `dotnet <assembly>` under netcoredbg with the launch profile's
+  environment; trusted projects only), `dotnet_attach_request({ pid, name? })`. Command
+  lines are started by the UI through `run_start` (hidden type `dotnet-command`), so Safe
+  Mode refuses them; builds' output becomes the Build tool window's problems.
+- Language server: the Roslyn server (`Microsoft.CodeAnalysis.LanguageServer`) is a pack server
+  (`pack_servers.toml`, id `roslyn`), downloaded by `forge_langservers::managed::roslyn` with
+  the user's consent from Microsoft's `vs-impl` feed (pinned version, SHA-256 per platform).
+  `commands::dotnet::sync_lsp_server` (after detection and when `dotnet.roslyn.*`,
+  `dotnet.path`, `dotnet.solution`, `dotnet.environment` or `dotnet.configuration` change)
+  registers it for local C# projects: `dotnet <dll> --logLevel Information
+  --extensionLogDirectory <cache>/forge/roslyn/logs --stdio`, pull diagnostics, settings
+  answered to `workspace/configuration` (`csharp|background_analysis.*`, inlay hints) and
+  `LspServerConfig::after_initialized` = `solution/open` (or `project/open`). It replaces
+  `csharp-ls` (`configure_servers` after `langservers::apply`). `roslyn` and
+  `fsautocomplete` are in `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- UI (`app/ui/src/features/dotnet`): settings page `lang.dotnet`, the `dotnet-build` (Build)
+  and `nuget` (NuGet) tool windows, the `dotnet`, `dotnet-test` and hidden `dotnet-command`
+  run types, the `dotnet` debug launcher (tests: `VSTEST_HOST_DEBUG=1`, attach to the test
+  host's process id), Build Project (`CompileDirty`) / Build / Rebuild / Clean Solution,
+  Restore, Reload Solution, Add Project from Template…, Manage NuGet Packages, Install .NET
+  SDK…, the downloads, Code Cleanup (`CodeCleanup` wraps the core cleanup with `dotnet
+  format`) and the `dotnet format` format provider (`editor.ts`). The New Project wizard's
+  `.NET Project` generator lives in `forge-project`. Browser mode: `?project=dotnet` opens
+  the `Bookstore` demo (`mock/demoDotnetProject.ts`, `dotnetMock.ts`, `dotnetTestsMock.ts`;
+  `&build=broken`, `&roslyn=missing`; WebAssembly `crates/forge-wasm/src/dotnet.rs`).
+
 ## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
 
 - The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,
