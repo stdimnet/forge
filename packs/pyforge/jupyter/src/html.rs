@@ -125,12 +125,7 @@ fn parse_tag(raw: &str) -> Token<'static> {
     let inner = raw.trim_start_matches('<').trim_end_matches('>');
     if let Some(name) = inner.strip_prefix('/') {
         return Token::End {
-            name: name
-                .trim()
-                .split_whitespace()
-                .next()
-                .unwrap_or("")
-                .to_string(),
+            name: name.split_whitespace().next().unwrap_or("").to_string(),
         };
     }
     let self_closing = inner.trim_end().ends_with('/');
@@ -140,7 +135,7 @@ fn parse_tag(raw: &str) -> Token<'static> {
         .unwrap_or(inner.len());
     let name = inner[..name_len].to_string();
     let mut attrs = Vec::new();
-    let s = inner[name_len..].as_bytes();
+    let s = &inner.as_bytes()[name_len..];
     let mut i = 0;
     while i < s.len() {
         while i < s.len() && (s[i].is_ascii_whitespace() || s[i] == b'/') {
