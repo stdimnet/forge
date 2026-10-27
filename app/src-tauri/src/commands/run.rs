@@ -202,6 +202,10 @@ pub struct RunRequest {
     /// Profile (Python): run under cProfile; the run ends with a `profile` event.
     #[serde(default)]
     pub profile: bool,
+    /// C/C++: run under Valgrind Memcheck or perf; the run ends with a `valgrind` / `perf`
+    /// event.
+    #[serde(default)]
+    pub native_tool: Option<crate::commands::cpp_tools::NativeTool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -254,6 +258,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     let mut php_on_target = String::from("php");
     let coverage = req.coverage;
     let backend_local = state.backend()?.info().remote.is_none();
+    let native_tool = req.native_tool;
+    let native_type = req.configuration.as_ref().map(|c| c.type_id.clone());
     let mut cmd = match (req.configuration, req.command) {
         (_, Some(mut cmd)) => {
             if cmd.cwd.as_os_str().is_empty() {
@@ -434,6 +440,19 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     if !req.interpreter_args.is_empty() {
         cmd.args.splice(0..0, req.interpreter_args);
     }
+    // Run with Valgrind Memcheck / Profile with perf (C/C++).
+    if let Some(tool) = native_tool {
+        let (wrapped, setup) = crate::commands::cpp_tools::wrap(
+            state,
+            tool,
+            native_type.as_deref(),
+            cmd,
+            &run_id,
+            run_on.is_some(),
+        )?;
+        cmd = wrapped;
+        tests.native = Some(setup);
+    }
     // "Run on" a target: the command runs there unless a remote PHP interpreter already
     // decides where PHP runs.
     let remote_interpreter = through.as_ref().is_some_and(|(i, _)| i.kind.is_remote());
@@ -589,6 +608,7 @@ fn framework_command(
             default_file: built.default_file,
             coverage,
             profile: None,
+            native: None,
         },
     ))
 }
@@ -716,6 +736,18 @@ pub async fn run_start(
         // Application runs get their class path from JDT LS (java-debug).
         crate::commands::java::resolve_launch(&app, cfg).await;
     }
+    // C/C++ runs and tests: sanitizer reports from the output.
+    let sanitizer_run = request
+        .configuration
+        .as_ref()
+        .is_some_and(|c| crate::commands::cpp_tools::observes(&c.type_id));
+    if sanitizer_run {
+        runs.observers
+            .lock()
+            .expect("observers poisoned")
+            .entry(run_id.clone())
+            .or_insert_with(|| crate::commands::cpp_tools::sanitizer_observer(&app, &run_id));
+    }
     let started = match build(&state, &runs, request) {
         Ok(built) => {
             start_built(
@@ -730,6 +762,12 @@ pub async fn run_start(
         }
         Err(e) => Err(e),
     };
+    if started.is_err() && sanitizer_run {
+        runs.observers
+            .lock()
+            .expect("observers poisoned")
+            .remove(&run_id);
+    }
     if started.is_err() && spring_run {
         runs.observers
             .lock()
@@ -849,7 +887,16 @@ pub(crate) async fn start_built(
         }
         drop(out);
         let mut coverage_event = None;
+        let mut native_event = None;
         if exited {
+            // Valgrind's XML and perf's data are complete once the program exited.
+            if let Some(setup) = &tests.native {
+                native_event = Some(crate::commands::cpp_tools::record(
+                    &sink_app.state::<AppState>(),
+                    sink_backend.as_ref(),
+                    setup,
+                ));
+            }
             // Profile: the snapshot is complete once the program exited.
             if let Some(setup) = &tests.profile {
                 coverage_event = Some(
@@ -889,6 +936,9 @@ pub(crate) async fn start_built(
         }
         if let Some(c) = &coverage_event {
             emit(&app, &event, c);
+        }
+        if let Some(n) = &native_event {
+            emit(&app, &event, n);
         }
         if exited {
             emit(&app, &event, &e);

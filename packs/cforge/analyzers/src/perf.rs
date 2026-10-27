@@ -66,6 +66,9 @@ pub fn script_args(data_file: &str) -> Vec<String> {
     ]
 }
 
+/// A sample being read: its weight and frames (function, file, line), leaf first.
+type Pending = Option<(i64, Vec<(String, String, u32)>)>;
+
 /// The header of a sample: `comm pid/tid time: period event:`.
 struct Header {
     time: Option<f64>,
@@ -137,11 +140,8 @@ pub fn parse(text: &str) -> Result<Profile, String> {
     let mut event = String::new();
     let mut period = 0i64;
     let (mut first, mut last) = (None::<f64>, None::<f64>);
-    // The sample being read: its weight and frames (function, file, line).
-    let mut cur: Option<(i64, Vec<(String, String, u32)>)> = None;
-    let mut flush = |cur: &mut Option<(i64, Vec<(String, String, u32)>)>,
-                     frames: &mut Vec<Frame>,
-                     samples: &mut Vec<Sample>| {
+    let mut cur: Pending = None;
+    let mut flush = |cur: &mut Pending, frames: &mut Vec<Frame>, samples: &mut Vec<Sample>| {
         let Some((weight, stack)) = cur.take() else {
             return;
         };

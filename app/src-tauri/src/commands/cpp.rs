@@ -50,7 +50,7 @@ const FORMAT_TIMEOUT: Duration = Duration::from_secs(20);
 const CONFIGURE_TIMEOUT: Duration = Duration::from_secs(1800);
 const COVERAGE_TIMEOUT: Duration = Duration::from_secs(300);
 
-fn setting(state: &AppState, key: &str) -> Option<String> {
+pub(crate) fn setting(state: &AppState, key: &str) -> Option<String> {
     state
         .read_settings()
         .get_as::<String>(key)
@@ -58,11 +58,11 @@ fn setting(state: &AppState, key: &str) -> Option<String> {
         .filter(|v| !v.is_empty())
 }
 
-fn flag(state: &AppState, key: &str, default: bool) -> bool {
+pub(crate) fn flag(state: &AppState, key: &str, default: bool) -> bool {
     state.read_settings().get_as::<bool>(key).unwrap_or(default)
 }
 
-fn is_local(state: &AppState) -> bool {
+pub(crate) fn is_local(state: &AppState) -> bool {
     state
         .backend()
         .map(|b| b.info().remote.is_none())
@@ -77,7 +77,7 @@ fn enabled(state: &AppState) -> bool {
         .is_enabled(PLUGIN)
 }
 
-fn path_string(p: &Path) -> String {
+pub(crate) fn path_string(p: &Path) -> String {
     p.to_string_lossy().into_owned()
 }
 
@@ -115,7 +115,7 @@ pub(crate) fn toolchains(state: &AppState, refresh: bool) -> Vec<Toolchain> {
 }
 
 /// The toolchain of a profile (its id or name), else the default one.
-fn toolchain_of(state: &AppState, profile: Option<&Profile>) -> Option<Toolchain> {
+pub(crate) fn toolchain_of(state: &AppState, profile: Option<&Profile>) -> Option<Toolchain> {
     let list = toolchains(state, false);
     let wanted = profile.map(|p| p.toolchain.as_str()).unwrap_or("");
     if !wanted.is_empty() {
@@ -227,18 +227,18 @@ pub struct CMakeState {
 static CMAKE: Mutex<Option<CMakeState>> = Mutex::new(None);
 static CONFIGURE: Mutex<Option<Arc<dyn Process>>> = Mutex::new(None);
 
-fn build_dir(root: &Path, profile: &Profile) -> PathBuf {
+pub(crate) fn build_dir(root: &Path, profile: &Profile) -> PathBuf {
     PathBuf::from(cforge_cmake::build_dir_of(profile, &path_string(root)))
 }
 
 /// A path below the project as a backend path, else `None`.
-fn project_relative(root: &Path, abs: &Path) -> Option<String> {
+pub(crate) fn project_relative(root: &Path, abs: &Path) -> Option<String> {
     abs.strip_prefix(root)
         .ok()
         .map(|r| r.to_string_lossy().replace('\\', "/"))
 }
 
-fn read_text(backend: &dyn Backend, root: &Path, abs: &Path) -> Option<String> {
+pub(crate) fn read_text(backend: &dyn Backend, root: &Path, abs: &Path) -> Option<String> {
     match project_relative(root, abs) {
         Some(rel) => backend.read_optional(&rel).ok().flatten(),
         None if backend.info().remote.is_none() => std::fs::read_to_string(abs).ok(),
@@ -303,7 +303,7 @@ fn read_model(
     cforge_cmake::fileapi::parse_reply(&files, &|name| read_text(backend, root, &reply.join(name)))
 }
 
-fn has_cmake(backend: &dyn Backend) -> bool {
+pub(crate) fn has_cmake(backend: &dyn Backend) -> bool {
     backend
         .read_optional("CMakeLists.txt")
         .ok()
@@ -312,7 +312,7 @@ fn has_cmake(backend: &dyn Backend) -> bool {
 }
 
 /// The current state; a model a configure wrote earlier is read without running CMake.
-fn current_state(state: &AppState) -> Result<CMakeState> {
+pub(crate) fn current_state(state: &AppState) -> Result<CMakeState> {
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     let profile = active_profile(state);
@@ -360,7 +360,7 @@ fn cmake_executable(state: &AppState, toolchain: Option<&Toolchain>) -> String {
         .unwrap_or_else(|| "cmake".into())
 }
 
-fn to_command_line(c: cforge_cmake::Command) -> CommandLine {
+pub(crate) fn to_command_line(c: cforge_cmake::Command) -> CommandLine {
     let mut cmd = CommandLine::new(c.program).args(c.args);
     cmd.cwd = PathBuf::from(c.cwd);
     cmd.env = c.env;
@@ -394,6 +394,7 @@ fn configure_command(state: &AppState, root: &Path, profile: &Profile) -> Comman
         source_dir: path_string(root),
         default_generator: generator,
         toolchain_variables: vars,
+        package_toolchain: super::cpp_tools::package_toolchain(state, root, profile),
     };
     let mut cmd = to_command_line(cforge_cmake::configure_command(profile, &ctx));
     if profile.preset.is_some() {
@@ -562,7 +563,10 @@ pub(crate) fn invalidate() {
 
 /// Whether a changed setting changes the CMake model or the configure command.
 pub fn affects_model(key: &str) -> bool {
-    key.starts_with("cmake.") || key == "cpp.toolchains"
+    key.starts_with("cmake.")
+        || key == "cpp.toolchains"
+        || key.starts_with("cpp.vcpkg.")
+        || key.starts_with("cpp.conan.")
 }
 
 // ---- Build --------------------------------------------------------------------------------
@@ -735,7 +739,7 @@ fn to_runtools(cfg: &RunConfiguration) -> forge_runtools::Configuration {
 }
 
 /// The executable of a CMake Application configuration.
-fn app_executable(state: &AppState, cfg: &RunConfiguration) -> Result<String> {
+pub(crate) fn app_executable(state: &AppState, cfg: &RunConfiguration) -> Result<String> {
     let exe = cfg
         .options
         .get("executable")
@@ -771,7 +775,7 @@ fn app_executable(state: &AppState, cfg: &RunConfiguration) -> Result<String> {
         })
 }
 
-fn working_dir(root: &Path, cfg: &RunConfiguration, exe: &str) -> PathBuf {
+pub(crate) fn working_dir(root: &Path, cfg: &RunConfiguration, exe: &str) -> PathBuf {
     match cfg.working_directory.trim() {
         "" => Path::new(exe)
             .parent()
@@ -788,8 +792,15 @@ pub(crate) fn app_run(state: &AppState, cfg: &RunConfiguration) -> Result<Comman
     let exe = app_executable(state, cfg)?;
     let mut cmd = CommandLine::new(exe.clone()).args(forge_process::split_args(&cfg.arguments));
     cmd.cwd = working_dir(&root, cfg, &exe);
-    cmd.env = active_profile(state).env();
+    let profile = active_profile(state);
+    cmd.env = profile.env();
     cmd.env.extend(cfg.env.clone());
+    // Readable sanitizer reports (UBSan stacks, leak checks) unless the user set options.
+    for (k, v) in cforge_cmake::sanitizers::run_env(&profile.sanitizers) {
+        if std::env::var_os(&k).is_none() {
+            cmd.env.entry(k).or_insert(v);
+        }
+    }
     Ok(cmd)
 }
 
@@ -1162,7 +1173,7 @@ pub fn sync_lsp_server(app: &AppHandle, detected: Option<(&Path, &forge_project:
     }
 }
 
-fn restart_lsp_server(app: &AppHandle) {
+pub(crate) fn restart_lsp_server(app: &AppHandle) {
     let lsp = app.state::<LspState>();
     lsp.unregister_server(SERVER_ID);
     spawn_sync_lsp_server(app);

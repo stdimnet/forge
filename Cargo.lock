@@ -1887,7 +1887,9 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "cforge-analyzers",
  "cforge-cmake",
+ "cforge-embedded",
  "cforge-lang-cpp",
  "cforge-toolchains",
  "dirs 6.0.0",

@@ -218,7 +218,7 @@ fn fields(el: &Element, reg_access: &str) -> Vec<Field> {
             });
         }
     }
-    out.sort_by(|a, b| b.bit_offset.cmp(&a.bit_offset));
+    out.sort_by_key(|f| std::cmp::Reverse(f.bit_offset));
     out
 }
 

@@ -168,9 +168,8 @@ pub fn complete_vcpkg(text: &str, offset: usize, ports: &[String]) -> Option<Com
     }
     // In an object only the value of "name" is a port.
     let trimmed = head.trim_end();
-    if trimmed.ends_with(':') {
-        let key_end = trimmed[..trimmed.len() - 1].trim_end();
-        if !key_end.ends_with("\"name\"") {
+    if let Some(key) = trimmed.strip_suffix(':') {
+        if !key.trim_end().ends_with("\"name\"") {
             return None;
         }
     }

@@ -219,6 +219,7 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
                 location_rules: Vec::new(),
             }),
             profile: None,
+            native: None,
         };
         cmd
     };
