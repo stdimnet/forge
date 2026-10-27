@@ -22,7 +22,9 @@ impl Lang {
         let lower = path.to_ascii_lowercase();
         if lower.ends_with(".java") {
             Some(Lang::Java)
-        } else if lower.ends_with(".kt") || lower.ends_with(".kts") {
+        } else if lower.ends_with(".kt")
+            || (lower.ends_with(".kts") && !lower.ends_with(".gradle.kts"))
+        {
             Some(Lang::Kotlin)
         } else {
             None

@@ -156,6 +156,12 @@ pub struct ConfigClass {
 pub struct Application {
     pub class: String,
     pub name: String,
+    /// The class to run: the class, or the Kotlin file facade (`ShopApplicationKt`) of a
+    /// Kotlin application with a top-level `main`.
+    pub main_class: String,
+    /// Declared in a Kotlin file.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub kotlin: bool,
     pub location: Location,
     /// `spring` (`@SpringBootApplication`) or `jaxrs` (`@ApplicationPath`).
     pub kind: String,
@@ -670,25 +676,73 @@ fn profiles_of(list: &[Annotation]) -> Vec<String> {
 /// configuration files (`application*.properties|yml|yaml`) and its own
 /// `META-INF/*spring-configuration-metadata.json`.
 pub fn analyze(files: &[(String, String)]) -> Model {
-    let mut sources = Vec::new();
-    let mut model = Model::default();
-    let mut metadata_files = Vec::new();
+    let mut project = Project::default();
     for (path, text) in files {
+        project.set_file(path, text);
+    }
+    project.model()
+}
+
+/// Whether a project file is read by the analysis.
+pub fn is_relevant(path: &str) -> bool {
+    Lang::of_path(path).is_some() || is_metadata_file(path) || config::config_file(path).is_some()
+}
+
+fn is_metadata_file(path: &str) -> bool {
+    path.ends_with("spring-configuration-metadata.json") && path.contains("META-INF")
+}
+
+/// The scanned files of a project, so an edited file is scanned again on its own.
+#[derive(Debug, Clone, Default)]
+pub struct Project {
+    sources: BTreeMap<String, SourceFile>,
+    configs: BTreeMap<String, String>,
+    metadata: BTreeMap<String, String>,
+}
+
+impl Project {
+    /// Add or replace a file (ignored when the analysis does not read it).
+    pub fn set_file(&mut self, path: &str, text: &str) {
         if Lang::of_path(path).is_some() {
-            sources.push(scan::parse(path, text));
-        } else if path.ends_with("spring-configuration-metadata.json") && path.contains("META-INF")
-        {
-            metadata_files.push((path.clone(), text.clone()));
-        } else if let Some((format, profile)) = config::config_file(path) {
-            read_config(&mut model, path, text, format, profile);
+            self.sources
+                .insert(path.to_string(), scan::parse(path, text));
+        } else if is_metadata_file(path) {
+            self.metadata.insert(path.to_string(), text.to_string());
+        } else if config::config_file(path).is_some() {
+            self.configs.insert(path.to_string(), text.to_string());
         }
     }
-    analyze_sources(&mut model, &sources);
-    for (path, text) in metadata_files {
-        let name = path.rsplit('/').next().unwrap_or(&path).to_string();
-        let _ = model.metadata.add_json(&text, &format!("project: {name}"));
+
+    pub fn remove_file(&mut self, path: &str) {
+        self.sources.remove(path);
+        self.configs.remove(path);
+        self.metadata.remove(path);
     }
-    model
+
+    pub fn len(&self) -> usize {
+        self.sources.len() + self.configs.len() + self.metadata.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// The model of the files.
+    pub fn model(&self) -> Model {
+        let mut model = Model::default();
+        for (path, text) in &self.configs {
+            if let Some((format, profile)) = config::config_file(path) {
+                read_config(&mut model, path, text, format, profile);
+            }
+        }
+        let sources: Vec<SourceFile> = self.sources.values().cloned().collect();
+        analyze_sources(&mut model, &sources);
+        for (path, text) in &self.metadata {
+            let name = path.rsplit('/').next().unwrap_or(path).to_string();
+            let _ = model.metadata.add_json(text, &format!("project: {name}"));
+        }
+        model
+    }
 }
 
 fn read_config(model: &mut Model, path: &str, text: &str, format: Format, profile: Option<String>) {
@@ -814,14 +868,35 @@ fn analyze_sources(model: &mut Model, files: &[SourceFile]) {
                 model.applications.push(Application {
                     class: c.qualified.clone(),
                     name: c.name.clone(),
+                    main_class: c.qualified.clone(),
+                    kotlin: f.lang == Lang::Kotlin,
                     location: location(f, c.line, c.column),
                     kind: "jaxrs".into(),
                 });
             }
             if c.annotation("SpringBootApplication").is_some() {
+                let main_class = match f.lang {
+                    // `fun main` next to the class compiles into the file facade.
+                    Lang::Kotlin if !c.methods.iter().any(|m| m.name == "main") => {
+                        let stem = f.path.rsplit(['/', '\\']).next().unwrap_or(&f.path);
+                        let stem = stem.strip_suffix(".kt").unwrap_or(stem);
+                        let mut facade: String =
+                            stem.chars().take(1).flat_map(char::to_uppercase).collect();
+                        facade.push_str(
+                            &stem[stem.chars().next().map(char::len_utf8).unwrap_or(0)..],
+                        );
+                        match &f.package {
+                            Some(p) if !p.is_empty() => format!("{p}.{facade}Kt"),
+                            _ => format!("{facade}Kt"),
+                        }
+                    }
+                    _ => c.qualified.clone(),
+                };
                 model.applications.push(Application {
                     class: c.qualified.clone(),
                     name: c.name.clone(),
+                    main_class,
+                    kotlin: f.lang == Lang::Kotlin,
                     location: location(f, c.line, c.column),
                     kind: "spring".into(),
                 });
@@ -2054,21 +2129,21 @@ class CustomerStore {}
         assert_eq!(
             eps,
             [
+                ("GET", "/rest/customers/{id}", "CustomerResource.get"),
+                ("POST", "/rest/customers", "CustomerResource.add"),
                 ("GET", "/api/orders", "OrderController.list"),
                 ("GET", "/api/orders/{id}", "OrderController.find"),
                 ("POST", "/api/orders", "OrderController.create"),
                 ("PUT", "/api/orders/{id}", "OrderController.update"),
                 ("PATCH", "/api/orders/{id}", "OrderController.update"),
-                ("GET", "/rest/customers/{id}", "CustomerResource.get"),
-                ("POST", "/rest/customers", "CustomerResource.add"),
             ]
         );
-        let create = &m.endpoints[2];
+        let create = &m.endpoints[4];
         assert_eq!(create.consumes, ["application/json"]);
         assert_eq!(create.produces, ["application/json"]);
         assert_eq!(create.params[0].kind, "body");
-        assert_eq!(m.endpoints[4].params[0].name, "id");
-        let get = &m.endpoints[5];
+        assert_eq!(m.endpoints[6].params[0].name, "id");
+        let get = &m.endpoints[0];
         assert_eq!(
             get.params
                 .iter()
@@ -2076,8 +2151,8 @@ class CustomerStore {}
                 .collect::<Vec<_>>(),
             [("id", "path"), ("expand", "query")]
         );
-        assert_eq!(m.endpoints[6].params[0].kind, "body");
-        assert_eq!(m.endpoints[1].location.line, 20);
+        assert_eq!(m.endpoints[1].params[0].kind, "body");
+        assert_eq!(m.endpoints[3].location.line, 20);
     }
 
     #[test]
@@ -2207,6 +2282,39 @@ class CustomerStore {}
         let cfg = gutter(&m, "src/main/java/com/acme/shop/config/ShopConfig.java");
         let props = cfg.iter().find(|x| x.kind == "configProperties").unwrap();
         assert_eq!(props.targets.len(), 2);
+    }
+
+    #[test]
+    fn applications_and_incremental_updates() {
+        let mut p = Project::default();
+        p.set_file("src/main/kotlin/com/acme/shop/shopApplication.kt", "package com.acme.shop\n@SpringBootApplication\nclass ShopApplication\nfun main(args: Array<String>) { runApplication<ShopApplication>(*args) }\n");
+        p.set_file("src/main/java/com/acme/Other.java", "package com.acme;\n@SpringBootApplication public class Other { public static void main(String[] a) {} }");
+        p.set_file("README.md", "ignored");
+        assert_eq!(p.len(), 2);
+        let m = p.model();
+        let mains: Vec<(&str, bool)> = m
+            .applications
+            .iter()
+            .map(|a| (a.main_class.as_str(), a.kotlin))
+            .collect();
+        assert_eq!(
+            mains,
+            [
+                ("com.acme.Other", false),
+                ("com.acme.shop.ShopApplicationKt", true)
+            ]
+        );
+        p.set_file(
+            "src/main/java/com/acme/Other.java",
+            "package com.acme;\npublic class Other {}",
+        );
+        assert_eq!(p.model().applications.len(), 1);
+        p.remove_file("src/main/kotlin/com/acme/shop/shopApplication.kt");
+        assert!(p.model().applications.is_empty());
+        assert!(
+            is_relevant("src/main/resources/application-dev.yml")
+                && !is_relevant("build.gradle.kts")
+        );
     }
 
     #[test]
