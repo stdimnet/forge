@@ -28,6 +28,12 @@ pub mod store;
 
 #[cfg(feature = "client")]
 pub mod client;
+#[cfg(feature = "client")]
+pub mod grpc;
+#[cfg(feature = "client")]
+pub mod oauth_client;
+#[cfg(feature = "client")]
+pub mod ws;
 
 pub use languages::{LanguageItem, LanguageRequest, ScratchLanguage};
 pub use run::{Marker, MarkerKind, RunCommand, RunContext, Runner};
