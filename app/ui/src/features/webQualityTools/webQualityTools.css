@@ -1,0 +1,15 @@
+/* Settings | Languages & Frameworks | Code Quality Tools (with the qt-* blocks of the PHP Quality Tools page) */
+.wqt-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.wqt-found {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin: 0 0 6px;
+}
+.wqt-sep {
+  color: var(--fg-muted);
+}

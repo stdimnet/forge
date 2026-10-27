@@ -6,13 +6,16 @@
 //! | --- | --- | --- |
 //! | ESLint | `node_modules/.bin/eslint` | `eslint --fix <file>` |
 //! | Prettier | `node_modules/.bin/prettier` | `prettier --write <file>` |
+//! | Stylelint | `node_modules/.bin/stylelint` | `stylelint --fix <file>` |
+//! | Biome | `node_modules/.bin/biome` | `biome check --write <file>` |
 //! | PHP CS Fixer | `vendor/bin/php-cs-fixer` | `php-cs-fixer fix <file>` |
 //! | Laravel Pint | `vendor/bin/pint` | `pint <file>` |
 //! | phpcbf | `vendor/bin/phpcbf` | `phpcbf <file>` |
 //! | Rector | `vendor/bin/rector` | `rector process <file>` |
 //!
 //! [`run_tools_with`] lets the caller change a tool's command line first (the PHP tools'
-//! configuration files and options, running them with a PHP interpreter).
+//! configuration files and options, running them with a PHP interpreter; the web tools'
+//! packages with the Node.js interpreter).
 //!
 //! A missing tool is skipped with a message. When a tool fails, the file gets back the text
 //! it had before that tool ran, so a failing tool never loses the user's text.
@@ -40,6 +43,11 @@ impl Tool {
                 "node_modules/.bin/prettier",
                 "node_modules/.bin/prettier.cmd",
             ],
+            Tool::Stylelint => &[
+                "node_modules/.bin/stylelint",
+                "node_modules/.bin/stylelint.cmd",
+            ],
+            Tool::Biome => &["node_modules/.bin/biome", "node_modules/.bin/biome.cmd"],
             Tool::PhpCsFixer => &["vendor/bin/php-cs-fixer", "vendor/bin/php-cs-fixer.bat"],
             Tool::Pint => &["vendor/bin/pint", "vendor/bin/pint.bat"],
             Tool::Phpcbf => &["vendor/bin/phpcbf", "vendor/bin/phpcbf.bat"],
@@ -52,6 +60,8 @@ impl Tool {
         match self {
             Tool::Eslint => vec!["--fix".into(), file],
             Tool::Prettier => vec!["--write".into(), file],
+            Tool::Stylelint => vec!["--fix".into(), file],
+            Tool::Biome => vec!["check".into(), "--write".into(), file],
             Tool::PhpCsFixer => vec![
                 "fix".into(),
                 "--no-interaction".into(),
@@ -67,7 +77,9 @@ impl Tool {
     fn succeeded(self, code: i32) -> bool {
         match self {
             // 1: problems that `--fix` cannot fix remain; the fixes were written.
-            Tool::Eslint => code == 0 || code == 1,
+            Tool::Eslint | Tool::Biome => code == 0 || code == 1,
+            // 2: problems remain after fixing.
+            Tool::Stylelint => code == 0 || code == 2,
             // 1: everything fixed, 2: some problems could not be fixed (fixes were written).
             Tool::Phpcbf => (0..=2).contains(&code),
             _ => code == 0,
@@ -207,7 +219,7 @@ pub fn run_tools_with(
             }
             None => {
                 let out = result.expect("checked above");
-                let message = if out.code == Some(1) {
+                let message = if out.code.is_some_and(|c| c != 0) {
                     summary(&out.stdout, &out.stderr)
                 } else {
                     String::new()

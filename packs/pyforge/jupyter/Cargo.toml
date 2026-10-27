@@ -11,7 +11,7 @@ default = []
 # WebAssembly without it.
 # Jupyter server tokens in the OS keychain.
 keychain = ["dep:keyring"]
-runtime = ["dep:zeromq", "dep:tokio", "dep:bytes", "dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:uuid", "dep:tracing"]
+runtime = ["dep:forge-ports", "dep:zeromq", "dep:tokio", "dep:bytes", "dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:uuid", "dep:tracing"]
 
 [dependencies]
 serde.workspace = true
@@ -23,6 +23,7 @@ hex = "0.4"
 similar = "2"
 forge-output.workspace = true
 forge-viewers.workspace = true
+forge-ports = { workspace = true, optional = true }
 zeromq = { version = "0.6", optional = true, default-features = false, features = ["tokio-runtime", "tcp-transport"] }
 tokio = { workspace = true, optional = true }
 bytes = { version = "1", optional = true }

@@ -40,24 +40,6 @@ registerSettingsPage({
   component: () => <SchemaPage pageId="lang.node" />,
 });
 
-registerSettingsPage({
-  id: "lang.eslint",
-  title: "ESLint",
-  group: "Languages & Frameworks",
-  order: 22,
-  keywords: ["eslint", "lint", "code quality", "fix on save"],
-  component: () => <SchemaPage pageId="lang.eslint" />,
-});
-
-registerSettingsPage({
-  id: "lang.prettier",
-  title: "Prettier",
-  group: "Languages & Frameworks",
-  order: 23,
-  keywords: ["prettier", "formatter", "run on save"],
-  component: () => <SchemaPage pageId="lang.prettier" />,
-});
-
 /** Language servers of the web languages, shown on the TypeScript page like WebStorm's services. */
 const WEB_SERVER_GROUPS = ["JavaScript & TypeScript", "Vue", "Angular", "HTML & CSS"];
 

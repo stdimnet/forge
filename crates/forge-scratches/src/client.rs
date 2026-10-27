@@ -239,12 +239,8 @@ mod tests {
 
     #[tokio::test]
     async fn reports_connection_errors() {
-        // Bind and drop to get a port nobody listens on.
-        let port = std::net::TcpListener::bind("127.0.0.1:0")
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
+        // A port nobody listens on.
+        let port = forge_ports::free_port().unwrap();
         let req = resolve(
             &parse(&format!("GET http://127.0.0.1:{port}/")).requests[0],
             &BTreeMap::new(),

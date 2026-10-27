@@ -238,10 +238,7 @@ async fn errors_from_the_server_and_the_feed() {
         Err(UpdateError::NoPlatform(_))
     ));
     // Nothing listens on this port any more.
-    let closed = {
-        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        format!("http://{}", l.local_addr().unwrap())
-    };
+    let closed = format!("http://127.0.0.1:{}", forge_ports::free_port().unwrap());
     assert!(matches!(
         run_check(&closed, "0.1.0", &state, false).await,
         Err(UpdateError::Network(_))

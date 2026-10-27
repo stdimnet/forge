@@ -39,6 +39,7 @@ filetime = { version = "0.2", optional = true }
 webpki-roots = { version = "1", optional = true }
 
 [dev-dependencies]
+forge-ports.workspace = true
 tempfile.workspace = true
 filetime = "0.2"
 tokio = { workspace = true, features = ["full"] }

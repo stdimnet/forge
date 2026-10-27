@@ -2,8 +2,9 @@
 //!
 //! - [`plan`] decides which actions run when a file is saved: Reformat code (whole file or
 //!   changed lines, limited to file types), Optimize imports, Rearrange code, Run code
-//!   cleanup and the external tools (`eslint --fix`, Prettier, Rector, PHP CS Fixer, phpcbf,
-//!   Laravel Pint).
+//!   cleanup and the external tools (Biome, `eslint --fix`, Stylelint, Prettier, Rector, PHP
+//!   CS Fixer, phpcbf, Laravel Pint). The web tools run for files that match their "Run for
+//!   files" patterns and not when they are disabled.
 //!   They run on explicit save (Ctrl+S); with "Also run on autosave" the built-in actions run
 //!   on autosave too, the external tools never do.
 //! - [`changed::restrict_to_changed_lines`] keeps only the reformatting of lines changed
@@ -33,8 +34,13 @@ pub const REARRANGE_KEY: &str = "actionsOnSave.rearrange";
 pub const CODE_CLEANUP_KEY: &str = "actionsOnSave.codeCleanup";
 pub const RUN_ON_AUTOSAVE_KEY: &str = "actionsOnSave.runOnAutosave";
 pub const ESLINT_KEY: &str = "actionsOnSave.eslint";
+pub const ESLINT_FILES_KEY: &str = "web.eslint.files";
 pub const PRETTIER_KEY: &str = "actionsOnSave.prettier.enabled";
 pub const PRETTIER_FILES_KEY: &str = "actionsOnSave.prettier.files";
+pub const STYLELINT_KEY: &str = "actionsOnSave.stylelint";
+pub const STYLELINT_FILES_KEY: &str = "web.stylelint.files";
+pub const BIOME_KEY: &str = "actionsOnSave.biome";
+pub const BIOME_FILES_KEY: &str = "web.biome.files";
 pub const PHP_CS_FIXER_KEY: &str = "actionsOnSave.phpCsFixer";
 pub const PINT_KEY: &str = "actionsOnSave.pint";
 pub const PHPCBF_KEY: &str = "actionsOnSave.phpcbf";
@@ -44,10 +50,10 @@ pub const RECTOR_KEY: &str = "actionsOnSave.rector";
 pub const DEFAULT_PRETTIER_FILES: &str =
     "*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro";
 
-/// Extensions ESLint fixes on save.
-const ESLINT_EXTENSIONS: &[&str] = &[
-    "js", "jsx", "mjs", "cjs", "ts", "tsx", "mts", "cts", "vue", "html", "svelte", "astro",
-];
+/// PHPStorm's default "Run for files" of ESLint, Stylelint and Biome.
+pub const DEFAULT_ESLINT_FILES: &str = "{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}";
+pub const DEFAULT_STYLELINT_FILES: &str = "{**/*,*}.{css,scss,less,vue}";
+pub const DEFAULT_BIOME_FILES: &str = "{**/*,*}.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,jsonc,css}";
 
 /// "Reformat code": the whole file or only the lines changed since the last commit.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +81,8 @@ pub enum Trigger {
 pub enum Tool {
     Eslint,
     Prettier,
+    Stylelint,
+    Biome,
     PhpCsFixer,
     Pint,
     /// PHP_CodeSniffer's fixer.
@@ -84,9 +92,12 @@ pub enum Tool {
 
 impl Tool {
     /// In the order the tools run (and the Actions on Save page lists them).
-    /// Rector refactors before the code style fixers format.
-    pub const ALL: [Tool; 6] = [
+    /// The linters fix before Prettier formats; Rector refactors before the code style
+    /// fixers format.
+    pub const ALL: [Tool; 8] = [
+        Tool::Biome,
         Tool::Eslint,
+        Tool::Stylelint,
         Tool::Prettier,
         Tool::Rector,
         Tool::PhpCsFixer,
@@ -98,6 +109,8 @@ impl Tool {
         match self {
             Tool::Eslint => "ESLint",
             Tool::Prettier => "Prettier",
+            Tool::Stylelint => "Stylelint",
+            Tool::Biome => "Biome",
             Tool::PhpCsFixer => "PHP CS Fixer",
             Tool::Pint => "Laravel Pint",
             Tool::Phpcbf => "phpcbf",
@@ -110,6 +123,8 @@ impl Tool {
         match self {
             Tool::Eslint => "web.eslint.path",
             Tool::Prettier => "web.prettier.path",
+            Tool::Stylelint => "web.stylelint.path",
+            Tool::Biome => "web.biome.path",
             Tool::PhpCsFixer => "php.tools.phpCsFixer.path",
             Tool::Pint => "php.tools.pint.path",
             Tool::Phpcbf => "php.tools.phpcs.phpcbfPath",
@@ -123,6 +138,11 @@ impl Tool {
             self,
             Tool::PhpCsFixer | Tool::Pint | Tool::Phpcbf | Tool::Rector
         )
+    }
+
+    /// A web code quality tool (Languages & Frameworks | Code Quality Tools).
+    pub fn is_web(self) -> bool {
+        !self.is_php()
     }
 }
 
@@ -139,8 +159,13 @@ pub struct ActionsOnSave {
     pub code_cleanup: bool,
     pub run_on_autosave: bool,
     pub eslint: bool,
+    pub eslint_files: String,
     pub prettier: bool,
     pub prettier_files: String,
+    pub stylelint: bool,
+    pub stylelint_files: String,
+    pub biome: bool,
+    pub biome_files: String,
     pub php_cs_fixer: bool,
     pub pint: bool,
     pub phpcbf: bool,
@@ -151,6 +176,20 @@ impl ActionsOnSave {
     /// Read the settings through `get` (the effective value of a key).
     pub fn from_settings(get: impl Fn(&str) -> Option<Value>) -> Self {
         let flag = |k: &str| get(k).and_then(|v| v.as_bool()).unwrap_or(false);
+        let text = |k: &str, default: &str| {
+            get(k)
+                .and_then(|v| v.as_str().map(str::to_string))
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or_else(|| default.to_string())
+        };
+        // A disabled web tool never runs on save.
+        let web = |key: &str, tool: &str| {
+            flag(key)
+                && get(&format!("web.{tool}.mode"))
+                    .and_then(|v| v.as_str().map(str::to_string))
+                    .as_deref()
+                    != Some("disabled")
+        };
         Self {
             reformat: flag(REFORMAT_KEY),
             reformat_scope: get(REFORMAT_SCOPE_KEY)
@@ -163,11 +202,14 @@ impl ActionsOnSave {
             rearrange: flag(REARRANGE_KEY),
             code_cleanup: flag(CODE_CLEANUP_KEY),
             run_on_autosave: flag(RUN_ON_AUTOSAVE_KEY),
-            eslint: flag(ESLINT_KEY),
-            prettier: flag(PRETTIER_KEY),
-            prettier_files: get(PRETTIER_FILES_KEY)
-                .and_then(|v| v.as_str().map(str::to_string))
-                .unwrap_or_else(|| DEFAULT_PRETTIER_FILES.to_string()),
+            eslint: web(ESLINT_KEY, "eslint"),
+            eslint_files: text(ESLINT_FILES_KEY, DEFAULT_ESLINT_FILES),
+            prettier: web(PRETTIER_KEY, "prettier"),
+            prettier_files: text(PRETTIER_FILES_KEY, DEFAULT_PRETTIER_FILES),
+            stylelint: web(STYLELINT_KEY, "stylelint"),
+            stylelint_files: text(STYLELINT_FILES_KEY, DEFAULT_STYLELINT_FILES),
+            biome: web(BIOME_KEY, "biome"),
+            biome_files: text(BIOME_FILES_KEY, DEFAULT_BIOME_FILES),
             php_cs_fixer: flag(PHP_CS_FIXER_KEY),
             pint: flag(PINT_KEY),
             phpcbf: flag(PHPCBF_KEY),
@@ -220,20 +262,25 @@ pub fn plan(path: &str, trigger: Trigger, settings: &ActionsOnSave) -> SavePlan 
             || file_type
                 .as_ref()
                 .is_some_and(|t| settings.reformat_file_types.contains(t)));
-    let ext = path
-        .rsplit('/')
-        .next()
-        .and_then(|n| n.rsplit_once('.'))
-        .map(|(_, e)| e.to_ascii_lowercase())
-        .unwrap_or_default();
     let mut tools = Vec::new();
-    // External tools are slow and rewrite the file: only on explicit save.
+    // External tools are slow and rewrite the file: only on explicit save. Whether Biome
+    // takes over ESLint and Prettier depends on the project's files (decided where they
+    // run).
     if !auto {
-        if settings.eslint && ESLINT_EXTENSIONS.contains(&ext.as_str()) {
-            tools.push(Tool::Eslint);
-        }
-        if settings.prettier && matches_glob_list(path, &settings.prettier_files) {
-            tools.push(Tool::Prettier);
+        let web = [
+            (Tool::Biome, settings.biome, &settings.biome_files),
+            (Tool::Eslint, settings.eslint, &settings.eslint_files),
+            (
+                Tool::Stylelint,
+                settings.stylelint,
+                &settings.stylelint_files,
+            ),
+            (Tool::Prettier, settings.prettier, &settings.prettier_files),
+        ];
+        for (tool, on, files) in web {
+            if on && matches_glob_list(path, files) {
+                tools.push(tool);
+            }
         }
         if settings.rector && php {
             tools.push(Tool::Rector);
@@ -291,8 +338,11 @@ mod tests {
             rearrange: true,
             code_cleanup: true,
             eslint: true,
+            eslint_files: DEFAULT_ESLINT_FILES.into(),
             prettier: true,
             prettier_files: DEFAULT_PRETTIER_FILES.into(),
+            stylelint: true,
+            stylelint_files: DEFAULT_STYLELINT_FILES.into(),
             php_cs_fixer: true,
             pint: true,
             phpcbf: true,
@@ -325,7 +375,36 @@ mod tests {
         assert_eq!(p.tools, vec![Tool::Eslint, Tool::Prettier]);
         assert!(!p.optimize_imports);
         let css = plan("src/app.css", Trigger::Explicit, &all_on());
-        assert!(css.tools.is_empty());
+        assert_eq!(css.tools, vec![Tool::Stylelint]);
+        let biome = ActionsOnSave {
+            biome: true,
+            biome_files: DEFAULT_BIOME_FILES.into(),
+            ..all_on()
+        };
+        assert_eq!(
+            plan("src/app.ts", Trigger::Explicit, &biome).tools,
+            vec![Tool::Biome, Tool::Eslint, Tool::Prettier]
+        );
+        assert!(plan("README.md", Trigger::Explicit, &biome)
+            .tools
+            .is_empty());
+    }
+
+    #[test]
+    fn disabled_web_tools_do_not_run_on_save() {
+        let s = ActionsOnSave::from_settings(|k| match k {
+            ESLINT_KEY | STYLELINT_KEY => Some(json!(true)),
+            "web.eslint.mode" => Some(json!("disabled")),
+            STYLELINT_FILES_KEY => Some(json!("*.pcss")),
+            _ => None,
+        });
+        assert!(!s.eslint && s.stylelint);
+        assert_eq!(s.eslint_files, DEFAULT_ESLINT_FILES);
+        assert_eq!(
+            plan("a.pcss", Trigger::Explicit, &s).tools,
+            vec![Tool::Stylelint]
+        );
+        assert!(plan("a.css", Trigger::Explicit, &s).tools.is_empty());
     }
 
     #[test]

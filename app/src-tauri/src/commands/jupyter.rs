@@ -286,18 +286,45 @@ async fn start(
         .insert("PYDEVD_DISABLE_FILE_VALIDATION".into(), "1".into());
     let exit_app = app.clone();
     let exit_event = event.clone();
+    // Set when the kernel process exits: a kernel that exited before Forge connected did
+    // not answer on its ports, another program did.
+    let (exit_tx, mut exit_rx) = tokio::sync::watch::channel(None::<Option<i32>>);
     let process_sink: RunSink = Arc::new(move |e: RunEvent| match e {
         RunEvent::Output { text, .. } => tracing::debug!("kernel: {}", text.trim_end()),
-        RunEvent::Exited { code, .. } => emit(
-            &exit_app,
-            &exit_event,
-            &serde_json::json!({ "type": "exited", "code": code }),
-        ),
+        RunEvent::Exited { code, .. } => {
+            exit_tx.send_replace(Some(code));
+            emit(
+                &exit_app,
+                &exit_event,
+                &serde_json::json!({ "type": "exited", "code": code }),
+            )
+        }
         RunEvent::Started { .. } => {}
     });
     let start_backend = backend.clone();
     let process = blocking(move || start_backend.start_process(&cmd, process_sink)).await?;
-    match Session::connect_zmq(&info, root, sink, START_TIMEOUT).await {
+    let exited = |code: Option<i32>| match code {
+        Some(code) => format!("the kernel exited with code {code}"),
+        None => "the kernel exited".to_string(),
+    };
+    let connected = tokio::select! {
+        r = Session::connect_zmq(&info, root, sink, START_TIMEOUT) => r.map_err(|e| e.to_string()),
+        code = async {
+            let exit = exit_rx.wait_for(Option::is_some).await.map(|code| *code);
+            match exit {
+                Ok(code) => code.flatten(),
+                // The process ended without reporting an exit: let the connection time out.
+                Err(_) => std::future::pending().await,
+            }
+        } => Err(exited(code)),
+    };
+    // Connected, but the kernel exited meanwhile: whatever answered was not this kernel.
+    let exit = *exit_rx.borrow();
+    let connected = match (connected, exit) {
+        (Ok(_), Some(code)) => Err(exited(code)),
+        (connected, _) => connected,
+    };
+    match connected {
         Ok(session) => Ok(Kernel {
             session: Arc::new(session),
             process: Some(process),
