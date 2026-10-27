@@ -50,6 +50,7 @@ mod localhistory;
 mod lua;
 mod maintenance;
 mod php_interpreters;
+mod profiler;
 mod project_structure;
 mod python;
 mod python_testing;

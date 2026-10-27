@@ -206,6 +206,10 @@ pub struct RunRequest {
     /// event.
     #[serde(default)]
     pub native_tool: Option<crate::commands::cpp_tools::NativeTool>,
+    /// Profile with Xdebug or SPX (PHP) or V8 (Node.js); the run ends with a `profiler`
+    /// event.
+    #[serde(default)]
+    pub profiler: Option<crate::commands::profiler::RunProfiler>,
 }
 
 #[derive(Debug, Serialize)]
@@ -262,6 +266,9 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     let backend_local = state.backend()?.info().remote.is_none();
     let native_tool = req.native_tool;
     let native_type = req.configuration.as_ref().map(|c| c.type_id.clone());
+    let profiler = req.profiler;
+    // PHP configurations: their arguments go to PHP itself.
+    let mut php_run = false;
     let mut cmd = match (req.configuration, req.command) {
         (_, Some(mut cmd)) => {
             if cmd.cwd.as_os_str().is_empty() {
@@ -270,6 +277,14 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 cmd.cwd = root.join(&cmd.cwd);
             }
             cmd
+        }
+        (Some(cfg), None)
+            if profiler.is_some() && super::python_tools::is_python_type(&cfg.type_id) =>
+        {
+            return Err(ForgeError::Other(format!(
+                "'{}' configurations are profiled with Run | Profile (cProfile)",
+                cfg.type_id
+            )));
         }
         (Some(cfg), None) if super::python_tools::is_python_type(&cfg.type_id) => {
             // Python runs through its own interpreters (local or Docker / SSH / WSL).
@@ -304,6 +319,7 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
             }
             run_on = cfg.run_on.clone().filter(|t| !t.is_local()).or(run_on);
             let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
+            php_run = php_kind;
             let own = cfg.interpreter.trim();
             if !own.is_empty() && interpreters::interpreter_set(state).find(own).is_none() {
                 php_on_target = own.to_string();
@@ -478,6 +494,24 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     if !req.interpreter_args.is_empty() {
         cmd.args.splice(0..0, req.interpreter_args);
     }
+    // Profile with Xdebug / SPX (PHP) or V8 (Node.js).
+    if let Some(kind) = profiler {
+        let local = backend_local
+            && run_on.is_none()
+            && through.as_ref().is_none_or(|(i, _)| !i.kind.is_remote());
+        let (wrapped, setup) = crate::commands::profiler::wrap(
+            state,
+            kind,
+            native_type.as_deref(),
+            cmd,
+            &run_id,
+            &self::root(state)?,
+            local,
+            php_run,
+        )?;
+        cmd = wrapped;
+        tests.profiler = Some(setup);
+    }
     // Run with Valgrind Memcheck / Profile with perf (C/C++).
     if let Some(tool) = native_tool {
         let (wrapped, setup) = crate::commands::cpp_tools::wrap(
@@ -648,6 +682,7 @@ fn framework_command(
             coverage,
             profile: None,
             native: None,
+            profiler: None,
         },
     ))
 }
@@ -927,7 +962,16 @@ pub(crate) async fn start_built(
         drop(out);
         let mut coverage_event = None;
         let mut native_event = None;
+        let mut profiler_event = None;
         if exited {
+            // Xdebug, SPX and V8 write their snapshots when the program exits.
+            if let Some(setup) = &tests.profiler {
+                profiler_event = Some(crate::commands::profiler::record(
+                    sink_backend.as_ref(),
+                    setup,
+                    &path_mappings,
+                ));
+            }
             // Valgrind's XML and perf's data are complete once the program exited.
             if let Some(setup) = &tests.native {
                 native_event = Some(crate::commands::cpp_tools::record(
@@ -978,6 +1022,9 @@ pub(crate) async fn start_built(
         }
         if let Some(n) = &native_event {
             emit(&app, &event, n);
+        }
+        if let Some(p) = &profiler_event {
+            emit(&app, &event, p);
         }
         if exited {
             emit(&app, &event, &e);

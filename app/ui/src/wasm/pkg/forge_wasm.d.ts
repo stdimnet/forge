@@ -1290,6 +1290,16 @@ export function pio_project(request_json: string): string;
 export function pprof_view(request_json: string): string;
 
 /**
+ * `{ kind, root, metric? }` → `Snapshot` of the demo project at `root`.
+ */
+export function profiler_demo(request_json: string): string;
+
+/**
+ * `{ name, base64, companionBase64?, metric? }` → `Snapshot` (`profiler_open`).
+ */
+export function profiler_parse(request_json: string): string;
+
+/**
  * `{ config }` → `FolderRow[]` (Settings | Directories).
  */
 export function project_structure_describe(request_json: string): string;
@@ -2327,6 +2337,8 @@ export interface InitOutput {
     readonly pio_command: (a: number, b: number, c: number) => void;
     readonly pio_project: (a: number, b: number, c: number) => void;
     readonly pprof_view: (a: number, b: number, c: number) => void;
+    readonly profiler_demo: (a: number, b: number, c: number) => void;
+    readonly profiler_parse: (a: number, b: number, c: number) => void;
     readonly project_structure_describe: (a: number, b: number, c: number) => void;
     readonly project_structure_excluded: (a: number, b: number, c: number) => void;
     readonly project_structure_mark: (a: number, b: number, c: number) => void;

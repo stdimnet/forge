@@ -1,0 +1,78 @@
+version: 1
+creator: xdebug 3.3.2 (PHP 8.3.6)
+cmd: /home/anna/shop/bin/report.php
+part: 1
+positions: line
+
+events: Time_(10ns) Memory_(bytes)
+
+fl=(1) php:internal
+fn=(1) php::str_repeat
+11 500 1024
+
+fl=(2) /home/anna/shop/src/Report.php
+fn=(2) Report->row
+9 3000 4096
+cfl=(1)
+cfn=(1)
+calls=1 0 0
+11 500 1024
+
+fl=(1)
+fn=(1)
+11 600 512
+
+fl=(2)
+fn=(2)
+9 2000 2048
+cfl=(1)
+cfn=(1)
+calls=1 0 0
+11 600 512
+
+fl=(2)
+fn=(3) Report->render
+20 1500 8192
+cfl=(2)
+cfn=(2)
+calls=1 0 0
+22 3500 5120
+cfl=(2)
+cfn=(2)
+calls=1 0 0
+22 2600 2560
+
+fl=(3) /home/anna/shop/bin/report.php
+fn=(4) fib
+3 2000 0
+
+fl=(3)
+fn=(4)
+3 1000 0
+
+fl=(3)
+fn=(4)
+3 4000 256
+cfl=(3)
+cfn=(4)
+calls=1 0 0
+5 2000 0
+cfl=(3)
+cfn=(4)
+calls=1 0 0
+5 1000 0
+
+fl=(3)
+fn=(5) {main}
+1 100 1000
+cfl=(2)
+cfn=(3)
+calls=1 0 0
+30 7600 15872
+cfl=(3)
+cfn=(4)
+calls=1 0 0
+31 7000 256
+
+summary: 14700 17128
+

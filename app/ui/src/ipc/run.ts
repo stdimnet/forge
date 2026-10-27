@@ -107,6 +107,8 @@ export interface RunRequest {
   profile?: boolean;
   /** C/C++: run under Valgrind Memcheck or perf; the run ends with a `valgrind` / `perf` event. */
   nativeTool?: import("./cppTools").NativeTool;
+  /** Profile with Xdebug / SPX (PHP) or V8 (Node.js); the run ends with a `profiler` event. */
+  profiler?: import("./profiler").RunProfiler;
 }
 
 export interface RunStarted {
@@ -206,7 +208,8 @@ export type RunEvent =
   | { type: "profile"; profile?: import("./pythonTools").ProfileInfo; error?: string }
   | { type: "sanitizer"; reports: import("./cppTools").SanitizerReport[] }
   | { type: "valgrind"; report?: import("./cppTools").ValgrindReport; error?: string }
-  | { type: "perf"; profile?: import("./cppTools").PerfProfile; error?: string };
+  | { type: "perf"; profile?: import("./cppTools").PerfProfile; error?: string }
+  | { type: "profiler"; snapshot?: import("./profiler").Snapshot; path?: string; profiler?: import("./profiler").RunProfiler; error?: string };
 
 /** A file reference in terminal output; offsets are string indices. */
 export interface FileLink {
