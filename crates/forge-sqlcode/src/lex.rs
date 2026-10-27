@@ -98,8 +98,8 @@ pub fn lex(src: &str, d: SqlDialect) -> Vec<Token> {
             i = end;
             continue;
         }
-        if rest.starts_with("/*") {
-            let end = rest[2..].find("*/").map(|p| i + p + 4).unwrap_or(b.len());
+        if let Some(body) = rest.strip_prefix("/*") {
+            let end = body.find("*/").map(|p| i + p + 4).unwrap_or(b.len());
             push(&mut out, Kind::Comment, start, end);
             i = end;
             continue;

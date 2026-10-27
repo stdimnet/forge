@@ -925,7 +925,7 @@ impl<'a> Walker<'a> {
         let scope = self.new_scope(None);
         let set = self.find(i + 1, end, &["SET"]);
         let Some(set) = set else {
-            self.from_clause(i + 1, end, scope);
+            self.table_sources(i + 1, end, scope);
             return;
         };
         let from = self.find(set + 1, end, &["FROM"]);
@@ -950,7 +950,7 @@ impl<'a> Walker<'a> {
         }
         // SQL Server: UPDATE a SET … FROM t a JOIN …
         if let Some(f) = from.filter(|f| *f < tail) {
-            self.from_clause(f + 1, tail, scope);
+            self.table_sources(f + 1, tail, scope);
             let target_is_alias = set == j + 1
                 && self.scopes[scope]
                     .sources
@@ -959,10 +959,10 @@ impl<'a> Walker<'a> {
             if target_is_alias {
                 self.qualifier(j, scope);
             } else {
-                self.from_clause(j, set, scope);
+                self.table_sources(j, set, scope);
             }
         } else {
-            self.from_clause(j, set, scope);
+            self.table_sources(j, set, scope);
         }
         let set_end = [from, Some(tail)]
             .into_iter()
@@ -1009,7 +1009,7 @@ impl<'a> Walker<'a> {
             let from_end = using.unwrap_or(tail);
             if let Some(u) = using {
                 // MySQL: DELETE FROM a USING t a JOIN …; PostgreSQL: DELETE FROM t USING u
-                self.from_clause(u + 1, tail, scope);
+                self.table_sources(u + 1, tail, scope);
                 let names: Vec<(usize, usize)> = self.split_commas(j + 1, from_end);
                 let all_aliases = names.iter().all(|(a, b)| {
                     b - a == 1
@@ -1023,14 +1023,14 @@ impl<'a> Walker<'a> {
                         self.qualifier(a, scope);
                     }
                 } else {
-                    self.from_clause(j + 1, from_end, scope);
+                    self.table_sources(j + 1, from_end, scope);
                 }
             } else {
-                self.from_clause(j + 1, from_end, scope);
+                self.table_sources(j + 1, from_end, scope);
             }
         } else if let Some(f) = self.find(j, tail, &["FROM"]) {
             // MySQL multi-table: DELETE a, b FROM t a JOIN u b …
-            self.from_clause(f + 1, tail, scope);
+            self.table_sources(f + 1, tail, scope);
             for (a, b) in self.split_commas(j, f) {
                 if b > a && self.t[a].is_name() {
                     let (parts, _) = self.chain(a, b);
@@ -1040,7 +1040,7 @@ impl<'a> Walker<'a> {
                 }
             }
         } else {
-            self.from_clause(j, tail, scope);
+            self.table_sources(j, tail, scope);
         }
         if let Some(w) = where_ {
             let stop = [returning, self.find(w + 1, end, &["ORDER", "LIMIT"])]
@@ -1240,7 +1240,7 @@ impl<'a> Walker<'a> {
         let mut from_end = list_end;
         if let Some(f) = from {
             from_end = self.find(f + 1, end, &SELECT_CLAUSES[1..]).unwrap_or(end);
-            self.from_clause(f + 1, from_end, scope);
+            self.table_sources(f + 1, from_end, scope);
         }
         // The select list.
         let mut j = i + 1;
@@ -1423,7 +1423,7 @@ impl<'a> Walker<'a> {
     }
 
     /// `FROM` items with joins: adds sources to `scope`, walks `ON` conditions and `USING`.
-    fn from_clause(&mut self, from: usize, to: usize, scope: usize) {
+    fn table_sources(&mut self, from: usize, to: usize, scope: usize) {
         let mut i = from;
         while i < to {
             let tok = self.t[i];
@@ -1459,7 +1459,7 @@ impl<'a> Walker<'a> {
                     self.query(i + 1, close, Some(scope))
                 } else {
                     // A parenthesized join: (a JOIN b ON …)
-                    self.from_clause(i + 1, close, scope);
+                    self.table_sources(i + 1, close, scope);
                     i = close + 1;
                     continue;
                 };
