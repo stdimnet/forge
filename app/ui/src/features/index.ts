@@ -91,6 +91,7 @@ import "./notifications";
 import "./actionsOnSave";
 import "./phpQualityTools";
 import "./webQualityTools";
+import "./webTooling";
 import "./updates";
 import "./fileTemplates";
 import "./emmet";

@@ -1,0 +1,472 @@
+/* Web tooling: File Watchers page and problems, OpenAPI preview and endpoints, Nx and Nuxt
+   views, cURL import dialog. Theme variables only (Ember / Anvil). */
+
+/* ---- File Watchers ---------------------------------------------------------------- */
+
+.fw-page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-list {
+  min-height: 180px;
+}
+
+.fw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-ui);
+}
+
+.fw-table th {
+  text-align: left;
+  font-weight: normal;
+  color: var(--fg-muted);
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fw-table td {
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.fw-table tbody tr {
+  cursor: default;
+}
+
+.fw-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.fw-table tbody tr.selected {
+  background: var(--bg-selection);
+}
+
+.fw-table td svg {
+  vertical-align: -2px;
+}
+
+.fw-check {
+  width: 22px;
+}
+
+.fw-mono,
+.oa-path,
+.oa-type,
+.oa-example {
+  font-family: var(--font-mono);
+}
+
+.fw-hint {
+  max-width: 640px;
+}
+
+.fw-dialog {
+  width: 640px;
+}
+
+.fw-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.fw-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fw-filters {
+  resize: vertical;
+}
+
+.fw-filter-hint {
+  margin-left: 4px;
+}
+
+.fw-problems {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+}
+
+.fw-problems-toolbar {
+  padding: 4px 6px;
+}
+
+.fw-problem-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  color: var(--fg-strong);
+}
+
+.fw-problem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 2px 28px;
+  cursor: pointer;
+}
+
+.fw-problem:hover {
+  background: var(--bg-hover);
+}
+
+.fw-error-icon {
+  color: var(--danger);
+  flex: none;
+}
+
+.fw-problem-msg {
+  color: var(--fg);
+}
+
+/* ---- Shared rows of the web tooling views ---------------------------------------------- */
+
+.wt-endpoints,
+.wt-tool {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+  font-size: var(--fs-ui);
+}
+
+.wt-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wt-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font: inherit;
+}
+
+.wt-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  color: var(--fg-strong);
+  background: var(--bg-panel);
+}
+
+.wt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.wt-row:hover {
+  background: var(--bg-hover);
+}
+
+.wt-child {
+  padding-left: 30px;
+}
+
+.wt-grow {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wt-badge {
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+}
+
+.wt-app {
+  color: var(--accent);
+}
+
+.wt-lib {
+  color: var(--info);
+}
+
+.wt-run {
+  color: var(--success);
+}
+
+.wt-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wt-tabs button {
+  background: transparent;
+  border: none;
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+
+.wt-tabs button.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+
+.nx-graph {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px;
+}
+
+.nx-layer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nx-node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.nx-node.nx-app {
+  border-color: var(--accent);
+}
+
+.wt-curl-dialog {
+  width: 600px;
+}
+
+.wt-curl-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  margin: 8px 0;
+}
+
+/* ---- OpenAPI ------------------------------------------------------------------------ */
+
+.oa-preview {
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px;
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-size: var(--fs-ui);
+}
+
+.oa-info h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin: 0 0 6px;
+  color: var(--fg-strong);
+}
+
+.oa-version,
+.oa-spec {
+  font-size: var(--fs-small);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  vertical-align: middle;
+}
+
+.oa-version {
+  background: var(--bg-active);
+  color: var(--fg);
+}
+
+.oa-spec {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.oa-desc {
+  color: var(--fg-muted);
+  margin: 4px 0 8px;
+}
+
+.oa-servers {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--fg-muted);
+}
+
+.oa-group {
+  margin-top: 12px;
+}
+
+.oa-tag {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.oa-op {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  background: var(--bg-panel);
+}
+
+.oa-op-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.oa-op-body {
+  padding: 4px 12px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.oa-method {
+  display: inline-block;
+  min-width: 56px;
+  text-align: center;
+  font-weight: 600;
+  font-size: var(--fs-small);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  color: var(--accent-fg);
+  background: var(--fg-muted);
+}
+
+.oa-get {
+  background: var(--info);
+}
+
+.oa-post {
+  background: var(--success);
+}
+
+.oa-put,
+.oa-patch {
+  background: var(--warning);
+}
+
+.oa-delete {
+  background: var(--danger);
+}
+
+.oa-summary {
+  flex: 1;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oa-deprecated .oa-path {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+
+.oa-try {
+  margin-left: auto;
+}
+
+.oa-section {
+  margin: 10px 0 4px;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+
+.oa-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.oa-table td {
+  padding: 2px 8px 2px 0;
+  vertical-align: top;
+}
+
+.oa-name {
+  font-family: var(--font-mono);
+  color: var(--syn-attribute);
+}
+
+.oa-required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.oa-type {
+  color: var(--syn-type);
+}
+
+.oa-example {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  margin: 4px 0;
+  overflow: auto;
+  max-height: 260px;
+  color: var(--syn-string);
+}
+
+.oa-response {
+  margin: 4px 0;
+}
+
+.oa-status {
+  display: inline-block;
+  min-width: 36px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.oa-ok {
+  color: var(--success);
+}
+
+.oa-err {
+  color: var(--danger);
+}
+
+.oa-response-body {
+  margin-left: 40px;
+}
+
+.oa-schema {
+  padding: 4px 0 6px;
+}
+
+.oa-schema-head {
+  cursor: pointer;
+}
+
+.oa-prop {
+  display: flex;
+  gap: 10px;
+  padding: 1px 0 1px 16px;
+}
