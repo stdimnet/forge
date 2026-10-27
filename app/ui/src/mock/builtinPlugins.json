@@ -570,12 +570,12 @@
           ],
           "default": [
             {
-              "scope": "Non-Project Files",
-              "color": "Yellow"
+              "color": "Yellow",
+              "scope": "Non-Project Files"
             },
             {
-              "scope": "Tests",
-              "color": "Green"
+              "color": "Green",
+              "scope": "Tests"
             }
           ],
           "group": "appearance.fileColors",
@@ -675,30 +675,30 @@
           ],
           "default": [
             {
-              "template": "smarty",
               "language": "latex",
               "left": "[[",
-              "right": "]]"
+              "right": "]]",
+              "template": "smarty"
             },
             {
+              "blockEnd": "}",
+              "blockStart": "\\BLOCK{",
+              "commentEnd": "}",
+              "commentStart": "\\#{",
+              "language": "latex",
               "template": "twig",
-              "language": "latex",
-              "variableStart": "\\VAR{",
               "variableEnd": "}",
-              "blockStart": "\\BLOCK{",
-              "blockEnd": "}",
-              "commentStart": "\\#{",
-              "commentEnd": "}"
+              "variableStart": "\\VAR{"
             },
             {
-              "template": "jinja",
-              "language": "latex",
-              "variableStart": "\\VAR{",
-              "variableEnd": "}",
-              "blockStart": "\\BLOCK{",
               "blockEnd": "}",
+              "blockStart": "\\BLOCK{",
+              "commentEnd": "}",
               "commentStart": "\\#{",
-              "commentEnd": "}"
+              "language": "latex",
+              "template": "jinja",
+              "variableEnd": "}",
+              "variableStart": "\\VAR{"
             }
           ],
           "group": "lang.templates",
@@ -3271,10 +3271,10 @@
             "zig"
           ],
           "launch": {
-            "program": "${program}",
             "args": "${args}",
             "cwd": "${cwd}",
             "env": "${env}",
+            "program": "${program}",
             "stopOnEntry": "${stopOnEntry}"
           },
           "attach": {
@@ -3282,25 +3282,25 @@
             "program": "${program}"
           },
           "coreDump": {
-            "program": "${program}",
-            "coreFile": "${core}"
+            "coreFile": "${core}",
+            "program": "${program}"
           },
           "coreDumpRequest": "attach",
           "launchSchema": {
-            "type": "object",
             "properties": {
               "initCommands": {
-                "type": "array",
+                "description": "LLDB commands run before the target is created",
                 "items": {
                   "type": "string"
                 },
-                "description": "LLDB commands run before the target is created"
+                "type": "array"
               },
               "sourceMap": {
-                "type": "array",
-                "description": "Source path remappings: [[from, to], …]"
+                "description": "Source path remappings: [[from, to], …]",
+                "type": "array"
               }
-            }
+            },
+            "type": "object"
           }
         },
         {
@@ -3330,10 +3330,10 @@
             "d"
           ],
           "launch": {
-            "program": "${program}",
             "args": "${args}",
             "cwd": "${cwd}",
             "env": "${env}",
+            "program": "${program}",
             "stopAtBeginningOfMainSubprogram": "${stopOnEntry}"
           },
           "attach": {
@@ -5131,8 +5131,8 @@
             "phtml"
           ],
           "initializationOptions": {
-            "storagePath": ".forge/intelephense",
-            "clearCache": false
+            "clearCache": false,
+            "storagePath": ".forge/intelephense"
           }
         }
       ],
@@ -10567,21 +10567,21 @@
             "java"
           ],
           "attachSchema": {
-            "type": "object",
             "properties": {
               "hostName": {
-                "type": "string",
-                "description": "Host of the JVM's JDWP agent"
+                "description": "Host of the JVM's JDWP agent",
+                "type": "string"
               },
               "port": {
-                "type": "integer",
-                "description": "JDWP port"
+                "description": "JDWP port",
+                "type": "integer"
               },
               "timeout": {
-                "type": "integer",
-                "description": "Milliseconds to wait for the JVM"
+                "description": "Milliseconds to wait for the JVM",
+                "type": "integer"
               }
-            }
+            },
+            "type": "object"
           }
         }
       ],
@@ -10981,17 +10981,17 @@
             "kts"
           ],
           "attachSchema": {
-            "type": "object",
             "properties": {
               "hostName": {
-                "type": "string",
-                "description": "Host of the JVM's JDWP agent"
+                "description": "Host of the JVM's JDWP agent",
+                "type": "string"
               },
               "port": {
-                "type": "integer",
-                "description": "JDWP port"
+                "description": "JDWP port",
+                "type": "integer"
               }
-            }
+            },
+            "type": "object"
           }
         }
       ],
