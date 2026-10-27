@@ -1,0 +1,28 @@
+{
+ "inputs": [
+  {
+   "path": "CMakeLists.txt"
+  },
+  {
+   "isGenerated": true,
+   "path": "build/debug/CMakeFiles/3.28.3/CMakeSystem.cmake"
+  },
+  {
+   "isGenerated": true,
+   "path": "build/debug/CMakeFiles/3.28.3/CMakeCXXCompiler.cmake"
+  },
+  {
+   "isGenerated": true,
+   "path": "build/debug/CMakeFiles/3.28.3/CMakeCXXCompiler.cmake"
+  }
+ ],
+ "kind": "cmakeFiles",
+ "paths": {
+  "build": "/home/dev/shapes/build/debug",
+  "source": "/home/dev/shapes"
+ },
+ "version": {
+  "major": 1,
+  "minor": 0
+ }
+}
