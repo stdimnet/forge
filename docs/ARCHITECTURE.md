@@ -1973,14 +1973,27 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 - IPC (`app/ui/src/ipc/db.ts`): `db_data_sources_list`, `db_data_source_save({ source, password? })`,
   `db_data_source_delete({ id })`, `db_test_connection({ source, password? })`, `db_disconnect`,
   `db_schemas`, `db_introspect({ id, schema })`, `db_table_info`, `db_table_ddl`,
-  `db_table_data({ id, request: { schema, table, filter?, order?, offset?, limit? } })`,
-  `db_apply_changes({ id, schema, table, changes })` (one transaction, refused without a primary key),
+  `db_table_data({ id, request: { schema, table, filter?, columnFilters?, order?, offset?, limit? } })`
+  (SQL per dialect from `forge-dataedit`; the typed filter must be one read-only condition),
+  `db_preview_changes({ id, schema, table, changes }) -> { statements, key?, blocked?, confirm? }`
+  and `db_apply_changes({ id, schema, table, changes, confirmed? })` (one transaction; rows by
+  primary key, else a NOT NULL unique key; refused on read-only data sources and on production
+  ones unless `confirmed`),
   consoles `db_session_open|close`, `db_execute({ sessionId, sql, pageSize? })`, `db_fetch`,
   `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `.env` suggestions
   `db_detect_env` / `db_add_from_env`, `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`
   and `db_statement_at({ sql, from, to, dialect }) -> { text, start, end } | null` (what Ctrl+Enter
   runs; editor offsets). SQL text handling (dialects, splitting, literals, row changes, export) is
   the pure crate `forge-sql`, re-exported by `forge-db`.
+- Data editor: the pure crate `forge-dataedit` (also in WebAssembly as `dataedit_*`), IPC in
+  `commands/dataedit.rs`: `db_data_view({ request: { columns, rows, view } }) -> number[]` (local
+  sort and filter of console results), `db_data_aggregate` (`{ total, columns }`),
+  `db_data_compare({ request: { left, right, key } }) -> DataDiff`, `db_data_chart`,
+  `db_fk_navigate` (`direction: "referenced" | "referencing"` → table and WHERE text),
+  `db_fk_incoming`, `db_value_editor`, `db_value_format`, `db_value_binary`, `db_value_temporal`.
+  UI: `TableEditor`, `ResultGrid`, `ValueEditor`, `ChartView` (plain SVG), `CompareView`
+  (`db-compare://` tabs); grids register a `GridController` (`data-grid-id`) for Ctrl+B
+  (`Console.TableResult.GotoReferencedData`), Alt+F7 and Shift+Enter.
 - Database Explorer: the model types are the pure crate `forge-dbmodel` (also in WebAssembly as
   `dbmodel_*`). `db_model({ id, refresh? }) -> DbModel` (dialect, `catalog`/`catalogs`, every
   schema with `visible` from the data source's schema filter `options.schemas`, introspected
