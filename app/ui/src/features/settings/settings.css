@@ -638,6 +638,9 @@
 .pack-javaforge {
   --pack: var(--danger);
 }
+.pack-kotlinforge {
+  --pack: var(--accent);
+}
 .pack-scriptforge {
   --pack: var(--success);
 }

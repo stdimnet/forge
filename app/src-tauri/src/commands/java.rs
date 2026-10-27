@@ -53,7 +53,8 @@ pub const APPLICATION: &str = "java-application";
 pub const MAVEN: &str = "maven";
 pub const GRADLE: &str = "gradle";
 pub const REMOTE: &str = "jvm-remote-debug";
-const TEST_TYPES: [&str; 2] = ["junit", "testng"];
+/// Kotest (KotlinForge) runs through the same builds.
+const TEST_TYPES: [&str; 3] = ["junit", "testng", "kotest"];
 
 /// Detected JDKs (detection reads many folders: cached until a refresh).
 #[derive(Default)]
@@ -295,6 +296,7 @@ fn to_lsp_config(setup: &JdtlsSetup) -> LspServerConfig {
         args: setup.args(),
         initialization_options: setup.initialization_options(),
         settings: setup.settings(),
+        ..Default::default()
     }
 }
 
@@ -566,7 +568,10 @@ pub(crate) fn runs_through_gradle(state: &AppState, build: Option<&BuildProject>
 
 /// "Run tests using: IntelliJ IDEA" (the JUnit Platform Console Launcher).
 pub(crate) fn tests_through_junit_runner(state: &AppState, cfg: &RunConfiguration) -> bool {
-    cfg.type_id == "junit" && setting(state, "java.gradle.runTestsUsing") == "idea"
+    // Kotlin tests need the Kotlin class path of the build: they run through it.
+    cfg.type_id == "junit"
+        && cfg.option("language") != "kotlin"
+        && setting(state, "java.gradle.runTestsUsing") == "idea"
 }
 
 /// `junit-platform-console-standalone.jar`: the setting, else the newest in the local
@@ -684,7 +689,7 @@ pub(crate) fn handles(type_id: &str) -> bool {
 
 /// The JDK home a configuration runs with: its own (`interpreter` / option `jdk`), else
 /// the project JDK.
-fn jdk_home(state: &AppState, cfg: &RunConfiguration) -> Option<String> {
+pub(crate) fn jdk_home(state: &AppState, cfg: &RunConfiguration) -> Option<String> {
     let own = [cfg.interpreter.trim(), cfg.option("jdk").trim()]
         .into_iter()
         .find(|s| !s.is_empty())
@@ -974,6 +979,10 @@ pub(crate) async fn execute(
 /// Application runs without an explicit class path: compile with JDT LS and ask java-debug
 /// for the class and module path of the main class.
 pub(crate) async fn resolve_launch(app: &AppHandle, cfg: &mut RunConfiguration) {
+    // Kotlin applications run through the build (KotlinForge).
+    if cfg.option("kotlin") == "true" {
+        return;
+    }
     let state = app.state::<AppState>();
     let junit_runner = tests_through_junit_runner(&state, cfg);
     if !junit_runner && (cfg.type_id != APPLICATION || !cfg.option("classpath").trim().is_empty()) {
@@ -1068,7 +1077,7 @@ pub struct DebugPlan {
     pub run: bool,
 }
 
-fn free_port() -> Result<u16> {
+pub(crate) fn free_port() -> Result<u16> {
     let listener = std::net::TcpListener::bind("127.0.0.1:0")
         .map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
     Ok(listener

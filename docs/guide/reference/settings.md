@@ -628,6 +628,29 @@ Page id `lang.java` (plugin `forge.java`). See [JavaForge](../user/java.md#eclip
 | `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
 | `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
 
+### Languages & Frameworks | Kotlin
+
+Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](../user/kotlin.md#language-server).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `kotlin.lsp.server` | enum: `kotlin-lsp`, `kotlin-language-server` | `kotlin-lsp` | user | Language Server | Language server |
+| `kotlin.lsp.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | Install kotlin-lsp — When a Kotlin project opens without the language server: ask, download it from download.jetbrains.com, or never. |
+| `kotlin.lsp.path` | path | `""` | user | Language Server | Server path — An unpacked kotlin-lsp folder (or its bin/intellij-server), or the kotlin-language-server launcher. |
+| `kotlin.lsp.jdk` | path | `""` | user | Language Server | JDK for the build import — JAVA_HOME of the server. Empty: the project JDK. |
+| `kotlin.lsp.jvmOptions` | string | `""` | user | Language Server | JVM options |
+| `kotlin.run.runner` | enum: `auto`, `gradle`, `maven`, `kotlinc` | `auto` | user, project | Run | Run Kotlin applications with |
+| `kotlin.compiler.path` | path | `""` | user | Run | Kotlin compiler — The kotlinc of a Kotlin compiler. Empty: the PATH. |
+| `kotlin.debug.debugger` | enum: `kotlin-lsp`, `java-debug` | `kotlin-lsp` | user | Debugger | Debugger |
+| `kotlin.ktlint.enabled` | bool | `true` | user | ktlint | Check files with ktlint |
+| `kotlin.ktlint.path` | path | `""` | user | ktlint | ktlint — Executable or ktlint-cli-*-all.jar. Empty: the PATH, else Forge's download. |
+| `kotlin.formatter` | enum: `lsp`, `ktlint` | `lsp` | user | ktlint | Reformat Code with |
+| `kotlin.ktlint.formatOnSave` | bool | `false` | user, project | ktlint | Run ktlint format on save |
+| `kotlin.detekt.enabled` | bool | `true` | user | detekt | Check the project with detekt |
+| `kotlin.detekt.path` | path | `""` | user | detekt | detekt — Executable or detekt-cli-*-all.jar. Empty: the PATH, else Forge's download. |
+| `kotlin.detekt.config` | path | `""` | user, project | detekt | Configuration file — Empty: config/detekt/detekt.yml when it exists. |
+| `kotlin.download.repository` | string | `https://repo1.maven.org/maven2` | user | Downloads | Maven repository for ktlint and detekt |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.

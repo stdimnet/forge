@@ -354,7 +354,6 @@ mod tests {
             "clangd",
             "csharp-ls",
             "ruby-lsp",
-            "kotlin-language-server",
             "zls",
         ] {
             assert!(c.server(id).is_some(), "missing {id}");

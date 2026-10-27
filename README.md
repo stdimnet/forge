@@ -13,6 +13,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
 | **GoForge** | Go: SDK / GOPATH with SDK downloads, go.mod / go.work, gofmt / goimports, go vet, golangci-lint, go generate, Go Build / Go Test (benchmarks, fuzzing, coverage), Delve (attach, remote), pprof Profiler |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS (installed on request), JDK detection and Temurin downloads, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) |
+| **KotlinForge** | Kotlin/JVM: kotlin-lsp (installed on request), Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with a Coroutines view, ktlint and detekt |
 
 AI is built into the core: chat with Claude Code or Gemini CLI rendered natively (no terminal),
 AI commit messages, and any provider: Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp

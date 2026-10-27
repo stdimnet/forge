@@ -885,6 +885,28 @@ export function keymap_set_override(json: string): string;
 export function keymap_stroke_of_event(event_json: string): string;
 
 /**
+ * `{ configuration, build, coverage?, debugPort?, runner? }` → `{ program, args, env?, test? }`:
+ * a Kotlin application, script or Kotest configuration as the backend builds it.
+ */
+export function kotlin_command_line(request_json: string): string;
+
+/**
+ * The debugger's answer to the coroutine dump expression → `CoroutineDump`
+ * (`kotlin_coroutines`).
+ */
+export function kotlin_coroutines(value: string): string;
+
+/**
+ * `{ format, text, detekt? }` → `LintProblem[]` (canned reports of the mocks).
+ */
+export function kotlin_lint_report(request_json: string): string;
+
+/**
+ * `{ path, text }` → `MainFunction[]` (`kotlin_main_functions`).
+ */
+export function kotlin_main_functions(request_json: string): string;
+
+/**
  * `ApplicableRequest` → `ApplicableResult`.
  */
 export function live_templates_applicable(request_json: string): string;
@@ -1848,6 +1870,10 @@ export interface InitOutput {
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
     readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
+    readonly kotlin_command_line: (a: number, b: number, c: number) => void;
+    readonly kotlin_coroutines: (a: number, b: number, c: number) => void;
+    readonly kotlin_lint_report: (a: number, b: number, c: number) => void;
+    readonly kotlin_main_functions: (a: number, b: number, c: number) => void;
     readonly live_templates_applicable: (a: number, b: number, c: number) => void;
     readonly live_templates_catalog: (a: number, b: number, c: number) => void;
     readonly live_templates_expand: (a: number, b: number, c: number) => void;

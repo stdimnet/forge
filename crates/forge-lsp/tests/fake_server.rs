@@ -19,6 +19,7 @@ fn config() -> LspServerConfig {
         args: vec![],
         initialization_options: json!({"licenceKey": null}),
         settings: json!({"fake": {"answer": 42}}),
+        ..Default::default()
     }
 }
 
@@ -530,4 +531,53 @@ async fn type_and_call_hierarchy() {
         .unwrap();
     assert_eq!(callees[0].item.name, "save()");
     assert_eq!(callees[0].calls[0].path, base.path);
+}
+
+/// kotlin-lsp only answers `textDocument/diagnostic`: the client pulls after opening and
+/// changing documents and starts the server with the configured environment.
+#[tokio::test]
+async fn pulls_diagnostics_from_servers_that_do_not_publish() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("Main.kt");
+    let (tx, mut rx) = broadcast::channel(256);
+    let mut cfg = config();
+    cfg.args = vec!["pull".into()];
+    cfg.env.insert("FAKE_LS_ENV".into(), "/jdk-21".into());
+    cfg.pull_diagnostics = true;
+    let client = LspClient::start_with_events(cfg, dir.path(), tx)
+        .await
+        .unwrap();
+    let env = next_matching(&mut rx, |e| match e {
+        LspEvent::Log { message, .. } if message.starts_with("env:") => Some(message),
+        _ => None,
+    })
+    .await;
+    assert_eq!(env, "env: /jdk-21 pull: true");
+    client
+        .did_open(&file, "fun main() {}\n// TODO one\n")
+        .unwrap();
+    let (version, diags) = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics {
+            diagnostics,
+            version,
+            ..
+        } => Some((version, diagnostics)),
+        _ => None,
+    })
+    .await;
+    assert_eq!(version, Some(1));
+    assert_eq!(diags.len(), 1);
+    assert_eq!(diags[0].range.start.line, 1);
+    client.did_change(&file, "fun main() {}\n").unwrap();
+    let diags = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics {
+            diagnostics,
+            version: Some(2),
+            ..
+        } => Some(diagnostics),
+        _ => None,
+    })
+    .await;
+    assert!(diags.is_empty());
+    client.shutdown().await;
 }

@@ -39,6 +39,7 @@ pub const SERVERS_RUNNING_PROJECT_CODE: &[&str] = &[
     "ruby-lsp",
     "jdtls",
     "kotlin-language-server",
+    "kotlin-lsp",
     "csharp-ls",
 ];
 

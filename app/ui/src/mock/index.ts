@@ -76,6 +76,7 @@ import "./pythonDebugMock";
 // JavaForge: wraps run_start / run_command_line and the DAP mocks for Java sessions.
 import "./javaMock";
 import "./javaDebugMock";
+import "./kotlinMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

@@ -24,6 +24,7 @@ Languages and large feature sets ship as **packs**:
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger |
+| **KotlinForge** | Kotlin/JVM: kotlin-lsp, Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with coroutines, ktlint and detekt |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
 terminal, database tools, Scratches with an HTTP client, Docker/Compose/Kubernetes, remote
@@ -622,6 +623,7 @@ The primary type appears
 | LuaForge | Lua projects |
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
+| KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
@@ -777,6 +779,7 @@ not finished, the page says so.
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control
 
@@ -8774,6 +8777,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
+| **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
 All plugins are built in; there is no separate download.
@@ -11542,6 +11546,192 @@ Maven Central answer from recorded data; nothing runs or goes to the network.
 
 ---
 
+Source: docs/guide/user/kotlin.md
+
+# KotlinForge
+
+**KotlinForge** (plugin `forge.kotlin`) brings Kotlin/JVM to Forge in the style of IntelliJ
+IDEA. It builds on [JavaForge](docs/guide/user/java.md) (JDKs, Maven and Gradle, the run and test machinery) and
+activates in [Kotlin projects](docs/guide/getting-started/project-detection.md): `*.kt` files in a
+folder, a `src/main/kotlin` / `src/test/kotlin` tree, Kotlin scripts (`*.kts` other than Gradle
+build scripts), or a build that applies the Kotlin plugin (`kotlin("jvm")`,
+`org.jetbrains.kotlin.*`, `kotlin-maven-plugin`). A build that depends on `io.kotest` reports the
+Kotest framework.
+
+![The Kotlin editor with completion from kotlin-lsp](docs/screenshots/kotlin-editor-completion.png)
+
+## Editing
+
+`*.kt` and `*.kts` files are highlighted as Kotlin and get Kotlin file icons. **File | New** has
+a Kotlin submenu with **Class**, **File**, **Interface**, **Object**, **Enum Class** and
+**Script** (`*.main.kts`); the `package` line comes from the folder below its source root
+(`src/main/kotlin/com/acme/orders` → `com.acme.orders`). The templates are editable in Settings
+| Editor | File and Code Templates.
+
+## Language server
+
+Code intelligence comes from JetBrains' [kotlin-lsp](https://github.com/Kotlin/kotlin-lsp)
+through Forge's shared language server client: completion, Go to Declaration, Find Usages,
+hover, diagnostics in the editor and the Problems tool window (kotlin-lsp only answers
+diagnostic *requests*, LSP 3.17's pull model, which Forge uses for it), Rename, quick fixes and
+code actions (`Alt+Enter`), Optimize Imports and Reformat Code (`Ctrl+Alt+L`). The server
+imports the Gradle or Maven build itself.
+
+kotlin-lsp is never bundled with Forge: its repository is Apache-2.0, but the server build
+contains closed JetBrains components. When a Kotlin project opens without it, a balloon offers
+**Install**, **Not now** and **Don't ask again** (setting **Install kotlin-lsp**: Ask, Always,
+Never). Install downloads, with your consent, the standalone kotlin-lsp **263.6379.0** for your
+platform from `download.jetbrains.com` (about 360 MB, the links of the project's
+`RELEASES.md`), checks it against the SHA-256 pinned in Forge (the checksums JetBrains
+publishes next to the archives) and unpacks it into
+`<data dir>/forge/langservers/kotlin-lsp/<version>`. Progress shows in the status bar;
+**Install Kotlin Language Server (kotlin-lsp)** in Find Action (`Ctrl+Shift+A`) does the same.
+
+![The kotlin-lsp download offer](docs/screenshots/kotlin-lsp-install.png)
+
+Forge starts `bin/intellij-server --stdio` with its bundled runtime. The JDK of the build import
+is the project JDK (Settings | Build, Execution, Deployment | JDKs), or **JDK for the build
+import**, passed as `JAVA_HOME`; **JVM options** go to the server's JVM (`IJ_JAVA_OPTIONS`).
+
+As an alternative, **Language server** can be fwcd's
+[kotlin-language-server](https://github.com/fwcd/kotlin-language-server) (MIT), used from the
+`PATH` or **Server path**, with the same `JAVA_HOME`.
+
+Gradle build scripts (`*.gradle.kts`) are not sent to the Kotlin server; they belong to the
+Gradle DSL support. Both servers import builds, which runs project code, so they do not start
+in [Safe Mode](docs/guide/user/project-trust.md); they run for local projects.
+
+Settings | Languages & Frameworks | **Kotlin** shows the server, ktlint, detekt and `kotlinc` as
+found, with Install buttons:
+
+| Setting | |
+| --- | --- |
+| Language server | Kotlin LSP (JetBrains) or Kotlin Language Server (fwcd) |
+| Install kotlin-lsp | Ask, Always or Never when a Kotlin project opens without it |
+| Server path | An unpacked kotlin-lsp folder (or its `bin/intellij-server`), or the kotlin-language-server launcher |
+| JDK for the build import | `JAVA_HOME` of the server; empty: the project JDK |
+| JVM options | Options of the server's JVM, e.g. `-Xmx4g` |
+| Run Kotlin applications with | The project's build (Gradle, else Maven), else `kotlinc`; or one of them |
+| Kotlin compiler | The `kotlinc` of a Kotlin compiler (its `kotlin` runs scripts); empty: the `PATH` |
+| Debugger | Kotlin (kotlin-lsp) or Java (java-debug) |
+| Check files with ktlint, ktlint, Reformat Code with, Run ktlint format on save | See [ktlint and detekt](#ktlint-and-detekt) |
+| Check the project with detekt, detekt, Configuration file | See [ktlint and detekt](#ktlint-and-detekt) |
+| Maven repository for ktlint and detekt | `https://repo1.maven.org/maven2` |
+
+![Settings | Languages & Frameworks | Kotlin](docs/screenshots/kotlin-settings.png)
+
+## Run configurations
+
+A green ▶ next to a `main` function offers Run, Debug and Modify Run Configuration;
+`Ctrl+Shift+F10` runs the file at the caret. A top-level `fun main()` or
+`fun main(args: Array<String>)` (also `suspend`) runs as the file's class (`Main.kt` →
+`MainKt`, or the name of `@file:JvmName`); a `@JvmStatic fun main` in an `object` or a companion
+object runs as that class.
+
+![The Run gutter on main](docs/screenshots/kotlin-run-gutter.png)
+
+Kotlin applications use JavaForge's **Application** configuration (main class `MainKt`). Kotlin
+programs need the Kotlin standard library on the class path, so they run through the build
+(setting **Run Kotlin applications with**, or the configuration's `runner` option):
+
+- **Gradle**: Forge adds a `forgeRunKotlin` task (a `JavaExec` over the module's runtime class
+  path, for any main class) with an init script kept in Forge's cache directory, and runs
+  `gradlew --init-script <cache>/forge/kotlin/run.init.gradle :module:forgeRunKotlin
+  -Pforge.mainClass=…`. Program arguments and VM options are passed through.
+- **Maven**: `mvn compile exec:java -Dexec.mainClass=…` (VM options in `MAVEN_OPTS`).
+- **kotlinc**, without a build: `kotlinc <file> -include-runtime -d <temp>/app.jar`, then
+  `java -cp app.jar MainKt`.
+
+**Kotlin Script** configurations run a `*.kts` / `*.main.kts` file with `kotlin` (or
+`kotlinc -script`), with JVM options (`-J…`) and script arguments; scripts get the ▶ on their
+first line. Gradle build scripts are never run as scripts.
+
+Every run goes through the Run tool window and is refused in [Safe Mode](docs/guide/user/project-trust.md).
+
+## Tests
+
+Tests in Kotlin files get gutter icons and run on the [shared test runner](docs/guide/user/testing.md) through
+Gradle or Maven, with the build's JUnit XML reports:
+
+- **JUnit 5** (and `kotlin.test`), JUnit 4 and TestNG: `@Test`, `@ParameterizedTest`,
+  `@RepeatedTest`, `@TestFactory`, `@Nested inner class`, with backtick names
+  (``fun `adds items to the cart`()``). They use JavaForge's **JUnit** / **TestNG**
+  configurations with Kotlin source roots (`src/test/kotlin`), so results, stack traces and
+  coverage link to the `.kt` files.
+- **Kotest** ([Apache-2.0](https://github.com/kotest/kotest)): **FunSpec** (`test`, `context`),
+  **StringSpec** (`"name" { }`), **DescribeSpec** (`describe`, `context`, `it`) and
+  **BehaviorSpec** (`given`, `when`, `and`, `then`), declared in the constructor lambda or in
+  `init { }`, also with `.config(…)` and the disabled `x…` variants. Forge reads the specs from
+  source; the spec and every test or container get a gutter icon. A spec runs with Gradle's
+  `--tests <spec>`; a single test adds Kotest's filter (`kotest_filter_specs`,
+  `kotest_filter_tests` with the test path, `totals -- applies the discount`). **Rerun Failed
+  Tests** runs the failed specs again.
+
+The **Kotest** configuration type runs all specs, a package, a spec, a test or a list of specs.
+**Run with Coverage** reads JaCoCo's report as for Java.
+
+![A Kotest spec run through Gradle](docs/screenshots/kotlin-kotest-tree.png)
+
+## Debugging
+
+Debug (`Shift+F9`) on a Kotlin application, a Kotest or Kotlin JUnit configuration, or Remote
+JVM Debug in a Kotlin project uses **kotlin-lsp's debugger**: Forge asks kotlin-lsp to start its
+Debug Adapter Protocol server (`start_debug_server`), starts the JVM with a JDWP agent that
+waits for the debugger (a free port, or Gradle's `--debug-jvm` port 5005 for tests), and
+attaches once the JVM listens. kotlin-lsp maps the bytecode back to Kotlin lines (including the
+SMAP of inline functions), so breakpoints in `.kt` files bind, and the [Debug tool
+window](docs/guide/user/debugging.md) shows threads, frames, variables, watches and Evaluate Expression as for
+every language.
+
+With **Debugger** set to java-debug, Kotlin runs are debugged by JavaForge's java-debug
+instead. java-debug resolves line breakpoints with Eclipse's Java parser, so in that mode only
+breakpoints in Java files bind.
+
+### Coroutines
+
+While a Kotlin program is suspended, the Debug tool window has a **Coroutines** tab, like
+IntelliJ IDEA's Coroutines view: every coroutine with its name and id, state (running,
+suspended, created), job and dispatcher, its stack and its creation stack; clicking a frame
+opens the source. Forge evaluates the dump of kotlinx-coroutines' debug probes in the selected
+frame (`DebugProbes.dumpCoroutines`, or `DebugProbesImpl.dumpCoroutinesInfo()` for evaluators
+that only take Java expressions) and parses it in Rust. The probes must be installed in the
+program: add `kotlinx-coroutines-debug` to the dependencies and call `DebugProbes.install()` at
+startup (or start the JVM with the library as `-javaagent`); otherwise the tab explains this.
+
+![A Kotlin debug session with the Coroutines tab](docs/screenshots/kotlin-debug-coroutines.png)
+
+## ktlint and detekt
+
+[ktlint](https://pinterest.github.io/ktlint/) (MIT) and [detekt](https://detekt.dev)
+(Apache-2.0) run as external tools:
+
+- found in the settings (an executable or a `*-all.jar`), on the `PATH`, or downloaded by Forge
+  (**Download ktlint and detekt**: ktlint 1.8.0 and detekt 1.23.8 from Maven Central, pinned
+  SHA-256, into `<data dir>/forge/langservers/jars`, run with the project JDK's `java -jar`);
+- without a detekt CLI, **Run detekt on the Project** uses the project's detekt Gradle plugin
+  (`gradlew detekt`, in trusted projects) and reads `build/reports/detekt/detekt.sarif`.
+
+ktlint checks a Kotlin file when it opens and after every save, on the editor text (`--stdin`,
+with the project's `.editorconfig`). detekt checks the saved file and, with **Run detekt on the
+Project** (Find Action or the Code menu), the whole project, with `config/detekt/detekt.yml` and
+its baseline when they exist (setting **Configuration file**). Their findings (ktlint's JSON and
+Checkstyle reports, detekt's SARIF and Checkstyle reports, parsed in Rust) show in the editor
+and the Problems tool window, with the rule as the problem's code.
+
+**Reformat Code with** ktlint makes `Ctrl+Alt+L` run `ktlint --format`; **Format File with
+ktlint** does it once, and **Run ktlint format on save** after every `Ctrl+S`.
+
+![ktlint and detekt problems](docs/screenshots/kotlin-ktlint-detekt-problems.png)
+
+## Browser mode
+
+`pnpm dev` with `?project=kotlin` opens the demo Gradle service `orders-service` (coroutines, a
+Kotest spec, JUnit 5 tests, a Kotlin script); `?project=kotlin&kotlin-lsp=missing` starts
+without kotlin-lsp to try the download offer.
+
+
+---
+
 Source: docs/guide/user/git.md
 
 # Git
@@ -12996,6 +13186,7 @@ PHP, Lua and every language pack that follows:
 | PHPUnit, Pest, Codeception, Behat, PHPSpec | PHPForge ([PHP test frameworks](docs/guide/user/test-frameworks.md)) | TeamCity, JUnit XML | PHPUnit and Pest (Clover, Xdebug or PCOV) |
 | busted | LuaForge ([LuaForge](docs/guide/user/luaforge.md#tests-with-busted)) | TAP | LCOV (luacov) |
 | JUnit 5/4/3, TestNG | JavaForge ([JavaForge](docs/guide/user/java.md#tests)), through Gradle or Maven | JUnit XML of the build (`build/test-results/test`, `target/surefire-reports`) | JaCoCo XML |
+| Kotest, JUnit 5 in Kotlin | KotlinForge ([KotlinForge](docs/guide/user/kotlin.md#tests)), through Gradle or Maven | JUnit XML of the build | JaCoCo XML |
 | Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](docs/guide/user/javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
 | pytest, unittest, tox | PyForge ([PyForge](docs/guide/user/python.md#testing-with-pytest-unittest-and-tox)) | JUnit XML or report log (pytest), TeamCity (Forge's unittest runner), environments as tests (tox) | pytest-cov (Cobertura) |
 
@@ -13641,9 +13832,10 @@ for every session; only how a session starts differs:
   [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) (DAP), through
   the Debugger plugin (`forge.debugger`). **LLDB** (`lldb-dap`) and **GDB** (14 or newer,
   `gdb -i dap`) are built in for C, C++, Rust, Go and other native code; language packs add
-  their own adapters, such as debugpy for Python ([PyForge](docs/guide/user/python.md#debugging-with-debugpy)) and
-  java-debug for Java ([JavaForge](docs/guide/user/java.md#debugging)). Adapters are programs installed on your
-  machine; Forge does not bundle
+  their own adapters, such as debugpy for Python ([PyForge](docs/guide/user/python.md#debugging-with-debugpy)),
+  java-debug for Java ([JavaForge](docs/guide/user/java.md#debugging)) and kotlin-lsp's debugger with a
+  Coroutines tab for Kotlin ([KotlinForge](docs/guide/user/kotlin.md#debugging)). Adapters are programs
+  installed on your machine; Forge does not bundle
   them. See [Debug adapter sessions](#debug-adapter-sessions) below.
 
 The sections up to [Debug adapter sessions](#debug-adapter-sessions) describe Xdebug; the
@@ -17530,6 +17722,29 @@ Page id `lang.java` (plugin `forge.java`). See [JavaForge](docs/guide/user/java.
 | `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
 | `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
 
+### Languages & Frameworks | Kotlin
+
+Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](docs/guide/user/kotlin.md#language-server).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `kotlin.lsp.server` | enum: `kotlin-lsp`, `kotlin-language-server` | `kotlin-lsp` | user | Language Server | Language server |
+| `kotlin.lsp.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | Install kotlin-lsp — When a Kotlin project opens without the language server: ask, download it from download.jetbrains.com, or never. |
+| `kotlin.lsp.path` | path | `""` | user | Language Server | Server path — An unpacked kotlin-lsp folder (or its bin/intellij-server), or the kotlin-language-server launcher. |
+| `kotlin.lsp.jdk` | path | `""` | user | Language Server | JDK for the build import — JAVA_HOME of the server. Empty: the project JDK. |
+| `kotlin.lsp.jvmOptions` | string | `""` | user | Language Server | JVM options |
+| `kotlin.run.runner` | enum: `auto`, `gradle`, `maven`, `kotlinc` | `auto` | user, project | Run | Run Kotlin applications with |
+| `kotlin.compiler.path` | path | `""` | user | Run | Kotlin compiler — The kotlinc of a Kotlin compiler. Empty: the PATH. |
+| `kotlin.debug.debugger` | enum: `kotlin-lsp`, `java-debug` | `kotlin-lsp` | user | Debugger | Debugger |
+| `kotlin.ktlint.enabled` | bool | `true` | user | ktlint | Check files with ktlint |
+| `kotlin.ktlint.path` | path | `""` | user | ktlint | ktlint — Executable or ktlint-cli-*-all.jar. Empty: the PATH, else Forge's download. |
+| `kotlin.formatter` | enum: `lsp`, `ktlint` | `lsp` | user | ktlint | Reformat Code with |
+| `kotlin.ktlint.formatOnSave` | bool | `false` | user, project | ktlint | Run ktlint format on save |
+| `kotlin.detekt.enabled` | bool | `true` | user | detekt | Check the project with detekt |
+| `kotlin.detekt.path` | path | `""` | user | detekt | detekt — Executable or detekt-cli-*-all.jar. Empty: the PATH, else Forge's download. |
+| `kotlin.detekt.config` | path | `""` | user, project | detekt | Configuration file — Empty: config/detekt/detekt.yml when it exists. |
+| `kotlin.download.repository` | string | `https://repo1.maven.org/maven2` | user | Downloads | Maven repository for ktlint and detekt |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.
@@ -18242,7 +18457,8 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | `kotlin-language-server` | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT |  |
+| [Kotlin LSP](https://github.com/Kotlin/kotlin-lsp) | `kotlin-lsp` | Kotlin | started by KotlinForge (`forge.kotlin`) | Install from Settings \| Languages & Frameworks \| Kotlin (download.jetbrains.com, pinned SHA-256)<br>`brew install JetBrains/utils/kotlin-lsp` | Apache-2.0 (the server build includes closed JetBrains components) | A pack server: KotlinForge starts `bin/intellij-server --stdio` with the project JDK as `JAVA_HOME` and pulls its diagnostics. See [KotlinForge](docs/guide/user/kotlin.md). |
+| [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | started by KotlinForge when chosen | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT | A pack server, the alternative to kotlin-lsp. |
 
 ### C#
 
@@ -18609,7 +18825,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -18637,6 +18853,7 @@ script and config language plugins.
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| Kotlin | `forge.kotlin` | kotlinforge | `forge.java` | `kotlinforge` | 4 commands; 16 settings; 1 debug adapters (kotlin-lsp); 1 test frameworks (Kotest); run types (UI): Kotlin Script, Kotest |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
 | Gemini CLI | `forge.gemini-cli` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |
@@ -18854,6 +19071,7 @@ packs/<pack>/<plugin>      language and framework crates, package name <pack>-<p
   webforge/                lang-web, fw-react, fw-vue, fw-angular
   luaforge/                lang-lua
   javaforge/               build, lang-java, jdk
+  kotlinforge/             lang-kotlin
 app/
   src-tauri/               the Tauri shell (crate forge-app, binary forge)
     src/lib.rs             builder, state, event wiring, generate_handler![…]
@@ -20595,6 +20813,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [javaforge-build](docs/guide/developer/crates/javaforge-build.md) | JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines for goals, tasks, Build Project and tests; pure, also built to WebAssembly) |
 | [javaforge-jdk](docs/guide/developer/crates/javaforge-jdk.md) | JavaForge: JDK detection (JAVA_HOME, PATH, system folders, Windows registry, SDKMAN, asdf, jabba, Gradle toolchains, ~/.jdks) and Eclipse Temurin downloads with SHA-256 verification |
 | [javaforge-lang-java](docs/guide/developer/crates/javaforge-lang-java.md) | JavaForge: Java language support (source scanner, main methods, JUnit 5/4/3 and TestNG for the shared test runner, application command lines, Eclipse JDT LS launch configuration; pure, also built to WebAssembly) |
+| [kotlinforge-lang-kotlin](docs/guide/developer/crates/kotlinforge-lang-kotlin.md) | KotlinForge: Kotlin language support (source scanner, main functions, JUnit 5 and Kotest for the shared test runner, Kotlin/JVM and script command lines, kotlin-lsp launch, ktlint and detekt reports, coroutine dumps; pure, also built to WebAssembly) |
 | [luaforge-lang-lua](docs/guide/developer/crates/luaforge-lang-lua.md) | LuaForge: Lua language support (lexer, structural parser, EmmyLua/LuaLS annotations, project index, require resolution, hover, navigation; pure, also built to WebAssembly) |
 | [pyforge-lang-python](docs/guide/developer/crates/pyforge-lang-python.md) | PyForge: Python language support (PEP 440 versions and specifiers, PEP 508 requirements, requirements.txt and pyproject.toml dependencies, imports, requirements inspections and completion, run configurations; pure, also built to WebAssembly) |
 | [pyforge-interpreters](docs/guide/developer/crates/pyforge-interpreters.md) | PyForge: Python interpreters (system, pyenv, venv/virtualenv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL): model, detection, metadata parsing and new environments |
@@ -22043,7 +22262,8 @@ shared by the desktop backend and the browser-mode WebAssembly build.
   mode); syntax errors carry their line. `referenced_variables` lists what a template uses.
 - `builtin`: the shipped templates (PHP File/Class/Interface/Trait/Enum, PHPUnit Test,
   Laravel Controller/Model, Symfony Controller, HTML, CSS, JavaScript, TypeScript, Vue SFC,
-  React (JSX/TSX), Lua; the PHP File Header include; the PHP code templates), each with the
+  React (JSX/TSX), Lua, Kotlin (Class, File, Interface, Object, Enum Class, Script; the
+  package from the folder below its source root, `package_of_dir`); the PHP File Header include; the PHP code templates), each with the
   project type it needs (`when`) and its menu group.
 - `psr4`: PSR-4 rules from composer.json (`autoload` and `autoload-dev`, relative to the
   composer.json folder) and the mapping folder → namespace (deepest folder wins) and
@@ -22634,6 +22854,7 @@ these rows.
 | `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
+| `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`). |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
@@ -22868,7 +23089,7 @@ them.
 
 | Module | Summary |
 | --- | --- |
-| `client.rs` | An LSP client talking to one language server process over stdio. `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
+| `client.rs` | An LSP client talking to one language server process over stdio. Servers with `LspServerConfig::pull_diagnostics` (kotlin-lsp) get the `textDocument.diagnostic` capability and are asked `textDocument/diagnostic` after `didOpen` / `didChange`; the answers become `LspEvent::Diagnostics`. `LspServerConfig::env` adds environment variables to local server processes (`spawn_local_with_env`). `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
@@ -23211,7 +23432,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
-| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`). |
+| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
@@ -23399,7 +23620,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -24500,6 +24721,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `spell.rs` | Spelling and grammar (`forge-spell`), mirroring `spell_inspect`, `spell_context_actions` and `spell_dictionaries` for the browser-mode mock (bundled dictionaries only). |
 | `filetypes.rs` | File type detection (`forge-filetypes`), mirroring the `filetypes_detect` IPC command. The desktop app builds the registry from its plugin manifests; browser mode loads the same manifests (the `builtinPlugins.json` snapshot) once with `filetypes_load`. |
 | `keymap.rs` | Keymap bridge (`forge-keymap`). |
+| `kotlin.rs` | KotlinForge (`kotlinforge-lang-kotlin`): `kotlin_main_functions`, `kotlin_coroutines`, `kotlin_lint_report` (ktlint JSON, SARIF, Checkstyle) and `kotlin_command_line` (Kotlin applications, scripts, Kotest). `testing.rs` registers `KotlinTests` like the app. |
 | `java.rs` | JavaForge (`javaforge-build`, `javaforge-lang-java`), mirroring `java_main_methods`, `java_build_info` and the backend's Java run building (`java_command_line`: Application, Maven, Gradle, JUnit and TestNG with their `TestCommand`). `testing.rs` registers `JavaTests` like the app. |
 | `lua.rs` | LuaForge (`luaforge-lang-lua`), mirroring the `lua_*` IPC commands for the browser-mode mock: the mock hands over the demo project's Lua files once (`lua_index_files`), then asks for structure, hover, Go to Declaration, symbol search and run markers. |
 | `parsers.rs` | Parsers and models of process output, SQL, DQL, Markdown and the AI chat, mirroring the IPC commands of the desktop app for the browser-mode mocks. |
@@ -24835,6 +25057,89 @@ pub use tests::JavaTests;
 
 ```sh
 cargo test -p javaforge-lang-java
+```
+
+
+---
+
+Source: docs/guide/developer/crates/kotlinforge-lang-kotlin.md
+
+# kotlinforge-lang-kotlin
+
+`packs/kotlinforge/lang-kotlin` — KotlinForge: Kotlin language support (structural source scanner, main functions, JUnit 5 and Kotest discovery and commands for the shared test runner, Kotlin/JVM and script command lines, kotlin-lsp launch, ktlint and detekt reports, coroutine dumps; pure, also built to WebAssembly).
+
+## Purpose
+
+KotlinForge's Kotlin language support. Pure Rust (no file system or processes); code
+intelligence itself comes from kotlin-lsp (or kotlin-language-server) through `forge-lsp`. See
+[KotlinForge](docs/guide/user/kotlin.md).
+
+- `source` tokenizes Kotlin (nested block comments, string templates, raw strings, backtick
+  names) and scans package, imports, `@file:` annotations, classes, interfaces, objects,
+  companion objects and enums (with JVM binary names such as `com.acme.Cart$Companion`),
+  functions with annotations, modifiers, parameters and receivers, `init` blocks and the
+  argument ranges of supertype constructors. It tolerates half-typed code.
+- `discovery` finds `main` functions (top-level → the file facade `MainKt` or `@file:JvmName`;
+  `@JvmStatic` mains in objects and companions) and JUnit 5 / `kotlin.test`, JUnit 4 and TestNG
+  tests with backtick names and `@Nested inner class`es.
+- `kotest` reads Kotest specs (FunSpec, StringSpec, DescribeSpec, BehaviorSpec) from the
+  constructor lambda and `init` blocks into tests and containers with their paths
+  (`totals -- applies the discount`).
+- `tests` is the shared test runner's provider `KotlinTests` (type `kotest`): gutter targets,
+  Rerun Failed Tests (the failed specs) and commands through JavaForge's
+  `javaforge_lang_java::tests::build_command` with Kotest's filter variables and
+  `JUnitFlavor::Kotlin`; JUnit tests in `.kt` files become `junit` / `testng` configurations
+  with `language = kotlin`.
+- `launch` builds Kotlin/JVM runs (Gradle with an init script adding `forgeRunKotlin`, Maven
+  `exec:java`, `kotlinc` then `java -cp`) and Kotlin scripts (`kotlin` / `kotlinc -script`;
+  Gradle build scripts are refused).
+- `lsp` describes how kotlin-lsp (`bin/intellij-server --stdio`) and kotlin-language-server
+  start: arguments, `JAVA_HOME`, JVM options, initialization options.
+- `lint` parses ktlint's JSON and Checkstyle reports and detekt's SARIF and Checkstyle reports
+  into `LintProblem`s, and builds their command lines (ktlint on stdin, detekt with the project's
+  configuration and baseline).
+- `coroutines` holds the debugger expressions of the Coroutines view and parses what they return
+  (the `DebugProbes` text dump or the coroutine info list) into `CoroutineDump`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `source.rs` | `tokenize`, `parse(text) -> KotlinFile { package, imports, file_annotations, classes, functions }`, `facade_name`, `skip_balanced`. |
+| `discovery.rs` | `main_functions`, `MainFunction`, `discover_tests`, `KotlinTestDiscovery`. |
+| `kotest.rs` | `discover_specs`, `KotestSpec`, `KotestTest`, `SpecStyle`. |
+| `tests.rs` | `KotlinTests` (`TestFrameworkProvider`), `KOTEST`, `FILTER_SPECS_ENV`, `FILTER_TESTS_ENV`. |
+| `launch.rs` | `KotlinApp`, `Runner`, `application_command`, `ScriptRun`, `script_command`, `is_runnable_script`, `GRADLE_INIT_SCRIPT`. |
+| `lsp.rs` | `Server`, `KotlinServerSetup`, `launcher_path`. |
+| `lint.rs` | `LintProblem`, `parse_ktlint_json`, `parse_sarif`, `parse_checkstyle`, `ktlint_args`, `detekt_args`, `detekt_config_files`, `gradle_plugin`. |
+| `coroutines.rs` | `DUMP_EXPRESSION`, `INFO_EXPRESSION`, `parse_dump`, `CoroutineDump`, `Coroutine`. |
+
+## Main public items
+
+```rust
+pub use discovery::{discover_tests, main_functions, MainFunction};
+pub use kotest::{discover_specs, KotestSpec};
+pub use tests::KotlinTests;
+```
+
+## Used by
+
+- The app: `RunState` registers `KotlinTests` (`commands/run.rs`); `commands/kotlin.rs` builds
+  the language server config, Kotlin runs, ktlint / detekt runs and the debugger plan with it.
+  [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md): `kotlin_main_functions`, `kotlin_command_line`,
+  `kotlin_lint_report`, `kotlin_coroutines` and the test registry of the browser mode.
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md), [`forge-testing`](docs/guide/developer/crates/forge-testing.md), [`javaforge-build`](docs/guide/developer/crates/javaforge-build.md), [`javaforge-lang-java`](docs/guide/developer/crates/javaforge-lang-java.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+9 source files, about 3300 lines; 21 unit tests on fixtures (no network).
+
+```sh
+cargo test -p kotlinforge-lang-kotlin
 ```
 
 

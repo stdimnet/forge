@@ -531,6 +531,15 @@ pub fn run() {
             commands::java_build::java_build_complete,
             commands::java_build::java_build_outdated,
             commands::java_build::java_build_workspace,
+            commands::kotlin::kotlin_status,
+            commands::kotlin::kotlin_lsp_install,
+            commands::kotlin::kotlin_linters_install,
+            commands::kotlin::kotlin_main_functions,
+            commands::kotlin::kotlin_lint,
+            commands::kotlin::kotlin_format,
+            commands::kotlin::kotlin_detekt,
+            commands::kotlin::kotlin_debug_prepare,
+            commands::kotlin::kotlin_coroutines,
             commands::lua::lua_index_workspace,
             commands::lua::lua_files_changed,
             commands::lua::lua_search_symbols,
@@ -985,6 +994,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::java::spawn_sync_lsp_server(&handle);
+            }
+            // KotlinForge: kotlin-lsp / kotlin-language-server and their options.
+            if commands::kotlin::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::kotlin::spawn_sync_lsp_server(&handle);
             }
         });
 }

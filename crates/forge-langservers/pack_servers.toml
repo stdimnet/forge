@@ -1,7 +1,8 @@
 # Servers that language packs configure and start themselves. They are listed on the
 # Language Servers settings page (status, path, install hints) but never started from
 # here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP),
-# JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java).
+# JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java),
+# KotlinForge kotlin-lsp or kotlin-language-server (Settings > Languages & Frameworks > Kotlin).
 
 [[language]]
 id = "php"
@@ -56,4 +57,40 @@ license = "EPL-2.0"
 note = "JavaForge installs it from download.eclipse.org on request (SHA-256 checked) and starts it with a JDK 21+; its workspace data lives in the user cache directory."
 install = [
   { tool = "download", url = "https://download.eclipse.org/jdtls/milestones/" },
+]
+
+[[language]]
+id = "kotlin"
+name = "Kotlin"
+extensions = ["kt", "kts"]
+
+[[server]]
+id = "kotlin-lsp"
+name = "Kotlin LSP"
+group = "Kotlin"
+languages = ["kotlin"]
+command = "intellij-server"
+args = ["--stdio"]
+plugin = "forge.kotlin"
+homepage = "https://github.com/Kotlin/kotlin-lsp"
+license = "Apache-2.0 (the server build includes closed JetBrains components)"
+note = "KotlinForge downloads the standalone build from download.jetbrains.com on request (pinned version, SHA-256 checked) and starts it with the project JDK."
+install = [
+  { tool = "brew", command = ["brew", "install", "JetBrains/utils/kotlin-lsp"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://github.com/Kotlin/kotlin-lsp/blob/main/RELEASES.md" },
+]
+
+[[server]]
+id = "kotlin-language-server"
+name = "Kotlin Language Server"
+group = "Kotlin"
+languages = ["kotlin"]
+command = "kotlin-language-server"
+plugin = "forge.kotlin"
+homepage = "https://github.com/fwcd/kotlin-language-server"
+license = "MIT"
+note = "Used when chosen in the Kotlin settings instead of kotlin-lsp."
+install = [
+  { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
 ]

@@ -329,6 +329,7 @@ pub fn build_config(
         } else {
             settings
         },
+        ..Default::default()
     }
 }
 

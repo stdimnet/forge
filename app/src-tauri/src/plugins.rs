@@ -33,6 +33,10 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("pyforge.toml", include_str!("../plugins/pyforge.toml")),
     ("goforge.toml", include_str!("../plugins/goforge.toml")),
     ("javaforge.toml", include_str!("../plugins/javaforge.toml")),
+    (
+        "kotlinforge.toml",
+        include_str!("../plugins/kotlinforge.toml"),
+    ),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (
