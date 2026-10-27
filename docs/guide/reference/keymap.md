@@ -126,9 +126,11 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Element Right | `MoveElementRight` | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | — |
 | Move Line Up | `MoveLineUp` | `Alt+Shift+Up` | `Alt+Shift+Up` | yes |
 | Move Line Down | `MoveLineDown` | `Alt+Shift+Down` | `Alt+Shift+Down` | yes |
-| Inspect Code… | `InspectCode` |  |  | — |
-| Code Cleanup / Inspect File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | — |
-| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | — |
+| Inspect Code… | `InspectCode` |  |  | yes |
+| Inspect Current File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes |
+| Code Cleanup… | `CodeCleanup` |  |  | yes |
+| Locate Duplicates… | `LocateDuplicates` |  |  | yes |
+| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes |
 | Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
 | Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
 

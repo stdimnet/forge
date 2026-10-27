@@ -50,6 +50,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
 | `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
+| `[[contributions.inspections]]` / `[[contributions.inspectionMappings]]` / `InspectionProvider` / `ProblemSource` | manifest / `forge-inspections` | an inspection (profiles, severities, suppressions, Inspect Code) and which published problems belong to it |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
 | `registerEndpointsView` | `features/endpoints/registry.ts` | a view of the shared Endpoints tool window (one tab per pack when several apply: Python web frameworks, Spring and JAX-RS) |
 | `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
@@ -354,6 +355,42 @@ run configuration types in the UI. `registerTestFileMatcher(path => bool)` from
 `@/features/run` attaches the test gutter to their files, and
 `registerContextConfiguration(path => cfg | null)` answers Run Context Configuration in files
 without tests.
+
+## Inspections
+
+Every problem Forge shows belongs to an inspection of `crates/forge-inspections`. Declare a
+pack's inspections in its manifest:
+
+```toml
+[[contributions.inspections]]
+id = "PhpUnusedAssignment"          # the id profiles and suppression comments use
+name = "Unused assignment"
+group = "PHP/Data flow"             # the Settings tree: language / group
+language = "php"
+severity = "WEAK WARNING"           # ERROR, WARNING, WEAK WARNING, SERVER PROBLEM, TYPO, INFO
+cleanup = true                      # its safe fixes run in Code Cleanup
+description = "Reports assignments whose value is never read."
+
+[[contributions.inspectionMappings]]   # problems published by an external tool
+source = "clippy"                      # the third argument of publishDiagnostics
+code = "clippy::*"                     # optional; a trailing * matches a prefix
+inspection = "RsClippy"
+```
+
+`external = true` keeps the level a tool reports until the profile sets one, `batch = false`
+keeps an inspection out of Inspect Code (problems that need a running language server or
+tool), `options` adds typed options to the Settings page.
+
+- **Editor problems** need no code: whatever a feature publishes with
+  `publishDiagnostics(path, diagnostics, source)` goes through the selected profile (the
+  diagnostic's `code` when it is an inspection id, else the source's mapping): disabled
+  inspections drop out, severities follow the profile and suppression comments hide
+  problems. Alt+Enter offers the Suppress actions for every problem with an inspection.
+- **Inspect Code / the command-line inspector** run Rust providers: implement
+  `forge_inspections::InspectionProvider` (`inspect_file` per file, `inspect_project` across
+  files) and add it in `app/src-tauri/src/inspections.rs`. An external tool that reports
+  problems by file, position and code (PHPStan, Psalm, a linter) implements
+  `forge_inspections::ProblemSource`; its problems are mapped with the manifest mappings.
 
 ## Run Anything providers
 
