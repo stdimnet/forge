@@ -1,0 +1,26 @@
+[OK] 1 file would have been changed (dry-run) by Rector
+{
+    "totals": {
+        "changed_files": 1,
+        "errors": 1
+    },
+    "file_diffs": [
+        {
+            "file": "app/Services/PaymentGateway.php",
+            "diff": "--- Original\n+++ New\n@@ -8,14 +8,8 @@\n \n final class PaymentGateway\n {\n-    private string $apiKey;\n-\n-    private int $retries;\n-\n-    public function __construct(string $apiKey, int $retries = 3)\n-    {\n-        $this->apiKey = $apiKey;\n-        $this->retries = $retries;\n+    public function __construct(private string $apiKey, private int $retries = 3)\n+    {\n     }\n \n     public function charge(int $cents, string $currency): bool\n",
+            "applied_rectors": [
+                "Rector\\Php80\\Rector\\Class_\\ClassPropertyAssignToConstructorPromotionRector"
+            ]
+        }
+    ],
+    "changed_files": [
+        "app/Services/PaymentGateway.php"
+    ],
+    "errors": [
+        {
+            "message": "Syntax error, unexpected '}'",
+            "file": "app/Broken.php",
+            "line": 4
+        }
+    ]
+}
