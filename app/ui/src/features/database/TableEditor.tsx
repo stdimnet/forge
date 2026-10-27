@@ -139,7 +139,8 @@ export function TableEditor(props: { tab: EditorTab }) {
       setOffset(nextOffset);
       setPage(res);
       setPending(reconcile(emptyPending()));
-      setStatus(`${res.total ?? res.rows.length} rows · ${res.elapsedMs} ms`);
+      const n = res.total ?? res.rows.length;
+      setStatus(`${n} row${n === 1 ? "" : "s"} · ${res.elapsedMs} ms`);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -319,7 +320,7 @@ export function TableEditor(props: { tab: EditorTab }) {
     const col = columns()[c.col]?.name;
     return keysOf(col).map((fk) => ({
       label: `Go to ${fk.refTable} (${fk.columns.join(", ")})${fk.virtual ? " · virtual" : ""}`,
-      hint: shortcutLabel("GotoDeclaration"),
+      hint: shortcutLabel("Console.TableResult.GotoReferencedData"),
       run: () => void navigate(fk, "referenced", { schema: loc.schema, table: loc.table }),
     }));
   };
@@ -421,7 +422,7 @@ export function TableEditor(props: { tab: EditorTab }) {
     const items: MenuItem[] = [];
     if (c) {
       const col = columns()[c.col];
-      items.push({ label: "Edit Value…", hint: shortcutLabel("Console.TableResult.EditValue"), run: editValue });
+      items.push({ label: "Edit Value…", hint: shortcutLabel("Database.Properties"), run: editValue });
       if (editable() && (col?.defaultValue != null || col?.autoIncrement) && c.row < total())
         items.push({ label: "Set DEFAULT", run: () => edit(c.row, c.col, { $default: true }) });
       items.push({ separator: true, label: "" });
@@ -511,7 +512,7 @@ export function TableEditor(props: { tab: EditorTab }) {
         <Tool title="Transpose" active={transposed()} onClick={toggleTransposed}>
           <ArrowRightLeft size={15} />
         </Tool>
-        <Tool title={`Value Editor (${shortcutLabel("Console.TableResult.EditValue")})`} active={side() === "value"} onClick={editValue}>
+        <Tool title={`Value Editor (${shortcutLabel("Database.Properties")})`} active={side() === "value"} onClick={editValue}>
           <PanelRight size={15} />
         </Tool>
         <Tool title="Aggregate View" active={side() === "aggregate"} onClick={() => setSide((s) => (s === "aggregate" ? null : "aggregate"))}>

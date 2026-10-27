@@ -36,7 +36,7 @@ export function ResultTools(props: { tools: ResultGridTools }) {
       <button class="icon-btn db-tool" classList={{ active: t.transposed() }} title="Transpose" onClick={t.toggleTransposed}>
         <ArrowRightLeft size={14} />
       </button>
-      <button class="icon-btn db-tool" classList={{ active: t.side() === "value" }} title={`Value Viewer (${shortcutLabel("Console.TableResult.EditValue")})`} onClick={() => t.toggleSide("value")}>
+      <button class="icon-btn db-tool" classList={{ active: t.side() === "value" }} title={`Value Viewer (${shortcutLabel("Database.Properties")})`} onClick={() => t.toggleSide("value")}>
         <PanelRight size={14} />
       </button>
       <button class="icon-btn db-tool" classList={{ active: t.side() === "aggregate" }} title="Aggregate View" onClick={() => t.toggleSide("aggregate")}>
@@ -125,7 +125,7 @@ export function ResultGrid(props: {
     const c = cursor();
     const col = c ? props.columns[c.col] : undefined;
     return [
-      { label: "Value Viewer", hint: shortcutLabel("Console.TableResult.EditValue"), run: () => setSide("value") },
+      { label: "Value Viewer", hint: shortcutLabel("Database.Properties"), run: () => setSide("value") },
       ...(col && c ? [{ separator: true, label: "" }, ...filterByValueItems(col.name, valueAt(c.row, c.col), addFilter)] : []),
       { separator: true, label: "" },
       { label: "Compare With…", run: () => setComparing(true) },

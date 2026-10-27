@@ -33,6 +33,8 @@ export function WhereInput(props: {
   const [items, setItems] = createSignal<string[]>([]);
   const [active, setActive] = createSignal(0);
   const [start, setStart] = createSignal(0);
+  /** Popup position: under the word being completed (monospace field). */
+  const left = () => Math.min(start() * 7.2, Math.max(0, (input?.clientWidth ?? 300) - 180));
 
   const refresh = () => {
     const caret = input.selectionStart ?? input.value.length;
@@ -101,7 +103,7 @@ export function WhereInput(props: {
         }}
       />
       <Show when={items().length}>
-        <div class="db-complete" role="listbox">
+        <div class="db-complete" role="listbox" style={{ left: `${left()}px` }}>
           <For each={items()}>
             {(it, i) => (
               <div
