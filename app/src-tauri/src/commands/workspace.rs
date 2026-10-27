@@ -36,6 +36,7 @@ pub fn start_watching(app: &AppHandle) {
         let handle = app.clone();
         let watcher = backend.watch(Arc::new(move |changes: FsChanges| {
             crate::commands::local_history::fs_changed(&handle, &changes);
+            crate::commands::db::fs_changed(&handle, &changes);
             if let Err(e) = handle.emit(FS_CHANGED_EVENT, &changes) {
                 tracing::warn!("cannot emit {FS_CHANGED_EVENT}: {e}");
             }

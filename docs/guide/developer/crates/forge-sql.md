@@ -25,7 +25,7 @@ guard, cell values as JavaScript-safe JSON, row change statements and export.
 | `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key. |
 | `export.rs` | Export a result set as CSV, JSON or SQL `INSERT` statements. |
 | `guard.rs` | Read-only data sources refuse writes (DML/DDL, Redis write commands, MongoDB write calls); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
-| `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks; Redis lines and MongoDB calls. |
+| `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks, SQLite `CREATE TRIGGER … BEGIN … END` bodies; Redis lines and MongoDB calls. |
 | `value.rs` | Cell values as JSON that survives JavaScript: `null`, booleans, numbers only within ±2^53, everything else (big integers, decimals, dates) as strings, binary data as `{"$hex": "89504e47"}`. |
 
 ## Main public items

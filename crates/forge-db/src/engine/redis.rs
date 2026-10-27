@@ -574,10 +574,7 @@ impl EngineConn for RedisConn {
             dbs.sort();
             Ok(dbs
                 .into_iter()
-                .map(|(n, _)| SchemaName {
-                    name: format!("db{n}"),
-                    current: n == self.db,
-                })
+                .map(|(n, _)| SchemaName::new(format!("db{n}"), n == self.db))
                 .collect())
         })
     }
@@ -591,8 +588,7 @@ impl EngineConn for RedisConn {
         Box::pin(async move {
             Ok(SchemaInfo {
                 name: schema.into(),
-                tables: Vec::new(),
-                routines: Vec::new(),
+                ..Default::default()
             })
         })
     }

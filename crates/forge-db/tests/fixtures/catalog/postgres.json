@@ -1,0 +1,47 @@
+{
+  "postgres.current_schema": [["public"]],
+  "postgres.schemas": [["audit"], ["public"], ["tenant_1"], ["tenant_2"]],
+  "postgres.tables": [
+    ["order_totals", "v", null, "-1", " SELECT o.user_id,\n    sum(o.total) AS spent\n   FROM orders o\n  GROUP BY o.user_id;"],
+    ["orders", "r", "Customer orders", "1200", null],
+    ["sales_daily", "m", null, "30", " SELECT date(o.created_at) AS day,\n    sum(o.total) AS revenue\n   FROM orders o\n  GROUP BY (date(o.created_at));"],
+    ["users", "r", null, "-1", null]
+  ],
+  "postgres.columns": [
+    ["order_totals", "user_id", "bigint", "t", null, "", null, ""],
+    ["order_totals", "spent", "numeric", "t", null, "", null, ""],
+    ["orders", "id", "bigint", "f", null, "a", null, ""],
+    ["orders", "user_id", "bigint", "f", null, "", null, ""],
+    ["orders", "status", "order_status", "f", "'new'::order_status", "", null, ""],
+    ["orders", "total", "numeric(10,2)", "t", null, "", "Gross amount", ""],
+    ["orders", "gross", "numeric", "t", "(total * 1.19)", "", null, "s"],
+    ["sales_daily", "day", "date", "t", null, "", null, ""],
+    ["sales_daily", "revenue", "numeric", "t", null, "", null, ""],
+    ["users", "id", "bigint", "f", "nextval('users_id_seq'::regclass)", "", null, ""],
+    ["users", "email", "character varying(255)", "f", null, "", null, ""]
+  ],
+  "postgres.indexes": [
+    ["orders", "orders_lower_status", "f", "f", null],
+    ["orders", "orders_pkey", "t", "t", "id"],
+    ["orders", "orders_user_idx", "f", "f", "user_id"],
+    ["users", "users_email_key", "t", "f", "email"],
+    ["users", "users_pkey", "t", "t", "id"]
+  ],
+  "postgres.foreign_keys": [["orders", "orders_user_id_fkey", "user_id", "public", "users", "id", "a", "c"]],
+  "postgres.checks": [["orders", "orders_total_check", "CHECK (total >= 0::numeric)"]],
+  "postgres.triggers": [["orders", "orders_touch", "BEFORE", "UPDATE", "CREATE TRIGGER orders_touch BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION touch()"]],
+  "postgres.routines": [
+    ["close_stale_orders", "procedure", null, "IN days integer DEFAULT 30", "plpgsql", "CREATE OR REPLACE PROCEDURE public.close_stale_orders(IN days integer DEFAULT 30)\n LANGUAGE plpgsql\nAS $procedure$ BEGIN UPDATE orders SET status = 'closed'; END $procedure$\n"],
+    ["order_total", "function", "numeric", "o_id bigint", "sql", "CREATE OR REPLACE FUNCTION public.order_total(o_id bigint)\n RETURNS numeric\n LANGUAGE sql\nAS $function$ SELECT total FROM orders WHERE id = o_id $function$\n"],
+    ["total_spent", "aggregate", "numeric", "numeric", "internal", null]
+  ],
+  "postgres.sequences": [["users_id_seq", "bigint", "1", "1"]],
+  "postgres.types": [
+    ["address", "composite", "street text, city text"],
+    ["email", "domain", "character varying(255)"],
+    ["order_status", "enum", "new\npaid\nshipped"]
+  ],
+  "postgres.catalog": [["shop"]],
+  "postgres.catalogs": [["postgres"], ["shop"], ["shop_test"]],
+  "postgres.roles": [["postgres", "t", "t"], ["readonly", "f", "f"], ["shop", "f", "t"]]
+}

@@ -1,11 +1,12 @@
 /**
  * Data Sources and Drivers dialog: list of project/global data sources on the left, the
- * selected one's General, SSH/SSL and Options tabs on the right, Test Connection (with the
- * SSH host key confirmation), OK/Cancel/Apply.
+ * selected one's General, SSH/SSL, Schemas and Options tabs on the right, Test Connection
+ * (with the SSH host key confirmation), OK/Cancel/Apply. DDL data sources list SQL files of
+ * the project instead of a connection.
  */
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, on, Show } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { CircleCheck, CircleX, Copy, Database, LoaderCircle, Minus, Plus, ShieldAlert } from "lucide-solid";
+import { CircleCheck, CircleX, Copy, Database, FileCode, LoaderCircle, Minus, Plus, ShieldAlert } from "lucide-solid";
 import {
   dbApi,
   defaultOptions,
@@ -16,7 +17,9 @@ import {
   DS_COLORS,
   type DataSource,
   type DataSourceInfo,
+  type Dialect,
   type Driver,
+  type SchemaName,
   type SecretUpdate,
   type SshAuth,
   type SslMode,
@@ -49,6 +52,7 @@ interface Draft {
 /** JDBC-style URL shown under the fields, like DataGrip. */
 export function connectionUrl(ds: DataSource): string {
   if (ds.driver === "sqlite") return `jdbc:sqlite:${ds.file}`;
+  if (ds.driver === "ddl") return `ddl:${ds.options.ddlDialect ?? "postgres"}:${(ds.options.ddlFiles ?? []).join(",")}`;
   const host = ds.host || "localhost";
   const port = ds.port ?? DEFAULT_PORTS[ds.driver];
   const hp = `${host}${port ? `:${port}` : ""}`;
@@ -84,6 +88,7 @@ const SSL_NOTES: Partial<Record<Driver, string>> = {
 
 function draftName(ds: DataSource): string {
   if (ds.driver === "sqlite") return ds.file.split(/[\\/]/).pop() || "SQLite";
+  if (ds.driver === "ddl") return (ds.options.ddlFiles?.[0] ?? "").split(/[\\/]/).filter(Boolean).pop() || "DDL";
   const host = !ds.host || ds.host === "127.0.0.1" ? "localhost" : ds.host;
   return ds.database ? `${ds.database}@${host}` : `@${host}`;
 }
@@ -93,16 +98,26 @@ function blank(driver: Driver): DataSource {
     id: "",
     name: "",
     driver,
-    host: driver === "sqlite" ? "" : "localhost",
+    host: driver === "sqlite" || driver === "ddl" ? "" : "localhost",
     port: DEFAULT_PORTS[driver] ?? null,
     database: driver === "redis" ? "0" : "",
     user: USERS[driver] ?? "",
     file: driver === "sqlite" ? "database/database.sqlite" : "",
     comment: "",
     scope: "project",
-    options: defaultOptions(),
+    options: driver === "ddl" ? { ...defaultOptions(), ddlFiles: ["database/schema.sql"], ddlDialect: "postgres" } : defaultOptions(),
   };
 }
+
+/** Dialects DDL files can be written in. */
+const DDL_DIALECTS: { id: Dialect; label: string }[] = [
+  { id: "postgres", label: "PostgreSQL" },
+  { id: "mysql", label: "MySQL / MariaDB" },
+  { id: "sqlite", label: "SQLite" },
+  { id: "sqlserver", label: "SQL Server" },
+  { id: "oracle", label: "Oracle" },
+  { id: "clickhouse", label: "ClickHouse" },
+];
 
 const fromInfo = (i: DataSourceInfo): DataSource => {
   const { hasPassword: _h, hasSshSecret: _hs, hasSslPassphrase: _hp, summary: _s, via: _v, model: _m, transactions: _t, production: _p, ...ds } = i;
@@ -142,7 +157,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
   const [drafts, setDrafts] = createStore<Draft[]>(initial);
   const [deleted, setDeleted] = createSignal<string[]>([]);
   const [selected, setSelected] = createSignal<string | null>(props.select ?? initial[0]?.key ?? null);
-  const [tab, setTab] = createSignal<"general" | "ssh" | "options">(props.tab ?? "general");
+  const [tab, setTab] = createSignal<"general" | "ssh" | "schemas" | "options">(props.tab ?? "general");
   const [sshConfigs] = createResource(() => remoteApi.configs().catch(() => []));
   const [test, setTest] = createSignal<TestResult | "running" | null>(null);
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
@@ -323,11 +338,14 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                   <button class="dsd-tab" classList={{ active: tab() === "general" }} onClick={() => setTab("general")}>
                     General
                   </button>
-                  <Show when={d().source.driver !== "sqlite"}>
+                  <Show when={d().source.driver !== "sqlite" && d().source.driver !== "ddl"}>
                     <button class="dsd-tab" classList={{ active: tab() === "ssh" }} onClick={() => setTab("ssh")} data-testid="dsd-tab-ssh">
                       SSH/SSL
                     </button>
                   </Show>
+                  <button class="dsd-tab" classList={{ active: tab() === "schemas" }} onClick={() => setTab("schemas")} data-testid="dsd-tab-schemas">
+                    {d().source.driver === "mongodb" || d().source.driver === "redis" ? "Databases" : "Schemas"}
+                  </button>
                   <button class="dsd-tab" classList={{ active: tab() === "options" }} onClick={() => setTab("options")}>
                     Options
                   </button>
@@ -350,9 +368,13 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                         <For each={DRIVERS}>{(dr) => <option value={dr}>{DRIVER_LABELS[dr]}</option>}</For>
                       </select>
                     </Field>
+                    <Show when={d().source.driver === "ddl"}>
+                      <DdlPage d={d()} />
+                    </Show>
                     <Show
-                      when={d().source.driver !== "sqlite"}
+                      when={d().source.driver !== "sqlite" && d().source.driver !== "ddl"}
                       fallback={
+                        <Show when={d().source.driver === "sqlite"}>
                         <Field label="File">
                           <div class="dsd-row">
                             <input class="dsd-input" value={d().source.file} spellcheck={false} onInput={(e) => update((s) => (s.file = e.currentTarget.value))} />
@@ -363,6 +385,7 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                             </Show>
                           </div>
                         </Field>
+                        </Show>
                       }
                     >
                       <div class="dsd-row-fields">
@@ -431,12 +454,17 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
                     <Field label="URL">
                       <input class="dsd-input dsd-url" value={connectionUrl(d().source)} readOnly />
                     </Field>
-                    <div class="dsd-hint muted">Passwords are stored in the system keychain, never in project files.</div>
-                    <TestLine />
+                    <Show when={d().source.driver !== "ddl"}>
+                      <div class="dsd-hint muted">Passwords are stored in the system keychain, never in project files.</div>
+                      <TestLine />
+                    </Show>
                   </Show>
                   <Show when={tab() === "ssh"}>
                     <SshSslPage d={d()} />
                     <TestLine />
+                  </Show>
+                  <Show when={tab() === "schemas"}>
+                    <SchemasPage d={d()} />
                   </Show>
                   <Show when={tab() === "options"}>
                     <OptionsPage d={d()} />
@@ -462,6 +490,161 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
       <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
     </div>
   );
+
+  /** DDL data source: SQL files and folders of the project, their dialect and schema. */
+  function DdlPage(p: { d: Draft }) {
+    const files = () => p.d.source.options.ddlFiles ?? [];
+    const browse = async () => {
+      if (!isTauri()) return;
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const picked = await open({ multiple: true, filters: [{ name: "SQL", extensions: ["sql", "ddl"] }] });
+      const list = Array.isArray(picked) ? picked : typeof picked === "string" ? [picked] : [];
+      const root = workspace()?.root ?? "";
+      const rel = list.map((x) => (root && x.startsWith(`${root}/`) ? x.slice(root.length + 1) : x));
+      if (rel.length) update((s) => (s.options.ddlFiles = [...files(), ...rel]));
+    };
+    return (
+      <>
+        <Field label="Files">
+          <div class="dsd-ddl-files">
+            <textarea
+              class="dsd-input dsd-textarea"
+              spellcheck={false}
+              data-testid="dsd-ddl-files"
+              placeholder={"database/schema.sql\ndb/migrations"}
+              value={files().join("\n")}
+              onInput={(e) => update((s) => (s.options.ddlFiles = e.currentTarget.value.split("\n").map((x) => x.trim()).filter(Boolean)))}
+            />
+            <Show when={isTauri()}>
+              <button class="btn-secondary" onClick={() => void browse()}>
+                <FileCode size={13} /> Add Files…
+              </button>
+            </Show>
+          </div>
+        </Field>
+        <Field label="Dialect">
+          <select class="dsd-input dsd-narrow" value={p.d.source.options.ddlDialect ?? "postgres"} onChange={(e) => update((s) => (s.options.ddlDialect = e.currentTarget.value as Dialect))}>
+            <For each={DDL_DIALECTS}>{(x) => <option value={x.id}>{x.label}</option>}</For>
+          </select>
+        </Field>
+        <Field label="Default schema">
+          <input class="dsd-input dsd-narrow" placeholder="public" value={p.d.source.database} spellcheck={false} onInput={(e) => update((s) => (s.database = e.currentTarget.value))} />
+        </Field>
+        <div class="dsd-hint muted" data-testid="dsd-ddl-note">
+          One file or folder per line, relative to the project. Folders are read in name order (V1__, V2__, …), so migrations give the final schema. The tree and SQL completion use the parsed model;
+          Forge parses the files again when they change. There is no database to run queries on.
+        </div>
+      </>
+    );
+  }
+
+  /** The schema filter (DataGrip's Schemas tab): patterns and the schemas they select. */
+  function SchemasPage(p: { d: Draft }) {
+    const patterns = () => p.d.source.options.schemas;
+    const setPatterns = (list: string[]) => update((s) => (s.options.schemas = list));
+    const [known, setKnown] = createSignal<SchemaName[] | "loading" | string>([]);
+    const [preview, setPreview] = createSignal<SchemaName[]>([]);
+    const [error, setError] = createSignal<string>("");
+    createEffect(
+      on(
+        () => (p.d.isNew ? "" : p.d.source.id),
+        (id) => {
+          setKnown(id ? "loading" : []);
+          if (id)
+            void dbApi
+              .schemas(id)
+              .then((l) => setKnown(l))
+              .catch((e) => setKnown(e instanceof Error ? e.message : String(e)));
+        },
+      ),
+    );
+    createEffect(() => {
+      const list = known();
+      const pats = [...patterns()];
+      if (!Array.isArray(list)) return setPreview([]);
+      dbApi
+        .matchSchemas(pats, list)
+        .then((r) => {
+          setPreview(r);
+          setError("");
+        })
+        .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    });
+    const toggle = (s: SchemaName, on: boolean) => {
+      let list = patterns().filter((x) => x !== s.name && x !== `!${s.name}`);
+      if (on && !preview().find((x) => x.name === s.name)?.visible) list = [...list, s.name];
+      if (!on) list = [...list, `!${s.name}`];
+      // A lone exclusion would show every other schema: keep the current one as the base.
+      if (list.length && list.every((x) => x.startsWith("!"))) list = [":current", ...list];
+      setPatterns(list);
+    };
+    const flag = (pattern: string) => patterns().includes(pattern);
+    const setFlag = (pattern: string, on: boolean) => setPatterns(on ? [...patterns().filter((x) => x !== pattern), pattern] : patterns().filter((x) => x !== pattern));
+    return (
+      <div class="dsd-schemas" data-testid="dsd-schemas">
+        <div class="dsd-row-fields">
+          <label class="dsd-check">
+            <input type="checkbox" checked={flag("*")} onChange={(e) => setFlag("*", e.currentTarget.checked)} />
+            All schemas
+          </label>
+          <label class="dsd-check">
+            <input type="checkbox" checked={flag(":current") || !patterns().length} onChange={(e) => setFlag(":current", e.currentTarget.checked)} />
+            Current schema
+          </label>
+        </div>
+        <Field label="Patterns">
+          <textarea
+            class="dsd-input dsd-textarea dsd-patterns"
+            spellcheck={false}
+            data-testid="dsd-schema-patterns"
+            placeholder=":current"
+            value={patterns().join("\n")}
+            onInput={(e) => setPatterns(e.currentTarget.value.split(/[\n,]/).map((x) => x.trim()).filter(Boolean))}
+          />
+        </Field>
+        <div class="dsd-hint muted">
+          One pattern per line: a name, <code>*</code> and <code>?</code> wildcards (<code>tenant_*</code>), <code>:current</code>, <code>/regex/</code> (<code>/regex/i</code> ignores case), and{" "}
+          <code>!pattern</code> to exclude. No pattern means the current schema. Hidden schemas are not introspected.
+        </div>
+        <Show when={error()}>
+          <div class="dsd-hint dsd-error">{error()}</div>
+        </Show>
+        <div class="dsd-schema-list">
+          <Show
+            when={Array.isArray(known())}
+            fallback={
+              <div class="muted dsd-schema-status">
+                {known() === "loading" ? (
+                  <>
+                    <LoaderCircle size={13} class="db-spin" /> Loading schemas…
+                  </>
+                ) : (
+                  `Cannot list schemas: ${known() as string}`
+                )}
+              </div>
+            }
+          >
+            <Show when={preview().length} fallback={<div class="muted dsd-schema-status">{p.d.isNew ? "Apply the data source to list its schemas." : "No schemas."}</div>}>
+              <For each={preview()}>
+                {(s) => (
+                  <label class="dsd-schema-item" classList={{ hidden: !s.visible }}>
+                    <input type="checkbox" checked={!!s.visible} onChange={(e) => toggle(s, e.currentTarget.checked)} />
+                    <span classList={{ strong: s.current }}>{s.name}</span>
+                    <Show when={s.current}>
+                      <span class="muted">current</span>
+                    </Show>
+                  </label>
+                )}
+              </For>
+            </Show>
+          </Show>
+        </div>
+        <div class="dsd-hint muted">
+          {Array.isArray(known()) ? `${preview().filter((s) => s.visible).length} of ${preview().length} shown` : ""}
+        </div>
+      </div>
+    );
+  }
 
   function TestLine() {
     return (
@@ -714,14 +897,6 @@ export function DataSourceDialog(p: { props: DialogRequest }) {
             placeholder="500"
             value={d().source.options.pageSize ?? ""}
             onInput={(e) => update((s) => (s.options.pageSize = Number(e.currentTarget.value) || null))}
-          />
-        </Field>
-        <Field label={d().source.driver === "mongodb" || d().source.driver === "redis" ? "Databases" : "Schemas"}>
-          <input
-            class="dsd-input"
-            placeholder="current schema; * for all"
-            value={d().source.options.schemas.join(", ")}
-            onInput={(e) => update((s) => (s.options.schemas = e.currentTarget.value.split(",").map((x) => x.trim()).filter(Boolean)))}
           />
         </Field>
         <div class="dsd-section">Scope</div>

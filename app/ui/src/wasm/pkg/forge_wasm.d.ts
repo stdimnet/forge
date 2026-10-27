@@ -482,6 +482,34 @@ export function csv_parse(request_json: string): string;
 export function csv_sort_order(request_json: string): string;
 
 /**
+ * `{ dataSource, objects, schema? }` → the schema with the virtual objects merged in, or
+ * `{ ok: true }` when the objects are valid and no schema was given; `{ error }` otherwise.
+ */
+export function dbmodel_apply_virtual(request_json: string): string;
+
+/**
+ * Mirrors `db_match_schemas`: `{ patterns, schemas }` → schemas with `visible` set.
+ */
+export function dbmodel_match_schemas(request_json: string): string;
+
+/**
+ * Mirrors `db_object_doc`: `{ dialect, schema, object }` → `ObjectDoc | null`.
+ */
+export function dbmodel_object_doc(request_json: string): string;
+
+/**
+ * `{ dialect, defaultSchema, files: [{ path, text }] }` → `{ schemas, warnings }`.
+ */
+export function dbmodel_parse_ddl(request_json: string): string;
+
+/**
+ * The full-text search of one table over in-memory rows: the query the backend would run,
+ * the matching rows (searched columns only), their matching cells and whether the limit
+ * cut them.
+ */
+export function dbmodel_search_rows(request_json: string): string;
+
+/**
  * `{ local: {path, dir, text, modified}[], remote: …, by }` → `DirCompare`.
  */
 export function deploy_compare(request_json: string): string;
@@ -2114,6 +2142,11 @@ export interface InitOutput {
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
+    readonly dbmodel_apply_virtual: (a: number, b: number, c: number) => void;
+    readonly dbmodel_match_schemas: (a: number, b: number, c: number) => void;
+    readonly dbmodel_object_doc: (a: number, b: number, c: number) => void;
+    readonly dbmodel_parse_ddl: (a: number, b: number, c: number) => void;
+    readonly dbmodel_search_rows: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
     readonly deploy_entry_path: (a: number, b: number, c: number) => void;
     readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;

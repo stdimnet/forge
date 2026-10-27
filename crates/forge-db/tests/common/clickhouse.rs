@@ -44,6 +44,14 @@ fn respond(req: &Request) -> (u16, Vec<(String, String)>, String) {
         return (516, vec![], "Code: 516. DB::Exception: default: Authentication failed. (AUTHENTICATION_FAILED) (version 24.3.1.1)".into());
     }
     let sql = req.body.trim();
+    // Catalog queries start with a `/* forge:… */` tag.
+    let sql = match sql
+        .strip_prefix("/* forge:")
+        .and_then(|r| r.split_once(" */"))
+    {
+        Some((_, rest)) => rest.trim(),
+        None => sql,
+    };
     let ok = |body: String| (200, vec![], body);
     if sql.starts_with("INSERT") {
         if req.param("readonly").is_some() {
@@ -63,7 +71,7 @@ fn respond(req: &Request) -> (u16, Vec<(String, String)>, String) {
         "SELECT version()" => ok(compact(&[("version()", "String")], json!([["24.3.1.1"]]))),
         "SELECT currentDatabase()" => ok(compact(&[("currentDatabase()", "String")], json!([["shop"]]))),
         s if s.starts_with("SELECT name FROM system.databases") => ok(compact(&[("name", "String")], json!([["default"], ["shop"], ["system"]]))),
-        s if s.starts_with("SELECT name, engine, comment, total_rows FROM system.tables") => ok(compact(
+        s if s.starts_with("SELECT name, engine, comment, total_rows") => ok(compact(
             &[("name", "String"), ("engine", "String"), ("comment", "String"), ("total_rows", "Nullable(UInt64)")],
             json!([["daily_sales", "View", "", null], ["events", "MergeTree", "Click stream", "1200"]]),
         )),

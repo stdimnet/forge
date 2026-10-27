@@ -16529,27 +16529,134 @@ built into Forge — there are no JDBC drivers to download:
 
 | Engine | Driver | Tree | Console |
 | --- | --- | --- | --- |
-| MySQL, MariaDB, PostgreSQL, SQLite | `sqlx` | schemas, tables, views, columns, keys, indexes, routines | SQL, transactions |
-| SQL Server, Azure SQL | `tiberius` (pure-Rust TDS over rustls) | schemas, tables, views, columns, keys, indexes, procedures and functions | T-SQL (`GO` separates batches), transactions |
-| ClickHouse | HTTP interface (port 8123, 8443 with TLS), JSON results | databases, tables, views, columns, primary key | SQL; every statement on its own |
-| Oracle | SQL\*Plus or SQLcl **installed by you** (see [Oracle](#oracle)) | schemas, tables, views, columns, keys, indexes, procedures and packages | SQL and PL/SQL blocks ending with `/`; every statement on its own |
+| MySQL, MariaDB | `sqlx` | schemas, tables, views, columns (generated), keys, indexes, checks, triggers, routines with arguments, users | SQL, transactions |
+| PostgreSQL | `sqlx` | database, schemas, tables, views, materialized views, sequences, routines with arguments, enum/domain/composite types, columns (identity, generated), keys, indexes, checks, triggers, roles | SQL, transactions |
+| SQLite | `sqlx` | tables, views, columns, keys, indexes, checks, triggers | SQL, transactions |
+| SQL Server, Azure SQL | `tiberius` (pure-Rust TDS over rustls) | database, schemas, tables, views, sequences, alias types, columns (computed), keys, indexes, checks, triggers, procedures and functions with parameters, logins and server roles | T-SQL (`GO` separates batches), transactions |
+| ClickHouse | HTTP interface (port 8123, 8443 with TLS), JSON results | databases, tables, views, materialized views, columns (materialized, alias), primary key, data skipping indexes, users and roles | SQL; every statement on its own |
+| Oracle | SQL\*Plus or SQLcl **installed by you** (see [Oracle](#oracle)) | schemas, tables, views, materialized views, sequences, object types, columns, keys, indexes, checks, triggers, procedures, functions (with arguments) and packages | SQL and PL/SQL blocks ending with `/`; every statement on its own |
 | Redis | `redis-rs` | databases → keys with type and TTL | Redis commands, one per line |
 | MongoDB | official MongoDB driver | databases → collections → fields | shell calls: `db.users.find({...})`, `aggregate`, … |
+| DDL data source | SQL files of the project, parsed by Forge (see [DDL data sources](#ddl-data-sources)) | the same tree as the files' dialect | none (no database) |
 
 ODBC is not supported: no permissive Rust crate makes generic ODBC drivers work without a
 system driver manager, so Forge supports the engines above natively instead.
 
 ## Database tool window
 
-The **Database** tool window (right stripe) shows your data sources as a tree:
-data source → schema → tables (with comments) → columns, keys and indexes.
+The **Database** tool window (right stripe) is DataGrip's Database Explorer. It shows your data
+sources as a tree: data source → database (PostgreSQL, SQL Server) → schemas → tables, views,
+materialized views, sequences, routines and types → columns, keys, foreign keys, indexes,
+checks and triggers, and the **server objects** (roles and users).
 
 ![Database tree](docs/screenshots/database-tree.png)
 
+![Full object tree with routines, triggers and checks](docs/screenshots/database-explorer-tree.png)
+
+- **Routines** show their arguments and result: `close_stale_orders (days int, OUT closed int)
+  procedure`, `order_total (o_id bigint): numeric`.
+- **Types** list enums with their labels, domains with their base type and composite types.
+- Other databases of the server are listed below the connected one (`not introspected`); create
+  another data source to browse them.
+- **Lazy loading**: schemas are introspected when you open them (the current schema right
+  away). Forge caches the model of every data source in its cache folder
+  (`<cache dir>/forge/db-models/`, see [File locations](docs/guide/reference/file-locations.md)), so
+  after a restart the tree shows at once, without connecting.
+- **Refresh** works per node: on a table it re-reads only that table (columns, keys, indexes,
+  checks, triggers), on a schema that schema, on the data source the schema list, the server
+  objects and every loaded schema. The toolbar's **Refresh** refreshes the selected data source.
+
 Toolbar: **+** (add data source), **Refresh**, **Data Source Properties** (`Shift+Enter`),
 **Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**, **Sessions** (see
-[Sessions](#sessions)). Context menu of a node: **New Query Console**, **Edit Data** (tables),
-**Go to DDL**, **Copy Name**, **Properties**, **Refresh**, **Disconnect**, **Delete**.
+[Sessions](#sessions)). Context menu of a node: **Quick Documentation**, **Full-Text Search…**,
+**New Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Add Virtual
+Foreign Key…** (columns), **Add Virtual Column…** (tables), **Schemas…**, **Properties**,
+**Refresh**, **Disconnect**, **Delete**.
+
+### Quick Documentation
+
+`Ctrl+Q` (or double-click on a routine, sequence or type) on a node shows its documentation:
+the kind and location, the comment, properties (type, nullability, default, auto-increment,
+primary key, references and referencing tables, arguments, language, enum labels) and the DDL —
+the routine or trigger source when the database keeps it, otherwise generated from the model.
+`Escape` closes it.
+
+![Quick Documentation of a procedure](docs/screenshots/database-quick-doc.png)
+
+### Schema filter
+
+The **Schemas** tab of a data source (context menu **Schemas…**) chooses which schemas (MySQL and
+ClickHouse: databases; Redis and MongoDB: databases) Forge introspects and shows, like
+DataGrip's introspection scope. Hidden schemas are never introspected.
+
+![Schemas tab](docs/screenshots/database-schema-filter.png)
+
+One pattern per line:
+
+| Pattern | Selects |
+| --- | --- |
+| `shop` | the schema `shop` (names ignore case) |
+| `*`, `tenant_*`, `db_?` | wildcards: every schema, schemas starting with `tenant_`, … |
+| `:current` | the connection's current schema |
+| `/tenant_\d+/`, `/sales/i` | a regular expression (with `i`: ignoring case) |
+| `!pattern` | excludes what `pattern` selects, e.g. `*` and `!pg_*` |
+
+No pattern means `:current` (the first schema when there is no current one); only exclusions
+start from every schema. **All schemas** and **Current schema** add `*` and `:current`; the
+list below shows the result for the server's schemas, and its check boxes add or exclude single
+schemas. The tree shows `4 of 6` next to the data source when schemas are hidden.
+
+### Virtual foreign keys and columns
+
+Databases without declared foreign keys (MyISAM tables, legacy schemas, `user_id` columns
+without constraints) can get **virtual foreign keys**: right-click a column → **Add Virtual
+Foreign Key…**, choose the referenced table and column. **Add Virtual Column…** on a table adds a
+computed column (`price * quantity`).
+
+![A virtual foreign key](docs/screenshots/database-virtual-fk.png)
+
+They are stored in the project in `.forge/database/virtual.toml` (share it with your team) and
+merged into the model: the tree shows them in italics with the accent colour, Quick
+Documentation lists them, the data grid marks their columns, and the console's completion
+offers joins over them (see [completion](#query-console)). **Remove Virtual Foreign Key** /
+**Remove Virtual Column** delete them. The file looks like this:
+
+```toml
+[[foreignKey]]
+dataSource = "shop-local-1f3a"
+schema = "shop"
+table = "orders"
+columns = ["customer"]
+refTable = "users"
+refColumns = ["id"]
+
+[[column]]
+dataSource = "shop-local-1f3a"
+schema = "shop"
+table = "order_items"
+name = "line_total"
+expression = "quantity * unit_price"
+type = "decimal(10,2)"
+```
+
+### Full-text search
+
+**Full-Text Search…** (`Ctrl+Alt+Shift+F` in the Database tool window, or the context menu)
+finds a text in the **data** of tables and views. It opens a tab with the text, the mode
+(**Contains**, **Exact match**, **Regular expression**), **Match case**, **All column types**
+(also numbers and dates; otherwise text columns only), **Rows per table** (default 100), table
+patterns (`users, order_*, !audit_*`) and the scope: data sources and their schemas (none
+checked means all shown schemas).
+
+![Full-text search results](docs/screenshots/database-full-text-search.png)
+
+Forge searches table by table with read-only `SELECT`s and shows each table with matches as
+soon as it is done, the matching cells highlighted; the progress bar shows how far it is, and
+**Cancel** stops it. Double-click a table or row to open the table. The text is always sent as a
+quoted literal, with a per-dialect condition: `ILIKE`/`~*` (PostgreSQL), `LIKE`/`REGEXP_LIKE`
+(MySQL, Oracle), `LIKE … ESCAPE` (SQLite, SQL Server), `positionCaseInsensitiveUTF8`/`match`
+(ClickHouse). SQLite and SQL Server have no regular expressions; Redis, MongoDB and DDL data
+sources cannot be searched.
 
 Data sources with a colour tint their rows (see [Colours](#read-only-and-production-data-sources));
 `read-only` and the SSH host appear next to the name.
@@ -16565,11 +16672,12 @@ Data sources with a colour tint their rows (see [Colours](#read-only-and-product
 | Field | Notes |
 | --- | --- |
 | Name, Comment | |
-| Driver | MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis, MongoDB |
+| Driver | MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis, MongoDB, [DDL Data Source](#ddl-data-sources) |
 | Host, Port, Database / SQLite file | SQLite files are chosen with a file picker. Oracle: **Service** (e.g. `FREEPDB1`); Redis: **Database index** (`0`); MongoDB: also a full `mongodb://` or `mongodb+srv://` URL as the host |
 | Authentication | User & Password, or none |
 | Password | stored in the OS keychain (service `forge-db`), never in project files |
 | SSH/SSL tab | SSH tunnel and SSL/TLS, see below |
+| Schemas tab | the [schema filter](#schema-filter): which schemas are introspected and shown |
 | Options | read-only, colour, transaction control (Auto / Manual), single session mode, connect timeout, startup script |
 | Scope | **Project Data Sources** (`<project>/.forge/dataSources.toml`, shareable) or **Global Data Sources** (`dataSources.toml` in Forge's config folder) |
 
@@ -16639,6 +16747,28 @@ process's input (the password never appears on a command line), prints CSV and e
 - **Cancel** stops the process,
 - PL/SQL blocks (`BEGIN … END;`, `CREATE PROCEDURE …`) end with a line containing only `/`.
 
+### DDL data sources
+
+A **DDL data source** (**+** → **DDL Data Source**) has no database: Forge builds its model from
+SQL DDL files of the project — a `schema.sql`, a dump without data, or a folder of SQL migrations
+(Flyway `V1__…`, `V2__…`). It needs no server and works offline.
+
+- **Files**: one file or folder per line, relative to the project. Folders are read with their
+  subfolders in natural name order (`V2` before `V10`), and the statements are applied in
+  order: `CREATE TABLE`/`VIEW`/`MATERIALIZED VIEW`/`INDEX`/`SEQUENCE`/`TYPE`/`DOMAIN`/
+  `FUNCTION`/`PROCEDURE`/`TRIGGER`/`SCHEMA`, `ALTER TABLE` (add/drop/rename columns and
+  constraints, rename tables), `DROP` and `COMMENT ON`, so migrations give the final schema.
+- **Dialect**: PostgreSQL, MySQL / MariaDB, SQLite, SQL Server, Oracle or ClickHouse; MySQL
+  scripts may use `DELIMITER`.
+- **Default schema**: where unqualified names go (by default `public`, `main` or `dbo`).
+
+![A DDL data source](docs/screenshots/database-ddl-source.png)
+
+The tree, Quick Documentation, **Go to DDL** and SQL completion of consoles use the parsed
+model. Statements Forge cannot parse are skipped and listed under **problems** with their
+file and line (double-click opens it). Forge parses the files again when they change on disk.
+Consoles of a DDL data source complete names but cannot run queries.
+
 ### From `.env`
 
 When a project's `.env` has Laravel's `DB_*` variables or Symfony's `DATABASE_URL`, Forge shows
@@ -16654,6 +16784,9 @@ from .env files** (`database.suggestFromEnv`).
 
 - SQL highlighting for the data source's dialect and completion of keywords, tables and
   columns.
+- After `JOIN`, completion offers the tables related to the ones already in the statement by a
+  foreign key — real or [virtual](#virtual-foreign-keys-and-columns) — with the whole
+  condition: `JOIN ` → `users u ON u.id = o.user_id`.
 - **Execute** (`Ctrl+Enter`, macOS `Cmd+Enter`) runs the statement at the caret, or the
   selection. Several statements separated by `;` run one after another.
 - SQL in PHP and JavaScript strings runs the same way: `Ctrl+Enter` in an injected SQL string
@@ -18773,6 +18906,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Full-Text Search… (database) | `DatabaseView.FullTextSearch` | `Ctrl+Alt+Shift+F` | `Cmd+Alt+Shift+F` | any |
 | Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
 | Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
 | Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
@@ -21296,6 +21430,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `db-models/<data source>-<hash>.json` | the Database tool window's model of each data source (schemas, tables, routines, roles), so the tree shows without connecting; refreshed with Refresh |
 | `project-windows.json` | the running project windows (one Forge instance each) and their local control ports, for Window \| Next Project Window |
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
@@ -21350,6 +21485,7 @@ first (the time is UTC).
 | `breakpoints.json` | Xdebug breakpoints | optional |
 | `php-servers.json` | PHP servers and path mappings | yes |
 | `dataSources.toml` | project data sources (no passwords) | yes |
+| `database/virtual.toml` | virtual foreign keys and columns of the Database tool window | yes |
 | `deployment.toml` | deployment servers, mappings, excluded paths and the default server (no passwords) | yes |
 | `inspectionProfiles/*.xml` | project inspection profiles in PHPStorm's format (`Project_Default.xml` once it differs from the defaults) | yes |
 
@@ -23468,7 +23604,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](docs/guide/developer/crates/forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
 | [forge-dap](docs/guide/developer/crates/forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
-| [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions, the read-only / production guard and data editing |
+| [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, the Database Explorer (object tree, schema filter, virtual foreign keys, full-text search, DDL data sources), consoles with sessions, the read-only / production guard and data editing |
+| [forge-dbmodel](docs/guide/developer/crates/forge-dbmodel.md) | Forge database explorer model (pure, also built to WebAssembly): object tree, schema filter, virtual foreign keys and columns, DDL parsing, full-text search queries and Quick Documentation |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-emmet](docs/guide/developer/crates/forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
@@ -24691,7 +24828,20 @@ Forge database tools (the DataGrip part of Forge).
 - `ssh`: per data source SSH tunnels opened with `forge-remote` (saved configuration or ad-hoc,
   `known_hosts` confirmation); `tls`: certificate files, encrypted PKCS#8 keys decrypted in
   memory.
-- `introspect`, `ddl`: schemas, tables, columns, keys, indexes, routines, DDL.
+- `introspect`, `ddl`: the full object tree per dialect — schemas, tables, views, materialized
+  views, columns (identity, generated, comments), keys, foreign keys, indexes, checks,
+  triggers, routines with arguments, sequences, types, and server objects (connected database,
+  other databases, roles and users) — and DDL. Every catalog query starts with a
+  `/* forge:<dialect>.<what> */` tag; optional catalogs (checks, triggers, roles, …) are left
+  out when they fail. The model types are the pure [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md)
+  (`forge_db::model`).
+- `service::explorer`: the explorer model per data source, cached in memory and in
+  `<cache dir>/forge/db-models/` (the tree shows without connecting), the schema filter applied
+  when introspecting (hidden schemas are refused), incremental refresh of a schema or table,
+  virtual foreign keys and columns (`.forge/database/virtual.toml` through the project files),
+  DDL data sources (`Driver::Ddl`: project files and folders parsed in natural order,
+  re-parsed when the watcher reports a change) and Quick Documentation.
+- `service::search`: full-text search across tables with progress per table and cancel.
 - `service::DbService`: consoles with own or shared sessions, transactions and cancel, the
   Sessions view, the read-only / production `guard`, table paging, row editing (`edit`),
   export (`export`) and the Redis keys and values.
@@ -24723,9 +24873,11 @@ Forge database tools (the DataGrip part of Forge).
 | `engine/oracle.rs` | Oracle through SQL*Plus / SQLcl: the script (CSV markup, login on stdin), CSV and feedback parsing, `ORA-` errors. |
 | `env.rs` | Data sources suggested from a project's `.env` files: Laravel's `DB_*` variables and Symfony/Doctrine's `DATABASE_URL`. |
 | `error.rs` |  |
-| `introspect.rs` | Database metadata: schemas, tables, views, columns, keys, indexes and routines. |
+| `introspect.rs` | Database metadata per dialect: schemas, tables, views, materialized views, columns, keys, foreign keys, indexes, checks, triggers, routines with arguments, sequences, types and server objects, with tagged catalog queries. |
 | `secrets.rs` | Data source secrets in the OS keychain (service `forge-db`): password (`<id>`), SSH secret (`<id>#ssh`), SSL key passphrase (`<id>#ssl-key`). |
 | `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging, row editing and the Redis keys tree. |
+| `service/explorer.rs` | The Database Explorer: cached models, schema filter, incremental refresh, virtual objects, DDL data sources, Quick Documentation. |
+| `service/search.rs` | Full-text search: targets from scopes (data sources, schemas, table patterns), one read-only query per table, progress callback, cancel. |
 | `ssh.rs` | The SSH tab: `SshConnector` / `ForgeSsh` open a `forge-remote` session (saved configuration or ad-hoc, `~/.ssh/config`, `known_hosts`) and forward a local port. |
 | `tls.rs` | Certificate files of the SSL tab, resolved against the project; encrypted PKCS#8 client keys decrypted in memory. |
 | `tunnel.rs` | Data sources of a project on a remote host connect through its SSH connection: the database host and port are as the remote host sees them (`localhost` is the remote machine), reached through a local port forwarded with a `direct-tcpip` channel. |
@@ -24751,21 +24903,109 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 ## Used by
 
-- IPC: `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
+- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
 - External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
 
-19 source files, about 7500 lines; 28 unit tests and 22 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`. No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
+21 source files; 30 unit tests and 33 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `explorer.rs` (a real SQLite file: object tree with checks, triggers and views, the model cache, incremental table refresh, schema filter, virtual objects in the project, full-text search, DDL data sources over migration folders), `catalog.rs` (MySQL, PostgreSQL, SQL Server, Oracle and ClickHouse introspection against recorded catalog rows in `tests/fixtures/catalog/<dialect>.json`, keyed by query tag; every recorded query must be asked), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`. No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
 
 ```sh
 cargo test -p forge-db
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-dbmodel.md
+
+# forge-dbmodel
+
+`crates/forge-dbmodel` — the Database Explorer model of Forge: pure code shared by `forge-db`
+(desktop) and the browser-mode database backend (WebAssembly).
+
+## Purpose
+
+- `model`: the object tree of a data source — `DbModel` (dialect, connected database and the
+  others, every schema with its filter result, introspected schemas, roles, warnings),
+  `SchemaInfo` (tables, views, materialized views, routines with arguments, sequences, types),
+  `TableInfo` (columns with generated/virtual expressions, keys, foreign keys, indexes, checks,
+  triggers, view query). `forge-db` caches `DbModel` per data source in the user cache dir.
+- `filter`: the schema filter of a data source's Schemas tab: names, `*`/`?` globs,
+  `:current`, `/regex/` (`/regex/i`) and `!pattern` exclusions; no patterns means the current
+  schema.
+- `virtuals`: virtual foreign keys and columns kept in the project
+  (`.forge/database/virtual.toml`), validated and merged into a schema.
+- `ddl`: DDL data sources — SQL files parsed with `sqlparser` in the file's dialect and applied
+  in order (`CREATE`, `ALTER TABLE`, `CREATE INDEX`, `DROP`, `COMMENT ON`); MySQL `DELIMITER`;
+  routines, triggers and sequences the parser does not take are picked up by their header;
+  everything else is a warning with file and line.
+- `search`: full-text search — the per-dialect `SELECT` for one table (`ILIKE`, `LIKE … ESCAPE`,
+  `REGEXP_LIKE`, `~*`, `positionCaseInsensitiveUTF8`, `match`; the text only as a quoted
+  literal), searchable columns, and `CellMatcher` for highlighting matching cells.
+- `generate`, `doc`: DDL generated from the model (tables with checks, views, sequences, types,
+  routines, triggers) and the Quick Documentation of a tree node (`ObjectRef` → `ObjectDoc`).
+
+### Decisions
+
+- **sqlparser** (Apache-2.0) parses DDL: it knows the dialects Forge supports and is pure Rust,
+  so the same parser runs in the desktop app and in browser mode. Statements are split by
+  `forge-sql` first, so one bad statement never hides the rest of a file.
+- The model types moved here from `forge-db::introspect` (which re-exports them) so DDL parsing,
+  documentation and search can be pure and built to WebAssembly.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `model.rs` | The object tree: `DbModel`, `SchemaName` (with `visible`), `SchemaInfo`, `TableInfo`, `ColumnInfo`, `ForeignKey`, `IndexInfo`, `CheckInfo`, `TriggerInfo`, `RoutineInfo`/`RoutineArg`, `SequenceInfo`, `TypeInfo`, `RoleInfo`, `ModelWarning`; incremental `merge_table`. |
+| `filter.rs` | `SchemaFilter`: parse and apply schema filter patterns. |
+| `virtuals.rs` | `VirtualObjects` (`foreignKey`, `column`): TOML file format, per data source replace, validation, merge into a schema. |
+| `ddl.rs` | `parse(dialect, default_schema, files)` → `ParsedDdl { schemas, warnings }`; `trigger_head` for trigger timing and events. |
+| `search.rs` | `SearchOptions`, `table_query`, `searchable_columns`, `is_text_type`, `CellMatcher`. |
+| `generate.rs` | `table`, `sequence`, `user_type`, `routine`, `trigger` DDL. |
+| `doc.rs` | `document(dialect, schema, object)` and `document_role`. |
+
+## Main public items
+
+```rust
+pub use doc::{document, ObjectDoc, ObjectRef};
+pub use filter::{apply_patterns, SchemaFilter};
+pub use model::*;
+pub use search::{CellMatcher, SearchMode, SearchOptions};
+pub use virtuals::{VirtualColumn, VirtualForeignKey, VirtualObjects, VIRTUAL_FILE};
+```
+
+## Used by
+
+- [`forge-db`](docs/guide/developer/crates/forge-db.md) (introspection, the explorer service, `ddl::generate`); re-exported
+  as `forge_db::model`.
+- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`,
+  `db_match_schemas`, `db_search` (`app/src-tauri/src/commands/db.rs`)
+- Browser mode: [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) `dbmodel_match_schemas`, `dbmodel_parse_ddl`,
+  `dbmodel_object_doc`, `dbmodel_apply_virtual`, `dbmodel_search_rows` (`parsers/dbmodel.rs`)
+
+## Dependencies
+
+- Workspace crates: [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- External: `regex-lite`, `serde`, `serde_json`, `sqlparser` (without default features), `toml`
+  (all MIT or Apache-2.0)
+
+## Tests
+
+8 source files; 21 unit tests: DDL scripts and migrations in PostgreSQL, MySQL (with
+`DELIMITER`), SQLite and SQL Server, schema filter patterns, virtual objects (TOML round trip,
+merge, validation), search queries per dialect and cell matching, generated DDL and Quick
+Documentation.
+
+```sh
+cargo test -p forge-dbmodel
 ```
 
 
@@ -27224,7 +27464,7 @@ guard, cell values as JavaScript-safe JSON, row change statements and export.
 | `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key. |
 | `export.rs` | Export a result set as CSV, JSON or SQL `INSERT` statements. |
 | `guard.rs` | Read-only data sources refuse writes (DML/DDL, Redis write commands, MongoDB write calls); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
-| `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks; Redis lines and MongoDB calls. |
+| `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks, SQLite `CREATE TRIGGER … BEGIN … END` bodies; Redis lines and MongoDB calls. |
 | `value.rs` | Cell values as JSON that survives JavaScript: `null`, booleans, numbers only within ±2^53, everything else (big integers, decimals, dates) as strings, binary data as `{"$hex": "89504e47"}`. |
 
 ## Main public items
@@ -27659,6 +27899,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `parsers/dql.rs` | DQL in PHP strings (`phpforge-dql`) for the browser-mode Doctrine backend. Sites are found by the lexical finder (the desktop app uses tree-sitter); the entity snapshot comes from the mock's demo mappings. |
 | `parsers/markdown.rs` | Markdown (`forge-markdown`) for browser mode, mirroring `markdown_parse`, `markdown_hover`, `markdown_document` and `markdown_anchor_line`. |
 | `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
+| `parsers/dbmodel.rs` | The Database Explorer model (`forge-dbmodel`) for the browser-mode database backend: schema filter, DDL data sources, virtual objects, Quick Documentation and full-text search over demo rows. |
 | `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
 | `inspections.rs` | Inspections (`forge-inspections`), called synchronously by the UI in the desktop app and in browser mode: `inspections_configure` / `inspections_apply` (the selected profile applied to every published diagnostic: inspection ids, severities, disabled inspections, suppression comments), `inspections_view` and `inspections_profile_op` (the Settings page), `inspections_suppress_actions` (Alt+Enter), `inspections_find` (Run Inspection by Name), `inspections_report_tree`, profile export / import; for the browser-mode mock `inspections_run`, `inspections_cleanup_plan`, `inspections_apply_edits` and `inspections_export_report`. |
 | `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
@@ -27685,7 +27926,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests

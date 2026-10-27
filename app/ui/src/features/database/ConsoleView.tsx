@@ -164,7 +164,7 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
               x: r.left,
               y: r.bottom + 2,
               items: exportMenu(() => ({
-                dialect: dialectOf(ds()?.driver ?? "mysql"),
+                dialect: dialectOf(ds()?.driver ?? "mysql", ds()?.options.ddlDialect),
                 table: props.result.table,
                 columns: props.result.columns.map((c) => c.name),
                 rows: rows(),
@@ -216,7 +216,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
   const ds = () => sourceById(loc.id);
   const color = () => sourceColor(loc.id);
   const transactional = () => supportsTransactions(ds()?.driver ?? "mysql");
-  const dialect = () => dialectOf(ds()?.driver ?? "mysql");
+  const dialect = () => dialectOf(ds()?.driver ?? "mysql", ds()?.options.ddlDialect);
   const pageSize = () => ds()?.options.pageSize ?? getSetting<number>("database.pageSize", 500) ?? 500;
 
   let host!: HTMLDivElement;
