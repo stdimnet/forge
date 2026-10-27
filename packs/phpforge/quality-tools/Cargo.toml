@@ -1,0 +1,11 @@
+[package]
+name = "phpforge-quality-tools"
+description = "PHPForge: PHP quality tools (PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector): configurations, command lines, parsing of their JSON reports with path mapping, and unified diffs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-runtargets.workspace = true

@@ -37,13 +37,6 @@ export default {
     await check(page, "actionsOnSave.optimizeImports");
     await check(page, "actionsOnSave.phpCsFixer");
   },
-  "php-quality-tools-settings": async (page) => {
-    await page.keyboard.press("Control+Alt+KeyS");
-    await page.waitForSelector(".set-tree-row");
-    await page.click('.set-tree-row[data-node="lang.php"] .set-tree-chevron');
-    await page.click('.set-tree-row[data-node="lang.php.quality-tools"]');
-    await page.waitForSelector('[data-setting="php.tools.pint.path"]');
-  },
   "actions-on-save-run": async (page) => {
     await openPage(page);
     await check(page, "actionsOnSave.optimizeImports");

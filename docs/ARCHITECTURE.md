@@ -1167,6 +1167,7 @@ or without Git, for local and remote projects.
   debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),
   `symfony_console_run`, `cli_tools_run`, `composer_audit`, `php_composer_outdated`,
   `agent_start`, `debug_listen_start`, `debug_web_page_start`, `save_actions_run_tools`,
+  the `quality_tools_*` commands (validate, check, inspect, fix),
   `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`), `cmake_reload`, and every Python
   run (the `python` configuration type, package commands and new environments all start
   through `run_start`). Degraded instead
@@ -1826,6 +1827,48 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 - Debugging: a debug run through a remote interpreter registers a server
   (`DebugServer::set_interpreter_servers`, not stored) named like the interpreter, so
   `PHP_IDE_CONFIG` picks its mappings.
+
+## PHP quality tools (`packs/phpforge/quality-tools`)
+
+- `phpforge-quality-tools` (pure): `model` (`QualityTool`: PHPStan, Psalm, PHP CS Fixer,
+  PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector; `ToolConfig` from
+  `php.tools.<id>.{inspection, interpreter, path, config, level, options, timeout, severity}`,
+  `php.tools.phpcs.phpcbfPath`, `php.tools.onTheFly`), `command` (check arguments for saved
+  files, stdin (`phpcs --stdin-path`, `php-cs-fixer fix -`) and PHPStan's temporary copy
+  (`--tmp-file … --instead-of …`); fix arguments: phpcbf stdin → stdout, PHP CS Fixer and
+  Rector dry-run diffs, Pint in place), `parse` (the JSON reports → `Problem { tool, file,
+  line, column, endLine?, endColumn?, severity, message, rule?, fixable, link? }`, fixers'
+  diffs → `FileFix` and one weak problem per hunk; JSON is found between other output),
+  `problem::PathContext` (reported paths → project paths: relative to the tool's working
+  directory, interpreter mappings back with `Mapper::to_local`, `-` / `STDIN` / temp copy
+  aliases) and `diff` (unified diff parsing and applying with moved hunks, CRLF kept).
+  `tools_to_run(configs, trigger, temp_copies)` picks the tools for unsaved text.
+- App (`commands/php_quality_tools.rs`): a `ToolSetup` is a configuration plus the prepared
+  interpreter (`php_interpreters::prepare`; `""` runs the executable directly, `project` the
+  project interpreter). Commands run through `Backend::start_process` (`process_io::capture`),
+  so remote projects run them on the host; through an interpreter the program becomes
+  `php <tool> …` wrapped by `phpforge_interpreters::wrap` (absolute paths mapped). Tools of one
+  check run in parallel (scoped threads). All commands call `require_trusted`.
+  `check_file` / `inspect` / `fix` take a `&dyn Backend` and setups, so they are tested with
+  fake tool scripts; `inspect(backend, setups, paths)` is the provider an Inspect Code
+  framework can call for a scope.
+- IPC (`app/ui/src/ipc/qualityTools.ts`): `quality_tools_info() -> { tools: { tool, label,
+  kind, fixer, configFiles, path, fixerPath, configFile, config }[], interpreters }`,
+  `quality_tools_validate({ config }) -> { ok, message, commandLine }` (`--version`),
+  `quality_tools_check({ path, text? }) -> CheckResult` (`{ files, tools, problems, outcomes:
+  { tool, label, status: "ok" | "missing" | "failed", message }[] }`; `text` = the editor text,
+  checked only by the tools that can read it), `quality_tools_inspect({ paths? }) ->
+  CheckResult`, `quality_tools_fix({ path, tool, text }) -> { tool, text, changed, diff, rules }`
+  (never writes the file; Pint's in-place run is restored).
+- UI (`features/phpQualityTools`): the settings page `lang.php.quality-tools`, an editor
+  extension (check on open, after a 1.2 s pause in typing with `php.tools.onTheFly`), checks
+  after saves, problems as diagnostics source `php-quality-tools` (a check replaces the earlier
+  problems of the tools that ran in the checked files), Alt+Enter fixes (`PhpQualityTools.Fix`),
+  `PhpQualityTools.ReformatWith{PhpCsFixer,Phpcbf,Pint}`, `PhpQualityTools.RunRector` (the
+  `rector-preview` dialog), `PhpQualityTools.InspectCode` (`inspectWithQualityTools(paths)`)
+  under Code. Changing the tools' settings re-checks the open PHP files. Browser mode
+  (`mock/qualityToolsMock.ts`): the Laravel demo "has" PHPStan, phpcs, Pint and Rector; demo
+  problems are found in the current text and the fixers change the in-memory files.
 
 ## Database tools (`forge-db`)
 
@@ -2958,8 +3001,9 @@ plugin manifest entry, and the chat UI needs no changes:
   `save_actions_changed_lines({ path, original, formatted }) -> string` (HEAD through the
   backend's repo); `save_actions_php({ text, actions }) -> { text, applied }`; after the file is
   written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs ESLint,
-  Prettier, PHP CS Fixer and Pint through `Backend::start_process` (rolling back a failing
-  tool); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
+  Prettier, Rector, PHP CS Fixer, phpcbf and Pint through `Backend::start_process` (rolling
+  back a failing tool; `forge_save_actions::tools::run_tools_with` lets the app give the PHP
+  tools their Quality Tools arguments and PHP interpreter, see "PHP quality tools"); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
   the combined result as one transaction (`applyLineChanges` with `isolateHistory`), only
   when nobody typed meanwhile. Browser mode: plan and changed lines through WebAssembly, the
   rest mocked (no tool runs, no writes).

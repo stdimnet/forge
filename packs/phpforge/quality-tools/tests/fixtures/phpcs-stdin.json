@@ -1,0 +1,1 @@
+{"totals":{"errors":1,"warnings":0,"fixable":1},"files":{"STDIN":{"errors":1,"warnings":0,"messages":[{"message":"Whitespace found at end of line","source":"Squiz.WhiteSpace.SuperfluousWhitespace.EndLine","severity":5,"fixable":true,"type":"ERROR","line":3,"column":14}]}}}

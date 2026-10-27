@@ -10,11 +10,13 @@ use forge_save_actions::tools::{self, ToolLocation, ToolsReport};
 use forge_save_actions::{ActionsOnSave, FileTypeChoice, SavePlan, Tool, Trigger};
 use phpforge_lang_php::{cleanup, imports, rearrange};
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use crate::commands::git::with_repo;
+use crate::commands::php_quality_tools;
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
+use phpforge_quality_tools::QualityTool;
 
 fn settings_of(state: &AppState) -> ActionsOnSave {
     let settings = state.read_settings();
@@ -128,6 +130,7 @@ pub async fn save_actions_php(
 pub async fn save_actions_run_tools(
     path: String,
     tools: Vec<Tool>,
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<ToolsReport> {
     // The tools are the project's own installations (node_modules, vendor/bin).
@@ -135,15 +138,34 @@ pub async fn save_actions_run_tools(
     let custom = custom_paths(&state);
     let backend = state.backend()?;
     blocking(move || {
-        tools::run_tools(
+        let state = app.state::<AppState>();
+        // The PHP tools take their Quality Tools configuration (configuration file,
+        // ruleset, options) and run with its PHP interpreter.
+        let prepare = |tool: Tool, cmd| match php_tool(tool) {
+            Some(q) => php_quality_tools::save_action_command(&state, backend.as_ref(), q, cmd),
+            None => Ok(cmd),
+        };
+        tools::run_tools_with(
             backend.as_ref(),
             &path,
             &tools,
             &custom,
+            &prepare,
             tools::TOOL_TIMEOUT,
         )
     })
     .await
+}
+
+/// The quality tool behind a PHP tool of Actions on Save.
+fn php_tool(tool: Tool) -> Option<QualityTool> {
+    match tool {
+        Tool::PhpCsFixer => Some(QualityTool::PhpCsFixer),
+        Tool::Pint => Some(QualityTool::Pint),
+        Tool::Phpcbf => Some(QualityTool::Phpcs),
+        Tool::Rector => Some(QualityTool::Rector),
+        Tool::Eslint | Tool::Prettier => None,
+    }
 }
 
 #[derive(Debug, Serialize)]
