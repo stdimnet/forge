@@ -123,7 +123,9 @@ pub fn dbmodel_search_rows(request_json: &str) -> String {
     };
     let sql = match table_query(r.dialect, &r.schema, &r.table, &r.options) {
         Ok(Some(sql)) => sql,
-        Ok(None) => return to_json(&json!({ "sql": "", "rows": [], "matches": [], "truncated": false })),
+        Ok(None) => {
+            return to_json(&json!({ "sql": "", "rows": [], "matches": [], "truncated": false }))
+        }
         Err(e) => return error(e),
     };
     let matcher = match CellMatcher::new(&r.options) {
@@ -166,7 +168,10 @@ mod tests {
         let out = dbmodel_match_schemas(
             r#"{"patterns":["tenant_*"],"schemas":[{"name":"public","current":true},{"name":"tenant_1","current":false}]}"#,
         );
-        assert!(out.contains(r#"{"name":"public","current":true,"visible":false}"#), "{out}");
+        assert!(
+            out.contains(r#"{"name":"public","current":true,"visible":false}"#),
+            "{out}"
+        );
         assert!(dbmodel_match_schemas(r#"{"patterns":["/(/"],"schemas":[]}"#).contains("error"));
         let parsed = dbmodel_parse_ddl(
             r#"{"dialect":"postgres","files":[{"path":"a.sql","text":"CREATE TABLE t (id int PRIMARY KEY);"}]}"#,
@@ -183,6 +188,9 @@ mod tests {
         let rows = dbmodel_search_rows(
             r#"{"dialect":"mysql","schema":"shop","table":{"name":"users","kind":"table","columns":[{"name":"id","dataType":"int","nullable":false},{"name":"name","dataType":"varchar(20)","nullable":false}]},"options":{"text":"ada","limit":1},"columns":["id","name"],"rows":[[1,"Ada"],[2,"Bob"],[3,"Adam"]]}"#,
         );
-        assert!(rows.contains(r#""rows":[[1,"Ada"]]"#) && rows.contains(r#""truncated":true"#), "{rows}");
+        assert!(
+            rows.contains(r#""rows":[[1,"Ada"]]"#) && rows.contains(r#""truncated":true"#),
+            "{rows}"
+        );
     }
 }
