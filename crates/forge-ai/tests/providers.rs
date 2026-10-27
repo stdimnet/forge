@@ -550,3 +550,65 @@ async fn saving_persists_config_and_keys_stay_out_of_toml() {
     reloaded.delete_provider("openrouter").unwrap();
     assert!(reloaded.config().providers.is_empty());
 }
+
+#[tokio::test]
+async fn fim_posts_prompt_and_suffix_to_completions() {
+    let server = MockServer::start(vec![Route::json(
+        "POST",
+        "/completions",
+        200,
+        r#"{"model":"qwen2.5-coder:1.5b","choices":[{"text":"a + b;","finish_reason":"stop"}],"usage":{"prompt_tokens":12,"completion_tokens":4}}"#,
+    )])
+    .await;
+    let svc = service();
+    add(&svc, ProviderKind::Ollama, "ollama", &server.base, None);
+    let (p, _) = svc.resolve(Some("ollama"), None, None).unwrap();
+    assert!(p.supports_fim());
+    let c = p
+        .fim(forge_ai::FimRequest {
+            model: Some("qwen2.5-coder:1.5b".into()),
+            prompt: "function add(a, b) {\n  return ".into(),
+            suffix: "\n}".into(),
+            max_tokens: Some(64),
+            temperature: Some(0.0),
+            stop: vec!["\n".into()],
+        })
+        .await
+        .unwrap();
+    assert_eq!(c.text, "a + b;");
+    assert_eq!(c.usage.unwrap().output_tokens, 4);
+    let body = server.last().json();
+    assert_eq!(body["prompt"], "function add(a, b) {\n  return ");
+    assert_eq!(body["suffix"], "\n}");
+    assert_eq!(body["stop"][0], "\n");
+    assert_eq!(body["stream"], false);
+}
+
+#[tokio::test]
+async fn hosted_providers_do_not_offer_fim_and_disabled_providers_are_refused() {
+    let svc = service();
+    add(
+        &svc,
+        ProviderKind::Anthropic,
+        "anthropic",
+        "https://example.invalid/v1",
+        Some("k"),
+    );
+    let (p, _) = svc.resolve(None, None, None).unwrap();
+    assert!(!p.supports_fim());
+    let err = p
+        .fim(forge_ai::FimRequest::default())
+        .await
+        .err()
+        .unwrap();
+    assert!(matches!(err, AiError::Unsupported { .. }), "{err}");
+
+    let mut cfg = svc.config().providers[0].clone();
+    cfg.enabled = false;
+    svc.save_provider(cfg, None).unwrap();
+    let err = svc
+        .resolve(Some("anthropic"), None, None)
+        .err()
+        .unwrap();
+    assert!(matches!(err, AiError::ProviderDisabled(_)), "{err}");
+}

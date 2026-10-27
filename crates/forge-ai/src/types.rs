@@ -81,6 +81,22 @@ impl CompletionRequest {
     }
 }
 
+/// A fill-in-the-middle request: the model writes what goes between `prompt` and `suffix`
+/// (inline code completion with local code models).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct FimRequest {
+    /// Model id; `None` uses the provider's default model.
+    pub model: Option<String>,
+    /// Text before the caret (with any context header).
+    pub prompt: String,
+    /// Text after the caret.
+    pub suffix: String,
+    pub max_tokens: Option<u32>,
+    pub temperature: Option<f32>,
+    #[serde(default)]
+    pub stop: Vec<String>,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Usage {
     pub input_tokens: u32,

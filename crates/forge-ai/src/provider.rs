@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::config::ProviderKind;
 use crate::error::{AiError, AiResult};
-use crate::types::{Completion, CompletionRequest, Delta, ModelInfo};
+use crate::types::{Completion, CompletionRequest, Delta, FimRequest, ModelInfo};
 
 pub type DeltaStream = Pin<Box<dyn Stream<Item = AiResult<Delta>> + Send>>;
 
@@ -31,6 +31,20 @@ pub trait Provider: Send + Sync {
     /// Streamed completion. Dropping the stream aborts the HTTP request; to cancel from
     /// elsewhere wrap it with [`cancellable`].
     async fn stream(&self, request: CompletionRequest) -> AiResult<DeltaStream>;
+
+    /// Whether [`Provider::fim`] is implemented (legacy `completions` endpoint with `suffix`).
+    fn supports_fim(&self) -> bool {
+        false
+    }
+
+    /// Fill-in-the-middle completion for inline code completion.
+    async fn fim(&self, request: FimRequest) -> AiResult<Completion> {
+        let _ = request;
+        Err(AiError::Unsupported {
+            provider: self.name().to_string(),
+            what: "fill-in-the-middle completion".into(),
+        })
+    }
 }
 
 /// Ends `stream` with `Err(AiError::Cancelled)` as soon as `token` is cancelled.
