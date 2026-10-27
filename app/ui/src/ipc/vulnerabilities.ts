@@ -82,7 +82,10 @@ export interface VulnerabilityProblem {
   severity: "error" | "warning" | "weak";
   rating: Severity;
   message: string;
+  /** The package it is about (a transitive one for problems on the dependency pulling it in). */
   package: string;
+  /** The declared dependency it is reported on. */
+  dependency: string;
   ids?: string[];
   upgrade?: Upgrade;
 }

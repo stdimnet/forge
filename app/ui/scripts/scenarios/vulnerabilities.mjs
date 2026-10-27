@@ -28,8 +28,12 @@ async function caretAfter(page, text) {
 }
 
 async function check(page) {
+  // After the automatic check of project open, so the result stays on screen.
+  await page.waitForTimeout(5000);
+  await page.waitForFunction(() => !document.querySelector(".vuln-spin"), null, { timeout: 15000 }).catch(() => undefined);
   await run(page, "Vulnerabilities.Check");
   await page.waitForSelector(".vuln-package", { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector(".vuln-spin"), null, { timeout: 15000 });
   await page.waitForTimeout(800);
 }
 
@@ -41,6 +45,16 @@ export default {
     await caretAfter(page, '"laravel/fra');
     await page.keyboard.press("Alt+Enter");
     await page.waitForTimeout(900);
+  },
+
+  "vulnerabilities-upgraded": async (page) => {
+    await open(page, "composer.json");
+    await check(page);
+    await caretAfter(page, '"laravel/fra');
+    await page.keyboard.press("Alt+Enter");
+    await page.waitForTimeout(700);
+    await page.click('text=Upgrade \'laravel/framework\' to 12.1.1');
+    await page.waitForTimeout(1500);
   },
 
   "vulnerabilities-hover": async (page) => {

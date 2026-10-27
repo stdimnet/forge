@@ -4477,6 +4477,8 @@ The message lists every advisory with its id (a CVE when there is one, else `GHS
 v12.1.0 is vulnerable: File validation bypass with uppercase extensions (CVE-2025-27515,
 Moderate). Fixed in 12.1.1".
 
+![Vulnerable Dependencies problem on hover](docs/screenshots/vulnerabilities-hover.png)
+
 A vulnerable package that the manifest does not declare itself (a transitive dependency) is
 reported on the direct dependency that pulls it in, when the tool says which one (npm, pnpm,
 Yarn): "react-router 7.5.3 (a dependency of react-router-dom) is vulnerable: …". composer.lock
@@ -4507,9 +4509,13 @@ The fix edits the file in the editor (undo with `Ctrl+Z`), or on disk when it is
 balloon then offers to install the new version: `composer update <package>
 --with-dependencies`, `npm install` / `pnpm install` / `yarn install`, `pip install
 "<package>>=<version>"` with the interpreter's package manager, `cargo update -p <package>` or
-`go mod tidy`. It runs in the Run tool window, and the check runs again afterwards. The fix is
-not offered when an advisory has no fixed version yet, for transitive packages, for workspace,
-file or git dependencies and for the Go standard library (update Go itself).
+`go mod tidy`. It runs in the Run tool window, and the check runs again afterwards. Until
+then the problem stays: it is about the installed version, which only the install changes.
+
+![After Upgrade: the new constraint and the install balloon](docs/screenshots/vulnerabilities-upgraded.png)
+
+The fix is not offered when an advisory has no fixed version yet, for transitive packages,
+for workspace, file or git dependencies and for the Go standard library (update Go itself).
 
 `Alt+Enter` also offers **Open advisory <id>**, which opens the advisory in the browser.
 

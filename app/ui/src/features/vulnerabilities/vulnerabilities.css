@@ -75,10 +75,8 @@
 .vuln-reachable {
   color: var(--danger);
 }
-.vuln-spacer {
-  flex: 1;
-}
 .vuln-upgrade {
+  margin-left: 8px;
   display: inline-flex;
   align-items: center;
   gap: 4px;

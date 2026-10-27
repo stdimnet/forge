@@ -126,9 +126,12 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult | n
       if (!opts.quiet) showBalloon("Vulnerable dependency check is turned off", "Turn it on in Settings | Tools | Package Checker.", 6000);
       return check;
     }
+    const before = new Set(results().flatMap(keys));
     setResults((prev) => (opts.tools ? [...prev.filter((r) => !opts.tools!.includes(r.tool)), ...check.results] : check.results));
     await publishAll();
-    report(check.results, !!opts.quiet);
+    // Automatic checks speak up only about vulnerabilities that were not reported before.
+    const fresh = check.results.flatMap(keys).some((k) => !before.has(k));
+    if (!opts.quiet || fresh) report(check.results, !!opts.quiet);
     return check;
   } catch (e) {
     const message = String(e instanceof Error ? e.message : e).replace(/^Error: /, "");
@@ -139,6 +142,8 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult | n
     setRunning(false);
   }
 }
+
+const keys = (r: TargetResult) => r.vulnerabilities.map((v) => `${r.tool}:${v.package}:${v.installed ?? ""}:${v.id}`);
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -250,8 +255,14 @@ export function installTitle(r: TargetResult, upgrade?: Pick<Upgrade, "package">
   }
 }
 
-/** The problem of a package in its manifest, for "jump to declaration". */
-export function declarationOf(r: TargetResult, v: Pick<Vulnerability, "package">): { path: string; problem: VulnerabilityProblem } | null {
+/** Where a package is declared itself (`direct`), or else where it is reported (on the
+ * dependency that pulls it in, or in a lock file). */
+export function declarationOf(r: TargetResult, v: Pick<Vulnerability, "package">, direct = true): { path: string; problem: VulnerabilityProblem } | null {
+  for (const path of r.annotate) {
+    const p = problems()[path]?.find((x) => x.package === v.package && x.dependency === v.package);
+    if (p) return { path, problem: p };
+  }
+  if (direct) return null;
   for (const path of r.annotate) {
     const p = problems()[path]?.find((x) => x.package === v.package);
     if (p) return { path, problem: p };

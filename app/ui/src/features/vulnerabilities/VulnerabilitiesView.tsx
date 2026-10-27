@@ -86,7 +86,7 @@ const toggle = (key: string) =>
   });
 
 async function reveal(g: PackageGroup): Promise<void> {
-  const found = declarationOf(g.result, { package: g.name }) ?? g.via.map((d) => declarationOf(g.result, { package: d })).find(Boolean) ?? null;
+  const found = declarationOf(g.result, { package: g.name }, false);
   if (found) {
     const { path, problem } = found;
     await revealLocation(path, { line: problem.line, character: problem.start }, { line: problem.line, character: problem.end });
@@ -158,14 +158,13 @@ function PackageRow(props: { g: PackageGroup }) {
         <Show when={props.g.installed}>
           <span class="vuln-version">{props.g.installed}</span>
         </Show>
-        <Show when={props.g.via.length}>
+        <Show when={props.g.via.length && !declarationOf(props.g.result, { package: props.g.name })}>
           <span class="vuln-hint">via {props.g.via.join(", ")}</span>
         </Show>
         <span class="vuln-hint">
           {count()} {count() === 1 ? "vulnerability" : "vulnerabilities"}
           {props.g.fixed ? ` · fixed in ${props.g.fixed}` : ""}
         </span>
-        <span class="vuln-spacer" />
         <Show when={upgrade()}>
           {(u) => {
             const path = () => declarationOf(props.g.result, { package: props.g.name })!.path;

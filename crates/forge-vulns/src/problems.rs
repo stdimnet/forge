@@ -35,6 +35,9 @@ pub struct FileProblem {
     pub message: String,
     /// The package the problem is about (the transitive one for a `via` problem).
     pub package: String,
+    /// The declared dependency it is reported on (`package` itself, or the direct
+    /// dependency that pulls a transitive package in).
+    pub dependency: String,
     /// Advisory ids.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ids: Vec<String>,
@@ -100,6 +103,7 @@ fn problem(d: &Declaration, severity: Severity, message: String, package: &str) 
         rating: severity,
         message,
         package: package.to_string(),
+        dependency: d.package.clone(),
         ids: Vec::new(),
         upgrade: None,
     }
@@ -292,6 +296,7 @@ mod tests {
         );
         assert_eq!(p[1].line, 5);
         assert_eq!(p[1].package, "esbuild");
+        assert_eq!(p[1].dependency, "vite");
         assert_eq!(p[1].severity, "warning");
         assert!(p[1]
             .message
