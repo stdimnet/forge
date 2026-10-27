@@ -13,6 +13,7 @@ pub mod dataframe;
 pub mod diff;
 pub mod html;
 pub mod nbformat;
+pub mod ordered;
 pub mod output;
 pub mod protocol;
 pub mod serverurl;

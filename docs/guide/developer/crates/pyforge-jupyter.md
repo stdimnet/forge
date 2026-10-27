@@ -19,8 +19,9 @@ adds the features `runtime` (kernels) and `keychain` (server tokens).
   model into the original JSON: unchanged cells and outputs keep their raw JSON, changed
   fields keep the original's form (string or list of lines), new cells and outputs are written
   like Jupyter writes them (sorted keys, lines). The indent, compact one-line files, `\u`
-  escapes of non-ASCII text and the final line break are detected and kept; key order uses
-  serde_json's `preserve_order`. nbformat 3 and older are refused.
+  escapes of non-ASCII text and the final line break are detected and kept; key order is read into the
+  crate's own ordered JSON values (`ordered`), so serde_json's `preserve_order` stays off for
+  the workspace. nbformat 3 and older are refused.
 - `output`: stream, `execute_result`, `display_data` and error outputs with MIME bundles
   (texts joined, JSON types as JSON) and `render`, the representation the editor shows:
   console lines from `forge-output` (ANSI, `\r`, file links), sanitized HTML, data URLs for

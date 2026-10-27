@@ -502,7 +502,7 @@ impl Resolver {
         // the most specific first (Run Cell vs. Start New Line on Shift+Enter in a cell).
         let mut best: Option<&Binding> = None;
         for b in list?.iter().filter(|b| context_matches(b.context, focus)) {
-            if best.map_or(true, |x| x.context.specificity() < b.context.specificity()) {
+            if best.is_none_or(|x| x.context.specificity() < b.context.specificity()) {
                 best = Some(b);
             }
         }

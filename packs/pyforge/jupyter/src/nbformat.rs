@@ -10,6 +10,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::ordered::{OMap, OValue};
 use crate::output::{output_from_json, output_to_json, Output};
 
 /// Kind of a cell.
@@ -125,14 +126,6 @@ pub fn split_lines(text: &str) -> Vec<Value> {
     text.split_inclusive('\n')
         .map(|l| Value::String(l.to_string()))
         .collect()
-}
-
-/// A text in the form the original used (string or list of lines; list when unknown).
-fn text_like(text: &str, original: Option<&Value>) -> Value {
-    match original {
-        Some(Value::String(_)) => Value::String(text.to_string()),
-        _ => Value::Array(split_lines(text)),
-    }
 }
 
 /// Reading errors.
@@ -291,8 +284,8 @@ fn has_non_ascii_escape(text: &str) -> bool {
 /// that did not change.
 pub fn serialize(nb: &Notebook, original: Option<&str>) -> String {
     let original_root = original
-        .and_then(|t| serde_json::from_str::<Value>(t).ok())
-        .filter(Value::is_object);
+        .and_then(|t| serde_json::from_str::<OValue>(t).ok())
+        .filter(|v| v.as_object().is_some());
     let format = original
         .filter(|_| original_root.is_some())
         .map(detect_format)
@@ -306,120 +299,121 @@ pub fn serialize(nb: &Notebook, original: Option<&str>) -> String {
 }
 
 /// The notebook's JSON, merged into the original's.
-pub fn notebook_json(nb: &Notebook, original: Option<&Value>) -> Value {
-    let orig = original.and_then(Value::as_object);
-    let orig_cells: &[Value] = orig
+pub fn notebook_json(nb: &Notebook, original: Option<&OValue>) -> OValue {
+    let orig = original.and_then(OValue::as_object);
+    let orig_cells: &[OValue] = orig
         .and_then(|o| o.get("cells"))
-        .and_then(Value::as_array)
+        .and_then(OValue::as_array)
         .map(Vec::as_slice)
         .unwrap_or(&[]);
-    let cells: Vec<Value> = nb
+    let cells: Vec<OValue> = nb
         .cells
         .iter()
         .map(|c| {
             let o = c
                 .origin
                 .and_then(|i| orig_cells.get(i))
-                .and_then(Value::as_object);
-            Value::Object(cell_json(c, o, nb.has_ids))
+                .and_then(OValue::as_object);
+            OValue::Object(cell_json(c, o, nb.has_ids))
         })
         .collect();
     let mut out = orig.cloned().unwrap_or_default();
-    let sorted = orig.map_or(true, keys_sorted);
-    out.insert("cells".into(), Value::Array(cells));
-    if orig.and_then(|o| o.get("metadata")) != Some(&nb.metadata) {
-        out.insert("metadata".into(), nb.metadata.clone());
+    let sorted = orig.is_none_or(OMap::keys_sorted);
+    out.insert("cells", OValue::Array(cells));
+    if out.get("metadata").map(OValue::to_value).as_ref() != Some(&nb.metadata) {
+        out.insert("metadata", OValue::from(&nb.metadata));
     }
-    set_if_changed(&mut out, "nbformat", Value::from(nb.nbformat));
-    set_if_changed(&mut out, "nbformat_minor", Value::from(nb.nbformat_minor));
+    set_if_changed(&mut out, "nbformat", nb.nbformat);
+    set_if_changed(&mut out, "nbformat_minor", nb.nbformat_minor);
     if sorted {
-        out = sort_keys(out);
+        out.sort();
     }
-    Value::Object(out)
+    OValue::Object(out)
 }
 
-fn set_if_changed(map: &mut Map<String, Value>, key: &str, value: Value) {
-    if map.get(key).and_then(Value::as_u64) != value.as_u64() {
-        map.insert(key.into(), value);
+fn set_if_changed(map: &mut OMap, key: &str, value: u64) {
+    if map.get(key).and_then(OValue::as_u64) != Some(value) {
+        map.insert(key, OValue::Number(value.into()));
     }
 }
 
-fn keys_sorted(m: &Map<String, Value>) -> bool {
-    m.keys().zip(m.keys().skip(1)).all(|(a, b)| a <= b)
-}
-
-fn sort_keys(m: Map<String, Value>) -> Map<String, Value> {
-    let mut entries: Vec<(String, Value)> = m.into_iter().collect();
-    entries.sort_by(|a, b| a.0.cmp(&b.0));
-    entries.into_iter().collect()
+fn text_like(text: &str, original: Option<&OValue>) -> OValue {
+    match original {
+        Some(OValue::String(_)) => OValue::String(text.to_string()),
+        _ => OValue::Array(
+            text.split_inclusive('\n')
+                .map(|l| OValue::String(l.to_string()))
+                .collect(),
+        ),
+    }
 }
 
 /// A cell's JSON: the original's with the changed parts replaced.
-fn cell_json(
-    cell: &Cell,
-    original: Option<&Map<String, Value>>,
-    write_id: bool,
-) -> Map<String, Value> {
+fn cell_json(cell: &Cell, original: Option<&OMap>, write_id: bool) -> OMap {
     let mut out = original.cloned().unwrap_or_default();
-    let sorted = original.map_or(true, keys_sorted);
-    let type_changed =
-        out.get("cell_type").and_then(Value::as_str) != Some(cell.cell_type.as_str());
-    if type_changed {
-        out.insert("cell_type".into(), Value::from(cell.cell_type.as_str()));
+    let sorted = original.is_none_or(OMap::keys_sorted);
+    let str_of = |m: &OMap, k: &str| m.get(k).and_then(OValue::as_str).map(str::to_string);
+    if str_of(&out, "cell_type").as_deref() != Some(cell.cell_type.as_str()) {
+        out.insert("cell_type", OValue::String(cell.cell_type.as_str().into()));
     }
-    if write_id && !cell.id.is_empty() && out.get("id").and_then(Value::as_str) != Some(&cell.id) {
-        out.insert("id".into(), Value::from(cell.id.as_str()));
+    if write_id && !cell.id.is_empty() && str_of(&out, "id").as_deref() != Some(cell.id.as_str()) {
+        out.insert("id", OValue::String(cell.id.clone()));
     }
-    if out.get("metadata") != Some(&cell.metadata) {
-        out.insert("metadata".into(), cell.metadata.clone());
+    if out.get("metadata").map(OValue::to_value).as_ref() != Some(&cell.metadata) {
+        out.insert("metadata", OValue::from(&cell.metadata));
     }
-    if out.get("source").map(join_text).as_deref() != Some(cell.source.as_str()) {
+    let source = out.get("source").map(|v| join_text(&v.to_value()));
+    if source.as_deref() != Some(cell.source.as_str()) {
         let v = text_like(&cell.source, out.get("source"));
-        out.insert("source".into(), v);
+        out.insert("source", v);
     }
     match &cell.attachments {
-        Some(a) if out.get("attachments") != Some(a) => {
-            out.insert("attachments".into(), a.clone());
+        Some(a) if out.get("attachments").map(OValue::to_value).as_ref() != Some(a) => {
+            out.insert("attachments", OValue::from(a));
         }
-        None if cell.cell_type == CellType::Code => {
-            out.remove("attachments");
-        }
+        None if cell.cell_type == CellType::Code => out.remove("attachments"),
         _ => {}
     }
     if cell.cell_type == CellType::Code {
-        let count = cell.execution_count.map_or(Value::Null, Value::from);
+        let count = cell
+            .execution_count
+            .map_or(OValue::Null, |n| OValue::Number(n.into()));
         if out.get("execution_count") != Some(&count) {
-            out.insert("execution_count".into(), count);
+            out.insert("execution_count", count);
         }
-        let orig_outputs: Vec<Value> = out
+        let orig_outputs: Vec<OValue> = out
             .get("outputs")
-            .and_then(Value::as_array)
+            .and_then(OValue::as_array)
             .cloned()
             .unwrap_or_default();
-        let outputs: Vec<Value> = cell
+        let outputs: Vec<OValue> = cell
             .outputs
             .iter()
             .enumerate()
-            .map(|(i, o)| match orig_outputs.get(i) {
-                Some(raw) if &output_from_json(raw) == o => raw.clone(),
-                raw => output_to_json(o, raw),
+            .map(|(i, o)| {
+                let raw = orig_outputs.get(i);
+                let value = raw.map(OValue::to_value);
+                match (raw, &value) {
+                    (Some(raw), Some(v)) if &output_from_json(v) == o => raw.clone(),
+                    _ => OValue::from(&output_to_json(o, value.as_ref())),
+                }
             })
             .collect();
-        if out.get("outputs").and_then(Value::as_array) != Some(&outputs) {
-            out.insert("outputs".into(), Value::Array(outputs));
+        if out.get("outputs").and_then(OValue::as_array) != Some(&outputs) {
+            out.insert("outputs", OValue::Array(outputs));
         }
     } else {
         out.remove("outputs");
         out.remove("execution_count");
     }
     if sorted {
-        out = sort_keys(out);
+        out.sort();
     }
     out
 }
 
 /// JSON text with the given indent (`indent=1` style), escaping non-ASCII when `ascii`.
-pub fn write_json(value: &Value, format: &Format) -> String {
+pub fn write_json(value: &impl Serialize, format: &Format) -> String {
     let mut buf = Vec::new();
     let pretty = serde_json::ser::PrettyFormatter::with_indent(format.indent.as_bytes());
     let mut ser = serde_json::Serializer::with_formatter(
