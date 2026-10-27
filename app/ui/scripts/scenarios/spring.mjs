@@ -106,6 +106,10 @@ export default {
     await page.waitForSelector('.svc-row[data-node-id="spring/app/InventoryApplication"]', { timeout: 15000 });
     await page.click('.svc-row[data-node-id="spring/app/InventoryApplication"]');
     await page.click('.svc-tool[data-action="start"]');
+    // Starting shows the Run tool window; come back to Services.
+    await page.waitForSelector(".run-tab, .run-session-tab, [data-tool-window-panel=\"run\"]", { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    await page.click('[data-tool-window="services"]');
     await page.waitForSelector('.svc-row[data-node-id="spring/app/InventoryApplication"] .svc-badge.running', { timeout: 20000 });
     await page.waitForSelector('.svc-section[data-section="Health"]', { timeout: 15000 });
     await bottomHeight(page, 420);

@@ -41,6 +41,7 @@ script and config language plugins.
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Kotlin | `forge.kotlin` | kotlinforge | `forge.java` | `kotlinforge` | 4 commands; 16 settings; 1 debug adapters (kotlin-lsp); 1 test frameworks (Kotest); run types (UI): Kotlin Script, Kotest |
 | AI Assistant | `forge.ai` | core |  | always | tool windows: AI Chat; 3 AI providers; 1 chat agents; 2 code generators |
 | Claude Code | `forge.claude-code` | core | `forge.ai` | always | 3 settings; 1 AI providers; 1 chat agents |

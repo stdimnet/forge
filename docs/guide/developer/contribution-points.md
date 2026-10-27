@@ -51,6 +51,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
 | `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
+| `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
 | `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |

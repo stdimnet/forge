@@ -25,6 +25,7 @@ const KIND_LABELS: Record<string, string> = {
   controller: "Controller",
   restController: "REST Controller",
   configuration: "Configuration",
+  configurationProperties: "@ConfigurationProperties",
   application: "Application",
   bean: "@Bean",
   dataRepository: "Spring Data",

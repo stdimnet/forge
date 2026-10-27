@@ -991,6 +991,10 @@ fn bean_kind(
             return Some((kind.to_string(), "spring".into(), None));
         }
     }
+    // `@ConfigurationPropertiesScan` / `@EnableConfigurationProperties` register these.
+    if c.annotation("ConfigurationProperties").is_some() {
+        return Some(("configurationProperties".into(), "spring".into(), None));
+    }
     for (s, kind, scope) in CDI {
         // `@Singleton` is also Spring-agnostic; only with a CDI / javax.inject import.
         if c.annotation(s).is_some() {
@@ -1032,8 +1036,20 @@ fn collect_beans(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo
                     .next()
             })
         });
+        // Spring names scanned `@ConfigurationProperties` beans `<prefix>-<class>`.
+        let properties_name = (kind == "configurationProperties")
+            .then(|| c.annotation("ConfigurationProperties"))
+            .flatten()
+            .map(
+                |a| match index.strings(a, &["prefix", "value"], f).into_iter().next() {
+                    Some(p) if !p.is_empty() => format!("{p}-{}", c.qualified),
+                    _ => c.qualified.clone(),
+                },
+            );
         model.beans.push(Bean {
-            name: explicit.unwrap_or_else(|| decapitalize(&c.name)),
+            name: explicit
+                .or(properties_name)
+                .unwrap_or_else(|| decapitalize(&c.name)),
             type_name: c.qualified.clone(),
             kind: kind.clone(),
             framework: framework.clone(),
@@ -2119,6 +2135,10 @@ class CustomerStore {}
         assert_eq!(cand("clock"), ["clock"]);
         assert_eq!(inj("clock").kind, "field");
         assert_eq!(inj("props").kind, "beanMethod");
+        assert_eq!(
+            cand("props"),
+            ["shop.gateway-com.acme.shop.config.GatewayProperties"]
+        );
         assert_eq!(cand("store"), ["customerStore"]);
         let service = m.beans.iter().find(|b| b.name == "orderService").unwrap();
         assert_eq!(service.injected_into.len(), 1);

@@ -89,7 +89,7 @@ The primary type appears
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
-| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
+| JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](../user/spring.md) |
 
 Core plugins (Git, Terminal, Run/Debug, Database, Services, AI, language servers, …) are
 always active. Each plugin can still be switched off in Settings | Plugins, see

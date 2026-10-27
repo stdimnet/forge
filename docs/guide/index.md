@@ -21,7 +21,7 @@ Languages and large feature sets ship as **packs**:
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
-| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger; Spring Boot and Jakarta EE |
 | **KotlinForge** | Kotlin/JVM: kotlin-lsp, Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with coroutines, ktlint and detekt |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
@@ -52,6 +52,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
+  navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
+  entities, `application.properties` / `application.yml` completion, documentation and
+  inspections from the `spring-configuration-metadata.json` of the dependency jars, and the
+  Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator
+  health, mappings and beans) ([Spring Boot and Jakarta EE](user/spring.md)).
 - **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
   downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
   checks and version completion from the module proxy; gofmt / goimports, go vet and

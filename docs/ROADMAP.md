@@ -111,7 +111,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] JavaForge: Eclipse JDT LS (managed), JDK detection and download, Maven and Gradle, JUnit 5/TestNG, Java debugger
 - [x] JavaForge: Gradle and Maven tool windows (tasks, dependencies, sync, offline mode), Gradle wrapper, build and run through Gradle/Maven, Gradle Kotlin and Groovy DSL editing with completion
 - [x] KotlinForge: Kotlin (kotlin-lsp, managed), Kotlin/JVM run configurations, Kotlin scripts (`.kts`), JUnit 5/Kotest runners, Kotlin debugger (coroutines view), ktlint and detekt
-- [ ] JavaForge: Spring Boot (run dashboard, beans, endpoints, `application.yml` completion), Jakarta EE basics
+- [x] JavaForge: Spring Boot (run dashboard, beans, endpoints, `application.yml` completion), Jakarta EE basics
 - [ ] JVM extras: Groovy and Scala basics (highlighting, run, Gradle/sbt import), Android basics (Gradle Android projects, adb devices, Logcat)
 - [x] PyForge: basedpyright/ruff/ty/Black, interpreters (venv, uv, Poetry, conda, pipenv, Hatch; Docker/SSH/WSL), Python Packages tool window, requirements inspections
 - [x] PyForge: pytest/unittest/tox runners, debugpy with debug console, Python console, profiler

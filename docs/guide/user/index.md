@@ -60,6 +60,7 @@ not finished, the page says so.
 | [PyForge (Python)](python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [GoForge (Go)](go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [Spring Boot and Jakarta EE](spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [KotlinForge](kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control

@@ -227,6 +227,9 @@ off; **Search API** and **Repository** point them at a mirror.
 | **JUnit**, **TestNG** | Runs all tests, a package, a class, a method or a list of tests through the build tool; see [Tests](#tests). |
 | **Remote JVM Debug** | Attaches the debugger to a JVM started with `-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005`. |
 
+Spring Boot applications have their own **Spring Boot** configuration type with profiles and
+override properties, see [Spring Boot and Jakarta EE](spring.md#spring-boot-run-configuration).
+
 A green ▶ in the gutter next to a `main` method (`public static void main(String[] args)`, and
 Java 25's instance `void main()` and compact source files) offers Run, Debug and Modify Run
 Configuration; `Ctrl+Shift+F10` runs the class at the caret.
