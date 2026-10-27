@@ -1,0 +1,271 @@
+/* Android (JavaForge): the Device Manager and Logcat tool windows. Colors come from the
+   theme only; the levels follow Android Studio's palette idea with Forge's colors. */
+
+.android-devices {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.android-hint {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--fg);
+  line-height: 1.45;
+}
+
+.android-hint svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.android-section {
+  padding: 10px 10px 4px;
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.android-empty {
+  padding: 6px 10px 10px;
+}
+
+.android-device-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 10px;
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+.android-device-row:hover {
+  background: var(--bg-hover);
+}
+
+.android-device-icon {
+  flex: none;
+  color: var(--accent);
+}
+
+.android-device-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.android-device-name {
+  color: var(--fg-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.android-device-detail {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.android-state {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 11px;
+  border: 1px solid var(--border-strong);
+  color: var(--fg-muted);
+}
+
+.android-state.online {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.android-state.problem {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+/* ---- Logcat ---------------------------------------------------------------------------- */
+
+.logcat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.logcat-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.logcat-device,
+.logcat-level {
+  height: 24px;
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.logcat-device {
+  max-width: 260px;
+}
+
+.logcat-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 160px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+}
+
+.logcat-filter:focus-within {
+  border-color: var(--accent);
+}
+
+.logcat-filter input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.logcat-counts {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.logcat-rows {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  background: var(--bg-editor);
+}
+
+.logcat-row {
+  display: flex;
+  gap: 10px;
+  padding: 0 8px;
+  white-space: pre;
+  color: var(--fg);
+}
+
+.logcat-row:hover {
+  background: var(--bg-hover);
+}
+
+.logcat-time {
+  color: var(--fg-faint);
+  flex: none;
+}
+
+.logcat-pid {
+  color: var(--fg-faint);
+  flex: none;
+  width: 11ch;
+}
+
+.logcat-tag {
+  flex: none;
+  width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--syn-type, var(--info));
+}
+
+.logcat-pkg {
+  flex: none;
+  width: 20ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-muted);
+}
+
+.logcat-level-badge {
+  flex: none;
+  width: 2.2ch;
+  text-align: center;
+  border-radius: 3px;
+  font-weight: 700;
+  color: var(--bg-editor);
+}
+
+.logcat-msg {
+  flex: 1;
+  min-width: 0;
+}
+
+.logcat-level-badge.level-V {
+  background: var(--fg-faint);
+}
+.logcat-level-badge.level-D {
+  background: var(--info);
+}
+.logcat-level-badge.level-I {
+  background: var(--success);
+}
+.logcat-level-badge.level-W {
+  background: var(--warning);
+}
+.logcat-level-badge.level-E,
+.logcat-level-badge.level-A {
+  background: var(--danger);
+}
+
+.logcat-row.level-V .logcat-msg {
+  color: var(--fg-muted);
+}
+.logcat-row.level-D .logcat-msg {
+  color: var(--info);
+}
+.logcat-row.level-I .logcat-msg {
+  color: var(--fg);
+}
+.logcat-row.level-W .logcat-msg {
+  color: var(--warning);
+}
+.logcat-row.level-E .logcat-msg,
+.logcat-row.level-A .logcat-msg {
+  color: var(--danger);
+}
+.logcat-row.level-A {
+  font-weight: 600;
+}
+
+.logcat-link {
+  color: var(--info);
+  text-decoration: underline;
+  cursor: pointer;
+}

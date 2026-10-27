@@ -40,6 +40,7 @@ pub const SERVERS_RUNNING_PROJECT_CODE: &[&str] = &[
     "jdtls",
     "kotlin-language-server",
     "kotlin-lsp",
+    "metals",
     "csharp-ls",
 ];
 

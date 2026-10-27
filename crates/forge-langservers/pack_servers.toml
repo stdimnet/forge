@@ -2,7 +2,8 @@
 # Language Servers settings page (status, path, install hints) but never started from
 # here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP),
 # JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java),
-# KotlinForge kotlin-lsp or kotlin-language-server (Settings > Languages & Frameworks > Kotlin).
+# KotlinForge kotlin-lsp or kotlin-language-server (Settings > Languages & Frameworks > Kotlin),
+# JavaForge's Scala support Metals (Settings > Languages & Frameworks > Scala).
 
 [[language]]
 id = "php"
@@ -93,4 +94,25 @@ note = "Used when chosen in the Kotlin settings instead of kotlin-lsp."
 install = [
   { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
   { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
+]
+
+[[language]]
+id = "scala"
+name = "Scala"
+extensions = ["scala", "sc", "sbt"]
+
+[[server]]
+id = "metals"
+name = "Metals"
+group = "Scala"
+languages = ["scala"]
+command = "metals"
+plugin = "forge.scala"
+homepage = "https://scalameta.org/metals/"
+license = "Apache-2.0"
+note = "JavaForge installs the pinned version with Coursier (cs bootstrap) on request into Forge's data directory and starts it with the project JDK; Metals imports sbt builds through Bloop or sbt's BSP server."
+install = [
+  { tool = "coursier", command = ["cs", "install", "metals"] },
+  { tool = "brew", command = ["brew", "install", "coursier/formulas/coursier"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://get-coursier.io/docs/cli-installation" },
 ]

@@ -13,6 +13,27 @@ export function agent_parse_lines(request_json: string): string;
 export function agent_profiles(): string;
 
 /**
+ * `{ devices, avds }` (outputs of `adb devices -l` and `emulator -list-avds`) →
+ * `{ devices: Device[], avds: string[] }`.
+ */
+export function android_adb(request_json: string): string;
+
+/**
+ * `{ run: AppRun, windows? }` → `{ program, args }` (an Android App run).
+ */
+export function android_app_command(request_json: string): string;
+
+/**
+ * `{ text, query, mine?, sources?, ps?, limit? }` → `LogcatView` (`android_logcat_view`).
+ */
+export function android_logcat_view(request_json: string): string;
+
+/**
+ * `{ build, manifest? }` → `{ module: AndroidModule | null, launcher: string | null }`.
+ */
+export function android_module(request_json: string): string;
+
+/**
  * `{ text, line, files }` → `StepDefinition[]` (`behat_step_definitions`).
  */
 export function behat_step_definitions(request_json: string): string;
@@ -663,6 +684,16 @@ export function go_mod_parse(request_json: string): string;
  */
 export function go_module_command(request_json: string): string;
 
+/**
+ * `{ text }` (Groovy source) → `Runnable` (`groovy_runnable`).
+ */
+export function groovy_runnable(request_json: string): string;
+
+/**
+ * `{ run: ScriptRun, runner }` → `{ program, args, env }` (a Groovy Script run).
+ */
+export function groovy_script_command(request_json: string): string;
+
 export function hierarchy_call_view(request_json: string): string;
 
 export function hierarchy_method_view(request_json: string): string;
@@ -1297,6 +1328,23 @@ export function save_actions_file_types(_request_json: string): string;
 export function save_actions_plan(request_json: string): string;
 
 /**
+ * `{ configuration, program }` → `{ program, args, test? }`: an sbt Task, ScalaTest or MUnit
+ * configuration as the backend builds it.
+ */
+export function scala_command_line(request_json: string): string;
+
+/**
+ * `{ text }` (Scala source) → `MainObject[]` (`scala_main_objects`).
+ */
+export function scala_main_objects(request_json: string): string;
+
+/**
+ * `{ buildSbt, buildProperties?, pluginsSbt?, folder, syncOutput?, root }` → `SbtBuild`
+ * (`scala_sbt_model`, `scala_sbt_import`).
+ */
+export function scala_sbt_build(request_json: string): string;
+
+/**
  * `{ pattern }` → `ParseError | null`.
  */
 export function scopes_check(request_json: string): string;
@@ -1800,6 +1848,10 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly agent_parse_lines: (a: number, b: number, c: number) => void;
     readonly agent_profiles: (a: number) => void;
+    readonly android_adb: (a: number, b: number, c: number) => void;
+    readonly android_app_command: (a: number, b: number, c: number) => void;
+    readonly android_logcat_view: (a: number, b: number, c: number) => void;
+    readonly android_module: (a: number, b: number, c: number) => void;
     readonly behat_step_definitions: (a: number, b: number, c: number) => void;
     readonly bookmarks_apply: (a: number, b: number, c: number) => void;
     readonly bridge_version: (a: number) => void;
@@ -1927,6 +1979,8 @@ export interface InitOutput {
     readonly go_mod_completion_context: (a: number, b: number, c: number) => void;
     readonly go_mod_parse: (a: number, b: number, c: number) => void;
     readonly go_module_command: (a: number, b: number, c: number) => void;
+    readonly groovy_runnable: (a: number, b: number, c: number) => void;
+    readonly groovy_script_command: (a: number, b: number, c: number) => void;
     readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
@@ -2052,6 +2106,9 @@ export interface InitOutput {
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
     readonly save_actions_file_types: (a: number, b: number, c: number) => void;
     readonly save_actions_plan: (a: number, b: number, c: number) => void;
+    readonly scala_command_line: (a: number, b: number, c: number) => void;
+    readonly scala_main_objects: (a: number, b: number, c: number) => void;
+    readonly scala_sbt_build: (a: number, b: number, c: number) => void;
     readonly scopes_check: (a: number, b: number, c: number) => void;
     readonly scopes_composer_test_roots: (a: number, b: number, c: number) => void;
     readonly scopes_contains: (a: number, b: number, c: number) => void;

@@ -28,7 +28,9 @@ browser mode (WebAssembly) share it.
   Skip Tests; Application runs through Gradle (`forgeRun` of `GRADLE_RUN_INIT_SCRIPT`) and the
   sync command lines.
 - `model` is the Gradle / Maven tool window's model (`BuildModel`: projects, tasks, Maven
-  plugins and profiles, dependency trees): `static_model` from the build files,
+  plugins and profiles, dependency trees, source sets with their `java` / `groovy` / `kotlin` /
+  `scala` / `resources` folders: `conventional_source_sets` of the applied plugins, Gradle's
+  `sourceSets` after a sync): `static_model` from the build files,
   `GRADLE_INIT_SCRIPT` (`forgeModel` writes projects, tasks and resolved dependencies as JSON)
   with `parse_gradle_model`, `parse_maven_tree` for `mvn dependency:tree` (plain and `[INFO]`
   output) and `merge`.
@@ -54,7 +56,7 @@ browser mode (WebAssembly) share it.
 | `detect.rs` | `BuildTool`, `Module`, `BuildProject` (`module_of`, `module`, `minimal`) and `detect(folder, files, read, prefer)`. |
 | `dsl.rs` | `Script`, `Request`, `CentralData`, `request` and `complete`. |
 | `goals.rs` | `Goal { name, group, description }` and `goals(&BuildProject)`. |
-| `model.rs` | `BuildModel`, `ProjectModel`, `DependencyScope`, `DependencyNode`, `MavenPlugin`, `Profile`, `GRADLE_INIT_SCRIPT`, `parse_gradle_model`, `parse_maven_tree`, `maven_sync_model`, `maven_plugins`, `maven_profiles`, `profiles_argument`, `static_model`, `merge`, `task_names`. |
+| `model.rs` | `BuildModel`, `ProjectModel`, `DependencyScope`, `DependencyNode`, `MavenPlugin`, `Profile`, `GRADLE_INIT_SCRIPT`, `parse_gradle_model`, `parse_maven_tree`, `maven_sync_model`, `maven_plugins`, `maven_profiles`, `profiles_argument`, `static_model`, `merge`, `task_names`, `SourceSet`, `SourceDir`, `conventional_source_sets`, `source_dir_kind`. |
 | `net.rs` | `MavenCentral` (`search`, `versions`, `answer`, `versions_of`), `gradle_current`, `gradle_sha256` (feature `net`). |
 | `version.rs` | `compare`, `is_prerelease`, `latest`, `is_newer`, `update_for`. |
 | `wrapper.rs` | `GradleWrapper`, `parse_properties`, `distribution_url`, `update_properties`, `GradleRelease`, `parse_current`, `parse_sha256`, `Checksum` and `check`. |

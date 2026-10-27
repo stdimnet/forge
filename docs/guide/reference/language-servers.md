@@ -177,6 +177,12 @@ settings work.
 | [Kotlin LSP](https://github.com/Kotlin/kotlin-lsp) | `kotlin-lsp` | Kotlin | started by KotlinForge (`forge.kotlin`) | Install from Settings \| Languages & Frameworks \| Kotlin (download.jetbrains.com, pinned SHA-256)<br>`brew install JetBrains/utils/kotlin-lsp` | Apache-2.0 (the server build includes closed JetBrains components) | A pack server: KotlinForge starts `bin/intellij-server --stdio` with the project JDK as `JAVA_HOME` and pulls its diagnostics. See [KotlinForge](../user/kotlin.md). |
 | [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | started by KotlinForge when chosen | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT | A pack server, the alternative to kotlin-lsp. |
 
+### Scala
+
+| Server | Id | Languages | Command | Install | Licence | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| [Metals](https://scalameta.org/metals/) | `metals` | Scala | started by JavaForge's Scala plugin (`forge.scala`) | Install from Settings \| Languages & Frameworks \| Scala (your Coursier: `cs bootstrap`, pinned 1.5.3)<br>`cs install metals` | Apache-2.0 | A pack server: started with the project JDK as `JAVA_HOME`; it imports sbt builds (Bloop), so it does not start in Safe Mode. See [Groovy and Scala](../user/groovy-scala.md#metals). |
+
 ### C#
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
@@ -234,6 +240,7 @@ Languages the catalog detects in a project (the project scan reads up to
 | `csharp` | C# | `.cs`, `.csx` |  |
 | `ruby` | Ruby | `.rb`, `.rake`, `.gemspec`, `.ru`, `.erb` | `Gemfile`, `Rakefile`, `Guardfile` |
 | `kotlin` | Kotlin | `.kt`, `.kts` |  |
+| `scala` | Scala | `.scala`, `.sc`, `.sbt` |  |
 | `zig` | Zig | `.zig`, `.zon` |  |
 | `php` | PHP | `.php`, `.phtml` |  |
 | `php` | PHP | `.php`, `.phtml` |  |

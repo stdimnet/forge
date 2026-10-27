@@ -665,6 +665,39 @@ Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](../user/kotlin.
 | `kotlin.detekt.config` | path | `""` | user, project | detekt | Configuration file — Empty: config/detekt/detekt.yml when it exists. |
 | `kotlin.download.repository` | string | `https://repo1.maven.org/maven2` | user | Downloads | Maven repository for ktlint and detekt |
 
+### Languages & Frameworks | Groovy
+
+Page id `lang.groovy` (plugin `forge.groovy`). See [Groovy and Scala](../user/groovy-scala.md#running-scripts).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `groovy.sdk.path` | path | `""` | user | Groovy SDK | Groovy SDK — A Groovy installation, its bin folder or the groovy launcher. Empty: GROOVY_HOME, SDKMAN!'s current Groovy, else the PATH. |
+| `groovy.run.runner` | enum: `auto`, `groovy`, `gradle` | `auto` | user, project | Run | Run Groovy scripts with |
+
+### Languages & Frameworks | Scala
+
+Page id `lang.scala` (plugin `forge.scala`). See [Groovy and Scala](../user/groovy-scala.md#metals).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `scala.metals.path` | path | `""` | user | Language Server (Metals) | Metals — The metals launcher. Empty: the one Forge installed, else the PATH. |
+| `scala.metals.autoInstall` | enum: `ask`, `never` | `ask` | user | Language Server (Metals) | Install Metals — offer to install the pinned version with Coursier, or never ask. |
+| `scala.coursier.path` | path | `""` | user | Language Server (Metals) | Coursier (cs) — Empty: cs or coursier on the PATH. |
+| `scala.sbt.path` | path | `""` | user | sbt | sbt launcher — Empty: SDKMAN!'s current sbt, else the PATH. |
+| `scala.sbt.vmOptions` | string | `""` | user, project | sbt | VM parameters — JVM options of sbt (passed as -J options). |
+| `scala.sbt.importOnOpen` | bool | `false` | user, project | sbt | Reload the sbt project when it opens (trusted projects only). |
+
+### Languages & Frameworks | Android SDK
+
+Page id `lang.android` (plugin `forge.android`). See [Android](../user/android.md#the-android-sdk).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `android.sdk.path` | path | `""` | user | Android SDK | Android SDK location — Empty: ANDROID_HOME, ANDROID_SDK_ROOT, sdk.dir of local.properties, else the default folder. Forge does not download the SDK. |
+| `android.logcat.bufferSize` | int | `20000` | user | Logcat | Logcat cycle buffer size (entries) |
+| `android.logcat.defaultQuery` | string | `package:mine` | user | Logcat | Default filter |
+| `android.logcat.history` | int | `500` | user | Logcat | Recent entries on connect (`adb logcat -T`) |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.

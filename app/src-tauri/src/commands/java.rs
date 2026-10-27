@@ -53,8 +53,8 @@ pub const APPLICATION: &str = "java-application";
 pub const MAVEN: &str = "maven";
 pub const GRADLE: &str = "gradle";
 pub const REMOTE: &str = "jvm-remote-debug";
-/// Kotest (KotlinForge) runs through the same builds.
-const TEST_TYPES: [&str; 3] = ["junit", "testng", "kotest"];
+/// Kotest (KotlinForge) and Spock (Groovy) run through the same builds.
+const TEST_TYPES: [&str; 4] = ["junit", "testng", "kotest", "spock"];
 
 /// Detected JDKs (detection reads many folders: cached until a refresh).
 #[derive(Default)]

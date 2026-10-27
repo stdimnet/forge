@@ -1,0 +1,7 @@
+/* Scala (JavaForge): the sbt tool window reuses the build tree of the Gradle and Maven
+   windows (java.css); these are the Scala-specific bits. */
+.scala-path {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}

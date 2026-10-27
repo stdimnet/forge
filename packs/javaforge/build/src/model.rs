@@ -102,6 +102,123 @@ pub struct ProjectModel {
     pub plugins: Vec<MavenPlugin>,
     /// Dependencies the build file declares (before a sync, and for inspections).
     pub declared: Vec<Declared>,
+    /// Source sets and their folders: the conventions of the applied language plugins
+    /// before a sync, Gradle's `sourceSets` after it.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub source_sets: Vec<SourceSet>,
+}
+
+/// A source set (`main`, `test`) with its source and resource folders.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SourceSet {
+    pub name: String,
+    pub dirs: Vec<SourceDir>,
+}
+
+/// A folder of a source set, relative to its project's folder.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SourceDir {
+    pub path: String,
+    /// `java`, `kotlin`, `groovy`, `scala`, `resources` or `other`.
+    pub kind: String,
+}
+
+/// The kind of a source folder from its name (`src/test/groovy` → `groovy`).
+pub fn source_dir_kind(path: &str) -> &'static str {
+    match path
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+    {
+        "java" => "java",
+        "kotlin" => "kotlin",
+        "groovy" => "groovy",
+        "scala" => "scala",
+        "resources" => "resources",
+        _ => "other",
+    }
+}
+
+/// The text inside a Gradle build's `plugins { … }` block (empty without one).
+fn plugins_block(text: &str) -> &str {
+    let Some(start) = text.find("plugins {").or_else(|| text.find("plugins{")) else {
+        return "";
+    };
+    let body = &text[start..];
+    let open = body.find('{').map_or(0, |i| i + 1);
+    let mut depth = 1;
+    for (i, c) in body[open..].char_indices() {
+        match c {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return &body[open..open + i];
+                }
+            }
+            _ => {}
+        }
+    }
+    &body[open..]
+}
+
+/// The conventional source sets of a build file's language plugins: `java` for every JVM
+/// build, plus `groovy` (Gradle's `groovy` plugin, GMavenPlus), `kotlin` and `scala`.
+/// Android modules (`com.android.*`) have other conventions and get none.
+pub fn conventional_source_sets(text: &str, tool: BuildTool) -> Vec<SourceSet> {
+    if text.contains("com.android.") || text.contains("android.application") {
+        return Vec::new();
+    }
+    let gradle_plugin = |id: &str| {
+        text.contains(&format!("id(\"{id}\")"))
+            || text.contains(&format!("id '{id}'"))
+            || text.contains(&format!("id \"{id}\""))
+            || text.contains(&format!("apply plugin: '{id}'"))
+            || text.contains(&format!("apply plugin: \"{id}\""))
+            || plugins_block(text)
+                .split(|c: char| c.is_whitespace() || c == ';')
+                .any(|w| w == id || w == format!("`{id}`"))
+    };
+    let (groovy, kotlin, scala) = match tool {
+        BuildTool::Gradle => (
+            gradle_plugin("groovy") || gradle_plugin("groovy-gradle-plugin"),
+            text.contains("kotlin(\"jvm\")") || text.contains("org.jetbrains.kotlin.jvm"),
+            gradle_plugin("scala"),
+        ),
+        BuildTool::Maven => (
+            text.contains("gmavenplus-plugin"),
+            text.contains("kotlin-maven-plugin"),
+            text.contains("scala-maven-plugin"),
+        ),
+    };
+    ["main", "test"]
+        .iter()
+        .map(|set| {
+            let mut dirs = vec![SourceDir {
+                path: format!("src/{set}/java"),
+                kind: "java".into(),
+            }];
+            for (on, lang) in [(groovy, "groovy"), (kotlin, "kotlin"), (scala, "scala")] {
+                if on {
+                    dirs.push(SourceDir {
+                        path: format!("src/{set}/{lang}"),
+                        kind: lang.into(),
+                    });
+                }
+            }
+            dirs.push(SourceDir {
+                path: format!("src/{set}/resources"),
+                kind: "resources".into(),
+            });
+            SourceSet {
+                name: set.to_string(),
+                dirs,
+            }
+        })
+        .collect()
 }
 
 /// What the tool window shows.
@@ -165,6 +282,10 @@ gradle.rootProject { root ->
                  path: p.path,
                  dir: root.projectDir.toPath().relativize(p.projectDir.toPath()).toString().replace('\\', '/'),
                  tasks: p.tasks.collect { task -> [name: task.name, group: task.group ?: 'other', description: task.description ?: ''] },
+                 sourceSets: (p.extensions.findByName('sourceSets') ?: []).collect { s ->
+                     [name: s.name,
+                      dirs: (s.allSource.srcDirs as List).collect { d -> p.projectDir.toPath().relativize(d.toPath()).toString().replace('\\', '/') }]
+                 },
                  dependencies: forgeConfigurations.collect { n -> p.configurations.findByName(n) }
                      .findAll { it != null && it.canBeResolved }
                      .collect { c -> [name: c.name, description: c.description ?: '', dependencies: forgeDependencies(c)] }]
@@ -274,12 +395,41 @@ pub fn parse_gradle_model(json: &str) -> Result<BuildModel, String> {
                     .collect()
             })
             .unwrap_or_default();
+        let source_sets = p
+            .get("sourceSets")
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .map(|set| SourceSet {
+                        name: set
+                            .get("name")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .into(),
+                        dirs: set
+                            .get("dirs")
+                            .and_then(Value::as_array)
+                            .map(|d| {
+                                d.iter()
+                                    .filter_map(Value::as_str)
+                                    .map(|path| SourceDir {
+                                        kind: source_dir_kind(path).into(),
+                                        path: path.to_string(),
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
         out.push(ProjectModel {
             name: s("name"),
             path: s("path"),
             dir: s("dir"),
             tasks,
             dependencies,
+            source_sets,
             ..Default::default()
         });
     }
@@ -743,6 +893,7 @@ pub fn static_model(project: &BuildProject, read: &dyn Fn(&str) -> Option<String
                     .iter()
                     .find_map(|f| read(&file(f)).map(|t| (t, f.ends_with(".kts"))));
                 if let Some((t, kts)) = text {
+                    model.source_sets = conventional_source_sets(&t, BuildTool::Gradle);
                     model.declared = deps::declarations(
                         &t,
                         if kts {
@@ -759,6 +910,7 @@ pub fn static_model(project: &BuildProject, read: &dyn Fn(&str) -> Option<String
                         model.name = id;
                     }
                     model.plugins = maven_plugins(&pom);
+                    model.source_sets = conventional_source_sets(&pom, BuildTool::Maven);
                     model.declared = deps::declarations(&pom, deps::FileKind::Pom);
                     for p in maven_profiles(&pom) {
                         if !profiles.iter().any(|x| x.id == p.id) {
@@ -796,6 +948,9 @@ pub fn merge(mut base: BuildModel, synced: &BuildModel) -> BuildModel {
                 p.tasks = s.tasks.clone();
             }
             p.dependencies = s.dependencies.clone();
+            if !s.source_sets.is_empty() {
+                p.source_sets = s.source_sets.clone();
+            }
         }
     }
     if base.tool == BuildTool::Gradle {
@@ -1040,5 +1195,65 @@ mod tests {
         assert_eq!(merged.gradle_version.as_deref(), Some("8.10.2"));
         assert!(!merged.projects[1].dependencies.is_empty());
         assert_eq!(merged.projects[1].declared.len(), 1);
+    }
+
+    #[test]
+    fn groovy_source_sets_static_and_synced() {
+        let build = "plugins {\n    id 'groovy'\n    id 'application'\n}\ndependencies {\n    implementation 'org.apache.groovy:groovy:4.0.24'\n}\n";
+        let sets = conventional_source_sets(build, BuildTool::Gradle);
+        let main: Vec<(&str, &str)> = sets[0]
+            .dirs
+            .iter()
+            .map(|d| (d.path.as_str(), d.kind.as_str()))
+            .collect();
+        assert_eq!(
+            main,
+            [
+                ("src/main/java", "java"),
+                ("src/main/groovy", "groovy"),
+                ("src/main/resources", "resources")
+            ]
+        );
+        assert_eq!(sets[1].name, "test");
+        let kts = conventional_source_sets("plugins { groovy }", BuildTool::Gradle);
+        assert!(kts[1].dirs.iter().any(|d| d.path == "src/test/groovy"));
+        assert!(conventional_source_sets(
+            "plugins { id(\"com.android.application\") }",
+            BuildTool::Gradle
+        )
+        .is_empty());
+        let pom = "<plugin><artifactId>gmavenplus-plugin</artifactId></plugin>";
+        assert!(conventional_source_sets(pom, BuildTool::Maven)[0]
+            .dirs
+            .iter()
+            .any(|d| d.kind == "groovy"));
+
+        let synced =
+            parse_gradle_model(include_str!("../tests/fixtures/gradle-model-groovy.json")).unwrap();
+        let sets = &synced.projects[0].source_sets;
+        assert_eq!(sets.len(), 3);
+        assert_eq!(sets[2].name, "integrationTest");
+        assert_eq!(sets[2].dirs[0].kind, "groovy");
+        assert_eq!(source_dir_kind("src/main/resources"), "resources");
+        assert_eq!(source_dir_kind("src/main/proto"), "other");
+
+        let mut files = HashMap::new();
+        files.insert("build.gradle", build);
+        files.insert("settings.gradle", "rootProject.name = 'release-tools'");
+        let names: Vec<String> = files.keys().map(|k| k.to_string()).collect();
+        let project = detect(
+            "release-tools",
+            &names,
+            &|f| files.get(f).map(|s| s.to_string()),
+            None,
+        )
+        .unwrap();
+        let base = static_model(&project, &|f| files.get(f).map(|s| s.to_string()));
+        assert!(base.projects[0].source_sets[0]
+            .dirs
+            .iter()
+            .any(|d| d.kind == "groovy"));
+        let merged = merge(base, &synced);
+        assert_eq!(merged.projects[0].source_sets.len(), 3);
     }
 }

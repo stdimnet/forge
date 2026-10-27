@@ -36,6 +36,9 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
     r.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
+    r.register(Box::new(javaforge_lang_groovy::SpockTests));
+    r.register(Box::new(javaforge_lang_scala::ScalaTests::scalatest()));
+    r.register(Box::new(javaforge_lang_scala::ScalaTests::munit()));
     r
 }
 

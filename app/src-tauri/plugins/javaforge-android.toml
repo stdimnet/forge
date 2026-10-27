@@ -1,0 +1,65 @@
+# JavaForge: Android basics, in the style of Android Studio. The logic lives in
+# packs/javaforge/android (Gradle Android modules, manifests, the SDK location, adb and
+# emulator output, Android App runs, Logcat) and is wired up by
+# app/src-tauri/src/commands/android.rs. The Android SDK is the user's own installation:
+# Forge never downloads it.
+
+id = "forge.android"
+name = "Android"
+version = "0.1.0"
+pack = "javaforge"
+vendor = "Forge"
+depends = ["forge.java"]
+description = "Android with Gradle: Android modules and manifests, the Android SDK location, the Device Manager (adb devices, emulators), Android App run configurations (build, install, launch) and Logcat with filters and clickable stack traces."
+projectTypes = ["android"]
+
+[[contributions.commands]]
+id = "android.refreshDevices"
+title = "Refresh Android Devices"
+category = "Android"
+
+[[contributions.commands]]
+id = "android.clearLogcat"
+title = "Clear Logcat"
+category = "Android"
+
+# ---- Settings | Languages & Frameworks | Android SDK ------------------------------------
+
+[[contributions.settings]]
+key = "android.sdk.path"
+title = "Android SDK location"
+description = "Empty: ANDROID_HOME, ANDROID_SDK_ROOT, sdk.dir of local.properties, else the default folder (~/Android/Sdk, ~/Library/Android/sdk, %LOCALAPPDATA%\\Android\\Sdk). Forge does not download the SDK."
+type = "path"
+default = ""
+group = "lang.android"
+section = "Android SDK"
+order = 0
+
+[[contributions.settings]]
+key = "android.logcat.bufferSize"
+title = "Logcat cycle buffer size (entries)"
+type = "int"
+default = 20000
+group = "lang.android"
+section = "Logcat"
+order = 10
+
+[[contributions.settings]]
+key = "android.logcat.defaultQuery"
+title = "Default filter"
+description = "The query a new Logcat starts with, e.g. package:mine level:info."
+type = "string"
+default = "package:mine"
+group = "lang.android"
+section = "Logcat"
+order = 11
+
+[[contributions.settings]]
+key = "android.logcat.history"
+title = "Recent entries on connect"
+description = "How many existing entries Logcat reads when it starts (adb logcat -T)."
+type = "int"
+default = 500
+group = "lang.android"
+section = "Logcat"
+order = 12
