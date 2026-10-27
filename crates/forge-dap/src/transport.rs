@@ -2,6 +2,8 @@
 //! adapter that listens (started by Forge or already running, "Attach to DAP server"), or
 //! a TCP server Forge opens for an adapter that connects back.
 
+use std::hash::{BuildHasher, RandomState};
+use std::ops::{Range, RangeInclusive};
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 
@@ -121,9 +123,36 @@ fn from_tcp(stream: TcpStream, child: Option<Child>, peer: String) -> Connection
     }
 }
 
+/// Ports for adapters that Forge starts with `${port}`. They lie below the ephemeral port
+/// ranges (Linux 32768-60999, macOS and Windows 49152-65535): the system hands ephemeral
+/// ports to every program that binds port 0 or connects out, so on a busy machine a port
+/// Forge took from there can go to another program before the adapter binds it. The
+/// adapter then fails with "address in use" and Forge talks to that program instead.
+const ADAPTER_PORTS: Range<u16> = 20000..32768;
+
+/// A free port for an adapter Forge starts, outside the system's ephemeral range.
 async fn free_port() -> DapResult<u16> {
+    let ephemeral = ephemeral_ports();
+    let random = RandomState::new();
+    let span = u64::from(ADAPTER_PORTS.end - ADAPTER_PORTS.start);
+    for attempt in 0..64u32 {
+        let port = ADAPTER_PORTS.start + (random.hash_one(attempt) % span) as u16;
+        if ephemeral.as_ref().is_some_and(|r| r.contains(&port)) {
+            continue;
+        }
+        if let Ok(l) = TcpListener::bind(("127.0.0.1", port)).await {
+            return Ok(l.local_addr()?.port());
+        }
+    }
     let l = TcpListener::bind(("127.0.0.1", 0)).await?;
     Ok(l.local_addr()?.port())
+}
+
+/// The system's ephemeral port range, where it can be read (Linux).
+fn ephemeral_ports() -> Option<RangeInclusive<u16>> {
+    let text = std::fs::read_to_string("/proc/sys/net/ipv4/ip_local_port_range").ok()?;
+    let mut ports = text.split_whitespace().map(|p| p.parse::<u16>().ok());
+    Some(ports.next()??..=ports.next()??)
 }
 
 /// Open `transport`, waiting at most `timeout` for TCP adapters to come up.
@@ -164,15 +193,18 @@ pub async fn open(transport: &Transport, timeout: Duration) -> DapResult<Connect
             let addr = format!("{host}:{port}");
             let deadline = Instant::now() + timeout;
             loop {
-                match TcpStream::connect(&addr).await {
+                let connected = TcpStream::connect(&addr).await;
+                // An adapter that exited did not accept this connection: another program
+                // listens on the port.
+                if let Ok(Some(status)) = child.try_wait() {
+                    return Err(DapError::Other(format!(
+                        "The debug adapter '{}' exited ({status}) before it listened on {addr}",
+                        adapter.command
+                    )));
+                }
+                match connected {
                     Ok(stream) => return Ok(from_tcp(stream, Some(child), addr)),
                     Err(e) => {
-                        if let Ok(Some(status)) = child.try_wait() {
-                            return Err(DapError::Other(format!(
-                                "The debug adapter '{}' exited ({status}) before it listened on {addr}",
-                                adapter.command
-                            )));
-                        }
                         if Instant::now() >= deadline {
                             return Err(DapError::Other(format!(
                                 "The debug adapter does not listen on {addr}: {e}"
@@ -226,6 +258,15 @@ mod tests {
         };
         let err = open(&t, Duration::from_secs(1)).await.err().unwrap();
         assert!(err.to_string().contains("not installed"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn adapter_ports_avoid_the_ephemeral_range() {
+        let port = free_port().await.unwrap();
+        // Unless the system's ephemeral range was moved down over these ports.
+        if !matches!(ephemeral_ports(), Some(r) if r.contains(&ADAPTER_PORTS.start)) {
+            assert!(ADAPTER_PORTS.contains(&port), "{port}");
+        }
     }
 
     #[tokio::test]
