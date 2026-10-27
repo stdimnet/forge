@@ -6153,6 +6153,17 @@
           "order": 21
         },
         {
+          "key": "php.profiler.spxDataDir",
+          "title": "SPX data directory",
+          "description": "spx.data_dir of your php.ini, where Run | Profile with SPX reads the reports of local runs. Empty: Forge passes a temporary folder of its own (-dspx.data_dir) to each run.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.debug",
+          "section": "Profiler",
+          "project": false,
+          "order": 40
+        },
+        {
           "key": "php.debug.maxData",
           "title": "Max. string length",
           "description": "Bytes of string data fetched per value.",

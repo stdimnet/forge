@@ -60,6 +60,7 @@ pub mod php;
 pub mod php_interpreters;
 pub mod php_meta;
 pub mod php_quality_tools;
+pub mod profiler;
 pub mod project;
 pub mod project_state;
 pub mod project_structure;

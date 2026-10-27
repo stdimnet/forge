@@ -842,6 +842,7 @@ not finished, the page says so.
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 | [CForge (C and C++)](docs/guide/user/cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
 | [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md) | Sanitizers (ASan, UBSan, TSan, MSan, LSan) in CMake profiles with the Sanitizers tab, Run with Valgrind Memcheck, Profile with perf (flame graph), vcpkg and Conan 2 |
+| [Profiling PHP and Node.js](docs/guide/user/profiling.md) | Xdebug and SPX snapshots and V8 CPU / heap profiles in the Profiler: Execution Statistics with callers and callees, Call Tree, Flame Graph, the Memory view of heap snapshots, Profile with Xdebug, SPX and V8 |
 | [Embedded development](docs/guide/user/embedded.md) | PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB Server debugging, the SVD Peripherals view |
 | [Spring Boot and Jakarta EE](docs/guide/user/spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
@@ -10012,6 +10013,9 @@ SSH and WSL interpreters. See [PHP Quality Tools](docs/guide/user/php-quality-to
   Test History and auto-test. Where each framework comes from is set in **Settings | PHP |
   Test Frameworks**, see [PHP test frameworks](docs/guide/user/test-frameworks.md).
 - **PHP scratch files** run with the project's autoloader.
+- **Run | Profile with Xdebug** and **Profile with SPX** run a PHP configuration under a
+  profiler and open the snapshot in the Profiler tool window, see
+  [Profiling PHP and Node.js](docs/guide/user/profiling.md).
 
 See [Run/Debug configurations](docs/guide/user/run-debug.md), [Debugging](docs/guide/user/debugging.md) and
 [Scratches](docs/guide/user/scratches-and-http.md).
@@ -13222,6 +13226,157 @@ results of `shapes_app`, parsed by the same Rust code through WebAssembly. The d
 
 ---
 
+Source: docs/guide/user/profiling.md
+
+# Profiling PHP and Node.js
+
+Forge reads the snapshots of the common PHP and JavaScript profilers and shows them in the
+**Profiler** tool window, like PHPStorm's Xdebug snapshot view and the V8 CPU and memory
+profilers:
+
+| Source | Files | How to get one |
+| --- | --- | --- |
+| **Xdebug** | `cachegrind.out.*`, also gzip-compressed (`.gz`) | Run \| Profile with Xdebug, or Tools \| Analyze Xdebug Profiler Snapshot… |
+| **SPX** | php-spx full reports: `spx-full-*.json` and `spx-full-*.txt.gz` | Run \| Profile with SPX, or Tools \| Open Profiler Snapshot… |
+| **V8 CPU** | `.cpuprofile` (Node.js `--cpu-prof`, Chrome DevTools) | Run \| Profile with V8 |
+| **V8 Heap** | `.heapprofile` (`--heap-prof`) and `.heapsnapshot` (DevTools, `v8.writeHeapSnapshot()`) | Run \| Profile Allocations with V8, or Tools \| Open Profiler Snapshot… |
+
+The Xdebug and SPX sources appear in PHP projects, the V8 sources in JavaScript and
+TypeScript projects; any source also appears once it shows a snapshot. Every file is parsed in
+Rust (the `forge-profiler` crate); the snapshots of profiling runs are kept in Forge's cache
+folder (`<cache>/forge/profiler/`, the newest 20), never in the project. The **Recent
+Snapshots** button in the tool window's header reopens them, **Open Profiler Snapshot** opens
+a file.
+
+![Xdebug snapshot: Execution Statistics with the callers of a hot function](docs/screenshots/profiler-xdebug-statistics.png)
+
+## The views
+
+The toolbar shows the snapshot's name (hover it for the file, the command and the profiler
+version), the **metric** (Xdebug: Time and Memory; SPX: the metrics the report recorded,
+such as Wall time and ZE memory usage; V8 CPU: CPU time and Samples; heap profiles: Allocated
+bytes and Samples) and the total. The tabs:
+
+- **Execution Statistics**: one row per callable with its **Invocation Count** (samples for
+  V8 profiles), **Own Time** (the cost in the callable itself), **Time** (with everything it
+  called; recursive calls are counted once) and their share of the total. Click a heading to
+  sort, type in the filter to find a callable. Selecting a row shows its **Callees** and
+  **Callers** below, with the calls and the time spent through each of them; click one to
+  jump to it.
+- **Call Tree**: the call paths top down with total and own cost; branches below 0.2% of
+  the total are left out.
+- **Flame Graph**: the same tree with the root at the bottom; click a frame to zoom into it,
+  **Reset zoom** to go back.
+
+Double-click a callable of the project (shown in the accent color) to open its source at the
+function's line. Built-in functions (`php::…`), `vendor/` and `node_modules/` code are shown but
+not opened.
+
+![The Call Tree of an Xdebug snapshot](docs/screenshots/profiler-xdebug-call-tree.png)
+
+### What the numbers mean
+
+- **Xdebug** writes the cost of each call and the inclusive cost of every call it makes, so
+  the statistics, callers and callees are exact. The Call Tree is spread from them: a
+  callee's share under a caller is proportional to the cost of the calls between them, like
+  in KCachegrind. `Time_(10ns)` (Xdebug 3) and microseconds (Xdebug 2) are shown in
+  milliseconds; memory is the change of PHP's memory use, so it can be negative.
+- **SPX** records every call start and end with its metrics, so the call tree is exact. SPX
+  reports carry no file names, so SPX callables do not open sources.
+- **V8 CPU profiles** are sampled: Samples counts how often a function was on top of the
+  stack, Own Time is the time of those samples. `(program)`, `(idle)` and
+  `(garbage collector)` are V8's own time.
+
+## Profiling PHP with Xdebug
+
+**Run | Profile with Xdebug** runs the selected PHP configuration (PHP Script, PHPUnit, Pest,
+Artisan, Codeception, Behat, phpspec, Built-in Web Server) with Xdebug's profiler:
+
+```text
+XDEBUG_MODE=profile php -dxdebug.mode=profile -dxdebug.start_with_request=yes -dxdebug.output_dir=<folder> …
+```
+
+When the program exits, Forge opens the newest snapshot of the run in the Profiler.
+The folder is a temporary folder for local interpreters. For Docker, Docker Compose, SSH and
+WSL interpreters and "Run on" targets it is `.forge/test-reports/<run>-profile` in the
+project, which the interpreter reaches through its path mappings; the snapshot is read from
+there, its container paths are mapped back to the project's files, and the folder is
+deleted.
+
+Xdebug 3 has to be installed and loaded by the interpreter (see
+[PHP interpreters](docs/guide/user/php.md)). To analyze a snapshot written elsewhere (for example by a web
+server with `xdebug.mode=profile`), use **Tools | Analyze Xdebug Profiler Snapshot…** and
+pick the `cachegrind.out` file.
+
+## Profiling PHP with SPX
+
+**Run | Profile with SPX** runs the selected PHP configuration with
+[php-spx](https://github.com/NoiseByNorthwest/php-spx) full reports:
+`SPX_ENABLED=1 SPX_REPORT=full SPX_AUTO_START=1` and `-dspx.data_dir=<folder>`. The SPX
+extension has to be installed in the interpreter.
+
+If your `php.ini` sets `spx.data_dir` and you want the reports to stay there, enter the
+folder in Settings | Languages & Frameworks | PHP | Debug, section Profiler, **SPX data directory**
+(`php.profiler.spxDataDir`): local runs then read the newest report written there during the
+run. To open a report of a web request, pick its `spx-full-….json` (or the `.txt.gz` trace) in
+**Tools | Open Profiler Snapshot…**; the other file of the report is read from the same
+folder.
+
+## Profiling Node.js with V8
+
+**Run | Profile with V8** runs the selected Node.js or npm configuration with
+`--cpu-prof --cpu-prof-dir=<folder>` (npm scripts get it through `NODE_OPTIONS`) and opens the
+`.cpuprofile` when the program exits. **Run | Profile Allocations with V8** uses
+`--heap-prof` and opens the sampling heap profile: the Call Tree and Flame Graph then show
+where memory was allocated. The program has to exit normally (not be killed) for Node.js to
+write the profile. V8 profiling of npm scripts is for local runs.
+
+Locations of bundled or compiled code are mapped to their sources when the script has a
+source map: a `//# sourceMappingURL=` comment (a file or an inline `data:` URL) or a
+`<script>.js.map` file next to it.
+
+![A V8 CPU profile as a flame graph](docs/screenshots/profiler-v8-flame-graph.png)
+
+## Heap snapshots (Memory view)
+
+A `.heapsnapshot` (Chrome DevTools | Memory | Heap snapshot | Save, `node
+--heapsnapshot-signal=SIGUSR2`, or `require("v8").writeHeapSnapshot()`) opens in the
+**Memory** view of the V8 Heap source. The file is read as a stream, so large snapshots work.
+
+- **Summary**: the objects grouped by constructor (`Order`, `Map`) or kind (`(string)`,
+  `(array)`, `(closure)`, `(compiled code)`, `(system)`), with their **Count**, **Shallow
+  Size** (the objects themselves) and **Retained Size** (what would be freed with them,
+  computed from the dominator tree; objects inside an object of the same constructor are
+  counted once). Click a row to see its largest objects with their `@id`.
+- **Biggest Objects**: the objects that retain the most memory.
+
+Objects that are only reachable through weak references are left out; the toolbar shows how
+much memory they take ("unreachable").
+
+![The Summary of a V8 heap snapshot](docs/screenshots/profiler-v8-heap-summary.png)
+
+## Settings and actions
+
+| Action | Where | Notes |
+| --- | --- | --- |
+| Profile with Xdebug | Run menu (PHP projects) | `profiling.profileXdebug` |
+| Profile with SPX | Run menu (PHP projects) | `profiling.profileSpx` |
+| Profile with V8 | Run menu (JavaScript projects) | `profiling.profileV8` |
+| Profile Allocations with V8 | Run menu (JavaScript projects) | `profiling.profileV8Heap` |
+| Analyze Xdebug Profiler Snapshot… | Tools menu (PHP projects) | `profiling.analyzeXdebugSnapshot` |
+| Open Profiler Snapshot… | Tools menu | `profiling.openSnapshot` |
+| Profiler tool window | View \| Tool Windows | `ActivateProfilerToolWindow` |
+
+None of these actions has a default shortcut; assign one in Settings | Keymap. Profiling runs
+start programs of the project, so [Safe Mode](docs/guide/user/project-trust.md) refuses them in untrusted
+projects; opening snapshot files is always allowed.
+
+Python's cProfile ([Python](docs/guide/user/python.md)), Go's pprof ([Go](docs/guide/user/go.md)) and perf
+([C/C++ dynamic analysis](docs/guide/user/cpp-tools.md)) use the same Profiler tool window.
+
+
+---
+
 Source: docs/guide/user/embedded.md
 
 # Embedded development
@@ -16223,6 +16378,10 @@ debugger (see [Debugging](docs/guide/user/debugging.md)).
   well. Without js-debug (you declined the download, or the plugin is disabled), Debug of an
   npm script falls back to Node's inspector through `NODE_OPTIONS` (*Node options when
   debugging scripts*, default `--inspect`).
+
+**Run | Profile with V8** and **Profile Allocations with V8** run a Node.js or npm
+configuration with `--cpu-prof` / `--heap-prof` and open the profile in the Profiler tool
+window, see [Profiling PHP and Node.js](docs/guide/user/profiling.md).
 
 Launching a program runs project code and is refused in [Safe Mode](docs/guide/user/project-trust.md);
 attaching is not.
@@ -20477,6 +20636,7 @@ Page id `lang.php.debug`.
 | `php.debug.maxChildren` | int (1–10000) | `100` | user | Evaluation | Max. children — Array elements and object properties loaded per page. |
 | `php.debug.maxDepth` | int (1–16) | `1` | user | Evaluation | Max. depth — Nesting levels fetched at once; deeper levels load when expanded. |
 | `php.debug.maxData` | int (128–10485760) | `65536` | user | Evaluation | Max. string length — Bytes of string data fetched per value. |
+| `php.profiler.spxDataDir` | path | `""` | user | Profiler | SPX data directory — spx.data_dir of your php.ini, where Run \| Profile with SPX reads the reports of local runs. Empty: Forge passes a temporary folder of its own (-dspx.data_dir) to each run. |
 | `php.debug.validation.documentRoot` | string | `"public"` | user, project | Web Server Debug Validation | Path to create validation script — Project folder served by the web server (its document root), e.g. public. Run \| Web Server Debug Validation places a temporary script there and deletes it after the check. |
 | `php.debug.validation.url` | string | `"http://localhost:8080"` | user, project | Web Server Debug Validation | URL to validation script — The URL of that folder, e.g. http://localhost:8080. |
 
@@ -23944,6 +24104,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-ports](docs/guide/developer/crates/forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
+| [forge-profiler](docs/guide/developer/crates/forge-profiler.md) | Profiler snapshots: Xdebug cachegrind files, php-spx reports, V8 CPU profiles with source maps, sampling heap profiles and heap snapshots with retained sizes (pure, also built to WebAssembly) |
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](docs/guide/developer/crates/forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
@@ -27068,6 +27229,77 @@ pub use utf8::Utf8Decoder;
 
 ```sh
 cargo test -p forge-process
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-profiler.md
+
+# forge-profiler
+
+`crates/forge-profiler` — the data of the Profiler's Xdebug, SPX, V8 CPU and V8 Heap sources.
+See [Profiling PHP and Node.js](docs/guide/user/profiling.md) for the user side.
+
+## Purpose
+
+- `model`: the `Snapshot` every format becomes, for one metric: the metrics (sample types),
+  `FunctionStats` (calls, own and total cost; recursion counted once), `CallEdge`s
+  (caller → callee with calls and inclusive cost), and `goforge_pprof::ProfileView` for the
+  Call Tree and Flame Graph. Parsers fill a `Graph` (functions plus a call tree); formats
+  with real stacks derive the statistics from the tree, cachegrind brings its own.
+  `Snapshot::map_files` rewrites container paths to local ones.
+- `cachegrind`: the callgrind format Xdebug writes (gzip or plain): `fl=`/`fi=`/`fe=`,
+  `fn=`, `cfl=`/`cfn=`, `calls=` and the inclusive cost line after it, name compression
+  (`(id) name` / `(id)`), relative positions (`+n`, `-n`, `*`), `summary:`/`totals:`, and the
+  events `Time_(10ns)`, `Time` (Xdebug 2, µs) and `Memory_(bytes)`. Xdebug writes one block
+  per call; blocks of the same function are merged. The call tree is spread top-down from
+  the edges (a callee's share is proportional to the edge's cost, recursion skipped,
+  nodes below 0.05% folded, at most 64 levels and 50 000 nodes).
+- `spx`: php-spx full reports — the metadata (`enabled_metrics`, command line, request) and
+  the trace's `[events]` (`<function> <1|0> <cumulative metric values…>`) and `[functions]`
+  sections; exact call tree, own cost = inclusive minus the children's.
+- `v8`: `.cpuprofile` (nodes with `children` or `parent`, `samples` + `timeDeltas`, or
+  `hitCount` × interval for older profiles; metrics CPU time and Samples) and `.heapprofile`
+  (nested `head`, `selfSize`, samples; parsed without serde's recursion limit). Call frames
+  become functions by name, file (`file://` URLs decoded) and 1-based line, mapped through
+  source maps when a `MapResolver` finds one.
+- `sourcemap`: source map v3 (Base64 VLQ `mappings`, `sources`, `sourceRoot`, `names`,
+  `webpack://` sources), position lookup, and `for_script` to find a script's map
+  (`sourceMappingURL` file or inline `data:` URL, else `<script>.map`).
+- `heapsnapshot`: `.heapsnapshot` read from a stream straight into `u32` arrays (no JSON
+  tree), dominators over the strong edges (Cooper–Harvey–Kennedy on the DFS postorder),
+  retained sizes, the Summary by constructor (DevTools' class names: `(string)`, `(array)`,
+  `(closure)`, `(system)`, …; same-constructor nesting counted once), the 20 largest objects
+  per constructor and the 50 biggest objects; weak-only objects are reported as unreachable.
+- `demo`: the browser-mode demo snapshots, generated in the real file formats (cachegrind
+  text, SPX report, `.cpuprofile`, `.heapprofile`, `.heapsnapshot`) and read by the parsers.
+- `detect` and `open`: the format of a file from its name and first bytes, and one entry
+  point (`OpenOptions`: metric, SPX companion file, source maps).
+
+## Used by
+
+- IPC: `profiler_open`, `profiler_recent`, and `RunRequest.profiler` (Profile with Xdebug,
+  SPX and V8; the `profiler` run event) in `app/src-tauri/src/commands/profiler.rs`.
+- Browser mode: `crates/forge-wasm/src/profiler.rs` (`profiler_demo`, `profiler_parse`) for
+  `app/ui/src/mock/profilerMock.ts`.
+- UI: `app/ui/src/features/profiling/` (Execution Statistics, callers / callees, the Memory
+  view) with the shared views of `app/ui/src/features/profiler/callTree.tsx`.
+
+## Dependencies
+
+- Internal: [goforge-pprof](docs/guide/developer/crates/goforge-pprof.md) (`ProfileView` and its call tree)
+- External: `serde`, `serde_json` (`unbounded_depth`), `flate2`, `base64` (MIT / Apache-2.0)
+
+## Tests
+
+`tests/fixtures/` holds small files of every format: an Xdebug 3 cachegrind file with name
+compression, two-call merging and recursion, an SPX report (metadata and `.txt.gz` trace),
+a `.cpuprofile` and a `.heapprofile` recorded with Node.js 22, and a hand-made
+`.heapsnapshot` with Node.js 22's `meta` whose retained sizes are checked object by object.
+
+```sh
+cargo test -p forge-profiler
 ```
 
 

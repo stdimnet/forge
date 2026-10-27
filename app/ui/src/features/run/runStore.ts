@@ -56,7 +56,7 @@ interface SessionData {
   tests?: TestTreeState;
   exited?: (code: number | null) => void;
   unlisten?: () => void;
-  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort" | "profile" | "nativeTool">;
+  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort" | "profile" | "nativeTool" | "profiler">;
   /** Data of result panels (`registerRunPanel`), by panel id. */
   panels?: Record<string, unknown>;
   /** Rerun of a tab without a process. */
@@ -206,6 +206,10 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       if ("error" in e && e.error) writeError(id, `${e.type === "perf" ? "perf" : "Valgrind"}: ${e.error}`);
       eventListeners.forEach((l) => l(s, e));
       break;
+    case "profiler":
+      if (e.error) writeError(id, `Profiler: ${e.error}`);
+      eventListeners.forEach((l) => l(s, e));
+      break;
     case "exited": {
       if (d.tests) publishTestResults(d.tests.root);
       setState("sessions", (x) => x.id === id, { status: "finished", exitCode: e.code ?? (e.signal ? 128 + e.signal : null), endedAt: Date.now() });
@@ -230,6 +234,7 @@ function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["e
     debugPort: extra?.debugPort,
     profile: extra?.profile || undefined,
     nativeTool: extra?.nativeTool,
+    profiler: extra?.profiler,
     runOn: cfg.runOn?.kind && cfg.runOn.kind !== "local" ? cfg.runOn : undefined,
   };
   if (type?.buildCommand) {

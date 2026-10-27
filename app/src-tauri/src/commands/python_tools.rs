@@ -221,6 +221,7 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
             }),
             profile: None,
             native: None,
+            profiler: None,
         };
         cmd
     };
