@@ -71,6 +71,7 @@ import "./scala";
 import "./android";
 // After JavaForge: CForge wraps its Build Project (Ctrl+F9).
 import "./cpp";
+import "./dotnet";
 import "./services";
 import "./remote";
 import "./devenv";

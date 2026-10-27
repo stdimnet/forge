@@ -19,6 +19,8 @@ import { isLuaDemo, luaDemoName } from "./demoLuaProject";
 import { isDjangoDemo, isPythonDemo, pythonDemoName } from "./demoPythonProject";
 import { goDemoName, isGoDemo } from "./demoGoProject";
 import { cppDemoName, isCppDemo } from "./demoCppProject";
+import { dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
+import { DOTNET_ROOT, dotnetCommandSteps, dotnetContext, dotnetRunSteps } from "./dotnetTestsMock";
 import { goContext } from "./goTestsMock";
 import { isRustDemo, rustDemoName } from "./demoRustProject";
 import { cargoRunSteps, RUST_ROOT, rustContext } from "./rustTestsMock";
@@ -33,7 +35,7 @@ import { addMockCoverage, demoClover, demoPhpunitXml, demoReportFor } from "./co
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isCppDemo() ? cppDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isCppDemo() ? cppDemoName : isDotnetDemo() ? dotnetDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -234,6 +236,10 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
   if (specFor(cfg.type)) {
     const c = await frameworkCommand(cfg, coverage);
     return { program: c.program, args: c.args, cwd: cfg.workingDirectory || "", env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
+  }
+  if (cfg.type === "dotnet") {
+    const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).dotnet_run_command, { configuration: cfg, context: await dotnetContext(mockFiles) });
+    return { ...c, cwd: c.cwd ? `${DOTNET_ROOT}/${c.cwd}` : DOTNET_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
   if (cfg.type === "cargo") {
     const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).rust_command_line, { configuration: cfg, context: rustContext() });
@@ -606,6 +612,10 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       return pythonSteps(cfg);
     case "cargo":
       return cargoRunSteps(cfg);
+    case "dotnet":
+      return dotnetRunSteps(cfg);
+    case "dotnet-command":
+      return dotnetCommandSteps((JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? []);
     case "cargo-command": {
       // Cargo tool window actions: `cargo build`, `check`, `clean`, `update`, `run`.
       const args = (JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? [];

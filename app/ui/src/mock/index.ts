@@ -78,6 +78,7 @@ import "./luaMock";
 import "./pythonMock";
 import "./goMock";
 import "./rustMock";
+import "./dotnetMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";
 import "./pythonDebugMock";
