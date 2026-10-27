@@ -14,9 +14,12 @@
 //! - [`value`]: the value editor: JSON and XML formatting with validation, hex dumps,
 //!   image detection, enum values and date parsing.
 //!
+//! [`api`] holds the requests of the IPC commands, shared with the WebAssembly bridge.
+//!
 //! Cell values use the JSON conventions of `forge_sql::value`.
 
 pub mod aggregate;
+pub mod api;
 pub mod chart;
 pub mod compare;
 pub mod dml;
@@ -31,7 +34,7 @@ pub use compare::{compare, DataDiff, DataSet, DiffRow, RowStatus};
 pub use dml::{choose_key, preview, KeyChoice, UniqueKey};
 pub use local::{local_view, LocalView};
 pub use nav::{referenced_row, referencing_rows, FkRef, Navigation};
-pub use query::{check_where, ColumnFilter, FilterOp, SortKey, TableQuery};
+pub use query::{check_where, ColumnFilter, FilterOp, SortKey, TableQuery, TableSql};
 
 use std::cmp::Ordering;
 

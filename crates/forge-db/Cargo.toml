@@ -1,6 +1,6 @@
 [package]
 name = "forge-db"
-description = "Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions and data editing"
+description = "Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions and the data editor"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,7 @@ license.workspace = true
 forge-core.workspace = true
 forge-sql.workspace = true
 forge-dbmodel.workspace = true
+forge-dataedit.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

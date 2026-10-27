@@ -53,8 +53,9 @@ pub use introspect::{
     SchemaName, SequenceInfo, TableInfo, TableKind, TriggerInfo, TypeInfo,
 };
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
+pub use forge_dataedit as dataedit;
 pub use service::{
-    ApplyResult, DataSourceInfo, DbService, QueryPage, SearchProgress, SearchRequest, SearchScope,
+    row_key, ApplyResult, ChangePreview, ColumnFilter, FilterOp, DataSourceInfo, DbService, QueryPage, SearchProgress, SearchRequest, SearchScope,
     SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey, StatementResult,
     TableDataRequest, TableMatches, TestResult,
 };

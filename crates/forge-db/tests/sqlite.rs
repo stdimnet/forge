@@ -318,6 +318,7 @@ async fn table_data_filters_sorts_and_counts() {
             column: "balance".into(),
             desc: true,
         }],
+        column_filters: vec![],
         offset: 0,
         limit: Some(1),
     };
@@ -383,7 +384,7 @@ async fn applies_row_changes_in_one_transaction() {
     ];
     let res = f
         .svc
-        .apply_changes(&f.id, "main", "users", &changes)
+        .apply_changes(&f.id, "main", "users", &changes, false)
         .await
         .unwrap();
     assert_eq!(res.statements.len(), 3);
@@ -421,7 +422,7 @@ async fn applies_row_changes_in_one_transaction() {
     ];
     assert!(f
         .svc
-        .apply_changes(&f.id, "main", "users", &bad)
+        .apply_changes(&f.id, "main", "users", &bad, false)
         .await
         .is_err());
     let name = f
@@ -447,6 +448,7 @@ async fn applies_row_changes_in_one_transaction() {
                 key: map(&[("message", json!("created"))]),
                 values: map(&[("message", json!("x"))]),
             }],
+            false,
         )
         .await
         .unwrap_err();
@@ -577,4 +579,177 @@ async fn read_only_and_production_data_sources() {
         scalar(&f.svc, &s.id, "SELECT COUNT(*) FROM audit_log").await,
         json!(0)
     );
+}
+
+#[tokio::test]
+async fn data_editor_filters_navigates_and_edits_by_unique_key() {
+    use forge_db::dataedit::{nav, ColumnFilter};
+    let f = fixture().await;
+    let s = f.svc.open_session(&f.id).await.unwrap();
+    let res = f
+        .svc
+        .execute(
+            &s.id,
+            "CREATE TABLE tags (code TEXT NOT NULL UNIQUE, label TEXT, weight INTEGER DEFAULT 1);
+             INSERT INTO tags (code, label) VALUES ('a', 'Alpha'), ('b', NULL);",
+            None,
+        )
+        .await
+        .unwrap();
+    assert!(res.iter().all(|r| r.error.is_none()), "{res:?}");
+
+    // "Filter by value" and the typed condition combine; NULL means IS NULL.
+    let page = f
+        .svc
+        .table_data(
+            &f.id,
+            &TableDataRequest {
+                schema: "main".into(),
+                table: "tags".into(),
+                filter: Some("weight = 1".into()),
+                column_filters: vec![ColumnFilter::eq("label", Value::Null)],
+                order: vec![],
+                offset: 0,
+                limit: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(page.rows, vec![vec![json!("b"), Value::Null, json!(1)]]);
+    assert_eq!(
+        page.sql,
+        "SELECT * FROM \"tags\" WHERE (weight = 1) AND \"label\" IS NULL"
+    );
+    // A filter that writes is refused before it reaches the database.
+    let err = f
+        .svc
+        .table_data(
+            &f.id,
+            &TableDataRequest {
+                schema: "main".into(),
+                table: "tags".into(),
+                filter: Some("1=1; DELETE FROM tags".into()),
+                column_filters: vec![],
+                order: vec![],
+                offset: 0,
+                limit: None,
+            },
+        )
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("one condition"), "{err}");
+
+    // Foreign-key navigation: order 3 → its user, and Grace's orders.
+    let info = f.svc.table_info(&f.id, "main", "orders").await.unwrap();
+    let fk = serde_json::from_value::<nav::FkRef>(serde_json::to_value(&info.foreign_keys[0]).unwrap())
+        .unwrap();
+    let to_user = nav::referenced_row(
+        forge_db::Dialect::Sqlite,
+        "main",
+        "orders",
+        &fk,
+        &["id".into(), "user_id".into()],
+        &[json!(3), json!(3)],
+    )
+    .unwrap();
+    let users = f
+        .svc
+        .table_data(
+            &f.id,
+            &TableDataRequest {
+                schema: to_user.schema.clone(),
+                table: to_user.table.clone(),
+                filter: None,
+                column_filters: to_user.filters.clone(),
+                order: vec![],
+                offset: 0,
+                limit: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(users.rows.len(), 1);
+    assert_eq!(users.rows[0][1], json!("Grace Hopper"));
+    let back = nav::referencing_rows(
+        forge_db::Dialect::Sqlite,
+        "main",
+        "orders",
+        &fk,
+        &["id".into(), "name".into()],
+        &[json!(1), json!("Ada Lovelace")],
+    )
+    .unwrap();
+    let orders = f
+        .svc
+        .table_data(
+            &f.id,
+            &TableDataRequest {
+                schema: "main".into(),
+                table: back.table.clone(),
+                filter: Some(back.filter.clone()),
+                column_filters: vec![],
+                order: vec![SortKey {
+                    column: "id".into(),
+                    desc: false,
+                }],
+                offset: 0,
+                limit: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(orders.rows.len(), 2);
+
+    // No primary key, but a NOT NULL unique key identifies the rows.
+    let change = RowChange {
+        kind: ChangeKind::Update,
+        key: map(&[("code", json!("b"))]),
+        values: map(&[("label", json!("Beta"))]),
+    };
+    let preview = f
+        .svc
+        .preview_changes(&f.id, "main", "tags", std::slice::from_ref(&change))
+        .await
+        .unwrap();
+    assert_eq!(
+        preview.statements,
+        vec!["UPDATE \"tags\" SET \"label\" = 'Beta' WHERE \"code\" = 'b'"]
+    );
+    assert!(preview.key.unwrap().source.starts_with("unique key"));
+    assert!(preview.blocked.is_none() && preview.confirm.is_none());
+    let res = f
+        .svc
+        .apply_changes(&f.id, "main", "tags", &[change], false)
+        .await
+        .unwrap();
+    assert_eq!(res.rows_affected, 1);
+}
+
+#[tokio::test]
+async fn production_writes_need_confirmation() {
+    let f = fixture().await;
+    let mut ds = f.svc.get(&f.id).unwrap();
+    ds.options.color = Some("red".into());
+    f.svc.save(ds, None).await.unwrap();
+    let change = RowChange {
+        kind: ChangeKind::Update,
+        key: map(&[("id", json!(1))]),
+        values: map(&[("name", json!("Ada"))]),
+    };
+    let preview = f
+        .svc
+        .preview_changes(&f.id, "main", "users", std::slice::from_ref(&change))
+        .await
+        .unwrap();
+    assert!(preview.confirm.unwrap().contains("production"));
+    let err = f
+        .svc
+        .apply_changes(&f.id, "main", "users", std::slice::from_ref(&change), false)
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("confirm"), "{err}");
+    f.svc
+        .apply_changes(&f.id, "main", "users", &[change], true)
+        .await
+        .unwrap();
 }

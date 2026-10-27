@@ -16,6 +16,7 @@ pub mod composer;
 pub mod cpp;
 pub mod cpp_tools;
 pub mod dap;
+pub mod dataedit;
 pub mod db;
 pub mod debug;
 pub mod deployment;

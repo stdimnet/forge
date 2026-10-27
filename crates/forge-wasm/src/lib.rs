@@ -28,6 +28,7 @@ mod colorscheme;
 mod compare;
 mod composer;
 mod containers;
+mod dataedit;
 mod cpp;
 mod cpp_tools;
 mod deploy;
