@@ -10184,13 +10184,6 @@
       "keybindings": [],
       "toolWindows": [
         {
-          "id": "endpoints",
-          "title": "Endpoints",
-          "anchor": "bottom",
-          "icon": "globe",
-          "order": 36
-        },
-        {
           "id": "spring",
           "title": "Spring",
           "anchor": "right",
