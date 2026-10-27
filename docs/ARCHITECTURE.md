@@ -2258,6 +2258,31 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
   `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
 
+- Web frameworks (`packs/pyforge/frameworks`, plugins `forge.python-web`, `forge.django`,
+  `forge.flask`, `forge.fastapi`, `forge.celery`; IPC `commands/python_web.rs`,
+  `src/ipc/pythonWeb.ts`, UI `features/pythonWeb/`): `forge-project` reports the frameworks
+  `django` (with `manage.py`), `flask`, `fastapi`, `celery` from the dependency files. The
+  crate scans Python into tokens and logical lines (`source`), follows imports (`modules`) and
+  builds a `Project` from the files (`EXTENSIONS`, one `collect_files` round trip, cached 5 s
+  in the app): settings, URL patterns through `include()`, Flask / FastAPI routes with blueprint
+  and router prefixes, models, Celery tasks, template folders and names.
+  `python_web_project({ refresh }) -> WebProject { frameworks, django?, flask?, fastapi?,
+  celery?, routes: { framework, methods, path, name?, handler, location, handlerLocation?,
+  samplePath }[], models, tasks, templateRoots, templates }`,
+  `python_web_goto({ path, content, offset }) -> { path, line, character }[]`,
+  `python_web_complete({ path, content, offset }) -> { from, to, items: { label, kind:
+  template | url, detail }[] } | null`, `python_web_marks({ path, content }) -> { gutter:
+  { line, kind: template | route | view | task, tooltip, targets }[], problems }` (offsets
+  UTF-16), `python_manage_commands({ refresh }) -> { commands: { name, app, description,
+  location? }[], source: manage.py | static, message? }` (`manage.py help --commands` only
+  when trusted, else static), `python_web_run_info({ configuration }) -> PythonRun`.
+  `run::build` turns `django-server`, `django-manage`, `flask-server`, `fastapi`,
+  `celery-worker`, `celery-beat` into `python` configurations (`python_web::to_python`, the
+  server port is published for container interpreters); `django-tests` is a
+  `pyforge-testing` type (`helpers/forge_django_tests.py` on Django's `DiscoverRunner`, or
+  pytest-django). The browser mock (`mock/pythonWebMock.ts`) calls the same functions through
+  `crates/forge-wasm/src/python_web.rs`; `?project=django` opens the Django demo.
+
 ## GoForge (`packs/goforge/*`)
 
 - Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):

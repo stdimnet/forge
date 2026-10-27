@@ -660,6 +660,27 @@ Page id `lang.python`.
 | `python.inspections.imports` | bool | `true` | user | Inspections | Report imports of packages missing from the requirements — With the quick fix "Add requirement" to requirements.txt or pyproject.toml. |
 | `python.inspections.ignoredPackages` | list | `[]` | user, project | Inspections | Ignored packages — Packages the requirements inspections do not report. |
 
+### Languages & Frameworks | Python | Django
+
+Page id `lang.django`. See [Django, Flask, FastAPI and Celery](../user/python-web-frameworks.md).
+
+| Key | Type | Default | Scope | Section | Description |
+| --- | --- | --- | --- | --- | --- |
+| `django.settingsModule` | string | `""` | user, project | Project | Settings module — DJANGO_SETTINGS_MODULE, for example mysite.settings. Empty: read from manage.py. |
+| `django.manageScript` | path | `""` | user, project | Project | Manage script — The project's manage.py, relative to the project. Empty: the manage.py found in the project. |
+| `django.manageCommandsFromProject` | bool | `true` | user | manage.py | Read manage.py commands from the project — Run manage.py help --commands (trusted projects only) so the project's and third-party commands are completed. |
+| `django.testRunner` | enum: `django`, `pytest` | `django` | user, project | Tests | Test runner of new Django tests configurations. |
+
+### Languages & Frameworks | Python | Flask, FastAPI and Celery
+
+Page ids `lang.flask`, `lang.fastapi` and `lang.celery`.
+
+| Key | Type | Default | Scope | Section | Description |
+| --- | --- | --- | --- | --- | --- |
+| `flask.app` | string | `""` | user, project |  | Application (FLASK_APP) — For example app or blog:create_app(). Empty: the module that creates Flask(...). |
+| `fastapi.app` | string | `""` | user, project |  | Application — module:attribute that uvicorn serves. Empty: the module that creates FastAPI(...). |
+| `celery.app` | string | `""` | user, project |  | Application (-A) — The Celery application. Empty: the module that creates Celery(...). |
+
 ### Languages & Frameworks | Go
 
 Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
