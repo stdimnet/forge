@@ -324,7 +324,11 @@ impl Converter {
             .iter()
             .find(|c| c.name == "failure" || c.name == "error");
         let skipped = case.children.iter().find(|c| c.name == "skipped");
-        if (skipped.is_some() || matches!(status, "skipped" | "pending")) && problem.is_none() {
+        // GoogleTest marks disabled tests `status="notrun"` (`result="suppressed"`), CTest
+        // tests that did not run `status="notrun"` or `"disabled"`.
+        let not_run = matches!(status, "skipped" | "pending" | "notrun" | "disabled")
+            || matches!(case.attr("result"), Some("skipped" | "suppressed"));
+        if (skipped.is_some() || not_run) && problem.is_none() {
             let message = skipped
                 .and_then(|s| {
                     s.attr_nonempty("message")

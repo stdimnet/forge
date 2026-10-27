@@ -43,6 +43,28 @@ pub struct CoverageRequest {
     /// `location_rules`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub location_rules: Vec<LocationRule>,
+    /// Raw coverage data that a pack's collector turns into `file` after the run (CForge:
+    /// gcov's `.gcda` files or LLVM's `.profraw` profiles become LCOV); `None`: the test
+    /// tool writes the report itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collect: Option<CoverageCollect>,
+}
+
+/// What a coverage collector needs after the run.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoverageCollect {
+    /// The collector (`cpp`).
+    pub kind: String,
+    /// Folders with raw data (the build folder with `.gcda` files), absolute.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dirs: Vec<String>,
+    /// The programs that ran (llvm-cov reads their coverage mapping), absolute.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub binaries: Vec<String>,
+    /// Tools by name (`gcov`, `llvm-profdata`, `llvm-cov`) → executable.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub tools: BTreeMap<String, String>,
 }
 
 /// A test run's command line and how its results are read.
