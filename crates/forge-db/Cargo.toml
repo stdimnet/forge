@@ -1,6 +1,6 @@
 [package]
 name = "forge-db"
-description = "Forge IDE database tools: data sources, introspection, query execution and data editing"
+description = "Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions and data editing"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -16,10 +16,25 @@ dirs.workspace = true
 tracing.workspace = true
 tokio.workspace = true
 futures-util = "0.3"
-tokio-util = "0.7"
+tokio-util = { version = "0.7", features = ["compat"] }
 hex = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+forge-remote.workspace = true
+# SQL Server: pure-Rust TDS (MIT OR Apache-2.0) over rustls.
+tiberius = { version = "0.13", default-features = false, features = ["tds73", "rustls", "chrono"] }
+# Redis (BSD-3-Clause).
+redis = { version = "1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-insecure"] }
+# MongoDB: the official driver (Apache-2.0) with rustls.
+bson = { version = "3", features = ["serde_json-1"] }
+mongodb = { version = "3", default-features = false, features = ["compat-3-3-0", "bson-3", "rustls-tls", "dns-resolver", "cert-key-password"] }
+# ClickHouse: HTTP interface with JSON formats.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+# Encrypted PKCS#8 client keys, decrypted in memory with the passphrase from the keychain.
+pkcs8 = { version = "0.10", features = ["pem", "encryption", "std"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "mysql", "postgres", "sqlite", "chrono", "bigdecimal", "uuid", "json"] }
 
 [dev-dependencies]
 tempfile.workspace = true
+russh = { version = "0.64", default-features = false, features = ["ring"] }

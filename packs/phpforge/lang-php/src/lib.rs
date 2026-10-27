@@ -25,6 +25,7 @@ pub mod cleanup;
 pub mod complete;
 pub mod composer;
 pub mod create;
+pub mod dataflow;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;

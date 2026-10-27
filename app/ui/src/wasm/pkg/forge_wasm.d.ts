@@ -809,6 +809,88 @@ export function injections_languages(): string;
 export function injections_rules(): string;
 
 /**
+ * `{ path, source, text?, diagnostics }` → the diagnostics the profile keeps, with their
+ * severity and `inspection` / `inspectionName` / `severityName` set; suppression comments
+ * in `text` hide theirs. Without a configured profile everything is kept.
+ */
+export function inspections_apply(request_json: string): string;
+
+/**
+ * `{ text, edits }` → the text with the edits applied (browser mode's Apply Fix).
+ */
+export function inspections_apply_edits(request_json: string): string;
+
+/**
+ * `{ registry, problems, texts }` → `CleanupPlan` (browser mode's Code Cleanup).
+ */
+export function inspections_cleanup_plan(request_json: string): string;
+
+/**
+ * `{ registry, profile, severities, scopes, context }`: the profile the editor's
+ * diagnostics go through from now on → `true`.
+ */
+export function inspections_configure(request_json: string): string;
+
+/**
+ * `{ registry, profile, format }` → the profile as PHPStorm XML or JSON.
+ */
+export function inspections_export_profile(request_json: string): string;
+
+/**
+ * `{ report, format: "html" | "xml" | "json" }` → the exported text.
+ */
+export function inspections_export_report(request_json: string): string;
+
+/**
+ * `{ registry, query, limit }` → matching `InspectionSpec`s (Run Inspection by Name).
+ */
+export function inspections_find(request_json: string): string;
+
+/**
+ * `{ registry, text }` → `Profile` (XML or JSON).
+ */
+export function inspections_import_profile(request_json: string): string;
+
+/**
+ * `{ registry, state, op }` → the changed `ProfilesState` (or `{ error }`).
+ */
+export function inspections_profile_op(request_json: string): string;
+
+/**
+ * `{ inspections, mappings }` (contributions of the enabled plugins) → `Registry` with the
+ * framework's own inspections.
+ */
+export function inspections_registry(request_json: string): string;
+
+/**
+ * `{ report, levels }` → `ResultNode[]` (Inspection Results tree).
+ */
+export function inspections_report_tree(request_json: string): string;
+
+/**
+ * Browser mode's Inspect Code: `{ registry, profiles, profile?, files, problems, scopes,
+ * context, only?, scope }` → `Report` (duplicated code is found here; `problems` are the
+ * other providers' results).
+ */
+export function inspections_run(request_json: string): string;
+
+/**
+ * `{ custom }` → every severity (built-in, then custom).
+ */
+export function inspections_severities(request_json: string): string;
+
+/**
+ * `{ path, text, line, character, id, bytes? }` → `SuppressAction[]` (changes in UTF-16
+ * offsets for the editor, in bytes with `bytes: true` for the backend).
+ */
+export function inspections_suppress_actions(request_json: string): string;
+
+/**
+ * `{ registry, profile, query }` → `ViewGroup` (the Settings tree with the profile's state).
+ */
+export function inspections_view(request_json: string): string;
+
+/**
  * `{ path, text, offset, data }` → `CompletionOut | null` (`java_build_complete`).
  */
 export function java_build_complete(request_json: string): string;
@@ -1625,6 +1707,11 @@ export function sql_change_statements(request_json: string): string;
 export function sql_export(request_json: string): string;
 
 /**
+ * Mirrors `db_guard`: `{ sql, dialect, readOnly, production, name }` → `{ blocked?, confirm? }`.
+ */
+export function sql_guard(request_json: string): string;
+
+/**
  * `{ statements: string[] }` → their leading keywords, upper-cased.
  */
 export function sql_leading_keywords(request_json: string): string;
@@ -2093,6 +2180,21 @@ export interface InitOutput {
     readonly injections_inject: (a: number, b: number, c: number) => void;
     readonly injections_languages: (a: number) => void;
     readonly injections_rules: (a: number) => void;
+    readonly inspections_apply: (a: number, b: number, c: number) => void;
+    readonly inspections_apply_edits: (a: number, b: number, c: number) => void;
+    readonly inspections_cleanup_plan: (a: number, b: number, c: number) => void;
+    readonly inspections_configure: (a: number, b: number, c: number) => void;
+    readonly inspections_export_profile: (a: number, b: number, c: number) => void;
+    readonly inspections_export_report: (a: number, b: number, c: number) => void;
+    readonly inspections_find: (a: number, b: number, c: number) => void;
+    readonly inspections_import_profile: (a: number, b: number, c: number) => void;
+    readonly inspections_profile_op: (a: number, b: number, c: number) => void;
+    readonly inspections_registry: (a: number, b: number, c: number) => void;
+    readonly inspections_report_tree: (a: number, b: number, c: number) => void;
+    readonly inspections_run: (a: number, b: number, c: number) => void;
+    readonly inspections_severities: (a: number, b: number, c: number) => void;
+    readonly inspections_suppress_actions: (a: number, b: number, c: number) => void;
+    readonly inspections_view: (a: number, b: number, c: number) => void;
     readonly java_build_complete: (a: number, b: number, c: number) => void;
     readonly java_build_info: (a: number, b: number, c: number) => void;
     readonly java_build_model: (a: number, b: number, c: number) => void;
@@ -2251,6 +2353,7 @@ export interface InitOutput {
     readonly spring_overview: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
+    readonly sql_guard: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;

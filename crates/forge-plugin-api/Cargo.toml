@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 forge-core.workspace = true
 forge-filetypes.workspace = true
+forge-inspections.workspace = true
 forge-keymap.workspace = true
 forge-testing.workspace = true
 serde.workspace = true

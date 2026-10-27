@@ -13,29 +13,40 @@ pub struct Statement {
     pub end: usize,
 }
 
-/// Statements of `sql`, trimmed; empty and comment-only pieces are dropped. MySQL also
-/// knows `#` comments and backslash escapes in strings.
+/// Statements of `sql`, trimmed; empty and comment-only pieces are dropped. MySQL and
+/// ClickHouse also know `#` comments and backslash escapes in strings; SQL Server batches
+/// end at `GO` lines; Oracle PL/SQL blocks end at a `/` line; Redis consoles have one
+/// command per line and MongoDB consoles one call per line or `;`.
 pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<Statement> {
-    let mysql = dialect == Dialect::MySql;
+    match dialect {
+        Dialect::Redis => return split_lines(sql),
+        Dialect::Mongo => return split_mongo(sql),
+        _ => {}
+    }
+    let mysql = matches!(dialect, Dialect::MySql | Dialect::ClickHouse);
     let b = sql.as_bytes();
     let mut out = Vec::new();
     let mut start = 0;
     let mut i = 0;
-    let push = |out: &mut Vec<Statement>, from: usize, to: usize| {
-        let piece = &sql[from..to];
-        if has_code(piece) {
-            let lead = piece.len() - piece.trim_start().len();
-            let text = piece.trim();
-            out.push(Statement {
-                text: text.to_string(),
-                start: from + lead,
-                end: from + lead + text.len(),
-            });
-        }
-    };
     while i < b.len() {
+        let line_start = i == 0 || b[i - 1] == b'\n';
+        if line_start {
+            if let Some(next) = separator_line(sql, i, dialect) {
+                push_piece(sql, &mut out, start, i);
+                i = next;
+                start = i;
+                continue;
+            }
+        }
         match b[i] {
             b'\'' | b'"' | b'`' => i = skip_quoted(b, i, mysql),
+            b'[' if dialect == Dialect::SqlServer => {
+                i = b[i..]
+                    .iter()
+                    .position(|&c| c == b']')
+                    .map(|p| i + p + 1)
+                    .unwrap_or(b.len())
+            }
             b'-' if b.get(i + 1) == Some(&b'-') => i = skip_line(b, i),
             b'#' if mysql => i = skip_line(b, i),
             b'/' if b.get(i + 1) == Some(&b'*') => {
@@ -44,16 +55,172 @@ pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<Statement> {
                     .map(|p| i + 2 + p + 2)
                     .unwrap_or(b.len());
             }
-            b'$' => i = skip_dollar(sql, i),
+            b'$' if dialect == Dialect::Postgres || mysql || dialect == Dialect::Sqlite => {
+                i = skip_dollar(sql, i)
+            }
+            b';' if dialect == Dialect::Oracle && is_plsql(&sql[start..i]) => i += 1,
             b';' => {
-                push(&mut out, start, i);
+                push_piece(sql, &mut out, start, i);
                 i += 1;
                 start = i;
             }
             _ => i += 1,
         }
     }
-    push(&mut out, start, b.len());
+    push_piece(sql, &mut out, start, b.len());
+    out
+}
+
+fn push_piece(sql: &str, out: &mut Vec<Statement>, from: usize, to: usize) {
+    let piece = &sql[from..to];
+    if has_code(piece) {
+        let lead = piece.len() - piece.trim_start().len();
+        let text = piece.trim();
+        out.push(Statement {
+            text: text.to_string(),
+            start: from + lead,
+            end: from + lead + text.len(),
+        });
+    }
+}
+
+/// A line that ends a statement by itself (`GO` in T-SQL, `/` in Oracle): the offset after it.
+fn separator_line(sql: &str, i: usize, dialect: Dialect) -> Option<usize> {
+    let end = sql[i..].find('\n').map(|p| i + p).unwrap_or(sql.len());
+    let line = sql[i..end].trim();
+    let hit = match dialect {
+        Dialect::SqlServer => line.eq_ignore_ascii_case("go"),
+        Dialect::Oracle => line == "/",
+        _ => false,
+    };
+    hit.then_some((end + 1).min(sql.len()))
+}
+
+/// Whether an Oracle statement is a PL/SQL block (its `;` do not end it).
+fn is_plsql(piece: &str) -> bool {
+    let words: Vec<String> = leading_words(piece, 5);
+    let w: Vec<&str> = words.iter().map(String::as_str).collect();
+    match w.as_slice() {
+        ["BEGIN", ..] | ["DECLARE", ..] => true,
+        ["CREATE", rest @ ..] => rest.iter().any(|x| {
+            matches!(
+                *x,
+                "PROCEDURE" | "FUNCTION" | "PACKAGE" | "TRIGGER" | "TYPE" | "LIBRARY"
+            )
+        }),
+        _ => false,
+    }
+}
+
+/// The first `n` words of a statement, upper-cased, skipping comments.
+fn leading_words(stmt: &str, n: usize) -> Vec<String> {
+    let mut s = strip_leading_comments(stmt);
+    let mut out = Vec::new();
+    while out.len() < n {
+        let word: String = s
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+            .collect();
+        if word.is_empty() {
+            break;
+        }
+        s = s[word.len()..].trim_start();
+        out.push(word.to_ascii_uppercase());
+    }
+    out
+}
+
+fn strip_leading_comments(stmt: &str) -> &str {
+    let mut s = stmt.trim_start();
+    loop {
+        if let Some(r) = s.strip_prefix("--").or_else(|| s.strip_prefix('#')) {
+            s = r.split_once('\n').map(|x| x.1).unwrap_or("").trim_start();
+        } else if let Some(r) = s.strip_prefix("//") {
+            s = r.split_once('\n').map(|x| x.1).unwrap_or("").trim_start();
+        } else if let Some(r) = s.strip_prefix("/*") {
+            s = r.split_once("*/").map(|x| x.1).unwrap_or("").trim_start();
+        } else if let Some(r) = s.strip_prefix('(') {
+            s = r.trim_start();
+        } else {
+            return s;
+        }
+    }
+}
+
+/// Redis: every line that is not empty or a `#`/`//` comment is a command.
+fn split_lines(text: &str) -> Vec<Statement> {
+    let mut out = Vec::new();
+    let mut offset = 0;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() && !trimmed.starts_with('#') && !trimmed.starts_with("//") {
+            let lead = line.len() - line.trim_start().len();
+            out.push(Statement {
+                text: trimmed.to_string(),
+                start: offset + lead,
+                end: offset + lead + trimmed.len(),
+            });
+        }
+        offset += line.len();
+    }
+    out
+}
+
+/// MongoDB shell: calls end at `;` or at a line break outside brackets, unless the next
+/// line continues the call chain (`.sort(...)`).
+fn split_mongo(text: &str) -> Vec<Statement> {
+    let b = text.as_bytes();
+    let mut out = Vec::new();
+    let mut depth = 0i32;
+    let mut start = 0;
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'\'' | b'"' | b'`' => i = skip_quoted(b, i, true),
+            // Up to the line break, which may end the call.
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                i = b[i..]
+                    .iter()
+                    .position(|&c| c == b'\n')
+                    .map(|p| i + p)
+                    .unwrap_or(b.len())
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                i = text[i + 2..]
+                    .find("*/")
+                    .map(|p| i + 2 + p + 2)
+                    .unwrap_or(b.len());
+            }
+            b'{' | b'[' | b'(' => {
+                depth += 1;
+                i += 1;
+            }
+            b'}' | b']' | b')' => {
+                depth -= 1;
+                i += 1;
+            }
+            b';' if depth <= 0 => {
+                push_piece(text, &mut out, start, i);
+                i += 1;
+                start = i;
+                depth = 0;
+            }
+            b'\n' if depth <= 0 => {
+                let continues = text[i + 1..].trim_start().starts_with('.');
+                if !has_code(&text[start..i]) {
+                    // Blank and comment lines are not part of the next call.
+                    start = i + 1;
+                } else if !continues {
+                    push_piece(text, &mut out, start, i);
+                    start = i + 1;
+                    depth = 0;
+                }
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+    push_piece(text, &mut out, start, b.len());
     out
 }
 
@@ -114,6 +281,7 @@ fn has_code(piece: &str) -> bool {
             c if c.is_ascii_whitespace() => i += 1,
             b'-' if b.get(i + 1) == Some(&b'-') => i = skip_line(b, i),
             b'#' => i = skip_line(b, i),
+            b'/' if b.get(i + 1) == Some(&b'/') => i = skip_line(b, i),
             b'/' if b.get(i + 1) == Some(&b'*') => {
                 i = piece[i + 2..]
                     .find("*/")
@@ -175,19 +343,8 @@ pub fn statement_at(sql: &str, from: usize, to: usize, dialect: Dialect) -> Opti
 
 /// First keyword of a statement, upper-cased, skipping comments and parentheses.
 pub fn leading_keyword(stmt: &str) -> String {
-    let mut s = stmt.trim_start();
-    loop {
-        if let Some(r) = s.strip_prefix("--").or_else(|| s.strip_prefix('#')) {
-            s = r.split_once('\n').map(|x| x.1).unwrap_or("").trim_start();
-        } else if let Some(r) = s.strip_prefix("/*") {
-            s = r.split_once("*/").map(|x| x.1).unwrap_or("").trim_start();
-        } else if let Some(r) = s.strip_prefix('(') {
-            s = r.trim_start();
-        } else {
-            break;
-        }
-    }
-    s.chars()
+    strip_leading_comments(stmt)
+        .chars()
         .take_while(|c| c.is_ascii_alphabetic())
         .collect::<String>()
         .to_ascii_uppercase()
@@ -206,13 +363,25 @@ pub fn is_query(stmt: &str) -> bool {
             | "DESC"
             | "VALUES"
             | "TABLE"
+            | "EXEC"
+            | "EXECUTE"
+            | "SP_HELP"
     )
 }
 
 /// Transaction control typed by the user (so the console can track the state).
 pub fn transaction_control(stmt: &str) -> Option<&'static str> {
     match leading_keyword(stmt).as_str() {
-        "BEGIN" | "START" => Some("begin"),
+        // `BEGIN TRAN`, not a T-SQL `BEGIN … END` block.
+        "BEGIN"
+            if leading_words(stmt, 2)
+                .get(1)
+                .is_some_and(|w| w.starts_with("TRAN")) =>
+        {
+            Some("begin")
+        }
+        "BEGIN" if leading_words(stmt, 2).len() == 1 => Some("begin"),
+        "START" => Some("begin"),
         "COMMIT" | "END" => Some("commit"),
         "ROLLBACK" | "ABORT" => Some("rollback"),
         _ => None,
@@ -295,6 +464,59 @@ mod tests {
         assert_eq!(text(0, 6).as_deref(), Some("SELECT"));
     }
 
+    fn texts_in(sql: &str, d: Dialect) -> Vec<String> {
+        split_statements(sql, d)
+            .into_iter()
+            .map(|s| s.text)
+            .collect()
+    }
+
+    #[test]
+    fn splits_sql_server_batches_and_brackets() {
+        assert_eq!(
+            texts_in(
+                "select [a;b] from t\nGO\nselect 2;select 3",
+                Dialect::SqlServer
+            ),
+            vec!["select [a;b] from t", "select 2", "select 3"]
+        );
+    }
+
+    #[test]
+    fn keeps_oracle_plsql_blocks_together() {
+        let sql = "select 1 from dual;\nBEGIN\n  x := 1;\n  y := 2;\nEND;\n/\nselect 2 from dual;";
+        assert_eq!(
+            texts_in(sql, Dialect::Oracle),
+            vec![
+                "select 1 from dual",
+                "BEGIN\n  x := 1;\n  y := 2;\nEND;",
+                "select 2 from dual"
+            ]
+        );
+    }
+
+    #[test]
+    fn splits_redis_lines_and_mongo_calls() {
+        let r = split_statements("# keys\nSET a 1\n\n  GET a  \n", Dialect::Redis);
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[1].text, "GET a");
+        assert_eq!(
+            &"# keys\nSET a 1\n\n  GET a  \n"[r[1].start..r[1].end],
+            "GET a"
+        );
+        assert_eq!(
+            texts_in(
+                "// users\ndb.users.find({\n  age: {$gt: 30}\n})\n  .limit(5)\ndb.orders.countDocuments({}); db.x.find()",
+                Dialect::Mongo
+            ),
+            vec![
+                "db.users.find({\n  age: {$gt: 30}\n})\n  .limit(5)",
+                "db.orders.countDocuments({})",
+                "db.x.find()"
+            ]
+        );
+    }
+
     #[test]
     fn classifies_statements() {
         assert!(is_query("-- x\n (SELECT 1)"));
@@ -303,5 +525,7 @@ mod tests {
         assert_eq!(transaction_control("start transaction"), Some("begin"));
         assert_eq!(transaction_control("commit"), Some("commit"));
         assert_eq!(transaction_control("select 1"), None);
+        assert_eq!(transaction_control("BEGIN TRANSACTION"), Some("begin"));
+        assert_eq!(transaction_control("begin x := 1; end;"), None);
     }
 }

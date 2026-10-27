@@ -94,6 +94,7 @@ first (the time is UTC).
 | `php-servers.json` | PHP servers and path mappings | yes |
 | `dataSources.toml` | project data sources (no passwords) | yes |
 | `deployment.toml` | deployment servers, mappings, excluded paths and the default server (no passwords) | yes |
+| `inspectionProfiles/*.xml` | project inspection profiles in PHPStorm's format (`Project_Default.xml` once it differs from the defaults) | yes |
 
 Add `.forge/runConfigurations.local.toml` (and `.forge/cache/` if it appears) to your
 `.gitignore`. In the project root, `http-client.env.json` and `http-client.private.env.json` are

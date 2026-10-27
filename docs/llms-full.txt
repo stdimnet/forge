@@ -54,6 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Inspections**: inspection profiles (Default, Project Default, copies; PHPStorm XML import
+  and export) with severities, scope-specific settings and options for every problem Forge
+  shows, Inspect Code with the Inspection Results tool window, Run Inspection by Name, Code
+  Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
+  null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
+  CI ([Inspections](docs/guide/user/inspections.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
@@ -790,6 +796,7 @@ not finished, the page says so.
 | [File and code templates](docs/guide/user/file-templates.md) | New ▸ PHP Class and other templates, the New PHP Class dialog with PSR-4 namespaces, `Alt+Insert` New popup, Settings \| Editor \| File and Code Templates |
 | [Vim emulation](docs/guide/user/vim-emulation.md) | Tools \| Vim, Normal/Insert/Visual/Replace modes, motions, operators, text objects, registers, macros, ex commands, `~/.ideavimrc`, shortcut conflicts |
 | [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md) | Double Shift, Go to Class/File/Symbol, Find Action, fuzzy matching |
+| [Inspections](docs/guide/user/inspections.md) | Settings \| Editor \| Inspections (profiles, severities, scopes, options, import/export of PHPStorm profiles), Inspect Code, Run Inspection by Name (`Ctrl+Alt+Shift+I`), Code Cleanup with preview, Inspection Results, `@noinspection` / `noinspection` suppressions, duplicated code, PHP data flow, `forge inspect` for CI |
 | [Scopes and file colors](docs/guide/user/scopes-and-file-colors.md) | named scopes in PHPStorm's scope language (`file:app//*.php`, `src:`, `test:`, `lib:`, `&&`, `\|\|`, `!`), predefined scopes, scopes in Find in Files, Replace in Files and Find Usages, file colors in editor tabs and the Project view |
 | [Structural Search and Replace](docs/guide/user/structural-search.md) | templates with `$variables$` for PHP, JavaScript and TypeScript, Count / Text / Type filters, the template library, Replace with preview, Replace All and Undo |
 | [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md) | the Hierarchy tool window: Type Hierarchy (`Ctrl+H`: class, supertypes, subtypes), Method Hierarchy (`Ctrl+Shift+H`) with PHPStorm's marks, Call Hierarchy (`Ctrl+Alt+H`: callers and callees with call sites), scopes and sorting |
@@ -4168,6 +4175,199 @@ The **Text** tab of Search Everywhere uses the same search (from two characters 
 
 **Replace in Files** (`Ctrl+Shift+R`, macOS `Cmd+Shift+R`) opens the same tab with the selected
 text as the query and the caret in **Replace with**.
+
+
+---
+
+Source: docs/guide/user/inspections.md
+
+# Inspections
+
+Every problem Forge highlights belongs to an **inspection**: Forge's own checks (the PHP index
+inspections, PHP data flow, duplicated code, requirements, Spring Boot properties, spelling)
+as well as the problems of language servers and external tools (the PHP quality tools
+PHPStan, Psalm, PHP_CodeSniffer, PHP CS Fixer, PHP Mess Detector and Laravel Pint, Clippy,
+go vet, golangci-lint, ktlint, detekt, Composer, CMake builds). Like in PHPStorm, an **inspection
+profile** decides which inspections run, how severe their problems are, and where.
+
+## Settings | Editor | Inspections
+
+![Inspections settings](docs/screenshots/inspections-settings.png)
+
+- **Profile**: the profile the project uses. **Project Default** is stored in the project
+  (`.forge/inspectionProfiles/Project_Default.xml`, written once it differs from the
+  defaults), **Default** in your user settings. Copies are stored where you put them.
+- **⚙ menu**: **Duplicate…**, **Copy to Project…** / **Copy to IDE…**, **Rename…**,
+  **Delete**, **Restore Defaults**, **Export** (PHPStorm's inspection profile XML or Forge
+  JSON), **Import Profile…** (both formats, so PHPStorm profiles work) and **Add Custom
+  Severity…**.
+- **The tree** groups the inspections by language and group (PHP | Data flow, Rust |
+  External tools, …). The search field filters by name, id, group and description. The
+  checkboxes switch single inspections or whole groups on and off; changed inspections are
+  shown in the accent color.
+- **The selected inspection**: its id (the name suppression comments use), **Enabled**,
+  **Severity**, **Scopes**, **Options** and the description. **Reset to default** forgets the
+  profile's changes for it.
+
+### Severities
+
+**Error**, **Warning**, **Weak Warning**, **Server Problem**, **Typo** and **Info**, plus
+custom severities (⚙ | Add Custom Severity…) that the editor highlights like one of the
+built-in ones. Problems of external tools (Clippy, golangci-lint, language servers, …) keep the
+level the tool reports (**As reported by the tool**) until you choose a severity.
+
+### Scope-specific settings
+
+![Scopes of an inspection](docs/screenshots/inspections-settings-scopes.png)
+
+**Scopes | +** adds a [scope](docs/guide/user/scopes-and-file-colors.md) (a named scope or a predefined one
+such as Project Test Files) with its own checkbox and severity. The first scope that contains
+a file wins; the last row, **Everywhere else**, is the inspection's own setting. Turning an
+inspection off for tests while keeping it everywhere else is one row.
+
+### What the profile does in the editor
+
+The profile applies to every problem the editor and the Problems tool window show, whatever
+reported it: a disabled inspection's problems disappear, severities follow the profile, and
+suppression comments (below) hide problems right away.
+
+## Inspect Code
+
+**Code | Inspect Code…** opens **Specify Inspection Scope**:
+
+![Specify Inspection Scope](docs/screenshots/inspections-inspect-code-dialog.png)
+
+- **Whole project**, **Module**, **File** (the current editor), **Directory** (the current
+  file's folder) or a **Custom scope**; **Include test sources**.
+- **Inspection profile** and **Configure…** to edit it.
+
+**Analyze** runs every enabled inspection over the scope in the backend (where the project
+lives, also for remote projects). The status bar shows the progress with a **Cancel** button.
+**Code | Analyze Code | Inspect Current File** (`Alt+Shift+I`) inspects the current file
+without the dialog.
+
+> **Note:** inspections whose problems come from a running language server or tool
+> (language server problems, Clippy, ktlint, spelling, requirements, …) run in the editor
+> only; Inspect Code runs Forge's own inspections and duplicated code.
+
+## Inspection Results
+
+![Inspection Results](docs/screenshots/inspections-results.png)
+
+Every run opens a tab in the **Inspection Results** tool window (View | Tool Windows |
+Inspection Results):
+
+- The problems are grouped by inspection group, inspection and file. The toolbar adds
+  **Group by Severity** and **Group by Directory**, **Expand All** / **Collapse All**,
+  **Rerun**, **Export** (HTML or XML) and **Edit Settings**.
+- Double-click (or `Enter`) opens the problem in the editor.
+- The right pane shows the selected problem with its **quick fixes** (applied to the file,
+  which must not have changed since the run), **Suppress…** (statement, function, class or
+  file) and **Edit Inspection Profile Setting**. Fixed problems are struck through until the
+  next run.
+- **Duplicates** lists the duplicate groups of the run.
+
+## Run Inspection by Name
+
+**Code | Run Inspection by Name…** (`Ctrl+Alt+Shift+I`, macOS `Cmd+Alt+Shift+I`) picks one
+inspection by name, then asks for the scope and runs only that inspection.
+
+![Run Inspection by Name](docs/screenshots/inspections-run-by-name.png)
+
+## Code Cleanup
+
+**Code | Code Cleanup…** asks for a scope, applies every *safe* quick fix of the inspections
+marked **Code Cleanup** in the profile (for example removing unused assignments) and shows a
+preview with a diff per file. **Apply** writes the files; files that changed since the
+preview are left alone.
+
+![Code Cleanup preview](docs/screenshots/inspections-code-cleanup.png)
+
+## Suppressing problems
+
+`Alt+Enter` on a problem lists **Inspection '…' options** with **Edit inspection profile
+setting**, **Disable inspection** and **Suppress for statement / function / class / file**:
+
+![Suppress actions](docs/screenshots/inspections-suppress.png)
+
+Forge writes PHPStorm's comments, so suppressions work in both IDEs:
+
+| Language | Comment |
+| --- | --- |
+| PHP | `/** @noinspection PhpUnusedAssignment */` (or a line `@noinspection Id` in the doc comment of a function or class) |
+| JavaScript, TypeScript | `// noinspection JSUnusedLocalSymbols` |
+| Python | `# noinspection PyUnusedLocal` |
+| Other languages | the language's line comment: `// noinspection Id`, `# noinspection Id`, `-- noinspection Id`, `<!-- noinspection Id -->` |
+
+- A comment **before a statement** suppresses the listed inspections in that statement; a
+  function or class declaration counts as one statement with its body.
+- A comment **at the top of the file** followed by an empty line (in PHP also on the
+  `<?php` line) suppresses them in the whole file.
+- A comment **after code on the same line** suppresses them on that line.
+- Several ids are separated by commas; `ALL` suppresses every inspection; PHPStorm's ids with
+  the `Inspection` suffix work too.
+
+## Duplicated code
+
+The **Duplicated code fragment** inspection (General) compares the tokens of the inspected
+files, so formatting and comments do not matter. Its options:
+
+- **Minimum fragment size (tokens)**, 60 by default;
+- **Anonymize identifiers**: fragments that differ only in variable, function and field
+  names are duplicates too (on by default);
+- **Anonymize literals**: string and number values do not matter either.
+
+![Duplicates](docs/screenshots/inspections-duplicates.png)
+
+**Code | Analyze Code | Locate Duplicates…** runs only this inspection over a scope. Each copy
+is reported with links to the other copies, and the **Duplicates** view of Inspection Results
+lists the groups.
+
+## PHP data flow
+
+Forge follows the values of local variables through PHP functions (branches are merged, loops
+forget what they assign) and reports:
+
+| Inspection | Example |
+| --- | --- |
+| **Variable is always null** | `$customer = null; … $customer->name` |
+| **Undefined variable** | a variable read in a function before any path assigned it |
+| **Condition is always true or false** | `if (false)`, `if (1 === 2)`, `$debug = false; if ($debug)` (not `while (true)`) |
+| **Unused assignment** | `$prefix = 'ORD'; $prefix = 'INV';`, or a value never read again; the quick fix removes it (keeping a call with side effects) |
+
+The analysis stays quiet where it cannot be sure: functions using `$$name`, `extract()`,
+`compact()`, `get_defined_vars()`, `eval` or `include` are skipped, variables shared by
+reference (`&$x`, `global`, `static`, `use (&$x)`) are not tracked, and a variable passed to a
+call may be written by it.
+
+## Command-line inspector
+
+The `forge` binary inspects a project without a window, for CI:
+
+```sh
+forge inspect <project> <profile.xml|profile name> <output dir> [-format xml|json|html] [-d <directory>] [-fail-on <severity>] [-v0|-v1|-v2]
+```
+
+| Argument | Meaning |
+| --- | --- |
+| `<project>` | the project folder |
+| `<profile.xml\|name>` | an inspection profile file (PHPStorm XML or Forge JSON, e.g. `.forge/inspectionProfiles/Project_Default.xml`) or the name of a profile (`Project Default`, `Default`, a copy) |
+| `<output dir>` | where the results go: one XML file per inspection plus `.descriptions.xml` (PHPStorm's format, default), `inspections.json` (`-format json`) or `index.html` (`-format html`) |
+| `-d <directory>` | inspect only this folder of the project |
+| `-fail-on <severity>` | exit with code 1 when a problem of this severity or worse was found (`ERROR`, `WARNING`, `WEAK WARNING`, …) |
+| `-v0` / `-v1` / `-v2` | quiet, normal (default), verbose |
+
+It builds the PHP index, runs the profile's inspections that work without the IDE (the PHP
+inspections, PHP data flow, duplicated code) and exits with 0, 1 (`-fail-on`) or 2 (wrong
+arguments, a project or profile that cannot be found). Example for a CI job:
+
+```sh
+forge inspect . "Project Default" build/inspections -format xml -fail-on ERROR
+```
+
+> **Note:** on Windows the release build is a GUI application: it writes the results and
+> sets the exit code (`start /wait forge.exe inspect …` waits for it), but prints nothing to
+> the console.
 
 
 ---
@@ -16181,8 +16381,20 @@ Source: docs/guide/user/database.md
 
 # Database tools and SQL console
 
-The plugin **Database Tools and SQL** (`forge.database`) is Forge's DataGrip part. It supports
-**MySQL/MariaDB**, **PostgreSQL** and **SQLite** (through `sqlx`, no JDBC drivers to download).
+The plugin **Database Tools and SQL** (`forge.database`) is Forge's DataGrip part. Drivers are
+built into Forge — there are no JDBC drivers to download:
+
+| Engine | Driver | Tree | Console |
+| --- | --- | --- | --- |
+| MySQL, MariaDB, PostgreSQL, SQLite | `sqlx` | schemas, tables, views, columns, keys, indexes, routines | SQL, transactions |
+| SQL Server, Azure SQL | `tiberius` (pure-Rust TDS over rustls) | schemas, tables, views, columns, keys, indexes, procedures and functions | T-SQL (`GO` separates batches), transactions |
+| ClickHouse | HTTP interface (port 8123, 8443 with TLS), JSON results | databases, tables, views, columns, primary key | SQL; every statement on its own |
+| Oracle | SQL\*Plus or SQLcl **installed by you** (see [Oracle](#oracle)) | schemas, tables, views, columns, keys, indexes, procedures and packages | SQL and PL/SQL blocks ending with `/`; every statement on its own |
+| Redis | `redis-rs` | databases → keys with type and TTL | Redis commands, one per line |
+| MongoDB | official MongoDB driver | databases → collections → fields | shell calls: `db.users.find({...})`, `aggregate`, … |
+
+ODBC is not supported: no permissive Rust crate makes generic ODBC drivers work without a
+system driver manager, so Forge supports the engines above natively instead.
 
 ## Database tool window
 
@@ -16192,9 +16404,14 @@ data source → schema → tables (with comments) → columns, keys and indexes.
 ![Database tree](docs/screenshots/database-tree.png)
 
 Toolbar: **+** (add data source), **Refresh**, **Data Source Properties** (`Shift+Enter`),
-**Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**. Context menu of a node: **New
-Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Properties**,
-**Refresh**, **Disconnect**, **Delete**.
+**Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**, **Sessions** (see
+[Sessions](#sessions)). Context menu of a node: **New Query Console**, **Edit Data** (tables),
+**Go to DDL**, **Copy Name**, **Properties**, **Refresh**, **Disconnect**, **Delete**.
+
+Data sources with a colour tint their rows (see [Colours](#read-only-and-production-data-sources));
+`read-only` and the SSH host appear next to the name.
+
+![SQL Server tree](docs/screenshots/database-sqlserver-tree.png)
 
 ## Data sources
 
@@ -16205,15 +16422,79 @@ Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Propert
 | Field | Notes |
 | --- | --- |
 | Name, Comment | |
-| Driver | MySQL, MariaDB, PostgreSQL, SQLite |
-| Host, Port, Database / SQLite file | SQLite files are chosen with a file picker |
+| Driver | MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis, MongoDB |
+| Host, Port, Database / SQLite file | SQLite files are chosen with a file picker. Oracle: **Service** (e.g. `FREEPDB1`); Redis: **Database index** (`0`); MongoDB: also a full `mongodb://` or `mongodb+srv://` URL as the host |
 | Authentication | User & Password, or none |
 | Password | stored in the OS keychain (service `forge-db`), never in project files |
-| SSL mode | Disable, Prefer, Require |
-| Options | read-only, transaction control (Auto / Manual), connect timeout, startup script |
+| SSH/SSL tab | SSH tunnel and SSL/TLS, see below |
+| Options | read-only, colour, transaction control (Auto / Manual), single session mode, connect timeout, startup script |
 | Scope | **Project Data Sources** (`<project>/.forge/dataSources.toml`, shareable) or **Global Data Sources** (`dataSources.toml` in Forge's config folder) |
 
 **Test Connection** shows success with the server version, or the error.
+
+### SSH tunnel and SSL/TLS
+
+The **SSH/SSL** tab reaches databases that are only visible from a bastion host and secures
+the connection itself.
+
+![SSH/SSL tab](docs/screenshots/database-ssh-ssl.png)
+
+**Use SSH tunnel**: Forge opens the SSH connection itself (the same SSH client as
+[remote development](docs/guide/user/remote-host-and-ssh.md)) and forwards a local port to the database
+**host and port as the SSH host sees them** — `localhost:5432` is the database on the bastion.
+
+- **SSH configuration**: one of your saved configurations (Settings | Tools | SSH
+  Configurations), which brings its own host, user, authentication and stored secret, or
+  **Ad-hoc** with the fields below.
+- Ad-hoc: **Host** (also a `~/.ssh/config` alias, with its `HostName`, `Port`, `User`,
+  `IdentityFile` and `ProxyJump`), **Port**, **User name** and **Authentication type**:
+  **Password**, **Key pair** (private key file and passphrase) or **OpenSSH config and
+  authentication agent**.
+- The SSH password or key passphrase is stored in the OS keychain (account `<id>#ssh`).
+- The first connection to an unknown host shows its key fingerprint: **Trust Host Key and Test
+  Again** adds it to `~/.ssh/known_hosts`. A changed key is reported and refused until you trust
+  it again.
+
+**SSL** **Mode**:
+
+| Mode | Meaning |
+| --- | --- |
+| Disable | no TLS |
+| Prefer | TLS when the server offers it, certificate not checked (ClickHouse and Redis: plain) |
+| Require | TLS, certificate not checked |
+| Verify CA | TLS, certificate signed by the CA file (or the system roots) |
+| Verify Full | like Verify CA, and the certificate must name the host |
+
+**CA file**, **Client certificate file** and **Client key file** are PEM files; relative paths
+are resolved against the project. An encrypted client key (PKCS#8 `ENCRYPTED PRIVATE KEY`) is
+decrypted in memory with the **Client key password**, which is stored in the keychain (account
+`<id>#ssl-key`); legacy OpenSSL-encrypted keys must be converted with
+`openssl pkcs8 -topk8`. What each driver does with them:
+
+| Driver | SSL/TLS |
+| --- | --- |
+| MySQL, MariaDB | `ssl-mode` Disabled / Preferred / Required / Verify CA / Verify Identity, CA and client certificate |
+| PostgreSQL | `sslmode` with `sslrootcert`, `sslcert`, `sslkey` |
+| SQL Server | Prefer encrypts the login, Require encrypts everything without checking the certificate, Verify uses the CA; client certificate and **unencrypted** key files |
+| ClickHouse | HTTPS from Require on (use the HTTPS port, usually 8443); Verify CA also checks the host name |
+| Redis | `rediss://` from Require on, CA and client certificate |
+| MongoDB | TLS from Require on; the client certificate **and its key in one PEM file** (set as the client certificate) |
+| Oracle | configured in the Oracle client (`sqlnet.ora`, wallet) |
+
+Through an SSH tunnel, Verify Full checks the certificate against the configured database host
+for SQL Server, Redis and MongoDB; for MySQL and PostgreSQL use Verify CA.
+
+### Oracle
+
+Forge does not bundle Oracle's client and there is no permissive pure-Rust driver for Oracle's
+network protocol, so Oracle data sources run through **SQL\*Plus** (from the Oracle Instant
+Client "SQL\*Plus" package) or **SQLcl**, which you install yourself; Forge finds `sqlplus` (or
+SQLcl's `sql`) on `PATH`. Every statement starts `sqlplus -S -L /nolog`, logs in through the
+process's input (the password never appears on a command line), prints CSV and exits, so:
+
+- each statement is committed on its own; there are no manual transactions,
+- **Cancel** stops the process,
+- PL/SQL blocks (`BEGIN … END;`, `CREATE PROCEDURE …`) end with a line containing only `/`.
 
 ### From `.env`
 
@@ -16236,12 +16517,79 @@ from .env files** (`database.suggestFromEnv`).
   opens a console with it (see [Language injections](docs/guide/user/language-injections.md#run-injected-sql)).
 - Results appear below in tabs (**Output** plus one tab per result set), paged by
   **Result set page size** (`database.pageSize`, 500).
-- **Cancel Running Statements** stops a long query.
+- **Cancel Running Statements** stops a long query (MySQL `KILL QUERY`, PostgreSQL
+  `pg_cancel_backend`, ClickHouse `KILL QUERY`, SQL Server by closing and reopening the
+  console's connection).
 - **Tx: Auto / Manual** switches the transaction mode; in manual mode use **Commit** and
-  **Rollback**.
+  **Rollback**. ClickHouse, Oracle, Redis and MongoDB consoles run every statement on its own.
+- **New session / Shared session** chooses the console's connection, see [Sessions](#sessions).
 - The schema selector at the top right sets the current schema.
 
 SQL [scratch files](docs/guide/user/scratches-and-http.md) attached to a data source open as consoles too.
+
+### Sessions
+
+Every console runs in a **session** (an open connection). By default each console has its own
+session, so transactions in one console are invisible to the others. **Shared session** in the
+console toolbar (or **Single session mode** in the data source's Options) makes all consoles of
+the data source share one connection and its transaction.
+
+**Sessions** (the pulse icon in the Database tool window toolbar) lists the open sessions with
+their data source, transaction mode, open transaction (statements and age), the running or
+last statement, and **Commit**, **Rollback**, **Cancel** and **Close Session**.
+
+![Sessions](docs/screenshots/database-sessions.png)
+
+### Redis
+
+A Redis data source shows its databases (`db0`, … from `INFO keyspace`). Expanding one lists the
+keys matching the **key pattern** at the top (`*`, `user:*`, …; `Enter` reloads) with their type
+and TTL; at most 1000 keys are listed. Double-click a key to open its **value viewer**: strings
+as text (JSON pretty-printed), lists and sets as numbered rows, hashes as field/value rows,
+sorted sets with scores and streams as JSON.
+
+![Redis keys and value viewer](docs/screenshots/database-redis.png)
+
+The console runs one command per line (`GET user:1`, `HGETALL user:1`, `SCAN 0 MATCH s*`,
+quotes for spaces: `SET motd "hello world"`).
+
+### MongoDB
+
+A MongoDB data source shows databases → collections → fields (sampled from the first documents,
+with their BSON types). Double-click a collection to open a console that finds its documents;
+**JSON** in the result toolbar shows them as documents instead of a grid.
+
+![MongoDB documents](docs/screenshots/database-mongodb.png)
+
+The console understands the shell calls you would type in `mongosh`:
+
+```text
+db.users.find({ age: { $gt: 30 } }, { name: 1, email: 1 }).sort({ age: -1 }).limit(5)
+db.orders.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }])
+db.orders.countDocuments({ status: "paid" })
+db.users.distinct("address.country")
+db.users.insertOne({ name: "Ada" })   db.users.updateMany({...}, { $set: {...} })   db.users.deleteMany({...})
+db.users.getIndexes()   db.getCollectionNames()   show dbs   show collections   use shop
+```
+
+Arguments are relaxed JSON: unquoted keys, single quotes, `ObjectId("…")`, `ISODate("…")`,
+`NumberLong(…)`, `NumberDecimal("…")` and `/regex/i`.
+
+## Read-only and production data sources
+
+**Read-only** (Options tab) protects a data source: the console refuses statements that change
+data or schema (DML and DDL, Redis write commands, MongoDB writes) with a clear message, and the
+driver refuses them too — MySQL and PostgreSQL sessions are `READ ONLY`, SQLite opens the file
+read-only, ClickHouse gets `readonly=2`, Oracle `SET TRANSACTION READ ONLY`, SQL Server declares
+`ApplicationIntent=ReadOnly`, Redis and MongoDB connections only accept reads.
+
+**Colour** marks a data source as development (**green**), staging (**yellow**) or production
+(**red**); the tree, its console and table tabs and the console editor are tinted, and the
+console shows a badge. Before running `UPDATE` or `DELETE` without `WHERE`, `TRUNCATE`,
+`FLUSHDB`/`FLUSHALL`, `deleteMany({})`/`updateMany({}, …)` or `drop()` on a **production**
+data source, Forge asks for confirmation:
+
+![Production warning](docs/screenshots/database-production-warning.png)
 
 ## Data grid and table editor
 
@@ -16290,6 +16638,8 @@ from your machine.
 ![Remote data source](docs/screenshots/remote-parity-data-source-dialog.png)
 
 ![Remote database](docs/screenshots/remote-parity-database.png)
+
+A data source with its own SSH tunnel uses that tunnel instead.
 
 > **Note:** SQLite files on the remote host cannot be opened.
 
@@ -17792,9 +18142,11 @@ actions under another id (aliases): `search.everywhere` → `SearchEverywhere`, 
 | Move Element Right | `MoveElementRight` | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | — |
 | Move Line Up | `MoveLineUp` | `Alt+Shift+Up` | `Alt+Shift+Up` | yes |
 | Move Line Down | `MoveLineDown` | `Alt+Shift+Down` | `Alt+Shift+Down` | yes |
-| Inspect Code… | `InspectCode` |  |  | — |
-| Code Cleanup / Inspect File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | — |
-| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | — |
+| Inspect Code… | `InspectCode` |  |  | yes |
+| Inspect Current File | `CodeInspection.OnEditor` | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes |
+| Code Cleanup… | `CodeCleanup` |  |  | yes |
+| Locate Duplicates… | `LocateDuplicates` |  |  | yes |
+| Run Inspection by Name… | `RunInspection` | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes |
 | Analyze Stack Trace or Thread Dump… | `AnalyzeStacktraceOnError` |  |  | yes |
 | Show Quick-Fixes | `ShowIntentionsGroup` |  |  | — |
 
@@ -18653,9 +19005,11 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Move Element Right | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | not yet | Not available yet; the entry is disabled. |
 | Move Line Down | `Alt+Shift+Down` | `Alt+Shift+Down` | yes | Moves the current line or selection down. [More](docs/guide/user/editor.md#editing-actions) |
 | Move Line Up | `Alt+Shift+Up` | `Alt+Shift+Up` | yes | Moves the current line or selection up. [More](docs/guide/user/editor.md#editing-actions) |
-| Inspect Code… | — | — | not yet | Not available yet; the entry is disabled. |
-| Code Cleanup… | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
-| Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
+| Inspect Code… | — | — | yes | Runs the inspection profile over the whole project, a module, file, directory or custom scope; results in the Inspection Results tool window. [More](docs/guide/user/inspections.md#inspect-code) ([screenshot](docs/screenshots/inspections-results.png)) |
+| Code Cleanup… | — | — | yes | Applies the safe quick fixes of the cleanup inspections over a scope, after a preview with a diff per file. [More](docs/guide/user/inspections.md#code-cleanup) |
+| Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes | Runs one inspection, picked by name, over a scope. [More](docs/guide/user/inspections.md#run-inspection-by-name) |
+| Analyze Code ▸ Inspect Current File | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes | Inspects the file of the current editor. [More](docs/guide/user/inspections.md#inspect-code) |
+| Analyze Code ▸ Locate Duplicates… | — | — | yes | Runs the duplicated code inspection over a scope; the Duplicates view lists the groups. [More](docs/guide/user/inspections.md#duplicated-code) |
 | Analyze Stack Trace or Thread Dump… | — | — | yes | Opens a pasted stack trace in a Stack Trace tab of the Run tool window with frames linked to project files; server and container paths are mapped. [More](docs/guide/user/run-debug.md#analyze-stack-trace) ([screenshot](docs/screenshots/stack-trace-tab.png)) |
 
 
@@ -18992,6 +19346,10 @@ Settings written by Forge itself and not declared in a manifest:
 | `<language>.codeStyle.<option>`, `editor.codeStyle.<option>` | the code style options of the Default scheme (user settings) and the Project scheme (project settings), e.g. `php.codeStyle.indent`, `php.codeStyle.spaces.afterComma`, `editor.codeStyle.hardWrapAt`; the options are listed in [Editor](docs/guide/user/editor.md#code-style) and defined in `crates/forge-codestyle` |
 | `editor.codeStyle.scheme` | the scheme the project uses: `default`, `project` or an IDE scheme id |
 | `editor.codeStyle.schemes.<id>.name`, `editor.codeStyle.schemes.<id>.values.<language>.<option>` | further IDE code style schemes (Duplicate, Copy to IDE, Import Scheme) |
+| `inspections.profiles` | IDE inspection profiles (Default when changed, and copies): a list of `{ name, level, tools }` (Settings \| Editor \| Inspections, page id `editor.inspections`) |
+| `inspections.severities` | custom severities `{ id, name, editor }` |
+| `inspections.profile` | the profile the project uses (project settings; user settings without a project) |
+| `inspections.projectProfiles` | project inspection profiles besides Project Default; each is stored in `.forge/inspectionProfiles/<Name>.xml` |
 
 ### Appearance & Behavior | Appearance
 
@@ -20672,6 +21030,17 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).
 
+### `forge inspect`
+
+```text
+forge inspect <project> <profile.xml|profile name> <output dir> [-format xml|json|html] [-d <directory>] [-fail-on <severity>] [-v0|-v1|-v2]
+```
+
+The command-line inspector: runs the profile's inspections over the project without a window
+and writes the results (one XML file per inspection plus `.descriptions.xml`, `inspections.json`
+or `index.html`). Exit code 0, 1 with `-fail-on` when a problem of that severity or worse was
+found, 2 for wrong arguments. See [Inspections](docs/guide/user/inspections.md#command-line-inspector).
+
 The deb and rpm packages put `forge` on the `PATH`. For the AppImage, create a link yourself,
 e.g. `ln -s ~/Applications/Forge_0.1.0_amd64.AppImage ~/.local/bin/forge`.
 
@@ -20821,6 +21190,7 @@ first (the time is UTC).
 | `php-servers.json` | PHP servers and path mappings | yes |
 | `dataSources.toml` | project data sources (no passwords) | yes |
 | `deployment.toml` | deployment servers, mappings, excluded paths and the default server (no passwords) | yes |
+| `inspectionProfiles/*.xml` | project inspection profiles in PHPStorm's format (`Project_Default.xml` once it differs from the defaults) | yes |
 
 Add `.forge/runConfigurations.local.toml` (and `.forge/cache/` if it appears) to your
 `.gitignore`. In the project root, `http-client.env.json` and `http-client.private.env.json` are
@@ -21513,6 +21883,7 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
 | `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
 | `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
+| `[[contributions.inspections]]` / `[[contributions.inspectionMappings]]` / `InspectionProvider` / `ProblemSource` | manifest / `forge-inspections` | an inspection (profiles, severities, suppressions, Inspect Code) and which published problems belong to it |
 | `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
 | `registerEndpointsView` | `features/endpoints/registry.ts` | a view of the shared Endpoints tool window (one tab per pack when several apply: Python web frameworks, Spring and JAX-RS) |
 | `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
@@ -21817,6 +22188,43 @@ run configuration types in the UI. `registerTestFileMatcher(path => bool)` from
 `@/features/run` attaches the test gutter to their files, and
 `registerContextConfiguration(path => cfg | null)` answers Run Context Configuration in files
 without tests.
+
+## Inspections
+
+Every problem Forge shows belongs to an inspection of `crates/forge-inspections`. Declare a
+pack's inspections in its manifest:
+
+```toml
+[[contributions.inspections]]
+id = "PhpUnusedAssignment"          # the id profiles and suppression comments use
+name = "Unused assignment"
+group = "PHP/Data flow"             # the Settings tree: language / group
+language = "php"
+severity = "WEAK WARNING"           # ERROR, WARNING, WEAK WARNING, SERVER PROBLEM, TYPO, INFO
+cleanup = true                      # its safe fixes run in Code Cleanup
+description = "Reports assignments whose value is never read."
+
+[[contributions.inspectionMappings]]   # problems published by an external tool
+source = "clippy"                      # the third argument of publishDiagnostics
+code = "clippy::*"                     # optional; a trailing * matches a prefix
+inspection = "RsClippy"
+```
+
+`external = true` keeps the level a tool reports until the profile sets one, `batch = false`
+keeps an inspection out of Inspect Code (problems that need a running language server or
+tool), `options` adds typed options to the Settings page.
+
+- **Editor problems** need no code: whatever a feature publishes with
+  `publishDiagnostics(path, diagnostics, source)` goes through the selected profile (the
+  diagnostic's `code` when it is an inspection id, else the mapping of the published source,
+  else the mapping of the diagnostic's own `source`, e.g. `PHPStan`): disabled
+  inspections drop out, severities follow the profile and suppression comments hide
+  problems. Alt+Enter offers the Suppress actions for every problem with an inspection.
+- **Inspect Code / the command-line inspector** run Rust providers: implement
+  `forge_inspections::InspectionProvider` (`inspect_file` per file, `inspect_project` across
+  files) and add it in `app/src-tauri/src/inspections.rs`. An external tool that reports
+  problems by file, position and code (PHPStan, Psalm, a linter) implements
+  `forge_inspections::ProblemSource`; its problems are mapped with the manifest mappings.
 
 ## Run Anything providers
 
@@ -22899,7 +23307,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](docs/guide/developer/crates/forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
 | [forge-dap](docs/guide/developer/crates/forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
-| [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
+| [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions, the read-only / production guard and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-emmet](docs/guide/developer/crates/forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
@@ -22909,6 +23317,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-forges](docs/guide/developer/crates/forge-forges.md) | Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines |
 | [forge-fuzzy](docs/guide/developer/crates/forge-fuzzy.md) | PHPStorm-style fuzzy matching and Search Everywhere ranking (pure, WebAssembly-friendly) |
 | [forge-injections](docs/guide/developer/crates/forge-injections.md) | Language injections: SQL, HTML, CSS, JSON and RegExp inside PHP and JavaScript/TypeScript strings, `// language=` comments, fragment escaping and the injection intentions (pure, WebAssembly-friendly) |
+| [forge-inspections](docs/guide/developer/crates/forge-inspections.md) | Forge's inspection framework: registry, severities, profiles (PHPStorm XML), suppressions, duplicates, the batch runner, Code Cleanup and report export (pure, also built to WebAssembly) |
 | [forge-jsonschema](docs/guide/developer/crates/forge-jsonschema.md) | JSON Schema for JSON, JSON5/JSONC and YAML files: position-keeping parsers, a draft 4–2020-12 validator with PHPStorm's messages, completion, hover, Go to Declaration, schema mappings, bundled schemas and remote schema downloads |
 | [forge-keymap](docs/guide/developer/crates/forge-keymap.md) | PHPStorm-compatible keymap: shortcut model, default keymaps, overrides, conflicts and the key resolver |
 | [forge-langservers](docs/guide/developer/crates/forge-langservers.md) | Forge IDE: catalog, detection, configuration and installation of language servers |
@@ -22932,7 +23341,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-scopes](docs/guide/developer/crates/forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](docs/guide/developer/crates/forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
-| [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge console text: dialects, statement splitting, the read-only / production guard, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-testing](docs/guide/developer/crates/forge-testing.md) | The shared test runner and coverage model of every pack: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) (pure, also built to WebAssembly) |
 | [forge-trust](docs/guide/developer/crates/forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
@@ -24105,35 +24514,65 @@ Source: docs/guide/developer/crates/forge-db.md
 
 Forge database tools (the DataGrip part of Forge).
 
-- `config`: data sources in `.forge/dataSources.toml` and the global file;
-  passwords in the OS keychain (`secrets`, service `forge-db`).
+- `config`: data sources in `.forge/dataSources.toml` and the global file (drivers, SSL mode
+  and certificate files, SSH tunnel, colour, single session mode); secrets in the OS keychain
+  (`secrets`, service `forge-db`: `<id>`, `<id>#ssh`, `<id>#ssl-key`).
 - `env`: suggestions from Laravel `DB_*` and Symfony `DATABASE_URL`.
-- `conn`: MySQL/MariaDB, PostgreSQL and SQLite pools via `sqlx`.
+- `conn`: MySQL/MariaDB, PostgreSQL and SQLite pools via `sqlx`; the other engines behind the
+  `engine::EnginePool` / `engine::EngineConn` traits.
+- `engine`: SQL Server (`tiberius`, rustls), ClickHouse (HTTP + `JSONCompact`, `reqwest`),
+  Redis (`redis-rs`: keys tree, value viewer, command console), MongoDB (official driver:
+  collections, documents as JSON, shell-style console), Oracle (SQL*Plus / SQLcl on `PATH`,
+  one process per statement).
+- `ssh`: per data source SSH tunnels opened with `forge-remote` (saved configuration or ad-hoc,
+  `known_hosts` confirmation); `tls`: certificate files, encrypted PKCS#8 keys decrypted in
+  memory.
 - `introspect`, `ddl`: schemas, tables, columns, keys, indexes, routines, DDL.
-- `service::DbService`: consoles with transactions and cancel, table paging, row
-  editing (`edit`) and export (`export`).
-- `value`, `split`, `export`: re-exported from the pure `forge-sql` crate.
+- `service::DbService`: consoles with own or shared sessions, transactions and cancel, the
+  Sessions view, the read-only / production `guard`, table paging, row editing (`edit`),
+  export (`export`) and the Redis keys and values.
+- `value`, `split`, `export`, `guard`: re-exported from the pure `forge-sql` crate.
+
+### Decisions
+
+- **Oracle** runs through the user's SQL*Plus or SQLcl: no permissive pure-Rust driver speaks
+  Oracle's protocol and the Oracle client must not be bundled. The password goes through the
+  process's stdin; output is CSV between markers. No transactions across statements.
+- **ODBC** is not supported: generic ODBC needs a system driver manager and native drivers;
+  the engines are supported natively instead.
+- Writes on read-only data sources are refused twice: by the guard before anything is sent, and
+  by the driver (session `READ ONLY`, `readonly=2`, command allow-lists).
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
 | `config.rs` | Data source configuration: `.forge/dataSources.toml` in the project and `<config dir>/forge/dataSources.toml` for global data sources. Passwords never go into these files; they live in the OS keychain (see `crate::secrets`). |
-| `conn.rs` | Driver-neutral pools and connections. All SQL is sent as raw text (MySQL text protocol, PostgreSQL simple query protocol), so every statement type works and values arrive in a uniform text form that `crate::value` converts. |
-| `ddl.rs` | Table DDL: read from the server where it keeps it (MySQL `SHOW CREATE`, SQLite `sqlite_master`), otherwise generated from introspection (PostgreSQL). |
+| `conn.rs` | Driver-neutral pools and connections. All SQL is sent as raw text (MySQL text protocol, PostgreSQL simple query protocol), so every statement type works and values arrive in a uniform text form that `crate::value` converts. Other engines are `DbPool::Engine` / `Conn::Engine`. |
+| `ddl.rs` | Table DDL: read from the server where it keeps it (MySQL and ClickHouse `SHOW CREATE`, SQLite `sqlite_master`, Oracle `DBMS_METADATA`), otherwise generated from introspection (PostgreSQL, SQL Server tables). |
 | `edit.rs` | Row editing from the data grid; the statements are built by `forge_sql::edit`. |
+| `engine/mod.rs` | The driver traits, connect dispatch and shared helpers (paging, command words). |
+| `engine/sqlserver.rs` | SQL Server with `tiberius` over rustls: TDS config from the data source (encryption per SSL mode, CA, client certificate, Azure redirects), TDS values as cells. |
+| `engine/clickhouse.rs` | ClickHouse over HTTP: `JSONCompact`, `session_id` per console, `readonly=2`, `KILL QUERY` by `query_id`. |
+| `engine/redis.rs` | Redis: databases from `INFO keyspace`, `SCAN` with type and TTL, values per type, console replies as rows; read-only allow-list. |
+| `engine/mongo.rs` | MongoDB: relaxed-JSON arguments, `find`/`aggregate`/… calls with cursor chains, documents as rows and relaxed extended JSON, fields sampled per collection. |
+| `engine/oracle.rs` | Oracle through SQL*Plus / SQLcl: the script (CSV markup, login on stdin), CSV and feedback parsing, `ORA-` errors. |
 | `env.rs` | Data sources suggested from a project's `.env` files: Laravel's `DB_*` variables and Symfony/Doctrine's `DATABASE_URL`. |
 | `error.rs` |  |
 | `introspect.rs` | Database metadata: schemas, tables, views, columns, keys, indexes and routines. |
-| `secrets.rs` | Data source passwords: the OS keychain (service `forge-db`, account = data source id). |
-| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools, console sessions with transaction state, table data paging and row editing. |
+| `secrets.rs` | Data source secrets in the OS keychain (service `forge-db`): password (`<id>`), SSH secret (`<id>#ssh`), SSL key passphrase (`<id>#ssl-key`). |
+| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging, row editing and the Redis keys tree. |
+| `ssh.rs` | The SSH tab: `SshConnector` / `ForgeSsh` open a `forge-remote` session (saved configuration or ad-hoc, `~/.ssh/config`, `known_hosts`) and forward a local port. |
+| `tls.rs` | Certificate files of the SSL tab, resolved against the project; encrypted PKCS#8 client keys decrypted in memory. |
 | `tunnel.rs` | Data sources of a project on a remote host connect through its SSH connection: the database host and port are as the remote host sees them (`localhost` is the remote machine), reached through a local port forwarded with a `direct-tcpip` channel. |
 
 ## Main public items
 
 ```rust
-pub use forge_sql::{export, split, value};
-pub use config::{DataSource, DataSourceOptions, Dialect, Driver, Scope, SslMode};
+pub use forge_sql::{export, guard, split, value};
+pub use config::{DataModel, DataSource, DataSourceOptions, Dialect, Driver, Scope, SshTunnel, SslFiles, SslMode};
+pub use engine::redis::{RedisKey, RedisKeys, RedisValue};
+pub use forge_sql::{Guard, GuardPolicy};
 pub use conn::{ColumnMeta, DbPool, RawResult};
 pub use edit::{ChangeKind, RowChange};
 pub use env::DetectedDataSource;
@@ -24148,18 +24587,18 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 ## Used by
 
-- IPC: `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
+- IPC: `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
-- External: `dirs`, `futures-util`, `hex`, `keyring`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tokio`, `tokio-util`, `toml`, `tracing`
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
 
-11 source files, about 3008 lines; 11 unit tests and 12 integration tests in `tests/` (`remote.rs`, `sqlite.rs`).
+19 source files, about 7500 lines; 28 unit tests and 22 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`. No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
 
 ```sh
 cargo test -p forge-db
@@ -24816,6 +25255,100 @@ literal kind, fragment offset maps, the inserted and replaced comments and the i
 ```sh
 cargo test -p forge-injections
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-inspections.md
+
+# forge-inspections
+
+`crates/forge-inspections` — Forge's inspection framework: registry, severities, profiles (PHPStorm XML), suppressions, duplicates, the batch runner, Code Cleanup and report export (pure, also built to WebAssembly).
+
+## Purpose
+
+The common framework every problem in Forge goes through (see the
+[user guide](docs/guide/user/inspections.md)). It does not inspect code itself except for
+duplicated code; packs contribute inspections and providers.
+
+- `spec`: what a pack contributes: `InspectionSpec` (`[[contributions.inspections]]`: id,
+  name, group path, language, default severity, enabled, description, options, `cleanup`,
+  `external`, `batch`) and `ToolMapping` (`[[contributions.inspectionMappings]]`: problems
+  published with a diagnostics `source` and optionally a `code` or code prefix belong to an
+  inspection).
+- `registry`: the inspections of the enabled plugins plus the framework's own
+  (`DuplicatedCode`), the Settings tree grouped by language and group with search,
+  `inspection_for(source, code)` and Run Inspection by Name's `find_by_name`.
+- `severity`: Error, Warning, Weak Warning, Server Problem, Typo, Info and custom severities
+  (`SeverityDef`), PHPStorm's level names and how the editor highlights each.
+- `profile`: `Profile` stores only what differs from the defaults (`ToolSettings`: enabled,
+  severity, scope-specific settings, options); `ToolOp` / `ProfileOp` are the edits of the
+  Settings page (copy, rename, delete, reset, import, custom severities), `view` the Settings
+  tree with the profile's state, `ResolvedProfile::effective(id, path)` what an inspection
+  does for a file (the first matching scope wins).
+- `store`: where profiles live: IDE profiles in the user settings (`inspections.profiles`,
+  `inspections.severities`), project profiles as PHPStorm XML in
+  `.forge/inspectionProfiles/` (listed in `inspections.projectProfiles`), the selection in
+  `inspections.profile`; `load` and `plan_save` (settings writes and file writes).
+- `io`: PHPStorm inspection profile XML and Forge JSON, both ways.
+- `lang`, `stmts`: comment and string syntax per file type and a parser-free statement and
+  block finder (braces, semicolons, line breaks, indentation).
+- `suppress`: `@noinspection` / `noinspection` comments (statement, function, class, file and
+  line regions, `ALL`, ids with or without the `Inspection` suffix) and the Suppress actions
+  with the comment each one inserts (PHP doc comments get a line in an existing doc block).
+- `duplicates`: the token-based duplicate detector (rolling hashes over windows of the
+  minimum size, maximal extension, grouping of copies; anonymized identifiers and literals).
+- `engine`: `InspectionProvider` (per file and project-wide checks), `ProblemSource` (an
+  external tool that yields problems by position and code, mapped through the registry) and
+  `run`, which applies the profile, the scopes and the suppressions, with progress and
+  cancel.
+- `report`: `Report` / `ReportProblem`, the Inspection Results tree (`tree` grouped by
+  severity, group, inspection, directory and file), export as HTML, one XML document, one XML
+  file per inspection (PHPStorm's command-line format) and JSON.
+- `cleanup`: applying edits, and Code Cleanup's plan of safe fixes per file.
+
+## Main public items
+
+```rust
+pub struct InspectionSpec { id, name, group, language, severity, enabled, description, options, cleanup, external, batch }
+pub struct ToolMapping { source, code, inspection }
+pub struct Registry { inspections, mappings } // new, get, inspection_for, tree, find_by_name
+pub struct Profile { name, level, tools: BTreeMap<String, ToolSettings> }
+pub struct ProfilesState { profiles, selected, has_project, severities } // apply(ProfileOp)
+pub struct ResolvedProfile { … } // effective(id, path) -> Option<Effective>
+pub struct Suppressions { regions } // parse(path, text), is_suppressed(id, offset)
+pub fn suppress::actions(path, text, offset, id) -> Vec<SuppressAction>
+pub fn duplicates::find(files, &DuplicateOptions, cancelled) -> Vec<DuplicateGroup>
+pub trait InspectionProvider { fn inspections(); fn inspect_file(); fn inspect_project(); }
+pub trait ProblemSource { fn name(); fn problems(files, ctx) -> Result<Vec<ExternalProblem>, String>; }
+pub fn run(files, &ResolvedProfile, providers, sources, &RunOptions, progress, cancelled) -> Report
+pub fn report::tree(&Report, &[Grouping]) -> Vec<ResultNode>
+pub fn cleanup::plan(problems, texts, &Registry) -> CleanupPlan
+```
+
+## Used by
+
+- `forge-plugin-api` (`InspectionContribution`, `InspectionMappingContribution`,
+  `PluginRegistry::inspection_registry`)
+- `phpforge-lang-php` (`inspections::to_problem`; its problem codes are inspection ids)
+- `app/src-tauri`: `inspections.rs` (scope files, the PHP provider, duplicates), the IPC
+  commands in `commands/inspections.rs` and the command-line inspector `cli.rs`
+  (`forge inspect`)
+- `forge-wasm` (`inspections_*`): the UI's Settings tree, the diagnostics filter of the
+  editor, Suppress actions, Run Inspection by Name, the results tree, and browser mode's runs
+
+## Dependencies
+
+- Workspace crates: `forge-scopes`
+- External: `serde`, `serde_json`, `quick-xml`
+
+## Tests
+
+16 source files; unit tests for severities, specs and mappings, the registry tree and search,
+profile edits and scope resolution, store round trips, PHPStorm XML, the lexer and statement
+finder, suppression parsing and actions in PHP, JavaScript, Python, Rust and Go, duplicates,
+the runner (providers, sources, suppressions, cancel), the results tree and exports, and Code
+Cleanup.
 
 
 ---
@@ -25652,7 +26185,10 @@ A plugin (a language pack like PHPForge, or a feature like Git) describes itself
 `PluginManifest` and contributes capabilities through `Contributions`: commands,
 keybindings, tool windows, typed settings, language servers, run configuration types, test
 frameworks of the shared test runner (`testFrameworks`, defined by
-[`forge-testing`](docs/guide/developer/crates/forge-testing.md)) and AI providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
+[`forge-testing`](docs/guide/developer/crates/forge-testing.md)), inspections and the mapping of external tools' problems
+onto them (`inspections`, `inspectionMappings`, defined by
+[`forge-inspections`](docs/guide/developer/crates/forge-inspections.md); `PluginRegistry::inspection_registry`) and AI
+providers/agents/generators. The `PluginRegistry` tracks installed plugins, their
 enablement, and answers lookups over the contributions of enabled plugins. Packs depend
 only on this crate, never on app internals.
 
@@ -25681,7 +26217,7 @@ pub trait Plugin: Send + Sync { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md)
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md)
 - External: `serde`, `serde_json`, `thiserror`, `toml`
 
 ## Tests
@@ -25865,6 +26401,7 @@ pub use known_hosts::HostKeyStatus;
 
 - IPC: `remote_ssh_configs`, `remote_ssh_config_save`, `remote_validate_config`, `remote_ssh_config_delete`, `remote_ssh_hosts`, `remote_test_connection`, `remote_connect`, `remote_browse`, `remote_open_project`, `remote_disconnect`, `remote_status`, `remote_reconnect` (`app/src-tauri/src/commands/remote.rs`)
 - IPC: `terminal_open({ options: { ssh: { configId? | serverId?, secret?, confirmed? } } })` (`app/src-tauri/src/commands/terminal.rs`)
+- [`forge-db`](docs/guide/developer/crates/forge-db.md): SSH tunnels of data sources (`forge_db::ssh`)
 - UI: `app/ui/src/features/remote`, `app/ui/src/features/terminal/ssh.tsx`
 - Browser mode: built into `forge-wasm`
 
@@ -26447,18 +26984,21 @@ Source: docs/guide/developer/crates/forge-sql.md
 
 ## Purpose
 
-Pure SQL text handling shared by `forge-db` and the browser-mode UI (WebAssembly):
-dialect quoting, statement splitting and the statement at the caret, cell values as
-JavaScript-safe JSON, row change statements and export.
+Pure console text handling shared by `forge-db` and the browser-mode UI (WebAssembly):
+dialect quoting and paging (MySQL, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle; Redis and
+MongoDB consoles), statement splitting and the statement at the caret (`GO` batches, PL/SQL
+blocks ending with `/`, one Redis command per line, MongoDB calls), the read-only / production
+guard, cell values as JavaScript-safe JSON, row change statements and export.
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
-| `dialect.rs` | SQL dialects: quoting of identifiers and literals. |
+| `dialect.rs` | Console dialects: quoting of identifiers and literals, `BEGIN`, paging (`LIMIT`/`OFFSET` or `OFFSET … FETCH`). |
 | `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key. |
 | `export.rs` | Export a result set as CSV, JSON or SQL `INSERT` statements. |
-| `split.rs` | Split a script into statements at `;`, respecting quotes, comments and PostgreSQL dollar quoting. |
+| `guard.rs` | Read-only data sources refuse writes (DML/DDL, Redis write commands, MongoDB write calls); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
+| `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks; Redis lines and MongoDB calls. |
 | `value.rs` | Cell values as JSON that survives JavaScript: `null`, booleans, numbers only within ±2^53, everything else (big integers, decimals, dates) as strings, binary data as `{"$hex": "89504e47"}`. |
 
 ## Main public items
@@ -26467,14 +27007,15 @@ JavaScript-safe JSON, row change statements and export.
 pub use dialect::Dialect;
 pub use edit::{change_sql, ChangeKind, Refused, RowChange};
 pub use export::{export, ExportFormat};
+pub use guard::{guard, Guard, GuardPolicy};
 pub use split::{leading_keyword, split_statements, statement_at, Statement};
 ```
 
 ## Used by
 
-- IPC: `db_statement_at`, `db_export` (through forge-db)
+- IPC: `db_statement_at`, `db_export`, `db_guard` (through forge-db)
 - UI: `app/ui/src/features/database`
-- Browser mode: built into `forge-wasm`
+- Browser mode: built into `forge-wasm` (`sql_split`, `sql_statement_at`, `sql_guard`, …)
 
 ## Dependencies
 
@@ -26483,7 +27024,7 @@ pub use split::{leading_keyword, split_statements, statement_at, Statement};
 
 ## Tests
 
-6 source files, about 904 lines; 14 unit tests.
+7 source files, about 1900 lines; 24 unit tests.
 
 ```sh
 cargo test -p forge-sql
@@ -26893,6 +27434,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `parsers/markdown.rs` | Markdown (`forge-markdown`) for browser mode, mirroring `markdown_parse`, `markdown_hover`, `markdown_document` and `markdown_anchor_line`. |
 | `parsers/output.rs` | Run output (`forge-output`) for the browser-mode run backend and terminal: the mock feeds process events into a `RunOutput` and emits the rendered events like the desktop app. |
 | `parsers/sql.rs` | SQL text (`forge-sql`) for the browser-mode database backend and console. |
+| `inspections.rs` | Inspections (`forge-inspections`), called synchronously by the UI in the desktop app and in browser mode: `inspections_configure` / `inspections_apply` (the selected profile applied to every published diagnostic: inspection ids, severities, disabled inspections, suppression comments), `inspections_view` and `inspections_profile_op` (the Settings page), `inspections_suppress_actions` (Alt+Enter), `inspections_find` (Run Inspection by Name), `inspections_report_tree`, profile export / import; for the browser-mode mock `inspections_run`, `inspections_cleanup_plan`, `inspections_apply_edits` and `inspections_export_report`. |
 | `remote.rs` | Remote development (`forge-remote` without its SSH client): `~/.ssh/config` hosts, SSH configuration validation and `known_hosts` checks, mirroring `remote_ssh_hosts`, `remote_validate_config` and the host key step of `remote_connect`. |
 | `scratches.rs` | Scratch files (`forge-scratches`), mirroring the pure parts of the `scratches_*` IPC commands for the browser-mode mock: the language list, naming, gutter markers, run command lines and the `.http` parser, request resolution (variables, dynamic variables, body files), response handlers and rendering. |
 | `search.rs` | Fuzzy matching and Search Everywhere ranking (`forge-fuzzy`), mirroring the `fuzzy_filter`, `search_rank` and `fs_find_files` IPC commands. |
@@ -29345,7 +29887,8 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `injections.rs` | `language_places`: every `#[Language]` parameter of the indexed functions, methods and constructors, handed to `forge-injections` (`InjectionSettings::places`). |
-| `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index). Calls and names resolve through `navigate::resolve_word`. |
+| `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index), plus the data-flow inspections. Calls and names resolve through `navigate::resolve_word`. `PhpProblem::code` is the inspection id of [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md) (`PhpDeprecation`, `PhpExpectedValuesShouldBeUsed`, `PhpImmutablePropertyIsChanged`, `PhpExpressionResultUnused`, `PhpUnreachableStatement`, `PhpIllegalPsrClassPath`, …); `to_problem` turns a problem into the framework's `Problem`. |
+| `dataflow.rs` | PHP data flow on the tree-sitter tree, per function, method and closure (and the top level): values of local variables through straight-line code and branches (merged at joins, loops forget what they assign), reporting "Variable is always null" (`PhpVariableIsAlwaysNull`), "Undefined variable" (`PhpUndefinedVariable`), "Condition is always true / false" (`PhpConstantCondition`) and "Unused assignment" (`PhpUnusedAssignment`, with "Remove unused assignment" / "Remove assignment, keep the expression"). Functions with `$$name`, `extract()`, `compact()`, `get_defined_vars()`, `eval`, `include` or `goto` are skipped; variables shared by reference are never tracked. |
 | `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `meta.rs` | `.phpstorm.meta.php` (`is_meta_path`, `parse` → `PhpMeta`): `override()` with `map()` (`@` patterns, `::class` keys), `type()`, `elementType()`; `expectedArguments()`, `expectedReturnValues()`, `registerArgumentsSet()` / `argumentsSet()`, `exitPoint()`; lookups `function_return` / `method_return` (→ `MetaType`), `map_entry`, `map_keys`, `expected_arguments`, `expected_return_values`, `is_exit_point`. `ProjectIndex::meta()` merges the files of the project, vendor packages and include paths (cached with the index, read again on change). |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
@@ -29376,7 +29919,7 @@ pub enum PhpError { … }
 
 ## Dependencies
 
-- Workspace crates: `forge-codeintel`, `forge-file-templates`, `phpforge-composer`, `phpforge-interpreters`
+- Workspace crates: `forge-codeintel`, `forge-file-templates`, `forge-inspections`, `forge-scopes`, `phpforge-composer`, `phpforge-interpreters`
 - External: `dirs`, `rayon`, `serde`, `serde_json`, `thiserror`, `tracing`, `tree-sitter`, `tree-sitter-php`, `walkdir`
 
 ## Tests

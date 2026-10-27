@@ -26,6 +26,7 @@ import "./fuzzyMock";
 import "./searchMock";
 import "./findMock";
 import "./scopesMock";
+import "./inspectionsMock";
 import "./replaceMock";
 import "./ssrMock";
 import "./stacktraceMock";

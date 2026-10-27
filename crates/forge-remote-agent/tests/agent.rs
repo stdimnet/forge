@@ -437,9 +437,9 @@ async fn php_metadata_inspections_and_libraries_on_the_agent() {
         // Inspections: deprecation, PSR-4 namespace.
         let src = "<?php\nnamespace App\\Http;\nuse App\\Models\\Order;\nfunction f(Order $o) { $o->settle(); $o->setStatus(''); }\n";
         let problems = php.inspect("app/Http/F.php", Some(src.into())).unwrap();
-        assert_eq!(problems[0].code, "deprecated", "{problems:?}");
+        assert_eq!(problems[0].code, "PhpDeprecation", "{problems:?}");
         let thing = php.inspect("app/Misc/Thing.php", None).unwrap();
-        assert_eq!(thing[0].code, "psr4Namespace", "{thing:?}");
+        assert_eq!(thing[0].code, "PhpIllegalPsrClassPath", "{thing:?}");
         // Completion from the metadata.
         let at = src.find("('')").unwrap() + 2;
         let c = php
