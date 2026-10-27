@@ -345,6 +345,7 @@ pub fn db_restore_guard(id: String, state: State<'_, DbState>) -> Result<Option<
 /// Start a dump or restore in the Run tool window as run `run_id`. Restores are refused
 /// on read-only data sources and need `confirmed` on production ones.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn db_dump_start(
     id: String,
     request: DumpRequest,

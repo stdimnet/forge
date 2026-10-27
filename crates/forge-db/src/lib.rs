@@ -61,8 +61,8 @@ pub use secrets::{KeyringStore, MemoryStore, SecretStore};
 pub use service::{
     row_key, ApplyResult, ChangePreview, ColumnFilter, DataSourceInfo, DbService, FilterOp,
     ImportError, ImportProgress, ImportSummary, QueryPage, ScriptResult, SearchProgress,
-    SearchRequest, SearchScope, SearchSummary, SecretUpdate,
-    SessionInfo, SessionMode, SortKey, StatementResult, TableDataRequest, TableMatches, TestResult,
+    SearchRequest, SearchScope, SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey,
+    StatementResult, TableDataRequest, TableMatches, TestResult,
 };
 pub use split::{split_statements, Statement};
 /// Cancels running imports.

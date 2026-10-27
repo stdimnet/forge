@@ -148,6 +148,7 @@ impl DbService {
     /// fail; abort mode stops at the first error and, where the driver has transactions,
     /// keeps nothing. `progress` is called after every batch; `cancel` stops between
     /// batches.
+    #[allow(clippy::too_many_arguments)]
     pub async fn import(
         &self,
         id: &str,
@@ -223,8 +224,8 @@ impl DbService {
                 }
                 Err(_) => {
                     // Find the rows that fail.
-                    for i in b.first..b.first + b.rows {
-                        match conn.execute(&row_insert(d, plan, &rows[i])).await {
+                    for (i, row) in rows.iter().enumerate().skip(b.first).take(b.rows) {
+                        match conn.execute(&row_insert(d, plan, row)).await {
                             Ok(_) => summary.inserted += 1,
                             Err(e) => {
                                 summary.skipped += 1;
