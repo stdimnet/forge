@@ -120,7 +120,11 @@ pub fn scala_command_line(request_json: &str) -> String {
         Err(e) => return error(e),
     };
     let cfg = &r.configuration;
-    let program = if r.program.is_empty() { "sbt".to_string() } else { r.program.clone() };
+    let program = if r.program.is_empty() {
+        "sbt".to_string()
+    } else {
+        r.program.clone()
+    };
     match cfg.type_id.as_str() {
         "scalatest" | "munit" => {
             let provider = if cfg.type_id == "munit" {
@@ -272,7 +276,10 @@ mod tests {
         .unwrap();
         assert_eq!(v["matched"], 1);
         assert_eq!(v["entries"][0]["link"]["line"], 3);
-        let r: serde_json::Value = serde_json::from_str(&groovy_runnable(&json!({ "text": "println 'x'" }).to_string())).unwrap();
+        let r: serde_json::Value = serde_json::from_str(&groovy_runnable(
+            &json!({ "text": "println 'x'" }).to_string(),
+        ))
+        .unwrap();
         assert_eq!(r["script"], true);
         let c: serde_json::Value = serde_json::from_str(&scala_command_line(
             &json!({ "configuration": { "name": "t", "type": "sbt-task", "options": { "tasks": "test", "project": "core" } } }).to_string(),
