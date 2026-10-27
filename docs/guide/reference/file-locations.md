@@ -44,6 +44,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
 | `packagist/p2/<vendor>/<package>.json`, `packagist/search/` | Packagist package metadata (6 hours) and searches (1 hour) for Composer completion, versions and outdated packages (only while `php.composer.packagist` is on) |
+| `vulnerabilities/<project hash>/<tool>-<folder hash>.json` | the last result of each audit tool of the vulnerable dependency check, with the hash of the manifest and lock file it was made from; reused on project open while the files are unchanged and younger than `vulnerabilities.cacheHours` |
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
