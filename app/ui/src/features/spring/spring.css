@@ -358,6 +358,14 @@
 }
 .sp-bean-name {
   color: var(--fg-strong);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-tree-row .sp-badge,
+.sp-tree-row .sp-usages,
+.sp-tree-row .sp-live-dot {
+  flex-shrink: 0;
 }
 .sp-bean-type,
 .sp-field-type {
