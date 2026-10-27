@@ -100,6 +100,7 @@ pub mod vim;
 pub mod vulnerabilities;
 pub mod web;
 pub mod web_quality_tools;
+pub mod web_tooling;
 pub mod window;
 pub mod wordpress;
 pub mod workbench;

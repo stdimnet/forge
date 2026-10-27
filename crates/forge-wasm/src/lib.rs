@@ -78,6 +78,7 @@ mod viewers;
 mod vim;
 mod vulnerabilities;
 mod web;
+mod web_tooling;
 mod window;
 mod wordpress;
 mod workbench;

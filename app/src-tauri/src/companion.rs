@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use forge_backend::Backend;
 use forge_core::{FileKind, FileMatch};
 use forge_open::cli::{parse_launch_args, LaunchTarget};
+use forge_open::live_edit::LiveEditHub;
 use forge_open::pairing::{ClientInfo, Pairing};
 use forge_open::server::{
     CompanionServer, HostError, HostInfo, OpenHost, OpenOutcome, OpenStatus, ProjectInfo,
@@ -33,6 +34,7 @@ pub const STATUS_EVENT: &str = "companion://status";
 pub const KEY_ENABLED: &str = "browserCompanion.enabled";
 pub const KEY_PORT: &str = "browserCompanion.port";
 pub const KEY_FOCUS: &str = "browserCompanion.focusWindow";
+pub const KEY_LIVE_EDIT: &str = "liveEdit.enabled";
 
 /// Server state shown on the settings page.
 #[derive(Debug, Clone, Default, Serialize)]
@@ -51,6 +53,8 @@ pub struct CompanionState {
     /// Requests that arrived before the UI was ready (e.g. `forge file:12` at startup).
     pending: Mutex<Vec<PendingEvent>>,
     ui_ready: AtomicBool,
+    /// Live Edit events for the paired browsers.
+    pub live_edit: Arc<LiveEditHub>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -388,6 +392,16 @@ impl OpenHost for AppHost {
             Some(client.name.clone()),
         )?;
         Ok(outcome(&event))
+    }
+
+    fn live_edit(&self) -> Option<Arc<LiveEditHub>> {
+        let on = self
+            .app
+            .state::<AppState>()
+            .read_settings()
+            .get_bool(KEY_LIVE_EDIT)
+            .unwrap_or(true);
+        on.then(|| self.app.state::<CompanionState>().live_edit.clone())
     }
 }
 

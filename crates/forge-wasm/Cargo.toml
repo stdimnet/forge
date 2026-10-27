@@ -94,3 +94,4 @@ webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features =
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
+webforge-web-tooling.workspace = true

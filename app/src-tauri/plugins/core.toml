@@ -1437,6 +1437,30 @@ group = "tools.http-client"
 project = true
 order = 1
 
+[[contributions.settings]]
+key = "httpClient.grpc.protoFiles"
+title = ".proto files for gRPC requests"
+description = "Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service."
+type = "list"
+default = []
+group = "tools.http-client"
+section = "gRPC"
+project = true
+order = 10
+
+# ---- Tools > File Watchers -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "tools.fileWatchers"
+title = "File Watchers"
+description = "Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, \"Track only root files\", console and output filters."
+type = "objects"
+unique = ["name"]
+default = []
+group = "tools.file-watchers"
+project = true
+order = 0
+
 # ---- Tools > Actions on Save -----------------------------------------------------------
 
 [[contributions.settings]]

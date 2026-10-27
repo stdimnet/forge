@@ -509,6 +509,8 @@ pub struct Resolved {
 /// dynamic variables and body files.
 pub struct Resolver<'a> {
     vars: BTreeMap<String, String>,
+    /// Values of `$` expressions computed outside (`$auth.token("id")`).
+    values: BTreeMap<String, String>,
     dynamic: Dynamic,
     load: Option<FileLoader<'a>>,
 }
@@ -525,9 +527,17 @@ impl<'a> Resolver<'a> {
         vars.extend(file_vars.iter().map(|(k, v)| (k.clone(), v.clone())));
         Resolver {
             vars,
+            values: BTreeMap::new(),
             dynamic,
             load: None,
         }
+    }
+
+    /// Values for `$` expressions the resolver cannot compute itself, by their text
+    /// inside `{{ }}` (OAuth tokens: `$auth.token("shop")`).
+    pub fn with_values(mut self, values: BTreeMap<String, String>) -> Self {
+        self.values = values;
+        self
     }
 
     /// Read `< file` bodies and `> file` handlers with `load`.
@@ -537,9 +547,11 @@ impl<'a> Resolver<'a> {
     }
 
     fn subst(&mut self, text: &str) -> String {
-        let (vars, dynamic) = (&self.vars, &mut self.dynamic);
+        let (vars, values, dynamic) = (&self.vars, &self.values, &mut self.dynamic);
         substitute_with(text, &mut |key| {
-            if key.starts_with('$') {
+            if let Some(v) = values.get(key) {
+                Some(v.clone())
+            } else if key.starts_with('$') {
                 dynamic.value(key)
             } else {
                 vars.get(key).cloned()

@@ -2225,6 +2225,7 @@ dependencies = [
  "webforge-js-testing",
  "webforge-lang-web",
  "webforge-quality-tools",
+ "webforge-web-tooling",
 ]
 
 [[package]]

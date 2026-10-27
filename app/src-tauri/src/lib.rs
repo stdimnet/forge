@@ -68,6 +68,9 @@ pub fn run() {
             commands::window::on_window_event(window, event);
         })
         .manage(commands::scratches::HttpClientState::default())
+        .manage(std::sync::Arc::new(
+            commands::web_tooling::GraphqlState::default(),
+        ))
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
 
@@ -702,6 +705,24 @@ pub fn run() {
             commands::scratches::scratches_markers,
             commands::scratches::scratches_http_run,
             commands::scratches::scratches_http_environments,
+            commands::scratches::scratches_http_curl,
+            commands::scratches::scratches_http_from_curl,
+            commands::scratches::scratches_http_clear_tokens,
+            commands::web_tooling::file_watchers_templates,
+            commands::web_tooling::file_watchers_validate,
+            commands::web_tooling::file_watchers_plan,
+            commands::web_tooling::file_watchers_problems,
+            commands::web_tooling::openapi_endpoints,
+            commands::web_tooling::openapi_preview,
+            commands::web_tooling::openapi_http_request,
+            commands::web_tooling::graphql_info,
+            commands::web_tooling::graphql_validate,
+            commands::web_tooling::graphql_complete,
+            commands::web_tooling::graphql_introspect,
+            commands::web_tooling::nx_workspace,
+            commands::web_tooling::nuxt_project,
+            commands::web_tooling::deno_tasks,
+            commands::companion::companion_live_edit,
             commands::output::output_file_links,
             commands::markdown::markdown_parse,
             commands::injections::injections_find,
