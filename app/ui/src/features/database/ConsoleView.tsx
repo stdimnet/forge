@@ -43,8 +43,8 @@ import { updateContent, type EditorTab } from "@/state/editor";
 import { getSetting } from "@/state/settings";
 import { shortcutLabel, showBalloon } from "@/keymap";
 import { askConfirm } from "@/features/contextMenu/dialogs";
-import { dbApi, dialectOf, DS_COLORS, supportsTransactions, type Cell, type ColumnMeta, type SessionInfo, type SortKey, type StatementResult } from "@/ipc/db";
-import { DataGrid } from "./DataGrid";
+import { dbApi, dialectOf, DS_COLORS, supportsTransactions, type Cell, type ColumnMeta, type SessionInfo, type StatementResult } from "@/ipc/db";
+import { ResultGrid, ResultTools, type ResultGridTools } from "./ResultGrid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { gridColumns } from "./grid";
 import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, sourceColor, states, tableInfo, takeConsoleOptions } from "./store";
@@ -104,37 +104,14 @@ const flashField = StateField.define<DecorationSet>({
 });
 
 function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: number) => void; pageSize: number }) {
-  const [sort, setSort] = createSignal<SortKey[]>([]);
   const [json, setJson] = createSignal(false);
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const ds = () => sourceById(props.dsId);
   const table = () => (props.result.table ? tableInfo(props.dsId, defaultSchema(props.dsId), props.result.table) : undefined);
   const columns = createMemo(() => gridColumns(props.result.columns, table()));
-  const rows = createMemo(() => {
-    const keys = sort();
-    if (!keys.length) return props.result.rows;
-    const idx = keys.map((k) => ({ i: props.result.columns.findIndex((c) => c.name === k.column), desc: k.desc }));
-    const cmp = (a: Cell, b: Cell) => {
-      if (a === b) return 0;
-      if (a === null) return -1;
-      if (b === null) return 1;
-      const x = Number(a);
-      const y = Number(b);
-      if (typeof a !== "object" && typeof b !== "object" && !Number.isNaN(x) && !Number.isNaN(y)) return x - y;
-      return String(a).localeCompare(String(b));
-    };
-    return [...props.result.rows].sort((a, b) => {
-      for (const k of idx) {
-        const c = cmp(a[k.i], b[k.i]);
-        if (c) return k.desc ? -c : c;
-      }
-      return 0;
-    });
-  });
-  const onSort = (column: string) => {
-    const cur = sort().find((k) => k.column === column);
-    setSort(!cur ? [{ column, desc: false }] : !cur.desc ? [{ column, desc: true }] : []);
-  };
+  // Rows in display order (local sort and filter of the result grid), for export.
+  const [rows, setRows] = createSignal<Cell[][]>(props.result.rows);
+  const [tools, setTools] = createSignal<ResultGridTools>();
   const first = () => (props.result.rows.length ? props.result.offset + 1 : 0);
   return (
     <div class="db-result">
@@ -179,6 +156,10 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
             <Braces size={12} /> {json() ? "Table" : "JSON"}
           </button>
         </Show>
+        <Show when={tools() && !json()}>
+          <span class="db-sep" />
+          <ResultTools tools={tools()!} />
+        </Show>
         <span class="db-spacer" />
         <span class="db-status muted">
           {rowsText(props.result.rows.length)}
@@ -188,14 +169,14 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
       <Show
         when={json() && props.result.documents}
         fallback={
-          <DataGrid
+          <ResultGrid
             columns={columns()}
-            rows={rows()}
+            rows={props.result.rows}
             rowOffset={props.result.offset}
-            sort={sort()}
-            onSort={onSort}
             nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
-            emptyText="The query returned no rows"
+            label={`${ds()?.name ?? props.dsId} · ${props.result.title}`}
+            onShown={setRows}
+            tools={setTools}
           />
         }
       >

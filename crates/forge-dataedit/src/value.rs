@@ -111,7 +111,7 @@ pub struct ValueError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Formatted {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Always present (`null` when invalid), so the result is never a bare `{ error }`.
     pub text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<ValueError>,

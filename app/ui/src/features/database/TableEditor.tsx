@@ -1,12 +1,16 @@
 /**
- * Data editor tab of a table or view (DataGrip's table editor): paging, WHERE / ORDER BY
- * filter row, sorting, cell editing with pending changes, Submit / Revert, add and delete
- * rows, export and DDL.
+ * Data editor tab of a table or view (DataGrip's table editor): paging, the WHERE filter
+ * with column completion and "Filter by value" conditions, header sort (Ctrl+Click for
+ * several columns), all applied server-side; cell editing and the value editor with pending
+ * changes, their DML preview and Submit / Revert; foreign-key navigation (Ctrl+B, Alt+F7);
+ * the transposed view, aggregates, compare data, charts, export and DDL.
  */
 import { createEffect, createMemo, createSignal, on, onCleanup, Show } from "solid-js";
 import { createStore, produce, reconcile } from "solid-js/store";
 import {
   ArrowDownUp,
+  ArrowRightLeft,
+  ChartColumn,
   ChevronFirst,
   ChevronLast,
   ChevronLeft,
@@ -14,22 +18,32 @@ import {
   Download,
   FileCode,
   Filter,
+  GitCompare,
   Minus,
+  PanelRight,
   Plus,
   RefreshCw,
+  ScrollText,
+  Sigma,
   Undo2,
   Upload,
 } from "lucide-solid";
-import { dbApi, dialectOf, type Cell, type QueryPage, type SortKey, type TableInfo } from "@/ipc/db";
+import { dbApi, dialectOf, type Cell, type ForeignKey, type QueryPage, type SortKey, type TableInfo } from "@/ipc/db";
+import { dataEditApi, type ChangePreview, type ColumnFilter } from "@/ipc/dataedit";
 import type { EditorTab } from "@/state/editor";
 import { getSetting } from "@/state/settings";
 import { showBalloon, shortcutLabel } from "@/keymap";
+import { askConfirm } from "@/features/contextMenu/dialogs";
 import { DataGrid, type GridApi } from "./DataGrid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { buildChanges, emptyPending, gridColumns, pendingCount, type Pending } from "./grid";
-import { connect, openConsole, parseTablePath, sourceById, tableInfo } from "./store";
-import { dataEditors } from "./controllers";
+import { buildChanges, emptyPending, gridColumns, isDefault, nextSort, pendingCount, type Pending } from "./grid";
+import { connect, openConsole, openTable, parseTablePath, sourceById, states, tableInfo, tableRequest } from "./store";
+import { dataEditors, gridControllers, newGridId } from "./controllers";
 import { exportMenu } from "./exporting";
+import { AggregatePanel, AggregateStatus, FilterChips, filterByValueItems, PendingPanel, TransposedGrid, useAggregates, WhereInput } from "./dataTools";
+import { ValueEditor } from "./ValueEditor";
+import { ChartView } from "./ChartView";
+import { CompareDialog, registerCompareSource, tableSource } from "./CompareView";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -48,19 +62,29 @@ export function parseOrder(text: string): SortKey[] {
 
 export const formatOrder = (keys: SortKey[]) => keys.map((k) => `${k.column}${k.desc ? " DESC" : ""}`).join(", ");
 
-function Tool(props: { title: string; disabled?: boolean; onClick: (e: MouseEvent) => void; children: unknown; class?: string }) {
+function Tool(props: { title: string; disabled?: boolean; active?: boolean; onClick: (e: MouseEvent) => void; children: unknown; class?: string }) {
   return (
-    <button class={`icon-btn db-tool ${props.class ?? ""}`} title={props.title} disabled={props.disabled} onClick={(e) => props.onClick(e)}>
+    <button
+      class={`icon-btn db-tool ${props.class ?? ""}`}
+      classList={{ active: !!props.active }}
+      title={props.title}
+      aria-pressed={props.active}
+      disabled={props.disabled}
+      onClick={(e) => props.onClick(e)}
+    >
       {props.children as never}
     </button>
   );
 }
+
+type Side = "value" | "aggregate" | null;
 
 export function TableEditor(props: { tab: EditorTab }) {
   const loc = parseTablePath(props.tab.path)!;
   const ds = () => sourceById(loc.id);
   const pageSize = () => ds()?.options.pageSize ?? getSetting<number>("database.pageSize", 500) ?? 500;
   const nullText = () => getSetting<string>("database.showNullAs", "<null>") ?? "<null>";
+  const gridId = newGridId();
 
   const [info, setInfo] = createSignal<TableInfo | undefined>(tableInfo(loc.id, loc.schema, loc.table));
   const [page, setPage] = createSignal<QueryPage | null>(null);
@@ -68,17 +92,34 @@ export function TableEditor(props: { tab: EditorTab }) {
   const [error, setError] = createSignal<string | null>(null);
   const [offset, setOffset] = createSignal(0);
   const [where, setWhere] = createSignal("");
+  const [columnFilters, setColumnFilters] = createSignal<ColumnFilter[]>([]);
   const [orderText, setOrderText] = createSignal("");
   const [sort, setSort] = createSignal<SortKey[]>([]);
   const [pending, setPending] = createStore<Pending>(emptyPending());
   const [status, setStatus] = createSignal("");
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const [cursor, setCursor] = createSignal<{ row: number; col: number } | null>(null);
+  const [selected, setSelected] = createSignal<{ columns: string[]; rows: Cell[][] } | null>(null);
+  const [transposed, setTransposed] = createSignal(false);
+  const [chart, setChart] = createSignal(false);
+  const [side, setSide] = createSignal<Side>(null);
+  const [showPending, setShowPending] = createSignal(false);
+  const [preview, setPreview] = createSignal<ChangePreview | null>(null);
+  const [previewError, setPreviewError] = createSignal<string | null>(null);
+  const [previewLoading, setPreviewLoading] = createSignal(false);
+  const [comparing, setComparing] = createSignal(false);
   let grid: GridApi | undefined;
 
   const dialect = () => dialectOf(ds()?.driver ?? "mysql", ds()?.options.ddlDialect);
   const columns = createMemo(() => gridColumns(page()?.columns ?? [], info()));
   const editable = () => info()?.kind !== "view" && !ds()?.options.readOnly;
   const changes = () => pendingCount(pending);
+  const loaded = () => page()?.rows.length ?? 0;
+  const total = () => loaded() + pending.inserted.length;
+
+  // A filtered open (foreign-key navigation) of this table.
+  const pendingRequest = tableRequest();
+  if (pendingRequest?.path === props.tab.path && pendingRequest.options.filter !== undefined) setWhere(pendingRequest.options.filter);
 
   async function load(nextOffset = offset()): Promise<void> {
     setLoading(true);
@@ -90,6 +131,7 @@ export function TableEditor(props: { tab: EditorTab }) {
         schema: loc.schema,
         table: loc.table,
         filter: where().trim() || undefined,
+        columnFilters: columnFilters(),
         order: sort(),
         offset: nextOffset,
         limit: pageSize(),
@@ -107,10 +149,28 @@ export function TableEditor(props: { tab: EditorTab }) {
 
   void load(0);
 
+  createEffect(
+    on(
+      tableRequest,
+      (r) => {
+        if (r?.path !== props.tab.path || r.options.filter === undefined) return;
+        setWhere(r.options.filter);
+        setColumnFilters([]);
+        void load(0);
+      },
+      { defer: true },
+    ),
+  );
+
+  const valueAt = (row: number, col: number): Cell | undefined => {
+    const e = pending.edits[row];
+    if (e && col in e) return e[col];
+    return row < loaded() ? page()!.rows[row][col] : pending.inserted[row - loaded()]?.[col];
+  };
+
   const edit = (row: number, col: number, v: Cell) => {
-    const loaded = page()?.rows.length ?? 0;
-    if (row >= loaded) {
-      setPending("inserted", row - loaded, col, v);
+    if (row >= loaded()) {
+      setPending("inserted", row - loaded(), col, v);
       return;
     }
     const original = page()!.rows[row][col];
@@ -125,12 +185,45 @@ export function TableEditor(props: { tab: EditorTab }) {
     );
   };
 
+  /** The row changes for the backend: original rows as keys, Rust picks the key columns. */
+  const rowChanges = () => buildChanges(columns(), page()?.rows ?? [], pending);
+
+  // The DML preview follows the pending changes while it is open.
+  createEffect(
+    on([showPending, () => JSON.stringify(pending)], async ([open]) => {
+      if (!open) return;
+      if (!changes()) {
+        setPreview(null);
+        setPreviewError(null);
+        return;
+      }
+      setPreviewLoading(true);
+      try {
+        setPreview(await dataEditApi.previewChanges(loc.id, loc.schema, loc.table, rowChanges()));
+        setPreviewError(null);
+      } catch (e) {
+        setPreview(null);
+        setPreviewError(errorText(e));
+      } finally {
+        setPreviewLoading(false);
+      }
+    }),
+  );
+
   async function submit(): Promise<void> {
     if (!changes() || !page()) return;
     try {
-      const list = buildChanges(columns(), page()!.rows, info()?.primaryKey ?? [], pending);
-      const res = await dbApi.applyChanges(loc.id, loc.schema, loc.table, list);
+      const list = rowChanges();
+      const p = await dataEditApi.previewChanges(loc.id, loc.schema, loc.table, list);
+      if (p.blocked) throw new Error(p.blocked);
+      let confirmed = false;
+      if (p.confirm) {
+        confirmed = await askConfirm({ title: "Production Data Source", message: `${p.confirm}\n\n${p.statements.join(";\n")};`, confirm: "Submit" });
+        if (!confirmed) return;
+      }
+      const res = await dbApi.applyChanges(loc.id, loc.schema, loc.table, list, confirmed);
       await load();
+      setShowPending(false);
       setStatus(`${res.statements.length} change${res.statements.length === 1 ? "" : "s"} submitted`);
     } catch (e) {
       showBalloon(`Cannot submit changes to ${loc.table}`, errorText(e), 9000);
@@ -146,23 +239,25 @@ export function TableEditor(props: { tab: EditorTab }) {
     if (!editable() || !page()) return;
     setPending("inserted", (rows) => [...rows, columns().map(() => undefined)]);
     queueMicrotask(() => {
-      const r = (page()?.rows.length ?? 0) + pending.inserted.length - 1;
+      const r = loaded() + pending.inserted.length - 1;
       const firstEditable = Math.max(0, columns().findIndex((c) => !c.autoIncrement));
+      setTransposed(false);
       grid?.select(r, firstEditable);
       grid?.focus();
     });
   };
 
+  const selectedRows = () => (transposed() ? (cursor() ? [cursor()!.row] : []) : (grid?.selectedRows() ?? []));
+
   const deleteRows = () => {
     if (!editable()) return;
-    const loaded = page()?.rows.length ?? 0;
-    const rows = grid?.selectedRows() ?? [];
+    const rows = selectedRows();
     setPending(
       produce((p) => {
         // New rows are simply dropped; loaded rows are marked (toggling like DataGrip).
-        const drop = rows.filter((r) => r >= loaded).map((r) => r - loaded);
+        const drop = rows.filter((r) => r >= loaded()).map((r) => r - loaded());
         p.inserted = p.inserted.filter((_, i) => !drop.includes(i));
-        for (const r of rows.filter((r) => r < loaded)) {
+        for (const r of rows.filter((r) => r < loaded())) {
           if (p.deleted.includes(r)) p.deleted = p.deleted.filter((x) => x !== r);
           else p.deleted.push(r);
         }
@@ -176,26 +271,127 @@ export function TableEditor(props: { tab: EditorTab }) {
     void load(0);
   };
 
-  const onHeaderSort = (column: string, additive: boolean) => {
-    const cur = sort();
-    const existing = cur.find((k) => k.column === column);
-    let next: SortKey[];
-    if (!existing) next = additive ? [...cur, { column, desc: false }] : [{ column, desc: false }];
-    else if (!existing.desc) next = cur.map((k) => (k.column === column ? { ...k, desc: true } : k));
-    else next = cur.filter((k) => k.column !== column);
-    if (!additive && existing) next = next.filter((k) => k.column === column);
-    applySort(next);
+  const onHeaderSort = (column: string, additive: boolean) => applySort(nextSort(sort(), column, additive));
+
+  const addFilter = (f: ColumnFilter) => {
+    setColumnFilters((fs) => [...fs.filter((x) => x.column !== f.column), f]);
+    void load(0);
   };
 
+  // ---- foreign keys ---------------------------------------------------------------------
+
+  const rowValues = (row: number) => columns().map((_, c) => {
+    // Navigation uses the stored row, not pending edits.
+    const v = row < loaded() ? page()!.rows[row][c] : valueAt(row, c);
+    return v === undefined || isDefault(v) ? null : v;
+  });
+
+  const keysOf = (column: string): ForeignKey[] => (info()?.foreignKeys ?? []).filter((f) => f.columns.includes(column));
+
+  const navigate = async (fk: ForeignKey, direction: "referenced" | "referencing", from: { schema: string; table: string }) => {
+    const c = cursor();
+    if (!c || c.row >= total()) return;
+    try {
+      const nav = await dataEditApi.navigate({
+        dialect: dialect(),
+        schema: from.schema,
+        table: from.table,
+        fk,
+        columns: columns().map((x) => x.name),
+        row: rowValues(c.row),
+        direction,
+      });
+      openTable(loc.id, nav.schema, nav.table, { filter: nav.filter });
+    } catch (e) {
+      showBalloon("Cannot navigate", errorText(e));
+    }
+  };
+
+  const cellPoint = () => {
+    const el = document.querySelector<HTMLElement>(`[data-grid-id="${gridId}"] .cursor`);
+    const r = el?.getBoundingClientRect();
+    return r ? { x: r.left + 8, y: r.bottom + 2 } : { x: 200, y: 200 };
+  };
+
+  const referencedItems = (): MenuItem[] => {
+    const c = cursor();
+    if (!c) return [];
+    const col = columns()[c.col]?.name;
+    return keysOf(col).map((fk) => ({
+      label: `Go to ${fk.refTable} (${fk.columns.join(", ")})${fk.virtual ? " · virtual" : ""}`,
+      hint: shortcutLabel("GotoDeclaration"),
+      run: () => void navigate(fk, "referenced", { schema: loc.schema, table: loc.table }),
+    }));
+  };
+
+  const referencingItems = async (): Promise<MenuItem[]> => {
+    const st = states[loc.id];
+    const tables = Object.entries(st?.introspected ?? {}).flatMap(([schema, s]) =>
+      (s?.tables ?? []).map((t) => ({ schema, table: t.name, foreignKeys: t.foreignKeys })),
+    );
+    const incoming = await dataEditApi.incoming(loc.schema, loc.table, tables);
+    return incoming.map((i) => ({
+      label: `${i.table} (${i.fk.columns.join(", ")})${i.fk.virtual ? " · virtual" : ""}`,
+      run: () => void navigate(i.fk, "referencing", { schema: i.schema, table: i.table }),
+    }));
+  };
+
+  const gotoReferenced = () => {
+    const items = referencedItems();
+    if (!items.length) return showBalloon("No foreign key", "The column of this cell is not part of a foreign key.");
+    if (items.length === 1) return items[0].run?.();
+    setMenu({ ...cellPoint(), items });
+  };
+
+  const findReferencing = async () => {
+    if (!cursor()) return;
+    const items = await referencingItems();
+    if (!items.length) return showBalloon("No referencing tables", `No foreign key references ${loc.table}.`);
+    if (items.length === 1) return items[0].run?.();
+    setMenu({ ...cellPoint(), items: [{ label: "Find Referencing Rows In", disabled: true }, ...items] });
+  };
+
+  // ---- side panels and modes ------------------------------------------------------------
+
+  const editValue = () => {
+    if (!cursor()) grid?.select(0, 0);
+    setChart(false);
+    setSide((s) => (s === "value" ? null : "value"));
+  };
+
+  const toggleTransposed = () => {
+    setChart(false);
+    setTransposed((t) => !t);
+    const c = cursor();
+    if (!transposed() && c) queueMicrotask(() => grid?.select(c.row, c.col));
+  };
+
+  const aggregates = useAggregates(selected);
+
+  const compareSource = () => tableSource(loc.id, loc.schema, loc.table, where().trim() || undefined);
+  onCleanup(registerCompareSource({ ...tableSource(loc.id, loc.schema, loc.table), label: `${ds()?.name ?? loc.id} · ${loc.schema}.${loc.table} (open)` }));
+
   dataEditors.set(props.tab.path, { submit, revert, addRow, deleteRows, reload: () => load() });
-  onCleanup(() => dataEditors.delete(props.tab.path));
+  gridControllers.set(gridId, {
+    gotoReferenced,
+    findReferencing: () => void findReferencing(),
+    editValue,
+    transpose: toggleTransposed,
+    aggregateView: () => setSide((s) => (s === "aggregate" ? null : "aggregate")),
+    chart: () => setChart((c) => !c),
+    compare: () => setComparing(true),
+  });
+  onCleanup(() => {
+    dataEditors.delete(props.tab.path);
+    gridControllers.delete(gridId);
+  });
 
   // Reload when the page size setting changes.
   createEffect(on(pageSize, () => void load(0), { defer: true }));
 
   const first = () => (page()?.rows.length ? offset() + 1 : 0);
   const last = () => offset() + (page()?.rows.length ?? 0);
-  const total = () => page()?.total;
+  const totalRows = () => page()?.total;
 
   const exportSource = () => ({
     dialect: dialect(),
@@ -213,6 +409,48 @@ export function TableEditor(props: { tab: EditorTab }) {
     }
   };
 
+  const onSelect = () => {
+    const s = grid?.selection();
+    setCursor(s ? { row: s.row, col: s.col } : null);
+    const cells = grid?.selectedCells();
+    setSelected(cells ? { columns: cells.cols.map((c) => columns()[c]?.name ?? ""), rows: cells.values } : null);
+  };
+
+  const cellMenu = (): MenuItem[] => {
+    const c = cursor();
+    const items: MenuItem[] = [];
+    if (c) {
+      const col = columns()[c.col];
+      items.push({ label: "Edit Value…", hint: shortcutLabel("Console.TableResult.EditValue"), run: editValue });
+      if (editable() && (col?.defaultValue != null || col?.autoIncrement) && c.row < total())
+        items.push({ label: "Set DEFAULT", run: () => edit(c.row, c.col, { $default: true }) });
+      items.push({ separator: true, label: "" });
+      if (col && c.row < loaded()) items.push(...filterByValueItems(col.name, page()!.rows[c.row][c.col], addFilter));
+      const refs = referencedItems();
+      if (refs.length) items.push({ separator: true, label: "" }, ...refs);
+      items.push({ label: "Find Referencing Rows…", hint: shortcutLabel("FindUsages"), run: () => void findReferencing() });
+      items.push({ separator: true, label: "" });
+    }
+    if (editable())
+      items.push(
+        { label: "Add Row", hint: shortcutLabel("Console.TableResult.AddRow"), run: addRow },
+        { label: "Delete Rows", hint: shortcutLabel("Console.TableResult.DeleteRows"), run: deleteRows, danger: true },
+        { separator: true, label: "" },
+      );
+    items.push({ label: "Compare With…", run: () => setComparing(true) });
+    return items;
+  };
+
+  const headerMenu = (column: { name: string }): MenuItem[] => [
+    { label: "Sort Ascending", run: () => applySort([{ column: column.name, desc: false }]) },
+    { label: "Sort Descending", run: () => applySort([{ column: column.name, desc: true }]) },
+    { label: "Add to Sort", hint: "Ctrl+Click", run: () => applySort([...sort().filter((k) => k.column !== column.name), { column: column.name, desc: false }]) },
+    { label: "Clear Sort", disabled: !sort().length, run: () => applySort([]) },
+    { separator: true, label: "" },
+    { label: `Filter by ${column.name} IS NULL`, run: () => addFilter({ column: column.name, op: "isNull" }) },
+    { label: `Filter by ${column.name} IS NOT NULL`, run: () => addFilter({ column: column.name, op: "isNotNull" }) },
+  ];
+
   return (
     <div class="db-editor" data-db-path={props.tab.path}>
       <div class="db-toolbar">
@@ -224,8 +462,8 @@ export function TableEditor(props: { tab: EditorTab }) {
         </Tool>
         <span class="db-paging" title={`Page size: ${pageSize()}`}>
           {first()}-{last()}
-          <Show when={total() !== undefined}>
-            <span class="muted"> of {total()}</span>
+          <Show when={totalRows() !== undefined}>
+            <span class="muted"> of {totalRows()}</span>
           </Show>
         </span>
         <Tool title="Next Page" disabled={!page()?.hasMore || loading()} onClick={() => void load(offset() + pageSize())}>
@@ -233,8 +471,8 @@ export function TableEditor(props: { tab: EditorTab }) {
         </Tool>
         <Tool
           title="Last Page"
-          disabled={!page()?.hasMore || total() === undefined || loading()}
-          onClick={() => void load(Math.max(0, Math.floor(((total() ?? 1) - 1) / pageSize()) * pageSize()))}
+          disabled={!page()?.hasMore || totalRows() === undefined || loading()}
+          onClick={() => void load(Math.max(0, Math.floor(((totalRows() ?? 1) - 1) / pageSize()) * pageSize()))}
         >
           <ChevronLast size={16} />
         </Tool>
@@ -253,6 +491,9 @@ export function TableEditor(props: { tab: EditorTab }) {
         <Tool title={`Revert (${shortcutLabel("Console.TableResult.Revert")})`} disabled={!changes()} onClick={revert}>
           <Undo2 size={15} />
         </Tool>
+        <Tool title="Preview Pending Changes" disabled={!changes()} active={showPending()} onClick={() => setShowPending((v) => !v)}>
+          <ScrollText size={15} />
+        </Tool>
         <button
           class="db-submit"
           classList={{ active: changes() > 0 }}
@@ -267,18 +508,39 @@ export function TableEditor(props: { tab: EditorTab }) {
           </Show>
         </button>
         <span class="db-sep" />
+        <Tool title="Transpose" active={transposed()} onClick={toggleTransposed}>
+          <ArrowRightLeft size={15} />
+        </Tool>
+        <Tool title={`Value Editor (${shortcutLabel("Console.TableResult.EditValue")})`} active={side() === "value"} onClick={editValue}>
+          <PanelRight size={15} />
+        </Tool>
+        <Tool title="Aggregate View" active={side() === "aggregate"} onClick={() => setSide((s) => (s === "aggregate" ? null : "aggregate"))}>
+          <Sigma size={15} />
+        </Tool>
+        <Tool title="Show Chart" active={chart()} onClick={() => setChart((c) => !c)}>
+          <ChartColumn size={15} />
+        </Tool>
+        <Tool title="Compare With…" onClick={() => setComparing(true)}>
+          <GitCompare size={15} />
+        </Tool>
+        <span class="db-sep" />
         <Tool title="Go to DDL" onClick={() => void openDdl()}>
           <FileCode size={15} />
         </Tool>
-        <Tool title="Export Data" onClick={(e) => {
-          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          setMenu({ x: r.left, y: r.bottom + 2, items: exportMenu(exportSource) });
-        }}>
+        <Tool
+          title="Export Data"
+          onClick={(e) => {
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setMenu({ x: r.left, y: r.bottom + 2, items: exportMenu(exportSource) });
+          }}
+        >
           <Download size={15} />
         </Tool>
         <span class="db-spacer" />
         <Show when={info() && !info()!.primaryKey.length && info()!.kind === "table"}>
-          <span class="db-chip warning" title="Rows cannot be identified, so only new rows can be submitted">No primary key</span>
+          <span class="db-chip warning" title="Without a primary key, rows are identified by a NOT NULL unique key if there is one">
+            No primary key
+          </span>
         </Show>
         <Show when={ds()?.options.readOnly}>
           <span class="db-chip">Read-only</span>
@@ -289,13 +551,12 @@ export function TableEditor(props: { tab: EditorTab }) {
         <label class="db-filter-field">
           <Filter size={13} class="muted" />
           <span class="db-filter-kw">WHERE</span>
-          <input
-            class="db-filter-input"
-            placeholder="condition, e.g. status = 'paid' AND total > 100"
-            spellcheck={false}
+          <WhereInput
             value={where()}
-            onInput={(e) => setWhere(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && void load(0)}
+            columns={columns().map((c) => c.name)}
+            placeholder="condition, e.g. status = 'paid' AND total > 100"
+            onInput={setWhere}
+            onSubmit={() => void load(0)}
           />
         </label>
         <label class="db-filter-field">
@@ -311,33 +572,97 @@ export function TableEditor(props: { tab: EditorTab }) {
           />
         </label>
       </div>
+      <FilterChips
+        filters={columnFilters()}
+        onRemove={(i) => {
+          setColumnFilters((fs) => fs.filter((_, k) => k !== i));
+          void load(0);
+        }}
+        onClear={() => {
+          setColumnFilters([]);
+          void load(0);
+        }}
+      />
       <Show when={error()}>
         <div class="db-error">{error()}</div>
       </Show>
-      <DataGrid
-        columns={columns()}
-        rows={page()?.rows ?? []}
-        inserted={pending.inserted}
-        rowOffset={offset()}
-        editable={editable()}
-        edits={pending.edits}
-        deleted={pending.deleted}
-        onEdit={edit}
-        sort={sort()}
-        onSort={onHeaderSort}
-        nullText={nullText()}
-        emptyText={loading() ? "Loading…" : error() ? "" : "No rows"}
-        ref={(api) => (grid = api)}
-        menu={() =>
-          editable()
-            ? [
-                { label: "Add Row", hint: shortcutLabel("Console.TableResult.AddRow"), run: addRow },
-                { label: "Delete Rows", hint: shortcutLabel("Console.TableResult.DeleteRows"), run: deleteRows, danger: true },
-              ]
-            : []
-        }
-      />
+      <div class="db-main" data-grid-id={gridId}>
+        <div class="db-main-view">
+          <Show when={chart()}>
+            <ChartView columns={columns()} rows={page()?.rows ?? []} />
+          </Show>
+          <Show when={!chart() && transposed()}>
+            <TransposedGrid
+              columns={columns()}
+              count={total()}
+              valueAt={valueAt}
+              rowLabel={(r) => (r >= loaded() ? "+" : String(offset() + r + 1))}
+              selected={cursor()}
+              onSelect={(row, col) => {
+                setCursor({ row, col });
+                const v = valueAt(row, col);
+                setSelected({ columns: [columns()[col].name], rows: [[v === undefined ? null : v]] });
+              }}
+              onOpen={(row, col) => {
+                setCursor({ row, col });
+                setSide("value");
+              }}
+              modified={(r, c) => !!pending.edits[r] && c in pending.edits[r]}
+              deleted={(r) => pending.deleted.includes(r)}
+              nullText={nullText()}
+            />
+          </Show>
+          <Show when={!chart() && !transposed()}>
+            <DataGrid
+              columns={columns()}
+              rows={page()?.rows ?? []}
+              inserted={pending.inserted}
+              rowOffset={offset()}
+              editable={editable()}
+              edits={pending.edits}
+              deleted={pending.deleted}
+              onEdit={edit}
+              sort={sort()}
+              onSort={onHeaderSort}
+              nullText={nullText()}
+              emptyText={loading() ? "Loading…" : error() ? "" : "No rows"}
+              ref={(api) => (grid = api)}
+              onSelect={onSelect}
+              headerMenu={headerMenu}
+              menu={cellMenu}
+            />
+          </Show>
+        </div>
+        <Show when={side() === "value" && cursor() && columns()[cursor()!.col]}>
+          <ValueEditor
+            column={columns()[cursor()!.col]}
+            value={valueAt(cursor()!.row, cursor()!.col)}
+            where={cursor()!.row >= loaded() ? "new row" : `row ${offset() + cursor()!.row + 1}`}
+            editable={editable() && !pending.deleted.includes(cursor()!.row)}
+            onApply={(v) => edit(cursor()!.row, cursor()!.col, v)}
+            onClose={() => setSide(null)}
+          />
+        </Show>
+        <Show when={side() === "aggregate"}>
+          <AggregatePanel aggregates={aggregates()} onClose={() => setSide(null)} />
+        </Show>
+      </div>
+      <Show when={showPending() && changes() > 0}>
+        <PendingPanel
+          count={changes()}
+          preview={preview()}
+          error={previewError()}
+          loading={previewLoading()}
+          onSubmit={() => void submit()}
+          onRevert={revert}
+          onClose={() => setShowPending(false)}
+        />
+      </Show>
+      <AggregateStatus aggregate={aggregates()?.total} onOpen={() => setSide("aggregate")} />
       <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
+      <Show when={comparing()}>
+        <CompareDialog left={compareSource()} onClose={() => setComparing(false)} />
+      </Show>
     </div>
   );
 }

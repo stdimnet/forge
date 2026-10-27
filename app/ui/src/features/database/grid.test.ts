@@ -66,13 +66,14 @@ describe("data grid model", () => {
     p.deleted.push(2, 1);
     p.inserted.push([undefined, "Linus", "0.00", undefined]);
     expect(pendingCount(p)).toBe(4);
-    expect(buildChanges(cols, rows, ["id"], p)).toEqual([
-      { kind: "update", key: { id: 1 }, values: { name: "Ada King" } },
-      { kind: "delete", key: { id: 2 }, values: {} },
-      { kind: "delete", key: { id: 3 }, values: {} },
+    // Keys carry the whole original row; the backend picks the identifying columns.
+    const key = (i: number) => Object.fromEntries(cols.map((c, k) => [c.name, rows[i][k]]));
+    expect(buildChanges(cols, rows, p)).toEqual([
+      { kind: "update", key: key(0), values: { name: "Ada King" } },
+      { kind: "delete", key: key(1), values: {} },
+      { kind: "delete", key: key(2), values: {} },
       { kind: "insert", key: {}, values: { name: "Linus", balance: "0.00" } },
     ]);
-    expect(() => buildChanges(cols, rows, [], p)).toThrow("no primary key");
   });
 
   it("copies ranges as tab-separated text", () => {
