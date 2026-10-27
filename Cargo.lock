@@ -2843,6 +2843,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-sqlcode"
+version = "0.1.0"
+dependencies = [
+ "forge-dbmodel",
+ "forge-sql",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-ssr"
 version = "0.1.0"
 dependencies = [
