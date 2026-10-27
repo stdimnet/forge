@@ -1,23 +1,29 @@
-//! [`DbService`]: data sources of the open project plus global ones, their pools, console
-//! sessions with transaction state, table data paging and row editing.
+//! [`DbService`]: data sources of the open project plus global ones, their pools (through
+//! the data source's SSH tunnel or the remote project's connection), console sessions with
+//! transaction state (own or shared connection), the read-only / production guard, table
+//! data paging, row editing, and the Redis keys tree and value viewer.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
 
-use crate::config::{self, DataSource, Dialect, Scope};
+use crate::config::{self, DataModel, DataSource, Dialect, Scope};
 use crate::conn::{cancel_statement, ColumnMeta, Conn, DbPool, RawResult};
 use crate::edit::{change_sql, ChangeKind, RowChange};
+use crate::engine::redis::{db_number, RedisKeys, RedisPool, RedisValue};
+use crate::engine::{Canceller, ConnectSpec};
 use crate::env::{self, DetectedDataSource};
 use crate::error::{DbError, DbResult};
+use crate::guard::{self, Guard, GuardPolicy};
 use crate::introspect::{self, SchemaInfo, SchemaName, TableInfo};
-use crate::secrets::SecretStore;
+use crate::secrets::{ssh_account, ssl_key_account, SecretStore};
 use crate::split::{is_query, split_statements, transaction_control};
+use crate::ssh::{host_key, ForgeSsh, SshConnector};
 use crate::tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 pub const DEFAULT_PAGE_SIZE: usize = 500;
@@ -30,11 +36,41 @@ pub struct DataSourceInfo {
     pub source: DataSource,
     pub scope: Scope,
     pub has_password: bool,
+    /// The SSH tunnel's password or key passphrase is stored.
+    pub has_ssh_secret: bool,
+    /// The SSL client key's passphrase is stored.
+    pub has_ssl_passphrase: bool,
     pub summary: String,
-    /// Set when the data source is reached through the remote project's SSH connection
-    /// (`deploy@shop.example.com`).
+    /// Set when the data source is reached through an SSH connection: its own tunnel or the
+    /// remote project's (`deploy@shop.example.com`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    pub model: DataModel,
+    /// Consoles can use manual transactions.
+    pub transactions: bool,
+    /// Production colour: unfiltered changes ask first.
+    pub production: bool,
+}
+
+/// Secrets of the SSH and SSL tabs: `None` keeps the stored one, `Some("")` clears it.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretUpdate {
+    #[serde(default)]
+    pub ssh: Option<String>,
+    #[serde(default)]
+    pub ssl_key: Option<String>,
+}
+
+/// How a console connects.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SessionMode {
+    /// Its own connection (DataGrip's default).
+    #[default]
+    Own,
+    /// The data source's shared session, used by every console that asks for it.
+    Shared,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -47,6 +83,9 @@ pub struct TestResult {
     pub latency_ms: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// The SSH host's key is unknown or changed: trust it and test again.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_key: Option<forge_remote::session::HostKeyInfo>,
 }
 
 /// Result of one statement of a console run.
@@ -111,18 +150,36 @@ pub struct ApplyResult {
     pub rows_affected: u64,
 }
 
-/// Transaction state of a console.
+/// A console session (an open connection) and its transaction, for the consoles and the
+/// Sessions view.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
     pub id: String,
     pub data_source_id: String,
+    /// `console`, or `shared` for the data source's shared session.
+    pub name: String,
+    pub shared: bool,
+    /// Consoles using the session.
+    pub consoles: u32,
     pub auto_commit: bool,
     pub tx_open: bool,
+    /// The driver supports manual transactions.
+    pub transactions: bool,
     pub running: bool,
+    /// Unix milliseconds.
+    pub opened_at: u64,
+    /// When the open transaction started (Unix milliseconds).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tx_started_at: Option<u64>,
+    /// Statements run in the open transaction.
+    pub tx_statements: u32,
+    /// The statement running now, or the last one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_sql: Option<String>,
 }
 
-/// One console: a dedicated connection, so transactions span several executions.
+/// One console session: a dedicated connection, so transactions span several executions.
 pub struct Session {
     id: String,
     ds_id: String,
@@ -130,19 +187,60 @@ pub struct Session {
     pool: DbPool,
     conn: tokio::sync::Mutex<Conn>,
     backend_id: Option<i64>,
+    canceller: Option<Canceller>,
+    reconnect_after_cancel: bool,
+    shared: bool,
+    transactions: bool,
+    consoles: AtomicU32,
+    opened_at: u64,
     auto_commit: AtomicBool,
     tx_open: AtomicBool,
+    tx: Mutex<(Option<u64>, u32)>,
+    last_sql: Mutex<Option<String>>,
     running: Mutex<Option<CancellationToken>>,
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 impl Session {
     pub fn info(&self) -> SessionInfo {
+        let tx_open = self.tx_open.load(Ordering::SeqCst);
+        let (started, statements) = *self.tx.lock().expect("poisoned");
         SessionInfo {
             id: self.id.clone(),
             data_source_id: self.ds_id.clone(),
+            name: if self.shared { "shared" } else { "console" }.into(),
+            shared: self.shared,
+            consoles: self.consoles.load(Ordering::SeqCst),
             auto_commit: self.auto_commit.load(Ordering::SeqCst),
-            tx_open: self.tx_open.load(Ordering::SeqCst),
+            tx_open,
+            transactions: self.transactions,
             running: self.running.lock().expect("poisoned").is_some(),
+            opened_at: self.opened_at,
+            tx_started_at: started.filter(|_| tx_open),
+            tx_statements: if tx_open { statements } else { 0 },
+            last_sql: self.last_sql.lock().expect("poisoned").clone(),
+        }
+    }
+
+    fn set_tx(&self, open: bool) {
+        self.tx_open.store(open, Ordering::SeqCst);
+        let mut tx = self.tx.lock().expect("poisoned");
+        *tx = if open {
+            (tx.0.or(Some(now_ms())), tx.1)
+        } else {
+            (None, 0)
+        };
+    }
+
+    fn count_tx_statement(&self) {
+        if self.tx_open.load(Ordering::SeqCst) {
+            self.tx.lock().expect("poisoned").1 += 1;
         }
     }
 }
@@ -155,13 +253,15 @@ struct Sources {
     files: Option<forge_core::SharedFiles>,
     tunnel: Option<Arc<dyn DbTunnel>>,
     list: Vec<DataSource>,
-    /// Passwords of data sources with "Save: Never", kept for this run only.
+    /// Secrets of data sources with "Save: Never" (or without a keychain), kept for this
+    /// run only, by keychain account.
     transient: HashMap<String, String>,
 }
 
 pub struct DbService {
     global_path: Option<PathBuf>,
     secrets: Arc<dyn SecretStore>,
+    ssh: Arc<dyn SshConnector>,
     sources: Mutex<Sources>,
     pools: tokio::sync::Mutex<HashMap<String, DbPool>>,
     /// Tunnels of the open pools of a remote project.
@@ -184,6 +284,7 @@ impl DbService {
         let svc = Self {
             global_path,
             secrets,
+            ssh: Arc::new(ForgeSsh::default()),
             sources: Mutex::default(),
             pools: tokio::sync::Mutex::default(),
             tunnels: Mutex::default(),
@@ -194,6 +295,12 @@ impl DbService {
             tracing::warn!("{e}");
         }
         svc
+    }
+
+    /// Open data source SSH tunnels with `ssh` (tests use a temporary home directory).
+    pub fn with_ssh(mut self, ssh: Arc<dyn SshConnector>) -> Self {
+        self.ssh = ssh;
+        self
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Sources> {
@@ -233,9 +340,40 @@ impl DbService {
         self.lock().tunnel.clone()
     }
 
-    /// Where the pool of `ds` connects: a project data source of a remote project goes
-    /// through a tunnel to its host and port as the remote host sees them.
-    async fn endpoint(&self, ds: &DataSource) -> DbResult<(DataSource, Option<TunnelEndpoint>)> {
+    /// Where the pool of `ds` connects: through the data source's own SSH tunnel, or for a
+    /// project data source of a remote project through a tunnel to its host and port as the
+    /// remote host sees them.
+    async fn endpoint(
+        &self,
+        ds: &DataSource,
+        ssh_secret: Option<String>,
+        accept_host_key: Option<String>,
+    ) -> DbResult<(DataSource, Option<TunnelEndpoint>)> {
+        if ds.options.ssh.enabled {
+            if ds.driver.is_file() {
+                return Err(DbError::Config(
+                    "SQLite files cannot be opened through an SSH tunnel".into(),
+                ));
+            }
+            let host = match ds.host.trim() {
+                "" => "localhost".to_string(),
+                h => h.to_string(),
+            };
+            let end = self
+                .ssh
+                .open(
+                    &ds.options.ssh,
+                    ssh_secret,
+                    accept_host_key,
+                    host,
+                    ds.port_or_default(),
+                )
+                .await?;
+            let mut local = ds.clone();
+            local.host = "127.0.0.1".into();
+            local.port = Some(end.port);
+            return Ok((local, Some(end)));
+        }
         let Some(tunnel) = self.tunnel().filter(|_| ds.scope == Scope::Project) else {
             return Ok((ds.clone(), None));
         };
@@ -298,21 +436,29 @@ impl DbService {
         first_err.map_or(Ok(()), Err)
     }
 
-    fn has_password(&self, ds: &DataSource) -> bool {
-        self.lock().transient.contains_key(&ds.id)
-            || matches!(self.secrets.get(&ds.id), Ok(Some(p)) if !p.is_empty())
+    fn has_secret(&self, account: &str) -> bool {
+        self.lock().transient.contains_key(account)
+            || matches!(self.secrets.get(account), Ok(Some(p)) if !p.is_empty())
     }
 
     fn info(&self, ds: DataSource) -> DataSourceInfo {
-        let via = self
-            .tunnel()
-            .filter(|_| ds.scope == Scope::Project)
-            .map(|t| t.label());
+        let via = if ds.options.ssh.enabled {
+            Some(self.ssh.label(&ds.options.ssh))
+        } else {
+            self.tunnel()
+                .filter(|_| ds.scope == Scope::Project)
+                .map(|t| t.label())
+        };
         DataSourceInfo {
             scope: ds.scope,
-            has_password: ds.driver != config::Driver::Sqlite && self.has_password(&ds),
+            has_password: !ds.driver.is_file() && self.has_secret(&ds.id),
+            has_ssh_secret: self.has_secret(&ssh_account(&ds.id)),
+            has_ssl_passphrase: self.has_secret(&ssl_key_account(&ds.id)),
             summary: ds.summary(),
             via,
+            model: ds.driver.model(),
+            transactions: ds.driver.supports_transactions(),
+            production: ds.is_production(),
             source: ds,
         }
     }
@@ -369,10 +515,41 @@ impl DbService {
 
     /// Create or update a data source. `password`: `None` keeps the stored one, `Some("")`
     /// clears it.
-    pub async fn save(
+    pub async fn save(&self, ds: DataSource, password: Option<String>) -> DbResult<DataSourceInfo> {
+        self.save_with(ds, password, SecretUpdate::default()).await
+    }
+
+    /// Store (or with `""` clear) a secret under `account`; without a keychain, or with
+    /// "Save: Never", it is kept for this run only.
+    fn store_secret(&self, account: &str, secret: &str, keep: bool) {
+        self.lock().transient.remove(account);
+        if !keep {
+            let _ = self.secrets.delete(account);
+            if !secret.is_empty() {
+                self.lock().transient.insert(account.into(), secret.into());
+            }
+            return;
+        }
+        let stored = if secret.is_empty() {
+            self.secrets.delete(account)
+        } else {
+            self.secrets.set(account, secret)
+        };
+        if let Err(e) = stored {
+            // No keychain (e.g. headless Linux): keep it for this run.
+            tracing::warn!("{e}; secret kept in memory only");
+            if !secret.is_empty() {
+                self.lock().transient.insert(account.into(), secret.into());
+            }
+        }
+    }
+
+    /// [`save`](Self::save) with the secrets of the SSH and SSL tabs.
+    pub async fn save_with(
         &self,
         mut ds: DataSource,
         password: Option<String>,
+        extra: SecretUpdate,
     ) -> DbResult<DataSourceInfo> {
         if ds.id.trim().is_empty() {
             ds.id = config::new_id(if ds.name.is_empty() {
@@ -399,24 +576,15 @@ impl DbService {
             self.persist(prev)?;
         }
         if let Some(p) = password {
-            if ds.options.save_password {
-                self.lock().transient.remove(&ds.id);
-                let stored = if p.is_empty() {
-                    self.secrets.delete(&ds.id)
-                } else {
-                    self.secrets.set(&ds.id, &p)
-                };
-                if let Err(e) = stored {
-                    // No keychain (e.g. headless Linux): keep it for this run.
-                    tracing::warn!("{e}; password kept in memory only");
-                    self.lock().transient.insert(ds.id.clone(), p);
-                }
-            } else {
-                let _ = self.secrets.delete(&ds.id);
-                self.lock().transient.insert(ds.id.clone(), p);
-            }
+            self.store_secret(&ds.id, &p, ds.options.save_password);
         } else if !ds.options.save_password {
             let _ = self.secrets.delete(&ds.id);
+        }
+        if let Some(p) = extra.ssh {
+            self.store_secret(&ssh_account(&ds.id), &p, ds.options.save_password);
+        }
+        if let Some(p) = extra.ssl_key {
+            self.store_secret(&ssl_key_account(&ds.id), &p, ds.options.save_password);
         }
         self.drop_pool(&ds.id).await;
         Ok(self.info(ds))
@@ -425,20 +593,22 @@ impl DbService {
     pub async fn delete(&self, id: &str) -> DbResult<()> {
         let ds = self.get(id)?;
         self.lock().list.retain(|d| d.id != id);
-        self.lock().transient.remove(id);
         self.persist(ds.scope)?;
-        if let Err(e) = self.secrets.delete(id) {
-            tracing::warn!("{e}");
+        for account in [id.to_string(), ssh_account(id), ssl_key_account(id)] {
+            self.lock().transient.remove(&account);
+            if let Err(e) = self.secrets.delete(&account) {
+                tracing::warn!("{e}");
+            }
         }
         self.drop_pool(id).await;
         Ok(())
     }
 
-    fn password(&self, ds: &DataSource) -> Option<String> {
-        if let Some(p) = self.lock().transient.get(&ds.id) {
+    fn secret(&self, account: &str) -> Option<String> {
+        if let Some(p) = self.lock().transient.get(account) {
             return Some(p.clone());
         }
-        match self.secrets.get(&ds.id) {
+        match self.secrets.get(account) {
             Ok(p) => p,
             Err(e) => {
                 tracing::warn!("{e}");
@@ -447,15 +617,65 @@ impl DbService {
         }
     }
 
+    fn password(&self, ds: &DataSource) -> Option<String> {
+        self.secret(&ds.id)
+    }
+
+    /// Open a pool for `ds` with its tunnel, certificates and secrets.
+    async fn open_pool(
+        &self,
+        ds: &DataSource,
+        password: Option<String>,
+        extra: &SecretUpdate,
+        accept_host_key: Option<String>,
+    ) -> DbResult<(DbPool, Option<TunnelEndpoint>)> {
+        let root = self.project_root();
+        let ssh_secret = extra
+            .ssh
+            .clone()
+            .or_else(|| self.secret(&ssh_account(&ds.id)));
+        let ssl_pass = extra
+            .ssl_key
+            .clone()
+            .or_else(|| self.secret(&ssl_key_account(&ds.id)));
+        let tls = if ds.options.ssl_mode.enabled() && !ds.driver.is_file() {
+            crate::tls::load(&ds.options.ssl, ssl_pass.as_deref(), root.as_deref())?
+        } else {
+            Default::default()
+        };
+        let (target, tunnel) = self.endpoint(ds, ssh_secret, accept_host_key).await?;
+        let pool = DbPool::open(ConnectSpec {
+            ds: &target,
+            password: password.as_deref(),
+            tls,
+            tls_host: ds.host.trim().to_string(),
+            root: root.as_deref(),
+        })
+        .await?;
+        Ok((pool, tunnel))
+    }
+
     /// Connect once with the given settings (the dialog's "Test Connection").
     /// `password: None` uses the stored password of `ds.id`.
     pub async fn test(&self, ds: &DataSource, password: Option<String>) -> TestResult {
+        self.test_with(ds, password, SecretUpdate::default(), None)
+            .await
+    }
+
+    /// [`test`](Self::test) with the dialog's SSH/SSL secrets and a host key the user trusts.
+    pub async fn test_with(
+        &self,
+        ds: &DataSource,
+        password: Option<String>,
+        extra: SecretUpdate,
+        accept_host_key: Option<String>,
+    ) -> TestResult {
         let started = Instant::now();
         let password = password.or_else(|| self.password(ds));
-        let root = self.project_root();
         let res = async {
-            let (ds, _tunnel) = self.endpoint(ds).await?;
-            let pool = DbPool::connect(&ds, password.as_deref(), root.as_deref()).await?;
+            let (pool, _tunnel) = self
+                .open_pool(ds, password, &extra, accept_host_key)
+                .await?;
             let mut conn = pool.acquire().await?;
             let v = conn.server_version().await;
             drop(conn);
@@ -468,6 +688,7 @@ impl DbService {
             driver: ds.driver.label().into(),
             latency_ms: elapsed_ms(started),
             server_version: res.as_ref().ok().cloned(),
+            host_key: res.as_ref().err().and_then(host_key).cloned(),
             error: res.err().map(|e| e.to_string()),
         }
     }
@@ -501,9 +722,9 @@ impl DbService {
         if let Some(p) = pools.get(id) {
             return Ok(p.clone());
         }
-        let root = self.project_root();
-        let (target, tunnel) = self.endpoint(&ds).await?;
-        let pool = DbPool::connect(&target, self.password(&ds).as_deref(), root.as_deref()).await?;
+        let (pool, tunnel) = self
+            .open_pool(&ds, self.password(&ds), &SecretUpdate::default(), None)
+            .await?;
         if let Some(t) = tunnel {
             self.tunnels.lock().expect("poisoned").insert(id.into(), t);
         }
@@ -580,11 +801,18 @@ impl DbService {
             })
             .collect::<Vec<_>>()
             .join(", ");
-        let mut sql = format!("SELECT * FROM {from}");
+        if !d.is_sql() {
+            return Err(DbError::Refused(format!(
+                "{} has no tables; use a console",
+                ds.driver.label()
+            )));
+        }
+        let select = format!("SELECT * FROM {from}");
+        let paged = d.page(&select, &order, limit + 1, req.offset);
+        let mut sql = select;
         if !order.is_empty() {
             sql.push_str(&format!(" ORDER BY {order}"));
         }
-        let paged = format!("{sql} LIMIT {} OFFSET {}", limit + 1, req.offset);
         let started = Instant::now();
         let mut conn = pool.acquire().await?;
         let mut raw = conn.run(&paged, 0, limit).await?;
@@ -622,6 +850,12 @@ impl DbService {
         let ds = self.get(id)?;
         if ds.options.read_only {
             return Err(DbError::Refused(format!("{} is read-only", ds.name)));
+        }
+        if !ds.driver.supports_transactions() {
+            return Err(DbError::Refused(format!(
+                "editing rows of {} data sources is not supported; use a console",
+                ds.driver.label()
+            )));
         }
         let pool = self.pool(id).await?;
         let d = pool.dialect();
@@ -664,20 +898,51 @@ impl DbService {
 
     /// Open a console session with its own connection.
     pub async fn open_session(&self, id: &str) -> DbResult<SessionInfo> {
+        self.open_session_with(id, SessionMode::Own).await
+    }
+
+    /// Open a console session: its own connection, or the data source's shared one (also
+    /// when the data source is in single session mode).
+    pub async fn open_session_with(&self, id: &str, mode: SessionMode) -> DbResult<SessionInfo> {
         let ds = self.get(id)?;
+        let shared = mode == SessionMode::Shared || ds.options.single_session;
+        let shared_id = format!("{id}#shared");
+        if shared {
+            if let Ok(s) = self.session(&shared_id) {
+                s.consoles.fetch_add(1, Ordering::SeqCst);
+                return Ok(s.info());
+            }
+        }
         let pool = self.pool(id).await?;
         let mut conn = pool.acquire().await?;
         let backend_id = conn.backend_id().await;
+        let (canceller, reconnect_after_cancel) = match &conn {
+            Conn::Engine(e) => (e.canceller(), e.reconnect_after_cancel()),
+            _ => (None, false),
+        };
         let n = self.next_session.fetch_add(1, Ordering::SeqCst);
+        let transactions = ds.driver.supports_transactions();
         let session = Arc::new(Session {
-            id: format!("{id}#{n}"),
+            id: if shared {
+                shared_id
+            } else {
+                format!("{id}#{n}")
+            },
             ds_id: id.into(),
             dialect: pool.dialect(),
             pool,
             conn: tokio::sync::Mutex::new(conn),
             backend_id,
-            auto_commit: AtomicBool::new(ds.options.auto_commit),
+            canceller,
+            reconnect_after_cancel,
+            shared,
+            transactions,
+            consoles: AtomicU32::new(1),
+            opened_at: now_ms(),
+            auto_commit: AtomicBool::new(ds.options.auto_commit || !transactions),
             tx_open: AtomicBool::new(false),
+            tx: Mutex::new((None, 0)),
+            last_sql: Mutex::new(None),
             running: Mutex::new(None),
         });
         let info = session.info();
@@ -686,6 +951,25 @@ impl DbService {
             .expect("poisoned")
             .insert(session.id.clone(), session);
         Ok(info)
+    }
+
+    /// Open sessions, by data source and opening time (the Sessions view).
+    pub fn sessions(&self) -> Vec<SessionInfo> {
+        let mut list: Vec<_> = self
+            .sessions
+            .lock()
+            .expect("poisoned")
+            .values()
+            .map(|s| s.info())
+            .collect();
+        list.sort_by(|a, b| {
+            (a.data_source_id.as_str(), a.opened_at, a.id.as_str()).cmp(&(
+                b.data_source_id.as_str(),
+                b.opened_at,
+                b.id.as_str(),
+            ))
+        });
+        list
     }
 
     pub fn session(&self, id: &str) -> DbResult<Arc<Session>> {
@@ -697,8 +981,20 @@ impl DbService {
             .ok_or_else(|| DbError::UnknownSession(id.into()))
     }
 
-    /// Close a console; an open transaction is rolled back.
+    /// A console closes its session; the last console of a shared session (or the Sessions
+    /// view's "Close") closes the connection, rolling back an open transaction.
     pub async fn close_session(&self, id: &str) -> DbResult<()> {
+        if let Ok(s) = self.session(id) {
+            if s.consoles.load(Ordering::SeqCst) > 1 {
+                s.consoles.fetch_sub(1, Ordering::SeqCst);
+                return Ok(());
+            }
+        }
+        self.terminate_session(id).await
+    }
+
+    /// Close a session whatever uses it (the Sessions view).
+    pub async fn terminate_session(&self, id: &str) -> DbResult<()> {
         let s = self.sessions.lock().expect("poisoned").remove(id);
         if let Some(s) = s {
             self.cancel(&s.id).await.ok();
@@ -718,24 +1014,56 @@ impl DbService {
         sql: &str,
         page_size: Option<u32>,
     ) -> DbResult<Vec<StatementResult>> {
+        self.execute_with(session_id, sql, page_size, false).await
+    }
+
+    /// What the console must do before running `sql` on data source `id`: refuse it
+    /// (read-only) or ask (production).
+    pub fn guard(&self, id: &str, sql: &str) -> DbResult<Guard> {
+        let ds = self.get(id)?;
+        Ok(guard::guard(sql, ds.dialect(), &policy(&ds)))
+    }
+
+    /// [`execute`](Self::execute); `confirmed` when the user agreed to the production
+    /// warning of [`guard`](Self::guard).
+    pub async fn execute_with(
+        &self,
+        session_id: &str,
+        sql: &str,
+        page_size: Option<u32>,
+        confirmed: bool,
+    ) -> DbResult<Vec<StatementResult>> {
         let s = self.session(session_id)?;
         let ds = self.get(&s.ds_id)?;
+        let verdict = guard::guard(sql, s.dialect, &policy(&ds));
+        if let Some(blocked) = verdict.blocked {
+            return Err(DbError::Refused(blocked));
+        }
+        if let (Some(confirm), false) = (verdict.confirm, confirmed) {
+            return Err(DbError::NeedsConfirmation(confirm));
+        }
         let limit = self.page_size(&ds, page_size);
         let token = CancellationToken::new();
         *s.running.lock().expect("poisoned") = Some(token.clone());
         let mut conn = s.conn.lock().await;
         let mut results = Vec::new();
         for (index, st) in split_statements(sql, s.dialect).into_iter().enumerate() {
-            let control = transaction_control(&st.text);
+            let control = if s.transactions {
+                transaction_control(&st.text)
+            } else {
+                None
+            };
+            *s.last_sql.lock().expect("poisoned") = Some(st.text.clone());
             let started = Instant::now();
             let mut res = Ok(());
             if control.is_none()
                 && !s.auto_commit.load(Ordering::SeqCst)
                 && !s.tx_open.load(Ordering::SeqCst)
             {
-                res = conn.execute(s.dialect.begin()).await.map(|_| {
-                    s.tx_open.store(true, Ordering::SeqCst);
-                });
+                res = conn
+                    .execute(s.dialect.begin())
+                    .await
+                    .map(|_| s.set_tx(true));
             }
             let run = match res {
                 Ok(()) => tokio::select! {
@@ -760,9 +1088,9 @@ impl DbService {
                         raw.columns = conn.describe(&st.text).await.unwrap_or_default();
                     }
                     match control {
-                        Some("begin") => s.tx_open.store(true, Ordering::SeqCst),
-                        Some(_) => s.tx_open.store(false, Ordering::SeqCst),
-                        None => {}
+                        Some("begin") => s.set_tx(true),
+                        Some(_) => s.set_tx(false),
+                        None => s.count_tx_statement(),
                     }
                     result.elapsed_ms = elapsed_ms(started);
                     result.returns_rows = !raw.columns.is_empty();
@@ -770,6 +1098,14 @@ impl DbService {
                     results.push(result);
                 }
                 Err(e) => {
+                    if matches!(e, DbError::Cancelled) && s.reconnect_after_cancel {
+                        // The interrupted connection cannot be reused (its transaction is gone).
+                        match s.pool.acquire().await {
+                            Ok(fresh) => *conn = fresh,
+                            Err(err) => tracing::warn!("reconnect after cancel failed: {err}"),
+                        }
+                        s.set_tx(false);
+                    }
                     result.elapsed_ms = elapsed_ms(started);
                     result.error = Some(e.to_string());
                     results.push(result);
@@ -795,14 +1131,20 @@ impl DbService {
         let body = strip_semicolon(sql);
         let started = Instant::now();
         let mut conn = s.conn.lock().await;
-        let wrapped = format!(
-            "SELECT * FROM (\n{body}\n) forge_page LIMIT {} OFFSET {offset}",
-            limit + 1
-        );
-        let raw = match conn.run(&wrapped, 0, limit).await {
-            Ok(r) => r,
-            // Not wrappable (SHOW, PRAGMA, duplicate column names): skip rows instead.
-            Err(_) => conn.run(body, offset as usize, limit).await?,
+        let raw = if s.dialect.is_sql() && is_query(body) {
+            let wrapped = s.dialect.page(
+                &format!("SELECT * FROM (\n{body}\n) forge_page"),
+                "",
+                limit + 1,
+                offset,
+            );
+            match conn.run(&wrapped, 0, limit).await {
+                Ok(r) => r,
+                // Not wrappable (SHOW, PRAGMA, duplicate column names): skip rows instead.
+                Err(_) => conn.run(body, offset as usize, limit).await?,
+            }
+        } else {
+            conn.run(body, offset as usize, limit).await?
         };
         Ok(QueryPage {
             columns: raw.columns,
@@ -819,6 +1161,13 @@ impl DbService {
     /// an open transaction.
     pub async fn set_auto_commit(&self, session_id: &str, auto: bool) -> DbResult<SessionInfo> {
         let s = self.session(session_id)?;
+        if !auto && !s.transactions {
+            let ds = self.get(&s.ds_id)?;
+            return Err(DbError::Refused(format!(
+                "{} consoles run every statement on its own (no manual transactions)",
+                ds.driver.label()
+            )));
+        }
         if auto && s.tx_open.load(Ordering::SeqCst) {
             self.commit(session_id).await?;
         }
@@ -839,7 +1188,7 @@ impl DbService {
         if s.tx_open.load(Ordering::SeqCst) {
             let mut conn = s.conn.lock().await;
             conn.execute(sql).await?;
-            s.tx_open.store(false, Ordering::SeqCst);
+            s.set_tx(false);
         }
         Ok(s.info())
     }
@@ -851,7 +1200,9 @@ impl DbService {
         let Some(token) = token else {
             return Ok(());
         };
-        if let Some(sql) = s.backend_id.and_then(|id| cancel_statement(s.dialect, id)) {
+        if let Some(cancel) = &s.canceller {
+            cancel().await;
+        } else if let Some(sql) = s.backend_id.and_then(|id| cancel_statement(s.dialect, id)) {
             match s.pool.acquire().await {
                 Ok(mut other) => {
                     if let Err(e) = other.execute(&sql).await {
@@ -863,6 +1214,41 @@ impl DbService {
         }
         token.cancel();
         Ok(())
+    }
+
+    // ---- Redis -------------------------------------------------------------------------
+
+    async fn redis(&self, id: &str, schema: &str) -> DbResult<crate::engine::redis::RedisConn> {
+        let pool = self.pool(id).await?;
+        let redis = pool
+            .engine()
+            .and_then(|e| e.as_any().downcast_ref::<RedisPool>())
+            .ok_or_else(|| DbError::Refused("not a Redis data source".into()))?;
+        let db = if schema.is_empty() {
+            redis.default_db()
+        } else {
+            db_number(schema)?
+        };
+        redis.open(db).await
+    }
+
+    /// Keys of a Redis database (`db0`) matching `pattern`, with type and TTL.
+    pub async fn redis_keys(
+        &self,
+        id: &str,
+        schema: &str,
+        pattern: &str,
+        limit: Option<u32>,
+    ) -> DbResult<RedisKeys> {
+        let mut conn = self.redis(id, schema).await?;
+        conn.keys(pattern, limit.unwrap_or(1000).clamp(1, 100_000) as usize)
+            .await
+    }
+
+    /// A Redis key's value for the value viewer.
+    pub async fn redis_value(&self, id: &str, schema: &str, key: &str) -> DbResult<RedisValue> {
+        let mut conn = self.redis(id, schema).await?;
+        conn.value(key).await
     }
 
     // ---- .env detection ----------------------------------------------------------------
@@ -891,5 +1277,14 @@ impl DbService {
             added.push(self.save(ds, d.password).await?);
         }
         Ok(added)
+    }
+}
+
+/// The guard settings of a data source.
+fn policy(ds: &DataSource) -> GuardPolicy {
+    GuardPolicy {
+        read_only: ds.options.read_only,
+        production: ds.is_production(),
+        name: ds.name.clone(),
     }
 }
