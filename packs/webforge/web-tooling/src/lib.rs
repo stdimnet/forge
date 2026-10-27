@@ -11,3 +11,6 @@
 
 pub mod openapi;
 pub mod graphql;
+pub mod deno;
+pub mod nuxt;
+pub mod nx;
