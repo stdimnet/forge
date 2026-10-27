@@ -311,3 +311,9 @@
 .cpp-status-row .tc-value {
   max-width: 420px;
 }
+
+.tc-sanitizers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}

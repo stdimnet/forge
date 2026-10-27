@@ -5,7 +5,10 @@
  *   `*.cmake` files (`cmake_complete`, Rust),
  * - Reformat Code with clang-format for C and C++ files (`cpp.formatter`),
  * - `.clang-format`, `.clang-tidy` and `.clangd` as YAML,
- * - Reload CMake Project after saving a CMake file (`cmake.reloadOnChange`).
+ * - Reload CMake Project after saving a CMake file (`cmake.reloadOnChange`), `vcpkg.json` or
+ *   a Conan recipe,
+ * - vcpkg port names in the `dependencies` of `vcpkg.json` (`cpp_vcpkg_complete`, from the
+ *   local vcpkg's `ports/` folder).
  *
  * Syntax highlighting of C, C++ and CMake is bundled (`@codemirror/lang-cpp`, the CMake
  * legacy mode); code intelligence comes from clangd.
@@ -14,6 +17,7 @@ import type { CompletionContext, CompletionResult } from "@codemirror/autocomple
 import { EditorState, type Extension } from "@codemirror/state";
 import { yaml } from "@codemirror/lang-yaml";
 import { cppApi } from "@/ipc/cpp";
+import { cppToolsApi } from "@/ipc/cppTools";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLanguage } from "@/editor/languages";
 import { registerFormatProvider } from "@/features/lsp/format";
@@ -60,6 +64,29 @@ registerEditorExtension(({ path }): Extension | null => {
   return EditorState.languageData.of(() => data);
 });
 
+// ---- vcpkg.json ---------------------------------------------------------------------------------
+
+function vcpkgCompletion() {
+  return async (ctx: CompletionContext): Promise<CompletionResult | null> => {
+    if (!cppActive()) return null;
+    const text = ctx.state.doc.toString();
+    const answer = await cppToolsApi.vcpkgComplete(text, new TextEncoder().encode(text.slice(0, ctx.pos)).length).catch(() => null);
+    if (!answer || ctx.aborted || !answer.items.length) return null;
+    const from = new TextDecoder().decode(new TextEncoder().encode(text).slice(0, answer.from)).length;
+    return {
+      from,
+      options: answer.items.map((item) => ({ label: item.label, detail: item.detail || undefined, type: "module", apply: item.apply })),
+      validFor: /^[\w-]*$/,
+    };
+  };
+}
+
+registerEditorExtension(({ path }): Extension | null => {
+  if (fileName(path) !== "vcpkg.json") return null;
+  const data = [{ autocomplete: vcpkgCompletion() }];
+  return EditorState.languageData.of(() => data);
+});
+
 // ---- Reformat Code ----------------------------------------------------------------------------
 
 registerFormatProvider(async (path, text) => {
@@ -81,7 +108,7 @@ let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 
 if (typeof document !== "undefined") {
   onFileSaved((path) => {
-    if (!cppActive() || !isCMakePath(path) && !/CMake(User)?Presets\.json$/.test(path)) return;
+    if (!cppActive() || !isCMakePath(path) && !/(CMake(User)?Presets\.json|vcpkg\.json|conanfile\.(txt|py))$/.test(path)) return;
     if (!getSetting<boolean>("cmake.reloadOnChange", true)) return;
     if (cmakeState()?.status === "noCMake") return;
     clearTimeout(reloadTimer);

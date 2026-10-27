@@ -45,6 +45,9 @@ import {
   isRunning,
   openHistoryRun,
   rerunFailedTests,
+  runPanels,
+  sessionPanels,
+  setSessionPanel,
   toggleAutoTest,
   rerunSession,
   sendInput,
@@ -286,6 +289,13 @@ function SessionView(props: { session: RunSession }) {
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
   };
+  /** Result panels with data (Sanitizers, Valgrind) and the shown one. */
+  const panels = createMemo(() => {
+    props.session.version;
+    const has = sessionPanels(id());
+    return runPanels().filter((p) => has[p.id] !== undefined);
+  });
+  const activePanel = () => panels().find((p) => p.id === props.session.panel);
   const footer = () => {
     const n = selectedNode();
     if (!n || n.kind !== "test" || n.status !== "failed" || (n.expected === undefined && n.actual === undefined)) return undefined;
@@ -346,9 +356,34 @@ function SessionView(props: { session: RunSession }) {
         />
       </div>
       <div class="run-main">
+        <Show when={panels().length}>
+          <div class="run-panel-tabs" role="tablist">
+            <button class="run-panel-tab" classList={{ active: !activePanel() }} onClick={() => setSessionPanel(id(), undefined)}>
+              <ScrollText size={13} /> Console
+            </button>
+            <For each={panels()}>
+              {(p) => (
+                <button
+                  class="run-panel-tab"
+                  classList={{ active: activePanel()?.id === p.id }}
+                  data-run-panel={p.id}
+                  onClick={() => setSessionPanel(id(), p.id)}
+                >
+                  <Show when={p.icon}>{(icon) => <Dynamic component={icon()} size={13} />}</Show>
+                  {p.title}
+                  <Show when={p.count?.(sessionPanels(id())[p.id])}>{(n) => <span class="run-panel-count">{n()}</span>}</Show>
+                </button>
+              )}
+            </For>
+          </div>
+        </Show>
+        <Show when={activePanel()} keyed>
+          {(p) => <Dynamic component={p.component} data={sessionPanels(id())[p.id]} session={props.session} />}
+        </Show>
         <Show
-          when={tests()}
+          when={!activePanel() && tests()}
           fallback={
+            <Show when={!activePanel()}>
             <Console
               lines={consoleLines}
               version={() => props.session.version}
@@ -356,6 +391,7 @@ function SessionView(props: { session: RunSession }) {
               scrollToEnd={u().scrollToEnd}
               onInput={running() ? (t) => void sendInput(id(), t) : undefined}
             />
+            </Show>
           }
         >
           {(t) => {

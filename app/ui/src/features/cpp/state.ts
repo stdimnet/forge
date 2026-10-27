@@ -6,7 +6,8 @@
 import { createSignal } from "solid-js";
 import { cppApi, type BuildAction, type CMakeState, type CMakeTarget, type CppStatus, type ProfilesInfo } from "@/ipc/cpp";
 import type { CommandLine, RunConfiguration } from "@/ipc/run";
-import { launch } from "@/features/run/runStore";
+import { activeSessionId, launch, setActiveSession } from "@/features/run/runStore";
+import { getSetting } from "@/state/settings";
 import { balloonsFor } from "@/keymap/dispatch";
 import { isPluginActive } from "@/state/project";
 
@@ -114,4 +115,21 @@ export async function runBuild(action: BuildAction, targets?: string[], name?: s
     showCppBalloon("Cannot build", String(e).replace(/^Error: /, ""), 8000);
     return null;
   }
+}
+
+/** Build a configuration's CMake target first (`cmake.buildBeforeRun`); false when it failed. */
+export async function buildFirst(cfg: RunConfiguration): Promise<boolean> {
+  if (!getSetting<boolean>("cmake.buildBeforeRun", true)) return true;
+  const target = cfg.type === "ctest" ? null : await cppApi.targetOf(cfg).catch(() => null);
+  if (cfg.type !== "ctest" && !target) return true;
+  // The run's own tab comes back to the front once its target is built.
+  const run = activeSessionId();
+  const code = await runBuild("build", target ? [target] : undefined, target ? `Build ${target}` : "Build All");
+  if (code === 0 && run) setActiveSession(run);
+  return code === 0;
+}
+
+/** Run a command line in the Run tool window (Conan, PlatformIO, idf.py, west, OpenOCD); resolves with the run. */
+export function runTool(name: string, cmd: CommandLine) {
+  return launch({ name, type: "cpp-tool", options: { commandLine: JSON.stringify(cmd) } });
 }
