@@ -58,6 +58,7 @@ import "./python";
 import "./pythonWeb";
 import "./jupyter";
 import "./go";
+import "./rust";
 import "./java";
 import "./kotlin";
 import "./services";

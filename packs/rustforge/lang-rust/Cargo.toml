@@ -1,0 +1,14 @@
+[package]
+name = "rustforge-lang-rust"
+description = "RustForge: Rust and Cargo support (cargo metadata workspaces, targets, features and dependency trees, rustup toolchain and rust-toolchain.toml parsing, run / test / bench / doctest discovery, the Cargo Test provider of the shared test runner with libtest, nextest and cargo-llvm-cov, Cargo command lines, cargo JSON messages (artifacts, Clippy problems with fixes), rustfmt and rust-analyzer configuration, LLDB / GDB pretty-printer setup; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true

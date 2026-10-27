@@ -60,6 +60,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   filter and pages, kernels in the project's interpreter (ipykernel over ZeroMQ, installed with
   your consent) or on a Jupyter server, the Variables view with View as DataFrame, and notebook
   diffs cell by cell ([Jupyter notebooks](docs/guide/user/jupyter.md)).
+- **RustForge**: Settings | Languages & Frameworks | Rust with rustup toolchains, the active
+  toolchain and its `rust-toolchain.toml`, the sysroot and the standard library sources; the
+  Cargo tool window with members, targets, feature checkboxes and dependencies; Cargo and
+  Cargo Test run configurations with ▶ on `fn main`, tests, test modules and doctests
+  (libtest on stable and nightly, cargo-nextest, coverage with cargo-llvm-cov); Clippy
+  problems with quick fixes, rustfmt, rust-analyzer settings and LLDB / GDB debugging with
+  rustc's pretty printers ([RustForge](docs/guide/user/rust.md)).
 - **GoForge**: Settings | Languages & Frameworks | Go with GOROOT detection and verified SDK
   downloads from go.dev, GOPATH, GOFLAGS, build tags and environment; go.mod / go.work
   checks and version completion from the module proxy; gofmt / goimports, go vet and
@@ -566,7 +573,7 @@ and a plain Lua project does not start PHP language servers.
 | HTML | `.html` or `.htm` files |
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
-| Rust | `Cargo.toml` |
+| Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
@@ -597,7 +604,7 @@ version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -632,6 +639,7 @@ The primary type appears
 | LuaForge | Lua projects |
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
+| RustForge | Rust projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools |
 
@@ -788,6 +796,7 @@ not finished, the page says so.
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [Jupyter notebooks](docs/guide/user/jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
+| [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 | [KotlinForge](docs/guide/user/kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
@@ -806,7 +815,7 @@ not finished, the page says so.
 | --- | --- |
 | [Project trust and Safe Mode](docs/guide/user/project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
-| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest, pytest, Jest / Vitest) |
+| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest) |
 | [Code coverage](docs/guide/user/coverage.md) | Run with Coverage, the Coverage tool window (line and branch coverage per directory and file), coverage marks with hits in the editor gutter, the Project view, Show Coverage Data (`Ctrl+Alt+F6`), importing LCOV, Cobertura, Clover, JaCoCo and Go reports |
 | [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
@@ -8787,6 +8796,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **LuaForge** | Lua |
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
+| **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger) |
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
@@ -11423,6 +11433,179 @@ Settings | Languages & Frameworks | Jupyter:
 
 ---
 
+Source: docs/guide/user/rust.md
+
+# RustForge (Rust)
+
+**RustForge** brings RustRover's Rust support to Forge. Its plugin **Rust** (`forge.rust`)
+is active in [Rust projects](docs/guide/getting-started/project-detection.md): a `Cargo.toml`, a
+`.rs` file in the root, or two or more `.rs` files in a folder.
+
+- Highlighting of `.rs` files comes from CodeMirror's Rust grammar. Completion, navigation,
+  hover, rename and diagnostics come from **rust-analyzer** (MIT OR Apache-2.0), which runs
+  like every other [language server](docs/guide/user/language-servers.md).
+- Everything else is computed in Rust (`packs/rustforge/*`): toolchains, `cargo metadata`,
+  test discovery, command lines, Clippy messages and the debugger setup.
+
+![cart.rs with run icons on the doctest of Cart::total, the test module and its tests](docs/screenshots/rust-editor.png)
+
+## Toolchains
+
+**Settings | Languages & Frameworks | Rust** shows the project's toolchain, the tools Forge
+uses and the Rust settings.
+
+![Settings | Languages & Frameworks | Rust](docs/screenshots/rust-settings.png)
+
+- **Toolchain**: *rustup's choice* uses the toolchain rustup picks for the project folder
+  (`rustup show active-toolchain`). The page says why: the rustup default, a
+  `rust-toolchain.toml` / `rust-toolchain` file, a directory override or `RUSTUP_TOOLCHAIN`.
+  Choosing an installed toolchain runs every cargo, rustc, rustfmt and Clippy command of the
+  project with `cargo +<toolchain>`.
+- Toolchains are read from `rustup toolchain list -v`. Without rustup, a `rustc` on the
+  `PATH` (a distribution package or an official installer) is listed as a standalone
+  toolchain.
+- The page also shows `rustc -vV`, the project's toolchain file, the **sysroot** and the
+  **standard library sources** (`<sysroot>/lib/rustlib/src/rust/library`, the `rust-src`
+  component) that rust-analyzer and the debugger use for `std`.
+- **Install…** installs a toolchain with `rustup toolchain install <name> --profile minimal
+  --component clippy,rustfmt,rust-src`. **Install** next to a missing component (rustfmt,
+  Clippy, rust-src, rust-analyzer) runs `rustup component add`. Both run in the Run tool
+  window, and only after you agree.
+- Forge never changes your toolchains while it only looks: every rustup and cargo command it
+  runs on its own gets `RUSTUP_AUTO_INSTALL=0`, so a `rust-toolchain.toml` does not trigger
+  an install behind your back.
+
+## Cargo tool window
+
+The **Cargo** tool window (right side) shows the workspace as `cargo metadata` reports it.
+
+![The Cargo tool window with targets, feature checkboxes and dependencies](docs/screenshots/rust-cargo.png)
+
+- **Members** with their **Targets**: lib, bin, test, bench, example, build script and proc
+  macro. Double-click runs a binary or example (`cargo run`) or the tests of a target.
+- **Features** with checkboxes. They edit **Settings | Rust | Cargo**: the features, *Use all
+  features* and *Do not use the default features*. Every build, run and test and
+  rust-analyzer use them. In a workspace with several members, features are stored as
+  `<package>/<feature>`.
+- **Dependencies**: the dependency tree of each member, like `cargo tree`. Packages that
+  appeared before are marked `(*)` and not expanded again.
+- Toolbar: **Reload Cargo Project**, **Run** and **Debug** the selected target, **Build**,
+  **Check**, **Documentation**, **Clean** and **Update** (`cargo update`) for the selected
+  package, or for the workspace when nothing is selected.
+
+`cargo metadata` runs only in trusted projects (a project's `.cargo/config.toml` can name
+programs). Its result is cached in Forge's cache folder (`<cache>/forge/rust/`) and is read
+again when a `Cargo.toml` or `Cargo.lock` changes, or when you click Reload.
+
+## Run configurations
+
+| Type | Options | Command |
+| --- | --- | --- |
+| **Cargo** | Command (`run`, `build --release`, `test --doc`, `clippy -- -W clippy::pedantic` or any other), package, target (`bin:shop`, `example:report`), features, profile, target triple, toolchain | `cargo [+toolchain] <command> -p … --bin … --features … -- <program arguments>` |
+| **Cargo Test** | Scope (all, package, target, test, filter), package, target (`lib`, `test:checkout`, `doc` for doctests), test name and *Exact name*, tests or benchmarks, test runner, features, profile, target triple, toolchain, cargo options | `cargo test --no-fail-fast … -- <filter> --exact`, `cargo bench`, `cargo nextest run` or `cargo llvm-cov` |
+
+Both types have the usual environment variables, working directory and
+[Run on](docs/guide/user/run-debug.md) targets. Your own options in the command win over the form: a
+`--release` in the command is not repeated by the profile.
+
+- **▶ on `fn main`** of binaries and examples offers *Run*, *Debug* and *Modify Run
+  Configuration…* with a temporary Cargo configuration (`cargo run -p shop-cli --bin shop`).
+- **▶ on tests**: `#[test]`, `#[tokio::test]`, `#[async_std::test]` and other
+  `#[<runtime>::test]` attributes, `#[bench]` (nightly), test modules (`mod tests`), and
+  **doctests** — fenced code blocks in `///` and `//!` comments whose info string is Rust
+  (empty, `rust`, `no_run`, `should_panic`, `compile_fail`, `edition2021`, …; not `ignore`,
+  `text` or another language). Doctests run with `cargo test --doc -- "<file> - <item> (line
+  N)" --exact`.
+
+## Tests
+
+Test runs fill the shared [test tree](docs/guide/user/testing.md), with a suite per test binary (`src/lib.rs`,
+`tests/checkout.rs`, `Doc-tests shop_core`).
+
+![All tests of the shop workspace: a failed assert_eq!, the integration test and the doctests](docs/screenshots/rust-test-tree.png)
+
+- **Output format**: on a nightly toolchain Forge asks libtest for JSON (`-Z unstable-options
+  --format json --report-time`). On stable it reads libtest's plain output, so test
+  durations are not shown. **Settings | Rust | Tests | Test results** can force either.
+- **cargo-nextest** (Settings | Rust | Tests | Test runner, or per configuration) runs tests
+  with `cargo nextest run --message-format libtest-json`. Doctests and benchmarks always run
+  with cargo test, because nextest does not run them.
+- Failures show the panic message and location. `assert_eq!` values open in **Click to see
+  difference** (left as expected, right as actual).
+- Test locations map back to files through the workspace's modules, so a test opens at its
+  function and the gutter icons show the last result.
+- **Rerun Failed Tests** runs the failed tests by their exact names
+  (`-- --exact a::b c::d`).
+- **Run with Coverage** uses **cargo-llvm-cov** (`cargo llvm-cov --lcov --output-path …`) and
+  shows the LCOV report in the [Coverage tool window](docs/guide/user/coverage.md). Forge offers to install
+  cargo-llvm-cov and cargo-nextest with `cargo install --locked` from Settings | Rust.
+
+## Clippy and rustfmt
+
+- **Run Clippy** (Find Action, or *Run Clippy on save* in Settings | Rust | External Linter)
+  runs `cargo clippy --all-targets --message-format=json` for the file's package. Problems
+  appear in the editor and the Problems tool window. Clippy's suggestions are quick fixes
+  under **Alt+Enter**, so *Try: `cents == 0`* replaces the code it marks. Clippy builds the
+  code, so it runs only in trusted projects.
+
+![Clippy problems in money.rs and the Problems tool window, with the quick fix under Alt+Enter](docs/screenshots/rust-clippy.png)
+
+- **Reformat Code** (`Ctrl+Alt+L`) and *Reformat code* on save use **rustfmt** with the
+  package's edition and the nearest `rustfmt.toml` / `.rustfmt.toml`, like `cargo fmt`.
+  **Settings | Rust | Rustfmt | Reformat Code with** can switch to rust-analyzer's formatting
+  or turn formatting off.
+
+## rust-analyzer
+
+Forge starts rust-analyzer from the active toolchain (`rustup component add rust-analyzer`).
+Without it, Forge uses its own download, then a rust-analyzer on the `PATH`; you can also
+set **rust-analyzer executable**. When rust-analyzer is missing, a balloon offers *Install
+with rustup*. Without rustup, it offers *Download…*: Forge downloads a pinned release
+from [rust-lang/rust-analyzer's GitHub releases](https://github.com/rust-lang/rust-analyzer/releases),
+checks it against the SHA-256 digest GitHub publishes for the asset, and keeps it in
+`<data dir>/forge/langservers/rust-analyzer`.
+
+Settings | Rust | rust-analyzer configures it:
+
+- **Check on save** with **Clippy** or **cargo check**,
+- the Cargo **features** of the tool window,
+- a **target triple** (`wasm32-unknown-unknown`),
+- **Expand procedural macros** and **Run build scripts**.
+
+rust-analyzer runs the project's build scripts and proc macros, so
+[Safe Mode](docs/guide/user/project-trust.md) does not start it.
+
+## Debugging
+
+**Debug** on a Cargo or Cargo Test configuration, or on a ▶ icon, first builds it with
+`--message-format=json` (`cargo build`, or `cargo test --no-run` for tests). It then starts
+the executable cargo reports under the built-in **LLDB** (`lldb-dap`) or **GDB**
+(`gdb -i dap`) adapter of the [debugger](docs/guide/user/debugging.md). *Settings | Rust | Debugger*
+chooses the debugger; *auto* uses LLDB when lldb-dap is installed.
+
+![Debugging shop with LLDB: Vec, String, Option and HashMap shown with rustc's pretty printers](docs/screenshots/rust-debug.png)
+
+- **Rust type renderers**: Forge loads rustc's own pretty printers from the toolchain's
+  sysroot (`lib/rustlib/etc`), the same ones `rust-lldb` and `rust-gdb` load. For LLDB,
+  `lldb_lookup.py` and `lldb_commands` go in as `initCommands`. For GDB, the `rust-gdb`
+  adapter adds the folder to the auto-load safe path and sources
+  `gdb_load_rust_pretty_printers.py`. `Vec`, `String`, `&str`, `Option`, `Result`,
+  `HashMap`, `Rc` and friends then show as values with their elements.
+- With `rust-src` installed, `/rustc/<commit>` paths map to the toolchain's sources, so
+  stepping into `std` opens real files.
+- Tests are debugged one test binary at a time, with `--nocapture --test-threads=1`. Doctests
+  are compiled by rustdoc and cannot be debugged.
+- The Memory, Disassembly and Registers views, watchpoints and core dumps work as for any
+  native program.
+
+## Settings
+
+All keys are listed in the [settings reference](docs/guide/reference/settings.md) under
+*Languages & Frameworks | Rust*.
+
+
+---
+
 Source: docs/guide/user/go.md
 
 # GoForge (Go)
@@ -13610,7 +13793,8 @@ format into the same test events:
 | JUnit XML | Codeception, Behat, PHPSpec, PHPUnit `--log-junit`, pytest `--junitxml`, Gradle, Maven | a report file or a document on stdout |
 | TAP 12–14 | busted `--output=TAP`, `node --test --test-reporter=tap`, prove, Bats, node-tap | streamed on stdout |
 | Go `test2json` | `go test -json` | streamed on stdout |
-| libtest JSON | `cargo test -- -Z unstable-options --format json`, nextest | streamed on stdout |
+| libtest JSON | `cargo test -- -Z unstable-options --format json` (nightly), nextest | streamed on stdout; cargo's `Running` lines on stderr name the suites |
+| libtest plain text | `cargo test` on stable toolchains | streamed on stdout; failures are read from their `---- <test> stdout ----` sections |
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
 | Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
@@ -18222,6 +18406,31 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Rust
+
+Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `rust.toolchain` | string | `""` | user, project | Toolchain | Toolchain — The toolchain of the project's cargo, rustc, rustfmt and Clippy commands (cargo +<toolchain>). Empty: rustup's choice, which follows rust-toolchain.toml. |
+| `rust.environment` | list | `[]` | user, project | Cargo | Environment — Variables for cargo commands of the project, one KEY=VALUE per entry (RUSTFLAGS, CARGO_TARGET_DIR, RUST_LOG). |
+| `rust.cargo.features` | list | `[]` | user, project | Cargo | Features — Cargo features every build, run, test and rust-analyzer use; the Cargo tool window's checkboxes edit them. |
+| `rust.cargo.allFeatures` | bool | `false` | user, project | Cargo | Use all features |
+| `rust.cargo.noDefaultFeatures` | bool | `false` | user, project | Cargo | Do not use the default features |
+| `rust.test.runner` | enum: `cargo`, `nextest` | `cargo` | user, project | Tests | Test runner — cargo-nextest runs tests in parallel processes; doctests and benchmarks always run with cargo test. |
+| `rust.test.format` | enum: `auto`, `json`, `text` | `auto` | user, project | Tests | Test results — libtest's JSON output needs a nightly toolchain (-Z unstable-options); on stable Forge reads the plain output. |
+| `rust.formatter` | enum: `rustfmt`, `lsp`, `none` | `rustfmt` | user, project | Rustfmt | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Rust files; rustfmt reads the project's rustfmt.toml. |
+| `rust.rustfmt.extraArgs` | string | `""` | user, project | Rustfmt | Additional rustfmt arguments — For example --config imports_granularity=Crate. |
+| `rust.clippy.onSave` | bool | `false` | user, project | External Linter | Run Clippy on save — Clippy's problems of the saved file's package appear in the editor and the Problems tool window, with its suggestions as quick fixes (Alt+Enter). Clippy builds the code, so it runs only in trusted projects. |
+| `rust.clippy.extraArgs` | string | `""` | user, project | External Linter | Additional Clippy arguments — Lint options after --, for example -W clippy::pedantic. |
+| `rust.analyzer.checkOnSave` | bool | `true` | user, project | rust-analyzer | Check on save — rust-analyzer runs cargo check (or Clippy) when a file is saved. |
+| `rust.analyzer.checkCommand` | enum: `clippy`, `check` | `clippy` | user, project | rust-analyzer | Check command |
+| `rust.analyzer.target` | string | `""` | user, project | rust-analyzer | Target triple — Analyze for another target, e.g. wasm32-unknown-unknown. Empty: the host. |
+| `rust.analyzer.procMacros` | bool | `true` | user, project | rust-analyzer | Expand procedural macros — Runs the project's proc macros (trusted projects only; Safe Mode does not start rust-analyzer). |
+| `rust.analyzer.buildScripts` | bool | `true` | user, project | rust-analyzer | Run build scripts — Runs build.rs for generated code and cfgs (trusted projects only). |
+| `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
+| `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
+| `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -19255,7 +19464,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -19281,6 +19490,7 @@ script and config language plugins.
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
+| Rust | `forge.rust` | rustforge |  | `rustforge` | tool windows (UI): Cargo; 8 commands; 18 settings; file types: TOML (Cargo.lock, rust-toolchain); run types: Cargo; test frameworks: Cargo Test; 1 debug adapter (rust-gdb, in Rust) |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Python Web Frameworks | `forge.python-web` | pyforge | `forge.python-env` | `django`, `flask`, `fastapi` | tool windows: Endpoints; 1 commands |
 | Django | `forge.django` | pyforge | `forge.python-web` | `django` | tool windows: Django Structure; 1 commands; 4 settings; file types: Django Template; run types: Django Server, Django tests |
@@ -20070,7 +20280,7 @@ testFiles = ["*_spec.lua"]          # gutter icons in these files
 program = "busted"
 programSetting = "lua.busted.path"  # setting with the executable
 args = ["--output=TAP"]
-report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | pytestReportLog | jestJson | tox
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox
 junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
 nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
 escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
@@ -21220,7 +21430,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
-| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
+| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
@@ -21254,6 +21464,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-lang-python](docs/guide/developer/crates/pyforge-lang-python.md) | PyForge: Python language support (PEP 440 versions and specifiers, PEP 508 requirements, requirements.txt and pyproject.toml dependencies, imports, requirements inspections and completion, run configurations; pure, also built to WebAssembly) |
 | [pyforge-interpreters](docs/guide/developer/crates/pyforge-interpreters.md) | PyForge: Python interpreters (system, pyenv, venv/virtualenv, uv, Poetry, conda, Pipenv, Hatch, Docker, Docker Compose, SSH, WSL): model, detection, metadata parsing and new environments |
 | [pyforge-packages](docs/guide/developer/crates/pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
+| [rustforge-lang-rust](docs/guide/developer/crates/rustforge-lang-rust.md) | RustForge: Rust and Cargo support (cargo metadata, toolchain files, run / test / doctest discovery, the Cargo Test provider, Cargo command lines, Clippy messages with fixes, rustfmt, rust-analyzer settings, debugger pretty printers; pure, also built to WebAssembly) |
+| [rustforge-toolchain](docs/guide/developer/crates/rustforge-toolchain.md) | RustForge: rustup toolchains and tools on the user's machine, consented rustup installs, the pinned rust-analyzer download (SHA-256) and GDB with rustc's pretty printers as a debug adapter |
 | [goforge-lang-go](docs/guide/developer/crates/goforge-lang-go.md) | GoForge: Go language support (go.mod / go.work, module versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider, Go Build command lines, go:generate, go vet and golangci-lint reports; pure, also built to WebAssembly) |
 | [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
@@ -23843,7 +24055,7 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON, Jest / Vitest JSON, Playwright JSON and pytest
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON and pytest
   report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
@@ -23864,7 +24076,8 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `testevents.rs` | The test event protocol: `TestEvent` (serde, `event` tag) and `TestEvent::from_service_message`; `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`) for formats streamed on stdout; `TeamCityParser`. |
 | `formats/tap.rs` | TAP 12–14: `ok` / `not ok`, `# SKIP` / `# TODO`, YAML diagnostics (`message`, `expected`/`actual`, `at`, `duration_ms`), busted's comments (`# file @ line`, `Failure message`, `Passed in` / `Expected`), `# Subtest:` nesting (node `--test`, node-tap), plans. |
 | `formats/gotest.rs` | Go `test2json`: packages as suites, tests and subtests, output per test, the first `file_test.go:12:` line as message and failure location, `got … want …` values. |
-| `formats/libtest.rs` | libtest JSON (`cargo test -- --format json`): a suite per test binary (`Running …` lines), module paths as locations, panic locations and `left` / `right` values. |
+| `formats/libtest.rs` | libtest JSON (`cargo test -- --format json`, nextest's libtest-json): a suite per test binary (cargo's `Running …` / `Doc-tests …` lines, also on stderr through `LineParser::stderr`), `<crate>::<module path>` locations, doctests at their file and line, panic locations and `left` / `right` values. |
+| `formats/libtest_text.rs` | libtest's plain output (`cargo test` on stable): `running N tests`, `test <name> ... ok \| FAILED \| ignored`, failures from their `---- <name> stdout ----` sections. |
 | `formats/playwright.rs` | Playwright JSON reports: a suite per file, `test.describe` blocks as nested suites, one test per spec and project (`title [project]` with several projects), expected / unexpected / flaky / skipped, `Expected…` / `Received…` values, errors outside tests. |
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
@@ -25811,6 +26024,147 @@ quick fixes and completion in dependency files.
 
 ```sh
 cargo test -p pyforge-packages --features net
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rustforge-lang-rust.md
+
+# rustforge-lang-rust
+
+`packs/rustforge/lang-rust` — RustForge's Rust and Cargo support. Pure Rust (no I/O), shared
+by the desktop backend and the WebAssembly build of browser mode.
+
+## Purpose
+
+- `metadata`: a `CargoWorkspace` from `cargo metadata --format-version 1`: members, targets
+  (lib, bin, test, bench, example, build script, proc macro), features with their defaults,
+  direct dependencies and a dependency tree per member from the `resolve` graph (packages
+  seen before are `repeated`, like `cargo tree`'s `(*)`); `module_path` / `crate_of` give the
+  crate and module of a source file.
+- `toolchain`: `rustup toolchain list -v`, `rustup show active-toolchain` (default,
+  `rust-toolchain.toml`, directory override, `RUSTUP_TOOLCHAIN`), `rust-toolchain(.toml)`,
+  `rustc -vV` and `rustup component list --installed`.
+- `scan`: a small Rust lexer (strings, raw strings, chars, lifetimes, nested comments) and
+  brace tracking: `fn main`, `#[test]` / `#[<runtime>::test]`, `#[bench]`, test modules and
+  doctests named like rustdoc (`cart::Cart::total`, the line of the fence).
+- `context`: `CargoContext` (cargo, toolchain, nightly, test runner and format, installed
+  plugins, environment, features, workspace members and files), handed to the provider
+  through `CommandContext.settings["rust.context"]`; `location_rules` map libtest's
+  `<crate>::<module>` locations to files, deepest modules first.
+- `command`: the "Cargo" run configuration (any cargo command with package, target,
+  features, profile, target triple and toolchain, the user's own options winning), Cargo
+  tool window actions and `fn main` run targets.
+- `provider`: `CargoTestProvider` for the manifest's `cargo-test` framework: discovery keyed
+  `<file>::<libtest name>`, `cargo test` (libtest JSON on nightly, plain output otherwise),
+  `cargo bench`, `cargo test --doc`, `cargo nextest run --message-format libtest-json`,
+  `cargo llvm-cov --lcov` for coverage, Rerun Failed Tests by exact names; `debug_test`
+  builds a test binary for the debugger (`cargo test --no-run --message-format json`).
+- `messages`: cargo's JSON messages — executables (`compiler-artifact`), rustc and Clippy
+  diagnostics as `RustProblem`s with their suggestions as fixes, build failures.
+- `analyzer`: rust-analyzer's configuration (check on save with Clippy, features, target,
+  build scripts, proc macros; off in untrusted projects).
+- `format`: rustfmt arguments (edition, `--config-path`) and the config files `cargo fmt`
+  would find.
+- `debug`: rustc's pretty printers for LLDB (`initCommands`) and GDB (adapter arguments).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `metadata.rs` | `parse_metadata`, `CargoWorkspace`, `CargoPackage`, `CargoTarget`, `DependencyNode`, `module_path`, `crate_of`. |
+| `toolchain.rs` | `parse_toolchain_list`, `parse_active_toolchain`, `parse_toolchain_file`, `parse_rustc_version`, `parse_components`. |
+| `scan.rs` | `scan`, `RustItem`, `ItemKind`. |
+| `context.rs` | `CargoContext`, `CONTEXT_KEY`, `location_rules`. |
+| `command.rs` | `command_line`, `action_command`, `selection_args`, `run_targets`, `CARGO`. |
+| `provider.rs` | `CargoTestProvider`, `register`, `discover_file`, `locate`, `debug_test`, `CARGO_TEST`. |
+| `messages.rs` | `artifacts`, `pick_executable`, `problems`, `build_failure`, `utf16_column`. |
+| `analyzer.rs` | `AnalyzerSettings`. |
+| `format.rs` | `config_candidates`, `rustfmt_args`. |
+| `debug.rs` | `PrettyPrinters`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/rust.rs` (`rust_*`, `cargo_*`), `commands/run.rs` (the
+  Cargo Test provider in `RunState.tests`, Cargo command lines), `commands/testing.rs`
+  (discovery of `.rs` files with the workspace).
+- Browser mode: `crates/forge-wasm/src/rust.rs` and `testing.rs`.
+- [rustforge-toolchain](docs/guide/developer/crates/rustforge-toolchain.md).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`, `toml`
+
+## Tests
+
+Unit tests per module against recorded fixtures in `tests/fixtures/`: `cargo metadata` of
+the `shop` demo workspace (`tests/fixtures/shop`, also browser mode's demo) and of Forge
+itself (`--no-deps`), `cargo clippy` / `cargo build` / `cargo test --no-run` JSON messages,
+rustup and rustc output.
+
+```sh
+cargo test -p rustforge-lang-rust
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rustforge-toolchain.md
+
+# rustforge-toolchain
+
+`packs/rustforge/toolchain` — RustForge on the user's machine.
+
+## Purpose
+
+- `detect`: `RustStatus` of a project folder — rustup's toolchains, the active one and why,
+  a standalone `rustc` without rustup, `rustc -vV`, the sysroot, the standard library sources
+  (`rust-src`), installed components, the tools Forge uses (rust-analyzer through
+  `rustup which`, Forge's download or the `PATH`; rustfmt; Clippy) and cargo plugins
+  (cargo-nextest, cargo-llvm-cov), and rustc's pretty-printer files. Programs run through a
+  `Runner` with `RUSTUP_AUTO_INSTALL=0`, so detection never installs anything.
+- `install`: command lines for `rustup toolchain install`, `rustup component add` and
+  `cargo install --locked` of cargo plugins (names validated; the UI asks first).
+- `analyzer`: the rust-analyzer download — the pinned release (`PINNED_RELEASE`), the asset
+  of the platform (`rust-analyzer-<target>.gz`, `.zip` on Windows), its SHA-256 digest from
+  the GitHub release API, unpacked into `<data dir>/forge/langservers/rust-analyzer`.
+- `gdb`: `RustGdbAdapter`, the `rust-gdb` debug adapter: the Debugger plugin's GDB
+  (`gdb -i dap`) with rustc's pretty printers loaded before the program.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `RustEnv`, `RustStatus`, `ToolStatus`, `system_runner`. |
+| `install.rs` | `toolchain`, `component`, `cargo_plugin`. |
+| `analyzer.rs` | `install`, `installed`, `asset_name`, `default_dir`, `PINNED_RELEASE`. |
+| `gdb.rs` | `RustGdbAdapter`, `ADAPTER`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/rust.rs` (`rust_status`, `rust_install_command`,
+  `rust_analyzer_download`, `rust_debug_request`, `sync_debug`).
+
+## Dependencies
+
+- Workspace crates: [`rustforge-lang-rust`](docs/guide/developer/crates/rustforge-lang-rust.md),
+  [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md), [`forge-dap`](docs/guide/developer/crates/forge-dap.md),
+  [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md)
+- External: `serde`, `serde_json`, `dirs`, `tokio`, `flate2`
+
+## Tests
+
+Detection runs against recorded rustup and rustc output in temporary folders; the download
+is tested with a local HTTP server (`forge_langservers::managed::testserver`); the GDB
+adapter against the Debugger plugin's GDB contribution. An ignored smoke test detects this
+machine's toolchains.
+
+```sh
+cargo test -p rustforge-toolchain
+cargo test -p rustforge-toolchain -- --ignored   # this machine's rustup
 ```
 
 

@@ -8918,6 +8918,411 @@
     }
   },
   {
+    "id": "forge.rust",
+    "name": "Rust",
+    "version": "0.1.0",
+    "pack": "rustforge",
+    "description": "rustup toolchains and rust-toolchain.toml, the Cargo tool window (workspace members, targets, features, dependencies), Cargo run configurations, cargo test / nextest / doctests with coverage (cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer and LLDB / GDB debugging with Rust type renderers.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "rustforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "rust"
+      ],
+      "fileTypes": [
+        {
+          "id": "toml",
+          "name": "TOML",
+          "extensions": [
+            "toml"
+          ],
+          "fileNames": [
+            "Cargo.lock",
+            "rust-toolchain"
+          ],
+          "indentSize": 4
+        }
+      ],
+      "commands": [
+        {
+          "id": "rust.refreshCargo",
+          "title": "Reload Cargo Project",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.cargoBuild",
+          "title": "Build (cargo build)",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.cargoCheck",
+          "title": "Check (cargo check)",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.cargoClean",
+          "title": "Clean (cargo clean)",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.cargoUpdate",
+          "title": "Update Dependencies (cargo update)",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.clippy",
+          "title": "Run Clippy",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.installToolchain",
+          "title": "Install Rust Toolchain…",
+          "category": "Rust"
+        },
+        {
+          "id": "rust.downloadAnalyzer",
+          "title": "Download rust-analyzer…",
+          "category": "Rust"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "rust.toolchain",
+          "title": "Toolchain",
+          "description": "The toolchain of the project's cargo, rustc, rustfmt and Clippy commands (cargo +<toolchain>). Empty: rustup's choice, which follows rust-toolchain.toml.",
+          "type": "string",
+          "default": "",
+          "group": "lang.rust",
+          "section": "Toolchain",
+          "project": true,
+          "hidden": true,
+          "order": 0
+        },
+        {
+          "key": "rust.environment",
+          "title": "Environment",
+          "description": "Variables for cargo commands of the project, one KEY=VALUE per entry (RUSTFLAGS, CARGO_TARGET_DIR, RUST_LOG).",
+          "type": "list",
+          "default": [],
+          "group": "lang.rust",
+          "section": "Cargo",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "rust.cargo.features",
+          "title": "Features",
+          "description": "Cargo features every build, run, test and rust-analyzer use; the Cargo tool window's checkboxes edit them.",
+          "type": "list",
+          "default": [],
+          "group": "lang.rust",
+          "section": "Cargo",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "rust.cargo.allFeatures",
+          "title": "Use all features",
+          "type": "bool",
+          "default": false,
+          "group": "lang.rust",
+          "section": "Cargo",
+          "project": true,
+          "order": 12
+        },
+        {
+          "key": "rust.cargo.noDefaultFeatures",
+          "title": "Do not use the default features",
+          "type": "bool",
+          "default": false,
+          "group": "lang.rust",
+          "section": "Cargo",
+          "project": true,
+          "order": 13
+        },
+        {
+          "key": "rust.test.runner",
+          "title": "Test runner",
+          "description": "cargo-nextest runs tests in parallel processes; doctests and benchmarks always run with cargo test.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "cargo",
+              "label": "cargo test"
+            },
+            {
+              "value": "nextest",
+              "label": "cargo nextest"
+            }
+          ],
+          "default": "cargo",
+          "group": "lang.rust",
+          "section": "Tests",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "rust.test.format",
+          "title": "Test results",
+          "description": "libtest's JSON output needs a nightly toolchain (-Z unstable-options); on stable Forge reads the plain output.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "JSON on nightly toolchains, plain output otherwise"
+            },
+            {
+              "value": "json",
+              "label": "Always JSON (nightly)"
+            },
+            {
+              "value": "text",
+              "label": "Always plain output"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.rust",
+          "section": "Tests",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "rust.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Rust files; rustfmt reads the project's rustfmt.toml.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "rustfmt",
+              "label": "rustfmt"
+            },
+            {
+              "value": "lsp",
+              "label": "rust-analyzer"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "rustfmt",
+          "group": "lang.rust",
+          "section": "Rustfmt",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "rust.rustfmt.extraArgs",
+          "title": "Additional rustfmt arguments",
+          "description": "For example --config imports_granularity=Crate.",
+          "type": "string",
+          "default": "",
+          "group": "lang.rust",
+          "section": "Rustfmt",
+          "project": true,
+          "order": 31
+        },
+        {
+          "key": "rust.clippy.onSave",
+          "title": "Run Clippy on save",
+          "description": "Clippy's problems of the saved file's package appear in the editor and the Problems tool window, with its suggestions as quick fixes (Alt+Enter). Clippy builds the code, so it runs only in trusted projects.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.rust",
+          "section": "External Linter",
+          "project": true,
+          "order": 40
+        },
+        {
+          "key": "rust.clippy.extraArgs",
+          "title": "Additional Clippy arguments",
+          "description": "Lint options after --, for example -W clippy::pedantic.",
+          "type": "string",
+          "default": "",
+          "group": "lang.rust",
+          "section": "External Linter",
+          "project": true,
+          "order": 41
+        },
+        {
+          "key": "rust.analyzer.checkOnSave",
+          "title": "Check on save",
+          "description": "rust-analyzer runs cargo check (or Clippy) when a file is saved.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.rust",
+          "section": "rust-analyzer",
+          "project": true,
+          "order": 50
+        },
+        {
+          "key": "rust.analyzer.checkCommand",
+          "title": "Check command",
+          "type": "enum",
+          "options": [
+            {
+              "value": "clippy",
+              "label": "Clippy"
+            },
+            {
+              "value": "check",
+              "label": "cargo check"
+            }
+          ],
+          "default": "clippy",
+          "group": "lang.rust",
+          "section": "rust-analyzer",
+          "project": true,
+          "order": 51
+        },
+        {
+          "key": "rust.analyzer.target",
+          "title": "Target triple",
+          "description": "Analyze for another target, e.g. wasm32-unknown-unknown. Empty: the host.",
+          "type": "string",
+          "default": "",
+          "group": "lang.rust",
+          "section": "rust-analyzer",
+          "project": true,
+          "order": 52
+        },
+        {
+          "key": "rust.analyzer.procMacros",
+          "title": "Expand procedural macros",
+          "description": "Runs the project's proc macros (trusted projects only; Safe Mode does not start rust-analyzer).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.rust",
+          "section": "rust-analyzer",
+          "project": true,
+          "order": 53
+        },
+        {
+          "key": "rust.analyzer.buildScripts",
+          "title": "Run build scripts",
+          "description": "Runs build.rs for generated code and cfgs (trusted projects only).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.rust",
+          "section": "rust-analyzer",
+          "project": true,
+          "order": 54
+        },
+        {
+          "key": "rust.analyzer.path",
+          "title": "rust-analyzer executable",
+          "description": "Empty: the toolchain's rust-analyzer component, Forge's download or the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.rust",
+          "section": "rust-analyzer",
+          "project": false,
+          "order": 55
+        },
+        {
+          "key": "rust.debugger",
+          "title": "Debugger",
+          "description": "LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "LLDB when lldb-dap is installed, else GDB"
+            },
+            {
+              "value": "lldb",
+              "label": "LLDB"
+            },
+            {
+              "value": "gdb",
+              "label": "GDB"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.rust",
+          "section": "Debugger",
+          "project": false,
+          "order": 60
+        },
+        {
+          "key": "rust.debugger.prettyPrinters",
+          "title": "Show Rust types with rustc's pretty printers",
+          "description": "Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.rust",
+          "section": "Debugger",
+          "project": false,
+          "order": 61
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "cargo",
+          "name": "Cargo",
+          "description": "Run a cargo command (run, test, bench, build or any other) with a toolchain, package, target, features, profile and target triple.",
+          "icon": "package",
+          "debuggable": true
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "cargo-test",
+          "name": "Cargo Test",
+          "description": "Run cargo test or cargo nextest: the workspace, a package, a target, a module, a test or a doctest; benchmarks; coverage with cargo-llvm-cov.",
+          "icon": "flask-conical",
+          "language": "rust",
+          "detect": {
+            "files": [
+              "Cargo.toml",
+              "*/Cargo.toml",
+              "**/Cargo.toml"
+            ],
+            "dependencies": []
+          },
+          "testFiles": [
+            "*.rs"
+          ],
+          "program": "cargo",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${test}"
+            ]
+          },
+          "report": "libtestJson",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "coverage": {
+            "args": [],
+            "file": "${coverageFile}",
+            "format": "lcov",
+            "env": {}
+          },
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.java",
     "name": "Java",
     "version": "0.1.0",

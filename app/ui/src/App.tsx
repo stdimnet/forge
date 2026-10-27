@@ -32,6 +32,7 @@ export function App() {
       python: "src/shop_api/main.py",
       django: "catalog/views.py",
       go: "cmd/ledger/main.go",
+      rust: "crates/shop-cli/src/main.rs",
       java: "src/main/java/com/acme/inventory/App.java",
       kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
       wordpress: "acme-events.php",

@@ -1066,7 +1066,7 @@ or without Git, for local and remote projects.
   report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is
@@ -2371,6 +2371,55 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   golangci-lint on save (`editor.ts`). Browser mode: `?project=go` opens the `ledger` demo
   (`mock/demoGoProject.ts`, `mock/goMock.ts`, `mock/goTestsMock.ts`, WebAssembly
   `crates/forge-wasm/src/go.rs`).
+## RustForge (`packs/rustforge/*`)
+
+- Plugin (`app/src-tauri/plugins/rustforge.toml`): `forge.rust` (`projectTypes =
+  ["rustforge"]`): the TOML file type also for `Cargo.lock` and `rust-toolchain` (`.rs` is
+  bundled), the run configuration type `cargo`, the `cargo-test` test framework (wrapped in
+  Rust by `CargoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
+  Settings | Languages & Frameworks | Rust (`lang.rust`, `rust.*`). `forge-project` reports
+  the `rust` language (pack `rustforge`) for `Cargo.toml`, Rust files in the root or two or
+  more in a folder, and the tool `cargo`. rust-analyzer comes from the language server
+  catalog; `commands::rust::configure_analyzer` (called at the end of
+  `langservers::apply`) sets its command (toolchain component, Forge's download) and its
+  initialization options / settings from `rust.*` (`AnalyzerSettings`); setting changes call
+  `spawn_sync_analyzer`.
+- Crates: `rustforge-lang-rust` (pure, also WebAssembly: cargo metadata, toolchain files,
+  discovery, the Cargo Test provider, Cargo command lines, Clippy messages, rustfmt,
+  rust-analyzer settings, pretty printers) and `rustforge-toolchain` (rustup / toolchain
+  detection with `RUSTUP_AUTO_INSTALL=0`, rustup install command lines, the pinned
+  rust-analyzer download with SHA-256, the `rust-gdb` adapter).
+- The Cargo context (`commands::rust::context`: cargo and toolchain from the status, test
+  runner and format, `rust.environment`, features, the workspace from `cargo metadata` cached
+  in `<cache>/forge/rust/<project hash>.json` and keyed by the manifests, the project's `.rs`
+  files) reaches the provider through `CommandContext.settings["rust.context"]`
+  (`run.rs::framework_command` calls `rust::extend_test_context`); Cargo runs are built by
+  `rust::cargo_run` in `run.rs::build`; `testing.rs::test_discover` hands `.rs` files to
+  `rust::discover_file`. Test keys are `<file>::<libtest name>`; `CargoContext::location_rules`
+  maps libtest's `<crate>::<module>` locations (see `forge-output`'s libtest parsers) to the
+  module files.
+- IPC (`app/ui/src/ipc/rust.ts`, `commands/rust.rs`; lines 0-based, columns UTF-16):
+  `rust_status({ refresh? }) -> RustStatus & { chosen }`,
+  `rust_install_command({ kind: "toolchain" | "component" | "cargoPlugin", name, toolchain? })
+  -> CommandLine`, `rust_analyzer_download() -> string` (events `rust://install`),
+  `cargo_workspace({ refresh? }) -> CargoWorkspace { root, targetDirectory, members, trees }`
+  (event `rust://workspace`; trusted projects only when cargo has to run),
+  `cargo_command({ action, package?, target? }) -> CommandLine`,
+  `rust_file_targets({ path, content }) -> RunTarget[]`, `rust_format({ path, content }) ->
+  string | null`, `rust_clippy({ path? }) -> RustProblem[]` (with `fixes`: edits per file;
+  trusted projects only), `rust_debug_request({ configuration }) -> LaunchRequest` (builds
+  first; trusted projects only). Command lines are started by the UI through `run_start`
+  (hidden type `cargo-command`), so they are refused in Safe Mode.
+- Debugging: LLDB launch requests carry rustc's pretty printers as `initCommands`;
+  `commands::rust::sync_debug` (called from `dap.rs::sync`) registers the `rust-gdb` adapter
+  (GDB with the printers as `-iex` arguments) while `forge.rust` is enabled.
+- UI (`app/ui/src/features/rust`): settings page, the `cargo` tool window, run configuration
+  types `cargo` and `cargo-test`, the `rust` debug launcher, `fn main` line markers, the
+  format provider, Clippy problems with quick fixes (`registerContextActionProvider`) and
+  Clippy on save (`editor.ts`). Browser mode: `?project=rust` opens the `shop` demo
+  (`mock/demoRustProject.ts`, `mock/rustMock.ts`, `mock/rustTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/rust.rs`).
+
 ## JavaForge (`packs/javaforge/*`)
 
 - The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)

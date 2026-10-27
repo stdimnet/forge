@@ -12,6 +12,7 @@ Forge is the core. Languages and big feature sets ship as **packs** of plugins:
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim: EmmyLua/LuaLS annotations, lua-language-server, StyLua |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black; Django, Flask, FastAPI and Celery; Jupyter notebooks |
 | **GoForge** | Go: SDK / GOPATH with SDK downloads, go.mod / go.work, gofmt / goimports, go vet, golangci-lint, go generate, Go Build / Go Test (benchmarks, fuzzing, coverage), Delve (attach, remote), pprof Profiler |
+| **RustForge** | Rust: rustup toolchains and rust-toolchain.toml, the Cargo tool window (targets, features, dependencies), Cargo / Cargo Test configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS (installed on request), JDK detection and Temurin downloads, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) |
 | **KotlinForge** | Kotlin/JVM: kotlin-lsp (installed on request), Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with a Coroutines view, ktlint and detekt |
 

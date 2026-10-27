@@ -1,0 +1,159 @@
+/* RustForge: the Cargo tool window and Settings | Rust. Theme variables only. */
+
+.cargo-tw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.cargo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.cargo-toolbar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.cargo-toolbar .icon-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.cargo-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.cargo-run {
+  color: var(--success);
+}
+.icon-btn:disabled .cargo-run {
+  color: var(--fg-faint);
+}
+.cargo-spin {
+  animation: cargo-spin 1s linear infinite;
+}
+@keyframes cargo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cargo-message {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  word-break: break-word;
+}
+.cargo-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 2px 0;
+}
+.cargo-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+.cargo-twisty {
+  display: inline-flex;
+  width: 13px;
+  flex: none;
+  color: var(--fg-muted);
+}
+.cargo-icon {
+  flex: none;
+}
+.cargo-member {
+  color: var(--syn-type);
+}
+.cargo-dep {
+  color: var(--fg-muted);
+}
+.cargo-target-lib,
+.cargo-target-procMacro {
+  color: var(--info);
+}
+.cargo-target-bin {
+  color: var(--success);
+}
+.cargo-target-test {
+  color: var(--warning);
+}
+.cargo-target-bench,
+.cargo-target-example {
+  color: var(--syn-function);
+}
+.cargo-target-buildScript {
+  color: var(--fg-muted);
+}
+.cargo-feature {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.cargo-label {
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cargo-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+
+/* Settings | Rust */
+.rust-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rust-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rust-row select {
+  flex: 1;
+  min-width: 0;
+}
+.rust-facts {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 4px 12px;
+  font-size: var(--fs-small);
+}
+.rust-facts > span:nth-child(odd) {
+  color: var(--fg-muted);
+}
+.rust-mono {
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rust-tools {
+  border-collapse: collapse;
+  width: 100%;
+}
+.rust-tools td {
+  padding: 3px 8px 3px 0;
+  white-space: nowrap;
+}
+.rust-tool-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rust-missing {
+  color: var(--warning);
+}
