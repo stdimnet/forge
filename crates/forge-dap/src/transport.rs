@@ -3,13 +3,14 @@
 //! a TCP server Forge opens for an adapter that connects back.
 
 use std::hash::{BuildHasher, RandomState};
+use std::net::SocketAddr;
 use std::ops::{Range, RangeInclusive};
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufRead, AsyncWrite, BufReader};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpListener, TcpSocket, TcpStream};
 use tokio::process::{Child, ChildStderr, Command};
 
 use crate::error::{DapError, DapResult};
@@ -131,7 +132,7 @@ fn from_tcp(stream: TcpStream, child: Option<Child>, peer: String) -> Connection
 const ADAPTER_PORTS: Range<u16> = 20000..32768;
 
 /// A free port for an adapter Forge starts, outside the system's ephemeral range.
-async fn free_port() -> DapResult<u16> {
+fn free_port() -> DapResult<u16> {
     let ephemeral = ephemeral_ports();
     let random = RandomState::new();
     let span = u64::from(ADAPTER_PORTS.end - ADAPTER_PORTS.start);
@@ -140,12 +141,26 @@ async fn free_port() -> DapResult<u16> {
         if ephemeral.as_ref().is_some_and(|r| r.contains(&port)) {
             continue;
         }
-        if let Ok(l) = TcpListener::bind(("127.0.0.1", port)).await {
-            return Ok(l.local_addr()?.port());
+        if let Ok(port) = probe(port) {
+            return Ok(port);
         }
     }
-    let l = TcpListener::bind(("127.0.0.1", 0)).await?;
-    Ok(l.local_addr()?.port())
+    Ok(probe(0)?)
+}
+
+/// Check that `port` is free by binding it, without listening. A process that is spawned
+/// at the same moment (by Forge or by another test) inherits a copy of the socket until it
+/// executes its program. A copied listening socket would keep accepting connections after
+/// Forge closed it: the adapter could not bind the port, Forge would connect to the copy, and
+/// that connection would be reset once the copy closes. A copy that is only bound refuses
+/// connections, and the adapter can still bind the port (address reuse).
+fn probe(port: u16) -> std::io::Result<u16> {
+    let socket = TcpSocket::new_v4()?;
+    // Not on Windows: there the option lets a socket take over a port that is in use.
+    #[cfg(unix)]
+    socket.set_reuseaddr(true)?;
+    socket.bind(SocketAddr::from(([127, 0, 0, 1], port)))?;
+    Ok(socket.local_addr()?.port())
 }
 
 /// The system's ephemeral port range, where it can be read (Linux).
@@ -184,11 +199,7 @@ pub async fn open(transport: &Transport, timeout: Duration) -> DapResult<Connect
                     .map_err(|e| DapError::Other(format!("Cannot connect to {addr}: {e}")))?;
                 return Ok(from_tcp(stream, None, addr));
             };
-            let port = if *port == 0 {
-                free_port().await?
-            } else {
-                *port
-            };
+            let port = if *port == 0 { free_port()? } else { *port };
             let mut child = adapter.with_port(port).spawn(false)?;
             let addr = format!("{host}:{port}");
             let deadline = Instant::now() + timeout;
@@ -262,16 +273,34 @@ mod tests {
 
     #[tokio::test]
     async fn adapter_ports_avoid_the_ephemeral_range() {
-        let port = free_port().await.unwrap();
+        let port = free_port().unwrap();
         // Unless the system's ephemeral range was moved down over these ports.
         if !matches!(ephemeral_ports(), Some(r) if r.contains(&ADAPTER_PORTS.start)) {
             assert!(ADAPTER_PORTS.contains(&port), "{port}");
         }
     }
 
+    /// A process spawned while Forge probes a port keeps a copy of the probe socket until
+    /// it executes its program: the copy must neither accept connections nor keep the
+    /// adapter from listening.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_copy_of_the_probe_neither_accepts_nor_blocks_the_adapter() {
+        let port = free_port().unwrap();
+        let copy = TcpSocket::new_v4().unwrap();
+        copy.set_reuseaddr(true).unwrap();
+        copy.bind(SocketAddr::from(([127, 0, 0, 1], port))).unwrap();
+        assert!(TcpStream::connect(("127.0.0.1", port)).await.is_err());
+        let adapter = TcpListener::bind(("127.0.0.1", port)).await.unwrap();
+        let (accepted, connected) =
+            tokio::join!(adapter.accept(), TcpStream::connect(("127.0.0.1", port)));
+        assert!(accepted.is_ok() && connected.is_ok());
+        drop(copy);
+    }
+
     #[tokio::test]
     async fn connect_reports_refused_ports() {
-        let port = free_port().await.unwrap();
+        let port = free_port().unwrap();
         let t = Transport::Connect {
             host: "127.0.0.1".into(),
             port,
