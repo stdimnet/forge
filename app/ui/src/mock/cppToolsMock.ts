@@ -251,7 +251,10 @@ export function nativeRun(r: RunRequest, cmd: CommandLine, steps: Step[]): { cmd
 
 // ---- Commands ---------------------------------------------------------------------------------
 
-registerMock("cpp_sanitizer_reports", async ({ output }) => (await sanitizerEvent(String(output), `${ROOT}/cmake-build-debug`)) ?? []);
+registerMock("cpp_sanitizer_reports", async ({ output }) => {
+  const e = await sanitizerEvent(String(output), `${ROOT}/cmake-build-debug`);
+  return e?.type === "sanitizer" ? e.reports : [];
+});
 
 registerMock("cpp_native_tools", (): NativeToolsInfo => ({ valgrind: "/usr/bin/valgrind", perf: "/usr/bin/perf", remote: false }));
 
