@@ -257,8 +257,8 @@ if (web || isPythonDemo() || isGoDemo()) {
     for (const k of Object.keys(snapshot)) delete snapshot[k];
     Object.assign(snapshot, web ? web.files : isGoDemo() ? goDemoFiles : pythonDemoFiles);
   }
-  // The Python demo has one change: the new import in main.py.
-  if (!web && isPythonDemo()) {
+  // The FastAPI demo has one change: the new import in main.py.
+  if (!web && isPythonDemo() && pythonDemoFiles["src/shop_api/main.py"]) {
     const main = "src/shop_api/main.py";
     for (const snapshot of [head, index]) snapshot[main] = pythonDemoFiles[main].replace("from rich.console import Console\n", "").replace("console = Console()\n\n\n", "");
   }

@@ -47,9 +47,12 @@ and a plain Lua project does not start PHP language servers.
 | Angular | `@angular/core` in `package.json`, or `angular.json` |
 | LÖVE | `conf.lua`, or a `main.lua` that uses `love.` |
 | Neovim | `init.lua` next to a `lua/` folder (or one that uses `vim.`), or `lua/` together with `plugin/` |
+| Django | `django` in `requirements*.txt` (also `requirements/*.txt`), `pyproject.toml` or `Pipfile`, together with a `manage.py` |
+| Flask, FastAPI, Celery | `flask`, `fastapi`, `celery` in `requirements*.txt`, `pyproject.toml` or `Pipfile` |
 
 Versions come from `composer.lock` / the npm lock files when present, otherwise from the
-version constraints in the manifests. The PHP version comes from `require.php`.
+version constraints in the manifests (Python frameworks: `uv.lock` / `poetry.lock`). The PHP
+version comes from `require.php`.
 
 ### Tools
 

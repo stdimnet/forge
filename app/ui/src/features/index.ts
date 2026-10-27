@@ -55,6 +55,7 @@ import "./injections";
 import "./scratches";
 import "./lua";
 import "./python";
+import "./pythonWeb";
 import "./go";
 import "./java";
 import "./kotlin";

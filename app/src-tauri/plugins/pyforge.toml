@@ -402,3 +402,207 @@ default = 20
 group = "tools.python-integrated-tools"
 section = "Profiler"
 order = 20
+
+# ---- Web frameworks (packs/pyforge/frameworks): Django, Flask, FastAPI, Celery -----------
+# Everything is read from the sources; only the run configurations and the optional
+# `manage.py help --commands` run project code (refused in Safe Mode).
+
+[[plugin]]
+id = "forge.python-web"
+name = "Python Web Frameworks"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-env"]
+projectTypes = ["django", "flask", "fastapi"]
+description = "The Endpoints tool window (Django URL patterns, Flask routes, FastAPI path operations with Open in HTTP Client), template navigation and completion (render, render_template, {% extends %}, {% include %}, {% url %}) and the unresolved template inspection."
+
+[[plugin.contributions.toolWindows]]
+id = "endpoints"
+title = "Endpoints"
+anchor = "bottom"
+icon = "route"
+order = 48
+
+[[plugin.contributions.commands]]
+id = "ActivateEndpointsToolWindow"
+title = "Endpoints"
+category = "View"
+
+[[plugin]]
+id = "forge.django"
+name = "Django"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-web"]
+projectTypes = ["django"]
+description = "Django: settings detection, Tools | Run manage.py Task… with command completion, the Django Server and Django tests run configurations, the Django Structure tool window (apps, models and fields, URL patterns), Django templates with navigation and {% url %} completion."
+
+[[plugin.contributions.fileTypes]]
+id = "django"
+name = "Django Template"
+extensions = ["djhtml"]
+fileNames = ["templates/*.html", "templates/*.htm", "templates/*.txt"]
+template = true
+
+[[plugin.contributions.toolWindows]]
+id = "djangoStructure"
+title = "Django Structure"
+anchor = "left"
+icon = "boxes"
+order = 40
+
+[[plugin.contributions.commands]]
+id = "Django.RunManageTask"
+title = "Run manage.py Task…"
+category = "Tools"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "django-server"
+name = "Django Server"
+description = "Run manage.py runserver on a host and port; debug with debugpy."
+icon = "server"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "django-tests"
+name = "Django tests"
+description = "Run manage.py test (Django's test runner) or pytest with pytest-django in the test runner."
+icon = "test-tube-diagonal"
+
+[[plugin.contributions.settings]]
+key = "django.settingsModule"
+title = "Settings module"
+description = "DJANGO_SETTINGS_MODULE, for example mysite.settings. Empty: read from manage.py."
+type = "string"
+default = ""
+group = "lang.django"
+section = "Project"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "django.manageScript"
+title = "Manage script"
+description = "The project's manage.py, relative to the project. Empty: the manage.py found in the project."
+type = "path"
+default = ""
+group = "lang.django"
+section = "Project"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "django.manageCommandsFromProject"
+title = "Read manage.py commands from the project"
+description = "Run manage.py help --commands (trusted projects only) so the project's and third-party commands are completed; otherwise Django's built-in commands and the project's management/commands are offered."
+type = "bool"
+default = true
+group = "lang.django"
+section = "manage.py"
+order = 10
+
+[[plugin.contributions.settings]]
+key = "django.testRunner"
+title = "Test runner of new Django tests configurations"
+type = "enum"
+options = [
+  { value = "django", label = "Django test runner (manage.py test)" },
+  { value = "pytest", label = "pytest (pytest-django)" },
+]
+default = "django"
+group = "lang.django"
+section = "Tests"
+project = true
+order = 20
+
+[[plugin]]
+id = "forge.flask"
+name = "Flask"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-web"]
+projectTypes = ["flask"]
+description = "Flask: routes of apps and blueprints in the Endpoints tool window, Jinja2 templates with render_template / url_for navigation, and the Flask Server run configuration (flask run with FLASK_APP, debug with debugpy)."
+
+[[plugin.contributions.fileTypes]]
+id = "jinja"
+name = "Jinja2"
+extensions = ["j2", "jinja", "jinja2", "njk", "nunjucks"]
+fileNames = ["templates/*.html", "templates/*.htm"]
+template = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "flask-server"
+name = "Flask Server"
+description = "Run flask run with FLASK_APP on a host and port; debug with debugpy."
+icon = "flask-round"
+
+[[plugin.contributions.settings]]
+key = "flask.app"
+title = "Application (FLASK_APP)"
+description = "For example app or blog:create_app(). Empty: the module that creates Flask(...)."
+type = "string"
+default = ""
+group = "lang.flask"
+project = true
+order = 0
+
+[[plugin]]
+id = "forge.fastapi"
+name = "FastAPI"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-web"]
+projectTypes = ["fastapi"]
+description = "FastAPI: path operations of apps and APIRouters (with include_router prefixes) in the Endpoints tool window, the FastAPI run configuration (uvicorn with reload, debug with debugpy) and a link to the interactive /docs."
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "fastapi"
+name = "FastAPI"
+description = "Run the application with uvicorn (--reload) on a host and port; debug with debugpy."
+icon = "zap"
+
+[[plugin.contributions.settings]]
+key = "fastapi.app"
+title = "Application"
+description = "module:attribute that uvicorn serves, for example shop_api.main:app. Empty: the module that creates FastAPI(...)."
+type = "string"
+default = ""
+group = "lang.fastapi"
+project = true
+order = 0
+
+[[plugin]]
+id = "forge.celery"
+name = "Celery"
+version = "0.1.0"
+pack = "pyforge"
+vendor = "Forge"
+depends = ["forge.python-env"]
+projectTypes = ["celery"]
+description = "Celery: the project's tasks (@shared_task, @app.task) with gutter icons and the Celery worker and Celery beat run configurations."
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "celery-worker"
+name = "Celery worker"
+description = "Run celery -A <app> worker; debug with debugpy."
+icon = "cog"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "celery-beat"
+name = "Celery beat"
+description = "Run the celery -A <app> beat scheduler."
+icon = "alarm-clock"
+
+[[plugin.contributions.settings]]
+key = "celery.app"
+title = "Application (-A)"
+description = "The Celery application, for example proj. Empty: the module that creates Celery(...)."
+type = "string"
+default = ""
+group = "lang.celery"
+project = true
+order = 0

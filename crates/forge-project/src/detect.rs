@@ -149,6 +149,9 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "vue",
     "react",
     "solid",
+    "django",
+    "fastapi",
+    "flask",
     "love",
     "neovim",
     "vite",
@@ -425,6 +428,7 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     {
         c.language("python");
     }
+    scan_python_frameworks(dir, rel, c, &files);
     if has("uv.lock") {
         c.tool("uv");
     }
@@ -445,6 +449,118 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     {
         c.tool("docker");
     }
+}
+
+/// Python packages that identify a framework: (package, id, name).
+const PYTHON_FRAMEWORKS: &[(&str, &str, &str)] = &[
+    ("django", "django", "Django"),
+    ("flask", "flask", "Flask"),
+    ("fastapi", "fastapi", "FastAPI"),
+    ("celery", "celery", "Celery"),
+];
+
+/// Django (a `manage.py` plus the `django` requirement), Flask, FastAPI and Celery from
+/// `requirements*.txt`, `pyproject.toml` and `Pipfile`; versions from `uv.lock` /
+/// `poetry.lock`, else from the constraint.
+fn scan_python_frameworks(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let mut texts: Vec<(bool, String)> = Vec::new();
+    for f in files {
+        let requirements =
+            f.starts_with("requirements") && (f.ends_with(".txt") || f.ends_with(".in"));
+        if requirements || f == "pyproject.toml" || f == "Pipfile" {
+            if let Ok(t) = fs::read_to_string(dir.join(f)) {
+                texts.push((requirements, t));
+            }
+        }
+    }
+    if let Ok(entries) = fs::read_dir(dir.join("requirements")) {
+        for e in entries.flatten() {
+            if e.file_name().to_string_lossy().ends_with(".txt") {
+                if let Ok(t) = fs::read_to_string(e.path()) {
+                    texts.push((true, t));
+                }
+            }
+        }
+    }
+    if texts.is_empty() {
+        return;
+    }
+    let locks: Vec<String> = ["uv.lock", "poetry.lock"]
+        .iter()
+        .filter_map(|l| fs::read_to_string(dir.join(l)).ok())
+        .collect();
+    for (package, id, name) in PYTHON_FRAMEWORKS {
+        let Some(constraint) = texts
+            .iter()
+            .find_map(|(req, t)| python_requirement(t, package, *req))
+        else {
+            continue;
+        };
+        if *id == "django" && !files.iter().any(|f| f == "manage.py") {
+            continue;
+        }
+        let version = locks
+            .iter()
+            .find_map(|l| locked_python_version(l, package))
+            .or_else(|| version_from_constraint(&constraint));
+        c.framework(id, name, "python", version, rel);
+    }
+}
+
+/// The constraint of `package` (`>=5.1`, `""` without one) in a requirements file
+/// (`req`) or a pyproject.toml / Pipfile, compared case-insensitively.
+fn python_requirement(text: &str, package: &str, req: bool) -> Option<String> {
+    let is_name_char = |ch: char| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.';
+    // What follows the name in a requirement: `[extras]`, then the version constraint.
+    let constraint = |spec: &str| -> Option<String> {
+        let lower = spec.trim().to_ascii_lowercase();
+        let rest = lower.strip_prefix(package)?;
+        if rest.starts_with(is_name_char) {
+            return None;
+        }
+        let rest = match rest.trim_start().strip_prefix('[') {
+            Some(r) => r.split_once(']').map(|x| x.1).unwrap_or(""),
+            None => rest,
+        };
+        Some(rest.split(';').next().unwrap_or("").trim().to_string())
+    };
+    for line in text.lines() {
+        let line = line.split('#').next().unwrap_or("").trim();
+        if req {
+            if let Some(c) = constraint(line) {
+                return Some(c);
+            }
+            continue;
+        }
+        // `"django>=5"` in a list, or a `django = "^5.0"` table key (Poetry, Pipfile).
+        for quoted in line.split(['"', '\'']).skip(1).step_by(2) {
+            if let Some(c) = constraint(quoted) {
+                return Some(c);
+            }
+        }
+        if let Some((key, value)) = line.split_once('=') {
+            if key.trim().eq_ignore_ascii_case(package) {
+                return Some(value.trim().trim_matches(['"', '\'']).to_string());
+            }
+        }
+    }
+    None
+}
+
+/// `name = "<package>"` followed by `version = "x"` in uv.lock / poetry.lock.
+fn locked_python_version(lock: &str, package: &str) -> Option<String> {
+    let mut lines = lock.lines();
+    while let Some(l) = lines.next() {
+        let l = l.trim();
+        if l.eq_ignore_ascii_case(&format!("name = \"{package}\"")) {
+            let next = lines.next()?.trim();
+            return next
+                .strip_prefix("version = \"")
+                .and_then(|v| v.strip_suffix('"'))
+                .map(str::to_string);
+        }
+    }
+    None
 }
 
 /// Maven (`pom.xml`, `mvnw`) and Gradle (`build.gradle(.kts)`, `settings.gradle(.kts)`,
@@ -1209,6 +1325,49 @@ mod tests {
         assert!(detect(dir.path())
             .tools
             .contains(&"go-workspace".to_string()));
+    }
+
+    #[test]
+    fn python_web_frameworks() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "requirements.txt",
+            "Django>=5.1,<6\ncelery[redis]==5.4.0\ndjango-extensions\n",
+        );
+        write(dir.path(), "manage.py", "");
+        let info = detect(dir.path());
+        assert_eq!(ids(&info), vec!["django", "celery"]);
+        assert_eq!(
+            info.framework("django").unwrap().version.as_deref(),
+            Some("5.1")
+        );
+        assert_eq!(
+            info.framework("celery").unwrap().version.as_deref(),
+            Some("5.4.0")
+        );
+        assert_eq!(info.primary.unwrap().id, "django");
+        // Django needs manage.py; FastAPI from pyproject.toml with the version from uv.lock.
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "pyproject.toml",
+            "[project]\ndependencies = [\n  \"fastapi>=0.115\",\n  \"django-ninja\",\n]\n",
+        );
+        write(
+            dir.path(),
+            "uv.lock",
+            "[[package]]\nname = \"fastapi\"\nversion = \"0.115.0\"\n",
+        );
+        let info = detect(dir.path());
+        assert_eq!(ids(&info), vec!["fastapi"]);
+        assert_eq!(
+            info.framework("fastapi").unwrap().version.as_deref(),
+            Some("0.115.0")
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Pipfile", "[packages]\nflask = \"*\"\n");
+        assert_eq!(ids(&detect(dir.path())), vec!["flask"]);
     }
 
     #[test]

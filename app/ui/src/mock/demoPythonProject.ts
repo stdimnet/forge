@@ -2,27 +2,35 @@
  * A small FastAPI service for browser mode, opened with `?project=python` (the default demo
  * is the Laravel shop in demoProject.ts). Its interpreter is a uv environment in `.venv`
  * with the packages below; pythonMock.ts answers the `python_*` commands, running the Rust
- * inspections through WebAssembly.
+ * inspections through WebAssembly. `?project=django` opens the Django bookshop of
+ * demoDjangoProject.ts instead, with the same Python mocks.
  */
 import type { ProjectInfo } from "@/ipc/project";
 import type { InstalledPackage } from "@/ipc/python";
+import { djangoDemoFiles, djangoDemoInfo, djangoDemoInstalled, djangoDemoName } from "./demoDjangoProject";
 
-export const pythonDemoName = "shop-api";
+const demoParam = (): string | null => (typeof location !== "undefined" ? new URLSearchParams(location.search).get("project") : null);
 
-/** True when the page asks for the Python demo project. */
-export const isPythonDemo = (): boolean =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).get("project") === "python";
+/** True when the page asks for the Django demo project (a Python demo too). */
+export const isDjangoDemo = (): boolean => demoParam() === "django";
 
-export const pythonDemoInfo: ProjectInfo = {
+/** True when the page asks for a Python demo project (the FastAPI service or the Django bookshop). */
+export const isPythonDemo = (): boolean => demoParam() === "python" || isDjangoDemo();
+
+export const pythonDemoName = isDjangoDemo() ? djangoDemoName : "shop-api";
+
+const fastapiDemoInfo: ProjectInfo = {
   languages: ["python"],
-  frameworks: [],
+  frameworks: [{ id: "fastapi", name: "FastAPI", version: "0.115.0", language: "python" }],
   packs: ["pyforge"],
   tools: ["git", "uv", "docker"],
-  primary: { id: "python", name: "Python", language: "python" },
+  primary: { id: "fastapi", name: "FastAPI", version: "0.115.0", language: "python" },
 };
 
+export const pythonDemoInfo: ProjectInfo = isDjangoDemo() ? djangoDemoInfo : fastapiDemoInfo;
+
 /** The project's `.venv` (uv) and its packages. */
-export const pythonDemoInstalled: InstalledPackage[] = [
+const fastapiDemoInstalled: InstalledPackage[] = [
   { name: "annotated-types", version: "0.7.0", modules: ["annotated_types"] },
   { name: "anyio", version: "4.6.0", modules: ["anyio"] },
   { name: "certifi", version: "2024.8.30", modules: ["certifi"] },
@@ -48,6 +56,8 @@ export const pythonDemoInstalled: InstalledPackage[] = [
   { name: "uvicorn", version: "0.30.6", modules: ["uvicorn"] },
 ];
 
+export const pythonDemoInstalled: InstalledPackage[] = isDjangoDemo() ? djangoDemoInstalled : fastapiDemoInstalled;
+
 /** PyPI as the browser demo knows it: name, latest version, summary, licence. */
 export const pythonDemoPypi: { name: string; version: string; summary: string; license: string; requiresPython: string; homePage: string }[] = [
   { name: "fastapi", version: "0.115.4", summary: "FastAPI framework, high performance, easy to learn, fast to code, ready for production", license: "MIT", requiresPython: ">=3.8", homePage: "https://github.com/fastapi/fastapi" },
@@ -71,7 +81,7 @@ export const pythonDemoPypi: { name: string; version: string; summary: string; l
   { name: "idna", version: "3.10", summary: "Internationalized Domain Names in Applications (IDNA)", license: "BSD-3-Clause", requiresPython: ">=3.6", homePage: "https://github.com/kjd/idna" },
 ];
 
-export const pythonDemoFiles: Record<string, string> = {
+const fastapiDemoFiles: Record<string, string> = {
   "pyproject.toml": `[project]
 name = "shop-api"
 version = "0.4.0"
@@ -151,6 +161,7 @@ from sqlalchemy.orm import Session
 
 from shop_api.db import engine, get_session
 from shop_api.models import Base, Order, OrderIn
+from shop_api.routers import customers
 from shop_api.settings import settings
 
 console = Console()
@@ -164,6 +175,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="shop-api", lifespan=lifespan)
+app.include_router(customers.router, prefix="/api/v1")
 
 
 @app.get("/health")
@@ -196,6 +208,34 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("shop_api.main:app", host=settings.host, port=settings.port, reload=True)
+`,
+  "src/shop_api/routers/__init__.py": "",
+  "src/shop_api/routers/customers.py": `"""Customers and their order history."""
+from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from shop_api.db import get_session
+from shop_api.models import Order
+
+router = APIRouter(prefix="/customers", tags=["customers"])
+
+
+@router.get("/{customer}/orders")
+def customer_orders(customer: str, session: Session = Depends(get_session)) -> list[Order]:
+    return list(session.scalars(select(Order).where(Order.customer == customer)))
+
+
+@router.delete("/{customer}", status_code=204)
+def forget_customer(customer: str, session: Session = Depends(get_session)) -> None:
+    if not session.scalars(select(Order).where(Order.customer == customer)).first():
+        raise HTTPException(status_code=404, detail="Unknown customer")
+
+
+@router.websocket("/{customer}/live")
+async def live_orders(websocket: WebSocket, customer: str) -> None:
+    await websocket.accept()
+    await websocket.send_json({"customer": customer, "orders": []})
 `,
   "src/shop_api/models.py": `"""Database models and the request schemas."""
 from decimal import Decimal
@@ -413,3 +453,5 @@ if __name__ == "__main__":
       - "8000:8000"
 `,
 };
+
+export const pythonDemoFiles: Record<string, string> = isDjangoDemo() ? djangoDemoFiles : fastapiDemoFiles;

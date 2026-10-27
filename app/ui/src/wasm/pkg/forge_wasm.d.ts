@@ -1146,6 +1146,36 @@ export function python_testing_detect(request_json: string): string;
 export function python_tox_environments(request_json: string): string;
 
 /**
+ * `{ files, options, path, content, offset }` -> `Completions | null`.
+ */
+export function python_web_complete(request_json: string): string;
+
+/**
+ * `{ files, options, path, content, offset }` -> `Location[]`.
+ */
+export function python_web_goto(request_json: string): string;
+
+/**
+ * `{ files, options }` -> Django's commands plus the project's `management/commands`.
+ */
+export function python_web_manage_commands(request_json: string): string;
+
+/**
+ * `{ files, options, path, content }` -> `FileMarks`.
+ */
+export function python_web_marks(request_json: string): string;
+
+/**
+ * `{ files, options }` -> `WebProject`.
+ */
+export function python_web_project(request_json: string): string;
+
+/**
+ * `{ files, options, configuration }` -> `PythonRun`.
+ */
+export function python_web_run_info(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -1921,6 +1951,12 @@ export interface InitOutput {
     readonly python_test_discover: (a: number, b: number, c: number) => void;
     readonly python_testing_detect: (a: number, b: number, c: number) => void;
     readonly python_tox_environments: (a: number, b: number, c: number) => void;
+    readonly python_web_complete: (a: number, b: number, c: number) => void;
+    readonly python_web_goto: (a: number, b: number, c: number) => void;
+    readonly python_web_manage_commands: (a: number, b: number, c: number) => void;
+    readonly python_web_marks: (a: number, b: number, c: number) => void;
+    readonly python_web_project: (a: number, b: number, c: number) => void;
+    readonly python_web_run_info: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

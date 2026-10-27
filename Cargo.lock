@@ -1896,6 +1896,7 @@ dependencies = [
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
  "phpforge-test-frameworks",
+ "pyforge-frameworks",
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
@@ -2707,6 +2708,7 @@ dependencies = [
  "phpforge-fw-wordpress",
  "phpforge-interpreters",
  "phpforge-test-frameworks",
+ "pyforge-frameworks",
  "pyforge-interpreters",
  "pyforge-lang-python",
  "pyforge-packages",
@@ -5580,6 +5582,18 @@ dependencies = [
  "bitflags 2.13.2",
  "memchr",
  "unicase",
+]
+
+[[package]]
+name = "pyforge-frameworks"
+version = "0.1.0"
+dependencies = [
+ "forge-runtools",
+ "pyforge-lang-python",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
 ]
 
 [[package]]

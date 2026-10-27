@@ -8005,6 +8005,350 @@
     }
   },
   {
+    "id": "forge.python-web",
+    "name": "Python Web Frameworks",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "The Endpoints tool window (Django URL patterns, Flask routes, FastAPI path operations with Open in HTTP Client), template navigation and completion (render, render_template, {% extends %}, {% include %}, {% url %}) and the unresolved template inspection.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-env"
+    ],
+    "required": false,
+    "projectTypes": [
+      "django",
+      "flask",
+      "fastapi"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "ActivateEndpointsToolWindow",
+          "title": "Endpoints",
+          "category": "View"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "endpoints",
+          "title": "Endpoints",
+          "anchor": "bottom",
+          "icon": "route",
+          "order": 48
+        }
+      ],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.django",
+    "name": "Django",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "Django: settings detection, Tools | Run manage.py Task… with command completion, the Django Server and Django tests run configurations, the Django Structure tool window (apps, models and fields, URL patterns), Django templates with navigation and {% url %} completion.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-web"
+    ],
+    "required": false,
+    "projectTypes": [
+      "django"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "django",
+          "name": "Django Template",
+          "extensions": [
+            "djhtml"
+          ],
+          "fileNames": [
+            "templates/*.html",
+            "templates/*.htm",
+            "templates/*.txt"
+          ],
+          "template": true
+        }
+      ],
+      "commands": [
+        {
+          "id": "Django.RunManageTask",
+          "title": "Run manage.py Task…",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "djangoStructure",
+          "title": "Django Structure",
+          "anchor": "left",
+          "icon": "boxes",
+          "order": 40
+        }
+      ],
+      "settings": [
+        {
+          "key": "django.settingsModule",
+          "title": "Settings module",
+          "description": "DJANGO_SETTINGS_MODULE, for example mysite.settings. Empty: read from manage.py.",
+          "type": "string",
+          "default": "",
+          "group": "lang.django",
+          "section": "Project",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "django.manageScript",
+          "title": "Manage script",
+          "description": "The project's manage.py, relative to the project. Empty: the manage.py found in the project.",
+          "type": "path",
+          "default": "",
+          "group": "lang.django",
+          "section": "Project",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "django.manageCommandsFromProject",
+          "title": "Read manage.py commands from the project",
+          "description": "Run manage.py help --commands (trusted projects only) so the project's and third-party commands are completed; otherwise Django's built-in commands and the project's management/commands are offered.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.django",
+          "section": "manage.py",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "django.testRunner",
+          "title": "Test runner of new Django tests configurations",
+          "type": "enum",
+          "options": [
+            {
+              "value": "django",
+              "label": "Django test runner (manage.py test)"
+            },
+            {
+              "value": "pytest",
+              "label": "pytest (pytest-django)"
+            }
+          ],
+          "default": "django",
+          "group": "lang.django",
+          "section": "Tests",
+          "project": true,
+          "order": 20
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "django-server",
+          "name": "Django Server",
+          "description": "Run manage.py runserver on a host and port; debug with debugpy.",
+          "icon": "server",
+          "debuggable": false
+        },
+        {
+          "id": "django-tests",
+          "name": "Django tests",
+          "description": "Run manage.py test (Django's test runner) or pytest with pytest-django in the test runner.",
+          "icon": "test-tube-diagonal",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.flask",
+    "name": "Flask",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "Flask: routes of apps and blueprints in the Endpoints tool window, Jinja2 templates with render_template / url_for navigation, and the Flask Server run configuration (flask run with FLASK_APP, debug with debugpy).",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-web"
+    ],
+    "required": false,
+    "projectTypes": [
+      "flask"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [
+        {
+          "id": "jinja",
+          "name": "Jinja2",
+          "extensions": [
+            "j2",
+            "jinja",
+            "jinja2",
+            "njk",
+            "nunjucks"
+          ],
+          "fileNames": [
+            "templates/*.html",
+            "templates/*.htm"
+          ],
+          "template": true
+        }
+      ],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "flask.app",
+          "title": "Application (FLASK_APP)",
+          "description": "For example app or blog:create_app(). Empty: the module that creates Flask(...).",
+          "type": "string",
+          "default": "",
+          "group": "lang.flask",
+          "project": true,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "flask-server",
+          "name": "Flask Server",
+          "description": "Run flask run with FLASK_APP on a host and port; debug with debugpy.",
+          "icon": "flask-round",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.fastapi",
+    "name": "FastAPI",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "FastAPI: path operations of apps and APIRouters (with include_router prefixes) in the Endpoints tool window, the FastAPI run configuration (uvicorn with reload, debug with debugpy) and a link to the interactive /docs.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-web"
+    ],
+    "required": false,
+    "projectTypes": [
+      "fastapi"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "fastapi.app",
+          "title": "Application",
+          "description": "module:attribute that uvicorn serves, for example shop_api.main:app. Empty: the module that creates FastAPI(...).",
+          "type": "string",
+          "default": "",
+          "group": "lang.fastapi",
+          "project": true,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "fastapi",
+          "name": "FastAPI",
+          "description": "Run the application with uvicorn (--reload) on a host and port; debug with debugpy.",
+          "icon": "zap",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.celery",
+    "name": "Celery",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "Celery: the project's tasks (@shared_task, @app.task) with gutter icons and the Celery worker and Celery beat run configurations.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python-env"
+    ],
+    "required": false,
+    "projectTypes": [
+      "celery"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "celery.app",
+          "title": "Application (-A)",
+          "description": "The Celery application, for example proj. Empty: the module that creates Celery(...).",
+          "type": "string",
+          "default": "",
+          "group": "lang.celery",
+          "project": true,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "celery-worker",
+          "name": "Celery worker",
+          "description": "Run celery -A <app> worker; debug with debugpy.",
+          "icon": "cog",
+          "debuggable": false
+        },
+        {
+          "id": "celery-beat",
+          "name": "Celery beat",
+          "description": "Run the celery -A <app> beat scheduler.",
+          "icon": "alarm-clock",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.go",
     "name": "Go",
     "version": "0.1.0",
