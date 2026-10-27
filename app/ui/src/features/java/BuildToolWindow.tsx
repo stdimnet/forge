@@ -80,6 +80,37 @@ function declaredNodes(prefix: string, p: ProjectModel): TreeNode[] {
   }));
 }
 
+/** The Source Sets node of a project (Groovy, Kotlin and Scala folders next to Java's). */
+function sourceSetsNode(prefix: string, p: ProjectModel): TreeNode[] {
+  const sets = p.sourceSets ?? [];
+  if (!sets.length) return [];
+  const icon = (kind: string) => (kind === "resources" ? FolderCog : Folder);
+  return [
+    {
+      id: `${prefix}/sets`,
+      label: "Source Sets",
+      icon: Folder,
+      iconClass: "java-build-icon",
+      data: { "source-sets": p.path || p.name },
+      children: sets.map((set) => ({
+        id: `${prefix}/sets/${set.name}`,
+        label: set.name,
+        icon: Folder,
+        iconClass: set.name.toLowerCase().includes("test") ? "java-ok" : "java-build-icon",
+        data: { "source-set": set.name },
+        children: set.dirs.map((d) => ({
+          id: `${prefix}/sets/${set.name}/${d.path}`,
+          label: d.path,
+          secondary: d.kind === "other" ? undefined : d.kind,
+          icon: icon(d.kind),
+          iconClass: d.kind === "resources" ? "muted" : "java-build-icon",
+          data: { "source-dir": d.path },
+        })),
+      })),
+    },
+  ];
+}
+
 const ago = (secs?: number) => {
   if (!secs) return "";
   const d = Math.max(0, Math.round(Date.now() / 1000 - secs));
@@ -189,7 +220,7 @@ function gradleProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[])
     icon: Boxes,
     iconClass: "java-build-icon",
     data: { "build-project": p.path },
-    children: [tasks, deps, ...children],
+    children: [tasks, deps, ...sourceSetsNode(id, p), ...children],
   };
 }
 
@@ -344,7 +375,7 @@ function mavenProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[]):
     icon: Package,
     iconClass: "java-build-icon",
     data: { "build-project": p.dir || "root" },
-    children: [lifecycle, plugins, deps, ...children],
+    children: [lifecycle, plugins, deps, ...sourceSetsNode(id, p), ...children],
   };
 }
 

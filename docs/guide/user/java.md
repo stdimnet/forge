@@ -123,6 +123,10 @@ The **Gradle** tool window (right stripe) shows the root project and its subproj
   `1.0 → 1.2` where conflict resolution picked another version, `(*)` for dependencies listed
   above, unresolved ones in red. Before the first sync the tool window lists the dependencies
   the build file declares.
+- **Source Sets**: `main`, `test` and other source sets with their `java`, `groovy`, `kotlin`,
+  `scala` and `resources` folders (the applied plugins' conventions before a sync, Gradle's
+  `sourceSets` after it; see [Groovy and Scala](groovy-scala.md#groovy-source-sets)). The Maven
+  tool window shows the conventional folders too (GMavenPlus adds `groovy`).
 - **Run Configurations**: the project's Gradle configurations.
 
 The toolbar: **Reload All Gradle Projects**, **Execute Gradle Task…** (a command line with
@@ -131,7 +135,7 @@ All**, **Toggle Offline Mode** (`--offline` for syncs and runs), **Show Dependen
 **Gradle Settings**.
 
 A sync runs Gradle with a small init script (`forge-model.gradle`, written to the user cache
-directory) whose `forgeModel` task writes the projects, tasks and dependency trees as JSON
+directory) whose `forgeModel` task writes the projects, tasks, source sets and dependency trees as JSON
 (`--no-configuration-cache`). The result is cached in `<cache>/forge/javaforge/sync`, never in
 the project, so the tool window shows it again after a restart.
 

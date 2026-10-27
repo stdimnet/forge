@@ -63,7 +63,9 @@ blocked even if a plugin or the UI tries to start them:
 | Docker Compose up and Dockerfile ▶ in the gutter, Compose **Up** in Services | refused |
 | PHP interpreters: version and `phpinfo()` of an interpreter inside the project or a Docker Compose service | refused |
 | Language servers installed in the project (`node_modules/.bin`, `vendor/bin`, …) | not started |
-| ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin and C# language servers | not started (they load the project's config files or build scripts) |
+| ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin, Scala (Metals) and C# language servers | not started (they load the project's config files or build scripts) |
+| Gradle / Maven sync, Reload sbt Project | refused (the build definition is project code) |
+| Groovy scripts, sbt tasks, Android App runs (build, `adb install`, launch) | not started (they are run configurations) |
 | Actions on Save: ESLint, Prettier, PHP CS Fixer, Laravel Pint | not run |
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
