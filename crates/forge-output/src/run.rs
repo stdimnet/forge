@@ -43,6 +43,8 @@ pub enum TestReport {
     JestJson,
     /// tox's output on stdout: every environment is a test (`tox -e py312,lint`).
     Tox,
+    /// Minitest's verbose progress on stdout (`ruby -Itest test/x_test.rb -v`).
+    MinitestText,
 }
 
 impl TestReport {
