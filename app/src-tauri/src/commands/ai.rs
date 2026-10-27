@@ -15,8 +15,8 @@ use tauri::{AppHandle, Emitter, State};
 
 /// Managed state: the provider service plus cancellation tokens of running streams.
 pub struct AiState {
-    service: AiService,
-    streams: Arc<Mutex<HashMap<String, CancellationToken>>>,
+    pub(crate) service: AiService,
+    pub(crate) streams: Arc<Mutex<HashMap<String, CancellationToken>>>,
 }
 
 impl AiState {
@@ -82,7 +82,7 @@ pub struct StreamEvent {
     pub error: Option<String>,
 }
 
-fn stream_event_name(stream_id: &str) -> String {
+pub(crate) fn stream_event_name(stream_id: &str) -> String {
     format!("ai://stream/{stream_id}")
 }
 
@@ -113,23 +113,39 @@ pub async fn ai_stream(
         }
     };
     let (provider, feature, mut req) = request.into_parts();
+    let started = state.service.resolve(provider.as_deref(), req.model.as_deref(), feature);
+    let p = match started {
+        Ok((p, model)) => {
+            req.model = model;
+            p
+        }
+        Err(e) => {
+            emit(StreamEvent {
+                error: Some(e.to_string()),
+                ..Default::default()
+            });
+            return Err(e.into());
+        }
+    };
+    start_stream(p, req, stream_id, emit, &state).await
+}
+
+/// Stream `req` from `p`, emitting deltas with `emit` until it ends or `ai_cancel` stops it.
+/// Setup errors are reported both as the error and as a final `{ error }` event.
+pub(crate) async fn start_stream(
+    p: Box<dyn forge_ai::Provider>,
+    req: CompletionRequest,
+    stream_id: String,
+    emit: impl Fn(StreamEvent) + Send + 'static,
+    state: &AiState,
+) -> Result<()> {
     let token = CancellationToken::new();
     state
         .streams
         .lock()
         .expect("streams lock")
         .insert(stream_id.clone(), token.clone());
-
-    let started = async {
-        let (p, model) =
-            state
-                .service
-                .resolve(provider.as_deref(), req.model.as_deref(), feature)?;
-        req.model = model;
-        p.stream(req).await
-    }
-    .await;
-    let stream = match started {
+    let stream = match p.stream(req).await {
         Ok(s) => cancellable(s, token),
         Err(e) => {
             state
@@ -154,14 +170,7 @@ pub async fn ai_stream(
                     delta: Some(text),
                     ..Default::default()
                 }),
-                Ok(Delta::Finish { .. }) => {
-                    emit(StreamEvent {
-                        done: Some(true),
-                        ..Default::default()
-                    });
-                    break;
-                }
-                Err(forge_ai::AiError::Cancelled) => {
+                Ok(Delta::Finish { .. }) | Err(forge_ai::AiError::Cancelled) => {
                     emit(StreamEvent {
                         done: Some(true),
                         ..Default::default()
