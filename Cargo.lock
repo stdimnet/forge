@@ -2698,6 +2698,7 @@ dependencies = [
  "goforge-lang-go",
  "goforge-pprof",
  "javaforge-build",
+ "javaforge-fw-spring",
  "javaforge-lang-java",
  "kotlinforge-lang-kotlin",
  "luaforge-lang-lua",
