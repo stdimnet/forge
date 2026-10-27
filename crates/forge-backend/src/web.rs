@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use forge_core::{ForgeError, Result};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use webforge_lang_web::{npm, FrameworkIndex, Sources};
+use webforge_lang_web::{import_paths, npm, FrameworkIndex, Sources};
 
 use crate::protocol::{decode_value, encode_value};
 use crate::Backend;
@@ -50,6 +50,22 @@ pub enum WebCall {
         path: String,
         content: String,
     },
+    /// Go to Declaration on an import specifier (aliases of `tsconfig`, Vite and Webpack)
+    /// -> `Option<webforge_lang_web::Location>`
+    ImportGoto {
+        path: String,
+        content: String,
+        offset: usize,
+    },
+    /// Completion of an import specifier ->
+    /// `Option<webforge_lang_web::import_paths::ImportCompletion>`
+    ImportComplete {
+        path: String,
+        content: String,
+        offset: usize,
+    },
+    /// The Vite / Webpack aliases of the project -> `Vec<webforge_lang_web::aliases::Alias>`
+    Aliases,
 }
 
 /// Send `call` to the backend and decode the reply.
@@ -135,6 +151,23 @@ impl LocalWeb {
                     i.gutter(&path, &content)
                 })?)
             }
+            WebCall::ImportGoto {
+                path,
+                content,
+                offset,
+            } => {
+                let sources = self.sources(false)?;
+                encode_value(&import_paths::goto(&sources, &path, &content, offset))
+            }
+            WebCall::ImportComplete {
+                path,
+                content,
+                offset,
+            } => {
+                let sources = self.sources(false)?;
+                encode_value(&import_paths::complete(&sources, &path, &content, offset))
+            }
+            WebCall::Aliases => encode_value(&self.sources(false)?.bundler_aliases().to_vec()),
         }
     }
 }
