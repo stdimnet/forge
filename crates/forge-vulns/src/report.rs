@@ -107,6 +107,44 @@ pub fn from_output(target: Target, stdout: &str, stderr: &str, checked_at: u64) 
     }
 }
 
+/// Installed versions from the lock file for tools that do not report them (composer
+/// audit, npm 7+): `composer.lock` and `package-lock.json` / `npm-shrinkwrap.json`.
+pub fn fill_installed(result: &mut TargetResult, lock_text: Option<&str>) {
+    let (Some(lock), Some(text)) = (result.target.lockfile.as_deref(), lock_text) else {
+        return;
+    };
+    let name = lock.rsplit('/').next().unwrap_or(lock);
+    let versions: std::collections::HashMap<String, String> = match name {
+        "composer.lock" => phpforge_composer::lock::installed(Some(text), None)
+            .into_iter()
+            .map(|p| (p.name.to_ascii_lowercase(), p.version))
+            .collect(),
+        "package-lock.json" | "npm-shrinkwrap.json" => {
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(text) else {
+                return;
+            };
+            v.get("packages")
+                .and_then(serde_json::Value::as_object)
+                .into_iter()
+                .flatten()
+                .filter_map(|(path, p)| {
+                    // Top-level installs only: `node_modules/<name>`.
+                    let name = path.strip_prefix("node_modules/")?;
+                    (!name.contains("/node_modules/")).then_some(())?;
+                    let version = p.get("version")?.as_str()?;
+                    Some((name.to_string(), version.to_string()))
+                })
+                .collect()
+        }
+        _ => return,
+    };
+    for v in &mut result.findings.vulnerabilities {
+        if v.installed.is_none() {
+            v.installed = versions.get(&v.ecosystem.key(&v.package)).cloned();
+        }
+    }
+}
+
 /// A cached result (`<cache dir>/forge/vulnerabilities/<project>/<tool>.json`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -174,6 +212,20 @@ mod tests {
         let json = serde_json::to_value(&r).unwrap();
         assert_eq!(json["tool"], "npm");
         assert_eq!(json["vulnerabilities"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn fills_installed_versions_from_lock_files() {
+        let mut t = target(Tool::Npm);
+        t.lockfile = Some("package-lock.json".into());
+        let stdout = r#"{"auditReportVersion": 2, "vulnerabilities": {"lodash": {"name": "lodash", "isDirect": true, "via": [{"name": "lodash", "title": "x", "url": "https://github.com/advisories/GHSA-1", "severity": "high", "range": "<4.17.21"}]}}}"#;
+        let mut r = from_output(t, stdout, "", 1);
+        let lock = r#"{"packages": {"": {}, "node_modules/lodash": {"version": "4.17.20"}, "node_modules/a/node_modules/lodash": {"version": "1.0.0"}}}"#;
+        fill_installed(&mut r, Some(lock));
+        assert_eq!(
+            r.findings.vulnerabilities[0].installed.as_deref(),
+            Some("4.17.20")
+        );
     }
 
     #[test]

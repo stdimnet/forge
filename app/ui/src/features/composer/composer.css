@@ -222,14 +222,12 @@
   flex: 1;
   overflow: auto;
 }
-.composer-table,
-.composer-audit-table {
+.composer-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-small);
 }
-.composer-table th,
-.composer-audit-table th {
+.composer-table th {
   position: sticky;
   top: 0;
   text-align: left;
@@ -239,8 +237,7 @@
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
 }
-.composer-table td,
-.composer-audit-table td {
+.composer-table td {
   padding: 4px 10px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -269,53 +266,6 @@
   align-self: center;
   color: var(--fg-muted);
   font-size: var(--fs-small);
-}
-
-/* ---------- Vulnerable Dependencies (Problems tool window) ---------- */
-.composer-audit {
-  display: flex;
-  flex-direction: column;
-}
-.composer-audit-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  color: var(--fg-muted);
-  font-size: var(--fs-small);
-}
-.composer-audit-row {
-  cursor: pointer;
-}
-.composer-audit-row:hover td {
-  background: var(--bg-hover);
-}
-.composer-audit-package {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--fg-strong);
-}
-.composer-audit-icon {
-  color: var(--danger);
-  flex-shrink: 0;
-}
-.composer-audit-title {
-  white-space: normal;
-  width: 100%;
-}
-.composer-severity {
-  text-transform: capitalize;
-}
-.composer-severity.sev-critical,
-.composer-severity.sev-high {
-  color: var(--danger);
-}
-.composer-severity.sev-medium {
-  color: var(--warning);
-}
-.composer-severity.sev-low {
-  color: var(--info);
 }
 
 /* ---------- Settings | PHP | Composer ---------- */

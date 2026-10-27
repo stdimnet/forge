@@ -45,8 +45,8 @@ pub fn vulnerabilities_detect(request_json: &str) -> String {
     }))
 }
 
-/// `{ target, stdout, stderr?, checkedAt }` → `TargetResult` (what the desktop app makes of a
-/// tool run).
+/// `{ target, stdout, stderr?, lock?, checkedAt }` → `TargetResult` (what the desktop app
+/// makes of a tool run; `lock` is the lock file's text for the installed versions).
 #[wasm_bindgen]
 pub fn vulnerabilities_result(request_json: &str) -> String {
     #[derive(Deserialize)]
@@ -57,10 +57,14 @@ pub fn vulnerabilities_result(request_json: &str) -> String {
         #[serde(default)]
         stderr: String,
         #[serde(default)]
+        lock: Option<String>,
+        #[serde(default)]
         checked_at: u64,
     }
     answer(parse::<Req>(request_json).map(|r| -> TargetResult {
-        report::from_output(r.target, &r.stdout, &r.stderr, r.checked_at)
+        let mut out = report::from_output(r.target, &r.stdout, &r.stderr, r.checked_at);
+        report::fill_installed(&mut out, r.lock.as_deref());
+        out
     }))
 }
 

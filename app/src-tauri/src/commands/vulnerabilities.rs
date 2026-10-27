@@ -152,6 +152,11 @@ fn audit_command(
     Ok(Some(cmd))
 }
 
+/// Tools whose report lacks installed versions, which the lock file has.
+fn target_is_lockable(target: &Target) -> bool {
+    matches!(target.tool, Tool::Composer | Tool::Npm)
+}
+
 /// Check one target: the cache while it is fresh, else the tool.
 fn check_target(
     state: &AppState,
@@ -203,7 +208,12 @@ fn check_target(
             },
         }
     };
+    let mut result = result;
     if result.status == report::Status::Ok {
+        if target_is_lockable(&result.target) {
+            let lock = result.target.lockfile.as_deref().and_then(read);
+            report::fill_installed(&mut result, lock.as_deref());
+        }
         write_cache(
             cache,
             &result.target,
