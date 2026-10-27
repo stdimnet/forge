@@ -188,6 +188,9 @@ impl ParsedLine {
 /// text. Lines come without their line break.
 pub trait LineParser: Send + std::fmt::Debug {
     fn line(&mut self, line: &str) -> ParsedLine;
+    /// A line on stderr. It stays console text; formats whose tool reports context there
+    /// (cargo's `Running unittests src/lib.rs (…)` before libtest output) remember it.
+    fn stderr(&mut self, _line: &str) {}
     /// The process ended: events still held back (a TAP failure waiting for diagnostics).
     fn finish(&mut self) -> Vec<TestEvent> {
         Vec::new()

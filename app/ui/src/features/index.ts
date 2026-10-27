@@ -57,6 +57,7 @@ import "./lua";
 import "./python";
 import "./pythonWeb";
 import "./go";
+import "./rust";
 import "./java";
 import "./kotlin";
 import "./services";

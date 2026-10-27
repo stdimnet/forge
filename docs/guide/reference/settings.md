@@ -724,6 +724,31 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Rust
+
+Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `rust.toolchain` | string | `""` | user, project | Toolchain | Toolchain — The toolchain of the project's cargo, rustc, rustfmt and Clippy commands (cargo +<toolchain>). Empty: rustup's choice, which follows rust-toolchain.toml. |
+| `rust.environment` | list | `[]` | user, project | Cargo | Environment — Variables for cargo commands of the project, one KEY=VALUE per entry (RUSTFLAGS, CARGO_TARGET_DIR, RUST_LOG). |
+| `rust.cargo.features` | list | `[]` | user, project | Cargo | Features — Cargo features every build, run, test and rust-analyzer use; the Cargo tool window's checkboxes edit them. |
+| `rust.cargo.allFeatures` | bool | `false` | user, project | Cargo | Use all features |
+| `rust.cargo.noDefaultFeatures` | bool | `false` | user, project | Cargo | Do not use the default features |
+| `rust.test.runner` | enum: `cargo`, `nextest` | `cargo` | user, project | Tests | Test runner — cargo-nextest runs tests in parallel processes; doctests and benchmarks always run with cargo test. |
+| `rust.test.format` | enum: `auto`, `json`, `text` | `auto` | user, project | Tests | Test results — libtest's JSON output needs a nightly toolchain (-Z unstable-options); on stable Forge reads the plain output. |
+| `rust.formatter` | enum: `rustfmt`, `lsp`, `none` | `rustfmt` | user, project | Rustfmt | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Rust files; rustfmt reads the project's rustfmt.toml. |
+| `rust.rustfmt.extraArgs` | string | `""` | user, project | Rustfmt | Additional rustfmt arguments — For example --config imports_granularity=Crate. |
+| `rust.clippy.onSave` | bool | `false` | user, project | External Linter | Run Clippy on save — Clippy's problems of the saved file's package appear in the editor and the Problems tool window, with its suggestions as quick fixes (Alt+Enter). Clippy builds the code, so it runs only in trusted projects. |
+| `rust.clippy.extraArgs` | string | `""` | user, project | External Linter | Additional Clippy arguments — Lint options after --, for example -W clippy::pedantic. |
+| `rust.analyzer.checkOnSave` | bool | `true` | user, project | rust-analyzer | Check on save — rust-analyzer runs cargo check (or Clippy) when a file is saved. |
+| `rust.analyzer.checkCommand` | enum: `clippy`, `check` | `clippy` | user, project | rust-analyzer | Check command |
+| `rust.analyzer.target` | string | `""` | user, project | rust-analyzer | Target triple — Analyze for another target, e.g. wasm32-unknown-unknown. Empty: the host. |
+| `rust.analyzer.procMacros` | bool | `true` | user, project | rust-analyzer | Expand procedural macros — Runs the project's proc macros (trusted projects only; Safe Mode does not start rust-analyzer). |
+| `rust.analyzer.buildScripts` | bool | `true` | user, project | rust-analyzer | Run build scripts — Runs build.rs for generated code and cfgs (trusted projects only). |
+| `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
+| `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
+| `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.

@@ -31,6 +31,7 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register_specs(specs);
     webforge_js_testing::register(&mut r, specs.iter().cloned());
     goforge_lang_go::provider::register(&mut r, specs.iter().cloned());
+    rustforge_lang_rust::provider::register(&mut r, specs.iter().cloned());
     // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -92,6 +93,9 @@ struct CommandRequest {
     /// The project's Go context for Go Test configurations.
     #[serde(default)]
     go_context: Option<serde_json::Value>,
+    /// The project's Cargo context for Cargo Test configurations.
+    #[serde(default)]
+    rust_context: Option<serde_json::Value>,
 }
 
 /// `{ configuration, spec, reportDir, coverageFile? }` → `TestCommand` of a manifest
@@ -109,12 +113,20 @@ pub fn testing_command(request_json: &str) -> String {
                 ctx.settings
                     .insert(goforge_lang_go::CONTEXT_KEY.into(), go.to_string());
             }
-            // Node.js test runners and Go Test wrap their spec.
+            if let Some(rust) = &r.rust_context {
+                ctx.settings
+                    .insert(rustforge_lang_rust::CONTEXT_KEY.into(), rust.to_string());
+            }
+            // Node.js test runners, Go Test and Cargo Test wrap their spec.
             let built = if let Some(js) = webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
                 js.build(&r.configuration, &ctx)
             } else if let Some(go) = goforge_lang_go::GoTestProvider::new(r.spec.clone()) {
                 use forge_testing::TestFrameworkProvider;
                 go.command(&r.configuration, &ctx)
+                    .unwrap_or_else(|| Err("no command".into()))
+            } else if let Some(rust) = rustforge_lang_rust::CargoTestProvider::new(r.spec.clone()) {
+                use forge_testing::TestFrameworkProvider;
+                rust.command(&r.configuration, &ctx)
                     .unwrap_or_else(|| Err("no command".into()))
             } else {
                 r.spec.build(&r.configuration, &ctx)

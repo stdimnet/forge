@@ -50,6 +50,7 @@ mod python;
 mod python_testing;
 mod python_web;
 mod runtools;
+mod rust;
 mod save_actions;
 mod scopes;
 mod scratches;
