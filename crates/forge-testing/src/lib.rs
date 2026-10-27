@@ -8,7 +8,8 @@
 //! - [`spec`]: frameworks declared as manifest data (`[[contributions.testFrameworks]]`):
 //!   detection, test file globs, line-pattern discovery, per-scope arguments, the result
 //!   format, location rules, rerun and coverage.
-//! - [`coverage`]: coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile), the
+//! - [`coverage`]: coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile,
+//!   Istanbul JSON; per-test data from PHPUnit's XML report), merged suites, the HTML report, the
 //!   Coverage tool window's summary and the editor's line marks.
 //!
 //! Test results themselves (the event protocol, the output parsers and the test tree) live

@@ -67,6 +67,7 @@ pub fn parse(text: &str) -> Result<CoverageReport, String> {
                     hits: count,
                     branches: None,
                     partial: ran > 0 && ran < blocks,
+                    tests: Vec::new(),
                 },
             );
         }
