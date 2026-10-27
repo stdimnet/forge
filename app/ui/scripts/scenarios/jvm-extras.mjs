@@ -85,6 +85,19 @@ export default {
     await bottomHeight(page, 330);
     await page.waitForTimeout(500);
   }),
+  "gradle-source-sets": Object.assign(
+    async (page) => {
+      await closeBalloons(page);
+      await page.waitForSelector('[data-tool-window="gradle"]', { timeout: 10000 });
+      await page.click('[data-tool-window="gradle"]');
+      await page.waitForSelector('.java-bt-row[data-source-sets]', { timeout: 15000 });
+      for (const n of ["Tasks", "Dependencies"]) await page.locator(".java-bt-row", { hasText: n }).first().locator(".java-bt-twisty").click();
+      await page.click(".java-bt-row[data-source-sets] .java-bt-twisty");
+      for (const set of ["main", "test"]) await page.click(`.java-bt-row[data-source-set="${set}"] .java-bt-twisty`);
+      await page.waitForTimeout(300);
+    },
+    { query: "?project=java" },
+  ),
   "groovy-script-run": android(async (page) => {
     await closeBalloons(page);
     await reveal(page, "scripts/release.groovy");

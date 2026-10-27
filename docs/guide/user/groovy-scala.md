@@ -34,6 +34,8 @@ project: `main` and `test` with their `java`, `groovy` (with the `groovy` plugin
 plugins; **Reload All Gradle Projects** replaces them with Gradle's own `sourceSets` (custom
 ones such as `integrationTest` included).
 
+![Source sets in the Gradle tool window](../../screenshots/gradle-source-sets.png)
+
 ### Running scripts
 
 A Groovy file with top-level statements is a script and gets a green ▶ on its first line; a

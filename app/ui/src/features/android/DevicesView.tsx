@@ -102,7 +102,7 @@ export function DevicesView() {
         </For>
       </Show>
       <div class="android-section">Virtual</div>
-      <Show when={snap()?.avds.length} fallback={<div class="muted android-empty">{snap()?.emulator ? "No virtual devices. Create one with Android Studio's Device Manager or avdmanager." : "The Android Emulator is not installed in the SDK."}</div>}>
+      <Show when={snap()?.avds.length} fallback={<div class="muted android-empty">{snap()?.emulator ? "No virtual devices. Create one with Android Studio's Device Manager or avdmanager." : snap()?.hint ? "" : "The Android Emulator is not installed in the SDK."}</div>}>
         <For each={snap()!.avds}>
           {(a) => (
             <div class="android-device-row" data-avd={a.name}>
