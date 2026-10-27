@@ -41,7 +41,7 @@ async function driver(page) {
     openRunConfigurations("All tests");
   });
   await page.waitForSelector('[data-testid="rc-coverage"]');
-  await page.click('[data-testid="rc-coverage"] button:has-text("Xdebug")');
+  await page.click('[data-testid="rc-coverage"] label.rc-radio:has-text("Xdebug") input');
   await page.click('[data-testid="rc-coverage"] label:has-text("Branch and path coverage") input');
   await page.click('[data-testid="rc-coverage"] label:has-text("Track per-test coverage") input');
   await page.locator('[data-testid="rc-coverage"]').scrollIntoViewIfNeeded();
@@ -65,7 +65,7 @@ const node = (fn) => Object.assign(fn, { query: "?project=node" });
 /** Vitest with the istanbul provider: Istanbul JSON with branches and functions. */
 async function istanbul(page) {
   await runWithCoverage(page, { name: "Vitest (istanbul)", type: "vitest", options: { scope: "all", coverageProvider: "istanbul" } });
-  await openFile(page, "src/orders/pricing.ts");
+  await openFile(page, "src/orders/vouchers.ts");
   await page.waitForSelector(".editor-slot:not(.hidden) .coverage-mark.partial");
   await dismissBalloons(page);
   await page.waitForTimeout(300);
@@ -109,7 +109,6 @@ async function htmlReport(page) {
     return testingApi.coverageExportHtml(activeSuite().id);
   });
   await page.setContent(html);
-  await page.evaluate(() => document.querySelector('a[href*="InvoiceService"]')?.scrollIntoView());
   await page.waitForTimeout(200);
 }
 

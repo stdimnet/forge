@@ -149,7 +149,7 @@ const NOT_STATEMENT = /^(import |package |use |mod |export \{|export type|export
 const FUNCTION = /^(export\s+)?(default\s+)?(async\s+)?(pub(\(crate\))?\s+)?(function\*?|func|fn|def)\s+(\(\w+ \*?\w+\)\s+)?(\w+)/;
 const BRANCH = /^(\} else )?(if|else if|elif|switch|match|while|for)\b|\?\?| \? /;
 /** Files of a project that no test of the demo reaches. */
-const UNTESTED_SOURCE = /hud|world|server|App\.tsx|main\.\w+$|vouchers|report/i;
+const UNTESTED_SOURCE = /hud|world|server|App\.tsx|main\.\w+$|report/i;
 
 interface SourceLine {
   n: number;

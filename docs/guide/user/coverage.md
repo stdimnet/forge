@@ -29,7 +29,7 @@ SSH, WSL): the report names the container's paths, Forge maps them back. In
 | Language | Configurations | How Forge measures | Report | Branches | Methods | Tests per line |
 | --- | --- | --- | --- | --- | --- | --- |
 | PHP | PHPUnit, Pest | `--coverage-clover` with Xdebug or PCOV ([driver](#php-coverage-driver)); `--path-coverage` on request | Clover XML | Clover `cond` lines (not written by PHPUnit) | yes | yes, with **Track per-test coverage** (`--coverage-xml`) |
-| PHP | Codeception | `run --coverage-xml` (Codeception's Clover); `coverage: enabled: true` in `codeception.yml` | Clover XML | — | yes | yes, with **Track per-test coverage** (`--coverage-phpunit`) |
+| PHP | Codeception | `run --coverage-xml=<file>` (Codeception's Clover); `coverage: enabled: true` in `codeception.yml` | Clover XML | — | yes | yes, with **Track per-test coverage** (`--coverage-phpunit=<dir>`) |
 | PHP | Behat | [behat-code-coverage](https://github.com/dvdoug/behat-code-coverage) with a `clover` report in `behat.yml` | Clover XML | — | yes | — |
 | PHP | PHPSpec | [phpspec-code-coverage](https://github.com/friends-of-phpspec/phpspec-code-coverage) with a `clover` output in `phpspec.yml` | Clover XML | — | yes | — |
 | JavaScript / TypeScript | Vitest | `--coverage.enabled --coverage.reporter=json`; provider v8 or istanbul (configuration or **Coverage provider**) | Istanbul JSON | yes | yes | — |

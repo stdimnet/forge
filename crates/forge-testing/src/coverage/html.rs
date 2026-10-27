@@ -42,9 +42,9 @@ fn percent_cell(c: Counter) -> String {
 
 const STYLE: &str = r#"
 :root { color-scheme: light dark; --bg: #fbfaf8; --fg: #2b2622; --muted: #7a716a; --line: #e4ded8;
-  --cov: #d9efd9; --part: #f6ebc4; --unc: #f6d6d2; --bar: #4f9a5a; --bar-bg: #e7e1db; --link: #a8551e; }
+  --cov: #d9efd9; --part: #f6ebc4; --unc: #f6d6d2; --bar: #4f9a5a; --bar-bg: #e3a39b; --link: #a8551e; }
 @media (prefers-color-scheme: dark) { :root { --bg: #1f1b18; --fg: #e8e1da; --muted: #9c928a; --line: #3a332e;
-  --cov: #22402a; --part: #4a4020; --unc: #4d2622; --bar: #6dbb78; --bar-bg: #3a332e; --link: #f0a060; } }
+  --cov: #22402a; --part: #4a4020; --unc: #4d2622; --bar: #6dbb78; --bar-bg: #7a3a33; --link: #f0a060; } }
 body { margin: 0; padding: 24px; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
 h1 { font-size: 20px; margin: 0 0 4px; } h2 { font-size: 15px; margin: 32px 0 8px; }
 .muted { color: var(--muted); } a { color: var(--link); text-decoration: none; } a:hover { text-decoration: underline; }

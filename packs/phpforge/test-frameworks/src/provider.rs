@@ -127,7 +127,7 @@ fn on(cfg: &Configuration, key: &str) -> bool {
 /// | Type | Report |
 /// | --- | --- |
 /// | PHPUnit, Pest | `--coverage-clover <dir>/clover.xml` [`--path-coverage`] [`--coverage-xml <dir>/xml`] |
-/// | Codeception | `--coverage-xml <dir>/clover.xml` [`--coverage-phpunit <dir>/xml`] (`coverage: enabled: true` in codeception.yml) |
+/// | Codeception | `--coverage-xml=<dir>/clover.xml` [`--coverage-phpunit=<dir>/xml`] (`coverage: enabled: true` in codeception.yml) |
 /// | Behat | the `clover` report of behat-code-coverage (`DVDoug\Behat\CodeCoverage\Extension`) in behat.yml |
 /// | PHPSpec | the `clover` output of phpspec-code-coverage in phpspec.yml |
 ///
@@ -185,9 +185,10 @@ pub fn coverage_plan(
             }
         }
         "codeception" => {
-            plan.args = vec!["--coverage-xml".into(), clover];
+            // Optional-value options: `=` keeps the value with its option.
+            plan.args = vec![format!("--coverage-xml={clover}")];
             if per_test {
-                plan.args.extend(["--coverage-phpunit".into(), tests]);
+                plan.args.push(format!("--coverage-phpunit={tests}"));
                 plan.tests_dir = Some(TESTS_DIR.into());
             }
         }
@@ -369,12 +370,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             c.args,
-            [
-                "--coverage-xml",
-                "d/clover.xml",
-                "--coverage-phpunit",
-                "d/xml"
-            ]
+            ["--coverage-xml=d/clover.xml", "--coverage-phpunit=d/xml"]
         );
         let behat_yml = "default:\n  suites: ~\n  extensions:\n    DVDoug\\Behat\\CodeCoverage\\Extension:\n      filter:\n        include:\n          directories:\n            'src': ~\n      reports:\n        html:\n          target: build/coverage-behat\n        clover:\n          name: Shop\n          # the IDE reads this one\n          target: 'build/coverage-behat/clover.xml'\n";
         let read = |p: &str| (p == "behat.yml.dist").then(|| behat_yml.to_string());

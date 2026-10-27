@@ -156,9 +156,15 @@
   background: color-mix(in srgb, var(--danger) 75%, transparent);
 }
 
-/* Project view */
+/* Project view: the name stays readable, a long hint is cut instead (like PHPStorm). */
+.coverage-tree-row .tree-label {
+  flex-shrink: 0;
+}
+
 .coverage-tree-row .tree-hint {
   color: var(--fg-muted);
+  min-width: 0;
+  white-space: nowrap;
 }
 
 /* Tests covering a line (click on a coverage mark). */

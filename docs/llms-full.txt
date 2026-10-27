@@ -11654,7 +11654,9 @@ Python tests run in the shared [test runner](docs/guide/user/testing.md): gutter
 - **Unittests** configurations run discovery below the project or a directory (pattern
   `test*.py`), a file, a class or a test method with Forge's own runner: a small script that
   comes with Forge (standard library only, sent inline with `python -c`), reports every test as
-  it runs and records `assertEqual` values for the comparison. Rerun Failed Tests runs the
+  it runs and records `assertEqual` values for the comparison. **Run with Coverage** needs
+  coverage.py in the interpreter: the runner measures with branch coverage and writes a
+  Cobertura report. Rerun Failed Tests runs the
   failed tests' ids (`tests.test_cart.TestCart.test_total`).
 - **tox** configurations run the environments you name (empty: tox's `env_list`) with
   `python -m tox`, or the program of **tox executable** (`python.tox.path`). Every
@@ -15438,7 +15440,8 @@ Source: docs/guide/user/coverage.md
 
 # Code coverage
 
-**Run with Coverage** runs tests and shows which lines they executed, like PHPStorm:
+**Run with Coverage** runs tests (or a Node.js program) and shows which lines they executed,
+like PHPStorm:
 
 ![Coverage of the PHP demo](docs/screenshots/coverage-tool-window.png)
 
@@ -15448,17 +15451,93 @@ Source: docs/guide/user/coverage.md
 - **Run | Run with Coverage** for the selected configuration (action `Coverage`) and
   **Run Context Configuration with Coverage** (`RunCoverage`) for the test at the caret.
 
-| Framework | How | Report |
-| --- | --- | --- |
-| PHPUnit, Pest | `--coverage-clover <file>` with `XDEBUG_MODE=coverage` (Xdebug) or PCOV, whichever the interpreter loads | Clover XML |
-| JUnit, TestNG (JavaForge) | Gradle `jacocoTestReport` (XML report enabled) or Maven `org.jacoco:jacoco-maven-plugin:report`, when the build configures JaCoCo | JaCoCo (`build/reports/jacoco/test/jacocoTestReport.xml`, `target/site/jacoco/jacoco.xml`) |
-| busted (LuaForge) | `busted --coverage` with luacov; `.luacov` sets `runreport = true` and `reporter = "lcov"` (luacov-reporter-lcov) | LCOV (`luacov.report.out`) |
-| any manifest framework | its `coverage` arguments | LCOV, Cobertura, Clover, JaCoCo or a Go profile |
-
 When the run ends, Forge reads the report, maps its paths into the project (container and
 remote paths through the run's path mappings) and shows the suite. Coverage runs work on
 every [run target](docs/guide/user/run-targets.md) and through every PHP CLI interpreter (Docker, Compose,
-SSH, WSL). In [Safe Mode](docs/guide/user/project-trust.md) they are refused like every run.
+SSH, WSL): the report names the container's paths, Forge maps them back. In
+[Safe Mode](docs/guide/user/project-trust.md) they are refused like every run.
+
+## What works per language
+
+| Language | Configurations | How Forge measures | Report | Branches | Methods | Tests per line |
+| --- | --- | --- | --- | --- | --- | --- |
+| PHP | PHPUnit, Pest | `--coverage-clover` with Xdebug or PCOV ([driver](#php-coverage-driver)); `--path-coverage` on request | Clover XML | Clover `cond` lines (not written by PHPUnit) | yes | yes, with **Track per-test coverage** (`--coverage-xml`) |
+| PHP | Codeception | `run --coverage-xml=<file>` (Codeception's Clover); `coverage: enabled: true` in `codeception.yml` | Clover XML | — | yes | yes, with **Track per-test coverage** (`--coverage-phpunit=<dir>`) |
+| PHP | Behat | [behat-code-coverage](https://github.com/dvdoug/behat-code-coverage) with a `clover` report in `behat.yml` | Clover XML | — | yes | — |
+| PHP | PHPSpec | [phpspec-code-coverage](https://github.com/friends-of-phpspec/phpspec-code-coverage) with a `clover` output in `phpspec.yml` | Clover XML | — | yes | — |
+| JavaScript / TypeScript | Vitest | `--coverage.enabled --coverage.reporter=json`; provider v8 or istanbul (configuration or **Coverage provider**) | Istanbul JSON | yes | yes | — |
+| JavaScript / TypeScript | Jest | `--coverage --coverageReporters=json`; provider babel or v8 | Istanbul JSON | yes | yes | — |
+| JavaScript / TypeScript | Mocha | runs under **c8** (default) or **nyc** (**Coverage tool**) | LCOV | yes | yes | — |
+| JavaScript / TypeScript | Node.js Test Runner | `--experimental-test-coverage` with Node's LCOV reporter | LCOV | yes | yes | — |
+| JavaScript / TypeScript | Node.js (a program) | runs under c8 or nyc (Code Coverage group) | LCOV | yes | yes | — |
+| Python | pytest | pytest-cov (`--cov --cov-report=xml`) | Cobertura | with `--cov-branch` | — | — |
+| Python | Unittests | coverage.py inside Forge's runner, branches on | Cobertura | yes | — | — |
+| Java, Groovy | JUnit, TestNG, Spock | Gradle `jacocoTestReport` (XML report enabled) or Maven `jacoco:report`, when the build configures JaCoCo | JaCoCo XML | yes | yes | — |
+| Kotlin | Kotest (JUnit as Java) | as Java (JaCoCo; Kover's XML report reads the same) | JaCoCo XML | yes | yes | — |
+| Go | Go Test | `go test -coverprofile` | Go coverprofile | partly covered lines | — | — |
+| Rust | Cargo Test | cargo-llvm-cov (`--lcov`) | LCOV | when branch coverage is on (nightly) | yes | — |
+| C, C++ | GoogleTest, Catch2, CTest | gcov (GCC `--coverage`) or llvm-cov (Clang profiles) | LCOV | yes | yes | — |
+| Lua | busted | `busted --coverage` with luacov and luacov-reporter-lcov (`.luacov`: `runreport = true`, `reporter = "lcov"`) | LCOV | — | — | — |
+
+Not supported: Playwright and Cypress (browser tests), tox and Django test configurations,
+.NET (there is no .NET pack yet). Per-test coverage needs a report that names the tests of
+each line: PHPUnit's and Codeception's XML report, and LCOV tracefiles with test names
+(`TN:`). JaCoCo sessions, coverage.py contexts and Istanbul reports do not carry it.
+
+### PHP coverage driver
+
+The **Code Coverage** group of a PHP test configuration (Run/Debug Configurations) chooses how
+coverage is measured:
+
+![The coverage driver of a PHPUnit configuration](docs/screenshots/coverage-driver.png)
+
+| Option | Effect |
+| --- | --- |
+| **Coverage driver: Auto** | `XDEBUG_MODE=coverage`; php-code-coverage uses PCOV when it is enabled, else Xdebug |
+| **Xdebug** | `-dxdebug.mode=coverage -dpcov.enabled=0` |
+| **PCOV** | `-dpcov.enabled=1` and `XDEBUG_MODE=off` (PCOV is much faster, lines only) |
+| **Branch and path coverage** (PHPUnit, Pest) | `--path-coverage` (PHPUnit 10+, Xdebug only). PHPUnit writes branches and paths to its HTML and XML reports; its Clover report, which Forge reads, keeps lines, so the gutter shows line coverage |
+| **Track per-test coverage** (PHPUnit, Pest, Codeception) | also writes PHPUnit's XML report: Forge records the tests of every covered line |
+
+Behat and PHPSpec have no coverage of their own: install their extension, add a Clover
+report to its configuration, and Forge reads that file after the run:
+
+```yaml
+# behat.yml
+default:
+  extensions:
+    DVDoug\Behat\CodeCoverage\Extension:
+      filter:
+        include:
+          directories:
+            'src': ~
+      reports:
+        clover:
+          target: build/coverage-behat/clover.xml
+```
+
+```yaml
+# phpspec.yml
+extensions:
+  FriendsOfPhpSpec\PhpSpec\CodeCoverage\CodeCoverageExtension:
+    format: [clover]
+    output:
+      clover: build/coverage.xml
+```
+
+### JavaScript and TypeScript
+
+Jest and Vitest write Istanbul's JSON report (`coverage-final.json`), which keeps every
+statement, branch and function: a line is partly covered when a branch on it was not taken or
+some statements on it did not run.
+
+![Istanbul branch coverage of a Vitest run](docs/screenshots/coverage-istanbul.png)
+
+The **Coverage provider** field of a Vitest (v8 / istanbul) or Jest (babel / v8)
+configuration overrides the provider of the configuration file; the provider's package
+(`@vitest/coverage-v8`, `@vitest/coverage-istanbul`) must be installed. Mocha and Node.js
+configurations run under c8 (or nyc) from the project's `node_modules` (the `c8Package` /
+`nycPackage` options name another one).
 
 ## Coverage tool window
 
@@ -15468,31 +15547,46 @@ directories and files of the suite:
 | Column | Shows |
 | --- | --- |
 | Element | the project, folders (single-child folders compacted: `src/main/java`) and files |
+| Method, % | called and total functions and methods (reports that name them) |
 | Line, % | covered and total lines: `85% (17/20)` with a bar |
-| Branch, % | taken and total branches (Clover conditions, Cobertura and LCOV branches, JaCoCo) |
+| Branch, % | taken and total branches (Clover conditions, Cobertura, LCOV, Istanbul, JaCoCo) |
 
 Double-click a file to open it, a folder to collapse it. The toolbar **hides / shows** the
-coverage in the editor and the Project view, **Show Coverage Data…** switches between the
-session's last 10 suites, **Import External Coverage Report…** reads a report, and **Close**
-drops the suite.
+coverage in the editor and the Project view, **Show Coverage Data…** chooses suites,
+**Import External Coverage Report…** reads a report, **Generate Coverage Report…** writes
+HTML and **Close** drops the suite.
 
 ## Coverage in the editor and the Project view
 
 While coverage is shown, the editor gutter marks every line of the report:
 
 - green: the line ran (and all its branches were taken);
-- yellow: the line ran, but some branches (or, in Go, some blocks on the line) did not;
+- yellow: the line ran, but some branches (or, in Go, some blocks on the line; with Istanbul,
+  some statements) did not;
 - red: the line never ran.
 
-Hovering a mark shows the hits: "Hits: 3, branches: 1 of 2 covered". The Project view shows
-"62% lines covered" next to covered files and folders.
+Hovering a mark shows the hits: "Hits: 3, branches: 1 of 2 covered", and with per-test
+coverage the number of tests. **Clicking** such a mark lists the tests covering the line;
+clicking a test searches for it (Search Everywhere).
+
+![Tests covering a line](docs/screenshots/coverage-per-test.png)
+
+The Project view shows "62% lines covered" next to covered files and
+"50% files, 62% lines covered" next to folders, at every folder level.
 
 ![Coverage in the light theme](docs/screenshots/coverage-light.png)
 
 ## Show Coverage Data
 
-**Run | Show Coverage Data…** (`Ctrl+Alt+F6`, action `SwitchCoverage`) picks one of the
-session's suites; **Run | Hide Coverage** (`HideCoverageInfo`) hides the marks and hints.
+**Run | Show Coverage Data…** (`Ctrl+Alt+F6`, action `SwitchCoverage`) opens **Choose Coverage
+Suite to Display** with the session's last suites. Check one suite to show it, or several to
+merge them into a new suite ("Unit + Feature"); **No Coverage** hides the marks.
+**Run | Hide Coverage** (`HideCoverageInfo`) hides them as well.
+
+![Choose Coverage Suite to Display](docs/screenshots/coverage-suites.png)
+
+![A merged suite](docs/screenshots/coverage-merged.png)
+
 **Import External Coverage Report…** (desktop app: a file dialog; the Project view: right-click
 a report, **Show Coverage Data from This Report**) reads:
 
@@ -15500,11 +15594,22 @@ a report, **Show Coverage Data from This Report**) reads:
 | --- | --- |
 | LCOV (`lcov.info`) | c8, Istanbul / nyc, Jest and Vitest `lcov`, luacov-reporter-lcov, grcov, cargo-llvm-cov |
 | Cobertura XML | coverage.py `coverage xml`, Istanbul `cobertura`, cargo-llvm-cov, gcovr |
-| Clover XML | PHPUnit `--coverage-clover`, Istanbul `clover` |
+| Clover XML | PHPUnit `--coverage-clover`, Codeception, Istanbul `clover` |
 | JaCoCo XML | JaCoCo, Kover |
 | Go coverprofile | `go test -coverprofile` |
+| Istanbul JSON (`coverage-final.json`) | Istanbul / nyc `json`, Jest, Vitest, c8 `json` |
 
 The format is recognized from the content.
+
+## Generate Coverage Report
+
+**Run | Generate Coverage Report…** (`GenerateCoverageReport`, also in the Coverage tool
+window's toolbar) writes the shown suite as one HTML file: the totals, the folders and files
+with method, line and branch coverage, and each file's source with its covered, partly covered
+and uncovered lines, hits and tests. The desktop app asks where to save it; in the browser it
+is downloaded.
+
+![The HTML coverage report](docs/screenshots/coverage-html-report.png)
 
 
 ---
@@ -15585,7 +15690,8 @@ tree in the Run tool window with the results of each test, **Rerun Failed Tests*
 History** and **auto-test**. Every run goes through the project's
 [CLI interpreter](docs/guide/user/php.md#cli-interpreters), so tests run locally, in Docker, Docker Compose,
 over SSH or in WSL alike. The frameworks are part of the shared [test runner](docs/guide/user/testing.md) of
-every pack; PHPUnit and Pest also run with [coverage](docs/guide/user/coverage.md) (Xdebug or PCOV).
+every pack; all of them run with [coverage](docs/guide/user/coverage.md) (Xdebug or PCOV, per-test coverage
+for PHPUnit, Pest and Codeception; Behat and PHPSpec through their coverage extensions).
 
 ![Pest tests from the gutter](docs/screenshots/test-frameworks-pest.png)
 
@@ -15933,9 +16039,9 @@ attaching is not.
 
 | Runner | Detected by | Results from | Coverage |
 | --- | --- | --- | --- |
-| **Jest** | `jest` in `package.json`, `jest.config.*` | Jest's JSON report (`--json --outputFile`) | `--coverage`, LCOV |
-| **Vitest** | `vitest` in `package.json`, `vitest.config.*`, `vitest.workspace.*` | the JSON reporter (`--reporter=json --outputFile.json`) | `--coverage.enabled`, LCOV (needs `@vitest/coverage-v8` or `-istanbul`) |
-| **Mocha** | `mocha` in `package.json`, `.mocharc.*` | the TAP reporter | through **c8** (`node_modules/c8`), LCOV |
+| **Jest** | `jest` in `package.json`, `jest.config.*` | Jest's JSON report (`--json --outputFile`) | `--coverage`, Istanbul JSON; **Coverage provider** babel or v8 |
+| **Vitest** | `vitest` in `package.json`, `vitest.config.*`, `vitest.workspace.*` | the JSON reporter (`--reporter=json --outputFile.json`) | `--coverage.enabled`, Istanbul JSON; **Coverage provider** v8 or istanbul (needs `@vitest/coverage-v8` or `-istanbul`) |
+| **Mocha** | `mocha` in `package.json`, `.mocharc.*` | the TAP reporter | through **c8** or **nyc** (**Coverage tool**, from `node_modules`), LCOV |
 | **Playwright** | `@playwright/test` in `package.json`, `playwright.config.*` | the JSON reporter (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | — |
 | **Cypress** | `cypress` in `package.json`, `cypress.config.*` | `cypress run --reporter junit` | — |
 | **Node.js Test Runner** | `node --test` in a `package.json` script | TAP (`--test-reporter=tap`) | Node's LCOV reporter (`--experimental-test-coverage`) |
@@ -15944,7 +16050,7 @@ attaching is not.
   `.only`, `.skip`, `.each`, `test.describe` and the other modifiers) whose name is a string.
   The nesting follows the calls, so a test's full name is the names of its `describe` blocks
   and its own. Each icon offers **Run**, **Run with Coverage** (Jest, Vitest, Mocha,
-  `node --test`), **Debug** and **Modify Run Configuration…**; after a run it shows the test's
+  `node --test`; a **Node.js** configuration runs with coverage under c8 or nyc), **Debug** and **Modify Run Configuration…**; after a run it shows the test's
   result.
 - **Which runner a file belongs to**: the runner the project uses (detected from
   `package.json` and config files). Files that import `vitest`, `@jest/globals`, `mocha` or
@@ -19208,9 +19314,10 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | --- | --- | --- | --- | --- |
 | Run | `Shift+F10` | `Ctrl+R` | yes | Runs the configuration selected in the run widget. [More](docs/guide/user/run-debug.md) |
 | Debug | `Shift+F9` | `Ctrl+D` | yes | Debugs the selected configuration (Xdebug for PHP, `--inspect` for npm). [More](docs/guide/user/run-debug.md#debugging) |
-| Run with Coverage | — | — | yes | Runs the selected configuration's tests with coverage (PHPUnit, Pest, busted, manifest frameworks). [More](docs/guide/user/coverage.md#run-with-coverage) |
-| Show Coverage Data… | `Ctrl+Alt+F6` | `Cmd+Alt+F6` | yes | Picks one of the session's coverage suites or imports a report. [More](docs/guide/user/coverage.md#show-coverage-data) |
+| Run with Coverage | — | — | yes | Runs the selected configuration's tests (or Node.js program) with coverage. [More](docs/guide/user/coverage.md#run-with-coverage) |
+| Show Coverage Data… | `Ctrl+Alt+F6` | `Cmd+Alt+F6` | yes | Chooses one or several (merged) coverage suites, hides them or imports a report. [More](docs/guide/user/coverage.md#show-coverage-data) |
 | Hide Coverage | — | — | yes | Hides (or shows again) the coverage marks in the editor and the Project view. [More](docs/guide/user/coverage.md#coverage-in-the-editor-and-the-project-view) |
+| Generate Coverage Report… | — | — | yes | Writes the shown suite as an HTML report. [More](docs/guide/user/coverage.md#generate-coverage-report) |
 | Run… | `Alt+Shift+F10` | `Ctrl+Alt+R` | yes | Lists the run configurations to run one; hold `Shift` to debug instead. [More](docs/guide/user/run-debug.md#run-widget) ([screenshot](docs/screenshots/docs-run-chooser.png)) |
 | Debug… | `Alt+Shift+F9` | `Ctrl+Alt+D` | yes | Lists the run configurations to debug one. [More](docs/guide/user/run-debug.md#run-widget) |
 | Attach to Process… | `Ctrl+Alt+F5` | `Cmd+Alt+F5` | not yet | Not available yet; the entry is disabled. |
@@ -27225,9 +27332,12 @@ coverage reports into one model.
 | `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
 | `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `discover_in_project` (the frameworks the project uses first), `rerun_failed`, `command`, `info`). |
 | `spec.rs` | `TestFrameworkSpec` (with `fields`: extra run configuration form fields), the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
-| `coverage/mod.rs` | `CoverageReport` (files with `LineHits`: hits, branches, partial), `LineStatus` (covered, partial, uncovered), `merge`, `resolve` (reported paths → project paths), `sniff` / `parse_any`, `Counter` ("85% (17/20)"), `summary` (the Coverage tool window's project, compacted directories and files) and `FileCoverage::marks` (gutter marks with hover texts). |
-| `coverage/lcov.rs` | LCOV tracefiles (`SF`, `DA`, `BRDA`). |
-| `coverage/xml.rs` | Cobertura (`<source>` folders, class lines without the method duplicates), Clover (`stmt`, `method`, `cond` with true/false counts) and JaCoCo (covered/missed instructions and branches) in one streaming pass. |
+| `coverage/mod.rs` | `CoverageReport` (files with `LineHits`: hits, branches, partial, the tests that ran the line; `FunctionHits`), `LineStatus` (covered, partial, uncovered), `merge` / `merged` (Show Coverage Data with several suites), `attach_tests`, `resolve` (reported paths → project paths), `sniff` / `parse_any`, `Counter` ("85% (17/20)"), `Totals` (lines, branches, methods, files), `summary` (the Coverage tool window's project, compacted directories and files with method, line and branch counters), `folders` / `project_hint` (every folder level folded: "50% files, 62% lines covered") and `FileCoverage::marks` (gutter marks with hover texts and tests). |
+| `coverage/lcov.rs` | LCOV tracefiles (`TN` test names, `SF`, `FN` (also LCOV 2's `FN:<line>,<end>,<name>`), `FNDA`, `DA`, `BRDA`). |
+| `coverage/xml.rs` | Cobertura (`<source>` folders, class lines without the method duplicates, `<method>` functions), Clover (`stmt`, `method`, `cond` with true/false counts) and JaCoCo (covered/missed instructions and branches, `<method>` counters) in one streaming pass. |
+| `coverage/istanbul.rs` | Istanbul JSON (`coverage-final.json`: `statementMap`, `fnMap`, `branchMap` with their counts; nyc's older `data` wrapping): line hits from statements, lines with unrun statements partly covered. |
+| `coverage/phpunit_xml.rs` | PHPUnit's XML coverage report (`index.xml` and one file per source): the tests of each covered line, joined to the Clover report of the same run (`collect`). |
+| `coverage/html.rs` | `render`: a suite as one standalone HTML report (totals, folders and files, sources with covered / partial / uncovered lines, hits and tests). |
 | `coverage/gocover.rs` | Go coverage profiles: blocks over lines, partly covered lines. |
 
 ## Main public items
@@ -27236,14 +27346,17 @@ coverage reports into one model.
 pub trait TestFrameworkProvider: Send + Sync { fn id(&self) -> &str; fn types(&self) -> Vec<String>; fn accepts(&self, path: &str) -> bool; fn discover(..) -> Option<TestFile>; fn rerun_failed(..) -> Option<Configuration>; fn command(..) -> Option<Result<TestCommand, String>>; fn supports_coverage(&self, type_id: &str) -> bool; }
 pub struct TestFrameworks { … }        // register, register_specs, for_type, discover, rerun_failed, command
 pub struct TestFrameworkSpec { … }     // re-exported by forge-plugin-api as TestFrameworkContribution
-pub struct CoverageReport { pub files: Vec<FileCoverage> }
+pub struct CoverageReport { pub files: Vec<FileCoverage> }  // merged, attach_tests, totals, has_tests
 pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<CoverageNode>;
+pub fn coverage::folders(report: &CoverageReport) -> BTreeMap<String, Totals>;
+pub fn coverage::html::render(report, project, title, generated, source: impl Fn(&str) -> Option<String>) -> String;
 ```
 
 ## Used by
 
 - IPC: `test_discover`, `test_rerun_failed`, `test_frameworks_detect`, `coverage_suites`,
-  `coverage_view`, `coverage_file`, `coverage_remove`, `coverage_import`, and the command
+  `coverage_view`, `coverage_file`, `coverage_remove`, `coverage_import`, `coverage_merge`,
+  `coverage_export_html`, and the command
   lines of manifest frameworks in `run_start` / `run_command_line`
   (`app/src-tauri/src/commands/testing.rs`, `commands/run.rs`)
 - Crates: [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md) (the `testFrameworks` contribution),
@@ -27260,8 +27373,9 @@ pub fn coverage::summary(report: &CoverageReport, project: &str) -> Vec<Coverage
 
 ## Tests
 
-Unit tests per module with the busted manifest table and recorded coverage reports (LCOV,
-Cobertura, Clover, JaCoCo, Go profile) in `crates/forge-testing/fixtures/`.
+Unit tests per module with the busted manifest table and recorded coverage reports (LCOV with
+and without test names, Cobertura, Clover, JaCoCo, Go profile, Istanbul JSON in both shapes,
+a PHPUnit XML report folder) in `crates/forge-testing/fixtures/`.
 
 ```sh
 cargo test -p forge-testing
@@ -29394,7 +29508,8 @@ and the WebAssembly build share it.
   pytest or tox from its files and picks a file's runner (`python.testing.runner`).
 - `command` builds the interpreter arguments: `-m pytest` with a scope, `--junitxml` (or
   `--report-log`) and pytest-cov's Cobertura report; Forge's unittest runner
-  (`helpers/forge_unittest.py`, TeamCity messages, sent inline as base64 with `-c`);
+  (`helpers/forge_unittest.py`, TeamCity messages, sent inline as base64 with `-c`; with
+  `--coverage-xml` it measures with coverage.py and writes a Cobertura report);
   `-m tox -e …`; `-m debugpy --listen … --wait-for-client`; `-m cProfile -o …`; the console
   (`helpers/forge_console.py`). Report paths are made relative to the working directory, so
   they stay valid where interpreters and run targets map the project.
@@ -29595,7 +29710,7 @@ go through the same registry as every other pack's frameworks; the discovery typ
 | `gherkin.rs` | `parse`: features, background, scenarios and outlines with tags, steps (`Given`, `When`, `Then`, `And`, `But`, `*`) and example rows (1-based lines, doc strings skipped); `split_step`. |
 | `steps.rs` | Behat step definitions from doc comments (`@Given …`) and attributes (`#[Given('…')]`, `#[\Behat\Step\Then("…")]`); `pattern_regex` (delimited regular expressions with flags, turnip `:placeholders`, optional `(s)` and `word/other` alternatives); `step_at` (a step's text, outline placeholders replaced by the first example row) and `step_targets`. |
 | `rerun.rs` | `rerun_failed`: PHPUnit / Pest `--filter`, Codeception `-g failed`, Behat `--rerun`, PHPSpec the failed spec file. |
-| `provider.rs` | `PhpTestFrameworks`: the `forge_testing::TestFrameworkProvider` of the five types (commands stay with the PHP interpreter path of the backend); `coverage_args` (`--coverage-clover <file>`, `XDEBUG_MODE=coverage`) for PHPUnit and Pest. |
+| `provider.rs` | `PhpTestFrameworks`: the `forge_testing::TestFrameworkProvider` of the five types (commands stay with the PHP interpreter path of the backend); `coverage_plan`: Run with Coverage of every type — the driver (`CoverageDriver`: Auto `XDEBUG_MODE=coverage`, Xdebug `-dxdebug.mode=coverage -dpcov.enabled=0`, PCOV `-dpcov.enabled=1`), PHPUnit / Pest `--coverage-clover` with `--path-coverage` and `--coverage-xml` (per-test), Codeception `--coverage-xml=` / `--coverage-phpunit=`, Behat and PHPSpec the Clover file their coverage extension's YAML configuration names (`clover_target`). |
 
 ## Used by
 
@@ -30393,8 +30508,10 @@ in the `TestFrameworks` registry (`register`):
 - `runner`: `Runner` (`jest`, `vitest`, `mocha`, `playwright`, `cypress`, `node-test`) with
   its package, CLI script and debug arguments. `build` runs the CLI script with Node.js
   (options `executable`, `nodeOptions`, `package`, `configFile`), sets
-  `PLAYWRIGHT_JSON_OUTPUT_NAME` for Playwright's report file, wraps Mocha in c8 for
-  coverage and puts `node --test`'s options before its files. `claims` decides between
+  `PLAYWRIGHT_JSON_OUTPUT_NAME` for Playwright's report file, wraps Mocha in c8 or nyc for
+  coverage (`coverage_wrap`, also used for Run with Coverage of Node.js configurations),
+  passes the coverage provider of Vitest (`--coverage.provider`) and Jest
+  (`--coverageProvider`) and puts `node --test`'s options before its files. `claims` decides between
   runners that share file globs by the file's imports. `rerun` adds the failed tests' files
   to the spec's name pattern (Cypress reruns files). `debug_program` gives the
   `runtimeExecutable`, `runtimeArgs`, script and arguments js-debug launches.
