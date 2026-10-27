@@ -3785,6 +3785,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "javaforge-fw-spring"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "zip 2.6.1",
+]
+
+[[package]]
 name = "javaforge-jdk"
 version = "0.1.0"
 dependencies = [
