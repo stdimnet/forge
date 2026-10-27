@@ -2299,6 +2299,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-dataedit"
+version = "0.1.0"
+dependencies = [
+ "forge-sql",
+ "hex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-db"
 version = "0.1.0"
 dependencies = [
