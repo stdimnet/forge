@@ -804,6 +804,8 @@ pub fn run() {
             commands::go::go_debug_request,
             commands::go::go_profile_path,
             commands::go::pprof_open,
+            commands::profiler::profiler_open,
+            commands::profiler::profiler_recent,
             commands::cpp::cpp_toolchains,
             commands::cpp::cpp_toolchain_inspect,
             commands::cpp::cmake_profiles,

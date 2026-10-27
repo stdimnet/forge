@@ -2085,6 +2085,7 @@ dependencies = [
  "forge-plugin-api",
  "forge-ports",
  "forge-process",
+ "forge-profiler",
  "forge-project",
  "forge-remote",
  "forge-runtargets",
