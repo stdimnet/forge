@@ -59,6 +59,13 @@ app/ui/            SolidJS UI
   - `registerRunConfigurationType` / `registerDebugLauncher` / `registerBeforeLaunchHandler`
     (`src/features/run`) — Run/Debug configuration types, debuggers and Before launch task
     kinds (see "Terminal and Run/Debug" below).
+  - `registerRunPanel({ id, title, icon?, accepts(event, current), count?, reveal?, component })`
+    and `onRunEvent(listener)` (`src/features/run/runStore.ts`) — result tabs of a Run session
+    next to its console, filled from run events (CForge's Sanitizers and Valgrind), and run
+    events the run feature does not handle itself (perf profiles).
+  - `registerProfilerSource` (`src/features/profiler`) — a source of the shared Profiler tool
+    window; `features/profiler/callTree.tsx` draws a `goforge_pprof::ProfileView` (Flame
+    Graph, Call Tree, Method List) for pprof and perf.
   - `registerDebugAdapter({ type, label?, runConfigurationTypes?, languages?, launchSchema?,
     attachSchema?, resolve? })` (`src/features/debug/adapters.ts`) — a Debug Adapter Protocol
     debugger for a pack, together with `[[contributions.debugAdapters]]` in its manifest or a
@@ -2641,6 +2648,45 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   completion, clang-format and reload on change. Browser mode: `?project=cpp` opens the
   `shapes` demo (`mock/demoCppProject.ts`, `cppMock.ts`, `cppDebugMock.ts`; `&build=broken`
   for a failing build; WebAssembly `crates/forge-wasm/src/cpp.rs`).
+- CForge v2: two more pure crates (also in `forge-wasm`, `crates/forge-wasm/src/cpp_tools.rs`):
+  - `cforge-analyzers`: sanitizer reports (ASan, LSan per leak, TSan, MSan, UBSan `runtime
+    error:` lines) with titled stacks, Valgrind Memcheck XML (errors, `auxwhat` stacks, leak
+    summary), `perf record` / `perf script` command lines and `perf script` output as a
+    `goforge_pprof::Profile` (the Profiler's views), frames mapped onto the project.
+  - `cforge-embedded`: `platformio.ini` and the PlatformIO task commands, ESP-IDF (`idf.py`)
+    and Zephyr (`west`) detection and commands, OpenOCD's GDB server / `program` command
+    lines, CMSIS-SVD parsing (`derivedFrom`, clusters, `dim`) with `read_ranges` / `decode`.
+  - `cforge-cmake` gained `sanitizers` (profile option `sanitizers`, `-fsanitize` flags
+    appended to the options' flags, `Profile.sanitizerError`, run environment) and `packages`
+    (vcpkg root and toolchain file, port completion, `conan install` and
+    `conan_toolchain.cmake`; `ConfigureContext.package_toolchain` becomes
+    `CMAKE_TOOLCHAIN_FILE` unless the profile sets one).
+- Runs (`commands/cpp_tools.rs`): `run_start` adds an observer to CMake Application, Google
+  Test, Catch2 and CTest runs that collects the output and emits `{ type: "sanitizer",
+  reports }` on `run://<runId>` before `exited`. `RunRequest.nativeTool: "valgrind" | "perf"`
+  wraps a CMake Application / Google Test / Catch2 command (`valgrind --tool=memcheck
+  --xml=yes --xml-file=<temp>` / `perf record -o <temp>`; local projects, perf on Linux only)
+  and emits `{ type: "valgrind", report | error }` / `{ type: "perf", profile: { title, view }
+  | error }` at the exit (`TestSetup.native`). IPC: `cpp_sanitizer_reports({ output })`,
+  `cpp_native_tools() -> { valgrind, perf, valgrindUnsupported, perfUnsupported, remote }`,
+  `cpp_valgrind_open({ path })`, `cpp_packages() -> PackageManagers`, `cpp_vcpkg_complete({
+  text, offset })`, `cpp_conan_install_command() -> CommandLine`, `cpp_clangd_restart()`.
+- Embedded (`commands/embedded.rs`): `embedded_info() -> { kinds, platformio, espIdf, zephyr
+  }`, `pio_command({ env, task })`, `idf_command({ action })` / `west_command({ action, board?
+  })` (interactive actions call `require_trusted`; the UI runs them in the terminal),
+  `cpp_embedded_launch({ configuration }) -> { server?, download?, request, svd?, elf }` for
+  the `openocd` and `embedded-gdb-server` types (GDB through `forge-dap` with `LaunchMode::
+  AttachPort` and `configuration.target` = `host:port`, i.e. `target remote`),
+  `cpp_svd_peripherals({ path }) -> DeviceSummary` and `cpp_svd_read({ path, peripheral,
+  sessionId }) -> RegisterValue[]` (reads through `DapSession::read_bytes`). Command lines
+  start through `run_start` (hidden type `cpp-tool`), so Safe Mode refuses them.
+- UI: `features/cpp/analysis.tsx` (the Sanitizers and Valgrind result panels, the editor
+  highlights of the selected problem, Run | Run with Valgrind Memcheck / Profile with perf,
+  Conan Install, the perf source of the Profiler, pages `build.analysis` and
+  `build.packages`), `features/cpp/embedded.tsx` (the `platformio` tool window, Tools |
+  ESP-IDF and Zephyr, the `openocd` / `embedded-gdb-server` types with the `cforge-embedded`
+  debug launcher, the Debug tool window's Peripherals tab, page `build.embedded`). Browser
+  mode: `cppToolsMock.ts`, `embeddedMock.ts`, `?project=pio` (`demoPioProject.ts`).
 ## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
 
 - The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,

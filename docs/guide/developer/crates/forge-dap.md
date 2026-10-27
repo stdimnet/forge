@@ -98,7 +98,9 @@ pub trait DebugAdapterDescriptor: Send + Sync {
   `dap_read_memory`, `dap_write_memory`, `dap_disassemble`, `dap_modules`,
   `dap_loaded_sources`, `dap_data_breakpoint`, `dap_processes`
   (`app/src-tauri/src/commands/dap.rs`); the shared `debug_*` commands route `dap-<n>`
-  session ids here (`app/src-tauri/src/commands/debug.rs`).
+  session ids here (`app/src-tauri/src/commands/debug.rs`). `DapSession::read_bytes` (raw
+  `readMemory`) serves CForge's Peripherals view (`cpp_svd_read`,
+  `app/src-tauri/src/commands/embedded.rs`).
 - UI: `app/ui/src/features/debug` (`dapApi.ts`, `adapters.ts`, `nativeViews.tsx`,
   `AttachDialogs.tsx`)
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses

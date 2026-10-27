@@ -31,10 +31,27 @@ const entryOf = (p: Partial<Profile> & { name: string }): ProfileEntry => ({
   buildOptions: p.buildOptions ?? "",
   environment: (p.environment ?? []).join(";"),
   enabled: p.enabled === false ? "false" : "true",
+  sanitizers: (p.sanitizers ?? []).join(","),
 });
 
-function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void; toolchains: { id: string; name: string }[] }) {
+/** The sanitizers a profile can enable (`cforge_cmake::sanitizers::SANITIZERS`). */
+const SANITIZERS = [
+  { id: "address", label: "ASan", title: "AddressSanitizer: out-of-bounds accesses, use after free, double free" },
+  { id: "undefined", label: "UBSan", title: "UndefinedBehaviorSanitizer: overflows, invalid shifts, null dereferences" },
+  { id: "thread", label: "TSan", title: "ThreadSanitizer: data races (not with ASan, LSan or MSan)" },
+  { id: "memory", label: "MSan", title: "MemorySanitizer: reads of uninitialized memory (Clang only; not with ASan, LSan or TSan)" },
+  { id: "leak", label: "LSan", title: "LeakSanitizer: memory leaks (included in ASan on Linux)" },
+];
+
+function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void; toolchains: { id: string; name: string }[]; sanitizerError?: string }) {
   const set = (key: keyof ProfileEntry, value: string) => props.onChange({ ...props.entry, [key]: value });
+  const sanitizers = () => (props.entry.sanitizers ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  const toggleSanitizer = (id: string, on: boolean) => {
+    const next = new Set(sanitizers());
+    if (on) next.add(id);
+    else next.delete(id);
+    set("sanitizers", SANITIZERS.map((x) => x.id).filter((x) => next.has(x)).join(","));
+  };
   const text = (key: keyof ProfileEntry, label: string, placeholder = "") => (
     <label class="tc-field">
       <span>{label}:</span>
@@ -71,6 +88,22 @@ function Form(props: { entry: ProfileEntry; onChange: (e: ProfileEntry) => void;
       {text("buildDirectory", "Build directory", defaultBuildDir(props.entry.name))}
       {text("buildOptions", "Build options", "-j 8")}
       {text("environment", "Environment", "CCACHE_DISABLE=1;ASAN_OPTIONS=detect_leaks=0")}
+      <div class="tc-field" data-testid="cmake-profile-sanitizers">
+        <span>Sanitizers:</span>
+        <div class="tc-sanitizers">
+          <For each={SANITIZERS}>
+            {(x) => (
+              <label class="tc-check" title={x.title}>
+                <input type="checkbox" checked={sanitizers().includes(x.id)} onChange={(e) => toggleSanitizer(x.id, e.currentTarget.checked)} />
+                {x.label}
+              </label>
+            )}
+          </For>
+        </div>
+      </div>
+      <Show when={props.sanitizerError}>
+        <div class="tc-problem">{props.sanitizerError}</div>
+      </Show>
     </div>
   );
 }
@@ -159,7 +192,14 @@ export function ProfilesPage() {
         </div>
         <div class="tc-body">
           <Show when={currentEntry()}>
-            {(c) => <Form entry={c().entry} toolchains={tcs()} onChange={(e) => save(entries().map((x, i) => (i === c().index ? e : x)))} />}
+            {(c) => (
+              <Form
+                entry={c().entry}
+                toolchains={tcs()}
+                sanitizerError={info()?.profiles.find((p) => p.name === c().entry.name && (p.sanitizers ?? []).join(",") === (c().entry.sanitizers ?? ""))?.sanitizerError}
+                onChange={(e) => save(entries().map((x, i) => (i === c().index ? e : x)))}
+              />
+            )}
           </Show>
           <Show when={currentPreset()}>
             {(p) => (

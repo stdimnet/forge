@@ -52,6 +52,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
+  Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
+  leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
+  ([C/C++ dynamic analysis and packages](user/cpp-tools.md)); and embedded development: the
+  PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB
+  Server debugging, and the SVD Peripherals view ([Embedded development](user/embedded.md)).
 - **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
   toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
   Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and

@@ -1,0 +1,36 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=18500)
+  Read of size 4 at 0x55fa526f201c by thread T2:
+    #0 bump() src/shapes.cpp:43 (tsan+0x168a) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #1 void std::__invoke_impl<void, void (*)()>(std::__invoke_other, void (*&&)()) /usr/include/c++/13/bits/invoke.h:61 (tsan+0x26a8) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #2 std::__invoke_result<void (*)()>::type std::__invoke<void (*)()>(void (*&&)()) /usr/include/c++/13/bits/invoke.h:96 (tsan+0x25fd) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #3 void std::thread::_Invoker<std::tuple<void (*)()> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/13/bits/std_thread.h:292 (tsan+0x2552) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #4 std::thread::_Invoker<std::tuple<void (*)()> >::operator()() /usr/include/c++/13/bits/std_thread.h:299 (tsan+0x24f4) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #5 std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (*)()> > >::_M_run() /usr/include/c++/13/bits/std_thread.h:244 (tsan+0x24a6) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #6 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Previous write of size 4 at 0x55fa526f201c by thread T1:
+    #0 bump() src/shapes.cpp:43 (tsan+0x16a2) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #1 void std::__invoke_impl<void, void (*)()>(std::__invoke_other, void (*&&)()) /usr/include/c++/13/bits/invoke.h:61 (tsan+0x26a8) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #2 std::__invoke_result<void (*)()>::type std::__invoke<void (*)()>(void (*&&)()) /usr/include/c++/13/bits/invoke.h:96 (tsan+0x25fd) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #3 void std::thread::_Invoker<std::tuple<void (*)()> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/13/bits/std_thread.h:292 (tsan+0x2552) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #4 std::thread::_Invoker<std::tuple<void (*)()> >::operator()() /usr/include/c++/13/bits/std_thread.h:299 (tsan+0x24f4) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #5 std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (*)()> > >::_M_run() /usr/include/c++/13/bits/std_thread.h:244 (tsan+0x24a6) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+    #6 <null> <null> (libstdc++.so.6+0xecdb3) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+
+  Location is global 'counter' of size 4 at 0x55fa526f201c (tsan+0x501c)
+
+  Thread T2 (tid=18505, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 main src/shapes.cpp:57 (tsan+0x187e) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+
+  Thread T1 (tid=18502, finished) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xeceb0) (BuildId: 753c6c8608b61d4e67be8f0c890e03e0aa046b8b)
+    #2 main src/shapes.cpp:57 (tsan+0x1868) (BuildId: 94f3b82b732ab94a22cb8ed40ad7354b1b0cc3f4)
+
+SUMMARY: ThreadSanitizer: data race src/shapes.cpp:43 in bump()
+==================
+2000
+ThreadSanitizer: reported 1 warnings

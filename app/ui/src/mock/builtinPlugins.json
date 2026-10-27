@@ -10846,7 +10846,7 @@
     "name": "C/C++",
     "version": "0.1.0",
     "pack": "cforge",
-    "description": "C and C++ with CMake and compilation databases: clangd (with clang-tidy), clang-format, toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, Build / Rebuild / Clean with build problems, CMake Application configurations, CTest, GoogleTest and Catch2 with coverage, and LLDB / GDB debugging with STL renderers.",
+    "description": "C and C++ with CMake and compilation databases: clangd (with clang-tidy), clang-format, toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, Build / Rebuild / Clean with build problems, CMake Application configurations, CTest, GoogleTest and Catch2 with coverage, LLDB / GDB debugging with STL renderers, sanitizers, Valgrind Memcheck, perf profiling, vcpkg and Conan, and embedded development: PlatformIO, ESP-IDF, Zephyr, OpenOCD and the SVD Peripherals view.",
     "vendor": "Forge",
     "depends": [
       "forge.debugger"
@@ -10905,6 +10905,66 @@
           "id": "cpp.installClangd",
           "title": "Download clangd",
           "category": "C/C++"
+        },
+        {
+          "id": "cpp.runValgrind",
+          "title": "Run with Valgrind Memcheck",
+          "category": "Run"
+        },
+        {
+          "id": "cpp.profilePerf",
+          "title": "Profile with perf",
+          "category": "Run"
+        },
+        {
+          "id": "cpp.conanInstall",
+          "title": "Conan Install",
+          "category": "C/C++"
+        },
+        {
+          "id": "cpp.platformio.refresh",
+          "title": "Refresh PlatformIO Project",
+          "category": "PlatformIO"
+        },
+        {
+          "id": "cpp.espidf.build",
+          "title": "ESP-IDF: Build",
+          "category": "ESP-IDF"
+        },
+        {
+          "id": "cpp.espidf.flash",
+          "title": "ESP-IDF: Flash",
+          "category": "ESP-IDF"
+        },
+        {
+          "id": "cpp.espidf.monitor",
+          "title": "ESP-IDF: Monitor",
+          "category": "ESP-IDF"
+        },
+        {
+          "id": "cpp.espidf.menuconfig",
+          "title": "ESP-IDF: Menuconfig",
+          "category": "ESP-IDF"
+        },
+        {
+          "id": "cpp.zephyr.build",
+          "title": "Zephyr: West Build",
+          "category": "Zephyr"
+        },
+        {
+          "id": "cpp.zephyr.flash",
+          "title": "Zephyr: West Flash",
+          "category": "Zephyr"
+        },
+        {
+          "id": "cpp.zephyr.debug",
+          "title": "Zephyr: West Debug",
+          "category": "Zephyr"
+        },
+        {
+          "id": "cpp.zephyr.board",
+          "title": "Zephyr: Select Board…",
+          "category": "Zephyr"
         }
       ],
       "keybindings": [],
@@ -11154,10 +11214,310 @@
           "section": "Debugger",
           "project": false,
           "order": 40
+        },
+        {
+          "key": "cpp.valgrind.path",
+          "title": "Valgrind executable",
+          "description": "Empty: valgrind on the PATH. Valgrind runs on Linux (and in WSL).",
+          "type": "path",
+          "default": "",
+          "group": "build.analysis",
+          "section": "Valgrind",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "cpp.valgrind.options",
+          "title": "Analysis options",
+          "description": "Memcheck options; Forge adds --tool=memcheck --xml=yes and its XML file.",
+          "type": "string",
+          "default": "--leak-check=full --track-origins=yes",
+          "group": "build.analysis",
+          "section": "Valgrind",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "cpp.perf.path",
+          "title": "perf executable",
+          "description": "Empty: perf on the PATH. Profiling with perf works on Linux only; /proc/sys/kernel/perf_event_paranoid must allow it (2 or lower).",
+          "type": "path",
+          "default": "",
+          "group": "build.analysis",
+          "section": "Profiler (perf)",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "cpp.perf.frequency",
+          "title": "Sampling frequency (Hz)",
+          "type": "int",
+          "min": 1,
+          "max": 50000,
+          "default": 999,
+          "group": "build.analysis",
+          "section": "Profiler (perf)",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "cpp.perf.callGraph",
+          "title": "Call stacks",
+          "description": "DWARF works without frame pointers but writes more data; frame pointers need -fno-omit-frame-pointer.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "dwarf",
+              "label": "DWARF"
+            },
+            {
+              "value": "fp",
+              "label": "Frame pointers"
+            },
+            {
+              "value": "lbr",
+              "label": "Last branch records (Intel)"
+            }
+          ],
+          "default": "dwarf",
+          "group": "build.analysis",
+          "section": "Profiler (perf)",
+          "project": false,
+          "order": 22
+        },
+        {
+          "key": "cpp.perf.options",
+          "title": "Additional perf record options",
+          "type": "string",
+          "default": "",
+          "group": "build.analysis",
+          "section": "Profiler (perf)",
+          "project": false,
+          "order": 23
+        },
+        {
+          "key": "cpp.vcpkg.root",
+          "title": "vcpkg root",
+          "description": "The vcpkg installation of manifest-mode projects (vcpkg.json). Empty: VCPKG_ROOT or VCPKG_INSTALLATION_ROOT. Forge never downloads vcpkg.",
+          "type": "path",
+          "default": "",
+          "group": "build.packages",
+          "section": "vcpkg",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "cpp.vcpkg.useToolchain",
+          "title": "Pass vcpkg's toolchain file to CMake profiles",
+          "description": "Adds -DCMAKE_TOOLCHAIN_FILE=<vcpkg root>/scripts/buildsystems/vcpkg.cmake unless the profile sets its own.",
+          "type": "bool",
+          "default": true,
+          "group": "build.packages",
+          "section": "vcpkg",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "cpp.conan.path",
+          "title": "Conan executable",
+          "description": "Conan 2. Empty: conan on the PATH. Forge never downloads Conan.",
+          "type": "path",
+          "default": "",
+          "group": "build.packages",
+          "section": "Conan",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "cpp.conan.profile",
+          "title": "Conan profile (-pr)",
+          "description": "Empty: Conan's default profile.",
+          "type": "string",
+          "default": "",
+          "group": "build.packages",
+          "section": "Conan",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "cpp.conan.arguments",
+          "title": "Additional conan install arguments",
+          "type": "string",
+          "default": "",
+          "group": "build.packages",
+          "section": "Conan",
+          "project": true,
+          "order": 22
+        },
+        {
+          "key": "cpp.conan.useToolchain",
+          "title": "Pass conan_toolchain.cmake to CMake profiles",
+          "description": "After Conan Install, the profile configures with the toolchain file Conan generated in its build folder.",
+          "type": "bool",
+          "default": true,
+          "group": "build.packages",
+          "section": "Conan",
+          "project": true,
+          "order": 23
+        },
+        {
+          "key": "openocd.path",
+          "title": "OpenOCD executable",
+          "description": "Empty: openocd on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "OpenOCD",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "openocd.boardConfig",
+          "title": "Board configuration file",
+          "description": "Default for OpenOCD Download & Run configurations: board/st_nucleo_f4.cfg, or a .cfg file of the project. Separate several files with ;.",
+          "type": "string",
+          "default": "",
+          "group": "build.embedded",
+          "section": "OpenOCD",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "cpp.embedded.gdb",
+          "title": "GDB for embedded targets",
+          "description": "Empty: the cross toolchain's GDB, gdb-multiarch or arm-none-eabi-gdb on the PATH. GDB 14 or newer (its DAP server).",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "OpenOCD",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "cpp.embedded.svdFile",
+          "title": "SVD file",
+          "description": "Default CMSIS-SVD file of the Peripherals view (a configuration can choose its own).",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "OpenOCD",
+          "project": true,
+          "order": 13
+        },
+        {
+          "key": "platformio.path",
+          "title": "PlatformIO Core (pio) executable",
+          "description": "Empty: pio on the PATH or ~/.platformio/penv.",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "PlatformIO",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "espIdf.path",
+          "title": "ESP-IDF folder (IDF_PATH)",
+          "description": "Empty: idf.py on the PATH (a shell with ESP-IDF's export script).",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "ESP-IDF",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "espIdf.python",
+          "title": "Python of the ESP-IDF environment",
+          "description": "Runs idf.py when the ESP-IDF folder is set. Empty: python3.",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "ESP-IDF",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "espIdf.port",
+          "title": "Serial port",
+          "description": "For Flash and Monitor (/dev/ttyUSB0, COM3). Empty: idf.py looks for one.",
+          "type": "string",
+          "default": "",
+          "group": "build.embedded",
+          "section": "ESP-IDF",
+          "project": true,
+          "order": 32
+        },
+        {
+          "key": "espIdf.baud",
+          "title": "Flash baud rate",
+          "type": "string",
+          "default": "",
+          "group": "build.embedded",
+          "section": "ESP-IDF",
+          "project": true,
+          "order": 33
+        },
+        {
+          "key": "zephyr.west",
+          "title": "west executable",
+          "description": "Empty: west on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "build.embedded",
+          "section": "Zephyr",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "zephyr.board",
+          "title": "Board",
+          "description": "The board west build builds for (nrf52840dk/nrf52840, qemu_x86).",
+          "type": "string",
+          "default": "",
+          "group": "build.embedded",
+          "section": "Zephyr",
+          "project": true,
+          "order": 41
+        },
+        {
+          "key": "zephyr.appDir",
+          "title": "Application folder",
+          "description": "Relative to the project. Empty: the project folder.",
+          "type": "string",
+          "default": "",
+          "group": "build.embedded",
+          "section": "Zephyr",
+          "project": true,
+          "order": 42
+        },
+        {
+          "key": "zephyr.buildDir",
+          "title": "Build folder",
+          "type": "string",
+          "default": "build",
+          "group": "build.embedded",
+          "section": "Zephyr",
+          "project": true,
+          "order": 43
         }
       ],
       "lspServers": [],
       "runConfigurationTypes": [
+        {
+          "id": "openocd",
+          "name": "OpenOCD Download & Run",
+          "description": "Flash the target's ELF with OpenOCD, then run it on the board or debug it with GDB through OpenOCD's GDB server (target remote), with the SVD Peripherals view.",
+          "icon": "cpu",
+          "debuggable": true
+        },
+        {
+          "id": "embedded-gdb-server",
+          "name": "Embedded GDB Server",
+          "description": "Start a GDB server (J-Link, ST-LINK, pyOCD, QEMU …) and debug the target's ELF with GDB connected to it (target remote host:port).",
+          "icon": "microchip",
+          "debuggable": true
+        },
         {
           "id": "cmake-app",
           "name": "CMake Application",

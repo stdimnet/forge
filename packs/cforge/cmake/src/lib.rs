@@ -9,12 +9,17 @@
 //!   artifacts, where targets are defined).
 //! - [`log`]: configure output messages linked to `CMakeLists.txt` lines.
 //! - [`complete`]: command, keyword and variable completion in CMake files.
+//! - [`sanitizers`]: the sanitizers of a profile as compiler and linker flags.
+//! - [`packages`]: vcpkg (manifest mode) and Conan 2: toolchain files, `conan install`,
+//!   port completion in `vcpkg.json`.
 
 pub mod complete;
 pub mod fileapi;
 pub mod log;
+pub mod packages;
 pub mod presets;
 pub mod profile;
+pub mod sanitizers;
 
 pub use fileapi::{CMakeModel, Configuration, Location, Source, Target, TargetKind};
 pub use log::{parse_log, ConfigureMessage, Severity};

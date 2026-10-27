@@ -3,7 +3,7 @@
  * test tree (both computed by the backend and streamed as `console` / `tests` run events),
  * and Run / Debug / Stop / Rerun.
  */
-import { batch, createSignal } from "solid-js";
+import { batch, createSignal, type Component } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { runApi, type ConsoleLine, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
 import { runToolsApi, type LaunchPlan, type PlannedTask } from "@/ipc/runTools";
@@ -47,6 +47,8 @@ export interface RunSession {
   staticOutput?: boolean;
   /** Toggle Auto-Test: rerun after files are saved. */
   autoTest?: boolean;
+  /** The shown result panel (`registerRunPanel`); the console when unset. */
+  panel?: string;
 }
 
 interface SessionData {
@@ -54,7 +56,9 @@ interface SessionData {
   tests?: TestTreeState;
   exited?: (code: number | null) => void;
   unlisten?: () => void;
-  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort" | "profile">;
+  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort" | "profile" | "nativeTool">;
+  /** Data of result panels (`registerRunPanel`), by panel id. */
+  panels?: Record<string, unknown>;
   /** Rerun of a tab without a process. */
   rerun?: () => void;
 }
@@ -86,6 +90,45 @@ const profileListeners: ProfileListener[] = [];
 /** Snapshots of finished Profile runs (the Profiler tool window listens). */
 export function onProfileSnapshot(l: ProfileListener): void {
   profileListeners.push(l);
+}
+
+/**
+ * A result tab of Run sessions next to the console (CForge's Sanitizers and Valgrind): it
+ * takes the run events it `accepts` and shows their data.
+ */
+export interface RunPanelDef {
+  id: string;
+  title: string;
+  icon?: Component<{ size?: number }>;
+  /** The panel's new data for a run event (given the current data), or undefined. */
+  accepts: (e: RunEvent, current: unknown) => unknown;
+  /** The number next to the title. */
+  count?: (data: unknown) => number;
+  /** Show the panel when data arrives. */
+  reveal?: (data: unknown) => boolean;
+  component: Component<{ data: unknown; session: RunSession }>;
+}
+
+const [panelDefs, setPanelDefs] = createSignal<RunPanelDef[]>([]);
+export { panelDefs as runPanels };
+
+export function registerRunPanel(def: RunPanelDef): void {
+  setPanelDefs((prev) => [...prev.filter((p) => p.id !== def.id), def]);
+}
+
+/** The panels with data of a session. */
+export const sessionPanels = (id: string): Record<string, unknown> => data.get(id)?.panels ?? {};
+
+export function setSessionPanel(id: string, panel: string | undefined): void {
+  setState("sessions", (s) => s.id === id, "panel", panel);
+}
+
+type RunEventListener = (session: RunSession, e: RunEvent) => void;
+const eventListeners: RunEventListener[] = [];
+
+/** Run events the run feature does not handle itself (CForge's perf profiles). */
+export function onRunEvent(l: RunEventListener): void {
+  eventListeners.push(l);
 }
 
 const [softWrap, setSoftWrap] = createSignal(false);
@@ -150,6 +193,19 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       if (e.profile) profileListeners.forEach((l) => l(e.profile!));
       else if (e.error) writeError(id, `Profiler: ${e.error}`);
       break;
+    case "sanitizer":
+    case "valgrind":
+    case "perf":
+      for (const p of panelDefs()) {
+        const next = p.accepts(e, d.panels?.[p.id]);
+        if (next === undefined) continue;
+        d.panels = { ...d.panels, [p.id]: next };
+        if (p.reveal?.(next)) setSessionPanel(id, p.id);
+        scheduleBump(id);
+      }
+      if ("error" in e && e.error) writeError(id, `${e.type === "perf" ? "perf" : "Valgrind"}: ${e.error}`);
+      eventListeners.forEach((l) => l(s, e));
+      break;
     case "exited": {
       if (d.tests) publishTestResults(d.tests.root);
       setState("sessions", (x) => x.id === id, { status: "finished", exitCode: e.code ?? (e.signal ? 128 + e.signal : null), endedAt: Date.now() });
@@ -173,6 +229,7 @@ function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["e
     coverage: extra?.coverage || undefined,
     debugPort: extra?.debugPort,
     profile: extra?.profile || undefined,
+    nativeTool: extra?.nativeTool,
     runOn: cfg.runOn?.kind && cfg.runOn.kind !== "local" ? cfg.runOn : undefined,
   };
   if (type?.buildCommand) {
@@ -213,7 +270,7 @@ function resetSession(id: string, cfg: RunConfiguration, debug: boolean) {
     tests: type?.testRunner ? emptyTestTree() : undefined,
     extra: old?.extra,
   });
-  setState("sessions", (x) => x.id === id, { config: cfg, name: cfg.name, debug, version: 0 });
+  setState("sessions", (x) => x.id === id, { config: cfg, name: cfg.name, debug, version: 0, panel: undefined });
 }
 
 /** Tab for a new run: reuses the finished, unpinned tab of the same configuration. */

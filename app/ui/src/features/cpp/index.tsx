@@ -11,7 +11,9 @@
  * - the "CMake Application" run configuration type and the manifest's Google Test, Catch2
  *   and CTest types, which build their target first; Debug through the toolchain's LLDB or
  *   GDB with STL renderers (`cpp_debug_request`, `dap_start`),
- * - CMake completion, clang-format and reload on change (`editor.ts`).
+ * - CMake completion, clang-format and reload on change (`editor.ts`),
+ * - sanitizers, Valgrind Memcheck, perf and the package managers (`analysis.tsx`), and
+ *   PlatformIO, ESP-IDF, Zephyr, OpenOCD and the Peripherals view (`embedded.tsx`).
  */
 import { createEffect, createRoot, on } from "solid-js";
 import { AppWindow, Hammer, Triangle } from "lucide-solid";
@@ -26,11 +28,10 @@ import { refreshDebugAdapters } from "@/features/debug/adapters";
 import { dapApi } from "@/features/debug/dapApi";
 import { setInputDialog } from "@/features/git/overlays";
 import { baseName, registerDebugLauncher, registerRunConfigurationType, testFrameworkType } from "@/features/run/types";
-import { activeSessionId, setActiveSession } from "@/features/run/runStore";
 import { isDialogWindow } from "@/shell/window/mode";
 import { commands, registerCommand } from "@/state/commands";
 import { showToolWindow } from "@/state/layout";
-import { getSetting, settingsState } from "@/state/settings";
+import { settingsState } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { safeMode } from "@/features/trust/store";
 import { BUILD_TAB, BuildProblemsView, buildProblems, publishBuildOutput } from "./BuildProblems";
@@ -40,6 +41,8 @@ import { ProfilesPage } from "./ProfilesPage";
 import { ToolchainsPage } from "./ToolchainsPage";
 import { installClangd, offerClangd } from "./clangd";
 import "./editor";
+import "./analysis";
+import "./embedded";
 import {
   cmakeState,
   cppActive,
@@ -50,6 +53,7 @@ import {
   refreshProfiles,
   reloadCMake,
   runBuild,
+  buildFirst,
   showCppBalloon,
 } from "./state";
 
@@ -106,18 +110,6 @@ registerProblemsTab({
 });
 
 // ---- Run configurations -----------------------------------------------------------------------
-
-/** Build a configuration's CMake target first (`cmake.buildBeforeRun`); false when it failed. */
-async function buildFirst(cfg: RunConfiguration): Promise<boolean> {
-  if (!getSetting<boolean>("cmake.buildBeforeRun", true)) return true;
-  const target = cfg.type === "ctest" ? null : await cppApi.targetOf(cfg).catch(() => null);
-  if (cfg.type !== "ctest" && !target) return true;
-  // The run's own tab comes back to the front once its target is built.
-  const run = activeSessionId();
-  const code = await runBuild("build", target ? [target] : undefined, target ? `Build ${target}` : "Build All");
-  if (code === 0 && run) setActiveSession(run);
-  return code === 0;
-}
 
 registerRunConfigurationType({
   id: "cmake-app",
@@ -180,6 +172,17 @@ registerRunConfigurationType({
     });
     return runApi.start({ ...request, runId });
   },
+});
+
+/** Other command lines in the Run tool window (Conan, PlatformIO, idf.py, west, OpenOCD). */
+registerRunConfigurationType({
+  id: "cpp-tool",
+  name: "C/C++ Tool",
+  icon: Hammer,
+  hidden: true,
+  fields: [],
+  argumentsLabel: false,
+  buildCommand: (cfg) => JSON.parse(cfg.options?.commandLine ?? "{}"),
 });
 
 // Google Test, Catch2 and CTest from the manifest's `testFrameworks`, building first.

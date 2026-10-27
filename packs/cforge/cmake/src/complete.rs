@@ -127,6 +127,8 @@ pub enum ItemKind {
     Command,
     Keyword,
     Variable,
+    /// A vcpkg port (`vcpkg.json`).
+    Package,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

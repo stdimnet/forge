@@ -105,6 +105,8 @@ export interface RunRequest {
   runOn?: RunTarget;
   /** Profile (Python): run under cProfile; the run ends with a `profile` event. */
   profile?: boolean;
+  /** C/C++: run under Valgrind Memcheck or perf; the run ends with a `valgrind` / `perf` event. */
+  nativeTool?: import("./cppTools").NativeTool;
 }
 
 export interface RunStarted {
@@ -201,7 +203,10 @@ export type RunEvent =
   | ({ type: "console" } & ConsoleDelta)
   | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary }
   | { type: "coverage"; suite?: import("./testing").CoverageSuite; error?: string }
-  | { type: "profile"; profile?: import("./pythonTools").ProfileInfo; error?: string };
+  | { type: "profile"; profile?: import("./pythonTools").ProfileInfo; error?: string }
+  | { type: "sanitizer"; reports: import("./cppTools").SanitizerReport[] }
+  | { type: "valgrind"; report?: import("./cppTools").ValgrindReport; error?: string }
+  | { type: "perf"; profile?: import("./cppTools").PerfProfile; error?: string };
 
 /** A file reference in terminal output; offsets are string indices. */
 export interface FileLink {

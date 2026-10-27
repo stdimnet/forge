@@ -257,6 +257,8 @@ pub(crate) struct TestSetup {
     pub coverage: Option<crate::commands::testing::CoverageSetup>,
     /// Profile (Python): where the cProfile snapshot is read after the run.
     pub profile: Option<crate::commands::python_tools::ProfileSetup>,
+    /// Valgrind Memcheck / perf (C/C++): what to read after the run.
+    pub native: Option<crate::commands::cpp_tools::NativeSetup>,
 }
 
 fn framework_for(

@@ -6,12 +6,17 @@
  * WebAssembly. `?build=broken` makes the demo build fail with compiler errors.
  */
 import type { ProjectInfo } from "@/ipc/project";
+import { pioDemoFiles, pioDemoName } from "./demoPioProject";
 
-export const cppDemoName = "shapes";
+const demoParam = () => (typeof location !== "undefined" ? new URLSearchParams(location.search).get("project") : null);
 
-/** True when the page asks for the C++ demo project. */
-export const isCppDemo = (): boolean =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).get("project") === "cpp";
+/** `?project=pio`: the PlatformIO demo `blinky` (demoPioProject.ts) instead of `shapes`. */
+export const isPioDemo = (): boolean => demoParam() === "pio";
+
+export const cppDemoName = isPioDemo() ? pioDemoName : "shapes";
+
+/** True when the page asks for the C++ demo project (or the PlatformIO one). */
+export const isCppDemo = (): boolean => demoParam() === "cpp" || demoParam() === "pio";
 
 /** `?build=broken`: the build fails with compiler and linker errors. */
 export const cppBrokenBuild = (): boolean =>
@@ -21,7 +26,7 @@ export const cppDemoInfo: ProjectInfo = {
   languages: ["cpp"],
   frameworks: [],
   packs: ["cforge"],
-  tools: ["git", "cmake"],
+  tools: isPioDemo() ? ["git", "platformio"] : ["git", "cmake", "vcpkg"],
   primary: { id: "cpp", name: "C/C++", language: "cpp" },
 };
 
@@ -328,6 +333,16 @@ const broken = (files: Record<string, string>): Record<string, string> => ({
 const files: Record<string, string> = {
   "CMakeLists.txt": CMAKE,
   "CMakePresets.json": PRESETS,
+  "vcpkg.json": `{
+  "name": "shapes",
+  "version": "1.2.0",
+  "dependencies": [
+    "fmt",
+    { "name": "gtest", "host": true },
+    "catch2"
+  ]
+}
+`,
   ".clang-format": CLANG_FORMAT,
   ".gitignore": "cmake-build-*/\nbuild/\n.cache/\n",
   "README.md": "# shapes\n\nPolygon geometry with a small command line app.\n\n```sh\ncmake --preset release\ncmake --build build/release\nctest --test-dir build/release\n```\n",
@@ -340,4 +355,4 @@ const files: Record<string, string> = {
   "tests/stats_test.cpp": STATS_TEST,
 };
 
-export const cppDemoFiles: Record<string, string> = cppBrokenBuild() ? broken(files) : files;
+export const cppDemoFiles: Record<string, string> = isPioDemo() ? pioDemoFiles : cppBrokenBuild() ? broken(files) : files;

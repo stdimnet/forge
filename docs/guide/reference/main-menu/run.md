@@ -47,3 +47,7 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 | Web Server Debug Validation… | — | — | yes | Checks the Xdebug configuration of a web server or CLI interpreter. [More](../../user/debugging.md#web-server-debug-validation) |
 
 **Start Listening for PHP Debug Connections** and **Web Server Debug Validation…** are added by the Xdebug plugin (`forge.xdebug`) in PHP projects; Start Listening is a toggle with a check mark while Forge listens.
+
+In C/C++ projects the C/C++ plugin (`forge.cpp`) adds **Run with Valgrind Memcheck** and
+**Profile with perf** after Debug; they run the selected CMake Application, Google Test or
+Catch2 configuration under Valgrind or perf ([more](../../user/cpp-tools.md)).

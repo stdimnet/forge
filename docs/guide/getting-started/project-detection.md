@@ -27,7 +27,7 @@ and a plain Lua project does not start PHP language servers.
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
-| C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder |
+| C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks

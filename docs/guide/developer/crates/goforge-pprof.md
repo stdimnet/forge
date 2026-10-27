@@ -27,7 +27,10 @@ tags: [crate, rust, pack, go, profiler, pprof]
 
 - IPC: `pprof_open` (`app/src-tauri/src/commands/go.rs`).
 - Browser mode: `crates/forge-wasm/src/go.rs` (`pprof_view`).
-- UI: `app/ui/src/features/go/ProfilerView.tsx`.
+- UI: `app/ui/src/features/go/ProfilerView.tsx` (the views themselves are shared:
+  `app/ui/src/features/profiler/callTree.tsx`).
+- [cforge-analyzers](cforge-analyzers.md): `perf script` output becomes a `Profile`, so perf
+  profiles get the same views.
 
 ## Dependencies
 

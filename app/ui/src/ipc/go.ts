@@ -7,6 +7,7 @@
 import type { LaunchRequest } from "@/features/debug/dapApi";
 import { invoke, listen } from "./index";
 import type { CommandLine, RunConfiguration } from "./run";
+import type { ProfileView } from "./profile";
 
 export interface GoSdk {
   root: string;
@@ -128,40 +129,7 @@ export interface DelveStatus {
   install?: string | null;
 }
 
-export interface ValueType {
-  kind: string;
-  unit: string;
-}
-
-export interface TopRow {
-  name: string;
-  file: string;
-  line: number;
-  flat: number;
-  cum: number;
-}
-
-export interface CallNode {
-  name: string;
-  file: string;
-  line: number;
-  total: number;
-  self: number;
-  children: CallNode[];
-}
-
-export interface ProfileView {
-  sampleTypes: ValueType[];
-  sampleIndex: number;
-  total: number;
-  samples: number;
-  durationNanos: number;
-  periodType?: ValueType | null;
-  period: number;
-  top: TopRow[];
-  tree: CallNode;
-  pruned: number;
-}
+export type { CallNode, ProfileView, TopRow, ValueType } from "./profile";
 
 /** `go://install` while an SDK downloads: a step or download progress. */
 export type GoInstallEvent = { message: string } | { label: string; done: number; total?: number | null };

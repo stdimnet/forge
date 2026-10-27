@@ -1,4 +1,4 @@
-.goprof-view {
+.prof-view {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -7,7 +7,7 @@
   color: var(--fg);
 }
 
-.goprof-empty {
+.prof-empty {
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -15,7 +15,7 @@
   align-items: flex-start;
 }
 
-.goprof-toolbar {
+.prof-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -25,12 +25,12 @@
   flex-wrap: wrap;
 }
 
-.goprof-title {
+.prof-title {
   font-weight: 600;
   color: var(--fg-strong);
 }
 
-.goprof-type {
+.prof-type {
   background: var(--bg-input);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -38,16 +38,16 @@
   padding: 1px 4px;
 }
 
-.goprof-spacer {
+.prof-spacer {
   flex: 1;
 }
 
-.goprof-tabs {
+.prof-tabs {
   display: flex;
   gap: 2px;
 }
 
-.goprof-tabs button {
+.prof-tabs button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -60,19 +60,19 @@
   font: inherit;
 }
 
-.goprof-tabs button.active {
+.prof-tabs button.active {
   background: var(--bg-active);
   color: var(--fg-strong);
 }
 
-.goprof-body {
+.prof-body {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
 /* Flame graph: the root at the bottom, callees above their callers. */
-.goprof-flame {
+.prof-flame {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -82,13 +82,13 @@
   box-sizing: border-box;
 }
 
-.goprof-flame-row {
+.prof-flame-row {
   position: relative;
   height: 20px;
   margin-top: 1px;
 }
 
-.goprof-flame-frame {
+.prof-flame-frame {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -106,21 +106,21 @@
   text-overflow: ellipsis;
 }
 
-.goprof-flame-frame:hover {
+.prof-flame-frame:hover {
   filter: brightness(1.12);
 }
 
-.goprof-flame-frame span {
+.prof-flame-frame span {
   pointer-events: none;
 }
 
-.goprof-reset {
+.prof-reset {
   position: absolute;
   top: 6px;
   right: 8px;
 }
 
-.goprof-tree-row {
+.prof-tree-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -128,20 +128,20 @@
   white-space: nowrap;
 }
 
-.goprof-toggle {
+.prof-toggle {
   width: 12px;
   display: inline-flex;
   cursor: pointer;
   color: var(--fg-muted);
 }
 
-.goprof-pct {
+.prof-pct {
   width: 48px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.goprof-bar {
+.prof-bar {
   width: 60px;
   height: 6px;
   background: var(--bg-hover);
@@ -149,29 +149,29 @@
   overflow: hidden;
 }
 
-.goprof-bar span {
+.prof-bar span {
   display: block;
   height: 100%;
   background: var(--accent);
 }
 
-.goprof-name {
+.prof-name {
   font-family: var(--font-mono);
   font-size: var(--fs-small);
 }
 
-.goprof-value,
-.goprof-self {
+.prof-value,
+.prof-self {
   font-variant-numeric: tabular-nums;
 }
 
-.goprof-top {
+.prof-top {
   width: 100%;
   border-collapse: collapse;
 }
 
-.goprof-top th,
-.goprof-top td {
+.prof-top th,
+.prof-top td {
   text-align: right;
   padding: 2px 10px;
   border-bottom: 1px solid var(--border);
@@ -179,15 +179,15 @@
   white-space: nowrap;
 }
 
-.goprof-top th:first-child,
-.goprof-top td:first-child {
+.prof-top th:first-child,
+.prof-top td:first-child {
   text-align: left;
   font-family: var(--font-mono);
   font-size: var(--fs-small);
   width: 100%;
 }
 
-.goprof-top th {
+.prof-top th {
   position: sticky;
   top: 0;
   background: var(--bg-panel);
@@ -195,46 +195,14 @@
   font-weight: 500;
 }
 
-.goprof-top tr:hover td {
+.prof-top tr:hover td {
   background: var(--bg-hover);
 }
 
-.goprof-top tr.goprof-own td:first-child {
+.prof-top tr.prof-own td:first-child {
   color: var(--accent);
 }
 
-/* Settings | Go */
-.go-settings .go-sdk-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0 12px;
-}
-
-.go-settings select {
-  min-width: 320px;
-  background: var(--bg-input);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px 6px;
-}
-
-.go-tools {
-  border-collapse: collapse;
-  margin: 4px 0 16px;
-}
-
-.go-tools td {
-  padding: 3px 12px 3px 0;
-  vertical-align: middle;
-}
-
-.go-tools .go-tool-path {
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-}
-
-.go-tools .go-missing {
-  color: var(--warning);
+.prof-name.prof-own {
+  color: var(--accent);
 }

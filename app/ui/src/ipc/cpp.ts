@@ -79,6 +79,10 @@ export interface Profile {
   /** The configure preset it comes from (read-only). */
   preset?: string;
   cacheVariables?: Record<string, string>;
+  /** `address`, `undefined`, `thread`, `memory`, `leak`. */
+  sanitizers?: string[];
+  /** Why the sanitizers cannot be combined. */
+  sanitizerError?: string;
 }
 
 /** One table of the `cmake.profiles` setting (strings only). */
@@ -92,6 +96,8 @@ export interface ProfileEntry {
   buildOptions: string;
   environment: string;
   enabled: string;
+  /** Sanitizers separated by commas (`address,undefined`). */
+  sanitizers?: string;
 }
 
 export interface ProfilesInfo {
@@ -204,7 +210,7 @@ export interface CppStatus {
 
 export interface CMakeCompletion {
   from: number;
-  items: { label: string; kind: "command" | "keyword" | "variable"; detail?: string; apply: string }[];
+  items: { label: string; kind: "command" | "keyword" | "variable" | "package"; detail?: string; apply: string }[];
 }
 
 export type CppInstallEvent = { message: string } | { label: string; done: number; total?: number | null };

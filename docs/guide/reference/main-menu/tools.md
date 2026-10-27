@@ -65,3 +65,6 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command…, Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |
+| — | Conan Install | C/C++ projects with a Conan recipe (`forge.cpp`, [more](../../user/cpp-tools.md#conan-2)) |
+| ESP-IDF | Build, Flash, Monitor, Menuconfig | ESP-IDF projects (`forge.cpp`, [more](../../user/embedded.md#esp-idf)) |
+| Zephyr | West Build, West Flash, West Debug, Select Board… | Zephyr applications (`forge.cpp`, [more](../../user/embedded.md#zephyr)) |

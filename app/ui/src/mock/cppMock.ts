@@ -19,14 +19,16 @@ import type {
   Toolchain,
   ToolchainEntry,
 } from "@/ipc/cpp";
-import type { CommandLine, RunConfiguration, RunRequest } from "@/ipc/run";
+import type { CommandLine, RunConfiguration, RunEvent, RunRequest } from "@/ipc/run";
 import type { LaunchRequest } from "@/features/debug/dapApi";
 import { callWasmSync, forgeWasm } from "@/wasm";
-import { cppBrokenBuild, cppDemoInfo, cppDemoName, isCppDemo } from "./demoCppProject";
+import { cppBrokenBuild, cppDemoInfo, cppDemoName, isCppDemo, isPioDemo } from "./demoCppProject";
 import { mockFiles } from "./workspaceMock";
 import { mockSettingValue, mockTestFrameworkSpecs } from "./settingsMock";
 import { registerMockRunHandler, startMockRun, type Step } from "./runMock";
 import "./cppDebugMock";
+import { asanOutput, nativeRun, sanitizerEvent } from "./cppToolsMock";
+import "./embeddedMock";
 
 const HOME = "/home/anna";
 export const CPP_ROOT = `${HOME}/Projects/${cppDemoName}`;
@@ -200,13 +202,14 @@ function configureLog(buildDir: string, buildType: string, generator: string): s
 let state: CMakeState | null = null;
 
 async function currentState(): Promise<CMakeState> {
+  if (!mockFiles["CMakeLists.txt"]) return { root: CPP_ROOT, profile: "Debug", buildDir: `${CPP_ROOT}/cmake-build-debug`, status: "noCMake", messages: [], log: [] };
   const info = await profilesInfo();
   const p = info.profiles.find((x) => x.name === info.active) ?? info.profiles[0];
   const dir = p.buildDirectory || `cmake-build-${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   const buildDir = dir.startsWith("/") ? dir : `${CPP_ROOT}/${dir}`;
   if (state && state.profile === p.name && state.buildDir === buildDir) return state;
-  // The Debug profile was loaded when the project opened; other profiles need a reload.
-  const loaded = p.name === "Debug";
+  // The Debug profiles were loaded when the project opened; other profiles need a reload.
+  const loaded = p.name === "Debug" || p.name === "Debug-ASan";
   const log = loaded ? configureLog(buildDir, p.buildType, "Ninja") : [];
   const wasm = await forgeWasm();
   state = {
@@ -286,7 +289,7 @@ registerMock("cpp_status", async (): Promise<CppStatus> => {
     clangd,
     clangFormat: "/usr/bin/clang-format",
     toolchain: allToolchains()[0],
-    projectKind: "cmake",
+    projectKind: s.status === "noCMake" ? "sources" : "cmake",
     compileCommandsDir: s.buildDir,
     compileCommands: { files: 5, projectFiles: 5, compilers: ["/usr/bin/g++"], standards: ["c++20"] },
     remote: false,
@@ -492,15 +495,16 @@ async function cppRun(r: RunRequest): Promise<CppRun | null> {
   if (cfg.type === "cmake-app") {
     const ctx = await cppContext();
     const exe = cfg.options?.executable || ctx.targets.find((t) => t.name === cfg.options?.target)?.executable || `${ctx.buildDir}/shapes_app`;
+    const args = (cfg.arguments ?? "").split(/\s+/).filter(Boolean);
+    const stress = args.includes("--stress");
     return {
-      cmd: { program: exe, args: (cfg.arguments ?? "").split(/\s+/).filter(Boolean), cwd: ctx.buildDir, env: cfg.env ?? {} },
+      cmd: { program: exe, args, cwd: ctx.buildDir, env: cfg.env ?? {} },
       steps: [
         [200, "4 corners, area 4.00, perimeter 8.00\n"],
         [30, "3 corners, area 6.00, perimeter 12.00\n"],
         [30, "4 corners, area 9.00, perimeter 12.00\n"],
         [30, "mean area: 6.33333\n"],
-        [30, "median area: 6\n"],
-        [30, { code: 0 }],
+        ...(stress ? ([[60, asanOutput(ctx.buildDir), "stderr"], [30, { code: 1 }]] as Step[]) : ([[30, "median area: 6\n"], [30, { code: 0 }]] as Step[])),
       ],
       test: false,
     };
@@ -551,10 +555,22 @@ async function cppRun(r: RunRequest): Promise<CppRun | null> {
 registerMockRunHandler({
   commandLine: async (r) => (await cppRun(r))?.cmd ?? null,
   start: async (r, runId) => {
-    const run = await cppRun(r);
+    let run = await cppRun(r);
     if (!run) return null;
     const cfg = r.configuration;
+    // Run with Valgrind Memcheck / Profile with perf; else sanitizer reports from the output.
+    let exitEvent: (() => Promise<RunEvent | null>) | undefined;
+    if (r.nativeTool && cfg && ["cmake-app", "gtest", "catch2"].includes(cfg.type)) {
+      const native = nativeRun(r, run.cmd, run.steps);
+      run = { ...run, cmd: native.cmd, steps: native.steps };
+      exitEvent = native.exitEvent;
+    } else if (cfg) {
+      const text = run.steps.map((step) => (typeof step[1] === "string" ? step[1] : "")).join("");
+      const buildDir = (await cppContext()).buildDir;
+      exitEvent = () => sanitizerEvent(text, buildDir);
+    }
     return startMockRun(runId, run.cmd, run.steps, {
+      exitEvent,
       testRunner: !!r.testRunner,
       testReport: run.test ? "jUnitFile" : undefined,
       junitFlavor: run.test ? "generic" : undefined,
@@ -567,7 +583,7 @@ registerMockRunHandler({
 });
 
 // Run configurations of the demo, like a CLion user's project.
-if (isCppDemo()) {
+if (isCppDemo() && !isPioDemo()) {
   void Promise.resolve().then(async () => {
     const { mockHandler } = await import("@/ipc");
     const save = mockHandler("run_configurations_save");
@@ -580,8 +596,18 @@ if (isCppDemo()) {
           { name: "polygon_tests", type: "gtest", storeAsProjectFile: true, options: { scope: "file", file: "tests/polygon_test.cpp", suites: "PolygonTest|PolygonErrors|ScaleTest" } },
           { name: "stats_tests", type: "catch2", options: { scope: "file", file: "tests/stats_test.cpp", suites: "mean of areas|median|empty input throws" } },
           { name: "All CTest", type: "ctest", storeAsProjectFile: true, options: { scope: "all", jobs: "4" } },
+          { name: "shapes_app (stress)", type: "cmake-app", arguments: "--stress", options: { target: "shapes_app" } },
         ],
       },
+    });
+    // A profile with AddressSanitizer and UndefinedBehaviorSanitizer.
+    await mockHandler("settings_set")?.({
+      key: "cmake.profiles",
+      value: [
+        { name: "Debug", buildType: "Debug", toolchain: "", generator: "", cmakeOptions: "", buildDirectory: "", buildOptions: "-j 8", environment: "", enabled: "true", sanitizers: "" },
+        { name: "Debug-ASan", buildType: "Debug", toolchain: "", generator: "", cmakeOptions: "", buildDirectory: "", buildOptions: "-j 8", environment: "", enabled: "true", sanitizers: "address,undefined" },
+      ],
+      scope: "project",
     });
   });
 }

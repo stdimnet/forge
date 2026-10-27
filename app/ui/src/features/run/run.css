@@ -834,3 +834,45 @@
   line-height: 1.4;
   padding-left: 2px;
 }
+
+/* ---------- Result panels (Sanitizers, Valgrind) ---------- */
+.run-panel-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.run-panel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.run-panel-tab:hover {
+  background: var(--bg-hover);
+}
+.run-panel-tab.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.run-panel-count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: var(--bg-editor);
+  font-size: var(--fs-small);
+  text-align: center;
+  line-height: 16px;
+}

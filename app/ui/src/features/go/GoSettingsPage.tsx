@@ -13,6 +13,7 @@ import { SchemaPage } from "@/features/settings/SchemaPage";
 import { LanguageServersPage } from "@/features/langservers/LanguageServersPage";
 import { downloadSdk } from "./sdk";
 import { installTool, refreshGoStatus } from "./state";
+import "./go.css";
 
 export function GoSettingsPage() {
   const [status, { refetch }] = createResource(() => refreshGoStatus(true));

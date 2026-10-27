@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { BuildProblem, CMakeCompletion, CMakeState, ProfilesInfo } from "@/ipc/cpp";
 import type { CommandLine, RunConfiguration } from "@/ipc/run";
 import type { TestFile } from "@/ipc/testFrameworks";
+import type { CMakeCompletion as Completion } from "@/ipc/cpp";
+import type { SanitizerReport, ValgrindReport } from "@/ipc/cppTools";
 
 // The C++ demo is chosen by the page URL, before the mocks load.
 history.replaceState(null, "", "/?project=cpp");
@@ -49,6 +51,7 @@ describe("CForge mock (Rust crates through WebAssembly)", () => {
     const profiles = await invoke<ProfilesInfo>("cmake_profiles");
     expect(profiles.profiles.map((p) => [p.name, p.preset ?? null])).toEqual([
       ["Debug", null],
+      ["Debug-ASan", null],
       ["Release (preset)", "release"],
       ["ASan (preset)", "asan"],
     ]);
@@ -66,5 +69,22 @@ describe("CForge mock (Rust crates through WebAssembly)", () => {
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatchObject({ path: "src/stats.cpp", line: 21, column: 51, severity: "error" });
     expect(problems[0].notes?.[0].path).toBe("/usr/include/c++/13/numeric");
+  });
+
+  it("reads sanitizer reports, Valgrind's XML and completes vcpkg ports", async () => {
+    const { asanOutput } = await import("./cppToolsMock");
+    const reports = await invoke<SanitizerReport[]>("cpp_sanitizer_reports", { output: asanOutput("/home/anna/Projects/shapes/cmake-build-debug") });
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ sanitizer: "address", kind: "heap-buffer-overflow" });
+    expect(reports[0].location).toMatchObject({ path: "src/stats.cpp", line: 18 });
+    expect(reports[0].stacks.map((s) => s.title)).toEqual(["READ of size 8 at 0x503000000058 thread T0", "allocated by thread T0 here"]);
+    const valgrind = await invoke<ValgrindReport>("cpp_valgrind_open", { path: "memcheck.xml" });
+    expect(valgrind.errors.map((e) => e.kind)).toEqual(["InvalidRead", "UninitCondition", "InvalidWrite", "Leak_DefinitelyLost", "Leak_PossiblyLost"]);
+    expect(valgrind.errorCount).toBe(5);
+    expect(valgrind.leakSummary.definitelyLost).toEqual({ bytes: 72, blocks: 1 });
+    expect(valgrind.errors[0].location).toMatchObject({ path: "src/stats.cpp", line: 18 });
+    const text = '{ "dependencies": [ "fm';
+    const ports = await invoke<Completion>("cpp_vcpkg_complete", { text, offset: text.length });
+    expect(ports.items.map((i) => i.label)).toEqual(["fmt"]);
   });
 });

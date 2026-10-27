@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::presets::{MacroContext, Presets};
+use crate::sanitizers;
 
 /// A CMake profile.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,6 +37,12 @@ pub struct Profile {
     /// The preset's cache variables and toolchain file.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub cache_variables: BTreeMap<String, String>,
+    /// Enabled sanitizers (`address`, `undefined`, `thread`, `memory`, `leak`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sanitizers: Vec<String>,
+    /// Why the sanitizers cannot be combined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sanitizer_error: Option<String>,
 }
 
 /// One table of the `cmake.profiles` setting (setting tables hold strings).
@@ -53,6 +60,8 @@ pub struct ProfileEntry {
     pub environment: String,
     /// `false` disables the profile; anything else enables it.
     pub enabled: String,
+    /// Sanitizers separated by commas (`address,undefined`).
+    pub sanitizers: String,
 }
 
 /// CLion's build folder name of a profile: `cmake-build-debug`, `cmake-build-release-clang`.
@@ -105,6 +114,8 @@ impl Profile {
             enabled: e.enabled.trim() != "false",
             preset: None,
             cache_variables: BTreeMap::new(),
+            sanitizer_error: sanitizers::conflict(&sanitizers::parse_list(&e.sanitizers)),
+            sanitizers: sanitizers::parse_list(&e.sanitizers),
         }
     }
 
@@ -176,6 +187,8 @@ pub fn profiles(entries: &[ProfileEntry], presets: &Presets, ctx: &MacroContext)
             enabled: true,
             preset: Some(p.name.clone()),
             cache_variables: cache,
+            sanitizers: Vec::new(),
+            sanitizer_error: None,
         });
     }
     out
@@ -239,6 +252,18 @@ pub struct ConfigureContext {
     pub default_generator: String,
     /// `CMAKE_C_COMPILER`, `CMAKE_CXX_COMPILER`, `CMAKE_MAKE_PROGRAM` of the toolchain.
     pub toolchain_variables: BTreeMap<String, String>,
+    /// A package manager's toolchain file (Conan's `conan_toolchain.cmake`, vcpkg's
+    /// `vcpkg.cmake`), passed unless the profile names its own `CMAKE_TOOLCHAIN_FILE`.
+    pub package_toolchain: Option<String>,
+}
+
+/// `-DNAME=value` / `-DNAME:TYPE=value` definitions of an options string.
+fn definitions(args: &[String]) -> BTreeMap<String, String> {
+    args.iter()
+        .filter_map(|a| a.strip_prefix("-D"))
+        .filter_map(|d| d.split_once('='))
+        .map(|(k, v)| (k.split(':').next().unwrap_or(k).to_string(), v.to_string()))
+        .collect()
 }
 
 fn absolute(source: &str, dir: &str) -> String {
@@ -254,6 +279,9 @@ fn absolute(source: &str, dir: &str) -> String {
 pub fn configure_command(p: &Profile, ctx: &ConfigureContext) -> Command {
     let build = absolute(&ctx.source_dir, &p.build_dir());
     let mut args: Vec<String> = Vec::new();
+    let options = split_args(&p.cmake_options);
+    let mut defined = p.cache_variables.clone();
+    defined.extend(definitions(&options));
     if let Some(preset) = &p.preset {
         args.push(format!("--preset={preset}"));
         args.push("-B".into());
@@ -279,7 +307,29 @@ pub fn configure_command(p: &Profile, ctx: &ConfigureContext) -> Command {
         // The toolchain names a C compiler for C++-only projects too.
         args.push("--no-warn-unused-cli".into());
     }
-    args.extend(split_args(&p.cmake_options));
+    if let Some(file) = ctx.package_toolchain.as_deref().filter(|f| !f.is_empty()) {
+        if !defined.contains_key("CMAKE_TOOLCHAIN_FILE") {
+            args.push(format!("-DCMAKE_TOOLCHAIN_FILE={file}"));
+        }
+    }
+    // Sanitizer flags extend the flags the options set (those definitions are dropped).
+    let sanitizer_defs = sanitizers::cmake_definitions(&p.sanitizers, &defined);
+    let replaced: Vec<String> = sanitizer_defs
+        .iter()
+        .filter_map(|d| {
+            d.strip_prefix("-D")?
+                .split_once('=')
+                .map(|(k, _)| k.to_string())
+        })
+        .collect();
+    args.extend(options.into_iter().filter(|o| {
+        let name = o
+            .strip_prefix("-D")
+            .and_then(|d| d.split_once('='))
+            .map(|(k, _)| k.split(':').next().unwrap_or(k));
+        !name.is_some_and(|n| replaced.iter().any(|r| r == n))
+    }));
+    args.extend(sanitizer_defs);
     Command {
         program: ctx.cmake.clone(),
         args,
@@ -420,6 +470,7 @@ mod tests {
             default_generator: "Ninja".into(),
             toolchain_variables: [("CMAKE_CXX_COMPILER".to_string(), "/usr/bin/g++".to_string())]
                 .into(),
+            package_toolchain: None,
         };
         let c = configure_command(&p, &ctx);
         assert_eq!(
@@ -487,6 +538,53 @@ mod tests {
         );
         assert_eq!(ctest_next_to("cmake"), "ctest");
         assert_eq!(build_dir_of(&p, "/x"), "/x/cmake-build-debug");
+    }
+
+    #[test]
+    fn sanitizers_and_package_toolchains() {
+        let entry = ProfileEntry {
+            name: "ASan".into(),
+            sanitizers: "address, undefined".into(),
+            cmake_options: "\"-DCMAKE_CXX_FLAGS=-Wall\" -DX=1".into(),
+            ..ProfileEntry::default()
+        };
+        let p = Profile::from_entry(&entry);
+        assert_eq!(p.sanitizers, ["address", "undefined"]);
+        assert_eq!(p.sanitizer_error, None);
+        let ctx = ConfigureContext {
+            cmake: "cmake".into(),
+            source_dir: "/p".into(),
+            default_generator: String::new(),
+            toolchain_variables: BTreeMap::new(),
+            package_toolchain: Some("/p/cmake-build-asan/conan_toolchain.cmake".into()),
+        };
+        let args = configure_command(&p, &ctx).args;
+        assert!(args.contains(
+            &"-DCMAKE_TOOLCHAIN_FILE=/p/cmake-build-asan/conan_toolchain.cmake".to_string()
+        ));
+        assert!(args.contains(&"-DX=1".to_string()));
+        assert!(!args.contains(&"-DCMAKE_CXX_FLAGS=-Wall".to_string()));
+        assert!(args.contains(
+            &"-DCMAKE_CXX_FLAGS=-Wall -fsanitize=address,undefined -fno-omit-frame-pointer"
+                .to_string()
+        ));
+        assert!(args.contains(&"-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined".to_string()));
+        // The profile's own toolchain file wins.
+        let mut own = p.clone();
+        own.cmake_options = "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=/opt/arm.cmake".into();
+        let args = configure_command(&own, &ctx).args;
+        assert_eq!(
+            args.iter()
+                .filter(|a| a.contains("CMAKE_TOOLCHAIN_FILE"))
+                .count(),
+            1
+        );
+        let bad = Profile::from_entry(&ProfileEntry {
+            name: "x".into(),
+            sanitizers: "thread,address".into(),
+            ..ProfileEntry::default()
+        });
+        assert!(bad.sanitizer_error.is_some());
     }
 
     #[test]

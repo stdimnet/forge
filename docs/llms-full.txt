@@ -54,6 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
+  Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
+  leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
+  ([C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md)); and embedded development: the
+  PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB
+  Server debugging, and the SVD Peripherals view ([Embedded development](docs/guide/user/embedded.md)).
 - **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
   toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
   Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and
@@ -588,7 +594,7 @@ and a plain Lua project does not start PHP language servers.
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
-| C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder |
+| C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -818,6 +824,8 @@ not finished, the page says so.
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 | [CForge (C and C++)](docs/guide/user/cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
+| [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md) | Sanitizers (ASan, UBSan, TSan, MSan, LSan) in CMake profiles with the Sanitizers tab, Run with Valgrind Memcheck, Profile with perf (flame graph), vcpkg and Conan 2 |
+| [Embedded development](docs/guide/user/embedded.md) | PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB Server debugging, the SVD Peripherals view |
 | [Spring Boot and Jakarta EE](docs/guide/user/spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
 | [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
@@ -12148,6 +12156,13 @@ C/C++ sources (or with them in `src/`), C/C++ files in the root, or two or more 
   build problems, test discovery and command lines, coverage and debugger setup — is
   computed in Rust (`packs/cforge/*`).
 
+Two more pages cover the rest of CForge:
+
+- [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md): sanitizers in CMake profiles and the
+  Sanitizers tab, Run with Valgrind Memcheck, Profile with perf, vcpkg and Conan.
+- [Embedded development](docs/guide/user/embedded.md): PlatformIO, ESP-IDF, Zephyr, OpenOCD Download & Run,
+  Embedded GDB Server and the SVD Peripherals view.
+
 ![GoogleTest tests with run icons in the gutter](docs/screenshots/cpp-editor.png)
 
 ## Toolchains
@@ -12292,6 +12307,11 @@ optional **Executable**, **Program arguments**, working directory (default: the 
 the executable), environment and **Debugger** (the toolchain's, GDB or LLDB). The target is
 built first. The CMake tool window's Run and Debug buttons create one.
 
+**OpenOCD Download & Run** and **Embedded GDB Server** flash and debug boards; see
+[Embedded development](docs/guide/user/embedded.md). CMake Application, Google Test and Catch2 configurations
+also run under [Valgrind Memcheck and perf](docs/guide/user/cpp-tools.md), and their output is searched for
+[sanitizer reports](docs/guide/user/cpp-tools.md#sanitizers).
+
 ## Tests
 
 | Framework | Run configuration | How it runs | Gutter |
@@ -12360,12 +12380,320 @@ STL). A `std::vector` shows its length and elements, which expand like any other
 | `cpp.clangFormat.fallbackStyle` | C/C++ | `LLVM` | Style without a `.clang-format` |
 | `cpp.debugger.stlRenderers` | C/C++ | `true` | STL pretty printers / formatters |
 
+The settings of Valgrind, perf, vcpkg and Conan are in
+[C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md); the embedded ones in
+[Embedded development](docs/guide/user/embedded.md#settings).
+
 ## Browser mode
 
 `?project=cpp` opens the `shapes` demo: a C++20 library with an app, GoogleTest and Catch2
 tests, CMake presets and a `.clang-format`. `&build=broken` makes its build fail with
 compiler errors. Toolchains, the CMake model and all output are canned; the parsing and the
-command lines run the Rust crates through WebAssembly.
+command lines run the Rust crates through WebAssembly. `?project=pio` opens the PlatformIO
+demo `blinky` ([Embedded development](docs/guide/user/embedded.md#browser-mode)).
+
+
+---
+
+Source: docs/guide/user/cpp-tools.md
+
+# C/C++ dynamic analysis and packages
+
+These features of [CForge](docs/guide/user/cpp.md) find memory errors, data races, undefined behavior and
+hot spots while a C or C++ program runs, like CLion's dynamic analysis tools, and connect the
+vcpkg and Conan package managers to CMake. Every report is parsed in Rust
+(`packs/cforge/analyzers`); Forge never downloads Valgrind, perf, vcpkg or Conan.
+
+All of them start programs of the project, so [Safe Mode](docs/guide/user/project-trust.md) refuses them in
+untrusted projects.
+
+## Sanitizers
+
+### Enabling sanitizers in a CMake profile
+
+Settings | Build, Execution, Deployment | CMake has a **Sanitizers** row for every profile:
+**ASan** (AddressSanitizer), **UBSan** (UndefinedBehaviorSanitizer), **TSan**
+(ThreadSanitizer), **MSan** (MemorySanitizer, Clang only) and **LSan** (LeakSanitizer).
+A profile with sanitizers configures with:
+
+- `-fsanitize=<list> -fno-omit-frame-pointer` in `CMAKE_C_FLAGS` and `CMAKE_CXX_FLAGS`
+  (appended to flags the profile's CMake options set; MSan adds
+  `-fsanitize-memory-track-origins`);
+- `-fsanitize=<list>` in `CMAKE_EXE_LINKER_FLAGS` and `CMAKE_SHARED_LINKER_FLAGS`.
+
+ThreadSanitizer and MemorySanitizer cannot be combined with AddressSanitizer, LeakSanitizer
+or each other; the page shows why under the checkboxes. CMake Application runs of a
+sanitized profile get `UBSAN_OPTIONS=print_stacktrace=1` and `ASAN_OPTIONS=detect_leaks=1`
+unless the environment sets them, so every report has a stack.
+
+> **Note:** Rebuild after changing the sanitizers: CMake reconfigures the profile with the
+> new flags (Reload CMake Project or Build).
+
+### The Sanitizers tab
+
+The output of every CMake Application, Google Test, Catch2 and CTest run is searched for
+sanitizer reports when the program exits. When there are any, the Run tool window shows a
+**Sanitizers** tab next to **Console**, with the number of problems:
+
+- problems grouped by sanitizer, each with its kind (`heap-buffer-overflow`, `data race`,
+  `Direct leak`, `signed integer overflow`, `use-of-uninitialized-value`) and where it
+  happened in the project;
+- its stacks: the access ("READ of size 8 …"), where the memory was allocated and freed,
+  the previous access of a race and where the threads were created; LeakSanitizer reports
+  each leak on its own;
+- frames of project files are highlighted and link to their line; toolchain, C library and
+  sanitizer runtime frames are dimmed;
+- on the right, the full message, extra lines ("… is located 0 bytes after 24-byte
+  region …"), the SUMMARY and a preview of the selected frame's code.
+
+Selecting a problem highlights its line in the editor (red) and the other project frames of
+its stacks (yellow), with the message on hover. **Clear Highlights** (the eraser) removes
+them; double-click a frame to open it.
+
+![An AddressSanitizer report in the Sanitizers tab](docs/screenshots/cpp-sanitizers.png)
+
+## Valgrind Memcheck
+
+**Run | Run with Valgrind Memcheck** runs the selected CMake Application, Google Test or
+Catch2 configuration (building its target first) under
+
+```sh
+valgrind --tool=memcheck --xml=yes --xml-file=<temp file> --leak-check=full <options> <program> <args>
+```
+
+When the program exits, Forge reads Memcheck's XML (protocol 4) and the Run tool window
+shows a **Valgrind** tab:
+
+- the header with the number of errors and the **leak summary** (definitely, indirectly,
+  possibly lost and still reachable bytes and blocks);
+- **Errors** (`Invalid read of size 8`, `Conditional jump or move depends on uninitialised
+  value(s)`, …) with how often they happened, and **Memory Leaks** by size;
+- each error's stacks: the error itself and every `auxwhat` stack ("Address … is 0 bytes after
+  a block of size 24 alloc'd", "Uninitialised value was created by a heap allocation"),
+  with the same navigation, preview and editor highlights as the Sanitizers tab.
+
+![Valgrind Memcheck errors and leaks](docs/screenshots/cpp-valgrind.png)
+
+Settings | Build, Execution, Deployment | **Dynamic Analysis Tools**:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `cpp.valgrind.path` | `""` | The Valgrind executable (empty: `valgrind` on the PATH). |
+| `cpp.valgrind.options` | `--leak-check=full --track-origins=yes` | Memcheck options; Forge adds `--tool`, `--xml` and `--xml-file`. |
+
+> **Note:** Valgrind runs local projects on Linux (on Windows, open the project in
+> [WSL](docs/guide/user/dev-containers-and-wsl.md)). The XML file is written to the system temp folder and
+> deleted after it was read.
+
+## Profile with perf
+
+**Run | Profile with perf** runs the configuration under Linux perf:
+
+```sh
+perf record -o <temp file> --call-graph dwarf -F 999 -- <program> <args>
+```
+
+When the program exits, Forge runs `perf script` (with source lines), builds the call tree in
+Rust and opens it in the shared [Profiler tool window](docs/guide/user/go.md#profiler) as the **perf**
+source: **Flame Graph** (click a frame to zoom, double-click to open its source), **Call
+Tree** and **Method List** (self and total time). Frames of project files are highlighted.
+
+![A perf flame graph in the Profiler tool window](docs/screenshots/cpp-perf-flame-graph.png)
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `cpp.perf.path` | `""` | The perf executable (empty: `perf` on the PATH). |
+| `cpp.perf.frequency` | `999` | Samples per second (`-F`). |
+| `cpp.perf.callGraph` | `dwarf` | Call stacks: DWARF, frame pointers (needs `-fno-omit-frame-pointer`) or Intel LBR. |
+| `cpp.perf.options` | `""` | Extra `perf record` options. |
+
+> **Note:** perf is Linux only, and `/proc/sys/kernel/perf_event_paranoid` must allow
+> profiling (2 or lower). On macOS, profile with Instruments or DTrace outside Forge; on
+> Windows, use WSL or the Visual Studio profiler. Forge says so instead of starting the run.
+
+## Package managers
+
+### vcpkg
+
+A CMake project with a `vcpkg.json` uses vcpkg in **manifest mode**. Forge finds the vcpkg
+root in `cpp.vcpkg.root`, else `VCPKG_ROOT` or `VCPKG_INSTALLATION_ROOT`, and passes
+`-DCMAKE_TOOLCHAIN_FILE=<root>/scripts/buildsystems/vcpkg.cmake` to every CMake profile that
+does not set its own toolchain file. In `vcpkg.json`, port names of the local vcpkg's `ports/`
+folder complete in the `dependencies` array (and in `"name"` of dependency objects).
+
+### Conan 2
+
+A project with a `conanfile.txt` or `conanfile.py` gets **Tools | Conan Install** for the
+active CMake profile:
+
+```sh
+conan install . -of <profile's build folder> -s build_type=<profile's build type> --build=missing
+```
+
+After it finished, the profile configures with the generated `conan_toolchain.cmake` (in the
+build folder, its `generators/` folder or `build/<type>/generators` with `cmake_layout`) and
+the CMake project reloads. Saving `vcpkg.json` or a Conan recipe reloads the CMake project
+too.
+
+Settings | Build, Execution, Deployment | **Package Managers**:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `cpp.vcpkg.root` | `""` | The vcpkg installation. |
+| `cpp.vcpkg.useToolchain` | `true` | Pass vcpkg's toolchain file to CMake profiles. |
+| `cpp.conan.path` | `""` | Conan 2 (empty: `conan` on the PATH). |
+| `cpp.conan.profile` | `""` | Conan profile (`-pr`). |
+| `cpp.conan.arguments` | `""` | Extra `conan install` arguments. |
+| `cpp.conan.useToolchain` | `true` | Configure with `conan_toolchain.cmake` once it exists. |
+
+## Browser mode
+
+On the `shapes` demo (`?project=cpp`), the configuration **shapes_app (stress)** prints an
+AddressSanitizer report, and Run with Valgrind Memcheck and Profile with perf show canned
+results of `shapes_app`, parsed by the same Rust code through WebAssembly. The demo has a
+`vcpkg.json` and a **Debug-ASan** profile.
+
+
+---
+
+Source: docs/guide/user/embedded.md
+
+# Embedded development
+
+[CForge](docs/guide/user/cpp.md) supports microcontroller projects like CLion: PlatformIO, ESP-IDF and
+Zephyr projects, flashing and debugging boards through OpenOCD or another GDB server, and a
+**Peripherals** view of the chip's registers. Forge only builds the command lines (in Rust,
+`packs/cforge/embedded`); PlatformIO Core, ESP-IDF, west, OpenOCD and the cross GDB are
+installed by you and never downloaded.
+
+Every action starts the project's build tools, so [Safe Mode](docs/guide/user/project-trust.md) refuses them in
+untrusted projects.
+
+## Detection
+
+| Framework | Detected by | Project tool |
+| --- | --- | --- |
+| PlatformIO | `platformio.ini` | `platformio` |
+| ESP-IDF | `CMakeLists.txt` with `sdkconfig`, `sdkconfig.defaults`, `idf_component.yml` or `main/idf_component.yml` (or the IDF's `project.cmake` in `CMakeLists.txt`) | `esp-idf` |
+| Zephyr | `west.yml`, or `prj.conf` next to a `CMakeLists.txt` | `zephyr` |
+
+These projects are C/C++ projects: clangd, the editor and debugging work as described in
+[CForge](docs/guide/user/cpp.md).
+
+## PlatformIO
+
+The **PlatformIO** tool window (right stripe) shows the project's `platformio.ini`:
+
+- **Default** — the tasks for the `default_envs` (or every environment);
+- **Environments** — every `[env:…]` with its platform, board and frameworks (default ones in
+  bold), resolved like PlatformIO does: `[env]` defaults, `extends`, `${section.key}` and
+  `${this.key}` references; problems (an unknown `extends`) are listed on top. Double-click
+  an environment to open its section.
+
+Each environment has the tasks **Build**, **Upload**, **Monitor**, **Test**, **Clean** and
+**Compilation Database**. Double-click a task (or select it and click ▶) to run it in the
+Run tool window:
+
+| Task | Command |
+| --- | --- |
+| Build | `pio run -e <env>` |
+| Upload | `pio run -e <env> -t upload` |
+| Monitor | `pio device monitor -e <env>` (type into the console) |
+| Test | `pio test -e <env>` |
+| Clean | `pio run -e <env> -t clean` |
+| Compilation Database | `pio run -e <env> -t compiledb` |
+
+**Compilation Database** writes `compile_commands.json` into the project and restarts clangd,
+which then knows the include paths and defines of the environment.
+
+![The PlatformIO tool window](docs/screenshots/platformio-tool-window.png)
+
+`platformio.path` chooses PlatformIO Core; empty uses `pio` on the PATH, then the installer's
+`~/.platformio/penv`.
+
+## ESP-IDF
+
+**Tools | ESP-IDF** has **Build**, **Flash**, **Monitor** (in the Run tool window) and
+**Menuconfig** (in the [terminal](docs/guide/user/terminal.md), because it is a full-screen program). They run
+`idf.py` in the project:
+
+- with `espIdf.path` set: `<python> <IDF_PATH>/tools/idf.py` with `IDF_PATH` in the
+  environment (`espIdf.python`, default `python3`);
+- else `idf.py` on the PATH (start Forge from a shell that ran ESP-IDF's export script).
+
+Flash and Monitor pass `-p <espIdf.port>`; Flash also `-b <espIdf.baud>`.
+
+## Zephyr
+
+**Tools | Zephyr** has **West Build** (`west build -b <board> -d build -p auto <app>`),
+**West Flash** (`west flash -d build`), **West Debug** (`west debug -d build`, in the terminal)
+and **Select Board…**. The board comes from `zephyr.board`, else from the last build's
+`CMakeCache.txt`; Select Board… suggests the boards the application defines under `boards/`
+and stores the choice in the project settings.
+
+## OpenOCD Download & Run
+
+The **OpenOCD Download & Run** run configuration (Run | Edit Configurations…) flashes and
+debugs a board through [OpenOCD](https://openocd.org):
+
+| Field | Meaning |
+| --- | --- |
+| Target / Executable (ELF) | A CMake target (built first) or an ELF file (e.g. `.pio/build/<env>/firmware.elf`). |
+| Board config file | OpenOCD configuration: `board/st_nucleo_f4.cfg` (from OpenOCD's scripts) or project `.cfg` files, separated by `;`. Default: `openocd.boardConfig`. |
+| GDB port | OpenOCD's GDB server port (3333). |
+| Download | **Always**: flash before running or debugging; **Never**: only debug what is on the board. |
+| SVD file | The CMSIS-SVD file of the [Peripherals](#peripherals) view (default: `cpp.embedded.svdFile`). |
+| GDB | The GDB to use (default: `cpp.embedded.gdb`, the cross toolchain's GDB, `gdb-multiarch` or `arm-none-eabi-gdb`). |
+
+- **Run** flashes and resets the board: `openocd -f <cfg> -c "program {<elf>} verify reset exit"`.
+- **Debug** flashes (unless Download is Never), starts `openocd -f <cfg> -c "gdb_port 3333"` in
+  the Run tool window, waits until it listens for GDB, and starts a GDB session through the
+  [shared debugger](docs/guide/user/debugging.md): GDB's DAP server attaches with `target remote
+  localhost:3333`. Breakpoints, stepping, variables, Memory, Disassembly and Registers work
+  as for native programs; the OpenOCD tab stops with the debug session.
+
+The **Embedded GDB Server** configuration does the same with any GDB server (J-Link,
+ST-LINK's `st-util`, pyOCD, QEMU): **GDB server** and its arguments are started first (leave it
+empty when the server already runs), and GDB connects to **'target remote' args**
+(`localhost:2331`, `tcp:192.168.1.20:3333`).
+
+> **Note:** GDB 14 or newer is required (its built-in DAP server). The session connects with
+> `target remote`; OpenOCD flashes the program before GDB starts.
+
+## Peripherals
+
+A debug session of a configuration with an SVD file gets the **Peripherals** tab in the Debug
+tool window: the peripherals of the CMSIS-SVD file (with `derivedFrom`, register arrays and
+clusters), filterable by name. Expanding a peripheral reads its registers through the
+debugger's `readMemory` (registers that must not be read, such as write-only ones or those
+with a read side effect, are skipped) and shows each value with its decoded fields: the bit
+range, the value and the name of an enumerated value (`MODER5 [11:10] Output (1)`). Values are
+read again whenever the program stops; changed values are highlighted.
+
+![The Peripherals view of an OpenOCD session](docs/screenshots/embedded-peripherals.png)
+
+## Settings
+
+Settings | Build, Execution, Deployment | **Embedded Development**:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `openocd.path` | `""` | OpenOCD (empty: `openocd` on the PATH). |
+| `openocd.boardConfig` | `""` | Default board configuration (project). |
+| `cpp.embedded.gdb` | `""` | GDB for embedded targets. |
+| `cpp.embedded.svdFile` | `""` | Default SVD file (project). |
+| `platformio.path` | `""` | PlatformIO Core. |
+| `espIdf.path` / `espIdf.python` | `""` | ESP-IDF folder and its Python. |
+| `espIdf.port` / `espIdf.baud` | `""` | Serial port and flash baud rate (project). |
+| `zephyr.west` | `""` | west (empty: on the PATH). |
+| `zephyr.board` / `zephyr.appDir` / `zephyr.buildDir` | `""` / `""` / `build` | Board, application and build folder (project). |
+
+## Browser mode
+
+`?project=pio` opens `blinky`, a PlatformIO project for an ST Nucleo-F401RE and an ESP32 with a
+Unity test, the configuration **blinky (OpenOCD)** and the STM32F401's SVD file. PlatformIO's
+environments and the SVD file are read by the Rust code (WebAssembly); the outputs of
+PlatformIO and OpenOCD, and the debug session with its register values, are canned.
 
 
 ---
@@ -18284,6 +18612,10 @@ Run/Debug configurations, debugging actions and breakpoints. Open it with ☰ (`
 
 **Start Listening for PHP Debug Connections** and **Web Server Debug Validation…** are added by the Xdebug plugin (`forge.xdebug`) in PHP projects; Start Listening is a toggle with a check mark while Forge listens.
 
+In C/C++ projects the C/C++ plugin (`forge.cpp`) adds **Run with Valgrind Memcheck** and
+**Profile with perf** after Debug; they run the selected CMake Application, Google Test or
+Catch2 configuration under Valgrind or perf ([more](docs/guide/user/cpp-tools.md)).
+
 
 ---
 
@@ -18349,6 +18681,9 @@ Tools collects the actions of active plugins; the screenshot shows a Laravel pro
 | Docker | Pull Image…, Refresh Services | always (plugin `forge.services`) |
 | Laravel | Run Artisan Command…, Show Routes | Laravel projects (`forge.laravel`) |
 | Symfony | Run Console Command…, Show Routes, Refresh Symfony Index | Symfony projects (`forge.symfony`) |
+| — | Conan Install | C/C++ projects with a Conan recipe (`forge.cpp`, [more](docs/guide/user/cpp-tools.md#conan-2)) |
+| ESP-IDF | Build, Flash, Monitor, Menuconfig | ESP-IDF projects (`forge.cpp`, [more](docs/guide/user/embedded.md#esp-idf)) |
+| Zephyr | West Build, West Flash, West Debug, Select Board… | Zephyr applications (`forge.cpp`, [more](docs/guide/user/embedded.md#zephyr)) |
 
 
 ---
@@ -19587,11 +19922,57 @@ Page id `build.cmake` (plugin `forge.cpp`; profiles are edited in the page's lis
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `cmake.profiles` | objects | `[]` | user, project |  | CMake profiles — name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled. |
+| `cmake.profiles` | objects | `[]` | user, project |  | CMake profiles — name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled, sanitizers (`address,undefined`). |
 | `cmake.activeProfile` | string | `""` | user, project |  | Active CMake profile (chosen in the CMake tool window). |
 | `cmake.executable` | path | `""` | user | CMake | CMake executable — Empty: the active toolchain's CMake (bundled with Visual Studio for MSVC), else cmake on the PATH. |
 | `cmake.reloadOnChange` | bool | `true` | user, project | CMake | Reload CMake project on editing CMakeLists.txt or other CMake configuration files. |
 | `cmake.buildBeforeRun` | bool | `true` | user, project | CMake | Build the target before running or debugging — CMake Application, Google Test and Catch2 configurations build their target first (cmake --build --target). |
+
+### Build, Execution, Deployment | Dynamic Analysis Tools
+
+Page id `build.analysis` (plugin `forge.cpp`). See [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.valgrind.path` | path | `""` | user | Valgrind | Valgrind executable — Empty: valgrind on the PATH. Valgrind runs on Linux (and in WSL). |
+| `cpp.valgrind.options` | string | `--leak-check=full --track-origins=yes` | user | Valgrind | Analysis options — Memcheck options; Forge adds --tool=memcheck --xml=yes and its XML file. |
+| `cpp.perf.path` | path | `""` | user | Profiler (perf) | perf executable — Empty: perf on the PATH. Profiling with perf works on Linux only; /proc/sys/kernel/perf_event_paranoid must allow it (2 or lower). |
+| `cpp.perf.frequency` | int | `999` | user | Profiler (perf) | Sampling frequency (Hz). |
+| `cpp.perf.callGraph` | enum: `dwarf`, `fp`, `lbr` | `dwarf` | user | Profiler (perf) | Call stacks — DWARF works without frame pointers but writes more data; frame pointers need -fno-omit-frame-pointer. |
+| `cpp.perf.options` | string | `""` | user | Profiler (perf) | Additional perf record options. |
+
+### Build, Execution, Deployment | Package Managers
+
+Page id `build.packages` (plugin `forge.cpp`). See [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md#package-managers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.vcpkg.root` | path | `""` | user | vcpkg | vcpkg root — The vcpkg installation of manifest-mode projects (vcpkg.json). Empty: VCPKG_ROOT or VCPKG_INSTALLATION_ROOT. Forge never downloads vcpkg. |
+| `cpp.vcpkg.useToolchain` | bool | `true` | user, project | vcpkg | Pass vcpkg's toolchain file to CMake profiles — Adds -DCMAKE_TOOLCHAIN_FILE=<vcpkg root>/scripts/buildsystems/vcpkg.cmake unless the profile sets its own. |
+| `cpp.conan.path` | path | `""` | user | Conan | Conan executable — Conan 2. Empty: conan on the PATH. Forge never downloads Conan. |
+| `cpp.conan.profile` | string | `""` | user, project | Conan | Conan profile (-pr) — Empty: Conan's default profile. |
+| `cpp.conan.arguments` | string | `""` | user, project | Conan | Additional conan install arguments. |
+| `cpp.conan.useToolchain` | bool | `true` | user, project | Conan | Pass conan_toolchain.cmake to CMake profiles — After Conan Install, the profile configures with the toolchain file Conan generated in its build folder. |
+
+### Build, Execution, Deployment | Embedded Development
+
+Page id `build.embedded` (plugin `forge.cpp`). See [Embedded development](docs/guide/user/embedded.md#settings).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `openocd.path` | path | `""` | user | OpenOCD | OpenOCD executable — Empty: openocd on the PATH. |
+| `openocd.boardConfig` | string | `""` | user, project | OpenOCD | Board configuration file — Default for OpenOCD Download & Run configurations: board/st_nucleo_f4.cfg, or a .cfg file of the project. Separate several files with ;. |
+| `cpp.embedded.gdb` | path | `""` | user | OpenOCD | GDB for embedded targets — Empty: the cross toolchain's GDB, gdb-multiarch or arm-none-eabi-gdb on the PATH. GDB 14 or newer (its DAP server). |
+| `cpp.embedded.svdFile` | path | `""` | user, project | OpenOCD | SVD file — Default CMSIS-SVD file of the Peripherals view (a configuration can choose its own). |
+| `platformio.path` | path | `""` | user | PlatformIO | PlatformIO Core (pio) executable — Empty: pio on the PATH or ~/.platformio/penv. |
+| `espIdf.path` | path | `""` | user | ESP-IDF | ESP-IDF folder (IDF_PATH) — Empty: idf.py on the PATH (a shell with ESP-IDF's export script). |
+| `espIdf.python` | path | `""` | user | ESP-IDF | Python of the ESP-IDF environment — Runs idf.py when the ESP-IDF folder is set. Empty: python3. |
+| `espIdf.port` | string | `""` | user, project | ESP-IDF | Serial port — For Flash and Monitor (/dev/ttyUSB0, COM3). Empty: idf.py looks for one. |
+| `espIdf.baud` | string | `""` | user, project | ESP-IDF | Flash baud rate. |
+| `zephyr.west` | path | `""` | user | Zephyr | west executable — Empty: west on the PATH. |
+| `zephyr.board` | string | `""` | user, project | Zephyr | Board — The board west build builds for (nrf52840dk/nrf52840, qemu_x86). |
+| `zephyr.appDir` | string | `""` | user, project | Zephyr | Application folder — Relative to the project. Empty: the project folder. |
+| `zephyr.buildDir` | string | `build` | user, project | Zephyr | Build folder. |
 
 ### Build, Execution, Deployment | Debugger
 
@@ -20414,7 +20795,7 @@ script and config language plugins.
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
 | Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
-| C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake; 6 commands; 16 settings; file types: Clang Configuration; run types: CMake Application; test frameworks: Google Test, Catch2, CTest |
+| C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
@@ -22399,6 +22780,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [cforge-toolchains](docs/guide/developer/crates/cforge-toolchains.md) | CForge: C/C++ toolchains on the user's machine (GCC, Clang, Apple Clang, MinGW, MSVC through vswhere, cross compilers) with CMake, Ninja, Make, GDB and LLDB; version outputs parsed in Rust |
 | [cforge-cmake](docs/guide/developer/crates/cforge-cmake.md) | CForge: CMake profiles, CMakePresets.json / CMakeUserPresets.json, the cmake-file-api query and codemodel-v2 reply, configure logs, configure / build / clean / CTest command lines, CMakeLists completion (pure, also built to WebAssembly) |
 | [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) | CForge: C/C++ build problems (GCC, Clang, MSVC, linkers), compilation databases, GoogleTest and Catch2 discovery, the GoogleTest / Catch2 / CTest providers with gcov and llvm-cov coverage, clangd / clang-format command lines and debugger setup (pure, also built to WebAssembly) |
+| [cforge-analyzers](docs/guide/developer/crates/cforge-analyzers.md) | CForge: sanitizer reports (ASan, LSan, TSan, MSan, UBSan), Valgrind Memcheck XML and perf script output as Profiler views (pure, also built to WebAssembly) |
+| [cforge-embedded](docs/guide/developer/crates/cforge-embedded.md) | CForge: platformio.ini and PlatformIO tasks, ESP-IDF (idf.py) and Zephyr (west) commands, OpenOCD flashing and GDB server, CMSIS-SVD files with register decoding (pure, also built to WebAssembly) |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
@@ -23493,7 +23876,9 @@ pub trait DebugAdapterDescriptor: Send + Sync {
   `dap_read_memory`, `dap_write_memory`, `dap_disassemble`, `dap_modules`,
   `dap_loaded_sources`, `dap_data_breakpoint`, `dap_processes`
   (`app/src-tauri/src/commands/dap.rs`); the shared `debug_*` commands route `dap-<n>`
-  session ids here (`app/src-tauri/src/commands/debug.rs`).
+  session ids here (`app/src-tauri/src/commands/debug.rs`). `DapSession::read_bytes` (raw
+  `readMemory`) serves CForge's Peripherals view (`cpp_svd_read`,
+  `app/src-tauri/src/commands/embedded.rs`).
 - UI: `app/ui/src/features/debug` (`dapApi.ts`, `adapters.ts`, `nativeViews.tsx`,
   `AttachDialogs.tsx`)
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses
@@ -25206,7 +25591,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`. Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -27627,7 +28012,10 @@ Source: docs/guide/developer/crates/goforge-pprof.md
 
 - IPC: `pprof_open` (`app/src-tauri/src/commands/go.rs`).
 - Browser mode: `crates/forge-wasm/src/go.rs` (`pprof_view`).
-- UI: `app/ui/src/features/go/ProfilerView.tsx`.
+- UI: `app/ui/src/features/go/ProfilerView.tsx` (the views themselves are shared:
+  `app/ui/src/features/profiler/callTree.tsx`).
+- [cforge-analyzers](docs/guide/developer/crates/cforge-analyzers.md): `perf script` output becomes a `Profile`, so perf
+  profiles get the same views.
 
 ## Dependencies
 
@@ -27734,6 +28122,15 @@ it.
   and `in file` / one-line `CMake Error:` messages of a configure, and whether it failed.
 - `complete`: completion of CMake commands (signatures), the keywords of the command the
   caret is in, and `${VARIABLES}`.
+- `sanitizers`: a profile's sanitizers (`address`, `undefined`, `thread`, `memory`, `leak`;
+  `ProfileEntry.sanitizers`) as `-fsanitize=…` compiler and linker flags appended to the
+  flags the options set, the combinations compilers reject (`Profile.sanitizerError`) and
+  the runtime options of runs (`UBSAN_OPTIONS`, `ASAN_OPTIONS`).
+- `packages`: vcpkg manifest mode (`vcpkg.json` dependencies, the root from the setting,
+  `VCPKG_ROOT` or `VCPKG_INSTALLATION_ROOT`, its toolchain file, port completion in
+  `vcpkg.json`) and Conan 2 (`conan install . -of <build> -s build_type=… --build=missing`,
+  where `conan_toolchain.cmake` is generated). `ConfigureContext.package_toolchain` becomes
+  `-DCMAKE_TOOLCHAIN_FILE` unless the profile sets its own.
 
 ## Modules
 
@@ -27744,10 +28141,13 @@ it.
 | `fileapi.rs` | `query_json`, `parse_reply`, `CMakeModel`, `Configuration`, `Target`, `TargetKind`, `Source`, `Location`, `QUERY_DIR`, `REPLY_DIR`. |
 | `log.rs` | `parse_log`, `failed`, `ConfigureMessage`, `Severity`. |
 | `complete.rs` | `complete`, `COMMANDS`, `VARIABLES`, `Completion`. |
+| `sanitizers.rs` | `SANITIZERS`, `parse_list`, `conflict`, `compile_flags`, `link_flags`, `run_env`, `cmake_definitions`. |
+| `packages.rs` | `PackageManagers`, `vcpkg_dependencies`, `vcpkg_root`, `vcpkg_toolchain`, `complete_vcpkg`, `conan_install_command`, `conan_toolchain_candidates`. |
 
 ## Used by
 
-- IPC: `app/src-tauri/src/commands/cpp.rs` (`cmake_*`).
+- IPC: `app/src-tauri/src/commands/cpp.rs` (`cmake_*`), `commands/cpp_tools.rs`
+  (`cpp_packages`, `cpp_vcpkg_complete`, `cpp_conan_install_command`).
 - [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) (command type, argument splitting).
 - Browser mode: `crates/forge-wasm/src/cpp.rs`.
 
@@ -27840,6 +28240,138 @@ and a Catch2 JUnit report.
 ```sh
 cargo test -p cforge-lang-cpp
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-analyzers.md
+
+# cforge-analyzers
+
+`packs/cforge/analyzers` — CForge's dynamic analysis results, parsed without I/O. The desktop
+backend collects run output, reads Valgrind's XML file and runs `perf script`; this crate turns
+the text into the models the Run tool window and the Profiler show. The WebAssembly build of
+browser mode shares it.
+
+## Purpose
+
+- `sanitizer`: `==pid==ERROR: AddressSanitizer: …`, `WARNING: ThreadSanitizer: …`,
+  `WARNING: MemorySanitizer: …`, LeakSanitizer's `detected memory leaks` (one report per
+  `Direct leak` / `Indirect leak`) and UndefinedBehaviorSanitizer's `file:line:col: runtime
+  error: …` lines. Each `SanitizerReport` has the sanitizer, its kind, the headline, titled
+  stacks (access, allocation, free, previous access, thread creation), extra lines and the
+  `SUMMARY`. Frames are parsed from ASan's `#n 0xaddr in func file:line:col (module+0x…)`
+  and TSan's `#n func file:line (module+0x…)` forms (`(BuildId: …)` dropped).
+- `valgrind`: Memcheck's XML (protocol 4, `--xml=yes`): errors with `kind`, `what` /
+  `xwhat`, the stacks (`auxwhat` titles the stack after it), `errorcounts`, leak records
+  sorted by size and the leak summary added up (definitely / indirectly / possibly lost,
+  still reachable). Truncated files (a killed run) are read as far as they go.
+- `perf`: `perf record -g -o <file> [-F n] [--call-graph mode] -- program` and
+  `perf script -F comm,pid,tid,time,period,event,ip,sym,dso,srcline`; the script output (one
+  call stack per sample, leaf first, `srcline` lines) becomes a `goforge_pprof::Profile`
+  (sample types `samples` and the event, `cpu` in nanoseconds for `cpu-clock` /
+  `task-clock`), so `goforge_pprof::view` computes the method list, call tree and flame graph
+  shared with GoForge.
+- `frames`: `StackFrame` / `Stack` and `project_path` (absolute paths below the root,
+  relative ones in the project or the build folder; toolchain, C library and sanitizer runtime
+  files never), `resolve_stacks` (the first project frame is the location).
+- `xml`: a small tree on quick-xml, also used for CMSIS-SVD files by
+  [cforge-embedded](docs/guide/developer/crates/cforge-embedded.md).
+- `valgrind_args`: the Memcheck command line (`--tool=memcheck --xml=yes --xml-file=…`,
+  `--leak-check=full` unless the options set it).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `sanitizer.rs` | `parse`, `resolve`, `SanitizerReport`, `Sanitizer`. |
+| `valgrind.rs` | `parse`, `resolve`, `ValgrindReport`, `ValgrindError`, `LeakSummary`, `Leaked`. |
+| `perf.rs` | `record_args`, `script_args`, `RecordOptions`, `parse`, `open`. |
+| `frames.rs` | `StackFrame`, `Stack`, `project_path`, `resolve_stacks`. |
+| `xml.rs` | `parse`, `Element`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp_tools.rs` (the sanitizer observer of C/C++ runs,
+  `RunRequest.nativeTool`, `cpp_sanitizer_reports`, `cpp_valgrind_open`).
+- [cforge-embedded](docs/guide/developer/crates/cforge-embedded.md) (`xml`).
+- Browser mode: `crates/forge-wasm/src/cpp_tools.rs`.
+
+## Dependencies
+
+- Internal: [goforge-pprof](docs/guide/developer/crates/goforge-pprof.md)
+- External: `serde`, `quick-xml`
+
+## Tests
+
+Unit tests on recorded fixtures in `tests/fixtures/`: AddressSanitizer (heap-buffer-overflow,
+heap-use-after-free, leaks), ThreadSanitizer and UndefinedBehaviorSanitizer reports of GCC 13,
+a MemorySanitizer report, Memcheck XML of Valgrind 3.22 and `perf script` output.
+`tests/smoke.rs` (ignored) compiles a program in a temporary folder and runs the real
+Valgrind: `cargo test -p cforge-analyzers --test smoke -- --ignored`.
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-embedded.md
+
+# cforge-embedded
+
+`packs/cforge/embedded` — CForge's embedded development support without I/O: it reads
+project files and builds command lines; the desktop backend starts them and reads memory
+through the debugger. The WebAssembly build of browser mode shares it.
+
+## Purpose
+
+- `platformio`: `platformio.ini` (sections, multi-line values, `;` comments, `[env]`
+  defaults, `extends` chains with loop detection, `${section.key}` / `${this.key}`
+  interpolation, `default_envs`) into `PioProject` / `PioEnv` (platform, board, frameworks,
+  every resolved option, the section's line), and the task commands (`pio run -e <env> -t
+  upload|clean|compiledb`, `pio test`, `pio device monitor`).
+- `espidf`: detection (`sdkconfig`, `idf_component.yml`, the IDF's `project.cmake`), the
+  chip target of `sdkconfig`, and `idf.py build|flash|monitor|menuconfig|fullclean` with
+  `IDF_PATH`, its Python, the serial port and baud rate.
+- `zephyr`: detection (`west.yml`, `prj.conf` with `find_package(Zephyr)`), the board of a
+  build's `CMakeCache.txt`, boards an application defines in `boards/`, and `west build -b
+  <board> -d <dir> -p auto|always <app>`, `west flash`, `west debug`.
+- `openocd`: `openocd -f <cfg>… -c "gdb_port N"` (the GDB server), `-c "program {<elf>} verify
+  reset exit"` (flashing), the ready line and GDB's `target remote` address.
+- `svd`: CMSIS-SVD (`device` → `peripherals` with `derivedFrom` → `registers` / nested
+  `cluster`s with `dim` arrays → `fields` with `bitOffset`/`bitWidth`, `bitRange` or
+  `lsb`/`msb`, `dim` and `enumeratedValues`), with size, access and reset value inherited from
+  the device and peripheral; `read_ranges` (adjacent readable registers; write-only ones and
+  those with a `readAction` are skipped) and `decode` (little-endian register values and
+  field values with their enumerated names).
+- `detect`: which of PlatformIO, ESP-IDF and Zephyr a project uses (`EmbeddedKinds`).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `platformio.rs` | `parse`, `list`, `PioProject`, `PioEnv`, `PioTask`, `task_command`. |
+| `espidf.rs` | `detect`, `target`, `IdfAction`, `IdfSetup`, `command`. |
+| `zephyr.rs` | `detect`, `board_of_cache`, `local_boards`, `WestAction`, `command`. |
+| `openocd.rs` | `OpenOcdSetup`, `server_command`, `program_command`, `is_ready_line`, `gdb_target`. |
+| `svd.rs` | `parse`, `number`, `Device`, `Peripheral`, `Register`, `Field`, `read_ranges`, `decode`, `RegisterValue`, `DeviceSummary`. |
+| `lib.rs` | `ToolCommand`, `EmbeddedKinds`, `detect`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/embedded.rs` (`embedded_info`, `pio_command`,
+  `idf_command`, `west_command`, `cpp_embedded_launch`, `cpp_svd_peripherals`,
+  `cpp_svd_read`).
+- Browser mode: `crates/forge-wasm/src/cpp_tools.rs`.
+
+## Dependencies
+
+- Internal: [cforge-analyzers](docs/guide/developer/crates/cforge-analyzers.md) (`xml`)
+- External: `serde`
+
+## Tests
+
+Unit tests per module; fixtures `tests/fixtures/platformio.ini` (defaults, `extends`,
+interpolation, multi-line values) and `tests/fixtures/stm32f4-mini.svd` (a trimmed STM32F401
+description with `derivedFrom`, register and field arrays, a cluster and enumerated values).
 
 
 ---

@@ -1587,13 +1587,14 @@ impl DapSession {
 
     // ---- native views -------------------------------------------------------------------
 
-    pub async fn read_memory(
+    /// `readMemory` as raw bytes: the address of the first byte, the bytes and how many
+    /// bytes after them could not be read (CForge's Peripherals view decodes registers).
+    pub async fn read_bytes(
         &self,
         memory_reference: &str,
         offset: i64,
         count: u32,
-        per_row: usize,
-    ) -> DapResult<MemoryBlock> {
+    ) -> DapResult<(u64, Vec<u8>, u32)> {
         if !self.capabilities().supports_read_memory_request {
             return Err(DapError::Unsupported(format!(
                 "{} cannot read memory",
@@ -1614,7 +1615,17 @@ impl DapSession {
             None => Vec::new(),
         };
         let start = views::parse_address(&r.address).unwrap_or(0);
-        let unreadable = r.unreadable_bytes.unwrap_or(0);
+        Ok((start, bytes, r.unreadable_bytes.unwrap_or(0)))
+    }
+
+    pub async fn read_memory(
+        &self,
+        memory_reference: &str,
+        offset: i64,
+        count: u32,
+        per_row: usize,
+    ) -> DapResult<MemoryBlock> {
+        let (start, bytes, unreadable) = self.read_bytes(memory_reference, offset, count).await?;
         Ok(MemoryBlock {
             address: views::format_address(start),
             rows: views::memory_rows(start, &bytes, unreadable as usize, per_row),

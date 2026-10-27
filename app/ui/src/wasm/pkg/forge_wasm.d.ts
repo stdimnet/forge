@@ -447,6 +447,26 @@ export function coverage_summary(request_json: string): string;
 export function cpp_build_problems(request_json: string): string;
 
 /**
+ * `{ text (perf script output), sampleIndex? }` → the Profiler's views.
+ */
+export function cpp_perf_view(request_json: string): string;
+
+/**
+ * `{ text, root, buildDir, files }` → sanitizer reports with project paths.
+ */
+export function cpp_sanitizer_reports(request_json: string): string;
+
+/**
+ * `{ text (Valgrind XML), root, files }` → the Valgrind report.
+ */
+export function cpp_valgrind_report(request_json: string): string;
+
+/**
+ * `{ text, offset, ports }` → completion or null (`cpp_vcpkg_complete`).
+ */
+export function cpp_vcpkg_complete(request_json: string): string;
+
+/**
  * `{ text, delimiter, edits }` → the new text.
  */
 export function csv_edit(request_json: string): string;
@@ -1117,6 +1137,16 @@ export function php_interpreter_wrap(request_json: string): string;
 export function php_source_roots(request_json: string): string;
 
 /**
+ * `{ pio, env, task, cwd }` → the task's command line.
+ */
+export function pio_command(request_json: string): string;
+
+/**
+ * `{ text }` → the parsed `platformio.ini`.
+ */
+export function pio_project(request_json: string): string;
+
+/**
  * `{ base64?, sampleIndex? }` → `ProfileView` (`pprof_open`).
  */
 export function pprof_view(request_json: string): string;
@@ -1630,6 +1660,17 @@ export function stacktrace_analyze(request_json: string): string;
 export function structure_group_by_regions(request_json: string): string;
 
 /**
+ * `{ text, peripheral, values }` → decoded registers, as if read from a target whose
+ * registers hold `values` (else their reset values).
+ */
+export function svd_peripheral_values(request_json: string): string;
+
+/**
+ * `{ text }` → the SVD file's peripherals.
+ */
+export function svd_summary(request_json: string): string;
+
+/**
  * `{ custom }` (the `fileTemplates.custom` value) → `{ templates, variables }`.
  */
 export function templates_list(request_json: string): string;
@@ -1979,6 +2020,10 @@ export interface InitOutput {
     readonly coverage_parse: (a: number, b: number, c: number) => void;
     readonly coverage_summary: (a: number, b: number, c: number) => void;
     readonly cpp_build_problems: (a: number, b: number, c: number) => void;
+    readonly cpp_perf_view: (a: number, b: number, c: number) => void;
+    readonly cpp_sanitizer_reports: (a: number, b: number, c: number) => void;
+    readonly cpp_valgrind_report: (a: number, b: number, c: number) => void;
+    readonly cpp_vcpkg_complete: (a: number, b: number, c: number) => void;
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
@@ -2111,6 +2156,8 @@ export interface InitOutput {
     readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
     readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
     readonly php_source_roots: (a: number, b: number, c: number) => void;
+    readonly pio_command: (a: number, b: number, c: number) => void;
+    readonly pio_project: (a: number, b: number, c: number) => void;
     readonly pprof_view: (a: number, b: number, c: number) => void;
     readonly project_structure_describe: (a: number, b: number, c: number) => void;
     readonly project_structure_excluded: (a: number, b: number, c: number) => void;
@@ -2211,6 +2258,8 @@ export interface InitOutput {
     readonly ssr_variables: (a: number, b: number, c: number) => void;
     readonly stacktrace_analyze: (a: number, b: number, c: number) => void;
     readonly structure_group_by_regions: (a: number, b: number, c: number) => void;
+    readonly svd_peripheral_values: (a: number, b: number, c: number) => void;
+    readonly svd_summary: (a: number, b: number, c: number) => void;
     readonly templates_list: (a: number, b: number, c: number) => void;
     readonly templates_new_file: (a: number, b: number, c: number) => void;
     readonly templates_php_directory: (a: number, b: number, c: number) => void;
