@@ -43,6 +43,9 @@ Switch any of the plugins off in Settings | Plugins.
 
 ![Django URL patterns in the Endpoints tool window](../../screenshots/django-endpoints.png)
 
+The tool window is shared with [Spring Boot and Jakarta EE](spring.md): in a project with both,
+it has a **Python** and a **Spring and JAX-RS** tab.
+
 Type to filter by path, method, name or view; with several frameworks a switch filters by
 framework. Clicking a row opens the view function or class. The context menu also offers:
 

@@ -6,12 +6,13 @@
  */
 import type { EditorCompletionItem } from "@/ipc/lsp";
 import type { ProjectInfo } from "@/ipc/project";
+import { isSpringDemo, SPRING_BOOT_VERSION, springDemoFiles } from "./demoSpringProject";
 
 export const javaDemoName = "inventory-service";
 
-/** True when the page asks for the Java demo project. */
+/** True when the page asks for the Java demo project (`?project=spring`: its Spring Boot variant). */
 export const isJavaDemo = (): boolean =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).get("project") === "java";
+  typeof location !== "undefined" && ["java", "spring"].includes(new URLSearchParams(location.search).get("project") ?? "");
 
 export const javaDemoInfo: ProjectInfo = {
   languages: ["java"],
@@ -327,6 +328,14 @@ if (isJavaMavenDemo()) {
   javaDemoFiles["mvnw"] = "#!/bin/sh\n# Apache Maven Wrapper startup script, version 3.3.2\n";
   javaDemoFiles["mvnw.cmd"] = "@REM Apache Maven Wrapper startup batch script\r\n";
   javaDemoInfo.tools = ["git", "maven"];
+}
+
+// `?project=spring`: the same service as a Spring Boot application (demoSpringProject.ts).
+if (isSpringDemo()) {
+  Object.assign(javaDemoFiles, springDemoFiles);
+  const boot = { id: "spring-boot", name: "Spring Boot", version: SPRING_BOOT_VERSION, language: "java" };
+  javaDemoInfo.frameworks = [boot];
+  javaDemoInfo.primary = boot;
 }
 
 /** The file the demo opens first. */

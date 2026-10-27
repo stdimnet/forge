@@ -10296,6 +10296,164 @@
     }
   },
   {
+    "id": "forge.spring",
+    "name": "Spring Boot and Jakarta EE",
+    "version": "0.1.0",
+    "pack": "javaforge",
+    "description": "Spring Boot and Jakarta EE: beans with injection point navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, and the Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator health, beans and mappings).",
+    "vendor": "Forge",
+    "depends": [
+      "forge.java"
+    ],
+    "required": false,
+    "projectTypes": [
+      "spring-boot",
+      "jakarta-ee"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "spring.refresh",
+          "title": "Refresh Spring Model",
+          "category": "Spring"
+        },
+        {
+          "id": "spring.showEndpoints",
+          "title": "Endpoints",
+          "category": "View"
+        },
+        {
+          "id": "spring.showBeans",
+          "title": "Spring Beans",
+          "category": "View"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "spring",
+          "title": "Spring",
+          "anchor": "right",
+          "icon": "leaf",
+          "order": 45
+        }
+      ],
+      "settings": [
+        {
+          "key": "spring.metadata.fromJars",
+          "title": "Read configuration metadata from the dependency jars",
+          "description": "Completion, documentation and inspections in application.properties / application.yml use META-INF/spring-configuration-metadata.json of the jars of the last Gradle / Maven sync, or Spring Boot's jars in the local Maven and Gradle caches.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "spring.inspections.unknownProperties",
+          "title": "Report unknown configuration properties",
+          "description": "Keys the metadata does not know (and that no Map property covers) are warnings. Never reported without metadata.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "spring.metadata.mavenRepository",
+          "title": "Local Maven repository",
+          "description": "Where the dependency jars are looked up. Empty: ~/.m2/repository.",
+          "type": "path",
+          "default": "",
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "spring.metadata.gradleUserHome",
+          "title": "Gradle user home",
+          "description": "Gradle's module cache is <home>/caches/modules-2/files-2.1. Empty: GRADLE_USER_HOME or ~/.gradle.",
+          "type": "path",
+          "default": "",
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "spring.gutterIcons",
+          "title": "Show gutter icons",
+          "description": "Beans and their injection points, endpoints, JPA entities and repositories, @ConfigurationProperties classes.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Editor",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "spring.dashboard.actuator",
+          "title": "Read the actuator of running applications",
+          "description": "The run dashboard (Services) and the Beans and Endpoints views ask /actuator/health, /actuator/beans and /actuator/mappings of applications started from Spring Boot configurations, on localhost.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Run dashboard",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "spring.dashboard.refreshSeconds",
+          "title": "Refresh running applications every (seconds)",
+          "type": "int",
+          "min": 2,
+          "max": 300,
+          "default": 5,
+          "group": "lang.java.spring-boot",
+          "section": "Run dashboard",
+          "project": false,
+          "order": 21
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Spring",
+          "items": [
+            {
+              "type": "action",
+              "id": "spring.showEndpoints",
+              "label": "Show _Endpoints"
+            },
+            {
+              "type": "action",
+              "id": "spring.showBeans",
+              "label": "Show _Beans"
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "spring.refresh",
+              "label": "Re_fresh Spring Model"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.groovy",
     "name": "Groovy",
     "version": "0.1.0",

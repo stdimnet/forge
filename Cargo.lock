@@ -1895,6 +1895,7 @@ dependencies = [
  "goforge-sdk",
  "javaforge-android",
  "javaforge-build",
+ "javaforge-fw-spring",
  "javaforge-jdk",
  "javaforge-lang-groovy",
  "javaforge-lang-java",
@@ -2718,6 +2719,7 @@ dependencies = [
  "goforge-pprof",
  "javaforge-android",
  "javaforge-build",
+ "javaforge-fw-spring",
  "javaforge-lang-groovy",
  "javaforge-lang-java",
  "javaforge-lang-scala",
@@ -3817,6 +3819,16 @@ dependencies = [
  "sha2 0.10.9",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "javaforge-fw-spring"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "zip 2.6.1",
 ]
 
 [[package]]

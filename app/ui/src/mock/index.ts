@@ -81,6 +81,8 @@ import "./jupyterMock";
 import "./javaMock";
 import "./javaDebugMock";
 import "./kotlinMock";
+// Spring Boot (`?project=spring`): wraps run_start for Spring Boot configurations.
+import "./springMock";
 import "./jvmExtrasMock";
 import "./androidMock";
 import "./doctrineMock";

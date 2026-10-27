@@ -628,6 +628,20 @@ Page id `lang.java` (plugin `forge.java`). See [JavaForge](../user/java.md#eclip
 | `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
 | `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
 
+### Languages & Frameworks | Java | Spring Boot
+
+Page id `lang.java.spring-boot` (plugin `forge.spring`). See [Spring Boot and Jakarta EE](../user/spring.md#settings).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `spring.metadata.fromJars` | bool | `true` | user | Configuration files | Read configuration metadata from the dependency jars — Completion, documentation and inspections in application.properties / application.yml use META-INF/spring-configuration-metadata.json of the jars of the last Gradle / Maven sync, or Spring Boot's jars in the local Maven and Gradle caches. |
+| `spring.inspections.unknownProperties` | bool | `true` | user | Configuration files | Report unknown configuration properties — Keys the metadata does not know (and that no Map property covers) are warnings. Never reported without metadata. |
+| `spring.metadata.mavenRepository` | path | `""` | user | Configuration files | Local Maven repository — Where the dependency jars are looked up. Empty: ~/.m2/repository. |
+| `spring.metadata.gradleUserHome` | path | `""` | user | Configuration files | Gradle user home — Gradle's module cache is `<home>/caches/modules-2/files-2.1`. Empty: `GRADLE_USER_HOME` or `~/.gradle`. |
+| `spring.gutterIcons` | bool | `true` | user | Editor | Show gutter icons — Beans and their injection points, endpoints, JPA entities and repositories, @ConfigurationProperties classes. |
+| `spring.dashboard.actuator` | bool | `true` | user | Run dashboard | Read the actuator of running applications — The run dashboard (Services) and the Beans and Endpoints views ask /actuator/health, /actuator/beans and /actuator/mappings of applications started from Spring Boot configurations, on localhost. |
+| `spring.dashboard.refreshSeconds` | int (2–300) | `5` | user | Run dashboard | Refresh running applications every (seconds) |
+
 ### Languages & Frameworks | Kotlin
 
 Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](../user/kotlin.md#language-server).

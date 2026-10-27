@@ -12,15 +12,16 @@
  */
 import { createEffect, createRoot, on } from "solid-js";
 import { render } from "solid-js/web";
-import { Boxes, Route } from "lucide-solid";
+import { Boxes } from "lucide-solid";
 import { isDialogWindow } from "@/shell/window/mode";
 import { registerKeymapActions, showBalloon } from "@/keymap";
 import { registerToolWindow } from "@/features/registry";
+import { registerEndpointsView, showEndpointsView } from "@/features/endpoints/registry";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { action, registerMainMenuEntries } from "@/features/mainMenu/model";
 import { registerCommand } from "@/state/commands";
-import { showToolWindow, toggleToolWindow } from "@/state/layout";
+import { toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { projectInfo } from "@/state/project";
 import { DjangoStructureActions, DjangoStructureView } from "./DjangoStructureView";
@@ -35,16 +36,8 @@ wrapGotoDeclaration();
 
 // ---- Tool windows --------------------------------------------------------------------------
 
-registerToolWindow({
-  id: "endpoints",
-  title: "Endpoints",
-  icon: Route,
-  anchor: "bottom",
-  order: 48,
-  component: EndpointsView,
-  actions: EndpointsActions,
-  when: anyWebActive,
-});
+// The shared Endpoints tool window (features/endpoints) shows this view for Python projects.
+registerEndpointsView({ id: "python", title: "Python", order: 10, when: anyWebActive, component: EndpointsView, actions: EndpointsActions });
 
 registerToolWindow({
   id: "djangoStructure",
@@ -111,7 +104,7 @@ registerCommand({
   category: "Tools",
   run: () => {
     setEndpointsTab("tasks");
-    showToolWindow("endpoints");
+    showEndpointsView("python");
   },
 });
 

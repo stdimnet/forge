@@ -23,6 +23,9 @@ The tree has three roots:
 | **Docker Compose** | compose projects found in the project root and one folder below, with their services and containers |
 | **Kubernetes** | contexts → namespaces → Pods, Deployments, Services; the node says where the contexts come from (`~/.kube/config`, or `from host deploy@shop.example.com` in a remote project) |
 
+Spring Boot run configurations add a **Spring Boot** root with their running and not started
+applications, see [Spring Boot and Jakarta EE](spring.md#run-dashboard).
+
 The status bar shows the Docker connection ("Docker 27.3.1", "Docker: connecting…",
 "Docker: not connected"). Forge follows Docker's event stream, so the tree updates by itself,
 and retries the connection every 10 seconds.

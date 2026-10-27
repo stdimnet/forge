@@ -24,13 +24,14 @@ import {
 } from "lucide-solid";
 import { navigate, type VisibleRow } from "@/features/project/treeNavigation";
 import { openMenu, type MenuItem } from "@/features/run/PopupMenu";
-import { servicesApi, type ServiceAction, type ServiceDetails, type ServiceNode } from "@/ipc/services";
+import type { ServiceAction, ServiceDetails, ServiceNode } from "@/ipc/services";
 import { DetailsPane } from "./DetailsPane";
 import { ForwardPortsDialog } from "./ForwardPortsDialog";
 import { NodeIconView } from "./icons";
 import {
   collapseAll,
   containerOf,
+  detailsOf,
   expandAll,
   expanded,
   findNode,
@@ -75,7 +76,7 @@ function visibleRows(): Row[] {
 const [detailsResource] = createRoot(() =>
   createResource(
     () => [selected(), version()] as const,
-    async ([id]) => (id ? servicesApi.details(id).catch(() => null) : null),
+    async ([id]) => (id ? detailsOf(id).catch(() => null) : null),
   ),
 );
 /** Details of the selected node (the previous answer while the next one loads). */
@@ -156,7 +157,7 @@ function Toolbar() {
 }
 
 function contextMenu(node: ServiceNode, x: number, y: number) {
-  void servicesApi.details(node.id).then((d) => {
+  void detailsOf(node.id).then((d) => {
     if (!d) return;
     const items: MenuItem[] = [];
     const add = (a: ServiceAction, label: string, icon: MenuItem["icon"], color?: string) => {

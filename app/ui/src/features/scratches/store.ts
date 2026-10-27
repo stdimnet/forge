@@ -74,6 +74,17 @@ export async function createScratch(language: string): Promise<void> {
   }
 }
 
+/** A new `.http` scratch with `content`, opened in the editor (Open in HTTP Client). */
+export async function openHttpRequest(content: string): Promise<void> {
+  try {
+    const file = await scratchesApi.create("http", content);
+    await refreshScratches();
+    await openScratch(file);
+  } catch (err) {
+    showBalloon("Cannot open the HTTP Client", String(err));
+  }
+}
+
 export async function createBuffer(): Promise<void> {
   try {
     const file = await scratchesApi.createBuffer();

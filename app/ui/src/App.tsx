@@ -35,6 +35,7 @@ export function App() {
       rust: "crates/shop-cli/src/main.rs",
       java: "src/main/java/com/acme/inventory/App.java",
       kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
+      spring: "src/main/java/com/acme/inventory/InventoryApplication.java",
       scala: "core/src/main/scala/com/acme/shop/Cart.scala",
       android: "app/src/main/java/com/acme/notes/NoteRepository.kt",
       wordpress: "acme-events.php",
