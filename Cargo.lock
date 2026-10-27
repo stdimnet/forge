@@ -1883,6 +1883,7 @@ dependencies = [
  "javaforge-build",
  "javaforge-jdk",
  "javaforge-lang-java",
+ "kotlinforge-lang-kotlin",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
  "phpforge-composer",
@@ -2699,6 +2700,7 @@ dependencies = [
  "goforge-pprof",
  "javaforge-build",
  "javaforge-lang-java",
+ "kotlinforge-lang-kotlin",
  "luaforge-lang-lua",
  "phpforge-cli-tools",
  "phpforge-composer",
@@ -4041,6 +4043,19 @@ dependencies = [
  "security-framework 3.7.0",
  "windows-sys 0.60.2",
  "zeroize",
+]
+
+[[package]]
+name = "kotlinforge-lang-kotlin"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "javaforge-build",
+ "javaforge-lang-java",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

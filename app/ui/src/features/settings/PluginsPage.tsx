@@ -18,6 +18,7 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   goforge: { label: "GoForge", order: 5 },
   rustforge: { label: "RustForge", order: 6 },
   javaforge: { label: "JavaForge", order: 7 },
+  kotlinforge: { label: "KotlinForge", order: 8 },
   scriptforge: { label: "ScriptForge", order: 8 },
   configforge: { label: "ConfigForge", order: 9 },
 };

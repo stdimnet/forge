@@ -1067,6 +1067,7 @@ mod tests {
             args: vec![],
             initialization_options: Value::Null,
             settings: Value::Null,
+            ..Default::default()
         }
     }
 

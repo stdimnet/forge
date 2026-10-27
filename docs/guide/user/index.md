@@ -61,6 +61,7 @@ not finished, the page says so.
 | [RustForge (Rust)](rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [KotlinForge](kotlin.md) | kotlin-lsp (downloaded on request), Kotlin runs through Gradle, Maven or kotlinc, Kotlin scripts, JUnit 5 and Kotest with a Run gutter, the Kotlin debugger with a Coroutines tab, ktlint and detekt in the Problems view |
 
 ## Version control
 

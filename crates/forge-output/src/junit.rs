@@ -37,6 +37,38 @@ pub enum JUnitFlavor {
     /// `adds(int)[1]`, JUnit 5 display names). Locations are `java://com/acme/CartTest.java`
     /// (relative to a source root; the test framework's location rules add the root).
     Java,
+    /// Kotlin through Gradle or Maven (JUnit 5 and Kotest): like [`Java`](Self::Java), but
+    /// test names keep their spaces (backtick functions `adds stock()`, Kotest tests
+    /// `adds items`, nested Kotest paths `cart -- adds items`). Locations are
+    /// `kotlin://com/acme/CartTest.kt::adds stock`.
+    Kotlin,
+}
+
+/// The source file of a Kotlin class (by convention named like it):
+/// `com.acme.CartSpec$Nested` → `com/acme/CartSpec.kt`.
+pub fn kotlin_class_file(class: &str) -> String {
+    let top = class.split('$').next().unwrap_or(class).trim();
+    format!("{}.kt", top.replace('.', "/"))
+}
+
+/// The test of a Kotlin test case name: `adds stock()` → `adds stock`, `rejects(int)[1]` →
+/// `rejects`, a nested Kotest path `cart -- adds items` → `adds items`.
+pub fn kotlin_test_name(name: &str) -> &str {
+    let mut n = name.trim();
+    if let Some((_, last)) = n.rsplit_once(" -- ") {
+        n = last.trim();
+    }
+    if n.ends_with(']') {
+        if let Some(i) = n.rfind('[') {
+            n = n[..i].trim_end();
+        }
+    }
+    if n.ends_with(')') {
+        if let Some(i) = n.rfind('(') {
+            n = n[..i].trim_end();
+        }
+    }
+    n
 }
 
 /// The source file of a Java binary class name: `com.acme.CartTest$Totals` →
@@ -255,6 +287,14 @@ impl Converter {
                 Some(c) => format!("java://{}::{}", java_class_file(c), java_method(name)),
                 None => String::new(),
             },
+            JUnitFlavor::Kotlin => match class {
+                Some(c) => format!(
+                    "kotlin://{}::{}",
+                    kotlin_class_file(c),
+                    kotlin_test_name(name)
+                ),
+                None => String::new(),
+            },
             JUnitFlavor::Behat => match case.attr_nonempty("file").or(suite_file) {
                 Some(f) => format!("file://{f}::{name}"),
                 None => String::new(),
@@ -368,6 +408,9 @@ impl Converter {
         let hint = match (&file, self.flavor) {
             (_, JUnitFlavor::Java) if !name.is_empty() => {
                 format!("java://{}", java_class_file(&name))
+            }
+            (_, JUnitFlavor::Kotlin) if !name.is_empty() => {
+                format!("kotlin://{}", kotlin_class_file(&name))
             }
             (Some(f), JUnitFlavor::Behat) => format!("file://{f}"),
             (Some(f), _) => format!("php_qn://{f}::\\{}", name.trim_start_matches('\\')),
@@ -519,6 +562,50 @@ mod tests {
             Some("expected: <3> but was: <2>")
         );
         assert_eq!(t.counts().ignored, 1);
+    }
+
+    const KOTEST: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.acme.cart.CartSpec" tests="3" skipped="0" failures="1" errors="0" time="0.1">
+  <testcase name="adds items" classname="com.acme.cart.CartSpec" time="0.01"/>
+  <testcase name="totals -- applies the discount" classname="com.acme.cart.CartSpec" time="0.02">
+    <failure message="expected:&lt;90&gt; but was:&lt;100&gt;" type="io.kotest.assertions.AssertionFailedError">expected:&lt;90&gt; but was:&lt;100&gt;</failure>
+  </testcase>
+  <testcase name="rejects negative quantities()" classname="com.acme.cart.CartSpec" time="0.01"/>
+</testsuite>"#;
+
+    #[test]
+    fn kotlin_reports_keep_spaces_in_test_names() {
+        assert_eq!(
+            kotlin_class_file("com.acme.Cart$Nested"),
+            "com/acme/Cart.kt"
+        );
+        assert_eq!(kotlin_test_name("adds stock()"), "adds stock");
+        assert_eq!(kotlin_test_name("rejects(int)[1]"), "rejects");
+        assert_eq!(kotlin_test_name("cart -- adds items"), "adds items");
+        let t = tree(KOTEST, JUnitFlavor::Kotlin);
+        let nodes = t.snapshot();
+        assert_eq!(
+            nodes[1].location.as_ref().unwrap().path,
+            "com/acme/cart/CartSpec.kt"
+        );
+        let failed = nodes
+            .iter()
+            .find(|n| {
+                n.status == TestStatus::Failed && n.kind == crate::teamcity::TestNodeKind::Test
+            })
+            .unwrap();
+        let loc = failed.location.as_ref().unwrap();
+        assert_eq!(loc.path, "com/acme/cart/CartSpec.kt");
+        assert_eq!(loc.member.as_deref(), Some("applies the discount"));
+        let last = nodes
+            .iter()
+            .rev()
+            .find(|n| n.kind == crate::teamcity::TestNodeKind::Test)
+            .unwrap();
+        assert_eq!(
+            last.location.as_ref().unwrap().member.as_deref(),
+            Some("rejects negative quantities")
+        );
     }
 
     const CODECEPTION: &str = r#"<?xml version="1.0" encoding="UTF-8"?>

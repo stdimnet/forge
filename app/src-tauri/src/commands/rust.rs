@@ -940,6 +940,7 @@ pub(crate) fn configure_analyzer(manager: &LspManager, state: &AppState) {
                 args: Vec::new(),
                 initialization_options: serde_json::Value::Null,
                 settings: serde_json::Value::Null,
+                ..LspServerConfig::default()
             },
             None => return,
         },

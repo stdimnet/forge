@@ -533,6 +533,7 @@ mod tests {
             args: vec![],
             initialization_options: Value::Null,
             settings: Value::Null,
+            ..Default::default()
         };
         state.register_server(cfg("a"));
         state.register_server(cfg("b"));

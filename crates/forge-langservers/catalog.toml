@@ -174,11 +174,6 @@ extensions = ["rb", "rake", "gemspec", "ru", "erb:erb"]
 file_names = ["Gemfile", "Rakefile", "Guardfile"]
 
 [[language]]
-id = "kotlin"
-name = "Kotlin"
-extensions = ["kt", "kts"]
-
-[[language]]
 id = "zig"
 name = "Zig"
 extensions = ["zig", "zon"]
@@ -806,19 +801,6 @@ install = [
 ]
 
 # ---- JVM & .NET --------------------------------------------------------------------------
-
-[[server]]
-id = "kotlin-language-server"
-name = "Kotlin Language Server"
-group = "Kotlin"
-languages = ["kotlin"]
-command = "kotlin-language-server"
-homepage = "https://github.com/fwcd/kotlin-language-server"
-license = "MIT"
-install = [
-  { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
-  { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
-]
 
 [[server]]
 id = "csharp-ls"

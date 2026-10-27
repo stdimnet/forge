@@ -58,6 +58,7 @@ import "./python";
 import "./go";
 import "./rust";
 import "./java";
+import "./kotlin";
 import "./services";
 import "./remote";
 import "./devenv";

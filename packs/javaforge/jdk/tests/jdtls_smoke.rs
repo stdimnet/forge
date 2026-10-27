@@ -96,6 +96,7 @@ async fn jdtls_completes_and_starts_a_debug_session() {
         args: setup.args(),
         initialization_options: setup.initialization_options(),
         settings: setup.settings(),
+        ..Default::default()
     };
     let client = LspClient::start(config, &project)
         .await

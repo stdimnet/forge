@@ -40,6 +40,7 @@ mod injections;
 mod java;
 mod json_schema;
 mod keymap;
+mod kotlin;
 mod livetemplates;
 mod localhistory;
 mod lua;
