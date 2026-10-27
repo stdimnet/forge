@@ -13,6 +13,27 @@ export function agent_parse_lines(request_json: string): string;
 export function agent_profiles(): string;
 
 /**
+ * `ActionRequest` → `ActionPrompt` (or `{ error }` when the action does not apply).
+ */
+export function ai_action_prompt(request_json: string): string;
+
+/**
+ * `{ request, reply }` → `Proposal` (or `{ error }`).
+ */
+export function ai_action_proposal(request_json: string): string;
+
+/**
+ * `{ request, raw }` → `{ text, language, multiline }`: the ghost text the editor shows for
+ * a raw model answer.
+ */
+export function ai_inline_finish(request_json: string): string;
+
+/**
+ * `{ path, language?, inline, projectEnabled, disabledLanguages, ignore }` → `Verdict`.
+ */
+export function ai_policy_check(request_json: string): string;
+
+/**
  * `{ devices, avds }` (outputs of `adb devices -l` and `emulator -list-avds`) →
  * `{ devices: Device[], avds: string[] }`.
  */
@@ -2410,6 +2431,10 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly agent_parse_lines: (a: number, b: number, c: number) => void;
     readonly agent_profiles: (a: number) => void;
+    readonly ai_action_prompt: (a: number, b: number, c: number) => void;
+    readonly ai_action_proposal: (a: number, b: number, c: number) => void;
+    readonly ai_inline_finish: (a: number, b: number, c: number) => void;
+    readonly ai_policy_check: (a: number, b: number, c: number) => void;
     readonly android_adb: (a: number, b: number, c: number) => void;
     readonly android_app_command: (a: number, b: number, c: number) => void;
     readonly android_logcat_view: (a: number, b: number, c: number) => void;

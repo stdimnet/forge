@@ -596,19 +596,12 @@ async fn hosted_providers_do_not_offer_fim_and_disabled_providers_are_refused() 
     );
     let (p, _) = svc.resolve(None, None, None).unwrap();
     assert!(!p.supports_fim());
-    let err = p
-        .fim(forge_ai::FimRequest::default())
-        .await
-        .err()
-        .unwrap();
+    let err = p.fim(forge_ai::FimRequest::default()).await.err().unwrap();
     assert!(matches!(err, AiError::Unsupported { .. }), "{err}");
 
     let mut cfg = svc.config().providers[0].clone();
     cfg.enabled = false;
     svc.save_provider(cfg, None).unwrap();
-    let err = svc
-        .resolve(Some("anthropic"), None, None)
-        .err()
-        .unwrap();
+    let err = svc.resolve(Some("anthropic"), None, None).err().unwrap();
     assert!(matches!(err, AiError::ProviderDisabled(_)), "{err}");
 }

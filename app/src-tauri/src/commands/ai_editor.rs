@@ -104,9 +104,10 @@ pub async fn ai_inline_complete(
     let mut request = request;
     request.multiline = setting(&state, COMPLETION_MULTILINE, MultilinePolicy::Auto);
     let ctx = build_context(&request);
-    let verdict = policy(&state)
-        .await
-        .check(&request.path, ctx.language.id(), Feature::InlineCompletion);
+    let verdict =
+        policy(&state)
+            .await
+            .check(&request.path, ctx.language.id(), Feature::InlineCompletion);
     if !verdict.is_allowed() {
         return Ok(skipped(verdict.message().unwrap_or_default()));
     }
@@ -162,7 +163,11 @@ pub async fn ai_inline_complete(
         _ = token.cancelled() => None,
         r = call => Some(r),
     };
-    editor.inline.lock().expect("inline lock").remove(&request_id);
+    editor
+        .inline
+        .lock()
+        .expect("inline lock")
+        .remove(&request_id);
     match result {
         None => Ok(skipped("cancelled")),
         Some(r) => Ok(InlineAnswer {
@@ -294,11 +299,7 @@ pub async fn ai_action(
     check_action(&state, &request).await?;
     let mut request = request;
     let prompt = forge_ai_editor::prompt(&request).map_err(ForgeError::Other)?;
-    if let Some(test_path) = prompt
-        .test_path
-        .clone()
-        .filter(|t| *t != request.path)
-    {
+    if let Some(test_path) = prompt.test_path.clone().filter(|t| *t != request.path) {
         let backend = state.backend()?;
         request.existing_test = blocking(move || {
             Ok(backend

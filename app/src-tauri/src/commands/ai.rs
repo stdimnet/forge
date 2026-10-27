@@ -113,7 +113,9 @@ pub async fn ai_stream(
         }
     };
     let (provider, feature, mut req) = request.into_parts();
-    let started = state.service.resolve(provider.as_deref(), req.model.as_deref(), feature);
+    let started = state
+        .service
+        .resolve(provider.as_deref(), req.model.as_deref(), feature);
     let p = match started {
         Ok((p, model)) => {
             req.model = model;

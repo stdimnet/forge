@@ -268,13 +268,11 @@ impl AiService {
         if !p.enabled {
             return Err(AiError::ProviderDisabled(p.name));
         }
-        let model = model
-            .map(String::from)
-            .or_else(|| {
-                feature_sel
-                    .filter(|s| s.provider == provider_id)
-                    .map(|s| s.model)
-            });
+        let model = model.map(String::from).or_else(|| {
+            feature_sel
+                .filter(|s| s.provider == provider_id)
+                .map(|s| s.model)
+        });
         Ok((p, model))
     }
 

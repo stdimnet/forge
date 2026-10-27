@@ -90,7 +90,10 @@ impl ProviderKind {
     pub fn supports_fim(self) -> bool {
         matches!(
             self,
-            ProviderKind::Ollama | ProviderKind::LmStudio | ProviderKind::LlamaCpp | ProviderKind::Custom
+            ProviderKind::Ollama
+                | ProviderKind::LmStudio
+                | ProviderKind::LlamaCpp
+                | ProviderKind::Custom
         )
     }
 
