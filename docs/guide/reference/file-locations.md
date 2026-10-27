@@ -47,6 +47,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
+| `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 | `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
@@ -112,6 +113,7 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | `forge-db` | data source id | database password |
 | `forge-deploy` | `ftp://user@host:port` | FTP/FTPS deployment password |
 | `forge-containers` | `registry:<server>` | Docker registry password |
+| `forge-jupyter` | `server:<base URL>` | Jupyter server token |
 
 ## Remote hosts
 

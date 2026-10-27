@@ -51,6 +51,7 @@ const MANIFESTS: &[(&str, &str)] = &[
         "javaforge-android.toml",
         include_str!("../plugins/javaforge-android.toml"),
     ),
+    ("cforge.toml", include_str!("../plugins/cforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (

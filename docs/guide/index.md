@@ -52,6 +52,19 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
+  toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
+  Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and
+  `CMakePresets.json`), the CMake tool window with targets and the configure log, compilation
+  database projects, Build / Rebuild / Clean (`Ctrl+F9`) with build problems, CMake Application
+  run configurations, GoogleTest, Catch2 and CTest with gutter icons and gcov / llvm-cov
+  coverage, and LLDB / GDB debugging with STL renderers ([CForge](user/cpp.md)).
+- **Jupyter notebooks**: `.ipynb` files open in the notebook editor with code, Markdown and
+  raw cells, Jupyter's command and edit mode (`Shift+Enter`, `A`, `B`, `D D`, `M`, `Y`),
+  outputs with colors, images, sanitized HTML, errors and JSON, DataFrame tables with sorting,
+  filter and pages, kernels in the project's interpreter (ipykernel over ZeroMQ, installed with
+  your consent) or on a Jupyter server, the Variables view with View as DataFrame, and notebook
+  diffs cell by cell ([Jupyter notebooks](user/jupyter.md)).
 - **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
   navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
   entities, `application.properties` / `application.yml` completion, documentation and

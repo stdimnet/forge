@@ -54,6 +54,19 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
+  toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
+  Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and
+  `CMakePresets.json`), the CMake tool window with targets and the configure log, compilation
+  database projects, Build / Rebuild / Clean (`Ctrl+F9`) with build problems, CMake Application
+  run configurations, GoogleTest, Catch2 and CTest with gutter icons and gcov / llvm-cov
+  coverage, and LLDB / GDB debugging with STL renderers ([CForge](docs/guide/user/cpp.md)).
+- **Jupyter notebooks**: `.ipynb` files open in the notebook editor with code, Markdown and
+  raw cells, Jupyter's command and edit mode (`Shift+Enter`, `A`, `B`, `D D`, `M`, `Y`),
+  outputs with colors, images, sanitized HTML, errors and JSON, DataFrame tables with sorting,
+  filter and pages, kernels in the project's interpreter (ipykernel over ZeroMQ, installed with
+  your consent) or on a Jupyter server, the Variables view with View as DataFrame, and notebook
+  diffs cell by cell ([Jupyter notebooks](docs/guide/user/jupyter.md)).
 - **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
   navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
   entities, `application.properties` / `application.yml` completion, documentation and
@@ -575,6 +588,7 @@ and a plain Lua project does not start PHP language servers.
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
+| C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -617,7 +631,7 @@ Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `targe
 The most specific framework becomes the project's **primary** type, in this order: Laravel,
 Symfony, Drupal, WordPress, Shopware, Magento, Joomla, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
 Neovim, Vite. Without a framework the primary language is used (PHP, TypeScript, JavaScript,
-Lua, Rust, Go, Python, HTML, CSS).
+Lua, Rust, Go, C/C++, Python, HTML, CSS).
 
 The primary type appears
 
@@ -640,6 +654,7 @@ The primary type appears
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
 | RustForge | Rust projects |
+| CForge | C and C++ projects |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
@@ -798,9 +813,11 @@ not finished, the page says so.
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
+| [Jupyter notebooks](docs/guide/user/jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
+| [CForge (C and C++)](docs/guide/user/cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
 | [Spring Boot and Jakarta EE](docs/guide/user/spring.md) | beans and injection points with gutter navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, the Spring Boot run configuration and its run dashboard in Services |
 | [Groovy and Scala](docs/guide/user/groovy-scala.md) | Groovy scripts through groovy or Gradle, Groovy source sets, Spock; sbt projects with the sbt tool window and import, sbt Task and sbt shell configurations, ScalaTest and MUnit through sbt, Metals installed with Coursier on request |
 | [Android](docs/guide/user/android.md) | Gradle Android projects, the Android SDK location (never downloaded), the Device Manager (adb devices, emulators), Android App runs (assemble, install, launch) and Logcat with filter queries and clickable stack traces |
@@ -8803,6 +8820,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
 | **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger), Groovy, Scala with sbt, Android |
+| **CForge** | C and C++ (clangd, toolchains, CMake, CTest / GoogleTest / Catch2, LLDB / GDB) |
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
@@ -10967,7 +10985,8 @@ Source: docs/guide/user/python.md
   the same projects.
 
 Django, Flask, FastAPI and Celery projects get more plugins: see
-[Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md).
+[Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md). Jupyter notebooks (`.ipynb`)
+open in the notebook editor: see [Jupyter notebooks](docs/guide/user/jupyter.md).
 
 ![A Python file with basedpyright's errors and the requirements inspection](docs/screenshots/python-editor.png)
 
@@ -11280,6 +11299,162 @@ Its tests (pytest with a failing parametrized case, a unittest test case), `tox.
 session in `Cart.total`, the Python Console and a profile of `scripts/report.py` are simulated;
 discovery, command lines, tox environments and the snapshot's call tree are computed by the
 same Rust code (WebAssembly).
+
+
+---
+
+Source: docs/guide/user/jupyter.md
+
+# Jupyter notebooks
+
+`.ipynb` files open in the notebook editor, the way PyCharm shows them: cells with their
+outputs, a toolbar to run them and a kernel that keeps the variables between runs. The
+plugin **Jupyter** (`forge.jupyter`, pack PyForge) is on in every project; switch it off in
+Settings | Plugins to open notebooks as JSON text again.
+
+![A notebook with Markdown, code and a DataFrame table](docs/screenshots/jupyter-notebook.png)
+
+Opening, editing, diffing and viewing notebooks never runs anything. Running a cell starts a
+kernel, which runs the notebook's code with the project's interpreter, so it is refused in
+[Safe Mode](docs/guide/user/project-trust.md) until you trust the project.
+
+## The notebook editor
+
+- **Cells**: code cells are editors with Python highlighting, bracket matching and the
+  editor's color scheme; Markdown cells show their rendered text (double-click or `Enter` to
+  edit them); raw cells are plain text. The gutter shows the run button and the execution
+  count: `[3]` after a run, `[*]` while the cell runs or waits for the kernel.
+- **Toolbar**: Run Cell and Select Below, Run All Cells, Interrupt Kernel, Restart Kernel,
+  Clear All Outputs, Add Code Cell, Delete Cell and the cell type (Code, Markdown, Raw); on the
+  right Show Variables, the kernel with its state (Not started, Starting…, Idle, Busy,
+  Disconnected) and Shut Down Kernel.
+- **Save** (`Ctrl+S`) writes the `.ipynb` file. Forge keeps everything it did not change:
+  cell ids, metadata, the order of the keys, texts stored as one string or as a list of lines,
+  the file's indent and its final line break. A notebook written by Jupyter and saved
+  unchanged by Forge is byte for byte the same file, so Git shows only real changes.
+- Language intelligence inside cells is limited to highlighting and editing helpers; the
+  Python language servers do not analyse notebook cells yet.
+
+### Command mode and edit mode
+
+Like Jupyter, the editor has two modes. In **edit mode** a cell's editor has the focus (the
+cell's frame is orange) and keys type text. `Escape` switches to **command mode**: a cell is
+selected and single keys act on cells. Click a cell's gutter to select it, click into its
+text to edit it.
+
+| Action | Mode | Windows / Linux | macOS |
+| --- | --- | --- | --- |
+| Run Cell and Select Below | both | `Shift+Enter` | `Shift+Enter` |
+| Run Cell | both | `Ctrl+Enter` | `Cmd+Enter` |
+| Run Cell and Insert Below | both | `Alt+Enter` | `Opt+Enter` |
+| Run All Cells | both | `Ctrl+Alt+Shift+Enter` | `Cmd+Opt+Shift+Enter` |
+| Enter Command Mode | edit | `Escape` | `Escape` |
+| Enter Edit Mode | command | `Enter` | `Enter` |
+| Insert Cell Above / Below | command | `A` / `B` | `A` / `B` |
+| Delete Cell | command | `D D` | `D D` |
+| Change Cell Type to Code / Markdown / Raw | command | `Y` / `M` / `R` | `Y` / `M` / `R` |
+| Select Cell Above / Below | command | `Up` or `K` / `Down` or `J` | same |
+| Move Cell Up / Down | command | `Ctrl+Shift+Up` / `Ctrl+Shift+Down` | `Cmd+Shift+Up` / `Cmd+Shift+Down` |
+| Interrupt Kernel | command | `I I` | `I I` |
+| Restart Kernel | command | `0 0` | `0 0` |
+
+All of them are keymap actions (group **Jupyter**): rebind them in Settings | Keymap, find them
+with Find Action (`Ctrl+Shift+A`). The notebook shortcuts win over editor actions with the same
+keys only inside notebooks; `Shift+Enter` still starts a new line in every other editor.
+
+## Outputs
+
+![Plot, result and an error with its traceback](docs/screenshots/jupyter-outputs.png)
+
+| Output | How it is shown |
+| --- | --- |
+| `stdout` / `stderr` streams, `text/plain` results | console text with ANSI colors; `\r` progress bars overwrite their line; file references in tracebacks open the file |
+| Errors | the traceback with its colors on an error background |
+| Images (`image/png`, `image/jpeg`, `image/gif`, `image/webp`) | the image at its size (the output's `width`/`height` metadata are honoured) |
+| `image/svg+xml` | the image after removing scripts, event handlers, `foreignObject` and external references |
+| `text/html` | sanitized HTML (no scripts, event handlers, frames, forms or remote resources) in a sandboxed frame that cannot run scripts or load anything |
+| `application/json` | a collapsible JSON tree |
+| `text/markdown` | rendered Markdown |
+| pandas DataFrames (`text/html` of a DataFrame, `application/vnd.dataresource+json`) | a DataFrame table, see below |
+
+Outputs taller than 400 pixels scroll (`jupyter.outputs.limitHeight`). While a cell runs its
+outputs stream in; `clear_output(wait=True)` and updated displays (`display_id`) work as in
+Jupyter. Interactive widgets (ipywidgets) and JavaScript outputs are not supported; their
+plain-text fallback is shown.
+
+## DataFrame tables
+
+DataFrame outputs become the same data grid as the database and CSV editors: the index
+columns, the column types when known, sorting by a click on a column header (numbers sort as
+numbers; again for descending, a third time for the original order), a **Filter** (rows that
+contain the text in any cell; `column: text` filters one column) and pages of
+`jupyter.dataframe.pageSize` rows (default 50). The bar shows the frame's size, for example
+`1000 rows × 5 columns`, also when pandas printed only part of it.
+
+## Kernels
+
+The first cell you run starts the kernel:
+
+- **In the project's interpreter** (default): Forge starts `ipykernel` with the interpreter
+  from the status bar (Settings | Project | Python Interpreter) in the notebook's folder and
+  talks to it over ZeroMQ, signing every message with a key of its own (HMAC-SHA256). When the
+  interpreter has no `ipykernel`, Forge asks to install it with the environment's package
+  manager (pip, uv, Poetry or Pipenv; the output appears in the Run tool window).
+  `jupyter.kernel.installWithoutAsking` skips the question.
+- **On a Jupyter server**: set Settings | Languages & Frameworks | Jupyter | Jupyter server
+  URL (`jupyter.server.url`), for example `http://localhost:8888`, to run kernels on a running
+  JupyterLab, Notebook 7 or `jupyter server`. A pasted URL with `?token=…` works; the token
+  is moved to the OS keychain and never stored in settings. Enter a token below the URL and
+  click **Test Connection** to check it; **Forget Token** removes it. Kernels of Docker, SSH and
+  WSL interpreters and of remote projects need a server that runs next to them.
+
+Interrupt Kernel stops the running cell (`KeyboardInterrupt`); cells queued behind a failed
+cell are skipped, like in Jupyter. Restart Kernel starts a fresh kernel and forgets every
+variable. Closing the notebook shuts its kernel down (`jupyter.kernel.shutdownOnClose`).
+
+## Variables
+
+![Run All with the Variables view](docs/screenshots/jupyter-kernel.png)
+
+**Show Variables** opens the Variables view of the kernel next to the cells, like the Python
+Console's: every variable with its type and value, expandable for lists, dicts and objects. It
+refreshes after each cell. DataFrames, Series and NumPy arrays have **View**, which opens
+**View as DataFrame**: the variable's rows (up to 10,000) in an editor tab with the same table,
+sorting, filter and pages.
+
+![View as DataFrame](docs/screenshots/jupyter-dataframe.png)
+
+## Notebook diffs
+
+![A notebook diff, cell by cell](docs/screenshots/jupyter-diff.png)
+
+Diffs of `.ipynb` files (Commit, Show Diff, Git history, Local History, Compare Files) compare
+the notebooks **cell by cell** instead of as JSON: added, deleted and modified cells, with the
+source and the outputs of a changed cell in separate line diffs, and notes when only the cell
+type, the execution count or the metadata changed. Runs of unchanged cells are folded. Cells are
+paired by their ids (nbformat 4.5); notebooks without ids are aligned by their sources. Images
+are compared by size and a short hash. **Text** in the diff toolbar switches to the JSON diff,
+for example to revert single lines; `jupyter.diff.view` chooses what opens first.
+
+## Settings
+
+Settings | Languages & Frameworks | Jupyter:
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| Jupyter server URL (project) | `jupyter.server.url` | empty: start kernels in the project's interpreter |
+| Install ipykernel without asking | `jupyter.kernel.installWithoutAsking` | off |
+| Shut down the kernel when the notebook is closed | `jupyter.kernel.shutdownOnClose` | on |
+| Scroll long outputs | `jupyter.outputs.limitHeight` | on |
+| DataFrame rows per page | `jupyter.dataframe.pageSize` | 50 |
+| Show notebook diffs | `jupyter.diff.view` | Cell by cell |
+
+## Files Forge writes
+
+- The kernel's connection file (ports and signing key, readable only by you) in
+  `<cache dir>/forge/jupyter/`, deleted when the kernel stops.
+- Server tokens in the OS keychain (service `forge-jupyter`).
+- Nothing in the project except the notebooks you save.
 
 
 ---
@@ -11953,6 +12128,244 @@ into the running JVM after JDT LS rebuilt them on save.
 (`?project=java&jdtls=missing` starts without JDT LS to try the install offer;
 `?project=java&build=maven` builds it with Maven, with profiles). Syncs, Update Wrapper and
 Maven Central answer from recorded data; nothing runs or goes to the network.
+
+
+---
+
+Source: docs/guide/user/cpp.md
+
+# CForge (C and C++)
+
+**CForge** brings CLion's C and C++ support to Forge. Its plugin **C/C++** (`forge.cpp`) is
+active in [C and C++ projects](docs/guide/getting-started/project-detection.md): a `CMakeLists.txt`,
+a `compile_commands.json` (in the root or `build/`), a `meson.build`, a `Makefile` next to
+C/C++ sources (or with them in `src/`), C/C++ files in the root, or two or more in a folder.
+
+- Highlighting of C, C++ and CMake files is bundled (CodeMirror's C++ grammar and the CMake
+  mode); completion, navigation, hover, rename, code actions and diagnostics (with
+  clang-tidy) come from **clangd** (Apache-2.0 WITH LLVM-exception).
+- Everything else — toolchain detection, CMake presets and profiles, the CMake code model,
+  build problems, test discovery and command lines, coverage and debugger setup — is
+  computed in Rust (`packs/cforge/*`).
+
+![GoogleTest tests with run icons in the gutter](docs/screenshots/cpp-editor.png)
+
+## Toolchains
+
+**Settings | Build, Execution, Deployment | Toolchains** lists the toolchains of the machine,
+like CLion: a C and C++ compiler with CMake, a build tool (Ninja or Make) and a debugger.
+Forge reads every version itself (`gcc -v`, `clang -v`, MSVC's `cl` banner, `--version` of
+the tools) and shows what is missing.
+
+![Settings | Build, Execution, Deployment | Toolchains](docs/screenshots/cpp-toolchains.png)
+
+| Toolchain | Found as |
+| --- | --- |
+| System GCC / Clang | `gcc` / `g++`, `clang` / `clang++` on the `PATH`, and versioned ones (`gcc-14`, `clang-19`) |
+| Cross compilers | `<triple>-gcc` / `<triple>-g++` on the `PATH` (`arm-none-eabi-gcc`, `aarch64-linux-gnu-gcc`), with `<triple>-gdb` or `gdb-multiarch` |
+| MinGW-w64 | MSYS2's `ucrt64`, `mingw64` and `clang64`, `C:\mingw64`, `C:\MinGW`, or a GCC on the `PATH` that targets `*-w64-mingw32` |
+| Visual Studio | every installation with the C++ tools that `vswhere` reports: the newest `cl.exe`, `vcvarsall.bat` and the CMake and Ninja Visual Studio bundles |
+
+- The debugger of a toolchain is GDB for GCC and LLDB (`lldb-dap`) for Clang, the other one
+  when only that is installed. GDB needs version 14 or newer (its DAP server, `gdb -i dap`).
+  Microsoft's debugger is not redistributable: MSVC programs are debugged with LLDB.
+- **+** adds your own toolchain (`cpp.toolchains`): name, kind, CMake, build tool, C and C++
+  compilers, debugger and an environment script (a cross SDK's `environment-setup-*`). Empty
+  fields are detected. The page checks the entry while you type. The first toolchain of the
+  list is the default; **Copy** turns a detected toolchain into an editable one.
+- Remote projects use the compilers of the remote host; the page lists this machine's.
+
+## CMake
+
+### Profiles and presets
+
+**Settings | Build, Execution, Deployment | CMake** holds the project's **profiles**
+(`cmake.profiles`, stored with the project): name, build type (Debug, Release,
+RelWithDebInfo, MinSizeRel), toolchain, generator, CMake options, build directory (default
+`cmake-build-<name>`), build options (`-j 8`) and environment. Without a profile the project
+has CLion's **Debug** profile.
+
+![Settings | Build, Execution, Deployment | CMake](docs/screenshots/cmake-profiles.png)
+
+The configure presets of `CMakePresets.json` and `CMakeUserPresets.json` become profiles too
+(read-only; **Copy** turns one into a profile). Forge reads them in Rust: schema versions 1
+to 10, `include` files, `inherits` chains, `hidden` presets, `condition`s (`equals`,
+`inList`, `anyOf`, `not`, …) and the macros `${sourceDir}`, `${presetName}`,
+`${hostSystemName}`, `$env{…}` and `$penv{…}`. Preset profiles configure with
+`cmake --preset=<name>`.
+
+- **Reload CMake project on editing CMakeLists.txt** (`cmake.reloadOnChange`) reloads after
+  saving a CMake file or a presets file.
+- **Build the target before running or debugging** (`cmake.buildBeforeRun`).
+- **CMake executable** (`cmake.executable`): empty uses the toolchain's CMake.
+
+### The CMake tool window
+
+The **CMake** tool window shows one tab per enabled profile (the active one is selected;
+clicking another one switches the active profile, `cmake.activeProfile`), the targets of the
+profile's code model and the configure output.
+
+![The CMake tool window with targets and the configure log](docs/screenshots/cmake-tool-window.png)
+
+- **Reload CMake Project** writes a query for CMake's file API
+  (`<build>/.cmake/api/v1/query/client-forge/query.json`), runs the configure with the
+  toolchain's compilers and `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, and reads the reply:
+  configurations, projects, targets (executables, libraries, utilities) with their sources,
+  artifacts and the line of `CMakeLists.txt` that defines them. Double-click a target to go
+  there; its row has Build, Run and Debug buttons.
+- **Reset Cache and Reload Project** deletes `CMakeCache.txt` and `CMakeFiles` first;
+  **Stop** ends a configure; **Clean** runs the `clean` target.
+- `CMake Error at CMakeLists.txt:6 (find_package):` and warning lines of the log link to the
+  file and line; the summary counts errors and warnings.
+- Forge loads the CMake project when a trusted project opens. Configuring runs project code,
+  so it is refused in [Safe Mode](docs/guide/user/project-trust.md); a model an earlier configure wrote is
+  shown anyway.
+
+CMake files get completion of commands (with their signatures), of the keywords of the
+command the caret is in (`PRIVATE`, `REQUIRED`, `STATIC`, …) and of `${VARIABLES}` (CMake's
+and the ones the file sets).
+
+## Compilation database projects
+
+A folder with a `compile_commands.json` (written by Bear, Meson or another generator) opens
+as a C/C++ project without CMake. clangd reads the database in the project root or in
+`build/`; **Settings | Languages & Frameworks | C/C++ | Compilation database**
+(`cpp.compileCommands`) points at another one. The page shows how many files it lists and
+which language standards they use.
+
+## clangd
+
+**Settings | Languages & Frameworks | C/C++** shows the clangd in use, the compilation
+database it reads and clang-format.
+
+![Settings | Languages & Frameworks | C/C++](docs/screenshots/cpp-settings.png)
+
+- clangd comes from **clangd executable** (`cpp.clangd.path`), the toolchain's LLVM
+  (`clangd` next to `clang++`), the `PATH`, or Forge's download.
+- **Download clangd** fetches the pinned release (`19.1.2`) from the official
+  [clangd releases](https://github.com/clangd/clangd/releases) after you agree, checks its
+  SHA-256 and unpacks it into `<data dir>/forge/langservers/clangd/<version>`. The release
+  publishes no checksum files: the SHA-256 is read from the GitHub API's asset digest of the
+  pinned release (`api.github.com/repos/clangd/clangd/releases/tags/19.1.2`), and a download
+  without one is refused. When a C/C++ project opens without clangd, a balloon offers the
+  download.
+- clangd starts with `--compile-commands-dir` set to the active profile's build folder (or
+  the compilation database), `--background-index`, `--clang-tidy`
+  (`cpp.clangd.clangTidy`; the project's `.clang-tidy` files choose the checks),
+  `--header-insertion` (`cpp.clangd.headerInsertion`), `--completion-style`
+  (`cpp.clangd.completionStyle`) and `--query-driver` with the toolchain's compilers, so
+  cross compilers' system headers are found. **Additional clangd arguments**
+  (`cpp.clangd.arguments`) adds more. It restarts after a CMake reload, so it reads the new
+  database.
+
+### Reformat Code
+
+**Reformat Code** (`Ctrl+Alt+L`) and **Actions on Save | Reformat code** run clang-format
+(`cpp.formatter`): it reads the `.clang-format` of the file's folder; **Style without a
+.clang-format file** (`cpp.clangFormat.fallbackStyle`) applies otherwise. **clangd** formats
+through the language server, **Do not format** leaves C and C++ files alone. `.clang-format`,
+`.clang-tidy` and `.clangd` files are highlighted as YAML.
+
+## Build
+
+| Action | Shortcut | What it runs |
+| --- | --- | --- |
+| Build Project | `Ctrl+F9` (macOS `Cmd+F9`) | `cmake --build <build dir>` |
+| Rebuild Project | | `cmake --build <build dir> --clean-first` |
+| Clean | | `cmake --build <build dir> --target clean` |
+| Build Target… | | `cmake --build <build dir> --target <target>` |
+
+The build runs in the Run tool window. When it finishes, Forge parses the compiler and
+linker messages in Rust — GCC and Clang (`file:line:col: error: …`, with their notes), MSVC
+(`file(line,col): error C2065: …`) and the linkers (`ld`, `lld`, Apple's `ld`, `link.exe`) —
+and shows them in the **Build** tab of the Problems tool window and as editor diagnostics.
+Notes (candidates, declarations) are nested under their message; a click opens the line.
+
+![Build problems in the Problems tool window](docs/screenshots/cpp-build-problems.png)
+
+Build Project in other projects (JavaForge) keeps its own meaning.
+
+## Run configurations
+
+**CMake Application** runs an executable target of the active profile: **Target**, an
+optional **Executable**, **Program arguments**, working directory (default: the folder of
+the executable), environment and **Debugger** (the toolchain's, GDB or LLDB). The target is
+built first. The CMake tool window's Run and Debug buttons create one.
+
+## Tests
+
+| Framework | Run configuration | How it runs | Gutter |
+| --- | --- | --- | --- |
+| GoogleTest | Google Test | the target's executable with `--gtest_filter` and `--gtest_output=xml:<report>` | `TEST`, `TEST_F`, `TEST_P`, `TYPED_TEST` |
+| Catch2 | Catch2 | the target's executable with a test spec, `-c <section>` and `--reporter junit --out <report>` | `TEST_CASE`, `TEST_CASE_METHOD`, `SCENARIO`, `TEMPLATE_TEST_CASE` and their `SECTION`s / `GIVEN` / `WHEN` / `THEN` |
+| CTest | CTest | `ctest --test-dir <build dir> --output-junit <report>` with `-R`, `-L` and `-j` | — |
+
+- The test executable is the configuration's **Target**, else the CMake target that compiles
+  the test file. It is built first (CTest builds the project).
+- Results come from the JUnit XML reports into the test tree, with the file and line of every
+  GoogleTest test; disabled tests show as ignored. **Rerun Failed Tests** runs
+  `--gtest_filter=*.<test>:…`, the failed Catch2 test cases, or `ctest -R '^(…)$'`.
+- Test discovery finds the macros with a small tokenizer that skips comments and keeps string
+  literals; a file that includes `gtest/` or `catch2/` belongs to that framework.
+
+![A GoogleTest run](docs/screenshots/cpp-gtest-tree.png)
+
+![A Catch2 run with a failing section](docs/screenshots/cpp-catch2-tree.png)
+
+### Coverage
+
+**Run with Coverage** works for all three: build the profile with coverage instrumentation
+(CMake options `-DCMAKE_CXX_FLAGS=--coverage` for GCC, or
+`-DCMAKE_CXX_FLAGS="-fprofile-instr-generate -fcoverage-mapping"` for Clang). Forge clears old
+`.gcda` files before the run and turns the data into an LCOV report afterwards: Clang's
+`.profraw` files (`LLVM_PROFILE_FILE`) with `llvm-profdata merge` and `llvm-cov export
+-format=lcov`, else gcov's `.gcda` files with `gcov --json-format` (the `gcov` that belongs to
+the toolchain's GCC). Only project files are kept. The result opens in the
+[Coverage](docs/guide/user/coverage.md) tool window. Coverage is collected for local projects.
+
+## Debugging
+
+Debug (`Shift+F9`) on a CMake Application, Google Test or Catch2 configuration builds the
+target and starts it under the built-in [LLDB or GDB adapter](docs/guide/user/debugging.md) of the
+toolchain (cross toolchains use their own GDB, for example `gdb-multiarch`). Breakpoints,
+stepping, watches, the Memory, Disassembly and Registers views, Attach to Process and core
+dumps work as for every native program.
+
+![GDB stopped in main with STL containers](docs/screenshots/cpp-debug.png)
+
+**Show STL containers with their elements** (`cpp.debugger.stlRenderers`): GDB registers
+libstdc++'s Python pretty printers of the toolchain before the program loads
+(`-iex "python …register_libstdcxx_printers…"` from `<prefix>/share/gcc*/python`) and prints
+structures on several lines; LLDB uses its built-in C++ formatters (libc++, libstdc++, MSVC
+STL). A `std::vector` shows its length and elements, which expand like any other variable.
+
+## Settings
+
+| Key | Page | Default | What it does |
+| --- | --- | --- | --- |
+| `cpp.toolchains` | Toolchains | `[]` | Your own toolchains; the first is the default |
+| `cmake.profiles` | CMake | `[]` | The project's CMake profiles (a Debug profile without any) |
+| `cmake.activeProfile` | CMake tool window | `""` | The profile builds, runs, tests and clangd use |
+| `cmake.executable` | CMake | `""` | CMake to run; empty: the toolchain's |
+| `cmake.reloadOnChange` | CMake | `true` | Reload after saving CMake files |
+| `cmake.buildBeforeRun` | CMake | `true` | Build the target before running, testing or debugging |
+| `cpp.clangd.path` | C/C++ | `""` | clangd executable |
+| `cpp.clangd.clangTidy` | C/C++ | `true` | clang-tidy diagnostics |
+| `cpp.clangd.headerInsertion` | C/C++ | `iwyu` | `#include` insertion of completion |
+| `cpp.clangd.completionStyle` | C/C++ | `detailed` | One item per overload or bundled |
+| `cpp.clangd.arguments` | C/C++ | `""` | More clangd arguments |
+| `cpp.compileCommands` | C/C++ | `""` | Compilation database of projects without CMake |
+| `cpp.formatter` | C/C++ | `clangFormat` | clang-format, clangd or none |
+| `cpp.clangFormat.path` | C/C++ | `""` | clang-format executable |
+| `cpp.clangFormat.fallbackStyle` | C/C++ | `LLVM` | Style without a `.clang-format` |
+| `cpp.debugger.stlRenderers` | C/C++ | `true` | STL pretty printers / formatters |
+
+## Browser mode
+
+`?project=cpp` opens the `shapes` demo: a C++20 library with an app, GoogleTest and Catch2
+tests, CMake presets and a `.clang-format`. `&build=broken` makes its build fail with
+compiler errors. Toolchains, the CMake model and all output are canned; the parsing and the
+command lines run the Rust crates through WebAssembly.
 
 
 ---
@@ -14149,6 +14562,7 @@ PHP, Lua and every language pack that follows:
 | ScalaTest, MUnit | JavaForge ([Groovy and Scala](docs/guide/user/groovy-scala.md#scalatest-and-munit)), through sbt `testOnly` | JUnit XML of `target/test-reports` | — |
 | Kotest, JUnit 5 in Kotlin | KotlinForge ([KotlinForge](docs/guide/user/kotlin.md#tests)), through Gradle or Maven | JUnit XML of the build | JaCoCo XML |
 | Jest, Vitest, Mocha, Playwright, Cypress, `node --test` | WebForge ([JavaScript test runners](docs/guide/user/javascript-debugging.md#test-runners)) | Jest / Vitest JSON, TAP, Playwright JSON, JUnit XML | LCOV (Jest, Vitest, c8 for Mocha, Node's reporter) |
+| GoogleTest, Catch2, CTest | CForge ([CForge](docs/guide/user/cpp.md#tests)), the CMake target's executable or `ctest` | JUnit XML (`--gtest_output=xml`, Catch2's JUnit reporter, `ctest --output-junit`) | LCOV from gcov or llvm-cov |
 | pytest, unittest, tox | PyForge ([PyForge](docs/guide/user/python.md#testing-with-pytest-unittest-and-tox)) | JUnit XML or report log (pytest), TeamCity (Forge's unittest runner), environments as tests (tox) | pytest-cov (Cobertura) |
 
 Language packs declare their frameworks in their plugin manifest
@@ -17415,6 +17829,27 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
 | Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
 | Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Run Cell and Select Below | `Jupyter.RunCellSelectBelow` | `Shift+Enter` | `Shift+Enter` | notebook |
+| Run Cell | `Jupyter.RunCell` | `Ctrl+Enter` | `Cmd+Enter` | notebook |
+| Run Cell and Insert Below | `Jupyter.RunCellInsertBelow` | `Alt+Enter` | `Opt+Enter` | notebook |
+| Run All Cells | `Jupyter.RunAll` | `Ctrl+Alt+Shift+Enter` | `Cmd+Opt+Shift+Enter` | notebook |
+| Interrupt Kernel | `Jupyter.InterruptKernel` | `I I` | `I I` | notebook command mode |
+| Restart Kernel | `Jupyter.RestartKernel` | `0 0` | `0 0` | notebook command mode |
+| Shut Down Kernel | `Jupyter.ShutdownKernel` |  |  | any |
+| Enter Command Mode | `Jupyter.EnterCommandMode` | `Escape` | `Escape` | notebook |
+| Enter Edit Mode | `Jupyter.EnterEditMode` | `Enter` | `Enter` | notebook command mode |
+| Insert Cell Above | `Jupyter.InsertCellAbove` | `A` | `A` | notebook command mode |
+| Insert Cell Below | `Jupyter.InsertCellBelow` | `B` | `B` | notebook command mode |
+| Delete Cell | `Jupyter.DeleteCell` | `D D` | `D D` | notebook command mode |
+| Change Cell Type to Code | `Jupyter.ToCode` | `Y` | `Y` | notebook command mode |
+| Change Cell Type to Markdown | `Jupyter.ToMarkdown` | `M` | `M` | notebook command mode |
+| Change Cell Type to Raw | `Jupyter.ToRaw` | `R` | `R` | notebook command mode |
+| Select Cell Above | `Jupyter.SelectCellAbove` | `Up`, `K` | `Up`, `K` | notebook command mode |
+| Select Cell Below | `Jupyter.SelectCellBelow` | `Down`, `J` | `Down`, `J` | notebook command mode |
+| Move Cell Up | `Jupyter.MoveCellUp` | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | notebook command mode |
+| Move Cell Down | `Jupyter.MoveCellDown` | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | notebook command mode |
+| Clear All Outputs | `Jupyter.ClearAllOutputs` |  |  | any |
+| Show Variables (Jupyter) | `Jupyter.ShowVariables` |  |  | any |
 | Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
 | Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |
@@ -18810,6 +19245,35 @@ Page ids `lang.flask`, `lang.fastapi` and `lang.celery`.
 | `fastapi.app` | string | `""` | user, project |  | Application — module:attribute that uvicorn serves. Empty: the module that creates FastAPI(...). |
 | `celery.app` | string | `""` | user, project |  | Application (-A) — The Celery application. Empty: the module that creates Celery(...). |
 
+### Languages & Frameworks | C/C++
+
+Page id `lang.cpp` (plugin `forge.cpp`; the page also shows clangd, the compilation database and clang-format). See [CForge](docs/guide/user/cpp.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.clangd.path` | path | `""` | user | Clangd | clangd executable — Empty: clangd of the active toolchain (LLVM), on the PATH, or the one Forge downloaded. |
+| `cpp.clangd.clangTidy` | bool | `true` | user, project | Clangd | Show clang-tidy diagnostics — clangd runs the checks of the project's .clang-tidy files (--clang-tidy). |
+| `cpp.clangd.headerInsertion` | enum: `iwyu`, `never` | `iwyu` | user, project | Clangd | Insert #include for completed symbols. |
+| `cpp.clangd.completionStyle` | enum: `detailed`, `bundled` | `detailed` | user | Clangd | Completion style. |
+| `cpp.clangd.arguments` | string | `""` | user | Clangd | Additional clangd arguments — For example --log=verbose or -j=4. |
+| `cpp.compileCommands` | path | `""` | user, project | Compilation Database | Compilation database — compile_commands.json of a project without CMake (Bear, Meson, other generators). Empty: the project root or build/. |
+| `cpp.formatter` | enum: `clangFormat`, `lsp`, `none` | `clangFormat` | user, project | Code Style | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for C and C++ files; clang-format reads the project's .clang-format. |
+| `cpp.clangFormat.path` | path | `""` | user | Code Style | clang-format executable — Empty: clang-format of the active toolchain or on the PATH. |
+| `cpp.clangFormat.fallbackStyle` | enum: `LLVM`, `Google`, `Chromium`, `Mozilla`, `WebKit`, `Microsoft`, `GNU`, `none` | `LLVM` | user, project | Code Style | Style without a .clang-format file. |
+| `cpp.debugger.stlRenderers` | bool | `true` | user | Debugger | Show STL containers with their elements — GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters. |
+### Languages & Frameworks | Jupyter
+
+Page id `lang.jupyter`. See [Jupyter notebooks](docs/guide/user/jupyter.md). The server token is stored in the OS keychain, not in settings.
+
+| Key | Type | Default | Scope | Section | Description |
+| --- | --- | --- | --- | --- | --- |
+| `jupyter.server.url` | string | `""` | user, project | Kernels | Jupyter server URL — Run kernels on this server instead of starting ipykernel in the project's interpreter, for example http://localhost:8888 (a pasted URL's ?token= is moved to the keychain). Needed for Docker, SSH and WSL interpreters and remote projects. |
+| `jupyter.kernel.installWithoutAsking` | bool | `false` | user | Kernels | Install ipykernel without asking — Install ipykernel into the interpreter with its package manager when a notebook starts a kernel and it is missing. |
+| `jupyter.kernel.shutdownOnClose` | bool | `true` | user | Kernels | Shut down the kernel when the notebook is closed |
+| `jupyter.outputs.limitHeight` | bool | `true` | user | Outputs | Scroll long outputs — Outputs taller than 400 pixels get their own scroll bar. |
+| `jupyter.dataframe.pageSize` | int | `50` | user | Outputs | DataFrame rows per page |
+| `jupyter.diff.view` | enum: `cells`, `json` | `cells` | user | Diff | Show notebook diffs — How the diff viewer shows .ipynb files first. |
+
 ### Languages & Frameworks | Go
 
 Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
@@ -19108,6 +19572,26 @@ Page id `build.tools.maven` (plugin `forge.java`).
 | `java.maven.skipTests` | bool | `false` | user, project |  | Skip tests — Maven goals run with -DskipTests (the Maven tool window's Skip Tests toggle; test runs ignore it). |
 | `java.maven.profiles` | list | `[]` | user, project |  | Profiles — Profiles the Maven tool window selected: id to activate, !id to deactivate. |
 | `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
+
+### Build, Execution, Deployment | Toolchains
+
+Page id `build.toolchains` (plugin `forge.cpp`, a custom page: detected toolchains and your own). See [CForge](docs/guide/user/cpp.md#toolchains).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cpp.toolchains` | objects | `[]` | user |  | Toolchains — Toolchains added by hand (name, kind, compilers, CMake, Make, Ninja, debugger, environment script). The first one is the default; detected toolchains follow. |
+
+### Build, Execution, Deployment | CMake
+
+Page id `build.cmake` (plugin `forge.cpp`; profiles are edited in the page's list, presets are read from `CMakePresets.json`). See [CForge](docs/guide/user/cpp.md#cmake).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `cmake.profiles` | objects | `[]` | user, project |  | CMake profiles — name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled. |
+| `cmake.activeProfile` | string | `""` | user, project |  | Active CMake profile (chosen in the CMake tool window). |
+| `cmake.executable` | path | `""` | user | CMake | CMake executable — Empty: the active toolchain's CMake (bundled with Visual Studio for MSVC), else cmake on the PATH. |
+| `cmake.reloadOnChange` | bool | `true` | user, project | CMake | Reload CMake project on editing CMakeLists.txt or other CMake configuration files. |
+| `cmake.buildBeforeRun` | bool | `true` | user, project | CMake | Build the target before running or debugging — CMake Application, Google Test and Catch2 configurations build their target first (cmake --build --target). |
 
 ### Build, Execution, Deployment | Debugger
 
@@ -19500,7 +19984,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | `clangd --background-index --clang-tidy --header-insertion=iwyu` | `brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results. |
+| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | started by CForge (`forge.cpp`) | Download from Settings \| Languages & Frameworks \| C/C++ (GitHub releases, SHA-256 checked)<br>`brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | A pack server: CForge starts it with the compilation database of the active CMake profile, clang-tidy and the toolchain's compilers as query drivers. See [CForge](docs/guide/user/cpp.md#clangd). |
 
 ### Zig
 
@@ -19723,6 +20207,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
 | `intelephense/` | Intelephense's storage (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
+| `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
 | `remote-edit/<server>/…` | temporary copies of the files opened with Edit Remote File (Remote Host tool window); removed when the tab closes |
 
@@ -19788,6 +20273,7 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | `forge-db` | data source id | database password |
 | `forge-deploy` | `ftp://user@host:port` | FTP/FTPS deployment password |
 | `forge-containers` | `registry:<server>` | Docker registry password |
+| `forge-jupyter` | `server:<base URL>` | Jupyter server token |
 
 ## Remote hosts
 
@@ -19893,7 +20379,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -19926,7 +20412,9 @@ script and config language plugins.
 | Flask | `forge.flask` | pyforge | `forge.python-web` | `flask` | 1 settings; file types: Jinja2; run types: Flask Server |
 | FastAPI | `forge.fastapi` | pyforge | `forge.python-web` | `fastapi` | 1 settings; run types: FastAPI |
 | Celery | `forge.celery` | pyforge | `forge.python-env` | `celery` | 1 settings; run types: Celery worker, Celery beat |
+| Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
+| C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake; 6 commands; 16 settings; file types: Clang Configuration; run types: CMake Application; test frameworks: Google Test, Catch2, CTest |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
@@ -21908,7 +22396,11 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
 | [goforge-pprof](docs/guide/developer/crates/goforge-pprof.md) | GoForge: pprof profiles (profile.proto, gzip) with top, call tree and flame graph views; pure, also built to WebAssembly |
+| [cforge-toolchains](docs/guide/developer/crates/cforge-toolchains.md) | CForge: C/C++ toolchains on the user's machine (GCC, Clang, Apple Clang, MinGW, MSVC through vswhere, cross compilers) with CMake, Ninja, Make, GDB and LLDB; version outputs parsed in Rust |
+| [cforge-cmake](docs/guide/developer/crates/cforge-cmake.md) | CForge: CMake profiles, CMakePresets.json / CMakeUserPresets.json, the cmake-file-api query and codemodel-v2 reply, configure logs, configure / build / clean / CTest command lines, CMakeLists completion (pure, also built to WebAssembly) |
+| [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) | CForge: C/C++ build problems (GCC, Clang, MSVC, linkers), compilation databases, GoogleTest and Catch2 discovery, the GoogleTest / Catch2 / CTest providers with gcov and llvm-cov coverage, clangd / clang-format command lines and debugger setup (pure, also built to WebAssembly) |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
+| [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
@@ -22934,7 +23426,10 @@ with the same `debug_*` commands and `debug://*` events.
   `${cwd}`, `${env}`, `${pid}`, `${core}`, `${stopOnEntry}`), `AdapterRegistry` and
   `LaunchRequest` (launch, attach to a process, attach to a DAP server, attach to a
   debuggee's port (`AttachPort`: `node --inspect`, a browser's remote debugging port), core
-  dump).
+  dump). `adapterArgs` and `adapterCommand` change a manifest adapter's command line for one
+  session (CForge's GDB `-iex` commands for STL pretty printers, a cross toolchain's
+  `gdb-multiarch`); such requests count as running code (`runs_code`), so Safe Mode refuses
+  them.
 - `manager::DapManager` starts and tracks sessions (`register_adapter` / `unregister_adapter`
   for adapters implemented in Rust, such as [webforge-js-debug](docs/guide/developer/crates/webforge-js-debug.md)'s js-debug), shares the project's breakpoints with
   Xdebug through a `BreakpointHost` (the app's `DebugServer`) and resends them when they
@@ -23943,6 +24438,7 @@ these rows.
 | `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
+| `managed/clangd.rs` | CForge's clangd download from the official GitHub releases at a pinned version (`CLANGD_VERSION`, `clangd_release` per platform): the SHA-256 recorded in `CLANGD_BUILDS`, else the asset `digest` of the GitHub REST API for the pinned release (`asset_digest`); without one the install is refused. Unpacked into `<data dir>/forge/langservers/clangd/<version>` (`installed_clangd`). clangd is a pack server (plugin `forge.cpp`). |
 | `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`); so is Metals (plugin `forge.scala`, installed with the user's Coursier by `commands/scala.rs`). |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
@@ -24522,7 +25018,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
-| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
+| `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), GoogleTest's and CTest's `status="notrun"` / `result="suppressed"` as ignored, durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
 | `links.rs` | File references in console and terminal output (`app/User.php:42`, `/abs/path/File.php on line 7`, `File.php(12)`, `#0 /path/x.php(31): …`) and web links, so the UI can make them clickable. |
 | `osc.rs` | Payloads of the OSC sequences the terminal understands beyond xterm.js: OSC 9;4 progress (normal, error, indeterminate, paused, remove), OSC 9 and OSC 777 notifications, OSC 7 and ConEmu 9;9 working directories, OSC 133 command boundaries, and which OSC 8 hyperlinks may open (web and mail links, `file://` links into the project). The terminal calls it synchronously through `forge-wasm` from xterm.js's OSC handlers. |
 | `stacktrace.rs` | Analyze External Stack Trace: `analyze(text, ctx, exists)` turns a pasted trace into console lines whose frames link to project files (message in red, library frames dimmed); `resolve` maps a path with `TraceContext.mappings`, the project root or the longest trailing part that exists; `compose_mappings` reads Docker Compose bind mounts; `normalize` splits one-line logs with escaped line breaks. |
@@ -24710,7 +25206,7 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`. Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
 | `generators.rs` | New Project generators (File \| New Project). |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
@@ -25441,7 +25937,7 @@ coverage reports into one model.
 | Module | Summary |
 | --- | --- |
 | `targets.rs` | `TestFile` (the tests of a file with their temporary configurations and result keys), `TestTarget`, `TargetKind` (`class`, `method`, `file`, `describe`, `test`, `dataset`, `feature`, `scenario`, `example`, `suite`), `FailedTest`. |
-| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request with its own location rules, `report_dirs`: project folders a build tool writes its JUnit XML into, emptied before and read after the run) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
+| `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request with its own location rules and an optional `CoverageCollect` (raw data a pack's collector turns into the report after the run: CForge's gcov `.gcda` / LLVM `.profraw` → LCOV), `report_dirs`: project folders a build tool writes its JUnit XML into, emptied before and read after the run) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `rerun_failed`, `command`, `info`). |
 | `spec.rs` | `TestFrameworkSpec`, the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
 | `provider.rs` | The contribution point: `TestFrameworkProvider` (`id`, `types`, `accepts`, `discover`, `rerun_failed`, `command`, `supports_coverage`), `CommandContext` (report folder, coverage file, settings), `TestCommand` (program, arguments, environment, `TestReport`, `JUnitFlavor`, location rules, default file, coverage request) and the `TestFrameworks` registry (`register`, `register_specs`, `for_type`, `discover`, `discover_in_project` (the frameworks the project uses first), `rerun_failed`, `command`, `info`). |
 | `spec.rs` | `TestFrameworkSpec` (with `fields`: extra run configuration form fields), the manifest contribution `[[contributions.testFrameworks]]`: detection (globs, dependency files), test file globs, line-pattern discovery nested by indentation with full names, per-scope arguments with placeholders (`${file}`, `${test}`, `${testPattern}`, `${pattern}`, `${reportDir}`, `${coverageFile}`), escaping (regex, Lua patterns), rerun by pattern, location rules and coverage; `SpecProvider`; `glob_regex`, `expand`. |
@@ -27149,6 +27645,205 @@ cargo test -p goforge-pprof
 
 ---
 
+Source: docs/guide/developer/crates/cforge-toolchains.md
+
+# cforge-toolchains
+
+`packs/cforge/toolchains` — CForge: the toolchains of Settings | Build, Execution,
+Deployment | Toolchains, like CLion's. A toolchain is a C and C++ compiler with CMake, a build
+tool (Ninja, Make) and a debugger (GDB or LLDB).
+
+## Purpose
+
+- `version`: `gcc -v` / `clang -v` (target, thread model, installed dir, vendor such as
+  `Ubuntu`, `MSYS2 project`, `Arm GNU Toolchain 13.3.Rel1`), Apple Clang, MSVC's `cl` banner
+  and the first line of `--version` of CMake, Ninja, Make, GDB, LLDB and clang-format;
+  `at_least` / `version_key` compare versions.
+- `vswhere`: `vswhere -format json` installations (newest first), the newest MSVC tool set in
+  `VC\Tools\MSVC`, `cl.exe` for a host / target architecture, `vcvarsall.bat` and the CMake and
+  Ninja that Visual Studio bundles.
+- `detect`: the toolchains of a machine — the system GCC and Clang, versioned compilers
+  (`gcc-14`), cross compilers `<triple>-gcc` (with `<triple>-gdb` or `gdb-multiarch`; Debian's
+  host aliases are skipped), MinGW-w64 folders on Windows and Visual Studio — with their
+  problems ("GDB 12.1 has no DAP server", "No build tool"), the user's toolchains from the
+  setting `cpp.toolchains` (`ToolchainEntry`, empty fields detected) and the CMake variables a
+  toolchain sets (`CMAKE_C_COMPILER`, `CMAKE_CXX_COMPILER`, `CMAKE_MAKE_PROGRAM`).
+
+Everything detection does to the machine goes through the `Probe` trait (`SystemProbe` for
+the real one), so the tests describe Linux and Windows machines with a fake.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `version.rs` | `parse_compiler`, `parse_tool_version`, `CompilerInfo`, `CompilerFamily`, `at_least`, `version_key`. |
+| `vswhere.rs` | `parse`, `VsInstallation`, `newest_toolset`, `msvc_paths`, `VSWHERE_ARGS`. |
+| `detect.rs` | `detect`, `all`, `from_entry`, `which`, `cmake_variables`, `Toolchain`, `ToolchainEntry`, `Probe`, `SystemProbe`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp.rs` (`cpp_toolchains`, `cpp_toolchain_inspect`, the
+  configure command, the debugger and coverage tools of a profile).
+
+## Dependencies
+
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests with fixtures recorded on Ubuntu 24.04 (`gcc -v`, `clang -v`, `cmake --version`,
+`ninja --version`, `make --version`, `gdb --version`, `lldb --version`,
+`clang-format --version`) and documented-format samples (MinGW, `arm-none-eabi-gcc`, Apple
+Clang, the `cl` banner, `vswhere` JSON) in `tests/fixtures/`.
+
+```sh
+cargo test -p cforge-toolchains
+```
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-cmake.md
+
+# cforge-cmake
+
+`packs/cforge/cmake` — CForge: everything about CMake that needs no I/O. The desktop backend
+reads files and runs CMake; this crate decides. The WebAssembly build of browser mode shares
+it.
+
+## Purpose
+
+- `presets`: `CMakePresets.json` and `CMakeUserPresets.json` (which includes the project
+  file) with `include` files (cycles reported), configure, build and test presets,
+  `inherits` (depth first, the first parent that sets a field wins; cache variables and
+  environments merge, `null` unsets), `condition`s (`const`, `equals`, `notEquals`,
+  `inList`, `notInList`, `matches`, `anyOf`, `allOf`, `not`) and macros (`${sourceDir}`,
+  `${sourceParentDir}`, `${sourceDirName}`, `${presetName}`, `${generator}`,
+  `${hostSystemName}`, `${fileDir}`, `${dollar}`, `${pathListSep}`, `$env{}`, `$penv{}`).
+- `profile`: CMake profiles (`Profile`; the setting `cmake.profiles` holds `ProfileEntry`
+  tables) with CLion's defaults (a Debug profile, `cmake-build-<name>`), preset profiles, and
+  the command lines of configure (`-S`, `-B`, `-G`, `CMAKE_BUILD_TYPE`, the toolchain's
+  variables, `CMAKE_EXPORT_COMPILE_COMMANDS`, options; `--preset=<name>` for presets), build,
+  rebuild (`--clean-first`), clean and CTest's location.
+- `fileapi`: the stateful client query (`.cmake/api/v1/query/client-forge/query.json`:
+  `codemodel` 2, `toolchains` 1, `cmakeFiles` 1) and the reply: the newest index, the
+  client's responses, configurations, projects, targets (kind, artifacts, sources with their
+  language, dependencies, the `CMakeLists.txt` line that defines them from the backtrace
+  graph), compilers and the project's CMake files.
+- `log`: `CMake Error/Warning/Deprecation Warning/Warning (dev) at file:line (command):` blocks
+  and `in file` / one-line `CMake Error:` messages of a configure, and whether it failed.
+- `complete`: completion of CMake commands (signatures), the keywords of the command the
+  caret is in, and `${VARIABLES}`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `presets.rs` | `load`, `Presets`, `RawPreset`, `ResolvedConfigure`, `ResolvedBuild`, `MacroContext`, `expand`, `condition_holds`. |
+| `profile.rs` | `Profile`, `ProfileEntry`, `profiles`, `configure_command`, `build_command`, `BuildAction`, `Command`, `ConfigureContext`, `split_args`, `ctest_next_to`, `build_dir_of`. |
+| `fileapi.rs` | `query_json`, `parse_reply`, `CMakeModel`, `Configuration`, `Target`, `TargetKind`, `Source`, `Location`, `QUERY_DIR`, `REPLY_DIR`. |
+| `log.rs` | `parse_log`, `failed`, `ConfigureMessage`, `Severity`. |
+| `complete.rs` | `complete`, `COMMANDS`, `VARIABLES`, `Completion`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp.rs` (`cmake_*`).
+- [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) (command type, argument splitting).
+- Browser mode: `crates/forge-wasm/src/cpp.rs`.
+
+## Dependencies
+
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module. `tests/fixtures/reply/` is a file API reply recorded from CMake 3.28
+configuring a small project with Ninja (paths replaced by `/home/dev/shapes`);
+`tests/fixtures/cmake-configure-*.txt` are recorded configure logs with errors and warnings.
+
+```sh
+cargo test -p cforge-cmake
+```
+
+
+---
+
+Source: docs/guide/developer/crates/cforge-lang-cpp.md
+
+# cforge-lang-cpp
+
+`packs/cforge/lang-cpp` — CForge: everything about C and C++ that needs no I/O. The desktop
+backend and the WebAssembly build of browser mode share it.
+
+## Purpose
+
+- `diagnostics`: compiler and linker messages of a build — GCC and Clang
+  (`file:line:col: error: …` with `[-Wflag]` codes; source excerpts and `In function`
+  context skipped; notes attached to their message), MSVC (`file(line,col): error C2065: …`,
+  `link.exe` `LNK` errors), GNU `ld` (`file.cpp:(.text+0x9): undefined reference …`), `lld`
+  and Apple's `ld` — and `project_path`, which makes paths project-relative (relative paths
+  resolve against the build folder).
+- `compdb`: `compile_commands.json` (`command` strings split like a shell, or `arguments`),
+  standards, include folders, a summary and `--query-driver` globs.
+- `discovery`: GoogleTest (`TEST`, `TEST_F`, `TEST_P`, `TYPED_TEST`, `TYPED_TEST_P`) and
+  Catch2 (`TEST_CASE`, `TEST_CASE_METHOD`, `SCENARIO`, `TEMPLATE_TEST_CASE`, nested `SECTION`,
+  `GIVEN` / `WHEN` / `THEN` with Catch2's prefixes, tags) with a tokenizer that skips comments
+  and reads string and raw string literals; the included header decides the framework.
+- `provider`: `CppTests`, the `forge-testing` providers of `gtest`, `catch2` and `ctest`
+  (replacing the manifest's declarations): gutter targets keyed like the test tree,
+  command lines per scope (`--gtest_filter` for tests, suites, parameterized and typed tests;
+  Catch2 test specs with escaping and `-c` sections; `ctest -R/-L/-j`), JUnit reports, Rerun
+  Failed Tests and Run with Coverage (`LLVM_PROFILE_FILE` and a `CoverageCollect` for the
+  backend). The executable comes from a `CppContext` (build folder, CTest, executable targets
+  with their sources) in `CommandContext.settings["cpp.context"]`; `debug_command` gives the
+  debugger a test's program and filter.
+- `coverage`: gcov's JSON (`gcov --json-format --stdout`) to LCOV (project files only, counts
+  of several objects added, branches and functions), the `llvm-profdata merge` and `llvm-cov
+  export -format=lcov` command lines, and the tools that belong to a compiler
+  (`g++-14` → `gcov-14`).
+- `tools`: clangd's arguments (`--compile-commands-dir`, `--background-index`,
+  `--clang-tidy`, `--header-insertion`, `--completion-style`, `--query-driver`), its version,
+  clang-format's arguments (`--assume-filename`, `--style=file`, `--fallback-style`) and the
+  debug setup with STL renderers (GDB `-iex` commands that register libstdc++'s printers,
+  LLDB `initCommands`), with the folders where GCC keeps its printers.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `diagnostics.rs` | `parse_build_output`, `project_path`, `BuildProblem`, `Severity`. |
+| `compdb.rs` | `parse`, `summary`, `query_drivers`, `entry_for`, `CompileCommand`. |
+| `discovery.rs` | `discover`, `included_framework`, `CppTest`, `Discovered`, `Framework`, `Kind`. |
+| `provider.rs` | `CppTests`, `register`, `CppContext`, `ContextTarget`, `debug_command`, `gtest_test_filter`, `catch2_escape`, `is_cpp_source`. |
+| `coverage.rs` | `gcov_json_to_lcov`, `gcov_command`, `llvm_merge_command`, `llvm_export_command`, `llvm_profile_env`, `tool_next_to`. |
+| `tools.rs` | `clangd_args`, `ClangdOptions`, `clangd_version`, `clang_format_args`, `debug_setup`, `printer_dir_candidates`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/cpp.rs`, `commands/run.rs` (the providers in
+  `RunState.tests`, CMake Application command lines), `commands/testing.rs` (coverage).
+- Browser mode: `crates/forge-wasm/src/cpp.rs` and `testing.rs`.
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md), [`cforge-cmake`](docs/guide/developer/crates/cforge-cmake.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module with recorded fixtures in `tests/fixtures/`: GCC 13 and Clang 18 errors,
+a GNU `ld` error, a failed Ninja build, CTest's `--output-junit` report and console output,
+gcov JSON of a test run; documented-format samples of MSVC errors, a GoogleTest XML report
+and a Catch2 JUnit report.
+
+```sh
+cargo test -p cforge-lang-cpp
+```
+
+
+---
+
 Source: docs/guide/developer/crates/pyforge-frameworks.md
 
 # pyforge-frameworks
@@ -27187,6 +27882,62 @@ data out; the desktop app (`commands/python_web.rs`) and the WebAssembly build
 
 Unit tests per module with fixture projects (`tests/fixtures/django`), no network:
 `cargo test -p pyforge-frameworks`.
+
+
+---
+
+Source: docs/guide/developer/crates/pyforge-jupyter.md
+
+# pyforge-jupyter
+
+`packs/pyforge/jupyter` — PyForge's Jupyter support (plugin `forge.jupyter`, see
+[Jupyter notebooks](docs/guide/user/jupyter.md)). The default build is pure and also compiled to
+WebAssembly (`crates/forge-wasm/src/jupyter.rs`); the desktop app (`commands/jupyter.rs`)
+adds the features `runtime` (kernels) and `keychain` (server tokens).
+
+## Purpose
+
+- `nbformat`: `.ipynb` (nbformat 4.x) into a `Notebook` (cells with joined texts, typed
+  outputs, metadata, the cell's `origin` in the file) and back. `serialize` merges the editor's
+  model into the original JSON: unchanged cells and outputs keep their raw JSON, changed
+  fields keep the original's form (string or list of lines), new cells and outputs are written
+  like Jupyter writes them (sorted keys, lines). The indent, compact one-line files, `\u`
+  escapes of non-ASCII text and the final line break are detected and kept; key order is read into the
+  crate's own ordered JSON values (`ordered`), so serde_json's `preserve_order` stays off for
+  the workspace. nbformat 3 and older are refused.
+- `output`: stream, `execute_result`, `display_data` and error outputs with MIME bundles
+  (texts joined, JSON types as JSON) and `render`, the representation the editor shows:
+  console lines from `forge-output` (ANSI, `\r`, file links), sanitized HTML, data URLs for
+  images (SVG sanitized), JSON, Markdown or a DataFrame, chosen by JupyterLab's MIME order.
+- `html`: a small tokenizer with `sanitize_html` (allowlist of elements and attributes,
+  http(s)/mailto links, `data:image` sources, CSS without `url()`), `sanitize_svg` (scripts,
+  event handlers, `foreignObject`, doctypes and external references removed) and `tables`.
+- `dataframe`: pandas' HTML (index names, MultiIndex columns and rows through colspan /
+  rowspan, the "N rows × M columns" footer), Table Schema JSON
+  (`application/vnd.dataresource+json`) and the helper's View as DataFrame JSON into one
+  `DataFrame`; `query` sorts (numeric-aware, `forge_viewers::sort_order`), filters and pages.
+- `diff`: notebook diffs. Cells are paired by id, or by a patience alignment of their sources
+  with neighbouring removed and added cells as changed cells; sources and outputs (as text,
+  images as size and hash) get separate line diffs (`similar`).
+- `protocol`: messages, HMAC-SHA256 signing and constant-time checks, the ZeroMQ frames
+  (`<IDS|MSG>`), the WebSocket JSON form, connection files, `KernelEvent`s of iopub and shell
+  messages and `user_expressions` replies.
+- `runtime`: `kernel` (DEALER sockets for shell and control, SUB for iopub with the pure-Rust
+  `zeromq` crate, MIT; free ports and private connection files), `server` (REST
+  `/api/kernels`, `/api/kernelspecs` and the kernel WebSocket with `tokio-tungstenite`) and
+  `session` (runs cells and reports `SessionEvent`s per cell id with rendered outputs; waits
+  for both the reply and the idle status; Variables, children and View as DataFrame through
+  the helper `forge_jupyter.py` and `user_expressions`; interrupt with `interrupt_request`).
+- `keychain`: Jupyter server tokens in the OS keychain (service `forge-jupyter`).
+
+## Tests
+
+Unit tests per module, fixture notebooks in `tests/fixtures` (written by Python's `json.dumps`
+exactly as Jupyter writes them, plus an nbformat 4.2 file with another style) that round-trip
+byte for byte, and `tests/fake_kernel.rs`: the session against an in-process fake kernel on
+127.0.0.1 that checks every signature (a wrong key gets no answers). No network:
+`cargo test -p pyforge-jupyter --features runtime`. `tests/ipykernel_smoke.rs` runs a real
+ipykernel (ignored; `FORGE_JUPYTER_PYTHON=/path/to/python … -- --ignored`).
 
 
 ---

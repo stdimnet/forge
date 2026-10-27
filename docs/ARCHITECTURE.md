@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -80,7 +80,7 @@ app/ui/            SolidJS UI
     Docker / Compose / Kubernetes, with their own details (the `ServiceDetails` shape) and
     toolbar actions (the Spring Boot run dashboard).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
-- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `notebook` (a Jupyter notebook in command mode, `[data-focus-context="notebook"]`) and `notebook-editor` (a cell's editor; editor actions apply too), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
   keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
   emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
@@ -95,6 +95,9 @@ app/ui/            SolidJS UI
     "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
     (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
     0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine, WordPress, Drupal and the LSP use it.
+  - `registerDiffRenderer({ id, title, accepts(path), preferred?, component })`
+    (`src/features/git/diffRenderers.ts`) — a view of a file type in the diff viewer instead
+    of the text diff, with a switch to Text (notebooks cell by cell).
   - `registerUsagesProvider` (`src/features/codeintel/usages.ts`) — Find Usages / Show Usages for
     framework elements a language server does not know (WordPress hooks): the provider returns a
     `UsagesAnswer` (the shape of `code_find_usages`) or null; Rerun in the Find tool window asks
@@ -944,7 +947,8 @@ or without Git, for local and remote projects.
   `tsconfig.json`, `*.lua`, `.luarc.json`, `*.rockspec`, `conf.lua`, `init.lua`, `Cargo.toml`, `go.mod`,
   `*.py`, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`,
   `uv.lock`, `poetry.lock`, `pom.xml`, `build.gradle(.kts)`/`settings.gradle(.kts)`,
-  `*.java` / `src/main/java`, `Dockerfile`/`compose.yaml`, `.git`).
+  `*.java` / `src/main/java`, `CMakeLists.txt`, `compile_commands.json` (also in `build/`), `meson.build`,
+  a `Makefile` next to C/C++ sources, `*.c`/`*.cpp`/`*.h`, `Dockerfile`/`compose.yaml`, `.git`).
 - `project_detect() -> ProjectInfo { languages, frameworks: { id, name, version?, language, dir? }[],
   packs, tools, primary? }`; `workspace_open` also emits `project://detected` `{ root, info }`, and
   `workspace_recent` returns each project's `primary` for the Welcome screen badge.
@@ -1087,7 +1091,9 @@ or without Git, for local and remote projects.
   (`all`, `directory`, `file`, `test`, `pattern`) with `${file}`, `${test}`, `${testPattern}`,
   `${pattern}`, `${reportDir}`, `${coverageFile}`, the `report` format, `locationRules`,
   `rerun` and `coverage`. LuaForge declares busted. `TestCommand { program, args, env,
-  report, flavor, locationRules, defaultFile, coverage, reportDirs }`: `reportDirs` are project
+  report, flavor, locationRules, defaultFile, coverage, reportDirs }` (`coverage.collect`: raw
+  data a pack's collector turns into the report after the run, CForge's gcov / llvm-cov):
+  `reportDirs` are project
   folders a build tool writes its JUnit XML into (Gradle, Surefire), emptied before the run and
   read recursively (`TEST-*.xml`) after it (`test_frameworks::ReportDir::Builds`); a
   `coverage.locationRules` overrides the command's rules for the report (JaCoCo names main
@@ -1154,11 +1160,11 @@ or without Git, for local and remote projects.
   debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),
   `symfony_console_run`, `cli_tools_run`, `composer_audit`, `php_composer_outdated`,
   `agent_start`, `debug_listen_start`, `debug_web_page_start`, `save_actions_run_tools`,
-  `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`), and every Python
+  `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`), `cmake_reload`, and every Python
   run (the `python` configuration type, package commands and new environments all start
   through `run_start`). Degraded instead
   of refused: `laravel_routes` (static parsing), `cli_tools_commands` (built-in commands),
-  `lua_format`, `python_format` and the interpreter probes (`python_interpreter_info`,
+  `lua_format`, `python_format`, `cpp_format` and the interpreter probes (`python_interpreter_info`,
   `python_packages_list`, `python_debugpy_status`; refused only for programs inside the
   project, such as a project `.venv`, or Docker Compose services; `python_console_start` is
   refused), `python_interpreters_detect` (asks `poetry` / `pipenv`
@@ -1269,9 +1275,10 @@ or without Git, for local and remote projects.
 
 - `crates/forge-langservers/catalog.toml` lists languages (extensions, file names, LSP language
   ids) and ~32 servers (TypeScript, Vue, Angular, Svelte, Astro, HTML/CSS/JSON/ESLint, Tailwind,
-  YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, C/C++, Java,
+  YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, Java,
   Kotlin, C#, Ruby, Zig) with command, initialization options, settings, install options and
-  licence. `pack_servers.toml` lists servers that packs start themselves (Intelephense, phpactor)
+  licence. `pack_servers.toml` lists servers that packs start themselves (Intelephense, phpactor,
+  JDT LS, kotlin-lsp, clangd)
   so they show up on the same settings page.
 - When a project's LSP manager is created, `commands::langservers::register_enabled` scans the
   project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
@@ -1745,6 +1752,9 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   started as a TCP server connects to that same server, which js-debug requires).
 - **Trust.** `dap_start` / `dap_restart` refuse launching in Safe Mode
   (`require_trusted`); attaching to a process or a DAP server and core dumps are allowed.
+  `LaunchRequest.adapterArgs` / `adapterCommand` change a manifest adapter's command line for
+  one session (CForge: GDB `-iex` commands for STL pretty printers, a cross toolchain's GDB);
+  such requests count as running code (`runs_code`) and are refused in Safe Mode too.
 - **IPC** (`commands/dap.rs`): `dap_adapters() -> AdapterInfo[]`, `dap_start({ request }) ->
   SessionInfo`, `dap_restart({ sessionId })`, `dap_threads({ sessionId })`, `dap_goto({
   sessionId, file, line })`, `dap_registers({ sessionId, depth })`, `dap_read_memory({
@@ -2292,6 +2302,39 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   pytest-django). The browser mock (`mock/pythonWebMock.ts`) calls the same functions through
   `crates/forge-wasm/src/python_web.rs`; `?project=django` opens the Django demo.
 
+- Jupyter notebooks (`packs/pyforge/jupyter`, plugin `forge.jupyter`, always active; IPC
+  `commands/jupyter.rs`, `src/ipc/jupyter.ts`, UI `features/jupyter/`): `.ipynb` files open in
+  the notebook editor (`registerFileEditor`); the tab's content stays the `.ipynb` text,
+  serialized in Rust after every change, so Save, the dirty marker and Local History work as
+  for text files. `jupyter_open({ text }) -> { notebook: Notebook, rendered: Rendered[][] }`
+  (cells with `origin`, the cell's index in the text it was read from),
+  `jupyter_serialize({ notebook, original }) -> string` (merged into the original JSON: ids,
+  metadata, key order, string-or-list texts, indent and final newline kept),
+  `jupyter_render({ outputs }) -> Rendered[]` (`text` console lines | `html` sanitized |
+  `image` data URL | `json` | `markdown` | `dataFrame`), `jupyter_diff({ left, right }) ->
+  NotebookDiff { cells: { status, left?, right?, source, outputs, typeChanged,
+  metadataChanged, executionCountChanged }[], metadataChanged, stats, language }`,
+  `jupyter_dataframe_query({ frame, query: { sort?, filter?, page?, pageSize? } }) -> { rows,
+  rowNumbers, matched, page, pages }`. Kernels: `jupyter_kernel_status({ interpreter? }) ->
+  { installed, version?, interpreter, needsServer }`, `jupyter_kernel_start({ request: {
+  path, interpreter?, server?, kernelName? } }) -> { id, label, server }` (refused in Safe
+  Mode; ipykernel with a connection file in `<cache dir>/forge/jupyter`, or a kernel of the
+  `jupyter.server.url` server), `jupyter_execute({ id, cellId, code }) -> msgId` (refused in
+  Safe Mode), `jupyter_interrupt`, `jupyter_restart` (same id), `jupyter_shutdown`,
+  `jupyter_variables({ id })`, `jupyter_variable_children({ id, expr })`,
+  `jupyter_variable_frame({ id, expr, limit? }) -> DataFrame`, `jupyter_server_test({ url,
+  token? })` (stores the token in the keychain), `jupyter_server_has_token`,
+  `jupyter_server_forget_token`. Events on `jupyter://<id>`: `{ type: status, state }`,
+  `executeInput { cellId, executionCount }`, `output { cellId, output, rendered, displayId? }`,
+  `updateDisplay`, `clearOutput { cellId, wait }`, `done { cellId, status, executionCount }`,
+  `disconnected`, `exited { code }`. Variables and View as DataFrame evaluate
+  `user_expressions` after the silent helper `forge_jupyter.py`. Keymap actions `Jupyter.*`
+  use the action contexts `notebook` (command and edit mode) and `notebook-command`; more
+  specific contexts win when several bindings match. The diff viewer shows `.ipynb` diffs
+  through `registerDiffRenderer`. Browser mode: `mock/jupyterMock.ts` (WebAssembly
+  `crates/forge-wasm/src/jupyter.rs`, a simulated kernel), the demo notebook
+  `notebooks/sales.ipynb` of `?project=python` (`mock/demoNotebooks.ts`).
+
 ## GoForge (`packs/goforge/*`)
 
 - Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):
@@ -2534,6 +2577,70 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `?project=kotlin` opens the Gradle demo `orders-service` (`mock/demoKotlinProject.ts`,
   `kotlinMock.ts`, `kotlinDebugMock.ts`, WebAssembly `crates/forge-wasm/src/kotlin.rs`).
 
+## CForge (`packs/cforge/*`)
+
+- The plugin `forge.cpp` (`app/src-tauri/plugins/cforge.toml`, `projectTypes = ["cforge"]`,
+  depends on `forge.debugger`) is active for C/C++ projects: `forge-project` reports the `cpp`
+  language for a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or
+  `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to
+  C/C++ sources or with them in `src/` (tool `make`), or C/C++ sources. Highlighting is
+  bundled (`@codemirror/lang-cpp`, the CMake legacy mode); `.clang-format` / `.clang-tidy` /
+  `.clangd` are the file type `clang-config` (YAML). Three crates, unit-tested on recorded
+  fixtures without network:
+  - `cforge-toolchains`: `gcc -v` / `clang -v` / `cl` / `--version` parsing, `vswhere` JSON,
+    and toolchain detection (system GCC / Clang, versioned and cross compilers, MinGW-w64,
+    Visual Studio) through a `Probe` trait; the user's toolchains (`cpp.toolchains`).
+  - `cforge-cmake` (pure, also in `forge-wasm`): presets (includes, inheritance, conditions,
+    macros), profiles (`cmake.profiles`, preset profiles) and their configure / build /
+    clean command lines, the cmake-file-api query and codemodel-v2 reply, configure log
+    messages, CMakeLists completion.
+  - `cforge-lang-cpp` (pure, also in `forge-wasm`): build problems (GCC, Clang, MSVC, linkers),
+    compilation databases, GoogleTest / Catch2 discovery, `CppTests` (the `forge-testing`
+    providers of `gtest`, `catch2`, `ctest`, replacing the manifest's declarations; the
+    `CppContext` with the build folder and executable targets comes through
+    `CommandContext.settings["cpp.context"]`), gcov JSON → LCOV and the llvm-cov command
+    lines, clangd / clang-format arguments and the debugger setup with STL renderers.
+- clangd is a pack server (`pack_servers.toml`, plugin `forge.cpp`):
+  `commands::cpp::sync_lsp_server` (after detection, when `cpp.clangd.*`, `cmake.*` or the
+  toolchains change, and after a CMake reload) registers it for local C/C++ projects with
+  `--compile-commands-dir` = the active profile's build folder (or the compilation database),
+  `--clang-tidy`, `--query-driver` = the toolchain's compilers. clangd comes from
+  `cpp.clangd.path`, the toolchain's LLVM, the `PATH` or `forge_langservers::managed::clangd`
+  (the pinned GitHub release, SHA-256 from `CLANGD_BUILDS` or the GitHub API's asset digest,
+  refused without one).
+- IPC (`commands/cpp.rs`, `src/ipc/cpp.ts`): `cpp_toolchains({ refresh? }) -> Toolchain[]`,
+  `cpp_toolchain_inspect({ entry }) -> Toolchain`, `cmake_profiles() -> { profiles, active,
+  presetFiles, presetErrors }`, `cmake_state() -> CMakeState { root, profile, buildDir, status:
+  noCMake | notLoaded | loading | loaded | failed, model?, messages, log }` (reads an existing
+  reply without running CMake), `cmake_reload({ resetCache? }) -> CMakeState` (trusted projects
+  only; writes the file API query, runs the configure, streams `cmake://log` `{ line, stream }`
+  and emits `cmake://state`), `cmake_cancel()`, `cmake_build_command({ action: build |
+  rebuild | clean, targets? }) -> CommandLine` (started by the UI through `run_start`, hidden
+  type `cpp-build`), `cpp_build_problems({ output }) -> BuildProblem[]` (with project paths),
+  `cpp_target_of({ configuration }) -> string | null` (the target to build first),
+  `cpp_debug_request({ configuration }) -> LaunchRequest`, `cpp_status({ refresh? })`,
+  `cpp_clangd_install()` (events `cpp://install`), `cpp_format({ path, content })`
+  (clang-format on stdin), `cmake_complete({ text, offset })`.
+- Runs (`run.rs`): `cmake-app` configurations are built by `commands::cpp::app_run` (the
+  target's artifact from the model); test configurations get the C++ context
+  (`cpp::extend_test_context`, which also removes stale `.gcda` files for coverage runs).
+  Run with Coverage: `testing::record_coverage` calls `cpp::collect_coverage` for
+  `coverage.collect.kind = "cpp"`: Clang's `.profraw` (`llvm-profdata merge`, `llvm-cov
+  export -format=lcov`) or gcov's `.gcda` (`gcov --json-format --stdout`, converted in Rust).
+  Everything starts in `run::start_built`, so Safe Mode refuses it.
+- Debugging: `cpp_debug_request` launches the target's executable (tests with their filter)
+  under the toolchain's GDB or LLDB of `forge.debugger`, with `adapterArgs` (GDB: `set print
+  pretty on` and libstdc++'s printers from `<prefix>/share/gcc*/python`) or `initCommands`
+  (LLDB's C++ formatters); cross toolchains set `adapterCommand` (`gdb-multiarch`).
+- UI (`app/ui/src/features/cpp`): settings pages `build.toolchains` and `build.cmake`
+  (custom, editing `cpp.toolchains` / `cmake.profiles` in the Settings draft) and `lang.cpp`,
+  the `cmake` tool window (profiles, targets, configure log with links), the Problems tab
+  "Build", Build Project (`CompileDirty`, wrapping JavaForge's), Rebuild, Clean, Build
+  Target, Reload / Reset Cache, Download clangd, the `cmake-app`, `cpp-build` and the
+  manifest's test types (building their target first), the `cforge` debug launcher, CMake
+  completion, clang-format and reload on change. Browser mode: `?project=cpp` opens the
+  `shapes` demo (`mock/demoCppProject.ts`, `cppMock.ts`, `cppDebugMock.ts`; `&build=broken`
+  for a failing build; WebAssembly `crates/forge-wasm/src/cpp.rs`).
 ## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
 
 - The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,

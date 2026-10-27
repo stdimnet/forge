@@ -3,7 +3,9 @@
 # here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP),
 # JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java),
 # KotlinForge kotlin-lsp or kotlin-language-server (Settings > Languages & Frameworks > Kotlin),
-# JavaForge's Scala support Metals (Settings > Languages & Frameworks > Scala).
+# JavaForge's Scala support Metals (Settings > Languages & Frameworks > Scala),
+# CForge clangd with the active CMake profile's compilation database (Settings > Languages &
+# Frameworks > C/C++).
 
 [[language]]
 id = "php"
@@ -94,6 +96,34 @@ note = "Used when chosen in the Kotlin settings instead of kotlin-lsp."
 install = [
   { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
   { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
+]
+
+[[language]]
+id = "c"
+name = "C"
+extensions = ["c", "h"]
+
+[[language]]
+id = "cpp"
+name = "C++"
+extensions = ["cpp", "cc", "cxx", "c++", "hpp", "hh", "hxx", "ipp", "inl"]
+
+[[server]]
+id = "clangd"
+name = "clangd"
+group = "C/C++"
+languages = ["c", "cpp"]
+command = "clangd"
+args = ["--background-index", "--clang-tidy", "--header-insertion=iwyu"]
+plugin = "forge.cpp"
+homepage = "https://clangd.llvm.org"
+license = "Apache-2.0 WITH LLVM-exception"
+note = "CForge starts it with the compilation database of the active CMake profile (or the project's compile_commands.json) and can download the official release from GitHub on request (pinned version, SHA-256 checked)."
+install = [
+  { tool = "brew", command = ["brew", "install", "llvm"], platforms = ["macos"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "clang"], platforms = ["linux"] },
+  { tool = "apt", command = ["sudo", "apt", "install", "clangd"], platforms = ["linux"] },
+  { tool = "download", url = "https://github.com/clangd/clangd/releases" },
 ]
 
 [[language]]

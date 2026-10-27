@@ -1,0 +1,11 @@
+broken.cpp: In function 'int area(int, int)':
+broken.cpp:6:18: error: 'undefined_name' was not declared in this scope
+    6 |   return w * h + undefined_name;
+      |                  ^~~~~~~~~~~~~~
+broken.cpp:4:7: warning: unused variable 'unused' [-Wunused-variable]
+    4 |   int unused;
+      |       ^~~~~~
+broken.cpp: In function 'void f()':
+broken.cpp:8:28: error: conversion from 'int' to non-scalar type 'std::string' {aka 'std::__cxx11::basic_string<char>'} requested
+    8 | void f() { std::string s = 42; }
+      |                            ^~

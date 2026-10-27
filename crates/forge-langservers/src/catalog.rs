@@ -324,6 +324,7 @@ mod tests {
         for s in &packs.servers {
             assert!(c.server(&s.id).is_none(), "{} is listed twice", s.id);
         }
+        assert!(packs.server("clangd").is_some(), "CForge starts clangd");
         for id in [
             "typescript-language-server",
             "vtsls",
@@ -351,7 +352,6 @@ mod tests {
             "pyright",
             "gopls",
             "rust-analyzer",
-            "clangd",
             "csharp-ls",
             "ruby-lsp",
             "zls",

@@ -78,6 +78,9 @@ phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-fw-wordpress.workspace = true
 phpforge-fw-cms.workspace = true
+cforge-toolchains.workspace = true
+cforge-cmake.workspace = true
+cforge-lang-cpp.workspace = true
 javaforge-build = { workspace = true, features = ["net"] }
 javaforge-lang-java.workspace = true
 javaforge-jdk.workspace = true
@@ -105,6 +108,7 @@ rustforge-lang-rust.workspace = true
 rustforge-toolchain.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
+pyforge-jupyter = { workspace = true, features = ["runtime", "keychain"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

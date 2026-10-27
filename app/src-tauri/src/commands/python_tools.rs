@@ -213,6 +213,7 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
             coverage: pc.coverage_file.map(|_| CoverageSetup {
                 dir: Some(coverage_dir),
                 file: "coverage.xml".into(),
+                collect: None,
                 format: CoverageFormat::Cobertura,
                 name: cfg.name.clone(),
                 location_rules: Vec::new(),

@@ -38,6 +38,7 @@ export function App() {
       spring: "src/main/java/com/acme/inventory/InventoryApplication.java",
       scala: "core/src/main/scala/com/acme/shop/Cart.scala",
       android: "app/src/main/java/com/acme/notes/NoteRepository.kt",
+      cpp: "src/geometry/polygon.cpp",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
       react: "src/App.tsx",

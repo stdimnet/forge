@@ -20,10 +20,14 @@
 //! [`kotlin`] installs JetBrains' kotlin-lsp (download.jetbrains.com), ktlint and detekt
 //! (Maven Central), each pinned with its SHA-256, for KotlinForge.
 //!
+//! [`clangd`] installs clangd from its official GitHub releases (pinned version, SHA-256
+//! checked) for CForge.
+//!
 //! Nothing is bundled with Forge: servers whose licence forbids redistribution
 //! (Intelephense) are downloaded by each user, with their consent, from the official source.
 
 pub mod archive;
+pub mod clangd;
 pub mod http;
 pub mod javadebug;
 pub mod jdtls;

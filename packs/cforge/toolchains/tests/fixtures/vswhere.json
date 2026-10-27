@@ -1,0 +1,26 @@
+[
+  {
+    "instanceId": "8f3e5b2a",
+    "installDate": "2024-11-12T09:31:02Z",
+    "installationName": "VisualStudio/17.11.5+35327.3",
+    "installationPath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community",
+    "installationVersion": "17.11.35327.3",
+    "productId": "Microsoft.VisualStudio.Product.Community",
+    "isComplete": true,
+    "isLaunchable": true,
+    "isPrerelease": false,
+    "displayName": "Visual Studio Community 2022",
+    "catalog": { "productDisplayVersion": "17.11.5", "productLineVersion": "2022" }
+  },
+  {
+    "instanceId": "1c2d3e4f",
+    "installationName": "VisualStudio/16.11.40+34931.43",
+    "installationPath": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools",
+    "installationVersion": "16.11.34931.43",
+    "productId": "Microsoft.VisualStudio.Product.BuildTools",
+    "isComplete": true,
+    "isPrerelease": false,
+    "displayName": "Visual Studio Build Tools 2019",
+    "catalog": { "productDisplayVersion": "16.11.40", "productLineVersion": "2019" }
+  }
+]

@@ -1,0 +1,24 @@
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+CMake Error at CMakeLists.txt:6 (find_package):
+  By not providing "FindNotThere.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "NotThere",
+  but CMake did not find one.
+
+  Could not find a package configuration file provided by "NotThere" with any
+  of the following names:
+
+    NotThereConfig.cmake
+    notthere-config.cmake
+
+  Add the installation prefix of "NotThere" to CMAKE_PREFIX_PATH or set
+  "NotThere_DIR" to a directory containing one of the above files.  If
+  "NotThere" provides a separate development package or SDK, be sure it has
+  been installed.
+
+
+-- Configuring incomplete, errors occurred!

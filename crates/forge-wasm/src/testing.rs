@@ -36,6 +36,8 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
     r.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
+    // CForge's GoogleTest, Catch2 and CTest replace their manifest declarations.
+    cforge_lang_cpp::register(&mut r);
     r.register(Box::new(javaforge_lang_groovy::SpockTests));
     r.register(Box::new(javaforge_lang_scala::ScalaTests::scalatest()));
     r.register(Box::new(javaforge_lang_scala::ScalaTests::munit()));
@@ -96,6 +98,10 @@ struct CommandRequest {
     /// The project's Go context for Go Test configurations.
     #[serde(default)]
     go_context: Option<serde_json::Value>,
+    /// The project's C++ context (CMake targets, build folder) for GoogleTest, Catch2 and
+    /// CTest configurations.
+    #[serde(default)]
+    cpp_context: Option<serde_json::Value>,
     /// The project's Cargo context for Cargo Test configurations.
     #[serde(default)]
     rust_context: Option<serde_json::Value>,
@@ -116,12 +122,23 @@ pub fn testing_command(request_json: &str) -> String {
                 ctx.settings
                     .insert(goforge_lang_go::CONTEXT_KEY.into(), go.to_string());
             }
+            if let Some(cpp) = &r.cpp_context {
+                ctx.settings
+                    .insert(cforge_lang_cpp::CONTEXT_KEY.into(), cpp.to_string());
+            }
             if let Some(rust) = &r.rust_context {
                 ctx.settings
                     .insert(rustforge_lang_rust::CONTEXT_KEY.into(), rust.to_string());
             }
-            // Node.js test runners, Go Test and Cargo Test wrap their spec.
-            let built = if let Some(js) = webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
+            let cpp = cforge_lang_cpp::CppTests::all()
+                .into_iter()
+                .find(|p| forge_testing::TestFrameworkProvider::id(p) == r.spec.id);
+            // CForge's providers, Node.js test runners, Go Test and Cargo Test wrap their spec.
+            let built = if let Some(cpp) = cpp {
+                use forge_testing::TestFrameworkProvider;
+                cpp.command(&r.configuration, &ctx)
+                    .unwrap_or_else(|| Err("no command".into()))
+            } else if let Some(js) = webforge_js_testing::JsTestRunner::new(r.spec.clone()) {
                 js.build(&r.configuration, &ctx)
             } else if let Some(go) = goforge_lang_go::GoTestProvider::new(r.spec.clone()) {
                 use forge_testing::TestFrameworkProvider;

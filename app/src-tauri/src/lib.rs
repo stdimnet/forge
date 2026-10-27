@@ -106,6 +106,7 @@ pub fn run() {
         .manage(commands::python::PythonState::default())
         .manage(commands::python_tools::PythonToolsState::default())
         .manage(commands::python_tools::PythonConsoleState::default())
+        .manage(commands::jupyter::JupyterState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
@@ -509,6 +510,23 @@ pub fn run() {
             commands::python_tools::python_tox_environments,
             commands::python_tools::python_debugpy_status,
             commands::python_tools::python_debug_plan,
+            commands::jupyter::jupyter_open,
+            commands::jupyter::jupyter_serialize,
+            commands::jupyter::jupyter_render,
+            commands::jupyter::jupyter_diff,
+            commands::jupyter::jupyter_dataframe_query,
+            commands::jupyter::jupyter_kernel_status,
+            commands::jupyter::jupyter_kernel_start,
+            commands::jupyter::jupyter_execute,
+            commands::jupyter::jupyter_interrupt,
+            commands::jupyter::jupyter_restart,
+            commands::jupyter::jupyter_shutdown,
+            commands::jupyter::jupyter_variables,
+            commands::jupyter::jupyter_variable_children,
+            commands::jupyter::jupyter_variable_frame,
+            commands::jupyter::jupyter_server_test,
+            commands::jupyter::jupyter_server_has_token,
+            commands::jupyter::jupyter_server_forget_token,
             commands::python_tools::python_console_start,
             commands::python_tools::python_console_send,
             commands::python_tools::python_console_stop,
@@ -761,6 +779,20 @@ pub fn run() {
             commands::go::go_debug_request,
             commands::go::go_profile_path,
             commands::go::pprof_open,
+            commands::cpp::cpp_toolchains,
+            commands::cpp::cpp_toolchain_inspect,
+            commands::cpp::cmake_profiles,
+            commands::cpp::cmake_state,
+            commands::cpp::cmake_reload,
+            commands::cpp::cmake_cancel,
+            commands::cpp::cmake_build_command,
+            commands::cpp::cpp_build_problems,
+            commands::cpp::cpp_target_of,
+            commands::cpp::cpp_debug_request,
+            commands::cpp::cpp_status,
+            commands::cpp::cpp_clangd_install,
+            commands::cpp::cpp_format,
+            commands::cpp::cmake_complete,
             commands::rust::rust_status,
             commands::rust::rust_install_command,
             commands::rust::rust_analyzer_download,
@@ -1046,6 +1078,15 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::kotlin::spawn_sync_lsp_server(&handle);
+            }
+            // CForge: profiles and toolchains change the CMake model; clangd follows them.
+            if commands::cpp::affects_model(&change.key) {
+                commands::cpp::invalidate();
+            }
+            if commands::cpp::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::cpp::spawn_sync_lsp_server(&handle);
             }
             // Scala: Metals and its options.
             if commands::scala::affects_server(&change.key)

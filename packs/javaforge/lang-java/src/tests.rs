@@ -442,6 +442,7 @@ pub fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCo
             file,
             format: CoverageFormat::Jacoco,
             location_rules: vec![source_rule(&in_module("main"), ext)],
+            collect: None,
         }),
         report_dirs: run
             .report_dirs

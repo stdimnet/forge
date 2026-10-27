@@ -89,6 +89,13 @@ pub struct LaunchRequest {
     /// "launch.json" part).
     #[serde(default, skip_serializing_if = "Value::is_null")]
     pub configuration: Value,
+    /// Extra arguments for the adapter process of a manifest adapter, before its own
+    /// (CForge's GDB `-iex` commands that register STL pretty printers).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub adapter_args: Vec<String>,
+    /// Another executable for a manifest adapter (a toolchain's own GDB, `gdb-multiarch`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter_command: Option<String>,
 }
 
 impl LaunchRequest {
@@ -104,12 +111,17 @@ impl LaunchRequest {
             env: BTreeMap::new(),
             stop_on_entry: false,
             configuration: Value::Null,
+            adapter_args: Vec::new(),
+            adapter_command: None,
         }
     }
 
     /// Whether the request starts a program, which runs project code (refused in Safe Mode).
+    /// Requests that change the adapter's command line count too.
     pub fn runs_code(&self) -> bool {
         matches!(self.mode, LaunchMode::Launch)
+            || !self.adapter_args.is_empty()
+            || self.adapter_command.is_some()
     }
 
     pub fn is_attach(&self) -> bool {
@@ -271,14 +283,22 @@ impl ManifestAdapter {
         self
     }
 
-    fn adapter_command(&self) -> DapResult<AdapterCommand> {
+    fn adapter_command(&self, r: &LaunchRequest) -> DapResult<AdapterCommand> {
         if self.command.is_empty() {
             return Err(DapError::Unsupported(format!(
                 "{} can only be attached to as a running DAP server",
                 self.spec.label
             )));
         }
-        Ok(AdapterCommand::new(&self.command, self.spec.args.clone()))
+        let mut args = r.adapter_args.clone();
+        args.extend(self.spec.args.iter().cloned());
+        let command = r
+            .adapter_command
+            .as_deref()
+            .map(str::trim)
+            .filter(|c| !c.is_empty())
+            .unwrap_or(&self.command);
+        Ok(AdapterCommand::new(command, args))
     }
 }
 
@@ -342,15 +362,15 @@ impl DebugAdapterDescriptor for ManifestAdapter {
             },
             _ => match s.transport {
                 DebugAdapterTransport::Stdio => Transport::Stdio {
-                    adapter: self.adapter_command()?,
+                    adapter: self.adapter_command(r)?,
                 },
                 DebugAdapterTransport::Connect => Transport::Connect {
                     host: "127.0.0.1".into(),
                     port: 0,
-                    adapter: Some(self.adapter_command()?),
+                    adapter: Some(self.adapter_command(r)?),
                 },
                 DebugAdapterTransport::Listen => Transport::Listen {
-                    adapter: self.adapter_command()?,
+                    adapter: self.adapter_command(r)?,
                 },
             },
         };
@@ -440,6 +460,37 @@ mod tests {
         assert_eq!(args["type"], "lldb");
         assert_eq!(args["name"], "demo");
         assert!(matches!(resolved.transport, Transport::Stdio { .. }));
+    }
+
+    #[test]
+    fn adapter_args_come_before_the_manifest_args() {
+        let gdb = DebugAdapterContribution {
+            r#type: "gdb".into(),
+            label: "GDB".into(),
+            command: "gdb".into(),
+            args: vec!["-i".into(), "dap".into()],
+            launch: json!({"program": "${program}"}),
+            ..Default::default()
+        };
+        let mut r = LaunchRequest::launch("gdb", "/w/demo");
+        r.adapter_args = vec!["-iex".into(), "set print pretty on".into()];
+        let resolved = ManifestAdapter::new(gdb).resolve(&r).unwrap();
+        let Transport::Stdio { adapter } = resolved.transport else {
+            panic!("stdio expected");
+        };
+        assert_eq!(adapter.args, ["-iex", "set print pretty on", "-i", "dap"]);
+        assert_eq!(adapter.command, "gdb");
+        r.adapter_command = Some("/usr/bin/gdb-multiarch".into());
+        r.mode = LaunchMode::AttachProcess { pid: 1 };
+        assert!(
+            r.runs_code(),
+            "a changed adapter command line is refused in Safe Mode"
+        );
+        let back: LaunchRequest = serde_json::from_value(
+            json!({"adapter": "gdb", "mode": "launch", "adapterArgs": ["-q"]}),
+        )
+        .unwrap();
+        assert_eq!(back.adapter_args, ["-q"]);
     }
 
     #[test]

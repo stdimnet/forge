@@ -103,6 +103,7 @@ for (const [cmd, what] of [
   ["cli_tools_run", "Running command line tools"],
   ["save_actions_run_tools", "Running external tools on save"],
   ["services_kube_apply", "Applying Kubernetes manifests"],
+  ["jupyter_kernel_start", "Starting a Jupyter kernel"],
 ] as const) {
   const inner = mockHandler(cmd);
   if (!inner) continue;

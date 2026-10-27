@@ -319,6 +319,7 @@ impl GoTestProvider {
                 file: file.clone(),
                 format: CoverageFormat::GoCover,
                 location_rules: Vec::new(),
+                collect: None,
             }
         });
         let profile_file = opt("profileFile");

@@ -404,6 +404,7 @@ pub async fn remote_open_project(
             crate::commands::php::sync_lsp_server(&handle, None);
             crate::commands::java::sync_lsp_server(&handle, None);
             crate::commands::kotlin::sync_lsp_server(&handle, None);
+            crate::commands::cpp::sync_lsp_server(&handle, None);
         });
     }
     forward_status(&app, connection_id.clone(), conn.clone());

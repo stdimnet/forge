@@ -73,6 +73,8 @@ impl RunState {
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
         // KotlinForge: Kotest specs and JUnit tests in Kotlin files.
         tests.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
+        // CForge: GoogleTest, Catch2 and CTest replace their manifest declarations.
+        cforge_lang_cpp::register(&mut tests);
         // JavaForge's JVM extras: Spock, ScalaTest and MUnit.
         tests.register(Box::new(javaforge_lang_groovy::SpockTests));
         tests.register(Box::new(javaforge_lang_scala::ScalaTests::scalatest()));
@@ -376,6 +378,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 cmd
             } else if cfg.type_id == goforge_lang_go::GO_BUILD {
                 super::go::build_run(state, &cfg)?
+            } else if cfg.type_id == cforge_lang_cpp::CMAKE_APP {
+                super::cpp::app_run(state, &cfg)?
             } else if cfg.type_id == rustforge_lang_rust::CARGO {
                 super::rust::cargo_run(state, &cfg)?
             } else {
@@ -417,6 +421,7 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                     dir: Some(dir),
                     file: file.into(),
                     format: phpforge_test_frameworks::provider::COVERAGE_FORMAT,
+                    collect: None,
                     name: cfg.name.clone(),
                     location_rules: Vec::new(),
                 });
@@ -517,6 +522,7 @@ fn framework_command(
     };
     drop(settings);
     super::go::extend_test_context(state, &cfg.type_id, &mut ctx);
+    super::cpp::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::rust::extend_test_context(state, &cfg.type_id, &mut ctx);
     let built = runs
         .tests
@@ -557,6 +563,7 @@ fn framework_command(
             dir,
             file,
             format: c.format,
+            collect: c.collect,
             name: cfg.name.clone(),
             location_rules: if c.location_rules.is_empty() {
                 built.location_rules.clone()
