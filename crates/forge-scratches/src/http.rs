@@ -30,7 +30,20 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 const METHODS: &[&str] = &[
-    "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT",
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "HEAD",
+    "OPTIONS",
+    "TRACE",
+    "CONNECT",
+    // PHPStorm's request kinds beyond HTTP: a GraphQL query sent as a POST, a WebSocket
+    // connection with messages, a unary gRPC call.
+    "GRAPHQL",
+    "WEBSOCKET",
+    "GRPC",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -546,7 +559,8 @@ impl<'a> Resolver<'a> {
         let mut problems = Vec::new();
         out.url = self.subst(&req.url);
         if !out.url.contains("://") {
-            out.url = format!("http://{}", out.url);
+            let scheme = if req.method == "WEBSOCKET" { "ws" } else { "http" };
+            out.url = format!("{scheme}://{}", out.url);
         }
         for h in &mut out.headers {
             h.value = self.subst(&h.value);
@@ -588,6 +602,102 @@ impl<'a> Resolver<'a> {
             None => Ok(None),
         }
     }
+}
+
+/// A `GRAPHQL` request's body: the operation, then optionally a JSON object with its
+/// variables (`(query, variables)`).
+pub fn graphql_parts(body: &str) -> (String, Option<String>) {
+    let lines: Vec<&str> = body.lines().collect();
+    for i in (1..lines.len()).rev() {
+        if !lines[i].trim_start().starts_with('{') {
+            continue;
+        }
+        let candidate = lines[i..].join("\n");
+        let is_object = serde_json::from_str::<serde_json::Value>(&candidate)
+            .is_ok_and(|v| v.is_object());
+        let query = lines[..i].join("\n");
+        if is_object && !query.trim().is_empty() {
+            return (query.trim().to_string(), Some(candidate.trim().to_string()));
+        }
+    }
+    (body.trim().to_string(), None)
+}
+
+/// A resolved `GRAPHQL` request as the HTTP request that carries it: a `POST` with the
+/// JSON body `{ "query", "variables" }` (GraphQL over HTTP); a `ws://` / `wss://` URL stays
+/// for a subscription.
+pub fn graphql_as_http(req: &HttpRequest) -> Result<HttpRequest, String> {
+    let (query, variables) = graphql_parts(req.body.as_deref().unwrap_or(""));
+    if query.is_empty() {
+        return Err("The GraphQL request has no query".into());
+    }
+    let mut body = serde_json::Map::new();
+    body.insert("query".into(), serde_json::Value::String(query));
+    if let Some(v) = variables {
+        let parsed: serde_json::Value =
+            serde_json::from_str(&v).map_err(|e| format!("Variables are not valid JSON: {e}"))?;
+        body.insert("variables".into(), parsed);
+    }
+    let mut out = req.clone();
+    out.method = "POST".into();
+    out.body = Some(serde_json::Value::Object(body).to_string());
+    if out.header("Content-Type").is_none() {
+        out.headers.push(Header {
+            name: "Content-Type".into(),
+            value: "application/json".into(),
+        });
+    }
+    if out.header("Accept").is_none() {
+        out.headers.push(Header {
+            name: "Accept".into(),
+            value: "application/graphql-response+json, application/json".into(),
+        });
+    }
+    Ok(out)
+}
+
+/// A `WEBSOCKET` request's messages: the body split at `===` lines; a
+/// `=== wait-for-server` line makes the next message wait for a server message.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WsMessage {
+    pub text: String,
+    /// Wait for one message from the server before sending this one.
+    pub wait_for_server: bool,
+}
+
+pub fn websocket_messages(body: Option<&str>) -> Vec<WsMessage> {
+    let Some(body) = body else { return Vec::new() };
+    let mut out = Vec::new();
+    let mut current: Vec<&str> = Vec::new();
+    let mut wait = false;
+    let flush = |current: &mut Vec<&str>, wait: bool, out: &mut Vec<WsMessage>| {
+        let text = current.join("\n").trim().to_string();
+        if !text.is_empty() {
+            out.push(WsMessage {
+                text,
+                wait_for_server: wait,
+            });
+        }
+        current.clear();
+    };
+    for line in body.lines() {
+        let t = line.trim();
+        if let Some(rest) = t.strip_prefix("===") {
+            let had = !current.join("").trim().is_empty();
+            flush(&mut current, wait, &mut out);
+            if had {
+                wait = false;
+            }
+            if rest.trim() == "wait-for-server" {
+                wait = true;
+            }
+            continue;
+        }
+        current.push(line);
+    }
+    flush(&mut current, wait, &mut out);
+    out
 }
 
 /// The relative path of a referenced file joined to the `.http` file's directory, without
@@ -1150,5 +1260,46 @@ https://example.com/health
             }
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod extras_tests {
+    use super::*;
+
+    #[test]
+    fn parses_graphql_websocket_and_grpc_requests() {
+        let file = parse(
+            "### Query\nGRAPHQL http://localhost:4000/graphql\nAuthorization: Bearer x\n\nquery User($id: ID!) {\n  user(id: $id) { name }\n}\n\n{\n  \"id\": 7\n}\n\n### Socket\nWEBSOCKET ws://localhost:8080/ws\n\n{\"op\": \"hello\"}\n=== wait-for-server\n{\"op\": \"next\"}\n===\nbye\n\n### gRPC\nGRPC localhost:50051/shop.Users/Get\n\n{\"id\": 1}\n",
+        );
+        let methods: Vec<_> = file.requests.iter().map(|r| r.method.as_str()).collect();
+        assert_eq!(methods, vec!["GRAPHQL", "WEBSOCKET", "GRPC"]);
+
+        let http = graphql_as_http(&file.requests[0]).unwrap();
+        assert_eq!(http.method, "POST");
+        let body: serde_json::Value = serde_json::from_str(http.body.as_deref().unwrap()).unwrap();
+        assert_eq!(body["variables"]["id"], 7);
+        assert!(body["query"].as_str().unwrap().starts_with("query User($id: ID!)"));
+        assert_eq!(http.header("Content-Type"), Some("application/json"));
+        assert_eq!(http.header("Authorization"), Some("Bearer x"));
+        let (q, v) = graphql_parts("{ me { id } }");
+        assert_eq!((q.as_str(), v), ("{ me { id } }", None));
+
+        let msgs = websocket_messages(file.requests[1].body.as_deref());
+        assert_eq!(
+            msgs,
+            vec![
+                WsMessage { text: "{\"op\": \"hello\"}".into(), wait_for_server: false },
+                WsMessage { text: "{\"op\": \"next\"}".into(), wait_for_server: true },
+                WsMessage { text: "bye".into(), wait_for_server: false },
+            ]
+        );
+        // Schemes: ws:// for sockets without one.
+        let r = resolve(
+            &parse("WEBSOCKET localhost:8080/ws").requests[0],
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        assert_eq!(r.url, "ws://localhost:8080/ws");
     }
 }

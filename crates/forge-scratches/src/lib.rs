@@ -17,8 +17,10 @@
 //!
 //! Everything except [`store`] and [`client`] is pure, so browser mode runs it as WebAssembly.
 
+pub mod curl;
 pub mod handler;
 pub mod http;
+pub mod oauth;
 pub mod languages;
 pub mod naming;
 pub mod run;
