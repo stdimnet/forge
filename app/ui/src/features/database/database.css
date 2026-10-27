@@ -867,6 +867,8 @@
 }
 .dsd-test-status {
   display: inline-flex;
+  flex: 1;
+  min-width: 0;
   align-items: flex-start;
   gap: 7px;
   padding-top: 4px;
@@ -886,6 +888,7 @@
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: var(--fs-small);
+  overflow-wrap: anywhere;
 }
 .dsd-section {
   margin-top: 6px;
@@ -917,4 +920,251 @@
 }
 .dsd-footer button:disabled {
   opacity: 0.45;
+}
+
+/* ---- more engines, colours, sessions ------------------------------------------------- */
+
+.db-ic-ds.danger { color: var(--danger); }
+.db-ic-ds.graph-0 { color: var(--graph-0); }
+.db-ic-ds.graph-2 { color: var(--graph-2); }
+.db-ic-ds.graph-4 { color: var(--graph-4); }
+.db-ic-ds.graph-6 { color: var(--graph-6); }
+.dsd-driver.sqlserver { color: var(--danger); }
+.dsd-driver.clickhouse { color: var(--graph-4); }
+.dsd-driver.oracle { color: var(--graph-0); }
+.dsd-driver.redis { color: var(--graph-6); }
+.dsd-driver.mongodb { color: var(--graph-2); }
+
+/* Data source colour: rows of the tree, consoles, value viewers. */
+.db-row.tinted:not(.selected) {
+  background: var(--db-tint);
+}
+.db-key-filter {
+  cursor: default;
+}
+.db-filter-input {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin-right: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.db-filter-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.db-ic-redis { flex: none; }
+.db-ic-redis.string { color: var(--syn-string); }
+.db-ic-redis.hash { color: var(--graph-3); }
+.db-ic-redis.list { color: var(--graph-1); }
+.db-ic-redis.set { color: var(--graph-5); }
+.db-ic-redis.zset { color: var(--graph-4); }
+.db-ic-redis.stream { color: var(--graph-0); }
+
+.db-console.colored > .db-toolbar,
+.db-redis.colored > .db-toolbar {
+  box-shadow: inset 0 -2px 0 var(--db-accent);
+}
+.db-console.colored .db-console-editor .cm-editor,
+.db-console.colored .db-console-editor .cm-gutters {
+  background-color: color-mix(in srgb, var(--db-accent) 8%, var(--bg-editor));
+}
+.db-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.db-badge.colored {
+  border-color: var(--db-accent);
+  color: var(--db-accent);
+  font-weight: 600;
+}
+.db-chip-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.db-chip-btn:disabled:hover {
+  background: transparent;
+}
+
+/* MongoDB documents as JSON. */
+.db-json {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.db-json-doc {
+  position: relative;
+  margin: 0 0 8px;
+  padding: 6px 10px 6px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--syn-string);
+  white-space: pre-wrap;
+}
+.db-json-doc::before {
+  content: attr(data-index);
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  color: var(--fg-muted);
+}
+
+/* Redis value viewer. */
+.db-redis {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-editor);
+}
+.db-redis-key {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-redis-type {
+  padding: 0 6px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--fs-small);
+}
+.db-redis-text {
+  flex: 1;
+  margin: 0;
+  padding: 10px 14px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-editor);
+  white-space: pre-wrap;
+  color: var(--fg);
+  background: var(--db-tint, transparent);
+}
+.db-redis-error {
+  padding: 16px;
+  color: var(--danger);
+}
+
+/* Sessions view. */
+.db-sessions {
+  height: 100%;
+  overflow: auto;
+  padding: 4px 6px;
+}
+.db-sessions-title {
+  padding: 4px 4px 6px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.db-session {
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--db-accent, var(--border-strong));
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+.db-session-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.db-session-state {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--success);
+}
+.db-session.running .db-session-state {
+  background: var(--warning);
+}
+.db-session-ds {
+  flex: none;
+  color: var(--fg-muted);
+}
+.db-session-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-session-kind {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.db-session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+.db-session-meta {
+  display: flex;
+  gap: 10px;
+  margin: 2px 0 0 13px;
+  font-size: var(--fs-small);
+}
+.db-session-tx {
+  color: var(--warning);
+}
+.db-session-sql {
+  margin: 3px 0 0 13px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* SSH/SSL tab. */
+.dsd-indent {
+  margin-left: 22px;
+}
+.dsd-indent.disabled {
+  opacity: 0.6;
+}
+.dsd-swatch {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+}
+.dsd-test-link.dsd-trust {
+  display: block;
+  height: auto;
+  margin-top: 6px;
+  padding: 3px 8px;
+  font-weight: 500;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
 }

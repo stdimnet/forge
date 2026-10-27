@@ -1,6 +1,8 @@
 /**
- * Query console tab: SQL editor with schema completion, Execute (Ctrl+Enter) of the
- * statement at the caret or the selection, transaction mode, and the Output / result panes.
+ * Query console tab: SQL editor with schema completion (Redis commands, MongoDB shell),
+ * Execute (Ctrl+Enter) of the statement at the caret or the selection, own or shared
+ * session, transaction mode, the read-only / production guard, the data source colour, and
+ * the Output / result panes (MongoDB results also as JSON).
  */
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { Compartment, EditorState, StateEffect, StateField } from "@codemirror/state";
@@ -25,8 +27,10 @@ import {
   ChevronFirst,
   ChevronLeft,
   ChevronRight,
+  Braces,
   Database,
   Download,
+  Lock,
   Play,
   Square,
   Table2,
@@ -37,12 +41,13 @@ import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { registerView } from "@/editor/views";
 import { updateContent, type EditorTab } from "@/state/editor";
 import { getSetting } from "@/state/settings";
-import { shortcutLabel } from "@/keymap";
-import { dbApi, dialectOf, type Cell, type ColumnMeta, type SessionInfo, type SortKey, type StatementResult } from "@/ipc/db";
+import { shortcutLabel, showBalloon } from "@/keymap";
+import { askConfirm } from "@/features/contextMenu/dialogs";
+import { dbApi, dialectOf, DS_COLORS, supportsTransactions, type Cell, type ColumnMeta, type SessionInfo, type SortKey, type StatementResult } from "@/ipc/db";
 import { DataGrid } from "./DataGrid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { gridColumns } from "./grid";
-import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, states, tableInfo } from "./store";
+import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, sourceColor, states, tableInfo, takeConsoleOptions } from "./store";
 import { consoles } from "./controllers";
 import { sqlWithSchema } from "./completion";
 import { exportMenu } from "./exporting";
@@ -65,6 +70,8 @@ interface ResultTab {
   offset: number;
   elapsedMs: number;
   table?: string;
+  /** MongoDB documents (JSON view). */
+  documents?: unknown[];
 }
 
 const now = () => {
@@ -98,6 +105,7 @@ const flashField = StateField.define<DecorationSet>({
 
 function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: number) => void; pageSize: number }) {
   const [sort, setSort] = createSignal<SortKey[]>([]);
+  const [json, setJson] = createSignal(false);
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const ds = () => sourceById(props.dsId);
   const table = () => (props.result.table ? tableInfo(props.dsId, defaultSchema(props.dsId), props.result.table) : undefined);
@@ -166,21 +174,37 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
         >
           <Download size={14} />
         </button>
+        <Show when={props.result.documents?.length}>
+          <button class="db-chip-btn" classList={{ open: json() }} title="Show the documents as JSON" data-testid="db-json-toggle" onClick={() => setJson(!json())}>
+            <Braces size={12} /> {json() ? "Table" : "JSON"}
+          </button>
+        </Show>
         <span class="db-spacer" />
         <span class="db-status muted">
           {rowsText(props.result.rows.length)}
           {props.result.hasMore ? "+" : ""} · {props.result.elapsedMs} ms
         </span>
       </div>
-      <DataGrid
-        columns={columns()}
-        rows={rows()}
-        rowOffset={props.result.offset}
-        sort={sort()}
-        onSort={onSort}
-        nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
-        emptyText="The query returned no rows"
-      />
+      <Show
+        when={json() && props.result.documents}
+        fallback={
+          <DataGrid
+            columns={columns()}
+            rows={rows()}
+            rowOffset={props.result.offset}
+            sort={sort()}
+            onSort={onSort}
+            nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
+            emptyText="The query returned no rows"
+          />
+        }
+      >
+        {(docs) => (
+          <div class="db-json" data-testid="db-json">
+            <For each={docs()}>{(d, i) => <pre class="db-json-doc" data-index={i() + 1 + props.result.offset}>{JSON.stringify(d, null, 2)}</pre>}</For>
+          </div>
+        )}
+      </Show>
       <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
     </div>
   );
@@ -188,7 +212,10 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
 
 export function ConsoleView(props: { tab: EditorTab }) {
   const loc = { id: consoleSourceId(props.tab.path) ?? "" };
+  const opened = takeConsoleOptions(props.tab.path);
   const ds = () => sourceById(loc.id);
+  const color = () => sourceColor(loc.id);
+  const transactional = () => supportsTransactions(ds()?.driver ?? "mysql");
   const dialect = () => dialectOf(ds()?.driver ?? "mysql");
   const pageSize = () => ds()?.options.pageSize ?? getSetting<number>("database.pageSize", 500) ?? 500;
 
@@ -198,6 +225,8 @@ export function ConsoleView(props: { tab: EditorTab }) {
   const language = new Compartment();
 
   const [session, setSession] = createSignal<SessionInfo | null>(null);
+  /** Use the data source's shared session instead of an own connection. */
+  const [shared, setShared] = createSignal(!!ds()?.options.singleSession);
   const [running, setRunning] = createSignal(false);
   const [log, setLog] = createSignal<LogLine[]>([]);
   const [results, setResults] = createSignal<ResultTab[]>([]);
@@ -206,7 +235,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   let resultSeq = 0;
 
-  const autoCommit = () => session()?.autoCommit ?? ds()?.options.autoCommit ?? true;
+  const autoCommit = () => !transactional() || (session()?.autoCommit ?? ds()?.options.autoCommit ?? true);
   const txOpen = () => !!session()?.txOpen;
   const schemaName = () => defaultSchema(loc.id);
   const prompt = () => schemaName() || ds()?.name || "db";
@@ -218,40 +247,76 @@ export function ConsoleView(props: { tab: EditorTab }) {
   });
   onCleanup(() => void unlisten.then((u) => u()));
 
-  async function ensureSession(): Promise<SessionInfo> {
+  let opening: Promise<SessionInfo> | null = null;
+
+  /** The console's session, opened once even when several actions ask at the same time. */
+  function ensureSession(): Promise<SessionInfo> {
     const cur = session();
-    if (cur) return cur;
+    if (cur) return Promise.resolve(cur);
+    opening ??= openSession().finally(() => (opening = null));
+    return opening;
+  }
+
+  async function openSession(): Promise<SessionInfo> {
     if (!(await connect(loc.id))) throw new Error(states[loc.id]?.error ?? `Cannot connect to ${ds()?.name ?? loc.id}`);
-    const s = await dbApi.openSession(loc.id);
+    const s = await dbApi.openSession(loc.id, shared());
     setSession(s);
-    append("info", `Connected to ${ds()?.name ?? loc.id}`);
+    append("info", `Connected to ${ds()?.name ?? loc.id}${s.shared ? " (shared session)" : ""}`);
+    if (opened.schema && dialect() === "mongo") {
+      await dbApi.execute(s.id, `use ${opened.schema}`).catch(() => undefined);
+      opened.schema = undefined;
+    }
     return s;
   }
 
-  async function run(sql: string): Promise<StatementResult[]> {
+  async function run(sql: string, confirmed: boolean): Promise<StatementResult[]> {
     const s = await ensureSession();
     try {
-      return await dbApi.execute(s.id, sql, pageSize());
+      return await dbApi.execute(s.id, sql, pageSize(), confirmed);
     } catch (e) {
       // The connection was closed (Disconnect, data source changed): reconnect once.
       if (!/unknown console session/i.test(errorText(e))) throw e;
       setSession(null);
       const again = await ensureSession();
-      return dbApi.execute(again.id, sql, pageSize());
+      return dbApi.execute(again.id, sql, pageSize(), confirmed);
     }
   }
 
-  async function execute(): Promise<void> {
+  /** Read-only and production checks; false when the statement must not run. */
+  async function allowed(sql: string): Promise<{ ok: boolean; confirmed: boolean }> {
+    const g = await dbApi.guard(loc.id, sql).catch(() => ({}) as { blocked?: string; confirm?: string });
+    if (g.blocked) {
+      append("error", g.blocked);
+      setActive("output");
+      showBalloon("Read-only data source", g.blocked);
+      return { ok: false, confirmed: false };
+    }
+    if (g.confirm) {
+      const ok = await askConfirm({ title: "Production Data Source", message: g.confirm, confirm: "Execute" });
+      if (!ok) {
+        append("info", "Execution cancelled");
+        return { ok: false, confirmed: false };
+      }
+      return { ok: true, confirmed: true };
+    }
+    return { ok: true, confirmed: false };
+  }
+
+  async function execute(all = false): Promise<void> {
     if (!view || running()) return;
     const text = view.state.doc.toString();
     const sel = view.state.selection.main;
-    const st = await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
-    if (!st || !view) return;
+    const st = all
+      ? { text, start: 0, end: text.length }
+      : await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
+    if (!st || !st.text.trim() || !view) return;
     view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
     setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
+    const check = await allowed(st.text);
+    if (!check.ok) return;
     setRunning(true);
     try {
-      const res = await run(st.text);
+      const res = await run(st.text, check.confirmed);
       const tabs: ResultTab[] = [];
       let failed = false;
       for (const r of res) {
@@ -272,6 +337,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
             offset: 0,
             elapsedMs: r.elapsedMs,
             table,
+            documents: r.documents,
           });
         } else {
           append("info", r.rowsAffected ? `${rowsText(r.rowsAffected)} affected in ${r.elapsedMs} ms` : `completed in ${r.elapsedMs} ms`);
@@ -293,7 +359,13 @@ export function ConsoleView(props: { tab: EditorTab }) {
     if (!r || !s) return;
     try {
       const p = await dbApi.fetch(s.id, r.sql, offset, pageSize());
-      setResults((list) => list.map((x, i) => (i === index ? { ...x, rows: p.rows, hasMore: p.hasMore, offset, elapsedMs: p.elapsedMs, columns: p.columns.length ? p.columns : x.columns } : x)));
+      setResults((list) =>
+        list.map((x, i) =>
+          i === index
+            ? { ...x, rows: p.rows, hasMore: p.hasMore, offset, elapsedMs: p.elapsedMs, columns: p.columns.length ? p.columns : x.columns, documents: p.documents }
+            : x,
+        ),
+      );
     } catch (e) {
       append("error", errorText(e));
     }
@@ -325,7 +397,21 @@ export function ConsoleView(props: { tab: EditorTab }) {
     }
   }
 
-  consoles.set(props.tab.path, { execute, cancel, focus: () => view?.focus() });
+  /** Switch between an own connection and the shared session (takes effect right away). */
+  async function setSessionMode(share: boolean): Promise<void> {
+    if (share === shared()) return;
+    const old = session();
+    setShared(share);
+    setSession(null);
+    if (old) await dbApi.closeSession(old.id).catch(() => undefined);
+    try {
+      await ensureSession();
+    } catch (e) {
+      append("error", errorText(e));
+    }
+  }
+
+  consoles.set(props.tab.path, { execute: () => execute(), cancel, focus: () => view?.focus() });
   onCleanup(() => {
     consoles.delete(props.tab.path);
     const s = session();
@@ -369,7 +455,9 @@ export function ConsoleView(props: { tab: EditorTab }) {
       view?.destroy();
     });
     // Connect right away so completion knows the schema.
-    void connect(loc.id);
+    void connect(loc.id).then((ok) => {
+      if (ok && opened.run) void execute(true);
+    });
     queueMicrotask(() => view?.focus());
   });
 
@@ -388,6 +476,18 @@ export function ConsoleView(props: { tab: EditorTab }) {
     window.addEventListener("mouseup", up);
   };
 
+  const sessionMenu = (e: MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenu({
+      x: r.left,
+      y: r.bottom + 2,
+      items: [
+        { label: "New session (own connection)", icon: !shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(false) },
+        { label: "Shared session", icon: shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(true) },
+      ],
+    });
+  };
+
   const txMenu = (e: MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setMenu({
@@ -401,7 +501,12 @@ export function ConsoleView(props: { tab: EditorTab }) {
   };
 
   return (
-    <div class="db-console" data-db-path={props.tab.path}>
+    <div
+      class="db-console"
+      classList={{ colored: !!color(), production: color()?.name === "red" }}
+      style={{ "--db-tint": color()?.tint, "--db-accent": color()?.accent }}
+      data-db-path={props.tab.path}
+    >
       <div class="db-toolbar">
         <button
           class="icon-btn db-tool db-run"
@@ -415,7 +520,17 @@ export function ConsoleView(props: { tab: EditorTab }) {
           <Square size={13} />
         </button>
         <span class="db-sep" />
-        <button class="db-chip-btn" classList={{ manual: !autoCommit(), open: txOpen() }} title="Transaction Mode" onClick={txMenu}>
+        <button class="db-chip-btn" classList={{ open: shared() }} title="Session" data-testid="db-session-mode" onClick={sessionMenu}>
+          {shared() ? "Shared session" : "New session"}
+          <ChevronDown size={12} />
+        </button>
+        <button
+          class="db-chip-btn"
+          classList={{ manual: !autoCommit(), open: txOpen() }}
+          title={transactional() ? "Transaction Mode" : `${ds()?.driver ?? ""} consoles run every statement on its own`}
+          disabled={!transactional()}
+          onClick={txMenu}
+        >
           Tx: {autoCommit() ? "Auto" : "Manual"}
           <ChevronDown size={12} />
         </button>
@@ -431,6 +546,18 @@ export function ConsoleView(props: { tab: EditorTab }) {
           </span>
         </Show>
         <span class="db-spacer" />
+        <Show when={ds()?.options.readOnly}>
+          <span class="db-badge" title="Read-only data source: changes are refused">
+            <Lock size={11} /> read-only
+          </span>
+        </Show>
+        <Show when={color()}>
+          {(c) => (
+            <span class="db-badge colored" data-testid="db-color-badge" title={DS_COLORS[c().name]?.label ?? c().name}>
+              {c().name === "red" ? "production" : c().name === "yellow" ? "staging" : c().name === "green" ? "development" : c().name}
+            </span>
+          )}
+        </Show>
         <button class="db-target" title="Data source properties" onClick={() => openDataSources({ select: loc.id })}>
           <Database size={13} />
           <span>{ds()?.name ?? loc.id}</span>

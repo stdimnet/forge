@@ -130,7 +130,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] Code coverage for PHP (Xdebug/PCOV), JS (c8/Istanbul) and the language packs
 - [ ] Profiling: Xdebug and SPX snapshots, V8 CPU/heap
 - [ ] Vulnerable dependency check (`composer audit`, npm audit)
-- [ ] Database connectivity: SSH/SSL per data source, SQL Server, more engines (ClickHouse, Redis, MongoDB, Oracle, …), sessions, read-only/production colors
+- [x] Database connectivity: SSH/SSL per data source, SQL Server, more engines (ClickHouse, Redis, MongoDB, Oracle, …), sessions, read-only/production colors
 - [ ] Database explorer: full object tree, schema filter, virtual foreign keys, full-text search, DDL data sources
 - [ ] SQL editor: resolve and inspections, dialect per file, formatter, user parameters, query history, Run SQL file, live templates
 - [ ] Data editor: header sort/filter, value editor, foreign-key navigation, transpose, aggregates, compare data, charts

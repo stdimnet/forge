@@ -77,6 +77,7 @@ pub fn from_laravel(vars: &BTreeMap<String, String>) -> Option<(DataSource, Opti
         "mariadb" => Driver::Mariadb,
         "pgsql" | "postgres" | "postgresql" => Driver::Postgres,
         "sqlite" => Driver::Sqlite,
+        "sqlsrv" => Driver::Sqlserver,
         _ => return None,
     };
     if let Some(url) = vars

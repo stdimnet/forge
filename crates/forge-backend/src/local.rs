@@ -254,6 +254,8 @@ impl Backend for LocalBackend {
         if let Some(index) = self.index() {
             return index.find_text_lazy(req, cancel).map(crate::Found::Lazy);
         }
+        #[cfg(not(feature = "search"))]
+        let _ = cancel;
         self.find_in_files(req).map(crate::Found::Full)
     }
 
