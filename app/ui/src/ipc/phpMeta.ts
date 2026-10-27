@@ -16,7 +16,7 @@ export interface PhpProblem {
   end: number;
   severity: "error" | "warning" | "weak";
   message: string;
-  /** `deprecated`, `expectedValues`, `immutable`, `pureFunction`, `unreachable`, `psr4Namespace`. */
+  /** The inspection id (`PhpDeprecation`, `PhpUnusedAssignment`, ...; see `forge-inspections`). */
   code: string;
   deprecated?: boolean;
   unnecessary?: boolean;

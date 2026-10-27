@@ -52,6 +52,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Inspections**: inspection profiles (Default, Project Default, copies; PHPStorm XML import
+  and export) with severities, scope-specific settings and options for every problem Forge
+  shows, Inspect Code with the Inspection Results tool window, Run Inspection by Name, Code
+  Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
+  null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
+  CI ([Inspections](user/inspections.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2

@@ -16,6 +16,7 @@ forge-wasm = { path = "crates/forge-wasm" }
 forge-fuzzy = { path = "crates/forge-fuzzy" }
 forge-find = { path = "crates/forge-find" }
 forge-scopes = { path = "crates/forge-scopes" }
+forge-inspections = { path = "crates/forge-inspections" }
 forge-ssr = { path = "crates/forge-ssr" }
 forge-search = { path = "crates/forge-search" }
 forge-search-core = { path = "crates/forge-search-core" }

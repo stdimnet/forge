@@ -48,7 +48,21 @@ pub struct Contributions {
     /// active plugins when the menu opens.
     #[serde(default)]
     pub main_menu: Vec<MainMenuContribution>,
+    /// Inspections (Settings | Editor | Inspections, Inspect Code); see `forge-inspections`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inspections: Vec<InspectionContribution>,
+    /// Map problems of external tools (a diagnostics source and code) onto inspections.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inspection_mappings: Vec<InspectionMappingContribution>,
 }
+
+/// An inspection declared as data (`[[contributions.inspections]]`). Defined by the pure
+/// `forge-inspections` crate, which also holds profiles and runs them.
+pub use forge_inspections::InspectionSpec as InspectionContribution;
+
+/// `[[contributions.inspectionMappings]]`: problems published with `source` (and `code`)
+/// belong to `inspection`.
+pub use forge_inspections::ToolMapping as InspectionMappingContribution;
 
 /// Entries a plugin adds to a main menu path:
 ///

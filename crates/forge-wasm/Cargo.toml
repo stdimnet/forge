@@ -65,6 +65,7 @@ wasm-bindgen = "=0.2.129"
 forge-fuzzy.workspace = true
 forge-find.workspace = true
 forge-scopes.workspace = true
+forge-inspections.workspace = true
 forge-diff.workspace = true
 forge-ssr = { path = "../forge-ssr", default-features = false }
 forge-search-core.workspace = true

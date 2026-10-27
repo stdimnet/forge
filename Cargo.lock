@@ -2072,6 +2072,7 @@ dependencies = [
  "forge-forges",
  "forge-fuzzy",
  "forge-injections",
+ "forge-inspections",
  "forge-jsonschema",
  "forge-keymap",
  "forge-langservers",
@@ -2466,6 +2467,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-inspections"
+version = "0.1.0"
+dependencies = [
+ "forge-scopes",
+ "quick-xml",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-jsonschema"
 version = "0.1.0"
 dependencies = [
@@ -2601,6 +2612,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-filetypes",
+ "forge-inspections",
  "forge-keymap",
  "forge-output",
  "forge-testing",
@@ -2918,6 +2930,7 @@ dependencies = [
  "forge-find",
  "forge-fuzzy",
  "forge-injections",
+ "forge-inspections",
  "forge-jsonschema",
  "forge-keymap",
  "forge-livetemplates",
@@ -5807,6 +5820,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-codeintel",
  "forge-file-templates",
+ "forge-inspections",
  "forge-scopes",
  "phpforge-composer",
  "phpforge-interpreters",

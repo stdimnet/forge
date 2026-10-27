@@ -314,6 +314,67 @@ final class InvoiceService
     }
 }
 `,
+  "app/Services/LegacyPricing.php": `<?php
+
+declare(strict_types=1);
+
+namespace App\\Services;
+
+use App\\Models\\Order;
+
+/** Prices of the old shop, kept until the migration is done. */
+final class LegacyPricing
+{
+    public function total(Order $order): float
+    {
+        $sum = 0.0;
+        foreach ($order->lines as $line) {
+            $amount = $line->price * $line->quantity;
+            if ($line->discount > 0) {
+                $amount -= $amount * $line->discount / 100;
+            }
+            $sum += $amount;
+        }
+
+        return round($sum, 2);
+    }
+
+    public function totalWithTax(Order $order, float $rate): float
+    {
+        $sum = 0.0;
+        foreach ($order->lines as $line) {
+            $amount = $line->price * $line->quantity;
+            if ($line->discount > 0) {
+                $amount -= $amount * $line->discount / 100;
+            }
+            $sum += $amount;
+        }
+
+        return round($sum * (1 + $rate), 2);
+    }
+
+    public function label(Order $order): string
+    {
+        $prefix = 'ORD';
+        $prefix = 'INV';
+        $verbose = false;
+        if ($verbose) {
+            return $prefix . '-' . $order->number . ' (' . $order->status->value . ')';
+        }
+        $customer = null;
+        if ($order->user === null) {
+            return $prefix . '-' . $order->number . ' for ' . $customer->name;
+        }
+
+        return $prefix . '-' . $order->number;
+    }
+
+    public function tax(Order $order): float
+    {
+        return round($order->total * $taxRate, 2);
+    }
+}
+`,
   "app/Services/PriceCalculator.php": `<?php
 
 declare(strict_types=1);
