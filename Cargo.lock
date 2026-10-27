@@ -3106,6 +3106,7 @@ dependencies = [
  "forge-vim",
  "forge-vulns",
  "forge-window",
+ "getrandom 0.3.4",
  "goforge-lang-go",
  "goforge-pprof",
  "javaforge-android",
@@ -3139,6 +3140,7 @@ dependencies = [
  "webforge-fw-vue",
  "webforge-js-testing",
  "webforge-lang-web",
+ "webforge-web-tooling",
 ]
 
 [[package]]
