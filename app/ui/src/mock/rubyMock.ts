@@ -9,7 +9,7 @@
  */
 import { emitMock, mockHandler, registerMock } from "@/ipc";
 import type { BreakpointsSnapshot, DebugEvent, Frame, Property, SessionInfo } from "@/features/debug/api";
-import type { LaunchRequest } from "@/features/debug/dapApi";
+import type { AdapterInfo, LaunchRequest } from "@/features/debug/dapApi";
 import type { RubyStatus } from "@/ipc/ruby";
 import { callWasm, forgeWasm } from "@/wasm";
 import { isRubyDemo, rubyDemoInfo, rubyDemoName } from "./demoRubyProject";
@@ -298,7 +298,21 @@ function route(cmd: string, fn: (s: RubySession, args: Record<string, unknown>) 
   });
 }
 
+/** The `rdbg` adapter as `commands::ruby::sync_debug` registers it. */
+const ADAPTER: AdapterInfo = {
+  type: "rdbg",
+  label: "Ruby (rdbg)",
+  languages: ["rb", "rake", "ru", "gemspec"],
+  launch: false,
+  attachProcess: false,
+  attachPort: false,
+  coreDump: false,
+  command: RUBY_TOOLS.rdbg,
+};
+
 if (isRubyDemo()) {
+  const previousAdapters = mockHandler("dap_adapters")!;
+  registerMock("dap_adapters", async (args) => [...((await previousAdapters(args)) as AdapterInfo[]).filter((a) => a.type !== "rdbg"), ADAPTER]);
   const dapStart = mockHandler("dap_start");
   registerMock("dap_start", (args) => {
     const request = args.request as LaunchRequest;
