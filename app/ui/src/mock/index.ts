@@ -89,6 +89,8 @@ import "./springMock";
 import "./jvmExtrasMock";
 import "./androidMock";
 import "./cppMock";
+// Xdebug, SPX and V8 profiler snapshots (forge-profiler through WebAssembly).
+import "./profilerMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

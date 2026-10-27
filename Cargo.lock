@@ -2967,6 +2967,7 @@ dependencies = [
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
+ "forge-profiler",
  "forge-remote",
  "forge-runtargets",
  "forge-runtools",
