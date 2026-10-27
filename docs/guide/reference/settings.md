@@ -585,6 +585,7 @@ Page id `lang.php.debug`.
 | `php.debug.maxChildren` | int (1–10000) | `100` | user | Evaluation | Max. children — Array elements and object properties loaded per page. |
 | `php.debug.maxDepth` | int (1–16) | `1` | user | Evaluation | Max. depth — Nesting levels fetched at once; deeper levels load when expanded. |
 | `php.debug.maxData` | int (128–10485760) | `65536` | user | Evaluation | Max. string length — Bytes of string data fetched per value. |
+| `php.profiler.spxDataDir` | path | `""` | user | Profiler | SPX data directory — spx.data_dir of your php.ini, where Run \| Profile with SPX reads the reports of local runs. Empty: Forge passes a temporary folder of its own (-dspx.data_dir) to each run. |
 | `php.debug.validation.documentRoot` | string | `"public"` | user, project | Web Server Debug Validation | Path to create validation script — Project folder served by the web server (its document root), e.g. public. Run \| Web Server Debug Validation places a temporary script there and deletes it after the check. |
 | `php.debug.validation.url` | string | `"http://localhost:8080"` | user, project | Web Server Debug Validation | URL to validation script — The URL of that folder, e.g. http://localhost:8080. |
 

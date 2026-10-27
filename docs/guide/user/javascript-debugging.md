@@ -81,6 +81,10 @@ debugger (see [Debugging](debugging.md)).
   npm script falls back to Node's inspector through `NODE_OPTIONS` (*Node options when
   debugging scripts*, default `--inspect`).
 
+**Run | Profile with V8** and **Profile Allocations with V8** run a Node.js or npm
+configuration with `--cpu-prof` / `--heap-prof` and open the profile in the Profiler tool
+window, see [Profiling PHP and Node.js](profiling.md).
+
 Launching a program runs project code and is refused in [Safe Mode](project-trust.md);
 attaching is not.
 
