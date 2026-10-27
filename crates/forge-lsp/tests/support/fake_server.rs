@@ -194,6 +194,14 @@ fn main() {
                 continue;
             }
             "exit" => std::process::exit(0),
+            // Roslyn-style loading after `initialized`.
+            "solution/open" => {
+                notify(
+                    "window/logMessage",
+                    json!({"type": 4, "message": format!("opened: {}", params["solution"].as_str().unwrap_or(""))}),
+                );
+                continue;
+            }
             "workspace/didChangeConfiguration" => {
                 // Ask again, like servers that pull their settings.
                 write(

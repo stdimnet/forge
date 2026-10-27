@@ -701,6 +701,9 @@ impl LspClient {
                 settings: self.inner.config.settings.clone(),
             })?;
         }
+        for n in &self.inner.config.after_initialized {
+            self.notify_raw(&n.method, n.params.clone())?;
+        }
         // Progress may already have moved us to Busy; only promote from Starting.
         let starting = matches!(self.state(), ServerState::Starting);
         if starting {
