@@ -13,8 +13,8 @@ use forge_inspections::report::{self, Grouping};
 use forge_inspections::suppress::{self, Suppressions};
 use forge_inspections::text::LineIndex;
 use forge_inspections::{
-    cleanup, severity, FileInput, InspectionSpec, Problem, Profile, ProfilesState, Registry, Report,
-    ResolvedProfile, RunOptions, SeverityDef, ToolMapping,
+    cleanup, severity, FileInput, InspectionSpec, Problem, Profile, ProfilesState, Registry,
+    Report, ResolvedProfile, RunOptions, SeverityDef, ToolMapping,
 };
 use forge_scopes::{ScopeContext, ScopeSet};
 use serde::Deserialize;
@@ -100,7 +100,9 @@ pub fn inspections_export_profile(request_json: &str) -> String {
         profile: Profile,
         format: ProfileFormat,
     }
-    answer(parse::<Req>(request_json).map(|r| profile_io::export(&r.profile, &r.registry, r.format)))
+    answer(
+        parse::<Req>(request_json).map(|r| profile_io::export(&r.profile, &r.registry, r.format)),
+    )
 }
 
 /// `{ registry, text }` → `Profile` (XML or JSON).
@@ -155,7 +157,8 @@ pub fn inspections_configure(request_json: &str) -> String {
         context: ScopeContext,
     }
     answer(parse::<Req>(request_json).map(|r| {
-        let resolved = ResolvedProfile::new(r.registry, r.profile, r.severities, &r.scopes, &r.context);
+        let resolved =
+            ResolvedProfile::new(r.registry, r.profile, r.severities, &r.scopes, &r.context);
         ACTIVE.with(|a| *a.borrow_mut() = Some(resolved));
         true
     }))
@@ -163,7 +166,10 @@ pub fn inspections_configure(request_json: &str) -> String {
 
 fn position(d: &Value, which: &str) -> Option<(u32, u32)> {
     let p = d.get("range")?.get(which)?;
-    Some((p.get("line")?.as_u64()? as u32, p.get("character")?.as_u64()? as u32))
+    Some((
+        p.get("line")?.as_u64()? as u32,
+        p.get("character")?.as_u64()? as u32,
+    ))
 }
 
 fn editor_name(e: forge_inspections::EditorSeverity) -> &'static str {
@@ -225,7 +231,8 @@ pub fn inspections_apply(request_json: &str) -> String {
             let Some(eff) = profile.effective(&id, &r.path) else {
                 continue;
             };
-            if let (Some((sup, lines)), Some((line, col))) = (&suppressions, position(&d, "start")) {
+            if let (Some((sup, lines)), Some((line, col))) = (&suppressions, position(&d, "start"))
+            {
                 if sup.is_suppressed(&id, lines.offset(line, col)) {
                     continue;
                 }
@@ -311,7 +318,11 @@ impl forge_inspections::InspectionProvider for Given {
         self.0.iter().map(|p| p.inspection.clone()).collect()
     }
 
-    fn inspect_project(&self, _files: &[FileInput], _ctx: &forge_inspections::RunContext) -> Vec<Problem> {
+    fn inspect_project(
+        &self,
+        _files: &[FileInput],
+        _ctx: &forge_inspections::RunContext,
+    ) -> Vec<Problem> {
         self.0.clone()
     }
 }
@@ -350,18 +361,42 @@ pub fn inspections_run(request_json: &str) -> String {
             .unwrap_or_else(|| r.profiles.selected())
             .clone();
         let only = if r.cleanup {
-            Some(r.registry.inspections.iter().filter(|s| s.cleanup).map(|s| s.id.clone()).collect())
+            Some(
+                r.registry
+                    .inspections
+                    .iter()
+                    .filter(|s| s.cleanup)
+                    .map(|s| s.id.clone())
+                    .collect(),
+            )
         } else {
             r.only
         };
         r.registry
             .inspections
             .retain(|s| s.batch || only.as_ref().is_some_and(|o| o.contains(&s.id)));
-        let resolved = ResolvedProfile::new(r.registry, profile, r.profiles.severities.clone(), &r.scopes, &r.context);
+        let resolved = ResolvedProfile::new(
+            r.registry,
+            profile,
+            r.profiles.severities.clone(),
+            &r.scopes,
+            &r.context,
+        );
         let given = Given(r.problems);
         let dups = forge_inspections::DuplicatesProvider;
-        let options = RunOptions { only, max_problems: 20_000 };
-        let mut report = forge_inspections::run(&r.files, &resolved, &[&given, &dups], &[], &options, &mut |_| {}, &|| false);
+        let options = RunOptions {
+            only,
+            max_problems: 20_000,
+        };
+        let mut report = forge_inspections::run(
+            &r.files,
+            &resolved,
+            &[&given, &dups],
+            &[],
+            &options,
+            &mut |_| {},
+            &|| false,
+        );
         report.scope = r.scope;
         let opts = forge_inspections::duplicates::DuplicateOptions::from_options(
             &resolved
@@ -370,8 +405,16 @@ pub fn inspections_run(request_json: &str) -> String {
                 .map(|s| resolved.profile.options(s))
                 .unwrap_or_default(),
         );
-        if report.problems.iter().any(|p| p.inspection == forge_inspections::registry::DUPLICATED_CODE) {
-            let list: Vec<(&str, &str)> = r.files.iter().map(|f| (f.path.as_str(), f.text.as_str())).collect();
+        if report
+            .problems
+            .iter()
+            .any(|p| p.inspection == forge_inspections::registry::DUPLICATED_CODE)
+        {
+            let list: Vec<(&str, &str)> = r
+                .files
+                .iter()
+                .map(|f| (f.path.as_str(), f.text.as_str()))
+                .collect();
             report.duplicates = forge_inspections::duplicates::find(&list, &opts, &|| false);
         }
         report
@@ -418,7 +461,8 @@ mod tests {
 
     #[test]
     fn configure_and_apply_profiles_to_diagnostics() {
-        let reg: Value = serde_json::from_str(&inspections_registry(&registry().to_string())).unwrap();
+        let reg: Value =
+            serde_json::from_str(&inspections_registry(&registry().to_string())).unwrap();
         let mut profile = json!({"name": "Default", "level": "ide", "tools": {"RsClippy": {"severity": "ERROR"}}});
         let ok = inspections_configure(&json!({"registry": reg, "profile": profile}).to_string());
         assert_eq!(ok, "true");
@@ -452,12 +496,14 @@ mod tests {
             .to_string(),
         ))
         .unwrap();
-        let profile = json!({"name": "P", "level": "ide", "tools": {"PhpStanGlobal": {"enabled": false}}});
+        let profile =
+            json!({"name": "P", "level": "ide", "tools": {"PhpStanGlobal": {"enabled": false}}});
         inspections_configure(&json!({"registry": reg2, "profile": profile}).to_string());
         let mut stan = diag(1);
         stan["source"] = json!("PHPStan");
         let out: Vec<Value> = serde_json::from_str(&inspections_apply(
-            &json!({"path": "a.php", "source": "php-quality-tools", "diagnostics": [stan]}).to_string(),
+            &json!({"path": "a.php", "source": "php-quality-tools", "diagnostics": [stan]})
+                .to_string(),
         ))
         .unwrap();
         assert!(out.is_empty());
@@ -469,9 +515,20 @@ mod tests {
             &json!({"path": "a.php", "text": "<?php\nfunction f() {\n    $a = 1;\n}\n", "line": 2, "character": 4, "id": "PhpUnusedAssignment"}).to_string(),
         ))
         .unwrap();
-        let titles: Vec<&str> = actions.iter().map(|a| a["title"].as_str().unwrap()).collect();
-        assert_eq!(titles, ["Suppress for statement", "Suppress for function", "Suppress for file"]);
-        let reg: Value = serde_json::from_str(&inspections_registry(&registry().to_string())).unwrap();
+        let titles: Vec<&str> = actions
+            .iter()
+            .map(|a| a["title"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            titles,
+            [
+                "Suppress for statement",
+                "Suppress for function",
+                "Suppress for file"
+            ]
+        );
+        let reg: Value =
+            serde_json::from_str(&inspections_registry(&registry().to_string())).unwrap();
         let body = "    $total = 0;\n    foreach ($items as $item) {\n        $total += $item->price * $item->quantity;\n    }\n    return round($total, 2);\n";
         let files = json!([
             {"path": "a.php", "text": format!("<?php\nfunction a($items) {{\n{body}}}\n")},
@@ -484,8 +541,17 @@ mod tests {
             &json!({"registry": reg, "profiles": profiles, "files": files, "problems": problems, "scope": "Project"}).to_string(),
         ))
         .unwrap();
-        assert!(report.problems.iter().any(|p| p.inspection == "DuplicatedCode"), "{report:?}");
-        assert!(report.problems.iter().any(|p| p.inspection == "PhpUnusedAssignment"));
+        assert!(
+            report
+                .problems
+                .iter()
+                .any(|p| p.inspection == "DuplicatedCode"),
+            "{report:?}"
+        );
+        assert!(report
+            .problems
+            .iter()
+            .any(|p| p.inspection == "PhpUnusedAssignment"));
         assert_eq!(report.duplicates.len(), 1);
         let tree: Vec<Value> = serde_json::from_str(&inspections_report_tree(
             &json!({"report": report, "levels": ["severity", "inspection"]}).to_string(),
@@ -493,7 +559,8 @@ mod tests {
         .unwrap();
         assert!(!tree.is_empty());
         let plan: Value = serde_json::from_str(&inspections_cleanup_plan(
-            &json!({"registry": reg, "problems": report.problems, "texts": {"a.php": "<?php"}}).to_string(),
+            &json!({"registry": reg, "problems": report.problems, "texts": {"a.php": "<?php"}})
+                .to_string(),
         ))
         .unwrap();
         assert_eq!(plan["files"][0]["after"], "x<?php");
