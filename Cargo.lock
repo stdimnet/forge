@@ -2093,6 +2093,7 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "cforge-analyzers",
  "cforge-cmake",
  "cforge-embedded",
@@ -2110,6 +2111,7 @@ dependencies = [
  "forge-core",
  "forge-dap",
  "forge-db",
+ "forge-dbtransfer",
  "forge-debug",
  "forge-deploy",
  "forge-devenv",
@@ -2358,6 +2360,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-core",
  "forge-dbmodel",
+ "forge-dbtransfer",
  "forge-ports",
  "forge-remote",
  "forge-sql",

@@ -273,10 +273,9 @@ impl DbService {
         }))
     }
 
-    /// Where a native tool connects to data source `id`: its settings, through its own
-    /// SSH tunnel when it has one (keep the endpoint alive while the tool runs), with the
-    /// stored password for the tool's environment.
-    pub async fn dump_target(&self, id: &str) -> DbResult<(DumpTarget, Option<TunnelEndpoint>)> {
+    /// The settings a native tool connects with (without opening the SSH tunnel; the
+    /// dialog's command line preview).
+    pub fn dump_target_settings(&self, id: &str) -> DbResult<DumpTarget> {
         let ds = self.get(id)?;
         let driver = match ds.driver {
             Driver::Mysql => "mysql",
@@ -291,25 +290,33 @@ impl DbService {
                 )))
             }
         };
-        let mut target = DumpTarget {
+        let sqlite = ds.driver == Driver::Sqlite;
+        Ok(DumpTarget {
             driver: driver.into(),
             host: ds.host.clone(),
-            port: if ds.driver == Driver::Sqlite {
-                0
-            } else {
-                ds.port_or_default()
-            },
+            port: if sqlite { 0 } else { ds.port_or_default() },
             user: ds.user.clone(),
             database: ds.database.clone(),
-            file: String::new(),
-            ssl: ds.options.ssl_mode.enabled(),
-            password: self.password(&ds),
-        };
+            file: if sqlite {
+                ds.sqlite_path(self.project_root().as_deref())
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                String::new()
+            },
+            ssl: ds.options.ssl_mode.enabled() && !sqlite,
+            password: None,
+        })
+    }
+
+    /// Where a native tool connects to data source `id`: its settings, through its own
+    /// SSH tunnel when it has one (keep the endpoint alive while the tool runs), with the
+    /// stored password for the tool's environment.
+    pub async fn dump_target(&self, id: &str) -> DbResult<(DumpTarget, Option<TunnelEndpoint>)> {
+        let ds = self.get(id)?;
+        let mut target = self.dump_target_settings(id)?;
+        target.password = self.password(&ds);
         if ds.driver == Driver::Sqlite {
-            target.file = ds
-                .sqlite_path(self.project_root().as_deref())
-                .to_string_lossy()
-                .into_owned();
             return Ok((target, None));
         }
         if ds.options.ssh.enabled {

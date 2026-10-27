@@ -64,4 +64,6 @@ pub use service::{
     TableDataRequest, TableMatches, TestResult,
 };
 pub use split::{split_statements, Statement};
+/// Cancels running imports.
+pub use tokio_util::sync::CancellationToken;
 pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};

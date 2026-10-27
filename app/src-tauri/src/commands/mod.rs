@@ -17,6 +17,7 @@ pub mod cpp;
 pub mod cpp_tools;
 pub mod dap;
 pub mod db;
+pub mod db_objects;
 pub mod debug;
 pub mod deployment;
 pub mod devenv;
