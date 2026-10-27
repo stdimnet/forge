@@ -57,10 +57,7 @@ impl Val {
                 let mut out = String::new();
                 for part in split_plus(e) {
                     let part = part.trim();
-                    if let Some(lit) = part
-                        .strip_prefix('"')
-                        .and_then(|p| p.strip_suffix('"'))
-                    {
+                    if let Some(lit) = part.strip_prefix('"').and_then(|p| p.strip_suffix('"')) {
                         out.push_str(lit);
                     } else {
                         let simple = part.rsplit('.').next().unwrap_or(part);
@@ -186,7 +183,12 @@ impl TypeRef {
                     name: text[..lt].trim().to_string(),
                     args: split_top(inner)
                         .into_iter()
-                        .map(|s| s.trim().trim_start_matches("out ").trim_start_matches("in ").to_string())
+                        .map(|s| {
+                            s.trim()
+                                .trim_start_matches("out ")
+                                .trim_start_matches("in ")
+                                .to_string()
+                        })
                         .filter(|s| !s.is_empty())
                         .collect(),
                 }
@@ -399,7 +401,11 @@ fn doc_text(body: &[char]) -> String {
         }
         lines.push(l);
     }
-    lines.join(" ").split_whitespace().collect::<Vec<_>>().join(" ")
+    lines
+        .join(" ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn lex(text: &str) -> Vec<Token> {
@@ -866,8 +872,7 @@ impl<'a> Parser<'a> {
                 _ => {}
             }
             // `@file:JvmName("…")` and other file annotations.
-            if self.punct_at(0, '@') && self.ident_at(1) == Some("file") && self.punct_at(2, ':')
-            {
+            if self.punct_at(0, '@') && self.ident_at(1) == Some("file") && self.punct_at(2, ':') {
                 self.annotation();
                 continue;
             }
@@ -980,7 +985,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn class(&mut self, file: &mut SourceFile, owner: Option<usize>, header: Header, kind: ClassKind) {
+    fn class(
+        &mut self,
+        file: &mut SourceFile,
+        owner: Option<usize>,
+        header: Header,
+        kind: ClassKind,
+    ) {
         let (name, line, column) = match self.peek(0) {
             Some(t) if t.ident().is_some() && !self.punct_at(0, '{') => {
                 self.i += 1;
@@ -1032,7 +1043,10 @@ impl<'a> Parser<'a> {
             Header::default()
         };
         if self.punct_at(0, '(') {
-            let (pline, pcol) = self.peek(0).map(|t| (t.line, t.col)).unwrap_or((line, column));
+            let (pline, pcol) = self
+                .peek(0)
+                .map(|t| (t.line, t.col))
+                .unwrap_or((line, column));
             let params = self.params();
             for p in &params {
                 if p.property || kind == ClassKind::Record {
@@ -1157,7 +1171,9 @@ impl<'a> Parser<'a> {
                 }
                 Tok::Ident(name) if expect => {
                     // A member declaration (Kotlin enum without `;`) ends the constants.
-                    if is_modifier(name) || matches!(name.as_str(), "fun" | "val" | "var" | "init" | "companion") {
+                    if is_modifier(name)
+                        || matches!(name.as_str(), "fun" | "val" | "var" | "init" | "companion")
+                    {
                         return;
                     }
                     file.classes[index].constants.push(name.clone());
@@ -1248,7 +1264,9 @@ impl<'a> Parser<'a> {
                 Lang::Java => {
                     let type_name = p.type_text();
                     // Receiver parameters (`Foo this`) are not parameters.
-                    let Some(name_tok) = p.peek(0).filter(|t| t.ident().is_some_and(|n| n != "this")) else {
+                    let Some(name_tok) =
+                        p.peek(0).filter(|t| t.ident().is_some_and(|n| n != "this"))
+                    else {
                         continue;
                     };
                     Param {
@@ -1411,7 +1429,9 @@ impl<'a> Parser<'a> {
         while let Some(t) = self.peek(0) {
             let continues_here = matches!(
                 t.tok,
-                Tok::Punct('.' | '?' | ':' | '+' | '-' | '*' | '/' | '&' | '|' | '=' | '<' | '>' | '%')
+                Tok::Punct(
+                    '.' | '?' | ':' | '+' | '-' | '*' | '/' | '&' | '|' | '=' | '<' | '>' | '%'
+                )
             ) || matches!(t.ident(), Some("as" | "else" | "is" | "in"));
             if t.line > last_line && !last_continues && !continues_here {
                 return;
@@ -1429,7 +1449,21 @@ impl<'a> Parser<'a> {
             }
             last_continues = matches!(
                 t.tok,
-                Tok::Punct('.' | '+' | '-' | '*' | '/' | '&' | '|' | '=' | '<' | '>' | ',' | '%' | ':' | '?')
+                Tok::Punct(
+                    '.' | '+'
+                        | '-'
+                        | '*'
+                        | '/'
+                        | '&'
+                        | '|'
+                        | '='
+                        | '<'
+                        | '>'
+                        | ','
+                        | '%'
+                        | ':'
+                        | '?'
+                )
             ) || matches!(t.ident(), Some("as" | "else" | "is" | "in" | "return"));
             last_line = t.line;
             self.i += 1;
@@ -1570,7 +1604,9 @@ impl<'a> Parser<'a> {
         }
         let text = match &t.tok {
             Tok::Str(s) if !neg => s.clone(),
-            Tok::Lit(l) => l.trim_end_matches(['L', 'l', 'f', 'F', 'd', 'D']).replace('_', ""),
+            Tok::Lit(l) => l
+                .trim_end_matches(['L', 'l', 'f', 'F', 'd', 'D'])
+                .replace('_', ""),
             Tok::Ident(i) if !neg && matches!(i.as_str(), "true" | "false") => i.clone(),
             _ => return None,
         };
@@ -1668,7 +1704,9 @@ fn values(toks: &[Token]) -> Vec<Val> {
             Some(&toks[1..toks.len() - 1])
         }
         [f, p, .., last]
-            if matches!(f.ident(), Some("arrayOf" | "listOf" | "setOf")) && p.is('(') && last.is(')') =>
+            if matches!(f.ident(), Some("arrayOf" | "listOf" | "setOf"))
+                && p.is('(')
+                && last.is(')') =>
         {
             Some(&toks[2..toks.len() - 1])
         }
@@ -1685,10 +1723,13 @@ fn values(toks: &[Token]) -> Vec<Val> {
         return Vec::new();
     }
     // Literal concatenations stay strings.
-    let all_strings = toks
-        .iter()
-        .enumerate()
-        .all(|(i, t)| if i % 2 == 0 { matches!(t.tok, Tok::Str(_)) } else { t.is('+') });
+    let all_strings = toks.iter().enumerate().all(|(i, t)| {
+        if i % 2 == 0 {
+            matches!(t.tok, Tok::Str(_))
+        } else {
+            t.is('+')
+        }
+    });
     if all_strings {
         let s = toks
             .iter()
@@ -1793,29 +1834,64 @@ public class OrderController extends Base<Long> implements Api, Other<String> {
         let f = parse("OrderController.java", src);
         assert_eq!(f.package.as_deref(), Some("com.acme.orders"));
         assert!(f.imports_from("org.springframework.web.bind.annotation"));
-        assert!(f.imports.contains(&"java.util.Objects.requireNonNull".to_string()));
+        assert!(f
+            .imports
+            .contains(&"java.util.Objects.requireNonNull".to_string()));
         assert_eq!(f.constants.get("ITEMS").map(String::as_str), Some("/items"));
         let c = &f.classes[0];
         assert_eq!(c.qualified, "com.acme.orders.OrderController");
-        assert_eq!(c.supertypes[0], TypeRef { name: "Base".into(), args: vec!["Long".into()] });
+        assert_eq!(
+            c.supertypes[0],
+            TypeRef {
+                name: "Base".into(),
+                args: vec!["Long".into()]
+            }
+        );
         assert_eq!(c.supertypes.len(), 3);
         let rm = c.annotation("RequestMapping").unwrap();
-        assert_eq!(rm.arg("path").unwrap(), &[Val::Str("/api".into()), Val::Str("/v1".into())]);
-        assert_eq!(rm.arg("produces").unwrap()[0], Val::Expr("MediaType.APPLICATION_JSON_VALUE".into()));
-        assert_eq!(c.fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["ITEMS", "service", "clock", "other"]);
+        assert_eq!(
+            rm.arg("path").unwrap(),
+            &[Val::Str("/api".into()), Val::Str("/v1".into())]
+        );
+        assert_eq!(
+            rm.arg("produces").unwrap()[0],
+            Val::Expr("MediaType.APPLICATION_JSON_VALUE".into())
+        );
+        assert_eq!(
+            c.fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(),
+            ["ITEMS", "service", "clock", "other"]
+        );
         assert!(!c.fields[1].initialized && c.fields[2].initialized);
         assert!(has(&c.fields[3].annotations, "Autowired"));
         let ctor = &c.constructors[0];
         assert_eq!(ctor.params.len(), 2);
         assert_eq!(ctor.params[1].type_name, "Repo");
-        assert_eq!(find(&ctor.params[1].annotations, "Qualifier").unwrap().string(&["value"]).as_deref(), Some("fast"));
+        assert_eq!(
+            find(&ctor.params[1].annotations, "Qualifier")
+                .unwrap()
+                .string(&["value"])
+                .as_deref(),
+            Some("fast")
+        );
         let find_m = &c.methods[0];
         assert_eq!((find_m.name.as_str(), find_m.line), ("find", 20));
         assert_eq!(find_m.return_type, "ResponseEntity<Order>");
         let items = &c.methods[1];
         let ann = &items.annotations[0];
-        assert_eq!(ann.arg("value").unwrap()[0].resolve(&f.constants).as_deref(), Some("/items/all"));
-        assert_eq!(ann.arg("method").unwrap().iter().map(Val::simple).collect::<Vec<_>>(), ["GET", "HEAD"]);
+        assert_eq!(
+            ann.arg("value").unwrap()[0]
+                .resolve(&f.constants)
+                .as_deref(),
+            Some("/items/all")
+        );
+        assert_eq!(
+            ann.arg("method")
+                .unwrap()
+                .iter()
+                .map(Val::simple)
+                .collect::<Vec<_>>(),
+            ["GET", "HEAD"]
+        );
         let status = f.classes.iter().find(|c| c.name == "Status").unwrap();
         assert_eq!(status.constants, ["NEW", "PAID", "SHIPPED"]);
         assert_eq!(status.fields[0].name, "code");
@@ -1871,30 +1947,72 @@ enum class Status { NEW, PAID }
 "#;
         let f = parse("OrderService.kt", src);
         assert_eq!(f.lang, Lang::Kotlin);
-        assert_eq!(f.constants.get("BASE").map(String::as_str), Some("/api/orders"));
+        assert_eq!(
+            f.constants.get("BASE").map(String::as_str),
+            Some("/api/orders")
+        );
         assert_eq!(f.constants.get("LIMIT").map(String::as_str), Some("50"));
         let s = &f.classes[0];
         assert_eq!(s.name, "OrderService");
-        assert_eq!(s.supertypes.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), ["Base", "Api"]);
+        assert_eq!(
+            s.supertypes
+                .iter()
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Base", "Api"]
+        );
         let ctor = &s.constructors[0];
-        assert_eq!(ctor.params.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), ["repository", "audit", "clock"]);
+        assert_eq!(
+            ctor.params
+                .iter()
+                .map(|p| p.name.as_str())
+                .collect::<Vec<_>>(),
+            ["repository", "audit", "clock"]
+        );
         assert_eq!(ctor.params[0].type_name, "OrderRepository");
         assert!(ctor.params[0].property && !ctor.params[2].property);
-        assert_eq!(s.fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["repository", "audit", "events", "cache"]);
+        assert_eq!(
+            s.fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(),
+            ["repository", "audit", "events", "cache"]
+        );
         assert!(has(&s.fields[2].annotations, "Autowired"));
-        assert_eq!(s.methods.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["find", "clock"]);
+        assert_eq!(
+            s.methods
+                .iter()
+                .map(|m| m.name.as_str())
+                .collect::<Vec<_>>(),
+            ["find", "clock"]
+        );
         assert_eq!(s.methods[0].return_type, "Order?");
         assert_eq!(s.methods[1].return_type, "Clock");
         let get = &s.methods[0].annotations[0];
         assert_eq!(get.arg("value").unwrap()[0], Val::Str("$BASE/{id}".into()));
-        let repo = f.classes.iter().find(|c| c.name == "OrderRepository").unwrap();
+        let repo = f
+            .classes
+            .iter()
+            .find(|c| c.name == "OrderRepository")
+            .unwrap();
         assert_eq!(repo.kind, ClassKind::Interface);
         assert_eq!(repo.supertypes[0].args, ["Order", "Long"]);
-        let props = f.classes.iter().find(|c| c.name == "OrderProperties").unwrap();
+        let props = f
+            .classes
+            .iter()
+            .find(|c| c.name == "OrderProperties")
+            .unwrap();
         assert_eq!(props.fields.len(), 2);
-        assert_eq!(props.annotation("ConfigurationProperties").unwrap().string(&["prefix", "value"]).as_deref(), Some("shop.orders"));
+        assert_eq!(
+            props
+                .annotation("ConfigurationProperties")
+                .unwrap()
+                .string(&["prefix", "value"])
+                .as_deref(),
+            Some("shop.orders")
+        );
         let status = f.classes.iter().find(|c| c.name == "Status").unwrap();
-        assert_eq!((status.kind, status.constants.clone()), (ClassKind::Enum, vec!["NEW".to_string(), "PAID".to_string()]));
+        assert_eq!(
+            (status.kind, status.constants.clone()),
+            (ClassKind::Enum, vec!["NEW".to_string(), "PAID".to_string()])
+        );
         assert!(f.classes.iter().any(|c| c.name == "Companion"));
     }
 
@@ -1907,23 +2025,38 @@ enum class Status { NEW, PAID }
         let fields = &f.classes[0].fields;
         assert_eq!(fields[0].doc.as_deref(), Some("Maximum number of orders."));
         assert_eq!(fields[0].default.as_deref(), Some("10000"));
-        assert_eq!((fields[1].doc.as_deref(), fields[1].default.as_deref()), (Some("Currency."), Some("EUR")));
+        assert_eq!(
+            (fields[1].doc.as_deref(), fields[1].default.as_deref()),
+            (Some("Currency."), Some("EUR"))
+        );
         assert_eq!(fields[2].default, None);
-        let k = parse("P.kt", "class P(\n  /** Retries. */\n  val retries: Int = 3,\n  val on: Boolean = true\n)");
+        let k = parse(
+            "P.kt",
+            "class P(\n  /** Retries. */\n  val retries: Int = 3,\n  val on: Boolean = true\n)",
+        );
         let ps = &k.classes[0].fields;
-        assert_eq!((ps[0].doc.as_deref(), ps[0].default.as_deref()), (Some("Retries."), Some("3")));
+        assert_eq!(
+            (ps[0].doc.as_deref(), ps[0].default.as_deref()),
+            (Some("Retries."), Some("3"))
+        );
         assert_eq!(ps[1].default.as_deref(), Some("true"));
     }
 
     #[test]
     fn tolerates_broken_code() {
-        let f = parse("A.java", "@Service class A { @Autowired B b; void x( { if (");
+        let f = parse(
+            "A.java",
+            "@Service class A { @Autowired B b; void x( { if (",
+        );
         assert_eq!(f.classes[0].name, "A");
         assert_eq!(f.classes[0].fields[0].type_name, "B");
         let k = parse("A.kt", "class A(val b: B { fun x(");
         assert_eq!(k.classes[0].name, "A");
         assert!(parse("x.kt", "\"unterminated").classes.is_empty());
-        assert_eq!(TypeRef::parse("Map<String, List<Foo>>?").args, ["String", "List<Foo>"]);
+        assert_eq!(
+            TypeRef::parse("Map<String, List<Foo>>?").args,
+            ["String", "List<Foo>"]
+        );
         assert_eq!(TypeRef::parse("Foo[]").name, "Foo");
     }
 }

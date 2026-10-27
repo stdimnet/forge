@@ -54,7 +54,10 @@ impl Property {
 
     /// The type without packages: `Map<String, LogLevel>`.
     pub fn short_type(&self) -> String {
-        self.type_name.as_deref().map(short_type).unwrap_or_default()
+        self.type_name
+            .as_deref()
+            .map(short_type)
+            .unwrap_or_default()
     }
 
     pub fn is_boolean(&self) -> bool {
@@ -76,7 +79,10 @@ impl Property {
     pub fn is_collection(&self) -> bool {
         self.type_name.as_deref().is_some_and(|t| {
             let raw = t.split('<').next().unwrap_or(t);
-            raw.ends_with("List") || raw.ends_with("Set") || raw.ends_with("Collection") || t.ends_with("[]")
+            raw.ends_with("List")
+                || raw.ends_with("Set")
+                || raw.ends_with("Collection")
+                || t.ends_with("[]")
         })
     }
 
@@ -93,7 +99,11 @@ impl Property {
             Value::String(s) => Some(s.clone()),
             Value::Array(a) => Some(
                 a.iter()
-                    .map(|v| v.as_str().map(str::to_string).unwrap_or_else(|| v.to_string()))
+                    .map(|v| {
+                        v.as_str()
+                            .map(str::to_string)
+                            .unwrap_or_else(|| v.to_string())
+                    })
                     .collect::<Vec<_>>()
                     .join(","),
             ),
@@ -378,12 +388,16 @@ pub(crate) const TEST_METADATA: &str = r#"{
 }"#;
 
 #[cfg(test)]
+pub(crate) use tests::sample;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     pub(crate) fn sample() -> Metadata {
         let mut m = Metadata::default();
-        m.add_json(TEST_METADATA, "spring-boot-autoconfigure-3.3.2.jar").unwrap();
+        m.add_json(TEST_METADATA, "spring-boot-autoconfigure-3.3.2.jar")
+            .unwrap();
         m.enums.insert(
             "org.springframework.boot.Banner$Mode".into(),
             vec!["OFF".into(), "CONSOLE".into(), "LOG".into()],
@@ -395,14 +409,26 @@ mod tests {
     fn reads_and_merges_metadata() {
         let mut m = sample();
         assert_eq!(m.properties.len(), 9);
-        assert_eq!(m.get("server.port").unwrap().default_text().as_deref(), Some("8080"));
-        assert_eq!(m.get("spring.jpa.showSql").unwrap().name, "spring.jpa.show-sql");
-        assert!(m.get("server.max-http-header-size").unwrap().is_deprecated());
+        assert_eq!(
+            m.get("server.port").unwrap().default_text().as_deref(),
+            Some("8080")
+        );
+        assert_eq!(
+            m.get("spring.jpa.showSql").unwrap().name,
+            "spring.jpa.show-sql"
+        );
+        assert!(m
+            .get("server.max-http-header-size")
+            .unwrap()
+            .is_deprecated());
         assert_eq!(
             m.get("logging.level").unwrap().short_type(),
             "Map<String, LogLevel>"
         );
-        assert_eq!(m.container_of("logging.level.org.acme.Shop").unwrap().name, "logging.level");
+        assert_eq!(
+            m.container_of("logging.level.org.acme.Shop").unwrap().name,
+            "logging.level"
+        );
         assert!(m.is_known("logging.level.org.acme"));
         assert!(m.is_known("spring.jpa"));
         assert!(!m.is_known("spring.jpa.unknown"));
@@ -413,7 +439,10 @@ mod tests {
             )
             .unwrap();
         assert_eq!(added, 2);
-        assert_eq!(m.get("server.port").unwrap().description.as_deref(), Some("Server HTTP port."));
+        assert_eq!(
+            m.get("server.port").unwrap().description.as_deref(),
+            Some("Server HTTP port.")
+        );
         assert!(m.get("shop.currency").is_some());
         assert_eq!(m.sources.len(), 2);
         assert!(m.add_json("{", "broken.jar").is_err());
@@ -422,14 +451,19 @@ mod tests {
     #[test]
     fn values_from_hints_booleans_and_enums() {
         let m = sample();
-        let names = |k: &str| m.values_of(k).into_iter().map(|(v, _)| v).collect::<Vec<_>>();
+        let names = |k: &str| {
+            m.values_of(k)
+                .into_iter()
+                .map(|(v, _)| v)
+                .collect::<Vec<_>>()
+        };
         assert_eq!(names("spring.jpa.show-sql"), ["true", "false"]);
-        assert_eq!(names("spring.jpa.hibernate.ddl-auto"), ["none", "update", "create-drop"]);
+        assert_eq!(
+            names("spring.jpa.hibernate.ddl-auto"),
+            ["none", "update", "create-drop"]
+        );
         assert_eq!(names("spring.main.banner-mode"), ["off", "console", "log"]);
         assert_eq!(names("logging.level.org.acme"), ["trace", "debug", "info"]);
         assert!(names("server.port").is_empty());
     }
 }
-
-#[cfg(test)]
-pub(crate) use tests::sample;

@@ -71,8 +71,16 @@ fn summary(details: &Value) -> Option<String> {
 fn components(prefix: &str, v: &Value, out: &mut Vec<HealthComponent>) {
     let Some(map) = v.as_object() else { return };
     for (name, c) in map {
-        let full = if prefix.is_empty() { name.clone() } else { format!("{prefix}/{name}") };
-        let status = c.get("status").and_then(Value::as_str).unwrap_or("UNKNOWN").to_string();
+        let full = if prefix.is_empty() {
+            name.clone()
+        } else {
+            format!("{prefix}/{name}")
+        };
+        let status = c
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("UNKNOWN")
+            .to_string();
         let nested = c.get("components");
         out.push(HealthComponent {
             name: full.clone(),
@@ -92,27 +100,57 @@ pub fn parse_health(json: &str) -> Option<Health> {
     let mut list = Vec::new();
     if let Some(c) = v.get("components") {
         components("", c, &mut list);
-    } else if let Some(d) = v.get("details").filter(|d| d.as_object().is_some_and(|o| o.values().all(|x| x.get("status").is_some()))) {
+    } else if let Some(d) = v.get("details").filter(|d| {
+        d.as_object()
+            .is_some_and(|o| o.values().all(|x| x.get("status").is_some()))
+    }) {
         components("", d, &mut list);
     }
-    Some(Health { status, components: list })
+    Some(Health {
+        status,
+        components: list,
+    })
 }
 
 /// `/actuator/beans`.
 pub fn parse_beans(json: &str) -> Vec<RuntimeBean> {
-    let Ok(v) = serde_json::from_str::<Value>(json) else { return Vec::new() };
+    let Ok(v) = serde_json::from_str::<Value>(json) else {
+        return Vec::new();
+    };
     let mut out = Vec::new();
-    for (context, ctx) in v.get("contexts").and_then(Value::as_object).into_iter().flatten() {
-        for (name, b) in ctx.get("beans").and_then(Value::as_object).into_iter().flatten() {
+    for (context, ctx) in v
+        .get("contexts")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+    {
+        for (name, b) in ctx
+            .get("beans")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+        {
             out.push(RuntimeBean {
                 name: name.clone(),
-                type_name: b.get("type").and_then(Value::as_str).unwrap_or_default().to_string(),
+                type_name: b
+                    .get("type")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
                 scope: b.get("scope").and_then(Value::as_str).map(str::to_string),
-                resource: b.get("resource").and_then(Value::as_str).map(str::to_string),
+                resource: b
+                    .get("resource")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
                 dependencies: b
                     .get("dependencies")
                     .and_then(Value::as_array)
-                    .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
                     .unwrap_or_default(),
                 context: context.clone(),
             });
@@ -123,12 +161,21 @@ pub fn parse_beans(json: &str) -> Vec<RuntimeBean> {
 }
 
 fn mapping(entry: &Value) -> Option<RuntimeMapping> {
-    let handler = entry.get("handler").and_then(Value::as_str).unwrap_or_default().to_string();
+    let handler = entry
+        .get("handler")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
     let details = entry.get("details");
     let cond = details.and_then(|d| d.get("requestMappingConditions"));
     let strings = |v: Option<&Value>| -> Vec<String> {
         v.and_then(Value::as_array)
-            .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_string)
+                    .collect()
+            })
             .unwrap_or_default()
     };
     let (methods, patterns) = match cond {
@@ -136,7 +183,10 @@ fn mapping(entry: &Value) -> Option<RuntimeMapping> {
         None => {
             // Functional routes and resource handlers: the predicate (`/webjars/**`).
             let p = entry.get("predicate").and_then(Value::as_str)?;
-            if p.starts_with('{') || handler.contains("ResourceHttpRequestHandler") || handler.contains("ResourceWebHandler") {
+            if p.starts_with('{')
+                || handler.contains("ResourceHttpRequestHandler")
+                || handler.contains("ResourceWebHandler")
+            {
                 return None;
             }
             (Vec::new(), vec![p.to_string()])
@@ -147,20 +197,40 @@ fn mapping(entry: &Value) -> Option<RuntimeMapping> {
         methods,
         patterns,
         handler,
-        class: hm.and_then(|h| h.get("className")).and_then(Value::as_str).map(str::to_string),
-        method: hm.and_then(|h| h.get("name")).and_then(Value::as_str).map(str::to_string),
+        class: hm
+            .and_then(|h| h.get("className"))
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        method: hm
+            .and_then(|h| h.get("name"))
+            .and_then(Value::as_str)
+            .map(str::to_string),
     })
 }
 
 /// `/actuator/mappings`: request mappings of the dispatcher servlets (MVC) and handlers
 /// (WebFlux) of every context.
 pub fn parse_mappings(json: &str) -> Vec<RuntimeMapping> {
-    let Ok(v) = serde_json::from_str::<Value>(json) else { return Vec::new() };
+    let Ok(v) = serde_json::from_str::<Value>(json) else {
+        return Vec::new();
+    };
     let mut out = Vec::new();
-    for ctx in v.get("contexts").and_then(Value::as_object).into_iter().flatten().map(|(_, c)| c) {
+    for ctx in v
+        .get("contexts")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+        .map(|(_, c)| c)
+    {
         let m = ctx.get("mappings");
         for group in ["dispatcherServlets", "dispatcherHandlers"] {
-            for list in m.and_then(|m| m.get(group)).and_then(Value::as_object).into_iter().flatten().map(|(_, l)| l) {
+            for list in m
+                .and_then(|m| m.get(group))
+                .and_then(Value::as_object)
+                .into_iter()
+                .flatten()
+                .map(|(_, l)| l)
+            {
                 out.extend(list.as_array().into_iter().flatten().filter_map(mapping));
             }
         }
@@ -197,9 +267,12 @@ mod net {
         let mut out = Vec::new();
         let mut i = 0;
         while i < body.len() {
-            let Some(eol) = body[i..].windows(2).position(|w| w == b"\r\n") else { break };
+            let Some(eol) = body[i..].windows(2).position(|w| w == b"\r\n") else {
+                break;
+            };
             let size_line = String::from_utf8_lossy(&body[i..i + eol]);
-            let size = usize::from_str_radix(size_line.split(';').next().unwrap_or("0").trim(), 16).unwrap_or(0);
+            let size = usize::from_str_radix(size_line.split(';').next().unwrap_or("0").trim(), 16)
+                .unwrap_or(0);
             i += eol + 2;
             if size == 0 {
                 break;
@@ -213,14 +286,21 @@ mod net {
     /// `GET path` on `127.0.0.1:port`: (status, body).
     pub fn get(port: u16, path: &str, timeout: Duration) -> Result<(u16, String), String> {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
-        let mut s = TcpStream::connect_timeout(&addr, timeout).map_err(|e| format!("localhost:{port}: {e}"))?;
-        s.set_read_timeout(Some(timeout)).map_err(|e| e.to_string())?;
-        s.set_write_timeout(Some(timeout)).map_err(|e| e.to_string())?;
+        let mut s = TcpStream::connect_timeout(&addr, timeout)
+            .map_err(|e| format!("localhost:{port}: {e}"))?;
+        s.set_read_timeout(Some(timeout))
+            .map_err(|e| e.to_string())?;
+        s.set_write_timeout(Some(timeout))
+            .map_err(|e| e.to_string())?;
         let req = format!("GET {path} HTTP/1.1\r\nHost: localhost:{port}\r\nAccept: application/json\r\nUser-Agent: Forge\r\nConnection: close\r\n\r\n");
         s.write_all(req.as_bytes()).map_err(|e| e.to_string())?;
         let mut buf = Vec::new();
-        s.read_to_end(&mut buf).map_err(|e| format!("localhost:{port}{path}: {e}"))?;
-        let head_end = buf.windows(4).position(|w| w == b"\r\n\r\n").ok_or("malformed HTTP response")?;
+        s.read_to_end(&mut buf)
+            .map_err(|e| format!("localhost:{port}{path}: {e}"))?;
+        let head_end = buf
+            .windows(4)
+            .position(|w| w == b"\r\n\r\n")
+            .ok_or("malformed HTTP response")?;
         let head = String::from_utf8_lossy(&buf[..head_end]).to_string();
         let status = head
             .lines()
@@ -233,7 +313,11 @@ mod net {
             l.starts_with("transfer-encoding:") && l.contains("chunked")
         });
         let body = &buf[head_end + 4..];
-        let body = if chunked { dechunk(body) } else { body.to_vec() };
+        let body = if chunked {
+            dechunk(body)
+        } else {
+            body.to_vec()
+        };
         Ok((status, String::from_utf8_lossy(&body).to_string()))
     }
 
@@ -248,11 +332,13 @@ mod net {
         for what in ["health", "beans", "mappings"] {
             match get(port, &format!("{base}/{what}"), timeout) {
                 // Health answers 503 when the application is down, with the same body.
-                Ok((status, body)) if status == 200 || (what == "health" && status == 503) => match what {
-                    "health" => snap.health = parse_health(&body),
-                    "beans" => snap.beans = Some(parse_beans(&body)),
-                    _ => snap.mappings = Some(parse_mappings(&body)),
-                },
+                Ok((status, body)) if status == 200 || (what == "health" && status == 503) => {
+                    match what {
+                        "health" => snap.health = parse_health(&body),
+                        "beans" => snap.beans = Some(parse_beans(&body)),
+                        _ => snap.mappings = Some(parse_mappings(&body)),
+                    }
+                }
                 Ok((404, _)) => snap.problems.push(format!("{what}: not exposed (404)")),
                 Ok((status, _)) => snap.problems.push(format!("{what}: HTTP {status}")),
                 Err(e) => {
@@ -288,11 +374,30 @@ pub(crate) mod tests {
     fn parses_health_beans_and_mappings() {
         let h = parse_health(HEALTH).unwrap();
         assert_eq!(h.status, "UP");
-        let names: Vec<(&str, &str)> = h.components.iter().map(|c| (c.name.as_str(), c.status.as_str())).collect();
-        assert_eq!(names, [("db", "UP"), ("diskSpace", "UP"), ("ping", "UP"), ("redis", "DOWN"), ("redis/primary", "DOWN")]);
-        assert_eq!(h.components[0].details.as_deref(), Some("database: H2, validationQuery: isValid()"));
+        let names: Vec<(&str, &str)> = h
+            .components
+            .iter()
+            .map(|c| (c.name.as_str(), c.status.as_str()))
+            .collect();
+        assert_eq!(
+            names,
+            [
+                ("db", "UP"),
+                ("diskSpace", "UP"),
+                ("ping", "UP"),
+                ("redis", "DOWN"),
+                ("redis/primary", "DOWN")
+            ]
+        );
+        assert_eq!(
+            h.components[0].details.as_deref(),
+            Some("database: H2, validationQuery: isValid()")
+        );
         // Spring Boot 2.0 / 2.1.
-        let old = parse_health(r#"{"status":"DOWN","details":{"db":{"status":"DOWN","details":{"error":"x"}}}}"#).unwrap();
+        let old = parse_health(
+            r#"{"status":"DOWN","details":{"db":{"status":"DOWN","details":{"error":"x"}}}}"#,
+        )
+        .unwrap();
         assert_eq!((old.status.as_str(), old.components.len()), ("DOWN", 1));
         assert_eq!(parse_health("{}"), None);
 
@@ -306,10 +411,15 @@ pub(crate) mod tests {
         assert_eq!(maps.len(), 3);
         assert_eq!(maps[0].methods, ["GET"]);
         assert_eq!(maps[0].patterns, ["/api/orders/{id}"]);
-        assert_eq!(maps[0].class.as_deref(), Some("com.acme.shop.web.OrderController"));
+        assert_eq!(
+            maps[0].class.as_deref(),
+            Some("com.acme.shop.web.OrderController")
+        );
         assert_eq!(maps[1].class, None);
         assert!(maps[2].methods.is_empty());
-        let flux = parse_mappings(r#"{"contexts":{"app":{"mappings":{"dispatcherHandlers":{"webHandler":[{"handler":"x#y()","predicate":"{POST /a}","details":{"handlerMethod":{"className":"x","name":"y"},"requestMappingConditions":{"methods":["POST"],"patterns":["/a"]}}}]}}}}}"#);
+        let flux = parse_mappings(
+            r#"{"contexts":{"app":{"mappings":{"dispatcherHandlers":{"webHandler":[{"handler":"x#y()","predicate":"{POST /a}","details":{"handlerMethod":{"className":"x","name":"y"},"requestMappingConditions":{"methods":["POST"],"patterns":["/a"]}}}]}}}}}"#,
+        );
         assert_eq!(flux[0].methods, ["POST"]);
     }
 
@@ -328,7 +438,11 @@ pub(crate) mod tests {
                 let mut buf = [0u8; 1024];
                 let n = s.read(&mut buf).unwrap();
                 let req = String::from_utf8_lossy(&buf[..n]).to_string();
-                let path = req.split_whitespace().nth(1).unwrap_or_default().to_string();
+                let path = req
+                    .split_whitespace()
+                    .nth(1)
+                    .unwrap_or_default()
+                    .to_string();
                 let resp = match path.as_str() {
                     "/manage/health" => {
                         // Chunked, and 503 like a DOWN application.
@@ -336,7 +450,10 @@ pub(crate) mod tests {
                         let (a, b) = body.split_at(40);
                         format!("HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n{:x}\r\n{a}\r\n{:x}\r\n{b}\r\n0\r\n\r\n", a.len(), b.len())
                     }
-                    "/manage/beans" => format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{BEANS}", BEANS.len()),
+                    "/manage/beans" => format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{BEANS}",
+                        BEANS.len()
+                    ),
                     _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".to_string(),
                 };
                 s.write_all(resp.as_bytes()).unwrap();
@@ -351,7 +468,11 @@ pub(crate) mod tests {
         assert_eq!(snap.problems, ["mappings: not exposed (404)"]);
 
         // Nothing listens on a closed port.
-        let closed = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+        let closed = TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
         let none = probe(closed, "/actuator", Duration::from_millis(500));
         assert!(none.health.is_none() && none.problems.len() == 1);
     }

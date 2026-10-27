@@ -18,7 +18,13 @@ pub const EXPOSED: &str = "health,info,beans,mappings";
 pub fn profiles(options: &BTreeMap<String, String>) -> Vec<String> {
     options
         .get("activeProfiles")
-        .map(|p| p.split([',', ' ']).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string).collect())
+        .map(|p| {
+            p.split([',', ' '])
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -40,7 +46,10 @@ pub fn overrides(options: &BTreeMap<String, String>) -> Vec<(String, String)> {
 }
 
 fn quote(arg: &str) -> String {
-    if arg.chars().any(|c| c.is_whitespace() || c == '"' || c == '\'') {
+    if arg
+        .chars()
+        .any(|c| c.is_whitespace() || c == '"' || c == '\'')
+    {
         format!("\"{}\"", arg.replace('\\', "\\\\").replace('"', "\\\""))
     } else {
         arg.to_string()
@@ -76,13 +85,21 @@ pub fn launch(options: &BTreeMap<String, String>, vm_options: &str, arguments: &
         args.push(arguments.trim().to_string());
     }
     let overrides = overrides(options);
-    let has = |key: &str| overrides.iter().any(|(k, _)| crate::config::canonical(k) == key) || arguments.contains(key) || vm_options.contains(key);
+    let has = |key: &str| {
+        overrides
+            .iter()
+            .any(|(k, _)| crate::config::canonical(k) == key)
+            || arguments.contains(key)
+            || vm_options.contains(key)
+    };
     for (k, v) in &overrides {
         args.push(quote(&format!("--{k}={v}")));
     }
     if options.get("exposeActuator").map(String::as_str) != Some("false") {
         if !has("management.endpoints.web.exposure.include") {
-            args.push(format!("--management.endpoints.web.exposure.include={EXPOSED}"));
+            args.push(format!(
+                "--management.endpoints.web.exposure.include={EXPOSED}"
+            ));
         }
         if !has("management.endpoint.health.show-details") {
             args.push("--management.endpoint.health.show-details=always".into());
@@ -160,19 +177,31 @@ impl Observed {
         let line = strip_ansi(raw);
         let before = self.clone();
         if let Some(i) = line.find(" started on port") {
-            let server = line[..i].rsplit([' ', '.']).next().unwrap_or_default().to_ascii_lowercase();
+            let server = line[..i]
+                .rsplit([' ', '.'])
+                .next()
+                .unwrap_or_default()
+                .to_ascii_lowercase();
             if self.port.is_none() {
-                self.port = number_after(&line, "started on port").and_then(|p| u16::try_from(p).ok());
+                self.port =
+                    number_after(&line, "started on port").and_then(|p| u16::try_from(p).ok());
                 if !server.is_empty() {
                     self.server = Some(server);
                 }
                 if let Some(c) = line.find("context path '") {
                     let rest = &line[c + "context path '".len()..];
                     let path = rest.split('\'').next().unwrap_or_default();
-                    self.context_path = Some(if path == "/" { String::new() } else { path.to_string() });
+                    self.context_path = Some(if path == "/" {
+                        String::new()
+                    } else {
+                        path.to_string()
+                    });
                 }
             }
-        } else if let Some(i) = line.find(" profiles are active: ").or_else(|| line.find(" profile is active: ")) {
+        } else if let Some(i) = line
+            .find(" profiles are active: ")
+            .or_else(|| line.find(" profile is active: "))
+        {
             let rest = &line[i..];
             let list = rest.split_once(": ").map(|x| x.1).unwrap_or_default();
             self.profiles = quoted_list(list);
@@ -181,12 +210,22 @@ impl Observed {
         } else if line.contains(" with PID ") && self.pid.is_none() {
             self.pid = number_after(&line, " with PID ").and_then(|p| u32::try_from(p).ok());
         } else if let Some(i) = line.find(":: Spring Boot ::") {
-            let v = line[i..].split("(v").nth(1).and_then(|r| r.split(')').next());
+            let v = line[i..]
+                .split("(v")
+                .nth(1)
+                .and_then(|r| r.split(')').next());
             self.boot_version = v.map(str::to_string);
-        } else if line.contains("APPLICATION FAILED TO START") || line.contains("Application run failed") {
+        } else if line.contains("APPLICATION FAILED TO START")
+            || line.contains("Application run failed")
+        {
             self.failed = true;
         } else if let Some(i) = line.find("Started ") {
-            if let Some(secs) = line[i..].split(" in ").nth(1).and_then(|r| r.split(' ').next()).and_then(|n| n.parse::<f64>().ok()) {
+            if let Some(secs) = line[i..]
+                .split(" in ")
+                .nth(1)
+                .and_then(|r| r.split(' ').next())
+                .and_then(|n| n.parse::<f64>().ok())
+            {
                 self.started = true;
                 self.startup_seconds = Some(secs);
             }
@@ -200,7 +239,9 @@ mod tests {
     use super::*;
 
     fn opts(list: &[(&str, &str)]) -> BTreeMap<String, String> {
-        list.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        list.iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     #[test]
@@ -208,15 +249,27 @@ mod tests {
         let o = opts(&[
             ("mainClass", "com.acme.ShopApplication"),
             ("activeProfiles", "dev, local"),
-            ("overrideProperties", "server.port=9090\n# comment\nshop.banner=Hello world\n"),
+            (
+                "overrideProperties",
+                "server.port=9090\n# comment\nshop.banner=Hello world\n",
+            ),
         ]);
         let l = launch(&o, "-Xmx512m", "--trace");
-        assert_eq!(l.vm_options, "-Xmx512m -Dspring.profiles.active=dev,local -Dspring.output.ansi.enabled=always");
+        assert_eq!(
+            l.vm_options,
+            "-Xmx512m -Dspring.profiles.active=dev,local -Dspring.output.ansi.enabled=always"
+        );
         assert_eq!(
             l.arguments,
             "--trace --server.port=9090 \"--shop.banner=Hello world\" --management.endpoints.web.exposure.include=health,info,beans,mappings --management.endpoint.health.show-details=always"
         );
-        let own = opts(&[("overrideProperties", "management.endpoints.web.exposure.include=*"), ("exposeActuator", "true")]);
+        let own = opts(&[
+            (
+                "overrideProperties",
+                "management.endpoints.web.exposure.include=*",
+            ),
+            ("exposeActuator", "true"),
+        ]);
         let l = launch(&own, "", "");
         assert_eq!(l.arguments, "--management.endpoints.web.exposure.include=* --management.endpoint.health.show-details=always");
         let off = opts(&[("exposeActuator", "false")]);
@@ -241,26 +294,41 @@ mod tests {
         assert_eq!(o.boot_version.as_deref(), Some("3.3.2"));
         assert_eq!(o.pid, Some(4711));
         assert_eq!(o.profiles, ["dev", "local"]);
-        assert_eq!((o.port, o.context_path.as_deref(), o.server.as_deref()), (Some(8080), Some("/shop"), Some("tomcat")));
+        assert_eq!(
+            (o.port, o.context_path.as_deref(), o.server.as_deref()),
+            (Some(8080), Some("/shop"), Some("tomcat"))
+        );
         assert!(o.started);
         assert_eq!(o.startup_seconds, Some(2.345));
         assert!(!o.observe("INFO  some other line"));
 
         let mut old = Observed::default();
         old.observe("INFO 1 --- [main] c.a.App : The following profiles are active: dev,local");
-        old.observe("INFO 1 --- [main] o.s.b.w.e.netty.NettyWebServer : Netty started on port(s): 8081");
+        old.observe(
+            "INFO 1 --- [main] o.s.b.w.e.netty.NettyWebServer : Netty started on port(s): 8081",
+        );
         old.observe("INFO 1 --- [main] o.s.b.w.e.tomcat.TomcatWebServer : Tomcat started on port(s): 9999 (http) with context path ''");
         assert_eq!(old.profiles, ["dev", "local"]);
-        assert_eq!((old.port, old.server.as_deref()), (Some(8081), Some("netty")));
+        assert_eq!(
+            (old.port, old.server.as_deref()),
+            (Some(8081), Some("netty"))
+        );
 
         let mut jetty = Observed::default();
         jetty.observe("o.s.b.w.e.jetty.JettyWebServer : Jetty started on port 8080 (http/1.1) with context path '/'");
-        assert_eq!((jetty.port, jetty.context_path.as_deref()), (Some(8080), Some("")));
+        assert_eq!(
+            (jetty.port, jetty.context_path.as_deref()),
+            (Some(8080), Some(""))
+        );
         let mut fail = Observed::default();
-        fail.observe("***************************\nAPPLICATION FAILED TO START\n***************************");
+        fail.observe(
+            "***************************\nAPPLICATION FAILED TO START\n***************************",
+        );
         assert!(fail.failed);
         let mut none = Observed::default();
-        none.observe("INFO c.a.App : No active profile set, falling back to 1 default profile: \"default\"");
+        none.observe(
+            "INFO c.a.App : No active profile set, falling back to 1 default profile: \"default\"",
+        );
         assert_eq!(none.profiles, ["default"]);
     }
 }

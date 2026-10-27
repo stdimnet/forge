@@ -34,7 +34,12 @@ impl Caches {
     pub fn under_home(home: &Path) -> Self {
         Self {
             maven: Some(home.join(".m2").join("repository")),
-            gradle: Some(home.join(".gradle").join("caches").join("modules-2").join("files-2.1")),
+            gradle: Some(
+                home.join(".gradle")
+                    .join("caches")
+                    .join("modules-2")
+                    .join("files-2.1"),
+            ),
         }
     }
 
@@ -51,7 +56,12 @@ impl Caches {
                 return Some(p);
             }
         }
-        let dir = self.gradle.as_ref()?.join(&c.group).join(&c.artifact).join(&c.version);
+        let dir = self
+            .gradle
+            .as_ref()?
+            .join(&c.group)
+            .join(&c.artifact)
+            .join(&c.version);
         fs::read_dir(dir)
             .ok()?
             .flatten()
@@ -63,7 +73,9 @@ impl Caches {
     pub fn versions(&self, group: &str, artifact: &str) -> Vec<String> {
         let mut out = BTreeSet::new();
         let dirs = [
-            self.maven.as_ref().map(|m| m.join(group.replace('.', "/")).join(artifact)),
+            self.maven
+                .as_ref()
+                .map(|m| m.join(group.replace('.', "/")).join(artifact)),
             self.gradle.as_ref().map(|g| g.join(group).join(artifact)),
         ];
         for d in dirs.into_iter().flatten() {
@@ -80,7 +92,16 @@ impl Caches {
 /// Compare versions numerically where possible (`3.10.0` > `3.9.1`).
 fn version_key(v: &str) -> Vec<(u64, String)> {
     v.split(['.', '-'])
-        .map(|p| (p.parse::<u64>().unwrap_or(0), if p.parse::<u64>().is_ok() { String::new() } else { p.to_string() }))
+        .map(|p| {
+            (
+                p.parse::<u64>().unwrap_or(0),
+                if p.parse::<u64>().is_ok() {
+                    String::new()
+                } else {
+                    p.to_string()
+                },
+            )
+        })
         .collect()
 }
 
@@ -97,7 +118,10 @@ pub const BOOT_ARTIFACTS: &[&str] = &[
 /// dependencies), Spring Boot's own jars of `boot_version` or the newest cached version.
 pub fn jars_for(deps: &[Coordinate], boot_version: Option<&str>, caches: &Caches) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = deps.iter().filter_map(|c| caches.jar(c)).collect();
-    if !deps.iter().any(|d| d.artifact == "spring-boot-autoconfigure") {
+    if !deps
+        .iter()
+        .any(|d| d.artifact == "spring-boot-autoconfigure")
+    {
         for artifact in BOOT_ARTIFACTS {
             let group = "org.springframework.boot";
             let mut versions = caches.versions(group, artifact);
@@ -135,7 +159,9 @@ fn read_entry(archive: &mut zip::ZipArchive<fs::File>, name: &str) -> Option<Vec
 pub fn jar_metadata(jar: &Path) -> Result<(Option<String>, Option<String>), String> {
     let file = fs::File::open(jar).map_err(|e| format!("{}: {e}", jar.display()))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("{}: {e}", jar.display()))?;
-    let text = |a: &mut zip::ZipArchive<fs::File>, n: &str| read_entry(a, n).map(|b| String::from_utf8_lossy(&b).to_string());
+    let text = |a: &mut zip::ZipArchive<fs::File>, n: &str| {
+        read_entry(a, n).map(|b| String::from_utf8_lossy(&b).to_string())
+    };
     Ok((text(&mut archive, METADATA), text(&mut archive, ADDITIONAL)))
 }
 
@@ -144,7 +170,10 @@ pub fn jar_metadata(jar: &Path) -> Result<(Option<String>, Option<String>), Stri
 pub fn load(jars: &[PathBuf], meta: &mut Metadata) -> Vec<String> {
     let mut problems = Vec::new();
     for jar in jars {
-        let name = jar.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let name = jar
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
         match jar_metadata(jar) {
             Ok((main, additional)) => {
                 for json in [main, additional].into_iter().flatten() {
@@ -167,7 +196,12 @@ pub fn load(jars: &[PathBuf], meta: &mut Metadata) -> Vec<String> {
                 _ => t.to_string(),
             })
         })
-        .filter(|t| t.contains('.') && !t.starts_with("java.") && !t.contains('<') && !meta.enums.contains_key(t))
+        .filter(|t| {
+            t.contains('.')
+                && !t.starts_with("java.")
+                && !t.contains('<')
+                && !meta.enums.contains_key(t)
+        })
         .collect();
     if !types.is_empty() {
         for (t, consts) in enum_constants(jars, &types) {
@@ -184,7 +218,10 @@ fn class_paths(t: &str) -> Vec<String> {
     let mut out = Vec::new();
     for split in (1..parts.len()).rev() {
         let (pkg, nested) = parts.split_at(split);
-        if nested.first().is_some_and(|n| n.chars().next().is_some_and(char::is_lowercase)) {
+        if nested
+            .first()
+            .is_some_and(|n| n.chars().next().is_some_and(char::is_lowercase))
+        {
             continue;
         }
         out.push(format!("{}/{}.class", pkg.join("/"), nested.join("$")));
@@ -200,8 +237,12 @@ pub fn enum_constants(jars: &[PathBuf], types: &BTreeSet<String>) -> BTreeMap<St
         if todo.is_empty() {
             break;
         }
-        let Ok(file) = fs::File::open(jar) else { continue };
-        let Ok(mut archive) = zip::ZipArchive::new(file) else { continue };
+        let Ok(file) = fs::File::open(jar) else {
+            continue;
+        };
+        let Ok(mut archive) = zip::ZipArchive::new(file) else {
+            continue;
+        };
         todo.retain(|t| {
             for path in class_paths(t) {
                 if let Some(bytes) = read_entry(&mut archive, &path) {
@@ -348,7 +389,8 @@ pub(crate) mod tests {
     pub(crate) fn write_jar(path: &Path, entries: &[(&str, Vec<u8>)]) {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         let mut zip = zip::ZipWriter::new(fs::File::create(path).unwrap());
-        let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let opts = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
         for (name, bytes) in entries {
             zip.start_file(*name, opts).unwrap();
             zip.write_all(bytes).unwrap();
@@ -360,10 +402,17 @@ pub(crate) mod tests {
     fn reads_enum_constants_from_class_files() {
         let b = class_file("org/acme/Mode", &["OFF", "CONSOLE", "LOG"], true);
         assert_eq!(class_enum_constants(&b).unwrap(), ["OFF", "CONSOLE", "LOG"]);
-        assert_eq!(class_enum_constants(&class_file("org/acme/Plain", &[], false)), None);
+        assert_eq!(
+            class_enum_constants(&class_file("org/acme/Plain", &[], false)),
+            None
+        );
         assert_eq!(class_enum_constants(b"nope"), None);
-        assert_eq!(class_paths("org.springframework.boot.Banner$Mode")[0], "org/springframework/boot/Banner/Mode.class");
-        assert!(class_paths("org.springframework.boot.Banner.Mode").contains(&"org/springframework/boot/Banner$Mode.class".to_string()));
+        assert_eq!(
+            class_paths("org.springframework.boot.Banner$Mode")[0],
+            "org/springframework/boot/Banner/Mode.class"
+        );
+        assert!(class_paths("org.springframework.boot.Banner.Mode")
+            .contains(&"org/springframework/boot/Banner$Mode.class".to_string()));
     }
 
     #[test]
@@ -392,21 +441,45 @@ pub(crate) mod tests {
                 &[(METADATA, meta.clone())],
             );
         }
-        write_jar(&gradle.join("com.acme/lib/1.0/ff/lib-1.0.jar"), &[("README", b"no metadata".to_vec())]);
-        fs::write(m2.join("org/springframework/boot/spring-boot/3.3.2/broken.jar"), b"not a zip").unwrap();
+        write_jar(
+            &gradle.join("com.acme/lib/1.0/ff/lib-1.0.jar"),
+            &[("README", b"no metadata".to_vec())],
+        );
+        fs::write(
+            m2.join("org/springframework/boot/spring-boot/3.3.2/broken.jar"),
+            b"not a zip",
+        )
+        .unwrap();
 
         // Without a sync: the build's Spring Boot version.
         let jars = jars_for(&[], Some("3.3.2"), &caches);
         assert_eq!(jars.len(), 2, "{jars:?}");
         // Unknown version: the newest cached one.
         let newest = jars_for(&[], Some("9.9.9"), &caches);
-        assert!(newest.iter().any(|j| j.to_string_lossy().contains("3.10.1")), "{newest:?}");
+        assert!(
+            newest
+                .iter()
+                .any(|j| j.to_string_lossy().contains("3.10.1")),
+            "{newest:?}"
+        );
         // From a sync: resolved coordinates.
         let synced = jars_for(
             &[
-                Coordinate { group: "org.springframework.boot".into(), artifact: "spring-boot-autoconfigure".into(), version: "3.2.0".into() },
-                Coordinate { group: "com.acme".into(), artifact: "lib".into(), version: "1.0".into() },
-                Coordinate { group: "com.acme".into(), artifact: "missing".into(), version: "1.0".into() },
+                Coordinate {
+                    group: "org.springframework.boot".into(),
+                    artifact: "spring-boot-autoconfigure".into(),
+                    version: "3.2.0".into(),
+                },
+                Coordinate {
+                    group: "com.acme".into(),
+                    artifact: "lib".into(),
+                    version: "1.0".into(),
+                },
+                Coordinate {
+                    group: "com.acme".into(),
+                    artifact: "missing".into(),
+                    version: "1.0".into(),
+                },
             ],
             None,
             &caches,
@@ -419,10 +492,23 @@ pub(crate) mod tests {
         let problems = load(&with_broken, &mut m);
         assert_eq!(problems.len(), 1, "{problems:?}");
         assert!(m.get("server.port").is_some());
-        assert!(m.get("spring.main.lazy-initialization").unwrap().is_boolean());
-        assert_eq!(m.enums["org.springframework.boot.Banner$Mode"], ["OFF", "CONSOLE", "LOG"]);
-        assert_eq!(m.enums["org.springframework.boot.logging.LogLevel"].len(), 7);
-        let values: Vec<String> = m.values_of("spring.main.banner-mode").into_iter().map(|(v, _)| v).collect();
+        assert!(m
+            .get("spring.main.lazy-initialization")
+            .unwrap()
+            .is_boolean());
+        assert_eq!(
+            m.enums["org.springframework.boot.Banner$Mode"],
+            ["OFF", "CONSOLE", "LOG"]
+        );
+        assert_eq!(
+            m.enums["org.springframework.boot.logging.LogLevel"].len(),
+            7
+        );
+        let values: Vec<String> = m
+            .values_of("spring.main.banner-mode")
+            .into_iter()
+            .map(|(v, _)| v)
+            .collect();
         assert_eq!(values, ["off", "console", "log"]);
         assert_eq!(m.sources.len(), 2);
     }

@@ -60,7 +60,9 @@ const PROFILE_KEYS: &[&str] = &[
 ];
 
 fn snippet_escape(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('$', "\\$").replace('}', "\\}")
+    s.replace('\\', "\\\\")
+        .replace('$', "\\$")
+        .replace('}', "\\}")
 }
 
 /// Markdown documentation of a property.
@@ -114,10 +116,7 @@ fn rank(name: &str, typed: &str) -> Option<u32> {
         return Some(1);
     }
     let mut chars = name.chars();
-    typed
-        .chars()
-        .all(|t| chars.any(|c| c == t))
-        .then_some(2)
+    typed.chars().all(|t| chars.any(|c| c == t)).then_some(2)
 }
 
 fn indent_unit(text: &str) -> usize {
@@ -139,10 +138,20 @@ pub fn complete(path: &str, text: &str, offset: usize, ctx: &Context) -> Option<
     let place = config::place_at(format, text, byte)?;
     let u = |b: usize| utf16_offset(text, b);
     match place {
-        Place::Key { parent, typed, from, to, indent } => {
+        Place::Key {
+            parent,
+            typed,
+            from,
+            to,
+            indent,
+        } => {
             let parent_c = canonical(&parent);
             let typed_c = canonical(&typed);
-            let prefix = if parent_c.is_empty() { String::new() } else { format!("{parent_c}.") };
+            let prefix = if parent_c.is_empty() {
+                String::new()
+            } else {
+                format!("{parent_c}.")
+            };
             let mut found: Vec<(u32, &Property, String)> = Vec::new();
             for (name, p) in ctx.metadata.properties.range(prefix.clone()..) {
                 if !name.starts_with(&prefix) {
@@ -156,14 +165,25 @@ pub fn complete(path: &str, text: &str, offset: usize, ctx: &Context) -> Option<
             // Map keys with hints (`logging.level.root`).
             let mut extra: Vec<Item> = Vec::new();
             for (name, hint) in &ctx.metadata.hints {
-                let Some(map) = name.strip_suffix(".keys") else { continue };
+                let Some(map) = name.strip_suffix(".keys") else {
+                    continue;
+                };
                 if !map.starts_with(&prefix) {
                     continue;
                 }
                 for v in &hint.values {
                     let rest = format!("{}.{}", &map[prefix.len()..], v.text());
                     if rank(&canonical(&rest), &typed_c).is_some() {
-                        extra.push(key_item(format, text, &rest, indent, v.description.clone(), None, false, true));
+                        extra.push(key_item(
+                            format,
+                            text,
+                            &rest,
+                            indent,
+                            v.description.clone(),
+                            None,
+                            false,
+                            true,
+                        ));
                     }
                 }
             }
@@ -195,12 +215,21 @@ pub fn complete(path: &str, text: &str, offset: usize, ctx: &Context) -> Option<
                 incomplete,
             })
         }
-        Place::Value { key, typed, from, to } => {
+        Place::Value {
+            key,
+            typed,
+            from,
+            to,
+        } => {
             let typed_l = typed.to_ascii_lowercase();
-            let mut values: Vec<(String, Option<String>)> = if PROFILE_KEYS.contains(&canonical(&key).as_str())
+            let mut values: Vec<(String, Option<String>)> = if PROFILE_KEYS
+                .contains(&canonical(&key).as_str())
                 || canonical(&key).starts_with("spring.profiles.group.")
             {
-                ctx.profiles.iter().map(|p| (p.clone(), Some("Profile".to_string()))).collect()
+                ctx.profiles
+                    .iter()
+                    .map(|p| (p.clone(), Some("Profile".to_string())))
+                    .collect()
             } else {
                 ctx.metadata.values_of(&key)
             };
@@ -213,9 +242,20 @@ pub fn complete(path: &str, text: &str, offset: usize, ctx: &Context) -> Option<
             if values.is_empty() {
                 return None;
             }
-            let detail = ctx.metadata.get(&key).map(Property::short_type).filter(|t| !t.is_empty());
-            let line_end = text[from..].find('\n').map(|i| from + i).unwrap_or(text.len());
-            let to = if typed.contains(',') { from + text[from..line_end].find(',').unwrap_or(line_end - from) } else { to };
+            let detail = ctx
+                .metadata
+                .get(&key)
+                .map(Property::short_type)
+                .filter(|t| !t.is_empty());
+            let line_end = text[from..]
+                .find('\n')
+                .map(|i| from + i)
+                .unwrap_or(text.len());
+            let to = if typed.contains(',') {
+                from + text[from..line_end].find(',').unwrap_or(line_end - from)
+            } else {
+                to
+            };
             Some(Completion {
                 from: u(from),
                 replace_from: u(from),
@@ -339,7 +379,11 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                     out.push(Problem {
                         from: u(e.key_from),
                         to: u(e.key_to),
-                        severity: if dep.level.as_deref() == Some("error") { "error" } else { "warning" },
+                        severity: if dep.level.as_deref() == Some("error") {
+                            "error"
+                        } else {
+                            "warning"
+                        },
                         message,
                         code: "deprecatedProperty",
                         replacement: dep.replacement,
@@ -357,7 +401,9 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                         code: "invalidValue",
                         replacement: None,
                     });
-                } else if let Some(consts) = p.type_name.as_deref().and_then(|t| meta.enum_values(t)) {
+                } else if let Some(consts) =
+                    p.type_name.as_deref().and_then(|t| meta.enum_values(t))
+                {
                     let norm = |s: &str| s.trim().to_ascii_lowercase().replace('-', "_");
                     if !consts.iter().any(|c| norm(c) == norm(value)) {
                         out.push(Problem {
@@ -366,7 +412,11 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
                             severity: "warning",
                             message: format!(
                                 "'{value}' is not one of {}",
-                                consts.iter().map(|c| c.to_ascii_lowercase().replace('_', "-")).collect::<Vec<_>>().join(", ")
+                                consts
+                                    .iter()
+                                    .map(|c| c.to_ascii_lowercase().replace('_', "-"))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
                             ),
                             code: "invalidValue",
                             replacement: None,
@@ -376,7 +426,7 @@ pub fn inspect(path: &str, text: &str, ctx: &Context) -> Vec<Problem> {
             }
             None if meta.is_known(key) => {}
             None => out.push(Problem {
-                from: u(if format == Format::Yaml { e.key_from } else { e.key_from }),
+                from: u(e.key_from),
                 to: u(e.key_to.max(e.key_from)),
                 severity: "warning",
                 message: format!("Cannot resolve configuration property '{key}'"),
@@ -409,7 +459,10 @@ pub struct Hover {
 /// Documentation of the key under the cursor.
 pub fn hover(path: &str, text: &str, offset: usize, ctx: &Context) -> Option<Hover> {
     let (key, from, to) = key_at(path, text, offset)?;
-    let p = ctx.metadata.get(&key).or_else(|| ctx.metadata.container_of(&key))?;
+    let p = ctx
+        .metadata
+        .get(&key)
+        .or_else(|| ctx.metadata.container_of(&key))?;
     Some(Hover {
         from: utf16_offset(text, from),
         to: utf16_offset(text, to),
@@ -429,7 +482,11 @@ pub fn goto(
     let Some((key, _, _)) = key_at(path, text, offset) else {
         return Vec::new();
     };
-    let Some(p) = ctx.metadata.get(&key).or_else(|| ctx.metadata.container_of(&key)) else {
+    let Some(p) = ctx
+        .metadata
+        .get(&key)
+        .or_else(|| ctx.metadata.container_of(&key))
+    else {
         return Vec::new();
     };
     if let Some(l) = &p.location {
@@ -448,7 +505,10 @@ mod tests {
     use crate::metadata::sample;
 
     fn ctx_with<'a>(m: &'a Metadata, profiles: &'a [String]) -> Context<'a> {
-        Context { metadata: m, profiles }
+        Context {
+            metadata: m,
+            profiles,
+        }
     }
 
     fn labels(c: &Completion) -> Vec<&str> {
@@ -461,11 +521,21 @@ mod tests {
         let profiles = vec!["dev".to_string(), "prod".to_string()];
         let ctx = ctx_with(&m, &profiles);
         let text = "server.port=8080\nspring.jpa.sh";
-        let c = complete("src/main/resources/application.properties", text, text.len(), &ctx).unwrap();
+        let c = complete(
+            "src/main/resources/application.properties",
+            text,
+            text.len(),
+            &ctx,
+        )
+        .unwrap();
         assert_eq!(labels(&c)[0], "spring.jpa.show-sql");
         assert_eq!(c.items[0].insert, "spring.jpa.show-sql=$0");
         assert!(c.items[0].retrigger);
-        assert!(c.items[0].documentation.as_deref().unwrap().contains("Whether to enable logging of SQL statements."));
+        assert!(c.items[0]
+            .documentation
+            .as_deref()
+            .unwrap()
+            .contains("Whether to enable logging of SQL statements."));
         assert_eq!((c.from, c.replace_to), (17, text.len()));
 
         let text = "spring.jpa.show-sql=";
@@ -473,7 +543,14 @@ mod tests {
         assert_eq!(labels(&c), ["true", "false"]);
         let text = "spring.main.banner-mode=o";
         let c = complete("application-dev.properties", text, text.len(), &ctx).unwrap();
-        assert_eq!(labels(&c), ["off", "console", "log"].iter().filter(|v| v.contains('o')).copied().collect::<Vec<_>>());
+        assert_eq!(
+            labels(&c),
+            ["off", "console", "log"]
+                .iter()
+                .filter(|v| v.contains('o'))
+                .copied()
+                .collect::<Vec<_>>()
+        );
         let text = "spring.profiles.active=dev,p";
         let c = complete("application.properties", text, text.len(), &ctx).unwrap();
         assert_eq!(labels(&c), ["prod"]);
@@ -493,7 +570,11 @@ mod tests {
         assert_eq!(c.items[0].insert, "show-sql: $0");
         let text = "server:\n  ";
         let c = complete("application.yml", text, text.len(), &ctx).unwrap();
-        let ctx_path = c.items.iter().find(|i| i.label == "servlet.context-path").unwrap();
+        let ctx_path = c
+            .items
+            .iter()
+            .find(|i| i.label == "servlet.context-path")
+            .unwrap();
         assert_eq!(ctx_path.insert, "servlet:\n    context-path: $0");
         let text = "spring:\n  jpa:\n    show-sql: ";
         let c = complete("application.yml", text, text.len(), &ctx).unwrap();
@@ -510,7 +591,10 @@ mod tests {
         let ctx = ctx_with(&m, &[]);
         let text = "server:\n  port: 8080\n  prot: 1\nspring:\n  jpa:\n    show-sql: maybe\n  main:\n    banner-mode: loud\nlogging:\n  level:\n    org.acme: debug\nserver.max-http-header-size: 1KB\nplaceholder: ${HOME}\n";
         let problems = inspect("application.yml", text, &ctx);
-        let codes: Vec<(&str, &str)> = problems.iter().map(|p| (p.code, &text[p.from..p.to])).collect();
+        let codes: Vec<(&str, &str)> = problems
+            .iter()
+            .map(|p| (p.code, &text[p.from..p.to]))
+            .collect();
         assert_eq!(
             codes,
             [
@@ -522,11 +606,18 @@ mod tests {
             ]
         );
         assert_eq!(problems[3].severity, "error");
-        assert_eq!(problems[3].replacement.as_deref(), Some("server.max-http-request-header-size"));
+        assert_eq!(
+            problems[3].replacement.as_deref(),
+            Some("server.max-http-request-header-size")
+        );
         // Without metadata nothing is reported.
         let empty = Metadata::default();
         assert!(inspect("application.yml", text, &ctx_with(&empty, &[])).is_empty());
-        let props = inspect("application.properties", "spring.jpa.showSql=true\nlogging.level.root=info\n", &ctx);
+        let props = inspect(
+            "application.properties",
+            "spring.jpa.showSql=true\nlogging.level.root=info\n",
+            &ctx,
+        );
         assert!(props.is_empty(), "{props:?}");
     }
 
@@ -536,7 +627,11 @@ mod tests {
         m.add_property(Property {
             name: "shop.orders.limit".into(),
             type_name: Some("java.lang.Integer".into()),
-            location: Some(Location { path: "src/main/java/com/acme/ShopProperties.java".into(), line: 12, column: 16 }),
+            location: Some(Location {
+                path: "src/main/java/com/acme/ShopProperties.java".into(),
+                line: 12,
+                column: 16,
+            }),
             ..Property::default()
         });
         let ctx = ctx_with(&m, &[]);

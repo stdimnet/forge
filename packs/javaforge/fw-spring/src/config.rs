@@ -219,7 +219,12 @@ fn split_key(content: &str) -> Option<(String, usize, usize)> {
     } else {
         let mut end = None;
         for (i, c) in content.char_indices() {
-            if c == ':' && content[i + 1..].chars().next().is_none_or(|n| n == ' ' || n == '\t') {
+            if c == ':'
+                && content[i + 1..]
+                    .chars()
+                    .next()
+                    .is_none_or(|n| n == ' ' || n == '\t')
+            {
                 end = Some(i);
                 break;
             }
@@ -237,7 +242,9 @@ fn split_key(content: &str) -> Option<(String, usize, usize)> {
 
 fn unquote(v: &str) -> String {
     let v = v.trim();
-    if v.len() >= 2 && ((v.starts_with('"') && v.ends_with('"')) || (v.starts_with('\'') && v.ends_with('\''))) {
+    if v.len() >= 2
+        && ((v.starts_with('"') && v.ends_with('"')) || (v.starts_with('\'') && v.ends_with('\'')))
+    {
         v[1..v.len() - 1].to_string()
     } else {
         v.to_string()
@@ -296,7 +303,10 @@ pub fn parse_yaml(text: &str) -> Vec<Entry> {
             stack.clear();
             continue;
         }
-        if l.content.is_empty() && l.list_items == 0 || raw.trim_start().starts_with('#') || raw.trim_end() == "..." {
+        if l.content.is_empty() && l.list_items == 0
+            || raw.trim_start().starts_with('#')
+            || raw.trim_end() == "..."
+        {
             continue;
         }
         if l.list_items > 0 {
@@ -307,7 +317,11 @@ pub fn parse_yaml(text: &str) -> Vec<Entry> {
                     f.next_item += 1;
                     i
                 });
-                let col = if k + 1 == l.list_items { l.content_col } else { l.indent + 2 * (k + 1) };
+                let col = if k + 1 == l.list_items {
+                    l.content_col
+                } else {
+                    l.indent + 2 * (k + 1)
+                };
                 stack.push(Frame {
                     col,
                     key: format!("[{}]", index.unwrap_or(0)),
@@ -403,7 +417,10 @@ pub enum Place {
 pub fn place_at(format: Format, text: &str, offset: usize) -> Option<Place> {
     let offset = offset.min(text.len());
     let line_start = text[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let line_end = text[offset..].find('\n').map(|i| offset + i).unwrap_or(text.len());
+    let line_end = text[offset..]
+        .find('\n')
+        .map(|i| offset + i)
+        .unwrap_or(text.len());
     let line = &text[line_start..line_end];
     let before = &text[line_start..offset];
     match format {
@@ -427,7 +444,10 @@ pub fn place_at(format: Format, text: &str, offset: usize) -> Option<Place> {
             }
             let rest = &line[indent + key_len..];
             let after = rest.trim_start_matches([' ', '\t']);
-            let after = after.strip_prefix(['=', ':']).unwrap_or(after).trim_start_matches([' ', '\t']);
+            let after = after
+                .strip_prefix(['=', ':'])
+                .unwrap_or(after)
+                .trim_start_matches([' ', '\t']);
             let from = line_end - after.len();
             if offset < from {
                 return None;
@@ -454,7 +474,9 @@ pub fn place_at(format: Format, text: &str, offset: usize) -> Option<Place> {
                     return None;
                 }
                 let content = &line[l.content_col..];
-                if split_key(&content[..(col - l.content_col).min(content.len())]).is_none() && !content.contains(": ") {
+                if split_key(&content[..(col - l.content_col).min(content.len())]).is_none()
+                    && !content.contains(": ")
+                {
                     // A scalar item: its value.
                     let key = parent_path(above, entries.last(), l.indent);
                     return Some(Place::Value {
@@ -468,13 +490,19 @@ pub fn place_at(format: Format, text: &str, offset: usize) -> Option<Place> {
             }
             let content = &line[l.content_col.min(line.len())..];
             let content_before = &before[l.content_col.min(before.len())..];
-            if let Some((key, _key_end, value_off)) = split_key(content_before).or_else(|| {
-                split_key(content).filter(|(_, ke, _)| *ke < content_before.len())
-            }) {
-                if content_before.len() >= value_off.min(content.len()) || content_before.len() > key.len() {
+            if let Some((key, _key_end, value_off)) = split_key(content_before)
+                .or_else(|| split_key(content).filter(|(_, ke, _)| *ke < content_before.len()))
+            {
+                if content_before.len() >= value_off.min(content.len())
+                    || content_before.len() > key.len()
+                {
                     let from = line_start + l.content_col + value_off.min(content.len());
                     let from = from.min(offset);
-                    let full = if parent.is_empty() { key } else { format!("{parent}.{key}") };
+                    let full = if parent.is_empty() {
+                        key
+                    } else {
+                        format!("{parent}.{key}")
+                    };
                     return Some(Place::Value {
                         key: full,
                         typed: text[from..offset].to_string(),
@@ -606,12 +634,18 @@ mod tests {
 
     #[test]
     fn file_names_and_profiles() {
-        assert_eq!(config_file("src/main/resources/application.yml"), Some((Format::Yaml, None)));
+        assert_eq!(
+            config_file("src/main/resources/application.yml"),
+            Some((Format::Yaml, None))
+        );
         assert_eq!(
             config_file("application-dev.properties"),
             Some((Format::Properties, Some("dev".into())))
         );
-        assert_eq!(config_file("bootstrap-k8s.yaml").unwrap().1.as_deref(), Some("k8s"));
+        assert_eq!(
+            config_file("bootstrap-k8s.yaml").unwrap().1.as_deref(),
+            Some("k8s")
+        );
         assert_eq!(config_file("app.yml"), None);
         assert_eq!(config_file("application.json"), None);
     }
@@ -621,7 +655,10 @@ mod tests {
         let text = "# comment\nserver.port=8080\nspring.application.name : shop\nlogging.level.org.hibernate.SQL  debug\nmulti=a,\\\n  b\n#---\nspring.config.activate.on-profile=dev\n";
         let e = parse_properties(text);
         assert_eq!(e.len(), 5);
-        assert_eq!((e[0].key.as_str(), e[0].value.as_deref(), e[0].line), ("server.port", Some("8080"), 1));
+        assert_eq!(
+            (e[0].key.as_str(), e[0].value.as_deref(), e[0].line),
+            ("server.port", Some("8080"), 1)
+        );
         assert_eq!(&text[e[0].key_from..e[0].key_to], "server.port");
         assert_eq!(&text[e[0].value_from..e[0].value_to], "8080");
         assert_eq!(e[1].value.as_deref(), Some("shop"));
@@ -635,19 +672,28 @@ mod tests {
     fn yaml_nesting_lists_blocks_and_documents() {
         let text = "spring:\n  application:\n    name: shop # the name\n  profiles:\n    include:\n    - db\n    - \"cache\"\n  datasource.url: jdbc:h2:mem:test\nserver:\n  port: 8080\n  description: |\n    multi\n    line\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health,beans\nlist:\n  - name: a\n    port: 1\n  - name: b\n---\nspring:\n  config:\n    activate:\n      on-profile: dev\n";
         let e = parse_yaml(text);
-        let keys: Vec<(&str, Option<&str>)> = e.iter().map(|x| (x.key.as_str(), x.value.as_deref())).collect();
+        let keys: Vec<(&str, Option<&str>)> = e
+            .iter()
+            .map(|x| (x.key.as_str(), x.value.as_deref()))
+            .collect();
         assert!(keys.contains(&("spring.application.name", Some("shop"))));
         assert!(keys.contains(&("spring.profiles.include[0]", Some("db"))));
         assert!(keys.contains(&("spring.profiles.include[1]", Some("cache"))));
         assert!(keys.contains(&("spring.datasource.url", Some("jdbc:h2:mem:test"))));
         assert!(keys.contains(&("server.port", Some("8080"))));
         assert!(keys.contains(&("server.description", Some(""))));
-        assert!(keys.contains(&("management.endpoints.web.exposure.include", Some("health,beans"))));
+        assert!(keys.contains(&(
+            "management.endpoints.web.exposure.include",
+            Some("health,beans")
+        )));
         assert!(keys.contains(&("list[0].name", Some("a"))));
         assert!(keys.contains(&("list[0].port", Some("1"))));
         assert!(keys.contains(&("list[1].name", Some("b"))));
         assert!(!keys.iter().any(|(k, _)| k.contains("multi")));
-        let dev = e.iter().find(|x| x.key == "spring.config.activate.on-profile").unwrap();
+        let dev = e
+            .iter()
+            .find(|x| x.key == "spring.config.activate.on-profile")
+            .unwrap();
         assert_eq!((dev.document, dev.value.as_deref()), (1, Some("dev")));
         let port = e.iter().find(|x| x.key == "server.port").unwrap();
         assert_eq!(&text[port.key_from..port.key_to], "port");
@@ -659,38 +705,64 @@ mod tests {
         let props = "server.port=80\nspring.jpa.sh";
         assert_eq!(
             place_at(Format::Properties, props, props.len()),
-            Some(Place::Key { parent: String::new(), typed: "spring.jpa.sh".into(), from: 15, to: props.len(), indent: 0 })
+            Some(Place::Key {
+                parent: String::new(),
+                typed: "spring.jpa.sh".into(),
+                from: 15,
+                to: props.len(),
+                indent: 0
+            })
         );
         match place_at(Format::Properties, props, 13).unwrap() {
-            Place::Value { key, typed, .. } => assert_eq!((key.as_str(), typed.as_str()), ("server.port", "8")),
+            Place::Value { key, typed, .. } => {
+                assert_eq!((key.as_str(), typed.as_str()), ("server.port", "8"))
+            }
             other => panic!("{other:?}"),
         }
         let yaml = "spring:\n  jpa:\n    show\nserver:\n  port: 8\n";
         let at = yaml.find("show").unwrap() + 4;
         match place_at(Format::Yaml, yaml, at).unwrap() {
-            Place::Key { parent, typed, indent, .. } => {
-                assert_eq!((parent.as_str(), typed.as_str(), indent), ("spring.jpa", "show", 4))
+            Place::Key {
+                parent,
+                typed,
+                indent,
+                ..
+            } => {
+                assert_eq!(
+                    (parent.as_str(), typed.as_str(), indent),
+                    ("spring.jpa", "show", 4)
+                )
             }
             other => panic!("{other:?}"),
         }
         let at = yaml.find("port: 8").unwrap() + 7;
         match place_at(Format::Yaml, yaml, at).unwrap() {
-            Place::Value { key, typed, .. } => assert_eq!((key.as_str(), typed.as_str()), ("server.port", "8")),
+            Place::Value { key, typed, .. } => {
+                assert_eq!((key.as_str(), typed.as_str()), ("server.port", "8"))
+            }
             other => panic!("{other:?}"),
         }
         let root = "spring:\n  main:\n    banner-mode: off\nser";
         match place_at(Format::Yaml, root, root.len()).unwrap() {
-            Place::Key { parent, typed, .. } => assert_eq!((parent.as_str(), typed.as_str()), ("", "ser")),
+            Place::Key { parent, typed, .. } => {
+                assert_eq!((parent.as_str(), typed.as_str()), ("", "ser"))
+            }
             other => panic!("{other:?}"),
         }
         let empty_value = "spring:\n  main:\n    banner-mode: ";
         match place_at(Format::Yaml, empty_value, empty_value.len()).unwrap() {
-            Place::Value { key, typed, .. } => assert_eq!((key.as_str(), typed.as_str()), ("spring.main.banner-mode", "")),
+            Place::Value { key, typed, .. } => assert_eq!(
+                (key.as_str(), typed.as_str()),
+                ("spring.main.banner-mode", "")
+            ),
             other => panic!("{other:?}"),
         }
         let item = "spring:\n  profiles:\n    active:\n      - d";
         match place_at(Format::Yaml, item, item.len()).unwrap() {
-            Place::Value { key, typed, .. } => assert_eq!((key.as_str(), typed.as_str()), ("spring.profiles.active", "d")),
+            Place::Value { key, typed, .. } => assert_eq!(
+                (key.as_str(), typed.as_str()),
+                ("spring.profiles.active", "d")
+            ),
             other => panic!("{other:?}"),
         }
     }
@@ -699,10 +771,16 @@ mod tests {
     fn relaxed_binding() {
         assert_eq!(canonical("spring.jpa.showSql"), "spring.jpa.show-sql");
         assert_eq!(canonical("spring.jpa.show_sql"), "spring.jpa.show-sql");
-        assert_eq!(canonical("SPRING_JPA_SHOW_SQL").replace('-', "."), "spring.jpa.show.sql");
+        assert_eq!(
+            canonical("SPRING_JPA_SHOW_SQL").replace('-', "."),
+            "spring.jpa.show.sql"
+        );
         assert_eq!(canonical("my.list[0].name"), "my.list.name");
         assert_eq!(canonical("my.map[Some.Key]"), "my.map.some.key");
-        assert_eq!(canonical("logging.level.org.hibernate.SQL"), "logging.level.org.hibernate.sql");
+        assert_eq!(
+            canonical("logging.level.org.hibernate.SQL"),
+            "logging.level.org.hibernate.sql"
+        );
         assert_eq!(kebab("maxPoolSize"), "max-pool-size");
     }
 }

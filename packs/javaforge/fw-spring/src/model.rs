@@ -12,7 +12,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::{self, canonical, Format};
 use crate::metadata::{Metadata, Property};
-use crate::scan::{self, find, has, Annotation, Callable, ClassInfo, ClassKind, Lang, SourceFile, TypeRef, Val};
+use crate::scan::{
+    self, find, has, Annotation, Callable, ClassInfo, ClassKind, Lang, SourceFile, TypeRef, Val,
+};
 use crate::Location;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -259,40 +261,177 @@ const MAPPINGS: &[(&str, &str)] = &[
 const JAXRS_METHODS: &[&str] = &["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
 const SCALARS: &[&str] = &[
-    "String", "CharSequence", "int", "Int", "Integer", "long", "Long", "short", "Short", "byte", "Byte", "boolean",
-    "Boolean", "double", "Double", "float", "Float", "char", "Char", "Character", "BigDecimal", "BigInteger", "Duration",
-    "Object", "Any", "Number", "UUID", "Instant", "LocalDate", "LocalDateTime", "DataSize", "Class", "Charset",
-    "Locale", "Pattern", "URI", "URL", "Path", "File", "Resource",
+    "String",
+    "CharSequence",
+    "int",
+    "Int",
+    "Integer",
+    "long",
+    "Long",
+    "short",
+    "Short",
+    "byte",
+    "Byte",
+    "boolean",
+    "Boolean",
+    "double",
+    "Double",
+    "float",
+    "Float",
+    "char",
+    "Char",
+    "Character",
+    "BigDecimal",
+    "BigInteger",
+    "Duration",
+    "Object",
+    "Any",
+    "Number",
+    "UUID",
+    "Instant",
+    "LocalDate",
+    "LocalDateTime",
+    "DataSize",
+    "Class",
+    "Charset",
+    "Locale",
+    "Pattern",
+    "URI",
+    "URL",
+    "Path",
+    "File",
+    "Resource",
 ];
 
 /// Wrappers that hold one bean, and collections that hold many.
-const SINGLE_WRAPPERS: &[&str] = &["Optional", "ObjectProvider", "ObjectFactory", "Provider", "Instance", "Lazy", "Supplier"];
-const MANY_WRAPPERS: &[&str] = &["List", "Set", "Collection", "Iterable", "Stream", "SortedSet", "MutableList"];
+const SINGLE_WRAPPERS: &[&str] = &[
+    "Optional",
+    "ObjectProvider",
+    "ObjectFactory",
+    "Provider",
+    "Instance",
+    "Lazy",
+    "Supplier",
+];
+const MANY_WRAPPERS: &[&str] = &[
+    "List",
+    "Set",
+    "Collection",
+    "Iterable",
+    "Stream",
+    "SortedSet",
+    "MutableList",
+];
 
 /// APIs recognized from imports: (package prefix, id, name, namespace).
 const APIS: &[(&str, &str, &str, &str)] = &[
-    ("jakarta.ws.rs", "jaxrs", "Jakarta RESTful Web Services (JAX-RS)", "jakarta"),
-    ("javax.ws.rs", "jaxrs", "Java API for RESTful Web Services (JAX-RS)", "javax"),
-    ("jakarta.persistence", "jpa", "Jakarta Persistence (JPA)", "jakarta"),
-    ("javax.persistence", "jpa", "Java Persistence API (JPA)", "javax"),
-    ("jakarta.enterprise", "cdi", "Jakarta Contexts and Dependency Injection (CDI)", "jakarta"),
-    ("javax.enterprise", "cdi", "Contexts and Dependency Injection (CDI)", "javax"),
-    ("jakarta.inject", "inject", "Jakarta Dependency Injection", "jakarta"),
-    ("javax.inject", "inject", "Dependency Injection for Java (JSR-330)", "javax"),
-    ("jakarta.ejb", "ejb", "Jakarta Enterprise Beans (EJB)", "jakarta"),
+    (
+        "jakarta.ws.rs",
+        "jaxrs",
+        "Jakarta RESTful Web Services (JAX-RS)",
+        "jakarta",
+    ),
+    (
+        "javax.ws.rs",
+        "jaxrs",
+        "Java API for RESTful Web Services (JAX-RS)",
+        "javax",
+    ),
+    (
+        "jakarta.persistence",
+        "jpa",
+        "Jakarta Persistence (JPA)",
+        "jakarta",
+    ),
+    (
+        "javax.persistence",
+        "jpa",
+        "Java Persistence API (JPA)",
+        "javax",
+    ),
+    (
+        "jakarta.enterprise",
+        "cdi",
+        "Jakarta Contexts and Dependency Injection (CDI)",
+        "jakarta",
+    ),
+    (
+        "javax.enterprise",
+        "cdi",
+        "Contexts and Dependency Injection (CDI)",
+        "javax",
+    ),
+    (
+        "jakarta.inject",
+        "inject",
+        "Jakarta Dependency Injection",
+        "jakarta",
+    ),
+    (
+        "javax.inject",
+        "inject",
+        "Dependency Injection for Java (JSR-330)",
+        "javax",
+    ),
+    (
+        "jakarta.ejb",
+        "ejb",
+        "Jakarta Enterprise Beans (EJB)",
+        "jakarta",
+    ),
     ("javax.ejb", "ejb", "Enterprise JavaBeans (EJB)", "javax"),
-    ("jakarta.validation", "validation", "Jakarta Bean Validation", "jakarta"),
+    (
+        "jakarta.validation",
+        "validation",
+        "Jakarta Bean Validation",
+        "jakarta",
+    ),
     ("javax.validation", "validation", "Bean Validation", "javax"),
     ("jakarta.servlet", "servlet", "Jakarta Servlet", "jakarta"),
     ("javax.servlet", "servlet", "Java Servlet", "javax"),
-    ("jakarta.transaction", "jta", "Jakarta Transactions", "jakarta"),
+    (
+        "jakarta.transaction",
+        "jta",
+        "Jakarta Transactions",
+        "jakarta",
+    ),
     ("javax.transaction", "jta", "Java Transaction API", "javax"),
-    ("jakarta.json", "json", "Jakarta JSON Processing / Binding", "jakarta"),
-    ("org.springframework.web.bind", "spring-mvc", "Spring Web MVC", "spring"),
-    ("org.springframework.web.reactive", "spring-webflux", "Spring WebFlux", "spring"),
-    ("org.springframework.data.jpa", "spring-data-jpa", "Spring Data JPA", "spring"),
-    ("org.springframework.data", "spring-data", "Spring Data", "spring"),
-    ("org.springframework.boot", "spring-boot", "Spring Boot", "spring"),
+    (
+        "jakarta.json",
+        "json",
+        "Jakarta JSON Processing / Binding",
+        "jakarta",
+    ),
+    (
+        "org.springframework.web.bind",
+        "spring-mvc",
+        "Spring Web MVC",
+        "spring",
+    ),
+    (
+        "org.springframework.web.reactive",
+        "spring-webflux",
+        "Spring WebFlux",
+        "spring",
+    ),
+    (
+        "org.springframework.data.jpa",
+        "spring-data-jpa",
+        "Spring Data JPA",
+        "spring",
+    ),
+    (
+        "org.springframework.data",
+        "spring-data",
+        "Spring Data",
+        "spring",
+    ),
+    (
+        "org.springframework.boot",
+        "spring-boot",
+        "Spring Boot",
+        "spring",
+    ),
 ];
 
 /// Java Introspector's decapitalize: `OrderService` → `orderService`, `URLMapper` stays.
@@ -363,7 +502,10 @@ fn kotlin_templates(s: &str, consts: &BTreeMap<String, String>) -> String {
     while i < chars.len() {
         if chars[i] == '$' {
             let (name, next) = if chars.get(i + 1) == Some(&'{') {
-                let end = chars[i + 2..].iter().position(|c| *c == '}').map(|p| i + 2 + p);
+                let end = chars[i + 2..]
+                    .iter()
+                    .position(|c| *c == '}')
+                    .map(|p| i + 2 + p);
                 match end {
                     Some(e) => (chars[i + 2..e].iter().collect::<String>(), e + 1),
                     None => (String::new(), i + 1),
@@ -449,7 +591,9 @@ impl<'a> Index<'a> {
     }
 
     fn resolve(&self, v: &Val, file: &SourceFile) -> Option<String> {
-        let s = v.resolve(&file.constants).or_else(|| v.resolve(&self.consts))?;
+        let s = v
+            .resolve(&file.constants)
+            .or_else(|| v.resolve(&self.consts))?;
         Some(if file.lang == Lang::Kotlin {
             kotlin_templates(&kotlin_templates(&s, &file.constants), &self.consts)
         } else {
@@ -464,7 +608,9 @@ impl<'a> Index<'a> {
     }
 
     fn qualify(&self, simple: &str) -> String {
-        self.class(simple).map(|c| c.qualified.clone()).unwrap_or_else(|| simple.to_string())
+        self.class(simple)
+            .map(|c| c.qualified.clone())
+            .unwrap_or_else(|| simple.to_string())
     }
 }
 
@@ -511,7 +657,11 @@ fn profiles_of(list: &[Annotation]) -> Vec<String> {
         .unwrap_or_default()
         .iter()
         .filter_map(Val::as_str)
-        .flat_map(|s| s.split(['&', '|', '!', '(', ')', ' ']).map(str::to_string).collect::<Vec<_>>())
+        .flat_map(|s| {
+            s.split(['&', '|', '!', '(', ')', ' '])
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        })
         .filter(|s| !s.is_empty())
         .collect()
 }
@@ -526,7 +676,8 @@ pub fn analyze(files: &[(String, String)]) -> Model {
     for (path, text) in files {
         if Lang::of_path(path).is_some() {
             sources.push(scan::parse(path, text));
-        } else if path.ends_with("spring-configuration-metadata.json") && path.contains("META-INF") {
+        } else if path.ends_with("spring-configuration-metadata.json") && path.contains("META-INF")
+        {
             metadata_files.push((path.clone(), text.clone()));
         } else if let Some((format, profile)) = config::config_file(path) {
             read_config(&mut model, path, text, format, profile);
@@ -547,7 +698,9 @@ fn read_config(model: &mut Model, path: &str, text: &str, format: Format, profil
     let mut doc_profiles: HashMap<usize, String> = HashMap::new();
     for e in &entries {
         let k = canonical(&e.key);
-        if (k == "spring.config.activate.on-profile" || (k == "spring.profiles" && e.document > 0)) && e.value.is_some() {
+        if (k == "spring.config.activate.on-profile" || (k == "spring.profiles" && e.document > 0))
+            && e.value.is_some()
+        {
             doc_profiles.insert(e.document, e.value.clone().unwrap_or_default());
         }
     }
@@ -560,15 +713,24 @@ fn read_config(model: &mut Model, path: &str, text: &str, format: Format, profil
             || k == "spring.config.activate.on-profile"
             || k.starts_with("spring.profiles.group.")
         {
-            profiles.extend(value.split([',', '&', '|', '!', ' ']).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string));
+            profiles.extend(
+                value
+                    .split([',', '&', '|', '!', ' '])
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string),
+            );
         }
-        if k.starts_with("spring.profiles.group.") {
-            profiles.push(k["spring.profiles.group.".len()..].to_string());
+        if let Some(group) = k.strip_prefix("spring.profiles.group.") {
+            profiles.push(group.to_string());
         }
         model.config_values.push(ConfigValue {
             key: k,
             value: value.clone(),
-            profile: doc_profiles.get(&e.document).cloned().or_else(|| profile.clone()),
+            profile: doc_profiles
+                .get(&e.document)
+                .cloned()
+                .or_else(|| profile.clone()),
             location: Location {
                 path: path.to_string(),
                 line: e.line,
@@ -596,14 +758,29 @@ fn analyze_sources(model: &mut Model, files: &[SourceFile]) {
     for f in files {
         let mut seen = BTreeSet::new();
         for (prefix, id, name, ns) in APIS {
-            if f.imports_from(prefix) || f.imports.iter().any(|i| i.starts_with(&format!("{prefix}."))) {
+            if f.imports_from(prefix)
+                || f.imports
+                    .iter()
+                    .any(|i| i.starts_with(&format!("{prefix}.")))
+            {
                 // `org.springframework.data.jpa` also matches `org.springframework.data`.
-                if *id == "spring-data" && f.imports_from("org.springframework.data.jpa") && !f.imports.iter().any(|i| i.starts_with("org.springframework.data.") && !i.starts_with("org.springframework.data.jpa")) {
+                if *id == "spring-data"
+                    && f.imports_from("org.springframework.data.jpa")
+                    && !f.imports.iter().any(|i| {
+                        i.starts_with("org.springframework.data.")
+                            && !i.starts_with("org.springframework.data.jpa")
+                    })
+                {
                     continue;
                 }
                 if seen.insert((*id, *ns)) {
                     apis.entry((id.to_string(), ns.to_string()))
-                        .or_insert_with(|| Api { id: id.to_string(), name: name.to_string(), namespace: ns.to_string(), files: 0 })
+                        .or_insert_with(|| Api {
+                            id: id.to_string(),
+                            name: name.to_string(),
+                            namespace: ns.to_string(),
+                            files: 0,
+                        })
                         .files += 1;
                 }
             }
@@ -615,7 +792,9 @@ fn analyze_sources(model: &mut Model, files: &[SourceFile]) {
 
     for f in files {
         for c in &f.classes {
-            model.classes.insert(c.qualified.clone(), location(f, c.line, c.column));
+            model
+                .classes
+                .insert(c.qualified.clone(), location(f, c.line, c.column));
             if c.kind == ClassKind::Enum {
                 model.enums.insert(c.qualified.clone(), c.constants.clone());
             }
@@ -627,7 +806,11 @@ fn analyze_sources(model: &mut Model, files: &[SourceFile]) {
     for f in files {
         for c in &f.classes {
             if let Some(a) = c.annotation("ApplicationPath") {
-                app_path = index.strings(a, &["value"], f).into_iter().next().unwrap_or_default();
+                app_path = index
+                    .strings(a, &["value"], f)
+                    .into_iter()
+                    .next()
+                    .unwrap_or_default();
                 model.applications.push(Application {
                     class: c.qualified.clone(),
                     name: c.name.clone(),
@@ -654,12 +837,17 @@ fn analyze_sources(model: &mut Model, files: &[SourceFile]) {
             collect_config_class(model, &index, f, c);
         }
     }
-    if model.beans.iter().any(|b| b.framework == "spring") || !model.applications.iter().all(|a| a.kind != "spring") {
+    if model.beans.iter().any(|b| b.framework == "spring")
+        || !model.applications.iter().all(|a| a.kind != "spring")
+    {
         model.spring = true;
     }
     for f in files {
         for c in &f.classes {
-            for p in profiles_of(&c.annotations).into_iter().chain(c.methods.iter().flat_map(|m| profiles_of(&m.annotations))) {
+            for p in profiles_of(&c.annotations)
+                .into_iter()
+                .chain(c.methods.iter().flat_map(|m| profiles_of(&m.annotations)))
+            {
                 if !model.profiles.contains(&p) {
                     model.profiles.push(p);
                 }
@@ -671,7 +859,11 @@ fn analyze_sources(model: &mut Model, files: &[SourceFile]) {
     link_repositories(model, &index);
 }
 
-fn bean_kind(index: &Index, f: &SourceFile, c: &ClassInfo) -> Option<(String, String, Option<String>)> {
+fn bean_kind(
+    index: &Index,
+    f: &SourceFile,
+    c: &ClassInfo,
+) -> Option<(String, String, Option<String>)> {
     if matches!(c.kind, ClassKind::Annotation | ClassKind::Enum) {
         return None;
     }
@@ -681,11 +873,27 @@ fn bean_kind(index: &Index, f: &SourceFile, c: &ClassInfo) -> Option<(String, St
             return None;
         }
         let supers = index.supers(&c.name);
-        let data = supers.iter().any(|s| s.ends_with("Repository") && !s.is_empty())
-            && (f.imports.iter().any(|i| i.starts_with("org.springframework.data"))
+        let data = supers
+            .iter()
+            .any(|s| s.ends_with("Repository") && !s.is_empty())
+            && (f
+                .imports
+                .iter()
+                .any(|i| i.starts_with("org.springframework.data"))
                 || supers.iter().any(|s| {
                     index.class(s).is_none()
-                        && matches!(s.as_str(), "JpaRepository" | "CrudRepository" | "PagingAndSortingRepository" | "ListCrudRepository" | "Repository" | "MongoRepository" | "ReactiveCrudRepository" | "CoroutineCrudRepository" | "R2dbcRepository")
+                        && matches!(
+                            s.as_str(),
+                            "JpaRepository"
+                                | "CrudRepository"
+                                | "PagingAndSortingRepository"
+                                | "ListCrudRepository"
+                                | "Repository"
+                                | "MongoRepository"
+                                | "ReactiveCrudRepository"
+                                | "CoroutineCrudRepository"
+                                | "R2dbcRepository"
+                        )
                 }));
         return data.then(|| ("dataRepository".to_string(), "spring".to_string(), None));
     }
@@ -712,7 +920,11 @@ fn bean_kind(index: &Index, f: &SourceFile, c: &ClassInfo) -> Option<(String, St
         return Some(("cdi".into(), "cdi".into(), None));
     }
     // JAX-RS resources are CDI beans (request scoped by default).
-    if c.annotation("Path").is_some() && (f.imports_from("jakarta.ws.rs") || f.imports_from("javax.ws.rs") || f.imports.iter().any(|i| i.contains(".ws.rs."))) {
+    if c.annotation("Path").is_some()
+        && (f.imports_from("jakarta.ws.rs")
+            || f.imports_from("javax.ws.rs")
+            || f.imports.iter().any(|i| i.contains(".ws.rs.")))
+    {
         return Some(("resource".into(), "cdi".into(), Some("request".into())));
     }
     None
@@ -724,10 +936,21 @@ fn collect_beans(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo
         let explicit = STEREOTYPES
             .iter()
             .filter_map(|(s, _)| c.annotation(s))
-            .chain(c.annotations.iter().filter(|a| index.custom_stereotypes.contains_key(a.simple())))
+            .chain(
+                c.annotations
+                    .iter()
+                    .filter(|a| index.custom_stereotypes.contains_key(a.simple())),
+            )
             .chain(c.annotation("Named"))
             .find_map(|a| index.strings(a, &["value"], f).into_iter().next());
-        let scope = cdi_scope.clone().or_else(|| c.annotation("Scope").and_then(|a| index.strings(a, &["value", "scopeName"], f).into_iter().next()));
+        let scope = cdi_scope.clone().or_else(|| {
+            c.annotation("Scope").and_then(|a| {
+                index
+                    .strings(a, &["value", "scopeName"], f)
+                    .into_iter()
+                    .next()
+            })
+        });
         model.beans.push(Bean {
             name: explicit.unwrap_or_else(|| decapitalize(&c.name)),
             type_name: c.qualified.clone(),
@@ -746,18 +969,43 @@ fn collect_beans(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo
     let cdi_bean = kind.as_ref().is_some_and(|(_, fw, _)| fw == "cdi");
     // `@Bean` / `@Produces` methods.
     for m in &c.methods {
-        let producer = has(&m.annotations, "Produces") && (f.imports_from("jakarta.enterprise.inject") || f.imports_from("javax.enterprise.inject"));
-        let Some(bean_ann) = find(&m.annotations, "Bean").or_else(|| producer.then(|| find(&m.annotations, "Produces")).flatten()) else {
+        let producer = has(&m.annotations, "Produces")
+            && (f.imports_from("jakarta.enterprise.inject")
+                || f.imports_from("javax.enterprise.inject"));
+        let Some(bean_ann) = find(&m.annotations, "Bean")
+            .or_else(|| producer.then(|| find(&m.annotations, "Produces")).flatten())
+        else {
             continue;
         };
-        let names = if producer { Vec::new() } else { index.strings(bean_ann, &["value", "name"], f) };
+        let names = if producer {
+            Vec::new()
+        } else {
+            index.strings(bean_ann, &["value", "name"], f)
+        };
         let (simple, _) = injected_type(&m.return_type);
         model.beans.push(Bean {
             name: names.into_iter().next().unwrap_or_else(|| m.name.clone()),
-            type_name: if simple.is_empty() { m.return_type.clone() } else { index.qualify(&simple) },
-            kind: if producer { "producer".into() } else { "bean".into() },
-            framework: if producer { "cdi".into() } else { "spring".into() },
-            scope: find(&m.annotations, "Scope").and_then(|a| index.strings(a, &["value", "scopeName"], f).into_iter().next()),
+            type_name: if simple.is_empty() {
+                m.return_type.clone()
+            } else {
+                index.qualify(&simple)
+            },
+            kind: if producer {
+                "producer".into()
+            } else {
+                "bean".into()
+            },
+            framework: if producer {
+                "cdi".into()
+            } else {
+                "spring".into()
+            },
+            scope: find(&m.annotations, "Scope").and_then(|a| {
+                index
+                    .strings(a, &["value", "scopeName"], f)
+                    .into_iter()
+                    .next()
+            }),
             profiles: profiles_of(&m.annotations),
             primary: has(&m.annotations, "Primary"),
             qualifier: qualifier_of(&m.annotations),
@@ -766,7 +1014,17 @@ fn collect_beans(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo
             injected_into: Vec::new(),
         });
         for p in &m.params {
-            push_injection(model, f, c, &p.name, &p.type_name, &p.annotations, if producer { "producer" } else { "beanMethod" }, p.line, p.column);
+            push_injection(
+                model,
+                f,
+                c,
+                &p.name,
+                &p.type_name,
+                &p.annotations,
+                if producer { "producer" } else { "beanMethod" },
+                p.line,
+                p.column,
+            );
         }
     }
     if !spring_bean && !cdi_bean {
@@ -785,41 +1043,115 @@ fn collect_beans(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo
     };
     if let Some(k) = ctor {
         for p in &k.params {
-            push_injection(model, f, c, &p.name, &p.type_name, &p.annotations, "constructor", p.line, p.column);
+            push_injection(
+                model,
+                f,
+                c,
+                &p.name,
+                &p.type_name,
+                &p.annotations,
+                "constructor",
+                p.line,
+                p.column,
+            );
         }
     } else if spring_bean
         && c.constructors.is_empty()
-        && (c.annotation("RequiredArgsConstructor").is_some() || c.annotation("AllArgsConstructor").is_some())
+        && (c.annotation("RequiredArgsConstructor").is_some()
+            || c.annotation("AllArgsConstructor").is_some())
     {
         let all = c.annotation("AllArgsConstructor").is_some();
-        for fd in c.fields.iter().filter(|fd| !fd.has_modifier("static") && !fd.initialized && (all || fd.has_modifier("final") || has(&fd.annotations, "NonNull"))) {
-            push_injection(model, f, c, &fd.name, &fd.type_name, &fd.annotations, "constructor", fd.line, fd.column);
+        for fd in c.fields.iter().filter(|fd| {
+            !fd.has_modifier("static")
+                && !fd.initialized
+                && (all || fd.has_modifier("final") || has(&fd.annotations, "NonNull"))
+        }) {
+            push_injection(
+                model,
+                f,
+                c,
+                &fd.name,
+                &fd.type_name,
+                &fd.annotations,
+                "constructor",
+                fd.line,
+                fd.column,
+            );
         }
     }
     for fd in &c.fields {
-        if has(&fd.annotations, "Autowired") || has(&fd.annotations, "Inject") || has(&fd.annotations, "Resource") {
-            push_injection(model, f, c, &fd.name, &fd.type_name, &fd.annotations, "field", fd.line, fd.column);
+        if has(&fd.annotations, "Autowired")
+            || has(&fd.annotations, "Inject")
+            || has(&fd.annotations, "Resource")
+        {
+            push_injection(
+                model,
+                f,
+                c,
+                &fd.name,
+                &fd.type_name,
+                &fd.annotations,
+                "field",
+                fd.line,
+                fd.column,
+            );
         }
     }
     for m in &c.methods {
-        if (has(&m.annotations, "Autowired") || has(&m.annotations, "Inject")) && !has(&m.annotations, "Bean") {
+        if (has(&m.annotations, "Autowired") || has(&m.annotations, "Inject"))
+            && !has(&m.annotations, "Bean")
+        {
             for p in &m.params {
-                push_injection(model, f, c, &p.name, &p.type_name, &p.annotations, "setter", p.line, p.column);
+                push_injection(
+                    model,
+                    f,
+                    c,
+                    &p.name,
+                    &p.type_name,
+                    &p.annotations,
+                    "setter",
+                    p.line,
+                    p.column,
+                );
             }
         }
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn push_injection(model: &mut Model, f: &SourceFile, c: &ClassInfo, member: &str, type_name: &str, annotations: &[Annotation], kind: &str, line: u32, column: u32) {
-    if ["Value", "ConfigProperty", "Context", "BeanParam", "PathParam", "QueryParam"].iter().any(|a| has(annotations, a)) {
+fn push_injection(
+    model: &mut Model,
+    f: &SourceFile,
+    c: &ClassInfo,
+    member: &str,
+    type_name: &str,
+    annotations: &[Annotation],
+    kind: &str,
+    line: u32,
+    column: u32,
+) {
+    if [
+        "Value",
+        "ConfigProperty",
+        "Context",
+        "BeanParam",
+        "PathParam",
+        "QueryParam",
+    ]
+    .iter()
+    .any(|a| has(annotations, a))
+    {
         return;
     }
     let (simple, many) = injected_type(type_name);
-    if simple.is_empty() || SCALARS.contains(&simple.as_str()) || simple.chars().next().is_some_and(|ch| ch.is_lowercase()) {
+    if simple.is_empty()
+        || SCALARS.contains(&simple.as_str())
+        || simple.chars().next().is_some_and(|ch| ch.is_lowercase())
+    {
         return;
     }
-    let qualifier = qualifier_of(annotations).or_else(|| find(annotations, "Resource").and_then(|a| a.string(&["name"])));
+    let qualifier = qualifier_of(annotations)
+        .or_else(|| find(annotations, "Resource").and_then(|a| a.string(&["name"])));
     model.injections.push(Injection {
         owner: c.qualified.clone(),
         member: member.to_string(),
@@ -837,7 +1169,12 @@ fn resolve_injections(model: &mut Model, index: &Index) {
         .beans
         .iter()
         .map(|b| {
-            let simple = b.type_name.rsplit('.').next().unwrap_or(&b.type_name).to_string();
+            let simple = b
+                .type_name
+                .rsplit('.')
+                .next()
+                .unwrap_or(&b.type_name)
+                .to_string();
             let mut s = index.supers(&simple);
             s.insert(simple);
             s
@@ -855,14 +1192,20 @@ fn resolve_injections(model: &mut Model, index: &Index) {
             let named: Vec<usize> = found
                 .iter()
                 .copied()
-                .filter(|b| model.beans[*b].name == *q || model.beans[*b].qualifier.as_deref() == Some(q))
+                .filter(|b| {
+                    model.beans[*b].name == *q || model.beans[*b].qualifier.as_deref() == Some(q)
+                })
                 .collect();
             if !named.is_empty() {
                 found = named;
             }
         } else if found.len() > 1 && !inj.many {
             // Spring falls back to the parameter / field name.
-            if let Some(b) = found.iter().copied().find(|b| model.beans[*b].name == inj.member) {
+            if let Some(b) = found
+                .iter()
+                .copied()
+                .find(|b| model.beans[*b].name == inj.member)
+            {
                 if !found.iter().any(|x| model.beans[*x].primary) {
                     found = vec![b];
                 }
@@ -876,31 +1219,62 @@ fn resolve_injections(model: &mut Model, index: &Index) {
     }
 }
 
-fn collect_endpoints(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo, app_path: &str) {
+fn collect_endpoints(
+    model: &mut Model,
+    index: &Index,
+    f: &SourceFile,
+    c: &ClassInfo,
+    app_path: &str,
+) {
     if c.annotation("FeignClient").is_some() || c.annotation("HttpExchange").is_some() {
         return;
     }
     // Spring MVC / WebFlux.
-    let controller = c.annotation("RestController").is_some() || c.annotation("Controller").is_some() || c.annotation("RequestMapping").is_some();
+    let controller = c.annotation("RestController").is_some()
+        || c.annotation("Controller").is_some()
+        || c.annotation("RequestMapping").is_some();
     if controller {
         let class_mapping = c.annotation("RequestMapping");
-        let prefixes = class_mapping.map(|a| index.strings(a, &["value", "path"], f)).filter(|p| !p.is_empty()).unwrap_or_else(|| vec![String::new()]);
-        let class_produces: Vec<String> = class_mapping.and_then(|a| a.arg("produces")).map(|v| v.iter().map(media_type).collect()).unwrap_or_default();
+        let prefixes = class_mapping
+            .map(|a| index.strings(a, &["value", "path"], f))
+            .filter(|p| !p.is_empty())
+            .unwrap_or_else(|| vec![String::new()]);
+        let class_produces: Vec<String> = class_mapping
+            .and_then(|a| a.arg("produces"))
+            .map(|v| v.iter().map(media_type).collect())
+            .unwrap_or_default();
         for m in &c.methods {
             for (ann, method) in MAPPINGS {
-                let Some(a) = find(&m.annotations, ann) else { continue };
+                let Some(a) = find(&m.annotations, ann) else {
+                    continue;
+                };
                 let mut paths = index.strings(a, &["value", "path"], f);
                 if paths.is_empty() {
                     paths.push(String::new());
                 }
                 let methods: Vec<String> = if method.is_empty() {
-                    let ms: Vec<String> = a.arg("method").unwrap_or_default().iter().map(|v| v.simple().to_string()).collect();
-                    if ms.is_empty() { vec!["ANY".into()] } else { ms }
+                    let ms: Vec<String> = a
+                        .arg("method")
+                        .unwrap_or_default()
+                        .iter()
+                        .map(|v| v.simple().to_string())
+                        .collect();
+                    if ms.is_empty() {
+                        vec!["ANY".into()]
+                    } else {
+                        ms
+                    }
                 } else {
                     vec![method.to_string()]
                 };
-                let produces: Vec<String> = a.arg("produces").map(|v| v.iter().map(media_type).collect()).unwrap_or_else(|| class_produces.clone());
-                let consumes: Vec<String> = a.arg("consumes").map(|v| v.iter().map(media_type).collect()).unwrap_or_default();
+                let produces: Vec<String> = a
+                    .arg("produces")
+                    .map(|v| v.iter().map(media_type).collect())
+                    .unwrap_or_else(|| class_produces.clone());
+                let consumes: Vec<String> = a
+                    .arg("consumes")
+                    .map(|v| v.iter().map(media_type).collect())
+                    .unwrap_or_default();
                 let params = spring_params(m);
                 for prefix in &prefixes {
                     for p in &paths {
@@ -923,30 +1297,70 @@ fn collect_endpoints(model: &mut Model, index: &Index, f: &SourceFile, c: &Class
         }
     }
     // JAX-RS.
-    let jaxrs_file = f.imports_from("jakarta.ws.rs") || f.imports_from("javax.ws.rs") || f.imports.iter().any(|i| i.starts_with("jakarta.ws.rs.") || i.starts_with("javax.ws.rs."));
-    let Some(class_path) = c.annotation("Path") else { return };
+    let jaxrs_file = f.imports_from("jakarta.ws.rs")
+        || f.imports_from("javax.ws.rs")
+        || f.imports
+            .iter()
+            .any(|i| i.starts_with("jakarta.ws.rs.") || i.starts_with("javax.ws.rs."));
+    let Some(class_path) = c.annotation("Path") else {
+        return;
+    };
     if !jaxrs_file && !class_path.name.contains("ws.rs") {
         return;
     }
-    let base = index.strings(class_path, &["value"], f).into_iter().next().unwrap_or_default();
-    let class_produces: Vec<String> = c.annotation("Produces").and_then(|a| a.arg("value")).map(|v| v.iter().map(media_type).collect()).unwrap_or_default();
-    let class_consumes: Vec<String> = c.annotation("Consumes").and_then(|a| a.arg("value")).map(|v| v.iter().map(media_type).collect()).unwrap_or_default();
+    let base = index
+        .strings(class_path, &["value"], f)
+        .into_iter()
+        .next()
+        .unwrap_or_default();
+    let class_produces: Vec<String> = c
+        .annotation("Produces")
+        .and_then(|a| a.arg("value"))
+        .map(|v| v.iter().map(media_type).collect())
+        .unwrap_or_default();
+    let class_consumes: Vec<String> = c
+        .annotation("Consumes")
+        .and_then(|a| a.arg("value"))
+        .map(|v| v.iter().map(media_type).collect())
+        .unwrap_or_default();
     for m in &c.methods {
-        let Some(verb) = JAXRS_METHODS.iter().find(|v| has(&m.annotations, v)) else { continue };
-        let sub = find(&m.annotations, "Path").and_then(|a| index.strings(a, &["value"], f).into_iter().next()).unwrap_or_default();
+        let Some(verb) = JAXRS_METHODS.iter().find(|v| has(&m.annotations, v)) else {
+            continue;
+        };
+        let sub = find(&m.annotations, "Path")
+            .and_then(|a| index.strings(a, &["value"], f).into_iter().next())
+            .unwrap_or_default();
         let params = m
             .params
             .iter()
             .filter_map(|p| {
-                let (kind, ann) = [("path", "PathParam"), ("query", "QueryParam"), ("header", "HeaderParam")]
-                    .iter()
-                    .find_map(|(k, a)| find(&p.annotations, a).map(|x| (*k, Some(x))))
-                    .unwrap_or(("body", None));
-                if kind == "body" && (p.annotations.iter().any(|a| matches!(a.simple(), "Context" | "Suspended" | "BeanParam" | "FormParam" | "CookieParam" | "MatrixParam")) || matches!(*verb, "GET" | "DELETE" | "HEAD" | "OPTIONS")) {
+                let (kind, ann) = [
+                    ("path", "PathParam"),
+                    ("query", "QueryParam"),
+                    ("header", "HeaderParam"),
+                ]
+                .iter()
+                .find_map(|(k, a)| find(&p.annotations, a).map(|x| (*k, Some(x))))
+                .unwrap_or(("body", None));
+                if kind == "body"
+                    && (p.annotations.iter().any(|a| {
+                        matches!(
+                            a.simple(),
+                            "Context"
+                                | "Suspended"
+                                | "BeanParam"
+                                | "FormParam"
+                                | "CookieParam"
+                                | "MatrixParam"
+                        )
+                    }) || matches!(*verb, "GET" | "DELETE" | "HEAD" | "OPTIONS"))
+                {
                     return None;
                 }
                 Some(EndpointParam {
-                    name: ann.and_then(|a| a.string(&["value"])).unwrap_or_else(|| p.name.clone()),
+                    name: ann
+                        .and_then(|a| a.string(&["value"]))
+                        .unwrap_or_else(|| p.name.clone()),
                     kind: kind.into(),
                     type_name: p.type_name.clone(),
                 })
@@ -959,8 +1373,14 @@ fn collect_endpoints(model: &mut Model, index: &Index, f: &SourceFile, c: &Class
             class: c.qualified.clone(),
             framework: "jaxrs".into(),
             location: location(f, m.line, m.column),
-            produces: find(&m.annotations, "Produces").and_then(|a| a.arg("value")).map(|v| v.iter().map(media_type).collect()).unwrap_or_else(|| class_produces.clone()),
-            consumes: find(&m.annotations, "Consumes").and_then(|a| a.arg("value")).map(|v| v.iter().map(media_type).collect()).unwrap_or_else(|| class_consumes.clone()),
+            produces: find(&m.annotations, "Produces")
+                .and_then(|a| a.arg("value"))
+                .map(|v| v.iter().map(media_type).collect())
+                .unwrap_or_else(|| class_produces.clone()),
+            consumes: find(&m.annotations, "Consumes")
+                .and_then(|a| a.arg("value"))
+                .map(|v| v.iter().map(media_type).collect())
+                .unwrap_or_else(|| class_consumes.clone()),
             params,
         });
     }
@@ -970,11 +1390,18 @@ fn spring_params(m: &Callable) -> Vec<EndpointParam> {
     m.params
         .iter()
         .filter_map(|p| {
-            let (kind, ann) = [("path", "PathVariable"), ("query", "RequestParam"), ("header", "RequestHeader"), ("body", "RequestBody")]
-                .iter()
-                .find_map(|(k, a)| find(&p.annotations, a).map(|x| (*k, x)))?;
+            let (kind, ann) = [
+                ("path", "PathVariable"),
+                ("query", "RequestParam"),
+                ("header", "RequestHeader"),
+                ("body", "RequestBody"),
+            ]
+            .iter()
+            .find_map(|(k, a)| find(&p.annotations, a).map(|x| (*k, x)))?;
             Some(EndpointParam {
-                name: ann.string(&["value", "name"]).unwrap_or_else(|| p.name.clone()),
+                name: ann
+                    .string(&["value", "name"])
+                    .unwrap_or_else(|| p.name.clone()),
                 kind: kind.into(),
                 type_name: p.type_name.clone(),
             })
@@ -983,19 +1410,38 @@ fn spring_params(m: &Callable) -> Vec<EndpointParam> {
 }
 
 fn collect_entity(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo) {
-    let (kind, ann) = match (c.annotation("Entity"), c.annotation("Embeddable"), c.annotation("MappedSuperclass")) {
+    let (kind, ann) = match (
+        c.annotation("Entity"),
+        c.annotation("Embeddable"),
+        c.annotation("MappedSuperclass"),
+    ) {
         (Some(a), _, _) => ("entity", a),
         (_, Some(a), _) => ("embeddable", a),
         (_, _, Some(a)) => ("mappedSuperclass", a),
         _ => return,
     };
-    let namespace = if f.imports_from("jakarta.persistence") || f.imports.iter().any(|i| i.starts_with("jakarta.persistence")) {
+    let namespace = if f.imports_from("jakarta.persistence")
+        || f.imports
+            .iter()
+            .any(|i| i.starts_with("jakarta.persistence"))
+    {
         Some("jakarta".to_string())
     } else if f.imports.iter().any(|i| i.starts_with("javax.persistence")) {
         Some("javax".to_string())
     } else if ann.name.contains("persistence") {
-        Some(if ann.name.starts_with("javax") { "javax" } else { "jakarta" }.to_string())
-    } else if f.imports.iter().any(|i| i.starts_with("org.springframework.data")) {
+        Some(
+            if ann.name.starts_with("javax") {
+                "javax"
+            } else {
+                "jakarta"
+            }
+            .to_string(),
+        )
+    } else if f
+        .imports
+        .iter()
+        .any(|i| i.starts_with("org.springframework.data"))
+    {
         None
     } else {
         return;
@@ -1003,12 +1449,24 @@ fn collect_entity(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInf
     let fields = c
         .fields
         .iter()
-        .filter(|fd| !fd.has_modifier("static") && !has(&fd.annotations, "Transient") && !fd.has_modifier("transient") && !fd.has_modifier("const"))
+        .filter(|fd| {
+            !fd.has_modifier("static")
+                && !has(&fd.annotations, "Transient")
+                && !fd.has_modifier("transient")
+                && !fd.has_modifier("const")
+        })
         .map(|fd| {
-            let relation = [("ManyToOne", "manyToOne"), ("OneToMany", "oneToMany"), ("ManyToMany", "manyToMany"), ("OneToOne", "oneToOne"), ("Embedded", "embedded"), ("ElementCollection", "elementCollection")]
-                .iter()
-                .find(|(a, _)| has(&fd.annotations, a))
-                .map(|(_, r)| r.to_string());
+            let relation = [
+                ("ManyToOne", "manyToOne"),
+                ("OneToMany", "oneToMany"),
+                ("ManyToMany", "manyToMany"),
+                ("OneToOne", "oneToOne"),
+                ("Embedded", "embedded"),
+                ("ElementCollection", "elementCollection"),
+            ]
+            .iter()
+            .find(|(a, _)| has(&fd.annotations, a))
+            .map(|(_, r)| r.to_string());
             let column = find(&fd.annotations, "Column")
                 .or_else(|| find(&fd.annotations, "JoinColumn"))
                 .and_then(|a| index.strings(a, &["name"], f).into_iter().next());
@@ -1025,10 +1483,16 @@ fn collect_entity(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInf
         })
         .collect();
     model.entities.push(Entity {
-        name: index.strings(ann, &["name"], f).into_iter().next().unwrap_or_else(|| c.name.clone()),
+        name: index
+            .strings(ann, &["name"], f)
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| c.name.clone()),
         class: c.qualified.clone(),
         kind: kind.into(),
-        table: c.annotation("Table").and_then(|a| index.strings(a, &["name", "value"], f).into_iter().next()),
+        table: c
+            .annotation("Table")
+            .and_then(|a| index.strings(a, &["name", "value"], f).into_iter().next()),
         location: location(f, c.line, c.column),
         fields,
         repositories: Vec::new(),
@@ -1039,7 +1503,9 @@ fn collect_entity(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInf
 fn link_repositories(model: &mut Model, index: &Index) {
     for b in model.beans.iter().filter(|b| b.kind == "dataRepository") {
         let simple = b.type_name.rsplit('.').next().unwrap_or(&b.type_name);
-        let Some(c) = index.class(simple) else { continue };
+        let Some(c) = index.class(simple) else {
+            continue;
+        };
         // The entity is the first type argument of a repository supertype, also through
         // project interfaces.
         let mut todo: Vec<&ClassInfo> = vec![c];
@@ -1061,7 +1527,11 @@ fn link_repositories(model: &mut Model, index: &Index) {
             }
         }
         if let Some(e) = entity {
-            if let Some(ent) = model.entities.iter_mut().find(|x| x.class.rsplit('.').next() == Some(e.as_str())) {
+            if let Some(ent) = model
+                .entities
+                .iter_mut()
+                .find(|x| x.class.rsplit('.').next() == Some(e.as_str()))
+            {
                 ent.repositories.push(b.type_name.clone());
             }
         }
@@ -1069,8 +1539,12 @@ fn link_repositories(model: &mut Model, index: &Index) {
 }
 
 fn collect_config_class(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo) {
-    let Some(a) = c.annotation("ConfigurationProperties") else { return };
-    let Some(prefix) = index.strings(a, &["prefix", "value"], f).into_iter().next() else { return };
+    let Some(a) = c.annotation("ConfigurationProperties") else {
+        return;
+    };
+    let Some(prefix) = index.strings(a, &["prefix", "value"], f).into_iter().next() else {
+        return;
+    };
     let mut keys = Vec::new();
     config_properties(model, index, f, c, &prefix, &c.qualified, &mut keys, 0);
     model.config_classes.push(ConfigClass {
@@ -1082,15 +1556,32 @@ fn collect_config_class(model: &mut Model, index: &Index, f: &SourceFile, c: &Cl
 }
 
 #[allow(clippy::too_many_arguments)]
-fn config_properties(model: &mut Model, index: &Index, f: &SourceFile, c: &ClassInfo, prefix: &str, source: &str, keys: &mut Vec<String>, depth: usize) {
-    for fd in c.fields.iter().filter(|fd| !fd.has_modifier("static") && !fd.has_modifier("const") && !fd.has_modifier("transient")) {
+fn config_properties(
+    model: &mut Model,
+    index: &Index,
+    f: &SourceFile,
+    c: &ClassInfo,
+    prefix: &str,
+    source: &str,
+    keys: &mut Vec<String>,
+    depth: usize,
+) {
+    for fd in c.fields.iter().filter(|fd| {
+        !fd.has_modifier("static") && !fd.has_modifier("const") && !fd.has_modifier("transient")
+    }) {
         let key = format!("{prefix}.{}", config::kebab(&fd.name));
         let t = TypeRef::parse(&fd.type_name);
-        let nested = index
-            .class(t.simple())
-            .filter(|n| t.args.is_empty() && matches!(n.kind, ClassKind::Class | ClassKind::Record) && !SCALARS.contains(&t.simple()));
+        let nested = index.class(t.simple()).filter(|n| {
+            t.args.is_empty()
+                && matches!(n.kind, ClassKind::Class | ClassKind::Record)
+                && !SCALARS.contains(&t.simple())
+        });
         if let (Some(n), true) = (nested, depth < 4) {
-            let file = index.files.iter().find(|x| x.classes.iter().any(|y| std::ptr::eq(y, n))).unwrap_or(f);
+            let file = index
+                .files
+                .iter()
+                .find(|x| x.classes.iter().any(|y| std::ptr::eq(y, n)))
+                .unwrap_or(f);
             config_properties(model, index, file, n, &key, source, keys, depth + 1);
             continue;
         }
@@ -1101,7 +1592,11 @@ fn config_properties(model: &mut Model, index: &Index, f: &SourceFile, c: &Class
         let boolean = matches!(t.simple(), "boolean" | "Boolean");
         model.metadata.add_property(Property {
             name: key.clone(),
-            type_name: Some(if boolean { "java.lang.Boolean".into() } else { type_name }),
+            type_name: Some(if boolean {
+                "java.lang.Boolean".into()
+            } else {
+                type_name
+            }),
             description: fd.doc.clone(),
             source_type: Some(source.to_string()),
             default_value: fd.default.clone().map(serde_json::Value::String),
@@ -1161,7 +1656,10 @@ pub fn gutter(model: &Model, path: &str) -> Vec<Marker> {
             .iter()
             .map(|i| {
                 let inj = &model.injections[*i];
-                target(&inj.location, format!("{}.{} ({})", short(&inj.owner), inj.member, inj.type_name))
+                target(
+                    &inj.location,
+                    format!("{}.{} ({})", short(&inj.owner), inj.member, inj.type_name),
+                )
             })
             .collect();
         let what = match b.framework.as_str() {
@@ -1187,7 +1685,10 @@ pub fn gutter(model: &Model, path: &str) -> Vec<Marker> {
             .iter()
             .map(|b| {
                 let bean = &model.beans[*b];
-                target(&bean.location, format!("{} ({})", bean.name, short(&bean.type_name)))
+                target(
+                    &bean.location,
+                    format!("{} ({})", bean.name, short(&bean.type_name)),
+                )
             })
             .collect();
         let title = match targets.len() {
@@ -1204,11 +1705,24 @@ pub fn gutter(model: &Model, path: &str) -> Vec<Marker> {
         });
     }
     let mut by_line: BTreeMap<u32, Vec<usize>> = BTreeMap::new();
-    for (i, e) in model.endpoints.iter().enumerate().filter(|(_, e)| e.location.path == path) {
+    for (i, e) in model
+        .endpoints
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.location.path == path)
+    {
         by_line.entry(e.location.line).or_default().push(i);
     }
     for (line, list) in by_line {
-        let titles: Vec<String> = list.iter().map(|i| format!("{} {}", model.endpoints[*i].method, model.endpoints[*i].path)).collect();
+        let titles: Vec<String> = list
+            .iter()
+            .map(|i| {
+                format!(
+                    "{} {}",
+                    model.endpoints[*i].method, model.endpoints[*i].path
+                )
+            })
+            .collect();
         out.push(Marker {
             line,
             kind: "endpoint".into(),
@@ -1221,13 +1735,30 @@ pub fn gutter(model: &Model, path: &str) -> Vec<Marker> {
         let targets: Vec<Target> = e
             .repositories
             .iter()
-            .filter_map(|r| model.classes.get(r).map(|l| target(l, short(r).to_string())))
+            .filter_map(|r| {
+                model
+                    .classes
+                    .get(r)
+                    .map(|l| target(l, short(r).to_string()))
+            })
             .collect();
-        let table = e.table.as_deref().map(|t| format!(" (table {t})")).unwrap_or_default();
+        let table = e
+            .table
+            .as_deref()
+            .map(|t| format!(" (table {t})"))
+            .unwrap_or_default();
         out.push(Marker {
             line: e.location.line,
             kind: "entity".into(),
-            title: format!("JPA {} '{}'{table}", if e.kind == "entity" { "entity" } else { e.kind.as_str() }, e.name),
+            title: format!(
+                "JPA {} '{}'{table}",
+                if e.kind == "entity" {
+                    "entity"
+                } else {
+                    e.kind.as_str()
+                },
+                e.name
+            ),
             targets,
             endpoints: Vec::new(),
         });
@@ -1245,7 +1776,11 @@ pub fn gutter(model: &Model, path: &str) -> Vec<Marker> {
             }
         }
     }
-    for c in model.config_classes.iter().filter(|c| c.location.path == path) {
+    for c in model
+        .config_classes
+        .iter()
+        .filter(|c| c.location.path == path)
+    {
         let prefix = canonical(&c.prefix);
         let targets: Vec<Target> = model
             .config_values
@@ -1256,7 +1791,11 @@ pub fn gutter(model: &Model, path: &str) -> Vec<Marker> {
         out.push(Marker {
             line: c.location.line,
             kind: "configProperties".into(),
-            title: format!("Configuration properties '{}' · {} value(s) in the configuration files", c.prefix, targets.len()),
+            title: format!(
+                "Configuration properties '{}' · {} value(s) in the configuration files",
+                c.prefix,
+                targets.len()
+            ),
             targets,
             endpoints: Vec::new(),
         });
@@ -1293,7 +1832,9 @@ mod tests {
     use super::*;
 
     fn files(list: &[(&str, &str)]) -> Vec<(String, String)> {
-        list.iter().map(|(p, t)| (p.to_string(), t.to_string())).collect()
+        list.iter()
+            .map(|(p, t)| (p.to_string(), t.to_string()))
+            .collect()
     }
 
     const ORDER_CONTROLLER: &str = r#"
@@ -1453,7 +1994,11 @@ class CustomerStore {}
     #[test]
     fn beans_and_injection_points() {
         let m = model();
-        let names: Vec<(&str, &str)> = m.beans.iter().map(|b| (b.name.as_str(), b.kind.as_str())).collect();
+        let names: Vec<(&str, &str)> = m
+            .beans
+            .iter()
+            .map(|b| (b.name.as_str(), b.kind.as_str()))
+            .collect();
         for expected in [
             ("orderController", "restController"),
             ("orderService", "service"),
@@ -1470,11 +2015,20 @@ class CustomerStore {}
         }
         let fast = m.beans.iter().find(|b| b.name == "fast").unwrap();
         assert!(fast.primary);
-        assert_eq!(fast.declared_in.as_deref(), Some("com.acme.shop.config.ShopConfig"));
+        assert_eq!(
+            fast.declared_in.as_deref(),
+            Some("com.acme.shop.config.ShopConfig")
+        );
         let config = m.beans.iter().find(|b| b.name == "shopConfig").unwrap();
         assert_eq!(config.profiles, ["test"]);
         let inj = |member: &str| m.injections.iter().find(|i| i.member == member).unwrap();
-        let cand = |member: &str| inj(member).candidates.iter().map(|b| m.beans[*b].name.as_str()).collect::<Vec<_>>();
+        let cand = |member: &str| {
+            inj(member)
+                .candidates
+                .iter()
+                .map(|b| m.beans[*b].name.as_str())
+                .collect::<Vec<_>>()
+        };
         assert_eq!(inj("orders").kind, "constructor");
         assert_eq!(cand("orders"), ["orderService"]);
         assert_eq!(cand("repository"), ["orderRepository"]);
@@ -1492,7 +2046,11 @@ class CustomerStore {}
     #[test]
     fn spring_and_jaxrs_endpoints() {
         let m = model();
-        let eps: Vec<(&str, &str, &str)> = m.endpoints.iter().map(|e| (e.method.as_str(), e.path.as_str(), e.handler.as_str())).collect();
+        let eps: Vec<(&str, &str, &str)> = m
+            .endpoints
+            .iter()
+            .map(|e| (e.method.as_str(), e.path.as_str(), e.handler.as_str()))
+            .collect();
         assert_eq!(
             eps,
             [
@@ -1511,7 +2069,13 @@ class CustomerStore {}
         assert_eq!(create.params[0].kind, "body");
         assert_eq!(m.endpoints[4].params[0].name, "id");
         let get = &m.endpoints[5];
-        assert_eq!(get.params.iter().map(|p| (p.name.as_str(), p.kind.as_str())).collect::<Vec<_>>(), [("id", "path"), ("expand", "query")]);
+        assert_eq!(
+            get.params
+                .iter()
+                .map(|p| (p.name.as_str(), p.kind.as_str()))
+                .collect::<Vec<_>>(),
+            [("id", "path"), ("expand", "query")]
+        );
         assert_eq!(m.endpoints[6].params[0].kind, "body");
         assert_eq!(m.endpoints[1].location.line, 20);
     }
@@ -1520,35 +2084,88 @@ class CustomerStore {}
     fn entities_config_classes_apis_and_profiles() {
         let m = model();
         let order = &m.entities[0];
-        assert_eq!((order.name.as_str(), order.table.as_deref(), order.namespace.as_deref()), ("Order", Some("orders"), Some("jakarta")));
-        assert_eq!(order.fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["id", "email", "customer", "lines"]);
+        assert_eq!(
+            (
+                order.name.as_str(),
+                order.table.as_deref(),
+                order.namespace.as_deref()
+            ),
+            ("Order", Some("orders"), Some("jakarta"))
+        );
+        assert_eq!(
+            order
+                .fields
+                .iter()
+                .map(|f| f.name.as_str())
+                .collect::<Vec<_>>(),
+            ["id", "email", "customer", "lines"]
+        );
         assert!(order.fields[0].id && order.fields[0].generated);
         assert_eq!(order.fields[1].column.as_deref(), Some("customer_email"));
-        assert_eq!((order.fields[2].relation.as_deref(), order.fields[2].target.as_deref()), (Some("manyToOne"), Some("Customer")));
+        assert_eq!(
+            (
+                order.fields[2].relation.as_deref(),
+                order.fields[2].target.as_deref()
+            ),
+            (Some("manyToOne"), Some("Customer"))
+        );
         assert_eq!(order.fields[3].target.as_deref(), Some("OrderLine"));
         assert_eq!(order.repositories, ["com.acme.shop.orders.OrderRepository"]);
 
         let gw = &m.config_classes[0];
         assert_eq!(gw.prefix, "shop.gateway");
-        assert_eq!(gw.keys, ["shop.gateway.api-key", "shop.gateway.mode", "shop.gateway.sandbox", "shop.gateway.retry.attempts", "shop.gateway.retry.backoff"]);
+        assert_eq!(
+            gw.keys,
+            [
+                "shop.gateway.api-key",
+                "shop.gateway.mode",
+                "shop.gateway.sandbox",
+                "shop.gateway.retry.attempts",
+                "shop.gateway.retry.backoff"
+            ]
+        );
         let key = m.metadata.get("shop.gateway.apiKey").unwrap();
         assert_eq!(key.description.as_deref(), Some("API key of the gateway."));
         assert_eq!(key.location.as_ref().unwrap().line, 31);
-        assert_eq!(m.metadata.get("shop.gateway.mode").unwrap().type_name.as_deref(), Some("com.acme.shop.config.Mode"));
+        assert_eq!(
+            m.metadata
+                .get("shop.gateway.mode")
+                .unwrap()
+                .type_name
+                .as_deref(),
+            Some("com.acme.shop.config.Mode")
+        );
         assert_eq!(m.enums["com.acme.shop.config.Mode"], ["LIVE", "TEST"]);
         assert!(m.metadata.get("shop.gateway.sandbox").unwrap().is_boolean());
         assert!(m.metadata.get("shop.banner").is_some());
 
-        let ids: Vec<(&str, &str)> = m.apis.iter().map(|a| (a.id.as_str(), a.namespace.as_str())).collect();
-        assert!(ids.contains(&("jaxrs", "jakarta")) && ids.contains(&("jpa", "jakarta")) && ids.contains(&("cdi", "jakarta")));
+        let ids: Vec<(&str, &str)> = m
+            .apis
+            .iter()
+            .map(|a| (a.id.as_str(), a.namespace.as_str()))
+            .collect();
+        assert!(
+            ids.contains(&("jaxrs", "jakarta"))
+                && ids.contains(&("jpa", "jakarta"))
+                && ids.contains(&("cdi", "jakarta"))
+        );
         assert!(ids.contains(&("spring-data-jpa", "spring")));
         assert!(m.spring && m.jakarta);
         assert_eq!(m.profiles, ["dev", "prod", "test"]);
-        assert_eq!(m.applications.iter().map(|a| a.kind.as_str()).collect::<Vec<_>>(), ["jaxrs"]);
+        assert_eq!(
+            m.applications
+                .iter()
+                .map(|a| a.kind.as_str())
+                .collect::<Vec<_>>(),
+            ["jaxrs"]
+        );
 
         assert_eq!(setting(&m, "server.port", &[]), Some("8081"));
         assert_eq!(setting(&m, "server.port", &["dev".into()]), Some("8082"));
-        assert_eq!(setting(&m, "server.port", &["dev".into(), "prod".into()]), Some("80"));
+        assert_eq!(
+            setting(&m, "server.port", &["dev".into(), "prod".into()]),
+            Some("80")
+        );
         assert_eq!(setting(&m, "server.servlet.context-path", &[]), None);
     }
 
@@ -1559,18 +2176,33 @@ class CustomerStore {}
         let kinds: Vec<(&str, u32)> = svc.iter().map(|x| (x.kind.as_str(), x.line)).collect();
         assert_eq!(kinds[0], ("bean", 7));
         assert!(kinds.contains(&("injection", 8)));
-        let repo_inj = svc.iter().find(|x| x.kind == "injection" && x.line == 8).unwrap();
-        assert_eq!(repo_inj.targets[0].path, "src/main/java/com/acme/shop/orders/OrderRepository.java");
+        let repo_inj = svc
+            .iter()
+            .find(|x| x.kind == "injection" && x.line == 8)
+            .unwrap();
+        assert_eq!(
+            repo_inj.targets[0].path,
+            "src/main/java/com/acme/shop/orders/OrderRepository.java"
+        );
         let bean = &svc[0];
-        assert_eq!(bean.targets[0].path, "src/main/java/com/acme/shop/web/OrderController.java");
+        assert_eq!(
+            bean.targets[0].path,
+            "src/main/java/com/acme/shop/web/OrderController.java"
+        );
         assert!(bean.title.contains("injected into OrderController.orders"));
         let ctl = gutter(&m, "src/main/java/com/acme/shop/web/OrderController.java");
-        let update = ctl.iter().find(|x| x.kind == "endpoint" && x.title.starts_with("PUT")).unwrap();
+        let update = ctl
+            .iter()
+            .find(|x| x.kind == "endpoint" && x.title.starts_with("PUT"))
+            .unwrap();
         assert_eq!(update.title, "PUT /api/orders/{id}, PATCH /api/orders/{id}");
         assert_eq!(update.endpoints.len(), 2);
         let order = gutter(&m, "src/main/java/com/acme/shop/orders/Order.java");
         assert_eq!(order[0].title, "JPA entity 'Order' (table orders)");
-        let repo = gutter(&m, "src/main/java/com/acme/shop/orders/OrderRepository.java");
+        let repo = gutter(
+            &m,
+            "src/main/java/com/acme/shop/orders/OrderRepository.java",
+        );
         assert!(repo.iter().any(|x| x.kind == "repository"));
         let cfg = gutter(&m, "src/main/java/com/acme/shop/config/ShopConfig.java");
         let props = cfg.iter().find(|x| x.kind == "configProperties").unwrap();
