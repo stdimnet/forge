@@ -20,6 +20,8 @@ pub const ROW_HEIGHT: f64 = 20.0;
 pub const CHAR_WIDTH: f64 = 7.3;
 /// At most this many columns are listed per table; the rest is "… N more".
 pub const MAX_COLUMNS: usize = 30;
+/// Longer types are shortened in the box (`enum('pending','paid',…`).
+pub const MAX_TYPE_CHARS: usize = 24;
 
 const PADDING: f64 = 10.0;
 const MIN_WIDTH: f64 = 150.0;
@@ -70,6 +72,9 @@ pub struct Point {
 pub struct DiagramColumn {
     pub name: String,
     pub data_type: String,
+    /// The type as the box shows it (shortened to [`MAX_TYPE_CHARS`]).
+    #[serde(default)]
+    pub type_label: String,
     #[serde(default)]
     pub primary: bool,
     #[serde(default)]
@@ -206,6 +211,17 @@ fn node_of(t: &TableInfo, mode: ColumnsMode, selected: bool) -> DiagramNode {
         .map(|c| DiagramColumn {
             name: c.name.clone(),
             data_type: c.data_type.clone(),
+            type_label: if c.data_type.chars().count() > MAX_TYPE_CHARS {
+                format!(
+                    "{}…",
+                    c.data_type
+                        .chars()
+                        .take(MAX_TYPE_CHARS - 1)
+                        .collect::<String>()
+                )
+            } else {
+                c.data_type.clone()
+            },
             primary: has(&t.primary_key, &c.name),
             foreign: fk_cols.contains(&c.name.to_ascii_lowercase()),
             nullable: c.nullable,
@@ -231,7 +247,7 @@ fn node_of(t: &TableInfo, mode: ColumnsMode, selected: bool) -> DiagramNode {
     };
     let text = columns
         .iter()
-        .map(|c| c.name.chars().count() + c.data_type.chars().count() + 6)
+        .map(|c| c.name.chars().count() + c.type_label.chars().count() + 6)
         .chain([t.name.chars().count() + 5])
         .max()
         .unwrap_or(0);
@@ -437,29 +453,44 @@ fn row_y(node: &DiagramNode, column: Option<&String>) -> f64 {
 }
 
 /// Route an edge between the column rows: out of the facing sides, or around the right side
-/// when the tables overlap horizontally (and for self references).
-fn route(from: &DiagramNode, to: &DiagramNode, fy: f64, ty: f64, lane: usize) -> Vec<Point> {
+/// when the tables overlap horizontally (and for self references). Vertical segments at the
+/// same x get their own lane, so parallel edges stay apart.
+fn route(
+    from: &DiagramNode,
+    to: &DiagramNode,
+    fy: f64,
+    ty: f64,
+    lanes: &mut HashMap<i64, usize>,
+) -> Vec<Point> {
     let p = |x: f64, y: f64| Point { x, y };
-    let offset = LANE + lane as f64 * 8.0;
+    let mut lane = |x: f64| {
+        let l = lanes.entry(x.round() as i64).or_insert(0);
+        *l += 1;
+        (*l - 1) as f64 * 8.0
+    };
     if from.id == to.id {
         let r = from.x + from.width;
+        let x = r + LANE + lane(r);
         let ty = if (ty - fy).abs() < 1.0 {
             fy + ROW_HEIGHT / 2.0
         } else {
             ty
         };
-        return vec![p(r, fy), p(r + offset, fy), p(r + offset, ty), p(r, ty)];
+        return vec![p(r, fy), p(x, fy), p(x, ty), p(r, ty)];
     }
     let (fl, fr) = (from.x, from.x + from.width);
     let (tl, tr) = (to.x, to.x + to.width);
     if fr + 2.0 * LANE <= tl {
         let mid = (fr + tl) / 2.0;
-        vec![p(fr, fy), p(mid, fy), p(mid, ty), p(tl, ty)]
+        let x = (mid + lane(mid)).min(tl - 6.0);
+        vec![p(fr, fy), p(x, fy), p(x, ty), p(tl, ty)]
     } else if tr + 2.0 * LANE <= fl {
         let mid = (tr + fl) / 2.0;
-        vec![p(fl, fy), p(mid, fy), p(mid, ty), p(tr, ty)]
+        let x = (mid - lane(mid)).max(tr + 6.0);
+        vec![p(fl, fy), p(x, fy), p(x, ty), p(tr, ty)]
     } else {
-        let side = fr.max(tr) + offset;
+        let edge = fr.max(tr);
+        let side = edge + LANE + lane(edge);
         vec![p(fr, fy), p(side, fy), p(side, ty), p(tr, ty)]
     }
 }
@@ -559,18 +590,12 @@ pub fn layout(req: &DiagramRequest) -> Diagram {
             y += row_h + NODE_GAP;
         }
     }
-    let mut lanes: HashMap<(usize, usize), usize> = HashMap::new();
+    let mut lanes: HashMap<i64, usize> = HashMap::new();
     let edges = fks
         .into_iter()
         .map(|(ci, pi, fk)| {
             let from = &nodes[ci];
             let to = &nodes[pi];
-            let lane = {
-                let key = (ci.min(pi), ci.max(pi));
-                let l = lanes.entry(key).or_insert(0);
-                *l += 1;
-                *l - 1
-            };
             let fy = row_y(from, fk.columns.first());
             let ty = row_y(to, fk.ref_columns.first());
             let optional = fk.columns.iter().any(|c| {
@@ -585,7 +610,7 @@ pub fn layout(req: &DiagramRequest) -> Diagram {
                 to: to.id.clone(),
                 columns: fk.columns.clone(),
                 ref_columns: fk.ref_columns.clone(),
-                points: route(from, to, fy, ty, lane),
+                points: route(from, to, fy, ty, &mut lanes),
                 is_virtual: fk.is_virtual,
                 optional,
             }
@@ -818,6 +843,15 @@ mod tests {
         let settings = node(&d, "settings");
         assert_eq!(settings.columns.len(), MAX_COLUMNS);
         assert_eq!(settings.hidden_columns, 10);
+        let mut s = shop();
+        s.tables[1].columns[2].data_type = "enum('pending','paid','shipped','delivered')".into();
+        let d = layout(&DiagramRequest {
+            schema: s,
+            ..Default::default()
+        });
+        let c = &node(&d, "orders").columns[2];
+        assert_eq!(c.type_label, "enum('pending','paid','…");
+        assert_eq!(c.type_label.chars().count(), MAX_TYPE_CHARS);
         for (i, a) in d.nodes.iter().enumerate() {
             for b in &d.nodes[i + 1..] {
                 assert!(!overlap(a, b), "{} overlaps {}", a.id, b.id);

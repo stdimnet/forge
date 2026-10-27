@@ -615,6 +615,10 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
 | Full-Text Search… (database) | `DatabaseView.FullTextSearch` | `Ctrl+Alt+Shift+F` | `Cmd+Alt+Shift+F` | any |
+| Show Diagram… (ER diagram) | `ShowUmlDiagram` | `Ctrl+Alt+Shift+U` | `Cmd+Alt+Shift+U` | any |
+| Compare Structure… (database) | `Database.CompareStructure` |  |  | any |
+| Explain Plan (database console) | `Console.Jdbc.ExplainPlan` |  |  | editor |
+| Explain Plan (Raw) (database console) | `Console.Jdbc.ExplainPlan.Raw` |  |  | editor |
 | Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
 | Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
 | Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |

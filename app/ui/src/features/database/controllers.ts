@@ -10,6 +10,8 @@ export interface ConsoleController {
   focus: () => void;
   /** Browse Query History (SQL consoles). */
   history?: () => void;
+  /** Explain Plan / Explain Plan (Raw) of the statement at the caret (SQL consoles). */
+  explain?: (raw: boolean) => Promise<void>;
 }
 
 export interface DataEditorController {

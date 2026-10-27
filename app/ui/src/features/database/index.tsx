@@ -47,6 +47,7 @@ import {
   type DialogRequest,
 } from "./store";
 import "./database.css";
+import "./schema";
 
 registerToolWindow({
   id: "database",

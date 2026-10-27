@@ -37,6 +37,7 @@ import {
   Undo2,
   ScrollText,
   History,
+  ListTree,
 } from "lucide-solid";
 import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { registerView } from "@/editor/views";
@@ -55,6 +56,8 @@ import { exportMenu } from "./exporting";
 import { recordHistory, sqlConsoleExtensions, withParameters } from "@/features/sqlEditor/console";
 import { consoleDialect } from "@/features/sqlEditor/language";
 import { openHistory } from "@/features/sqlEditor/SqlDialogs";
+import { dbSchemaApi, type ExplainResult } from "@/ipc/dbSchema";
+import { PlanView } from "./schema/PlanView";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -76,6 +79,8 @@ interface ResultTab {
   table?: string;
   /** MongoDB documents (JSON view). */
   documents?: unknown[];
+  /** Explain Plan: the plan view instead of the grid. */
+  explain?: ExplainResult;
 }
 
 const now = () => {
@@ -390,6 +395,42 @@ export function ConsoleView(props: { tab: EditorTab }) {
     }
   }
 
+  /** Explain Plan (Raw) of the selection or the statement at the caret: a Plan tab. */
+  async function explain(raw: boolean): Promise<void> {
+    if (!view || running()) return;
+    const text = view.state.doc.toString();
+    const sel = view.state.selection.main;
+    const st = await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
+    if (!st || !st.text.trim()) return;
+    view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
+    setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
+    setRunning(true);
+    try {
+      const s = await ensureSession();
+      let r: ExplainResult;
+      try {
+        r = await dbSchemaApi.explain(s.id, st.text, raw);
+      } catch (e) {
+        // An EXPLAIN ANALYZE on a production data source: ask like Execute does.
+        const check = /production data source/i.test(errorText(e)) ? await allowed(st.text) : { ok: false, confirmed: false };
+        if (!check.confirmed) throw e;
+        r = await dbSchemaApi.explain(s.id, st.text, raw, true);
+      }
+      append("sql", r.sql);
+      append("info", raw ? `${rowsText(r.rows.length)} of the plan retrieved in ${r.elapsedMs} ms` : r.plan ? `Plan built in ${r.elapsedMs} ms` : (r.error ?? "No plan"));
+      const tab: ResultTab = raw
+        ? { key: ++resultSeq, title: "Plan (Raw)", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs }
+        : { key: ++resultSeq, title: "Plan", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs, explain: r };
+      setResults((list) => [...list.filter((x) => x.title !== tab.title), tab]);
+      setActive(results().length - 1);
+    } catch (e) {
+      append("error", errorText(e));
+      setActive("output");
+    } finally {
+      setRunning(false);
+    }
+  }
+
   const cancel = () => {
     const s = session();
     if (s && running()) void dbApi.cancel(s.id);
@@ -452,7 +493,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
     view.focus();
   }
 
-  consoles.set(props.tab.path, { execute: () => execute(), cancel, focus: () => view?.focus(), history: showHistory });
+  consoles.set(props.tab.path, { execute: () => execute(), cancel, focus: () => view?.focus(), history: showHistory, explain });
   onCleanup(() => {
     consoles.delete(props.tab.path);
     const s = session();
@@ -564,6 +605,27 @@ export function ConsoleView(props: { tab: EditorTab }) {
         <button class="icon-btn db-tool" title={`Browse Query History (${shortcutLabel("Console.History.Browse")})`} data-testid="db-history" onClick={showHistory}>
           <History size={14} />
         </button>
+        <Show when={consoleDialect(dialect())}>
+          <button
+            class="icon-btn db-tool"
+            title="Explain Plan"
+            data-testid="db-explain"
+            disabled={running()}
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setMenu({
+                x: r.left,
+                y: r.bottom + 2,
+                items: [
+                  { label: "Explain Plan", hint: shortcutLabel("Console.Jdbc.ExplainPlan"), icon: <ListTree size={13} />, run: () => void explain(false) },
+                  { label: "Explain Plan (Raw)", hint: shortcutLabel("Console.Jdbc.ExplainPlan.Raw"), run: () => void explain(true) },
+                ],
+              });
+            }}
+          >
+            <ListTree size={14} />
+          </button>
+        </Show>
         <span class="db-sep" />
         <button class="db-chip-btn" classList={{ open: shared() }} title="Session" data-testid="db-session-mode" onClick={sessionMenu}>
           {shared() ? "Shared session" : "New session"}
@@ -627,7 +689,9 @@ export function ConsoleView(props: { tab: EditorTab }) {
               <For each={results()}>
                 {(r, i) => (
                   <button class="db-result-tab" classList={{ active: active() === i() }} onClick={() => setActive(i())} title={r.sql}>
-                    <Table2 size={13} />
+                    <Show when={r.explain || r.title === "Plan (Raw)"} fallback={<Table2 size={13} />}>
+                      <ListTree size={13} />
+                    </Show>
                     {r.title}
                   </button>
                 )}
@@ -650,7 +714,11 @@ export function ConsoleView(props: { tab: EditorTab }) {
                 </div>
               }
             >
-              {(r) => <ResultView result={r()} dsId={loc.id} pageSize={pageSize()} onPage={(o) => void page(active() as number, o)} />}
+              {(r) => (
+                <Show when={r().explain} fallback={<ResultView result={r()} dsId={loc.id} pageSize={pageSize()} onPage={(o) => void page(active() as number, o)} />}>
+                  {(x) => <PlanView result={x()} />}
+                </Show>
+              )}
             </Show>
           </div>
         </Show>

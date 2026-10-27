@@ -1997,6 +1997,17 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `options.ddlDialect`; the project watcher drops their model when a listed file changes and
   emits `db://modelChanged` with their ids (and after `db_virtual_objects_save`). Catalog queries are tagged
   `/* forge:<dialect>.<what> */`.
+- Schema tools: the pure crate `forge-dbschema` (re-exported as `forge_db::schema`, in
+  WebAssembly as `dbschema_*`). `db_diagram({ request: { schema, tables?, neighbours?,
+  columns?: "all"|"keys"|"none", hideViews? } }) -> Diagram` (positioned nodes with column rows,
+  foreign key polylines; the UI only draws), `db_schema_compare({ request: { dialect, source,
+  target, options?: { drops?, compare? }, framework?: "laravel"|"doctrine", now? } }) ->
+  { diff, migration, file?, warnings? }` where each side is `{ schema }` or a DDL snapshot
+  `{ ddl, name? }` (pure; the script is never run by the command), `db_explain({ sessionId, sql,
+  raw?, confirmed? }) -> { sql, columns, rows, plan?, error?, elapsedMs }` (the dialect's
+  `EXPLAIN` on the console's connection, never `ANALYZE`; a statement that already is an
+  `EXPLAIN` goes through the guard) and `db_save_export({ path, text? | base64? })` for diagram
+  exports.
 - Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
   `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes),
   `db://modelChanged` (data source ids to reload) and `db://search` (`SearchProgress`).
