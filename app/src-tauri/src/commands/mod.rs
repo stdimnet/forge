@@ -37,6 +37,7 @@ pub mod java;
 pub mod java_build;
 pub mod js_debug;
 pub mod json_schema;
+pub mod jupyter;
 pub mod keymap;
 pub mod kotlin;
 pub mod langservers;

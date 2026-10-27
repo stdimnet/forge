@@ -99,6 +99,7 @@ goforge-delve.workspace = true
 goforge-pprof.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
+pyforge-jupyter = { workspace = true, features = ["runtime", "keychain"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"

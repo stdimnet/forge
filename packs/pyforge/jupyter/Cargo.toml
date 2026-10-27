@@ -9,6 +9,8 @@ license.workspace = true
 default = []
 # Kernel connections (ZeroMQ, Jupyter server REST + WebSocket). The pure part builds to
 # WebAssembly without it.
+# Jupyter server tokens in the OS keychain.
+keychain = ["dep:keyring"]
 runtime = ["dep:zeromq", "dep:tokio", "dep:bytes", "dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:uuid", "dep:tracing"]
 
 [dependencies]
@@ -29,6 +31,7 @@ tokio-tungstenite = { version = "0.30", optional = true, default-features = fals
 futures-util = { version = "0.3", optional = true, default-features = false, features = ["sink", "std"] }
 uuid = { version = "1", optional = true, features = ["v4"] }
 tracing = { workspace = true, optional = true }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 [dev-dependencies]
 tokio.workspace = true

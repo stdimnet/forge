@@ -20,6 +20,8 @@ pub mod variables;
 
 #[cfg(feature = "runtime")]
 pub mod kernel;
+#[cfg(feature = "keychain")]
+pub mod secrets;
 #[cfg(feature = "runtime")]
 pub mod server;
 #[cfg(feature = "runtime")]

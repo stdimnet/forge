@@ -139,6 +139,11 @@ impl ZmqKernel {
     }
 }
 
+/// A random signing key for a new kernel's connection.
+pub fn new_key() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
 /// Five free TCP ports on 127.0.0.1 for a new kernel (shell, iopub, stdin, control, hb).
 pub fn free_ports() -> std::io::Result<[u16; 5]> {
     let listeners = (0..5)
