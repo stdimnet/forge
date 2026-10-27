@@ -334,7 +334,13 @@ mod tests {
             vec!["check", "--write", "--colors=off", "/p/src/a.ts"]
         );
         assert_eq!(
-            lint_paths(&located(WebTool::Stylelint), &ToolConfig::new(WebTool::Stylelint), "/p", &["/p/src".into(), "/p/a.css".into()]).args[3..],
+            lint_paths(
+                &located(WebTool::Stylelint),
+                &ToolConfig::new(WebTool::Stylelint),
+                "/p",
+                &["/p/src".into(), "/p/a.css".into()]
+            )
+            .args[3..],
             ["/p/src/**/*.{css,scss,less,vue}", "/p/a.css"]
         );
         let exe = Located {

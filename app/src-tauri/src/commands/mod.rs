@@ -95,6 +95,7 @@ pub mod updates;
 pub mod viewers;
 pub mod vim;
 pub mod web;
+pub mod web_quality_tools;
 pub mod window;
 pub mod wordpress;
 pub mod workbench;

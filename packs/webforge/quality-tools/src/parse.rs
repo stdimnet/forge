@@ -169,7 +169,11 @@ fn stylelint(json: &Value, ctx: &PathContext) -> Report {
         } else {
             ctx.localize(source)
         };
-        for w in result["invalidOptionWarnings"].as_array().into_iter().flatten() {
+        for w in result["invalidOptionWarnings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
             if let Some(t) = str_of(w, "text") {
                 report.errors.push(t.to_string());
             }
@@ -235,8 +239,7 @@ fn markup(v: &Value) -> Option<String> {
 
 /// A Biome position: `{ "line": 1, "column": 5 }` (1-based).
 fn position(v: &Value) -> Option<(u32, u32)> {
-    Some((zero(u32_of(v, "line")), zero(u32_of(v, "column"))))
-        .filter(|_| v.get("line").is_some())
+    Some((zero(u32_of(v, "line")), zero(u32_of(v, "column")))).filter(|_| v.get("line").is_some())
 }
 
 fn biome(json: &Value, ctx: &PathContext, source: &dyn Fn(&str) -> Option<String>) -> Report {
@@ -267,7 +270,10 @@ fn biome(json: &Value, ctx: &PathContext, source: &dyn Fn(&str) -> Option<String
             continue;
         }
         let file = ctx.localize(&reported);
-        let range = match (location.get("start").and_then(position), location.get("end").and_then(position)) {
+        let range = match (
+            location.get("start").and_then(position),
+            location.get("end").and_then(position),
+        ) {
             (Some(s), e) => Some((s, e)),
             _ => location["span"].as_array().and_then(|span| {
                 let (from, to) = (span.first()?.as_u64()?, span.get(1)?.as_u64()?);
@@ -331,7 +337,14 @@ mod tests {
             {"ruleId":null,"fatal":true,"severity":2,"message":"Parsing error: Unexpected token )","line":3,"column":7},
             {"ruleId":null,"severity":1,"message":"File ignored because of a matching ignore pattern. Use \"--no-ignore\" to override."}
         ],"errorCount":1,"warningCount":1}]"#;
-        let r = parse_report(WebTool::Eslint, out, "", &PathContext::new("/p", "/p"), &|_| None).unwrap();
+        let r = parse_report(
+            WebTool::Eslint,
+            out,
+            "",
+            &PathContext::new("/p", "/p"),
+            &|_| None,
+        )
+        .unwrap();
         assert_eq!(r.problems.len(), 1);
         let p = &r.problems[0];
         assert_eq!((p.line, p.column, p.severity), (2, 6, Severity::Error));
@@ -353,10 +366,23 @@ mod tests {
     #[test]
     fn biome_positions_by_line_and_column() {
         let out = r#"{"diagnostics":[{"category":"lint/style/useConst","severity":"warning","message":"This let declares a variable that is only assigned once.","location":{"path":"src/a.ts","start":{"line":2,"column":1},"end":{"line":2,"column":4}},"tags":["fixable"]}]}"#;
-        let r = parse_report(WebTool::Biome, out, "", &PathContext::new("/p", "/p"), &|_| None).unwrap();
+        let r = parse_report(
+            WebTool::Biome,
+            out,
+            "",
+            &PathContext::new("/p", "/p"),
+            &|_| None,
+        )
+        .unwrap();
         let p = &r.problems[0];
-        assert_eq!((p.line, p.column, p.end_line, p.end_column), (1, 0, Some(1), Some(3)));
-        assert_eq!(p.link.as_deref(), Some("https://biomejs.dev/linter/rules/use-const/"));
+        assert_eq!(
+            (p.line, p.column, p.end_line, p.end_column),
+            (1, 0, Some(1), Some(3))
+        );
+        assert_eq!(
+            p.link.as_deref(),
+            Some("https://biomejs.dev/linter/rules/use-const/")
+        );
         assert!(p.fixable);
         assert_eq!(kebab("noDoubleEquals"), "no-double-equals");
     }

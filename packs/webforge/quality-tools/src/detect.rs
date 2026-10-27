@@ -209,7 +209,11 @@ pub fn locate(fs: &dyn ProjectFs, cfg: &ToolConfig, file: &str) -> Result<Locate
     }
     // The tool runs in the folder of its configuration (ESLint's flat config lookup and
     // Prettier's .prettierignore start there), or a manual working directory.
-    let config_dir = found_config.as_deref().map(parent).unwrap_or("").to_string();
+    let config_dir = found_config
+        .as_deref()
+        .map(parent)
+        .unwrap_or("")
+        .to_string();
     let working_dir = cfg
         .working_dirs()
         .into_iter()
@@ -269,9 +273,7 @@ pub fn locate_all(
         .iter()
         .map(|c| (c.tool, locate(fs, c, file)))
         .collect();
-    let biome = out
-        .iter()
-        .any(|(t, r)| *t == WebTool::Biome && r.is_ok());
+    let biome = out.iter().any(|(t, r)| *t == WebTool::Biome && r.is_ok());
     if biome && settings.biome_priority {
         for (t, r) in &mut out {
             if matches!(t, WebTool::Eslint | WebTool::Prettier) && r.is_ok() {
@@ -343,7 +345,10 @@ pub(crate) mod tests {
 
     fn monorepo() -> MemFs {
         MemFs::new(&[
-            ("package.json", r#"{"name":"root","prettier":{"semi":false}}"#),
+            (
+                "package.json",
+                r#"{"name":"root","prettier":{"semi":false}}"#,
+            ),
             (
                 "node_modules/eslint/package.json",
                 r#"{"version":"9.25.1","bin":{"eslint":"./bin/eslint.js"}}"#,
@@ -392,7 +397,12 @@ pub(crate) mod tests {
             Err(Skip::NotMatched)
         );
         // Prettier's configuration is the root package.json key.
-        let p = locate(&fs, &ToolConfig::new(WebTool::Prettier), "packages/api/src/a.ts").unwrap();
+        let p = locate(
+            &fs,
+            &ToolConfig::new(WebTool::Prettier),
+            "packages/api/src/a.ts",
+        )
+        .unwrap();
         assert_eq!(p.config.as_deref(), Some("package.json"));
         assert_eq!(
             p.launcher,
@@ -401,13 +411,24 @@ pub(crate) mod tests {
             }
         );
         // A package in a nested node_modules.
-        let s = locate(&fs, &ToolConfig::new(WebTool::Stylelint), "packages/styles/card.scss").unwrap();
-        assert_eq!(s.package.as_deref(), Some("packages/styles/node_modules/stylelint"));
+        let s = locate(
+            &fs,
+            &ToolConfig::new(WebTool::Stylelint),
+            "packages/styles/card.scss",
+        )
+        .unwrap();
+        assert_eq!(
+            s.package.as_deref(),
+            Some("packages/styles/node_modules/stylelint")
+        );
         let off = ToolConfig {
             mode: Mode::Disabled,
             ..ToolConfig::new(WebTool::Eslint)
         };
-        assert_eq!(locate(&fs, &off, "packages/web/src/App.tsx"), Err(Skip::Disabled));
+        assert_eq!(
+            locate(&fs, &off, "packages/web/src/App.tsx"),
+            Err(Skip::Disabled)
+        );
     }
 
     #[test]
@@ -451,7 +472,10 @@ pub(crate) mod tests {
             ("biome.json", "{}"),
             ("eslint.config.mjs", ""),
             (".prettierrc", "{}"),
-            ("node_modules/@biomejs/biome/package.json", r#"{"version":"1.9.4","bin":{"biome":"bin/biome"}}"#),
+            (
+                "node_modules/@biomejs/biome/package.json",
+                r#"{"version":"1.9.4","bin":{"biome":"bin/biome"}}"#,
+            ),
             ("node_modules/eslint/package.json", "{}"),
             ("node_modules/prettier/package.json", "{}"),
             ("src/a.ts", ""),
@@ -474,7 +498,10 @@ pub(crate) mod tests {
         for c in &mut settings.tools {
             c.on_reformat = true;
         }
-        assert_eq!(formatter(&fs, &settings, "src/a.ts").unwrap().tool, WebTool::Biome);
+        assert_eq!(
+            formatter(&fs, &settings, "src/a.ts").unwrap().tool,
+            WebTool::Biome
+        );
         assert_eq!(
             bin_entry(WebTool::Biome, r#"{"bin":{"biome":"bin/biome"}}"#),
             "bin/biome"

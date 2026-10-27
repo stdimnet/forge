@@ -95,7 +95,10 @@ pub fn matches_glob_list(path: &str, patterns: &str) -> bool {
         .flat_map(expand_braces)
         .any(|p| {
             // `**/` also matches no folder at all.
-            let p = p.strip_prefix("**/").filter(|_| !path.contains('/')).unwrap_or(&p);
+            let p = p
+                .strip_prefix("**/")
+                .filter(|_| !path.contains('/'))
+                .unwrap_or(&p);
             let target = if p.contains('/') { path } else { name };
             glob_match(&lower(p), &lower(target))
         })
@@ -131,10 +134,7 @@ mod tests {
         assert!(matches_glob_list("eslint.config.mjs", eslint));
         assert!(!matches_glob_list("src/app.css", eslint));
         assert!(matches_glob_list("a.scss", "**/*.{css,scss}"));
-        assert_eq!(
-            expand_braces("a{b,{c,d}}e"),
-            vec!["abe", "ace", "ade"]
-        );
+        assert_eq!(expand_braces("a{b,{c,d}}e"), vec!["abe", "ace", "ade"]);
         assert_eq!(expand_braces("x{y"), vec!["x{y"]);
     }
 }

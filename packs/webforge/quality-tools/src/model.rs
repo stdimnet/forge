@@ -301,7 +301,13 @@ impl ToolConfig {
             .split([';', ','])
             .map(|d| d.trim().trim_start_matches("./").trim_end_matches('/'))
             .filter(|d| !d.is_empty())
-            .map(|d| if d == "." { String::new() } else { d.to_string() })
+            .map(|d| {
+                if d == "." {
+                    String::new()
+                } else {
+                    d.to_string()
+                }
+            })
             .collect()
     }
 

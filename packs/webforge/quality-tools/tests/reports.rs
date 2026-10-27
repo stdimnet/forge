@@ -11,13 +11,21 @@ fn fixture(name: &str) -> String {
 #[test]
 fn eslint_messages_become_problems() {
     let ctx = PathContext::new("/home/me/storefront", "/home/me/storefront");
-    let r = parse_report(WebTool::Eslint, &fixture("eslint.json"), "", &ctx, &|_| None).unwrap();
+    let r = parse_report(WebTool::Eslint, &fixture("eslint.json"), "", &ctx, &|_| {
+        None
+    })
+    .unwrap();
     assert_eq!(r.problems.len(), 4);
     assert!(r.outputs.is_empty());
     let unused = &r.problems[0];
     assert_eq!(unused.file, "src/components/Header.tsx");
     assert_eq!(
-        (unused.line, unused.column, unused.end_line, unused.end_column),
+        (
+            unused.line,
+            unused.column,
+            unused.end_line,
+            unused.end_column
+        ),
         (7, 8, Some(7), Some(17))
     );
     assert_eq!(unused.severity, Severity::Error);
@@ -44,7 +52,10 @@ fn eslint_fix_dry_run_carries_the_fixed_text() {
         .with_stdin("src/hooks/useCart.ts");
     let r = parse_report(
         WebTool::Eslint,
-        &format!("(node:1) ExperimentalWarning: …\n{}", fixture("eslint-fix-dry-run.json")),
+        &format!(
+            "(node:1) ExperimentalWarning: …\n{}",
+            fixture("eslint-fix-dry-run.json")
+        ),
         "",
         &ctx,
         &|_| None,
@@ -60,8 +71,14 @@ fn eslint_fix_dry_run_carries_the_fixed_text() {
 fn stylelint_warnings_in_scss() {
     let ctx = PathContext::new("/home/me/admin-portal", "/home/me/admin-portal");
     // Stylelint 16 prints the report on stderr.
-    let r = parse_report(WebTool::Stylelint, "", &fixture("stylelint.json"), &ctx, &|_| None)
-        .unwrap();
+    let r = parse_report(
+        WebTool::Stylelint,
+        "",
+        &fixture("stylelint.json"),
+        &ctx,
+        &|_| None,
+    )
+    .unwrap();
     assert_eq!(r.problems.len(), 4);
     let hex = &r.problems[0];
     assert_eq!(hex.file, "src/app/users/user-card.component.scss");
@@ -90,7 +107,14 @@ fn biome_byte_spans_map_to_lines_and_columns() {
     let line = format!("{}\n", "x".repeat(29));
     let text = line.repeat(15);
     let source = |f: &str| (f == "src/orders/pricing.ts").then(|| text.clone());
-    let r = parse_report(WebTool::Biome, &fixture("biome-lint.json"), "", &ctx, &source).unwrap();
+    let r = parse_report(
+        WebTool::Biome,
+        &fixture("biome-lint.json"),
+        "",
+        &ctx,
+        &source,
+    )
+    .unwrap();
     assert_eq!(r.problems.len(), 2);
     let eq = &r.problems[0];
     assert_eq!(eq.file, "src/orders/pricing.ts");

@@ -3,7 +3,7 @@
 //! changed lines (`save_actions_changed_lines`), applies the PHP actions to the text
 //! (`save_actions_php`), writes the file and runs the external tools on it where the project
 //! lives (`save_actions_run_tools`). The logic is in `forge-save-actions` and
-//! `phpforge-lang-php`.
+//! `phpforge-lang-php`; the web tools' packages come from `webforge-quality-tools`.
 
 use forge_core::Result;
 use forge_save_actions::tools::{self, ToolLocation, ToolsReport};
@@ -14,6 +14,7 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::commands::git::with_repo;
 use crate::commands::php_quality_tools;
+use crate::commands::web_quality_tools::{web_tool, WebSave};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 use phpforge_quality_tools::QualityTool;
@@ -139,16 +140,29 @@ pub async fn save_actions_run_tools(
     let backend = state.backend()?;
     blocking(move || {
         let state = app.state::<AppState>();
+        // The web tools run where they apply to the file (Biome before ESLint and
+        // Prettier), from the package found for it, with the Node.js interpreter.
+        let web = WebSave::new(&state, backend.as_ref(), &path, &tools);
+        let custom = |tool: Tool| match web_tool(tool) {
+            Some(_) => web.program(tool),
+            None => custom(tool),
+        };
         // The PHP tools take their Quality Tools configuration (configuration file,
         // ruleset, options) and run with its PHP interpreter.
-        let prepare = |tool: Tool, cmd| match php_tool(tool) {
-            Some(q) => php_quality_tools::save_action_command(&state, backend.as_ref(), q, cmd),
-            None => Ok(cmd),
-        };
+        let prepare =
+            |tool: Tool, cmd: forge_process::CommandLine| match (php_tool(tool), web_tool(tool)) {
+                (Some(q), _) => {
+                    php_quality_tools::save_action_command(&state, backend.as_ref(), q, cmd)
+                }
+                (_, Some(_)) => {
+                    web.command(tool, cmd.args.last().map(String::as_str).unwrap_or(""))
+                }
+                _ => Ok(cmd),
+            };
         tools::run_tools_with(
             backend.as_ref(),
             &path,
-            &tools,
+            &web.tools,
             &custom,
             &prepare,
             tools::TOOL_TIMEOUT,
@@ -164,7 +178,7 @@ fn php_tool(tool: Tool) -> Option<QualityTool> {
         Tool::Pint => Some(QualityTool::Pint),
         Tool::Phpcbf => Some(QualityTool::Phpcs),
         Tool::Rector => Some(QualityTool::Rector),
-        Tool::Eslint | Tool::Prettier => None,
+        Tool::Eslint | Tool::Prettier | Tool::Stylelint | Tool::Biome => None,
     }
 }
 

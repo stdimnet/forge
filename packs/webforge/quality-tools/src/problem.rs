@@ -92,12 +92,18 @@ impl PathContext {
     pub fn localize(&self, reported: &str) -> String {
         let reported = reported.trim();
         if let Some(stdin) = &self.stdin_file {
-            if matches!(reported, "" | "-" | "<input>" | "<text>" | "<stdin>" | "stdin") {
+            if matches!(
+                reported,
+                "" | "-" | "<input>" | "<text>" | "<stdin>" | "stdin"
+            ) {
                 return stdin.clone();
             }
         }
         let is_abs = reported.starts_with('/')
-            || reported.replace('\\', "/").get(1..3).is_some_and(|s| s == ":/");
+            || reported
+                .replace('\\', "/")
+                .get(1..3)
+                .is_some_and(|s| s == ":/");
         let abs = if is_abs {
             normalize(reported)
         } else {
