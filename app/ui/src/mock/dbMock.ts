@@ -542,7 +542,7 @@ const ROLES: Partial<Record<DataSource["driver"], RoleInfo[]>> = {
 };
 
 /** Files of a DDL data source from the demo project (folders: their `.sql` files). */
-async function ddlFiles(paths: string[]): Promise<{ path: string; text: string }[]> {
+export async function ddlFiles(paths: string[]): Promise<{ path: string; text: string }[]> {
   const out: { path: string; text: string }[] = [];
   const walk = async (path: string) => {
     try {

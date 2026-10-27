@@ -52,6 +52,7 @@ import "./externalTools";
 import "./debug";
 import "./debug/runIntegration";
 import "./database";
+import "./sqlEditor";
 import "./injections";
 import "./inspections";
 import "./scratches";

@@ -64,6 +64,7 @@ mod search;
 mod settings;
 mod spell;
 mod spring;
+mod sqlcode;
 mod ssr;
 mod stacktrace;
 mod structure;

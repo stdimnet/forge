@@ -2003,6 +2003,42 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 - UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
   opened with `openViewTab`; consoles and table editors use it. Editor-area panels can opt into the
   tool-window key context with `data-focus-context="toolwindow"`.
+## SQL editor (`forge-sqlcode`)
+
+- `crates/forge-sqlcode` (pure, also WebAssembly) is DataGrip's SQL editor: `SqlDialect`
+  (generic, MySQL, PostgreSQL, SQLite, SQL Server, Oracle, ClickHouse) with per-path
+  `DialectMapping`s (`sql.dialect.default` < `sql.dialect.project` < `sql.dialect.mappings`
+  `{ path, dialect?, dataSource? }`, the most specific path wins), an error-tolerant lexer,
+  `resolve::analyze` (scopes per query: FROM items, aliases, CTEs, subqueries, table functions;
+  references with `Target`s against `forge_dbmodel::DbModel`), the SQL inspections
+  (`[[contributions.inspections]]` of `database.toml`, language `sql`: `SqlResolve`,
+  `SqlAmbiguousColumn`, `SqlWithoutWhere`, `SqlUnusedAlias`, `SqlUnusedCte`, `SqlType`,
+  `SqlRedundant*`) with fixes as text edits, navigation (`symbol_at`, `occurrences`,
+  `rename_ranges`, `ddl_location`), the formatter (`SqlStyle::from_values` of the code style
+  `sql.*` keys; `forge-codestyle` uses it for the SQL preview), user parameters, the query
+  history model and `plan_run`.
+- IPC (`app/ui/src/ipc/sql.ts`, `commands/sql.rs`; offsets UTF-16): `sql_dialects()`,
+  `sql_file_info({ request: SqlTarget }) -> { dialect, source, dataSourceId? }`,
+  `sql_analyze({ request }) -> { dialect, problems, hasModel }`, `sql_declaration({ request:
+  { …SqlTarget, offset } }) -> { symbol, ddl? } | null`, `sql_usages`, `sql_rename`,
+  `sql_format({ request }) -> string`, `sql_params({ request: { text, dialect } }) -> { params,
+  names }`, `sql_substitute({ request: { text, dialect, values } })`, `sql_history_list({
+  dataSourceId, query })`, `sql_history_add({ entry })`, `sql_history_clear({ dataSourceId })`
+  (`<data dir>/forge/sql-history/<id>.json`), `sql_run_file({ request: { runId, path,
+  dataSourceId, stopOnError, confirmed? } }) -> RunFileSummary` (own session, guarded like
+  consoles, `needsConfirmation` for production) with `sql://runFile { runId, kind: started |
+  statement | finished, index, total, sql, line, ok, error?, rows?, elapsedMs }` and
+  `sql_run_file_cancel({ runId })`. `SqlTarget { text, path? | dataSourceId + dialect +
+  defaultSchema? }`: files resolve dialect and data source from the mappings, consoles from
+  their data source. Names resolve against `DbService::model_if_cached` (cached models and DDL
+  data sources only), so typing never connects.
+- UI (`features/sqlEditor`): `registerLanguage("sql")` with a dialect compartment per file,
+  the inspector (`registerEditorExtension`; consoles add `sqlConsoleExtensions`) publishing
+  source `SQL` diagnostics, declaration / usages / rename (`registerRenameProvider` in
+  `features/codeintel/rename.ts`) / context action / format providers, the status bar widget
+  `sql.dialect`, Settings | Languages & Frameworks | SQL Dialects, and the Parameters, Query
+  History and Run SQL Script dialogs. Browser mode: `mock/sqlMock.ts` over `forge-wasm`.
+
 ## Scratches and Consoles (`forge-scratches`)
 
 - Scratch files are global (like PHPStorm's): `<config dir>/forge/scratches/<name>`, per-scratch

@@ -54,6 +54,7 @@ forge-debug.workspace = true
 forge-dap.workspace = true
 forge-ports.workspace = true
 forge-db.workspace = true
+forge-sqlcode.workspace = true
 forge-containers.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true

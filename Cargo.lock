@@ -2094,6 +2094,7 @@ dependencies = [
  "forge-scopes",
  "forge-scratches",
  "forge-spell",
+ "forge-sqlcode",
  "forge-ssr",
  "forge-testing",
  "forge-text",
@@ -2221,6 +2222,7 @@ dependencies = [
 name = "forge-codestyle"
 version = "0.1.0"
 dependencies = [
+ "forge-sqlcode",
  "serde",
  "serde_json",
 ]
@@ -2856,6 +2858,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-sqlcode"
+version = "0.1.0"
+dependencies = [
+ "forge-dbmodel",
+ "forge-sql",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-ssr"
 version = "0.1.0"
 dependencies = [
@@ -3005,6 +3017,7 @@ dependencies = [
  "forge-search-core",
  "forge-spell",
  "forge-sql",
+ "forge-sqlcode",
  "forge-ssr",
  "forge-testing",
  "forge-text",
