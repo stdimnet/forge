@@ -105,6 +105,7 @@ impl Inner {
         request: LaunchRequest,
         resolved: ResolvedLaunch,
         parent: Option<String>,
+        late_breakpoints: bool,
     ) -> DapResult<Arc<DapSession>> {
         let config = self.config.read().expect("config lock").clone();
         let conn = transport::open(&resolved.transport, config.launch_timeout).await?;
@@ -128,6 +129,7 @@ impl Inner {
             conn.peer,
             parent,
             Arc::downgrade(self),
+            late_breakpoints,
         ));
         self.sessions
             .lock()
@@ -179,8 +181,9 @@ impl Inner {
         let me = Arc::clone(self);
         let info = parent.adapter().clone();
         let parent_id = parent.id.clone();
+        let late = parent.late_breakpoints();
         Box::pin(async move {
-            me.start_resolved(info, request, resolved, Some(parent_id))
+            me.start_resolved(info, request, resolved, Some(parent_id), late)
                 .await
         })
     }
@@ -324,7 +327,13 @@ impl DapManager {
         let resolved = descriptor.resolve(&request)?;
         let session = self
             .inner
-            .start_resolved(descriptor.info(), request, resolved, None)
+            .start_resolved(
+                descriptor.info(),
+                request,
+                resolved,
+                None,
+                descriptor.breakpoints_after_request(),
+            )
             .await?;
         Ok(session.info())
     }

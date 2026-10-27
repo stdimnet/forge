@@ -243,10 +243,7 @@ pub fn discover_minitest(text: &str) -> Vec<RubyTest> {
         }
         let ind = indent_of(raw);
         if t == "end" {
-            while scopes
-                .last()
-                .is_some_and(|(si, _, _)| *si >= ind)
-            {
+            while scopes.last().is_some_and(|(si, _, _)| *si >= ind) {
                 let closes_here = scopes.last().is_some_and(|(si, _, _)| *si == ind);
                 if scopes.pop().is_some_and(|(_, k, _)| k == "describe") {
                     counters.pop();

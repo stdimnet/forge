@@ -78,6 +78,8 @@ pub struct DapSession {
     client: Arc<DapClient>,
     peer: String,
     parent: Option<String>,
+    /// Breakpoints follow the `launch` / `attach` request (rdbg).
+    late_breakpoints: bool,
     caps: RwLock<Capabilities>,
     state: Mutex<State>,
     initialized: Notify,
@@ -188,8 +190,10 @@ impl DapSession {
         peer: String,
         parent: Option<String>,
         manager: Weak<Inner>,
+        late_breakpoints: bool,
     ) -> Self {
         Self {
+            late_breakpoints,
             id,
             info,
             request,
@@ -218,6 +222,12 @@ impl DapSession {
 
     pub fn adapter(&self) -> &AdapterInfo {
         &self.info
+    }
+
+    /// Whether breakpoints follow the `launch` / `attach` request
+    /// ([`crate::DebugAdapterDescriptor::breakpoints_after_request`]).
+    pub(crate) fn late_breakpoints(&self) -> bool {
+        self.late_breakpoints
     }
 
     pub fn launch_request(&self) -> &LaunchRequest {
@@ -412,9 +422,12 @@ impl DapSession {
 
         // Adapters that announce `initialized` right after `initialize` (GDB) may run the
         // program on `launch`: configure them first. Others send it after `launch`.
-        let early = tokio::time::timeout(EARLY_INITIALIZED, self.initialized.notified())
-            .await
-            .is_ok();
+        // Adapters that map breakpoints only after `attach` (rdbg) keep the early
+        // `initialized` for after the request, which they read first.
+        let early = !self.late_breakpoints
+            && tokio::time::timeout(EARLY_INITIALIZED, self.initialized.notified())
+                .await
+                .is_ok();
         if early {
             self.sync_breakpoints().await;
         }

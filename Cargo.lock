@@ -7002,6 +7002,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rubyforge-lang-ruby"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rubyforge-sdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-dap",
+ "forge-debug",
+ "rubyforge-lang-ruby",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "russh"
 version = "0.64.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
