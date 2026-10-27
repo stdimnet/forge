@@ -2372,6 +2372,7 @@ dependencies = [
  "forge-core",
  "forge-dataedit",
  "forge-dbmodel",
+ "forge-dbschema",
  "forge-dbtransfer",
  "forge-ports",
  "forge-remote",
@@ -2407,6 +2408,16 @@ dependencies = [
  "serde_json",
  "sqlparser",
  "toml 0.8.23",
+]
+
+[[package]]
+name = "forge-dbschema"
+version = "0.1.0"
+dependencies = [
+ "forge-dbmodel",
+ "forge-sql",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3065,6 +3076,7 @@ dependencies = [
  "forge-containers",
  "forge-dataedit",
  "forge-dbmodel",
+ "forge-dbschema",
  "forge-dbtransfer",
  "forge-deploy",
  "forge-devenv",

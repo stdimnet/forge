@@ -61,7 +61,9 @@ import {
 import { callWasm, forgeWasm } from "@/wasm";
 import { invoke } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
+import type { ExplainResult, Plan } from "@/ipc/dbSchema";
 import { createDemoDatabase, type DemoDatabase } from "./dbDemoData";
+import { demoPlanRows, planTables } from "./dbSchemaMock";
 import { cloneDatabase, runStatement } from "./dbEngine";
 import {
   createMongoDemo,
@@ -514,13 +516,46 @@ async function introspectSchema(s: MockSource, schema: string): Promise<SchemaIn
   if (s.source.driver === "redis") return { name: schema, tables: [], routines: [] };
   if (schema !== schemaName(s.source)) return { name: schema, tables: [], routines: [] };
   const d = db(s.source.id);
-  return enrich(s.source.driver, schema, {
+  const info = enrich(s.source.driver, schema, {
     name: schema,
     tables: Object.values(d.tables)
       .map((t) => tableFor(s.source.driver, { ...t.info, rowEstimate: t.info.kind === "table" ? t.rows.length : undefined }))
       .sort((x, y) => x.name.localeCompare(y.name)),
     routines: ROUTINES[s.source.driver] ?? d.routines,
   });
+  return s.source.id === STAGING ? staging(info) : info;
+}
+
+/** The staging copy of the shop (Compare Structure demos): behind the development schema. */
+const STAGING = "shop-staging";
+
+function staging(info: SchemaInfo): SchemaInfo {
+  const tables = info.tables
+    .filter((t) => t.name !== "audit_log" && t.kind !== "matview")
+    .map((t) => {
+      if (t.name === "users")
+        return { ...t, columns: t.columns.map((c) => (c.name === "name" ? { ...c, dataType: "varchar(100)", nullable: true } : c)) };
+      if (t.name === "orders")
+        return {
+          ...t,
+          columns: [...t.columns, { name: "coupon_code", dataType: "varchar(32)", nullable: true, autoIncrement: false }],
+          indexes: t.indexes.filter((i) => i.name !== "orders_user_id_status_index"),
+        };
+      return t;
+    });
+  tables.push({
+    name: "legacy_carts",
+    kind: "table",
+    columns: [
+      { name: "id", dataType: "bigint", nullable: false, autoIncrement: true },
+      { name: "session_id", dataType: "varchar(64)", nullable: false, autoIncrement: false },
+      { name: "payload", dataType: "text", nullable: true, autoIncrement: false },
+    ],
+    primaryKey: ["id"],
+    foreignKeys: [],
+    indexes: [{ name: "legacy_carts_pkey", columns: ["id"], unique: true, primary: true }],
+  });
+  return { ...info, tables: tables.sort((x, y) => x.name.localeCompare(y.name)) };
 }
 
 const ROLES: Partial<Record<DataSource["driver"], RoleInfo[]>> = {
@@ -1050,6 +1085,32 @@ registerMock("db_statement_at", async (a) => {
   return callWasm<SqlStatement | null>(wasm.sql_statement_at, { sql: a.sql, from: a.from, to: a.to, dialect: a.dialect });
 });
 
+// Explain Plan: the dialect's explain statement (real code), answered with demo plan rows
+// that the real parser turns into the plan. Explaining never changes the demo data.
+registerMock("db_explain", async (a): Promise<ExplainResult> => {
+  const s = session(a.sessionId as string);
+  const src = get(s.info.dataSourceId);
+  const dialect = dialectOf(src.source.driver, src.source.options.ddlDialect);
+  const raw = !!a.raw;
+  const sql = a.sql as string;
+  const wasm = await forgeWasm();
+  const script = await callWasm<{ statements: string[]; result: number }>(wasm.dbschema_explain_script, { dialect, sql, raw });
+  const keyword = (await callWasm<string[]>(wasm.sql_leading_keywords, { statements: [sql] }))[0];
+  if (keyword === "EXPLAIN") {
+    const guard = await guardFor(src, sql);
+    if (guard.blocked) throw new Error(guard.blocked);
+    if (guard.confirm && !a.confirmed) throw new Error(guard.confirm);
+  }
+  await delay(90);
+  const tables = db(s.info.dataSourceId).tables;
+  const used = planTables(sql, (name) => tables[name]?.rows.length);
+  const { columns, rows } = demoPlanRows(dialect, raw, used, sql);
+  const plan = raw
+    ? undefined
+    : await callWasm<Plan>(wasm.dbschema_parse_plan, { columns: columns.map((c) => c.name), rows });
+  return { sql: script.statements[script.result], columns, rows, plan, elapsedMs: 3 + (sql.length % 11) };
+});
+
 /** Reset all state (tests). */
 export function resetDbMock(): void {
   sources.length = 0;
@@ -1082,6 +1143,19 @@ export function addExplorerSources(): void {
   emitSources();
 }
 
+/** The explorer sources plus a staging copy of the shop that lags behind it (Compare
+ * Structure, ER diagram and Explain Plan screenshots). */
+export function addSchemaToolSources(): void {
+  addExplorerSources();
+  const base = envSource();
+  if (!sources.some((x) => x.source.id === STAGING))
+    sources.push({
+      source: { ...base, id: STAGING, name: "shop@staging", driver: "postgres", host: "staging.internal", port: 5432, user: "shop", options: { ...base.options, color: "yellow" } },
+      password: "secret",
+    });
+  emitSources();
+}
+
 /** Demo data sources of every engine (screenshots, `window.__forgeDbMock.addDemoSources()`). */
 export function addDemoSources(): void {
   const base = envSource();
@@ -1104,8 +1178,8 @@ export function addDemoSources(): void {
 
 declare global {
   interface Window {
-    __forgeDbMock?: { addDemoSources: () => void; addExplorerSources: () => void };
+    __forgeDbMock?: { addDemoSources: () => void; addExplorerSources: () => void; addSchemaToolSources: () => void };
   }
 }
 
-if (typeof window !== "undefined") window.__forgeDbMock = { addDemoSources, addExplorerSources };
+if (typeof window !== "undefined") window.__forgeDbMock = { addDemoSources, addExplorerSources, addSchemaToolSources };

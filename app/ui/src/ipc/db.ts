@@ -154,10 +154,12 @@ export interface TriggerInfo {
   definition?: string;
 }
 
+export type TableKind = "table" | "view" | "matview" | "collection";
+
 export interface TableInfo {
   name: string;
   /** `matview`: a materialized view. */
-  kind: "table" | "view" | "matview" | "collection";
+  kind: TableKind;
   comment?: string;
   columns: ColumnInfo[];
   primaryKey: string[];

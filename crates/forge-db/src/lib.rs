@@ -20,6 +20,8 @@
 //!   [`DbService::dump_target`]): scripts of the Create/Modify Table, Drop and Rename
 //!   dialogs, data imports and the connection of the native dump tools; the SQL and
 //!   command lines come from the pure `forge-dbmodel` and `forge-dbtransfer` crates.
+//! - [`schema`]: ER diagrams, schema compare, migrations and query plans (the pure
+//!   `forge-dbschema` crate); [`DbService::explain`] runs Explain Plan in a console session.
 //! - [`value`], [`split`], [`export`], [`guard`]: re-exported from the pure `forge-sql` crate.
 
 pub mod config;
@@ -51,6 +53,7 @@ pub use forge_dataedit as dataedit;
 /// The explorer model (also built to WebAssembly for browser mode).
 pub use forge_dbmodel as model;
 pub use forge_dbmodel::{DbModel, ObjectDoc, ObjectRef, VirtualObjects};
+pub use forge_dbschema as schema;
 pub use forge_sql::ExportFormat;
 pub use forge_sql::{Guard, GuardPolicy};
 pub use introspect::{
@@ -59,8 +62,8 @@ pub use introspect::{
 };
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
 pub use service::{
-    row_key, ApplyResult, ChangePreview, ColumnFilter, DataSourceInfo, DbService, FilterOp,
-    ImportError, ImportProgress, ImportSummary, QueryPage, ScriptResult, SearchProgress,
+    row_key, ApplyResult, ChangePreview, ColumnFilter, DataSourceInfo, DbService, ExplainResult,
+    FilterOp, ImportError, ImportProgress, ImportSummary, QueryPage, ScriptResult, SearchProgress,
     SearchRequest, SearchScope, SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey,
     StatementResult, TableDataRequest, TableMatches, TestResult,
 };

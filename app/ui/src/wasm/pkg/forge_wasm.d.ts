@@ -644,6 +644,26 @@ export function dbobjects_import_preview(json: string): string;
 export function dbobjects_rename_sql(json: string): string;
 
 /**
+ * Mirrors `db_schema_compare`: `CompareRequest` → `CompareResult` or `{ error }`.
+ */
+export function dbschema_compare(request_json: string): string;
+
+/**
+ * Mirrors `db_diagram`: `DiagramRequest` → `Diagram`.
+ */
+export function dbschema_diagram(request_json: string): string;
+
+/**
+ * `{ dialect, sql, raw }` → `ExplainScript` or `{ error }`.
+ */
+export function dbschema_explain_script(request_json: string): string;
+
+/**
+ * `{ columns, rows }` of an explain statement → `Plan` or `{ error }`.
+ */
+export function dbschema_parse_plan(request_json: string): string;
+
+/**
  * `{ local: {path, dir, text, modified}[], remote: …, by }` → `DirCompare`.
  */
 export function deploy_compare(request_json: string): string;
@@ -2411,6 +2431,10 @@ export interface InitOutput {
     readonly dbobjects_import_batches: (a: number, b: number, c: number) => void;
     readonly dbobjects_import_preview: (a: number, b: number, c: number) => void;
     readonly dbobjects_rename_sql: (a: number, b: number, c: number) => void;
+    readonly dbschema_compare: (a: number, b: number, c: number) => void;
+    readonly dbschema_diagram: (a: number, b: number, c: number) => void;
+    readonly dbschema_explain_script: (a: number, b: number, c: number) => void;
+    readonly dbschema_parse_plan: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
     readonly deploy_entry_path: (a: number, b: number, c: number) => void;
     readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
