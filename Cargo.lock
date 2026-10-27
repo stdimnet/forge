@@ -2044,6 +2044,7 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "cforge-analyzers",
  "cforge-cmake",
  "cforge-embedded",
@@ -2310,6 +2311,7 @@ dependencies = [
  "dirs 6.0.0",
  "forge-core",
  "forge-dbmodel",
+ "forge-dbschema",
  "forge-ports",
  "forge-remote",
  "forge-sql",
@@ -2344,6 +2346,16 @@ dependencies = [
  "serde_json",
  "sqlparser",
  "toml 0.8.23",
+]
+
+[[package]]
+name = "forge-dbschema"
+version = "0.1.0"
+dependencies = [
+ "forge-dbmodel",
+ "forge-sql",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2988,6 +3000,7 @@ dependencies = [
  "forge-colorscheme",
  "forge-containers",
  "forge-dbmodel",
+ "forge-dbschema",
  "forge-deploy",
  "forge-devenv",
  "forge-diff",

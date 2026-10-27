@@ -3,6 +3,7 @@
 
 pub mod chat;
 pub mod dbmodel;
+pub mod dbschema;
 pub mod dql;
 pub mod markdown;
 pub mod output;

@@ -19,6 +19,7 @@ forge-runtargets.workspace = true
 regex-lite = "0.1"
 forge-sql.workspace = true
 forge-dbmodel.workspace = true
+forge-dbschema.workspace = true
 forge-sqlcode.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true

@@ -9,15 +9,19 @@
 //! - [`migrate`]: a dialect-aware migration script that turns the target schema into the
 //!   source schema (SQLite tables are rebuilt where `ALTER TABLE` cannot change them).
 //! - [`framework`]: the same migration as a Laravel or Doctrine migration file.
+//! - [`api`]: the Compare Structure request of the IPC command and the WebAssembly bridge
+//!   (either side a schema or a DDL snapshot).
 //! - [`plan`]: the `EXPLAIN` statement of each dialect and its output parsed into a plan tree
 //!   with costs and rows, plus the flame-graph bars of the plan.
 
+pub mod api;
 pub mod compare;
 pub mod diagram;
 pub mod framework;
 pub mod migrate;
 pub mod plan;
 
+pub use api::{compare_schemas, CompareRequest, CompareResult, CompareSide};
 pub use compare::{
     compare, CompareOptions, DiffKind, ItemCategory, ItemDiff, SchemaDiff, TableDiff,
 };

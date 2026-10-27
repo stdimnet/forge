@@ -577,3 +577,60 @@ pub async fn db_search(
 pub fn db_search_cancel(search_id: String, state: State<'_, DbState>) {
     state.service.cancel_search(&search_id);
 }
+
+// ---- Schema tools ------------------------------------------------------------------------
+
+/// ER diagram (Diagrams | Show Diagram) of a schema or of selected tables.
+#[tauri::command]
+pub fn db_diagram(request: forge_db::schema::DiagramRequest) -> forge_db::schema::Diagram {
+    forge_db::schema::layout(&request)
+}
+
+/// Compare Structure: the diff tree, the migration script of the target and optionally a
+/// Laravel / Doctrine migration file. Nothing runs; the UI previews the script.
+#[tauri::command]
+pub fn db_schema_compare(
+    request: forge_db::schema::CompareRequest,
+) -> Result<forge_db::schema::CompareResult> {
+    forge_db::schema::compare_schemas(&request).map_err(ForgeError::Other)
+}
+
+/// Explain Plan / Explain Plan (Raw) of one statement in a console session.
+#[tauri::command]
+pub async fn db_explain(
+    session_id: String,
+    sql: String,
+    raw: Option<bool>,
+    confirmed: Option<bool>,
+    state: State<'_, DbState>,
+) -> Result<forge_db::ExplainResult> {
+    Ok(state
+        .service
+        .explain(
+            &session_id,
+            &sql,
+            raw.unwrap_or(false),
+            confirmed.unwrap_or(false),
+        )
+        .await?)
+}
+
+/// Save an exported diagram (SVG text or PNG bytes as base64) to the file the user chose.
+#[tauri::command]
+pub async fn db_save_export(
+    path: String,
+    text: Option<String>,
+    base64: Option<String>,
+) -> Result<()> {
+    use base64::Engine as _;
+    let bytes = match (text, base64) {
+        (Some(t), _) => t.into_bytes(),
+        (None, Some(b)) => base64::engine::general_purpose::STANDARD
+            .decode(b.trim())
+            .map_err(|e| ForgeError::Other(format!("invalid image data: {e}")))?,
+        (None, None) => return Err(ForgeError::Other("nothing to save".into())),
+    };
+    tokio::fs::write(&path, bytes)
+        .await
+        .map_err(|e| ForgeError::io(path.clone(), e))
+}
