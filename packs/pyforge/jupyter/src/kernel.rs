@@ -144,16 +144,14 @@ pub fn new_key() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
-/// Five free TCP ports on 127.0.0.1 for a new kernel (shell, iopub, stdin, control, hb).
+/// Five distinct free TCP ports on 127.0.0.1 for a new kernel (shell, iopub, stdin, control,
+/// hb): outside the system's ephemeral range and probed without listening (see
+/// `forge-ports`), so a process spawned meanwhile cannot hold one of them open.
 pub fn free_ports() -> std::io::Result<[u16; 5]> {
-    let listeners = (0..5)
-        .map(|_| std::net::TcpListener::bind("127.0.0.1:0"))
-        .collect::<std::io::Result<Vec<_>>>()?;
-    let mut ports = [0u16; 5];
-    for (p, l) in ports.iter_mut().zip(&listeners) {
-        *p = l.local_addr()?.port();
-    }
-    Ok(ports)
+    let ports = forge_ports::free_ports(5)?;
+    let mut out = [0u16; 5];
+    out.copy_from_slice(&ports);
+    Ok(out)
 }
 
 /// Write a connection file only the user can read (it holds the signing key).

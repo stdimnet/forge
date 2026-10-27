@@ -21,9 +21,7 @@ impl DbTunnel for FakeTunnel {
     fn open(&self, host: String, port: u16) -> BoxFuture<'static, DbResult<TunnelEndpoint>> {
         self.opened.lock().unwrap().push((host, port));
         Box::pin(async move {
-            let free = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-            let port = free.local_addr().unwrap().port();
-            drop(free);
+            let port = forge_ports::free_port().unwrap();
             Ok(TunnelEndpoint::new(port, ()))
         })
     }

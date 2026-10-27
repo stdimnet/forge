@@ -308,10 +308,7 @@ async fn forbidden_and_unreachable_servers() {
     let e = fj.merge_request(&repo(), 1).await.unwrap_err().to_string();
     assert_eq!(e, "Forgejo: access denied (user does not have permission)");
 
-    let dead = {
-        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        l.local_addr().unwrap()
-    };
+    let dead = format!("127.0.0.1:{}", forge_ports::free_port().unwrap());
     let fj = Forgejo::new(
         forge_forges::http::client(),
         &format!("http://{dead}/api/v1"),

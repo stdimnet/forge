@@ -40,8 +40,9 @@ adds the features `runtime` (kernels) and `keychain` (server tokens).
   (`<IDS|MSG>`), the WebSocket JSON form, connection files, `KernelEvent`s of iopub and shell
   messages and `user_expressions` replies.
 - `runtime`: `kernel` (DEALER sockets for shell and control, SUB for iopub with the pure-Rust
-  `zeromq` crate, MIT; free ports and private connection files), `server` (REST
-  `/api/kernels`, `/api/kernelspecs` and the kernel WebSocket with `tokio-tungstenite`) and
+  `zeromq` crate, MIT; five free ports from [`forge-ports`](forge-ports.md) and private
+  connection files), `server` (REST `/api/kernels`, `/api/kernelspecs` and the kernel
+  WebSocket with `tokio-tungstenite`) and
   `session` (runs cells and reports `SessionEvent`s per cell id with rendered outputs; waits
   for both the reply and the idle status; Variables, children and View as DataFrame through
   the helper `forge_jupyter.py` and `user_expressions`; interrupt with `interrupt_request`).
