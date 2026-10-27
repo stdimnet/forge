@@ -32,14 +32,15 @@ pub struct Framework {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectInfo {
-    /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `rust`, `go`, `python`.
+    /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `kotlin`,
+    /// `groovy`, `scala`, `rust`, `go`, `python`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
     /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
     /// `goforge`, `rustforge`, `kotlinforge`.
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
-    /// `conda`, `maven`, `gradle`, `docker`, `git`.
+    /// `conda`, `maven`, `gradle`, `sbt`, `docker`, `git`.
     pub tools: Vec<String>,
     /// The framework (or, without one, the language) that best describes the project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -79,6 +80,8 @@ pub fn language_name(id: &str) -> &str {
         "python" => "Python",
         "java" => "Java",
         "kotlin" => "Kotlin",
+        "scala" => "Scala",
+        "groovy" => "Groovy",
         other => other,
     }
 }
@@ -92,7 +95,8 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "python" => Some("pyforge"),
         "go" => Some("goforge"),
         "rust" => Some("rustforge"),
-        "java" => Some("javaforge"),
+        // Groovy, Scala and Android (a framework) are JavaForge's JVM extras.
+        "java" | "groovy" | "scala" => Some("javaforge"),
         "kotlin" => Some("kotlinforge"),
         _ => None,
     }
@@ -143,6 +147,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "shopware",
     "magento",
     "joomla",
+    "android",
     "next",
     "nuxt",
     "angular",
@@ -161,6 +166,8 @@ const PRIMARY_PRIORITY: &[&str] = &[
 const LANGUAGE_PRIORITY: &[&str] = &[
     "php",
     "kotlin",
+    "scala",
+    "groovy",
     "java",
     "typescript",
     "javascript",
@@ -393,6 +400,9 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     // ---- Java (JavaForge): Maven and Gradle builds, Java sources
     scan_java(dir, rel, c, &files);
     scan_kotlin(dir, rel, c, &files);
+    scan_groovy(dir, rel, c, &files);
+    scan_scala(dir, rel, c, &files);
+    scan_android(dir, rel, c, &files);
 
     // ---- Other languages and tools
     // ---- Rust
@@ -625,6 +635,101 @@ fn scan_kotlin(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
     if builds.iter().any(|b| b.contains("io.kotest")) {
         c.framework("kotest", "Kotest", "kotlin", None, rel);
     }
+}
+
+/// The texts of a folder's build files that exist (`build.gradle(.kts)`, `pom.xml`, …).
+fn build_texts(dir: &Path, files: &[String], names: &[&str]) -> Vec<String> {
+    names
+        .iter()
+        .filter(|f| files.iter().any(|x| x == *f))
+        .filter_map(|f| fs::read_to_string(dir.join(f)).ok())
+        .collect()
+}
+
+/// Groovy (JavaForge): Groovy sources (`*.groovy`, `*.gvy`, `*.gy` in the folder,
+/// `src/main/groovy`, `src/test/groovy`) or a Gradle build applying the `groovy` plugin.
+/// Gradle build scripts themselves are not Groovy sources. Spock is a framework of its own.
+fn scan_groovy(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let sources = files
+        .iter()
+        .any(|f| f.ends_with(".groovy") || f.ends_with(".gvy") || f.ends_with(".gy"))
+        || dir.join("src/main/groovy").is_dir()
+        || dir.join("src/test/groovy").is_dir();
+    let builds = build_texts(dir, files, &["build.gradle", "build.gradle.kts", "pom.xml"]);
+    let plugin = builds.iter().any(|b| {
+        b.contains("id 'groovy'")
+            || b.contains("id \"groovy\"")
+            || b.contains("id(\"groovy\")")
+            || b.contains("apply plugin: 'groovy'")
+            || b.contains("gmavenplus-plugin")
+            || b.lines().any(|l| l.trim() == "groovy")
+            || b.contains("{ groovy }")
+    });
+    if sources || plugin {
+        c.language("groovy");
+    }
+    if builds.iter().any(|b| b.contains("org.spockframework")) {
+        c.framework("spock", "Spock", "groovy", None, rel);
+    }
+}
+
+/// Scala (JavaForge): an sbt build (`build.sbt`, `project/build.properties`), Scala sources
+/// (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin. ScalaTest and MUnit are
+/// frameworks; the Scala version of the build is the language's.
+fn scan_scala(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let has = |name: &str| files.iter().any(|f| f == name);
+    let sbt_props = fs::read_to_string(dir.join("project/build.properties"))
+        .map(|t| t.contains("sbt.version"))
+        .unwrap_or(false);
+    let sbt = has("build.sbt") || sbt_props;
+    let sources = files.iter().any(|f| f.ends_with(".scala"))
+        || dir.join("src/main/scala").is_dir()
+        || dir.join("src/test/scala").is_dir();
+    let gradle = build_texts(dir, files, &["build.gradle", "build.gradle.kts"])
+        .iter()
+        .any(|b| {
+            b.contains("id 'scala'")
+                || b.contains("id(\"scala\")")
+                || b.contains("apply plugin: 'scala'")
+        });
+    if sbt {
+        c.tool("sbt");
+    }
+    if !(sbt || sources || gradle) {
+        return;
+    }
+    c.language("scala");
+    let build = fs::read_to_string(dir.join("build.sbt")).unwrap_or_default();
+    if build.contains("\"org.scalatest\"") {
+        c.framework("scalatest", "ScalaTest", "scala", None, rel);
+    }
+    if build.contains("\"munit\"") {
+        c.framework("munit", "MUnit", "scala", None, rel);
+    }
+}
+
+/// Android (JavaForge): a Gradle module applying the Android Gradle Plugin
+/// (`com.android.application` / `library`, also as a version catalog alias) or a
+/// `src/main/AndroidManifest.xml`. The version is AGP's (`gradle/libs.versions.toml`).
+fn scan_android(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let builds = build_texts(dir, files, &["build.gradle.kts", "build.gradle"]);
+    let plugin = builds.iter().any(|b| {
+        b.contains("com.android.application")
+            || b.contains("com.android.library")
+            || b.contains("android.application)")
+            || b.contains("android.library)")
+    });
+    let manifest = dir.join("src/main/AndroidManifest.xml").is_file();
+    if !(plugin || manifest) {
+        return;
+    }
+    let catalog = fs::read_to_string(dir.join("gradle/libs.versions.toml")).unwrap_or_default();
+    let version = catalog.lines().find_map(|l| {
+        let (k, v) = l.split_once('=')?;
+        (k.trim() == "agp").then(|| v.trim().trim_matches('"').to_string())
+    });
+    c.tool("android");
+    c.framework("android", "Android", "java", version, rel);
 }
 
 fn scan_composer(dir: &Path, rel: &str, c: &mut Collector) {
@@ -1487,5 +1592,72 @@ mod tests {
         assert!(info.matches_any(&[]));
         assert!(info.matches_any(&["laravel".into()]));
         assert!(!info.matches_any(&["symfony".into(), "lua".into()]));
+    }
+
+    #[test]
+    fn groovy_scala_and_android() {
+        let groovy = tempfile::tempdir().unwrap();
+        write(groovy.path(), "build.gradle", "plugins {\n    id 'groovy'\n}\ndependencies {\n    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'\n}\n");
+        let info = detect(groovy.path());
+        assert!(info.uses("groovy") && info.uses("javaforge") && info.uses("spock"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.name.as_str()),
+            Some("Groovy")
+        );
+        // Gradle build scripts are not Groovy sources.
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "build.gradle", "plugins { id 'java' }");
+        assert!(!detect(plain.path()).uses("groovy"));
+        let script = tempfile::tempdir().unwrap();
+        write(script.path(), "release.groovy", "println 'x'");
+        assert!(detect(script.path()).uses("groovy"));
+
+        let sbt = tempfile::tempdir().unwrap();
+        write(sbt.path(), "build.sbt", "scalaVersion := \"3.3.4\"\nlibraryDependencies += \"org.scalameta\" %% \"munit\" % \"1.0.2\" % Test\n");
+        write(
+            sbt.path(),
+            "project/build.properties",
+            "sbt.version=1.10.5\n",
+        );
+        let info = detect(sbt.path());
+        assert_eq!(info.languages, ["scala"]);
+        assert_eq!(info.packs, ["javaforge"]);
+        assert!(info.uses("sbt") && info.uses("munit") && !info.uses("java"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.name.as_str()),
+            Some("Scala")
+        );
+
+        let android = tempfile::tempdir().unwrap();
+        write(android.path(), "settings.gradle.kts", "include(\":app\")");
+        write(
+            android.path(),
+            "build.gradle.kts",
+            "plugins {\n    alias(libs.plugins.android.application) apply false\n}\n",
+        );
+        write(
+            android.path(),
+            "gradle/libs.versions.toml",
+            "[versions]\nagp = \"8.7.3\"\n",
+        );
+        write(android.path(), "app/build.gradle.kts", "plugins {\n    alias(libs.plugins.android.application)\n    alias(libs.plugins.kotlin.android)\n}\nandroid { namespace = \"com.acme.notes\" }\n");
+        write(
+            android.path(),
+            "app/src/main/AndroidManifest.xml",
+            "<manifest/>",
+        );
+        write(
+            android.path(),
+            "app/src/main/java/com/acme/notes/MainActivity.kt",
+            "class MainActivity",
+        );
+        let info = detect(android.path());
+        let fw = info.framework("android").unwrap();
+        assert_eq!(fw.version.as_deref(), Some("8.7.3"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.id.as_str()),
+            Some("android")
+        );
+        assert!(info.uses("javaforge") && info.uses("gradle"));
     }
 }
