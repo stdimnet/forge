@@ -159,7 +159,9 @@ function configure(): void {
 /** The profile's view of a source's diagnostics for `path`. */
 export function filterDiagnostics(path: string, source: string, diagnostics: EditorDiagnostic[]): EditorDiagnostic[] {
   if (!configured) return diagnostics;
-  const text = viewFor(path)?.state.doc.toString();
+  const doc = viewFor(path)?.state.doc.toString();
+  // Only a file with suppression comments needs its text in Rust.
+  const text = doc?.includes("noinspection") ? doc : undefined;
   return call((w) => w.inspections_apply, { path, source, text, diagnostics }, diagnostics);
 }
 
