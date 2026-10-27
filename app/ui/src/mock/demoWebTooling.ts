@@ -58,7 +58,7 @@ export default defineConfig({
   "name": "storefront",
   "projectType": "application",
   "tags": ["scope:shop", "type:app"],
-  "implicitDependencies": ["ui"],
+  "implicitDependencies": ["@acme/ui"],
   "targets": {
     "serve": { "executor": "@nx/vite:dev-server" },
     "build": { "executor": "@nx/vite:build" },
@@ -171,7 +171,8 @@ paths:
             schema: { $ref: '#/components/schemas/Product' }
       responses:
         '201': { description: Created }
-        '422': { description: Validation failed }
+        '422':
+          description: Validation failed
   /products/{id}:
     parameters:
       - name: id
@@ -188,7 +189,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Product' }
-        '404': { description: Not found }
+        '404':
+          description: Not found
   /orders:
     post:
       tags: [orders]
@@ -201,7 +203,8 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/Order' }
       responses:
-        '201': { description: The new order }
+        '201':
+          description: The new order
 components:
   schemas:
     Product:

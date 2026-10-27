@@ -74,7 +74,7 @@ async function complete(ctx: CompletionContext): Promise<CompletionResult | null
   return {
     from: answer.from,
     options: answer.items.map((i, n) =>
-      styleOption({ label: i.label, type: KIND[i.kind] ?? "text", detail: i.detail, info: i.documentation, boost: -n }, { deprecated: i.deprecated }),
+      styleOption({ label: i.label, type: KIND[i.kind] ?? "text", detail: i.detail, info: i.documentation, boost: Math.max(1, 99 - n) }, { deprecated: i.deprecated }),
     ),
     validFor: /^\w*$/,
   };

@@ -60,7 +60,7 @@ function ProjectNode(props: { p: NxProject }) {
     });
   return (
     <>
-      <div class="tree-row wt-row" data-nx-project={props.p.name} onClick={toggle}>
+      <div class="wt-row" data-nx-project={props.p.name} onClick={toggle}>
         {open() ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         {props.p.kind === "application" ? <Boxes size={14} class="wt-app" /> : <Library size={14} class="wt-lib" />}
         <span>{props.p.name}</span>
@@ -71,7 +71,7 @@ function ProjectNode(props: { p: NxProject }) {
         <For each={props.p.targets}>
           {(t) => (
             <div
-              class="tree-row wt-row wt-child"
+              class="wt-row wt-child"
               data-nx-target={`${props.p.name}:${t.name}`}
               title={t.executor}
               onDblClick={() => runNxTarget(props.p.name, t.name)}

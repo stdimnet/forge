@@ -45,6 +45,7 @@ export function App() {
       vue: "src/views/DashboardView.vue",
       angular: "src/app/users/user-card.component.ts",
       node: "src/orders/pricing.ts",
+      webtools: "apps/api/openapi.yaml",
     };
     await openFile(INITIAL[new URLSearchParams(location.search).get("project") ?? ""] ?? "app/Models/User.php");
   });

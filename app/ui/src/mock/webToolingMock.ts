@@ -18,7 +18,8 @@ import { webToolingWatchers } from "./demoWebTooling";
 const wasm = () => forgeWasm();
 const root = () => projectRoot();
 
-if (webDemoId() === "webtools" && mockSettingValue("tools.fileWatchers") === null) {
+const configured = mockSettingValue("tools.fileWatchers");
+if (webDemoId() === "webtools" && (!Array.isArray(configured) || configured.length === 0)) {
   setSetting("tools.fileWatchers", webToolingWatchers as never, "project");
 }
 
@@ -65,19 +66,23 @@ function sassRun(args: string[], cwd: string): { text: string; code: number } {
   return { text: `Compiled ${input} to ${output}.\n`, code: 0 };
 }
 
+/** Watcher programs the demo answers (commands built in the UI arrive without a configuration). */
+const WATCHER_PROGRAMS = new Set(["sass", "lessc", "tsc", "babel", "prettier"]);
+const watcherCommand = (r: RunRequest) => {
+  const c = r.command;
+  if (!c) return null;
+  const program = c.program.split("/").pop() ?? "";
+  return WATCHER_PROGRAMS.has(program) ? { ...c, base: program } : null;
+};
+
 registerMockRunHandler({
-  commandLine: async (r: RunRequest) => {
-    const cfg = r.configuration;
-    if (cfg?.type !== "file-watcher") return null;
-    const o = cfg.options ?? {};
-    return { program: o.program ?? "", args: JSON.parse(o.args ?? "[]") as string[], cwd: o.cwd ?? "" };
-  },
+  commandLine: async (r: RunRequest) => watcherCommand(r),
   start: async (r: RunRequest, runId: string) => {
-    const cfg = r.configuration;
-    if (cfg?.type !== "file-watcher") return null;
-    const o = cfg.options ?? {};
-    const args = JSON.parse(o.args ?? "[]") as string[];
-    const program = (o.program ?? "").split("/").pop() ?? "";
+    const c = watcherCommand(r);
+    if (!c) return null;
+    const o = { program: c.program, cwd: c.cwd ?? "" };
+    const args = c.args;
+    const program = c.base;
     const commandLine = [o.program, ...args].join(" ");
     const { text, code } = program === "sass" ? sassRun(args, o.cwd ?? "") : { text: `${program} finished.\n`, code: 0 };
     const w = await wasm();

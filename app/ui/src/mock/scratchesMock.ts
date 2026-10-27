@@ -256,6 +256,8 @@ function cannedResponse(method: string, url: string): DemoResponse {
     return { status, reason, headers: headers(body.length, extra), body, ms };
   };
   const path = url.replace(/^\w+:\/\/[^/]+/, "");
+  if (method === "GET" && path.startsWith("/v2/products"))
+    return json(200, "OK", [{ id: 42, name: "Espresso Cup", price: 12.5, tags: ["kitchen"] }, { id: 43, name: "Milk Jug", price: 18.9, tags: [] }], 58);
   if (method === "POST" && path.startsWith("/api/login"))
     return json(200, "OK", { token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjd9.demo", expires_in: 3600 }, 71);
   if (method === "POST" && path.startsWith("/api/orders"))
