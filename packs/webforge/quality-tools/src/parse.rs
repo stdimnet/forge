@@ -239,7 +239,8 @@ fn markup(v: &Value) -> Option<String> {
 
 /// A Biome position: `{ "line": 1, "column": 5 }` (1-based).
 fn position(v: &Value) -> Option<(u32, u32)> {
-    Some((zero(u32_of(v, "line")), zero(u32_of(v, "column")))).filter(|_| v.get("line").is_some())
+    v.get("line")?;
+    Some((zero(u32_of(v, "line")), zero(u32_of(v, "column"))))
 }
 
 fn biome(json: &Value, ctx: &PathContext, source: &dyn Fn(&str) -> Option<String>) -> Report {
