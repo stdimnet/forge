@@ -112,6 +112,22 @@ export function clipboard_history_promote(args_json: string): string;
 export function clipboard_history_remove(args_json: string): string;
 
 /**
+ * `{ text, offset }` → completion or null (`cmake_complete`).
+ */
+export function cmake_complete(request_json: string): string;
+
+/**
+ * `{ text }` → configure messages (`cmake_reload`'s `messages`).
+ */
+export function cmake_parse_log(request_json: string): string;
+
+/**
+ * `{ entries, files, root }` → `{ profiles, presetFiles, presetErrors }` (`cmake_profiles`
+ * without the active one).
+ */
+export function cmake_profiles(request_json: string): string;
+
+/**
  * `{ files, query }` → the answer of `phpforge_fw_cms::api::answer`.
  */
 export function cms_query(request_json: string): string;
@@ -423,6 +439,12 @@ export function coverage_parse(request_json: string): string;
  * `{ report, project }` → `CoverageNode[]` (the Coverage tool window).
  */
 export function coverage_summary(request_json: string): string;
+
+/**
+ * `{ output, root, buildDir, files }` → build problems with project paths
+ * (`cpp_build_problems`).
+ */
+export function cpp_build_problems(request_json: string): string;
 
 /**
  * `{ text, delimiter, edits }` → the new text.
@@ -1893,6 +1915,9 @@ export interface InitOutput {
     readonly clipboard_history_list: (a: number, b: number, c: number) => void;
     readonly clipboard_history_promote: (a: number, b: number, c: number) => void;
     readonly clipboard_history_remove: (a: number, b: number, c: number) => void;
+    readonly cmake_complete: (a: number, b: number, c: number) => void;
+    readonly cmake_parse_log: (a: number, b: number, c: number) => void;
+    readonly cmake_profiles: (a: number, b: number, c: number) => void;
     readonly cms_query: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
@@ -1953,6 +1978,7 @@ export interface InitOutput {
     readonly coverage_marks: (a: number, b: number, c: number) => void;
     readonly coverage_parse: (a: number, b: number, c: number) => void;
     readonly coverage_summary: (a: number, b: number, c: number) => void;
+    readonly cpp_build_problems: (a: number, b: number, c: number) => void;
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;

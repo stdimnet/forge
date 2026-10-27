@@ -23,8 +23,8 @@ pub mod targets;
 
 pub use coverage::{CoverageFormat, CoverageNode, CoverageReport, LineMark, LineStatus};
 pub use provider::{
-    CommandContext, CoverageRequest, FrameworkInfo, TestCommand, TestFrameworkProvider,
-    TestFrameworks,
+    CommandContext, CoverageCollect, CoverageRequest, FrameworkInfo, TestCommand,
+    TestFrameworkProvider, TestFrameworks,
 };
 pub use spec::{FieldOption, SpecField, SpecProvider, TestFrameworkSpec};
 pub use targets::{FailedTest, TargetKind, TestFile, TestTarget};

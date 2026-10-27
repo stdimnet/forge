@@ -767,26 +767,6 @@ procMacro = { enable = true }
 rust-analyzer = { cargo = { buildScripts = { enable = true } }, check = { command = "clippy" }, procMacro = { enable = true } }
 
 [[server]]
-id = "clangd"
-name = "clangd"
-group = "C/C++"
-languages = ["c", "cpp"]
-command = "clangd"
-args = ["--background-index", "--clang-tidy", "--header-insertion=iwyu"]
-homepage = "https://clangd.llvm.org"
-license = "Apache-2.0 WITH LLVM-exception"
-note = "Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results."
-install = [
-  { tool = "brew", command = ["brew", "install", "llvm"], platforms = ["macos"] },
-  { tool = "pacman", command = ["sudo", "pacman", "-S", "clang"], platforms = ["linux"] },
-  { tool = "apt", command = ["sudo", "apt", "install", "clangd"], platforms = ["linux"] },
-  { tool = "download", url = "https://github.com/clangd/clangd/releases" },
-]
-
-[server.initialization_options]
-clangdFileStatus = true
-
-[[server]]
 id = "zls"
 name = "ZLS"
 group = "Zig"

@@ -33,14 +33,15 @@ pub struct Framework {
 #[serde(rename_all = "camelCase")]
 pub struct ProjectInfo {
     /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `kotlin`,
-    /// `groovy`, `scala`, `rust`, `go`, `python`.
+    /// `groovy`, `scala`, `rust`, `go`, `python`, `cpp` (C and C++).
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
     /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
-    /// `goforge`, `rustforge`, `kotlinforge`.
+    /// `goforge`, `rustforge`, `kotlinforge`, `cforge`.
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
-    /// `conda`, `maven`, `gradle`, `sbt`, `docker`, `git`.
+    /// `conda`, `maven`, `gradle`, `sbt`, `docker`, `git`, `cmake`, `compile-commands`, `meson`,
+    /// `make`.
     pub tools: Vec<String>,
     /// The framework (or, without one, the language) that best describes the project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -82,6 +83,7 @@ pub fn language_name(id: &str) -> &str {
         "kotlin" => "Kotlin",
         "scala" => "Scala",
         "groovy" => "Groovy",
+        "cpp" => "C/C++",
         other => other,
     }
 }
@@ -98,6 +100,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         // Groovy, Scala and Android (a framework) are JavaForge's JVM extras.
         "java" | "groovy" | "scala" => Some("javaforge"),
         "kotlin" => Some("kotlinforge"),
+        "cpp" => Some("cforge"),
         _ => None,
     }
 }
@@ -176,6 +179,7 @@ const LANGUAGE_PRIORITY: &[&str] = &[
     "lua",
     "rust",
     "go",
+    "cpp",
     "python",
     "html",
     "css",
@@ -425,6 +429,8 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     if has("go.work") {
         c.tool("go-workspace");
     }
+    // ---- C and C++ (CForge)
+    scan_cpp(dir, rel, c, &files);
     // ---- Python
     // Like Lua: Python files in the root, several of them in a folder, or a packaging /
     // environment file make it a Python project.
@@ -467,6 +473,45 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
         || has("docker-compose.yaml")
     {
         c.tool("docker");
+    }
+}
+
+/// C and C++ sources and headers.
+const CPP_EXTENSIONS: &[&str] = &[
+    ".c", ".cc", ".cpp", ".cxx", ".c++", ".h", ".hh", ".hpp", ".hxx", ".ixx", ".cppm",
+];
+
+fn is_cpp_file(name: &str) -> bool {
+    CPP_EXTENSIONS.iter().any(|e| name.ends_with(e))
+}
+
+/// A CMake project, a compilation database (also in `build/`), a Meson build, a Makefile
+/// next to C/C++ sources (or with them in `src/`), or C/C++ sources themselves (in the root,
+/// or several in a folder) make it a C/C++ project.
+fn scan_cpp(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let has = |name: &str| files.iter().any(|f| f == name);
+    let sources = files.iter().filter(|f| is_cpp_file(f)).count();
+    let cmake = has("CMakeLists.txt");
+    let compdb = has("compile_commands.json")
+        || (rel.is_empty() && dir.join("build/compile_commands.json").is_file());
+    let meson = has("meson.build");
+    let makefile = has("Makefile") || has("makefile") || has("GNUmakefile");
+    let make_sources =
+        makefile && (sources > 0 || file_names(&dir.join("src")).iter().any(|f| is_cpp_file(f)));
+    if cmake || compdb || meson || make_sources || sources >= 2 || (rel.is_empty() && sources > 0) {
+        c.language("cpp");
+    }
+    if cmake {
+        c.tool("cmake");
+    }
+    if compdb {
+        c.tool("compile-commands");
+    }
+    if meson {
+        c.tool("meson");
+    }
+    if makefile {
+        c.tool("make");
     }
 }
 
@@ -1594,6 +1639,42 @@ mod tests {
         assert_eq!(info.languages, vec!["rust", "go", "python"]);
         assert_eq!(info.packs, vec!["rustforge", "goforge", "pyforge"]);
         assert_eq!(info.primary.unwrap().name, "Rust");
+    }
+
+    #[test]
+    fn cpp_projects() {
+        for (marker, tool) in [
+            ("CMakeLists.txt", Some("cmake")),
+            ("compile_commands.json", Some("compile-commands")),
+            ("build/compile_commands.json", Some("compile-commands")),
+            ("meson.build", Some("meson")),
+            ("main.cpp", None),
+            ("hello.c", None),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["cforge"], "{marker}");
+            assert_eq!(info.languages, vec!["cpp"], "{marker}");
+            assert_eq!(info.primary.unwrap().name, "C/C++", "{marker}");
+            if let Some(t) = tool {
+                assert!(info.tools.contains(&t.to_string()), "{marker}");
+            }
+        }
+        // A Makefile alone is no C/C++ project; with sources in src/ it is.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Makefile", "all:");
+        write(dir.path(), "composer.json", "{}");
+        let info = detect(dir.path());
+        assert!(!info.uses("cpp"));
+        assert!(info.tools.contains(&"make".to_string()));
+        write(dir.path(), "src/main.c", "");
+        assert!(detect(dir.path()).uses("cforge"));
+        // One header in a sub folder of a web project is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "native/addon.h", "");
+        assert!(!detect(dir.path()).uses("cpp"));
     }
 
     #[test]

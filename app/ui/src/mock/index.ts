@@ -85,6 +85,7 @@ import "./kotlinMock";
 import "./springMock";
 import "./jvmExtrasMock";
 import "./androidMock";
+import "./cppMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";

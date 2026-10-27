@@ -498,6 +498,7 @@ impl TestFrameworkSpec {
                 file: expand(&spec.file, &vars).unwrap_or_default(),
                 format: spec.format,
                 location_rules: Vec::new(),
+                collect: None,
             });
         }
         Ok(TestCommand {

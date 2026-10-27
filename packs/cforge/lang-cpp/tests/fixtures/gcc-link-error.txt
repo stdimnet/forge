@@ -1,0 +1,3 @@
+/usr/bin/ld: /tmp/ccud8i46.o: in function `main':
+link.cpp:(.text+0x9): undefined reference to `helper()'
+collect2: error: ld returned 1 exit status

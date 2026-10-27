@@ -26,6 +26,7 @@ import { isJavaDemo, javaDemoFiles, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoFiles, kotlinDemoName } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoFiles, scalaDemoName } from "./demoScalaProject";
 import { androidDemoFiles, androidDemoName, isAndroidDemo } from "./demoAndroidProject";
+import { cppDemoFiles, cppDemoName, isCppDemo } from "./demoCppProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
@@ -37,6 +38,7 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge,
 // `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application), `?project=kotlin` a Gradle Kotlin service,
 // `?project=scala` an sbt build, `?project=android` a Gradle Android app.
+// `?project=cpp` the CMake project `shapes` of CForge.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
   : isWordPressDemo()
@@ -59,6 +61,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...scalaDemoFiles }
     : isAndroidDemo()
     ? { ...androidDemoFiles }
+    : isCppDemo()
+    ? { ...cppDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -86,6 +90,8 @@ export const mockProjectName = isSymfonyDemo()
     ? scalaDemoName
     : isAndroidDemo()
     ? androidDemoName
+    : isCppDemo()
+    ? cppDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.

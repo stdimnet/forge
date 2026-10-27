@@ -498,10 +498,10 @@ mod tests {
 
     #[test]
     fn rows_report_status_paths_and_install_options() {
-        let f = fixture(&["gopls", "npm", "clangd"]);
+        let f = fixture(&["gopls", "npm", "csharp-ls"]);
         let mut prefs = Prefs::default();
         prefs.servers.insert(
-            "clangd".into(),
+            "csharp-ls".into(),
             ServerPrefs {
                 enabled: Some(false),
                 ..Default::default()
@@ -541,7 +541,7 @@ mod tests {
         assert_eq!(row("gopls").detail.as_deref(), Some("Indexing 45%"));
         assert!(row("gopls").in_project);
         assert!(row("gopls").path.as_deref().unwrap().ends_with("bin/gopls"));
-        assert_eq!(row("clangd").status, RowStatus::Disabled);
+        assert_eq!(row("csharp-ls").status, RowStatus::Disabled);
         assert_eq!(row("taplo").status, RowStatus::NotInstalled);
         assert_eq!(row("zls").custom_path.as_deref(), Some("/nope/zls"));
         assert_eq!(

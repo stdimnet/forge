@@ -22,12 +22,13 @@ import { isJavaDemo } from "./demoJavaProject";
 import { isKotlinDemo } from "./demoKotlinProject";
 import { isScalaDemo } from "./demoScalaProject";
 import { isAndroidDemo } from "./demoAndroidProject";
+import { isCppDemo } from "./demoCppProject";
 import { webDemo } from "./demoWebProjects";
 import { mockSettingValue } from "./settingsMock";
 
 /** Project files the detection looks at. */
 function demoFiles(): string[] {
-  if (isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isJavaDemo() || isKotlinDemo() || isScalaDemo() || isAndroidDemo() || webDemo()) return [];
+  if (isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isJavaDemo() || isKotlinDemo() || isScalaDemo() || isAndroidDemo() || isCppDemo() || webDemo()) return [];
   if (isSymfonyDemo()) return ["composer.json", "bin/console"];
   if (isWordPressDemo()) return ["composer.json", "vendor/bin/wp"];
   if (isDrupalDemo()) return ["composer.json", "vendor/bin/drush"];

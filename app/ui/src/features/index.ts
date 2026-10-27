@@ -66,6 +66,8 @@ import "./spring";
 import "./groovy";
 import "./scala";
 import "./android";
+// After JavaForge: CForge wraps its Build Project (Ctrl+F9).
+import "./cpp";
 import "./services";
 import "./remote";
 import "./devenv";

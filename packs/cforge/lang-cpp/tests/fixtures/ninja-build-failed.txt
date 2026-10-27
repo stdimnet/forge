@@ -1,0 +1,8 @@
+[1/4] Building CXX object CMakeFiles/shapes.dir/src/shapes.cpp.o
+FAILED: CMakeFiles/shapes.dir/src/shapes.cpp.o 
+/usr/bin/c++  -I/home/dev/shapes/src -g -std=gnu++20 -MD -MT CMakeFiles/shapes.dir/src/shapes.cpp.o -MF CMakeFiles/shapes.dir/src/shapes.cpp.o.d -o CMakeFiles/shapes.dir/src/shapes.cpp.o -c /home/dev/shapes/src/shapes.cpp
+/home/dev/shapes/src/shapes.cpp: In function 'double shapes::area(const std::vector<Point>&)':
+/home/dev/shapes/src/shapes.cpp:11:28: error: 'missing' was not declared in this scope
+   11 |   return std::abs(a) / 2 + missing;
+      |                            ^~~~~~~
+ninja: build stopped: subcommand failed.

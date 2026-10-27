@@ -1,0 +1,10 @@
+[package]
+name = "cforge-cmake"
+description = "CForge: CMake support — profiles, CMakePresets.json / CMakeUserPresets.json (includes, inheritance, conditions, macros), the cmake-file-api query and its codemodel-v2 reply (targets, sources, artifacts, build dirs), configure logs linked to CMakeLists.txt lines, configure / build / clean / CTest command lines and CMakeLists.txt completion; pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

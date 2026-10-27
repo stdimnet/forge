@@ -718,6 +718,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
+name = "cforge-cmake"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "cforge-lang-cpp"
+version = "0.1.0"
+dependencies = [
+ "cforge-cmake",
+ "cforge-toolchains",
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "cforge-toolchains"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "chacha20"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1837,6 +1867,9 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "cforge-cmake",
+ "cforge-lang-cpp",
+ "cforge-toolchains",
  "dirs 6.0.0",
  "forge-agent-cli",
  "forge-ai",
@@ -2674,6 +2707,8 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "cforge-cmake",
+ "cforge-lang-cpp",
  "forge-agent-cli",
  "forge-bookmarks",
  "forge-codeintel",

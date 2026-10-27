@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="(empty)"
+	tests="2"
+	failures="1"
+	disabled="0"
+	skipped="0"
+	hostname=""
+	time="0"
+	timestamp="2026-10-27T16:30:40"
+	>
+	<testcase name="area" classname="area" time="0.00264456" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="perimeter" classname="perimeter" time="0.0068806" status="fail">
+		<failure message="Failed"/>
+		<properties/>
+		<system-out>perimeter: expected 9 but was 8
+</system-out>
+	</testcase>
+</testsuite>

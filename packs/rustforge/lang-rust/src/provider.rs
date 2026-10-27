@@ -437,6 +437,7 @@ impl CargoTestProvider {
                 file: f.clone(),
                 format: CoverageFormat::Lcov,
                 location_rules: Vec::new(),
+                collect: None,
             }),
             report_dirs: Vec::new(),
         })

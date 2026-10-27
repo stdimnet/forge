@@ -52,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **CForge**: C and C++ in the style of CLion: clangd with clang-tidy (from the PATH, a
+  toolchain or a verified download), Settings | Build, Execution, Deployment | Toolchains (GCC,
+  Clang, MSVC through vswhere, MinGW, cross compilers) and CMake (profiles and
+  `CMakePresets.json`), the CMake tool window with targets and the configure log, compilation
+  database projects, Build / Rebuild / Clean (`Ctrl+F9`) with build problems, CMake Application
+  run configurations, GoogleTest, Catch2 and CTest with gutter icons and gcov / llvm-cov
+  coverage, and LLDB / GDB debugging with STL renderers ([CForge](user/cpp.md)).
 - **Jupyter notebooks**: `.ipynb` files open in the notebook editor with code, Markdown and
   raw cells, Jupyter's command and edit mode (`Shift+Enter`, `A`, `B`, `D D`, `M`, `Y`),
   outputs with colors, images, sanitized HTML, errors and JSON, DataFrame tables with sorting,
