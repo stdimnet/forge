@@ -32,3 +32,12 @@ tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio.workspace = true
+tempfile.workspace = true
+
+[[test]]
+name = "fake_kernel"
+required-features = ["runtime"]
+
+[[test]]
+name = "ipykernel_smoke"
+required-features = ["runtime"]
