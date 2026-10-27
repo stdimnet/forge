@@ -564,6 +564,21 @@ pub fn run() {
             commands::kotlin::kotlin_detekt,
             commands::kotlin::kotlin_debug_prepare,
             commands::kotlin::kotlin_coroutines,
+            commands::groovy::groovy_status,
+            commands::groovy::groovy_runnable,
+            commands::scala::scala_status,
+            commands::scala::scala_metals_install,
+            commands::scala::scala_main_objects,
+            commands::scala::scala_sbt_model,
+            commands::scala::scala_sbt_import,
+            commands::scala::scala_sbt_cancel,
+            commands::android::android_status,
+            commands::android::android_devices,
+            commands::android::android_emulator_start,
+            commands::android::android_logcat_start,
+            commands::android::android_logcat_stop,
+            commands::android::android_logcat_view,
+            commands::android::android_logcat_clear,
             commands::lua::lua_index_workspace,
             commands::lua::lua_files_changed,
             commands::lua::lua_search_symbols,
@@ -1039,6 +1054,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::kotlin::spawn_sync_lsp_server(&handle);
+            }
+            // Scala: Metals and its options.
+            if commands::scala::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::scala::spawn_sync_lsp_server(&handle);
             }
         });
 }

@@ -10296,6 +10296,394 @@
     }
   },
   {
+    "id": "forge.groovy",
+    "name": "Groovy",
+    "version": "0.1.0",
+    "pack": "javaforge",
+    "description": "Groovy: highlighting, Groovy Script run configurations (groovy from the Groovy SDK or SDKMAN!, or through Gradle), Groovy source sets in the Gradle tool window and Spock specifications through Gradle or Maven.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.java"
+    ],
+    "required": false,
+    "projectTypes": [
+      "groovy"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "groovy"
+      ],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "groovy.sdk.path",
+          "title": "Groovy SDK",
+          "description": "A Groovy installation (its folder, bin folder or the groovy launcher). Empty: GROOVY_HOME, SDKMAN!'s current Groovy, else groovy on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.groovy",
+          "section": "Groovy SDK",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "groovy.run.runner",
+          "title": "Run Groovy scripts with",
+          "description": "Gradle runs the script with the project's class path (a task Forge adds with an init script); groovy uses the Groovy SDK.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Gradle when the build applies the groovy plugin, else groovy"
+            },
+            {
+              "value": "groovy",
+              "label": "groovy (Groovy SDK)"
+            },
+            {
+              "value": "gradle",
+              "label": "Gradle"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.groovy",
+          "section": "Run",
+          "project": true,
+          "order": 10
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "testFrameworks": [
+        {
+          "id": "spock",
+          "name": "Spock",
+          "description": "Run Spock specifications through Gradle or Maven: all, a package, a specification or one feature.",
+          "icon": "flask-conical",
+          "language": "groovy",
+          "detect": {
+            "files": [],
+            "dependencies": [
+              {
+                "file": "build.gradle",
+                "contains": "org.spockframework"
+              },
+              {
+                "file": "build.gradle.kts",
+                "contains": "org.spockframework"
+              },
+              {
+                "file": "pom.xml",
+                "contains": "org.spockframework"
+              }
+            ]
+          },
+          "testFiles": [
+            "**/src/test/groovy/**/*.groovy",
+            "*Spec.groovy"
+          ],
+          "program": "",
+          "args": [],
+          "scopes": {},
+          "report": "jUnitFile",
+          "junitFlavor": "kotlin",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "coverage": {
+            "args": [],
+            "file": "build/reports/jacoco/test/jacocoTestReport.xml",
+            "format": "jacoco",
+            "env": {}
+          },
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.scala",
+    "name": "Scala",
+    "version": "0.1.0",
+    "pack": "javaforge",
+    "description": "Scala with sbt: highlighting, the sbt tool window (projects, Scala versions, dependencies, tasks), sbt Task and sbt shell run configurations, ScalaTest and MUnit through sbt, and Metals as the language server.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.java"
+    ],
+    "required": false,
+    "projectTypes": [
+      "scala"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "scala"
+      ],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "scala.reloadSbt",
+          "title": "Reload sbt Project",
+          "category": "Scala"
+        },
+        {
+          "id": "scala.sbtShell",
+          "title": "Open sbt Shell",
+          "category": "Scala"
+        },
+        {
+          "id": "scala.installMetals",
+          "title": "Install Metals (Scala Language Server)",
+          "category": "Scala"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "scala.metals.path",
+          "title": "Metals",
+          "description": "The metals launcher. Empty: the one Forge installed, else metals on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.scala",
+          "section": "Language Server (Metals)",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "scala.metals.autoInstall",
+          "title": "Install Metals",
+          "description": "When a Scala project opens without Metals: offer to install the pinned version with Coursier (cs), or never ask.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "ask",
+              "label": "Ask"
+            },
+            {
+              "value": "never",
+              "label": "Never"
+            }
+          ],
+          "default": "ask",
+          "group": "lang.scala",
+          "section": "Language Server (Metals)",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "scala.coursier.path",
+          "title": "Coursier (cs)",
+          "description": "The cs launcher that installs Metals. Empty: cs or coursier on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.scala",
+          "section": "Language Server (Metals)",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "scala.sbt.path",
+          "title": "sbt launcher",
+          "description": "The sbt script. Empty: SDKMAN!'s current sbt, else sbt on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.scala",
+          "section": "sbt",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "scala.sbt.vmOptions",
+          "title": "VM parameters",
+          "description": "JVM options of sbt (passed as -J options), e.g. -Xmx2g.",
+          "type": "string",
+          "default": "",
+          "group": "lang.scala",
+          "section": "sbt",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "scala.sbt.importOnOpen",
+          "title": "Reload the sbt project when it opens",
+          "description": "Ask sbt for the projects, Scala versions and dependencies (this runs the build definition: only in trusted projects).",
+          "type": "bool",
+          "default": false,
+          "group": "lang.scala",
+          "section": "sbt",
+          "project": true,
+          "order": 12
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "testFrameworks": [
+        {
+          "id": "scalatest",
+          "name": "ScalaTest",
+          "description": "Run ScalaTest suites through sbt: all, a package, a suite or one test.",
+          "icon": "flask-conical",
+          "language": "scala",
+          "detect": {
+            "files": [],
+            "dependencies": [
+              {
+                "file": "build.sbt",
+                "contains": "org.scalatest"
+              }
+            ]
+          },
+          "testFiles": [
+            "**/src/test/scala/**/*.scala",
+            "*Spec.scala",
+            "*Suite.scala",
+            "*Test.scala"
+          ],
+          "program": "",
+          "args": [],
+          "scopes": {},
+          "report": "jUnitFile",
+          "junitFlavor": "kotlin",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": false
+        },
+        {
+          "id": "munit",
+          "name": "MUnit",
+          "description": "Run MUnit suites through sbt: all, a package, a suite or one test.",
+          "icon": "flask-conical",
+          "language": "scala",
+          "detect": {
+            "files": [],
+            "dependencies": [
+              {
+                "file": "build.sbt",
+                "contains": "munit"
+              }
+            ]
+          },
+          "testFiles": [
+            "**/src/test/scala/**/*.scala",
+            "*Suite.scala",
+            "*Spec.scala",
+            "*Test.scala"
+          ],
+          "program": "",
+          "args": [],
+          "scopes": {},
+          "report": "jUnitFile",
+          "junitFlavor": "kotlin",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.android",
+    "name": "Android",
+    "version": "0.1.0",
+    "pack": "javaforge",
+    "description": "Android with Gradle: Android modules and manifests, the Android SDK location, the Device Manager (adb devices, emulators), Android App run configurations (build, install, launch) and Logcat with filters and clickable stack traces.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.java"
+    ],
+    "required": false,
+    "projectTypes": [
+      "android"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "android.refreshDevices",
+          "title": "Refresh Android Devices",
+          "category": "Android"
+        },
+        {
+          "id": "android.clearLogcat",
+          "title": "Clear Logcat",
+          "category": "Android"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "android.sdk.path",
+          "title": "Android SDK location",
+          "description": "Empty: ANDROID_HOME, ANDROID_SDK_ROOT, sdk.dir of local.properties, else the default folder (~/Android/Sdk, ~/Library/Android/sdk, %LOCALAPPDATA%\\Android\\Sdk). Forge does not download the SDK.",
+          "type": "path",
+          "default": "",
+          "group": "lang.android",
+          "section": "Android SDK",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "android.logcat.bufferSize",
+          "title": "Logcat cycle buffer size (entries)",
+          "type": "int",
+          "default": 20000,
+          "group": "lang.android",
+          "section": "Logcat",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "android.logcat.defaultQuery",
+          "title": "Default filter",
+          "description": "The query a new Logcat starts with, e.g. package:mine level:info.",
+          "type": "string",
+          "default": "package:mine",
+          "group": "lang.android",
+          "section": "Logcat",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "android.logcat.history",
+          "title": "Recent entries on connect",
+          "description": "How many existing entries Logcat reads when it starts (adb logcat -T).",
+          "type": "int",
+          "default": 500,
+          "group": "lang.android",
+          "section": "Logcat",
+          "project": false,
+          "order": 12
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.ai",
     "name": "AI Assistant",
     "version": "0.1.0",

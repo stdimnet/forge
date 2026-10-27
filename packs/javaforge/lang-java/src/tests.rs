@@ -14,9 +14,10 @@
 //!   `buildProgram` (wrapper or executable), `buildDir` (absolute build folder), `buildRoot`
 //!   (the build folder relative to the project, empty for the root), `gradlePath`
 //!   (`:app`) and `offline`;
-//! - `language`: `kotlin` for tests in Kotlin sources (KotlinForge discovers them): the
-//!   source roots are `src/<set>/kotlin/` and reports keep Kotlin test names
-//!   (`JUnitFlavor::Kotlin`).
+//! - `language`: `kotlin` for tests in Kotlin sources (KotlinForge discovers them) and
+//!   `groovy` for Spock specifications (the Groovy plugin): the source roots are
+//!   `src/<set>/kotlin/` or `src/<set>/groovy/` and reports keep test names with their
+//!   spaces (`JUnitFlavor::Kotlin`).
 
 use forge_output::{JUnitFlavor, LocationRule, TestReport};
 use forge_runtools::args::split_args;
@@ -84,16 +85,23 @@ pub fn class_of(path: &str, root: &str) -> Option<String> {
     let rel = if !root.is_empty() && path.starts_with(root) {
         &path[root.len()..]
     } else {
-        // `…/java/com/acme/X.java`, `…/kotlin/com/acme/X.kt`, else the file name.
-        match (path.rfind("/java/"), path.rfind("/kotlin/")) {
-            (Some(i), _) if path.ends_with(".java") => &path[i + 6..],
-            (_, Some(i)) if path.ends_with(".kt") => &path[i + 8..],
+        // `…/java/com/acme/X.java`, `…/kotlin/com/acme/X.kt`, `…/groovy/com/acme/X.groovy`,
+        // else the file name.
+        match (
+            path.rfind("/java/"),
+            path.rfind("/kotlin/"),
+            path.rfind("/groovy/"),
+        ) {
+            (Some(i), _, _) if path.ends_with(".java") => &path[i + 6..],
+            (_, Some(i), _) if path.ends_with(".kt") => &path[i + 8..],
+            (_, _, Some(i)) if path.ends_with(".groovy") => &path[i + 8..],
             _ => path.rsplit('/').next().unwrap_or(&path),
         }
     };
     let rel = rel
         .strip_suffix(".java")
-        .or_else(|| rel.strip_suffix(".kt"))?;
+        .or_else(|| rel.strip_suffix(".kt"))
+        .or_else(|| rel.strip_suffix(".groovy"))?;
     Some(rel.replace('/', "."))
 }
 
@@ -144,6 +152,15 @@ fn source_rule(root: &str, ext: &str) -> LocationRule {
     LocationRule {
         pattern: format!(r"^([\w$/]+\.{ext})$"),
         replacement: format!("{root}$1"),
+    }
+}
+
+/// Like [`source_rule`] for reports that name another extension than the sources: the
+/// Kotlin flavor's `com/acme/CartSpec.kt` → `<root>com/acme/CartSpec.groovy`.
+fn renamed_source_rule(root: &str, reported: &str, ext: &str) -> LocationRule {
+    LocationRule {
+        pattern: format!(r"^([\w$/]+)\.{reported}$"),
+        replacement: format!("{root}$1.{ext}"),
     }
 }
 
@@ -342,12 +359,16 @@ fn console_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestComm
 /// The command of a JUnit / TestNG configuration (also used by KotlinForge for JUnit tests
 /// in Kotlin and, with its own filter, for Kotest specs).
 pub fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCommand, String> {
-    let kotlin = cfg.option("language") == "kotlin";
-    if cfg.option("runner") == "junit" && !kotlin {
+    let language = cfg.option("language");
+    let kotlin = language == "kotlin";
+    let groovy = language == "groovy";
+    if cfg.option("runner") == "junit" && !kotlin && !groovy {
         return console_command(cfg, ctx);
     }
     let (lang_dir, ext) = if kotlin {
         ("kotlin", "kt")
+    } else if groovy {
+        ("groovy", "groovy")
     } else {
         ("java", "java")
     };
@@ -404,12 +425,16 @@ pub fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCo
         args: run.command.args,
         env: Default::default(),
         report: TestReport::JUnitFile,
-        flavor: if kotlin {
+        flavor: if kotlin || groovy {
             JUnitFlavor::Kotlin
         } else {
             JUnitFlavor::Java
         },
-        location_rules: vec![source_rule(&test_root, ext)],
+        location_rules: vec![if groovy {
+            renamed_source_rule(&test_root, "kt", ext)
+        } else {
+            source_rule(&test_root, ext)
+        }],
         default_file: scoped_file
             .then(|| cfg.option("file").trim().to_string())
             .filter(|f| !f.is_empty()),

@@ -119,6 +119,14 @@ export interface ProjectModel {
   dependencies: DependencyScope[];
   plugins: MavenPlugin[];
   declared: DeclaredDependency[];
+  /** Source sets and their folders (`javaforge_build::model::SourceSet`). */
+  sourceSets?: SourceSet[];
+}
+
+export interface SourceSet {
+  name: string;
+  /** Folders relative to the project; `kind`: java, kotlin, groovy, scala, resources or other. */
+  dirs: { path: string; kind: string }[];
 }
 
 export interface MavenProfile {
