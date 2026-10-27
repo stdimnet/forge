@@ -50,6 +50,8 @@ import {
   User,
   Users,
   Zap,
+  Network,
+  GitCompareArrows,
 } from "lucide-solid";
 import {
   dbApi,
@@ -107,6 +109,7 @@ import { SessionsView } from "./SessionsView";
 import { QuickDocPopup, showQuickDoc } from "./QuickDoc";
 import { openVirtualDialog, VirtualDialogs } from "./VirtualDialogs";
 import { openFullTextSearch } from "./FullTextSearch";
+import { openCompare, openDiagram } from "./schema/model";
 import { multi, objectMenu, ObjectDialogs, setMulti } from "./objects";
 
 type Kind =
@@ -675,6 +678,33 @@ export function fullTextSearchOfSelection(): void {
   openFullTextSearch(row ? { ds: row.ds, schema: row.schema, table: row.kind === "table" || row.kind === "view" ? row.table : undefined } : {});
 }
 
+function selectedRow(): Row | undefined {
+  const key = selectedNode();
+  return key ? buildRows().find((r) => r.key === key) : undefined;
+}
+
+const isRelational = (id: string) => {
+  const ds = sourceById(id);
+  return !!ds && modelOf(ds.driver) === "relational";
+};
+
+/** Diagrams | Show Diagram (Ctrl+Alt+Shift+U) of a tree row: a table with its relations, or
+ * the schema (of a data source: its default schema). False when the row has none. */
+function showDiagram(row: Row | undefined): boolean {
+  if (!row || !isRelational(row.ds) || row.kind === "rkey") return false;
+  if (row.table && (row.kind === "table" || row.kind === "view" || row.kind === "matview")) openDiagram(row.ds, row.schema, row.table);
+  else openDiagram(row.ds, row.schema);
+  return true;
+}
+
+export const diagramOfSelection = (): boolean => showDiagram(selectedRow());
+
+/** Compare Structure with the selected data source / schema as the source. */
+export function compareOfSelection(): void {
+  const row = selectedRow();
+  openCompare(row && isRelational(row.ds) ? { source: { id: row.ds, schema: row.schema ?? "" } } : {});
+}
+
 export function newDataSourceMenu(): MenuItem[] {
   const items: MenuItem[] = DRIVERS.map((d) => ({
     label: DRIVER_LABELS[d],
@@ -773,6 +803,12 @@ function rowMenu(row: Row, selection: Row[] = []): MenuItem[] {
   if (row.kind === "fk" && row.isVirtual) {
     items.push({ label: "Remove Virtual Foreign Key", icon: <Trash2 size={13} />, run: () => void removeVirtualForeignKey(row.ds, row.schema!, row.table!, row.name!) }, { separator: true, label: "" });
   }
+  if (relational && (row.kind === "ds" || row.kind === "schema" || row.kind === "table" || row.kind === "view" || row.kind === "matview"))
+    items.push(
+      { label: "Diagrams: Show Diagram", hint: shortcutLabel("ShowUmlDiagram"), icon: <Network size={13} />, run: () => void showDiagram(row) },
+      { label: "Compare Structure…", hint: shortcutLabel("Database.CompareStructure"), icon: <GitCompareArrows size={13} />, run: () => openCompare({ source: { id: row.ds, schema: row.schema ?? "" } }) },
+      { separator: true, label: "" },
+    );
   if (row.object) items.push({ label: "Quick Documentation", hint: shortcutLabel("QuickJavaDoc"), icon: <BookOpen size={13} />, run: () => void showDoc(row) });
   if (relational && live) items.push({ label: "Full-Text Search…", hint: shortcutLabel("DatabaseView.FullTextSearch"), icon: <TextSearch size={13} />, run: () => openFullTextSearch({ ds: row.ds, schema: row.schema, table: row.kind === "table" || row.kind === "view" ? row.table : undefined }) });
   if (live) items.push({ label: "New Query Console", hint: shortcutLabel("Database.OpenConsole"), icon: <SquareTerminal size={13} />, run: () => openConsole(row.ds) });

@@ -59,6 +59,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   endpoints and Generate HTTP Request, GraphQL validation and completion against the schema,
   and the HTTP client's OAuth 2.0, cURL import/export, WebSocket and gRPC requests
   ([Web tooling](user/web-tooling.md)).
+- **ER diagrams, Compare Structure and Explain Plan**: Diagrams | Show Diagram
+  (`Ctrl+Alt+Shift+U`) draws a schema or a table with its relations (zoom, pan, SVG/PNG
+  export); Compare Structure diffs two schemas or a schema and a DDL snapshot and generates the
+  migration script for the target's dialect (or a Laravel / Doctrine migration file), run only
+  after confirmation; Explain Plan shows a console statement's plan as a tree and a flame graph
+  ([Database tools](user/database.md#er-diagrams)).
 - **Vulnerable dependencies**: the Package Checker runs each ecosystem's audit tool
   (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP
   dependency-check reports) on project open, when a lock file changes and with Code | Analyze

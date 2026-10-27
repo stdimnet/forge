@@ -1,8 +1,8 @@
 ---
 title: Database tools and SQL console
-description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), query consoles with sessions and transactions, read-only and production data sources, the data editor (server-side sort and filter, value editor, pending changes with DML preview, foreign-key navigation, transpose, aggregates, compare data, charts), Create/Modify Table, Drop and Rename, Generate DDL, import from CSV/Excel/JSON, export, and dump/restore with the native tools.
+description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), ER diagrams, Compare Structure with migration scripts, query consoles with sessions, transactions and Explain Plan, read-only and production data sources, the data editor (server-side sort and filter, value editor, pending changes with DML preview, foreign-key navigation, transpose, aggregates, compare data, charts), Create/Modify Table, Drop and Rename, Generate DDL, import from CSV/Excel/JSON, export, and dump/restore with the native tools.
 order: 170
-tags: [database, sql, sql editor, data editor, value editor, compare data, chart, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl, create table, modify table, alter table, generate ddl, import, csv, excel, json, export, dump, restore, mysqldump, pg_dump]
+tags: [database, sql, sql editor, data editor, value editor, compare data, chart, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl, create table, modify table, alter table, generate ddl, import, csv, excel, json, export, dump, restore, mysqldump, pg_dump, er diagram, diagram, schema compare, migration, explain plan, query plan]
 ---
 
 # Database tools and SQL console
@@ -149,6 +149,92 @@ Data sources with a colour tint their rows (see [Colours](#read-only-and-product
 
 ![SQL Server tree](../../screenshots/database-sqlserver-tree.png)
 
+## ER diagrams
+
+**Diagrams | Show Diagram** (`Ctrl+Alt+Shift+U`, macOS `Cmd+Alt+Shift+U`, or the context
+menu of the Database tool window) opens an entity–relationship diagram in an editor tab:
+
+- on a **schema** or a **data source**: every table and view of the schema (of a data source:
+  its current schema);
+- on a **table** or **view**: that table with the tables it references and the tables that
+  reference it;
+- in a console or table tab: the schema of its data source (a table tab: that table).
+
+![ER diagram](../../screenshots/database-er-diagram.png)
+
+Each table lists its columns with their types; primary key columns have a key icon, foreign
+key columns a link icon, and nullable columns are dimmed. Foreign keys are drawn from the row of
+their column to the row of the referenced column, with an arrow at the referenced table;
+nullable and [virtual](#virtual-foreign-keys-and-columns) foreign keys are dashed. Referenced
+tables are placed above the tables that reference them, related tables next to each other, and
+tables without relations in a grid below. Very long types are shortened (the tooltip shows the
+full type).
+
+| Action | How |
+| --- | --- |
+| Pan | scroll, `Shift`+scroll sideways, or drag the background |
+| Zoom | `Ctrl`+scroll (macOS `Cmd`+scroll), or **Zoom In** / **Zoom Out** / **Actual Size** / **Fit Content** |
+| Highlight a table's relations | click the table |
+| Open the table's data | double-click the table |
+| Columns | **All Columns**, **Keys** (primary and foreign key columns only) or **No Columns** |
+| Views | show or hide views and materialized views |
+| Export | **Export Diagram** → **Export to SVG…** or **Export to PNG…** (twice the size) |
+| Refresh | introspect the schema again |
+
+![ER diagram of a table (light theme)](../../screenshots/database-er-diagram-light.png)
+
+The status bar counts the tables and relations and the foreign keys that point to tables not in
+the diagram (other schemas, or not related to the selected table).
+
+## Compare Structure and migrations
+
+**Compare Structure…** (context menu of a data source, schema or table, or `Ctrl+D`, macOS
+`Cmd+D`, in the Database tool window) opens DataGrip's structure comparison in an editor tab.
+
+![Compare Structure](../../screenshots/database-compare-structure.png)
+
+- **Source** is how the schema should be, **Target** the schema to migrate. Each side is a
+  schema of any relational data source — including a [DDL data source](#ddl-data-sources),
+  so you can compare a database with the `CREATE TABLE` scripts or migrations in the project —
+  or **DDL snapshot (paste SQL)** for a script you paste. **Swap** exchanges them.
+- **Compare** shows the differences as a tree: tables and views only in the source (**+**,
+  created by the migration), only in the target (**−**, dropped) and changed ones, with their
+  columns (type, nullability, default, auto increment, comment), primary keys, indexes,
+  foreign keys (with their `ON DELETE` / `ON UPDATE` rules), checks, view queries and comments.
+  Types are compared normalized (`int4` = `integer`, `character varying` = `varchar`),
+  indexes SQLite names itself and the generated names of SQLite's foreign keys are not
+  differences. Virtual foreign keys and columns are not part of the database and are ignored.
+- **Drop missing objects** (on by default) drops tables, views and columns that exist only in
+  the target; off, they are kept and listed as warnings. **Ignore comments** and **Ignore
+  defaults** leave those out of the comparison.
+
+The right side is the **migration script** in the target's dialect, ordered so every
+statement can run: foreign keys and views that change are dropped first, then indexes, keys
+and checks, then tables; new tables, columns, keys, indexes and checks follow, foreign keys and
+views come last. Each dialect gets its own syntax (`ALTER COLUMN … TYPE … USING` and
+`SET NOT NULL` on PostgreSQL, `MODIFY COLUMN` on MySQL, `ALTER COLUMN … NULL` on SQL Server,
+`MODIFY (…)` on Oracle, `DROP FOREIGN KEY` on MySQL, …). SQLite cannot alter most of a table,
+so a changed SQLite table is rebuilt: the new table is created, the common columns are copied,
+the old table is dropped and the new one renamed, with foreign key enforcement off; its indexes
+and triggers are created again. Statements that drop data are marked `-- Destructive`, and what
+needs a look (a new `NOT NULL` column without a default, a SQL Server default constraint,
+ClickHouse tables without an `ENGINE`) is listed as warnings above the script.
+
+The script never runs on its own:
+
+- **Open in Console** opens it in a new console of the target; nothing runs until you execute
+  it there.
+- **Run Migration…** asks first, naming how many statements drop data and whether the target is
+  a production data source; on a [read-only](#read-only-and-production-data-sources) target it
+  is disabled (and the console guard would refuse it). After running, the target is
+  introspected again and compared once more.
+- **Copy** copies the script.
+- With the [Laravel](laravel.md) plugin active, **Laravel Migration** writes the migration as
+  `database/migrations/<date>_update_<schema>_schema.php` (schema builder calls in `up()`, the
+  way back in `down()`) and opens it; with the [Doctrine](doctrine.md) plugin active,
+  **Doctrine Migration** writes `migrations/Version<date>.php` with the script's statements as
+  `addSql()` calls.
+
 ## Data sources
 
 **New Data Source…** (the **+** button or Find Action) opens **Data Sources and Drivers**:
@@ -294,6 +380,38 @@ SQL inspections and their quick fixes, `Ctrl+B` jumps to a table or column in th
 `Shift+F6` renames aliases, user parameters (`:id`, `?`, …) are asked before running, and
 **Browse Query History** (`Ctrl+Alt+E`, the clock icon) searches, inserts or re-runs every
 statement the data source ran.
+
+### Explain Plan
+
+**Explain Plan** and **Explain Plan (Raw)** (the plan icon in the console toolbar, or Find
+Action) show how the database would run the statement at the caret (or the selection),
+without running it:
+
+| Dialect | Explain Plan runs | Explain Plan (Raw) runs |
+| --- | --- | --- |
+| PostgreSQL | `EXPLAIN (FORMAT JSON) …` | `EXPLAIN …` |
+| MySQL | `EXPLAIN FORMAT=TREE …` (MariaDB: `EXPLAIN …`) | `EXPLAIN …` |
+| SQLite | `EXPLAIN QUERY PLAN …` | the same |
+| SQL Server | `SET SHOWPLAN_ALL ON`, the statement, `SET SHOWPLAN_ALL OFF` | the same |
+| ClickHouse | `EXPLAIN json = 1, description = 1 …` | `EXPLAIN …` |
+
+**Explain Plan** opens a **Plan** result tab with the plan as a tree — operation, object
+(table or index), estimated cost, the operation's own cost (its cost minus its children's),
+estimated rows and details such as filters and join conditions — and, with **Flame Graph**,
+as bars whose width is the share of the estimated cost (or of the rows, or equal shares when
+the database gives no estimates, as SQLite). **Explain Plan (Raw)** shows the rows of the
+`EXPLAIN` as they are.
+
+![Explain Plan](../../screenshots/database-explain-plan.png)
+
+![Explain Plan as a flame graph](../../screenshots/database-explain-flame.png)
+
+A statement that already starts with `EXPLAIN` runs as it is; since that may be
+`EXPLAIN ANALYZE`, which executes the statement, it goes through the read-only and production
+checks like **Execute**.
+
+> **Note:** Explain Plan is not available for Oracle (Forge runs every Oracle statement in its
+> own SQL\*Plus session, so the plan table is empty afterwards), Redis and MongoDB.
 
 ### Sessions
 
