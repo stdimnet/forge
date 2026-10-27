@@ -46,7 +46,11 @@ pub fn table(d: Dialect, schema: &str, t: &TableInfo) -> String {
         })
         .collect();
     if !t.primary_key.is_empty() {
-        let pk = t.indexes.iter().find(|i| i.primary).map(|i| i.name.clone());
+        let pk = t
+            .indexes
+            .iter()
+            .find(|i| i.primary && !i.name.is_empty())
+            .map(|i| i.name.clone());
         lines.push(match pk {
             Some(n) => format!(
                 "    CONSTRAINT {} PRIMARY KEY ({})",
@@ -57,11 +61,16 @@ pub fn table(d: Dialect, schema: &str, t: &TableInfo) -> String {
         });
     }
     for i in t.indexes.iter().filter(|i| i.unique && !i.primary) {
-        lines.push(format!(
-            "    CONSTRAINT {} UNIQUE ({})",
-            d.quote_ident(&i.name),
-            cols(d, &i.columns)
-        ));
+        // Unnamed: the database names it (SQLite's `sqlite_autoindex_*`).
+        lines.push(if i.name.is_empty() {
+            format!("    UNIQUE ({})", cols(d, &i.columns))
+        } else {
+            format!(
+                "    CONSTRAINT {} UNIQUE ({})",
+                d.quote_ident(&i.name),
+                cols(d, &i.columns)
+            )
+        });
     }
     for f in t.foreign_keys.iter().filter(|f| !f.is_virtual) {
         let mut l = format!(

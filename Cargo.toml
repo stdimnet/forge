@@ -54,6 +54,7 @@ forge-db = { path = "crates/forge-db" }
 forge-containers = { path = "crates/forge-containers" }
 forge-sql = { path = "crates/forge-sql" }
 forge-dbmodel = { path = "crates/forge-dbmodel" }
+forge-dbschema = { path = "crates/forge-dbschema" }
 forge-sqlcode = { path = "crates/forge-sqlcode" }
 forge-forges = { path = "crates/forge-forges" }
 forge-keymap = { path = "crates/forge-keymap" }
