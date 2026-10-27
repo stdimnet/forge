@@ -15,6 +15,7 @@
 //!
 //! Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`).
 
+mod dotnet;
 mod parsers;
 mod remote;
 

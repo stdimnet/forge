@@ -827,6 +827,23 @@ pub fn run() {
             commands::cpp::cpp_clangd_install,
             commands::cpp::cpp_format,
             commands::cpp::cmake_complete,
+            commands::dotnet::dotnet_status,
+            commands::dotnet::dotnet_roslyn_install,
+            commands::dotnet::dotnet_netcoredbg_install,
+            commands::dotnet::dotnet_workspace,
+            commands::dotnet::dotnet_command,
+            commands::dotnet::dotnet_build_problems,
+            commands::dotnet::dotnet_templates,
+            commands::dotnet::dotnet_new_project,
+            commands::dotnet::nuget_search,
+            commands::dotnet::nuget_versions,
+            commands::dotnet::nuget_updates,
+            commands::dotnet::nuget_command,
+            commands::dotnet::dotnet_format,
+            commands::dotnet::dotnet_cleanup_command,
+            commands::dotnet::dotnet_format_report,
+            commands::dotnet::dotnet_debug_request,
+            commands::dotnet::dotnet_attach_request,
             commands::cpp_tools::cpp_sanitizer_reports,
             commands::cpp_tools::cpp_native_tools,
             commands::cpp_tools::cpp_valgrind_open,
@@ -1194,6 +1211,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::scala::spawn_sync_lsp_server(&handle);
+            }
+            // DotNetForge: the Roslyn server, the solution and the dotnet host.
+            if commands::dotnet::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::dotnet::spawn_sync_lsp_server(&handle);
             }
         });
 }

@@ -137,6 +137,7 @@ fn lsp_config(state: &AppState, server: Server, command: String) -> LspServerCon
         settings: Value::Null,
         env: setup.env(server),
         pull_diagnostics: server == Server::KotlinLsp,
+        after_initialized: Vec::new(),
     }
 }
 

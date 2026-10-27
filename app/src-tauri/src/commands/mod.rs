@@ -22,6 +22,7 @@ pub mod db_objects;
 pub mod debug;
 pub mod deployment;
 pub mod devenv;
+pub mod dotnet;
 pub mod doctrine;
 pub mod editor;
 pub mod embedded;

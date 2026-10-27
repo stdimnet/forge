@@ -1132,6 +1132,7 @@ fn lsp_config(state: &AppState, backend: &dyn Backend, command: String) -> LspSe
         settings: serde_json::Value::Null,
         env: BTreeMap::new(),
         pull_diagnostics: false,
+        after_initialized: Vec::new(),
     }
 }
 
