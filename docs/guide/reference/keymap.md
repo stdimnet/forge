@@ -615,6 +615,11 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
 | Full-Text Search… (database) | `DatabaseView.FullTextSearch` | `Ctrl+Alt+Shift+F` | `Cmd+Alt+Shift+F` | any |
+| Modify Table… | `Database.ModifyTable` | `Ctrl+F6` | `Cmd+F6` | tool window |
+| New Table… | `Database.NewTable` |  |  | any |
+| SQL Generator… (Generate DDL) | `Database.GenerateDdl` |  |  | any |
+| Import Data from File… | `Database.ImportData` |  |  | any |
+| Export with Dump Tool… | `Database.DumpData` |  |  | any |
 | Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
 | Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
 | Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
