@@ -3,6 +3,7 @@
 
 pub mod agent;
 pub mod ai;
+pub mod android;
 pub mod clipboard;
 pub mod cms;
 pub mod code_style;
@@ -30,6 +31,7 @@ pub mod git_history;
 pub mod git_log;
 pub mod git_ops;
 pub mod go;
+pub mod groovy;
 pub mod hierarchy;
 pub mod imports;
 pub mod injections;
@@ -68,6 +70,7 @@ pub mod run;
 pub mod runtools;
 pub mod rust;
 pub mod save_actions;
+pub mod scala;
 pub mod scopes;
 pub mod scratches;
 pub mod search;
