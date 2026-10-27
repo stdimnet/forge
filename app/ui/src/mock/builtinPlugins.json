@@ -570,12 +570,12 @@
           ],
           "default": [
             {
-              "color": "Yellow",
-              "scope": "Non-Project Files"
+              "scope": "Non-Project Files",
+              "color": "Yellow"
             },
             {
-              "color": "Green",
-              "scope": "Tests"
+              "scope": "Tests",
+              "color": "Green"
             }
           ],
           "group": "appearance.fileColors",
@@ -675,30 +675,30 @@
           ],
           "default": [
             {
+              "template": "smarty",
               "language": "latex",
               "left": "[[",
-              "right": "]]",
-              "template": "smarty"
+              "right": "]]"
             },
             {
-              "blockEnd": "}",
-              "blockStart": "\\BLOCK{",
-              "commentEnd": "}",
-              "commentStart": "\\#{",
-              "language": "latex",
               "template": "twig",
+              "language": "latex",
+              "variableStart": "\\VAR{",
               "variableEnd": "}",
-              "variableStart": "\\VAR{"
+              "blockStart": "\\BLOCK{",
+              "blockEnd": "}",
+              "commentStart": "\\#{",
+              "commentEnd": "}"
             },
             {
-              "blockEnd": "}",
-              "blockStart": "\\BLOCK{",
-              "commentEnd": "}",
-              "commentStart": "\\#{",
-              "language": "latex",
               "template": "jinja",
+              "language": "latex",
+              "variableStart": "\\VAR{",
               "variableEnd": "}",
-              "variableStart": "\\VAR{"
+              "blockStart": "\\BLOCK{",
+              "blockEnd": "}",
+              "commentStart": "\\#{",
+              "commentEnd": "}"
             }
           ],
           "group": "lang.templates",
@@ -3271,10 +3271,10 @@
             "zig"
           ],
           "launch": {
+            "program": "${program}",
             "args": "${args}",
             "cwd": "${cwd}",
             "env": "${env}",
-            "program": "${program}",
             "stopOnEntry": "${stopOnEntry}"
           },
           "attach": {
@@ -3282,25 +3282,25 @@
             "program": "${program}"
           },
           "coreDump": {
-            "coreFile": "${core}",
-            "program": "${program}"
+            "program": "${program}",
+            "coreFile": "${core}"
           },
           "coreDumpRequest": "attach",
           "launchSchema": {
+            "type": "object",
             "properties": {
               "initCommands": {
-                "description": "LLDB commands run before the target is created",
+                "type": "array",
                 "items": {
                   "type": "string"
                 },
-                "type": "array"
+                "description": "LLDB commands run before the target is created"
               },
               "sourceMap": {
-                "description": "Source path remappings: [[from, to], …]",
-                "type": "array"
+                "type": "array",
+                "description": "Source path remappings: [[from, to], …]"
               }
-            },
-            "type": "object"
+            }
           }
         },
         {
@@ -3330,10 +3330,10 @@
             "d"
           ],
           "launch": {
+            "program": "${program}",
             "args": "${args}",
             "cwd": "${cwd}",
             "env": "${env}",
-            "program": "${program}",
             "stopAtBeginningOfMainSubprogram": "${stopOnEntry}"
           },
           "attach": {
@@ -3353,7 +3353,7 @@
     "name": "Database Tools and SQL",
     "version": "0.1.0",
     "pack": "core",
-    "description": "Data sources, SQL consoles, schema browsing and table editing for MySQL, MariaDB, PostgreSQL and SQLite.",
+    "description": "Data sources, SQL consoles, schema browsing and table editing for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse and Oracle, plus Redis and MongoDB, with SSH tunnels, SSL, sessions and read-only / production data sources.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -4378,8 +4378,8 @@
             "phtml"
           ],
           "initializationOptions": {
-            "clearCache": false,
-            "storagePath": ".forge/intelephense"
+            "storagePath": ".forge/intelephense",
+            "clearCache": false
           }
         }
       ],
@@ -9814,21 +9814,21 @@
             "java"
           ],
           "attachSchema": {
+            "type": "object",
             "properties": {
               "hostName": {
-                "description": "Host of the JVM's JDWP agent",
-                "type": "string"
+                "type": "string",
+                "description": "Host of the JVM's JDWP agent"
               },
               "port": {
-                "description": "JDWP port",
-                "type": "integer"
+                "type": "integer",
+                "description": "JDWP port"
               },
               "timeout": {
-                "description": "Milliseconds to wait for the JVM",
-                "type": "integer"
+                "type": "integer",
+                "description": "Milliseconds to wait for the JVM"
               }
-            },
-            "type": "object"
+            }
           }
         }
       ],
@@ -10228,17 +10228,17 @@
             "kts"
           ],
           "attachSchema": {
+            "type": "object",
             "properties": {
               "hostName": {
-                "description": "Host of the JVM's JDWP agent",
-                "type": "string"
+                "type": "string",
+                "description": "Host of the JVM's JDWP agent"
               },
               "port": {
-                "description": "JDWP port",
-                "type": "integer"
+                "type": "integer",
+                "description": "JDWP port"
               }
-            },
-            "type": "object"
+            }
           }
         }
       ],

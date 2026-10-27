@@ -16051,8 +16051,20 @@ Source: docs/guide/user/database.md
 
 # Database tools and SQL console
 
-The plugin **Database Tools and SQL** (`forge.database`) is Forge's DataGrip part. It supports
-**MySQL/MariaDB**, **PostgreSQL** and **SQLite** (through `sqlx`, no JDBC drivers to download).
+The plugin **Database Tools and SQL** (`forge.database`) is Forge's DataGrip part. Drivers are
+built into Forge — there are no JDBC drivers to download:
+
+| Engine | Driver | Tree | Console |
+| --- | --- | --- | --- |
+| MySQL, MariaDB, PostgreSQL, SQLite | `sqlx` | schemas, tables, views, columns, keys, indexes, routines | SQL, transactions |
+| SQL Server, Azure SQL | `tiberius` (pure-Rust TDS over rustls) | schemas, tables, views, columns, keys, indexes, procedures and functions | T-SQL (`GO` separates batches), transactions |
+| ClickHouse | HTTP interface (port 8123, 8443 with TLS), JSON results | databases, tables, views, columns, primary key | SQL; every statement on its own |
+| Oracle | SQL\*Plus or SQLcl **installed by you** (see [Oracle](#oracle)) | schemas, tables, views, columns, keys, indexes, procedures and packages | SQL and PL/SQL blocks ending with `/`; every statement on its own |
+| Redis | `redis-rs` | databases → keys with type and TTL | Redis commands, one per line |
+| MongoDB | official MongoDB driver | databases → collections → fields | shell calls: `db.users.find({...})`, `aggregate`, … |
+
+ODBC is not supported: no permissive Rust crate makes generic ODBC drivers work without a
+system driver manager, so Forge supports the engines above natively instead.
 
 ## Database tool window
 
@@ -16062,9 +16074,14 @@ data source → schema → tables (with comments) → columns, keys and indexes.
 ![Database tree](docs/screenshots/database-tree.png)
 
 Toolbar: **+** (add data source), **Refresh**, **Data Source Properties** (`Shift+Enter`),
-**Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**. Context menu of a node: **New
-Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Properties**,
-**Refresh**, **Disconnect**, **Delete**.
+**Jump to Query Console…** (`Ctrl+Shift+F10`), **Collapse All**, **Sessions** (see
+[Sessions](#sessions)). Context menu of a node: **New Query Console**, **Edit Data** (tables),
+**Go to DDL**, **Copy Name**, **Properties**, **Refresh**, **Disconnect**, **Delete**.
+
+Data sources with a colour tint their rows (see [Colours](#read-only-and-production-data-sources));
+`read-only` and the SSH host appear next to the name.
+
+![SQL Server tree](docs/screenshots/database-sqlserver-tree.png)
 
 ## Data sources
 
@@ -16075,15 +16092,79 @@ Query Console**, **Edit Data** (tables), **Go to DDL**, **Copy Name**, **Propert
 | Field | Notes |
 | --- | --- |
 | Name, Comment | |
-| Driver | MySQL, MariaDB, PostgreSQL, SQLite |
-| Host, Port, Database / SQLite file | SQLite files are chosen with a file picker |
+| Driver | MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis, MongoDB |
+| Host, Port, Database / SQLite file | SQLite files are chosen with a file picker. Oracle: **Service** (e.g. `FREEPDB1`); Redis: **Database index** (`0`); MongoDB: also a full `mongodb://` or `mongodb+srv://` URL as the host |
 | Authentication | User & Password, or none |
 | Password | stored in the OS keychain (service `forge-db`), never in project files |
-| SSL mode | Disable, Prefer, Require |
-| Options | read-only, transaction control (Auto / Manual), connect timeout, startup script |
+| SSH/SSL tab | SSH tunnel and SSL/TLS, see below |
+| Options | read-only, colour, transaction control (Auto / Manual), single session mode, connect timeout, startup script |
 | Scope | **Project Data Sources** (`<project>/.forge/dataSources.toml`, shareable) or **Global Data Sources** (`dataSources.toml` in Forge's config folder) |
 
 **Test Connection** shows success with the server version, or the error.
+
+### SSH tunnel and SSL/TLS
+
+The **SSH/SSL** tab reaches databases that are only visible from a bastion host and secures
+the connection itself.
+
+![SSH/SSL tab](docs/screenshots/database-ssh-ssl.png)
+
+**Use SSH tunnel**: Forge opens the SSH connection itself (the same SSH client as
+[remote development](docs/guide/user/remote-host-and-ssh.md)) and forwards a local port to the database
+**host and port as the SSH host sees them** — `localhost:5432` is the database on the bastion.
+
+- **SSH configuration**: one of your saved configurations (Settings | Tools | SSH
+  Configurations), which brings its own host, user, authentication and stored secret, or
+  **Ad-hoc** with the fields below.
+- Ad-hoc: **Host** (also a `~/.ssh/config` alias, with its `HostName`, `Port`, `User`,
+  `IdentityFile` and `ProxyJump`), **Port**, **User name** and **Authentication type**:
+  **Password**, **Key pair** (private key file and passphrase) or **OpenSSH config and
+  authentication agent**.
+- The SSH password or key passphrase is stored in the OS keychain (account `<id>#ssh`).
+- The first connection to an unknown host shows its key fingerprint: **Trust Host Key and Test
+  Again** adds it to `~/.ssh/known_hosts`. A changed key is reported and refused until you trust
+  it again.
+
+**SSL** **Mode**:
+
+| Mode | Meaning |
+| --- | --- |
+| Disable | no TLS |
+| Prefer | TLS when the server offers it, certificate not checked (ClickHouse and Redis: plain) |
+| Require | TLS, certificate not checked |
+| Verify CA | TLS, certificate signed by the CA file (or the system roots) |
+| Verify Full | like Verify CA, and the certificate must name the host |
+
+**CA file**, **Client certificate file** and **Client key file** are PEM files; relative paths
+are resolved against the project. An encrypted client key (PKCS#8 `ENCRYPTED PRIVATE KEY`) is
+decrypted in memory with the **Client key password**, which is stored in the keychain (account
+`<id>#ssl-key`); legacy OpenSSL-encrypted keys must be converted with
+`openssl pkcs8 -topk8`. What each driver does with them:
+
+| Driver | SSL/TLS |
+| --- | --- |
+| MySQL, MariaDB | `ssl-mode` Disabled / Preferred / Required / Verify CA / Verify Identity, CA and client certificate |
+| PostgreSQL | `sslmode` with `sslrootcert`, `sslcert`, `sslkey` |
+| SQL Server | Prefer encrypts the login, Require encrypts everything without checking the certificate, Verify uses the CA; client certificate and **unencrypted** key files |
+| ClickHouse | HTTPS from Require on (use the HTTPS port, usually 8443); Verify CA also checks the host name |
+| Redis | `rediss://` from Require on, CA and client certificate |
+| MongoDB | TLS from Require on; the client certificate **and its key in one PEM file** (set as the client certificate) |
+| Oracle | configured in the Oracle client (`sqlnet.ora`, wallet) |
+
+Through an SSH tunnel, Verify Full checks the certificate against the configured database host
+for SQL Server, Redis and MongoDB; for MySQL and PostgreSQL use Verify CA.
+
+### Oracle
+
+Forge does not bundle Oracle's client and there is no permissive pure-Rust driver for Oracle's
+network protocol, so Oracle data sources run through **SQL\*Plus** (from the Oracle Instant
+Client "SQL\*Plus" package) or **SQLcl**, which you install yourself; Forge finds `sqlplus` (or
+SQLcl's `sql`) on `PATH`. Every statement starts `sqlplus -S -L /nolog`, logs in through the
+process's input (the password never appears on a command line), prints CSV and exits, so:
+
+- each statement is committed on its own; there are no manual transactions,
+- **Cancel** stops the process,
+- PL/SQL blocks (`BEGIN … END;`, `CREATE PROCEDURE …`) end with a line containing only `/`.
 
 ### From `.env`
 
@@ -16106,12 +16187,79 @@ from .env files** (`database.suggestFromEnv`).
   opens a console with it (see [Language injections](docs/guide/user/language-injections.md#run-injected-sql)).
 - Results appear below in tabs (**Output** plus one tab per result set), paged by
   **Result set page size** (`database.pageSize`, 500).
-- **Cancel Running Statements** stops a long query.
+- **Cancel Running Statements** stops a long query (MySQL `KILL QUERY`, PostgreSQL
+  `pg_cancel_backend`, ClickHouse `KILL QUERY`, SQL Server by closing and reopening the
+  console's connection).
 - **Tx: Auto / Manual** switches the transaction mode; in manual mode use **Commit** and
-  **Rollback**.
+  **Rollback**. ClickHouse, Oracle, Redis and MongoDB consoles run every statement on its own.
+- **New session / Shared session** chooses the console's connection, see [Sessions](#sessions).
 - The schema selector at the top right sets the current schema.
 
 SQL [scratch files](docs/guide/user/scratches-and-http.md) attached to a data source open as consoles too.
+
+### Sessions
+
+Every console runs in a **session** (an open connection). By default each console has its own
+session, so transactions in one console are invisible to the others. **Shared session** in the
+console toolbar (or **Single session mode** in the data source's Options) makes all consoles of
+the data source share one connection and its transaction.
+
+**Sessions** (the pulse icon in the Database tool window toolbar) lists the open sessions with
+their data source, transaction mode, open transaction (statements and age), the running or
+last statement, and **Commit**, **Rollback**, **Cancel** and **Close Session**.
+
+![Sessions](docs/screenshots/database-sessions.png)
+
+### Redis
+
+A Redis data source shows its databases (`db0`, … from `INFO keyspace`). Expanding one lists the
+keys matching the **key pattern** at the top (`*`, `user:*`, …; `Enter` reloads) with their type
+and TTL; at most 1000 keys are listed. Double-click a key to open its **value viewer**: strings
+as text (JSON pretty-printed), lists and sets as numbered rows, hashes as field/value rows,
+sorted sets with scores and streams as JSON.
+
+![Redis keys and value viewer](docs/screenshots/database-redis.png)
+
+The console runs one command per line (`GET user:1`, `HGETALL user:1`, `SCAN 0 MATCH s*`,
+quotes for spaces: `SET motd "hello world"`).
+
+### MongoDB
+
+A MongoDB data source shows databases → collections → fields (sampled from the first documents,
+with their BSON types). Double-click a collection to open a console that finds its documents;
+**JSON** in the result toolbar shows them as documents instead of a grid.
+
+![MongoDB documents](docs/screenshots/database-mongodb.png)
+
+The console understands the shell calls you would type in `mongosh`:
+
+```text
+db.users.find({ age: { $gt: 30 } }, { name: 1, email: 1 }).sort({ age: -1 }).limit(5)
+db.orders.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }])
+db.orders.countDocuments({ status: "paid" })
+db.users.distinct("address.country")
+db.users.insertOne({ name: "Ada" })   db.users.updateMany({...}, { $set: {...} })   db.users.deleteMany({...})
+db.users.getIndexes()   db.getCollectionNames()   show dbs   show collections   use shop
+```
+
+Arguments are relaxed JSON: unquoted keys, single quotes, `ObjectId("…")`, `ISODate("…")`,
+`NumberLong(…)`, `NumberDecimal("…")` and `/regex/i`.
+
+## Read-only and production data sources
+
+**Read-only** (Options tab) protects a data source: the console refuses statements that change
+data or schema (DML and DDL, Redis write commands, MongoDB writes) with a clear message, and the
+driver refuses them too — MySQL and PostgreSQL sessions are `READ ONLY`, SQLite opens the file
+read-only, ClickHouse gets `readonly=2`, Oracle `SET TRANSACTION READ ONLY`, SQL Server declares
+`ApplicationIntent=ReadOnly`, Redis and MongoDB connections only accept reads.
+
+**Colour** marks a data source as development (**green**), staging (**yellow**) or production
+(**red**); the tree, its console and table tabs and the console editor are tinted, and the
+console shows a badge. Before running `UPDATE` or `DELETE` without `WHERE`, `TRUNCATE`,
+`FLUSHDB`/`FLUSHALL`, `deleteMany({})`/`updateMany({}, …)` or `drop()` on a **production**
+data source, Forge asks for confirmation:
+
+![Production warning](docs/screenshots/database-production-warning.png)
 
 ## Data grid and table editor
 
@@ -16160,6 +16308,8 @@ from your machine.
 ![Remote data source](docs/screenshots/remote-parity-data-source-dialog.png)
 
 ![Remote database](docs/screenshots/remote-parity-database.png)
+
+A data source with its own SSH tunnel uses that tunnel instead.
 
 > **Note:** SQLite files on the remote host cannot be opened.
 
@@ -22713,7 +22863,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-diff](docs/guide/developer/crates/forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](docs/guide/developer/crates/forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
 | [forge-dap](docs/guide/developer/crates/forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
-| [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources, introspection, query execution and data editing |
+| [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions, the read-only / production guard and data editing |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-emmet](docs/guide/developer/crates/forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
@@ -22746,7 +22896,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-scopes](docs/guide/developer/crates/forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
 | [forge-ssr](docs/guide/developer/crates/forge-ssr.md) | Structural Search and Replace: templates with `$variables$` matched on tree-sitter syntax trees (PHP, JavaScript, TypeScript) |
-| [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge SQL text: dialects, statement splitting, literals, row changes and export (pure, also built to WebAssembly) |
+| [forge-sql](docs/guide/developer/crates/forge-sql.md) | Forge console text: dialects, statement splitting, the read-only / production guard, literals, row changes and export (pure, also built to WebAssembly) |
 | [forge-testing](docs/guide/developer/crates/forge-testing.md) | The shared test runner and coverage model of every pack: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) (pure, also built to WebAssembly) |
 | [forge-trust](docs/guide/developer/crates/forge-trust.md) | Project trust and Safe Mode: trusted projects and locations, and what may run |
 | [forge-update](docs/guide/developer/crates/forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
@@ -23918,35 +24068,65 @@ Source: docs/guide/developer/crates/forge-db.md
 
 Forge database tools (the DataGrip part of Forge).
 
-- `config`: data sources in `.forge/dataSources.toml` and the global file;
-  passwords in the OS keychain (`secrets`, service `forge-db`).
+- `config`: data sources in `.forge/dataSources.toml` and the global file (drivers, SSL mode
+  and certificate files, SSH tunnel, colour, single session mode); secrets in the OS keychain
+  (`secrets`, service `forge-db`: `<id>`, `<id>#ssh`, `<id>#ssl-key`).
 - `env`: suggestions from Laravel `DB_*` and Symfony `DATABASE_URL`.
-- `conn`: MySQL/MariaDB, PostgreSQL and SQLite pools via `sqlx`.
+- `conn`: MySQL/MariaDB, PostgreSQL and SQLite pools via `sqlx`; the other engines behind the
+  `engine::EnginePool` / `engine::EngineConn` traits.
+- `engine`: SQL Server (`tiberius`, rustls), ClickHouse (HTTP + `JSONCompact`, `reqwest`),
+  Redis (`redis-rs`: keys tree, value viewer, command console), MongoDB (official driver:
+  collections, documents as JSON, shell-style console), Oracle (SQL*Plus / SQLcl on `PATH`,
+  one process per statement).
+- `ssh`: per data source SSH tunnels opened with `forge-remote` (saved configuration or ad-hoc,
+  `known_hosts` confirmation); `tls`: certificate files, encrypted PKCS#8 keys decrypted in
+  memory.
 - `introspect`, `ddl`: schemas, tables, columns, keys, indexes, routines, DDL.
-- `service::DbService`: consoles with transactions and cancel, table paging, row
-  editing (`edit`) and export (`export`).
-- `value`, `split`, `export`: re-exported from the pure `forge-sql` crate.
+- `service::DbService`: consoles with own or shared sessions, transactions and cancel, the
+  Sessions view, the read-only / production `guard`, table paging, row editing (`edit`),
+  export (`export`) and the Redis keys and values.
+- `value`, `split`, `export`, `guard`: re-exported from the pure `forge-sql` crate.
+
+### Decisions
+
+- **Oracle** runs through the user's SQL*Plus or SQLcl: no permissive pure-Rust driver speaks
+  Oracle's protocol and the Oracle client must not be bundled. The password goes through the
+  process's stdin; output is CSV between markers. No transactions across statements.
+- **ODBC** is not supported: generic ODBC needs a system driver manager and native drivers;
+  the engines are supported natively instead.
+- Writes on read-only data sources are refused twice: by the guard before anything is sent, and
+  by the driver (session `READ ONLY`, `readonly=2`, command allow-lists).
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
 | `config.rs` | Data source configuration: `.forge/dataSources.toml` in the project and `<config dir>/forge/dataSources.toml` for global data sources. Passwords never go into these files; they live in the OS keychain (see `crate::secrets`). |
-| `conn.rs` | Driver-neutral pools and connections. All SQL is sent as raw text (MySQL text protocol, PostgreSQL simple query protocol), so every statement type works and values arrive in a uniform text form that `crate::value` converts. |
-| `ddl.rs` | Table DDL: read from the server where it keeps it (MySQL `SHOW CREATE`, SQLite `sqlite_master`), otherwise generated from introspection (PostgreSQL). |
+| `conn.rs` | Driver-neutral pools and connections. All SQL is sent as raw text (MySQL text protocol, PostgreSQL simple query protocol), so every statement type works and values arrive in a uniform text form that `crate::value` converts. Other engines are `DbPool::Engine` / `Conn::Engine`. |
+| `ddl.rs` | Table DDL: read from the server where it keeps it (MySQL and ClickHouse `SHOW CREATE`, SQLite `sqlite_master`, Oracle `DBMS_METADATA`), otherwise generated from introspection (PostgreSQL, SQL Server tables). |
 | `edit.rs` | Row editing from the data grid; the statements are built by `forge_sql::edit`. |
+| `engine/mod.rs` | The driver traits, connect dispatch and shared helpers (paging, command words). |
+| `engine/sqlserver.rs` | SQL Server with `tiberius` over rustls: TDS config from the data source (encryption per SSL mode, CA, client certificate, Azure redirects), TDS values as cells. |
+| `engine/clickhouse.rs` | ClickHouse over HTTP: `JSONCompact`, `session_id` per console, `readonly=2`, `KILL QUERY` by `query_id`. |
+| `engine/redis.rs` | Redis: databases from `INFO keyspace`, `SCAN` with type and TTL, values per type, console replies as rows; read-only allow-list. |
+| `engine/mongo.rs` | MongoDB: relaxed-JSON arguments, `find`/`aggregate`/… calls with cursor chains, documents as rows and relaxed extended JSON, fields sampled per collection. |
+| `engine/oracle.rs` | Oracle through SQL*Plus / SQLcl: the script (CSV markup, login on stdin), CSV and feedback parsing, `ORA-` errors. |
 | `env.rs` | Data sources suggested from a project's `.env` files: Laravel's `DB_*` variables and Symfony/Doctrine's `DATABASE_URL`. |
 | `error.rs` |  |
 | `introspect.rs` | Database metadata: schemas, tables, views, columns, keys, indexes and routines. |
-| `secrets.rs` | Data source passwords: the OS keychain (service `forge-db`, account = data source id). |
-| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools, console sessions with transaction state, table data paging and row editing. |
+| `secrets.rs` | Data source secrets in the OS keychain (service `forge-db`): password (`<id>`), SSH secret (`<id>#ssh`), SSL key passphrase (`<id>#ssl-key`). |
+| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging, row editing and the Redis keys tree. |
+| `ssh.rs` | The SSH tab: `SshConnector` / `ForgeSsh` open a `forge-remote` session (saved configuration or ad-hoc, `~/.ssh/config`, `known_hosts`) and forward a local port. |
+| `tls.rs` | Certificate files of the SSL tab, resolved against the project; encrypted PKCS#8 client keys decrypted in memory. |
 | `tunnel.rs` | Data sources of a project on a remote host connect through its SSH connection: the database host and port are as the remote host sees them (`localhost` is the remote machine), reached through a local port forwarded with a `direct-tcpip` channel. |
 
 ## Main public items
 
 ```rust
-pub use forge_sql::{export, split, value};
-pub use config::{DataSource, DataSourceOptions, Dialect, Driver, Scope, SslMode};
+pub use forge_sql::{export, guard, split, value};
+pub use config::{DataModel, DataSource, DataSourceOptions, Dialect, Driver, Scope, SshTunnel, SslFiles, SslMode};
+pub use engine::redis::{RedisKey, RedisKeys, RedisValue};
+pub use forge_sql::{Guard, GuardPolicy};
 pub use conn::{ColumnMeta, DbPool, RawResult};
 pub use edit::{ChangeKind, RowChange};
 pub use env::DetectedDataSource;
@@ -23961,18 +24141,18 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 ## Used by
 
-- IPC: `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
+- IPC: `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
-- External: `dirs`, `futures-util`, `hex`, `keyring`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tokio`, `tokio-util`, `toml`, `tracing`
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- External: `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
 
-11 source files, about 3008 lines; 11 unit tests and 12 integration tests in `tests/` (`remote.rs`, `sqlite.rs`).
+19 source files, about 7500 lines; 28 unit tests and 22 integration tests in `tests/`: `sqlite.rs` (a real SQLite file: sessions, transactions, guard), `clickhouse.rs` (a local HTTP mock), `redis.rs` (an in-process RESP fake), `ssh_tunnel.rs` (an in-process russh bastion forwarding to the ClickHouse mock), `oracle.rs` (a fake `sqlplus` script, Unix), `remote.rs`. No test needs a network or a real server; SQL Server and MongoDB are covered by unit tests of their configuration, value conversion and parsing.
 
 ```sh
 cargo test -p forge-db
@@ -25678,6 +25858,7 @@ pub use known_hosts::HostKeyStatus;
 
 - IPC: `remote_ssh_configs`, `remote_ssh_config_save`, `remote_validate_config`, `remote_ssh_config_delete`, `remote_ssh_hosts`, `remote_test_connection`, `remote_connect`, `remote_browse`, `remote_open_project`, `remote_disconnect`, `remote_status`, `remote_reconnect` (`app/src-tauri/src/commands/remote.rs`)
 - IPC: `terminal_open({ options: { ssh: { configId? | serverId?, secret?, confirmed? } } })` (`app/src-tauri/src/commands/terminal.rs`)
+- [`forge-db`](docs/guide/developer/crates/forge-db.md): SSH tunnels of data sources (`forge_db::ssh`)
 - UI: `app/ui/src/features/remote`, `app/ui/src/features/terminal/ssh.tsx`
 - Browser mode: built into `forge-wasm`
 
@@ -26257,18 +26438,21 @@ Source: docs/guide/developer/crates/forge-sql.md
 
 ## Purpose
 
-Pure SQL text handling shared by `forge-db` and the browser-mode UI (WebAssembly):
-dialect quoting, statement splitting and the statement at the caret, cell values as
-JavaScript-safe JSON, row change statements and export.
+Pure console text handling shared by `forge-db` and the browser-mode UI (WebAssembly):
+dialect quoting and paging (MySQL, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle; Redis and
+MongoDB consoles), statement splitting and the statement at the caret (`GO` batches, PL/SQL
+blocks ending with `/`, one Redis command per line, MongoDB calls), the read-only / production
+guard, cell values as JavaScript-safe JSON, row change statements and export.
 
 ## Modules
 
 | Module | Summary |
 | --- | --- |
-| `dialect.rs` | SQL dialects: quoting of identifiers and literals. |
+| `dialect.rs` | Console dialects: quoting of identifiers and literals, `BEGIN`, paging (`LIMIT`/`OFFSET` or `OFFSET … FETCH`). |
 | `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key. |
 | `export.rs` | Export a result set as CSV, JSON or SQL `INSERT` statements. |
-| `split.rs` | Split a script into statements at `;`, respecting quotes, comments and PostgreSQL dollar quoting. |
+| `guard.rs` | Read-only data sources refuse writes (DML/DDL, Redis write commands, MongoDB write calls); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
+| `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks; Redis lines and MongoDB calls. |
 | `value.rs` | Cell values as JSON that survives JavaScript: `null`, booleans, numbers only within ±2^53, everything else (big integers, decimals, dates) as strings, binary data as `{"$hex": "89504e47"}`. |
 
 ## Main public items
@@ -26277,14 +26461,15 @@ JavaScript-safe JSON, row change statements and export.
 pub use dialect::Dialect;
 pub use edit::{change_sql, ChangeKind, Refused, RowChange};
 pub use export::{export, ExportFormat};
+pub use guard::{guard, Guard, GuardPolicy};
 pub use split::{leading_keyword, split_statements, statement_at, Statement};
 ```
 
 ## Used by
 
-- IPC: `db_statement_at`, `db_export` (through forge-db)
+- IPC: `db_statement_at`, `db_export`, `db_guard` (through forge-db)
 - UI: `app/ui/src/features/database`
-- Browser mode: built into `forge-wasm`
+- Browser mode: built into `forge-wasm` (`sql_split`, `sql_statement_at`, `sql_guard`, …)
 
 ## Dependencies
 
@@ -26293,7 +26478,7 @@ pub use split::{leading_keyword, split_statements, statement_at, Statement};
 
 ## Tests
 
-6 source files, about 904 lines; 14 unit tests.
+7 source files, about 1900 lines; 24 unit tests.
 
 ```sh
 cargo test -p forge-sql

@@ -56,6 +56,7 @@ pub use known_hosts::HostKeyStatus;
 
 - IPC: `remote_ssh_configs`, `remote_ssh_config_save`, `remote_validate_config`, `remote_ssh_config_delete`, `remote_ssh_hosts`, `remote_test_connection`, `remote_connect`, `remote_browse`, `remote_open_project`, `remote_disconnect`, `remote_status`, `remote_reconnect` (`app/src-tauri/src/commands/remote.rs`)
 - IPC: `terminal_open({ options: { ssh: { configId? | serverId?, secret?, confirmed? } } })` (`app/src-tauri/src/commands/terminal.rs`)
+- [`forge-db`](forge-db.md): SSH tunnels of data sources (`forge_db::ssh`)
 - UI: `app/ui/src/features/remote`, `app/ui/src/features/terminal/ssh.tsx`
 - Browser mode: built into `forge-wasm`
 

@@ -1,6 +1,6 @@
 [package]
 name = "forge-db"
-description = "Forge IDE database tools: data sources, introspection, query execution and data editing"
+description = "Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions and data editing"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
