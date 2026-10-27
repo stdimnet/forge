@@ -1,6 +1,6 @@
 /**
  * Settings | Tools | Actions on Save, like PHPStorm: Reformat code, Optimize imports,
- * Rearrange code, Run code cleanup, Run eslint --fix, Run Prettier, Run PHP CS Fixer and Run
+ * Rearrange code, Run code cleanup, Run biome check --write, Run eslint --fix, Run stylelint --fix, Run Prettier, Run PHP CS Fixer and Run
  * Laravel Pint (and Rector, phpcbf) on explicit save (Ctrl+S), optionally on autosave. The logic lives in
  * `crates/forge-save-actions` and `packs/phpforge/lang-php`; `run.ts` connects it to
  * `saveFile`.
@@ -26,6 +26,8 @@ registerSettingsPage({
     "code cleanup",
     "eslint",
     "prettier",
+    "stylelint",
+    "biome",
     "php cs fixer",
     "pint",
     "phpcbf",

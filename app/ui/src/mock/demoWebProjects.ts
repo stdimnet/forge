@@ -53,6 +53,7 @@ const react: Record<string, string> = {
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
     "eslint": "^9.25.0",
+    "prettier": "^3.5.3",
     "typescript": "~5.8.3",
     "vite": "^6.3.5",
     "vitest": "^3.1.2"
@@ -61,6 +62,26 @@ const react: Record<string, string> = {
 `,
   "pnpm-lock.yaml": "lockfileVersion: '9.0'\n\nsettings:\n  autoInstallPeers: true\n  excludeLinksFromLockfile: false\n",
   "pnpm-workspace.yaml": "packages:\n  - 'packages/*'\n",
+  "eslint.config.js": `import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+
+export default tseslint.config(js.configs.recommended, ...tseslint.configs.recommended, {
+  rules: { eqeqeq: "warn", "no-console": ["warn", { allow: ["warn", "error"] }] },
+});
+`,
+  ".prettierrc": '{\n  "printWidth": 120\n}\n',
+  ".prettierignore": "dist\npnpm-lock.yaml\n",
+  "src/utils/cartTotals.ts": `import type { CartItem } from "@/types";
+
+export function cartTotal(items: CartItem[]): number {
+  var total = 0;
+  for (const item of items) total += item.price * item.quantity;
+  if (items.length == 0) console.log("empty cart");
+  return Math.round(total * 100) / 100;
+}
+
+export const formatTotal = ( total: number )  =>  \`\${total.toFixed(2)} €\` ;
+`,
   "packages/icons/package.json": `{
   "name": "@storefront/icons",
   "version": "0.3.0",
@@ -555,6 +576,8 @@ const angular: Record<string, string> = {
   },
   "devDependencies": {
     "@angular/cli": "^19.2.0",
+    "stylelint": "^16.19.1",
+    "stylelint-config-standard-scss": "^14.0.0",
     "typescript": "~5.7.2"
   }
 }
@@ -617,7 +640,19 @@ export class UserCardComponent {
   <small>Joined {{ user.createdAt | relativeTime }}</small>
 </div>
 `,
-  "src/app/users/user-card.component.scss": ".card { border-radius: 8px; padding: 12px; }\n",
+  "src/app/users/user-card.component.scss": `.card {
+  border-radius: 8px;
+  padding: 12px;
+  color: #ffg;
+  background: #ffffff;
+  margin: 0px;
+
+  &:hover {
+    border-color: #333333;
+  }
+}
+`,
+  ".stylelintrc.json": '{\n  "extends": ["stylelint-config-standard-scss"]\n}\n',
   "src/app/users/user-list.component.ts": `import { Component, output } from '@angular/core';
 import { UserCardComponent } from './user-card.component';
 import { User } from './user';
@@ -705,6 +740,7 @@ const node: Record<string, string> = {
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
+    "@biomejs/biome": "1.9.4",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "~5.7.2",
@@ -755,6 +791,24 @@ export interface Order {
 }
 `,
   "src/orders/pricing.ts": NODE_PRICING,
+  "biome.json": `{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "formatter": { "enabled": true, "indentStyle": "space" }
+}
+`,
+  "src/orders/vouchers.ts": `import type { Order } from "../types";
+
+export function voucherPercent(order: Order): number {
+  let percent = order.voucher?.percent ?? 0;
+  if (percent == 0) return 0;
+  return Math.min(percent, 100);
+}
+
+export function voucherCode(order: Order): string {
+  return order.voucher!.code.toUpperCase();
+}
+`,
   "src/orders/pricing.test.ts": `import { describe, expect, it } from "vitest";
 import { lineTotal, orderTotal } from "./pricing";
 

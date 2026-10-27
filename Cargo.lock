@@ -2153,6 +2153,7 @@ dependencies = [
  "webforge-js-debug",
  "webforge-js-testing",
  "webforge-lang-web",
+ "webforge-quality-tools",
 ]
 
 [[package]]
@@ -9708,6 +9709,16 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "webforge-quality-tools"
+version = "0.1.0"
+dependencies = [
+ "forge-filetypes",
+ "forge-runtools",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
