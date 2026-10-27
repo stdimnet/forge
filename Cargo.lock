@@ -3039,6 +3039,7 @@ dependencies = [
  "forge-colorscheme",
  "forge-containers",
  "forge-dbmodel",
+ "forge-dbtransfer",
  "forge-deploy",
  "forge-devenv",
  "forge-diff",

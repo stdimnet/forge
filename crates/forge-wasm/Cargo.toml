@@ -20,6 +20,7 @@ regex-lite = "0.1"
 forge-sql.workspace = true
 forge-dbmodel.workspace = true
 forge-sqlcode.workspace = true
+forge-dbtransfer.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
 base64 = "0.22"

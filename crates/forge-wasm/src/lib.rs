@@ -30,6 +30,7 @@ mod composer;
 mod containers;
 mod cpp;
 mod cpp_tools;
+mod dbobjects;
 mod deploy;
 mod devenv;
 mod editing;
