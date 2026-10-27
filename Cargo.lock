@@ -2729,7 +2729,9 @@ name = "forge-wasm"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "cforge-analyzers",
  "cforge-cmake",
+ "cforge-embedded",
  "cforge-lang-cpp",
  "forge-agent-cli",
  "forge-bookmarks",
