@@ -56,6 +56,7 @@ export const codestyle_plan_save: (a: number, b: number, c: number) => void;
 export const codestyle_post_format: (a: number, b: number, c: number) => void;
 export const codestyle_preview: (a: number, b: number, c: number) => void;
 export const codestyle_schemes: (a: number, b: number, c: number) => void;
+export const codestyle_selected_values: (a: number, b: number, c: number) => void;
 export const colors_find: (a: number, b: number, c: number) => void;
 export const colors_format: (a: number, b: number, c: number) => void;
 export const colors_parse: (a: number, b: number, c: number) => void;

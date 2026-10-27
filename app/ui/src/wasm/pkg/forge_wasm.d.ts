@@ -287,6 +287,12 @@ export function codestyle_preview(request_json: string): string;
 export function codestyle_schemes(request_json: string): string;
 
 /**
+ * `{ user, project }` → the selected scheme's values (`sql.case.keywords`, …), for passes
+ * that take them directly (the SQL formatter).
+ */
+export function codestyle_selected_values(request_json: string): string;
+
+/**
  * `FindRequest` → `ColorMatch[]`.
  */
 export function colors_find(request_json: string): string;
@@ -2165,6 +2171,7 @@ export interface InitOutput {
     readonly codestyle_post_format: (a: number, b: number, c: number) => void;
     readonly codestyle_preview: (a: number, b: number, c: number) => void;
     readonly codestyle_schemes: (a: number, b: number, c: number) => void;
+    readonly codestyle_selected_values: (a: number, b: number, c: number) => void;
     readonly colors_find: (a: number, b: number, c: number) => void;
     readonly colors_format: (a: number, b: number, c: number) => void;
     readonly colors_parse: (a: number, b: number, c: number) => void;
