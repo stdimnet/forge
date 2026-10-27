@@ -26,7 +26,8 @@ const root = () => (workspace()?.root ?? "").replace(/\\/g, "/");
 export function isOwn(file: string): boolean {
   if (!file || file === "php:internal" || file.startsWith("node:") || file.startsWith("(")) return false;
   const r = root();
-  if (/^(\/|~|[A-Za-z]:\/)/.test(file)) return !!r && file.startsWith(`${r}/`) && !file.includes("/node_modules/");
+  if (/(^|\/)(vendor|node_modules)\//.test(file)) return false;
+  if (/^(\/|~|[A-Za-z]:\/)/.test(file)) return !!r && file.startsWith(`${r}/`);
   return !/^[a-z]+:/i.test(file);
 }
 
@@ -204,7 +205,6 @@ function ClassRow(props: { c: HeapClass; heap: HeapSummary }) {
         <td>
           <span class="profiling-toggle">{open() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
           <span class="profiling-callable">{props.c.name}</span>
-          <span class="muted profiling-where">×{props.c.count.toLocaleString("en-US")}</span>
         </td>
         <td>{props.c.count.toLocaleString("en-US")}</td>
         <td>{formatValue(props.c.shallow, "bytes")}</td>
@@ -354,7 +354,7 @@ export function SnapshotView(props: { source: SourceId }) {
           return (
             <>
               <div class="prof-toolbar">
-                <span class="prof-title" title={loaded().path}>
+                <span class="prof-title" title={[loaded().path, ...s().info.map((i) => `${i.label}: ${i.value}`)].join("\n")}>
                   {s().title}
                 </span>
                 <Show when={s().metrics.length > 1}>
@@ -368,13 +368,6 @@ export function SnapshotView(props: { source: SourceId }) {
                   </select>
                 </Show>
                 <span class="muted">{summary(s())}</span>
-                <For each={s().info.slice(0, 2)}>
-                  {(i) => (
-                    <span class="muted profiling-info" title={`${i.label}: ${i.value}`}>
-                      {i.label}: {i.value}
-                    </span>
-                  )}
-                </For>
                 <span class="prof-spacer" />
                 <div class="prof-tabs">
                   <Show

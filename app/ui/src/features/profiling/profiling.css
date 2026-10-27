@@ -5,13 +5,6 @@
   white-space: nowrap;
 }
 
-.profiling-info {
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .profiling-stats {
   flex: 1;
   min-height: 0;
