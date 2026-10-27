@@ -2724,6 +2724,7 @@ dependencies = [
  "phpforge-test-frameworks",
  "pyforge-frameworks",
  "pyforge-interpreters",
+ "pyforge-jupyter",
  "pyforge-lang-python",
  "pyforge-packages",
  "pyforge-testing",

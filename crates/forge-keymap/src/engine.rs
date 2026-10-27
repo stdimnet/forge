@@ -31,6 +31,11 @@ pub enum FocusContext {
     ToolwindowInput,
     /// A diff or merge window (its editors included).
     Diff,
+    /// A Jupyter notebook in command mode (a cell is selected, no cell editor has focus).
+    Notebook,
+    /// The code editor of a notebook cell (edit mode); editor actions apply too.
+    #[serde(rename = "notebook-editor")]
+    NotebookEditor,
     #[default]
     Global,
 }
@@ -126,12 +131,18 @@ pub fn allowed_in_terminal(s: &KeyStroke) -> bool {
 pub fn context_matches(context: ActionContext, focus: FocusContext) -> bool {
     match context {
         ActionContext::Any => true,
-        ActionContext::Editor => focus == FocusContext::Editor,
+        ActionContext::Editor => {
+            matches!(focus, FocusContext::Editor | FocusContext::NotebookEditor)
+        }
         ActionContext::Toolwindow => matches!(
             focus,
             FocusContext::Toolwindow | FocusContext::Terminal | FocusContext::ToolwindowInput
         ),
         ActionContext::Diff => focus == FocusContext::Diff,
+        ActionContext::Notebook => {
+            matches!(focus, FocusContext::Notebook | FocusContext::NotebookEditor)
+        }
+        ActionContext::NotebookCommand => focus == FocusContext::Notebook,
     }
 }
 
@@ -487,16 +498,15 @@ impl Resolver {
     }
 
     fn pick(list: Option<&Vec<Binding>>, focus: FocusContext) -> Option<String> {
-        // Context-specific bindings win over global ones (e.g. Generate vs. New… on Alt+Insert).
-        let matching: Vec<&Binding> = list?
-            .iter()
-            .filter(|b| context_matches(b.context, focus))
-            .collect();
-        matching
-            .iter()
-            .find(|b| b.context != ActionContext::Any)
-            .or_else(|| matching.first())
-            .map(|b| b.action_id.clone())
+        // Context-specific bindings win over global ones (e.g. Generate vs. New… on Alt+Insert),
+        // the most specific first (Run Cell vs. Start New Line on Shift+Enter in a cell).
+        let mut best: Option<&Binding> = None;
+        for b in list?.iter().filter(|b| context_matches(b.context, focus)) {
+            if best.map_or(true, |x| x.context.specificity() < b.context.specificity()) {
+                best = Some(b);
+            }
+        }
+        best.map(|b| b.action_id.clone())
     }
 
     pub fn key_down(&mut self, e: &KeyEvent, focus: FocusContext) -> Resolution {
@@ -635,6 +645,9 @@ mod tests {
             "Generate" | "EditorDuplicate" => ActionContext::Editor,
             "Rerun" => ActionContext::Toolwindow,
             "NextDiff" => ActionContext::Diff,
+            "EditorStartNewLine" => ActionContext::Editor,
+            "Jupyter.RunCellSelectBelow" => ActionContext::Notebook,
+            "Jupyter.DeleteCell" | "Jupyter.InsertCellAbove" => ActionContext::NotebookCommand,
             _ => ActionContext::Any,
         }
     }
@@ -692,6 +705,46 @@ mod tests {
 
     fn action(r: &mut Resolver, text: &str, focus: FocusContext) -> Option<String> {
         r.key_down(&key(text), focus).action
+    }
+
+    #[test]
+    fn notebook_bindings_win_in_notebooks_only() {
+        let mut r = resolver(&[
+            ("EditorStartNewLine", &["Shift+Enter"]),
+            ("Jupyter.RunCellSelectBelow", &["Shift+Enter"]),
+            ("Jupyter.DeleteCell", &["D D"]),
+            ("Jupyter.InsertCellAbove", &["A"]),
+            ("EditorDuplicate", &["Ctrl+D"]),
+        ]);
+        use FocusContext::{Notebook, NotebookEditor};
+        assert_eq!(
+            action(&mut r, "Shift+Enter", Editor).as_deref(),
+            Some("EditorStartNewLine")
+        );
+        assert_eq!(
+            action(&mut r, "Shift+Enter", NotebookEditor).as_deref(),
+            Some("Jupyter.RunCellSelectBelow")
+        );
+        assert_eq!(
+            action(&mut r, "Shift+Enter", Notebook).as_deref(),
+            Some("Jupyter.RunCellSelectBelow")
+        );
+        // Editor actions still work in cell editors; command keys do not type there.
+        assert_eq!(
+            action(&mut r, "Ctrl+D", NotebookEditor).as_deref(),
+            Some("EditorDuplicate")
+        );
+        assert_eq!(action(&mut r, "A", NotebookEditor), None);
+        assert_eq!(
+            action(&mut r, "A", Notebook).as_deref(),
+            Some("Jupyter.InsertCellAbove")
+        );
+        assert_eq!(action(&mut r, "D", Notebook), None);
+        assert_eq!(
+            action(&mut r, "D", Notebook).as_deref(),
+            Some("Jupyter.DeleteCell")
+        );
+        assert_eq!(action(&mut r, "D", Global), None);
     }
 
     fn single_stroke_resolver() -> Resolver {
@@ -1097,6 +1150,30 @@ mod tests {
         assert!(!context_matches(ActionContext::Toolwindow, Global));
         assert!(context_matches(ActionContext::Toolwindow, Terminal));
         assert!(context_matches(ActionContext::Diff, FocusContext::Diff));
+        assert!(context_matches(
+            ActionContext::Editor,
+            FocusContext::NotebookEditor
+        ));
+        assert!(context_matches(
+            ActionContext::Notebook,
+            FocusContext::NotebookEditor
+        ));
+        assert!(context_matches(
+            ActionContext::Notebook,
+            FocusContext::Notebook
+        ));
+        assert!(context_matches(
+            ActionContext::NotebookCommand,
+            FocusContext::Notebook
+        ));
+        assert!(!context_matches(
+            ActionContext::NotebookCommand,
+            FocusContext::NotebookEditor
+        ));
+        assert!(!context_matches(
+            ActionContext::Notebook,
+            FocusContext::Editor
+        ));
         assert!(context_matches(ActionContext::Any, FocusContext::Diff));
         assert!(!context_matches(ActionContext::Diff, Editor));
         assert!(!context_matches(ActionContext::Editor, FocusContext::Diff));

@@ -811,6 +811,31 @@ export function json_schema_read(location: string): string;
 export function json_schema_validate(request_json: string): string;
 
 /**
+ * `{ frame, query }` → `Page`.
+ */
+export function jupyter_dataframe_query(request_json: string): string;
+
+/**
+ * `{ left, right }` → `NotebookDiff`.
+ */
+export function jupyter_diff(request_json: string): string;
+
+/**
+ * `{ text, root? }` → `NotebookView`.
+ */
+export function jupyter_open(request_json: string): string;
+
+/**
+ * `{ outputs, root? }` → `Rendered[]`.
+ */
+export function jupyter_render(request_json: string): string;
+
+/**
+ * `{ notebook, original? }` → the `.ipynb` text.
+ */
+export function jupyter_serialize(request_json: string): string;
+
+/**
  * `{settings, hostPlatform}` → `KeymapSnapshot`.
  */
 export function keymap_actions(json: string): string;
@@ -1886,6 +1911,11 @@ export interface InitOutput {
     readonly json_schema_hover: (a: number, b: number, c: number) => void;
     readonly json_schema_read: (a: number, b: number, c: number) => void;
     readonly json_schema_validate: (a: number, b: number, c: number) => void;
+    readonly jupyter_dataframe_query: (a: number, b: number, c: number) => void;
+    readonly jupyter_diff: (a: number, b: number, c: number) => void;
+    readonly jupyter_open: (a: number, b: number, c: number) => void;
+    readonly jupyter_render: (a: number, b: number, c: number) => void;
+    readonly jupyter_serialize: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
     readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;

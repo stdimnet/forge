@@ -71,7 +71,9 @@ impl KeymapId {
 }
 
 /// Where an action may fire: "editor" actions only while a code editor has focus, "diff"
-/// actions only inside a diff or merge window.
+/// actions only inside a diff or merge window, "notebook" actions in a Jupyter notebook
+/// (command mode and cell editors) and "notebook-command" actions only in its command mode
+/// (plain keys such as A, B, D D).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ActionContext {
@@ -80,6 +82,20 @@ pub enum ActionContext {
     Editor,
     Toolwindow,
     Diff,
+    Notebook,
+    #[serde(rename = "notebook-command")]
+    NotebookCommand,
+}
+
+impl ActionContext {
+    /// Bindings of more specific contexts win when several match.
+    pub fn specificity(self) -> u8 {
+        match self {
+            ActionContext::Any => 0,
+            ActionContext::Editor | ActionContext::Toolwindow => 1,
+            ActionContext::Diff | ActionContext::Notebook | ActionContext::NotebookCommand => 2,
+        }
+    }
 }
 
 /// An action as listed in Find Action and the keymap settings.

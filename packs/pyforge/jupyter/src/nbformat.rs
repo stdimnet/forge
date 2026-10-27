@@ -228,6 +228,9 @@ pub struct Format {
     pub final_newline: bool,
     /// Non-ASCII characters were written as `\uXXXX` escapes.
     pub ascii: bool,
+    /// One line without indent; `spaced` with Python's `", "` / `": "` separators.
+    pub compact: bool,
+    pub spaced: bool,
 }
 
 impl Default for Format {
@@ -236,6 +239,8 @@ impl Default for Format {
             indent: " ".into(),
             final_newline: true,
             ascii: false,
+            compact: false,
+            spaced: false,
         }
     }
 }
@@ -256,6 +261,8 @@ pub fn detect_format(text: &str) -> Format {
         }
     }
     f.final_newline = text.ends_with('\n');
+    f.compact = !text.trim_end().contains('\n');
+    f.spaced = f.compact && (text.contains("\": ") || text.contains(", "));
     f.ascii = text.is_ascii() && has_non_ascii_escape(text);
     f
 }
@@ -420,6 +427,8 @@ pub fn write_json(value: &Value, format: &Format) -> String {
         NbFormatter {
             inner: pretty,
             ascii: format.ascii,
+            compact: format.compact,
+            spaced: format.spaced,
         },
     );
     value
@@ -433,30 +442,45 @@ pub fn write_json(value: &Value, format: &Format) -> String {
 struct NbFormatter<'a> {
     inner: serde_json::ser::PrettyFormatter<'a>,
     ascii: bool,
+    compact: bool,
+    spaced: bool,
 }
 
-macro_rules! delegate {
-    ($($name:ident($($arg:ident : $ty:ty),*)),* $(,)?) => {
+macro_rules! structure {
+    ($($name:ident($($arg:ident : $ty:ty),*) => $compact:expr),* $(,)?) => {
         $(
             fn $name<W: ?Sized + std::io::Write>(&mut self, w: &mut W $(, $arg: $ty)*) -> std::io::Result<()> {
-                self.inner.$name(w $(, $arg)*)
+                if self.compact {
+                    let text: &str = $compact(self.spaced $(, $arg)*);
+                    w.write_all(text.as_bytes())
+                } else {
+                    self.inner.$name(w $(, $arg)*)
+                }
             }
         )*
     };
 }
 
+fn sep(spaced: bool, first: bool) -> &'static str {
+    match (first, spaced) {
+        (true, _) => "",
+        (false, true) => ", ",
+        (false, false) => ",",
+    }
+}
+
 impl serde_json::ser::Formatter for NbFormatter<'_> {
-    delegate!(
-        begin_array(),
-        end_array(),
-        begin_array_value(first: bool),
-        end_array_value(),
-        begin_object(),
-        end_object(),
-        begin_object_key(first: bool),
-        end_object_key(),
-        begin_object_value(),
-        end_object_value(),
+    structure!(
+        begin_array() => |_| "[",
+        end_array() => |_| "]",
+        begin_array_value(first: bool) => sep,
+        end_array_value() => |_| "",
+        begin_object() => |_| "{",
+        end_object() => |_| "}",
+        begin_object_key(first: bool) => sep,
+        end_object_key() => |_| "",
+        begin_object_value() => |spaced| if spaced { ": " } else { ":" },
+        end_object_value() => |_| "",
     );
 
     fn write_string_fragment<W: ?Sized + std::io::Write>(
