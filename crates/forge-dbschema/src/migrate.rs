@@ -783,7 +783,7 @@ impl<'a> Gen<'a> {
 }
 
 /// Tables in dependency order: referenced tables before the tables that reference them.
-fn dependency_order<'t>(tables: Vec<&'t TableInfo>) -> Vec<&'t TableInfo> {
+fn dependency_order(tables: Vec<&TableInfo>) -> Vec<&TableInfo> {
     let names: BTreeSet<String> = tables.iter().map(|t| t.name.to_ascii_lowercase()).collect();
     let mut done: BTreeSet<String> = BTreeSet::new();
     let mut out = Vec::new();

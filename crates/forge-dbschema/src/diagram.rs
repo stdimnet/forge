@@ -151,7 +151,7 @@ fn find<'a>(schema: &'a SchemaInfo, name: &str) -> Option<&'a TableInfo> {
 }
 
 /// The tables of the diagram, in schema order.
-fn select<'a>(req: &'a DiagramRequest) -> (Vec<&'a TableInfo>, BTreeSet<String>) {
+fn select(req: &DiagramRequest) -> (Vec<&TableInfo>, BTreeSet<String>) {
     let s = &req.schema;
     let shown =
         |t: &TableInfo| t.kind != TableKind::Collection && !(req.hide_views && t.kind.is_view());

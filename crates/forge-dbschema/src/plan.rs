@@ -677,6 +677,9 @@ fn bars(
     }
 }
 
+/// What a flame bar's width is proportional to.
+type Weight = Box<dyn Fn(&PlanNode) -> f64>;
+
 /// Parse the rows of an explain statement into a plan.
 pub fn parse_plan(columns: &[String], rows: &[Vec<Value>]) -> Result<Plan, String> {
     if rows.is_empty() {
@@ -713,16 +716,15 @@ pub fn parse_plan(columns: &[String], rows: &[Vec<Value>]) -> Result<Plan, Strin
         };
     let mut next = 0;
     number_nodes(&mut root, &mut next);
-    let (name, weight): (&str, Box<dyn Fn(&PlanNode) -> f64>) =
-        if all_have(&root, &|n| n.cost.is_some()) {
-            ("cost", Box::new(|n: &PlanNode| n.cost.unwrap_or(0.0)))
-        } else if all_have(&root, &|n| n.rows.is_some() || !n.children.is_empty())
-            && root.children.iter().any(|c| c.rows.is_some())
-        {
-            ("rows", Box::new(|n: &PlanNode| subtree_rows(n)))
-        } else {
-            ("count", Box::new(|n: &PlanNode| leaves(n) as f64))
-        };
+    let (name, weight): (&str, Weight) = if all_have(&root, &|n| n.cost.is_some()) {
+        ("cost", Box::new(|n: &PlanNode| n.cost.unwrap_or(0.0)))
+    } else if all_have(&root, &|n| n.rows.is_some() || !n.children.is_empty())
+        && root.children.iter().any(|c| c.rows.is_some())
+    {
+        ("rows", Box::new(|n: &PlanNode| subtree_rows(n)))
+    } else {
+        ("count", Box::new(|n: &PlanNode| leaves(n) as f64))
+    };
     let mut flame = Vec::new();
     bars(&root, 0, 0.0, 1.0, &*weight, &mut flame);
     Ok(Plan {
