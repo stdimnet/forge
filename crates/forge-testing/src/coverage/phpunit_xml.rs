@@ -15,6 +15,9 @@
 use quick_xml::events::Event;
 use quick_xml::{Reader, XmlVersion};
 
+/// Covered lines with the tests that ran them.
+pub type LineTests = Vec<(u32, Vec<String>)>;
+
 /// The index of a report folder.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Index {
@@ -63,9 +66,9 @@ pub fn index(text: &str) -> Result<Index, String> {
 }
 
 /// The covered lines of one file's report with their tests (sorted, unique).
-pub fn line_tests(text: &str) -> Result<Vec<(u32, Vec<String>)>, String> {
+pub fn line_tests(text: &str) -> Result<LineTests, String> {
     let mut reader = Reader::from_str(text);
-    let mut out: Vec<(u32, Vec<String>)> = Vec::new();
+    let mut out: LineTests = Vec::new();
     let mut in_coverage = false;
     let mut current: Option<(u32, Vec<String>)> = None;
     loop {
@@ -112,9 +115,7 @@ pub fn line_tests(text: &str) -> Result<Vec<(u32, Vec<String>)>, String> {
 /// Every file of a report folder with its covered lines' tests; `read` gives the text of
 /// a file of the folder (`index.xml`, `Services/Cart.php.xml`). Paths are as the Clover
 /// report of the same run names them.
-pub fn collect(
-    read: impl Fn(&str) -> Option<String>,
-) -> Result<Vec<(String, Vec<(u32, Vec<String>)>)>, String> {
+pub fn collect(read: impl Fn(&str) -> Option<String>) -> Result<Vec<(String, LineTests)>, String> {
     let index = index(&read("index.xml").ok_or("no index.xml in the XML coverage report")?)?;
     let mut out = Vec::new();
     for href in &index.files {

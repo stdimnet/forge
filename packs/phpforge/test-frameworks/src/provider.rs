@@ -292,8 +292,8 @@ mod tests {
 
     fn cfg(type_id: &str, options: &[(&str, &str)]) -> Configuration {
         let mut c = Configuration::new("All", type_id);
-        for (k, v) in options {
-            c = c.with_option(*k, *v);
+        for &(k, v) in options {
+            c = c.with_option(k, v);
         }
         c
     }
