@@ -1,0 +1,17 @@
+[package]
+name = "rubyforge-sdk"
+description = "RubyForge: Ruby on the user's machine — interpreters of rbenv, rvm, chruby, asdf, mise, Homebrew, RubyInstaller and the system with their gem executables, the project's version file, Ruby probes, ruby-lsp installs with the user's own gem into Forge's data folder, and rdbg (the debug gem) as the `rdbg` debug adapter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+rubyforge-lang-ruby.workspace = true
+forge-dap.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
