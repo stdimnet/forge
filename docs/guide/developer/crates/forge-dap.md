@@ -22,7 +22,9 @@ with the same `debug_*` commands and `debug://*` events.
   sequence numbers and timeouts, responses, events and reverse requests.
 - `transport::Transport`: an adapter process on stdio, a TCP connection to an adapter that
   listens (started by Forge with `${port}`, or already running: "Attach to DAP server"), or a
-  TCP server Forge opens for an adapter that connects back.
+  TCP server Forge opens for an adapter that connects back. `${port}` is a free port below the
+  system's ephemeral range (20000-32767), so no other program is handed the same port before
+  the adapter binds it.
 - `adapter`: `DebugAdapterDescriptor` (how to start an adapter and build its `launch` /
   `attach` arguments), `ManifestAdapter` (adapters declared with
   `[[contributions.debugAdapters]]`, request templates with `${program}`, `${args}`,

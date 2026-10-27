@@ -522,6 +522,8 @@ async fn child_sessions_connect_to_the_parents_adapter_server() {
     let parent_peer = h.manager.session(&parent).unwrap().info().peer;
     assert_eq!(child.peer, parent_peer, "the child uses the same server");
     assert!(child.peer.starts_with("127.0.0.1:"));
+    // The child's first event arrives while it still starts: stop once it paused on entry.
+    h.paused(&child.id).await;
     h.manager.stop_all().await;
 }
 
