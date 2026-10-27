@@ -97,6 +97,7 @@ fn base(cfg: &JsConfiguration, adapter: &str) -> LaunchRequest {
         env: cfg.env.clone(),
         stop_on_entry: false,
         configuration: Value::Null,
+        adapter_args: Vec::new(),
     }
 }
 
