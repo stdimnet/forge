@@ -75,7 +75,7 @@ export function TableEditor(props: { tab: EditorTab }) {
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   let grid: GridApi | undefined;
 
-  const dialect = () => dialectOf(ds()?.driver ?? "mysql");
+  const dialect = () => dialectOf(ds()?.driver ?? "mysql", ds()?.options.ddlDialect);
   const columns = createMemo(() => gridColumns(page()?.columns ?? [], info()));
   const editable = () => info()?.kind !== "view" && !ds()?.options.readOnly;
   const changes = () => pendingCount(pending);

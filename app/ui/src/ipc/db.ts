@@ -1,7 +1,7 @@
 /** Typed client for the database tools backend (`crates/forge-db`, `commands/db.rs`). */
 import { invoke, listen } from "./index";
 
-export type Driver = "mysql" | "mariadb" | "postgres" | "sqlite" | "sqlserver" | "clickhouse" | "oracle" | "redis" | "mongodb";
+export type Driver = "mysql" | "mariadb" | "postgres" | "sqlite" | "sqlserver" | "clickhouse" | "oracle" | "redis" | "mongodb" | "ddl";
 export type Dialect = "mysql" | "postgres" | "sqlite" | "sqlserver" | "clickhouse" | "oracle" | "redis" | "mongo";
 export type Scope = "project" | "global";
 export type SslMode = "disable" | "prefer" | "require" | "verify-ca" | "verify-full";
@@ -42,6 +42,10 @@ export interface DataSourceOptions {
   color?: string | null;
   /** All consoles share one connection. */
   singleSession?: boolean;
+  /** DDL data sources: project-relative SQL files and folders, parsed in order. */
+  ddlFiles?: string[];
+  /** DDL data sources: the files' dialect (PostgreSQL when not set). */
+  ddlDialect?: Dialect | null;
 }
 
 export interface DataSource {
@@ -100,6 +104,8 @@ export interface TestResult {
 export interface SchemaName {
   name: string;
   current: boolean;
+  /** Passes the data source's schema filter (shown and introspected). */
+  visible?: boolean;
 }
 
 export interface ColumnInfo {
@@ -109,6 +115,10 @@ export interface ColumnInfo {
   default?: string | null;
   autoIncrement: boolean;
   comment?: string;
+  /** A virtual column defined in the project. */
+  virtual?: boolean;
+  /** Expression of a virtual or generated column. */
+  expression?: string | null;
 }
 
 export interface ForeignKey {
@@ -119,6 +129,8 @@ export interface ForeignKey {
   refColumns: string[];
   onUpdate?: string;
   onDelete?: string;
+  /** A virtual foreign key defined in the project. */
+  virtual?: boolean;
 }
 
 export interface IndexInfo {
@@ -128,27 +140,201 @@ export interface IndexInfo {
   primary: boolean;
 }
 
+export interface CheckInfo {
+  name: string;
+  expression: string;
+}
+
+export interface TriggerInfo {
+  name: string;
+  /** `BEFORE`, `AFTER` or `INSTEAD OF`. */
+  timing?: string;
+  /** `INSERT OR UPDATE`, … */
+  events?: string;
+  definition?: string;
+}
+
 export interface TableInfo {
   name: string;
-  kind: "table" | "view" | "collection";
+  /** `matview`: a materialized view. */
+  kind: "table" | "view" | "matview" | "collection";
   comment?: string;
   columns: ColumnInfo[];
   primaryKey: string[];
   foreignKeys: ForeignKey[];
   indexes: IndexInfo[];
+  checks?: CheckInfo[];
+  triggers?: TriggerInfo[];
   rowEstimate?: number;
+  /** The query of a view. */
+  definition?: string;
+}
+
+export interface RoutineArg {
+  name?: string;
+  dataType: string;
+  /** `OUT`, `INOUT`, `VARIADIC`; empty for `IN`. */
+  mode?: string;
 }
 
 export interface RoutineInfo {
   name: string;
+  /** `function`, `procedure`, `aggregate` or `package`. */
   kind: string;
   returns?: string;
+  arguments?: RoutineArg[];
+  language?: string;
+  definition?: string;
+}
+
+export interface SequenceInfo {
+  name: string;
+  dataType?: string;
+  start?: number;
+  increment?: number;
+}
+
+export interface TypeInfo {
+  name: string;
+  /** `enum`, `composite`, `domain` or `type`. */
+  kind: string;
+  labels?: string[];
+  definition?: string;
 }
 
 export interface SchemaInfo {
   name: string;
   tables: TableInfo[];
   routines: RoutineInfo[];
+  sequences?: SequenceInfo[];
+  types?: TypeInfo[];
+}
+
+export interface RoleInfo {
+  name: string;
+  /** `role` or `user`. */
+  kind: string;
+  superuser?: boolean;
+  canLogin?: boolean;
+}
+
+export interface ModelWarning {
+  /** Project-relative DDL file. */
+  file?: string;
+  line?: number;
+  message: string;
+}
+
+/** The explorer model of a data source (cached; the tree shows it without connecting). */
+export interface DbModel {
+  dialect: Dialect;
+  /** The connected database for engines with databases above schemas. */
+  catalog?: string;
+  /** Other databases on the server. */
+  catalogs?: string[];
+  schemas: SchemaName[];
+  /** Introspected (visible) schemas by name. */
+  loaded: Record<string, SchemaInfo>;
+  roles?: RoleInfo[];
+  refreshedAt: number;
+  warnings?: ModelWarning[];
+}
+
+/** A tree node for Quick Documentation. */
+export interface ObjectRef {
+  kind: string;
+  table?: string;
+  name: string;
+}
+
+export interface ObjectDoc {
+  kind: string;
+  name: string;
+  location: string;
+  comment?: string;
+  ddl: string;
+  properties: { name: string; value: string }[];
+}
+
+export interface VirtualForeignKey {
+  dataSource?: string;
+  schema: string;
+  table: string;
+  name?: string;
+  columns: string[];
+  refSchema?: string;
+  refTable: string;
+  refColumns: string[];
+}
+
+export interface VirtualColumn {
+  dataSource?: string;
+  schema: string;
+  table: string;
+  name: string;
+  expression: string;
+  type?: string;
+  comment?: string;
+}
+
+/** `.forge/database/virtual.toml` of one data source. */
+export interface VirtualObjects {
+  foreignKey?: VirtualForeignKey[];
+  column?: VirtualColumn[];
+}
+
+export type SearchMode = "contains" | "exact" | "regex";
+
+export interface SearchOptions {
+  text: string;
+  mode?: SearchMode;
+  caseSensitive?: boolean;
+  /** Also search numbers, dates and other non-text columns. */
+  allColumns?: boolean;
+  /** Rows per table (default 100). */
+  limit?: number;
+}
+
+export interface SearchScope {
+  dataSource: string;
+  /** Empty: the visible schemas. */
+  schemas?: string[];
+  /** Table names or patterns; empty: all. */
+  tables?: string[];
+}
+
+export interface SearchRequest extends SearchOptions {
+  scopes: SearchScope[];
+}
+
+export interface TableMatches {
+  dataSource: string;
+  schema: string;
+  table: string;
+  columns: string[];
+  rows: Cell[][];
+  /** Matching cell indexes per row. */
+  matches: number[][];
+  truncated: boolean;
+  sql: string;
+  error?: string;
+}
+
+export interface SearchProgress {
+  searchId: string;
+  done: number;
+  total: number;
+  current: string;
+  result?: TableMatches;
+}
+
+export interface SearchSummary {
+  tables: number;
+  matchedTables: number;
+  rows: number;
+  errors: number;
+  cancelled: boolean;
+  elapsedMs: number;
 }
 
 /** A cell: JSON scalars; big numbers/decimals/dates as strings; binary as `{ $hex }`. */
@@ -275,6 +461,8 @@ export type ExportFormat = "csv" | "json" | "sql";
 export const DATA_SOURCES_EVENT = "db://dataSources";
 export const SESSION_EVENT = "db://session";
 export const SESSIONS_EVENT = "db://sessions";
+export const MODEL_EVENT = "db://modelChanged";
+export const SEARCH_EVENT = "db://search";
 
 export const dbApi = {
   list: () => invoke<DataSourceInfo[]>("db_data_sources_list"),
@@ -285,6 +473,17 @@ export const dbApi = {
     invoke<TestResult>("db_test_connection", { source, password, secrets, acceptHostKey }),
   disconnect: (id: string) => invoke<void>("db_disconnect", { id }),
   schemas: (id: string) => invoke<SchemaName[]>("db_schemas", { id }),
+  /** The explorer model: cached unless `refresh` (which reconnects and reloads). */
+  model: (id: string, refresh?: boolean) => invoke<DbModel>("db_model", { id, refresh }),
+  objectDoc: (id: string, schema: string, object: ObjectRef) => invoke<ObjectDoc>("db_object_doc", { id, schema, object }),
+  virtualObjects: (id: string) => invoke<VirtualObjects>("db_virtual_objects", { id }),
+  saveVirtualObjects: (id: string, objects: VirtualObjects) => invoke<void>("db_virtual_objects_save", { id, objects }),
+  /** The schema filter applied to `schemas` (the Schemas tab preview). */
+  matchSchemas: (patterns: string[], schemas: SchemaName[]) => invoke<SchemaName[]>("db_match_schemas", { patterns, schemas }),
+  search: (searchId: string, request: SearchRequest) => invoke<SearchSummary>("db_search", { searchId, request }),
+  cancelSearch: (searchId: string) => invoke<void>("db_search_cancel", { searchId }),
+  onModelChanged: (cb: (ids: string[]) => void) => listen<string[]>(MODEL_EVENT, cb),
+  onSearch: (cb: (p: SearchProgress) => void) => listen<SearchProgress>(SEARCH_EVENT, cb),
   introspect: (id: string, schema: string) => invoke<SchemaInfo>("db_introspect", { id, schema }),
   tableInfo: (id: string, schema: string, table: string) => invoke<TableInfo>("db_table_info", { id, schema, table }),
   tableDdl: (id: string, schema: string, table: string) => invoke<string>("db_table_ddl", { id, schema, table }),
@@ -337,7 +536,12 @@ export interface SqlStatement {
 /** Binary cells arrive as `{ $hex }`. */
 export const isBinary = (v: Cell): v is { $hex: string } => typeof v === "object" && v !== null && "$hex" in v;
 
-export const dialectOf = (d: Driver): Dialect => (d === "mariadb" ? "mysql" : d === "mongodb" ? "mongo" : d);
+export const dialectOf = (d: Driver, ddlDialect?: Dialect | null): Dialect =>
+  d === "mariadb" ? "mysql" : d === "mongodb" ? "mongo" : d === "ddl" ? (ddlDialect ?? "postgres") : d;
+
+/** The dialect of a data source (DDL data sources: their files' dialect). */
+export const sourceDialect = (ds: Pick<DataSource, "driver" | "options"> | undefined): Dialect =>
+  dialectOf(ds?.driver ?? "mysql", ds?.options.ddlDialect);
 
 export const DRIVER_LABELS: Record<Driver, string> = {
   mysql: "MySQL",
@@ -349,10 +553,11 @@ export const DRIVER_LABELS: Record<Driver, string> = {
   oracle: "Oracle",
   redis: "Redis",
   mongodb: "MongoDB",
+  ddl: "DDL Data Source",
 };
 
 /** Drivers in the order of the "+" menu. */
-export const DRIVERS: Driver[] = ["mysql", "mariadb", "postgres", "sqlite", "sqlserver", "clickhouse", "oracle", "redis", "mongodb"];
+export const DRIVERS: Driver[] = ["mysql", "mariadb", "postgres", "sqlite", "sqlserver", "clickhouse", "oracle", "redis", "mongodb", "ddl"];
 
 export const DEFAULT_PORTS: Partial<Record<Driver, number>> = {
   mysql: 3306,

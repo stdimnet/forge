@@ -1,17 +1,19 @@
-/** Schema-based SQL completion: introspected tables and columns as a lang-sql namespace. */
+/** Schema-based SQL completion: introspected tables and columns as a lang-sql namespace, and
+ * `JOIN … ON` suggestions from foreign keys (real and virtual). */
 import { MSSQL, MySQL, PLSQL, PostgreSQL, SQLite, sql, type SQLNamespace } from "@codemirror/lang-sql";
 import { javascript } from "@codemirror/lang-javascript";
 import { StreamLanguage } from "@codemirror/language";
 import type { Completion } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import type { Dialect, SchemaInfo, TableInfo } from "@/ipc/db";
+import { joinCompletionSource } from "./joinCompletion";
 
 function columnCompletions(t: TableInfo): Completion[] {
   return t.columns.map((c) => ({
     label: c.name,
     type: t.primaryKey.includes(c.name) ? "constant" : "property",
     detail: c.dataType,
-    info: [t.primaryKey.includes(c.name) ? "primary key" : "", c.nullable ? "nullable" : "not null", c.comment ?? ""].filter(Boolean).join(" · "),
+    info: [t.primaryKey.includes(c.name) ? "primary key" : "", c.virtual ? `virtual: ${c.expression}` : c.nullable ? "nullable" : "not null", c.comment ?? ""].filter(Boolean).join(" · "),
   }));
 }
 
@@ -20,7 +22,11 @@ function tableNamespace(schema: SchemaInfo): SQLNamespace {
     schema.tables.map((t) => [
       t.name,
       {
-        self: { label: t.name, type: t.kind === "view" ? "interface" : "class", detail: t.kind === "table" ? `table${t.rowEstimate != null ? ` · ${t.rowEstimate} rows` : ""}` : t.kind },
+        self: {
+          label: t.name,
+          type: t.kind === "view" || t.kind === "matview" ? "interface" : "class",
+          detail: t.kind === "table" ? `table${t.rowEstimate != null ? ` · ${t.rowEstimate} rows` : ""}` : t.kind === "matview" ? "materialized view" : t.kind,
+        },
         children: columnCompletions(t),
       },
     ]),
@@ -63,10 +69,11 @@ const redisLanguage = StreamLanguage.define<{ start: boolean }>({
 export function sqlWithSchema(dialect: Dialect, schemas: SchemaInfo[], defaultSchema?: string): Extension {
   if (dialect === "redis") return redisLanguage;
   if (dialect === "mongo") return javascript();
-  return sql({
+  const support = sql({
     dialect: DIALECTS[dialect],
     schema: buildNamespace(schemas),
     defaultSchema: defaultSchema || undefined,
     upperCaseKeywords: true,
   });
+  return [support, support.language.data.of({ autocomplete: joinCompletionSource(() => schemas) })];
 }
