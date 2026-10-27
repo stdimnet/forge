@@ -1,0 +1,18 @@
+--------- beginning of main
+10-27 10:14:03.512  1432  1459 I ActivityManager: Start proc 12034:com.acme.notes/u0a190 for top-activity {com.acme.notes/com.acme.notes.MainActivity}
+10-27 10:14:03.640 12034 12034 I Notes   : Notes 1.4.0 starting
+10-27 10:14:03.702 12034 12051 D NoteRepository: Loading 42 notes
+10-27 10:14:03.731  2210  2210 W Choreographer: Skipped 31 frames!  The application may be doing too much work on its main thread.
+10-27 10:14:04.118 12034 12060 D OkHttp  : --> GET https://api.acme.com/notes
+10-27 10:14:09.120 12034 12060 W OkHttp  : <-- HTTP FAILED: java.net.SocketTimeoutException: timeout
+10-27 10:14:09.402  1432  1500 I ActivityManager: Start proc 13001:com.acme.notes:sync/u0a190 for service {com.acme.notes/com.acme.notes.sync.SyncService}
+10-27 10:14:09.511 13001 13001 I SyncService: Sync started
+--------- beginning of crash
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: FATAL EXCEPTION: main
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: Process: com.acme.notes, PID: 12034
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: java.lang.IllegalStateException: Note title must not be empty
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: 	at com.acme.notes.NoteRepository.save(NoteRepository.kt:42)
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: 	at com.acme.notes.MainActivity.onSaveClicked$lambda$2(MainActivity.kt:31)
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: 	at android.app.Activity.performCreate(Activity.java:8960)
+10-27 10:14:10.004 12034 12034 E AndroidRuntime: 	... 12 more
+10-27 10:14:10.010 12034 12051 D NoteRepository: saving note "Groceries" failed
