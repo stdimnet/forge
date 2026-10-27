@@ -112,6 +112,15 @@ impl RunState {
         }
     }
 
+    /// Register a run that is not a process started here (a WebSocket request), so Stop,
+    /// console input and dispose reach it.
+    pub fn register(&self, run_id: &str, process: Arc<dyn Process>, output: Arc<Mutex<RunOutput>>) {
+        self.runs
+            .lock()
+            .expect("runs poisoned")
+            .insert(run_id.to_string(), Run { process, output });
+    }
+
     fn get(&self, id: &str) -> Result<RunHandles> {
         self.runs
             .lock()

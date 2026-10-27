@@ -31,7 +31,11 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
 | `stylus` | Stylus | `.styl`, `.stylus` |  |  |
-| `html` | HTML | `.html`, `.htm`, `.xhtml`, `.svelte`, `.astro` |  |  |
+| `html` | HTML | `.html`, `.htm`, `.xhtml` |  |  |
+| `svelte` | Svelte | `.svelte` |  |  |
+| `astro` | Astro | `.astro` |  |  |
+| `graphql` | GraphQL | `.graphql`, `.gql`, `.graphqls` |  |  |
+| `prisma` | Prisma | `.prisma` |  |  |
 | `vue` | Vue | `.vue` |  |  |
 | `twig` | Twig | `.twig`, `.html.twig` |  | yes |
 | `smarty` | Smarty | `.tpl`, `.smarty` |  | yes |

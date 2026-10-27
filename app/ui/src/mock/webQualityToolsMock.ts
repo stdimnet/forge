@@ -37,6 +37,7 @@ const DEMO_TOOLS: Record<WebDemoId, Partial<Record<WebTool, { version: string; c
   angular: { stylelint: { version: "16.19.1", config: ".stylelintrc.json" } },
   node: { biome: { version: "1.9.4", config: "biome.json" } },
   vue: {},
+  webtools: {},
 };
 
 const VERSION_LINE: Record<WebTool, (v: string) => string> = {

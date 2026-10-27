@@ -107,6 +107,7 @@ import "./spellMock";
 import "./jsonSchemaMock";
 import "./servicesMock";
 import "./webMock";
+import "./webToolingMock";
 import "./saveActionsMock";
 import "./windowMock";
 import "./projectWindowsMock";

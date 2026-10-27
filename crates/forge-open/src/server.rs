@@ -6,6 +6,8 @@
 //! - `POST /api/forge/pair` — `{ code, name }` → `{ clientId, token }`.
 //! - `POST /api/forge/open` — `{ file, line?, column?, project?, symbol? }`.
 //! - `POST /api/forge/open-symbol` — `{ name, kind?: "class" | "component" }`.
+//! - `GET  /api/forge/live-edit?since=<seq>` — Live Edit events after `seq`
+//!   (`{ enabled, seq, events }`, see [`crate::live_edit`]).
 //!
 //! Every request must name a loopback `Host` (defeats DNS rebinding) and, if it carries an
 //! `Origin`, come from a browser extension (web pages are refused). Opening needs the
@@ -21,6 +23,7 @@ use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
 use crate::http::{read_request, write_response, Request, Response};
+use crate::live_edit::LiveEditHub;
 use crate::pairing::{now_secs, ClientInfo, PairError, Pairing};
 use crate::request::{OpenRequest, SymbolRequest};
 
@@ -97,6 +100,10 @@ pub trait OpenHost: Send + Sync + 'static {
         request: SymbolRequest,
         client: &ClientInfo,
     ) -> Result<OpenOutcome, HostError>;
+    /// Live Edit events, when Live Edit is on.
+    fn live_edit(&self) -> Option<Arc<LiveEditHub>> {
+        None
+    }
 }
 
 #[derive(Deserialize)]
@@ -247,6 +254,28 @@ impl Router {
                     Err(e) => Response::error(400, &e.to_string()),
                 }
             }
+            ("GET", "/api/forge/live-edit") => {
+                if self.client(req).is_none() {
+                    return Response::error(401, "not paired");
+                }
+                let Some(hub) = self.host.live_edit() else {
+                    return Response::json(
+                        200,
+                        &json!({ "enabled": false, "seq": 0, "events": [] }),
+                    );
+                };
+                let since = req
+                    .query
+                    .split('&')
+                    .find_map(|p| p.strip_prefix("since="))
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(0);
+                let poll = hub.since(since);
+                Response::json(
+                    200,
+                    &json!({ "enabled": true, "seq": poll.seq, "events": poll.events }),
+                )
+            }
             (_, "/api/forge/ping" | "/api/forge/pair" | "/api/forge/open")
             | (_, "/api/forge/open-symbol") => Response::error(405, "method not allowed"),
             _ => Response::error(404, "not found"),
@@ -389,6 +418,77 @@ mod tests {
 
     fn body(r: &Response) -> serde_json::Value {
         serde_json::from_str(&r.body).unwrap()
+    }
+
+    struct LiveHost(Arc<LiveEditHub>);
+
+    impl OpenHost for LiveHost {
+        fn info(&self) -> HostInfo {
+            HostInfo {
+                name: "Forge".into(),
+                version: "0".into(),
+                projects: vec![],
+            }
+        }
+        fn open(&self, _: OpenRequest, _: &ClientInfo) -> Result<OpenOutcome, HostError> {
+            Err(HostError::new(500, "no"))
+        }
+        fn open_symbol(&self, _: SymbolRequest, _: &ClientInfo) -> Result<OpenOutcome, HostError> {
+            Err(HostError::new(500, "no"))
+        }
+        fn live_edit(&self) -> Option<Arc<LiveEditHub>> {
+            Some(self.0.clone())
+        }
+    }
+
+    #[test]
+    fn serves_live_edit_events_to_paired_browsers() {
+        let hub = Arc::new(LiveEditHub::default());
+        let pairing = Arc::new(Mutex::new(Pairing::in_memory()));
+        let code = pairing.lock().unwrap().start(now_secs()).code;
+        let token = pairing
+            .lock()
+            .unwrap()
+            .pair(&code, "Chrome", Some(ORIGIN), now_secs())
+            .unwrap()
+            .token;
+        let router = Router::new(Arc::new(LiveHost(hub.clone())), pairing, 63342);
+        let auth = format!("Bearer {token}");
+        let get = |since: &str, auth: &str| {
+            let mut r = request(
+                "GET",
+                "/api/forge/live-edit",
+                &[("authorization", auth), ("origin", ORIGIN)],
+                "",
+            );
+            r.query = format!("since={since}");
+            router.handle(&r)
+        };
+        assert_eq!(get("0", "Bearer nope").status, 401);
+        assert_eq!(body(&get("0", &auth))["seq"], 0);
+        hub.push("public/app.css", Some("h1{}".into()));
+        let r = body(&get("0", &auth));
+        assert_eq!(
+            (r["seq"].as_u64(), r["events"].as_array().unwrap().len()),
+            (Some(1), 0)
+        );
+        hub.push("index.html", None);
+        let r = body(&get("1", &auth));
+        assert_eq!(r["events"][0]["kind"], "reload");
+        assert_eq!(r["enabled"], true);
+        // Hosts without Live Edit answer that it is off.
+        let (plain, _, token) = setup();
+        let mut r = request(
+            "GET",
+            "/api/forge/live-edit",
+            &[
+                ("authorization", &format!("Bearer {token}")),
+                ("origin", ORIGIN),
+            ],
+            "",
+        );
+        r.query = "since=0".into();
+        assert_eq!(body(&plain.handle(&r))["enabled"], false);
     }
 
     #[test]

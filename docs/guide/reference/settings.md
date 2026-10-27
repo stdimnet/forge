@@ -884,6 +884,18 @@ Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
 | `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
 | `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
 | `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
+### Languages & Frameworks | GraphQL, OpenAPI, Deno and Bun
+
+Page ids `lang.graphql`, `lang.openapi`, `lang.deno` and `lang.bun`. See [Web tooling](../user/web-tooling.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `graphql.validation` | bool | `true` | user |  | Check queries against the schema |
+| `graphql.endpoint` | string | `""` | user, project |  | Introspection endpoint — URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint. |
+| `openapi.preview` | bool | `true` | user |  | Show the preview next to OpenAPI files |
+| `deno.executable` | string | `deno` | user |  | Deno executable |
+| `bun.executable` | string | `bun` | user |  | Bun executable |
+
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -1119,6 +1131,10 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+| `liveEdit.enabled` | bool | `true` | user | Live Edit | Live Edit: update open pages in paired browsers — Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them. See [Web tooling](../user/web-tooling.md#live-edit). |
+| `liveEdit.updateWhileTyping` | bool | `true` | user | Live Edit | Update style sheets while typing — Push the editor's CSS into the page after a short pause, before the file is saved. |
+| `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
+| `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
 ### Tools | External Tools
 
@@ -1135,6 +1151,15 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+| `httpClient.grpc.protoFiles` | list | `[]` | user, project | gRPC | .proto files for gRPC requests — Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service. |
+
+### Tools | File Watchers
+
+Page id `tools.file-watchers`. See [Web tooling](../user/web-tooling.md#file-watchers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.fileWatchers` | objects | `[]` | user, project |  | File Watchers — Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, "Track only root files", console and output filters. |
 
 ### Build, Execution, Deployment | JDKs
 

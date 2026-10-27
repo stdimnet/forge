@@ -139,6 +139,10 @@ const NPM_FRAMEWORKS: &[(&str, &str, &str)] = &[
     ("vue", "vue", "Vue.js"),
     ("svelte", "svelte", "Svelte"),
     ("solid-js", "solid", "Solid"),
+    ("astro", "astro", "Astro"),
+    ("nx", "nx", "Nx"),
+    ("prisma", "prisma", "Prisma"),
+    ("@prisma/client", "prisma", "Prisma"),
     ("vite", "vite", "Vite"),
 ];
 
@@ -157,6 +161,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "next",
     "nuxt",
     "angular",
+    "astro",
     "svelte",
     "vue",
     "react",
@@ -166,6 +171,8 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "flask",
     "love",
     "neovim",
+    "deno",
+    "nx",
     "vite",
 ];
 
@@ -349,6 +356,32 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
     if files.iter().any(|f| f.starts_with("vite.config.")) {
         c.framework("vite", "Vite", "javascript", None, rel);
+    }
+    let config = |prefix: &str| files.iter().any(|f| f.starts_with(prefix));
+    if config("nuxt.config.") {
+        c.framework("nuxt", "Nuxt", "javascript", None, rel);
+    }
+    if config("astro.config.") {
+        c.framework("astro", "Astro", "javascript", None, rel);
+    }
+    if config("svelte.config.") {
+        c.framework("svelte", "Svelte", "javascript", None, rel);
+    }
+    if has("nx.json") {
+        c.framework("nx", "Nx", "javascript", None, rel);
+    }
+    if has("deno.json") || has("deno.jsonc") {
+        c.framework("deno", "Deno", "typescript", None, rel);
+        c.tool("deno");
+    }
+    if has("bunfig.toml") || has("bun.lockb") || has("bun.lock") {
+        c.tool("bun");
+    }
+    if has("schema.prisma") || dir.join("prisma/schema.prisma").is_file() {
+        c.framework("prisma", "Prisma", "javascript", None, rel);
+    }
+    if config("graphql.config.") || config(".graphqlrc") {
+        c.tool("graphql");
     }
     if has("tsconfig.json") || has_ext(".ts") || has_ext(".tsx") {
         c.language("typescript");
@@ -1410,6 +1443,35 @@ mod tests {
         assert_eq!(info.languages, vec!["typescript", "javascript"]);
         assert_eq!(info.tools, vec!["pnpm"]);
         assert_eq!(info.packs, vec!["webforge"]);
+    }
+
+    #[test]
+    fn web_tooling_markers() {
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "nx.json", "{}");
+        write(dir.path(), "deno.jsonc", "{}");
+        write(dir.path(), "bunfig.toml", "");
+        write(dir.path(), "prisma/schema.prisma", "datasource db {}");
+        write(dir.path(), ".graphqlrc.yml", "schema: s.graphql");
+        write(dir.path(), "site/astro.config.mjs", "");
+        write(
+            dir.path(),
+            "site/package.json",
+            r#"{"dependencies": {"astro": "^5.1.0"}}"#,
+        );
+        write(dir.path(), "web/nuxt.config.ts", "");
+        let info = detect(dir.path());
+        let ids: Vec<&str> = info.frameworks.iter().map(|f| f.id.as_str()).collect();
+        for id in ["nx", "deno", "prisma", "astro", "nuxt"] {
+            assert!(ids.contains(&id), "{id} in {ids:?}");
+        }
+        for tool in ["deno", "bun", "graphql"] {
+            assert!(info.tools.iter().any(|t| t == tool), "{tool}");
+        }
+        assert_eq!(
+            info.framework("astro").unwrap().version.as_deref(),
+            Some("5.1.0")
+        );
     }
 
     #[test]

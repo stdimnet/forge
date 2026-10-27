@@ -1,18 +1,20 @@
 /**
  * Toolbar of `.http` editors (PHPStorm's HTTP Client): "Run with" environment selector
  * (environments from `http-client.env.json` + `.private.env.json`, read in Rust; the choice
- * is the project setting `httpClient.environment`) and a link to the environment file.
+ * is the project setting `httpClient.environment`), a link to the environment file, and
+ * Import from cURL / Copy as cURL (`features/webTooling/httpExtras.tsx`).
  */
 import { createResource, createSignal, For, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { showPanel, type Panel } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
-import { Check, ChevronDown, FileJson } from "lucide-solid";
+import { Check, ChevronDown, Copy, FileJson, Import } from "lucide-solid";
 import { scratchesApi, type HttpEnvironments } from "@/ipc/scratches";
 import { workspaceApi } from "@/ipc/workspace";
 import { openFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
+import { runCommand } from "@/state/commands";
 import { NO_HTTP_ENV, httpEnvironment, setHttpEnvironment } from "./store";
 
 const ENV_FILE = "http-client.env.json";
@@ -105,6 +107,26 @@ function HttpToolbar() {
       >
         <FileJson size={13} />
         <span>{envs()?.names.length ? ENV_FILE : "Add Environment File"}</span>
+      </button>
+      <span class="http-tb-spacer" />
+      <button
+        class="http-tb-button"
+        title="Convert a cURL command to a request"
+        data-testid="http-import-curl"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => void runCommand("HttpClient.ImportFromCurl")}
+      >
+        <Import size={13} />
+        <span>Import from cURL</span>
+      </button>
+      <button
+        class="http-tb-button"
+        title="Copy the request at the caret as a cURL command"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => void runCommand("HttpClient.CopyAsCurl")}
+      >
+        <Copy size={13} />
+        <span>Copy as cURL</span>
       </button>
     </>
   );

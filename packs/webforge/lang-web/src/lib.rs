@@ -5,10 +5,12 @@
 //! Everything except [`fs`] is pure, so the browser-mode UI runs the same code as
 //! WebAssembly (`crates/forge-wasm/src/web.rs`).
 
+pub mod aliases;
 pub mod component;
 pub mod extract;
 #[cfg(feature = "fs")]
 pub mod fs;
+pub mod import_paths;
 pub mod imports;
 pub mod js;
 pub mod json;

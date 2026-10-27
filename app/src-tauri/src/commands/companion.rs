@@ -111,3 +111,25 @@ pub async fn companion_set_env_var(
     })
     .await
 }
+
+/// Live Edit: tell the paired browsers that a project file changed (saved, or typed into
+/// for style sheets with `text`). Style sheets are swapped in place, other files reload
+/// the pages that use them. `None` when Live Edit is off or ignores the file.
+#[tauri::command]
+pub fn companion_live_edit(
+    path: String,
+    text: Option<String>,
+    app: AppHandle,
+    state: State<'_, CompanionState>,
+) -> Option<forge_open::live_edit::LiveEditEvent> {
+    use tauri::Manager;
+    let on = app
+        .state::<AppState>()
+        .read_settings()
+        .get_bool(companion::KEY_LIVE_EDIT)
+        .unwrap_or(true);
+    if !on {
+        return None;
+    }
+    state.live_edit.push(&path, text)
+}

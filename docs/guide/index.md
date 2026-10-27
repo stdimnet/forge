@@ -52,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
+  "Track only root files", problems from output filters), Live Edit through the Browser
+  Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
+  completion, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun basics, OpenAPI validation, preview,
+  endpoints and Generate HTTP Request, GraphQL validation and completion against the schema,
+  and the HTTP client's OAuth 2.0, cURL import/export, WebSocket and gRPC requests
+  ([Web tooling](user/web-tooling.md)).
 - **ER diagrams, Compare Structure and Explain Plan**: Diagrams | Show Diagram
   (`Ctrl+Alt+Shift+U`) draws a schema or a table with its relations (zoom, pan, SVG/PNG
   export); Compare Structure diffs two schemas or a schema and a DDL snapshot and generates the
