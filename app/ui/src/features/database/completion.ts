@@ -1,5 +1,7 @@
 /** Schema-based SQL completion: introspected tables and columns as a lang-sql namespace. */
-import { MySQL, PostgreSQL, SQLite, sql, type SQLNamespace } from "@codemirror/lang-sql";
+import { MSSQL, MySQL, PLSQL, PostgreSQL, SQLite, sql, type SQLNamespace } from "@codemirror/lang-sql";
+import { javascript } from "@codemirror/lang-javascript";
+import { StreamLanguage } from "@codemirror/language";
 import type { Completion } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import type { Dialect, SchemaInfo, TableInfo } from "@/ipc/db";
@@ -18,7 +20,7 @@ function tableNamespace(schema: SchemaInfo): SQLNamespace {
     schema.tables.map((t) => [
       t.name,
       {
-        self: { label: t.name, type: t.kind === "view" ? "interface" : "class", detail: t.kind === "view" ? "view" : `table${t.rowEstimate != null ? ` · ${t.rowEstimate} rows` : ""}` },
+        self: { label: t.name, type: t.kind === "view" ? "interface" : "class", detail: t.kind === "table" ? `table${t.rowEstimate != null ? ` · ${t.rowEstimate} rows` : ""}` : t.kind },
         children: columnCompletions(t),
       },
     ]),
@@ -32,10 +34,35 @@ export function buildNamespace(schemas: SchemaInfo[]): SQLNamespace {
   );
 }
 
-const DIALECTS = { mysql: MySQL, postgres: PostgreSQL, sqlite: SQLite };
+const DIALECTS = { mysql: MySQL, postgres: PostgreSQL, sqlite: SQLite, sqlserver: MSSQL, clickhouse: MySQL, oracle: PLSQL };
 
-/** The SQL language with completion for the given schemas. */
+/** Redis console: the command word of each line as a keyword, strings and comments. */
+const redisLanguage = StreamLanguage.define<{ start: boolean }>({
+  startState: () => ({ start: true }),
+  token(stream, state) {
+    if (stream.sol()) state.start = true;
+    if (stream.eatSpace()) return null;
+    if (stream.match(/^(#|\/\/).*/)) return "comment";
+    if (stream.match(/^"(?:[^"\\]|\\.)*"?/) || stream.match(/^'[^']*'?/)) {
+      state.start = false;
+      return "string";
+    }
+    if (stream.match(/^-?\d+(\.\d+)?(?=\s|$)/)) {
+      state.start = false;
+      return "number";
+    }
+    stream.match(/^\S+/);
+    const kw = state.start;
+    state.start = false;
+    return kw ? "keyword" : null;
+  },
+});
+
+/** The console language: SQL with completion for the given schemas, Redis commands or the
+ * MongoDB shell (JavaScript). */
 export function sqlWithSchema(dialect: Dialect, schemas: SchemaInfo[], defaultSchema?: string): Extension {
+  if (dialect === "redis") return redisLanguage;
+  if (dialect === "mongo") return javascript();
   return sql({
     dialect: DIALECTS[dialect],
     schema: buildNamespace(schemas),

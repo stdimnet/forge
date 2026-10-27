@@ -318,6 +318,7 @@ export const spring_observe: (a: number, b: number, c: number) => void;
 export const spring_overview: (a: number, b: number, c: number) => void;
 export const sql_change_statements: (a: number, b: number, c: number) => void;
 export const sql_export: (a: number, b: number, c: number) => void;
+export const sql_guard: (a: number, b: number, c: number) => void;
 export const sql_leading_keywords: (a: number, b: number, c: number) => void;
 export const sql_split: (a: number, b: number, c: number) => void;
 export const sql_statement_at: (a: number, b: number, c: number) => void;

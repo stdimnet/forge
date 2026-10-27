@@ -5,7 +5,7 @@
 import { createSignal } from "solid-js";
 import { closeDialog, openDialogWindow } from "@/shell/window/dialogs";
 import { createStore, produce } from "solid-js/store";
-import { dbApi, type DataSourceInfo, type SchemaInfo, type SchemaName, type TableInfo } from "@/ipc/db";
+import { dbApi, DS_COLORS, type DataSourceInfo, type RedisKeys, type SchemaInfo, type SchemaName, type SessionInfo, type TableInfo } from "@/ipc/db";
 import { openViewTab } from "@/state/editor";
 import { balloonsFor } from "@/keymap";
 
@@ -13,6 +13,7 @@ const showBalloon = balloonsFor("Database");
 
 export const CONSOLE_VIEW = "db-console";
 export const TABLE_VIEW = "db-table";
+export const REDIS_VIEW = "db-redis";
 
 const [sources, setSources] = createSignal<DataSourceInfo[]>([]);
 export { sources };
@@ -33,6 +34,14 @@ export { states };
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export const sourceById = (id: string | undefined) => sources().find((s) => s.id === id);
+
+/** Tint and accent of a data source's colour (production, staging, development, …). */
+export function sourceColor(id: string | undefined): { tint: string; accent: string; name: string } | undefined {
+  const c = sourceById(id)?.options.color;
+  if (!c) return undefined;
+  const known = DS_COLORS[c];
+  return known ? { ...known, name: c } : { tint: `var(--file-color-${c})`, accent: `var(--${c})`, name: c };
+}
 
 let subscribed = false;
 
@@ -149,6 +158,9 @@ export function revealSource(id: string): void {
 
 const consoleCount = new Map<string, number>();
 
+/** Consoles over files (SQL scratches): the data source attached to each tab path. */
+const attached = new Map<string, string>();
+
 export const consolePath = (id: string, n: number) => `db-console://${id}/${n}`;
 export const tablePath = (id: string, schema: string, table: string) => `db-table://${id}/${schema}/${table}`;
 
@@ -162,17 +174,99 @@ export function parseTablePath(path: string): { id: string; schema: string; tabl
   return m ? { id: m[1], schema: m[2], table: m[3] } : null;
 }
 
+export const redisPath = (id: string, schema: string, key: string) => `db-redis://${id}/${schema}/${key}`;
+
+export function parseRedisPath(path: string): { id: string; schema: string; key: string } | null {
+  const m = /^db-redis:\/\/([^/]+)\/([^/]*)\/(.+)$/.exec(path);
+  return m ? { id: m[1], schema: m[2], key: m[3] } : null;
+}
+
+/** Data source of any database tab (console, table, Redis key). */
+export const tabSourceId = (path: string): string | undefined =>
+  parseConsolePath(path)?.id ?? parseTablePath(path)?.id ?? parseRedisPath(path)?.id ?? attached.get(path);
+
+export interface ConsoleOptions {
+  /** Run the whole text once the console is connected. */
+  run?: boolean;
+  /** MongoDB: the database the console starts in. */
+  schema?: string;
+}
+
+const consoleOptions = new Map<string, ConsoleOptions>();
+
+/** Options a console was opened with (read once). */
+export function takeConsoleOptions(path: string): ConsoleOptions {
+  const o = consoleOptions.get(path) ?? {};
+  consoleOptions.delete(path);
+  return o;
+}
+
 /** Open a new query console for a data source (like DataGrip's "console", "console_1"). */
-export function openConsole(id: string, sql = ""): string {
+export function openConsole(id: string, sql = "", options: ConsoleOptions = {}): string {
   const n = (consoleCount.get(id) ?? 0) + 1;
   consoleCount.set(id, n);
   const path = consolePath(id, n);
+  consoleOptions.set(path, options);
   openViewTab({ path, name: n === 1 ? "console" : `console_${n - 1}`, view: CONSOLE_VIEW, content: sql });
   return path;
 }
 
-/** Consoles over files (SQL scratches): the data source attached to each tab path. */
-const attached = new Map<string, string>();
+/** A MongoDB collection: a console that finds its documents (grid and JSON view). */
+export function openCollection(id: string, schema: string, collection: string): void {
+  const ref = /^[A-Za-z_$][\w$]*$/.test(collection) ? `db.${collection}` : `db.getCollection(${JSON.stringify(collection)})`;
+  openConsole(id, `${ref}.find({})`, { run: true, schema });
+}
+
+/** Open the value viewer of a Redis key. */
+export function openRedisKey(id: string, schema: string, key: string): void {
+  openViewTab({ path: redisPath(id, schema, key), name: key, view: REDIS_VIEW });
+}
+
+// ---- Redis keys tree -------------------------------------------------------------------
+
+export interface KeysState extends Partial<RedisKeys> {
+  pattern: string;
+  loading: boolean;
+  error?: string;
+}
+
+const [redisKeys, setRedisKeys] = createStore<Record<string, KeysState>>({});
+export { redisKeys };
+
+/** Load the keys of a Redis database matching `pattern` (default: the last one, or `*`). */
+export async function loadRedisKeys(id: string, schema: string, pattern?: string): Promise<void> {
+  const k = `${id}/${schema}`;
+  const p = pattern ?? redisKeys[k]?.pattern ?? "*";
+  setRedisKeys(k, { ...(redisKeys[k] ?? {}), pattern: p, loading: true, error: undefined });
+  try {
+    const res = await dbApi.redisKeys(id, schema, p);
+    setRedisKeys(k, { ...res, pattern: p, loading: false });
+  } catch (e) {
+    setRedisKeys(k, { pattern: p, loading: false, error: errorText(e), keys: [] });
+  }
+}
+
+// ---- sessions --------------------------------------------------------------------------
+
+const [sessionList, setSessionList] = createSignal<SessionInfo[]>([]);
+export { sessionList };
+
+/** The Database tool window shows the tree or the Sessions view. */
+const [dbPanel, setDbPanel] = createSignal<"tree" | "sessions">("tree");
+export { dbPanel, setDbPanel };
+
+let sessionsSubscribed = false;
+
+/** Load the open sessions and follow changes. */
+export async function loadSessions(): Promise<void> {
+  if (!sessionsSubscribed) {
+    sessionsSubscribed = true;
+    void dbApi.onSessions((list) => setSessionList(list));
+    void dbApi.onSession((s) => setSessionList((list) => (list.some((x) => x.id === s.id) ? list.map((x) => (x.id === s.id ? s : x)) : list)));
+  }
+  setSessionList(await dbApi.sessions().catch(() => []));
+}
+
 
 /**
  * Open a file (e.g. a SQL scratch at `scratch://orders.sql`) as a query console of a data
@@ -197,6 +291,8 @@ export interface DialogRequest {
   /** Data source to select, or a driver for a new one. */
   select?: string;
   newDriver?: DataSourceInfo["driver"];
+  /** Tab to show first. */
+  tab?: "general" | "ssh" | "options";
 }
 
 export const DATA_SOURCES_DIALOG = "data-sources";

@@ -1625,6 +1625,11 @@ export function sql_change_statements(request_json: string): string;
 export function sql_export(request_json: string): string;
 
 /**
+ * Mirrors `db_guard`: `{ sql, dialect, readOnly, production, name }` → `{ blocked?, confirm? }`.
+ */
+export function sql_guard(request_json: string): string;
+
+/**
  * `{ statements: string[] }` → their leading keywords, upper-cased.
  */
 export function sql_leading_keywords(request_json: string): string;
@@ -2251,6 +2256,7 @@ export interface InitOutput {
     readonly spring_overview: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
+    readonly sql_guard: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;

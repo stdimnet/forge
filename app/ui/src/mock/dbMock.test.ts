@@ -128,3 +128,92 @@ describe("db mock", () => {
     ).rejects.toThrow("no primary key");
   });
 });
+
+describe("db mock: more engines, guard and sessions", () => {
+  beforeEach(() => resetDbMock());
+
+  const demo = async () => {
+    const { addDemoSources } = await import("./dbMock");
+    addDemoSources();
+  };
+
+  it("browses Redis keys and values and runs commands", async () => {
+    await demo();
+    const keys = await invoke<{ keys: { key: string; type: string; ttlMs: number }[] }>("db_redis_keys", { id: "cache", schema: "db0", pattern: "user:*" });
+    expect(keys.keys.map((k) => [k.key, k.type])).toEqual([
+      ["user:1", "hash"],
+      ["user:1:roles", "set"],
+      ["user:2", "hash"],
+      ["user:7", "hash"],
+    ]);
+    const v = await invoke<{ type: string; value: unknown }>("db_redis_value", { id: "cache", schema: "db0", key: "leaderboard:weekly" });
+    expect(v.type).toBe("zset");
+    expect((v.value as { member: string }[])[0].member).toBe("barbara.liskov");
+    const s = await invoke<SessionInfo>("db_session_open", { id: "cache" });
+    expect(s.transactions).toBe(false);
+    const res = await invoke<StatementResult[]>("db_execute", { sessionId: s.id, sql: "SET motd hello\nGET motd\nHGETALL user:2" });
+    expect(res.map((r) => r.error)).toEqual([undefined, undefined, undefined]);
+    expect(res[1].rows).toEqual([["hello"]]);
+    expect(res[2].columns.map((c) => c.name)).toEqual(["field", "value"]);
+  });
+
+  it("finds and aggregates MongoDB documents", async () => {
+    await demo();
+    const schema = await invoke<{ tables: { name: string; kind: string }[] }>("db_introspect", { id: "catalog", schema: "shop" });
+    expect(schema.tables.map((t) => [t.name, t.kind])).toEqual([
+      ["orders", "collection"],
+      ["products", "collection"],
+      ["users", "collection"],
+    ]);
+    const s = await invoke<SessionInfo>("db_session_open", { id: "catalog" });
+    const [r] = await invoke<StatementResult[]>("db_execute", { sessionId: s.id, sql: "db.users.find({ age: { $gt: 40 } }).sort({ age: -1 }).limit(2)" });
+    expect(r.error).toBeUndefined();
+    expect(r.columns[0].name).toBe("_id");
+    expect(r.documents).toHaveLength(2);
+    expect(String(r.rows[0][0])).toMatch(/^ObjectId\("/);
+    const [g] = await invoke<StatementResult[]>("db_execute", { sessionId: s.id, sql: "db.orders.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])" });
+    expect(g.rows.length).toBeGreaterThan(1);
+  });
+
+  it("refuses writes on read-only sources and confirms unfiltered changes on production", async () => {
+    await demo();
+    const g = await invoke<{ confirm?: string }>("db_guard", { id: "sales-prod", sql: "DELETE FROM orders" });
+    expect(g.confirm).toContain("production");
+    const s = await invoke<SessionInfo>("db_session_open", { id: "sales-prod" });
+    await expect(invoke("db_execute", { sessionId: s.id, sql: "DELETE FROM orders" })).rejects.toThrow("production");
+    const ok = await invoke<StatementResult[]>("db_execute", { sessionId: s.id, sql: "DELETE FROM orders", confirmed: true });
+    expect(ok[0].rowsAffected).toBeGreaterThan(0);
+
+    const shop = await addShop();
+    await invoke("db_data_source_save", { source: { ...shop, options: { ...shop.options, readOnly: true } } });
+    const ro = await invoke<SessionInfo>("db_session_open", { id: shop.id });
+    await expect(invoke("db_execute", { sessionId: ro.id, sql: "UPDATE users SET name = 'x' WHERE id = 1" })).rejects.toThrow("read-only");
+  });
+
+  it("shares a session between consoles and lists sessions", async () => {
+    const shop = await addShop();
+    const a = await invoke<SessionInfo>("db_session_open", { id: shop.id, shared: true });
+    const b = await invoke<SessionInfo>("db_session_open", { id: shop.id, shared: true });
+    expect(b.id).toBe(a.id);
+    expect(b.consoles).toBe(2);
+    await invoke("db_set_auto_commit", { sessionId: a.id, autoCommit: false });
+    await invoke("db_execute", { sessionId: a.id, sql: "UPDATE users SET balance = 1 WHERE id = 1" });
+    const [listed] = await invoke<SessionInfo[]>("db_sessions_list");
+    expect(listed.txOpen).toBe(true);
+    expect(listed.txStatements).toBe(1);
+    await invoke("db_session_close", { sessionId: a.id });
+    expect(await invoke<SessionInfo[]>("db_sessions_list")).toHaveLength(1);
+    await invoke("db_session_terminate", { sessionId: a.id });
+    expect(await invoke<SessionInfo[]>("db_sessions_list")).toHaveLength(0);
+  });
+
+  it("asks to trust an unknown SSH host key", async () => {
+    await demo();
+    const [prod] = (await invoke<DataSourceInfo[]>("db_data_sources_list")).filter((d) => d.id === "sales-prod");
+    expect(prod.via).toBe("deploy@bastion.example.com");
+    const first = await invoke<TestResult>("db_test_connection", { source: prod });
+    expect(first.hostKey?.fingerprint).toMatch(/^SHA256:/);
+    const second = await invoke<TestResult>("db_test_connection", { source: prod, acceptHostKey: first.hostKey!.fingerprint });
+    expect(second.ok).toBe(true);
+  });
+});

@@ -117,6 +117,9 @@ pub struct QueryPage {
     pub total: Option<u64>,
     pub elapsed_ms: u64,
     pub sql: String,
+    /// MongoDB: the documents of the rows (the JSON view).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub documents: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -837,6 +840,7 @@ impl DbService {
             total,
             elapsed_ms: elapsed,
             sql,
+            documents: Vec::new(),
         })
     }
 
@@ -1155,6 +1159,7 @@ impl DbService {
             total: None,
             elapsed_ms: elapsed_ms(started),
             sql: body.into(),
+            documents: raw.documents,
         })
     }
 
