@@ -2157,6 +2157,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-ai-editor"
+version = "0.1.0"
+dependencies = [
+ "forge-agent-cli",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
