@@ -127,7 +127,12 @@ pub struct SourceDir {
 
 /// The kind of a source folder from its name (`src/test/groovy` → `groovy`).
 pub fn source_dir_kind(path: &str) -> &'static str {
-    match path.trim_end_matches('/').rsplit('/').next().unwrap_or_default() {
+    match path
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+    {
         "java" => "java",
         "kotlin" => "kotlin",
         "groovy" => "groovy",
@@ -1212,7 +1217,11 @@ mod tests {
         assert_eq!(sets[1].name, "test");
         let kts = conventional_source_sets("plugins { groovy }", BuildTool::Gradle);
         assert!(kts[1].dirs.iter().any(|d| d.path == "src/test/groovy"));
-        assert!(conventional_source_sets("plugins { id(\"com.android.application\") }", BuildTool::Gradle).is_empty());
+        assert!(conventional_source_sets(
+            "plugins { id(\"com.android.application\") }",
+            BuildTool::Gradle
+        )
+        .is_empty());
         let pom = "<plugin><artifactId>gmavenplus-plugin</artifactId></plugin>";
         assert!(conventional_source_sets(pom, BuildTool::Maven)[0]
             .dirs
@@ -1232,9 +1241,18 @@ mod tests {
         files.insert("build.gradle", build);
         files.insert("settings.gradle", "rootProject.name = 'release-tools'");
         let names: Vec<String> = files.keys().map(|k| k.to_string()).collect();
-        let project = detect("release-tools", &names, &|f| files.get(f).map(|s| s.to_string()), None).unwrap();
+        let project = detect(
+            "release-tools",
+            &names,
+            &|f| files.get(f).map(|s| s.to_string()),
+            None,
+        )
+        .unwrap();
         let base = static_model(&project, &|f| files.get(f).map(|s| s.to_string()));
-        assert!(base.projects[0].source_sets[0].dirs.iter().any(|d| d.kind == "groovy"));
+        assert!(base.projects[0].source_sets[0]
+            .dirs
+            .iter()
+            .any(|d| d.kind == "groovy"));
         let merged = merge(base, &synced);
         assert_eq!(merged.projects[0].source_sets.len(), 3);
     }
