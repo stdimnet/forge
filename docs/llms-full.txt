@@ -17345,18 +17345,131 @@ Previous, Next, Last Page**), a **WHERE** filter and an **ORDER BY** field.
 | Action | Windows/Linux | macOS |
 | --- | --- | --- |
 | Edit a cell | double-click or `Enter` | same |
+| Value Editor | `Shift+Enter` | `Shift+Enter` |
+| Go to Referenced Data | `Ctrl+B` | `Cmd+B` |
+| Find Referencing Rows | `Alt+F7` | `Alt+F7` |
 | Add Row | `Alt+Insert` | `Cmd+N` |
 | Delete Rows | `Ctrl+Y` | `Cmd+Backspace` |
 | Revert Selected | `Ctrl+Alt+Z` | `Cmd+Alt+Z` |
 | Submit | `Ctrl+Enter` | `Cmd+Enter` |
 | Reload Page | toolbar | toolbar |
 
-Cell context menu: **Copy**, **Copy with Header**, **Set NULL**. Changes are applied in one
-transaction on **Submit**. Tables without a primary key cannot identify changed rows: only new
-rows can be submitted there.
+Cell context menu: **Copy**, **Copy with Header**, **Edit**, **Set NULL**, **Edit Value…**,
+**Set DEFAULT**, **Filter by** the cell's value, **Go to** the referenced table and **Find
+Referencing Rows…**. Changes are applied in one transaction on **Submit**.
 
 NULL is displayed as `<null>` (**Show NULL as**, `database.showNullAs`). Binary values are shown
 as hex.
+
+## Data editor
+
+The table editor and console results work like DataGrip's data editor. Everything that needs
+the database runs there (sort, filter, the DML), and everything else is computed by Forge's Rust
+core (crate [`forge-dataedit`](docs/guide/developer/crates/forge-dataedit.md)).
+
+### Sort and filter
+
+- **Click a column header** to sort by it: ascending, descending, then off. **Ctrl+Click**
+  (`Cmd+Click`) adds the column to the sort, so several columns sort in order (the header shows
+  the position). The header context menu has **Sort Ascending**, **Sort Descending**, **Add to
+  Sort**, **Clear Sort** and `IS NULL` / `IS NOT NULL` filters.
+- **WHERE** takes any condition of the database's SQL. Column names are completed while you
+  type (`↑`/`↓`, `Enter` or `Tab`); `Enter` applies the filter.
+- **Filter by value** in a cell's context menu adds a condition such as `status <> 'cancelled'`
+  or `shipped_at IS NULL`. The conditions show as chips under the filter row; `×` removes one.
+
+![Filter and sort](docs/screenshots/data-editor-filter-sort.png)
+
+Table editors sort and filter **on the server**: Forge builds the `SELECT … WHERE … ORDER BY`
+for the data source's dialect (quoting, `LIMIT`/`OFFSET` or `OFFSET … FETCH`) and shows it in the
+status. The typed condition must stay one read-only condition: Forge refuses it when it holds a
+`;`, unbalanced brackets, an unclosed quote or comment, or writes (`DELETE`, `UPDATE`,
+`INSERT`, `DROP`, `SELECT … INTO`, …, also in subqueries).
+
+Console results come from arbitrary queries, so header sort and **Filter by value** run
+**locally** on the fetched rows (NULLs first, numbers and decimals numerically).
+
+### Value editor
+
+**Shift+Enter** (or the panel icon, or **Edit Value…**) opens the value editor of the current
+cell at the right. It picks the editor from the column type and the value:
+
+| Value | Editor |
+| --- | --- |
+| Text | multi-line text |
+| JSON (`json`, `jsonb`, or text that holds JSON) | formatted, validated while you type (line and column of the error), **Reformat** and **Minify**; the key order is kept |
+| XML | indented and checked for well-nested tags |
+| Binary | size, hex dump and an image preview for PNG, JPEG, GIF, WebP and BMP |
+| `date`, `datetime`, `timestamp`, `time` | a date/time picker plus the text, normalized on **Apply** (`2025-1-6 9:05` → `2025-01-06 09:05:00`) |
+| `enum(…)`, `set(…)` | a list of the allowed values (check boxes for `set`) |
+| Boolean, number | a selector or a number field |
+
+**Apply** writes the value into the grid as a pending change. **Set NULL** and **Set DEFAULT**
+(for columns with a default or auto increment) are there too. In console results the value
+editor is a read-only viewer.
+
+![Value editor with JSON](docs/screenshots/data-editor-value-json.png)
+
+### Pending changes and the DML preview
+
+Edits, new rows, deleted rows, `NULL` and `DEFAULT` stay **pending** until you **Submit** them;
+**Revert** drops them. **Preview Pending Changes** (the list icon next to Submit) shows the
+statements Forge will run, generated for the dialect:
+
+![Pending changes with the DML preview](docs/screenshots/data-editor-pending-dml.png)
+
+Rows are identified by the **primary key**; a table without one uses a **unique key whose columns
+are all NOT NULL**. A table with neither refuses updates and deletes (new rows still work):
+edit it with an `UPDATE` in a console instead. A statement that would change more than one row
+rolls the whole batch back.
+
+Writes honour the data source: **read-only** data sources refuse them, and on **production** (red)
+data sources Submit shows the statements and asks for confirmation first.
+
+### Foreign-key navigation
+
+**Ctrl+B** on a cell of a foreign-key column opens the referenced table filtered to the
+referenced row (`id = 23`); with several keys on the column, a popup lets you choose.
+**Alt+F7** (**Find Referencing Rows…**) goes the other way: it lists the tables whose foreign
+keys reference this table and opens the rows that reference the current one. Both work with real
+and [virtual foreign keys](#virtual-foreign-keys-and-columns).
+
+![Jump to the referenced row](docs/screenshots/data-editor-fk-jump.png)
+
+### Transpose
+
+**Transpose** shows each row as a column, with one line per column of the table — handy for wide
+tables. Click a cell to select it; double-click opens it in the value editor.
+
+![Transposed view](docs/screenshots/data-editor-transposed.png)
+
+### Aggregates
+
+When several cells are selected, the line under the grid shows their **Count**, **Sum**, **Avg**,
+**Min**, **Max**, **Distinct** count and NULLs. Decimals are summed exactly. **Aggregate View**
+(the Σ icon, or a click on the line) lists the aggregates per selected column.
+
+![Aggregates](docs/screenshots/data-editor-aggregates.png)
+
+### Compare data
+
+**Compare With…** (toolbar or context menu, in table editors and console results) compares the
+rows with another open result, an open table or any table of a connected data source. Pick the
+**key** columns (the primary key is preselected); Forge matches rows by key and opens a
+comparison tab with **changed** rows (old → new in each changed cell), **added** and **removed**
+rows. The counters filter the rows; **unchanged** rows are hidden at first. Without a key, whole
+rows are matched. Tables are compared on their first 5,000 rows.
+
+![Compare data](docs/screenshots/data-editor-compare.png)
+
+### Charts
+
+**Show Chart** turns the result into a chart: **bar**, **line**, **area**, **pie** or
+**scatter**. Pick the **X** column, one or more **Y** columns, an optional **Group by** column
+(one series per value) and how values of the same X are combined (**SUM**, **AVG**, **MIN**,
+**MAX** or **COUNT**). Numbers and dates on the X axis are sorted.
+
+![Chart](docs/screenshots/data-editor-chart.png)
 
 ## Export
 
@@ -19509,6 +19622,12 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Delete Rows | `Console.TableResult.DeleteRows` | `Ctrl+Y` | `Cmd+Backspace` | tool window |
 | Revert Selected | `Console.TableResult.Revert` | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | tool window |
 | Reload Page | `Console.TableResult.Reload` |  |  | any |
+| Go to Referenced Data (data grid) | `Console.TableResult.GotoReferencedData` | `Ctrl+B` | `Cmd+B` | tool window |
+| Open Value Editor | `Console.TableResult.EditValue` | `Shift+Enter` in a grid (through `Database.Properties`) |  | any |
+| Transpose | `Console.TableResult.Transpose` |  |  | any |
+| Aggregate View | `Console.TableResult.AggregateView` |  |  | any |
+| Show Chart | `Console.TableResult.ShowChart` |  |  | any |
+| Compare With… (data) | `Console.TableResult.CompareWith` |  |  | any |
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
@@ -24244,6 +24363,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-dap](docs/guide/developer/crates/forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
 | [forge-db](docs/guide/developer/crates/forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, the Database Explorer (object tree, schema filter, virtual foreign keys, full-text search, DDL data sources), consoles with sessions, the read-only / production guard and data editing |
 | [forge-dbmodel](docs/guide/developer/crates/forge-dbmodel.md) | Forge database explorer model (pure, also built to WebAssembly): object tree, schema filter, virtual foreign keys and columns, DDL parsing, full-text search queries and Quick Documentation |
+| [forge-dataedit](docs/guide/developer/crates/forge-dataedit.md) | Forge data editor logic (pure, also built to WebAssembly): sort and filter SQL per dialect, local sort and filter, row keys and DML preview, foreign-key navigation, aggregates, data compare, charts and the value editor |
 | [forge-debug](docs/guide/developer/crates/forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](docs/guide/developer/crates/forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-emmet](docs/guide/developer/crates/forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
@@ -25516,7 +25636,7 @@ Forge database tools (the DataGrip part of Forge).
 | `error.rs` |  |
 | `introspect.rs` | Database metadata per dialect: schemas, tables, views, materialized views, columns, keys, foreign keys, indexes, checks, triggers, routines with arguments, sequences, types and server objects, with tagged catalog queries. |
 | `secrets.rs` | Data source secrets in the OS keychain (service `forge-db`): password (`<id>`), SSH secret (`<id>#ssh`), SSL key passphrase (`<id>#ssl-key`). |
-| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging, row editing and the Redis keys tree. |
+| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging with the data editor's filter and sort (SQL by `forge-dataedit`), the DML preview and row editing (by primary or unique key, production writes confirmed) and the Redis keys tree. |
 | `service/explorer.rs` | The Database Explorer: cached models, schema filter, incremental refresh, virtual objects, DDL data sources, Quick Documentation. |
 | `service/search.rs` | Full-text search: targets from scopes (data sources, schemas, table patterns), one read-only query per table, progress callback, cancel. |
 | `ssh.rs` | The SSH tab: `SshConnector` / `ForgeSsh` open a `forge-remote` session (saved configuration or ad-hoc, `~/.ssh/config`, `known_hosts`) and forward a local port. |
@@ -25544,13 +25664,13 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 ## Used by
 
-- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
+- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_preview_changes`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
+- Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-dataedit`](docs/guide/developer/crates/forge-dataedit.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md)
 - External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
@@ -25647,6 +25767,86 @@ Documentation.
 
 ```sh
 cargo test -p forge-dbmodel
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-dataedit.md
+
+# forge-dataedit
+
+`crates/forge-dataedit` — the logic of the database [data editor](docs/guide/user/database.md#data-editor)
+(DataGrip's data editor), pure and also built to WebAssembly so the desktop backend and the
+browser-mode mock answer the same way.
+
+## Purpose
+
+- Header sort and the filter row become `WHERE` / `ORDER BY` per dialect. The typed condition is
+  checked first: one condition (no `;`, balanced brackets, closed quotes and comments), no
+  write keywords at any depth (also inside subqueries) and nothing the read-only guard of
+  `forge-sql` blocks.
+- Result sets of arbitrary queries are sorted and filtered in memory instead.
+- Pending changes become DML that identifies rows by the primary key, else a unique key whose
+  columns are all `NOT NULL`; tables without one refuse updates and deletes.
+- Foreign-key navigation (real and virtual keys) in both directions, aggregates of selected
+  cells (exact decimal sums), the diff of two result sets by key, chart series and the value
+  editor (editor kind, JSON/XML formatting with validation, hex dumps, image detection, dates).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `query.rs` | `TableQuery` (schema, table, typed filter, column filters, sort) → `SELECT`, `COUNT(*)` and `ORDER BY` per dialect; `check_where`; `ColumnFilter` ("Filter by value"). |
+| `local.rs` | `local_view`: row order after local sort, column filters and text search (NULL first, numbers numerically, stable). |
+| `dml.rs` | `choose_key` (primary key, else a `NOT NULL` unique key) and `preview` (the DML of pending changes, composite keys and NULLs included). |
+| `nav.rs` | `referenced_row`, `referencing_rows` and `incoming`: the target table and condition of foreign-key navigation. |
+| `aggregate.rs` | Count, NULLs, distinct, sum, average, min and max of cells; per column for the Aggregate view. |
+| `compare.rs` | `compare`: added, removed, changed (with the changed cells) and unchanged rows by key; without a key, whole rows as a multiset. |
+| `chart.rs` | `chart_data`: categories and series for bar, line, area, pie and scatter charts, grouped and aggregated. |
+| `value.rs` | `editor_kind`, `format_json` (keeps key order and spellings), `format_xml`, `binary_info`, `image_mime`, `normalize_temporal`, `enum_values`. |
+| `api.rs` | The requests of the IPC commands, shared by `app/src-tauri/src/commands/dataedit.rs` and `crates/forge-wasm/src/dataedit.rs`. |
+
+## Main public items
+
+```rust
+pub use query::{check_where, ColumnFilter, FilterOp, SortKey, TableQuery, TableSql};
+pub use local::{local_view, LocalView};
+pub use dml::{choose_key, preview, KeyChoice, UniqueKey};
+pub use nav::{referenced_row, referencing_rows, FkRef, Navigation};
+pub use aggregate::{aggregate, aggregate_columns, Aggregate, ColumnAggregate};
+pub use compare::{compare, DataDiff, DataSet, DiffRow, RowStatus};
+pub use chart::{chart_data, ChartData, ChartSpec};
+```
+
+## Used by
+
+- `forge-db`: `DbService::table_data` (the SQL of the filter and sort), `preview_changes` and
+  `apply_changes` (row keys and DML).
+- IPC: `db_table_data`, `db_preview_changes`, `db_apply_changes` (`commands/db.rs`) and the pure
+  `db_data_view`, `db_data_aggregate`, `db_data_compare`, `db_data_chart`, `db_fk_navigate`,
+  `db_fk_incoming`, `db_value_editor`, `db_value_format`, `db_value_binary`,
+  `db_value_temporal` (`commands/dataedit.rs`).
+- UI: `app/ui/src/features/database` (`TableEditor`, `ResultGrid`, `ValueEditor`, `ChartView`,
+  `CompareView`, `dataTools`), client `app/ui/src/ipc/dataedit.ts`.
+- Browser mode: `forge-wasm` (`dataedit_*`), mocks in `app/ui/src/mock/dataeditMock.ts` and
+  `dbMock.ts`.
+
+## Dependencies
+
+- Workspace crates: `forge-sql`
+- External: `hex`, `serde`, `serde_json`
+
+## Tests
+
+Unit tests for the sort/filter SQL of every SQL dialect and the refused filters, DML with
+composite keys, NULLs and DEFAULT, key choice, foreign-key navigation, local sort and filter,
+aggregates, data compare, charts and the value editor. End-to-end against SQLite in
+`crates/forge-db/tests/sqlite.rs`.
+
+```sh
+cargo test -p forge-dataedit
+cargo test -p forge-db --test sqlite
 ```
 
 
@@ -28173,7 +28373,7 @@ guard, cell values as JavaScript-safe JSON, row change statements and export.
 | Module | Summary |
 | --- | --- |
 | `dialect.rs` | Console dialects: quoting of identifiers and literals, `BEGIN`, paging (`LIMIT`/`OFFSET` or `OFFSET … FETCH`). |
-| `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key. |
+| `edit.rs` | Row editing from the data grid: pending inserts, updates and deletes become `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their key columns (chosen by `forge-dataedit`); `{"$default": true}` sets a column to `DEFAULT`. |
 | `export.rs` | Export a result set as CSV, JSON or SQL `INSERT` statements. |
 | `guard.rs` | Read-only data sources refuse writes (DML/DDL, Redis write commands, MongoDB write calls); production data sources confirm unfiltered changes (`UPDATE`/`DELETE` without `WHERE`, `TRUNCATE`, `FLUSHDB`, `deleteMany({})`). |
 | `split.rs` | Split a script into statements at `;`, respecting quotes, comments, PostgreSQL dollar quoting, T-SQL `GO` and `[brackets]`, Oracle PL/SQL blocks, SQLite `CREATE TRIGGER … BEGIN … END` bodies; Redis lines and MongoDB calls. |

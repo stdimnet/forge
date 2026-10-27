@@ -73,7 +73,7 @@ Forge database tools (the DataGrip part of Forge).
 | `error.rs` |  |
 | `introspect.rs` | Database metadata per dialect: schemas, tables, views, materialized views, columns, keys, foreign keys, indexes, checks, triggers, routines with arguments, sequences, types and server objects, with tagged catalog queries. |
 | `secrets.rs` | Data source secrets in the OS keychain (service `forge-db`): password (`<id>`), SSH secret (`<id>#ssh`), SSL key passphrase (`<id>#ssl-key`). |
-| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging, row editing and the Redis keys tree. |
+| `service.rs` | `DbService`: data sources of the open project plus global ones, their pools (through SSH tunnels), own and shared console sessions with transaction state, the guard, table data paging with the data editor's filter and sort (SQL by `forge-dataedit`), the DML preview and row editing (by primary or unique key, production writes confirmed) and the Redis keys tree. |
 | `service/explorer.rs` | The Database Explorer: cached models, schema filter, incremental refresh, virtual objects, DDL data sources, Quick Documentation. |
 | `service/search.rs` | Full-text search: targets from scopes (data sources, schemas, table patterns), one read-only query per table, progress callback, cancel. |
 | `ssh.rs` | The SSH tab: `SshConnector` / `ForgeSsh` open a `forge-remote` session (saved configuration or ad-hoc, `~/.ssh/config`, `known_hosts`) and forward a local port. |
@@ -101,13 +101,13 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 
 ## Used by
 
-- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
+- IPC: `db_model`, `db_object_doc`, `db_virtual_objects`, `db_virtual_objects_save`, `db_match_schemas`, `db_search`, `db_search_cancel`, `db_data_sources_list`, `db_data_source_save`, `db_data_source_delete`, `db_test_connection`, `db_disconnect`, `db_schemas`, `db_introspect`, `db_table_info`, `db_table_ddl`, `db_table_data`, `db_preview_changes`, `db_apply_changes`, `db_session_open`, `db_session_close`, `db_sessions_list`, `db_session_terminate`, `db_guard`, `db_redis_keys`, `db_redis_value`, `db_execute`, `db_fetch`, `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `db_detect_env`, `db_add_from_env`, `db_export`, `db_statement_at` (`app/src-tauri/src/commands/db.rs`)
 - UI: `app/ui/src/features/database`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
-- Workspace crates: [`forge-core`](forge-core.md), [`forge-dbmodel`](forge-dbmodel.md), [`forge-remote`](forge-remote.md), [`forge-sql`](forge-sql.md)
+- Workspace crates: [`forge-core`](forge-core.md), [`forge-dataedit`](forge-dataedit.md), [`forge-dbmodel`](forge-dbmodel.md), [`forge-remote`](forge-remote.md), [`forge-sql`](forge-sql.md)
 - External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests

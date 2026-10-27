@@ -2,11 +2,12 @@
  * Data grid model, free of DOM and Solid: column kinds, cell rendering, parsing typed input
  * and turning pending edits into row changes.
  */
-import { isBinary, type Cell, type ColumnInfo, type ColumnMeta, type RowChange, type TableInfo } from "@/ipc/db";
+import { isBinary, type Cell, type ColumnInfo, type ColumnMeta, type RowChange, type SortKey, type TableInfo } from "@/ipc/db";
 
 /** Plain text of a cell (editing, clipboard): NULL as empty, binary as `0x…`. */
 export function cellText(v: Cell): string {
   if (v === null) return "";
+  if (isDefault(v)) return "DEFAULT";
   if (isBinary(v)) return `0x${v.$hex.toUpperCase()}`;
   return String(v);
 }
@@ -68,8 +69,12 @@ export interface RenderedCell {
   cls?: string;
 }
 
+/** The value editor's "Set DEFAULT" marker. */
+export const isDefault = (v: Cell | undefined): v is { $default: true } => typeof v === "object" && v !== null && "$default" in v;
+
 export function renderCell(v: Cell, kind: ColumnKind, nullText = "<null>"): RenderedCell {
   if (v === null) return { text: nullText, cls: "null" };
+  if (isDefault(v)) return { text: "<default>", cls: "null" };
   if (isBinary(v)) {
     const hex = v.$hex.toUpperCase();
     return { text: hex.length > 32 ? `0x${hex.slice(0, 32)}…` : `0x${hex}`, cls: "binary" };
@@ -119,16 +124,17 @@ export function pendingCount(p: Pending): number {
   return edited + p.deleted.length + p.inserted.length;
 }
 
-/** Row changes for the backend; refused (throws) for updates/deletes without a primary key. */
-export function buildChanges(columns: GridColumn[], rows: Cell[][], pk: string[], p: Pending): RowChange[] {
+/**
+ * Row changes for the backend. Updates and deletes carry the original row as `key`; the
+ * backend picks the columns that identify it (primary key, else a NOT NULL unique key) and
+ * refuses tables without one.
+ */
+export function buildChanges(columns: GridColumn[], rows: Cell[][], p: Pending): RowChange[] {
   const out: RowChange[] = [];
-  const keyOf = (row: Cell[]) => {
-    if (!pk.length) throw new Error("This table has no primary key, so changed rows cannot be identified.");
-    return Object.fromEntries(pk.map((k) => [k, row[columns.findIndex((c) => c.name === k)]]));
-  };
+  const keyOf = (row: Cell[]) => Object.fromEntries(columns.map((c, i) => [c.name, row[i]]));
   for (const [r, cols] of Object.entries(p.edits)) {
     const row = Number(r);
-    if (p.deleted.includes(row)) continue;
+    if (p.deleted.includes(row) || row >= rows.length) continue;
     const values = Object.fromEntries(Object.entries(cols).map(([c, v]) => [columns[Number(c)].name, v]));
     if (Object.keys(values).length) out.push({ kind: "update", key: keyOf(rows[row]), values });
   }
@@ -157,4 +163,15 @@ export function measureWidth(c: GridColumn, rows: Cell[][], index: number, charW
   let chars = c.name.length + typeLabel(c).length + 4;
   for (const r of rows.slice(0, 60)) chars = Math.max(chars, renderCell(r[index], c.kind).text.length);
   return Math.round(Math.min(340, Math.max(64, chars * charWidth + 22)));
+}
+
+/** Next header sort after a click on `column` (Ctrl/Shift: add it to the sort). */
+export function nextSort(cur: SortKey[], column: string, additive: boolean): SortKey[] {
+  const existing = cur.find((k) => k.column === column);
+  let next: SortKey[];
+  if (!existing) next = additive ? [...cur, { column, desc: false }] : [{ column, desc: false }];
+  else if (!existing.desc) next = cur.map((k) => (k.column === column ? { ...k, desc: true } : k));
+  else next = cur.filter((k) => k.column !== column);
+  if (!additive && existing) next = next.filter((k) => k.column === column);
+  return next;
 }

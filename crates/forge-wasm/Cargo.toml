@@ -18,6 +18,7 @@ forge-testing.workspace = true
 forge-runtargets.workspace = true
 regex-lite = "0.1"
 forge-sql.workspace = true
+forge-dataedit.workspace = true
 forge-dbmodel.workspace = true
 forge-sqlcode.workspace = true
 forge-markdown.workspace = true

@@ -66,6 +66,7 @@ import "./debugMock";
 import "./dapMock";
 import "./jsDebugMock";
 import "./dbMock";
+import "./dataeditMock";
 import "./sqlMock";
 import "./laravelMock";
 import "./laravelDashboardMock";

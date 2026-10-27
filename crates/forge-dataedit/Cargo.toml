@@ -1,0 +1,12 @@
+[package]
+name = "forge-dataedit"
+description = "Forge data editor logic (pure, also built to WebAssembly): server-side sort and filter SQL per dialect, local sort and filter, row keys and DML preview, foreign-key navigation, aggregates, data compare, chart series and the value editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-sql.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+hex = "0.4"

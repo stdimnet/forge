@@ -404,9 +404,22 @@ export function openFileConsole(file: { path: string; name: string; content: str
 /** Data source of a console tab (`db-console://id/n` or a file console). */
 export const consoleSourceId = (path: string): string | undefined => parseConsolePath(path)?.id ?? attached.get(path);
 
-/** Open the data editor of a table or view. */
-export function openTable(id: string, schema: string, table: string): void {
-  openViewTab({ path: tablePath(id, schema, table), name: table, view: TABLE_VIEW });
+/** How a table editor opens: with a WHERE filter (foreign-key navigation). */
+export interface TableOpenOptions {
+  filter?: string;
+}
+
+const [tableRequest, setTableRequest] = createSignal<{ path: string; options: TableOpenOptions; seq: number } | null>(null);
+let tableRequestSeq = 0;
+
+/** The latest open request with options, so an already open table editor applies them. */
+export { tableRequest };
+
+/** Open the data editor of a table or view, optionally filtered. */
+export function openTable(id: string, schema: string, table: string, options?: TableOpenOptions): void {
+  const path = tablePath(id, schema, table);
+  if (options) setTableRequest({ path, options, seq: ++tableRequestSeq });
+  openViewTab({ path, name: table, view: TABLE_VIEW });
 }
 
 // ---- dialog ----------------------------------------------------------------------------
