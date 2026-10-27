@@ -33,6 +33,7 @@ export function App() {
       django: "catalog/views.py",
       go: "cmd/ledger/main.go",
       java: "src/main/java/com/acme/inventory/App.java",
+      kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
       react: "src/App.tsx",

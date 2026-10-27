@@ -13,7 +13,10 @@
 //! - filled by the backend before the command is built: `buildTool` (`gradle` / `maven`),
 //!   `buildProgram` (wrapper or executable), `buildDir` (absolute build folder), `buildRoot`
 //!   (the build folder relative to the project, empty for the root), `gradlePath`
-//!   (`:app`) and `offline`.
+//!   (`:app`) and `offline`;
+//! - `language`: `kotlin` for tests in Kotlin sources (KotlinForge discovers them): the
+//!   source roots are `src/<set>/kotlin/` and reports keep Kotlin test names
+//!   (`JUnitFlavor::Kotlin`).
 
 use forge_output::{JUnitFlavor, LocationRule, TestReport};
 use forge_runtools::args::split_args;
@@ -26,6 +29,7 @@ use javaforge_build::command::ExecOptions;
 use javaforge_build::{test_command, BuildProject, BuildTool, Module, TestFilter};
 
 use crate::discovery::{discover_tests, source_root, Framework};
+use crate::launch::{junit_console_command, JUnitSelector};
 
 /// The module folder of a source root: `app/src/test/java/` → `app`.
 pub fn module_of_source_root(root: &str) -> String {
@@ -73,19 +77,23 @@ fn configuration(type_id: &str, name: &str, path: &str, root: &str) -> Configura
         .with_option("module", module_of_source_root(root))
 }
 
-/// The binary class name of a test file below its source root.
-fn class_of(path: &str, root: &str) -> Option<String> {
+/// The binary class name of a test file below its source root (Java, or Kotlin files named
+/// like their class).
+pub fn class_of(path: &str, root: &str) -> Option<String> {
     let path = path.replace('\\', "/");
     let rel = if !root.is_empty() && path.starts_with(root) {
         &path[root.len()..]
     } else {
-        // `…/java/com/acme/X.java`, else the file name.
-        match path.rfind("/java/") {
-            Some(i) => &path[i + 6..],
-            None => path.rsplit('/').next().unwrap_or(&path),
+        // `…/java/com/acme/X.java`, `…/kotlin/com/acme/X.kt`, else the file name.
+        match (path.rfind("/java/"), path.rfind("/kotlin/")) {
+            (Some(i), _) if path.ends_with(".java") => &path[i + 6..],
+            (_, Some(i)) if path.ends_with(".kt") => &path[i + 8..],
+            _ => path.rsplit('/').next().unwrap_or(&path),
         }
     };
-    let rel = rel.strip_suffix(".java")?;
+    let rel = rel
+        .strip_suffix(".java")
+        .or_else(|| rel.strip_suffix(".kt"))?;
     Some(rel.replace('/', "."))
 }
 
@@ -130,10 +138,11 @@ fn filter(cfg: &Configuration) -> Result<TestFilter, String> {
     })
 }
 
-/// A Java source root's files as project paths: `com/acme/X.java` → `<root>com/acme/X.java`.
-fn source_rule(root: &str) -> LocationRule {
+/// A source root's files as project paths: `com/acme/X.java` → `<root>com/acme/X.java`
+/// (`ext`: `java` or `kt`).
+fn source_rule(root: &str, ext: &str) -> LocationRule {
     LocationRule {
-        pattern: r"^([\w$/]+\.java)$".into(),
+        pattern: format!(r"^([\w$/]+\.{ext})$"),
         replacement: format!("{root}$1"),
     }
 }
@@ -258,7 +267,90 @@ impl TestFrameworkProvider for JavaTests {
     }
 }
 
-fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCommand, String> {
+/// "Run tests using: IntelliJ IDEA": the JUnit Platform Console Launcher on the class path
+/// the backend resolved (options `runner` = `junit`, `java`, `launcherJar`,
+/// `resolvedClasspath`, `reportsDir`, `runnerJvmArgs`).
+fn console_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCommand, String> {
+    if ctx.coverage_file.is_some() {
+        return Err(
+            "Run with Coverage needs \"Run tests using: Gradle\" (Settings | Build Tools | Gradle)"
+                .into(),
+        );
+    }
+    let launcher = cfg.option("launcherJar").trim();
+    if launcher.is_empty() {
+        return Err("The JUnit Platform Console Launcher (junit-platform-console-standalone.jar) was not found".into());
+    }
+    let java = match cfg.option("java").trim() {
+        "" => "java",
+        j => j,
+    };
+    let windows = java.ends_with(".exe");
+    let classpath: Vec<String> = cfg
+        .option("resolvedClasspath")
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .map(str::to_string)
+        .collect();
+    let selectors: Vec<JUnitSelector> = match filter(cfg)? {
+        TestFilter::All => vec![JUnitSelector::All],
+        TestFilter::Package { name } => vec![JUnitSelector::Package(name)],
+        TestFilter::Class { name } => vec![JUnitSelector::Class(name)],
+        TestFilter::Method { class, method } => vec![JUnitSelector::Method(class, method)],
+        TestFilter::Tests { tests } => tests
+            .into_iter()
+            .map(|(c, m)| match m {
+                Some(m) => JUnitSelector::Method(c, m),
+                None => JUnitSelector::Class(c),
+            })
+            .collect(),
+    };
+    let reports = match cfg.option("reportsDir").trim() {
+        "" => "build/test-results/forge-junit".to_string(),
+        r => r.to_string(),
+    };
+    let (program, args) = junit_console_command(
+        java,
+        launcher,
+        &classpath,
+        &selectors,
+        &reports,
+        &split_args(cfg.option("runnerJvmArgs")),
+        windows,
+    );
+    let root = match cfg.option("sourceRoot").trim() {
+        "" => "src/test/java/".to_string(),
+        r => format!("{}/", r.trim_end_matches('/')),
+    };
+    let scoped_file = matches!(cfg.option("scope"), "class" | "method");
+    Ok(TestCommand {
+        program,
+        args,
+        env: Default::default(),
+        report: TestReport::JUnitFile,
+        flavor: JUnitFlavor::Java,
+        location_rules: vec![source_rule(&root, "java")],
+        default_file: scoped_file
+            .then(|| cfg.option("file").trim().to_string())
+            .filter(|f| !f.is_empty()),
+        coverage: None,
+        report_dirs: vec![reports],
+    })
+}
+
+/// The command of a JUnit / TestNG configuration (also used by KotlinForge for JUnit tests
+/// in Kotlin and, with its own filter, for Kotest specs).
+pub fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestCommand, String> {
+    let kotlin = cfg.option("language") == "kotlin";
+    if cfg.option("runner") == "junit" && !kotlin {
+        return console_command(cfg, ctx);
+    }
+    let (lang_dir, ext) = if kotlin {
+        ("kotlin", "kt")
+    } else {
+        ("java", "java")
+    };
     let tool = BuildTool::parse(cfg.option("buildTool")).ok_or(
         "Tests run through Gradle or Maven: no build.gradle or pom.xml was found for this project",
     )?;
@@ -282,6 +374,7 @@ fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestComman
         build_dir: cfg.option("buildDir").to_string(),
         windows: program.ends_with(".bat") || program.ends_with(".cmd"),
         offline: cfg.option("offline") == "true",
+        ..Default::default()
     };
     let project = BuildProject::minimal(tool, module.clone().into_iter().collect());
     let extra = split_args(cfg.option("testRunnerOptions"));
@@ -298,8 +391,8 @@ fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestComman
         r => format!("{r}/"),
     };
     let in_module = |set: &str| match &module {
-        Some(m) => format!("{build_root}{}/src/{set}/java/", m.dir),
-        None => format!("{build_root}src/{set}/java/"),
+        Some(m) => format!("{build_root}{}/src/{set}/{lang_dir}/", m.dir),
+        None => format!("{build_root}src/{set}/{lang_dir}/"),
     };
     let test_root = match cfg.option("sourceRoot").trim() {
         "" => in_module("test"),
@@ -311,15 +404,19 @@ fn build_command(cfg: &Configuration, ctx: &CommandContext) -> Result<TestComman
         args: run.command.args,
         env: Default::default(),
         report: TestReport::JUnitFile,
-        flavor: JUnitFlavor::Java,
-        location_rules: vec![source_rule(&test_root)],
+        flavor: if kotlin {
+            JUnitFlavor::Kotlin
+        } else {
+            JUnitFlavor::Java
+        },
+        location_rules: vec![source_rule(&test_root, ext)],
         default_file: scoped_file
             .then(|| cfg.option("file").trim().to_string())
             .filter(|f| !f.is_empty()),
         coverage: run.coverage_report.map(|file| CoverageRequest {
             file,
             format: CoverageFormat::Jacoco,
-            location_rules: vec![source_rule(&in_module("main"))],
+            location_rules: vec![source_rule(&in_module("main"), ext)],
         }),
         report_dirs: run
             .report_dirs
@@ -402,6 +499,42 @@ mod unit {
     }
 
     #[test]
+    fn junit_runner_command() {
+        let file = JavaTests::junit().discover(PATH, TEST).unwrap();
+        let cfg = file.targets[1]
+            .configuration
+            .clone()
+            .with_option("runner", "junit")
+            .with_option("java", "/jdk/bin/java")
+            .with_option("launcherJar", "/m2/console.jar")
+            .with_option("resolvedClasspath", "/p/app/bin/main\n/p/app/bin/test")
+            .with_option("reportsDir", "app/build/test-results/forge-junit");
+        let cmd = JavaTests::junit()
+            .command(&cfg, &CommandContext::default())
+            .unwrap()
+            .unwrap();
+        assert_eq!(cmd.program, "/jdk/bin/java");
+        assert!(cmd
+            .args
+            .contains(&"/p/app/bin/main:/p/app/bin/test".to_string()));
+        assert!(cmd
+            .args
+            .contains(&"com.acme.inventory.InventoryTest#addsStock".to_string()));
+        assert_eq!(cmd.report_dirs, ["app/build/test-results/forge-junit"]);
+        assert_eq!(cmd.location_rules[0].replacement, "app/src/test/java/$1");
+        let ctx = CommandContext {
+            coverage_file: Some("/tmp/c".into()),
+            ..Default::default()
+        };
+        assert!(JavaTests::junit().command(&cfg, &ctx).unwrap().is_err());
+        let missing = cfg.with_option("launcherJar", "");
+        assert!(JavaTests::junit()
+            .command(&missing, &CommandContext::default())
+            .unwrap()
+            .is_err());
+    }
+
+    #[test]
     fn maven_rerun_failed_and_errors() {
         let file = JavaTests::junit().discover(PATH, TEST).unwrap();
         let class_cfg = file.targets[0].configuration.clone();
@@ -462,12 +595,40 @@ mod unit {
     }
 
     #[test]
+    fn kotlin_test_commands_use_kotlin_source_roots() {
+        let cfg = prepared(
+            Configuration::new("CartTest", "junit")
+                .with_option("scope", "method")
+                .with_option("class", "com.acme.CartTest")
+                .with_option("method", "adds stock")
+                .with_option("module", "app")
+                .with_option("language", "kotlin")
+                .with_option("file", "app/src/test/kotlin/com/acme/CartTest.kt"),
+            "gradle",
+        );
+        let cmd = JavaTests::junit()
+            .command(&cfg, &CommandContext::default())
+            .unwrap()
+            .unwrap();
+        assert_eq!(cmd.flavor, JUnitFlavor::Kotlin);
+        assert_eq!(cmd.location_rules[0].pattern, r"^([\w$/]+\.kt)$");
+        assert_eq!(cmd.location_rules[0].replacement, "app/src/test/kotlin/$1");
+        assert!(cmd
+            .args
+            .contains(&"com.acme.CartTest.adds stock".to_string()));
+    }
+
+    #[test]
     fn classes_of_paths() {
         assert_eq!(
             class_of("src/test/java/a/B.java", "src/test/java/").as_deref(),
             Some("a.B")
         );
         assert_eq!(class_of("x/java/a/B.java", "").as_deref(), Some("a.B"));
+        assert_eq!(
+            class_of("app/src/test/kotlin/a/CartTest.kt", "").as_deref(),
+            Some("a.CartTest")
+        );
         assert_eq!(
             module_of_source_root("core/util/src/test/java/"),
             "core/util"

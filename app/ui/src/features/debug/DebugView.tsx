@@ -52,6 +52,7 @@ import {
 } from "./store";
 import { debugTab, DisassemblyPane, MemoryPane, RegistersPane, setDebugTab, ThreadSelector, type DebugTab } from "./nativeViews";
 import { VariableNode } from "./VariablesTree";
+import { debugTabs } from "./debugTabs";
 import { setEvaluateRequest } from "./overlays";
 import { ExpressionInput } from "./ExpressionInput";
 
@@ -130,6 +131,7 @@ function Toolbar() {
         <Show when={f()?.registers}>
           <Tab id="registers" title="Registers" />
         </Show>
+        <For each={debugTabs().filter((t) => t.when(activeSession()))}>{(t) => <Tab id={t.id} title={t.title} />}</For>
       </div>
       <div class="dbg-sep" />
       <Show when={f()?.restart}>
@@ -365,6 +367,8 @@ export function DebugView() {
     const t = debugTab();
     const f = sessionFeatures();
     if ((t === "memory" && !f?.readMemory) || (t === "disassembly" && !f?.disassemble) || (t === "registers" && !f?.registers)) setDebugTab("frames");
+    const extra = debugTabs().find((x) => x.id === t);
+    if (extra && !extra.when(activeSession())) setDebugTab("frames");
   });
   return (
     <div class="dbg-view">
@@ -389,6 +393,12 @@ export function DebugView() {
               <FramesPane />
               <RegistersPane />
             </div>
+          </Match>
+          <Match when={debugTabs().find((t) => t.id === debugTab())}>
+            {(t) => {
+              const View = t().component;
+              return <View />;
+            }}
           </Match>
           <Match when={true}>
             <div class="dbg-body">

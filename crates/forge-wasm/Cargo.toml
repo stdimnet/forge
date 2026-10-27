@@ -40,6 +40,7 @@ pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 javaforge-build.workspace = true
 javaforge-lang-java.workspace = true
+kotlinforge-lang-kotlin.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
 forge-vcs = { path = "../forge-vcs", default-features = false }

@@ -17,6 +17,9 @@
 //! [`javadebug`] Microsoft's java-debug plugin from Maven Central (checksum checked) for
 //! JavaForge.
 //!
+//! [`kotlin`] installs JetBrains' kotlin-lsp (download.jetbrains.com), ktlint and detekt
+//! (Maven Central), each pinned with its SHA-256, for KotlinForge.
+//!
 //! Nothing is bundled with Forge: servers whose licence forbids redistribution
 //! (Intelephense) are downloaded by each user, with their consent, from the official source.
 
@@ -24,6 +27,7 @@ pub mod archive;
 pub mod http;
 pub mod javadebug;
 pub mod jdtls;
+pub mod kotlin;
 pub mod node;
 pub mod npm;
 pub mod pypi;

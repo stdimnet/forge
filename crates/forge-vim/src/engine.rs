@@ -1108,7 +1108,7 @@ impl Vim {
                         }
                         Lookup::None => {
                             let first = st.map_pending.remove(0);
-                            let rest: Vec<Typed> = st.map_pending.drain(..).collect();
+                            let rest: Vec<Typed> = std::mem::take(&mut st.map_pending);
                             for r in rest.into_iter().rev() {
                                 self.typeahead.push_front(r);
                             }

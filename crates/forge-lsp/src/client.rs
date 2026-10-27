@@ -660,8 +660,13 @@ impl LspClient {
 
     #[allow(deprecated)] // root_uri / root_path are still read by many servers
     async fn initialize(&self) -> Result<()> {
+        let mut capabilities = client_capabilities();
+        if self.inner.config.pull_diagnostics {
+            capabilities["textDocument"]["diagnostic"] =
+                json!({ "dynamicRegistration": false, "relatedDocumentSupport": false });
+        }
         let capabilities: ClientCapabilities =
-            serde_json::from_value(client_capabilities()).map_err(other)?;
+            serde_json::from_value(capabilities).map_err(other)?;
         let root_uri = path_to_uri(&self.inner.root).ok();
         let init_options = match &self.inner.config.initialization_options {
             Value::Null => None,
@@ -735,12 +740,14 @@ impl LspClient {
             .insert(uri.clone(), 1);
         self.notify::<notif::DidOpenTextDocument>(DidOpenTextDocumentParams {
             text_document: TextDocumentItem {
-                uri,
+                uri: uri.clone(),
                 language_id: self.inner.config.language_id_for(path),
                 version: 1,
                 text: text.to_string(),
             },
-        })
+        })?;
+        self.pull_diagnostics(uri, 1);
+        Ok(())
     }
 
     pub fn is_open(&self, path: &Path) -> bool {
@@ -764,13 +771,78 @@ impl LspClient {
             *v
         };
         self.notify::<notif::DidChangeTextDocument>(DidChangeTextDocumentParams {
-            text_document: VersionedTextDocumentIdentifier { uri, version },
+            text_document: VersionedTextDocumentIdentifier {
+                uri: uri.clone(),
+                version,
+            },
             content_changes: vec![TextDocumentContentChangeEvent {
                 range: None,
                 range_length: None,
                 text: text.to_string(),
             }],
-        })
+        })?;
+        self.pull_diagnostics(uri, version);
+        Ok(())
+    }
+
+    /// Whether the server answers `textDocument/diagnostic` (LSP 3.17 pull diagnostics).
+    pub fn supports_pull_diagnostics(&self) -> bool {
+        self.inner
+            .raw_capabilities
+            .get()
+            .and_then(|c| c.get("diagnosticProvider"))
+            .is_some_and(|v| !v.is_null() && v != &Value::Bool(false))
+    }
+
+    /// Ask a pull server for the diagnostics of `uri` at `version` (shortly after the
+    /// change, skipped when a newer one came in) and publish them like pushed ones.
+    fn pull_diagnostics(&self, uri: Url, version: i32) {
+        if !self.inner.config.pull_diagnostics || !self.supports_pull_diagnostics() {
+            return;
+        }
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        let client = self.clone();
+        handle.spawn(async move {
+            tokio::time::sleep(Duration::from_millis(250)).await;
+            let current = || {
+                client
+                    .inner
+                    .versions
+                    .lock()
+                    .expect("versions lock")
+                    .get(&uri)
+                    .copied()
+            };
+            if current() != Some(version) {
+                return;
+            }
+            let params = json!({ "textDocument": { "uri": uri } });
+            match client
+                .request_raw("textDocument/diagnostic", params, REQUEST_TIMEOUT)
+                .await
+            {
+                Ok(report) if report.get("kind").and_then(Value::as_str) == Some("full") => {
+                    if current() != Some(version) {
+                        return;
+                    }
+                    let diagnostics: Vec<Diagnostic> = report
+                        .get("items")
+                        .cloned()
+                        .and_then(|i| serde_json::from_value(i).ok())
+                        .unwrap_or_default();
+                    let _ = client.inner.events.send(LspEvent::Diagnostics {
+                        server_id: client.id().to_string(),
+                        uri,
+                        version: Some(version),
+                        diagnostics,
+                    });
+                }
+                Ok(_) => {}
+                Err(e) => tracing::debug!(server = %client.id(), "textDocument/diagnostic: {e}"),
+            }
+        });
     }
 
     pub fn did_save(&self, path: &Path, text: &str) -> Result<()> {

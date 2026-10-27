@@ -736,9 +736,31 @@ export function injections_languages(): string;
 export function injections_rules(): string;
 
 /**
+ * `{ path, text, offset, data }` → `CompletionOut | null` (`java_build_complete`).
+ */
+export function java_build_complete(request_json: string): string;
+
+/**
  * `{ folder, files, prefer?, exec }` → `{ project, goals, program } | null` (`java_build_info`).
  */
 export function java_build_info(request_json: string): string;
+
+/**
+ * `{ folder, files, prefer?, gradleModel?, mavenTree? }` → `BuildModel | null`
+ * (`java_build_model`, `java_sync_project`).
+ */
+export function java_build_model(request_json: string): string;
+
+/**
+ * `{ path, text, versions }` → `OutdatedMarker[]` (`java_build_outdated`); `{ path, text }`
+ * alone → the `group:artifact`s to look up (`coordinates`).
+ */
+export function java_build_outdated(request_json: string): string;
+
+/**
+ * `{ path, text, offset }` → `Request | null`: what Maven Central must answer.
+ */
+export function java_build_request(request_json: string): string;
 
 /**
  * `{ configuration, build, coverage?, java?, debugPort? }` → `{ program, args, test? }`: the
@@ -751,6 +773,11 @@ export function java_command_line(request_json: string): string;
  * `{ path, text }` → `MainMethod[]` (`java_main_methods`).
  */
 export function java_main_methods(request_json: string): string;
+
+/**
+ * `{ text, update? }` → `{ wrapper, text }`: `gradle-wrapper.properties` read (and updated).
+ */
+export function java_wrapper(request_json: string): string;
 
 /**
  * Like `json_schema_builtins`.
@@ -856,6 +883,28 @@ export function keymap_set_override(json: string): string;
  * DOM key event → canonical keystroke (for "press a shortcut" fields).
  */
 export function keymap_stroke_of_event(event_json: string): string;
+
+/**
+ * `{ configuration, build, coverage?, debugPort?, runner? }` → `{ program, args, env?, test? }`:
+ * a Kotlin application, script or Kotest configuration as the backend builds it.
+ */
+export function kotlin_command_line(request_json: string): string;
+
+/**
+ * The debugger's answer to the coroutine dump expression → `CoroutineDump`
+ * (`kotlin_coroutines`).
+ */
+export function kotlin_coroutines(value: string): string;
+
+/**
+ * `{ format, text, detekt? }` → `LintProblem[]` (canned reports of the mocks).
+ */
+export function kotlin_lint_report(request_json: string): string;
+
+/**
+ * `{ path, text }` → `MainFunction[]` (`kotlin_main_functions`).
+ */
+export function kotlin_main_functions(request_json: string): string;
 
 /**
  * `ApplicableRequest` → `ApplicableResult`.
@@ -1823,9 +1872,14 @@ export interface InitOutput {
     readonly injections_inject: (a: number, b: number, c: number) => void;
     readonly injections_languages: (a: number) => void;
     readonly injections_rules: (a: number) => void;
+    readonly java_build_complete: (a: number, b: number, c: number) => void;
     readonly java_build_info: (a: number, b: number, c: number) => void;
+    readonly java_build_model: (a: number, b: number, c: number) => void;
+    readonly java_build_outdated: (a: number, b: number, c: number) => void;
+    readonly java_build_request: (a: number, b: number, c: number) => void;
     readonly java_command_line: (a: number, b: number, c: number) => void;
     readonly java_main_methods: (a: number, b: number, c: number) => void;
+    readonly java_wrapper: (a: number, b: number, c: number) => void;
     readonly json_schema_builtins: (a: number) => void;
     readonly json_schema_complete: (a: number, b: number, c: number) => void;
     readonly json_schema_goto: (a: number, b: number, c: number) => void;
@@ -1846,6 +1900,10 @@ export interface InitOutput {
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
     readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
+    readonly kotlin_command_line: (a: number, b: number, c: number) => void;
+    readonly kotlin_coroutines: (a: number, b: number, c: number) => void;
+    readonly kotlin_lint_report: (a: number, b: number, c: number) => void;
+    readonly kotlin_main_functions: (a: number, b: number, c: number) => void;
     readonly live_templates_applicable: (a: number, b: number, c: number) => void;
     readonly live_templates_catalog: (a: number, b: number, c: number) => void;
     readonly live_templates_expand: (a: number, b: number, c: number) => void;

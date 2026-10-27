@@ -154,6 +154,7 @@ mod tests {
             spring_boot: false,
             custom_tasks: vec!["bundle".into(), "test".into()],
             java_version: None,
+            gradle_version: None,
             test_frameworks: vec![],
         };
         let names: Vec<String> = goals(&p).into_iter().map(|g| g.name).collect();

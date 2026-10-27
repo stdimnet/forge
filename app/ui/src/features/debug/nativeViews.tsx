@@ -23,7 +23,8 @@ import {
 } from "./store";
 import { VariableNode } from "./VariablesTree";
 
-export type DebugTab = "frames" | "console" | "memory" | "disassembly" | "registers";
+/** The built-in tabs, or the id of a registered one (`registerDebugTab`). */
+export type DebugTab = "frames" | "console" | "memory" | "disassembly" | "registers" | (string & {});
 
 const [debugTab, setDebugTab] = createSignal<DebugTab>("frames");
 /** Address (memory reference) the Memory view shows. */

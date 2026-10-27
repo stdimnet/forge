@@ -1,0 +1,16 @@
+[INFO] Scanning for projects...
+[INFO]
+[INFO] -------------------------< com.acme:shop-web >--------------------------
+[INFO] Building shop-web 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- dependency:3.7.0:tree (default-cli) @ shop-web ---
+[INFO] com.acme:shop-web:jar:1.0.0
+[INFO] +- org.springframework.boot:spring-boot-starter-web:jar:3.3.0:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter:jar:3.3.0:compile
+[INFO] |  \- org.springframework:spring-webmvc:jar:6.1.8:compile
+[INFO] \- com.acme:shop-util:jar:1.2.3:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------

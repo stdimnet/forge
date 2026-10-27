@@ -22,6 +22,7 @@ Languages and large feature sets ship as **packs**:
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
 | **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger |
+| **KotlinForge** | Kotlin/JVM: kotlin-lsp, Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with coroutines, ktlint and detekt |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
 terminal, database tools, Scratches with an HTTP client, Docker/Compose/Kubernetes, remote

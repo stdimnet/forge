@@ -628,6 +628,29 @@ Page id `lang.java` (plugin `forge.java`). See [JavaForge](../user/java.md#eclip
 | `java.debug.hotCodeReplace` | enum: `auto`, `manual`, `never` | `auto` | user | Debugger | Hot code replace — Reload changed classes into a running debug session: automatically after a build, on request (Apply HotSwap), or never. |
 | `java.debug.repository` | string | `https://repo1.maven.org/maven2` | user | Debugger | java-debug repository — Maven repository Forge downloads Microsoft's java-debug plugin from (checksum checked). |
 
+### Languages & Frameworks | Kotlin
+
+Page id `lang.kotlin` (plugin `forge.kotlin`). See [KotlinForge](../user/kotlin.md#language-server).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `kotlin.lsp.server` | enum: `kotlin-lsp`, `kotlin-language-server` | `kotlin-lsp` | user | Language Server | Language server |
+| `kotlin.lsp.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | Install kotlin-lsp — When a Kotlin project opens without the language server: ask, download it from download.jetbrains.com, or never. |
+| `kotlin.lsp.path` | path | `""` | user | Language Server | Server path — An unpacked kotlin-lsp folder (or its bin/intellij-server), or the kotlin-language-server launcher. |
+| `kotlin.lsp.jdk` | path | `""` | user | Language Server | JDK for the build import — JAVA_HOME of the server. Empty: the project JDK. |
+| `kotlin.lsp.jvmOptions` | string | `""` | user | Language Server | JVM options |
+| `kotlin.run.runner` | enum: `auto`, `gradle`, `maven`, `kotlinc` | `auto` | user, project | Run | Run Kotlin applications with |
+| `kotlin.compiler.path` | path | `""` | user | Run | Kotlin compiler — The kotlinc of a Kotlin compiler. Empty: the PATH. |
+| `kotlin.debug.debugger` | enum: `kotlin-lsp`, `java-debug` | `kotlin-lsp` | user | Debugger | Debugger |
+| `kotlin.ktlint.enabled` | bool | `true` | user | ktlint | Check files with ktlint |
+| `kotlin.ktlint.path` | path | `""` | user | ktlint | ktlint — Executable or ktlint-cli-*-all.jar. Empty: the PATH, else Forge's download. |
+| `kotlin.formatter` | enum: `lsp`, `ktlint` | `lsp` | user | ktlint | Reformat Code with |
+| `kotlin.ktlint.formatOnSave` | bool | `false` | user, project | ktlint | Run ktlint format on save |
+| `kotlin.detekt.enabled` | bool | `true` | user | detekt | Check the project with detekt |
+| `kotlin.detekt.path` | path | `""` | user | detekt | detekt — Executable or detekt-cli-*-all.jar. Empty: the PATH, else Forge's download. |
+| `kotlin.detekt.config` | path | `""` | user, project | detekt | Configuration file — Empty: config/detekt/detekt.yml when it exists. |
+| `kotlin.download.repository` | string | `https://repo1.maven.org/maven2` | user | Downloads | Maven repository for ktlint and detekt |
+
 ### Languages & Frameworks | Lua
 
 Page id `lang.lua`.
@@ -916,17 +939,31 @@ Page id `build.jdks` (plugin `forge.java`, a custom page: the project JDK, langu
 | `java.languageLevel` | enum: ``, `8`, `11`, `17`, `21`, `25` | `""` | user, project |  | Language level — Java release of the sources. Empty: from the build (toolchain, maven.compiler.release) or the project JDK. |
 | `java.download.adoptiumApi` | string | `https://api.adoptium.net` | user | Downloads | Adoptium API — Where Download JDK… looks up Eclipse Temurin builds (and their SHA-256 checksums). |
 
+### Build, Execution, Deployment | Build Tools
+
+Page id `build.tools` (plugin `forge.java`). See [JavaForge](../user/java.md#editing-build-scripts).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `java.mavenCentral.enabled` | bool | `true` | user | Maven Central | Search Maven Central — Complete dependency coordinates and versions in build.gradle(.kts) and pom.xml and report newer versions (cached in the user cache dir). |
+| `java.mavenCentral.searchUrl` | string | `""` | user | Maven Central | Search API — Empty: https://search.maven.org. |
+| `java.mavenCentral.repositoryUrl` | string | `""` | user | Maven Central | Repository — Where maven-metadata.xml (the versions) comes from. Empty: https://repo1.maven.org/maven2. |
+
 ### Build, Execution, Deployment | Build Tools | Gradle
 
-Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](../user/java.md#maven-and-gradle).
+Page id `build.tools.gradle` (plugin `forge.java`). See [JavaForge](../user/java.md#gradle-settings-and-the-wrapper).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `java.build.preferredTool` | enum: `gradle`, `maven` | `gradle` | user, project |  | Build tool of projects with both — Which build Forge uses when a folder has a pom.xml and a Gradle build. |
-| `java.gradle.useWrapper` | bool | `true` | user, project |  | Use the Gradle wrapper (gradlew) — Run Gradle through the project's gradlew when it has one. |
-| `java.gradle.executable` | path | `""` | user |  | Gradle executable — Used without a wrapper. Empty: gradle on the PATH. |
-| `java.gradle.jvm` | path | `""` | user, project |  | Gradle JVM — JDK home Gradle imports and runs with. Empty: the project JDK. |
-| `java.gradle.offline` | bool | `false` | user, project |  | Offline work |
+| `java.gradle.distribution` | enum: `wrapper`, `specified`, `local` | `wrapper` | user, project | Gradle | Use Gradle from — The wrapper (gradle/wrapper/gradle-wrapper.properties), a Gradle home you choose, or gradle on the PATH. |
+| `java.gradle.home` | path | `""` | user | Gradle | Gradle home — Used with "Specified location": the Gradle installation folder (or its bin/gradle). |
+| `java.gradle.jvm` | path | `""` | user, project | Gradle | Gradle JVM — JDK home (or name, like temurin-21) Gradle syncs, builds and runs with. Empty: the project JDK. |
+| `java.gradle.offline` | bool | `false` | user, project | Gradle | Offline work — Gradle resolves dependencies from its caches only (--offline). |
+| `java.gradle.buildAndRunUsing` | enum: `gradle`, `idea` | `gradle` | user, project | Build and run | Build and run using — Build Project and Application configurations run through Gradle (forgeRun) or Eclipse JDT LS compiles and Forge runs java itself. |
+| `java.gradle.runTestsUsing` | enum: `gradle`, `idea` | `gradle` | user, project | Build and run | Run tests using — JUnit tests run through Gradle's test task or the JUnit Platform Console Launcher on JDT LS's class path (TestNG always runs through Gradle). |
+| `java.junit.consoleLauncher` | path | `""` | user | Build and run | JUnit Platform Console Launcher — junit-platform-console-standalone.jar for "Run tests using: IntelliJ IDEA". Empty: the newest in ~/.m2 or Gradle's cache. |
+| `java.gradle.servicesUrl` | string | `""` | user |  | Gradle services (hidden) — Where Update Wrapper looks up Gradle releases and their SHA-256 sums. Empty: https://services.gradle.org. |
 
 ### Build, Execution, Deployment | Build Tools | Maven
 
@@ -937,6 +974,8 @@ Page id `build.tools.maven` (plugin `forge.java`).
 | `java.maven.useWrapper` | bool | `true` | user, project |  | Use the Maven wrapper (mvnw) — Run Maven through the project's mvnw when it has one. |
 | `java.maven.executable` | path | `""` | user |  | Maven home path — The mvn executable used without a wrapper. Empty: mvn on the PATH. |
 | `java.maven.offline` | bool | `false` | user, project |  | Work offline |
+| `java.maven.skipTests` | bool | `false` | user, project |  | Skip tests — Maven goals run with -DskipTests (the Maven tool window's Skip Tests toggle; test runs ignore it). |
+| `java.maven.profiles` | list | `[]` | user, project |  | Profiles — Profiles the Maven tool window selected: id to activate, !id to deactivate. |
 | `java.maven.downloadSources` | bool | `true` | user |  | Download sources of dependencies |
 
 ### Build, Execution, Deployment | Debugger

@@ -174,7 +174,8 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | `kotlin-language-server` | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT |  |
+| [Kotlin LSP](https://github.com/Kotlin/kotlin-lsp) | `kotlin-lsp` | Kotlin | started by KotlinForge (`forge.kotlin`) | Install from Settings \| Languages & Frameworks \| Kotlin (download.jetbrains.com, pinned SHA-256)<br>`brew install JetBrains/utils/kotlin-lsp` | Apache-2.0 (the server build includes closed JetBrains components) | A pack server: KotlinForge starts `bin/intellij-server --stdio` with the project JDK as `JAVA_HOME` and pulls its diagnostics. See [KotlinForge](../user/kotlin.md). |
+| [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | started by KotlinForge when chosen | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT | A pack server, the alternative to kotlin-lsp. |
 
 ### C#
 

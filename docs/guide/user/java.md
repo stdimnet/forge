@@ -1,8 +1,8 @@
 ---
 title: JavaForge
-description: The JavaForge pack - Java with Eclipse JDT LS, JDK detection and Temurin downloads, Maven and Gradle, Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, and the Java debugger (java-debug).
+description: The JavaForge pack - Java with Eclipse JDT LS, JDK detection and Temurin downloads, Maven and Gradle (tool windows with tasks, dependency trees, sync, offline mode and profiles, the Gradle wrapper, build and run delegation, Kotlin and Groovy DSL and pom.xml completion), Application runs, JUnit 5/4 and TestNG with JaCoCo coverage, and the Java debugger (java-debug).
 order: 115
-tags: [java, javaforge, jdk, maven, gradle, junit, testng, jdtls, debugger]
+tags: [java, javaforge, jdk, maven, gradle, gradle-wrapper, kotlin-dsl, maven-central, junit, testng, jdtls, debugger]
 ---
 
 # JavaForge
@@ -98,28 +98,130 @@ API publishes and unpacks it into `<data dir>/forge/jdks/<release>`.
 ## Maven and Gradle
 
 Forge reads the build in the project root: the tool (with both a `pom.xml` and a Gradle build,
-setting **Build tool of projects with both**), the wrapper (`mvnw`, `gradlew`), the Kotlin or
-Groovy DSL, modules (`include` in `settings.gradle(.kts)`, `<modules>` in `pom.xml`), JaCoCo,
-the `application` plugin and its main class, Spring Boot, custom tasks and the Java release.
-
-Runs use the wrapper when the project has one (settings **Use the Gradle wrapper** / **Use the
-Maven wrapper**); otherwise the configured **Gradle executable** / **Maven home path**, or
-`gradle` / `mvn` on `PATH`. **Offline work** adds `--offline` / `-o`. These options live in
-Settings | Build, Execution, Deployment | Build Tools | Maven and Gradle.
+setting **Build tool of projects with both**), the wrapper (`mvnw`, `gradlew`) and its Gradle
+version, the Kotlin or Groovy DSL, modules (`include` in `settings.gradle(.kts)`, `<modules>` in
+`pom.xml`), JaCoCo, the `application` plugin and its main class, Spring Boot, custom tasks and
+the Java release.
 
 - **Build Project** (`Ctrl+F9`) compiles main and test sources through the build tool
-  (Gradle `classes testClasses`, Maven `test-compile`).
-- The **Gradle** and **Maven** tool windows (right stripe) list the build's tasks by group, or
-  Maven's lifecycle phases and plugin goals. Double-click runs one; the toolbar reloads the
-  project.
+  (Gradle `classes testClasses`, Maven `test-compile`), or through Eclipse JDT LS with
+  **Build and run using: IntelliJ IDEA**.
+- **Reload All Maven and Gradle Projects** (the tool windows' ⟳, Build menu) syncs: the build
+  tool reports tasks and resolved dependencies, then JDT LS re-imports the build files.
+  Gradle and Maven run the project's build scripts and plugins, so
+  [Safe Mode](project-trust.md) refuses a sync until you trust the project.
 
-![The Gradle tool window](../../screenshots/java-gradle-tool-window.png)
+### Gradle tool window
+
+The **Gradle** tool window (right stripe) shows the root project and its subprojects with:
+
+- **Tasks** grouped like `gradle tasks --all` (application, build, build setup, documentation,
+  help, verification, other). Double-click or ▶ runs one as a temporary Gradle configuration
+  (`:app:test` in a subproject).
+- **Dependencies** per configuration (`compileClasspath`, `runtimeClasspath`,
+  `testCompileClasspath`, `testRuntimeClasspath`, `annotationProcessor`) as resolved trees:
+  `1.0 → 1.2` where conflict resolution picked another version, `(*)` for dependencies listed
+  above, unresolved ones in red. Before the first sync the tool window lists the dependencies
+  the build file declares.
+- **Run Configurations**: the project's Gradle configurations.
+
+The toolbar: **Reload All Gradle Projects**, **Execute Gradle Task…** (a command line with
+completion of every task, `clean :app:test --info`), **Run**, **Expand All** / **Collapse
+All**, **Toggle Offline Mode** (`--offline` for syncs and runs), **Show Dependencies** and
+**Gradle Settings**.
+
+A sync runs Gradle with a small init script (`forge-model.gradle`, written to the user cache
+directory) whose `forgeModel` task writes the projects, tasks and dependency trees as JSON
+(`--no-configuration-cache`). The result is cached in `<cache>/forge/javaforge/sync`, never in
+the project, so the tool window shows it again after a restart.
+
+![The Gradle tool window after a sync](../../screenshots/java-gradle-tool-window.png)
+
+![Execute Gradle Task](../../screenshots/java-gradle-execute-task.png)
+
+### Maven tool window
+
+The **Maven** tool window shows **Profiles** with checkboxes (`activeByDefault` profiles start
+checked; unchecking one deactivates it with `!id`), then the project and its modules with
+**Lifecycle** (clean … deploy), **Plugins** (the default lifecycle plugins and those in
+`<build><plugins>`, each with its goals, `jacoco:report`) and **Dependencies** (the tree of
+`mvn dependency:tree` with scopes after a sync, the declared ones before).
+
+The toolbar: **Reload All Maven Projects**, **Execute Maven Goal…**, **Run Maven Build**,
+**Toggle Offline Mode** (`-o`), **Toggle 'Skip Tests' Mode** (`-DskipTests`; test runs ignore
+it), **Expand All** / **Collapse All**, **Show Dependencies** and **Maven Settings**. The
+selected profiles (`-Pdev,!prod`) apply to every Maven run.
+
+![The Maven tool window with profiles](../../screenshots/java-maven-tool-window.png)
+
+### Gradle settings and the wrapper
+
+Settings | Build, Execution, Deployment | Build Tools | Gradle:
+
+| Setting | |
+| --- | --- |
+| **Use Gradle from** | `'gradle-wrapper.properties' file` (the wrapper, default), **Specified location** (**Gradle home**: a Gradle installation or its `bin/gradle`) or **Local installation** (`gradle` on the `PATH`). |
+| **Gradle JVM** | The JDK Gradle syncs, builds and runs with (empty: the project JDK). |
+| **Offline work** | `--offline`. |
+| **Build and run using** | **Gradle** (default): Build Project runs `classes testClasses`, Application configurations run through Gradle (`forgeRun`, a `JavaExec` task of the init script `forge-run.gradle`, with the main class, arguments, VM options and the source set's runtime class path and toolchain). **IntelliJ IDEA**: JDT LS compiles, Forge runs `java` with the class path java-debug resolves. |
+| **Run tests using** | **Gradle** (default) or **IntelliJ IDEA**: JUnit tests run on the JUnit Platform Console Launcher (`junit-platform-console-standalone.jar`: the **JUnit Platform Console Launcher** setting, else the newest in `~/.m2` or Gradle's cache) with JDT LS's class path; TestNG and Run with Coverage always use Gradle. |
+
+The page shows the project's **Gradle wrapper**: the version and distribution from
+`gradle/wrapper/gradle-wrapper.properties` and its `distributionSha256Sum`. **Verify** compares
+the checksum with the one Gradle publishes on services.gradle.org (the wrapper refuses a
+download whose checksum does not match). **Update Wrapper** (also the action *Update Gradle
+Wrapper…*) points `distributionUrl` at the newest release, or the version you enter, and writes
+the published SHA-256 sum as `distributionSha256Sum`; it edits the properties file only, so it
+runs no project code. The new Gradle is downloaded by the wrapper on its next run.
+
+![Settings | Build Tools | Gradle](../../screenshots/java-gradle-settings.png)
+
+Maven's page has **Use the Maven wrapper**, **Maven home path**, **Work offline**, **Skip
+tests** and **Download sources of dependencies**.
+
+### Editing build scripts
+
+`build.gradle.kts` (Kotlin DSL) and `build.gradle` (Groovy DSL) are highlighted as Kotlin and
+Groovy. Completion knows the common blocks and functions of the block the caret is in, with
+insert texts in the script's DSL (`implementation("…")` / `implementation '…'`):
+
+- top level: `plugins`, `dependencies`, `repositories`, `java`, `application`, `jacoco`,
+  `tasks`, `group`, `version`, `sourceSets`, `configurations`, `buildscript`, `allprojects`,
+  `subprojects`, `testing`; settings scripts: `rootProject.name`, `include`, `includeBuild`,
+  `pluginManagement`, `dependencyResolutionManagement`;
+- `plugins` (core plugins, `id(…) version …`, `kotlin(…)`, plugin ids in `id("…")`),
+  `dependencies` (`implementation`, `api`, `compileOnly`, `runtimeOnly`, `annotationProcessor`,
+  `testImplementation`, … and `platform`, `project`, `files`, `testFixtures`), `repositories`,
+  `java { toolchain { languageVersion, vendor } }`, `application { mainClass }`, `jacoco`,
+  `tasks.register<Type>("name")`, `named`, `withType`, `test { useJUnitPlatform() … }`,
+  `jacocoTestReport { reports { … } }`, `jar { manifest { … } }`;
+- members after `tasks.`, `JavaLanguageVersion.`, `JvmVendorSpec.`, `JavaVersion.`.
+
+In a dependency string (`implementation("guav")`) and in `<groupId>`, `<artifactId>` and
+`<version>` of `pom.xml`, completion offers coordinates and versions from **Maven Central**
+(newest first; typing `:` after the group or artifact moves on to artifacts and versions).
+Answers are cached in `<cache>/forge/maven-central`; offline, the cache and a few well-known
+artifacts answer.
+
+**A newer version is available**: declared versions older than the newest release of the same
+variant (Guava's `-jre` stays `-jre`; pre-releases only replace pre-releases) get a weak
+warning and a gutter icon; **Alt+Enter → Change to …** (or a click on the icon) writes the new
+version, in `pom.xml` into the property that holds it (`${guava.version}`).
+
+Settings | Build, Execution, Deployment | Build Tools: **Search Maven Central** turns the lookups
+off; **Search API** and **Repository** point them at a mirror.
+
+![Kotlin DSL completion](../../screenshots/java-gradle-kts-dsl-completion.png)
+
+![Coordinate completion from Maven Central](../../screenshots/java-gradle-kts-completion.png)
+
+![The newer-version quick fix in pom.xml](../../screenshots/java-pom-outdated.png)
 
 ## Run configurations
 
 | Type | |
 | --- | --- |
-| **Application** | Runs a main class with the configuration's JDK (empty: the project JDK), VM options, program arguments, environment and working directory. The class path comes from the build through JDT LS (java-debug resolves it after JDT LS compiled the project); without JDT LS it is the module's build output (`build/classes/java/main`, `target/classes`). **Class path** and **Java module** (`-m module/class`) override it. |
+| **Application** | Runs a main class with the configuration's JDK (empty: the project JDK), VM options, program arguments, environment and working directory. In Gradle projects it runs through Gradle by default (**Build and run using**, see [Gradle settings](#gradle-settings-and-the-wrapper)). Otherwise the class path comes from the build through JDT LS (java-debug resolves it after JDT LS compiled the project); without JDT LS it is the module's build output (`build/classes/java/main`, `target/classes`). **Class path** and **Java module** (`-m module/class`) override it. |
 | **Gradle** | Runs tasks (`clean build`), optionally in a module (`:app:build`). |
 | **Maven** | Runs goals (`clean install -DskipTests`), optionally in a module (`-pl app -am`). |
 | **JUnit**, **TestNG** | Runs all tests, a package, a class, a method or a list of tests through the build tool; see [Tests](#tests). |
@@ -174,4 +276,6 @@ into the running JVM after JDT LS rebuilt them on save.
 ## Browser mode
 
 `pnpm dev` with `?project=java` opens the demo Gradle service `inventory-service`
-(`?project=java&jdtls=missing` starts without JDT LS to try the install offer).
+(`?project=java&jdtls=missing` starts without JDT LS to try the install offer;
+`?project=java&build=maven` builds it with Maven, with profiles). Syncs, Update Wrapper and
+Maven Central answer from recorded data; nothing runs or goes to the network.

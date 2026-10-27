@@ -34,6 +34,7 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
     r.register(Box::new(javaforge_lang_java::JavaTests::testng()));
+    r.register(Box::new(kotlinforge_lang_kotlin::KotlinTests));
     r
 }
 
