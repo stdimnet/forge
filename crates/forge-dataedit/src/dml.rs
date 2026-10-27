@@ -164,7 +164,14 @@ mod tests {
             key: BTreeMap::new(),
             values: map(&[("a", json!(1))]),
         };
-        let err = preview(Dialect::MySql, "shop", "audit_log", None, &[upd.clone()]).unwrap_err();
+        let err = preview(
+            Dialect::MySql,
+            "shop",
+            "audit_log",
+            None,
+            std::slice::from_ref(&upd),
+        )
+        .unwrap_err();
         assert!(err.0.contains("no primary key or unique key"), "{err}");
         let key = KeyChoice {
             columns: vec!["id".into()],

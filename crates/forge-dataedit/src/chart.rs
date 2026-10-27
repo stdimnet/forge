@@ -5,7 +5,7 @@
 //! group column); each Y column is aggregated per X value. Scatter charts keep every row as
 //! a point and need a numeric X.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -237,12 +237,11 @@ pub fn chart_data(
 
     // Categories: numbers and dates sorted, other text in order of appearance.
     let mut cats: Vec<Value> = Vec::new();
-    let mut cat_index: HashMap<String, usize> = HashMap::new();
+    let mut seen: HashSet<String> = HashSet::new();
     for r in rows {
         let v = at(r, x);
         let k = label(&v);
-        if !cat_index.contains_key(&k) {
-            cat_index.insert(k, cats.len());
+        if seen.insert(k) {
             cats.push(v);
         }
     }
