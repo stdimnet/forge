@@ -21,6 +21,7 @@ import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoFiles, pythonDemoName } from "./demoPythonProject";
 import { goDemoFiles, goDemoName, isGoDemo } from "./demoGoProject";
+import { isRustDemo, rustDemoFiles, rustDemoName } from "./demoRustProject";
 import { isJavaDemo, javaDemoFiles, javaDemoName } from "./demoJavaProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
@@ -29,7 +30,8 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
 // `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
-// the FastAPI service of PyForge, `?project=go` the `ledger` module of GoForge.
+// the FastAPI service of PyForge, `?project=go` the `ledger` module of GoForge, `?project=rust`
+// the `shop` Cargo workspace of RustForge.
 // the FastAPI service of PyForge, `?project=java` a Gradle Java service.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
@@ -43,6 +45,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...pythonDemoFiles }
     : isGoDemo()
     ? { ...goDemoFiles }
+    : isRustDemo()
+    ? { ...rustDemoFiles }
     : isJavaDemo()
     ? { ...javaDemoFiles }
     : webDemo()
@@ -62,6 +66,8 @@ export const mockProjectName = isSymfonyDemo()
     ? pythonDemoName
     : isGoDemo()
     ? goDemoName
+    : isRustDemo()
+    ? rustDemoName
     : isJavaDemo()
     ? javaDemoName
     : (webDemo()?.name ?? demoProjectName);

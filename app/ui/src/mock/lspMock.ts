@@ -19,6 +19,7 @@ import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo } from "./demoPythonProject";
 import { isGoDemo } from "./demoGoProject";
+import { isRustDemo } from "./demoRustProject";
 import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./demoJavaProject";
 import {
   collectionMembers,
@@ -106,6 +107,8 @@ const SERVER = isLuaDemo()
     ? { id: "basedpyright", name: "basedpyright" }
     : isGoDemo()
     ? { id: "gopls", name: "gopls" }
+    : isRustDemo()
+    ? { id: "rust-analyzer", name: "rust-analyzer" }
     : isJavaDemo()
       ? { id: "jdtls", name: "Eclipse JDT LS" }
     : { id: "intelephense", name: "Intelephense" };
@@ -140,7 +143,7 @@ export const intelephenseMissingAtStart = () =>
   typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
 /** `?project=java&jdtls=missing`: the Java demo starts without Eclipse JDT LS. */
 const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
-let serverInstalled = isLuaDemo() || isPythonDemo() || isGoDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : !intelephenseMissingAtStart());
+let serverInstalled = isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : !intelephenseMissingAtStart());
 
 /** The mock install of Intelephense finished: start it for the open files. */
 export function markMockIntelephenseInstalled(): void {
