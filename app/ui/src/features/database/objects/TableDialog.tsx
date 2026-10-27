@@ -5,7 +5,7 @@
  * statements of a rename-aware diff with warnings for destructive changes). OK executes the
  * script (read-only refused, production confirmed) or opens it in a console.
  */
-import { createEffect, createMemo, createResource, createSignal, For, on, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, on, onCleanup, Show, type JSX } from "solid-js";
 import { createStore, produce, reconcile, unwrap } from "solid-js/store";
 import { ArrowDown, ArrowUp, Columns3, KeyRound, Link2, ListTree, Minus, Plus, ShieldCheck, Table2, TriangleAlert } from "lucide-solid";
 import { sourceDialect } from "@/ipc/db";
@@ -245,7 +245,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
     if (done) closeObjectDialog();
   };
 
-  const node = (section: Section, index: number, icon: () => any, label: string, hint?: string) => (
+  const node = (section: Section, index: number, icon: () => JSX.Element, label: () => string, hint?: () => string) => (
     <div
       class="dbo-node"
       classList={{ selected: sel().section === section && sel().index === index, child: section !== "table" }}
@@ -253,9 +253,9 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
       data-testid={`dbo-node-${section}-${index}`}
     >
       {icon()}
-      <span class="dbo-node-label">{label || "<unnamed>"}</span>
-      <Show when={hint}>
-        <span class="dbo-node-hint">{hint}</span>
+      <span class="dbo-node-label">{label() || "<unnamed>"}</span>
+      <Show when={hint?.()}>
+        <span class="dbo-node-hint">{hint!()}</span>
       </Show>
     </div>
   );
@@ -302,7 +302,7 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
             </button>
           </div>
           <div class="dbo-tree">
-            {node("table", 0, () => <Table2 size={14} class="db-ic-table" />, spec.name, spec.schema)}
+            {node("table", 0, () => <Table2 size={14} class="db-ic-table" />, () => spec.name, () => spec.schema)}
             {group("columns", spec.columns.length)}
             <For each={spec.columns}>
               {(c, i) =>
@@ -310,25 +310,25 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                   "columns",
                   i(),
                   () => (isPk(c.name) ? <KeyRound size={13} class="db-ic-key" /> : <Columns3 size={13} class="db-ic-column" />),
-                  c.name,
-                  `${c.dataType}${c.nullable ? "" : " not null"}`,
+                  () => c.name,
+                  () => `${c.dataType}${c.nullable ? "" : " not null"}`,
                 )
               }
             </For>
             <Show when={info()?.indexes || keys().length}>
               {group("keys", keys().length)}
-              <For each={keys()}>{(k, i) => node("keys", i(), () => <KeyRound size={13} class="db-ic-key" />, k.name || (k.primary ? "primary key" : "unique key"), `(${k.columns.join(", ")})`)}</For>
+              <For each={keys()}>{(k, i) => node("keys", i(), () => <KeyRound size={13} class="db-ic-key" />, () => k.name || (k.primary ? "primary key" : "unique key"), () => `(${k.columns.join(", ")})`)}</For>
             </Show>
             <Show when={info()?.foreignKeys || spec.foreignKeys.length}>
               {group("fks", spec.foreignKeys.length)}
-              <For each={spec.foreignKeys}>{(f, i) => node("fks", i(), () => <Link2 size={13} class="db-ic-fk" />, f.name, `→ ${f.refTable}`)}</For>
+              <For each={spec.foreignKeys}>{(f, i) => node("fks", i(), () => <Link2 size={13} class="db-ic-fk" />, () => f.name, () => `→ ${f.refTable}`)}</For>
             </Show>
             <Show when={info()?.indexes || spec.indexes.length}>
               {group("indexes", spec.indexes.length)}
-              <For each={spec.indexes}>{(x, i) => node("indexes", i(), () => <ListTree size={13} class="db-ic-index" />, x.name, `(${x.columns.join(", ")})`)}</For>
+              <For each={spec.indexes}>{(x, i) => node("indexes", i(), () => <ListTree size={13} class="db-ic-index" />, () => x.name, () => `(${x.columns.join(", ")})`)}</For>
             </Show>
             {group("checks", spec.checks.length)}
-            <For each={spec.checks}>{(c, i) => node("checks", i(), () => <ShieldCheck size={13} class="db-ic-check" />, c.name, c.expression)}</For>
+            <For each={spec.checks}>{(c, i) => node("checks", i(), () => <ShieldCheck size={13} class="db-ic-check" />, () => c.name, () => c.expression)}</For>
           </div>
         </div>
         <div class="dbo-props" data-testid="dbo-props">
@@ -454,7 +454,14 @@ export function TableDialog(p: { ds: string; schema: string; table?: string }) {
                     onChange={(e) => {
                       const t = targets().find((x) => `${x.schema}.${x.name}` === e.currentTarget.value);
                       if (!t) return;
-                      setSpec("foreignKeys", i(), { refSchema: t.schema, refTable: t.name, refColumns: t.primaryKey.slice(0, Math.max(1, f().columns.length)) });
+                      // A generated name follows the target table.
+                      const auto = f().name === `${spec.name || "table"}_${f().refTable || "ref"}_fk`;
+                      setSpec("foreignKeys", i(), {
+                        refSchema: t.schema,
+                        refTable: t.name,
+                        refColumns: t.primaryKey.slice(0, Math.max(1, f().columns.length)),
+                        ...(auto ? { name: `${spec.name || "table"}_${t.name}_fk` } : {}),
+                      });
                     }}
                   >
                     <For each={targets()}>{(t) => <option value={`${t.schema}.${t.name}`}>{`${t.schema}.${t.name}`}</option>}</For>

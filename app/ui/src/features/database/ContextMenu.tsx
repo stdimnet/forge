@@ -32,22 +32,23 @@ export function ContextMenu(props: { x: number; y: number; items: MenuItem[]; on
   );
 }
 
-function MenuPanel(props: { x: number; y: number; items: MenuItem[]; onClose: () => void; focus?: boolean; sub?: boolean }) {
+function MenuPanel(props: { x: number; y: number; items: MenuItem[]; onClose: () => void; focus?: boolean; sub?: boolean; flipX?: number }) {
   let el!: HTMLDivElement;
-  const [open, setOpen] = createSignal<{ index: number; x: number; y: number } | null>(null);
+  const [open, setOpen] = createSignal<{ index: number; x: number; y: number; flipX: number } | null>(null);
   let timer: ReturnType<typeof setTimeout> | undefined;
   onCleanup(() => clearTimeout(timer));
   onMount(() => {
     // Keep the menu on screen.
     const r = el.getBoundingClientRect();
     if (r.bottom > window.innerHeight - 8) el.style.top = `${Math.max(8, window.innerHeight - r.height - 8)}px`;
-    if (r.right > window.innerWidth - 8) el.style.left = `${Math.max(8, props.sub ? props.x - r.width - 220 : window.innerWidth - r.width - 8)}px`;
+    // A submenu that does not fit on the right opens to the left of its parent.
+    if (r.right > window.innerWidth - 8) el.style.left = `${Math.max(8, props.flipX !== undefined ? props.flipX - r.width : window.innerWidth - r.width - 8)}px`;
     if (props.focus) el.focus();
   });
   const showSub = (index: number, target: HTMLElement) => {
     clearTimeout(timer);
     const r = target.getBoundingClientRect();
-    setOpen({ index, x: r.right - 2, y: r.top - 4 });
+    setOpen({ index, x: r.right - 2, y: r.top - 4, flipX: (target.closest(".db-menu")?.getBoundingClientRect().left ?? r.left) + 2 });
   };
   return (
     <div
@@ -101,7 +102,7 @@ function MenuPanel(props: { x: number; y: number; items: MenuItem[]; onClose: ()
         )}
       </For>
       <Show when={open()}>
-        {(o) => <MenuPanel x={o().x} y={o().y} items={props.items[o().index].items ?? []} onClose={props.onClose} sub />}
+        {(o) => <MenuPanel x={o().x} y={o().y} flipX={o().flipX} items={props.items[o().index].items ?? []} onClose={props.onClose} sub />}
       </Show>
     </div>
   );
