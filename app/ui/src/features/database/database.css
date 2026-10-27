@@ -1168,3 +1168,366 @@
   text-align: left;
   overflow-wrap: anywhere;
 }
+
+/* ---- Database Explorer: object tree --------------------------------------------------- */
+.db-ic-check { color: var(--success); }
+.db-ic-trigger { color: var(--warning); }
+.db-ic-sequence { color: var(--syn-number); }
+.db-ic-type { color: var(--syn-type); }
+.db-ic-matview { color: var(--graph-4); }
+.db-ic-role { color: var(--syn-variable); }
+.db-ic-warning { color: var(--warning); }
+.db-ic-ds.graph-3 { color: var(--graph-3); }
+/* Virtual (project-defined) foreign keys and columns. */
+.db-ic-fk.virtual,
+.db-ic-column.virtual {
+  color: var(--accent);
+  opacity: 0.85;
+}
+.db-row.db-virtual .tree-label {
+  font-style: italic;
+}
+
+/* ---- Quick Documentation popup -------------------------------------------------------- */
+.db-doc {
+  position: fixed;
+  z-index: 220;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(460px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.db-doc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.db-doc-kind {
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.db-doc-name {
+  color: var(--fg-strong);
+}
+.db-doc-spacer {
+  flex: 1;
+}
+.db-doc-comment {
+  padding: 6px 10px 0;
+  color: var(--syn-comment);
+}
+.db-doc-props {
+  margin: 6px 10px 0;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.db-doc-props td {
+  padding: 1px 12px 1px 0;
+  vertical-align: top;
+}
+.db-doc-ddl {
+  margin: 8px 10px 10px;
+  padding: 8px 10px;
+  overflow: auto;
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg);
+  white-space: pre;
+}
+
+/* ---- Virtual foreign key / column dialogs --------------------------------------------- */
+.db-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-app) 55%, transparent);
+}
+.db-modal {
+  width: min(480px, calc(100vw - 32px));
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.db-modal-title {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  border-bottom: 1px solid var(--border);
+}
+.db-modal-body {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+.db-modal-body .dsd-hint {
+  margin-left: 0;
+}
+.db-modal-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.db-form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 8px 10px;
+}
+.db-form-label {
+  color: var(--fg-muted);
+}
+.db-form-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+/* ---- Schemas tab ---------------------------------------------------------------------- */
+.dsd-schemas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dsd-schemas .dsd-row-fields .dsd-check {
+  margin-left: 142px;
+}
+.dsd-schemas .dsd-row-fields .dsd-check + .dsd-check {
+  margin-left: 16px;
+}
+.dsd-patterns {
+  height: 72px;
+}
+.dsd-schemas code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg);
+}
+.dsd-error {
+  color: var(--danger);
+}
+.dsd-schema-list {
+  margin-left: 142px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 4px 0;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.dsd-schema-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+}
+.dsd-schema-item:hover {
+  background: var(--bg-hover);
+}
+.dsd-schema-item.hidden span:not(.muted) {
+  color: var(--fg-muted);
+}
+.dsd-schema-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+.dsd-ddl-files {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.dsd-ddl-files .dsd-textarea {
+  flex: 1;
+  height: 72px;
+}
+
+/* ---- Full-Text Search ----------------------------------------------------------------- */
+.fts {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-editor);
+}
+.fts-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.fts-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fts-text {
+  flex: 1;
+  min-width: 200px;
+}
+.fts-mode {
+  flex: 0 0 170px;
+}
+.fts-options .dsd-check,
+.fts-scope .dsd-check {
+  margin-left: 0;
+}
+.fts-options .dsd-port {
+  width: 64px;
+}
+.fts-tables {
+  flex: 1;
+  min-width: 260px;
+}
+.fts-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fts-scope-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.fts-schema {
+  font-size: var(--fs-small);
+}
+.fts-all {
+  font-size: var(--fs-small);
+}
+.fts-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+.fts-bar {
+  flex: 0 0 220px;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.fts-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+.fts-bar-fill.done {
+  background: var(--success);
+}
+.fts-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-muted);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fts-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: var(--danger);
+}
+.fts-results {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 0;
+}
+.fts-table-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.fts-table-head:hover {
+  background: var(--bg-hover);
+}
+.fts-count {
+  margin-left: auto;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.fts-grid-wrap {
+  margin: 2px 10px 10px 30px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.fts-grid {
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.fts-grid th {
+  position: sticky;
+  top: 0;
+  padding: 3px 10px;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--fg-muted);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.fts-grid td {
+  padding: 2px 10px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.fts-grid td.null {
+  color: var(--fg-faint);
+}
+.fts-grid td.number {
+  color: var(--syn-number);
+}
+.fts-grid td.hit {
+  background: var(--usage-read-bg);
+  color: var(--fg-strong);
+}
+.fts-table-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  color: var(--warning);
+}
+.fts-none {
+  padding: 12px;
+}

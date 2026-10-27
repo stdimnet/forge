@@ -268,6 +268,8 @@ export const toggleNode = (key: string) => setNodeOpen(key, !expanded().has(key)
 /** Expand a data source and its default schema/tables folder (after connecting). */
 export function revealSource(id: string): void {
   setNodeOpen(`ds:${id}`, true);
+  const catalog = states[id]?.catalog;
+  if (catalog) setNodeOpen(`catalog:${id}/${catalog}`, true);
   const schema = defaultSchema(id);
   if (schema) {
     setNodeOpen(`schema:${id}/${schema}`, true);
