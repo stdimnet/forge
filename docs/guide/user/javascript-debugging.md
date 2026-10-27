@@ -90,9 +90,9 @@ attaching is not.
 
 | Runner | Detected by | Results from | Coverage |
 | --- | --- | --- | --- |
-| **Jest** | `jest` in `package.json`, `jest.config.*` | Jest's JSON report (`--json --outputFile`) | `--coverage`, LCOV |
-| **Vitest** | `vitest` in `package.json`, `vitest.config.*`, `vitest.workspace.*` | the JSON reporter (`--reporter=json --outputFile.json`) | `--coverage.enabled`, LCOV (needs `@vitest/coverage-v8` or `-istanbul`) |
-| **Mocha** | `mocha` in `package.json`, `.mocharc.*` | the TAP reporter | through **c8** (`node_modules/c8`), LCOV |
+| **Jest** | `jest` in `package.json`, `jest.config.*` | Jest's JSON report (`--json --outputFile`) | `--coverage`, Istanbul JSON; **Coverage provider** babel or v8 |
+| **Vitest** | `vitest` in `package.json`, `vitest.config.*`, `vitest.workspace.*` | the JSON reporter (`--reporter=json --outputFile.json`) | `--coverage.enabled`, Istanbul JSON; **Coverage provider** v8 or istanbul (needs `@vitest/coverage-v8` or `-istanbul`) |
+| **Mocha** | `mocha` in `package.json`, `.mocharc.*` | the TAP reporter | through **c8** or **nyc** (**Coverage tool**, from `node_modules`), LCOV |
 | **Playwright** | `@playwright/test` in `package.json`, `playwright.config.*` | the JSON reporter (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | — |
 | **Cypress** | `cypress` in `package.json`, `cypress.config.*` | `cypress run --reporter junit` | — |
 | **Node.js Test Runner** | `node --test` in a `package.json` script | TAP (`--test-reporter=tap`) | Node's LCOV reporter (`--experimental-test-coverage`) |
@@ -101,7 +101,7 @@ attaching is not.
   `.only`, `.skip`, `.each`, `test.describe` and the other modifiers) whose name is a string.
   The nesting follows the calls, so a test's full name is the names of its `describe` blocks
   and its own. Each icon offers **Run**, **Run with Coverage** (Jest, Vitest, Mocha,
-  `node --test`), **Debug** and **Modify Run Configuration…**; after a run it shows the test's
+  `node --test`; a **Node.js** configuration runs with coverage under c8 or nyc), **Debug** and **Modify Run Configuration…**; after a run it shows the test's
   result.
 - **Which runner a file belongs to**: the runner the project uses (detected from
   `package.json` and config files). Files that import `vitest`, `@jest/globals`, `mocha` or

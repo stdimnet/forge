@@ -8,6 +8,7 @@ import { emitMock, registerMock } from "@/ipc";
 import type { CommandLine, RunConfiguration, RunConfigurations, RunEvent, RunRequest } from "@/ipc/run";
 import { decodeInterpreters, findInterpreter, GLOBAL_KEY, PROJECT_KEY } from "@/features/php/interpreters";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
+import { mockFiles } from "./workspaceMock";
 import { DEMO_COMPOSE_VOLUMES } from "./phpInterpretersMock";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
@@ -28,7 +29,7 @@ import { androidDemoName, isAndroidDemo } from "./demoAndroidProject";
 import { scratchCommandLine, scratchRunSteps } from "./scratchesMock";
 import { mockSettingValue } from "./settingsMock";
 import { frameworkCommand, frameworkSteps, recordTestRun, specFor, TEST_TYPES, testCommandLine, testSteps } from "./testFrameworksMock";
-import { addMockCoverage, demoClover, demoLcov } from "./coverageMock";
+import { addMockCoverage, demoClover, demoPhpunitXml, demoReportFor } from "./coverageMock";
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
@@ -243,10 +244,34 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
     return { ...c, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
   const cmd = TEST_TYPES.has(cfg.type) ? (({ report: _, ...c }) => c)(await testCommandLine(cfg)) : mockCommandLine(cfg);
-  // PHPUnit and Pest write Clover XML with Xdebug's coverage mode.
-  if (coverage && (cfg.type === "phpunit" || cfg.type === "pest"))
-    return { ...cmd, args: [...cmd.args, "--coverage-clover", "/tmp/forge-test-reports/run-coverage/clover.xml"], env: { ...(cmd.env ?? {}), XDEBUG_MODE: "coverage" } };
+  // PHP test frameworks: Clover XML with the configuration's driver (Xdebug or PCOV), built by Rust.
+  if (coverage && PHP_COVERAGE_TYPES.has(cfg.type)) {
+    const plan = await phpCoveragePlan(cfg);
+    return { ...cmd, args: [...plan.interpreterArgs, ...cmd.args, ...plan.args], env: { ...(cmd.env ?? {}), ...plan.env } };
+  }
+  // Node.js: the program under c8 or nyc.
+  if (coverage && cfg.type === "node") {
+    const args = callWasmSync<string[]>((await forgeWasm()).node_coverage_wrap, { configuration: cfg, node: cmd.program, dir: COVERAGE_DIR, args: cmd.args });
+    return { ...cmd, args };
+  }
   return cmd;
+}
+
+const COVERAGE_DIR = "/tmp/forge-test-reports/run-coverage";
+const PHP_COVERAGE_TYPES = new Set(["phpunit", "pest", "codeception", "behat", "phpspec"]);
+
+interface PhpCoveragePlan {
+  interpreterArgs: string[];
+  args: string[];
+  env: Record<string, string>;
+  file: string;
+  inDir: boolean;
+  testsDir: string | null;
+}
+
+/** How a PHP test configuration runs with coverage (`phpforge_test_frameworks::provider::coverage_plan`). */
+async function phpCoveragePlan(cfg: RunConfiguration): Promise<PhpCoveragePlan> {
+  return callWasmSync<PhpCoveragePlan>((await forgeWasm()).php_coverage_plan, { configuration: cfg, dir: COVERAGE_DIR, files: mockFiles });
 }
 
 /**
@@ -363,6 +388,10 @@ export interface MockCoverage {
   text: () => string;
   cwd?: string;
   rules?: { pattern: string; replacement: string }[];
+  /** Container / remote paths of the report and their local counterparts. */
+  mappings?: { remote: string; local: string }[];
+  /** PHPUnit's XML report with the tests of each line. */
+  testsXml?: () => Record<string, string>;
 }
 
 /** Read the run's coverage report into a suite, then report the exit (like the backend). */
@@ -375,6 +404,8 @@ async function exitWithCoverage(runId: string, code: number): Promise<void> {
       project: root.split("/").pop() ?? "",
       cwd: run.coverage.cwd,
       rules: run.coverage.rules,
+      mappings: run.coverage.mappings,
+      testsXml: run.coverage.testsXml?.(),
     }).catch(() => null);
     if (suite) emitMock(`run://${runId}`, { type: "coverage", suite });
   }
@@ -861,8 +892,15 @@ registerMock("run_start", async ({ request }) => {
   const recorded = cfg && (cfg.type === "phpunit" || test || framework) ? cfg : undefined;
   let coverage: MockCoverage | undefined;
   if (r.coverage && cfg) {
-    if (framework?.coverage) coverage = { name: cfg.name, text: demoLcov, cwd: cfg.workingDirectory || undefined, rules: framework.locationRules };
-    else if (cfg.type === "phpunit" || cfg.type === "pest") coverage = { name: cfg.name, text: () => demoClover(ROOT) };
+    const root = projectRoot();
+    if (framework?.coverage) coverage = { name: cfg.name, text: () => demoReportFor(cfg, root), cwd: cfg.workingDirectory || undefined, rules: framework.locationRules };
+    else if (cfg.type === "node") coverage = { name: cfg.name, text: () => demoReportFor(cfg, root) };
+    else if (PHP_COVERAGE_TYPES.has(cfg.type)) {
+      // Through a Docker / SSH interpreter the report names the container's paths.
+      const remote = pathMappings.find((m) => m.local === ROOT || m.local === root)?.remote ?? ROOT;
+      const tracks = (await phpCoveragePlan(cfg)).testsDir;
+      coverage = { name: cfg.name, text: () => demoClover(remote), mappings: pathMappings, testsXml: tracks ? () => demoPhpunitXml(remote) : undefined };
+    }
   }
   return startMockRun(runId, cmd, steps, {
     testRunner: !!r.testRunner,

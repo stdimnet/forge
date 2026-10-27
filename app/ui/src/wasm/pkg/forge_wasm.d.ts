@@ -1210,6 +1210,12 @@ export function markdown_parse(request_json: string): string;
 export function nav_bar_segments(request_json: string): string;
 
 /**
+ * `{ configuration, node, dir, args }` → the arguments of a Node.js program under c8 or nyc
+ * (Run with Coverage of a Node.js configuration).
+ */
+export function node_coverage_wrap(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
@@ -2278,6 +2284,7 @@ export interface InitOutput {
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
+    readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
     readonly php_coverage_plan: (a: number, b: number, c: number) => void;
     readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;

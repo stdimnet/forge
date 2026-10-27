@@ -17,14 +17,19 @@ export interface CoverageSuite {
   name: string;
   /** Milliseconds since the epoch. */
   at: number;
-  /** "Clover", "LCOV", "Cobertura", "JaCoCo", "Go coverprofile". */
+  /** "Clover", "LCOV", "Cobertura", "JaCoCo", "Go coverprofile", "Istanbul JSON", "Merged". */
   format: string;
   files: number;
   lines: Counter;
   branches: Counter;
+  /** Functions and methods. */
+  methods: Counter;
   /** "85% (17/20)". */
   lineText: string;
   branchText: string;
+  methodText: string;
+  /** The report names the tests of its lines (Show tests covering this line). */
+  perTest: boolean;
 }
 
 /** A row of the Coverage tool window. */
@@ -36,13 +41,19 @@ export interface CoverageNode {
   depth: number;
   lines: Counter;
   branches: Counter;
+  methods: Counter;
+  /** Files with lines that ran. */
+  files: Counter;
   lineText: string;
   branchText: string;
+  methodText: string;
 }
 
 export interface CoverageView {
   suite: CoverageSuite;
   nodes: CoverageNode[];
+  /** Project view hints of covered files and folders: "50% files, 62% lines covered". */
+  hints: Record<string, string>;
 }
 
 /** A coverage gutter mark (1-based line). */
@@ -53,6 +64,8 @@ export interface LineMark {
   branches?: [number, number];
   /** "Hits: 3, branches: 1 of 2 covered". */
   hint: string;
+  /** The tests that ran the line, when the report names them. */
+  tests?: string[];
 }
 
 /** A test framework a plugin manifest declares (`[[contributions.testFrameworks]]`). */
@@ -80,8 +93,12 @@ export const testingApi = {
   coverageView: (id?: string) => invoke<CoverageView | null>("coverage_view", { id: id ?? null }),
   coverageFile: (path: string, id?: string) => invoke<LineMark[]>("coverage_file", { path, id: id ?? null }),
   coverageRemove: (id: string) => invoke<void>("coverage_remove", { id }),
-  /** Read a coverage report of the project (LCOV, Cobertura, Clover, JaCoCo, Go profile). */
+  /** Read a coverage report of the project (LCOV, Cobertura, Clover, JaCoCo, Go profile, Istanbul JSON). */
   coverageImport: (path: string) => invoke<CoverageSuite>("coverage_import", { path }),
+  /** Show Coverage Data with several suites: a new suite of their merged reports. */
+  coverageMerge: (ids: string[]) => invoke<CoverageSuite>("coverage_merge", { ids }),
+  /** Generate Coverage Report: the suite as HTML, written to `path` when given (desktop). */
+  coverageExportHtml: (id: string, path?: string) => invoke<string>("coverage_export_html", { id, path: path ?? null }),
   /** The target, host names and path mappings a debugger needs for a configuration's "Run on". */
   runTargetInfo: (configuration: RunConfiguration) => invoke<DebugTarget | null>("run_target_info", { configuration }),
 };

@@ -326,6 +326,29 @@ pub fn coverage_html(request_json: &str) -> String {
 }
 
 #[derive(Deserialize)]
+struct NodeCoverageRequest {
+    configuration: Configuration,
+    node: String,
+    dir: String,
+    args: Vec<String>,
+}
+
+/// `{ configuration, node, dir, args }` → the arguments of a Node.js program under c8 or nyc
+/// (Run with Coverage of a Node.js configuration).
+#[wasm_bindgen]
+pub fn node_coverage_wrap(request_json: &str) -> String {
+    match parse::<NodeCoverageRequest>(request_json) {
+        Ok(r) => to_json(&webforge_js_testing::coverage_wrap(
+            &r.configuration,
+            &r.node,
+            &r.dir,
+            r.args,
+        )),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PhpCoverageRequest {
     configuration: Configuration,
@@ -526,6 +549,12 @@ mod tests {
         .unwrap();
         assert_eq!(plan["interpreterArgs"][0], "-dpcov.enabled=1");
         assert_eq!(plan["args"][1], "/tmp/c/clover.xml");
+        let node: Value = serde_json::from_str(&node_coverage_wrap(
+            r#"{"configuration":{"name":"server","type":"node"},"node":"node","dir":"/tmp/c","args":["src/a.js"]}"#,
+        ))
+        .unwrap();
+        assert_eq!(node[0], "node_modules/c8/bin/c8.js");
+        assert_eq!(node[4], "src/a.js");
         let w: Value = serde_json::from_str(&run_target_wrap(
             r#"{"target":{"kind":"dockerImage","image":"node:22"},"invocation":{"program":"node","args":["/p/a.js"],"cwd":"/p"},"root":"/p"}"#,
         ))

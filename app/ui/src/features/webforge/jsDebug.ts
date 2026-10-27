@@ -3,7 +3,8 @@
  * actions of the Node.js test runners (forge.js-testing).
  *
  * - Run configuration types "Node.js", "JavaScript Debug" and "Attach to Node.js/Chrome".
- *   Node.js runs through the backend (the manifest's command template); JavaScript Debug
+ *   Node.js runs through the backend (the manifest's command template), Run with Coverage
+ *   under c8 or nyc; JavaScript Debug
  *   opens its URL in the browser; Attach only debugs.
  * - Debug (Shift+F9) of these, of npm scripts and of the test runners (Jest, Vitest,
  *   Mocha, Playwright, node --test) starts js-debug: Rust builds the launch request
@@ -44,6 +45,21 @@ registerRunConfigurationType({
   defaultInterpreter: () => getSetting<string>("web.node.interpreter", "") || "node",
   argumentsLabel: "Application parameters",
   debuggable: true,
+  coverage: true,
+  coverageFields: [
+    {
+      key: "coverageTool",
+      label: "Coverage tool",
+      kind: "segmented",
+      default: "c8",
+      options: [
+        { value: "c8", label: "c8" },
+        { value: "nyc", label: "nyc" },
+      ],
+    },
+    { key: "c8Package", label: "c8 package", kind: "path", placeholder: "node_modules/c8", visible: (c) => (c.options?.coverageTool ?? "c8") !== "nyc" },
+    { key: "nycPackage", label: "nyc package", kind: "path", placeholder: "node_modules/nyc", visible: (c) => c.options?.coverageTool === "nyc" },
+  ],
   fields: [{ key: "file", label: "JavaScript file", kind: "path", required: true, placeholder: "src/server.ts" }],
   suggestName: (cfg) => baseName(opt(cfg, "file")),
 });

@@ -236,6 +236,7 @@ export const markdown_document: (a: number, b: number, c: number) => void;
 export const markdown_hover: (a: number, b: number, c: number) => void;
 export const markdown_parse: (a: number, b: number, c: number) => void;
 export const nav_bar_segments: (a: number, b: number, c: number) => void;
+export const node_coverage_wrap: (a: number, b: number, c: number) => void;
 export const output_file_links: (a: number, b: number, c: number) => void;
 export const php_coverage_plan: (a: number, b: number, c: number) => void;
 export const php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
