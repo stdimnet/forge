@@ -349,6 +349,26 @@ export function jinjaSyntaxWith(d: TwigDelimiters = {}): TemplateSyntax {
 
 export const twigSyntax: TemplateSyntax = twigSyntaxWith();
 
+/** Django's built-in tags and their operators (`{% if a in b %}`, `{% for x in y %}`). */
+const DJANGO_KEYWORDS = [
+  "autoescape", "endautoescape", "block", "endblock", "comment", "endcomment", "csrf_token", "cycle", "debug",
+  "extends", "filter", "endfilter", "firstof", "for", "empty", "endfor", "if", "elif", "else", "endif",
+  "ifchanged", "endifchanged", "include", "load", "lorem", "now", "regroup", "resetcycle", "spaceless",
+  "endspaceless", "templatetag", "url", "verbatim", "endverbatim", "widthratio", "with", "endwith", "static",
+  "get_static_prefix", "get_media_prefix", "trans", "translate", "blocktrans", "blocktranslate", "endblocktrans",
+  "endblocktranslate", "plural", "language", "endlanguage", "get_current_language", "localize", "endlocalize",
+  "timezone", "endtimezone", "in", "not", "and", "or", "is", "as", "only", "from", "by", "on", "off", "silent",
+  "reversed", "noop", "context", "count", "asvar",
+];
+
+/** Django templates: `{{ }}`, `{% %}` and `{# #}` with Django's tags. */
+export const djangoSyntax: TemplateSyntax = {
+  name: "django",
+  delimiters: twigDelimiters({}),
+  keywords: DJANGO_KEYWORDS,
+  endPrefix: "end",
+};
+
 export const jinjaSyntax: TemplateSyntax = jinjaSyntaxWith();
 
 const SMARTY_KEYWORDS = [

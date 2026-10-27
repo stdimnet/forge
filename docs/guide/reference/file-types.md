@@ -38,6 +38,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `latte` | Latte | `.latte` |  | yes |
 | `gotemplate` | Go Template | `.tmpl`, `.gotmpl`, `.gohtml` |  | yes |
 | `jinja` | Jinja2 | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` |  | yes |
+| `django` | Django Template | `.djhtml` |  | yes |
 | `handlebars` | Handlebars | `.hbs`, `.handlebars`, `.mustache` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
@@ -109,6 +110,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `shell` | Shell Script | `forge.bash` | `.sh`, `.bash`, `.zsh`, `.ksh`, `.bats` | `.bashrc`, `.bash_profile`, `.bash_login`, `.bash_logout`, `.bash_aliases`, `.profile`, `.zshrc`, `.zprofile`, `.envrc`, `PKGBUILD`, `.xinitrc`, `.xprofile` | `sh`, `bash`, `zsh`, `ksh`, `dash`, `ash` | 2 |
 | `python` | Python | `forge.python` | `.py`, `.pyw`, `.pyi`, `.pyx`, `.pxd`, `.gyp` | `SConstruct`, `SConscript`, `wscript`, `.pythonstartup`, `.pythonrc` | `python`, `python3`, `pypy`, `pypy3` | 4 |
 | `pip-requirements` | pip Requirements | `forge.python` |  | `requirements*.txt`, `constraints*.txt`, `requirements*.in`, `requirements/*.txt` |  | 4 |
+| `django` | Django Template | `forge.django` | `.djhtml` | `templates/*.html`, `templates/*.htm`, `templates/*.txt` |  | 4 |
+| `jinja` | Jinja2 | `forge.flask` | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` | `templates/*.html`, `templates/*.htm` |  | 4 |
 | `yaml` | YAML | `forge.yaml` | `.yml`, `.yaml`, `.neon` | `.clang-format`, `.clang-tidy`, `.yamllint`, `.gemrc`, `CITATION.cff`, `.sops.yaml` |  | 2 |
 | `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
 | `dotenv` | Dotenv | `forge.dotenv` | `.env` | `.env`, `.env.local`, `.env.*.local`, `.env.dist`, `.env.*.dist`, `.env.example`, `.env.sample`, `.env.template`, `.env.defaults`, `.env.dev`, `.env.development`, `.env.prod`, `.env.production`, `.env.stage`, `.env.staging`, `.env.test`, `.env.testing` |  | 2 |

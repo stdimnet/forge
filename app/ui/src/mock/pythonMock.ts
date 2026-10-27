@@ -86,7 +86,7 @@ async function current(): Promise<CurrentInterpreter | null> {
 
 if (isPythonDemo()) {
   registerMock("project_detect", () => structuredClone(pythonDemoInfo));
-  setSetting("project.announcedFrameworks", [`${ROOT}#python`], "user");
+  setSetting("project.announcedFrameworks", [`${ROOT}#python`, `${ROOT}#${pythonDemoInfo.primary?.id}`], "user");
 }
 
 registerMock("python_interpreter_current", () => current());

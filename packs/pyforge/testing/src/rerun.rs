@@ -6,7 +6,7 @@
 use forge_runtools::Configuration;
 use forge_testing::FailedTest;
 
-use crate::config::{self, PYTEST, UNITTEST};
+use crate::config::{self, DJANGO, PYTEST, UNITTEST};
 use crate::discover::scan;
 
 /// `test_add[one]` → `test_add`.
@@ -63,14 +63,21 @@ pub fn rerun_failed(
         let source = read(path);
         let classes = classes_of(source.as_deref(), path, &t.name, t.member.as_deref());
         let local = in_working_dir(cfg, path);
+        let pytest_like = cfg.type_id == DJANGO && cfg.option("runner") == "pytest";
         let id = match cfg.type_id.as_str() {
+            _ if pytest_like => {
+                let mut parts = vec![local];
+                parts.extend(classes);
+                parts.push(t.name.clone());
+                parts.join("::")
+            }
             PYTEST => {
                 let mut parts = vec![local];
                 parts.extend(classes);
                 parts.push(t.name.clone());
                 parts.join("::")
             }
-            UNITTEST => {
+            UNITTEST | DJANGO => {
                 let module = local
                     .trim_end_matches(".py")
                     .trim_end_matches("/__init__")

@@ -13,7 +13,7 @@ import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { dotenv } from "./dotenv";
 import { gherkin } from "./gherkin";
 import { streamLanguage } from "./tokens";
-import { latteSyntax, mustacheSyntax, templateParser, type TemplateSyntax } from "./templates";
+import { djangoSyntax, latteSyntax, mustacheSyntax, templateParser, type TemplateSyntax } from "./templates";
 import { templateOverlay } from "./templateOverlay";
 import { templateEditing } from "./templateEditing";
 import { dataLanguage, dataLanguageSupport } from "./templateData";
@@ -129,6 +129,7 @@ const loaders = new Map<string, LanguageDef["load"]>(
     latte: template(latteSyntax),
     gotemplate: template(),
     jinja: template(),
+    django: template(djangoSyntax),
     handlebars: template(mustacheSyntax),
     velocity: stream(velocity),
     pug: stream(pug),

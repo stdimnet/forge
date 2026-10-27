@@ -7,6 +7,9 @@
 //!   (`--report-log <dir>/pytest.jsonl`, the pytest-reportlog plugin).
 //! - unittest: `python [options] [debug] -c <Forge's runner> <scope>`; the runner reports
 //!   TeamCity messages on stdout (`helpers/forge_unittest.py`).
+//! - Django tests: `python [options] [debug] -c <Forge's Django runner> --manage manage.py
+//!   [labels]` (`manage.py test` with a runner that reports TeamCity messages), or pytest
+//!   (pytest-django) with `DJANGO_SETTINGS_MODULE`.
 //! - tox: `python -m tox` (or the `python.tox.path` program) `[-e envs] [arguments]`.
 //! - Profile: `python [options] -m cProfile -o <file> (<script> | -m <module>) [parameters]`.
 //! - Python Console: `python -u [options] -c <Forge's console>` (`helpers/forge_console.py`).
@@ -25,6 +28,7 @@ use crate::config::{self, scope};
 
 pub const UNITTEST_RUNNER: &str = include_str!("../helpers/forge_unittest.py");
 pub const CONSOLE: &str = include_str!("../helpers/forge_console.py");
+pub const DJANGO_RUNNER: &str = include_str!("../helpers/forge_django_tests.py");
 
 /// How pytest reports its results.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -333,12 +337,76 @@ pub fn tox(cfg: &Configuration, ctx: &Context) -> Result<PythonCommand, String> 
     })
 }
 
+/// Test labels of a Django configuration: Rerun Failed Tests' ids, else `target`.
+fn django_labels(cfg: &Configuration) -> Vec<String> {
+    let nodes: Vec<String> = cfg
+        .option("nodes")
+        .lines()
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .map(str::to_string)
+        .collect();
+    if !nodes.is_empty() {
+        return nodes;
+    }
+    split_args(cfg.option("target"))
+}
+
+/// The Django tests command: `manage.py test` through Forge's runner, or pytest-django.
+pub fn django_tests(cfg: &Configuration, ctx: &Context) -> Result<PythonCommand, String> {
+    let settings = cfg.option("settings").trim().to_string();
+    let mut command = if cfg.option("runner") == "pytest" {
+        let labels = django_labels(cfg);
+        let mut py = cfg.clone();
+        py.type_id = config::PYTEST.into();
+        py.options.clear();
+        if labels.is_empty() {
+            py.options.insert("scope".into(), "all".into());
+        } else {
+            py.options.insert("scope".into(), "nodes".into());
+            py.options.insert("nodes".into(), labels.join("\n"));
+        }
+        pytest(&py, ctx)?
+    } else {
+        let mut args = interpreter_head(cfg, ctx);
+        let combined = format!(
+            "FORGE_UNITTEST = '{}'\n{DJANGO_RUNNER}",
+            base64(UNITTEST_RUNNER.as_bytes())
+        );
+        args.extend(inline_script("forge_django_tests.py", &combined));
+        let manage = match cfg.option("manage").trim() {
+            "" => "manage.py".to_string(),
+            m => relative_to(&ctx.cwd, m),
+        };
+        args.extend(["--manage".into(), manage]);
+        args.extend(django_labels(cfg));
+        args.extend(split_args(&cfg.arguments));
+        PythonCommand {
+            program: None,
+            args,
+            env: base_env(),
+            report: TestReport::TeamCity,
+            flavor: JUnitFlavor::Generic,
+            report_files: false,
+            default_file: None,
+            coverage_file: None,
+        }
+    };
+    if !settings.is_empty() {
+        command
+            .env
+            .insert("DJANGO_SETTINGS_MODULE".into(), settings);
+    }
+    Ok(command)
+}
+
 /// The command of any Python test configuration.
 pub fn build(cfg: &Configuration, ctx: &Context) -> Result<PythonCommand, String> {
     match cfg.type_id.as_str() {
         config::PYTEST => pytest(cfg, ctx),
         config::UNITTEST => unittest(cfg, ctx),
         config::TOX => tox(cfg, ctx),
+        config::DJANGO => django_tests(cfg, ctx),
         other => Err(format!("'{other}' is not a Python test configuration")),
     }
 }
@@ -537,5 +605,38 @@ mod tests {
         let c = console("-X dev", false);
         assert_eq!(c[..3], ["-u", "-X", "dev"]);
         assert_eq!(c.last().unwrap(), "--no-ipython");
+    }
+
+    #[test]
+    fn django_tests() {
+        let ctx = Context {
+            cwd: "/p".into(),
+            report_dir: "/p/.r".into(),
+            ..Default::default()
+        };
+        let cfg = Configuration::new("Django tests", config::DJANGO)
+            .with_option("target", "shop.tests blog")
+            .with_option("settings", "mysite.settings")
+            .with_option("manage", "/p/manage.py");
+        let c = build(&cfg, &ctx).unwrap();
+        assert_eq!(c.report, TestReport::TeamCity);
+        assert_eq!(c.args[0], "-c");
+        assert!(c.args[1].contains("forge_django_tests.py"));
+        assert_eq!(c.args[2..], ["--manage", "manage.py", "shop.tests", "blog"]);
+        assert_eq!(c.env["DJANGO_SETTINGS_MODULE"], "mysite.settings");
+        let py = build(
+            &cfg.clone()
+                .with_option("runner", "pytest")
+                .with_option("target", ""),
+            &ctx,
+        )
+        .unwrap();
+        assert_eq!(py.args[..2], ["-m", "pytest"]);
+        assert_eq!(py.env["DJANGO_SETTINGS_MODULE"], "mysite.settings");
+        let rerun = build(&cfg.with_option("nodes", "shop.tests.T.test_a"), &ctx).unwrap();
+        assert_eq!(
+            rerun.args[2..],
+            ["--manage", "manage.py", "shop.tests.T.test_a"]
+        );
     }
 }

@@ -74,6 +74,8 @@ import "./rustMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";
 import "./pythonDebugMock";
+// Django, Flask, FastAPI and Celery (pyforge-frameworks through WebAssembly).
+import "./pythonWebMock";
 // JavaForge: wraps run_start / run_command_line and the DAP mocks for Java sessions.
 import "./javaMock";
 import "./javaDebugMock";
