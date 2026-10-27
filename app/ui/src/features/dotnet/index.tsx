@@ -96,7 +96,7 @@ const profileOptions = () => {
   const out = new Map<string, string>();
   for (const p of runnableProjects())
     for (const x of p.launchProfiles ?? [])
-      if ((x.commandName === "Project" || x.commandName === "Executable") && !out.has(x.name)) out.set(x.name, `${x.name}${x.applicationUrl ? `  ${x.applicationUrl.split(";")[0]}` : ""}`);
+      if ((x.commandName === "Project" || x.commandName === "Executable") && !out.has(x.name)) out.set(x.name, `${x.name}${x.applicationUrl ? ` (${x.applicationUrl.split(";")[0]})` : ""}`);
   return [{ value: "", label: "Default (the first profile)" }, ...[...out].map(([value, label]) => ({ value, label })), { value: "none", label: "None (--no-launch-profile)" }];
 };
 

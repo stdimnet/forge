@@ -285,7 +285,8 @@ export function NuGetToolWindow() {
                         <tr data-project={row.project.name}>
                           <td>{row.project.name}</td>
                           <td class="muted">{row.ref ? row.ref.version || "implicit" : ""}</td>
-                          <td class="nuget-actions">
+                          <td>
+                            <div class="nuget-actions">
                             <Show
                               when={row.ref}
                               fallback={
@@ -305,6 +306,7 @@ export function NuGetToolWindow() {
                                 </button>
                               </Show>
                             </Show>
+                            </div>
                           </td>
                         </tr>
                       )}

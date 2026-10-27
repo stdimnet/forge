@@ -88,7 +88,18 @@ const RUST_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : {
+/** The .NET demo (`?project=dotnet`): the API with its launch profiles, the F# tool and the tests. */
+const DOTNET_CONFIGURATIONS: RunConfigurations = {
+  selected: "Bookstore.Api: http",
+  configurations: [
+    { name: "Bookstore.Api: http", type: "dotnet", storeAsProjectFile: true, options: { project: "src/Bookstore.Api/Bookstore.Api.csproj", profile: "http", mode: "run" } },
+    { name: "Bookstore.Api (watch)", type: "dotnet", options: { project: "src/Bookstore.Api/Bookstore.Api.csproj", profile: "https", mode: "watch" } },
+    { name: "Reports", type: "dotnet", options: { project: "tools/Reports/Reports.fsproj", mode: "run" } },
+    { name: "All tests", type: "dotnet-test", storeAsProjectFile: true, options: { scope: "all" } },
+  ],
+};
+
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -761,6 +772,8 @@ export function composerSteps(args: string[]): Step[] {
 /** Canned output of the demo External Tools (PHPStan lines link through the tool's output filter). */
 function externalToolSteps(cmd: CommandLine): Step[] {
   const program = cmd.program.split("/").pop() ?? cmd.program;
+  // DotNetForge's build, NuGet, template and cleanup command lines.
+  if (program === "dotnet" && isDotnetDemo()) return dotnetCommandSteps(cmd.args);
   if (program === "phpstan") {
     const file = cmd.args.find((a) => a.endsWith(".php")) ?? "app/Models/User.php";
     return [

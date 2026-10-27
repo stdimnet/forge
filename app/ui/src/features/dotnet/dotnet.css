@@ -344,7 +344,6 @@
   white-space: nowrap;
 }
 .nuget-actions {
-  text-align: right;
   display: flex;
   gap: 4px;
   justify-content: flex-end;
@@ -444,4 +443,14 @@
 }
 .dn-note {
   font-size: var(--fs-small);
+}
+.dn-problem .problem-message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dn-problem .tree-hint {
+  flex: none;
 }

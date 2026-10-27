@@ -88,15 +88,16 @@ function testConfigurationFor(p: DotnetProject): RunConfiguration {
 const runnable = (p: DotnetProject) => !p.isTestProject && (p.web || /exe$/i.test(p.outputType));
 
 function SolutionTree(props: { selected: string | null; onSelect: (key: string, project?: DotnetProject) => void }) {
-  const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
+  // Folders, projects and profiles start open, package lists closed.
+  const [toggled, setToggled] = createSignal<Set<string>>(new Set());
   const toggle = (k: string) =>
-    setCollapsed((s) => {
+    setToggled((s) => {
       const n = new Set(s);
       if (n.has(k)) n.delete(k);
       else n.add(k);
       return n;
     });
-  const isOpen = (k: string) => !collapsed().has(k);
+  const isOpen = (k: string) => (k.endsWith("/packages") ? toggled().has(k) : !toggled().has(k));
   const rows = createMemo<Row[]>(() => {
     const ws = dotnetWorkspace();
     if (!ws) return [];
