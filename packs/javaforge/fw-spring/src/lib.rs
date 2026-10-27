@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub mod assist;
 pub mod config;
 pub mod metadata;
+pub mod model;
 pub mod scan;
 
 /// A place in a project file (0-based line and column).
