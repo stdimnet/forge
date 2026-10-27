@@ -1955,7 +1955,7 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   limit } }) -> SearchSummary` with `db://search` progress and per-table `TableMatches`, and
   `db_search_cancel`. DDL data sources are `driver = "ddl"` with `options.ddlFiles` and
   `options.ddlDialect`; the project watcher drops their model when a listed file changes and
-  emits `db://modelChanged` with their ids (also for `virtual.toml`). Catalog queries are tagged
+  emits `db://modelChanged` with their ids (and after `db_virtual_objects_save`). Catalog queries are tagged
   `/* forge:<dialect>.<what> */`.
 - Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
   `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes),

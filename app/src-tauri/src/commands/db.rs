@@ -495,11 +495,8 @@ pub fn fs_changed(app: &AppHandle, changes: &FsChanges) {
     let svc = app.state::<DbState>().service.clone();
     let mut paths = changes.changed.clone();
     paths.extend(changes.removed.iter().cloned());
-    let mut ids = svc.ddl_sources_touched(&paths);
-    if paths.iter().any(|p| p == forge_db::model::VIRTUAL_FILE) {
-        ids.extend(svc.list().into_iter().map(|d| d.source.id));
-    }
-    emit_model_changed(app, ids);
+    // `.forge/` (and so `virtual.toml`) is not watched; virtual objects are read per request.
+    emit_model_changed(app, svc.ddl_sources_touched(&paths));
 }
 
 /// The explorer model of a data source: the cached one (no connection needed) unless
