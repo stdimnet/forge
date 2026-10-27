@@ -78,6 +78,9 @@ phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-fw-wordpress.workspace = true
 phpforge-fw-cms.workspace = true
+cforge-toolchains.workspace = true
+cforge-cmake.workspace = true
+cforge-lang-cpp.workspace = true
 javaforge-build = { workspace = true, features = ["net"] }
 javaforge-lang-java.workspace = true
 javaforge-jdk.workspace = true

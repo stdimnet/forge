@@ -37,6 +37,7 @@ const MANIFESTS: &[(&str, &str)] = &[
         "kotlinforge.toml",
         include_str!("../plugins/kotlinforge.toml"),
     ),
+    ("cforge.toml", include_str!("../plugins/cforge.toml")),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (

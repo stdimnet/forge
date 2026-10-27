@@ -1,0 +1,330 @@
+# CForge: C and C++ in the style of CLion. The logic lives in packs/cforge
+# (cforge-toolchains: GCC / Clang / MSVC / MinGW / cross toolchains with their build tools
+# and debuggers; cforge-cmake: profiles, presets, the cmake-file-api model, configure logs,
+# command lines, CMakeLists completion; cforge-lang-cpp: build problems, compilation
+# databases, GoogleTest / Catch2 / CTest, coverage, clangd / clang-format command lines and
+# debugger setup). clangd is downloaded on request by forge-langservers (managed::clangd) and
+# started by app/src-tauri/src/commands/cpp.rs; debugging uses the LLDB and GDB adapters of
+# forge.debugger.
+
+id = "forge.cpp"
+name = "C/C++"
+version = "0.1.0"
+pack = "cforge"
+vendor = "Forge"
+description = "C and C++ with CMake and compilation databases: clangd (with clang-tidy), clang-format, toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, Build / Rebuild / Clean with build problems, CMake Application configurations, CTest, GoogleTest and Catch2 with coverage, and LLDB / GDB debugging with STL renderers."
+projectTypes = ["cforge"]
+depends = ["forge.debugger"]
+
+[contributions]
+languages = ["c", "cpp"]
+
+# clang-format, clang-tidy and clangd configuration files are YAML.
+[[contributions.fileTypes]]
+id = "clang-config"
+name = "Clang Configuration"
+fileNames = [".clang-format", "_clang-format", ".clang-tidy", ".clangd"]
+indentSize = 2
+
+[[contributions.commands]]
+id = "cmake.reload"
+title = "Reload CMake Project"
+category = "CMake"
+
+[[contributions.commands]]
+id = "cmake.resetCache"
+title = "Reset Cache and Reload Project"
+category = "CMake"
+
+[[contributions.commands]]
+id = "cmake.rebuild"
+title = "Rebuild Project"
+category = "Build"
+
+[[contributions.commands]]
+id = "cmake.clean"
+title = "Clean"
+category = "Build"
+
+[[contributions.commands]]
+id = "cmake.buildTarget"
+title = "Build Target…"
+category = "Build"
+
+[[contributions.commands]]
+id = "cpp.installClangd"
+title = "Download clangd"
+category = "C/C++"
+
+[[contributions.runConfigurationTypes]]
+id = "cmake-app"
+name = "CMake Application"
+description = "Build a CMake executable target and run or debug it (LLDB or GDB of the profile's toolchain)."
+icon = "app-window"
+debuggable = true
+
+# ---- CTest, GoogleTest and Catch2 on the shared test runner (forge-testing) ---------------
+# The run configuration types and their test files; discovery (TEST / TEST_F / TEST_P,
+# TEST_CASE / SECTION), command lines (--gtest_filter, Catch2 test specs, ctest -R), JUnit
+# reports, Rerun Failed Tests and gcov / llvm-cov coverage come from
+# `cforge_lang_cpp::CppTests`, registered under the same ids.
+
+[[contributions.testFrameworks]]
+id = "gtest"
+name = "Google Test"
+description = "Run GoogleTest tests of a CMake target: all, a file, a suite or one test (--gtest_filter), with gcov / llvm-cov coverage."
+icon = "flask-conical"
+language = "cpp"
+detect = { files = ["CMakeLists.txt"], dependencies = [{ file = "CMakeLists.txt", contains = "GTest" }, { file = "CMakeLists.txt", contains = "gtest" }, { file = "CMakeLists.txt", contains = "googletest" }] }
+testFiles = ["*.cpp", "*.cc", "*.cxx"]
+report = "jUnitFile"
+debuggable = true
+fields = [
+  { key = "target", label = "Target", placeholder = "Empty: the CMake target that compiles the file" },
+  { key = "executable", label = "Executable", placeholder = "Empty: the target's executable" },
+  { key = "filter", label = "Test filter (--gtest_filter)", placeholder = "PolygonTest.*:-*Slow*" },
+]
+
+[contributions.testFrameworks.scopes]
+all = []
+file = ["${file}"]
+test = ["${test}"]
+pattern = ["${pattern}"]
+
+[[contributions.testFrameworks]]
+id = "catch2"
+name = "Catch2"
+description = "Run Catch2 test cases and sections of a CMake target, by name, tag or test spec, with gcov / llvm-cov coverage."
+icon = "flask-conical"
+language = "cpp"
+detect = { dependencies = [{ file = "CMakeLists.txt", contains = "Catch2" }, { file = "CMakeLists.txt", contains = "catch2" }] }
+testFiles = ["*.cpp", "*.cc", "*.cxx"]
+report = "jUnitFile"
+debuggable = true
+fields = [
+  { key = "target", label = "Target", placeholder = "Empty: the CMake target that compiles the file" },
+  { key = "executable", label = "Executable", placeholder = "Empty: the target's executable" },
+  { key = "filter", label = "Test spec", placeholder = "[math]~[slow]" },
+]
+
+[contributions.testFrameworks.scopes]
+all = []
+file = ["${file}"]
+test = ["${test}"]
+pattern = ["${pattern}"]
+
+[[contributions.testFrameworks]]
+id = "ctest"
+name = "CTest"
+description = "Run the tests CMake's add_test, gtest_discover_tests or catch_discover_tests register (ctest --output-junit), all or by name, label or regular expression."
+icon = "flask-conical"
+language = "cpp"
+detect = { dependencies = [{ file = "CMakeLists.txt", contains = "enable_testing" }, { file = "CMakeLists.txt", contains = "include(CTest)" }] }
+testFiles = []
+report = "jUnitFile"
+debuggable = false
+fields = [
+  { key = "filter", label = "Tests (-R regular expression)", placeholder = "^shapes\\." },
+  { key = "label", label = "Label (-L)" },
+  { key = "jobs", label = "Parallel jobs (-j)", placeholder = "4" },
+]
+
+[contributions.testFrameworks.scopes]
+all = []
+test = ["${test}"]
+pattern = ["${pattern}"]
+
+# ---- Settings | Build, Execution, Deployment | Toolchains ---------------------------------
+
+[[contributions.settings]]
+key = "cpp.toolchains"
+title = "Toolchains"
+description = "Toolchains added by hand (name, kind, compilers, CMake, Make, Ninja, debugger, environment script). The first one is the default; detected toolchains follow."
+type = "objects"
+unique = ["name"]
+default = []
+group = "build.toolchains"
+hidden = true
+order = 0
+
+# ---- Settings | Build, Execution, Deployment | CMake ---------------------------------------
+
+[[contributions.settings]]
+key = "cmake.profiles"
+title = "CMake profiles"
+description = "Profiles of the project (name, build type, toolchain, generator, CMake options, build directory, build options, environment, enabled). Configure presets of CMakePresets.json and CMakeUserPresets.json are added automatically."
+type = "objects"
+unique = ["name"]
+default = []
+group = "build.cmake"
+project = true
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "cmake.activeProfile"
+title = "Active CMake profile"
+type = "string"
+default = ""
+group = "build.cmake"
+project = true
+hidden = true
+order = 1
+
+[[contributions.settings]]
+key = "cmake.executable"
+title = "CMake executable"
+description = "Empty: the active toolchain's CMake (bundled with Visual Studio for MSVC), else cmake on the PATH."
+type = "path"
+default = ""
+group = "build.cmake"
+section = "CMake"
+order = 10
+
+[[contributions.settings]]
+key = "cmake.reloadOnChange"
+title = "Reload CMake project on editing CMakeLists.txt or other CMake configuration files"
+type = "bool"
+default = true
+group = "build.cmake"
+section = "CMake"
+project = true
+order = 11
+
+[[contributions.settings]]
+key = "cmake.buildBeforeRun"
+title = "Build the target before running or debugging"
+description = "CMake Application, Google Test and Catch2 configurations build their target first (cmake --build --target)."
+type = "bool"
+default = true
+group = "build.cmake"
+section = "CMake"
+project = true
+order = 12
+
+# ---- Settings | Languages & Frameworks | C/C++ ---------------------------------------------
+
+[[contributions.settings]]
+key = "cpp.clangd.path"
+title = "clangd executable"
+description = "Empty: clangd of the active toolchain (LLVM), on the PATH, or the one Forge downloaded."
+type = "path"
+default = ""
+group = "lang.cpp"
+section = "Clangd"
+order = 10
+
+[[contributions.settings]]
+key = "cpp.clangd.clangTidy"
+title = "Show clang-tidy diagnostics"
+description = "clangd runs the checks of the project's .clang-tidy files (--clang-tidy)."
+type = "bool"
+default = true
+group = "lang.cpp"
+section = "Clangd"
+project = true
+order = 11
+
+[[contributions.settings]]
+key = "cpp.clangd.headerInsertion"
+title = "Insert #include for completed symbols"
+type = "enum"
+options = [
+  { value = "iwyu", label = "Include what you use" },
+  { value = "never", label = "Never" },
+]
+default = "iwyu"
+group = "lang.cpp"
+section = "Clangd"
+project = true
+order = 12
+
+[[contributions.settings]]
+key = "cpp.clangd.completionStyle"
+title = "Completion style"
+type = "enum"
+options = [
+  { value = "detailed", label = "One item per overload" },
+  { value = "bundled", label = "Bundle overloads" },
+]
+default = "detailed"
+group = "lang.cpp"
+section = "Clangd"
+order = 13
+
+[[contributions.settings]]
+key = "cpp.clangd.arguments"
+title = "Additional clangd arguments"
+description = "For example --log=verbose or -j=4."
+type = "string"
+default = ""
+group = "lang.cpp"
+section = "Clangd"
+order = 14
+
+[[contributions.settings]]
+key = "cpp.compileCommands"
+title = "Compilation database"
+description = "compile_commands.json of a project without CMake (Bear, Meson, other generators). Empty: the project root or build/."
+type = "path"
+default = ""
+group = "lang.cpp"
+section = "Compilation Database"
+project = true
+order = 20
+
+[[contributions.settings]]
+key = "cpp.formatter"
+title = "Reformat Code with"
+description = "Ctrl+Alt+L and \"Reformat code\" on save use this tool for C and C++ files; clang-format reads the project's .clang-format."
+type = "enum"
+options = [
+  { value = "clangFormat", label = "clang-format" },
+  { value = "lsp", label = "clangd" },
+  { value = "none", label = "Do not format" },
+]
+default = "clangFormat"
+group = "lang.cpp"
+section = "Code Style"
+project = true
+order = 30
+
+[[contributions.settings]]
+key = "cpp.clangFormat.path"
+title = "clang-format executable"
+description = "Empty: clang-format of the active toolchain or on the PATH."
+type = "path"
+default = ""
+group = "lang.cpp"
+section = "Code Style"
+order = 31
+
+[[contributions.settings]]
+key = "cpp.clangFormat.fallbackStyle"
+title = "Style without a .clang-format file"
+type = "enum"
+options = [
+  { value = "LLVM", label = "LLVM" },
+  { value = "Google", label = "Google" },
+  { value = "Chromium", label = "Chromium" },
+  { value = "Mozilla", label = "Mozilla" },
+  { value = "WebKit", label = "WebKit" },
+  { value = "Microsoft", label = "Microsoft" },
+  { value = "GNU", label = "GNU" },
+  { value = "none", label = "Do not format" },
+]
+default = "LLVM"
+group = "lang.cpp"
+section = "Code Style"
+project = true
+order = 32
+
+[[contributions.settings]]
+key = "cpp.debugger.stlRenderers"
+title = "Show STL containers with their elements"
+description = "GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters."
+type = "bool"
+default = true
+group = "lang.cpp"
+section = "Debugger"
+order = 40

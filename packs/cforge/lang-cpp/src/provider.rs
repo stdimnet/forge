@@ -286,6 +286,11 @@ impl CppTests {
             s if s.is_empty() => "all".to_string(),
             s => s,
         };
+        // The form's pattern field, or the filter field of the framework.
+        let pattern = || match opt("pattern") {
+            p if p.is_empty() => opt("filter"),
+            p => p,
+        };
         let report_dir = ctx.report_dir.trim_end_matches(['/', '\\']).to_string();
         let mut env = BTreeMap::new();
         let mut args: Vec<String> = Vec::new();
@@ -293,7 +298,7 @@ impl CppTests {
             GTEST => {
                 let exe = cpp.executable(cfg)?;
                 let filter = match scope.as_str() {
-                    "all" => None,
+                    "all" => Some(opt("filter")),
                     "file" => {
                         let suites: Vec<String> = opt("suites")
                             .split('|')
@@ -303,8 +308,10 @@ impl CppTests {
                         (!suites.is_empty()).then(|| suites.join(":"))
                     }
                     "suite" => Some(gtest_suite_filter(&opt("suite"))),
+                    // A test typed into the form is `Suite.Test`.
+                    "test" if opt("suite").is_empty() => Some(opt("test")),
                     "test" => Some(gtest_test_filter(&opt("suite"), &opt("test"), &opt("kind"))),
-                    "pattern" => Some(opt("filter")),
+                    "pattern" => Some(pattern()),
                     other => return Err(format!("Unknown test scope '{other}'")),
                 };
                 let file = format!("{report_dir}/gtest-report.xml");
@@ -317,6 +324,7 @@ impl CppTests {
             CATCH2 => {
                 let exe = cpp.executable(cfg)?;
                 match scope.as_str() {
+                    "all" if !opt("filter").is_empty() => args.push(opt("filter")),
                     "all" => {}
                     "file" => {
                         let cases: Vec<String> = opt("suites")
@@ -335,7 +343,7 @@ impl CppTests {
                             args.push(s.to_string());
                         }
                     }
-                    "pattern" => args.push(opt("filter")),
+                    "pattern" => args.push(pattern()),
                     other => return Err(format!("Unknown test scope '{other}'")),
                 }
                 let file = format!("{report_dir}/catch2-report.xml");
@@ -364,9 +372,12 @@ impl CppTests {
                     args.extend(["-C".into(), cpp.build_type.clone()]);
                 }
                 match scope.as_str() {
+                    "all" | "file" if !opt("filter").is_empty() => {
+                        args.extend(["-R".into(), opt("filter")])
+                    }
                     "all" | "file" => {}
                     "test" => args.extend(["-R".into(), format!("^{}$", regex_escape(&opt("test")))]),
-                    "pattern" => args.extend(["-R".into(), opt("filter")]),
+                    "pattern" => args.extend(["-R".into(), pattern()]),
                     other => return Err(format!("Unknown test scope '{other}'")),
                 }
                 if !opt("label").is_empty() {
@@ -469,7 +480,7 @@ impl TestFrameworkProvider for CppTests {
             ),
         };
         c.options.insert("scope".into(), "pattern".into());
-        c.options.insert("filter".into(), filter);
+        c.options.insert("pattern".into(), filter);
         Some(c)
     }
 
@@ -594,7 +605,7 @@ mod tests {
                 &[FailedTest { name: "PerimeterOfSquare".into(), ..FailedTest::default() }],
             )
             .unwrap();
-        assert_eq!(rerun.options["filter"], "*.PerimeterOfSquare");
+        assert_eq!(rerun.options["pattern"], "*.PerimeterOfSquare");
         let again = r.command(&rerun, &ctx(false)).unwrap().unwrap();
         assert_eq!(again.args[1], "--gtest_filter=*.PerimeterOfSquare");
         let (program, args) = debug_command(&file.targets[0].configuration, &CppContext::from(&ctx(false)).unwrap()).unwrap();
@@ -626,7 +637,7 @@ mod tests {
                 ],
             )
             .unwrap();
-        assert_eq!(rerun.options["filter"], "median,mean \\[fast\\]");
+        assert_eq!(rerun.options["pattern"], "median,mean \\[fast\\]");
         let (_, args) = debug_command(&file.targets[1].configuration, &CppContext::from(&ctx(false)).unwrap()).unwrap();
         assert_eq!(args, ["median", "-c", "even, count"]);
         // A file of another framework is not Catch2's.

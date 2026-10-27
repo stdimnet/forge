@@ -59,6 +59,8 @@ import "./pythonWeb";
 import "./go";
 import "./java";
 import "./kotlin";
+// After JavaForge: CForge wraps its Build Project (Ctrl+F9).
+import "./cpp";
 import "./services";
 import "./remote";
 import "./devenv";

@@ -40,6 +40,8 @@ pub(crate) struct CoverageSetup {
     /// … and the report's name in it, or (without `dir`) its project-relative path.
     pub file: String,
     pub format: CoverageFormat,
+    /// Raw data a pack's collector turns into the report first (CForge's gcov / llvm-cov).
+    pub collect: Option<forge_testing::CoverageCollect>,
     /// The configuration's name (the suite's name).
     pub name: String,
     pub location_rules: Vec<LocationRule>,
@@ -163,15 +165,28 @@ pub(crate) fn record_coverage(
     cwd: &str,
     mappings: &[OutputPathMapping],
 ) -> std::result::Result<CoverageSuiteInfo, String> {
-    let text = match &setup.dir {
-        Some(dir) => {
-            let t = dir.read(backend, &setup.file);
-            dir.remove(backend);
-            t
+    let text = if let Some(collect) = setup.collect.as_ref().filter(|c| c.kind == "cpp") {
+        let dir = match &setup.dir {
+            Some(ReportDir::Local(d)) => d.clone(),
+            Some(ReportDir::Project(rel)) => std::path::Path::new(root).join(rel),
+            _ => std::path::PathBuf::new(),
+        };
+        let t = crate::commands::cpp::collect_coverage(backend, collect, &dir, root);
+        if let Some(d) = &setup.dir {
+            d.remove(backend);
         }
-        None => backend.read_file(&setup.file).ok(),
-    }
-    .ok_or_else(|| format!("no coverage report was written ({})", setup.file))?;
+        t?
+    } else {
+        match &setup.dir {
+            Some(dir) => {
+                let t = dir.read(backend, &setup.file);
+                dir.remove(backend);
+                t
+            }
+            None => backend.read_file(&setup.file).ok(),
+        }
+        .ok_or_else(|| format!("no coverage report was written ({})", setup.file))?
+    };
     let report = CoverageReport::parse(&text, setup.format)
         .or_else(|_| CoverageReport::parse_any(&text).map(|(r, _)| r))?;
     let report = report.resolve(resolver(root, Some(cwd), mappings, &setup.location_rules));

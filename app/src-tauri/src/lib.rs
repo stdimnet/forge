@@ -736,6 +736,20 @@ pub fn run() {
             commands::go::go_debug_request,
             commands::go::go_profile_path,
             commands::go::pprof_open,
+            commands::cpp::cpp_toolchains,
+            commands::cpp::cpp_toolchain_inspect,
+            commands::cpp::cmake_profiles,
+            commands::cpp::cmake_state,
+            commands::cpp::cmake_reload,
+            commands::cpp::cmake_cancel,
+            commands::cpp::cmake_build_command,
+            commands::cpp::cpp_build_problems,
+            commands::cpp::cpp_target_of,
+            commands::cpp::cpp_debug_request,
+            commands::cpp::cpp_status,
+            commands::cpp::cpp_clangd_install,
+            commands::cpp::cpp_format,
+            commands::cpp::cmake_complete,
             commands::dap::dap_start,
             commands::dap::dap_restart,
             commands::dap::dap_threads,
@@ -1006,6 +1020,15 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::kotlin::spawn_sync_lsp_server(&handle);
+            }
+            // CForge: profiles and toolchains change the CMake model; clangd follows them.
+            if commands::cpp::affects_model(&change.key) {
+                commands::cpp::invalidate();
+            }
+            if commands::cpp::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::cpp::spawn_sync_lsp_server(&handle);
             }
         });
 }
