@@ -1,0 +1,13 @@
+[package]
+name = "forge-profiler"
+description = "Profiler snapshots for the shared Profiler tool window: Xdebug cachegrind files, php-spx full reports, V8 CPU profiles (with source maps), V8 heap snapshots (summary by constructor with retained sizes) and V8 sampling heap profiles, turned into execution statistics, callers / callees and goforge-pprof's call tree and flame graph views (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json = { version = "1", features = ["unbounded_depth"] }
+flate2 = "1"
+goforge-pprof.workspace = true
+base64 = "0.22"

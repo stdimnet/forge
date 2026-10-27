@@ -212,7 +212,9 @@ Python tests run in the shared [test runner](testing.md): gutter icons, the test
 - **Unittests** configurations run discovery below the project or a directory (pattern
   `test*.py`), a file, a class or a test method with Forge's own runner: a small script that
   comes with Forge (standard library only, sent inline with `python -c`), reports every test as
-  it runs and records `assertEqual` values for the comparison. Rerun Failed Tests runs the
+  it runs and records `assertEqual` values for the comparison. **Run with Coverage** needs
+  coverage.py in the interpreter: the runner measures with branch coverage and writes a
+  Cobertura report. Rerun Failed Tests runs the
   failed tests' ids (`tests.test_cart.TestCart.test_total`).
 - **tox** configurations run the environments you name (empty: tox's `env_list`) with
   `python -m tox`, or the program of **tox executable** (`python.tox.path`). Every

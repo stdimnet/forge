@@ -1,6 +1,6 @@
 [package]
 name = "forge-testing"
-description = "Forge shared test runner and coverage model: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile) — pure, also built to WebAssembly"
+description = "Forge shared test runner and coverage model: test framework contributions (detection, command lines, gutter discovery, Rerun Failed Tests, location rules) and coverage reports (LCOV, Cobertura, Clover, JaCoCo, Go coverprofile, Istanbul JSON, PHPUnit XML per-test data, HTML export) — pure, also built to WebAssembly"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

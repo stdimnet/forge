@@ -701,6 +701,12 @@ function ConfigForm(props: { item: Item }) {
               </div>
               <EnvEditor cfg={cfg()} />
             </div>
+            <Show when={t().coverageFields?.length}>
+              <div class="rc-group-title">Code Coverage</div>
+              <div class="rc-group" data-testid="rc-coverage">
+                <For each={t().coverageFields}>{(f) => <Field field={f} cfg={cfg()} />}</For>
+              </div>
+            </Show>
             <BeforeLaunch cfg={cfg()} />
           </Show>
         )}

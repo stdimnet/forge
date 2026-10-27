@@ -8,7 +8,9 @@ use forge_output::links::LinkContext;
 use forge_output::{LocationRule, OutputPathMapping};
 use forge_runtargets::{Invocation, Mapper, RunTarget};
 use forge_runtools::Configuration;
-use forge_testing::coverage::{summary, CoverageReport};
+use std::collections::BTreeMap;
+
+use forge_testing::coverage::{folders, project_hint, summary, CoverageReport};
 use forge_testing::{CommandContext, FailedTest, TestFrameworkSpec, TestFrameworks};
 use serde::Deserialize;
 use serde_json::json;
@@ -197,20 +199,46 @@ struct CoverageRequest {
     mappings: Vec<OutputPathMapping>,
     #[serde(default)]
     rules: Vec<LocationRule>,
+    /// PHPUnit's XML coverage report (file name in the folder → text): the tests per line.
+    #[serde(default)]
+    tests_xml: BTreeMap<String, String>,
 }
 
-/// `{ text, root, cwd?, mappings, rules }` → `{ report, format, lines, branches }`: a
-/// coverage report with project paths.
+/// A report's suite fields: `{ report, format, lines, branches, methods, …Text, perTest }`.
+fn suite_json(report: &CoverageReport, format: &str) -> serde_json::Value {
+    let t = report.totals();
+    json!({
+        "report": report,
+        "format": format,
+        "lines": t.lines,
+        "branches": t.branches,
+        "methods": t.methods,
+        "lineText": t.lines.text(),
+        "branchText": t.branches.text(),
+        "methodText": t.methods.text(),
+        "perTest": report.has_tests(),
+    })
+}
+
+/// `{ text, root, cwd?, mappings, rules, testsXml? }` → `{ report, format, lines, branches,
+/// methods, … }`: a coverage report with project paths.
 #[wasm_bindgen]
 pub fn coverage_parse(request_json: &str) -> String {
     let r = match parse::<CoverageRequest>(request_json) {
         Ok(r) => r,
         Err(e) => return error(e),
     };
-    let (report, format) = match CoverageReport::parse_any(&r.text) {
+    let (mut report, format) = match CoverageReport::parse_any(&r.text) {
         Ok(x) => x,
         Err(e) => return error(e),
     };
+    if !r.tests_xml.is_empty() {
+        let tests =
+            forge_testing::coverage::phpunit_xml::collect(|name| r.tests_xml.get(name).cloned());
+        for (path, lines) in tests.unwrap_or_default() {
+            report.attach_tests(&path, &lines);
+        }
+    }
     let links = LinkContext::new(Some(&r.root), r.cwd.as_deref()).with_mappings(r.mappings);
     let rules: Vec<(regex_lite::Regex, String)> = r
         .rules
@@ -228,23 +256,129 @@ pub fn coverage_parse(request_json: &str) -> String {
             .map(|(re, to)| re.replace(p, to.as_str()).into_owned());
         links.resolve(rewritten.as_deref().unwrap_or(p))
     });
-    let mut lines = forge_testing::coverage::Counter::default();
-    let mut branches = forge_testing::coverage::Counter::default();
-    for f in &report.files {
-        let (l, b) = (f.line_counter(), f.branch_counter());
-        lines.covered += l.covered;
-        lines.total += l.total;
-        branches.covered += b.covered;
-        branches.total += b.total;
+    to_json(&suite_json(&report, format.label()))
+}
+
+#[derive(Deserialize)]
+struct MergeRequest {
+    reports: Vec<CoverageReport>,
+}
+
+/// `{ reports }` → the suite fields of their merged report (Show Coverage Data with several
+/// suites).
+#[wasm_bindgen]
+pub fn coverage_merge(request_json: &str) -> String {
+    match parse::<MergeRequest>(request_json) {
+        Ok(r) => to_json(&suite_json(&CoverageReport::merged(r.reports), "Merged")),
+        Err(e) => error(e),
     }
-    to_json(&json!({
-        "report": report,
-        "format": format.label(),
-        "lines": lines,
-        "branches": branches,
-        "lineText": lines.text(),
-        "branchText": branches.text(),
-    }))
+}
+
+#[derive(Deserialize)]
+struct ReportRequest {
+    report: CoverageReport,
+}
+
+/// `{ report }` → `{ path: hint }`: the Project view's hints of files and folders.
+#[wasm_bindgen]
+pub fn coverage_hints(request_json: &str) -> String {
+    match parse::<ReportRequest>(request_json) {
+        Ok(r) => {
+            let mut out: BTreeMap<String, String> = folders(&r.report)
+                .iter()
+                .filter(|(p, _)| !p.is_empty())
+                .filter_map(|(p, t)| project_hint(t, true).map(|h| (p.clone(), h)))
+                .collect();
+            for f in &r.report.files {
+                if let Some(h) = project_hint(&f.totals(), false) {
+                    out.insert(f.path.clone(), h);
+                }
+            }
+            to_json(&out)
+        }
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+struct HtmlRequest {
+    report: CoverageReport,
+    project: String,
+    title: String,
+    generated: String,
+    #[serde(default)]
+    sources: BTreeMap<String, String>,
+}
+
+/// `{ report, project, title, generated, sources }` → the HTML coverage report.
+#[wasm_bindgen]
+pub fn coverage_html(request_json: &str) -> String {
+    match parse::<HtmlRequest>(request_json) {
+        Ok(r) => to_json(&forge_testing::coverage::html::render(
+            &r.report,
+            &r.project,
+            &r.title,
+            &r.generated,
+            |p| r.sources.get(p).cloned(),
+        )),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+struct NodeCoverageRequest {
+    configuration: Configuration,
+    node: String,
+    dir: String,
+    args: Vec<String>,
+}
+
+/// `{ configuration, node, dir, args }` → the arguments of a Node.js program under c8 or nyc
+/// (Run with Coverage of a Node.js configuration).
+#[wasm_bindgen]
+pub fn node_coverage_wrap(request_json: &str) -> String {
+    match parse::<NodeCoverageRequest>(request_json) {
+        Ok(r) => to_json(&webforge_js_testing::coverage_wrap(
+            &r.configuration,
+            &r.node,
+            &r.dir,
+            r.args,
+        )),
+        Err(e) => error(e),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PhpCoverageRequest {
+    configuration: Configuration,
+    dir: String,
+    /// Files relative to the working directory (behat.yml, phpspec.yml).
+    #[serde(default)]
+    files: BTreeMap<String, String>,
+}
+
+/// `{ configuration, dir, files }` → `{ interpreterArgs, args, env, file, inDir, testsDir }`:
+/// how a PHP test configuration runs with coverage.
+#[wasm_bindgen]
+pub fn php_coverage_plan(request_json: &str) -> String {
+    let r = match parse::<PhpCoverageRequest>(request_json) {
+        Ok(r) => r,
+        Err(e) => return error(e),
+    };
+    match phpforge_test_frameworks::provider::coverage_plan(&r.configuration, &r.dir, &|f| {
+        r.files.get(f).cloned()
+    }) {
+        Ok(p) => to_json(&json!({
+            "interpreterArgs": p.interpreter_args,
+            "args": p.args,
+            "env": p.env,
+            "file": p.file,
+            "inDir": p.in_dir,
+            "testsDir": p.tests_dir,
+        })),
+        Err(e) => error(e),
+    }
 }
 
 #[derive(Deserialize)]
@@ -380,6 +514,47 @@ mod tests {
         )))
         .unwrap();
         assert_eq!(marks[1]["status"], "uncovered");
+        let merged: Value = serde_json::from_str(&coverage_merge(&format!(
+            r#"{{"reports":[{report},{report}]}}"#
+        )))
+        .unwrap();
+        assert_eq!(merged["format"], "Merged");
+        assert_eq!(merged["lineText"], "50% (1/2)");
+        let hints: Value =
+            serde_json::from_str(&coverage_hints(&format!(r#"{{"report":{report}}}"#))).unwrap();
+        assert_eq!(hints["src"], "100% files, 50% lines covered");
+        let html: Value = serde_json::from_str(&coverage_html(&format!(
+            r#"{{"report":{report},"project":"p","title":"All","generated":"now","sources":{{"src/a.js":"a();\nb();"}}}}"#
+        )))
+        .unwrap();
+        assert!(html.as_str().unwrap().contains("<pre>b();</pre>"));
+        // PHPUnit's per-test XML report next to the Clover report.
+        let per_test: Value = serde_json::from_str(&coverage_parse(&serde_json::to_string(&json!({
+            "text": "<coverage><project><file name=\"/p/src/A.php\"><line num=\"3\" type=\"stmt\" count=\"1\"/></file></project></coverage>",
+            "root": "/p",
+            "testsXml": {
+                "index.xml": "<phpunit><project source=\"/p/src\"><directory name=\"/\"><file name=\"A.php\" href=\"A.php.xml\"/></directory></project></phpunit>",
+                "A.php.xml": "<phpunit><file name=\"A.php\"><coverage><line nr=\"3\"><covered by=\"ATest::test_a\"/></line></coverage></file></phpunit>",
+            },
+        })).unwrap()))
+        .unwrap();
+        assert_eq!(per_test["perTest"], true);
+        assert_eq!(
+            per_test["report"]["files"][0]["lines"][0]["tests"][0],
+            "ATest::test_a"
+        );
+        let plan: Value = serde_json::from_str(&php_coverage_plan(
+            r#"{"configuration":{"name":"All","type":"phpunit","options":{"coverageDriver":"pcov"}},"dir":"/tmp/c"}"#,
+        ))
+        .unwrap();
+        assert_eq!(plan["interpreterArgs"][0], "-dpcov.enabled=1");
+        assert_eq!(plan["args"][1], "/tmp/c/clover.xml");
+        let node: Value = serde_json::from_str(&node_coverage_wrap(
+            r#"{"configuration":{"name":"server","type":"node"},"node":"node","dir":"/tmp/c","args":["src/a.js"]}"#,
+        ))
+        .unwrap();
+        assert_eq!(node[0], "node_modules/c8/bin/c8.js");
+        assert_eq!(node[4], "src/a.js");
         let w: Value = serde_json::from_str(&run_target_wrap(
             r#"{"target":{"kind":"dockerImage","image":"node:22"},"invocation":{"program":"node","args":["/p/a.js"],"cwd":"/p"},"root":"/p"}"#,
         ))

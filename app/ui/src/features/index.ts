@@ -76,6 +76,7 @@ import "./devenv";
 import "./deployment";
 import "./remoteHost";
 import "./webforge";
+import "./profiling";
 import "./clipboard";
 import "./carets";
 import "./contextMenu";

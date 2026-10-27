@@ -431,13 +431,29 @@ export function containers_terminal_command(request_json: string): string;
 export function containers_workloads_parse(raw_json: string): string;
 
 /**
+ * `{ report }` → `{ path: hint }`: the Project view's hints of files and folders.
+ */
+export function coverage_hints(request_json: string): string;
+
+/**
+ * `{ report, project, title, generated, sources }` → the HTML coverage report.
+ */
+export function coverage_html(request_json: string): string;
+
+/**
  * `{ report, path }` → `LineMark[]` (the editor's coverage gutter).
  */
 export function coverage_marks(request_json: string): string;
 
 /**
- * `{ text, root, cwd?, mappings, rules }` → `{ report, format, lines, branches }`: a
- * coverage report with project paths.
+ * `{ reports }` → the suite fields of their merged report (Show Coverage Data with several
+ * suites).
+ */
+export function coverage_merge(request_json: string): string;
+
+/**
+ * `{ text, root, cwd?, mappings, rules, testsXml? }` → `{ report, format, lines, branches,
+ * methods, … }`: a coverage report with project paths.
  */
 export function coverage_parse(request_json: string): string;
 
@@ -1228,9 +1244,21 @@ export function markdown_parse(request_json: string): string;
 export function nav_bar_segments(request_json: string): string;
 
 /**
+ * `{ configuration, node, dir, args }` → the arguments of a Node.js program under c8 or nyc
+ * (Run with Coverage of a Node.js configuration).
+ */
+export function node_coverage_wrap(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
+
+/**
+ * `{ configuration, dir, files }` → `{ interpreterArgs, args, env, file, inDir, testsDir }`:
+ * how a PHP test configuration runs with coverage.
+ */
+export function php_coverage_plan(request_json: string): string;
 
 /**
  * `{ interpreter, root, composeDir?, volumes? }` → the automatic `PathMapping[]`.
@@ -1266,6 +1294,16 @@ export function pio_project(request_json: string): string;
  * `{ base64?, sampleIndex? }` → `ProfileView` (`pprof_open`).
  */
 export function pprof_view(request_json: string): string;
+
+/**
+ * `{ kind, root, metric? }` → `Snapshot` of the demo project at `root`.
+ */
+export function profiler_demo(request_json: string): string;
+
+/**
+ * `{ name, base64, companionBase64?, metric? }` → `Snapshot` (`profiler_open`).
+ */
+export function profiler_parse(request_json: string): string;
 
 /**
  * `{ config }` → `FolderRow[]` (Settings | Directories).
@@ -2199,7 +2237,10 @@ export interface InitOutput {
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;
     readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
+    readonly coverage_hints: (a: number, b: number, c: number) => void;
+    readonly coverage_html: (a: number, b: number, c: number) => void;
     readonly coverage_marks: (a: number, b: number, c: number) => void;
+    readonly coverage_merge: (a: number, b: number, c: number) => void;
     readonly coverage_parse: (a: number, b: number, c: number) => void;
     readonly coverage_summary: (a: number, b: number, c: number) => void;
     readonly cpp_build_problems: (a: number, b: number, c: number) => void;
@@ -2354,7 +2395,9 @@ export interface InitOutput {
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
+    readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly php_coverage_plan: (a: number, b: number, c: number) => void;
     readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
     readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
     readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
@@ -2362,6 +2405,8 @@ export interface InitOutput {
     readonly pio_command: (a: number, b: number, c: number) => void;
     readonly pio_project: (a: number, b: number, c: number) => void;
     readonly pprof_view: (a: number, b: number, c: number) => void;
+    readonly profiler_demo: (a: number, b: number, c: number) => void;
+    readonly profiler_parse: (a: number, b: number, c: number) => void;
     readonly project_structure_describe: (a: number, b: number, c: number) => void;
     readonly project_structure_excluded: (a: number, b: number, c: number) => void;
     readonly project_structure_mark: (a: number, b: number, c: number) => void;

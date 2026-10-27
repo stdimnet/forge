@@ -746,6 +746,9 @@ SSH and WSL interpreters. See [PHP Quality Tools](php-quality-tools.md) and
   Test History and auto-test. Where each framework comes from is set in **Settings | PHP |
   Test Frameworks**, see [PHP test frameworks](test-frameworks.md).
 - **PHP scratch files** run with the project's autoloader.
+- **Run | Profile with Xdebug** and **Profile with SPX** run a PHP configuration under a
+  profiler and open the snapshot in the Profiler tool window, see
+  [Profiling PHP and Node.js](profiling.md).
 
 See [Run/Debug configurations](run-debug.md), [Debugging](debugging.md) and
 [Scratches](scratches-and-http.md).

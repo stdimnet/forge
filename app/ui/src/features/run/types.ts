@@ -54,6 +54,8 @@ export interface RunConfigurationTypeDef {
   testRunner?: boolean;
   /** Can run with coverage (Run with Coverage). */
   coverage?: boolean;
+  /** Options of Run with Coverage (driver, per-test data), shown under "Code Coverage". */
+  coverageFields?: RunConfigField[];
   /** No "Run on" choice (the type starts its runs itself or has its own form). */
   noRunTarget?: boolean;
   /** Initial values of a new configuration. */

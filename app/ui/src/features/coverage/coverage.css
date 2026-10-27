@@ -45,6 +45,11 @@
   align-items: center;
 }
 
+.with-methods .coverage-head,
+.with-methods .coverage-row {
+  grid-template-columns: minmax(120px, 1fr) minmax(118px, auto) minmax(118px, auto) minmax(118px, auto);
+}
+
 .coverage-head {
   padding: 3px 0;
   color: var(--fg-muted);
@@ -151,7 +156,167 @@
   background: color-mix(in srgb, var(--danger) 75%, transparent);
 }
 
-/* Project view */
+/* Project view: the name stays readable, a long hint is cut instead (like PHPStorm). */
+.coverage-tree-row .tree-label {
+  flex-shrink: 0;
+}
+
 .coverage-tree-row .tree-hint {
   color: var(--fg-muted);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Tests covering a line (click on a coverage mark). */
+.coverage-mark.with-tests {
+  cursor: pointer;
+}
+
+.coverage-line-popup {
+  position: fixed;
+  z-index: 60;
+  max-width: 520px;
+  min-width: 260px;
+  padding: 6px 0;
+  color: var(--fg);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+.coverage-line-popup header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.coverage-line-popup .swatch {
+  width: 4px;
+  height: 14px;
+}
+
+.coverage-line-popup .caption {
+  padding: 6px 10px 2px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+.coverage-line-popup ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.coverage-line-popup li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coverage-line-popup li button {
+  all: unset;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coverage-line-popup li button:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Show Coverage Data */
+.coverage-suites-dialog {
+  width: 560px;
+  padding: 0;
+  color: var(--fg);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.coverage-suites-dialog::backdrop {
+  background: color-mix(in srgb, var(--bg-app) 55%, transparent);
+}
+
+.coverage-dialog-title {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  border-bottom: 1px solid var(--border);
+}
+
+.coverage-suites-list {
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px 0;
+}
+
+.coverage-suite-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px;
+  font-size: 13px;
+}
+
+.coverage-suite-item:hover {
+  background: var(--bg-hover);
+}
+
+.coverage-suite-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.coverage-suite-name > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coverage-suite-name .muted,
+.coverage-suite-when {
+  font-size: var(--fs-small);
+}
+
+.coverage-suite-pct {
+  font-variant-numeric: tabular-nums;
+}
+
+.coverage-suites-note {
+  padding: 0 14px 8px;
+  font-size: var(--fs-small);
+}
+
+.coverage-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.coverage-dialog-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }

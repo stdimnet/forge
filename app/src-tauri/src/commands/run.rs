@@ -206,6 +206,10 @@ pub struct RunRequest {
     /// event.
     #[serde(default)]
     pub native_tool: Option<crate::commands::cpp_tools::NativeTool>,
+    /// Profile with Xdebug or SPX (PHP) or V8 (Node.js); the run ends with a `profiler`
+    /// event.
+    #[serde(default)]
+    pub profiler: Option<crate::commands::profiler::RunProfiler>,
 }
 
 #[derive(Debug, Serialize)]
@@ -226,6 +230,8 @@ const PHP_KINDS: &[&str] = &[
     "artisan",
     "php-builtin-server",
 ];
+/// The Node.js configuration type (Run with Coverage through c8 or nyc).
+const NODE: &str = "node";
 /// Composer types: they run through an interpreter only when they name one.
 const COMPOSER_KINDS: &[&str] = &["composer", "composer-command"];
 
@@ -260,6 +266,9 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     let backend_local = state.backend()?.info().remote.is_none();
     let native_tool = req.native_tool;
     let native_type = req.configuration.as_ref().map(|c| c.type_id.clone());
+    let profiler = req.profiler;
+    // PHP configurations: their arguments go to PHP itself.
+    let mut php_run = false;
     let mut cmd = match (req.configuration, req.command) {
         (_, Some(mut cmd)) => {
             if cmd.cwd.as_os_str().is_empty() {
@@ -268,6 +277,14 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 cmd.cwd = root.join(&cmd.cwd);
             }
             cmd
+        }
+        (Some(cfg), None)
+            if profiler.is_some() && super::python_tools::is_python_type(&cfg.type_id) =>
+        {
+            return Err(ForgeError::Other(format!(
+                "'{}' configurations are profiled with Run | Profile (cProfile)",
+                cfg.type_id
+            )));
         }
         (Some(cfg), None) if super::python_tools::is_python_type(&cfg.type_id) => {
             // Python runs through its own interpreters (local or Docker / SSH / WSL).
@@ -302,11 +319,12 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
             }
             run_on = cfg.run_on.clone().filter(|t| !t.is_local()).or(run_on);
             let php_kind = PHP_KINDS.contains(&cfg.type_id.as_str());
+            php_run = php_kind;
             let own = cfg.interpreter.trim();
             if !own.is_empty() && interpreters::interpreter_set(state).find(own).is_none() {
                 php_on_target = own.to_string();
             }
-            if coverage && !runs.tests.supports_coverage(&cfg.type_id) {
+            if coverage && cfg.type_id != NODE && !runs.tests.supports_coverage(&cfg.type_id) {
                 return Err(ForgeError::Other(format!(
                     "'{}' configurations cannot run with coverage",
                     cfg.type_id
@@ -404,32 +422,68 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                     },
                 }
             };
-            // PHPUnit and Pest: a Clover report with Xdebug or PCOV.
-            if coverage && tests.coverage.is_none() {
+            // Node.js: the program runs under c8 (or nyc), which writes LCOV.
+            if coverage && cfg.type_id == NODE && tests.coverage.is_none() {
                 let (dir_arg, dir) =
                     test_frameworks::report_dir(local, &ctx.root, &run_id, "coverage");
-                let file = "clover.xml";
-                let (args, env) = phpforge_test_frameworks::provider::coverage_args(
-                    &cfg.type_id,
-                    &format!("{dir_arg}/{file}"),
-                )
-                .ok_or_else(|| {
-                    ForgeError::Other(format!(
-                        "'{}' configurations cannot run with coverage",
-                        cfg.type_id
-                    ))
-                })?;
-                cmd.args.extend(args);
-                for (k, v) in env {
-                    cmd.env.entry(k).or_insert(v);
-                }
+                let node = cmd.program.clone();
+                cmd.args = webforge_js_testing::coverage_wrap(
+                    &test_frameworks::to_runtools(&cfg)?,
+                    &node,
+                    &dir_arg,
+                    std::mem::take(&mut cmd.args),
+                );
                 tests.coverage = Some(CoverageSetup {
                     dir: Some(dir),
-                    file: file.into(),
-                    format: phpforge_test_frameworks::provider::COVERAGE_FORMAT,
+                    file: "lcov.info".into(),
+                    format: forge_testing::CoverageFormat::Lcov,
                     collect: None,
                     name: cfg.name.clone(),
                     location_rules: Vec::new(),
+                    tests_dir: None,
+                });
+            }
+            // PHP test frameworks: a Clover report with Xdebug or PCOV (the configuration's
+            // driver), plus PHPUnit's XML report for the tests of each line.
+            if coverage && tests.coverage.is_none() {
+                let (dir_arg, dir) =
+                    test_frameworks::report_dir(local, &ctx.root, &run_id, "coverage");
+                let backend = state.backend()?;
+                // Paths relative to the working directory, as project paths.
+                let cwd = cmd.cwd.clone();
+                let project_path = |f: &str| {
+                    let abs = if std::path::Path::new(f).is_absolute() {
+                        std::path::PathBuf::from(f)
+                    } else {
+                        cwd.join(f)
+                    };
+                    abs.strip_prefix(&ctx.root)
+                        .map(|p| p.to_string_lossy().replace('\\', "/"))
+                        .unwrap_or_else(|_| f.to_string())
+                };
+                let plan = phpforge_test_frameworks::provider::coverage_plan(
+                    &test_frameworks::to_runtools(&cfg)?,
+                    &dir_arg,
+                    &|f| backend.read_file(&project_path(f)).ok(),
+                )
+                .map_err(ForgeError::Other)?;
+                cmd.args.splice(0..0, plan.interpreter_args);
+                cmd.args.extend(plan.args);
+                for (k, v) in plan.env {
+                    cmd.env.entry(k).or_insert(v);
+                }
+                tests.coverage = Some(CoverageSetup {
+                    dir: plan.in_dir.then_some(dir),
+                    file: if plan.in_dir {
+                        plan.file
+                    } else {
+                        project_path(&plan.file)
+                    },
+                    format: plan.format,
+                    collect: None,
+                    name: cfg.name.clone(),
+                    location_rules: Vec::new(),
+                    tests_dir: plan.tests_dir,
                 });
             }
             cmd
@@ -439,6 +493,24 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     cmd.env.extend(req.env);
     if !req.interpreter_args.is_empty() {
         cmd.args.splice(0..0, req.interpreter_args);
+    }
+    // Profile with Xdebug / SPX (PHP) or V8 (Node.js).
+    if let Some(kind) = profiler {
+        let local = backend_local
+            && run_on.is_none()
+            && through.as_ref().is_none_or(|(i, _)| !i.kind.is_remote());
+        let (wrapped, setup) = crate::commands::profiler::wrap(
+            state,
+            kind,
+            native_type.as_deref(),
+            cmd,
+            &run_id,
+            &self::root(state)?,
+            local,
+            php_run,
+        )?;
+        cmd = wrapped;
+        tests.profiler = Some(setup);
     }
     // Run with Valgrind Memcheck / Profile with perf (C/C++).
     if let Some(tool) = native_tool {
@@ -582,6 +654,7 @@ fn framework_command(
             dir,
             file,
             format: c.format,
+            tests_dir: None,
             collect: c.collect,
             name: cfg.name.clone(),
             location_rules: if c.location_rules.is_empty() {
@@ -609,6 +682,7 @@ fn framework_command(
             coverage,
             profile: None,
             native: None,
+            profiler: None,
         },
     ))
 }
@@ -888,7 +962,16 @@ pub(crate) async fn start_built(
         drop(out);
         let mut coverage_event = None;
         let mut native_event = None;
+        let mut profiler_event = None;
         if exited {
+            // Xdebug, SPX and V8 write their snapshots when the program exits.
+            if let Some(setup) = &tests.profiler {
+                profiler_event = Some(crate::commands::profiler::record(
+                    sink_backend.as_ref(),
+                    setup,
+                    &path_mappings,
+                ));
+            }
             // Valgrind's XML and perf's data are complete once the program exited.
             if let Some(setup) = &tests.native {
                 native_event = Some(crate::commands::cpp_tools::record(
@@ -939,6 +1022,9 @@ pub(crate) async fn start_built(
         }
         if let Some(n) = &native_event {
             emit(&app, &event, n);
+        }
+        if let Some(p) = &profiler_event {
+            emit(&app, &event, p);
         }
         if exited {
             emit(&app, &event, &e);

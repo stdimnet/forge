@@ -4,8 +4,8 @@
 //! - Runs: `run::build` hands `python`, `pytest`, `unittest` and `tox` configurations to
 //!   [`build`]: the command through the configuration's or the project's interpreter
 //!   (local, Docker, Docker Compose, SSH, WSL) or its run target, a debugger's arguments
-//!   after the interpreter options, report folders, Run with Coverage (pytest-cov,
-//!   Cobertura) and Profile (cProfile into Forge's cache folder).
+//!   after the interpreter options, report folders, Run with Coverage (pytest-cov, or
+//!   coverage.py in Forge's unittest runner; Cobertura) and Profile (cProfile into Forge's cache folder).
 //! - Tests: discovery with the project's runner (`python.testing.runner`, detection),
 //!   Rerun Failed Tests with the classes read from the files, tox environments.
 //! - Debugging: whether debugpy is installed, and where a debug run listens
@@ -180,7 +180,7 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
         let (report_arg, report_dir) = test_frameworks::report_dir(local, &root, &x.run_id, "");
         let (coverage_arg, coverage_dir) =
             test_frameworks::report_dir(local, &root, &x.run_id, "coverage");
-        if x.coverage && cfg.type_id != config::PYTEST {
+        if x.coverage && cfg.type_id != config::PYTEST && cfg.type_id != config::UNITTEST {
             return Err(ForgeError::Other(format!(
                 "'{}' configurations cannot run with coverage",
                 cfg.type_id
@@ -215,11 +215,13 @@ pub(crate) fn build(state: &AppState, cfg: &RunConfiguration, x: Extras) -> Resu
                 file: "coverage.xml".into(),
                 collect: None,
                 format: CoverageFormat::Cobertura,
+                tests_dir: None,
                 name: cfg.name.clone(),
                 location_rules: Vec::new(),
             }),
             profile: None,
             native: None,
+            profiler: None,
         };
         cmd
     };

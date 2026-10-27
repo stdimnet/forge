@@ -53,6 +53,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-plugin-api](forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-ports](forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
+| [forge-profiler](forge-profiler.md) | Profiler snapshots: Xdebug cachegrind files, php-spx reports, V8 CPU profiles with source maps, sampling heap profiles and heap snapshots with retained sizes (pure, also built to WebAssembly) |
 | [forge-project](forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
 | [forge-remote-agent](forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |

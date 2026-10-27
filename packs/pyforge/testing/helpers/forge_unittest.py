@@ -4,8 +4,10 @@ messages on stdout, which Forge turns into the Run tool window's test tree.
     --discover DIR --pattern GLOB   discover the tests below DIR (default: . and test*.py)
     --file PATH [--test NAME]       the tests of a file (NAME: Class or Class.method)
     --id MODULE.Class.method        one test (repeatable; Rerun Failed Tests)
+    --coverage-xml FILE             measure coverage with coverage.py (branches included)
+                                    and write a Cobertura report (Run with Coverage)
 
-Python 3.7+, standard library only.
+Python 3.7+, standard library only (coverage.py for --coverage-xml).
 """
 import inspect
 import os
@@ -213,7 +215,7 @@ def load_file(loader, path, test):
 
 def main(argv):
     loader = unittest.TestLoader()
-    start, pattern, path, test, ids = None, "test*.py", None, None, []
+    start, pattern, path, test, ids, coverage_xml = None, "test*.py", None, None, [], None
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -228,12 +230,36 @@ def main(argv):
             test = value
         elif a == "--id":
             ids.append(value)
+        elif a == "--coverage-xml":
+            coverage_xml = value
         else:
             i += 1
             continue
         i += 2
     if "" not in sys.path and CWD not in sys.path:
         sys.path.insert(0, CWD)
+    cov = start_coverage() if coverage_xml else None
+    try:
+        return run(loader, start, pattern, path, test, ids)
+    finally:
+        if cov is not None:
+            cov.stop()
+            cov.xml_report(outfile=coverage_xml)
+
+
+def start_coverage():
+    """Measure from here on, before the tests' modules are imported."""
+    try:
+        import coverage
+    except ImportError:
+        sys.stderr.write("Run with Coverage needs coverage.py in this interpreter: pip install coverage\n")
+        return None
+    cov = coverage.Coverage(data_file=None, branch=True, omit=["*forge_unittest.py"])
+    cov.start()
+    return cov
+
+
+def run(loader, start, pattern, path, test, ids):
     if ids:
         suite = loader.loadTestsFromNames(ids)
     elif path:

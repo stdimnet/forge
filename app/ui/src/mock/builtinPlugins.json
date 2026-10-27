@@ -6434,6 +6434,17 @@
           "order": 21
         },
         {
+          "key": "php.profiler.spxDataDir",
+          "title": "SPX data directory",
+          "description": "spx.data_dir of your php.ini, where Run | Profile with SPX reads the reports of local runs. Empty: Forge passes a temporary folder of its own (-dspx.data_dir) to each run.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.debug",
+          "section": "Profiler",
+          "project": false,
+          "order": 40
+        },
+        {
           "key": "php.debug.maxData",
           "title": "Max. string length",
           "description": "Bytes of string data fetched per value.",
@@ -8512,11 +8523,11 @@
           "coverage": {
             "args": [
               "--coverage.enabled=true",
-              "--coverage.reporter=lcov",
+              "--coverage.reporter=json",
               "--coverage.reportsDirectory=${coverageFile}"
             ],
-            "file": "${coverageFile}/lcov.info",
-            "format": "lcov",
+            "file": "${coverageFile}/coverage-final.json",
+            "format": "istanbulJson",
             "env": {}
           },
           "debuggable": true,
@@ -8542,6 +8553,25 @@
               "label": "Configuration file",
               "kind": "path",
               "placeholder": "vitest.config.ts"
+            },
+            {
+              "key": "coverageProvider",
+              "label": "Coverage provider",
+              "kind": "enum",
+              "options": [
+                {
+                  "value": "",
+                  "label": "From the configuration file"
+                },
+                {
+                  "value": "v8",
+                  "label": "v8 (@vitest/coverage-v8)"
+                },
+                {
+                  "value": "istanbul",
+                  "label": "istanbul (@vitest/coverage-istanbul)"
+                }
+              ]
             }
           ]
         },
@@ -8620,11 +8650,11 @@
           "coverage": {
             "args": [
               "--coverage",
-              "--coverageReporters=lcov",
+              "--coverageReporters=json",
               "--coverageDirectory=${coverageFile}"
             ],
-            "file": "${coverageFile}/lcov.info",
-            "format": "lcov",
+            "file": "${coverageFile}/coverage-final.json",
+            "format": "istanbulJson",
             "env": {}
           },
           "debuggable": true,
@@ -8650,13 +8680,32 @@
               "label": "Configuration file",
               "kind": "path",
               "placeholder": "jest.config.ts"
+            },
+            {
+              "key": "coverageProvider",
+              "label": "Coverage provider",
+              "kind": "enum",
+              "options": [
+                {
+                  "value": "",
+                  "label": "From the configuration file"
+                },
+                {
+                  "value": "babel",
+                  "label": "babel (Istanbul instrumentation)"
+                },
+                {
+                  "value": "v8",
+                  "label": "v8"
+                }
+              ]
             }
           ]
         },
         {
           "id": "mocha",
           "name": "Mocha",
-          "description": "Run Mocha tests: all tests, a directory, a file, a test or describe block, or a grep pattern; coverage through c8.",
+          "description": "Run Mocha tests: all tests, a directory, a file, a test or describe block, or a grep pattern; coverage through c8 or nyc.",
           "icon": "flask-conical",
           "language": "javascript",
           "detect": {
@@ -8749,6 +8798,22 @@
               "label": "Configuration file",
               "kind": "path",
               "placeholder": ".mocharc.yml"
+            },
+            {
+              "key": "coverageTool",
+              "label": "Coverage tool",
+              "kind": "enum",
+              "default": "c8",
+              "options": [
+                {
+                  "value": "c8",
+                  "label": "c8 (V8 coverage)"
+                },
+                {
+                  "value": "nyc",
+                  "label": "nyc (Istanbul)"
+                }
+              ]
             }
           ]
         },

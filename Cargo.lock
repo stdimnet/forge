@@ -2085,6 +2085,7 @@ dependencies = [
  "forge-plugin-api",
  "forge-ports",
  "forge-process",
+ "forge-profiler",
  "forge-project",
  "forge-remote",
  "forge-runtargets",
@@ -2669,6 +2670,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-profiler"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "flate2",
+ "goforge-pprof",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-project"
 version = "0.1.0"
 dependencies = [
@@ -2981,6 +2993,7 @@ dependencies = [
  "forge-markdown",
  "forge-output",
  "forge-plugin-api",
+ "forge-profiler",
  "forge-remote",
  "forge-runtargets",
  "forge-runtools",

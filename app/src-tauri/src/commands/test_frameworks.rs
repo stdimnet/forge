@@ -259,6 +259,8 @@ pub(crate) struct TestSetup {
     pub profile: Option<crate::commands::python_tools::ProfileSetup>,
     /// Valgrind Memcheck / perf (C/C++): what to read after the run.
     pub native: Option<crate::commands::cpp_tools::NativeSetup>,
+    /// Profiling with Xdebug, SPX or V8: where the snapshot is read after the run.
+    pub profiler: Option<crate::commands::profiler::ProfilerSetup>,
 }
 
 fn framework_for(
