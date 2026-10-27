@@ -602,7 +602,7 @@ pub fn upgraded_constraint(style: Style, old: &str, fixed: &str) -> Option<Strin
 mod tests {
     use super::*;
 
-    fn at<'a>(text: &'a str, span: Span) -> &'a str {
+    fn at(text: &str, span: Span) -> &str {
         let line = text.lines().nth(span.line as usize).unwrap();
         &line[col_to_byte(line, span.start)..col_to_byte(line, span.end)]
     }

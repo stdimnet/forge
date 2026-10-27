@@ -53,11 +53,13 @@ fn affected(osv: &Value, module: &str) -> Option<String> {
     (!out.is_empty()).then(|| out.join(" || "))
 }
 
+type Found = (String, String, Option<String>, Option<String>, bool);
+
 pub fn parse(out: &str) -> Result<Findings, String> {
     let start = out.find('{').ok_or("govulncheck printed no JSON report")?;
     let mut osvs: HashMap<String, Value> = HashMap::new();
-    // (osv, module) → (version, fixed, reachable), in report order.
-    let mut found: Vec<(String, String, Option<String>, Option<String>, bool)> = Vec::new();
+    // (osv, module, version, fixed, reachable), in report order.
+    let mut found: Vec<Found> = Vec::new();
     for msg in serde_json::Deserializer::from_str(&out[start..]).into_iter::<Value>() {
         let msg = msg.map_err(|e| format!("cannot read the govulncheck report: {e}"))?;
         if let Some(osv) = msg.get("osv") {

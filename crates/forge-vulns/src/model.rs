@@ -288,9 +288,7 @@ pub fn fixed_from_range(range: &str) -> Option<String> {
     let mut best: Option<String> = None;
     for alt in range.split("||").flat_map(|a| a.split('|')) {
         let alt = alt.trim();
-        let Some(i) = alt.rfind('<') else {
-            return None;
-        };
+        let i = alt.rfind('<')?;
         if alt[i + 1..].starts_with('=') {
             return None;
         }
