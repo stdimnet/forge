@@ -98,14 +98,19 @@ pub async fn authorization_code(
     let configured = cfg.redirect_url.clone();
     let (host, port, path) = match &configured {
         Some(u) => {
-            let url = reqwest::Url::parse(u).map_err(|e| format!("Invalid Redirect URL '{u}': {e}"))?;
+            let url =
+                reqwest::Url::parse(u).map_err(|e| format!("Invalid Redirect URL '{u}': {e}"))?;
             let host = url.host_str().unwrap_or("127.0.0.1").to_string();
             if !matches!(host.as_str(), "localhost" | "127.0.0.1" | "[::1]") {
                 return Err(format!(
                     "Redirect URL '{u}' must point at this machine (localhost) so Forge can receive the code"
                 ));
             }
-            (host, url.port_or_known_default().unwrap_or(80), url.path().to_string())
+            (
+                host,
+                url.port_or_known_default().unwrap_or(80),
+                url.path().to_string(),
+            )
         }
         None => ("127.0.0.1".to_string(), 0, "/callback".to_string()),
     };
@@ -116,7 +121,12 @@ pub async fn authorization_code(
     let redirect = configured.unwrap_or_else(|| format!("http://{host}:{port}{path}"));
     let (verifier, challenge) = oauth::pkce(&random_bytes());
     let state = oauth::pkce(&random_bytes()).0[..16].to_string();
-    let url = oauth::authorization_url(cfg, &redirect, &state, cfg.pkce.then_some(challenge.as_str()));
+    let url = oauth::authorization_url(
+        cfg,
+        &redirect,
+        &state,
+        cfg.pkce.then_some(challenge.as_str()),
+    );
     open_browser(&url);
     let code = tokio::time::timeout(LOGIN_TIMEOUT, receive_code(&listener, &path, &state))
         .await
@@ -143,7 +153,9 @@ async fn receive_code(listener: &TcpListener, path: &str, state: &str) -> Result
         let (p, query) = target.split_once('?').unwrap_or((&target, ""));
         if p != path {
             let _ = sock
-                .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .write_all(
+                    b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
                 .await;
             continue;
         }
@@ -158,9 +170,20 @@ async fn receive_code(listener: &TcpListener, path: &str, state: &str) -> Result
                 .trim()
                 .to_string()),
             ),
-            (Some(code), None) if q.get("state").map(String::as_str) == Some(state) => (true, Ok(code.clone())),
-            (Some(_), None) => (false, Err("The OAuth state does not match; the login was not started by Forge".to_string())),
-            _ => (false, Err("The redirect has no authorization code".to_string())),
+            (Some(code), None) if q.get("state").map(String::as_str) == Some(state) => {
+                (true, Ok(code.clone()))
+            }
+            (Some(_), None) => (
+                false,
+                Err(
+                    "The OAuth state does not match; the login was not started by Forge"
+                        .to_string(),
+                ),
+            ),
+            _ => (
+                false,
+                Err("The redirect has no authorization code".to_string()),
+            ),
         };
         let page = if ok {
             "<html><body style=\"font-family:sans-serif\"><h3>Forge received the authorization.</h3><p>You can close this window.</p></body></html>"
@@ -205,7 +228,10 @@ pub async fn token(
             request_token(&oauth::token_request(cfg, Exchange::Direct)).await?,
             "Acquired",
         ),
-        Grant::AuthorizationCode => (authorization_code(cfg, open_browser).await?, "Logged in for"),
+        Grant::AuthorizationCode => (
+            authorization_code(cfg, open_browser).await?,
+            "Logged in for",
+        ),
     };
     cache.put(env, &cfg.id, t.clone());
     Ok((t, format!("{how} the OAuth token '{}'", cfg.id)))
@@ -230,7 +256,9 @@ mod tests {
         let (c2, ch2) = (calls.clone(), challenge.clone());
         tokio::spawn(async move {
             loop {
-                let Ok((mut sock, _)) = listener.accept().await else { break };
+                let Ok((mut sock, _)) = listener.accept().await else {
+                    break;
+                };
                 let (calls, challenge) = (c2.clone(), ch2.clone());
                 tokio::spawn(async move {
                     let mut got = Vec::new();
@@ -242,7 +270,11 @@ mod tests {
                         if let Some(h) = text.find("\r\n\r\n") {
                             let len = text
                                 .lines()
-                                .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap()))
+                                .find_map(|l| {
+                                    l.to_ascii_lowercase()
+                                        .strip_prefix("content-length:")
+                                        .map(|v| v.trim().parse::<usize>().unwrap())
+                                })
                                 .unwrap_or(0);
                             if got.len() >= h + 4 + len {
                                 break;
@@ -263,16 +295,34 @@ mod tests {
                     } else {
                         calls.fetch_add(1, Ordering::SeqCst);
                         let f = oauth::parse_query(&body);
-                        let basic_ok = text.to_ascii_lowercase().contains(&"authorization: basic c3ZjOnMzY3JldA==".to_ascii_lowercase());
+                        let basic_ok = text.to_ascii_lowercase().contains(
+                            &"authorization: basic c3ZjOnMzY3JldA==".to_ascii_lowercase(),
+                        );
                         let json = match f.get("grant_type").map(String::as_str) {
-                            Some("client_credentials") if basic_ok => r#"{"access_token":"cc-token","expires_in":1,"refresh_token":"r1"}"#.to_string(),
-                            Some("password") if f.get("username").map(String::as_str) == Some("ada") && f.get("password").map(String::as_str) == Some("pw") => r#"{"access_token":"pw-token"}"#.to_string(),
-                            Some("refresh_token") if f.get("refresh_token").map(String::as_str) == Some("r1") => r#"{"access_token":"refreshed","expires_in":3600}"#.to_string(),
+                            Some("client_credentials") if basic_ok => {
+                                r#"{"access_token":"cc-token","expires_in":1,"refresh_token":"r1"}"#
+                                    .to_string()
+                            }
+                            Some("password")
+                                if f.get("username").map(String::as_str) == Some("ada")
+                                    && f.get("password").map(String::as_str) == Some("pw") =>
+                            {
+                                r#"{"access_token":"pw-token"}"#.to_string()
+                            }
+                            Some("refresh_token")
+                                if f.get("refresh_token").map(String::as_str) == Some("r1") =>
+                            {
+                                r#"{"access_token":"refreshed","expires_in":3600}"#.to_string()
+                            }
                             Some("authorization_code") => {
                                 let verifier = f.get("code_verifier").cloned().unwrap_or_default();
-                                let expected = challenge.lock().unwrap().clone().unwrap_or_default();
-                                let actual = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
-                                if f.get("code").map(String::as_str) == Some("c0de") && actual == expected {
+                                let expected =
+                                    challenge.lock().unwrap().clone().unwrap_or_default();
+                                let actual =
+                                    URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
+                                if f.get("code").map(String::as_str) == Some("c0de")
+                                    && actual == expected
+                                {
                                     r#"{"access_token":"code-token","id_token":"idt"}"#.to_string()
                                 } else {
                                     r#"{"error":"invalid_grant"}"#.to_string()
@@ -280,7 +330,11 @@ mod tests {
                             }
                             _ => r#"{"error":"invalid_client"}"#.to_string(),
                         };
-                        let status = if json.contains("error") { "400 Bad Request" } else { "200 OK" };
+                        let status = if json.contains("error") {
+                            "400 Bad Request"
+                        } else {
+                            "200 OK"
+                        };
                         format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{json}", json.len())
                     };
                     let _ = sock.write_all(resp.as_bytes()).await;
@@ -310,18 +364,32 @@ mod tests {
         let (base, calls, _) = auth_server().await;
         let cfgs = configs(Some(&env(&base)), None, "dev", &|s| s.to_string()).unwrap();
         let cache = TokenCache::default();
-        let (t, how) = token(&cfgs["machine"], "dev", &cache, &no_browser).await.unwrap();
-        assert_eq!((t.access_token.as_str(), how.as_str()), ("cc-token", "Acquired the OAuth token 'machine'"));
+        let (t, how) = token(&cfgs["machine"], "dev", &cache, &no_browser)
+            .await
+            .unwrap();
+        assert_eq!(
+            (t.access_token.as_str(), how.as_str()),
+            ("cc-token", "Acquired the OAuth token 'machine'")
+        );
         // The token expires within a second (inside the 30 s margin): it is refreshed.
-        let (t, how) = token(&cfgs["machine"], "dev", &cache, &no_browser).await.unwrap();
-        assert_eq!((t.access_token.as_str(), how.as_str()), ("refreshed", "Refreshed the OAuth token 'machine'"));
+        let (t, how) = token(&cfgs["machine"], "dev", &cache, &no_browser)
+            .await
+            .unwrap();
+        assert_eq!(
+            (t.access_token.as_str(), how.as_str()),
+            ("refreshed", "Refreshed the OAuth token 'machine'")
+        );
         assert_eq!(t.refresh_token.as_deref(), Some("r1"));
         // Now cached.
-        let (_, how) = token(&cfgs["machine"], "dev", &cache, &no_browser).await.unwrap();
+        let (_, how) = token(&cfgs["machine"], "dev", &cache, &no_browser)
+            .await
+            .unwrap();
         assert!(how.starts_with("Using the cached"));
         assert_eq!(calls.load(Ordering::SeqCst), 2);
 
-        let (t, _) = token(&cfgs["user"], "dev", &cache, &no_browser).await.unwrap();
+        let (t, _) = token(&cfgs["user"], "dev", &cache, &no_browser)
+            .await
+            .unwrap();
         assert_eq!(t.access_token, "pw-token");
 
         let mut bad = cfgs["machine"].clone();
@@ -338,16 +406,28 @@ mod tests {
         let browser = |url: &str| {
             let url = url.to_string();
             tokio::spawn(async move {
-                let client = reqwest::Client::builder().redirect(reqwest::redirect::Policy::limited(3)).build().unwrap();
+                let client = reqwest::Client::builder()
+                    .redirect(reqwest::redirect::Policy::limited(3))
+                    .build()
+                    .unwrap();
                 let page = client.get(&url).send().await.unwrap().text().await.unwrap();
                 assert!(page.contains("Forge received the authorization"), "{page}");
             });
         };
         let cache = TokenCache::default();
-        let (t, how) = token(&cfgs["browser"], "dev", &cache, &browser).await.unwrap();
-        assert_eq!((t.access_token.as_str(), t.id_token.as_deref()), ("code-token", Some("idt")));
+        let (t, how) = token(&cfgs["browser"], "dev", &cache, &browser)
+            .await
+            .unwrap();
+        assert_eq!(
+            (t.access_token.as_str(), t.id_token.as_deref()),
+            ("code-token", Some("idt"))
+        );
         assert_eq!(how, "Logged in for the OAuth token 'browser'");
-        assert!(challenge.lock().unwrap().as_ref().is_some_and(|c| c.len() == 43));
+        assert!(challenge
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|c| c.len() == 43));
         let _ = pkce;
     }
 }

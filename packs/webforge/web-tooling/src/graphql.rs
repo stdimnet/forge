@@ -78,8 +78,17 @@ pub fn is_schema_file(text: &str) -> bool {
     text.lines().any(|l| {
         let t = l.trim_start();
         [
-            "type ", "schema ", "schema{", "interface ", "union ", "enum ", "input ", "scalar ",
-            "directive ", "extend type ", "extend schema",
+            "type ",
+            "schema ",
+            "schema{",
+            "interface ",
+            "union ",
+            "enum ",
+            "input ",
+            "scalar ",
+            "directive ",
+            "extend type ",
+            "extend schema",
         ]
         .iter()
         .any(|k| t.starts_with(k))
@@ -89,19 +98,27 @@ pub fn is_schema_file(text: &str) -> bool {
 impl SchemaSet {
     /// Build a schema from `(path, sdl)` files. Invalid schemas are still used as far as
     /// they parse, so queries are checked against what is there.
+    #[allow(clippy::result_large_err)] // apollo-compiler's own result type
     pub fn new(files: &[(String, String)]) -> Self {
         let mut builder = Schema::builder();
         for (path, text) in files {
             builder = builder.parse(text.as_str(), path.as_str());
         }
         let mut problems: BTreeMap<String, Vec<Problem>> = BTreeMap::new();
-        let texts: BTreeMap<&str, &str> = files.iter().map(|(p, t)| (p.as_str(), t.as_str())).collect();
+        let texts: BTreeMap<&str, &str> = files
+            .iter()
+            .map(|(p, t)| (p.as_str(), t.as_str()))
+            .collect();
         let schema = match builder.build().and_then(|s| s.validate()) {
             Ok(s) => s,
             Err(with) => {
                 for d in with.errors.iter() {
-                    let Some(span) = d.error.location() else { continue };
-                    let Some(file) = d.sources.get(&span.file_id()) else { continue };
+                    let Some(span) = d.error.location() else {
+                        continue;
+                    };
+                    let Some(file) = d.sources.get(&span.file_id()) else {
+                        continue;
+                    };
                     let path = file.path().to_string_lossy().to_string();
                     let text = texts.get(path.as_str()).copied().unwrap_or("");
                     problems.entry(path).or_default().push(Problem {
@@ -234,7 +251,9 @@ fn tokens(text: &str) -> Vec<Tok> {
             }
         } else if c == b'"' {
             if text[i..].starts_with("\"\"\"") {
-                i = text[i + 3..].find("\"\"\"").map_or(b.len(), |e| i + 3 + e + 3);
+                i = text[i + 3..]
+                    .find("\"\"\"")
+                    .map_or(b.len(), |e| i + 3 + e + 3);
                 continue;
             }
             i += 1;
@@ -313,7 +332,9 @@ fn context(schema: &Schema, toks: &[Tok]) -> Context {
                 }
                 "fragment" => {
                     // fragment Name on Type
-                    if let (Some(Tok::Name(on)), Some(Tok::Name(t))) = (toks.get(i + 2), toks.get(i + 3)) {
+                    if let (Some(Tok::Name(on)), Some(Tok::Name(t))) =
+                        (toks.get(i + 2), toks.get(i + 3))
+                    {
                         if on == "on" {
                             pending = Some(Some(t.clone()));
                             i += 3;
@@ -355,7 +376,9 @@ fn context(schema: &Schema, toks: &[Tok]) -> Context {
             }
             Tok::Punct(')') => paren = None,
             Tok::Spread => {
-                if let (Some(Tok::Name(on)), Some(Tok::Name(t))) = (toks.get(i + 1), toks.get(i + 2)) {
+                if let (Some(Tok::Name(on)), Some(Tok::Name(t))) =
+                    (toks.get(i + 1), toks.get(i + 2))
+                {
                     if on == "on" {
                         pending = Some(Some(t.clone()));
                         i += 2;
@@ -504,7 +527,11 @@ fn args(list: Option<&Json>) -> String {
     let parts: Vec<String> = list
         .iter()
         .filter_map(|a| {
-            let mut s = format!("{}: {}", a.get("name")?.as_str()?, type_ref(a.get("type")?)?);
+            let mut s = format!(
+                "{}: {}",
+                a.get("name")?.as_str()?,
+                type_ref(a.get("type")?)?
+            );
             if let Some(d) = a.get("defaultValue").and_then(Json::as_str) {
                 s.push_str(&format!(" = {d}"));
             }
@@ -527,15 +554,23 @@ fn deprecated(v: &Json) -> String {
 /// SDL text of an introspection result (`{ "data": { "__schema": … } }` or
 /// `{ "__schema": … }`).
 pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
-    let v: Json = serde_json::from_str(json).map_err(|e| format!("Invalid introspection result: {e}"))?;
+    let v: Json =
+        serde_json::from_str(json).map_err(|e| format!("Invalid introspection result: {e}"))?;
     let schema = v
         .pointer("/data/__schema")
         .or_else(|| v.get("__schema"))
         .ok_or("The response has no __schema (is introspection disabled on the server?)")?;
     let mut out = String::new();
     let root = |k: &str| schema.pointer(&format!("/{k}/name")).and_then(Json::as_str);
-    let (q, m, s) = (root("queryType"), root("mutationType"), root("subscriptionType"));
-    if q.is_some_and(|q| q != "Query") || m.is_some_and(|m| m != "Mutation") || s.is_some_and(|s| s != "Subscription") {
+    let (q, m, s) = (
+        root("queryType"),
+        root("mutationType"),
+        root("subscriptionType"),
+    );
+    if q.is_some_and(|q| q != "Query")
+        || m.is_some_and(|m| m != "Mutation")
+        || s.is_some_and(|s| s != "Subscription")
+    {
         out.push_str("schema {\n");
         for (k, n) in [("query", q), ("mutation", m), ("subscription", s)] {
             if let Some(n) = n {
@@ -545,8 +580,15 @@ pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
         out.push_str("}\n\n");
     }
     const BUILT_IN: &[&str] = &["String", "Int", "Float", "Boolean", "ID"];
-    for t in schema.get("types").and_then(Json::as_array).into_iter().flatten() {
-        let Some(name) = t.get("name").and_then(Json::as_str) else { continue };
+    for t in schema
+        .get("types")
+        .and_then(Json::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let Some(name) = t.get("name").and_then(Json::as_str) else {
+            continue;
+        };
         if name.starts_with("__") || BUILT_IN.contains(&name) {
             continue;
         }
@@ -554,11 +596,18 @@ pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
         let fields = |key: &str, with_args: bool| -> String {
             let mut s = String::new();
             for f in t.get(key).and_then(Json::as_array).into_iter().flatten() {
-                let (Some(n), Some(ty)) = (f.get("name").and_then(Json::as_str), f.get("type").and_then(type_ref)) else {
+                let (Some(n), Some(ty)) = (
+                    f.get("name").and_then(Json::as_str),
+                    f.get("type").and_then(type_ref),
+                ) else {
                     continue;
                 };
                 s.push_str(&description(f.get("description"), "  "));
-                let a = if with_args { args(f.get("args")) } else { String::new() };
+                let a = if with_args {
+                    args(f.get("args"))
+                } else {
+                    String::new()
+                };
                 let default = f
                     .get("defaultValue")
                     .and_then(Json::as_str)
@@ -578,9 +627,18 @@ pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
             })
             .unwrap_or_default();
         match t.get("kind").and_then(Json::as_str) {
-            Some("OBJECT") => out.push_str(&format!("type {name}{interfaces} {{\n{}}}\n\n", fields("fields", true))),
-            Some("INTERFACE") => out.push_str(&format!("interface {name}{interfaces} {{\n{}}}\n\n", fields("fields", true))),
-            Some("INPUT_OBJECT") => out.push_str(&format!("input {name} {{\n{}}}\n\n", fields("inputFields", false))),
+            Some("OBJECT") => out.push_str(&format!(
+                "type {name}{interfaces} {{\n{}}}\n\n",
+                fields("fields", true)
+            )),
+            Some("INTERFACE") => out.push_str(&format!(
+                "interface {name}{interfaces} {{\n{}}}\n\n",
+                fields("fields", true)
+            )),
+            Some("INPUT_OBJECT") => out.push_str(&format!(
+                "input {name} {{\n{}}}\n\n",
+                fields("inputFields", false)
+            )),
             Some("SCALAR") => out.push_str(&format!("scalar {name}\n\n")),
             Some("UNION") => {
                 let members: Vec<&str> = t
@@ -594,7 +652,12 @@ pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
             }
             Some("ENUM") => {
                 let mut s = String::new();
-                for v in t.get("enumValues").and_then(Json::as_array).into_iter().flatten() {
+                for v in t
+                    .get("enumValues")
+                    .and_then(Json::as_array)
+                    .into_iter()
+                    .flatten()
+                {
                     if let Some(n) = v.get("name").and_then(Json::as_str) {
                         s.push_str(&description(v.get("description"), "  "));
                         s.push_str(&format!("  {n}{}\n", deprecated(v)));
@@ -606,8 +669,15 @@ pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
         }
     }
     const BUILT_IN_DIRECTIVES: &[&str] = &["skip", "include", "deprecated", "specifiedBy", "oneOf"];
-    for d in schema.get("directives").and_then(Json::as_array).into_iter().flatten() {
-        let Some(name) = d.get("name").and_then(Json::as_str) else { continue };
+    for d in schema
+        .get("directives")
+        .and_then(Json::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let Some(name) = d.get("name").and_then(Json::as_str) else {
+            continue;
+        };
         if BUILT_IN_DIRECTIVES.contains(&name) {
             continue;
         }
@@ -619,7 +689,11 @@ pub fn introspection_to_sdl(json: &str) -> Result<String, String> {
             .filter_map(Json::as_str)
             .collect();
         out.push_str(&description(d.get("description"), ""));
-        out.push_str(&format!("directive @{name}{} on {}\n\n", args(d.get("args")), locations.join(" | ")));
+        out.push_str(&format!(
+            "directive @{name}{} on {}\n\n",
+            args(d.get("args")),
+            locations.join(" | ")
+        ));
     }
     Ok(out.trim_end().to_string() + "\n")
 }
@@ -744,9 +818,15 @@ pub fn parse_config(path: &str, text: &str) -> Config {
         ..Config::default()
     };
     let name = path.rsplit('/').next().unwrap_or(path);
-    if name.ends_with(".js") || name.ends_with(".ts") || name.ends_with(".cjs") || name.ends_with(".mjs") {
+    if name.ends_with(".js")
+        || name.ends_with(".ts")
+        || name.ends_with(".cjs")
+        || name.ends_with(".mjs")
+    {
         for (key, list) in [("schema", 0), ("documents", 1)] {
-            let Some(i) = text.find(&format!("{key}:")) else { continue };
+            let Some(i) = text.find(&format!("{key}:")) else {
+                continue;
+            };
             let rest = &text[i + key.len() + 1..];
             let end = rest.find(['\n', '}']).unwrap_or(rest.len());
             for part in rest[..end].split(',') {
@@ -794,11 +874,16 @@ pub fn parse_config(path: &str, text: &str) -> Config {
 
 /// The JSON body of a GraphQL-over-HTTP request: `{ "query", "variables"?,
 /// "operationName"? }`.
-pub fn request_body(query: &str, variables: Option<&str>, operation: Option<&str>) -> Result<String, String> {
+pub fn request_body(
+    query: &str,
+    variables: Option<&str>,
+    operation: Option<&str>,
+) -> Result<String, String> {
     let mut m = serde_json::Map::new();
     m.insert("query".into(), Json::String(query.trim().to_string()));
     if let Some(v) = variables.map(str::trim).filter(|v| !v.is_empty()) {
-        let parsed: Json = serde_json::from_str(v).map_err(|e| format!("Variables are not valid JSON: {e}"))?;
+        let parsed: Json =
+            serde_json::from_str(v).map_err(|e| format!("Variables are not valid JSON: {e}"))?;
         m.insert("variables".into(), parsed);
     }
     if let Some(op) = operation {
@@ -844,7 +929,12 @@ type Mutation { rename(name: String!): User }
     fn validates_queries_against_the_schema() {
         let s = schema();
         assert!(s.problems.is_empty(), "{:?}", s.problems);
-        assert!(s.validate("q.graphql", "query { me { id name orders(first: 2) { total } } }").is_empty());
+        assert!(s
+            .validate(
+                "q.graphql",
+                "query { me { id name orders(first: 2) { total } } }"
+            )
+            .is_empty());
         let q = "query Q {\n  me { id email }\n  user { name }\n}";
         let problems = s.validate("q.graphql", q);
         let messages: Vec<&str> = problems.iter().map(|p| p.message.as_str()).collect();
@@ -862,7 +952,10 @@ type Mutation { rename(name: String!): User }
 
     #[test]
     fn reports_schema_problems() {
-        let s = SchemaSet::new(&[("s.graphql".to_string(), "type Query { a: Missing }".to_string())]);
+        let s = SchemaSet::new(&[(
+            "s.graphql".to_string(),
+            "type Query { a: Missing }".to_string(),
+        )]);
         let p = &s.problems["s.graphql"];
         assert!(p[0].message.contains("Missing"), "{p:?}");
         assert!(s.type_names().contains(&"Query".to_string()));
@@ -876,9 +969,15 @@ type Mutation { rename(name: String!): User }
         let q = "query { me { na";
         let c = s.complete(q, q.len());
         assert_eq!(c.from, q.len() - 2);
-        assert_eq!(labels(&c), vec!["id", "name", "orders", "legacy", "__typename"]);
+        assert_eq!(
+            labels(&c),
+            vec!["id", "name", "orders", "legacy", "__typename"]
+        );
         assert_eq!(c.items[2].detail.as_deref(), Some("[Order!]!"));
-        assert_eq!(c.items[2].documentation.as_deref(), Some("Orders, newest first"));
+        assert_eq!(
+            c.items[2].documentation.as_deref(),
+            Some("Orders, newest first")
+        );
         assert!(c.items[3].deprecated);
 
         let q = "{ me { orders { items { ";
@@ -886,14 +985,20 @@ type Mutation { rename(name: String!): User }
         let q = "query { me { orders(";
         assert_eq!(labels(&s.complete(q, q.len())), vec!["first", "status"]);
         let q = "mutation { ";
-        assert_eq!(labels(&s.complete(q, q.len())), vec!["rename", "__typename"]);
+        assert_eq!(
+            labels(&s.complete(q, q.len())),
+            vec!["rename", "__typename"]
+        );
         let q = "query { search(text: \"x\") { ... on ";
         assert!(labels(&s.complete(q, q.len())).contains(&"Order"));
         let q = "query { search(text: \"x\") { ";
         assert!(labels(&s.complete(q, q.len())).contains(&"... on User"));
         let q = "fragment F on Order { ";
         assert_eq!(labels(&s.complete(q, q.len()))[0], "id");
-        assert_eq!(labels(&s.complete("", 0)), vec!["query", "mutation", "subscription", "fragment"]);
+        assert_eq!(
+            labels(&s.complete("", 0)),
+            vec!["query", "mutation", "subscription", "fragment"]
+        );
         let q = "query { me { id } }\nquery Two { me { orders { } } }";
         let at = q.rfind("{ }").unwrap() + 2;
         assert_eq!(labels(&s.complete(q, at))[0], "id");
@@ -940,9 +1045,16 @@ type Mutation { rename(name: String!): User }
         assert_eq!(c.endpoints[0].url, "https://api.example.com/graphql");
         assert_eq!(c.endpoints[0].headers["X-Key"], "1");
         assert_eq!(c.documents.len(), 2);
-        let js = "export default {\n  schema: 'schema/*.graphql',\n  documents: ['src/**/*.gql'],\n}";
+        let js =
+            "export default {\n  schema: 'schema/*.graphql',\n  documents: ['src/**/*.gql'],\n}";
         let c = parse_config("graphql.config.ts", js);
-        assert_eq!((c.schema.as_slice(), c.documents.as_slice()), (&["schema/*.graphql".to_string()][..], &["src/**/*.gql".to_string()][..]));
+        assert_eq!(
+            (c.schema.as_slice(), c.documents.as_slice()),
+            (
+                &["schema/*.graphql".to_string()][..],
+                &["src/**/*.gql".to_string()][..]
+            )
+        );
     }
 
     #[test]

@@ -40,22 +40,30 @@ pub struct Target {
 pub fn target(url: &str) -> Result<Target, String> {
     let (scheme, rest) = url.split_once("://").unwrap_or(("http", url));
     let tls = matches!(scheme, "https" | "grpcs");
-    let (authority, path) = rest.split_once('/').ok_or_else(|| {
-        format!("'{url}': expected host:port/package.Service/Method")
-    })?;
+    let (authority, path) = rest
+        .split_once('/')
+        .ok_or_else(|| format!("'{url}': expected host:port/package.Service/Method"))?;
     let (service, method) = path
         .trim_end_matches('/')
         .rsplit_once('/')
         .ok_or_else(|| format!("'{url}': expected host:port/package.Service/Method"))?;
     let (host, port) = match authority.rsplit_once(':') {
-        Some((h, p)) => (h.to_string(), p.parse().map_err(|_| format!("Invalid port in '{url}'"))?),
+        Some((h, p)) => (
+            h.to_string(),
+            p.parse().map_err(|_| format!("Invalid port in '{url}'"))?,
+        ),
         None => (authority.to_string(), if tls { 443 } else { 80 }),
     };
     if service.is_empty() || method.is_empty() {
-        return Err(format!("'{url}': expected host:port/package.Service/Method"));
+        return Err(format!(
+            "'{url}': expected host:port/package.Service/Method"
+        ));
     }
     Ok(Target {
-        host: host.trim_start_matches('[').trim_end_matches(']').to_string(),
+        host: host
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .to_string(),
         port,
         tls,
         service: service.to_string(),
@@ -97,7 +105,9 @@ fn get_varint(buf: &mut &[u8]) -> Option<u64> {
 fn fields(mut buf: &[u8]) -> Vec<(u32, u8, Vec<u8>)> {
     let mut out = Vec::new();
     while !buf.is_empty() {
-        let Some(key) = get_varint(&mut buf) else { break };
+        let Some(key) = get_varint(&mut buf) else {
+            break;
+        };
         let (num, wt) = ((key >> 3) as u32, (key & 7) as u8);
         match wt {
             0 => {
@@ -112,7 +122,9 @@ fn fields(mut buf: &[u8]) -> Vec<(u32, u8, Vec<u8>)> {
                 buf = &buf[8..];
             }
             2 => {
-                let Some(len) = get_varint(&mut buf) else { break };
+                let Some(len) = get_varint(&mut buf) else {
+                    break;
+                };
                 let len = len as usize;
                 if buf.len() < len {
                     break;
@@ -230,10 +242,16 @@ pub async fn call_raw(
         .uri(format!("{scheme}://{}:{}{path}", t.host, t.port))
         .header("content-type", "application/grpc")
         .header("te", "trailers")
-        .header("user-agent", concat!("forge-http-client/", env!("CARGO_PKG_VERSION")));
+        .header(
+            "user-agent",
+            concat!("forge-http-client/", env!("CARGO_PKG_VERSION")),
+        );
     for (k, v) in metadata {
         let k = k.to_ascii_lowercase();
-        if matches!(k.as_str(), "content-type" | "te" | "host" | "content-length") {
+        if matches!(
+            k.as_str(),
+            "content-type" | "te" | "host" | "content-length"
+        ) {
             continue;
         }
         builder = builder.header(k, v);
@@ -244,13 +262,21 @@ pub async fn call_raw(
         .map_err(|e| format!("Cannot send the request: {e}"))?;
     send.send_data(frame(body), true)
         .map_err(|e| format!("Cannot send the request: {e}"))?;
-    let response = response.await.map_err(|e| format!("The call failed: {e}"))?;
+    let response = response
+        .await
+        .map_err(|e| format!("The call failed: {e}"))?;
     let http_status = response.status().as_u16();
-    let header = |h: &http::HeaderMap, k: &str| h.get(k).and_then(|v| v.to_str().ok()).map(str::to_string);
+    let header =
+        |h: &http::HeaderMap, k: &str| h.get(k).and_then(|v| v.to_str().ok()).map(str::to_string);
     let headers: Vec<(String, String)> = response
         .headers()
         .iter()
-        .map(|(k, v)| (k.to_string(), String::from_utf8_lossy(v.as_bytes()).into_owned()))
+        .map(|(k, v)| {
+            (
+                k.to_string(),
+                String::from_utf8_lossy(v.as_bytes()).into_owned(),
+            )
+        })
         .collect();
     let mut status = header(response.headers(), "grpc-status").and_then(|s| s.parse().ok());
     let mut message = header(response.headers(), "grpc-message").unwrap_or_default();
@@ -321,7 +347,10 @@ async fn reflect_files(t: &Target, symbol: &str) -> Result<BTreeMap<String, Vec<
                     match num {
                         4 => {
                             for file in fields(&v).into_iter().filter(|(n, _, _)| *n == 1) {
-                                let name = string_fields(&file.2, 1).into_iter().next().unwrap_or_default();
+                                let name = string_fields(&file.2, 1)
+                                    .into_iter()
+                                    .next()
+                                    .unwrap_or_default();
                                 for dep in string_fields(&file.2, 3) {
                                     if !files.contains_key(&dep) {
                                         wanted.push((3, dep));
@@ -349,7 +378,8 @@ fn pool_from_files(files: &BTreeMap<String, Vec<u8>>) -> Result<DescriptorPool, 
     for bytes in files.values() {
         put_bytes_field(&mut set, 1, bytes);
     }
-    DescriptorPool::decode(set.as_slice()).map_err(|e| format!("Invalid descriptors from the server: {e}"))
+    DescriptorPool::decode(set.as_slice())
+        .map_err(|e| format!("Invalid descriptors from the server: {e}"))
 }
 
 /// In-memory `.proto` sources for protox (well-known types included).
@@ -403,9 +433,22 @@ pub struct GrpcResponse {
 /// gRPC status code names.
 pub fn status_name(code: u32) -> &'static str {
     const NAMES: &[&str] = &[
-        "OK", "CANCELLED", "UNKNOWN", "INVALID_ARGUMENT", "DEADLINE_EXCEEDED", "NOT_FOUND",
-        "ALREADY_EXISTS", "PERMISSION_DENIED", "RESOURCE_EXHAUSTED", "FAILED_PRECONDITION",
-        "ABORTED", "OUT_OF_RANGE", "UNIMPLEMENTED", "INTERNAL", "UNAVAILABLE", "DATA_LOSS",
+        "OK",
+        "CANCELLED",
+        "UNKNOWN",
+        "INVALID_ARGUMENT",
+        "DEADLINE_EXCEEDED",
+        "NOT_FOUND",
+        "ALREADY_EXISTS",
+        "PERMISSION_DENIED",
+        "RESOURCE_EXHAUSTED",
+        "FAILED_PRECONDITION",
+        "ABORTED",
+        "OUT_OF_RANGE",
+        "UNIMPLEMENTED",
+        "INTERNAL",
+        "UNAVAILABLE",
+        "DATA_LOSS",
         "UNAUTHENTICATED",
     ];
     NAMES.get(code as usize).copied().unwrap_or("UNKNOWN")
@@ -432,7 +475,11 @@ async fn call_inner(
     let mut source = "server reflection";
     let method = match reflect_files(t, &t.service).await {
         Ok(files) => pool_from_files(&files).ok().and_then(|p| method_in(&p, t)),
-        Err(e) if protos.is_empty() => return Err(format!("{e}. Add the service's .proto files in Settings | Tools | HTTP Client.")),
+        Err(e) if protos.is_empty() => {
+            return Err(format!(
+                "{e}. Add the service's .proto files in Settings | Tools | HTTP Client."
+            ))
+        }
         Err(_) => None,
     };
     let method = match method {
@@ -440,17 +487,25 @@ async fn call_inner(
         None => {
             source = ".proto files";
             let pool = pool_from_protos(protos)?;
-            method_in(&pool, t).ok_or_else(|| format!("Method {}/{} not found", t.service, t.method))?
+            method_in(&pool, t)
+                .ok_or_else(|| format!("Method {}/{} not found", t.service, t.method))?
         }
     };
     if method.is_client_streaming() || method.is_server_streaming() {
-        return Err(format!("{}/{} is a streaming method; only unary calls are supported", t.service, t.method));
+        return Err(format!(
+            "{}/{} is a streaming method; only unary calls are supported",
+            t.service, t.method
+        ));
     }
     let body = req.body.as_deref().unwrap_or("{}");
     let body = if body.trim().is_empty() { "{}" } else { body };
     let mut de = serde_json::Deserializer::from_str(body);
-    let input = DynamicMessage::deserialize(method.input(), &mut de)
-        .map_err(|e| format!("The request body does not match {}: {e}", method.input().full_name()))?;
+    let input = DynamicMessage::deserialize(method.input(), &mut de).map_err(|e| {
+        format!(
+            "The request body does not match {}: {e}",
+            method.input().full_name()
+        )
+    })?;
     let metadata: Vec<(String, String)> = req
         .headers
         .iter()
@@ -465,14 +520,22 @@ async fn call_inner(
         let msg = DynamicMessage::decode(method.output(), m.as_slice())
             .map_err(|e| format!("Cannot decode the response: {e}"))?;
         let mut out = Vec::new();
-        let mut ser = serde_json::Serializer::with_formatter(&mut out, serde_json::ser::PrettyFormatter::with_indent(b"  "));
-        msg.serialize_with_options(&mut ser, &prost_reflect::SerializeOptions::new().skip_default_fields(false))
-            .map_err(|e| e.to_string())?;
+        let mut ser = serde_json::Serializer::with_formatter(
+            &mut out,
+            serde_json::ser::PrettyFormatter::with_indent(b"  "),
+        );
+        msg.serialize_with_options(
+            &mut ser,
+            &prost_reflect::SerializeOptions::new().skip_default_fields(false),
+        )
+        .map_err(|e| e.to_string())?;
         json.push(String::from_utf8_lossy(&out).into_owned());
     }
     Ok(GrpcResponse {
         source: source.into(),
-        status: raw.status.unwrap_or(if raw.http_status == 200 { 0 } else { 2 }),
+        status: raw
+            .status
+            .unwrap_or(if raw.http_status == 200 { 0 } else { 2 }),
         message: raw.message,
         json,
         headers: raw.headers,
@@ -482,7 +545,11 @@ async fn call_inner(
 
 /// Console text of a call.
 pub fn render(resp: &GrpcResponse) -> String {
-    let color = if resp.status == 0 { "\x1b[32m" } else { "\x1b[31m" };
+    let color = if resp.status == 0 {
+        "\x1b[32m"
+    } else {
+        "\x1b[31m"
+    };
     let mut out = format!("{color}{} {}\x1b[0m", resp.status, status_name(resp.status));
     if !resp.message.is_empty() {
         out.push_str(&format!(" {}", resp.message));
@@ -524,7 +591,9 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
 "#;
 
     fn protos() -> BTreeMap<String, String> {
-        [("test.proto".to_string(), PROTO.to_string())].into_iter().collect()
+        [("test.proto".to_string(), PROTO.to_string())]
+            .into_iter()
+            .collect()
     }
 
     /// A gRPC server on h2: Greeter, and (with `reflection`) the v1 reflection service.
@@ -545,7 +614,9 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
         let files: Vec<Vec<u8>> = fields(&set).into_iter().map(|(_, _, v)| v).collect();
         tokio::spawn(async move {
             loop {
-                let Ok((sock, _)) = listener.accept().await else { break };
+                let Ok((sock, _)) = listener.accept().await else {
+                    break;
+                };
                 let (pool, files) = (pool.clone(), files.clone());
                 tokio::spawn(async move {
                     let mut conn = h2::server::handshake(sock).await.unwrap();
@@ -559,12 +630,17 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
                         }
                         let msgs = unframe(&data).unwrap();
                         let (status, reply): (u32, Option<Vec<u8>>) = match path.as_str() {
-                            "/grpc.reflection.v1.ServerReflection/ServerReflectionInfo" if reflection => {
+                            "/grpc.reflection.v1.ServerReflection/ServerReflectionInfo"
+                                if reflection =>
+                            {
                                 let mut resp = Vec::new();
                                 let mut fdr = Vec::new();
                                 // file_containing_symbol (4) → test.proto first; by name (3) → that file.
                                 let req = fields(&msgs[0]);
-                                let by_name = req.iter().find(|(n, _, _)| *n == 3).map(|(_, _, v)| String::from_utf8_lossy(v).to_string());
+                                let by_name = req
+                                    .iter()
+                                    .find(|(n, _, _)| *n == 3)
+                                    .map(|(_, _, v)| String::from_utf8_lossy(v).to_string());
                                 for f in &files {
                                     let name = string_fields(f, 1).remove(0);
                                     let wanted = match &by_name {
@@ -580,24 +656,41 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
                             }
                             "/test.Greeter/SayHello" => {
                                 let input = pool.get_message_by_name("test.HelloRequest").unwrap();
-                                let msg = DynamicMessage::decode(input, msgs[0].as_slice()).unwrap();
-                                let name = msg.get_field_by_name("name").unwrap().as_str().unwrap().to_string();
-                                let mut out = DynamicMessage::new(pool.get_message_by_name("test.HelloReply").unwrap());
-                                out.set_field_by_name("message", prost_reflect::Value::String(format!("Hello, {name}!")));
+                                let msg =
+                                    DynamicMessage::decode(input, msgs[0].as_slice()).unwrap();
+                                let name = msg
+                                    .get_field_by_name("name")
+                                    .unwrap()
+                                    .as_str()
+                                    .unwrap()
+                                    .to_string();
+                                let mut out = DynamicMessage::new(
+                                    pool.get_message_by_name("test.HelloReply").unwrap(),
+                                );
+                                out.set_field_by_name(
+                                    "message",
+                                    prost_reflect::Value::String(format!("Hello, {name}!")),
+                                );
                                 (0, Some(out.encode_to_vec()))
                             }
                             "/test.Greeter/Fail" => (5, None),
                             _ => (12, None),
                         };
-                        let mut headers = http::Response::builder().status(200).header("content-type", "application/grpc");
+                        let mut headers = http::Response::builder()
+                            .status(200)
+                            .header("content-type", "application/grpc");
                         if reply.is_none() {
                             // Trailers-only answer.
-                            headers = headers.header("grpc-status", status.to_string()).header("grpc-message", "user%20not%20found");
+                            headers = headers
+                                .header("grpc-status", status.to_string())
+                                .header("grpc-message", "user%20not%20found");
                             let resp = headers.body(()).unwrap();
                             let _ = respond.send_response(resp, true);
                             continue;
                         }
-                        let mut stream = respond.send_response(headers.body(()).unwrap(), false).unwrap();
+                        let mut stream = respond
+                            .send_response(headers.body(()).unwrap(), false)
+                            .unwrap();
                         stream.send_data(frame(&reply.unwrap()), false).unwrap();
                         let mut trailers = http::HeaderMap::new();
                         trailers.insert("grpc-status", status.to_string().parse().unwrap());
@@ -612,7 +705,16 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
     #[test]
     fn parses_targets() {
         let t = target("http://localhost:50051/shop.v1.Users/GetUser").unwrap();
-        assert_eq!((t.host.as_str(), t.port, t.tls, t.service.as_str(), t.method.as_str()), ("localhost", 50051, false, "shop.v1.Users", "GetUser"));
+        assert_eq!(
+            (
+                t.host.as_str(),
+                t.port,
+                t.tls,
+                t.service.as_str(),
+                t.method.as_str()
+            ),
+            ("localhost", 50051, false, "shop.v1.Users", "GetUser")
+        );
         assert!(target("grpcs://api.example.com/a.B/C").unwrap().tls);
         assert_eq!(target("grpcs://api.example.com/a.B/C").unwrap().port, 443);
         assert!(target("http://localhost:50051").is_err());
@@ -626,7 +728,9 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
             &BTreeMap::new(),
             &BTreeMap::new(),
         );
-        let resp = call(&req, &BTreeMap::new(), Duration::from_secs(10)).await.unwrap();
+        let resp = call(&req, &BTreeMap::new(), Duration::from_secs(10))
+            .await
+            .unwrap();
         assert_eq!(resp.status, 0);
         assert_eq!(resp.source, "server reflection");
         let v: serde_json::Value = serde_json::from_str(&resp.json[0]).unwrap();
@@ -640,22 +744,53 @@ message HelloReply { string message = 1; repeated string tags = 2; google.protob
         let port = server(false).await;
         let req = |m: &str, body: &str| {
             crate::http::resolve(
-                &parse(&format!("GRPC localhost:{port}/test.Greeter/{m}\n\n{body}\n")).requests[0],
+                &parse(&format!(
+                    "GRPC localhost:{port}/test.Greeter/{m}\n\n{body}\n"
+                ))
+                .requests[0],
                 &BTreeMap::new(),
                 &BTreeMap::new(),
             )
         };
-        let resp = call(&req("SayHello", "{\"name\": \"Bob\", \"times\": 2}"), &protos(), Duration::from_secs(10)).await.unwrap();
+        let resp = call(
+            &req("SayHello", "{\"name\": \"Bob\", \"times\": 2}"),
+            &protos(),
+            Duration::from_secs(10),
+        )
+        .await
+        .unwrap();
         assert_eq!(resp.source, ".proto files");
         assert!(resp.json[0].contains("Hello, Bob!"));
-        let failed = call(&req("Fail", "{}"), &protos(), Duration::from_secs(10)).await.unwrap();
-        assert_eq!((failed.status, failed.message.as_str()), (5, "user not found"));
+        let failed = call(&req("Fail", "{}"), &protos(), Duration::from_secs(10))
+            .await
+            .unwrap();
+        assert_eq!(
+            (failed.status, failed.message.as_str()),
+            (5, "user not found")
+        );
         assert!(render(&failed).contains("NOT_FOUND"));
-        let bad = call(&req("SayHello", "{\"nope\": 1}"), &protos(), Duration::from_secs(10)).await.unwrap_err();
-        assert!(bad.starts_with("The request body does not match test.HelloRequest"), "{bad}");
-        let none = call(&req("SayHello", "{}"), &BTreeMap::new(), Duration::from_secs(10)).await.unwrap_err();
+        let bad = call(
+            &req("SayHello", "{\"nope\": 1}"),
+            &protos(),
+            Duration::from_secs(10),
+        )
+        .await
+        .unwrap_err();
+        assert!(
+            bad.starts_with("The request body does not match test.HelloRequest"),
+            "{bad}"
+        );
+        let none = call(
+            &req("SayHello", "{}"),
+            &BTreeMap::new(),
+            Duration::from_secs(10),
+        )
+        .await
+        .unwrap_err();
         assert!(none.contains("no reflection service"), "{none}");
-        let missing = call(&req("Nope", "{}"), &protos(), Duration::from_secs(10)).await.unwrap_err();
+        let missing = call(&req("Nope", "{}"), &protos(), Duration::from_secs(10))
+            .await
+            .unwrap_err();
         assert_eq!(missing, "Method test.Greeter/Nope not found");
     }
 }

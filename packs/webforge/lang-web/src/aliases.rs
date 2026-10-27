@@ -92,7 +92,14 @@ pub fn parse(path: &str, text: &str) -> Vec<Alias> {
     out
 }
 
-fn object_aliases(text: &str, start: usize, end: usize, dir: &str, source: &str, out: &mut Vec<Alias>) {
+fn object_aliases(
+    text: &str,
+    start: usize,
+    end: usize,
+    dir: &str,
+    source: &str,
+    out: &mut Vec<Alias>,
+) {
     for f in fields(text, start, end) {
         let Some((vs, ve)) = f.value else { continue };
         let key = f.key.trim_matches(['"', '\'']).to_string();
@@ -106,7 +113,14 @@ fn object_aliases(text: &str, start: usize, end: usize, dir: &str, source: &str,
     }
 }
 
-fn array_aliases(text: &str, start: usize, end: usize, dir: &str, source: &str, out: &mut Vec<Alias>) {
+fn array_aliases(
+    text: &str,
+    start: usize,
+    end: usize,
+    dir: &str,
+    source: &str,
+    out: &mut Vec<Alias>,
+) {
     let mut i = start;
     while i < end {
         let Some(open) = text[i..end].find('{').map(|o| i + o) else {
@@ -333,6 +347,10 @@ export default defineConfig({
             ]
         );
         // Not an alias block.
-        assert!(parse("vite.config.ts", "const aliases = { a: './x' }; myalias: {}").is_empty());
+        assert!(parse(
+            "vite.config.ts",
+            "const aliases = { a: './x' }; myalias: {}"
+        )
+        .is_empty());
     }
 }

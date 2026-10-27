@@ -107,20 +107,35 @@ pub fn configs(
     }
     let mut out = BTreeMap::new();
     for (id, m) in merged {
-        let get = |k: &str| m.get(k).and_then(text).map(|v| subst(&v)).filter(|v| !v.is_empty());
+        let get = |k: &str| {
+            m.get(k)
+                .and_then(text)
+                .map(|v| subst(&v))
+                .filter(|v| !v.is_empty())
+        };
         if let Some(t) = get("Type") {
             if !t.eq_ignore_ascii_case("OAuth2") {
                 continue;
             }
         }
-        let grant = match get("Grant Type").unwrap_or_default().to_ascii_lowercase().as_str() {
+        let grant = match get("Grant Type")
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str()
+        {
             "client credentials" | "client_credentials" => Grant::ClientCredentials,
             "password" => Grant::Password,
             "authorization code" | "authorization_code" | "" => Grant::AuthorizationCode,
-            other => return Err(format!("Auth '{id}': grant type '{other}' is not supported")),
+            other => {
+                return Err(format!(
+                    "Auth '{id}': grant type '{other}' is not supported"
+                ))
+            }
         };
-        let token_url = get("Token URL").ok_or_else(|| format!("Auth '{id}': 'Token URL' is missing"))?;
-        let client_id = get("Client ID").ok_or_else(|| format!("Auth '{id}': 'Client ID' is missing"))?;
+        let token_url =
+            get("Token URL").ok_or_else(|| format!("Auth '{id}': 'Token URL' is missing"))?;
+        let client_id =
+            get("Client ID").ok_or_else(|| format!("Auth '{id}': 'Client ID' is missing"))?;
         let pkce = match m.get("PKCE") {
             Some(Value::Bool(b)) => *b,
             Some(Value::Object(_)) => true,
@@ -249,7 +264,12 @@ pub fn parse_query(q: &str) -> BTreeMap<String, String> {
 }
 
 /// The browser URL of the Authorization Code grant.
-pub fn authorization_url(cfg: &OAuthConfig, redirect: &str, state: &str, challenge: Option<&str>) -> String {
+pub fn authorization_url(
+    cfg: &OAuthConfig,
+    redirect: &str,
+    state: &str,
+    challenge: Option<&str>,
+) -> String {
     let base = cfg.auth_url.clone().unwrap_or_default();
     let mut fields = vec![
         ("response_type".to_string(), "code".to_string()),
@@ -322,7 +342,9 @@ pub fn token_request(cfg: &OAuthConfig, exchange: Exchange) -> TokenRequest {
             push("refresh_token", token);
         }
     }
-    let direct_or_refresh = !fields.iter().any(|(k, v)| k == "grant_type" && v == "authorization_code");
+    let direct_or_refresh = !fields
+        .iter()
+        .any(|(k, v)| k == "grant_type" && v == "authorization_code");
     if direct_or_refresh {
         if let Some(s) = &cfg.scope {
             fields.push(("scope".into(), s.clone()));
@@ -373,10 +395,16 @@ impl Token {
 /// Read a token endpoint response (`now` = Unix seconds, for `expires_in`).
 pub fn parse_token_response(status: u16, body: &str, now: u64) -> Result<Token, String> {
     let v: Value = serde_json::from_str(body).map_err(|_| {
-        format!("The token endpoint answered {status} without JSON: {}", body.chars().take(200).collect::<String>())
+        format!(
+            "The token endpoint answered {status} without JSON: {}",
+            body.chars().take(200).collect::<String>()
+        )
     })?;
     if let Some(err) = v.get("error").and_then(Value::as_str) {
-        let desc = v.get("error_description").and_then(Value::as_str).unwrap_or("");
+        let desc = v
+            .get("error_description")
+            .and_then(Value::as_str)
+            .unwrap_or("");
         return Err(format!("OAuth error: {err} {desc}").trim().to_string());
     }
     if !(200..300).contains(&status) {
@@ -393,8 +421,14 @@ pub fn parse_token_response(status: u16, body: &str, now: u64) -> Result<Token, 
         .map(|s| now + s);
     Ok(Token {
         access_token,
-        id_token: v.get("id_token").and_then(Value::as_str).map(str::to_string),
-        refresh_token: v.get("refresh_token").and_then(Value::as_str).map(str::to_string),
+        id_token: v
+            .get("id_token")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        refresh_token: v
+            .get("refresh_token")
+            .and_then(Value::as_str)
+            .map(str::to_string),
         expires_at,
     })
 }
@@ -416,7 +450,8 @@ mod tests {
     } }
   }
 }"#;
-    const PRIVATE: &str = r#"{ "dev": { "Security": { "Auth": { "machine": { "Client Secret": "s3cret" } } } } }"#;
+    const PRIVATE: &str =
+        r#"{ "dev": { "Security": { "Auth": { "machine": { "Client Secret": "s3cret" } } } } }"#;
 
     fn subst(s: &str) -> String {
         s.replace("{{host}}", "id.example.com")
@@ -427,10 +462,16 @@ mod tests {
         let c = configs(Some(ENV), Some(PRIVATE), "dev", &subst).unwrap();
         let shop = &c["shop"];
         assert_eq!(shop.grant, Grant::AuthorizationCode);
-        assert_eq!(shop.auth_url.as_deref(), Some("https://id.example.com/authorize"));
+        assert_eq!(
+            shop.auth_url.as_deref(),
+            Some("https://id.example.com/authorize")
+        );
         assert!(shop.pkce);
         let m = &c["machine"];
-        assert_eq!((m.grant, m.client_auth), (Grant::ClientCredentials, ClientAuth::InBody));
+        assert_eq!(
+            (m.grant, m.client_auth),
+            (Grant::ClientCredentials, ClientAuth::InBody)
+        );
         assert_eq!(m.client_secret.as_deref(), Some("s3cret"));
         assert!(configs(Some(ENV), None, "prod", &subst).unwrap().is_empty());
         let bad = r#"{"dev": {"Security": {"Auth": {"x": {"Type": "OAuth2", "Grant Type": "Implicit", "Token URL": "t", "Client ID": "c"}}}}}"#;
@@ -449,8 +490,8 @@ mod tests {
     fn pkce_challenge_matches_rfc_7636() {
         // RFC 7636 appendix B.
         let bytes: [u8; 32] = [
-            116, 24, 223, 180, 151, 153, 224, 37, 79, 250, 96, 125, 216, 173, 187, 186, 22, 212, 37, 77,
-            105, 214, 191, 240, 91, 88, 5, 88, 83, 132, 141, 121,
+            116, 24, 223, 180, 151, 153, 224, 37, 79, 250, 96, 125, 216, 173, 187, 186, 22, 212,
+            37, 77, 105, 214, 191, 240, 91, 88, 5, 88, 83, 132, 141, 121,
         ];
         let (verifier, challenge) = pkce(&bytes);
         assert_eq!(verifier, "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
@@ -460,7 +501,12 @@ mod tests {
     #[test]
     fn builds_urls_and_token_requests() {
         let c = configs(Some(ENV), Some(PRIVATE), "dev", &subst).unwrap();
-        let url = authorization_url(&c["shop"], "http://127.0.0.1:5000/callback", "st", Some("ch"));
+        let url = authorization_url(
+            &c["shop"],
+            "http://127.0.0.1:5000/callback",
+            "st",
+            Some("ch"),
+        );
         assert_eq!(
             url,
             "https://id.example.com/authorize?response_type=code&client_id=forge&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback&state=st&scope=openid%20profile&code_challenge=ch&code_challenge_method=S256"
@@ -468,25 +514,43 @@ mod tests {
         let q = parse_query("?code=abc%2F1&state=st&x=a+b");
         assert_eq!((q["code"].as_str(), q["x"].as_str()), ("abc/1", "a b"));
         let req = token_request(&c["machine"], Exchange::Direct);
-        assert_eq!(form(&req.fields), "grant_type=client_credentials&client_id=svc&client_secret=s3cret");
+        assert_eq!(
+            form(&req.fields),
+            "grant_type=client_credentials&client_id=svc&client_secret=s3cret"
+        );
         assert_eq!(req.basic, None);
         let code = token_request(
             &c["shop"],
-            Exchange::Code { code: "abc", redirect: "http://x/cb", verifier: Some("v") },
+            Exchange::Code {
+                code: "abc",
+                redirect: "http://x/cb",
+                verifier: Some("v"),
+            },
         );
         assert_eq!(form(&code.fields), "grant_type=authorization_code&code=abc&redirect_uri=http%3A%2F%2Fx%2Fcb&code_verifier=v&client_id=forge");
         let refresh = token_request(&c["shop"], Exchange::Refresh("r1"));
-        assert!(form(&refresh.fields).starts_with("grant_type=refresh_token&refresh_token=r1&scope=openid%20profile"));
+        assert!(form(&refresh.fields)
+            .starts_with("grant_type=refresh_token&refresh_token=r1&scope=openid%20profile"));
     }
 
     #[test]
     fn reads_token_responses() {
-        let t = parse_token_response(200, r#"{"access_token":"a","expires_in":3600,"refresh_token":"r","id_token":"i"}"#, 1000).unwrap();
+        let t = parse_token_response(
+            200,
+            r#"{"access_token":"a","expires_in":3600,"refresh_token":"r","id_token":"i"}"#,
+            1000,
+        )
+        .unwrap();
         assert_eq!(t.expires_at, Some(4600));
         assert!(!t.expired(1000));
         assert!(t.expired(4580));
         assert_eq!(
-            parse_token_response(400, r#"{"error":"invalid_client","error_description":"bad secret"}"#, 0).unwrap_err(),
+            parse_token_response(
+                400,
+                r#"{"error":"invalid_client","error_description":"bad secret"}"#,
+                0
+            )
+            .unwrap_err(),
             "OAuth error: invalid_client bad secret"
         );
         assert!(parse_token_response(500, "oops", 0).is_err());

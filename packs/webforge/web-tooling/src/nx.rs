@@ -49,7 +49,9 @@ pub struct Workspace {
 }
 
 fn parse(text: &str) -> Option<Node> {
-    forge_jsonschema::parse(DocKind::Json, text).into_iter().next()
+    forge_jsonschema::parse(DocKind::Json, text)
+        .into_iter()
+        .next()
 }
 
 fn line_of(text: &str, byte: usize) -> u32 {
@@ -113,7 +115,10 @@ pub fn workspace(files: &BTreeMap<String, String>) -> Workspace {
         let mut kind = None;
         if name == "project.json" {
             project_name = doc.get("name").and_then(Node::as_str).map(str::to_string);
-            kind = doc.get("projectType").and_then(Node::as_str).map(str::to_string);
+            kind = doc
+                .get("projectType")
+                .and_then(Node::as_str)
+                .map(str::to_string);
             tags = strings(doc.get("tags"));
             implicit = strings(doc.get("implicitDependencies"));
             for t in doc.get("targets").and_then(Node::as_object).unwrap_or(&[]) {
@@ -175,7 +180,10 @@ pub fn workspace(files: &BTreeMap<String, String>) -> Workspace {
                     });
                 }
             }
-            let pname = project_name.clone().or(pkg.clone()).unwrap_or(folder.clone());
+            let pname = project_name
+                .clone()
+                .or(pkg.clone())
+                .unwrap_or(folder.clone());
             if let Some(pkg) = &pkg {
                 package_names.insert(pkg.clone(), pname.clone());
             }
@@ -264,14 +272,22 @@ mod tests {
     use super::*;
 
     fn files(list: &[(&str, &str)]) -> BTreeMap<String, String> {
-        list.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect()
+        list.iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect()
     }
 
     #[test]
     fn reads_projects_targets_and_graph() {
         let ws = workspace(&files(&[
-            ("nx.json", r#"{ "targetDefaults": { "build": { "cache": true }, "test": {} }, "defaultBase": "main" }"#),
-            ("package.json", r#"{ "name": "@acme/source", "private": true, "devDependencies": { "nx": "20" } }"#),
+            (
+                "nx.json",
+                r#"{ "targetDefaults": { "build": { "cache": true }, "test": {} }, "defaultBase": "main" }"#,
+            ),
+            (
+                "package.json",
+                r#"{ "name": "@acme/source", "private": true, "devDependencies": { "nx": "20" } }"#,
+            ),
             (
                 "apps/shop/project.json",
                 r#"{
@@ -285,8 +301,14 @@ mod tests {
   }
 }"#,
             ),
-            ("libs/ui/package.json", r#"{ "name": "@acme/ui", "scripts": { "test": "vitest" } }"#),
-            ("libs/util/package.json", r#"{ "name": "@acme/util", "nx": { "name": "util", "tags": ["type:util"] }, "dependencies": { "@acme/ui": "*" } }"#),
+            (
+                "libs/ui/package.json",
+                r#"{ "name": "@acme/ui", "scripts": { "test": "vitest" } }"#,
+            ),
+            (
+                "libs/util/package.json",
+                r#"{ "name": "@acme/util", "nx": { "name": "util", "tags": ["type:util"] }, "dependencies": { "@acme/ui": "*" } }"#,
+            ),
             ("node_modules/x/package.json", r#"{ "name": "x" }"#),
         ]));
         assert_eq!(ws.target_defaults, vec!["build", "test"]);
@@ -295,7 +317,13 @@ mod tests {
         assert_eq!(names, vec!["@acme/ui", "shop", "util"]);
         let shop = &ws.projects[1];
         assert_eq!(shop.kind, "application");
-        assert_eq!(shop.targets.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), vec!["build", "serve"]);
+        assert_eq!(
+            shop.targets
+                .iter()
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["build", "serve"]
+        );
         assert_eq!(shop.targets[1].executor, "nx:run-commands (vite serve)");
         assert_eq!(shop.targets[0].line, 6);
         // `ui` is not a project name here (the package is `@acme/ui`), so it is dropped.
@@ -304,6 +332,9 @@ mod tests {
         assert_eq!(util.dependencies, vec!["@acme/ui"]);
         assert_eq!(util.tags, vec!["type:util"]);
         assert_eq!(ws.projects[0].targets[0].executor, "npm run test");
-        assert_eq!(run_args("shop", "build", Some("production")), vec!["run", "shop:build:production"]);
+        assert_eq!(
+            run_args("shop", "build", Some("production")),
+            vec!["run", "shop:build:production"]
+        );
     }
 }

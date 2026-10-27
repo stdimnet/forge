@@ -76,7 +76,9 @@ pub fn routes<'a>(root: &str, paths: impl IntoIterator<Item = &'a str>) -> Vec<R
             continue;
         };
         let (dir, file) = rel.rsplit_once('/').unwrap_or(("", rel));
-        let Some(stem) = split_ext(file, PAGE_EXTS) else { continue };
+        let Some(stem) = split_ext(file, PAGE_EXTS) else {
+            continue;
+        };
         if stem.starts_with('_') || rel.split('/').any(|s| s.starts_with('.')) {
             continue;
         }
@@ -87,11 +89,22 @@ pub fn routes<'a>(root: &str, paths: impl IntoIterator<Item = &'a str>) -> Vec<R
             segs.push(stem);
         }
         let parts: Vec<(String, String)> = segs.iter().map(|s| segment(s)).collect();
-        let route = format!("/{}", parts.iter().map(|(r, _)| r.as_str()).collect::<Vec<_>>().join("/"));
+        let route = format!(
+            "/{}",
+            parts
+                .iter()
+                .map(|(r, _)| r.as_str())
+                .collect::<Vec<_>>()
+                .join("/")
+        );
         let name = if parts.is_empty() {
             "index".to_string()
         } else {
-            parts.iter().map(|(_, n)| n.as_str()).collect::<Vec<_>>().join("-")
+            parts
+                .iter()
+                .map(|(_, n)| n.as_str())
+                .collect::<Vec<_>>()
+                .join("-")
         };
         out.push(Route {
             route,
@@ -130,14 +143,24 @@ pub fn components<'a>(root: &str, paths: impl IntoIterator<Item = &'a str>) -> V
             continue;
         };
         let (dir, file) = rel.rsplit_once('/').unwrap_or(("", rel));
-        let Some(stem) = split_ext(file, COMPONENT_EXTS) else { continue };
+        let Some(stem) = split_ext(file, COMPONENT_EXTS) else {
+            continue;
+        };
         // `Button.client.vue` / `.server.vue` keep the base name.
         let stem = stem
             .strip_suffix(".client")
             .or_else(|| stem.strip_suffix(".server"))
             .unwrap_or(stem);
-        let prefix: String = dir.split('/').filter(|s| !s.is_empty()).map(pascal).collect();
-        let base = if stem == "index" { String::new() } else { pascal(stem) };
+        let prefix: String = dir
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .map(pascal)
+            .collect();
+        let base = if stem == "index" {
+            String::new()
+        } else {
+            pascal(stem)
+        };
         let name = if !prefix.is_empty() && base.starts_with(&prefix) {
             base
         } else {
@@ -158,8 +181,15 @@ pub fn components<'a>(root: &str, paths: impl IntoIterator<Item = &'a str>) -> V
 /// The component a template tag refers to: `<BaseButton>`, `<base-button>`,
 /// `<LazyBaseButton>`.
 pub fn component_for_tag<'a>(components: &'a [Component], tag: &str) -> Option<&'a Component> {
-    let name = if tag.contains('-') { pascal(tag) } else { tag.to_string() };
-    let name = name.strip_prefix("Lazy").filter(|n| !n.is_empty()).unwrap_or(&name);
+    let name = if tag.contains('-') {
+        pascal(tag)
+    } else {
+        tag.to_string()
+    };
+    let name = name
+        .strip_prefix("Lazy")
+        .filter(|n| !n.is_empty())
+        .unwrap_or(&name);
     components.iter().find(|c| c.name == name)
 }
 
@@ -189,7 +219,10 @@ mod tests {
     #[test]
     fn routes_from_pages() {
         let r = routes("", FILES.iter().copied());
-        let got: Vec<_> = r.iter().map(|r| (r.route.as_str(), r.name.as_str())).collect();
+        let got: Vec<_> = r
+            .iter()
+            .map(|r| (r.route.as_str(), r.name.as_str()))
+            .collect();
         assert_eq!(
             got,
             vec![
@@ -212,9 +245,18 @@ mod tests {
     fn auto_imported_components() {
         let c = components("", FILES.iter().copied());
         let names: Vec<_> = c.iter().map(|c| c.name.as_str()).collect();
-        assert_eq!(names, vec!["AppHeader", "BaseButton", "BaseInput", "Chart", "Form"]);
-        assert_eq!(component_for_tag(&c, "base-button").unwrap().path, "components/base/Button.vue");
-        assert_eq!(component_for_tag(&c, "LazyAppHeader").unwrap().name, "AppHeader");
+        assert_eq!(
+            names,
+            vec!["AppHeader", "BaseButton", "BaseInput", "Chart", "Form"]
+        );
+        assert_eq!(
+            component_for_tag(&c, "base-button").unwrap().path,
+            "components/base/Button.vue"
+        );
+        assert_eq!(
+            component_for_tag(&c, "LazyAppHeader").unwrap().name,
+            "AppHeader"
+        );
         assert!(component_for_tag(&c, "NuxtLink").is_none());
     }
 }

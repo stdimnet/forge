@@ -88,12 +88,24 @@ fn base64(input: &[u8]) -> String {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::new();
     for chunk in input.chunks(3) {
-        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let b = [
+            chunk[0],
+            *chunk.get(1).unwrap_or(&0),
+            *chunk.get(2).unwrap_or(&0),
+        ];
         let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
         out.push(T[(n >> 18) as usize & 63] as char);
         out.push(T[(n >> 12) as usize & 63] as char);
-        out.push(if chunk.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if chunk.len() > 2 { T[n as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 1 {
+            T[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            T[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -126,9 +138,26 @@ pub fn parse_curl(command: &str) -> Result<HttpRequest, String> {
     };
     // Options taking a value that do not matter for the request.
     const SKIP_VALUE: &[&str] = &[
-        "-o", "--output", "-m", "--max-time", "--connect-timeout", "-w", "--write-out",
-        "--retry", "-c", "--cookie-jar", "--cacert", "--cert", "--key", "-E", "-x", "--proxy",
-        "--resolve", "--limit-rate", "-r", "--range",
+        "-o",
+        "--output",
+        "-m",
+        "--max-time",
+        "--connect-timeout",
+        "-w",
+        "--write-out",
+        "--retry",
+        "-c",
+        "--cookie-jar",
+        "--cacert",
+        "--cert",
+        "--key",
+        "-E",
+        "-x",
+        "--proxy",
+        "--resolve",
+        "--limit-rate",
+        "-r",
+        "--range",
     ];
     while let Some(arg) = it.next() {
         // `--data=x` / `-XPOST` forms.
@@ -167,7 +196,11 @@ pub fn parse_curl(command: &str) -> Result<HttpRequest, String> {
             "-F" | "--form" | "--form-string" => form.push(value(&mut it)),
             "-u" | "--user" => {
                 let v = value(&mut it);
-                header(&mut headers, "Authorization", format!("Basic {}", base64(v.as_bytes())));
+                header(
+                    &mut headers,
+                    "Authorization",
+                    format!("Basic {}", base64(v.as_bytes())),
+                );
             }
             "-b" | "--cookie" => header(&mut headers, "Cookie", value(&mut it)),
             "-A" | "--user-agent" => header(&mut headers, "User-Agent", value(&mut it)),
@@ -196,12 +229,17 @@ pub fn parse_curl(command: &str) -> Result<HttpRequest, String> {
         url = format!("{url}{sep}{}", data.join("&"));
     } else if !data.is_empty() {
         body = Some(data.join("&"));
-        let has_type = headers.iter().any(|h| h.name.eq_ignore_ascii_case("content-type"));
+        let has_type = headers
+            .iter()
+            .any(|h| h.name.eq_ignore_ascii_case("content-type"));
         if json {
             if !has_type {
                 header(&mut headers, "Content-Type", "application/json".into());
             }
-            if !headers.iter().any(|h| h.name.eq_ignore_ascii_case("accept")) {
+            if !headers
+                .iter()
+                .any(|h| h.name.eq_ignore_ascii_case("accept"))
+            {
                 header(&mut headers, "Accept", "application/json".into());
             }
         } else if !has_type {
@@ -327,28 +365,52 @@ mod tests {
         assert_eq!(r.url, "https://api.example.com/users?page=2");
         assert_eq!(r.header("authorization"), Some("Bearer abc"));
         assert_eq!(r.body.as_deref(), Some(r#"{"name":"Ada"}"#));
-        assert_eq!(r.header("Content-Type"), Some("application/x-www-form-urlencoded"));
+        assert_eq!(
+            r.header("Content-Type"),
+            Some("application/x-www-form-urlencoded")
+        );
         let http = to_http(&r);
-        assert!(http.starts_with("POST https://api.example.com/users?page=2\naccept: application/json\n"), "{http}");
+        assert!(
+            http.starts_with(
+                "POST https://api.example.com/users?page=2\naccept: application/json\n"
+            ),
+            "{http}"
+        );
 
         let r = parse_curl("curl -XPUT localhost:8000/a -u ada:secret --json '{\"a\":1}'").unwrap();
-        assert_eq!((r.method.as_str(), r.url.as_str()), ("PUT", "http://localhost:8000/a"));
+        assert_eq!(
+            (r.method.as_str(), r.url.as_str()),
+            ("PUT", "http://localhost:8000/a")
+        );
         assert_eq!(r.header("Authorization"), Some("Basic YWRhOnNlY3JldA=="));
         assert_eq!(r.header("Content-Type"), Some("application/json"));
         assert!(to_http(&r).contains("{\n  \"a\": 1\n}"));
 
         let r = parse_curl("curl -G https://x.dev/search -d q=forge -d n=5").unwrap();
-        assert_eq!((r.method.as_str(), r.url.as_str()), ("GET", "https://x.dev/search?q=forge&n=5"));
+        assert_eq!(
+            (r.method.as_str(), r.url.as_str()),
+            ("GET", "https://x.dev/search?q=forge&n=5")
+        );
         assert_eq!(r.body, None);
 
         let r = parse_curl("curl -F name=Ada -F avatar=@./me.png https://x.dev/upload").unwrap();
-        assert!(r.header("Content-Type").unwrap().starts_with("multipart/form-data"));
-        assert!(r.body.as_deref().unwrap().contains("filename=\"me.png\"\n\n< ./me.png"));
+        assert!(r
+            .header("Content-Type")
+            .unwrap()
+            .starts_with("multipart/form-data"));
+        assert!(r
+            .body
+            .as_deref()
+            .unwrap()
+            .contains("filename=\"me.png\"\n\n< ./me.png"));
 
         assert!(parse_curl("wget https://x.dev").is_err());
         assert!(parse_curl("curl -s").is_err());
         let r = parse_curl("curl -I --url https://x.dev -o out.txt").unwrap();
-        assert_eq!((r.method.as_str(), r.url.as_str()), ("HEAD", "https://x.dev"));
+        assert_eq!(
+            (r.method.as_str(), r.url.as_str()),
+            ("HEAD", "https://x.dev")
+        );
     }
 
     #[test]

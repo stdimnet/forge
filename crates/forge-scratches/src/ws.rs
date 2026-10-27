@@ -16,12 +16,17 @@ use crate::http::{websocket_messages, HttpRequest};
 /// What happens on the connection, for the live message log.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WsEvent {
-    Connected { status: u16 },
+    Connected {
+        status: u16,
+    },
     Sent(String),
     Received(String),
     /// A binary message: its size.
     ReceivedBinary(usize),
-    Closed { code: Option<u16>, reason: String },
+    Closed {
+        code: Option<u16>,
+        reason: String,
+    },
     Error(String),
 }
 
@@ -64,7 +69,9 @@ pub async fn run(
         status: response.status().as_u16(),
     });
     let (mut write, mut read) = stream.split();
-    let mut pending = websocket_messages(req.body.as_deref()).into_iter().peekable();
+    let mut pending = websocket_messages(req.body.as_deref())
+        .into_iter()
+        .peekable();
     let mut received_since_send = 0usize;
     let started = Instant::now();
     loop {
@@ -131,7 +138,9 @@ pub async fn run(
 /// Console text of an event (ANSI styles like the HTTP client's).
 pub fn render(e: &WsEvent) -> String {
     match e {
-        WsEvent::Connected { status } => format!("\x1b[32mConnected ({status} Switching Protocols)\x1b[0m\n"),
+        WsEvent::Connected { status } => {
+            format!("\x1b[32mConnected ({status} Switching Protocols)\x1b[0m\n")
+        }
         WsEvent::Sent(t) => format!("\x1b[36m▶ {t}\x1b[0m\n"),
         WsEvent::Received(t) => format!("◀ {t}\n"),
         WsEvent::ReceivedBinary(n) => format!("◀ <binary message, {n} bytes>\n"),
@@ -191,15 +200,23 @@ mod tests {
             }
             l2.lock().unwrap().push(e);
         };
-        tokio::time::timeout(Duration::from_secs(10), run(&req, Duration::from_secs(5), rx, &sink))
-            .await
-            .unwrap();
+        tokio::time::timeout(
+            Duration::from_secs(10),
+            run(&req, Duration::from_secs(5), rx, &sink),
+        )
+        .await
+        .unwrap();
         drop(tx);
         let log = log.lock().unwrap().clone();
         assert_eq!(log[0], WsEvent::Connected { status: 101 });
         let texts: Vec<String> = log[1..]
             .iter()
-            .map(|e| render(e).replace("\x1b[36m", "").replace("\x1b[0m", "").replace("\x1b[90m", ""))
+            .map(|e| {
+                render(e)
+                    .replace("\x1b[36m", "")
+                    .replace("\x1b[0m", "")
+                    .replace("\x1b[90m", "")
+            })
             .collect();
         assert_eq!(
             texts,
@@ -229,14 +246,25 @@ mod tests {
             l2.lock().unwrap().push(e);
         };
         run(&req, Duration::from_secs(5), rx, &sink).await;
-        assert!(matches!(log.lock().unwrap().last(), Some(WsEvent::Closed { code: Some(1000), .. })));
+        assert!(matches!(
+            log.lock().unwrap().last(),
+            Some(WsEvent::Closed {
+                code: Some(1000),
+                ..
+            })
+        ));
 
         let port = forge_ports::free_port().unwrap();
         let req = parse(&format!("WEBSOCKET ws://127.0.0.1:{port}/")).requests[0].clone();
         let (_tx, rx) = mpsc::unbounded_channel();
         let log: Arc<Mutex<Vec<WsEvent>>> = Arc::default();
         let l2 = log.clone();
-        run(&req, Duration::from_secs(5), rx, &move |e| l2.lock().unwrap().push(e)).await;
-        assert!(matches!(&log.lock().unwrap()[0], WsEvent::Error(m) if m.starts_with("Connection failed")));
+        run(&req, Duration::from_secs(5), rx, &move |e| {
+            l2.lock().unwrap().push(e)
+        })
+        .await;
+        assert!(
+            matches!(&log.lock().unwrap()[0], WsEvent::Error(m) if m.starts_with("Connection failed"))
+        );
     }
 }

@@ -559,7 +559,11 @@ impl<'a> Resolver<'a> {
         let mut problems = Vec::new();
         out.url = self.subst(&req.url);
         if !out.url.contains("://") {
-            let scheme = if req.method == "WEBSOCKET" { "ws" } else { "http" };
+            let scheme = if req.method == "WEBSOCKET" {
+                "ws"
+            } else {
+                "http"
+            };
             out.url = format!("{scheme}://{}", out.url);
         }
         for h in &mut out.headers {
@@ -613,8 +617,8 @@ pub fn graphql_parts(body: &str) -> (String, Option<String>) {
             continue;
         }
         let candidate = lines[i..].join("\n");
-        let is_object = serde_json::from_str::<serde_json::Value>(&candidate)
-            .is_ok_and(|v| v.is_object());
+        let is_object =
+            serde_json::from_str::<serde_json::Value>(&candidate).is_ok_and(|v| v.is_object());
         let query = lines[..i].join("\n");
         if is_object && !query.trim().is_empty() {
             return (query.trim().to_string(), Some(candidate.trim().to_string()));
@@ -1279,7 +1283,10 @@ mod extras_tests {
         assert_eq!(http.method, "POST");
         let body: serde_json::Value = serde_json::from_str(http.body.as_deref().unwrap()).unwrap();
         assert_eq!(body["variables"]["id"], 7);
-        assert!(body["query"].as_str().unwrap().starts_with("query User($id: ID!)"));
+        assert!(body["query"]
+            .as_str()
+            .unwrap()
+            .starts_with("query User($id: ID!)"));
         assert_eq!(http.header("Content-Type"), Some("application/json"));
         assert_eq!(http.header("Authorization"), Some("Bearer x"));
         let (q, v) = graphql_parts("{ me { id } }");
@@ -1289,9 +1296,18 @@ mod extras_tests {
         assert_eq!(
             msgs,
             vec![
-                WsMessage { text: "{\"op\": \"hello\"}".into(), wait_for_server: false },
-                WsMessage { text: "{\"op\": \"next\"}".into(), wait_for_server: true },
-                WsMessage { text: "bye".into(), wait_for_server: false },
+                WsMessage {
+                    text: "{\"op\": \"hello\"}".into(),
+                    wait_for_server: false
+                },
+                WsMessage {
+                    text: "{\"op\": \"next\"}".into(),
+                    wait_for_server: true
+                },
+                WsMessage {
+                    text: "bye".into(),
+                    wait_for_server: false
+                },
             ]
         );
         // Schemes: ws:// for sockets without one.

@@ -777,7 +777,12 @@ fn openapi_documents_by_content() {
         bundled_problems(bundled::OPENAPI_31, DocKind::Json, ok31),
         Vec::<String>::new()
     );
-    assert!(!bundled_problems(bundled::OPENAPI_31, DocKind::Json, r#"{"openapi": "3.1.0"}"#).is_empty());
+    assert!(!bundled_problems(
+        bundled::OPENAPI_31,
+        DocKind::Json,
+        r#"{"openapi": "3.1.0"}"#
+    )
+    .is_empty());
     assert_eq!(mapping::openapi_version("swagger: '2.0'\n"), None);
     assert!(mapping::select("config.yaml", "name: x\n", DocKind::Yaml, &[], None).is_none());
 }

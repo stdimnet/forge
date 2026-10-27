@@ -1454,7 +1454,11 @@ mod tests {
         write(dir.path(), "prisma/schema.prisma", "datasource db {}");
         write(dir.path(), ".graphqlrc.yml", "schema: s.graphql");
         write(dir.path(), "site/astro.config.mjs", "");
-        write(dir.path(), "site/package.json", r#"{"dependencies": {"astro": "^5.1.0"}}"#);
+        write(
+            dir.path(),
+            "site/package.json",
+            r#"{"dependencies": {"astro": "^5.1.0"}}"#,
+        );
         write(dir.path(), "web/nuxt.config.ts", "");
         let info = detect(dir.path());
         let ids: Vec<&str> = info.frameworks.iter().map(|f| f.id.as_str()).collect();
@@ -1464,7 +1468,10 @@ mod tests {
         for tool in ["deno", "bun", "graphql"] {
             assert!(info.tools.iter().any(|t| t == tool), "{tool}");
         }
-        assert_eq!(info.framework("astro").unwrap().version.as_deref(), Some("5.1.0"));
+        assert_eq!(
+            info.framework("astro").unwrap().version.as_deref(),
+            Some("5.1.0")
+        );
     }
 
     #[test]

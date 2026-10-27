@@ -9,8 +9,8 @@
 //! - [`nuxt`]: Nuxt pages (file-based routes) and auto-imported components.
 //! - [`deno`]: tasks of `deno.json` / `deno.jsonc`.
 
-pub mod openapi;
-pub mod graphql;
 pub mod deno;
+pub mod graphql;
 pub mod nuxt;
 pub mod nx;
+pub mod openapi;

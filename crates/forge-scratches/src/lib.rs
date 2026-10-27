@@ -20,9 +20,9 @@
 pub mod curl;
 pub mod handler;
 pub mod http;
-pub mod oauth;
 pub mod languages;
 pub mod naming;
+pub mod oauth;
 pub mod run;
 pub mod store;
 

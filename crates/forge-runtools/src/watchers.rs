@@ -220,6 +220,7 @@ pub struct WatcherTemplate {
     pub watcher: FileWatcher,
 }
 
+#[allow(clippy::too_many_arguments)] // one row per template field
 fn template(
     id: &str,
     label: &str,
@@ -687,8 +688,7 @@ pub fn plan(watchers: &[FileWatcher], input: &PlanInput) -> Vec<WatcherRun> {
                 vec![path.to_string()]
             };
             for file in files {
-                if !(input.in_scope)(scope, &file) || !seen.insert((w.name.clone(), file.clone()))
-                {
+                if !(input.in_scope)(scope, &file) || !seen.insert((w.name.clone(), file.clone())) {
                     continue;
                 }
                 let run = command(
@@ -753,9 +753,7 @@ pub fn problems(output: &str, filters: &[String], cwd: &str, root: &str) -> Vec<
         for f in &compiled {
             for m in f.find(line) {
                 let raw = m.path.replace('\\', "/");
-                let abs = if raw.starts_with('/') || raw.get(1..2) == Some(":") {
-                    raw.clone()
-                } else if cwd.is_empty() {
+                let abs = if raw.starts_with('/') || raw.get(1..2) == Some(":") || cwd.is_empty() {
                     raw.clone()
                 } else {
                     normalize(&format!("{cwd}/{raw}"))
@@ -937,7 +935,10 @@ mod tests {
             .iter()
             .map(|r| (r.watcher.as_str(), r.file.as_str()))
             .collect();
-        assert_eq!(got, vec![("SCSS", "assets/app.scss"), ("TypeScript", "src/main.ts")]);
+        assert_eq!(
+            got,
+            vec![("SCSS", "assets/app.scss"), ("TypeScript", "src/main.ts")]
+        );
 
         // Typing only triggers watchers with auto-save; disabled watchers never run.
         let change = PlanInput {
@@ -979,7 +980,11 @@ mod tests {
             root: "/p",
             project_name: "p",
             in_scope: &always,
-            sources: &|_| [("a/app.scss".to_string(), String::new())].into_iter().collect(),
+            sources: &|_| {
+                [("a/app.scss".to_string(), String::new())]
+                    .into_iter()
+                    .collect()
+            },
             resolve_program: &no_local,
         };
         let runs = plan(&[scss(), css], &input);
@@ -990,7 +995,10 @@ mod tests {
     #[test]
     fn tracks_only_root_files() {
         let files: BTreeMap<String, String> = [
-            ("css/app.scss", "@use 'base';\n@import \"components/button\";"),
+            (
+                "css/app.scss",
+                "@use 'base';\n@import \"components/button\";",
+            ),
             ("css/print.scss", "@import 'base';"),
             ("css/_base.scss", "@use 'vars';"),
             ("css/_vars.scss", "$c: red;"),
@@ -1016,7 +1024,10 @@ mod tests {
         assert!(roots_for("css/_orphan.scss", &files).is_empty());
 
         let ts: BTreeMap<String, String> = [
-            ("src/main.ts", "import { a } from './util';\nimport x from \"react\";"),
+            (
+                "src/main.ts",
+                "import { a } from './util';\nimport x from \"react\";",
+            ),
             ("src/util/index.ts", "export * from './math';"),
             ("src/util/math.ts", "export const a = 1;"),
         ]
@@ -1074,7 +1085,10 @@ mod tests {
     fn validates_watchers() {
         let mut w = scss();
         assert!(validate(&w, &[]).is_empty());
-        assert_eq!(validate(&w, &[scss()]), vec!["Watcher \"SCSS\" already exists"]);
+        assert_eq!(
+            validate(&w, &[scss()]),
+            vec!["Watcher \"SCSS\" already exists"]
+        );
         w.program.clear();
         w.file_type = "cobol".into();
         w.output_filters = vec!["no path".into()];

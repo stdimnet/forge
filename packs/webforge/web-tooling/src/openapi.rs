@@ -11,7 +11,9 @@ use forge_jsonschema::tree::{Node, Value};
 use forge_jsonschema::DocKind;
 
 /// HTTP methods of a path item, in the order the preview lists them.
-pub const METHODS: &[&str] = &["get", "put", "post", "delete", "options", "head", "patch", "trace"];
+pub const METHODS: &[&str] = &[
+    "get", "put", "post", "delete", "options", "head", "patch", "trace",
+];
 
 /// Whether a JSON / YAML text is an OpenAPI or Swagger document (a top-level `openapi`
 /// or `swagger` key in its first lines).
@@ -30,7 +32,10 @@ pub fn version(text: &str) -> Option<(String, String)> {
         let json = || {
             let q = format!("\"{key}\"");
             let i = head.find(&q)?;
-            let rest = head[i + q.len()..].trim_start().strip_prefix(':')?.trim_start();
+            let rest = head[i + q.len()..]
+                .trim_start()
+                .strip_prefix(':')?
+                .trim_start();
             let rest = rest.strip_prefix('"')?;
             Some(rest[..rest.find('"')?].to_string())
         };
@@ -106,12 +111,18 @@ pub fn endpoints(path: &str, text: &str) -> Vec<Endpoint> {
             out.push(Endpoint {
                 method: m.to_ascii_uppercase(),
                 path: p.key.clone(),
-                operation_id: node.and_then(|n| str_of(n, "operationId")).map(str::to_string),
+                operation_id: node
+                    .and_then(|n| str_of(n, "operationId"))
+                    .map(str::to_string),
                 summary: node.and_then(|n| str_of(n, "summary")).map(str::to_string),
                 tags: node
                     .and_then(|n| n.get("tags"))
                     .and_then(Node::as_array)
-                    .map(|a| a.iter().filter_map(|t| t.as_str().map(str::to_string)).collect())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|t| t.as_str().map(str::to_string))
+                            .collect()
+                    })
                     .unwrap_or_default(),
                 deprecated: node
                     .and_then(|n| n.get("deprecated"))
@@ -293,10 +304,18 @@ impl<'a> Doc<'a> {
         if let Some(e) = n.get("example").or_else(|| n.get("default")) {
             return to_json(e);
         }
-        if let Some(e) = n.get("examples").and_then(Node::as_array).and_then(|a| a.first()) {
+        if let Some(e) = n
+            .get("examples")
+            .and_then(Node::as_array)
+            .and_then(|a| a.first())
+        {
             return to_json(e);
         }
-        if let Some(first) = n.get("enum").and_then(Node::as_array).and_then(|a| a.first()) {
+        if let Some(first) = n
+            .get("enum")
+            .and_then(Node::as_array)
+            .and_then(|a| a.first())
+        {
             return to_json(first);
         }
         for comb in ["oneOf", "anyOf"] {
@@ -316,7 +335,11 @@ impl<'a> Doc<'a> {
         let ty = n
             .get("type")
             .and_then(|t| t.as_str().or_else(|| t.as_array()?.first()?.as_str()))
-            .unwrap_or(if n.get("properties").is_some() { "object" } else { "" });
+            .unwrap_or(if n.get("properties").is_some() {
+                "object"
+            } else {
+                ""
+            });
         match ty {
             "object" | "" if n.get("properties").is_some() => {
                 let mut m = Map::new();
@@ -377,14 +400,22 @@ impl<'a> Doc<'a> {
                     .get("example")
                     .map(to_json)
                     .or_else(|| {
-                        let first = media.get("examples")?.as_object()?.first()?.value.as_ref()?;
+                        let first = media
+                            .get("examples")?
+                            .as_object()?
+                            .first()?
+                            .value
+                            .as_ref()?;
                         let first = self.deref(first);
                         Some(to_json(first.get("value")?))
                     })
                     .or_else(|| media.get("schema").map(|s| self.example(s, 0)));
                 Some(Body {
                     content_type: c.key.clone(),
-                    type_text: media.get("schema").map(|s| self.type_text(s)).unwrap_or_default(),
+                    type_text: media
+                        .get("schema")
+                        .map(|s| self.type_text(s))
+                        .unwrap_or_default(),
                     example: example
                         .map(|e| serde_json::to_string_pretty(&e).unwrap_or_default())
                         .unwrap_or_default(),
@@ -505,7 +536,10 @@ pub fn preview(path: &str, text: &str) -> Option<Preview> {
                 .and_then(Node::as_str)
                 .unwrap_or("https");
             servers.push(Server {
-                url: format!("{scheme}://{host}{}", str_of(&root, "basePath").unwrap_or("")),
+                url: format!(
+                    "{scheme}://{host}{}",
+                    str_of(&root, "basePath").unwrap_or("")
+                ),
                 description: None,
             });
         }
@@ -527,7 +561,9 @@ pub fn preview(path: &str, text: &str) -> Option<Preview> {
     let eps = endpoints(path, text);
     let mut i = 0;
     for p in paths {
-        let Some(item) = p.value.as_ref() else { continue };
+        let Some(item) = p.value.as_ref() else {
+            continue;
+        };
         for op in item.as_object().unwrap_or(&[]) {
             if !METHODS.contains(&op.key.to_ascii_lowercase().as_str()) {
                 continue;
@@ -592,7 +628,11 @@ pub fn preview(path: &str, text: &str) -> Option<Preview> {
     Some(Preview {
         spec: format!(
             "{} {ver}",
-            if key == "swagger" { "Swagger" } else { "OpenAPI" }
+            if key == "swagger" {
+                "Swagger"
+            } else {
+                "OpenAPI"
+            }
         ),
         title: info
             .and_then(|i| str_of(i, "title"))
@@ -618,11 +658,10 @@ pub fn preview(path: &str, text: &str) -> Option<Preview> {
 /// request body and the server URL as `{{baseUrl}}`'s default (`@baseUrl = …`).
 pub fn http_request(path: &str, text: &str, method: &str, op_path: &str) -> Option<String> {
     let p = preview(path, text)?;
-    let op = p
-        .groups
-        .iter()
-        .flat_map(|g| &g.operations)
-        .find(|o| o.endpoint.method.eq_ignore_ascii_case(method) && o.endpoint.path == op_path)?;
+    let op =
+        p.groups.iter().flat_map(|g| &g.operations).find(|o| {
+            o.endpoint.method.eq_ignore_ascii_case(method) && o.endpoint.path == op_path
+        })?;
     let base = p
         .servers
         .first()
@@ -639,7 +678,10 @@ pub fn http_request(path: &str, text: &str, method: &str, op_path: &str) -> Opti
     if let Some(id) = &op.endpoint.operation_id {
         out.push_str(&format!("# @name {id}\n"));
     }
-    let mut url = format!("{{{{baseUrl}}}}{}", op.endpoint.path.replace('{', "{{").replace('}', "}}"));
+    let mut url = format!(
+        "{{{{baseUrl}}}}{}",
+        op.endpoint.path.replace('{', "{{").replace('}', "}}")
+    );
     let query: Vec<String> = op
         .parameters
         .iter()
@@ -659,11 +701,18 @@ pub fn http_request(path: &str, text: &str, method: &str, op_path: &str) -> Opti
         .next()
         .unwrap_or_else(|| "application/json".into());
     out.push_str(&format!("Accept: {accept}\n"));
-    for h in op.parameters.iter().filter(|h| h.location == "header" && h.required) {
+    for h in op
+        .parameters
+        .iter()
+        .filter(|h| h.location == "header" && h.required)
+    {
         out.push_str(&format!("{0}: {{{{{0}}}}}\n", h.name));
     }
     if let Some(body) = &op.request_body {
-        out.push_str(&format!("Content-Type: {}\n\n{}\n", body.content_type, body.example));
+        out.push_str(&format!(
+            "Content-Type: {}\n\n{}\n",
+            body.content_type, body.example
+        ));
     }
     Some(out)
 }
@@ -746,10 +795,17 @@ components:
     #[test]
     fn extracts_endpoints() {
         let eps = endpoints("api.yaml", SPEC);
-        let got: Vec<_> = eps.iter().map(|e| (e.method.as_str(), e.path.as_str(), e.line)).collect();
+        let got: Vec<_> = eps
+            .iter()
+            .map(|e| (e.method.as_str(), e.path.as_str(), e.line))
+            .collect();
         assert_eq!(
             got,
-            vec![("GET", "/pets", 12), ("POST", "/pets", 29), ("DELETE", "/pets/{petId}", 45)]
+            vec![
+                ("GET", "/pets", 12),
+                ("POST", "/pets", 29),
+                ("DELETE", "/pets/{petId}", 45)
+            ]
         );
         assert_eq!(eps[0].operation_id.as_deref(), Some("listPets"));
         assert_eq!(eps[0].tags, vec!["pets"]);
@@ -759,28 +815,47 @@ components:
     #[test]
     fn builds_the_preview() {
         let p = preview("api.yaml", SPEC).unwrap();
-        assert_eq!((p.spec.as_str(), p.title.as_str(), p.version.as_str()), ("OpenAPI 3.0.3", "Pet Store", "1.2.0"));
+        assert_eq!(
+            (p.spec.as_str(), p.title.as_str(), p.version.as_str()),
+            ("OpenAPI 3.0.3", "Pet Store", "1.2.0")
+        );
         assert_eq!(p.servers[0].url, "https://api.example.com/v1/");
-        assert_eq!(p.groups.iter().map(|g| g.name.as_str()).collect::<Vec<_>>(), vec!["pets", "default"]);
+        assert_eq!(
+            p.groups.iter().map(|g| g.name.as_str()).collect::<Vec<_>>(),
+            vec!["pets", "default"]
+        );
         let list = &p.groups[0].operations[0];
         assert_eq!(list.parameters[0].type_text, "integer (int32)");
         assert_eq!(list.responses[0].bodies[0].type_text, "Pet[]");
         let create = &p.groups[0].operations[1];
-        let body: Json = serde_json::from_str(&create.request_body.as_ref().unwrap().example).unwrap();
-        assert_eq!(body, json!({ "name": "Rex", "tag": "dog", "born": "2024-01-01" }));
+        let body: Json =
+            serde_json::from_str(&create.request_body.as_ref().unwrap().example).unwrap();
+        assert_eq!(
+            body,
+            json!({ "name": "Rex", "tag": "dog", "born": "2024-01-01" })
+        );
         let delete = &p.groups[1].operations[0];
         assert_eq!(delete.parameters[0].name, "petId");
         assert_eq!(p.schemas[0].name, "Pet");
-        assert!(p.schemas[0].properties.iter().any(|s| s.name == "name" && s.required));
+        assert!(p.schemas[0]
+            .properties
+            .iter()
+            .any(|s| s.name == "name" && s.required));
     }
 
     #[test]
     fn generates_http_requests() {
         let req = http_request("api.yaml", SPEC, "post", "/pets").unwrap();
         assert!(req.starts_with("@baseUrl = https://api.example.com/v1\n\n### Create a pet\n# @name createPet\nPOST {{baseUrl}}/pets\n"), "{req}");
-        assert!(req.contains("Content-Type: application/json\n\n{\n  \"born\""), "{req}");
+        assert!(
+            req.contains("Content-Type: application/json\n\n{\n  \"born\""),
+            "{req}"
+        );
         let get = http_request("api.yaml", SPEC, "GET", "/pets").unwrap();
-        assert!(get.contains("GET {{baseUrl}}/pets?limit={{limit}}\nAccept: application/json\n"), "{get}");
+        assert!(
+            get.contains("GET {{baseUrl}}/pets?limit={{limit}}\nAccept: application/json\n"),
+            "{get}"
+        );
         let del = http_request("api.yaml", SPEC, "DELETE", "/pets/{petId}").unwrap();
         assert!(del.contains("DELETE {{baseUrl}}/pets/{{petId}}\n"), "{del}");
         assert!(http_request("api.yaml", SPEC, "PUT", "/pets").is_none());
@@ -796,7 +871,12 @@ components:
         assert_eq!(p.servers[0].url, "http://old.example.com/api");
         let op = &p.groups[0].operations[0];
         assert!(op.parameters.is_empty());
-        assert!(op.request_body.as_ref().unwrap().example.contains("user@example.com"));
+        assert!(op
+            .request_body
+            .as_ref()
+            .unwrap()
+            .example
+            .contains("user@example.com"));
         assert_eq!(op.responses[0].bodies[0].type_text, "User");
     }
 }

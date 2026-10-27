@@ -12,7 +12,9 @@ use crate::text::{byte_to_utf16, join_path, parent_dir, utf16_to_byte, Location}
 /// byte offsets of the string's contents.
 pub fn specifier_at(content: &str, byte: usize) -> Option<(String, usize, usize)> {
     let line_start = content[..byte].rfind('\n').map_or(0, |i| i + 1);
-    let line_end = content[byte..].find('\n').map_or(content.len(), |i| byte + i);
+    let line_end = content[byte..]
+        .find('\n')
+        .map_or(content.len(), |i| byte + i);
     let line = &content[line_start..line_end];
     let col = byte - line_start;
     // The string around the caret.
@@ -32,8 +34,7 @@ pub fn specifier_at(content: &str, byte: usize) -> Option<(String, usize, usize)
                     || before.ends_with("import(")
                     || before.ends_with("require(")
                     || before.ends_with("export * from")
-                    || line.trim_start().starts_with("import ")
-                        && before.ends_with("from");
+                    || line.trim_start().starts_with("import ") && before.ends_with("from");
                 if !is_import {
                     return None;
                 }
@@ -52,7 +53,9 @@ pub fn specifier_at(content: &str, byte: usize) -> Option<(String, usize, usize)
 /// resolves to.
 pub fn goto(sources: &Sources, path: &str, content: &str, offset: usize) -> Option<Location> {
     let (spec, _, _) = specifier_at(content, utf16_to_byte(content, offset))?;
-    sources.resolve_module(path, &spec).map(|p| Location::file(&p))
+    sources
+        .resolve_module(path, &spec)
+        .map(|p| Location::file(&p))
 }
 
 /// A completion of a module path.
@@ -93,7 +96,12 @@ fn prefix_dirs(sources: &Sources, from: &str, typed_dir: &str) -> Vec<String> {
 }
 
 /// Path completion inside an import string.
-pub fn complete(sources: &Sources, path: &str, content: &str, offset: usize) -> Option<ImportCompletion> {
+pub fn complete(
+    sources: &Sources,
+    path: &str,
+    content: &str,
+    offset: usize,
+) -> Option<ImportCompletion> {
     let byte = utf16_to_byte(content, offset);
     let (spec, start, _) = specifier_at(content, byte)?;
     let typed = &spec[..(byte - start).min(spec.len())];
@@ -197,17 +205,24 @@ mod tests {
     fn resolves_vite_aliases_for_navigation() {
         let s = sources();
         assert_eq!(
-            s.resolve_module("src/main.ts", "@/components/Footer").as_deref(),
+            s.resolve_module("src/main.ts", "@/components/Footer")
+                .as_deref(),
             Some("src/components/Footer.tsx")
         );
-        assert_eq!(s.resolve_module("src/main.ts", "#lib").as_deref(), Some("packages/lib/index.ts"));
+        assert_eq!(
+            s.resolve_module("src/main.ts", "#lib").as_deref(),
+            Some("packages/lib/index.ts")
+        );
         let text = "import Nav from '@/components/Nav.vue'\nconst x = 'not an import'\n";
         let at = text.find("Nav.vue").unwrap();
         assert_eq!(
             goto(&s, "src/main.ts", text, at),
             Some(Location::file("src/components/Nav.vue"))
         );
-        assert_eq!(goto(&s, "src/main.ts", text, text.find("not an").unwrap()), None);
+        assert_eq!(
+            goto(&s, "src/main.ts", text, text.find("not an").unwrap()),
+            None
+        );
         assert_eq!(s.bundler_aliases().len(), 2);
     }
 
@@ -223,7 +238,10 @@ mod tests {
         let text = "import x from '@/'";
         let c = complete(&s, "src/main.ts", text, text.len() - 1).unwrap();
         let labels: Vec<_> = c.items.iter().map(|i| (i.label.as_str(), i.dir)).collect();
-        assert_eq!(labels, vec![("assets", true), ("components", true), ("main", false)]);
+        assert_eq!(
+            labels,
+            vec![("assets", true), ("components", true), ("main", false)]
+        );
 
         let text = "import x from '";
         let c = complete(&s, "src/main.ts", text, text.len()).unwrap();
