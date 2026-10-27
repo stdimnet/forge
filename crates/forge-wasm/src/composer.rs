@@ -5,7 +5,6 @@
 
 use std::collections::HashMap;
 
-use phpforge_composer::audit::{self, AuditReport};
 use phpforge_composer::complete::{self, CompletionData, Request};
 use phpforge_composer::lock;
 use phpforge_composer::manifest;
@@ -34,7 +33,6 @@ struct Req {
     installed_json: Option<String>,
     /// Demo stand-in for Packagist.
     catalog: Vec<PackageInfo>,
-    report: Option<AuditReport>,
 }
 
 fn installed(r: &Req) -> Vec<lock::InstalledPackage> {
@@ -137,20 +135,6 @@ pub fn composer_hover(request_json: &str) -> String {
             let name = complete::hover_target(&r.text, r.offset).map(|t| t.0);
             let info = name.and_then(|n| r.catalog.iter().find(|p| p.name == n));
             to_json(&complete::hover(&r.text, r.offset, &installed(&r), info))
-        }
-        Err(e) => error(e),
-    }
-}
-
-/// `{ report, text (composer.json), lock }` → `{ jsonProblems, lockProblems }`.
-#[wasm_bindgen]
-pub fn composer_audit_problems(request_json: &str) -> String {
-    match parse::<Req>(request_json) {
-        Ok(r) => {
-            let report = r.report.unwrap_or_default();
-            let (json_problems, lock_problems) =
-                audit::problems(&report, Some(&r.text), r.lock.as_deref());
-            to_json(&json!({ "jsonProblems": json_problems, "lockProblems": lock_problems }))
         }
         Err(e) => error(e),
     }

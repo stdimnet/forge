@@ -34,7 +34,7 @@ Terminal, Vim emulation, Run Command… and the tools of plugins (Composer, Depl
 | Composer › Update | — | — | yes | Runs `composer update`. [More](../../user/composer.md#the-composerjson-toolbar) |
 | Composer › Validate | — | — | yes | Runs `composer validate`. [More](../../user/composer.md#the-composerjson-toolbar) |
 | Composer › Show Outdated | — | — | yes | Runs `composer outdated --direct`. [More](../../user/composer.md#outdated-packages) |
-| Composer › Audit | — | — | yes | Runs `composer audit` and shows the advisories in the Problems tool window. [More](../../user/composer.md#composer-audit) ([screenshot](../../../screenshots/composer-audit.png)) |
+| Composer › Audit | — | — | yes | Runs `composer audit` (the Composer part of the [vulnerable dependency check](../../user/vulnerable-dependencies.md)) and shows the advisories in the Problems tool window. [More](../../user/composer.md#composer-audit) ([screenshot](../../../screenshots/composer-audit.png)) |
 | **Deployment** | | | | submenu |
 | Deployment › Upload to Default Server | — | — | yes | Uploads the selected files or the open file to the default server. [More](../../user/deployment.md#uploading-and-downloading) ([screenshot](../../../screenshots/deployment-file-transfer.png)) |
 | Deployment › Upload to… | `Ctrl+Alt+Shift+X` | `Cmd+Alt+Shift+X` | yes | Asks for the server, then uploads. [More](../../user/deployment.md#uploading-and-downloading) ([screenshot](../../../screenshots/deployment-choose-server.png)) |

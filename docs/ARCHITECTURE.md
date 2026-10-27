@@ -1996,14 +1996,27 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
 - IPC (`app/ui/src/ipc/db.ts`): `db_data_sources_list`, `db_data_source_save({ source, password? })`,
   `db_data_source_delete({ id })`, `db_test_connection({ source, password? })`, `db_disconnect`,
   `db_schemas`, `db_introspect({ id, schema })`, `db_table_info`, `db_table_ddl`,
-  `db_table_data({ id, request: { schema, table, filter?, order?, offset?, limit? } })`,
-  `db_apply_changes({ id, schema, table, changes })` (one transaction, refused without a primary key),
+  `db_table_data({ id, request: { schema, table, filter?, columnFilters?, order?, offset?, limit? } })`
+  (SQL per dialect from `forge-dataedit`; the typed filter must be one read-only condition),
+  `db_preview_changes({ id, schema, table, changes }) -> { statements, key?, blocked?, confirm? }`
+  and `db_apply_changes({ id, schema, table, changes, confirmed? })` (one transaction; rows by
+  primary key, else a NOT NULL unique key; refused on read-only data sources and on production
+  ones unless `confirmed`),
   consoles `db_session_open|close`, `db_execute({ sessionId, sql, pageSize? })`, `db_fetch`,
   `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `.env` suggestions
   `db_detect_env` / `db_add_from_env`, `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`
   and `db_statement_at({ sql, from, to, dialect }) -> { text, start, end } | null` (what Ctrl+Enter
   runs; editor offsets). SQL text handling (dialects, splitting, literals, row changes, export) is
   the pure crate `forge-sql`, re-exported by `forge-db`.
+- Data editor: the pure crate `forge-dataedit` (also in WebAssembly as `dataedit_*`), IPC in
+  `commands/dataedit.rs`: `db_data_view({ request: { columns, rows, view } }) -> number[]` (local
+  sort and filter of console results), `db_data_aggregate` (`{ total, columns }`),
+  `db_data_compare({ request: { left, right, key } }) -> DataDiff`, `db_data_chart`,
+  `db_fk_navigate` (`direction: "referenced" | "referencing"` → table and WHERE text),
+  `db_fk_incoming`, `db_value_editor`, `db_value_format`, `db_value_binary`, `db_value_temporal`.
+  UI: `TableEditor`, `ResultGrid`, `ValueEditor`, `ChartView` (plain SVG), `CompareView`
+  (`db-compare://` tabs); grids register a `GridController` (`data-grid-id`) for Ctrl+B
+  (`Console.TableResult.GotoReferencedData`), Alt+F7 and Shift+Enter.
 - Database Explorer: the model types are the pure crate `forge-dbmodel` (also in WebAssembly as
   `dbmodel_*`). `db_model({ id, refresh? }) -> DbModel` (dialect, `catalog`/`catalogs`, every
   schema with `visible` from the data source's schema filter `options.schemas`, introspected
@@ -3392,9 +3405,9 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   composerJson, exists, hasLock, requirements, installed }`, `composer_markers({ path, text })
   -> OutdatedMarker[]`, `composer_complete({ path, text, offset })` (the JSON Schema completion
   shape), `composer_hover({ path, text, offset })`, `composer_search({ query })`,
-  `composer_package({ name }) -> { …PackageInfo, suggested, url }`, `composer_audit() -> {
-  advisories, abandoned, composerJson, composerLock, jsonProblems, lockProblems }`,
-  `composer_download_phar() -> path`. Packagist is reached from Rust only, while
+  `composer_package({ name }) -> { …PackageInfo, suggested, url }`,
+  `composer_download_phar() -> path`. `composer audit` runs with the vulnerable dependency
+  check (`vulnerabilities_check({ tools: ["composer"] })`, see below). Packagist is reached from Rust only, while
   `php.composer.packagist` is on, cached in `<cache dir>/forge/packagist`; project files and
   `composer audit` go through the backend (remote projects work).
 - Composer commands that change the project run as configurations of the hidden run type
@@ -3405,8 +3418,55 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
 - UI (`features/composer`): the composer.json editor extension (toolbar panel, completion
   source, hover, outdated markers as a line marker provider plus weak warnings of source
   `composer-outdated`, the `Composer.UpdatePackage` context action), the Manage Composer
-  Dependencies dialog, the "Vulnerable Dependencies" Problems tab (`composer-audit` problems),
-  `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
+  Dependencies dialog, `Composer.*` keymap actions under Tools | Composer (Composer.Audit runs
+  the vulnerable dependency check for `composer` only) and the Settings page
+  `lang.php.composer`.
+
+## Vulnerable dependencies (`crates/forge-vulns`)
+
+- Plugin `forge.vulnerabilities` (core, `app/src-tauri/plugins/vulnerabilities.toml`):
+  the command `Vulnerabilities.Check` (Code | Analyze Code | Check for Vulnerable
+  Dependencies), the inspection `VulnerableDependencies` (external, mapped from the
+  diagnostics source `vulnerabilities`; the problem keeps the advisory's severity: critical /
+  high error, moderate / unrated warning, low weak warning) and the settings
+  `vulnerabilities.enabled`, `vulnerabilities.checkOnOpen`, `vulnerabilities.cacheHours`,
+  `vulnerabilities.dependencyCheckReport` (page `tools.vulnerabilities`, Tools | Package
+  Checker).
+- `forge-vulns` (pure, also WebAssembly): the shared model (`Vulnerability`: ecosystem,
+  package, installed, id + aliases, severity, title, affected, fixed, url, via, reachable;
+  `Notice`), parsers of each tool's JSON (`parse::parse(tool, stdout)`), `tool::detect(files,
+  read, options) -> Target[]` (one audit per ecosystem in the project root: tool, dir,
+  manifest, lockfile, files to annotate, cache inputs, `blocked`), declarations with positions
+  (`declare`), problems and the Upgrade edit (`problems`), results and cache entries
+  (`report`). It reuses the pack parsers (phpforge-composer, pyforge-lang-python,
+  goforge-lang-go, webforge-lang-web, forge-jsonschema) instead of duplicating them.
+- Tools: `composer audit --format=json [--locked]` (`forge_process::composer_program`),
+  `npm|pnpm audit --json`, `yarn audit --json` (Yarn 1) / `yarn npm audit --json --recursive`
+  (Yarn 2+), `python -m pip_audit -f json` through the project interpreter
+  (`python::python_command`), `cargo audit --json` (when `cargo-audit` is found),
+  `govulncheck -json ./...`; OWASP dependency-check is never run, its JSON report is read.
+  Executables are found with `Backend::find_executable` and run with
+  `process_io::capture` on the project's machine (remote projects work).
+- IPC (`app/ui/src/ipc/vulnerabilities.ts`, `commands/vulnerabilities.rs`; lines 0-based,
+  columns UTF-16): `vulnerabilities_check({ force, tools? }) -> { enabled, results:
+  TargetResult[] }` (refused in Safe Mode, nothing while `vulnerabilities.enabled` is off; a
+  result is reused from `<cache dir>/forge/vulnerabilities/<project>/<tool>-<dir>.json` while
+  the FNV hash of its inputs matches and it is younger than `vulnerabilities.cacheHours`,
+  unless `force`), `vulnerabilities_problems({ path, text, vulnerabilities, notices }) ->
+  FileProblem[]`, `vulnerabilities_upgrade({ path, text, package, fixed }) -> string | null`,
+  `vulnerabilities_install_command({ tool, dir, package?, fixed? }) -> CommandLine`
+  (`composer update <pkg> --with-dependencies`, `npm|pnpm|yarn install`, `pip install
+  <pkg>>=<fixed>` via `python::packages_command`, `cargo update -p`, `go mod tidy`; without
+  `package` for pip-audit: installs pip-audit itself).
+- UI (`features/vulnerabilities`): the store (results, `runCheck`, publishing the problems
+  of every annotated file as diagnostics source `vulnerabilities`), a line marker provider
+  that recomputes a manifest's problems while it is edited, the Alt+Enter actions
+  `Vulnerabilities.Upgrade` and `Vulnerabilities.OpenAdvisory`, the Problems tab
+  `vulnerabilities` ("Vulnerable Dependencies"), the hidden run configuration type
+  `vulnerabilities-command` for install steps, automatic checks on project open (after 4 s)
+  and on `fs://changed` of a manifest or lock file (debounced). Browser mode:
+  `mock/vulnerabilitiesMock.ts` with recorded `composer audit` (Laravel demo) and `pnpm
+  audit` (React demo) reports, WebAssembly `crates/forge-wasm/src/vulnerabilities.rs`.
   Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
   (`mock/composerMock.ts`, `mock/demoComposer.ts`).
 

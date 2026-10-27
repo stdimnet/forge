@@ -333,11 +333,6 @@ export function colorscheme_state(json: string): string;
 export function compare_dir_listings(request_json: string): string;
 
 /**
- * `{ report, text (composer.json), lock }` → `{ jsonProblems, lockProblems }`.
- */
-export function composer_audit_problems(request_json: string): string;
-
-/**
  * `{ text, offset, lock, catalog }` → `CompletionOut | null`.
  */
 export function composer_complete(request_json: string): string;
@@ -502,6 +497,67 @@ export function csv_parse(request_json: string): string;
  * `{ rows, column, descending, headerRows }` → row indices.
  */
 export function csv_sort_order(request_json: string): string;
+
+/**
+ * `db_data_aggregate`: `{ columns, rows }` → `{ total, columns }`.
+ */
+export function dataedit_aggregate(request_json: string): string;
+
+/**
+ * `db_data_chart`: `{ columns, rows, spec }` → `ChartData`.
+ */
+export function dataedit_chart(request_json: string): string;
+
+/**
+ * `db_data_compare`: `{ left, right, key }` → `DataDiff`.
+ */
+export function dataedit_compare(request_json: string): string;
+
+/**
+ * `db_fk_incoming` → `Incoming[]`.
+ */
+export function dataedit_incoming(request_json: string): string;
+
+/**
+ * `db_fk_navigate` → `Navigation`.
+ */
+export function dataedit_navigate(request_json: string): string;
+
+/**
+ * `{ dialect, schema, table, info, changes }` → `{ statements, key }` (the mock's
+ * `db_preview_changes` and `db_apply_changes`).
+ */
+export function dataedit_preview(request_json: string): string;
+
+/**
+ * `{ dialect, query }` → `TableSql` (the mock's `db_table_data`).
+ */
+export function dataedit_table_query(request_json: string): string;
+
+/**
+ * `db_value_binary` → `BinaryInfo | null`.
+ */
+export function dataedit_value_binary(request_json: string): string;
+
+/**
+ * `db_value_editor` → `EditorKind`.
+ */
+export function dataedit_value_editor(request_json: string): string;
+
+/**
+ * `db_value_format` → `{ text?, error? }`.
+ */
+export function dataedit_value_format(request_json: string): string;
+
+/**
+ * `db_value_temporal` → `string | null`.
+ */
+export function dataedit_value_temporal(request_json: string): string;
+
+/**
+ * `db_data_view`: `{ columns, rows, view }` → row indexes.
+ */
+export function dataedit_view(request_json: string): string;
 
 /**
  * `{ dataSource, objects, schema? }` → the schema with the virtual objects merged in, or
@@ -2147,6 +2203,27 @@ export function vim_state(json: string): string;
 export function vim_timeout(json: string): string;
 
 /**
+ * `{ files: [{ path, text }], options }` → `Target[]`.
+ */
+export function vulnerabilities_detect(request_json: string): string;
+
+/**
+ * `{ path, text, vulnerabilities, notices }` → `FileProblem[]`.
+ */
+export function vulnerabilities_problems(request_json: string): string;
+
+/**
+ * `{ target, stdout, stderr?, lock?, checkedAt }` → `TargetResult` (what the desktop app
+ * makes of a tool run; `lock` is the lock file's text for the installed versions).
+ */
+export function vulnerabilities_result(request_json: string): string;
+
+/**
+ * `{ path, text, package, fixed }` → the new text, or `null`.
+ */
+export function vulnerabilities_upgrade(request_json: string): string;
+
+/**
  * `{ framework, files, paths }` -> `Component[]`.
  */
 export function web_components(request_json: string): string;
@@ -2274,7 +2351,6 @@ export interface InitOutput {
     readonly colorscheme_import: (a: number, b: number, c: number) => void;
     readonly colorscheme_state: (a: number, b: number, c: number) => void;
     readonly compare_dir_listings: (a: number, b: number, c: number) => void;
-    readonly composer_audit_problems: (a: number, b: number, c: number) => void;
     readonly composer_complete: (a: number, b: number, c: number) => void;
     readonly composer_hover: (a: number, b: number, c: number) => void;
     readonly composer_markers: (a: number, b: number, c: number) => void;
@@ -2307,6 +2383,18 @@ export interface InitOutput {
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
+    readonly dataedit_aggregate: (a: number, b: number, c: number) => void;
+    readonly dataedit_chart: (a: number, b: number, c: number) => void;
+    readonly dataedit_compare: (a: number, b: number, c: number) => void;
+    readonly dataedit_incoming: (a: number, b: number, c: number) => void;
+    readonly dataedit_navigate: (a: number, b: number, c: number) => void;
+    readonly dataedit_preview: (a: number, b: number, c: number) => void;
+    readonly dataedit_table_query: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_binary: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_editor: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_format: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_temporal: (a: number, b: number, c: number) => void;
+    readonly dataedit_view: (a: number, b: number, c: number) => void;
     readonly dbmodel_apply_virtual: (a: number, b: number, c: number) => void;
     readonly dbmodel_match_schemas: (a: number, b: number, c: number) => void;
     readonly dbmodel_object_doc: (a: number, b: number, c: number) => void;
@@ -2627,6 +2715,10 @@ export interface InitOutput {
     readonly vim_set_clipboard: (a: number, b: number, c: number) => void;
     readonly vim_state: (a: number, b: number, c: number) => void;
     readonly vim_timeout: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_detect: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_problems: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_result: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_upgrade: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
     readonly web_extract_component: (a: number, b: number, c: number) => void;
     readonly web_extract_component_prepare: (a: number, b: number, c: number) => void;

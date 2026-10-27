@@ -59,6 +59,7 @@ blocked even if a plugin or the UI tries to start them:
 | Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
 | Xdebug: Start Listening, PHP Web Page | refused |
 | Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
+| [Vulnerable dependency check](vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
 | Laravel routes | parsed from the route files instead of `php artisan route:list` |
 | Docker Compose up and Dockerfile ▶ in the gutter, Compose **Up** in Services | refused |
 | PHP interpreters: version and `phpinfo()` of an interpreter inside the project or a Docker Compose service | refused |

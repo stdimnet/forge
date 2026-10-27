@@ -29,6 +29,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-dap](forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
 | [forge-db](forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, the Database Explorer (object tree, schema filter, virtual foreign keys, full-text search, DDL data sources), consoles with sessions, the read-only / production guard and data editing |
 | [forge-dbmodel](forge-dbmodel.md) | Forge database explorer model (pure, also built to WebAssembly): object tree, schema filter, virtual foreign keys and columns, DDL parsing, full-text search queries, Quick Documentation, Create/Modify Table scripts and Generate DDL |
+| [forge-dataedit](forge-dataedit.md) | Forge data editor logic (pure, also built to WebAssembly): sort and filter SQL per dialect, local sort and filter, row keys and DML preview, foreign-key navigation, aggregates, data compare, charts and the value editor |
 | [forge-dbtransfer](forge-dbtransfer.md) | Forge database import, export and dump (pure, also built to WebAssembly): CSV/TSV, Excel and JSON sources with type detection, batched INSERTs, Excel export and native dump / restore command lines |
 | [forge-debug](forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
@@ -72,6 +73,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-update](forge-update.md) | Forge update checks: when to check, which release is an update, the update feed, simulated updates and download speed |
 | [forge-vcs](forge-vcs.md) | Forge IDE version control: drives the git CLI and parses its output |
 | [forge-vim](forge-vim.md) | Vim emulation (IdeaVim-style): modes, motions, operators, text objects, registers, ex commands and ~/.ideavimrc parsing (pure, built to WebAssembly) |
+| [forge-vulns](forge-vulns.md) | Vulnerable dependency check: a shared vulnerability model, the JSON reports of each ecosystem's audit tool (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck, OWASP dependency-check), what to audit in a project, where dependencies are declared and the Upgrade quick fix (pure, also built to WebAssembly) |
 | [forge-wasm](forge-wasm.md) | WebAssembly build of Forge's pure Rust logic for the browser-mode UI |
 | [forge-window](forge-window.md) | Forge window chrome: desktop detection, title bar button layouts and dialog window geometry (pure, also built to WebAssembly) |
 

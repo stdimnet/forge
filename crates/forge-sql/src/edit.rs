@@ -1,5 +1,6 @@
 //! Row editing from the data grid: pending inserts, updates and deletes become
-//! `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key.
+//! `INSERT`/`UPDATE`/`DELETE` statements that identify rows by their primary key (or a
+//! unique key, see `forge-dataedit`). A value `{"$default": true}` sets the column default.
 
 use std::collections::BTreeMap;
 
@@ -7,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::dialect::Dialect;
-use crate::value::sql_literal;
+use crate::value::{is_default, sql_literal};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -22,7 +23,7 @@ pub enum ChangeKind {
 #[serde(rename_all = "camelCase")]
 pub struct RowChange {
     pub kind: ChangeKind,
-    /// Original primary key values (update/delete).
+    /// Original values of the key columns (update/delete).
     #[serde(default)]
     pub key: BTreeMap<String, Value>,
     /// New column values (insert/update). Columns left out of an insert get their default.
@@ -44,7 +45,8 @@ impl std::error::Error for Refused {}
 
 type DbResult<T> = Result<T, Refused>;
 
-/// SQL for one change, or an error when the row cannot be identified.
+/// SQL for one change, or an error when the row cannot be identified. `pk` are the columns
+/// that identify a row: the primary key or a unique key.
 pub fn change_sql(
     d: Dialect,
     schema: &str,
@@ -56,28 +58,34 @@ pub fn change_sql(
     let where_pk = || -> DbResult<String> {
         if pk.is_empty() {
             return Err(Refused(format!(
-                "Table {table} has no primary key, so its rows cannot be identified. Edit it with an UPDATE statement in a console instead."
+                "Table {table} has no primary key or unique key, so its rows cannot be identified. Edit it with an UPDATE statement in a console instead."
             )));
         }
         pk.iter()
             .map(|c| match change.key.get(c) {
                 Some(Value::Null) => Ok(format!("{} IS NULL", d.quote_ident(c))),
                 Some(v) => Ok(format!("{} = {}", d.quote_ident(c), sql_literal(d, v))),
-                None => Err(Refused(format!("missing primary key value for {c}"))),
+                None => Err(Refused(format!("missing key value for {c}"))),
             })
             .collect::<DbResult<Vec<_>>>()
             .map(|parts| parts.join(" AND "))
     };
     match change.kind {
         ChangeKind::Insert => {
-            if change.values.is_empty() {
+            // Columns set to DEFAULT are simply left out.
+            let values: BTreeMap<_, _> = change
+                .values
+                .iter()
+                .filter(|(_, v)| !is_default(v))
+                .collect();
+            if values.is_empty() {
                 return Ok(match d {
                     Dialect::MySql => format!("INSERT INTO {target} () VALUES ()"),
                     _ => format!("INSERT INTO {target} DEFAULT VALUES"),
                 });
             }
-            let cols: Vec<_> = change.values.keys().map(|c| d.quote_ident(c)).collect();
-            let vals: Vec<_> = change.values.values().map(|v| sql_literal(d, v)).collect();
+            let cols: Vec<_> = values.keys().map(|c| d.quote_ident(c)).collect();
+            let vals: Vec<_> = values.values().map(|v| sql_literal(d, v)).collect();
             Ok(format!(
                 "INSERT INTO {target} ({}) VALUES ({})",
                 cols.join(", "),
@@ -88,6 +96,12 @@ pub fn change_sql(
             let w = where_pk()?;
             if change.values.is_empty() {
                 return Err(Refused("nothing to update".into()));
+            }
+            if d == Dialect::Sqlite && change.values.values().any(is_default) {
+                return Err(Refused(
+                    "SQLite cannot set a column to DEFAULT in an UPDATE; enter the value instead"
+                        .into(),
+                ));
             }
             let sets: Vec<_> = change
                 .values
@@ -141,6 +155,33 @@ mod tests {
         assert_eq!(
             change_sql(Dialect::Sqlite, "main", "users", &pk, &ins).unwrap(),
             "INSERT INTO \"users\" (\"name\") VALUES ('Ada')"
+        );
+    }
+
+    #[test]
+    fn default_marker_sets_or_omits_the_default() {
+        let pk = vec!["id".to_string()];
+        let upd = RowChange {
+            kind: ChangeKind::Update,
+            key: map(&[("id", json!(1))]),
+            values: map(&[("status", crate::value::default_marker())]),
+        };
+        assert_eq!(
+            change_sql(Dialect::Postgres, "public", "orders", &pk, &upd).unwrap(),
+            "UPDATE \"public\".\"orders\" SET \"status\" = DEFAULT WHERE \"id\" = 1"
+        );
+        assert!(change_sql(Dialect::Sqlite, "main", "orders", &pk, &upd).is_err());
+        let ins = RowChange {
+            kind: ChangeKind::Insert,
+            key: BTreeMap::new(),
+            values: map(&[
+                ("status", crate::value::default_marker()),
+                ("total", json!("9.50")),
+            ]),
+        };
+        assert_eq!(
+            change_sql(Dialect::MySql, "shop", "orders", &pk, &ins).unwrap(),
+            "INSERT INTO `shop`.`orders` (`total`) VALUES ('9.50')"
         );
     }
 

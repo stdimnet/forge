@@ -1,11 +1,11 @@
 /**
  * Browser-mode Composer backend. Browser mode has no network: a small demo catalog stands
- * in for Packagist and the demo project gets a composer.lock; markers, completion, hover
- * and the audit problems are computed by the Rust `phpforge-composer` crate (WebAssembly),
+ * in for Packagist and the demo project gets a composer.lock; markers, completion and hover
+ * are computed by the Rust `phpforge-composer` crate (WebAssembly),
  * exactly like in the desktop app. Composer itself never runs here (see `runMock.ts`).
  */
 import { registerMock } from "@/ipc";
-import type { AuditResult, PackageDetails, SearchHit } from "@/ipc/composer";
+import type { PackageDetails, SearchHit } from "@/ipc/composer";
 import { callWasm, forgeWasm } from "@/wasm";
 import { mockSettingValue } from "./settingsMock";
 import { DEMO_CATALOG } from "./demoComposer";
@@ -91,48 +91,6 @@ registerMock("composer_package", async ({ name }): Promise<PackageDetails> => {
   if (!p) throw new Error("not found on Packagist");
   const { downloads: _d, favers: _f, ...info } = p;
   return { ...info, suggested: SUGGESTED[p.name] ?? null, url: `https://packagist.org/packages/${p.name}` };
-});
-
-/** `composer audit --format=json` of the demo lock file. */
-export const DEMO_AUDIT = {
-  advisories: [
-    {
-      advisoryId: "PKSA-8qx3-n5y5-vvnd",
-      packageName: "guzzlehttp/psr7",
-      affectedVersions: ">=2,<2.4.5|<1.9.1",
-      title: "Improper header validation",
-      cve: "CVE-2023-29197",
-      link: "https://github.com/guzzle/psr7/security/advisories/GHSA-wxmh-65f7-jcvw",
-      severity: "medium",
-      reportedAt: "2023-04-17T16:00:00+00:00",
-      sources: ["GHSA-wxmh-65f7-jcvw"],
-    },
-    {
-      advisoryId: "PKSA-yhcn-xrg3-68b1",
-      packageName: "laravel/framework",
-      affectedVersions: ">=12.0.0,<12.1.1",
-      title: "File validation bypass with uppercase extensions",
-      cve: "CVE-2025-27515",
-      link: "https://github.com/laravel/framework/security/advisories/GHSA-78fx-h6xr-vch4",
-      severity: "medium",
-      reportedAt: "2025-03-05T18:00:00+00:00",
-      sources: ["GHSA-78fx-h6xr-vch4"],
-    },
-  ],
-  abandoned: [],
-};
-
-registerMock("composer_audit", async (): Promise<AuditResult> => {
-  await delay(400);
-  const w = await forgeWasm();
-  const json = jsonPath();
-  const lockFile = lockPath(json);
-  const problems = await callWasm<Pick<AuditResult, "jsonProblems" | "lockProblems">>(w.composer_audit_problems, {
-    report: DEMO_AUDIT,
-    text: mockFiles[json] ?? "{}",
-    lock: mockFiles[lockFile],
-  });
-  return { ...DEMO_AUDIT, composerJson: json, composerLock: lockFile, ...problems };
 });
 
 registerMock("composer_download_phar", async () => {

@@ -406,7 +406,12 @@ function update(p: Parser, db: DemoDatabase): EngineResult {
     const idx = t.info.columns.findIndex((c) => c.name === name);
     if (idx < 0) throw new Error(`Unknown column '${name}' in 'field list'`);
     p.expectOp("=");
-    sets.push([idx, parseOperand(p)]);
+    if (p.peek()?.t === "id" && p.peek()!.v.toUpperCase() === "DEFAULT") {
+      // `SET col = DEFAULT`: the column's default.
+      p.i++;
+      const c = t.info.columns[idx];
+      sets.push([idx, { k: "lit", v: c.default != null ? c.default : null }]);
+    } else sets.push([idx, parseOperand(p)]);
   } while (p.eatOp(","));
   const where = parseWhere(p);
   if (!p.done()) throw new Error(`syntax error near '${p.peek()?.v}'`);

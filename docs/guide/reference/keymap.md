@@ -611,6 +611,12 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Delete Rows | `Console.TableResult.DeleteRows` | `Ctrl+Y` | `Cmd+Backspace` | tool window |
 | Revert Selected | `Console.TableResult.Revert` | `Ctrl+Alt+Z` | `Cmd+Alt+Z` | tool window |
 | Reload Page | `Console.TableResult.Reload` |  |  | any |
+| Go to Referenced Data (data grid) | `Console.TableResult.GotoReferencedData` | `Ctrl+B` | `Cmd+B` | tool window |
+| Open Value Editor | `Console.TableResult.EditValue` | `Shift+Enter` in a grid (through `Database.Properties`) |  | any |
+| Transpose | `Console.TableResult.Transpose` |  |  | any |
+| Aggregate View | `Console.TableResult.AggregateView` |  |  | any |
+| Show Chart | `Console.TableResult.ShowChart` |  |  | any |
+| Compare With… (data) | `Console.TableResult.CompareWith` |  |  | any |
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |

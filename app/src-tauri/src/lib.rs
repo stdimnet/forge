@@ -62,6 +62,7 @@ pub fn run() {
         .manage(commands::inspections::InspectionsState::default())
         .manage(commands::json_schema::JsonSchemaState::default())
         .manage(commands::composer::ComposerState::default())
+        .manage(commands::vulnerabilities::VulnerabilitiesState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
@@ -491,8 +492,11 @@ pub fn run() {
             commands::composer::composer_hover,
             commands::composer::composer_search,
             commands::composer::composer_package,
-            commands::composer::composer_audit,
             commands::composer::composer_download_phar,
+            commands::vulnerabilities::vulnerabilities_check,
+            commands::vulnerabilities::vulnerabilities_problems,
+            commands::vulnerabilities::vulnerabilities_upgrade,
+            commands::vulnerabilities::vulnerabilities_install_command,
             commands::php::php_detect_servers,
             commands::php::php_lsp_config,
             commands::php_meta::php_inspect,
@@ -869,6 +873,17 @@ pub fn run() {
             commands::db::db_table_ddl,
             commands::db::db_table_data,
             commands::db::db_apply_changes,
+            commands::db::db_preview_changes,
+            commands::dataedit::db_data_view,
+            commands::dataedit::db_data_aggregate,
+            commands::dataedit::db_data_compare,
+            commands::dataedit::db_data_chart,
+            commands::dataedit::db_fk_navigate,
+            commands::dataedit::db_fk_incoming,
+            commands::dataedit::db_value_editor,
+            commands::dataedit::db_value_format,
+            commands::dataedit::db_value_binary,
+            commands::dataedit::db_value_temporal,
             commands::db::db_session_open,
             commands::db::db_session_close,
             commands::db::db_sessions_list,

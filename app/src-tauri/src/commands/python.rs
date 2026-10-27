@@ -417,7 +417,18 @@ pub async fn python_packages_command(
     interpreter: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<CommandLine> {
-    let (interp, _) = resolve(&state, interpreter.as_deref().unwrap_or("")).ok_or_else(|| {
+    packages_command(&state, action, &packages, interpreter.as_deref())
+}
+
+/// [`python_packages_command`] for other features (installing pip-audit, upgrading a
+/// vulnerable package).
+pub(crate) fn packages_command(
+    state: &AppState,
+    action: Action,
+    packages: &[String],
+    interpreter: Option<&str>,
+) -> Result<CommandLine> {
+    let (interp, _) = resolve(state, interpreter.unwrap_or("")).ok_or_else(|| {
         ForgeError::Other("No Python interpreter is configured for the project".into())
     })?;
     if packages
@@ -433,12 +444,12 @@ pub async fn python_packages_command(
     } else {
         manager::choose(interp.kind, uv_lock)
     };
-    let (program, args) = manager::command(mgr, action, &packages, interp.python());
+    let (program, args) = manager::command(mgr, action, packages, interp.python());
     let mut cmd = CommandLine::new("python").args(args);
     cmd.env
         .insert("PIP_DISABLE_PIP_VERSION_CHECK".into(), "1".into());
     let tool = (mgr != manager::Manager::Pip).then_some(program.as_str());
-    through(&state, backend.as_ref(), &interp, tool, cmd).map(|(c, _)| c)
+    through(state, backend.as_ref(), &interp, tool, cmd).map(|(c, _)| c)
 }
 
 fn index(state: &AppState) -> Option<String> {
