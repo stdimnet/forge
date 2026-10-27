@@ -468,11 +468,7 @@ pub(crate) mod tests {
         assert_eq!(snap.problems, ["mappings: not exposed (404)"]);
 
         // Nothing listens on a closed port.
-        let closed = TcpListener::bind("127.0.0.1:0")
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
+        let closed = forge_ports::free_port().unwrap();
         let none = probe(closed, "/actuator", Duration::from_millis(500));
         assert!(none.health.is_none() && none.problems.len() == 1);
     }

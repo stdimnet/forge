@@ -27,7 +27,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-diff](forge-diff.md) | Forge IDE comparisons: folder diff (Compare Directories), pure and WebAssembly-friendly |
 | [forge-deploy](forge-deploy.md) | Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files |
 | [forge-dap](forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
-| [forge-db](forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, introspection, consoles with sessions, the read-only / production guard and data editing |
+| [forge-db](forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, the Database Explorer (object tree, schema filter, virtual foreign keys, full-text search, DDL data sources), consoles with sessions, the read-only / production guard and data editing |
+| [forge-dbmodel](forge-dbmodel.md) | Forge database explorer model (pure, also built to WebAssembly): object tree, schema filter, virtual foreign keys and columns, DDL parsing, full-text search queries and Quick Documentation |
 | [forge-debug](forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |
 | [forge-emmet](forge-emmet.md) | Emmet: abbreviation parser and expander for HTML, JSX and CSS, Surround with Emmet, edit points, Update/Remove Tag (pure, WebAssembly-friendly) |
@@ -50,6 +51,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-open](forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
 | [forge-output](forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
+| [forge-ports](forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-project](forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |

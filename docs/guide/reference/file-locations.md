@@ -39,6 +39,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | Path | Content |
 | --- | --- |
 | `php-index/<project>-<hash>.json` | PHP index cache per project |
+| `db-models/<data source>-<hash>.json` | the Database tool window's model of each data source (schemas, tables, routines, roles), so the tree shows without connecting; refreshed with Refresh |
 | `project-windows.json` | the running project windows (one Forge instance each) and their local control ports, for Window \| Next Project Window |
 | `json-schemas/<sha256 of the URL>.json` | downloaded JSON schemas and the SchemaStore catalog (only with remote JSON schemas allowed), refreshed daily |
 | `php-stubs/<version>/` | JetBrains phpstorm-stubs for Go to Declaration on PHP's own symbols (downloaded on first use, checked against a pinned digest of its files, with its `LICENSE`) |
@@ -93,6 +94,7 @@ first (the time is UTC).
 | `breakpoints.json` | Xdebug breakpoints | optional |
 | `php-servers.json` | PHP servers and path mappings | yes |
 | `dataSources.toml` | project data sources (no passwords) | yes |
+| `database/virtual.toml` | virtual foreign keys and columns of the Database tool window | yes |
 | `deployment.toml` | deployment servers, mappings, excluded paths and the default server (no passwords) | yes |
 | `inspectionProfiles/*.xml` | project inspection profiles in PHPStorm's format (`Project_Default.xml` once it differs from the defaults) | yes |
 

@@ -59,6 +59,7 @@ pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<Statement> {
                 i = skip_dollar(sql, i)
             }
             b';' if dialect == Dialect::Oracle && is_plsql(&sql[start..i]) => i += 1,
+            b';' if dialect == Dialect::Sqlite && in_sqlite_trigger(&sql[start..i]) => i += 1,
             b';' => {
                 push_piece(sql, &mut out, start, i);
                 i += 1;
@@ -110,6 +111,30 @@ fn is_plsql(piece: &str) -> bool {
         }),
         _ => false,
     }
+}
+
+/// Whether a SQLite `CREATE TRIGGER … BEGIN … END` body is still open (its `;` end the
+/// statements inside, not the trigger).
+fn in_sqlite_trigger(piece: &str) -> bool {
+    let words = leading_words(piece, 3);
+    let trigger = matches!(
+        words
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .as_slice(),
+        ["CREATE", "TRIGGER", ..] | ["CREATE", "TEMP" | "TEMPORARY", "TRIGGER"]
+    );
+    if !trigger {
+        return false;
+    }
+    let tail = piece.trim_end().to_ascii_uppercase();
+    let ended = tail.ends_with("END")
+        && !tail[..tail.len() - 3]
+            .chars()
+            .last()
+            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_');
+    !ended
 }
 
 /// The first `n` words of a statement, upper-cased, skipping comments.
@@ -409,6 +434,22 @@ mod tests {
                 "select 1",
                 "select ';' as a -- ; no",
                 "/* ; */ select \"a;b\""
+            ]
+        );
+    }
+
+    #[test]
+    fn keeps_sqlite_trigger_bodies_together() {
+        let sql = "CREATE TRIGGER t AFTER INSERT ON a BEGIN UPDATE a SET n = 1; DELETE FROM b; END;\nSELECT 1;";
+        let parts: Vec<_> = split_statements(sql, Dialect::Sqlite)
+            .into_iter()
+            .map(|s| s.text)
+            .collect();
+        assert_eq!(
+            parts,
+            vec![
+                "CREATE TRIGGER t AFTER INSERT ON a BEGIN UPDATE a SET n = 1; DELETE FROM b; END",
+                "SELECT 1"
             ]
         );
     }

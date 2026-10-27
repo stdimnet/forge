@@ -2,15 +2,12 @@
 //! adapter that listens (started by Forge or already running, "Attach to DAP server"), or
 //! a TCP server Forge opens for an adapter that connects back.
 
-use std::hash::{BuildHasher, RandomState};
-use std::net::SocketAddr;
-use std::ops::{Range, RangeInclusive};
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufRead, AsyncWrite, BufReader};
-use tokio::net::{TcpListener, TcpSocket, TcpStream};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::process::{Child, ChildStderr, Command};
 
 use crate::error::{DapError, DapResult};
@@ -124,50 +121,10 @@ fn from_tcp(stream: TcpStream, child: Option<Child>, peer: String) -> Connection
     }
 }
 
-/// Ports for adapters that Forge starts with `${port}`. They lie below the ephemeral port
-/// ranges (Linux 32768-60999, macOS and Windows 49152-65535): the system hands ephemeral
-/// ports to every program that binds port 0 or connects out, so on a busy machine a port
-/// Forge took from there can go to another program before the adapter binds it. The
-/// adapter then fails with "address in use" and Forge talks to that program instead.
-const ADAPTER_PORTS: Range<u16> = 20000..32768;
-
-/// A free port for an adapter Forge starts, outside the system's ephemeral range.
+/// A free port for an adapter Forge starts with `${port}`: outside the system's ephemeral
+/// range and probed without listening (see `forge-ports`).
 fn free_port() -> DapResult<u16> {
-    let ephemeral = ephemeral_ports();
-    let random = RandomState::new();
-    let span = u64::from(ADAPTER_PORTS.end - ADAPTER_PORTS.start);
-    for attempt in 0..64u32 {
-        let port = ADAPTER_PORTS.start + (random.hash_one(attempt) % span) as u16;
-        if ephemeral.as_ref().is_some_and(|r| r.contains(&port)) {
-            continue;
-        }
-        if let Ok(port) = probe(port) {
-            return Ok(port);
-        }
-    }
-    Ok(probe(0)?)
-}
-
-/// Check that `port` is free by binding it, without listening. A process that is spawned
-/// at the same moment (by Forge or by another test) inherits a copy of the socket until it
-/// executes its program. A copied listening socket would keep accepting connections after
-/// Forge closed it: the adapter could not bind the port, Forge would connect to the copy, and
-/// that connection would be reset once the copy closes. A copy that is only bound refuses
-/// connections, and the adapter can still bind the port (address reuse).
-fn probe(port: u16) -> std::io::Result<u16> {
-    let socket = TcpSocket::new_v4()?;
-    // Not on Windows: there the option lets a socket take over a port that is in use.
-    #[cfg(unix)]
-    socket.set_reuseaddr(true)?;
-    socket.bind(SocketAddr::from(([127, 0, 0, 1], port)))?;
-    Ok(socket.local_addr()?.port())
-}
-
-/// The system's ephemeral port range, where it can be read (Linux).
-fn ephemeral_ports() -> Option<RangeInclusive<u16>> {
-    let text = std::fs::read_to_string("/proc/sys/net/ipv4/ip_local_port_range").ok()?;
-    let mut ports = text.split_whitespace().map(|p| p.parse::<u16>().ok());
-    Some(ports.next()??..=ports.next()??)
+    Ok(forge_ports::free_port()?)
 }
 
 /// Open `transport`, waiting at most `timeout` for TCP adapters to come up.
@@ -252,6 +209,9 @@ pub async fn open(transport: &Transport, timeout: Duration) -> DapResult<Connect
 #[cfg(test)]
 mod tests {
     use super::*;
+    use forge_ports::{ephemeral_ports, PORTS as ADAPTER_PORTS};
+    use std::net::SocketAddr;
+    use tokio::net::TcpSocket;
 
     #[test]
     fn port_placeholders_are_replaced() {

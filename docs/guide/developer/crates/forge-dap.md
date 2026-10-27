@@ -23,8 +23,8 @@ with the same `debug_*` commands and `debug://*` events.
 - `transport::Transport`: an adapter process on stdio, a TCP connection to an adapter that
   listens (started by Forge with `${port}`, or already running: "Attach to DAP server"), or a
   TCP server Forge opens for an adapter that connects back. `${port}` is a free port below the
-  system's ephemeral range (20000-32767), so no other program is handed the same port before
-  the adapter binds it.
+  system's ephemeral range (20000-32767) from [`forge-ports`](forge-ports.md), so no other
+  program is handed the same port before the adapter binds it.
 - `adapter`: `DebugAdapterDescriptor` (how to start an adapter and build its `launch` /
   `attach` arguments), `ManifestAdapter` (adapters declared with
   `[[contributions.debugAdapters]]`, request templates with `${program}`, `${args}`,
@@ -109,7 +109,8 @@ pub trait DebugAdapterDescriptor: Send + Sync {
 ## Dependencies
 
 - Workspace crates: [`forge-core`](forge-core.md), [`forge-debug`](forge-debug.md),
-  [`forge-plugin-api`](forge-plugin-api.md), [`forge-runtools`](forge-runtools.md)
+  [`forge-plugin-api`](forge-plugin-api.md), [`forge-ports`](forge-ports.md) (free adapter
+  ports), [`forge-runtools`](forge-runtools.md)
 - External: `base64`, `serde`, `serde_json`, `thiserror`, `tokio`, `tracing`
 
 ## Tests

@@ -3,7 +3,7 @@
  * dialog, query consoles and table data editors as editor tabs, and the `.env` suggestion.
  */
 import { createEffect, createRoot, on } from "solid-js";
-import { Database, SquareTerminal, Table2, Eye, KeySquare } from "lucide-solid";
+import { Database, SquareTerminal, Table2, Eye, KeySquare, TextSearch } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
@@ -17,7 +17,8 @@ import { registerDialog } from "@/shell/window/dialogs";
 import { isDialogWindow } from "@/shell/window/mode";
 import { registerKeymapActions, runAction } from "@/keymap";
 import { dbApi } from "@/ipc/db";
-import { DatabaseActions, DatabaseView } from "./DatabaseView";
+import { DatabaseActions, DatabaseView, fullTextSearchOfSelection, quickDocOfSelection } from "./DatabaseView";
+import { FullTextSearchView, SEARCH_VIEW, openFullTextSearch } from "./FullTextSearch";
 import { DataSourceDialog } from "./DataSourceDialog";
 import { ConsoleView } from "./ConsoleView";
 import { TableEditor } from "./TableEditor";
@@ -72,13 +73,21 @@ registerEditorView({
   component: TableEditor,
   icon: (p) => {
     const loc = parseTablePath(p.tab.path);
-    const view = loc && tableInfo(loc.id, loc.schema, loc.table)?.kind === "view";
+    const kind = loc && tableInfo(loc.id, loc.schema, loc.table)?.kind;
+    const view = kind === "view" || kind === "matview";
     return view ? <Eye size={p.size} class="db-tab-icon table" /> : <Table2 size={p.size} class="db-tab-icon table" />;
   },
   breadcrumbs: (tab: EditorTab) => {
     const loc = parseTablePath(tab.path);
     return loc ? [sourceById(loc.id)?.name ?? loc.id, loc.schema, loc.table] : [tab.name];
   },
+});
+
+registerEditorView({
+  id: SEARCH_VIEW,
+  component: FullTextSearchView,
+  icon: (p) => <TextSearch size={p.size} class="db-tab-icon console" />,
+  breadcrumbs: (tab: EditorTab) => ["Database", tab.name],
 });
 
 registerEditorView({
@@ -118,6 +127,8 @@ registerKeymapActions([
   { id: "Database.OpenConsole", title: "Jump to Query Console…", group: "Database", context: "toolwindow", shortcuts: { $default: ["Ctrl+Shift+F10"], macOS: ["Cmd+Shift+F10"] } },
   { id: "Database.Properties", title: "Data Source Properties", group: "Database", context: "toolwindow", shortcuts: { $default: ["Shift+Enter"], macOS: ["Shift+Enter"] } },
   { id: "Database.NewDataSource", title: "New Data Source…", group: "Database" },
+  // DataGrip: Full-Text Search in the Database tool window.
+  { id: "DatabaseView.FullTextSearch", title: "Full-Text Search…", group: "Database", shortcuts: { $default: ["Ctrl+Alt+Shift+F"], macOS: ["Cmd+Alt+Shift+F"] } },
 ]);
 
 const inDbTree = () => !!document.activeElement?.closest(".db-tree");
@@ -169,6 +180,22 @@ registerCommand({
     else openDataSources({ newDriver: "mysql" });
   },
 });
+registerCommand({
+  id: "DatabaseView.FullTextSearch",
+  title: "Full-Text Search…",
+  category: "Database",
+  run: () => (inDbTree() ? fullTextSearchOfSelection() : openFullTextSearch({ ds: selectedSourceId() })),
+});
+
+// Ctrl+Q in the Database tool window documents the selected node (DDL, column info).
+const quickDoc = commands().get("QuickJavaDoc");
+if (quickDoc) {
+  registerCommand({
+    ...quickDoc,
+    run: () => (inDbTree() ? quickDocOfSelection() : quickDoc.run()),
+  });
+}
+
 registerCommand({ id: "Database.Properties", title: "Data Source Properties", category: "Database", run: () => openDataSources({ select: selectedSourceId() }) });
 registerCommand({ id: "Database.NewDataSource", title: "New Data Source…", category: "Database", run: () => openDataSources({ newDriver: "mysql" }) });
 // Manifest command ids (Find Action, plugin contributions).

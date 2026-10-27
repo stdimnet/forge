@@ -429,9 +429,7 @@ fn ftp_login_errors_are_reported() {
     let err = FtpFs::connect(&secure).err().unwrap();
     assert!(err.to_string().contains("TLS"), "{err}");
     // Nothing listens on the port anymore.
-    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = closed.local_addr().unwrap().port();
-    drop(closed);
+    let port = forge_ports::free_port().unwrap();
     assert!(FtpFs::connect(&ftp_params(port, "secret", "")).is_err());
 }
 

@@ -20,11 +20,18 @@ use crate::engine::{Canceller, ConnectSpec};
 use crate::env::{self, DetectedDataSource};
 use crate::error::{DbError, DbResult};
 use crate::guard::{self, Guard, GuardPolicy};
-use crate::introspect::{self, SchemaInfo, SchemaName, TableInfo};
+use crate::introspect;
+
 use crate::secrets::{ssh_account, ssl_key_account, SecretStore};
 use crate::split::{is_query, split_statements, transaction_control};
 use crate::ssh::{host_key, ForgeSsh, SshConnector};
 use crate::tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
+
+mod explorer;
+mod search;
+
+pub use explorer::natural_cmp;
+pub use search::{SearchProgress, SearchRequest, SearchScope, SearchSummary, TableMatches};
 
 pub const DEFAULT_PAGE_SIZE: usize = 500;
 
@@ -271,6 +278,11 @@ pub struct DbService {
     tunnels: Mutex<HashMap<String, TunnelEndpoint>>,
     sessions: Mutex<HashMap<String, Arc<Session>>>,
     next_session: AtomicU64,
+    /// Explorer models are cached here (user cache dir); `None` keeps them in memory.
+    cache_dir: Option<PathBuf>,
+    models: Mutex<HashMap<String, forge_dbmodel::DbModel>>,
+    /// Running full-text searches.
+    searches: Mutex<HashMap<String, CancellationToken>>,
 }
 
 fn elapsed_ms(t: Instant) -> u64 {
@@ -293,6 +305,9 @@ impl DbService {
             tunnels: Mutex::default(),
             sessions: Mutex::default(),
             next_session: AtomicU64::new(1),
+            cache_dir: None,
+            models: Mutex::default(),
+            searches: Mutex::default(),
         };
         if let Err(e) = svc.reload() {
             tracing::warn!("{e}");
@@ -564,16 +579,29 @@ impl DbService {
         if ds.name.trim().is_empty() {
             ds.name = env::default_name(&ds);
         }
-        let old_scope = {
+        let (old_scope, retarget) = {
             let mut s = self.lock();
             let old = s.list.iter().position(|d| d.id == ds.id);
             let old_scope = old.map(|i| s.list[i].scope);
+            let retarget = old.is_some_and(|i| {
+                let o = &s.list[i];
+                !o.same_target(&ds)
+                    || o.user != ds.user
+                    || o.options.ddl_dialect != ds.options.ddl_dialect
+            });
             match old {
                 Some(i) => s.list[i] = ds.clone(),
                 None => s.list.push(ds.clone()),
             }
-            old_scope
+            (old_scope, retarget)
         };
+        if retarget {
+            self.forget_model(&ds.id);
+        }
+        if ds.driver == config::Driver::Ddl {
+            // Files or dialect may have changed: parse again on the next request.
+            self.models.lock().expect("poisoned").remove(&ds.id);
+        }
         self.persist(ds.scope)?;
         if let Some(prev) = old_scope.filter(|p| *p != ds.scope) {
             self.persist(prev)?;
@@ -595,6 +623,7 @@ impl DbService {
 
     pub async fn delete(&self, id: &str) -> DbResult<()> {
         let ds = self.get(id)?;
+        self.forget_model(id);
         self.lock().list.retain(|d| d.id != id);
         self.persist(ds.scope)?;
         for account in [id.to_string(), ssh_account(id), ssl_key_account(id)] {
@@ -722,6 +751,12 @@ impl DbService {
     /// The pool of a data source, connecting on first use.
     pub async fn pool(&self, id: &str) -> DbResult<DbPool> {
         let ds = self.get(id)?;
+        if ds.driver == config::Driver::Ddl {
+            return Err(DbError::Refused(format!(
+                "{} is a DDL data source: it has a model but no database",
+                ds.name
+            )));
+        }
         let mut pools = self.pools.lock().await;
         if let Some(p) = pools.get(id) {
             return Ok(p.clone());
@@ -746,27 +781,15 @@ impl DbService {
         self.drop_pool(id).await;
     }
 
-    pub async fn schemas(&self, id: &str) -> DbResult<Vec<SchemaName>> {
-        let mut conn = self.pool(id).await?.acquire().await?;
-        introspect::schemas(&mut conn).await
-    }
-
-    pub async fn introspect(&self, id: &str, schema: &str) -> DbResult<SchemaInfo> {
-        let mut conn = self.pool(id).await?.acquire().await?;
-        introspect::schema(&mut conn, schema, None).await
-    }
-
-    pub async fn table_info(&self, id: &str, schema: &str, table: &str) -> DbResult<TableInfo> {
-        let mut conn = self.pool(id).await?.acquire().await?;
-        introspect::schema(&mut conn, schema, Some(table))
-            .await?
-            .tables
-            .into_iter()
-            .next()
-            .ok_or_else(|| DbError::Sql(format!("table {schema}.{table} not found")))
-    }
-
     pub async fn table_ddl(&self, id: &str, schema: &str, table: &str) -> DbResult<String> {
+        let ds = self.get(id)?;
+        if ds.driver == config::Driver::Ddl {
+            let model = self.model(id, false).await?;
+            let t = model
+                .table(schema, table)
+                .ok_or_else(|| DbError::Sql(format!("table {schema}.{table} not found")))?;
+            return Ok(crate::ddl::generate(ds.dialect(), schema, t));
+        }
         let mut conn = self.pool(id).await?.acquire().await?;
         crate::ddl::table_ddl(&mut conn, schema, table).await
     }

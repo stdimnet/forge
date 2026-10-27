@@ -614,6 +614,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Jump to Query Console… | `Database.OpenConsole` | `Ctrl+Shift+F10` | `Cmd+Shift+F10` | tool window |
 | Data Source Properties | `Database.Properties` | `Shift+Enter` | `Shift+Enter` | tool window |
 | New Data Source… | `Database.NewDataSource` |  |  | any |
+| Full-Text Search… (database) | `DatabaseView.FullTextSearch` | `Ctrl+Alt+Shift+F` | `Cmd+Alt+Shift+F` | any |
 | Editor Only | `TextEditorWithPreview.Layout.EditorOnly` |  |  | any |
 | Editor and Preview | `TextEditorWithPreview.Layout.EditorAndPreview` |  |  | any |
 | Preview Only | `TextEditorWithPreview.Layout.PreviewOnly` |  |  | any |
