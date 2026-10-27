@@ -821,13 +821,14 @@ impl Builder {
                     _ => {}
                 }
             }
-            Statement::CreateSchema { schema_name, .. } => {
-                if let sqlparser::ast::SchemaName::Simple(n)
-                | sqlparser::ast::SchemaName::NamedAuthorization(n, _) = schema_name
-                {
-                    if let Some(s) = ident_parts(n).last() {
-                        self.schema_key(s);
-                    }
+            Statement::CreateSchema {
+                schema_name:
+                    sqlparser::ast::SchemaName::Simple(n)
+                    | sqlparser::ast::SchemaName::NamedAuthorization(n, _),
+                ..
+            } => {
+                if let Some(s) = ident_parts(n).last() {
+                    self.schema_key(s);
                 }
             }
             _ => {}

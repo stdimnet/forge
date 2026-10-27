@@ -245,7 +245,7 @@ async fn full_text_search_finds_rows_per_table() {
     assert_eq!(summary.tables, 3);
     assert_eq!(summary.matched_tables, 2, "big_orders has no matching row");
     assert!(!summary.cancelled);
-    let events = events.lock().unwrap();
+    let events = events.lock().unwrap().clone();
     assert_eq!(events.last().unwrap().done, 3);
     let orders = events
         .iter()
@@ -353,7 +353,7 @@ async fn ddl_data_sources_parse_project_files() {
     // A changed file: the source is re-parsed.
     std::fs::write(mig.join("V11__tags.sql"), "CREATE TABLE tags (id int);").unwrap();
     let touched = svc.ddl_sources_touched(&["db/migrations/V11__tags.sql".into()]);
-    assert_eq!(touched, [id.clone()]);
+    assert_eq!(touched, std::slice::from_ref(&id));
     assert!(svc.ddl_sources_touched(&["src/main.rs".into()]).is_empty());
     let model = svc.model(&id, false).await.unwrap();
     assert!(model.table("public", "tags").is_some());
