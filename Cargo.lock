@@ -2189,6 +2189,8 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-lang-ruby",
+ "rubyforge-sdk",
  "rustforge-lang-rust",
  "rustforge-toolchain",
  "serde",

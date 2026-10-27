@@ -68,6 +68,8 @@ impl RunState {
         goforge_lang_go::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // Cargo Test: the manifest spec with RustForge's discovery and command lines.
         rustforge_lang_rust::provider::register(&mut tests, plugins.test_frameworks().cloned());
+        // RSpec and Minitest: the manifest specs with RubyForge's discovery and commands.
+        rubyforge_lang_ruby::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
         tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -252,6 +254,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     let run_id = req.run_id.clone().unwrap_or_else(|| "preview".into());
     // Java debug runs: the JDWP port the JVM listens on (JavaForge's debugger).
     let java_debug = crate::commands::java::take_debug_port(&mut req.env);
+    // Ruby debug runs: the port rdbg listens on (RubyForge's debugger).
+    let rdbg_port = super::ruby::take_rdbg_port(&mut req.env);
     let root = root(state)?;
     let mut through: Option<(PhpInterpreter, bool)> = None;
     let output_filters = req.output_filters;
@@ -406,6 +410,10 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 super::cpp::app_run(state, &cfg)?
             } else if cfg.type_id == rustforge_lang_rust::CARGO {
                 super::rust::cargo_run(state, &cfg)?
+            } else if cfg.type_id == rubyforge_lang_ruby::RUBY
+                || cfg.type_id == rubyforge_lang_ruby::RAKE
+            {
+                super::ruby::run_command(state, &cfg)?
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
@@ -493,6 +501,14 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
     cmd.env.extend(req.env);
     if !req.interpreter_args.is_empty() {
         cmd.args.splice(0..0, req.interpreter_args);
+    }
+    // Debug a Ruby, Rake, RSpec or Minitest run: under rdbg, which waits for the IDE.
+    if let Some(port) = rdbg_port.filter(|_| {
+        native_type
+            .as_deref()
+            .is_some_and(super::ruby::is_ruby_type)
+    }) {
+        cmd = super::ruby::wrap_rdbg(state, cmd, port);
     }
     // Profile with Xdebug / SPX (PHP) or V8 (Node.js).
     if let Some(kind) = profiler {
@@ -615,6 +631,7 @@ fn framework_command(
     super::go::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::cpp::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::rust::extend_test_context(state, &cfg.type_id, &mut ctx);
+    super::ruby::extend_test_context(state, &cfg.type_id, &mut ctx);
     let built = runs
         .tests
         .command(&test_frameworks::to_runtools(cfg)?, &ctx)

@@ -75,6 +75,7 @@ pub mod refactor_hierarchy;
 pub mod refactor_move;
 pub mod remote;
 pub mod remote_host;
+pub mod ruby;
 pub mod run;
 pub mod runtools;
 pub mod rust;
