@@ -1,5 +1,5 @@
-//! The tools and their configurations (Settings | Languages & Frameworks | JavaScript |
-//! Code Quality Tools): one configuration per tool, read from the `web.<id>.*` settings and
+//! The tools and their configurations (Settings | Languages & Frameworks | Code Quality
+//! Tools): one configuration per tool, read from the `web.<id>.*` settings and
 //! the tools' Actions on Save keys.
 
 use serde::{Deserialize, Serialize};

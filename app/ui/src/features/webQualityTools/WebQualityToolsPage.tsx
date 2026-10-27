@@ -1,5 +1,5 @@
 /**
- * Settings | Languages & Frameworks | JavaScript | Code Quality Tools, like PHPStorm's ESLint,
+ * Settings | Languages & Frameworks | Code Quality Tools, like PHPStorm's ESLint,
  * Prettier, Stylelint and Biome pages on one page: per tool Disabled / Automatic / Manual
  * configuration, what was found in the project, the manual package, configuration file,
  * working directories and options, "Run for files", on save, on Reformat Code, and Validate.

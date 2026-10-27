@@ -89,7 +89,7 @@ export async function inspectWithWebTools(paths: string[] | null = null): Promis
   }
   const tools = enabledTools(LINTERS);
   if (!tools.length) {
-    balloon("No code quality tool is on", "Turn on ESLint, Stylelint or Biome in Settings | Languages & Frameworks | JavaScript | Code Quality Tools.", 6000, configure);
+    balloon("No code quality tool is on", "Turn on ESLint, Stylelint or Biome in Settings | Languages & Frameworks | Code Quality Tools.", 6000, configure);
     return null;
   }
   balloon("Inspecting code…", tools.map((t) => WEB_TOOL_LABELS[t]).join(", "), 3000);

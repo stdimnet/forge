@@ -1,5 +1,5 @@
-//! Web code quality tools (Settings | Languages & Frameworks | JavaScript | Code Quality
-//! Tools): ESLint, Prettier, Stylelint and Biome.
+//! Web code quality tools (Settings | Languages & Frameworks | Code Quality Tools, PHPStorm's
+//! JavaScript | Code Quality Tools and Prettier): ESLint, Prettier, Stylelint and Biome.
 //!
 //! ESLint runs through its CLI (`--format json --stdin`), like Stylelint and Biome: one
 //! path for all linters, with the reports parsed in Rust (`webforge-quality-tools`). The
@@ -210,7 +210,7 @@ fn missing(tool: WebTool) -> ToolOutcome {
         tool,
         OutcomeStatus::Missing,
         format!(
-            "{} is configured but not installed (node_modules/{}). Install the project's dependencies or set its package in Settings | Languages & Frameworks | JavaScript | Code Quality Tools.",
+            "{} is configured but not installed (node_modules/{}). Install the project's dependencies or set its package in Settings | Languages & Frameworks | Code Quality Tools.",
             tool.label(),
             tool.package()
         ),
@@ -412,7 +412,7 @@ fn located_for(backend: &dyn Backend, env: &Env, tool: WebTool, path: &str) -> R
     let cfg = env.settings.config(tool);
     locate(&fs, &cfg, path).map_err(|skip| {
         ForgeError::Other(match skip {
-            Skip::Disabled => format!("{} is disabled in Settings | Languages & Frameworks | JavaScript | Code Quality Tools", tool.label()),
+            Skip::Disabled => format!("{} is disabled in Settings | Languages & Frameworks | Code Quality Tools", tool.label()),
             Skip::NotMatched => format!("{} does not run for {path} (Run for files)", tool.label()),
             Skip::NoConfig => format!("No {} configuration file was found for {path}", tool.label()),
             Skip::NoPackage => missing(tool).message,

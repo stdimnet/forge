@@ -28,7 +28,9 @@ export function publishDiagnostics(path: string, diags: EditorDiagnostic[], sour
   let sources = bySource.get(path);
   if (!sources) bySource.set(path, (sources = new Map()));
   sources.set(source, diags);
-  const merged = sources.size === 1 ? diags : [...sources.values()].flat();
+  // Always a new array: the store adopts the first array it gets and `reconcile` updates
+  // it in place later, which must never change an array kept in `sources`.
+  const merged = sources.size === 1 ? [...diags] : [...sources.values()].flat();
   setDiagnostics(path, reconcile(merged));
   listeners.forEach((l) => l(path, merged));
 }

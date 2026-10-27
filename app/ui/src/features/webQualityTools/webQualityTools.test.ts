@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WebCheckResult, WebProblem } from "@/ipc/webQualityTools";
-import { diagnostics } from "@/features/lsp/store";
+import { diagnostics, publishDiagnostics } from "@/features/lsp/store";
 import { applyResult, problemsOf, toDiagnostic } from "./problems";
 import { isWebFile } from "./run";
 import { mockFormat, mockWebFixed, mockWebProblems } from "@/mock/webQualityToolsMock";
@@ -38,6 +38,12 @@ describe("web quality tool problems", () => {
     applyResult(result({ files: ["src/b.ts"], tools: ["eslint"], problems: [] }));
     expect(problemsOf("src/b.ts").map((p) => p.tool)).toEqual(["biome"]);
     expect(diagnostics["src/b.ts"]?.map((d) => d.source)).toContain("Biome");
+  });
+
+  it("never pile up when another source published first", () => {
+    publishDiagnostics("src/c.ts", [], "lsp");
+    for (let i = 0; i < 3; i++) applyResult(result({ files: ["src/c.ts"], tools: ["eslint"], problems: [problem({ file: "src/c.ts" })] }));
+    expect(diagnostics["src/c.ts"]).toHaveLength(1);
   });
 
   it("checks only web files", () => {

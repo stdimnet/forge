@@ -140,7 +140,7 @@ impl Tool {
         )
     }
 
-    /// A web code quality tool (Languages & Frameworks | JavaScript | Code Quality Tools).
+    /// A web code quality tool (Languages & Frameworks | Code Quality Tools).
     pub fn is_web(self) -> bool {
         !self.is_php()
     }

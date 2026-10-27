@@ -124,7 +124,7 @@ order = 40
 [[plugin.contributions.settings]]
 key = "actionsOnSave.biome"
 title = "Run biome check --write"
-description = "Fix and format saved files where Biome is configured (Languages & Frameworks | JavaScript | Code Quality Tools | Biome)."
+description = "Fix and format saved files where Biome is configured."
 type = "bool"
 default = false
 group = "tools.actions-on-save"
@@ -144,7 +144,7 @@ order = 45
 [[plugin.contributions.settings]]
 key = "actionsOnSave.prettier.enabled"
 title = "Run Prettier"
-description = "Run `prettier --write` on saved files that match the patterns below."
+description = "Run `prettier --write` on saved files that match Prettier's Run for files patterns."
 type = "bool"
 default = false
 group = "tools.actions-on-save"

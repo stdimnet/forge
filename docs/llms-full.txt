@@ -781,7 +781,7 @@ not finished, the page says so.
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
 | [Optimize Imports and Auto Import](docs/guide/user/imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
-| [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint on save |
+| [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
 | [JSON Schema](docs/guide/user/json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
@@ -810,6 +810,7 @@ not finished, the page says so.
 | --- | --- |
 | [PHP](docs/guide/user/php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
 | [PHP Quality Tools](docs/guide/user/php-quality-tools.md) | PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: problems on the fly and on save, Reformat with …, Fix with … quick fixes, Rector's preview, Inspect Code, PHP interpreters and remote projects |
+| [Web Code Quality Tools](docs/guide/user/web-quality-tools.md) | ESLint, Prettier, Stylelint and Biome: automatic or manual configuration, problems on the fly, Fix … problems, Reformat with Prettier, Prettier/Biome on Reformat Code, fix on save, Biome priority, Inspect Code |
 | [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](docs/guide/user/symfony.md) | services, routes, Twig, console, Symfony tool window |
@@ -2771,8 +2772,10 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 | **Optimize imports** | PHP | Removes unused `use` imports and arranges the rest as Settings \| Editor \| Code Style \| PHP \| Imports says (by default classes, then functions, then constants, each alphabetically), see [Optimize Imports](docs/guide/user/imports.md). Group uses (`use A\{B, C};`) are split into single imports. | |
 | **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
-| **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
-| **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Prettier |
+| **Run biome check --write** | Biome's **Run for files** (default JavaScript, TypeScript, JSON and CSS) | `biome check --write <file>`: Biome's safe fixes and formatting. Where Biome applies, ESLint and Prettier are skipped (setting "Prefer Biome over ESLint and Prettier"). | Languages & Frameworks \| Code Quality Tools |
+| **Run eslint --fix** | ESLint's **Run for files** (default `{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}`) | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| Code Quality Tools |
+| **Run stylelint --fix** | Stylelint's **Run for files** (default `{**/*,*}.{css,scss,less,vue}`) | `stylelint --fix <file>` with the project's Stylelint configuration. | Languages & Frameworks \| Code Quality Tools |
+| **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Code Quality Tools |
 | **Run Rector** | PHP | `rector process <file>` with the project's `rector.php`. | Languages & Frameworks \| PHP \| Quality Tools |
 | **Run PHP CS Fixer** | PHP | `php-cs-fixer fix <file>` with the project's `.php-cs-fixer.dist.php`. | Languages & Frameworks \| PHP \| Quality Tools |
 | **Run phpcbf** | PHP | PHP_CodeSniffer's fixer `phpcbf <file>` with the project's `phpcs.xml`. | Languages & Frameworks \| PHP \| Quality Tools |
@@ -2790,12 +2793,16 @@ The "Reformat code" file types are picked from the **All file types** drop-down:
 
 ## External tools
 
-ESLint, Prettier and the PHP tools are the project's own installations:
-`node_modules/.bin/eslint`, `node_modules/.bin/prettier`, `vendor/bin/rector`,
+The web tools are the project's own packages, found and configured as on
+[Web Code Quality Tools](docs/guide/user/web-quality-tools.md): the nearest `node_modules/eslint`,
+`node_modules/prettier`, `node_modules/stylelint` or `node_modules/@biomejs/biome`, run with
+the Node.js interpreter, and only for files below the tool's configuration file (automatic
+configuration) or with the manual package, configuration file and options. A disabled tool
+never runs on save. The PHP tools are the project's own installations: `vendor/bin/rector`,
 `vendor/bin/php-cs-fixer`, `vendor/bin/phpcbf` and `vendor/bin/pint` (`.cmd` / `.bat` on
 Windows). The page shows where each one was found, or "Not installed in the project". A
 different executable can be set on the tool's settings page (`web.eslint.path`,
-`web.prettier.path`, `php.tools.rector.path`, `php.tools.phpCsFixer.path`,
+`web.prettier.path`, `web.stylelint.path`, `web.biome.path`, `php.tools.rector.path`, `php.tools.phpCsFixer.path`,
 `php.tools.phpcs.phpcbfPath`, `php.tools.pint.path`); a relative path starts at the project
 root. The PHP tools also take their configuration file, ruleset, other parameters and PHP
 interpreter (Docker, Docker Compose, SSH, WSL) from
@@ -9751,6 +9758,136 @@ can share them in `.forge/settings.toml`. See the
 
 ---
 
+Source: docs/guide/user/web-quality-tools.md
+
+# Web Code Quality Tools
+
+Forge runs the JavaScript, TypeScript and CSS quality tools of your project the way PHPStorm
+does. Their problems appear in the editor while you type and in the Problems tool window,
+`Alt+Enter` fixes them, and they can fix and format files on save and on Reformat Code.
+
+| Tool | Checks | Fixes | Formats |
+| --- | --- | --- | --- |
+| **ESLint** | `eslint --format json --stdin --stdin-filename <file>` | `eslint --fix-dry-run` (editor), `eslint --fix` (on save) | |
+| **Prettier** | | | `prettier --stdin-filepath <file>` (editor), `prettier --write` (on save) |
+| **Stylelint** | `stylelint --formatter json --stdin-filename <file>` | `stylelint --fix --stdin-filename` (editor), `stylelint --fix` (on save) | |
+| **Biome** | `biome lint --reporter=json --stdin-file-path=<file>` | `biome lint --write` (editor), `biome check --write` (on save) | `biome format --stdin-file-path=<file>` |
+
+The tools are your project's own packages (`npm install -D eslint prettier stylelint
+@biomejs/biome`): Forge never bundles or downloads them. Each runs with the Node.js
+interpreter of Settings | Languages & Frameworks | [Node.js](docs/guide/user/webforge.md) (`web.node.interpreter`;
+empty: `node` on the PATH, else the Node.js Forge downloaded): `node node_modules/eslint/bin/eslint.js …`,
+using the script named in the package's `bin` field.
+
+ESLint runs through its command line, like Stylelint and Biome, so one path serves all three
+and their JSON reports are parsed by Forge. The ESLint language server
+(`vscode-eslint-language-server`) in [Language Servers](docs/guide/user/language-servers.md) is separate and
+optional; if you use both, turn one off to avoid seeing every problem twice.
+
+## Settings
+
+Settings | Languages & Frameworks | **Code Quality Tools** (`Ctrl+Alt+S`) lists the four tools.
+The header of each shows the package found in the project (`node_modules/eslint 9.25.1`) or
+"Not installed in the project". Expand a tool to configure it:
+
+![Code Quality Tools settings](docs/screenshots/web-quality-tools-settings.png)
+
+| Option | Meaning |
+| --- | --- |
+| **Disabled** | The tool never runs. |
+| **Automatic configuration** (default) | For each file, the package from the nearest `node_modules` (walking up from the file to the project root, so monorepos with packages in sub-folders work) and the nearest configuration file. A tool runs only for files below a configuration file: `eslint.config.*` or `.eslintrc*` (or `eslintConfig` in package.json), `.prettierrc*` or `prettier.config.*` (or `prettier` in package.json), `stylelint.config.*` or `.stylelintrc*` (or `stylelint` in package.json), `biome.json` or `biome.jsonc`. The page shows what was found for the project root. |
+| **Manual configuration** | The **package** (a package folder such as `node_modules/eslint`, or an executable such as `node_modules/.bin/eslint`), the **configuration file** (passed as `--config`, or `--config-path` for Biome), **extra options** (quoted like in a shell) and, for ESLint, the **working directories** (`;`-separated; ESLint runs in the deepest one that holds the file). The tool runs for every matching file. |
+| **Run for files** | Glob patterns separated by `;`, with `{a,b}` alternatives (PHPStorm's syntax). Defaults: ESLint `{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}`, Stylelint `{**/*,*}.{css,scss,less,vue}`, Biome `{**/*,*}.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,jsonc,css}`, Prettier `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`. |
+| **Run … on save** | `eslint --fix`, `prettier --write`, `stylelint --fix` or `biome check --write` when the file is saved with `Ctrl+S`. The same checkboxes are on Settings \| Tools \| [Actions on Save](docs/guide/user/actions-on-save.md). |
+| **Run on Reformat Code action** | Prettier, Biome: Reformat Code (`Ctrl+Alt+L`) formats matching files with the tool instead of the built-in formatter. |
+| **Prefer Biome over ESLint and Prettier** | On by default: where Biome applies to a file, ESLint and Prettier do not run for it (problems, fixes, on save and Reformat Code). ESLint still handles the files Biome does not, such as `.html` or `.vue`. |
+
+Each tool runs in the folder of its configuration file (ESLint's flat config lookup and
+Prettier's `.prettierignore` start there). For ESLint, `ESLINT_USE_FLAT_CONFIG` is set to match
+the configuration found, so ESLint 8 reads `eslint.config.*` and ESLint 9 reads `.eslintrc*`.
+
+**Validate** runs the tool's `--version` with the options shown (before you apply them).
+**Run inspections on the fly** (`web.tools.onTheFly`, on by default) checks the file you edit
+after a short pause in typing; **Timeout** (`web.tools.timeout`, 30 seconds) stops runs that
+take longer.
+
+## Problems in the editor
+
+When a file opens, after a pause in typing and after it is saved, ESLint, Stylelint and Biome
+check the editor text (sent on stdin, so unsaved changes are checked without writing the
+file). Their problems are underlined with the tool's severity, listed in the Problems tool
+window (`Alt+6`) and named with the tool and rule (`ESLint: … (no-var)`); the rule links to its
+documentation.
+
+![ESLint problems and Fix ESLint problems](docs/screenshots/web-quality-tools-eslint.png)
+
+Stylelint checks CSS, SCSS and Less, and the `<style>` blocks of Vue files when the project's
+Stylelint configuration sets a custom syntax for them (`postcss-html`, as
+`stylelint-config-standard-vue` does):
+
+![Stylelint problems in SCSS](docs/screenshots/web-quality-tools-stylelint.png)
+
+Biome's problems carry its rule category (`lint/suspicious/noDoubleEquals`):
+
+![Biome problems](docs/screenshots/web-quality-tools-biome.png)
+
+A tool that is configured for a file but not installed, fails or times out is reported once
+per session in a balloon with a **Configure…** link (notification group "Code Quality Tools").
+
+## Fixing and formatting
+
+- **Alt+Enter** on a fixable problem offers **Fix ESLint problems**, **Fix Stylelint problems**
+  or **Fix Biome problems**: the tool fixes the whole editor text, applied as one edit
+  (`Ctrl+Z` undoes it).
+- **Code | Fix ESLint Problems**, **Fix Stylelint Problems** and **Fix Biome Problems** do the
+  same for the current file.
+- **Code | Reformat with Prettier** (`Ctrl+Alt+Shift+P`) formats the current file with Prettier.
+- **Reformat Code** (`Ctrl+Alt+L`) uses Prettier or Biome when "Run on Reformat Code action" is
+  on for the file (Biome first); otherwise the usual formatter runs.
+- **On save**: with "Run … on save", the tools fix the saved file in this order: Biome,
+  ESLint, Stylelint, Prettier. A failing tool leaves the file as it was.
+
+![Prettier and ESLint on save](docs/screenshots/web-quality-tools-prettier-on-save.png)
+
+## Inspect Code
+
+**Code | Inspect Code with ESLint, Stylelint and Biome** checks the whole project
+(`eslint .`, `stylelint "**/*.{css,scss,less,vue}"`, `biome lint .`) and lists every problem in
+the Problems tool window; Inspect Code frameworks can call the same provider
+(`inspectWithWebTools(paths)`) for a scope of files or folders.
+
+## Safe Mode and remote projects
+
+The tools run the project's own code (configuration files, plugins), so Forge never runs
+them in [Safe Mode](docs/guide/user/project-trust.md): no problems, fixes or on-save runs until you trust the
+project; Reformat Code falls back to the usual formatter.
+
+In [remote projects](docs/guide/user/remote-development.md) the tools run on the remote host, where the
+project and its `node_modules` are, with the configured Node.js interpreter or `node` on the
+host's PATH.
+
+## Settings keys
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `web.tools.onTheFly` | `true` | Check while typing |
+| `web.tools.timeout` | `30` | Seconds per run |
+| `web.<tool>.mode` | `automatic` | `disabled`, `automatic` or `manual` (`eslint`, `prettier`, `stylelint`, `biome`) |
+| `web.<tool>.path` | `""` | Manual package folder or executable |
+| `web.<tool>.config` | `""` | Manual configuration file |
+| `web.<tool>.options` | `""` | Manual extra options |
+| `web.eslint.workingDirectories` | `""` | Manual working directories |
+| `web.eslint.files`, `web.stylelint.files`, `web.biome.files`, `actionsOnSave.prettier.files` | see above | Run for files |
+| `actionsOnSave.eslint`, `actionsOnSave.prettier.enabled`, `actionsOnSave.stylelint`, `actionsOnSave.biome` | `false` | Run on save |
+| `web.prettier.onReformat`, `web.biome.onReformat` | `false` | Run on Reformat Code action |
+| `web.biome.priority` | `true` | Prefer Biome over ESLint and Prettier |
+
+See the [settings reference](docs/guide/reference/settings.md#languages--frameworks--code-quality-tools)
+for all keys.
+
+
+---
+
 Source: docs/guide/user/composer.md
 
 # Composer
@@ -10769,12 +10906,12 @@ wording. Introduce Variable, Extract Method and Inline (`Ctrl+Alt+V`, `Ctrl+Alt+
 Below these options, **Language Services** shows the web language servers (JavaScript &
 TypeScript, Vue, Angular, HTML & CSS) with the same controls as the Language Servers page.
 
-## ESLint and Prettier
+## ESLint, Prettier, Stylelint and Biome
 
-Settings | Tools | [Actions on Save](docs/guide/user/actions-on-save.md) runs `eslint --fix` and
-`prettier --write` on saved files with the project's own `node_modules/.bin/eslint` and
-`node_modules/.bin/prettier`. Settings | Languages & Frameworks | ESLint and Prettier set a
-different executable (`web.eslint.path`, `web.prettier.path`).
+Settings | Languages & Frameworks | Code Quality Tools configures the project's ESLint,
+Prettier, Stylelint and Biome: problems on the fly, Fix … problems with `Alt+Enter`, Reformat
+with Prettier, Prettier or Biome on Reformat Code and fix on save. See
+[Web Code Quality Tools](docs/guide/user/web-quality-tools.md).
 
 ## Browser Companion
 
@@ -14584,7 +14721,8 @@ blocked even if a plugin or the UI tries to start them:
 | ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin, Scala (Metals) and C# language servers | not started (they load the project's config files or build scripts) |
 | Gradle / Maven sync, Reload sbt Project | refused (the build definition is project code) |
 | Groovy scripts, sbt tasks, Android App runs (build, `adb install`, launch) | not started (they are run configurations) |
-| Actions on Save: ESLint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint | not run |
+| Actions on Save: Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint | not run |
+| Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
@@ -19925,21 +20063,37 @@ Page id `lang.typescript`.
 | `web.navigation.components` | bool | `true` | user | Frameworks | Navigate from JSX and template tags to components, props and events — Ctrl+B and Ctrl+Click on <UserCard>, title=… and @select resolve through imports before the language server is asked. |
 | `angular.gutterIcons` | bool | `true` | user | Angular | Show line markers between components, templates and styles |
 
-### Languages & Frameworks | ESLint
+### Languages & Frameworks | Code Quality Tools
 
-Page id `lang.eslint`.
-
-| Key | Type | Default | Scope | Section | Title and description |
-| --- | --- | --- | --- | --- | --- |
-| `web.eslint.path` | path | `""` | user, project |  | ESLint package — Empty: node_modules/.bin/eslint of the project. A relative path starts at the project root. The project's ESLint configuration is used. |
-
-### Languages & Frameworks | Prettier
-
-Page id `lang.prettier`.
+Page id `lang.web.quality-tools`. See [Web Code Quality Tools](docs/guide/user/web-quality-tools.md).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `web.prettier.path` | path | `""` | user, project |  | Prettier package — Empty: node_modules/.bin/prettier of the project. A relative path starts at the project root. The project's Prettier configuration is used. |
+| `web.tools.onTheFly` | bool | `true` | user, project |  | Run inspections on the fly — Check the edited file while you type (after a short pause) with ESLint, Stylelint and Biome. They also check a file when it is opened and saved. |
+| `web.tools.timeout` | int (1–3600) | `30` | user, project |  | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `web.eslint.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | ESLint | ESLint — Automatic: node_modules/eslint nearest to the file, for files below a configuration file (eslint.config.* or .eslintrc*). Manual: the package, configuration file and options below, for every matching file. |
+| `web.eslint.path` | path | `""` | user, project | ESLint | ESLint package — Manual: the package folder (node_modules/eslint) or an executable; relative paths start at the project root. Empty: node_modules/eslint nearest to the file. |
+| `web.eslint.config` | path | `""` | user, project | ESLint | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.eslint.workingDirectories` | string | `""` | user, project | ESLint | Working directories — Manual: folders separated by `;`. ESLint runs in the deepest one holding the file. Empty: the folder of the nearest configuration file. |
+| `web.eslint.options` | string | `""` | user, project | ESLint | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.eslint.files` | string | `{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}` | user, project | ESLint | Run for files — Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name. |
+| `web.prettier.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | Prettier | Prettier — Automatic: node_modules/prettier nearest to the file, for files below a configuration file (.prettierrc*, prettier.config.* or the prettier key of package.json). Manual: the package, configuration file and options below, for every matching file. |
+| `web.prettier.path` | path | `""` | user, project | Prettier | Prettier package — Manual: the package folder (node_modules/prettier) or an executable; relative paths start at the project root. Empty: node_modules/prettier nearest to the file. |
+| `web.prettier.config` | path | `""` | user, project | Prettier | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.prettier.options` | string | `""` | user, project | Prettier | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.prettier.onReformat` | bool | `false` | user, project | Prettier | Run on Reformat Code action — Reformat Code (Ctrl+Alt+L) formats matching files with Prettier instead of the built-in formatter. |
+| `web.stylelint.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | Stylelint | Stylelint — Automatic: node_modules/stylelint nearest to the file, for files below a configuration file (stylelint.config.* or .stylelintrc*). Manual: the package, configuration file and options below, for every matching file. |
+| `web.stylelint.path` | path | `""` | user, project | Stylelint | Stylelint package — Manual: the package folder (node_modules/stylelint) or an executable; relative paths start at the project root. Empty: node_modules/stylelint nearest to the file. |
+| `web.stylelint.config` | path | `""` | user, project | Stylelint | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.stylelint.options` | string | `""` | user, project | Stylelint | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.stylelint.files` | string | `{**/*,*}.{css,scss,less,vue}` | user, project | Stylelint | Run for files — Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name. |
+| `web.biome.mode` | enum: `disabled`, `automatic`, `manual` | `automatic` | user, project | Biome | Biome — Automatic: node_modules/@biomejs/biome nearest to the file, for files below a configuration file (biome.json or biome.jsonc). Manual: the package, configuration file and options below, for every matching file. |
+| `web.biome.path` | path | `""` | user, project | Biome | Biome package — Manual: the package folder (node_modules/@biomejs/biome) or an executable; relative paths start at the project root. Empty: node_modules/@biomejs/biome nearest to the file. |
+| `web.biome.config` | path | `""` | user, project | Biome | Configuration file — Manual: the configuration file. Empty: the one the tool finds for the file. |
+| `web.biome.options` | string | `""` | user, project | Biome | Extra options — Manual: extra command line options, quoted like in a shell. |
+| `web.biome.files` | string | `{**/*,*}.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,jsonc,css}` | user, project | Biome | Run for files — Glob patterns separated by `;`, with `{a,b}` alternatives; patterns with a `/` match the path, the others the file name. |
+| `web.biome.onReformat` | bool | `false` | user, project | Biome | Run on Reformat Code action — Reformat Code (Ctrl+Alt+L) formats matching files with Biome instead of the built-in formatter. |
+| `web.biome.priority` | bool | `true` | user, project | Biome | Prefer Biome over ESLint and Prettier — Where Biome is configured, it checks, fixes and formats its file types and ESLint and Prettier do not. |
 
 ### Tools | Actions on Save
 
@@ -19953,8 +20107,10 @@ Page id `tools.actions-on-save`. See [Actions on Save](docs/guide/user/actions-o
 | `actionsOnSave.optimizeImports` | bool | `false` | user, project |  | Optimize imports — Remove unused imports and sort the others (PHP). |
 | `actionsOnSave.rearrange` | bool | `false` | user, project |  | Rearrange code — Order class members: constants, properties, constructor, methods (PHP). |
 | `actionsOnSave.codeCleanup` | bool | `false` | user, project |  | Run code cleanup — Apply the safe quick fixes: unused imports, unnecessary semicolons, a redundant closing tag (PHP). |
-| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved JavaScript, TypeScript and Vue files. (HTML, CSS & JavaScript plugin) |
-| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.biome` | bool | `false` | user, project |  | Run biome check --write — Fix and format saved files where Biome is configured. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.eslint` | bool | `false` | user, project |  | Run eslint --fix — Fix ESLint problems in saved files that match ESLint's Run for files patterns. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.stylelint` | bool | `false` | user, project |  | Run stylelint --fix — Fix Stylelint problems in saved CSS, SCSS, Less and Vue files. (HTML, CSS & JavaScript plugin) |
+| `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match Prettier's Run for files patterns. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
 | `actionsOnSave.rector` | bool | `false` | user, project |  | Run Rector — Run `rector process` on saved PHP files with the project's rector.php. (PHP plugin) |
@@ -22927,7 +23083,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
 | [forge-runtargets](docs/guide/developer/crates/forge-runtargets.md) | Run targets (Run on: local machine, Docker image, Docker Compose service, SSH, WSL, Dev Container): path mappings and the command lines that run, test and debug there (pure, also built to WebAssembly) |
 | [forge-runtools](docs/guide/developer/crates/forge-runtools.md) | Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly) |
-| [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint through the project's backend |
+| [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-scopes](docs/guide/developer/crates/forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
@@ -22987,6 +23143,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [webforge-fw-vue](docs/guide/developer/crates/webforge-fw-vue.md) | WebForge: Vue.js support (single-file components, props, emits and usages) |
 | [webforge-js-debug](docs/guide/developer/crates/webforge-js-debug.md) | WebForge: the JavaScript debugger (js-debug downloaded on consent, the pwa-node / pwa-chrome / pwa-msedge adapters, browser detection, launch requests) |
 | [webforge-js-testing](docs/guide/developer/crates/webforge-js-testing.md) | WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright, Cypress, node --test): discovery, command lines, Rerun Failed Tests, debug programs (pure, also built to WebAssembly) |
+| [webforge-quality-tools](docs/guide/developer/crates/webforge-quality-tools.md) | WebForge: web code quality tools (ESLint, Prettier, Stylelint, Biome): configurations, automatic detection of packages and configuration files, command lines, JSON report parsing (pure) |
 | [webforge-lang-web](docs/guide/developer/crates/webforge-lang-web.md) | WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins |
 
 
@@ -26061,8 +26218,8 @@ Source: docs/guide/developer/crates/forge-save-actions.md
 # forge-save-actions
 
 `crates/forge-save-actions` — Actions on Save: which actions run for a saved file,
-reformatting only changed lines and running external tools (ESLint, Prettier, Rector, PHP CS
-Fixer, phpcbf, Laravel Pint) through the project's backend.
+reformatting only changed lines and running external tools (Biome, ESLint, Stylelint,
+Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint) through the project's backend.
 
 ## Purpose
 
@@ -26071,17 +26228,23 @@ The logic behind Settings | Tools | [Actions on Save](docs/guide/user/actions-on
 - `plan(path, trigger, settings)` decides which actions run for one save: Reformat code
   (whole file or changed lines, limited to file types), Optimize imports, Rearrange code and
   Run code cleanup (PHP files only) and the external tools. On autosave nothing runs unless
-  "Also run on autosave" is on, and the external tools never do.
+  "Also run on autosave" is on, and the external tools never do. The web tools run for files
+  matching their "Run for files" globs (`web.eslint.files`, `web.stylelint.files`,
+  `web.biome.files`, `actionsOnSave.prettier.files`) unless their mode is `disabled`;
+  whether Biome takes over ESLint and Prettier depends on the project's files and is decided
+  where the tools run.
 - `restrict_to_changed_lines(base, original, formatted)` keeps only the hunks of a
   reformatting that touch lines changed since `base` (the committed text; `None` = the whole
   file is new).
 - `tools` (feature `backend`, on by default) finds a tool in the project (`vendor/bin`,
   `node_modules/.bin`, `.bat` / `.cmd` too) or at its custom path and runs it on the saved
   file through a `forge_backend::Backend`, so remote projects work. A failing tool's changes
-  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success, and
-  phpcbf's 1 and 2 too. `run_tools_with` passes each command line through a callback first:
+  are rolled back; ESLint's and Biome's exit code 1 (problems left after fixing) counts as
+  success, and Stylelint's 2 and phpcbf's 1 and 2 too. `run_tools_with` passes each command line through a callback first:
   the app gives the PHP tools their Quality Tools arguments and PHP interpreter
-  ([phpforge-quality-tools](docs/guide/developer/crates/phpforge-quality-tools.md)).
+  ([phpforge-quality-tools](docs/guide/developer/crates/phpforge-quality-tools.md)), and the web tools the package found
+  for the file run with the Node.js interpreter
+  ([webforge-quality-tools](docs/guide/developer/crates/webforge-quality-tools.md)).
 
 The PHP actions themselves are in `phpforge-lang-php` (`imports`, `rearrange`, `cleanup`).
 The UI applies the combined result as one edit (one undo step).
@@ -26092,7 +26255,7 @@ The UI applies the combined result as one edit (one undo step).
 | --- | --- |
 | `lib.rs` | Settings keys, `ActionsOnSave` (settings), `Trigger`, `Tool`, `SavePlan`, `plan`, `file_type_choices`. |
 | `changed.rs` | "Changed lines": a line diff (LCS) between the original and the reformatted text, applied hunk by hunk. |
-| `tools.rs` | Locating and running ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint; `run_tools`, `run_tools_with`, `detect_tools`. |
+| `tools.rs` | Locating and running Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint; `run_tools`, `run_tools_with`, `detect_tools`. |
 
 ## Main public items
 
@@ -29718,6 +29881,74 @@ command lines per runner and scope, coverage arguments, Rerun Failed Tests and d
 
 ```sh
 cargo test -p webforge-js-testing
+```
+
+
+---
+
+Source: docs/guide/developer/crates/webforge-quality-tools.md
+
+# webforge-quality-tools
+
+`packs/webforge/quality-tools` — WebForge: web code quality tools (ESLint, Prettier,
+Stylelint, Biome): configurations, automatic detection of packages and configuration files,
+command lines, and parsing of their JSON reports.
+
+## Purpose
+
+Everything [Web Code Quality Tools](docs/guide/user/web-quality-tools.md) computes. The crate is
+pure (no processes or files): it reads the project through the `ProjectFs` trait, and the app
+(`app/src-tauri/src/commands/web_quality_tools.rs`) runs the command lines through the
+project backend with the Node.js interpreter and hands the output back to the parsers.
+
+ESLint runs through its CLI like Stylelint and Biome (`--format json --stdin
+--stdin-filename`), so all three linters share one path: stdin in, a JSON report out, parsed
+here with recorded fixtures.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `model.rs` | `WebTool` (ids, labels, npm packages, default bin scripts, configuration file names, package.json keys, default "Run for files" globs, settings keys), `Mode` (Disabled / Automatic / Manual), `ToolConfig` from `web.<id>.*` and the tools' Actions on Save keys, `WebToolsSettings` (on the fly, timeout, Biome priority, Node.js interpreter). |
+| `detect.rs` | `ProjectFs`; `nearest_config` (walking up from the file: config files, then the package.json key), `nearest_package` (`node_modules/<package>` walking up), `bin_entry` (the package's `bin` field); `locate(fs, cfg, file)` → `Located` (launcher `node <script>` or an executable, version, configuration file, working directory, ESLint flat config) or `Skip` (disabled, not matched, no config, no package, Biome first); `locate_all` / `applicable` with Biome's priority; `formatter` for Reformat Code (Biome before Prettier). |
+| `command.rs` | `Invocation` (node or direct, program, args, stdin, env, cwd); `lint`, `lint_paths` (Inspect Code), `fix` (ESLint `--fix-dry-run`, Stylelint `--fix` on stdin, Biome `lint --write`), `format` (Prettier `--stdin-filepath`, Biome `format`), `fix_in_place` (on save), `version`, `parse_version`. Manual configuration files become `--config` / `--config-path`; `ESLINT_USE_FLAT_CONFIG` follows the configuration found. |
+| `parse.rs` | `parse_report(tool, stdout, stderr, ctx, source)`: ESLint `--format json` (messages, fixable, `output` of `--fix-dry-run`, ignored-file warnings skipped), Stylelint `--formatter json` (stdout before 16, stderr since; rule suffix stripped, invalid option warnings as errors), Biome `--reporter=json` (byte spans or line/column positions, markup messages, rule links) as `Problem`s. |
+| `problem.rs` | `Problem`, `Severity`, `PathContext` (reported paths relative to the tool's working directory and stdin names mapped to the project file), `line_col` (byte offset → line and character column). |
+| `lib.rs` | Re-exports and `exit_ok` (exit codes that still carry a report). |
+
+## Main public items
+
+```rust
+pub trait ProjectFs { fn read(&self, path: &str) -> Option<String>; fn list(&self, dir: &str) -> Vec<String>; }
+pub fn locate(fs: &dyn ProjectFs, cfg: &ToolConfig, file: &str) -> Result<Located, Skip>;
+pub fn applicable(fs: &dyn ProjectFs, settings: &WebToolsSettings, file: &str) -> Vec<Located>;
+pub fn formatter(fs: &dyn ProjectFs, settings: &WebToolsSettings, file: &str) -> Option<Located>;
+pub fn command::lint(l: &Located, cfg: &ToolConfig, root: &str, file: &str, text: &str) -> Invocation;
+pub fn parse_report(tool: WebTool, stdout: &str, stderr: &str, ctx: &PathContext, source: &dyn Fn(&str) -> Option<String>) -> Result<Report, String>;
+```
+
+## Used by
+
+- IPC: `web_quality_tools_info`, `web_quality_tools_validate`, `web_quality_tools_check`,
+  `web_quality_tools_inspect`, `web_quality_tools_fix`, `web_quality_tools_format`
+  (`app/src-tauri/src/commands/web_quality_tools.rs`) and the web tools of
+  `save_actions_run_tools`
+- UI: `app/ui/src/features/webQualityTools/`, `app/ui/src/ipc/webQualityTools.ts`
+
+## Dependencies
+
+- Workspace crates: `forge-filetypes` (globs with `{a,b}`), `forge-runtools` (option splitting)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module (an in-memory project for detection) and `tests/reports.rs` with
+recorded reports in `tests/fixtures/` (ESLint 9 with and without `--fix-dry-run`, Stylelint 16
+on SCSS, Biome 1.9). The app's tests run the commands against fake packages and a fake
+`node`.
+
+```sh
+cargo test -p webforge-quality-tools
 ```
 
 

@@ -43,7 +43,7 @@ const VERSION_LINE: Record<WebTool, (v: string) => string> = {
   eslint: (v) => `v${v}`,
   prettier: (v) => v,
   stylelint: (v) => v,
-  biome: (v) => `Version: ${v}`,
+  biome: (v) => v,
 };
 
 /** The files each tool handles by default ("Run for files"). */

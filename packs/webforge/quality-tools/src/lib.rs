@@ -1,5 +1,6 @@
-//! WebForge code quality tools (Settings | Languages & Frameworks | JavaScript | Code
-//! Quality Tools): ESLint, Prettier, Stylelint and Biome.
+//! WebForge code quality tools (Settings | Languages & Frameworks | Code Quality Tools, like
+//! PHPStorm's JavaScript | Code Quality Tools and Prettier): ESLint, Prettier, Stylelint and
+//! Biome.
 //!
 //! - [`model`]: the tools and one configuration per tool (`web.<id>.*`: Disabled /
 //!   Automatic / Manual, package, configuration file, options, working directories, "Run

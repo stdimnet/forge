@@ -21,7 +21,7 @@ not finished, the page says so.
 | [Sticky lines, breadcrumbs and Reader mode](code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
 | [Optimize Imports and Auto Import](imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
-| [Actions on Save](actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint on save |
+| [Actions on Save](actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint on save |
 | [Live templates](live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
 | [JSON Schema](json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
@@ -50,6 +50,7 @@ not finished, the page says so.
 | --- | --- |
 | [PHP](php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
 | [PHP Quality Tools](php-quality-tools.md) | PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: problems on the fly and on save, Reformat with …, Fix with … quick fixes, Rector's preview, Inspect Code, PHP interpreters and remote projects |
+| [Web Code Quality Tools](web-quality-tools.md) | ESLint, Prettier, Stylelint and Biome: automatic or manual configuration, problems on the fly, Fix … problems, Reformat with Prettier, Prettier/Biome on Reformat Code, fix on save, Biome priority, Inspect Code |
 | [Composer](composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](symfony.md) | services, routes, Twig, console, Symfony tool window |
