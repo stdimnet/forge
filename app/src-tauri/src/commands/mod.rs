@@ -95,6 +95,7 @@ pub mod trust;
 pub mod updates;
 pub mod viewers;
 pub mod vim;
+pub mod vulnerabilities;
 pub mod web;
 pub mod web_quality_tools;
 pub mod window;

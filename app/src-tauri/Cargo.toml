@@ -77,6 +77,7 @@ phpforge-cli-tools.workspace = true
 phpforge-quality-tools.workspace = true
 phpforge-test-frameworks.workspace = true
 phpforge-composer = { workspace = true, features = ["net"] }
+forge-vulns.workspace = true
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-fw-wordpress.workspace = true

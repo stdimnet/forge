@@ -74,6 +74,7 @@ mod text;
 mod vcs;
 mod viewers;
 mod vim;
+mod vulnerabilities;
 mod web;
 mod window;
 mod wordpress;
