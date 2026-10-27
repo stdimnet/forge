@@ -41,6 +41,7 @@ pub struct ProjectInfo {
     pub packs: Vec<String>,
     /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
     /// `conda`, `maven`, `gradle`, `sbt`, `docker`, `git`, `cmake`, `compile-commands`, `meson`,
+    /// `platformio`, `esp-idf`, `zephyr`, `vcpkg`, `conan`,
     /// `make`.
     pub tools: Vec<String>,
     /// The framework (or, without one, the language) that best describes the project.
@@ -498,8 +499,38 @@ fn scan_cpp(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
     let makefile = has("Makefile") || has("makefile") || has("GNUmakefile");
     let make_sources =
         makefile && (sources > 0 || file_names(&dir.join("src")).iter().any(|f| is_cpp_file(f)));
-    if cmake || compdb || meson || make_sources || sources >= 2 || (rel.is_empty() && sources > 0) {
+    let platformio = has("platformio.ini");
+    let zephyr = has("west.yml") || (cmake && has("prj.conf"));
+    let esp_idf = cmake
+        && (has("sdkconfig")
+            || has("sdkconfig.defaults")
+            || has("idf_component.yml")
+            || dir.join("main/idf_component.yml").is_file());
+    if cmake
+        || compdb
+        || meson
+        || make_sources
+        || platformio
+        || zephyr
+        || sources >= 2
+        || (rel.is_empty() && sources > 0)
+    {
         c.language("cpp");
+    }
+    if platformio {
+        c.tool("platformio");
+    }
+    if esp_idf {
+        c.tool("esp-idf");
+    }
+    if zephyr {
+        c.tool("zephyr");
+    }
+    if cmake && has("vcpkg.json") {
+        c.tool("vcpkg");
+    }
+    if has("conanfile.txt") || has("conanfile.py") {
+        c.tool("conan");
     }
     if cmake {
         c.tool("cmake");
@@ -1660,6 +1691,24 @@ mod tests {
             if let Some(t) = tool {
                 assert!(info.tools.contains(&t.to_string()), "{marker}");
             }
+        }
+        // Embedded frameworks and package managers.
+        for (files, tool) in [
+            (&["platformio.ini"][..], "platformio"),
+            (&["west.yml"][..], "zephyr"),
+            (&["CMakeLists.txt", "prj.conf"][..], "zephyr"),
+            (&["CMakeLists.txt", "sdkconfig"][..], "esp-idf"),
+            (&["CMakeLists.txt", "main/idf_component.yml"][..], "esp-idf"),
+            (&["CMakeLists.txt", "vcpkg.json"][..], "vcpkg"),
+            (&["CMakeLists.txt", "conanfile.py"][..], "conan"),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            for f in files {
+                write(dir.path(), f, "");
+            }
+            let info = detect(dir.path());
+            assert!(info.uses("cforge"), "{files:?}");
+            assert!(info.tools.contains(&tool.to_string()), "{files:?} → {tool}");
         }
         // A Makefile alone is no C/C++ project; with sources in src/ it is.
         let dir = tempfile::tempdir().unwrap();

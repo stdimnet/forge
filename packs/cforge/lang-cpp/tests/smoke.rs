@@ -57,6 +57,7 @@ fn configure_build_test_and_debug_setup() {
         source_dir: source.clone(),
         default_generator: generator.clone(),
         toolchain_variables: cforge_toolchains::cmake_variables(tc, &generator),
+        package_toolchain: None,
     };
     let (ok, log) = run(&configure_command(&profile, &ctx));
     assert!(ok, "{log}");
