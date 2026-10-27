@@ -81,6 +81,10 @@ pub struct When {
     /// `package.json` dependencies (any section).
     #[serde(default)]
     pub packages: Vec<String>,
+    /// Root-level files that keep the server from starting (TypeScript in a Deno project
+    /// with `deno.json`).
+    #[serde(default)]
+    pub absent: Vec<String>,
 }
 
 impl When {
