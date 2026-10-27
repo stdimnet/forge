@@ -50,6 +50,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-open](forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
 | [forge-output](forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
+| [forge-ports](forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-project](forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |

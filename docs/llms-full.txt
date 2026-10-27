@@ -23330,6 +23330,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
 | [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
+| [forge-ports](docs/guide/developer/crates/forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
 | [forge-project](docs/guide/developer/crates/forge-project.md) | Forge IDE projects: project type detection and New Project generators |
 | [forge-remote](docs/guide/developer/crates/forge-remote.md) | Forge IDE remote development: SSH connections, host keys, ~/.ssh/config and the Forge agent deployment |
@@ -24397,8 +24398,8 @@ with the same `debug_*` commands and `debug://*` events.
 - `transport::Transport`: an adapter process on stdio, a TCP connection to an adapter that
   listens (started by Forge with `${port}`, or already running: "Attach to DAP server"), or a
   TCP server Forge opens for an adapter that connects back. `${port}` is a free port below the
-  system's ephemeral range (20000-32767), so no other program is handed the same port before
-  the adapter binds it.
+  system's ephemeral range (20000-32767) from [`forge-ports`](docs/guide/developer/crates/forge-ports.md), so no other
+  program is handed the same port before the adapter binds it.
 - `adapter`: `DebugAdapterDescriptor` (how to start an adapter and build its `launch` /
   `attach` arguments), `ManifestAdapter` (adapters declared with
   `[[contributions.debugAdapters]]`, request templates with `${program}`, `${args}`,
@@ -24483,7 +24484,8 @@ pub trait DebugAdapterDescriptor: Send + Sync {
 ## Dependencies
 
 - Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-debug`](docs/guide/developer/crates/forge-debug.md),
-  [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md)
+  [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-ports`](docs/guide/developer/crates/forge-ports.md) (free adapter
+  ports), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md)
 - External: `base64`, `serde`, `serde_json`, `thiserror`, `tokio`, `tracing`
 
 ## Tests
@@ -26226,6 +26228,62 @@ pub trait Plugin: Send + Sync { … }
 
 ```sh
 cargo test -p forge-plugin-api
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-ports.md
+
+# forge-ports
+
+`crates/forge-ports` — Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range.
+
+## Purpose
+
+The one place that picks a port for a server Forge starts and then connects to. Two rules
+keep Forge from talking to another program on that port:
+
+- Ports come from `20000..32768`, below the ephemeral ranges (Linux 32768-60999, macOS and
+  Windows 49152-65535), which the system hands to every program that binds port 0 or
+  connects out. On Linux the actual range is read from `/proc` and skipped.
+- A port is checked by binding it, never by listening on it. A process spawned at the same
+  moment inherits a copy of the probe socket until it executes its program; a listening copy
+  would keep accepting connections after the probe closed, a bound copy refuses them and does
+  not keep the server from binding (address reuse on Unix; not on Windows, where the option
+  lets a socket take over a port in use).
+
+Callers that connect to a server they started still watch for the server exiting before they
+connected (`forge-dap`'s connect loop, the Jupyter kernel start).
+
+## Main public items
+
+```rust
+pub const PORTS: Range<u16>;                                    // 20000..32768
+pub fn free_port() -> io::Result<u16>;
+pub fn free_ports(n: usize) -> io::Result<Vec<u16>>;            // n distinct ports
+pub fn probe(port: u16) -> io::Result<u16>;                     // bind-only check
+pub fn ephemeral_ports() -> Option<RangeInclusive<u16>>;        // Linux
+```
+
+## Used by
+
+- Crates: `forge-dap` (`${port}` of adapters Forge starts), `pyforge-jupyter` (feature
+  `runtime`: the five kernel ports); as a dev-dependency in tests that need a port nobody
+  listens on
+- App: `app/src-tauri/src/commands/java.rs` (JDWP, also Kotlin), `python_tools.rs` (debugpy)
+
+## Dependencies
+
+- External: `socket2`
+
+## Tests
+
+Distinct ports outside the ephemeral range, ports in use are not free, and a copy of a probe
+socket neither accepts connections nor blocks the server.
+
+```sh
+cargo test -p forge-ports
 ```
 
 
@@ -29187,8 +29245,9 @@ adds the features `runtime` (kernels) and `keychain` (server tokens).
   (`<IDS|MSG>`), the WebSocket JSON form, connection files, `KernelEvent`s of iopub and shell
   messages and `user_expressions` replies.
 - `runtime`: `kernel` (DEALER sockets for shell and control, SUB for iopub with the pure-Rust
-  `zeromq` crate, MIT; free ports and private connection files), `server` (REST
-  `/api/kernels`, `/api/kernelspecs` and the kernel WebSocket with `tokio-tungstenite`) and
+  `zeromq` crate, MIT; five free ports from [`forge-ports`](docs/guide/developer/crates/forge-ports.md) and private
+  connection files), `server` (REST `/api/kernels`, `/api/kernelspecs` and the kernel
+  WebSocket with `tokio-tungstenite`) and
   `session` (runs cells and reports `SessionEvent`s per cell id with rendered outputs; waits
   for both the reply and the idle status; Variables, children and View as DataFrame through
   the helper `forge_jupyter.py` and `user_expressions`; interrupt with `interrupt_request`).

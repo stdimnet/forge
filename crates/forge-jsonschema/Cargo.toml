@@ -24,5 +24,6 @@ tokio = { workspace = true, optional = true }
 flate2 = "1"
 
 [dev-dependencies]
+forge-ports.workspace = true
 tempfile.workspace = true
 tokio.workspace = true

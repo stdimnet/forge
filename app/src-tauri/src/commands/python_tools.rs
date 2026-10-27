@@ -423,14 +423,6 @@ pub struct DebugPlan {
     pub sub_process: bool,
 }
 
-fn free_port() -> Result<u16> {
-    let l = std::net::TcpListener::bind(("127.0.0.1", 0))
-        .map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
-    Ok(l.local_addr()
-        .map_err(|e| ForgeError::Other(e.to_string()))?
-        .port())
-}
-
 fn absolute(root: &str, local: &str) -> String {
     if local.is_empty() {
         root.to_string()
@@ -449,7 +441,8 @@ pub async fn python_debug_plan(
     configuration: RunConfiguration,
     state: State<'_, AppState>,
 ) -> Result<DebugPlan> {
-    let port = free_port()?;
+    let port = forge_ports::free_port()
+        .map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
     let backend = state.backend()?;
     let root = root_string(&backend.info().root);
     let just_my_code = setting_bool(&state, "python.debugger.justMyCode", true);

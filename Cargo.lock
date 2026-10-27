@@ -2083,6 +2083,7 @@ dependencies = [
  "forge-markdown",
  "forge-open",
  "forge-plugin-api",
+ "forge-ports",
  "forge-process",
  "forge-project",
  "forge-remote",
@@ -2285,6 +2286,7 @@ dependencies = [
  "forge-core",
  "forge-debug",
  "forge-plugin-api",
+ "forge-ports",
  "forge-runtools",
  "serde",
  "serde_json",
@@ -2302,6 +2304,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "forge-core",
+ "forge-ports",
  "forge-remote",
  "forge-sql",
  "futures-util",
@@ -2347,6 +2350,7 @@ dependencies = [
  "dirs 6.0.0",
  "filetime",
  "forge-diff",
+ "forge-ports",
  "forge-remote",
  "keyring",
  "russh",
@@ -2435,6 +2439,7 @@ dependencies = [
  "async-trait",
  "dirs 6.0.0",
  "forge-core",
+ "forge-ports",
  "forge-vcs",
  "futures-util",
  "keyring",
@@ -2481,6 +2486,7 @@ name = "forge-jsonschema"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "forge-ports",
  "regex-lite",
  "reqwest 0.12.28",
  "serde",
@@ -2623,6 +2629,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-ports"
+version = "0.1.0"
+dependencies = [
+ "socket2",
+]
+
+[[package]]
 name = "forge-process"
 version = "0.1.0"
 dependencies = [
@@ -2750,6 +2763,7 @@ version = "0.1.0"
 dependencies = [
  "forge-filetypes",
  "forge-fuzzy",
+ "forge-ports",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -2864,6 +2878,7 @@ dependencies = [
 name = "forge-update"
 version = "0.1.0"
 dependencies = [
+ "forge-ports",
  "reqwest 0.12.28",
  "semver",
  "serde",
@@ -4171,6 +4186,7 @@ dependencies = [
 name = "javaforge-fw-spring"
 version = "0.1.0"
 dependencies = [
+ "forge-ports",
  "serde",
  "serde_json",
  "tempfile",
@@ -6267,6 +6283,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "forge-output",
+ "forge-ports",
  "forge-viewers",
  "futures-util",
  "hex",

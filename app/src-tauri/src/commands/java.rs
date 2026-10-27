@@ -1077,13 +1077,10 @@ pub struct DebugPlan {
     pub run: bool,
 }
 
+/// A free port for the JDWP agent of a JVM Forge starts and then attaches to: outside the
+/// system's ephemeral range and probed without listening (see `forge-ports`).
 pub(crate) fn free_port() -> Result<u16> {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0")
-        .map_err(|e| ForgeError::Other(format!("no free port: {e}")))?;
-    Ok(listener
-        .local_addr()
-        .map_err(|e| ForgeError::Other(e.to_string()))?
-        .port())
+    forge_ports::free_port().map_err(|e| ForgeError::Other(format!("no free port: {e}")))
 }
 
 #[tauri::command]
