@@ -3,7 +3,7 @@
  * dialog, query consoles and table data editors as editor tabs, and the `.env` suggestion.
  */
 import { createEffect, createRoot, on } from "solid-js";
-import { Database, SquareTerminal, Table2, Eye, KeySquare, TextSearch } from "lucide-solid";
+import { Database, SquareTerminal, Table2, Eye, KeySquare, TextSearch, GitCompare } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
@@ -24,7 +24,8 @@ import { ConsoleView } from "./ConsoleView";
 import { TableEditor } from "./TableEditor";
 import { RedisValueView } from "./RedisValueView";
 import { registerTabColorProvider } from "@/features/scopes/model";
-import { activeConsole, activeDataEditor, focusedConsole } from "./controllers";
+import { activeConsole, activeDataEditor, activeGrid, focusedConsole, focusedGrid } from "./controllers";
+import { COMPARE_VIEW, CompareView } from "./CompareView";
 import { checkEnv } from "./envDetect";
 import {
   CONSOLE_VIEW,
@@ -92,6 +93,13 @@ registerEditorView({
 });
 
 registerEditorView({
+  id: COMPARE_VIEW,
+  component: CompareView,
+  icon: (p) => <GitCompare size={p.size} class="db-tab-icon table" />,
+  breadcrumbs: (tab: EditorTab) => ["Compare Data", tab.name],
+});
+
+registerEditorView({
   id: REDIS_VIEW,
   component: RedisValueView,
   icon: (p) => <KeySquare size={p.size} class="db-tab-icon table" />,
@@ -125,6 +133,14 @@ registerKeymapActions([
   { id: "Console.TableResult.DeleteRows", title: "Delete Rows", group: "Database", context: "toolwindow", shortcuts: { $default: ["Ctrl+Y"], macOS: ["Cmd+Backspace"] } },
   { id: "Console.TableResult.Revert", title: "Revert Selected", group: "Database", context: "toolwindow", shortcuts: { $default: ["Ctrl+Alt+Z"], macOS: ["Cmd+Alt+Z"] } },
   { id: "Console.TableResult.Reload", title: "Reload Page", group: "Database" },
+  // Data editor (DataGrip): Shift+Enter in a grid opens the value editor (see Database.Properties).
+  { id: "Console.TableResult.EditValue", title: "Open Value Editor", group: "Database" },
+  { id: "Console.TableResult.Transpose", title: "Transpose", group: "Database" },
+  { id: "Console.TableResult.AggregateView", title: "Aggregate View", group: "Database" },
+  { id: "Console.TableResult.ShowChart", title: "Show Chart", group: "Database" },
+  { id: "Console.TableResult.CompareWith", title: "Compare With…", group: "Database" },
+  // Ctrl+B on a cell (PHPStorm's Go to Declaration is an editor action): the referenced row.
+  { id: "Console.TableResult.GotoReferencedData", title: "Go to Referenced Data", group: "Database", context: "toolwindow", shortcuts: { $default: ["Ctrl+B"], macOS: ["Cmd+B"] } },
   { id: "Database.OpenConsole", title: "Jump to Query Console…", group: "Database", context: "toolwindow", shortcuts: { $default: ["Ctrl+Shift+F10"], macOS: ["Cmd+Shift+F10"] } },
   { id: "Database.Properties", title: "Data Source Properties", group: "Database", context: "toolwindow", shortcuts: { $default: ["Shift+Enter"], macOS: ["Shift+Enter"] } },
   { id: "Database.NewDataSource", title: "New Data Source…", group: "Database" },
@@ -197,7 +213,41 @@ if (quickDoc) {
   });
 }
 
-registerCommand({ id: "Database.Properties", title: "Data Source Properties", category: "Database", run: () => openDataSources({ select: selectedSourceId() }) });
+// Shift+Enter: the value editor in a data grid, Data Source Properties in the tree.
+registerCommand({
+  id: "Database.Properties",
+  title: "Data Source Properties",
+  category: "Database",
+  run: () => {
+    const grid = focusedGrid();
+    if (grid?.editValue) return grid.editValue();
+    openDataSources({ select: selectedSourceId() });
+  },
+});
+registerCommand({ id: "Console.TableResult.EditValue", title: "Open Value Editor", category: "Database", run: () => activeGrid()?.editValue?.() });
+registerCommand({ id: "Console.TableResult.Transpose", title: "Transpose", category: "Database", run: () => activeGrid()?.transpose?.() });
+registerCommand({ id: "Console.TableResult.AggregateView", title: "Aggregate View", category: "Database", run: () => activeGrid()?.aggregateView?.() });
+registerCommand({ id: "Console.TableResult.ShowChart", title: "Show Chart", category: "Database", run: () => activeGrid()?.chart?.() });
+registerCommand({ id: "Console.TableResult.CompareWith", title: "Compare With…", category: "Database", run: () => activeGrid()?.compare?.() });
+
+// Ctrl+B / Alt+F7 on a data grid cell: foreign-key navigation (real and virtual keys).
+registerCommand({
+  id: "Console.TableResult.GotoReferencedData",
+  title: "Go to Referenced Data",
+  category: "Database",
+  run: () => (focusedGrid() ?? activeGrid())?.gotoReferenced?.(),
+});
+const findUsages = commands().get("FindUsages");
+registerCommand({
+  id: "FindUsages",
+  title: findUsages?.title ?? "Find Usages",
+  category: findUsages?.category ?? "Find",
+  run: async () => {
+    const go = focusedGrid()?.findReferencing;
+    if (go) return go();
+    await findUsages?.run();
+  },
+});
 registerCommand({ id: "Database.NewDataSource", title: "New Data Source…", category: "Database", run: () => openDataSources({ newDriver: "mysql" }) });
 // Manifest command ids (Find Action, plugin contributions).
 registerCommand({ id: "database.newDataSource", title: "New Data Source…", category: "Database", run: () => openDataSources({ newDriver: "mysql" }) });

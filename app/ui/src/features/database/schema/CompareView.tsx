@@ -231,7 +231,7 @@ export function CompareView(props: { tab: EditorTab }) {
   const sideName = (s: Side) => (s.id === DDL ? "DDL snapshot" : `${sourceById(s.id)?.name ?? s.id}${s.schema ? ` › ${s.schema}` : ""}`);
 
   return (
-    <div class="cmp" data-testid="db-compare">
+    <div class="cmp" data-testid="db-structure-compare">
       <div class="db-toolbar cmp-bar">
         <SidePicker label="Source" side={source()} onChange={setSource} testid="cmp-source" />
         <button class="icon-btn db-tool" title="Swap Source and Target" onClick={swap}>

@@ -14,7 +14,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::config::{self, DataModel, DataSource, Dialect, Scope};
 use crate::conn::{cancel_statement, ColumnMeta, Conn, DbPool, RawResult};
-use crate::edit::{change_sql, ChangeKind, RowChange};
+use crate::edit::{ChangeKind, RowChange};
 use crate::engine::redis::{db_number, RedisKeys, RedisPool, RedisValue};
 use crate::engine::{Canceller, ConnectSpec};
 use crate::env::{self, DetectedDataSource};
@@ -131,22 +131,19 @@ pub struct QueryPage {
     pub documents: Vec<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SortKey {
-    pub column: String,
-    #[serde(default)]
-    pub desc: bool,
-}
+pub use forge_dataedit::{ColumnFilter, FilterOp, SortKey};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableDataRequest {
     pub schema: String,
     pub table: String,
-    /// Raw `WHERE` condition typed into the filter row.
+    /// Raw `WHERE` condition typed into the filter row (checked: one read-only condition).
     #[serde(default)]
     pub filter: Option<String>,
+    /// "Filter by value" conditions and foreign-key navigation, combined with `AND`.
+    #[serde(default)]
+    pub column_filters: Vec<ColumnFilter>,
     #[serde(default)]
     pub order: Vec<SortKey>,
     #[serde(default)]
@@ -160,6 +157,48 @@ pub struct TableDataRequest {
 pub struct ApplyResult {
     pub statements: Vec<String>,
     pub rows_affected: u64,
+}
+
+/// The DML the data editor's pending changes become, before Submit.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangePreview {
+    pub statements: Vec<String>,
+    /// The key that identifies rows (`primary key`, `unique key users_email_unique`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<forge_dataedit::KeyChoice>,
+    /// Refused: a read-only data source.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked: Option<String>,
+    /// Ask first: a production data source.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confirm: Option<String>,
+}
+
+/// The key of a table that identifies its rows for the data editor.
+pub fn row_key(info: &introspect::TableInfo) -> Option<forge_dataedit::KeyChoice> {
+    use forge_dataedit::api::{table_key, ColumnShape, IndexShape, TableShape};
+    table_key(&TableShape {
+        primary_key: info.primary_key.clone(),
+        indexes: info
+            .indexes
+            .iter()
+            .map(|i| IndexShape {
+                name: i.name.clone(),
+                columns: i.columns.clone(),
+                unique: i.unique,
+                primary: i.primary,
+            })
+            .collect(),
+        columns: info
+            .columns
+            .iter()
+            .map(|c| ColumnShape {
+                name: c.name.clone(),
+                nullable: c.nullable,
+            })
+            .collect(),
+    })
 }
 
 /// A console session (an open connection) and its transaction, for the consoles and the
@@ -803,56 +842,39 @@ impl DbService {
             .unwrap_or(DEFAULT_PAGE_SIZE)
     }
 
-    /// A page of a table with the grid's filter and sort.
+    /// A page of a table with the grid's filter and sort (SQL by `forge_dataedit::query`).
     pub async fn table_data(&self, id: &str, req: &TableDataRequest) -> DbResult<QueryPage> {
         let ds = self.get(id)?;
         let limit = self.page_size(&ds, req.limit);
-        let pool = self.pool(id).await?;
-        let d = pool.dialect();
-        let mut from = d.qualified(&req.schema, &req.table);
-        if let Some(f) = req
-            .filter
-            .as_deref()
-            .map(strip_semicolon)
-            .filter(|f| !f.is_empty())
-        {
-            from.push_str(&format!(" WHERE {f}"));
-        }
-        let order = req
-            .order
-            .iter()
-            .map(|k| {
-                format!(
-                    "{}{}",
-                    d.quote_ident(&k.column),
-                    if k.desc { " DESC" } else { "" }
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
-        if !d.is_sql() {
+        if !ds.dialect().is_sql() {
             return Err(DbError::Refused(format!(
                 "{} has no tables; use a console",
                 ds.driver.label()
             )));
         }
-        let select = format!("SELECT * FROM {from}");
-        let paged = d.page(&select, &order, limit + 1, req.offset);
-        let mut sql = select;
-        if !order.is_empty() {
-            sql.push_str(&format!(" ORDER BY {order}"));
+        let pool = self.pool(id).await?;
+        let d = pool.dialect();
+        let q = forge_dataedit::TableQuery {
+            schema: req.schema.clone(),
+            table: req.table.clone(),
+            filter: req.filter.clone(),
+            column_filters: req.column_filters.clone(),
+            order: req.order.clone(),
         }
+        .sql(d)
+        .map_err(|e| DbError::Refused(e.0))?;
+        let paged = d.page(&q.select, &q.order, limit + 1, req.offset);
         let started = Instant::now();
         let mut conn = pool.acquire().await?;
         let mut raw = conn.run(&paged, 0, limit).await?;
         let elapsed = elapsed_ms(started);
         if raw.columns.is_empty() {
-            raw.columns = conn.describe(&sql).await.unwrap_or_default();
+            raw.columns = conn.describe(&q.display).await.unwrap_or_default();
         }
         let total = if req.offset == 0 && !raw.has_more {
             Some(raw.rows.len() as u64)
         } else {
-            conn.text_rows(&format!("SELECT COUNT(*) FROM {from}"))
+            conn.text_rows(&q.count)
                 .await
                 .ok()
                 .and_then(|r| r.first()?.first()?.as_deref()?.parse().ok())
@@ -864,23 +886,19 @@ impl DbService {
             offset: req.offset,
             total,
             elapsed_ms: elapsed,
-            sql,
+            sql: q.display,
             documents: Vec::new(),
         })
     }
 
-    /// Submit the grid's pending changes in one transaction.
-    pub async fn apply_changes(
+    /// The table's description and the key that identifies its rows.
+    async fn editable_table(
         &self,
         id: &str,
         schema: &str,
         table: &str,
-        changes: &[RowChange],
-    ) -> DbResult<ApplyResult> {
+    ) -> DbResult<(DataSource, Dialect, introspect::TableInfo)> {
         let ds = self.get(id)?;
-        if ds.options.read_only {
-            return Err(DbError::Refused(format!("{} is read-only", ds.name)));
-        }
         if !ds.driver.supports_transactions() {
             return Err(DbError::Refused(format!(
                 "editing rows of {} data sources is not supported; use a console",
@@ -896,10 +914,65 @@ impl DbService {
             .into_iter()
             .next()
             .ok_or_else(|| DbError::Sql(format!("table {table} not found")))?;
-        let statements = changes
-            .iter()
-            .map(|c| change_sql(d, schema, table, &info.primary_key, c))
-            .collect::<DbResult<Vec<_>>>()?;
+        Ok((ds, d, info))
+    }
+
+    /// The DML of the grid's pending changes and what the data source requires before
+    /// they run (read-only: refused; production: confirmation).
+    pub async fn preview_changes(
+        &self,
+        id: &str,
+        schema: &str,
+        table: &str,
+        changes: &[RowChange],
+    ) -> DbResult<ChangePreview> {
+        let (ds, d, info) = self.editable_table(id, schema, table).await?;
+        let key = row_key(&info);
+        let statements = forge_dataedit::preview(d, schema, table, key.as_ref(), changes)
+            .map_err(|e| DbError::Refused(e.0))?;
+        Ok(ChangePreview {
+            statements,
+            key,
+            blocked: ds
+                .options
+                .read_only
+                .then(|| format!("{} is read-only", ds.name)),
+            confirm: ds.is_production().then(|| {
+                format!(
+                    "{} is a production data source. Submit {} change{} to {table}?",
+                    ds.name,
+                    changes.len(),
+                    if changes.len() == 1 { "" } else { "s" }
+                )
+            }),
+        })
+    }
+
+    /// Submit the grid's pending changes in one transaction. Production data sources need
+    /// `confirmed`; read-only ones refuse.
+    pub async fn apply_changes(
+        &self,
+        id: &str,
+        schema: &str,
+        table: &str,
+        changes: &[RowChange],
+        confirmed: bool,
+    ) -> DbResult<ApplyResult> {
+        let ds = self.get(id)?;
+        if ds.options.read_only {
+            return Err(DbError::Refused(format!("{} is read-only", ds.name)));
+        }
+        if ds.is_production() && !confirmed {
+            return Err(DbError::Refused(format!(
+                "{} is a production data source; confirm the changes first",
+                ds.name
+            )));
+        }
+        let (_, d, info) = self.editable_table(id, schema, table).await?;
+        let key = row_key(&info);
+        let statements = forge_dataedit::preview(d, schema, table, key.as_ref(), changes)
+            .map_err(|e| DbError::Refused(e.0))?;
+        let mut conn = self.pool(id).await?.acquire().await?;
         conn.execute(d.begin()).await?;
         let mut total = 0;
         for (sql, change) in statements.iter().zip(changes) {

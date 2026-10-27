@@ -29,6 +29,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-dap](forge-dap.md) | Forge IDE shared debugging layer: Debug Adapter Protocol client, adapter registry and native debugger views |
 | [forge-db](forge-db.md) | Forge IDE database tools: data sources (SSH tunnels, SSL), drivers for nine engines, the Database Explorer (object tree, schema filter, virtual foreign keys, full-text search, DDL data sources), consoles with sessions, the read-only / production guard and data editing |
 | [forge-dbmodel](forge-dbmodel.md) | Forge database explorer model (pure, also built to WebAssembly): object tree, schema filter, virtual foreign keys and columns, DDL parsing, full-text search queries and Quick Documentation |
+| [forge-dataedit](forge-dataedit.md) | Forge data editor logic (pure, also built to WebAssembly): sort and filter SQL per dialect, local sort and filter, row keys and DML preview, foreign-key navigation, aggregates, data compare, charts and the value editor |
 | [forge-dbschema](forge-dbschema.md) | Forge database schema tools (pure, also built to WebAssembly): ER diagram layout, Compare Structure, dialect-aware migration scripts, Laravel and Doctrine migration files, and Explain Plan per dialect |
 | [forge-debug](forge-debug.md) | Forge IDE debugger: DBGp (Xdebug 3) server, path mappings and breakpoints |
 | [forge-editing](forge-editing.md) | Editor actions computed in Rust: postfix completion templates, Complete Current Statement and Cyclic Expand Word (pure, WebAssembly-friendly) |

@@ -1,8 +1,8 @@
 ---
 title: Database tools and SQL console
-description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), ER diagrams, Compare Structure with migration scripts, query consoles with sessions, transactions and Explain Plan, read-only and production data sources, the data grid with editing, and export.
+description: Data sources for MySQL, MariaDB, PostgreSQL, SQLite, SQL Server, ClickHouse, Oracle, Redis and MongoDB with SSH tunnels and SSL, DDL data sources from SQL files, the Database Explorer (full object tree, schema filter, virtual foreign keys, Quick Documentation, full-text search), ER diagrams, Compare Structure with migration scripts, query consoles with sessions, transactions and Explain Plan, read-only and production data sources, the data editor (server-side sort and filter, value editor, pending changes with DML preview, foreign-key navigation, transpose, aggregates, compare data, charts), and export.
 order: 170
-tags: [database, sql, sql editor, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl, er diagram, diagram, schema compare, migration, explain plan, query plan]
+tags: [database, sql, sql editor, data editor, value editor, compare data, chart, mysql, postgresql, sqlite, sqlserver, clickhouse, oracle, redis, mongodb, ssh, ssl, console, explorer, schema filter, virtual foreign key, full-text search, ddl, er diagram, diagram, schema compare, migration, explain plan, query plan]
 ---
 
 # Database tools and SQL console
@@ -484,18 +484,131 @@ Previous, Next, Last Page**), a **WHERE** filter and an **ORDER BY** field.
 | Action | Windows/Linux | macOS |
 | --- | --- | --- |
 | Edit a cell | double-click or `Enter` | same |
+| Value Editor | `Shift+Enter` | `Shift+Enter` |
+| Go to Referenced Data | `Ctrl+B` | `Cmd+B` |
+| Find Referencing Rows | `Alt+F7` | `Alt+F7` |
 | Add Row | `Alt+Insert` | `Cmd+N` |
 | Delete Rows | `Ctrl+Y` | `Cmd+Backspace` |
 | Revert Selected | `Ctrl+Alt+Z` | `Cmd+Alt+Z` |
 | Submit | `Ctrl+Enter` | `Cmd+Enter` |
 | Reload Page | toolbar | toolbar |
 
-Cell context menu: **Copy**, **Copy with Header**, **Set NULL**. Changes are applied in one
-transaction on **Submit**. Tables without a primary key cannot identify changed rows: only new
-rows can be submitted there.
+Cell context menu: **Copy**, **Copy with Header**, **Edit**, **Set NULL**, **Edit Value…**,
+**Set DEFAULT**, **Filter by** the cell's value, **Go to** the referenced table and **Find
+Referencing Rows…**. Changes are applied in one transaction on **Submit**.
 
 NULL is displayed as `<null>` (**Show NULL as**, `database.showNullAs`). Binary values are shown
 as hex.
+
+## Data editor
+
+The table editor and console results work like DataGrip's data editor. Everything that needs
+the database runs there (sort, filter, the DML), and everything else is computed by Forge's Rust
+core (crate [`forge-dataedit`](../developer/crates/forge-dataedit.md)).
+
+### Sort and filter
+
+- **Click a column header** to sort by it: ascending, descending, then off. **Ctrl+Click**
+  (`Cmd+Click`) adds the column to the sort, so several columns sort in order (the header shows
+  the position). The header context menu has **Sort Ascending**, **Sort Descending**, **Add to
+  Sort**, **Clear Sort** and `IS NULL` / `IS NOT NULL` filters.
+- **WHERE** takes any condition of the database's SQL. Column names are completed while you
+  type (`↑`/`↓`, `Enter` or `Tab`); `Enter` applies the filter.
+- **Filter by value** in a cell's context menu adds a condition such as `status <> 'cancelled'`
+  or `shipped_at IS NULL`. The conditions show as chips under the filter row; `×` removes one.
+
+![Filter and sort](../../screenshots/data-editor-filter-sort.png)
+
+Table editors sort and filter **on the server**: Forge builds the `SELECT … WHERE … ORDER BY`
+for the data source's dialect (quoting, `LIMIT`/`OFFSET` or `OFFSET … FETCH`) and shows it in the
+status. The typed condition must stay one read-only condition: Forge refuses it when it holds a
+`;`, unbalanced brackets, an unclosed quote or comment, or writes (`DELETE`, `UPDATE`,
+`INSERT`, `DROP`, `SELECT … INTO`, …, also in subqueries).
+
+Console results come from arbitrary queries, so header sort and **Filter by value** run
+**locally** on the fetched rows (NULLs first, numbers and decimals numerically).
+
+### Value editor
+
+**Shift+Enter** (or the panel icon, or **Edit Value…**) opens the value editor of the current
+cell at the right. It picks the editor from the column type and the value:
+
+| Value | Editor |
+| --- | --- |
+| Text | multi-line text |
+| JSON (`json`, `jsonb`, or text that holds JSON) | formatted, validated while you type (line and column of the error), **Reformat** and **Minify**; the key order is kept |
+| XML | indented and checked for well-nested tags |
+| Binary | size, hex dump and an image preview for PNG, JPEG, GIF, WebP and BMP |
+| `date`, `datetime`, `timestamp`, `time` | a date/time picker plus the text, normalized on **Apply** (`2025-1-6 9:05` → `2025-01-06 09:05:00`) |
+| `enum(…)`, `set(…)` | a list of the allowed values (check boxes for `set`) |
+| Boolean, number | a selector or a number field |
+
+**Apply** writes the value into the grid as a pending change. **Set NULL** and **Set DEFAULT**
+(for columns with a default or auto increment) are there too. In console results the value
+editor is a read-only viewer.
+
+![Value editor with JSON](../../screenshots/data-editor-value-json.png)
+
+### Pending changes and the DML preview
+
+Edits, new rows, deleted rows, `NULL` and `DEFAULT` stay **pending** until you **Submit** them;
+**Revert** drops them. **Preview Pending Changes** (the list icon next to Submit) shows the
+statements Forge will run, generated for the dialect:
+
+![Pending changes with the DML preview](../../screenshots/data-editor-pending-dml.png)
+
+Rows are identified by the **primary key**; a table without one uses a **unique key whose columns
+are all NOT NULL**. A table with neither refuses updates and deletes (new rows still work):
+edit it with an `UPDATE` in a console instead. A statement that would change more than one row
+rolls the whole batch back.
+
+Writes honour the data source: **read-only** data sources refuse them, and on **production** (red)
+data sources Submit shows the statements and asks for confirmation first.
+
+### Foreign-key navigation
+
+**Ctrl+B** on a cell of a foreign-key column opens the referenced table filtered to the
+referenced row (`id = 23`); with several keys on the column, a popup lets you choose.
+**Alt+F7** (**Find Referencing Rows…**) goes the other way: it lists the tables whose foreign
+keys reference this table and opens the rows that reference the current one. Both work with real
+and [virtual foreign keys](#virtual-foreign-keys-and-columns).
+
+![Jump to the referenced row](../../screenshots/data-editor-fk-jump.png)
+
+### Transpose
+
+**Transpose** shows each row as a column, with one line per column of the table — handy for wide
+tables. Click a cell to select it; double-click opens it in the value editor.
+
+![Transposed view](../../screenshots/data-editor-transposed.png)
+
+### Aggregates
+
+When several cells are selected, the line under the grid shows their **Count**, **Sum**, **Avg**,
+**Min**, **Max**, **Distinct** count and NULLs. Decimals are summed exactly. **Aggregate View**
+(the Σ icon, or a click on the line) lists the aggregates per selected column.
+
+![Aggregates](../../screenshots/data-editor-aggregates.png)
+
+### Compare data
+
+**Compare With…** (toolbar or context menu, in table editors and console results) compares the
+rows with another open result, an open table or any table of a connected data source. Pick the
+**key** columns (the primary key is preselected); Forge matches rows by key and opens a
+comparison tab with **changed** rows (old → new in each changed cell), **added** and **removed**
+rows. The counters filter the rows; **unchanged** rows are hidden at first. Without a key, whole
+rows are matched. Tables are compared on their first 5,000 rows.
+
+![Compare data](../../screenshots/data-editor-compare.png)
+
+### Charts
+
+**Show Chart** turns the result into a chart: **bar**, **line**, **area**, **pie** or
+**scatter**. Pick the **X** column, one or more **Y** columns, an optional **Group by** column
+(one series per value) and how values of the same X are combined (**SUM**, **AVG**, **MIN**,
+**MAX** or **COUNT**). Numbers and dates on the X axis are sorted.
+
+![Chart](../../screenshots/data-editor-chart.png)
 
 ## Export
 

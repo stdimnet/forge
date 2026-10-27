@@ -2303,6 +2303,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-dataedit"
+version = "0.1.0"
+dependencies = [
+ "forge-sql",
+ "hex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-db"
 version = "0.1.0"
 dependencies = [
@@ -2310,6 +2320,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "forge-core",
+ "forge-dataedit",
  "forge-dbmodel",
  "forge-dbschema",
  "forge-ports",
@@ -2999,6 +3010,7 @@ dependencies = [
  "forge-colors",
  "forge-colorscheme",
  "forge-containers",
+ "forge-dataedit",
  "forge-dbmodel",
  "forge-dbschema",
  "forge-deploy",

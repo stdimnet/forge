@@ -830,14 +830,15 @@ registerMock("db_table_data", async (a): Promise<QueryPage> => {
   const req = a.request as TableDataRequest;
   const limit = req.limit ?? s.source.options.pageSize ?? DEFAULT_PAGE;
   const offset = req.offset ?? 0;
-  let sql = `SELECT * FROM ${req.table}`;
-  const filter = req.filter?.trim().replace(/;+$/, "");
-  if (filter) sql += ` WHERE ${filter}`;
-  if (req.order?.length) sql += ` ORDER BY ${req.order.map((o) => `${o.column}${o.desc ? " DESC" : ""}`).join(", ")}`;
+  // The same SQL as the backend (`forge_dataedit::query`), run by the demo engine unpaged.
+  const wasm = await forgeWasm();
+  const q = await callWasm<{ select: string; order: string; display: string }>(wasm.dataedit_table_query, {
+    dialect: dialectOf(s.source.driver),
+    query: { schema: req.schema, table: req.table, filter: req.filter ?? null, columnFilters: req.columnFilters ?? [], order: req.order ?? [] },
+  });
   await delay(60);
-  const all = runStatement(db(s.source.id), sql);
+  const all = runStatement(db(s.source.id), q.display);
   const rows = all.rows.slice(offset, offset + limit);
-  const quoted = sql.replace(/FROM (\w+)/, "FROM `$1`");
   return {
     columns: all.columns,
     rows,
@@ -845,27 +846,46 @@ registerMock("db_table_data", async (a): Promise<QueryPage> => {
     offset,
     total: all.rows.length,
     elapsedMs: 9 + (rows.length % 7),
-    sql: quoted,
+    sql: q.display,
+  };
+});
+
+/** DML of pending changes with the backend's key choice (`forge_dataedit::api::preview_changes`). */
+async function previewChanges(src: MockSource, schema: string, table: string, changes: RowChange[]) {
+  if (!supportsTransactions(src.source.driver)) throw new Error(`editing rows of ${DRIVER_LABELS[src.source.driver]} data sources is not supported; use a console`);
+  const t = db(src.source.id).tables[table];
+  if (!t) throw new Error(`table ${table} not found`);
+  const wasm = await forgeWasm();
+  return callWasm<{ statements: string[]; key?: { columns: string[]; source: string } }>(wasm.dataedit_preview, {
+    dialect: dialectOf(src.source.driver),
+    schema,
+    table,
+    info: t.info,
+    changes,
+  });
+}
+
+registerMock("db_preview_changes", async (a) => {
+  const s = await ensureConnected(a.id as string);
+  const changes = a.changes as RowChange[];
+  const p = await previewChanges(s, a.schema as string, a.table as string, changes);
+  return {
+    ...p,
+    blocked: s.source.options.readOnly ? `${s.source.name} is read-only` : undefined,
+    confirm:
+      s.source.options.color === "red"
+        ? `${s.source.name} is a production data source. Submit ${changes.length} change${changes.length === 1 ? "" : "s"} to ${a.table}?`
+        : undefined,
   };
 });
 
 registerMock("db_apply_changes", async (a) => {
   const s = await ensureConnected(a.id as string);
   if (s.source.options.readOnly) throw new Error(`${s.source.name} is read-only`);
-  if (!supportsTransactions(s.source.driver)) throw new Error(`editing rows of ${DRIVER_LABELS[s.source.driver]} data sources is not supported; use a console`);
+  if (s.source.options.color === "red" && !a.confirmed) throw new Error(`${s.source.name} is a production data source; confirm the changes first`);
   const d = db(s.source.id);
-  const t = d.tables[a.table as string];
-  if (!t) throw new Error(`table ${a.table} not found`);
   const changes = a.changes as RowChange[];
-  const dialect = dialectOf(s.source.driver);
-  const wasm = await forgeWasm();
-  const statements = await callWasm<string[]>(wasm.sql_change_statements, {
-    dialect,
-    schema: a.schema,
-    table: a.table,
-    pk: t.info.primaryKey,
-    changes,
-  });
+  const { statements } = await previewChanges(s, a.schema as string, a.table as string, changes);
   const backup = cloneDatabase(d);
   let affected = 0;
   try {

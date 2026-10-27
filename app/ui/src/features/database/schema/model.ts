@@ -7,7 +7,7 @@ import type { SchemaInfo } from "@/ipc/db";
 import { connect, defaultSchema, introspect, sourceById, states } from "../store";
 
 export const DIAGRAM_VIEW = "db-diagram";
-export const COMPARE_VIEW = "db-compare";
+export const COMPARE_VIEW = "db-structure-compare";
 
 export const diagramPath = (id: string, schema: string, table?: string) =>
   `db-diagram://${id}/${schema}${table ? `/${table}` : ""}`;
@@ -33,7 +33,7 @@ export interface CompareStart {
 const compareStarts = new Map<string, CompareStart>();
 let compareSeq = 0;
 
-export const comparePath = (n: number) => `db-compare://${n}`;
+export const comparePath = (n: number) => `db-structure-compare://${n}`;
 
 /** The start of a Compare Structure tab (read once). */
 export function takeCompareStart(path: string): CompareStart {

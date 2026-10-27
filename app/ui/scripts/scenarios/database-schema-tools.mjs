@@ -63,7 +63,7 @@ export default {
     await page.click('.db-row[data-key="ds:shop-pg"]');
     await page.focus(".db-tree");
     await page.evaluate(() => window.__forgeRunCommand("Database.CompareStructure"));
-    await page.waitForSelector('[data-testid="db-compare"]');
+    await page.waitForSelector('[data-testid="db-structure-compare"]');
     await editorOnly(page);
     await page.selectOption('[data-testid="cmp-target"] select', "shop-staging");
     await page.waitForFunction(() => (document.querySelectorAll('[data-testid="cmp-target"] select').length ?? 0) > 1);
