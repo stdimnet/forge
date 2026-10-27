@@ -4256,6 +4256,26 @@
           "order": 60
         },
         {
+          "key": "actionsOnSave.rector",
+          "title": "Run Rector",
+          "description": "Run `rector process` on saved PHP files with the project's rector.php.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 55
+        },
+        {
+          "key": "actionsOnSave.phpcbf",
+          "title": "Run phpcbf",
+          "description": "Run PHP_CodeSniffer's fixer `phpcbf` on saved PHP files.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.actions-on-save",
+          "project": true,
+          "order": 65
+        },
+        {
           "key": "actionsOnSave.pint",
           "title": "Run Laravel Pint",
           "description": "Run `pint` on saved PHP files.",
@@ -4266,26 +4286,759 @@
           "order": 70
         },
         {
+          "key": "php.tools.onTheFly",
+          "title": "Run inspections on the fly",
+          "description": "Check the edited PHP file while you type (after a short pause) with the tools that can read unsaved text: PHP_CodeSniffer and PHP CS Fixer through stdin, PHPStan through a temporary copy when its PHP runs on this machine. All tools check a file when it is opened and saved.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.php.quality-tools",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "php.tools.phpcs.inspection",
+          "title": "PHP_CodeSniffer inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "php.tools.phpcs.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "php.tools.phpcs.path",
+          "title": "PHP_CodeSniffer path",
+          "description": "Empty: vendor/bin/phpcs of the project; relative paths start at the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 12
+        },
+        {
+          "key": "php.tools.phpcs.phpcbfPath",
+          "title": "phpcbf path",
+          "description": "Empty: vendor/bin/phpcbf of the project. Used by Reformat with phpcbf, the quick fix and Actions on Save.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 13
+        },
+        {
+          "key": "php.tools.phpcs.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 14
+        },
+        {
+          "key": "php.tools.phpcs.level",
+          "title": "Coding standard",
+          "description": "Standard when no configuration file is set: PSR12, PSR2, PEAR, Squiz, Zend or a custom one. Empty: the project's phpcs.xml or phpcs's default.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 15
+        },
+        {
+          "key": "php.tools.phpcs.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 16
+        },
+        {
+          "key": "php.tools.phpcs.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 17
+        },
+        {
+          "key": "php.tools.phpcs.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "PHP_CodeSniffer",
+          "project": true,
+          "order": 18
+        },
+        {
+          "key": "php.tools.phpCsFixer.inspection",
+          "title": "PHP CS Fixer inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "php.tools.phpCsFixer.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 31
+        },
+        {
           "key": "php.tools.phpCsFixer.path",
           "title": "PHP CS Fixer path",
-          "description": "Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used.",
+          "description": "Empty: vendor/bin/php-cs-fixer of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
           "section": "PHP CS Fixer",
           "project": true,
-          "order": 0
+          "order": 32
+        },
+        {
+          "key": "php.tools.phpCsFixer.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 34
+        },
+        {
+          "key": "php.tools.phpCsFixer.level",
+          "title": "Rules",
+          "description": "`--rules`, e.g. @PSR12 or @PhpCsFixer. Empty: the configuration file's rules.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 35
+        },
+        {
+          "key": "php.tools.phpCsFixer.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 36
+        },
+        {
+          "key": "php.tools.phpCsFixer.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 37
+        },
+        {
+          "key": "php.tools.phpCsFixer.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "PHP CS Fixer",
+          "project": true,
+          "order": 38
+        },
+        {
+          "key": "php.tools.phpmd.inspection",
+          "title": "PHP Mess Detector inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 50
+        },
+        {
+          "key": "php.tools.phpmd.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 51
+        },
+        {
+          "key": "php.tools.phpmd.path",
+          "title": "PHP Mess Detector path",
+          "description": "Empty: vendor/bin/phpmd of the project; relative paths start at the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 52
+        },
+        {
+          "key": "php.tools.phpmd.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 54
+        },
+        {
+          "key": "php.tools.phpmd.level",
+          "title": "Rulesets",
+          "description": "Comma-separated rulesets when no configuration file is set. Empty: cleancode, codesize, controversial, design, naming, unusedcode.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 55
+        },
+        {
+          "key": "php.tools.phpmd.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 56
+        },
+        {
+          "key": "php.tools.phpmd.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 57
+        },
+        {
+          "key": "php.tools.phpmd.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "PHP Mess Detector",
+          "project": true,
+          "order": 58
+        },
+        {
+          "key": "php.tools.phpstan.inspection",
+          "title": "PHPStan inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 70
+        },
+        {
+          "key": "php.tools.phpstan.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 71
+        },
+        {
+          "key": "php.tools.phpstan.path",
+          "title": "PHPStan path",
+          "description": "Empty: vendor/bin/phpstan of the project; relative paths start at the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 72
+        },
+        {
+          "key": "php.tools.phpstan.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 74
+        },
+        {
+          "key": "php.tools.phpstan.level",
+          "title": "Level",
+          "description": "0–10 or max. Empty: the configuration file's level.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 75
+        },
+        {
+          "key": "php.tools.phpstan.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 76
+        },
+        {
+          "key": "php.tools.phpstan.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 77
+        },
+        {
+          "key": "php.tools.phpstan.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "PHPStan",
+          "project": true,
+          "order": 78
+        },
+        {
+          "key": "php.tools.psalm.inspection",
+          "title": "Psalm inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 90
+        },
+        {
+          "key": "php.tools.psalm.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 91
+        },
+        {
+          "key": "php.tools.psalm.path",
+          "title": "Psalm path",
+          "description": "Empty: vendor/bin/psalm of the project; relative paths start at the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 92
+        },
+        {
+          "key": "php.tools.psalm.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 94
+        },
+        {
+          "key": "php.tools.psalm.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 96
+        },
+        {
+          "key": "php.tools.psalm.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 97
+        },
+        {
+          "key": "php.tools.psalm.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "Psalm",
+          "project": true,
+          "order": 98
+        },
+        {
+          "key": "php.tools.pint.inspection",
+          "title": "Laravel Pint inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 110
+        },
+        {
+          "key": "php.tools.pint.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 111
         },
         {
           "key": "php.tools.pint.path",
           "title": "Laravel Pint path",
-          "description": "Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used.",
+          "description": "Empty: vendor/bin/pint of the project; relative paths start at the project root.",
           "type": "path",
           "default": "",
           "group": "lang.php.quality-tools",
           "section": "Laravel Pint",
           "project": true,
-          "order": 10
+          "order": 112
+        },
+        {
+          "key": "php.tools.pint.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 114
+        },
+        {
+          "key": "php.tools.pint.level",
+          "title": "Preset",
+          "description": "`--preset`: laravel, psr12, per or symfony. Empty: pint.json's preset.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 115
+        },
+        {
+          "key": "php.tools.pint.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 116
+        },
+        {
+          "key": "php.tools.pint.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 117
+        },
+        {
+          "key": "php.tools.pint.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "Laravel Pint",
+          "project": true,
+          "order": 118
+        },
+        {
+          "key": "php.tools.rector.inspection",
+          "title": "Rector inspection",
+          "description": "On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code | Inspect Code with Quality Tools.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 130
+        },
+        {
+          "key": "php.tools.rector.interpreter",
+          "title": "Run with",
+          "description": "Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 131
+        },
+        {
+          "key": "php.tools.rector.path",
+          "title": "Rector path",
+          "description": "Empty: vendor/bin/rector of the project; relative paths start at the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 132
+        },
+        {
+          "key": "php.tools.rector.config",
+          "title": "Configuration file",
+          "description": "Empty: the one the tool finds in the project root.",
+          "type": "path",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 134
+        },
+        {
+          "key": "php.tools.rector.options",
+          "title": "Other parameters",
+          "description": "Extra command line options, quoted like in a shell.",
+          "type": "string",
+          "default": "",
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 136
+        },
+        {
+          "key": "php.tools.rector.timeout",
+          "title": "Timeout (seconds)",
+          "description": "Longer runs are stopped (Inspect Code: at least 300 seconds).",
+          "type": "int",
+          "min": 1,
+          "max": 3600,
+          "default": 30,
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 137
+        },
+        {
+          "key": "php.tools.rector.severity",
+          "title": "Severity",
+          "description": "How the tool's problems are highlighted.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "tool",
+              "label": "As reported by the tool"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "weak",
+              "label": "Weak Warning"
+            }
+          ],
+          "default": "tool",
+          "group": "lang.php.quality-tools",
+          "section": "Rector",
+          "project": true,
+          "order": 138
         },
         {
           "key": "php.autoImport.addOnTheFly",

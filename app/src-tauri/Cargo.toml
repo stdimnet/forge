@@ -72,6 +72,7 @@ forge-update.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 phpforge-interpreters.workspace = true
 phpforge-cli-tools.workspace = true
+phpforge-quality-tools.workspace = true
 phpforge-test-frameworks.workspace = true
 phpforge-composer = { workspace = true, features = ["net"] }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }

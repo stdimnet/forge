@@ -1967,6 +1967,7 @@ dependencies = [
  "phpforge-interpreters",
  "phpforge-lang-php",
  "phpforge-orm-doctrine",
+ "phpforge-quality-tools",
  "phpforge-test-frameworks",
  "pyforge-frameworks",
  "pyforge-interpreters",
@@ -5368,6 +5369,15 @@ dependencies = [
  "tree-sitter",
  "walkdir",
  "yaml-rust2",
+]
+
+[[package]]
+name = "phpforge-quality-tools"
+version = "0.1.0"
+dependencies = [
+ "forge-runtargets",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

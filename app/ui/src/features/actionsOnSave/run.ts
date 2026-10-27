@@ -20,6 +20,8 @@ export const TOOL_PAGES: Record<SaveTool, string> = {
   prettier: "lang.prettier",
   phpCsFixer: "lang.php.quality-tools",
   pint: "lang.php.quality-tools",
+  phpcbf: "lang.php.quality-tools",
+  rector: "lang.php.quality-tools",
 };
 
 const TOOL_PLUGINS: Record<SaveTool, string> = {
@@ -27,6 +29,8 @@ const TOOL_PLUGINS: Record<SaveTool, string> = {
   prettier: "forge.web",
   phpCsFixer: "forge.php",
   pint: "forge.php",
+  phpcbf: "forge.php",
+  rector: "forge.php",
 };
 
 /** Missing tools are reported once per session, not on every save. */

@@ -781,7 +781,7 @@ not finished, the page says so.
 | [Sticky lines, breadcrumbs and Reader mode](docs/guide/user/code-structure.md) | Sticky Lines, structure breadcrumbs, custom folding regions, rendered doc comments (`Ctrl+Alt+Q`), Reader mode |
 | [Markdown, images and CSV](docs/guide/user/markdown-images-csv.md) | Markdown preview (Mermaid, tables, links, images, front matter), image editor and SVG preview, Edit as Table for CSV/TSV |
 | [Optimize Imports and Auto Import](docs/guide/user/imports.md) | Optimize Imports (`Ctrl+Alt+O`) for files, folders and the project, Auto Import on the fly and on completion, the import popup, Import class, the PHP code style's Imports tab |
-| [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint on save |
+| [Actions on Save](docs/guide/user/actions-on-save.md) | Reformat code, Optimize imports, Rearrange code, code cleanup, ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint on save |
 | [Live templates](docs/guide/user/live-templates.md) | abbreviations + `Tab`, Insert Live Template, Surround With, Unwrap/Remove, Save as Live Template, template sets and settings |
 | [Emmet and color previews](docs/guide/user/emmet-and-colors.md) | Emmet abbreviations in HTML, Blade, Twig, Vue, PHP, JSX and CSS, abbreviation preview, Surround with Emmet, Update/Remove Tag, edit points, color swatches and the color picker |
 | [JSON Schema](docs/guide/user/json-schema.md) | validation, completion, hover and Go to Declaration from JSON schemas in JSON and YAML files: composer.json, package.json, tsconfig, ESLint, Prettier, Compose, GitHub Actions, GitLab CI, `$schema`, JSON Schema Mappings, the status bar widget, remote schemas |
@@ -809,6 +809,7 @@ not finished, the page says so.
 | Page | Covers |
 | --- | --- |
 | [PHP](docs/guide/user/php.md) | PHP index, Structure, hover, Generate (`Alt+Insert`), PHP settings |
+| [PHP Quality Tools](docs/guide/user/php-quality-tools.md) | PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: problems on the fly and on save, Reformat with …, Fix with … quick fixes, Rector's preview, Inspect Code, PHP interpreters and remote projects |
 | [Composer](docs/guide/user/composer.md) | composer.json toolbar (Install, Update, Validate, Show Outdated, Audit), outdated packages with Update package, package and version completion from Packagist, Manage Composer Dependencies, `composer audit` (Vulnerable Dependencies), composer.phar download |
 | [Laravel](docs/guide/user/laravel.md) | Blade, routes, views, config, Eloquent, Routes tool window, artisan commands |
 | [Symfony](docs/guide/user/symfony.md) | services, routes, Twig, console, Symfony tool window |
@@ -2772,7 +2773,9 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
 | **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
 | **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Prettier |
+| **Run Rector** | PHP | `rector process <file>` with the project's `rector.php`. | Languages & Frameworks \| PHP \| Quality Tools |
 | **Run PHP CS Fixer** | PHP | `php-cs-fixer fix <file>` with the project's `.php-cs-fixer.dist.php`. | Languages & Frameworks \| PHP \| Quality Tools |
+| **Run phpcbf** | PHP | PHP_CodeSniffer's fixer `phpcbf <file>` with the project's `phpcs.xml`. | Languages & Frameworks \| PHP \| Quality Tools |
 | **Run Laravel Pint** | PHP | `pint <file>` with the project's `pint.json`. | Languages & Frameworks \| PHP \| Quality Tools |
 
 The PHP actions are skipped for Blade templates and files with syntax errors; an import is
@@ -2787,12 +2790,16 @@ The "Reformat code" file types are picked from the **All file types** drop-down:
 
 ## External tools
 
-ESLint, Prettier, PHP CS Fixer and Laravel Pint are the project's own installations:
-`node_modules/.bin/eslint`, `node_modules/.bin/prettier`, `vendor/bin/php-cs-fixer` and
-`vendor/bin/pint` (`.cmd` / `.bat` on Windows). The page shows where each one was found, or
-"Not installed in the project". A different executable can be set on the tool's settings
-page (`web.eslint.path`, `web.prettier.path`, `php.tools.phpCsFixer.path`,
-`php.tools.pint.path`); a relative path starts at the project root.
+ESLint, Prettier and the PHP tools are the project's own installations:
+`node_modules/.bin/eslint`, `node_modules/.bin/prettier`, `vendor/bin/rector`,
+`vendor/bin/php-cs-fixer`, `vendor/bin/phpcbf` and `vendor/bin/pint` (`.cmd` / `.bat` on
+Windows). The page shows where each one was found, or "Not installed in the project". A
+different executable can be set on the tool's settings page (`web.eslint.path`,
+`web.prettier.path`, `php.tools.rector.path`, `php.tools.phpCsFixer.path`,
+`php.tools.phpcs.phpcbfPath`, `php.tools.pint.path`); a relative path starts at the project
+root. The PHP tools also take their configuration file, ruleset, other parameters and PHP
+interpreter (Docker, Docker Compose, SSH, WSL) from
+[PHP Quality Tools](docs/guide/user/php-quality-tools.md).
 
 ![PHP Quality Tools settings](docs/screenshots/php-quality-tools-settings.png)
 
@@ -2816,8 +2823,8 @@ notification group.
 
 The actions run in this order: Reformat code, Run code cleanup, Optimize imports, Rearrange
 code, then the On Save cleanup of Settings | Editor | General (trailing spaces, final line
-break), then the file is written and the external tools run on it (ESLint, Prettier, PHP CS
-Fixer, Pint).
+break), then the file is written and the external tools run on it (ESLint, Prettier,
+Rector, PHP CS Fixer, phpcbf, Pint).
 
 Everything the actions changed reaches the editor as **one edit**: a single `Ctrl+Z` undoes
 all of it. If you keep typing while the actions run, your text wins: the actions' result is
@@ -2837,6 +2844,8 @@ dropped and what you typed is saved as it is.
 | `actionsOnSave.prettier.enabled` | `false` | Run Prettier |
 | `actionsOnSave.prettier.files` | `*.js; *.ts; …` | Prettier's "Run for files" patterns |
 | `actionsOnSave.phpCsFixer` | `false` | Run PHP CS Fixer |
+| `actionsOnSave.rector` | `false` | Run Rector |
+| `actionsOnSave.phpcbf` | `false` | Run phpcbf |
 | `actionsOnSave.pint` | `false` | Run Laravel Pint |
 | `actionsOnSave.runOnAutosave` | `false` | Also run on autosave |
 
@@ -9591,11 +9600,11 @@ comments and inline HTML are never changed.
 
 ### Quality Tools
 
-Settings | Languages & Frameworks | PHP | Quality Tools sets the PHP CS Fixer and Laravel Pint
-executables (`php.tools.phpCsFixer.path`, `php.tools.pint.path`); empty means
-`vendor/bin/php-cs-fixer` and `vendor/bin/pint` of the project. They run on save with
-**Run PHP CS Fixer** / **Run Laravel Pint**, and Optimize imports, Rearrange code and code
-cleanup of PHP files run there too, see [Actions on Save](docs/guide/user/actions-on-save.md).
+Settings | Languages & Frameworks | PHP | Quality Tools configures PHPStan, Psalm, PHP CS
+Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: their problems show on the
+fly and on save, the fixers reformat files and run on save, also through Docker, Docker Compose,
+SSH and WSL interpreters. See [PHP Quality Tools](docs/guide/user/php-quality-tools.md) and
+[Actions on Save](docs/guide/user/actions-on-save.md).
 
 ## Running and testing PHP
 
@@ -9618,6 +9627,126 @@ remote host through the Forge agent; Structure, search, hover, Generate, navigat
 gutter icons, Rename, context actions, metadata and attribute inspections and completion,
 include paths (folders on the remote host) and source roots work as locally; renamed and fixed files are written on
 the remote host. The PHP stubs are read on this machine.
+
+
+---
+
+Source: docs/guide/user/php-quality-tools.md
+
+# PHP Quality Tools
+
+Forge runs the PHP quality tools of your project the way PHPStorm does: their problems appear
+in the editor while you type and after you save, and in the Problems tool window; the fixers
+reformat files, fix problems with `Alt+Enter` and run on save.
+
+| Tool | Checks with | Fixes with |
+| --- | --- | --- |
+| **PHPStan** (and Larastan) | `phpstan analyse --error-format=json` | |
+| **Psalm** | `psalm --output-format=json` | |
+| **PHP_CodeSniffer** | `phpcs --report=json` | `phpcbf` |
+| **PHP Mess Detector** | `phpmd <file> json <rulesets>` | |
+| **PHP CS Fixer** | `php-cs-fixer fix --dry-run --diff --format=json` | `php-cs-fixer fix` |
+| **Laravel Pint** | `pint --test --format=json` | `pint` |
+| **Rector** | `rector process --dry-run --output-format=json` | `rector process` (with a preview) |
+
+The tools are your project's own: Forge never bundles or downloads them. Install them with
+Composer (`composer require --dev phpstan/phpstan`, `laravel/pint`, …) or point Forge to them.
+
+## Settings
+
+Settings | Languages & Frameworks | PHP | Quality Tools (`Ctrl+Alt+S`) lists every tool with
+an **ON/OFF** switch and where it was found (`vendor/bin/phpstan`, or "Not installed in the
+project"). The switch turns the tool's inspection on: its problems are shown on the fly, on
+open and on save, and by Inspect Code with Quality Tools. Expand a tool to configure it:
+
+![Quality Tools settings](docs/screenshots/php-quality-tools-settings.png)
+
+| Option | Meaning |
+| --- | --- |
+| **Run with** | *Directly (where the project is)*: the executable runs on the project's machine. *Project PHP interpreter*, or any configured [CLI interpreter](docs/guide/user/php.md#cli-interpreters): the tool runs as `php <tool> …` with that interpreter, locally, in Docker, Docker Compose, over SSH or in WSL. Paths in the arguments are mapped to the interpreter's side and the paths in the report back to the project, with the interpreter's path mappings. |
+| **Path** | The executable; empty means `vendor/bin/<tool>` of the project. A relative path starts at the project root. PHP_CodeSniffer also has the **phpcbf path**. |
+| **Configuration file** | Empty: the file the tool finds in the project root (`phpstan.neon`, `phpstan.neon.dist`, `psalm.xml`, `.php-cs-fixer.php`, `.php-cs-fixer.dist.php`, `phpcs.xml`, `.phpcs.xml.dist`, `phpmd.xml`, `pint.json`, `rector.php`). The page shows which one was found. |
+| **Level / ruleset** | PHPStan's **Level** (`0`–`10`, `max`), phpcs's **Coding standard** (`PSR12`, …; a configuration file is the standard), PHP Mess Detector's **Rulesets** (default `cleancode,codesize,controversial,design,naming,unusedcode`), PHP CS Fixer's **Rules** (`@PSR12`), Pint's **Preset** (`laravel`, `psr12`, `per`, `symfony`). Empty: the configuration file decides. |
+| **Other parameters** | Extra options, quoted like in a shell (`--memory-limit=1G`). |
+| **Timeout (seconds)** | A run that takes longer is stopped (default 30). Inspect Code allows at least 300 seconds. |
+| **Severity** | *As reported by the tool*, or always Error, Warning or Weak Warning. |
+
+**Validate** runs `<tool> --version` with the options shown (before you apply them) and shows
+the version, or why the tool does not run.
+
+**Run inspections on the fly** (`php.tools.onTheFly`, on by default) checks the file you edit
+after a short pause in typing.
+
+## Problems in the editor
+
+When a PHP file opens, after a pause in typing and after it is saved, the tools whose
+inspection is on check it. Their problems are underlined in the editor with the tool's
+severity, listed in the Problems tool window (`Alt+6`, Current File and Project Errors) and
+show the tool's name and rule (`PHPStan · argument.type`):
+
+![PHPStan problems in the editor](docs/screenshots/php-quality-tools-phpstan.png)
+
+While the text is not saved, only the tools that can read it run: PHP_CodeSniffer and PHP CS
+Fixer get the editor text on stdin, PHPStan gets a temporary copy (`--tmp-file … --instead-of
+…`) when its PHP runs on this machine. Psalm, PHP Mess Detector, Pint and Rector check the
+saved file. Severities follow the tool: PHPStan's errors and Psalm's errors are errors, Psalm's
+info issues weak warnings, phpcs's errors and warnings stay as they are, PHP Mess Detector's
+priority 1–2 are warnings and 3–5 weak warnings, and what a fixer would change (PHP CS Fixer,
+Pint, Rector) is a weak warning on the changed lines.
+
+A tool that is not installed, fails or times out is reported once per session in a balloon
+with a **Configure…** link (notification group "PHP Quality Tools").
+
+## Fixing
+
+- **Code | Reformat with PHP CS Fixer**, **Reformat with phpcbf** and **Reformat with Pint**
+  fix the current file. The result is applied as one edit, so `Ctrl+Z` undoes it. PHP CS Fixer
+  and phpcbf work on the editor text; Pint works on the saved file (Forge saves it first, then
+  restores the file and applies Pint's result as an edit).
+- **Alt+Enter** on a fixable problem offers **Fix with PHP CS Fixer**, **Fix with phpcbf** or
+  **Fix with Pint**.
+- **Code | Run Rector on File…** (and **Preview and apply Rector changes…** on a Rector
+  problem) shows the rules that apply and Rector's diff before anything changes; **Apply**
+  puts the changes into the editor.
+
+![Rector's preview](docs/screenshots/php-quality-tools-rector.png)
+
+## On save
+
+[Actions on Save](docs/guide/user/actions-on-save.md) (Settings | Tools | Actions on Save) has **Run Rector**,
+**Run PHP CS Fixer**, **Run phpcbf** and **Run Laravel Pint**. They run on explicit save
+(`Ctrl+S`) in this order, with the tool's configuration file, ruleset, options and PHP
+interpreter from the Quality Tools page:
+
+![Fix with Pint on a Pint problem](docs/screenshots/php-quality-tools-pint-on-save.png)
+
+![After saving with Run Laravel Pint](docs/screenshots/php-quality-tools-pint-saved.png)
+
+## Inspect Code
+
+**Code | Inspect Code with Quality Tools** runs every tool whose inspection is on over the
+whole project: tools with a configuration file check what it names, the others the project
+root without `vendor/` and `node_modules/`. The problems replace the tools' earlier ones in the
+Problems tool window, and a balloon sums them up.
+
+## Remote projects and Safe Mode
+
+In [remote projects](docs/guide/user/remote-development.md) the tools run on the remote host, next to the
+files, through the Forge agent, like Composer and the run configurations do; interpreters work
+there too.
+
+Running a project's vendor tools runs code from the project. In
+[Safe Mode](docs/guide/user/project-trust.md) Forge never runs them: checks, fixers, Validate and the PHP
+tools of Actions on Save are refused until you trust the project.
+
+## Settings keys
+
+Every tool has the keys `php.tools.<tool>.inspection`, `.interpreter`, `.path`, `.config`,
+`.level` (not Psalm and Rector), `.options`, `.timeout` and `.severity`, with `<tool>` one of
+`phpstan`, `psalm`, `phpCsFixer`, `phpcs`, `phpmd`, `pint`, `rector`; plus
+`php.tools.phpcs.phpcbfPath` and `php.tools.onTheFly`. They are project settings, so a team
+can share them in `.forge/settings.toml`. See the
+[settings reference](docs/guide/reference/settings.md#languages--frameworks--php--quality-tools).
 
 
 ---
@@ -14455,7 +14584,8 @@ blocked even if a plugin or the UI tries to start them:
 | ESLint, Tailwind CSS, rust-analyzer, Ruby LSP, Java, Kotlin, Scala (Metals) and C# language servers | not started (they load the project's config files or build scripts) |
 | Gradle / Maven sync, Reload sbt Project | refused (the build definition is project code) |
 | Groovy scripts, sbt tasks, Android App runs (build, `adb install`, launch) | not started (they are run configurations) |
-| Actions on Save: ESLint, Prettier, PHP CS Fixer, Laravel Pint | not run |
+| Actions on Save: ESLint, Prettier, Rector, PHP CS Fixer, phpcbf, Laravel Pint | not run |
+| PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
@@ -19326,12 +19456,66 @@ Page id `lang.php.composer`.
 
 ### Languages & Frameworks | PHP | Quality Tools
 
-Page id `lang.php.quality-tools`.
+Page id `lang.php.quality-tools`. See [PHP Quality Tools](docs/guide/user/php-quality-tools.md).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
-| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
+| `php.tools.onTheFly` | bool | `true` | user, project |  | Run inspections on the fly — Check the edited PHP file while you type (after a short pause) with the tools that can read unsaved text: PHP_CodeSniffer and PHP CS Fixer through stdin, PHPStan through a temporary copy when its PHP runs on this machine. All tools check a file when it is opened and saved. |
+| `php.tools.phpcs.inspection` | bool | `false` | user, project | PHP_CodeSniffer | PHP_CodeSniffer inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpcs.interpreter` | string | `""` | user, project | PHP_CodeSniffer | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpcs.path` | path | `""` | user, project | PHP_CodeSniffer | PHP_CodeSniffer path — Empty: vendor/bin/phpcs of the project; relative paths start at the project root. |
+| `php.tools.phpcs.phpcbfPath` | path | `""` | user, project | PHP_CodeSniffer | phpcbf path — Empty: vendor/bin/phpcbf of the project. Used by Reformat with phpcbf, the quick fix and Actions on Save. |
+| `php.tools.phpcs.config` | path | `""` | user, project | PHP_CodeSniffer | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpcs.level` | string | `""` | user, project | PHP_CodeSniffer | Coding standard — Standard when no configuration file is set: PSR12, PSR2, PEAR, Squiz, Zend or a custom one. Empty: the project's phpcs.xml or phpcs's default. |
+| `php.tools.phpcs.options` | string | `""` | user, project | PHP_CodeSniffer | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpcs.timeout` | int (1–3600) | `30` | user, project | PHP_CodeSniffer | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpcs.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHP_CodeSniffer | Severity — How the tool's problems are highlighted. |
+| `php.tools.phpCsFixer.inspection` | bool | `false` | user, project | PHP CS Fixer | PHP CS Fixer inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpCsFixer.interpreter` | string | `""` | user, project | PHP CS Fixer | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project; relative paths start at the project root. |
+| `php.tools.phpCsFixer.config` | path | `""` | user, project | PHP CS Fixer | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpCsFixer.level` | string | `""` | user, project | PHP CS Fixer | Rules — `--rules`, e.g. @PSR12 or @PhpCsFixer. Empty: the configuration file's rules. |
+| `php.tools.phpCsFixer.options` | string | `""` | user, project | PHP CS Fixer | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpCsFixer.timeout` | int (1–3600) | `30` | user, project | PHP CS Fixer | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpCsFixer.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHP CS Fixer | Severity — How the tool's problems are highlighted. |
+| `php.tools.phpmd.inspection` | bool | `false` | user, project | PHP Mess Detector | PHP Mess Detector inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpmd.interpreter` | string | `""` | user, project | PHP Mess Detector | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpmd.path` | path | `""` | user, project | PHP Mess Detector | PHP Mess Detector path — Empty: vendor/bin/phpmd of the project; relative paths start at the project root. |
+| `php.tools.phpmd.config` | path | `""` | user, project | PHP Mess Detector | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpmd.level` | string | `""` | user, project | PHP Mess Detector | Rulesets — Comma-separated rulesets when no configuration file is set. Empty: cleancode, codesize, controversial, design, naming, unusedcode. |
+| `php.tools.phpmd.options` | string | `""` | user, project | PHP Mess Detector | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpmd.timeout` | int (1–3600) | `30` | user, project | PHP Mess Detector | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpmd.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHP Mess Detector | Severity — How the tool's problems are highlighted. |
+| `php.tools.phpstan.inspection` | bool | `false` | user, project | PHPStan | PHPStan inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpstan.interpreter` | string | `""` | user, project | PHPStan | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpstan.path` | path | `""` | user, project | PHPStan | PHPStan path — Empty: vendor/bin/phpstan of the project; relative paths start at the project root. |
+| `php.tools.phpstan.config` | path | `""` | user, project | PHPStan | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpstan.level` | string | `""` | user, project | PHPStan | Level — 0–10 or max. Empty: the configuration file's level. |
+| `php.tools.phpstan.options` | string | `""` | user, project | PHPStan | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpstan.timeout` | int (1–3600) | `30` | user, project | PHPStan | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpstan.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHPStan | Severity — How the tool's problems are highlighted. |
+| `php.tools.psalm.inspection` | bool | `false` | user, project | Psalm | Psalm inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.psalm.interpreter` | string | `""` | user, project | Psalm | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.psalm.path` | path | `""` | user, project | Psalm | Psalm path — Empty: vendor/bin/psalm of the project; relative paths start at the project root. |
+| `php.tools.psalm.config` | path | `""` | user, project | Psalm | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.psalm.options` | string | `""` | user, project | Psalm | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.psalm.timeout` | int (1–3600) | `30` | user, project | Psalm | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.psalm.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | Psalm | Severity — How the tool's problems are highlighted. |
+| `php.tools.pint.inspection` | bool | `false` | user, project | Laravel Pint | Laravel Pint inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.pint.interpreter` | string | `""` | user, project | Laravel Pint | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project; relative paths start at the project root. |
+| `php.tools.pint.config` | path | `""` | user, project | Laravel Pint | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.pint.level` | string | `""` | user, project | Laravel Pint | Preset — `--preset`: laravel, psr12, per or symfony. Empty: pint.json's preset. |
+| `php.tools.pint.options` | string | `""` | user, project | Laravel Pint | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.pint.timeout` | int (1–3600) | `30` | user, project | Laravel Pint | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.pint.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | Laravel Pint | Severity — How the tool's problems are highlighted. |
+| `php.tools.rector.inspection` | bool | `false` | user, project | Rector | Rector inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.rector.interpreter` | string | `""` | user, project | Rector | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.rector.path` | path | `""` | user, project | Rector | Rector path — Empty: vendor/bin/rector of the project; relative paths start at the project root. |
+| `php.tools.rector.config` | path | `""` | user, project | Rector | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.rector.options` | string | `""` | user, project | Rector | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.rector.timeout` | int (1–3600) | `30` | user, project | Rector | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.rector.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | Rector | Severity — How the tool's problems are highlighted. |
 
 ### Languages & Frameworks | PHP | Test Frameworks
 
@@ -19773,6 +19957,8 @@ Page id `tools.actions-on-save`. See [Actions on Save](docs/guide/user/actions-o
 | `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.rector` | bool | `false` | user, project |  | Run Rector — Run `rector process` on saved PHP files with the project's rector.php. (PHP plugin) |
+| `actionsOnSave.phpcbf` | bool | `false` | user, project |  | Run phpcbf — Run PHP_CodeSniffer's fixer `phpcbf` on saved PHP files. (PHP plugin) |
 | `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
 | `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
 
@@ -22741,7 +22927,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-remote-agent](docs/guide/developer/crates/forge-remote-agent.md) | Headless Forge agent: serves a project's files, git, processes, language servers and PHP index over stdio for remote development |
 | [forge-runtargets](docs/guide/developer/crates/forge-runtargets.md) | Run targets (Run on: local machine, Docker image, Docker Compose service, SSH, WSL, Dev Container): path mappings and the command lines that run, test and debug there (pure, also built to WebAssembly) |
 | [forge-runtools](docs/guide/developer/crates/forge-runtools.md) | Run Anything, compound and before-launch plans, External Tools and their macros (pure, also built to WebAssembly) |
-| [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, PHP CS Fixer and Laravel Pint through the project's backend |
+| [forge-save-actions](docs/guide/developer/crates/forge-save-actions.md) | Actions on Save: which actions run for a saved file, reformatting only changed lines and running ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint through the project's backend |
 | [forge-scratches](docs/guide/developer/crates/forge-scratches.md) | Forge scratch files (PHPStorm's Scratches and Consoles): storage, naming, languages, run commands and the HTTP request client |
 | [forge-scopes](docs/guide/developer/crates/forge-scopes.md) | Scopes (PHPStorm's scope language, predefined and named scopes) and file colors (pure, WebAssembly-friendly) |
 | [forge-spell](docs/guide/developer/crates/forge-spell.md) | Spelling and grammar inspections for comments, strings, identifiers and text: Hunspell dictionaries, word extraction, suggestions and a small rule-based English grammar checker (pure, WebAssembly-friendly) |
@@ -22786,6 +22972,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
+| [phpforge-quality-tools](docs/guide/developer/crates/phpforge-quality-tools.md) | PHPForge: PHP quality tools (PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector): configurations, command lines, JSON report parsing with path mapping, unified diffs (pure) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
 | [phpforge-composer](docs/guide/developer/crates/phpforge-composer.md) | PHPForge: Composer support (version constraints, composer.json/lock analysis, Packagist metadata, outdated packages, audit advisories, completion) |
 | [phpforge-dql](docs/guide/developer/crates/phpforge-dql.md) | PHPForge: Doctrine DQL tokenizer, parser, highlighting, completion and diagnostics, and DQL sites in PHP source (pure, also built to WebAssembly) |
@@ -25874,8 +26061,8 @@ Source: docs/guide/developer/crates/forge-save-actions.md
 # forge-save-actions
 
 `crates/forge-save-actions` — Actions on Save: which actions run for a saved file,
-reformatting only changed lines and running external tools (ESLint, Prettier, PHP CS Fixer,
-Laravel Pint) through the project's backend.
+reformatting only changed lines and running external tools (ESLint, Prettier, Rector, PHP CS
+Fixer, phpcbf, Laravel Pint) through the project's backend.
 
 ## Purpose
 
@@ -25891,7 +26078,10 @@ The logic behind Settings | Tools | [Actions on Save](docs/guide/user/actions-on
 - `tools` (feature `backend`, on by default) finds a tool in the project (`vendor/bin`,
   `node_modules/.bin`, `.bat` / `.cmd` too) or at its custom path and runs it on the saved
   file through a `forge_backend::Backend`, so remote projects work. A failing tool's changes
-  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success.
+  are rolled back; ESLint's exit code 1 (problems left after `--fix`) counts as success, and
+  phpcbf's 1 and 2 too. `run_tools_with` passes each command line through a callback first:
+  the app gives the PHP tools their Quality Tools arguments and PHP interpreter
+  ([phpforge-quality-tools](docs/guide/developer/crates/phpforge-quality-tools.md)).
 
 The PHP actions themselves are in `phpforge-lang-php` (`imports`, `rearrange`, `cleanup`).
 The UI applies the combined result as one edit (one undo step).
@@ -25902,7 +26092,7 @@ The UI applies the combined result as one edit (one undo step).
 | --- | --- |
 | `lib.rs` | Settings keys, `ActionsOnSave` (settings), `Trigger`, `Tool`, `SavePlan`, `plan`, `file_type_choices`. |
 | `changed.rs` | "Changed lines": a line diff (LCS) between the original and the reformatted text, applied hunk by hunk. |
-| `tools.rs` | Locating and running ESLint, Prettier, PHP CS Fixer and Laravel Pint; `run_tools`, `detect_tools`. |
+| `tools.rs` | Locating and running ESLint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint; `run_tools`, `run_tools_with`, `detect_tools`. |
 
 ## Main public items
 
@@ -28600,6 +28790,67 @@ runs the tools through the project backend and the PHP interpreter.
 
 ```sh
 cargo test -p phpforge-cli-tools
+```
+
+
+---
+
+Source: docs/guide/developer/crates/phpforge-quality-tools.md
+
+# phpforge-quality-tools
+
+`packs/phpforge/quality-tools` — PHPForge: PHP quality tools (PHPStan, Psalm, PHP CS Fixer,
+PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector): configurations, command lines,
+parsing of their JSON reports with path mapping, and unified diffs.
+
+## Purpose
+
+Everything [PHP Quality Tools](docs/guide/user/php-quality-tools.md) computes. The crate is pure
+(no processes or files): the app (`app/src-tauri/src/commands/php_quality_tools.rs`) runs the
+command lines through the project backend, directly or wrapped by the tool's PHP interpreter
+(`phpforge-interpreters`), and hands the output back to the parsers.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `model.rs` | `QualityTool` (ids, labels, `vendor/bin` candidates, phpcbf as phpcs's fixer, the configuration files each tool finds, which tools read unsaved text), `ToolConfig` from the `php.tools.<id>.*` settings (inspection, interpreter, path, phpcbf path, configuration file, level/ruleset, options, timeout, `SeverityChoice`), `split_args` (shell-like option splitting). |
+| `command.rs` | `check_args(cfg, config, input)` for `Input::Files`, `Input::Stdin` (phpcs `--stdin-path=<file> -`, PHP CS Fixer `-`) and `Input::TempCopy` (PHPStan `--tmp-file … --instead-of …`); `fix_args` and `FixMode` (phpcbf: stdin → stdout, PHP CS Fixer / Rector: dry-run diff, Pint: in place); `in_place_args` (Actions on Save); `parse_version`. |
+| `parse.rs` | `parse_report(tool, stdout, ctx, severity)`: PHPStan `--error-format=json`, Psalm `--output-format=json`, phpcs `--report=json`, PHPMD `json`, PHP CS Fixer / Pint `--format=json` (with or without diffs) and Rector `--output-format=json` as `Problem`s, `FileFix`es (diff and rules) and tool errors. Severities follow the tools (PHPMD priorities, Psalm info as weak warnings, fixers' hunks as weak warnings) unless the configuration overrides them. |
+| `problem.rs` | `Problem`, `Severity`, `PathContext` (reported paths relative to the tool's working directory, mapped back from the interpreter with `forge_runtargets::Mapper`, stdin and temporary copy aliases, made relative to the project root). |
+| `diff.rs` | Unified diff hunks: `parse`, `apply` (hunks searched near their place, CRLF kept, `ApplyError` when the text changed), `Hunk::changed_lines`. |
+| `lib.rs` | Re-exports, `CheckTrigger` and `tools_to_run` (which tools check unsaved text). |
+
+## Main public items
+
+```rust
+pub fn check_args(cfg: &ToolConfig, config: Option<&str>, input: &Input) -> ToolArgs;
+pub fn fix_args(cfg: &ToolConfig, config: Option<&str>, file: &str, text: &str) -> ToolArgs;
+pub fn parse_report(tool: QualityTool, stdout: &str, ctx: &PathContext, severity: SeverityChoice) -> Result<Report, String>;
+pub fn tools_to_run(configs: &[ToolConfig], trigger: CheckTrigger, temp_copies: bool) -> Vec<QualityTool>;
+pub mod diff; // parse, apply
+```
+
+## Used by
+
+- IPC: `quality_tools_info`, `quality_tools_validate`, `quality_tools_check`,
+  `quality_tools_inspect`, `quality_tools_fix` (`app/src-tauri/src/commands/php_quality_tools.rs`)
+  and the PHP tools of `save_actions_run_tools`
+- UI: `app/ui/src/features/phpQualityTools/`, `app/ui/src/ipc/qualityTools.ts`
+
+## Dependencies
+
+- Workspace crates: `forge-runtargets` (path mappings)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests per module and `tests/reports.rs` with recorded reports of every tool in
+`tests/fixtures/` (PHPStan from a Docker interpreter, phpcs on stdin, Rector with an error).
+The app's tests run the commands against fake tool scripts.
+
+```sh
+cargo test -p phpforge-quality-tools
 ```
 
 

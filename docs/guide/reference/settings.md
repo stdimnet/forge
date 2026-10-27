@@ -497,12 +497,66 @@ Page id `lang.php.composer`.
 
 ### Languages & Frameworks | PHP | Quality Tools
 
-Page id `lang.php.quality-tools`.
+Page id `lang.php.quality-tools`. See [PHP Quality Tools](../user/php-quality-tools.md).
 
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
-| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project. A relative path starts at the project root. The project's .php-cs-fixer.dist.php is used. |
-| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project. A relative path starts at the project root. The project's pint.json is used. |
+| `php.tools.onTheFly` | bool | `true` | user, project |  | Run inspections on the fly — Check the edited PHP file while you type (after a short pause) with the tools that can read unsaved text: PHP_CodeSniffer and PHP CS Fixer through stdin, PHPStan through a temporary copy when its PHP runs on this machine. All tools check a file when it is opened and saved. |
+| `php.tools.phpcs.inspection` | bool | `false` | user, project | PHP_CodeSniffer | PHP_CodeSniffer inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpcs.interpreter` | string | `""` | user, project | PHP_CodeSniffer | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpcs.path` | path | `""` | user, project | PHP_CodeSniffer | PHP_CodeSniffer path — Empty: vendor/bin/phpcs of the project; relative paths start at the project root. |
+| `php.tools.phpcs.phpcbfPath` | path | `""` | user, project | PHP_CodeSniffer | phpcbf path — Empty: vendor/bin/phpcbf of the project. Used by Reformat with phpcbf, the quick fix and Actions on Save. |
+| `php.tools.phpcs.config` | path | `""` | user, project | PHP_CodeSniffer | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpcs.level` | string | `""` | user, project | PHP_CodeSniffer | Coding standard — Standard when no configuration file is set: PSR12, PSR2, PEAR, Squiz, Zend or a custom one. Empty: the project's phpcs.xml or phpcs's default. |
+| `php.tools.phpcs.options` | string | `""` | user, project | PHP_CodeSniffer | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpcs.timeout` | int (1–3600) | `30` | user, project | PHP_CodeSniffer | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpcs.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHP_CodeSniffer | Severity — How the tool's problems are highlighted. |
+| `php.tools.phpCsFixer.inspection` | bool | `false` | user, project | PHP CS Fixer | PHP CS Fixer inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpCsFixer.interpreter` | string | `""` | user, project | PHP CS Fixer | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpCsFixer.path` | path | `""` | user, project | PHP CS Fixer | PHP CS Fixer path — Empty: vendor/bin/php-cs-fixer of the project; relative paths start at the project root. |
+| `php.tools.phpCsFixer.config` | path | `""` | user, project | PHP CS Fixer | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpCsFixer.level` | string | `""` | user, project | PHP CS Fixer | Rules — `--rules`, e.g. @PSR12 or @PhpCsFixer. Empty: the configuration file's rules. |
+| `php.tools.phpCsFixer.options` | string | `""` | user, project | PHP CS Fixer | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpCsFixer.timeout` | int (1–3600) | `30` | user, project | PHP CS Fixer | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpCsFixer.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHP CS Fixer | Severity — How the tool's problems are highlighted. |
+| `php.tools.phpmd.inspection` | bool | `false` | user, project | PHP Mess Detector | PHP Mess Detector inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpmd.interpreter` | string | `""` | user, project | PHP Mess Detector | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpmd.path` | path | `""` | user, project | PHP Mess Detector | PHP Mess Detector path — Empty: vendor/bin/phpmd of the project; relative paths start at the project root. |
+| `php.tools.phpmd.config` | path | `""` | user, project | PHP Mess Detector | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpmd.level` | string | `""` | user, project | PHP Mess Detector | Rulesets — Comma-separated rulesets when no configuration file is set. Empty: cleancode, codesize, controversial, design, naming, unusedcode. |
+| `php.tools.phpmd.options` | string | `""` | user, project | PHP Mess Detector | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpmd.timeout` | int (1–3600) | `30` | user, project | PHP Mess Detector | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpmd.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHP Mess Detector | Severity — How the tool's problems are highlighted. |
+| `php.tools.phpstan.inspection` | bool | `false` | user, project | PHPStan | PHPStan inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.phpstan.interpreter` | string | `""` | user, project | PHPStan | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.phpstan.path` | path | `""` | user, project | PHPStan | PHPStan path — Empty: vendor/bin/phpstan of the project; relative paths start at the project root. |
+| `php.tools.phpstan.config` | path | `""` | user, project | PHPStan | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.phpstan.level` | string | `""` | user, project | PHPStan | Level — 0–10 or max. Empty: the configuration file's level. |
+| `php.tools.phpstan.options` | string | `""` | user, project | PHPStan | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.phpstan.timeout` | int (1–3600) | `30` | user, project | PHPStan | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.phpstan.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | PHPStan | Severity — How the tool's problems are highlighted. |
+| `php.tools.psalm.inspection` | bool | `false` | user, project | Psalm | Psalm inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.psalm.interpreter` | string | `""` | user, project | Psalm | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.psalm.path` | path | `""` | user, project | Psalm | Psalm path — Empty: vendor/bin/psalm of the project; relative paths start at the project root. |
+| `php.tools.psalm.config` | path | `""` | user, project | Psalm | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.psalm.options` | string | `""` | user, project | Psalm | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.psalm.timeout` | int (1–3600) | `30` | user, project | Psalm | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.psalm.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | Psalm | Severity — How the tool's problems are highlighted. |
+| `php.tools.pint.inspection` | bool | `false` | user, project | Laravel Pint | Laravel Pint inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.pint.interpreter` | string | `""` | user, project | Laravel Pint | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.pint.path` | path | `""` | user, project | Laravel Pint | Laravel Pint path — Empty: vendor/bin/pint of the project; relative paths start at the project root. |
+| `php.tools.pint.config` | path | `""` | user, project | Laravel Pint | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.pint.level` | string | `""` | user, project | Laravel Pint | Preset — `--preset`: laravel, psr12, per or symfony. Empty: pint.json's preset. |
+| `php.tools.pint.options` | string | `""` | user, project | Laravel Pint | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.pint.timeout` | int (1–3600) | `30` | user, project | Laravel Pint | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.pint.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | Laravel Pint | Severity — How the tool's problems are highlighted. |
+| `php.tools.rector.inspection` | bool | `false` | user, project | Rector | Rector inspection — On: the tool's problems show in the editor and the Problems tool window (on the fly, on open and save) and in Code \| Inspect Code with Quality Tools. |
+| `php.tools.rector.interpreter` | string | `""` | user, project | Rector | Run with — Empty: run the executable directly where the project lives. `project`: the project's PHP interpreter. Or the name of a CLI interpreter (local, Docker, Docker Compose, SSH, WSL); paths are mapped with its path mappings. |
+| `php.tools.rector.path` | path | `""` | user, project | Rector | Rector path — Empty: vendor/bin/rector of the project; relative paths start at the project root. |
+| `php.tools.rector.config` | path | `""` | user, project | Rector | Configuration file — Empty: the one the tool finds in the project root. |
+| `php.tools.rector.options` | string | `""` | user, project | Rector | Other parameters — Extra command line options, quoted like in a shell. |
+| `php.tools.rector.timeout` | int (1–3600) | `30` | user, project | Rector | Timeout (seconds) — Longer runs are stopped (Inspect Code: at least 300 seconds). |
+| `php.tools.rector.severity` | enum: `tool`, `error`, `warning`, `weak` | `tool` | user, project | Rector | Severity — How the tool's problems are highlighted. |
 
 ### Languages & Frameworks | PHP | Test Frameworks
 
@@ -944,6 +998,8 @@ Page id `tools.actions-on-save`. See [Actions on Save](../user/actions-on-save.m
 | `actionsOnSave.prettier.enabled` | bool | `false` | user, project |  | Run Prettier — Run `prettier --write` on saved files that match the patterns below. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.prettier.files` | string | `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro` | user, project |  | Run for files — Patterns separated by `;`; patterns with a `/` match the path, the others the file name. (HTML, CSS & JavaScript plugin) |
 | `actionsOnSave.phpCsFixer` | bool | `false` | user, project |  | Run PHP CS Fixer — Run `php-cs-fixer fix` on saved PHP files. (PHP plugin) |
+| `actionsOnSave.rector` | bool | `false` | user, project |  | Run Rector — Run `rector process` on saved PHP files with the project's rector.php. (PHP plugin) |
+| `actionsOnSave.phpcbf` | bool | `false` | user, project |  | Run phpcbf — Run PHP_CodeSniffer's fixer `phpcbf` on saved PHP files. (PHP plugin) |
 | `actionsOnSave.pint` | bool | `false` | user, project |  | Run Laravel Pint — Run `pint` on saved PHP files. (PHP plugin) |
 | `actionsOnSave.runOnAutosave` | bool | `false` | user, project |  | Also run on autosave — Run Reformat code, Optimize imports, Rearrange code and Run code cleanup when files are saved automatically too. External tools only run on explicit save (Ctrl+S). |
 
