@@ -93,7 +93,7 @@ pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};
 ## Dependencies
 
 - Workspace crates: [`forge-core`](forge-core.md), [`forge-remote`](forge-remote.md), [`forge-sql`](forge-sql.md)
-- External: `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
+- External: `bson` (3, without `serde_json`'s `preserve_order`), `chrono`, `dirs`, `futures-util`, `hex`, `keyring`, `mongodb`, `pkcs8`, `redis`, `reqwest`, `rustls`, `serde`, `serde_json`, `sqlx`, `thiserror`, `tiberius`, `tokio`, `tokio-util`, `toml`, `tracing` (all MIT, Apache-2.0 or BSD-3-Clause)
 
 ## Tests
 

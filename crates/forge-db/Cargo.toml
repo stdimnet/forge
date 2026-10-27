@@ -26,7 +26,8 @@ tiberius = { version = "0.13", default-features = false, features = ["tds73", "r
 # Redis (BSD-3-Clause).
 redis = { version = "1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-insecure"] }
 # MongoDB: the official driver (Apache-2.0) with rustls.
-mongodb = { version = "3", default-features = false, features = ["compat-3-0-0", "rustls-tls", "dns-resolver", "cert-key-password"] }
+bson = { version = "3", features = ["serde_json-1"] }
+mongodb = { version = "3", default-features = false, features = ["compat-3-3-0", "bson-3", "rustls-tls", "dns-resolver", "cert-key-password"] }
 # ClickHouse: HTTP interface with JSON formats.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
