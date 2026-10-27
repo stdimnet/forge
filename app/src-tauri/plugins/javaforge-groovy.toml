@@ -31,7 +31,6 @@ testFiles = ["**/src/test/groovy/**/*.groovy", "*Spec.groovy"]
 report = "jUnitFile"
 junitFlavor = "kotlin"
 coverage = { file = "build/reports/jacoco/test/jacocoTestReport.xml", format = "jacoco" }
-debuggable = true
 
 # ---- Settings | Languages & Frameworks | Groovy -----------------------------------------
 
