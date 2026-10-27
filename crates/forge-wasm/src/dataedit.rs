@@ -31,7 +31,9 @@ pub fn dataedit_view(request_json: &str) -> String {
 /// `db_data_aggregate`: `{ columns, rows }` → `{ total, columns }`.
 #[wasm_bindgen]
 pub fn dataedit_aggregate(request_json: &str) -> String {
-    run(request_json, |r: &api::AggregateRequest| Ok(api::aggregates(r)))
+    run(request_json, |r: &api::AggregateRequest| {
+        Ok(api::aggregates(r))
+    })
 }
 
 /// `db_data_compare`: `{ left, right, key }` → `DataDiff`.
@@ -55,7 +57,9 @@ pub fn dataedit_navigate(request_json: &str) -> String {
 /// `db_fk_incoming` → `Incoming[]`.
 #[wasm_bindgen]
 pub fn dataedit_incoming(request_json: &str) -> String {
-    run(request_json, |r: &api::IncomingRequest| Ok(api::incoming_keys(r)))
+    run(request_json, |r: &api::IncomingRequest| {
+        Ok(api::incoming_keys(r))
+    })
 }
 
 /// `db_value_editor` → `EditorKind`.
@@ -79,7 +83,9 @@ pub fn dataedit_value_binary(request_json: &str) -> String {
 /// `db_value_temporal` → `string | null`.
 #[wasm_bindgen]
 pub fn dataedit_value_temporal(request_json: &str) -> String {
-    run(request_json, |r: &api::TemporalRequest| Ok(api::temporal(r)))
+    run(request_json, |r: &api::TemporalRequest| {
+        Ok(api::temporal(r))
+    })
 }
 
 /// `{ dialect, query }` → `TableSql` (the mock's `db_table_data`).

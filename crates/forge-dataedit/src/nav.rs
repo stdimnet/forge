@@ -80,7 +80,10 @@ pub fn referenced_row(
     row: &[Value],
 ) -> Result<Navigation, Refused> {
     if fk.columns.len() != fk.ref_columns.len() || fk.columns.is_empty() {
-        return Err(Refused(format!("The foreign key {} is incomplete", fk.name)));
+        return Err(Refused(format!(
+            "The foreign key {} is incomplete",
+            fk.name
+        )));
     }
     let mut filters = Vec::new();
     for (c, rc) in fk.columns.iter().zip(&fk.ref_columns) {
@@ -115,7 +118,10 @@ pub fn referencing_rows(
     row: &[Value],
 ) -> Result<Navigation, Refused> {
     if fk.columns.len() != fk.ref_columns.len() || fk.columns.is_empty() {
-        return Err(Refused(format!("The foreign key {} is incomplete", fk.name)));
+        return Err(Refused(format!(
+            "The foreign key {} is incomplete",
+            fk.name
+        )));
     }
     let mut filters = Vec::new();
     for (c, rc) in fk.columns.iter().zip(&fk.ref_columns) {

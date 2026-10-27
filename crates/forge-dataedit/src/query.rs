@@ -292,11 +292,7 @@ fn scan(t: &str, d: Dialect) -> Result<Vec<String>, Refused> {
                 }
                 i += 1;
             }
-            b';' => {
-                return Err(Refused(
-                    "The filter must be one condition without ;".into(),
-                ))
-            }
+            b';' => return Err(Refused("The filter must be one condition without ;".into())),
             c if c.is_ascii_alphabetic() || c == b'_' => {
                 let start = i;
                 while i < b.len() && (b[i].is_ascii_alphanumeric() || b[i] == b'_' || b[i] == b'$')
@@ -382,10 +378,16 @@ mod tests {
         let ora = q(None, vec![], vec![("ID", true)])
             .sql(Dialect::Oracle)
             .unwrap();
-        assert_eq!(ora.display, "SELECT * FROM \"shop\".\"orders\" ORDER BY \"ID\" DESC");
+        assert_eq!(
+            ora.display,
+            "SELECT * FROM \"shop\".\"orders\" ORDER BY \"ID\" DESC"
+        );
         // Only the typed filter is used without column filters: no extra brackets.
         assert_eq!(
-            q(Some("a = 1"), vec![], vec![]).sql(Dialect::ClickHouse).unwrap().where_,
+            q(Some("a = 1"), vec![], vec![])
+                .sql(Dialect::ClickHouse)
+                .unwrap()
+                .where_,
             "a = 1"
         );
     }

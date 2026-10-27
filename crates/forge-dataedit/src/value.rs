@@ -57,8 +57,9 @@ pub fn editor_kind(data_type: &str, value: &Value) -> EditorKind {
         _ => {
             // Text that holds JSON or XML (common in TEXT columns) gets the matching editor.
             match value.as_str().map(str::trim_start) {
-                Some(s) if (s.starts_with('{') || s.starts_with('['))
-                    && serde_json::from_str::<serde::de::IgnoredAny>(s).is_ok() =>
+                Some(s)
+                    if (s.starts_with('{') || s.starts_with('['))
+                        && serde_json::from_str::<serde::de::IgnoredAny>(s).is_ok() =>
                 {
                     EditorKind::Json
                 }
@@ -122,7 +123,12 @@ pub fn check_json(text: &str) -> Option<ValueError> {
     serde_json::from_str::<serde::de::IgnoredAny>(text)
         .err()
         .map(|e| ValueError {
-            message: e.to_string().split(" at line").next().unwrap_or("").to_string(),
+            message: e
+                .to_string()
+                .split(" at line")
+                .next()
+                .unwrap_or("")
+                .to_string(),
             line: e.line(),
             column: e.column(),
         })
@@ -224,7 +230,13 @@ pub fn format_xml(text: &str, indent: usize) -> Formatted {
                 // `<a>text</a>` stays on one line.
                 if let (Some(txt), Some(close)) = (tokens.get(i + 1), tokens.get(i + 2)) {
                     if txt.kind == XmlTok::Text && close.kind == XmlTok::Close {
-                        out.push_str(&format!("{}{}{}{}\n", pad(depth), t.text, txt.text.trim(), close.text));
+                        out.push_str(&format!(
+                            "{}{}{}{}\n",
+                            pad(depth),
+                            t.text,
+                            txt.text.trim(),
+                            close.text
+                        ));
                         i += 3;
                         continue;
                     }
@@ -502,7 +514,10 @@ mod tests {
         assert_eq!(editor_kind("text", &json!("{not json")), EditorKind::Text);
         assert_eq!(editor_kind("timestamp", &Value::Null), EditorKind::DateTime);
         assert_eq!(editor_kind("tinyint(1)", &json!(true)), EditorKind::Bool);
-        assert_eq!(editor_kind("varchar(10)", &json!({"$hex": "00"})), EditorKind::Binary);
+        assert_eq!(
+            editor_kind("varchar(10)", &json!({"$hex": "00"})),
+            EditorKind::Binary
+        );
         assert_eq!(
             editor_kind("enum('pending','it''s')", &json!("pending")),
             EditorKind::Enum {
@@ -510,7 +525,10 @@ mod tests {
                 multiple: false
             }
         );
-        assert_eq!(editor_kind("decimal(10,2)", &json!("1.00")), EditorKind::Number);
+        assert_eq!(
+            editor_kind("decimal(10,2)", &json!("1.00")),
+            EditorKind::Number
+        );
     }
 
     #[test]
@@ -531,7 +549,10 @@ mod tests {
 
     #[test]
     fn formats_and_checks_xml() {
-        let f = format_xml("<?xml version=\"1.0\"?><a><b x=\"1\">t</b><c/><!-- n --></a>", 2);
+        let f = format_xml(
+            "<?xml version=\"1.0\"?><a><b x=\"1\">t</b><c/><!-- n --></a>",
+            2,
+        );
         assert_eq!(
             f.text.unwrap(),
             "<?xml version=\"1.0\"?>\n<a>\n  <b x=\"1\">t</b>\n  <c/>\n  <!-- n -->\n</a>"
@@ -539,7 +560,11 @@ mod tests {
         let e = format_xml("<a>\n<b></a>", 2).error.unwrap();
         assert_eq!(e.line, 2);
         assert!(e.message.contains("Expected </b>"));
-        assert!(format_xml("<a>", 2).error.unwrap().message.contains("not closed"));
+        assert!(format_xml("<a>", 2)
+            .error
+            .unwrap()
+            .message
+            .contains("not closed"));
     }
 
     #[test]
@@ -560,14 +585,23 @@ mod tests {
     #[test]
     fn normalizes_dates() {
         let dt = EditorKind::DateTime;
-        assert_eq!(normalize_temporal(&dt, "2025-1-6 9:05").unwrap(), "2025-01-06 09:05:00");
+        assert_eq!(
+            normalize_temporal(&dt, "2025-1-6 9:05").unwrap(),
+            "2025-01-06 09:05:00"
+        );
         assert_eq!(
             normalize_temporal(&dt, "2025-01-06T10:00:00.123+00").unwrap(),
             "2025-01-06 10:00:00.123+00"
         );
-        assert_eq!(normalize_temporal(&dt, "2024-02-29").unwrap(), "2024-02-29 00:00:00");
+        assert_eq!(
+            normalize_temporal(&dt, "2024-02-29").unwrap(),
+            "2024-02-29 00:00:00"
+        );
         assert!(normalize_temporal(&EditorKind::Date, "2025-02-29").is_none());
         assert!(normalize_temporal(&EditorKind::Time, "24:00").is_none());
-        assert_eq!(normalize_temporal(&EditorKind::Time, "7:30").unwrap(), "07:30:00");
+        assert_eq!(
+            normalize_temporal(&EditorKind::Time, "7:30").unwrap(),
+            "07:30:00"
+        );
     }
 }

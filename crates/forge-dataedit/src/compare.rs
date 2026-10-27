@@ -93,7 +93,9 @@ pub fn compare(left: &DataSet, right: &DataSet, key: &[String]) -> Result<DataDi
         .collect();
     for k in key {
         if !left.columns.contains(k) || !right.columns.contains(k) {
-            return Err(Refused(format!("The key column {k} is not in both data sets")));
+            return Err(Refused(format!(
+                "The key column {k} is not in both data sets"
+            )));
         }
     }
     let align = |set: &DataSet, row: &[Value]| -> Vec<Value> {

@@ -641,8 +641,9 @@ async fn data_editor_filters_navigates_and_edits_by_unique_key() {
 
     // Foreign-key navigation: order 3 → its user, and Grace's orders.
     let info = f.svc.table_info(&f.id, "main", "orders").await.unwrap();
-    let fk = serde_json::from_value::<nav::FkRef>(serde_json::to_value(&info.foreign_keys[0]).unwrap())
-        .unwrap();
+    let fk =
+        serde_json::from_value::<nav::FkRef>(serde_json::to_value(&info.foreign_keys[0]).unwrap())
+            .unwrap();
     let to_user = nav::referenced_row(
         forge_db::Dialect::Sqlite,
         "main",

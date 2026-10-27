@@ -43,6 +43,7 @@ pub use edit::{ChangeKind, RowChange};
 pub use engine::redis::{RedisKey, RedisKeys, RedisValue};
 pub use env::DetectedDataSource;
 pub use error::{DbError, DbResult};
+pub use forge_dataedit as dataedit;
 /// The explorer model (also built to WebAssembly for browser mode).
 pub use forge_dbmodel as model;
 pub use forge_dbmodel::{DbModel, ObjectDoc, ObjectRef, VirtualObjects};
@@ -53,11 +54,10 @@ pub use introspect::{
     SchemaName, SequenceInfo, TableInfo, TableKind, TriggerInfo, TypeInfo,
 };
 pub use secrets::{KeyringStore, MemoryStore, SecretStore};
-pub use forge_dataedit as dataedit;
 pub use service::{
-    row_key, ApplyResult, ChangePreview, ColumnFilter, FilterOp, DataSourceInfo, DbService, QueryPage, SearchProgress, SearchRequest, SearchScope,
-    SearchSummary, SecretUpdate, SessionInfo, SessionMode, SortKey, StatementResult,
-    TableDataRequest, TableMatches, TestResult,
+    row_key, ApplyResult, ChangePreview, ColumnFilter, DataSourceInfo, DbService, FilterOp,
+    QueryPage, SearchProgress, SearchRequest, SearchScope, SearchSummary, SecretUpdate,
+    SessionInfo, SessionMode, SortKey, StatementResult, TableDataRequest, TableMatches, TestResult,
 };
 pub use split::{split_statements, Statement};
 pub use tunnel::{DbTunnel, ProjectContext, TunnelEndpoint};

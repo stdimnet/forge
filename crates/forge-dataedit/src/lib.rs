@@ -47,7 +47,11 @@ pub(crate) fn as_number(v: &Value) -> Option<f64> {
         Value::Number(n) => n.as_f64(),
         Value::String(s) => {
             let t = s.trim();
-            if t.is_empty() || !t.bytes().all(|b| b.is_ascii_digit() || b"+-.eE".contains(&b)) {
+            if t.is_empty()
+                || !t
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || b"+-.eE".contains(&b))
+            {
                 return None;
             }
             t.parse::<f64>().ok().filter(|f| f.is_finite())

@@ -247,7 +247,9 @@ pub fn chart_data(
         }
     }
     let sortable = cats.iter().all(|v| v.is_null() || as_number(v).is_some())
-        || cats.iter().all(|v| v.is_null() || looks_like_date(&text(v)));
+        || cats
+            .iter()
+            .all(|v| v.is_null() || looks_like_date(&text(v)));
     if sortable {
         cats.sort_by(cmp_cells);
     }
@@ -257,11 +259,7 @@ pub fn chart_data(
         spec.limit
     };
     let pie = spec.kind == ChartKind::Pie;
-    let keep = if pie {
-        limit.min(12)
-    } else {
-        limit
-    };
+    let keep = if pie { limit.min(12) } else { limit };
     let mut categories: Vec<String> = cats.iter().map(label).collect();
     let slot_of: HashMap<String, usize> = categories
         .iter()
@@ -332,7 +330,9 @@ pub fn chart_data(
             }
         }
     }
-    let all = series.iter().flat_map(|s| s.values.iter().flatten().copied());
+    let all = series
+        .iter()
+        .flat_map(|s| s.values.iter().flatten().copied());
     let (lo, hi) = all.fold((f64::MAX, f64::MIN), |(lo, hi), v| (lo.min(v), hi.max(v)));
     if lo <= hi {
         out.min = lo;
@@ -357,11 +357,21 @@ mod tests {
 
     fn orders() -> (Vec<String>, Vec<Vec<Value>>) {
         (
-            vec!["day".into(), "status".into(), "total".into(), "items".into()],
+            vec![
+                "day".into(),
+                "status".into(),
+                "total".into(),
+                "items".into(),
+            ],
             vec![
                 vec![json!("2025-01-02"), json!("paid"), json!("10.00"), json!(1)],
                 vec![json!("2025-01-01"), json!("paid"), json!("5.50"), json!(2)],
-                vec![json!("2025-01-01"), json!("pending"), json!("4.50"), json!(3)],
+                vec![
+                    json!("2025-01-01"),
+                    json!("pending"),
+                    json!("4.50"),
+                    json!(3),
+                ],
                 vec![json!("2025-01-02"), json!("paid"), Value::Null, json!(1)],
             ],
         )
@@ -441,7 +451,9 @@ mod tests {
         assert_eq!(s.series[0].xs, vec![1.0, 2.0, 3.0]);
         assert_eq!(s.skipped, 1);
         assert_eq!((s.x_min, s.x_max), (1.0, 3.0));
-        let rows: Vec<Vec<Value>> = (0..20).map(|i| vec![json!(format!("c{i}")), json!(i)]).collect();
+        let rows: Vec<Vec<Value>> = (0..20)
+            .map(|i| vec![json!(format!("c{i}")), json!(i)])
+            .collect();
         let p = chart_data(
             &["cat".into(), "n".into()],
             &rows,
@@ -458,6 +470,14 @@ mod tests {
         assert_eq!(p.categories[11], "Other");
         // 0 + 1 + … + 8
         assert_eq!(p.series[0].values[11], Some(36.0));
-        assert!(chart_data(&c, &r, &ChartSpec { x: "nope".into(), ..Default::default() }).is_err());
+        assert!(chart_data(
+            &c,
+            &r,
+            &ChartSpec {
+                x: "nope".into(),
+                ..Default::default()
+            }
+        )
+        .is_err());
     }
 }

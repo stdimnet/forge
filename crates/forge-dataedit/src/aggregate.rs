@@ -80,7 +80,10 @@ fn fixed_text(digits: i128, scale: u32) -> String {
 
 /// Exact sum of decimals, or `None` (floats, overflow).
 fn exact_sum(values: &[&Value]) -> Option<(i128, u32)> {
-    let fixed: Vec<Fixed> = values.iter().map(|v| parse_fixed(v)).collect::<Option<_>>()?;
+    let fixed: Vec<Fixed> = values
+        .iter()
+        .map(|v| parse_fixed(v))
+        .collect::<Option<_>>()?;
     let scale = fixed.iter().map(|f| f.scale).max().unwrap_or(0);
     let mut sum: i128 = 0;
     for f in fixed {
@@ -137,19 +140,17 @@ pub fn aggregate(values: &[Value]) -> Aggregate {
                 out.sum = Some(fixed_text(sum, scale));
                 // Average with a few more decimals than the inputs.
                 let avg_scale = (scale + 4).min(18);
-                let scaled = sum
-                    .checked_mul(10i128.pow(avg_scale - scale))
-                    .map(|s| {
-                        let n = non_null.len() as i128;
-                        // Round half away from zero.
-                        let q = s / n;
-                        let r = s % n;
-                        if r.abs() * 2 >= n {
-                            q + s.signum()
-                        } else {
-                            q
-                        }
-                    });
+                let scaled = sum.checked_mul(10i128.pow(avg_scale - scale)).map(|s| {
+                    let n = non_null.len() as i128;
+                    // Round half away from zero.
+                    let q = s / n;
+                    let r = s % n;
+                    if r.abs() * 2 >= n {
+                        q + s.signum()
+                    } else {
+                        q
+                    }
+                });
                 out.avg = Some(match scaled {
                     Some(a) => trim_fraction(fixed_text(a, avg_scale)),
                     None => float_text(sum as f64 / 10f64.powi(scale as i32) / n),
@@ -206,7 +207,13 @@ mod tests {
 
     #[test]
     fn exact_decimal_aggregates() {
-        let a = aggregate(&[json!("19.90"), json!("0.10"), json!(5), Value::Null, json!("19.9")]);
+        let a = aggregate(&[
+            json!("19.90"),
+            json!("0.10"),
+            json!(5),
+            Value::Null,
+            json!("19.9"),
+        ]);
         assert_eq!(a.count, 5);
         assert_eq!(a.nulls, 1);
         assert_eq!(a.distinct, 3);

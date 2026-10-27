@@ -136,7 +136,11 @@ mod tests {
             RowChange {
                 kind: ChangeKind::Insert,
                 key: BTreeMap::new(),
-                values: map(&[("order_id", json!(7)), ("line", json!(3)), ("note", Value::Null)]),
+                values: map(&[
+                    ("order_id", json!(7)),
+                    ("line", json!(3)),
+                    ("note", Value::Null),
+                ]),
             },
         ];
         assert_eq!(

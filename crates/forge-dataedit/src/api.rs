@@ -13,7 +13,9 @@ use crate::aggregate::{aggregate, aggregate_columns, Aggregate, ColumnAggregate}
 use crate::chart::{chart_data, ChartData, ChartSpec};
 use crate::compare::{compare, DataDiff, DataSet};
 use crate::local::{local_view, LocalView};
-use crate::nav::{incoming, referenced_row, referencing_rows, FkRef, Incoming, Navigation, TableKeys};
+use crate::nav::{
+    incoming, referenced_row, referencing_rows, FkRef, Incoming, Navigation, TableKeys,
+};
 use crate::value::{
     binary_info, editor_kind, format_json, format_xml, normalize_temporal, BinaryInfo, EditorKind,
     Formatted,
@@ -328,6 +330,9 @@ mod tests {
         }))
         .unwrap();
         let res = preview_changes(&p).unwrap();
-        assert_eq!(res.statements, vec!["DELETE FROM `shop`.`users` WHERE `email` = 'a@x.io'"]);
+        assert_eq!(
+            res.statements,
+            vec!["DELETE FROM `shop`.`users` WHERE `email` = 'a@x.io'"]
+        );
     }
 }
