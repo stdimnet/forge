@@ -21,7 +21,7 @@ Languages and large feature sets ship as **packs**:
 | **WebForge** | HTML, CSS, JavaScript/TypeScript, npm/pnpm/yarn/bun, React, Vue, Angular |
 | **LuaForge** | Lua 5.1–5.4, LuaJIT, LÖVE, Neovim |
 | **PyForge** | Python: interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black |
-| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger; Groovy (scripts, Spock), Scala (sbt, Metals, ScalaTest/MUnit) and Android (Device Manager, Logcat, Android App runs) |
+| **JavaForge** | Java with Maven and Gradle: Eclipse JDT LS, JDKs and Temurin downloads, JUnit/TestNG, the Java debugger; Groovy (scripts, Spock), Scala (sbt, Metals, ScalaTest/MUnit) and Android (Device Manager, Logcat, Android App runs); Spring Boot and Jakarta EE |
 | **KotlinForge** | Kotlin/JVM: kotlin-lsp, Kotlin runs and scripts, JUnit 5 and Kotest, the Kotlin debugger with coroutines, ktlint and detekt |
 
 The core adds Git and code review (GitHub, GitLab, Forgejo/Gitea), Run/Debug configurations, a
@@ -59,6 +59,18 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   database projects, Build / Rebuild / Clean (`Ctrl+F9`) with build problems, CMake Application
   run configurations, GoogleTest, Catch2 and CTest with gutter icons and gcov / llvm-cov
   coverage, and LLDB / GDB debugging with STL renderers ([CForge](user/cpp.md)).
+- **Jupyter notebooks**: `.ipynb` files open in the notebook editor with code, Markdown and
+  raw cells, Jupyter's command and edit mode (`Shift+Enter`, `A`, `B`, `D D`, `M`, `Y`),
+  outputs with colors, images, sanitized HTML, errors and JSON, DataFrame tables with sorting,
+  filter and pages, kernels in the project's interpreter (ipykernel over ZeroMQ, installed with
+  your consent) or on a Jupyter server, the Variables view with View as DataFrame, and notebook
+  diffs cell by cell ([Jupyter notebooks](user/jupyter.md)).
+- **Spring Boot and Jakarta EE** (JavaForge): beans and injection points with gutter
+  navigation, the Endpoints tool window (Spring MVC and JAX-RS) with Open in HTTP Client, JPA
+  entities, `application.properties` / `application.yml` completion, documentation and
+  inspections from the `spring-configuration-metadata.json` of the dependency jars, and the
+  Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator
+  health, mappings and beans) ([Spring Boot and Jakarta EE](user/spring.md)).
 - **RustForge**: Settings | Languages & Frameworks | Rust with rustup toolchains, the active
   toolchain and its `rust-toolchain.toml`, the sysroot and the standard library sources; the
   Cargo tool window with members, targets, feature checkboxes and dependencies; Cargo and

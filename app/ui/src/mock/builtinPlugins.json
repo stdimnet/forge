@@ -8349,6 +8349,156 @@
     }
   },
   {
+    "id": "forge.jupyter",
+    "name": "Jupyter",
+    "version": "0.1.0",
+    "pack": "pyforge",
+    "description": "Jupyter notebooks: the notebook editor with code and Markdown cells, rich outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, the Variables view and notebook diffs cell by cell.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.python"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "Jupyter.RunCell",
+          "title": "Run Cell",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.RunCellSelectBelow",
+          "title": "Run Cell and Select Below",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.RunCellInsertBelow",
+          "title": "Run Cell and Insert Below",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.RunAll",
+          "title": "Run All Cells",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.InterruptKernel",
+          "title": "Interrupt Kernel",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.RestartKernel",
+          "title": "Restart Kernel",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.ShutdownKernel",
+          "title": "Shut Down Kernel",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.ClearAllOutputs",
+          "title": "Clear All Outputs",
+          "category": "Jupyter"
+        },
+        {
+          "id": "Jupyter.ShowVariables",
+          "title": "Show Variables",
+          "category": "Jupyter"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "jupyter.server.url",
+          "title": "Jupyter server URL",
+          "description": "Run kernels on this server instead of starting ipykernel in the project's interpreter, for example http://localhost:8888 (a pasted URL's ?token= is moved to the keychain). Needed for Docker, SSH and WSL interpreters and remote projects.",
+          "type": "string",
+          "default": "",
+          "group": "lang.jupyter",
+          "section": "Kernels",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "jupyter.kernel.installWithoutAsking",
+          "title": "Install ipykernel without asking",
+          "description": "Install ipykernel into the interpreter with its package manager when a notebook starts a kernel and it is missing.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.jupyter",
+          "section": "Kernels",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "jupyter.kernel.shutdownOnClose",
+          "title": "Shut down the kernel when the notebook is closed",
+          "type": "bool",
+          "default": true,
+          "group": "lang.jupyter",
+          "section": "Kernels",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "jupyter.outputs.limitHeight",
+          "title": "Scroll long outputs",
+          "description": "Outputs taller than 400 pixels get their own scroll bar.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.jupyter",
+          "section": "Outputs",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "jupyter.dataframe.pageSize",
+          "title": "DataFrame rows per page",
+          "type": "int",
+          "min": 10,
+          "max": 1000,
+          "default": 50,
+          "group": "lang.jupyter",
+          "section": "Outputs",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "jupyter.diff.view",
+          "title": "Show notebook diffs",
+          "description": "How the diff viewer shows .ipynb files first.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "cells",
+              "label": "Cell by cell"
+            },
+            {
+              "value": "json",
+              "label": "As JSON text"
+            }
+          ],
+          "default": "cells",
+          "group": "lang.jupyter",
+          "section": "Diff",
+          "project": false,
+          "order": 20
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.go",
     "name": "Go",
     "version": "0.1.0",
@@ -10143,6 +10293,164 @@
       "chatAgents": [],
       "codeGenerators": [],
       "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.spring",
+    "name": "Spring Boot and Jakarta EE",
+    "version": "0.1.0",
+    "pack": "javaforge",
+    "description": "Spring Boot and Jakarta EE: beans with injection point navigation, the Endpoints tool window (Spring MVC, JAX-RS) with Open in HTTP Client, JPA entities, application.properties / application.yml completion and inspections from the configuration metadata, and the Spring Boot run configuration with its run dashboard in Services (port, profiles, actuator health, beans and mappings).",
+    "vendor": "Forge",
+    "depends": [
+      "forge.java"
+    ],
+    "required": false,
+    "projectTypes": [
+      "spring-boot",
+      "jakarta-ee"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "spring.refresh",
+          "title": "Refresh Spring Model",
+          "category": "Spring"
+        },
+        {
+          "id": "spring.showEndpoints",
+          "title": "Endpoints",
+          "category": "View"
+        },
+        {
+          "id": "spring.showBeans",
+          "title": "Spring Beans",
+          "category": "View"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "spring",
+          "title": "Spring",
+          "anchor": "right",
+          "icon": "leaf",
+          "order": 45
+        }
+      ],
+      "settings": [
+        {
+          "key": "spring.metadata.fromJars",
+          "title": "Read configuration metadata from the dependency jars",
+          "description": "Completion, documentation and inspections in application.properties / application.yml use META-INF/spring-configuration-metadata.json of the jars of the last Gradle / Maven sync, or Spring Boot's jars in the local Maven and Gradle caches.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "spring.inspections.unknownProperties",
+          "title": "Report unknown configuration properties",
+          "description": "Keys the metadata does not know (and that no Map property covers) are warnings. Never reported without metadata.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "spring.metadata.mavenRepository",
+          "title": "Local Maven repository",
+          "description": "Where the dependency jars are looked up. Empty: ~/.m2/repository.",
+          "type": "path",
+          "default": "",
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 2
+        },
+        {
+          "key": "spring.metadata.gradleUserHome",
+          "title": "Gradle user home",
+          "description": "Gradle's module cache is <home>/caches/modules-2/files-2.1. Empty: GRADLE_USER_HOME or ~/.gradle.",
+          "type": "path",
+          "default": "",
+          "group": "lang.java.spring-boot",
+          "section": "Configuration files",
+          "project": false,
+          "order": 3
+        },
+        {
+          "key": "spring.gutterIcons",
+          "title": "Show gutter icons",
+          "description": "Beans and their injection points, endpoints, JPA entities and repositories, @ConfigurationProperties classes.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Editor",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "spring.dashboard.actuator",
+          "title": "Read the actuator of running applications",
+          "description": "The run dashboard (Services) and the Beans and Endpoints views ask /actuator/health, /actuator/beans and /actuator/mappings of applications started from Spring Boot configurations, on localhost.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.java.spring-boot",
+          "section": "Run dashboard",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "spring.dashboard.refreshSeconds",
+          "title": "Refresh running applications every (seconds)",
+          "type": "int",
+          "min": 2,
+          "max": 300,
+          "default": 5,
+          "group": "lang.java.spring-boot",
+          "section": "Run dashboard",
+          "project": false,
+          "order": 21
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [
+        {
+          "path": "Tools/_Spring",
+          "items": [
+            {
+              "type": "action",
+              "id": "spring.showEndpoints",
+              "label": "Show _Endpoints"
+            },
+            {
+              "type": "action",
+              "id": "spring.showBeans",
+              "label": "Show _Beans"
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "spring.refresh",
+              "label": "Re_fresh Spring Model"
+            }
+          ]
+        }
+      ]
     }
   },
   {

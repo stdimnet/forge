@@ -106,12 +106,14 @@ pub fn run() {
         .manage(commands::python::PythonState::default())
         .manage(commands::python_tools::PythonToolsState::default())
         .manage(commands::python_tools::PythonConsoleState::default())
+        .manage(commands::jupyter::JupyterState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
         .manage(run_state)
         .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
+        .manage(commands::spring::SpringState::default())
         .manage(commands::workbench::BookmarksState::default())
         .manage(commands::local_history::LocalHistoryState::default())
         .manage(commands::clipboard::ClipboardState::default())
@@ -508,6 +510,23 @@ pub fn run() {
             commands::python_tools::python_tox_environments,
             commands::python_tools::python_debugpy_status,
             commands::python_tools::python_debug_plan,
+            commands::jupyter::jupyter_open,
+            commands::jupyter::jupyter_serialize,
+            commands::jupyter::jupyter_render,
+            commands::jupyter::jupyter_diff,
+            commands::jupyter::jupyter_dataframe_query,
+            commands::jupyter::jupyter_kernel_status,
+            commands::jupyter::jupyter_kernel_start,
+            commands::jupyter::jupyter_execute,
+            commands::jupyter::jupyter_interrupt,
+            commands::jupyter::jupyter_restart,
+            commands::jupyter::jupyter_shutdown,
+            commands::jupyter::jupyter_variables,
+            commands::jupyter::jupyter_variable_children,
+            commands::jupyter::jupyter_variable_frame,
+            commands::jupyter::jupyter_server_test,
+            commands::jupyter::jupyter_server_has_token,
+            commands::jupyter::jupyter_server_forget_token,
             commands::python_tools::python_console_start,
             commands::python_tools::python_console_send,
             commands::python_tools::python_console_stop,
@@ -537,6 +556,15 @@ pub fn run() {
             commands::java_build::java_build_complete,
             commands::java_build::java_build_outdated,
             commands::java_build::java_build_workspace,
+            commands::spring::spring_model,
+            commands::spring::spring_gutter,
+            commands::spring::spring_config_complete,
+            commands::spring::spring_config_inspect,
+            commands::spring::spring_config_hover,
+            commands::spring::spring_config_goto,
+            commands::spring::spring_http_request,
+            commands::spring::spring_dashboard,
+            commands::spring::spring_dashboard_details,
             commands::kotlin::kotlin_status,
             commands::kotlin::kotlin_lsp_install,
             commands::kotlin::kotlin_linters_install,

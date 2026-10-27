@@ -8,10 +8,14 @@ import { invoke } from "./index";
 /** The two PHPStorm keymaps; every other keymap derives from one of them. */
 export type KeymapId = "$default" | "macOS";
 export type Platform = "mac" | "other";
-/** Where an action may fire: "editor" actions only while a code editor has focus. */
-export type ActionContext = "any" | "editor" | "toolwindow" | "diff";
-/** Where keyboard focus currently is. */
-export type FocusContext = "editor" | "input" | "toolwindow-input" | "terminal" | "toolwindow" | "diff" | "global";
+/**
+ * Where an action may fire: "editor" actions only while a code editor has focus, "notebook"
+ * in a Jupyter notebook (command mode and cell editors), "notebook-command" only in its
+ * command mode.
+ */
+export type ActionContext = "any" | "editor" | "toolwindow" | "diff" | "notebook" | "notebook-command";
+/** Where keyboard focus currently is ("notebook": command mode, "notebook-editor": a cell's editor). */
+export type FocusContext = "editor" | "input" | "toolwindow-input" | "terminal" | "toolwindow" | "diff" | "notebook" | "notebook-editor" | "global";
 
 export interface ActionDef {
   id: string;

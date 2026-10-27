@@ -25,6 +25,7 @@ import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { isLuaDemo } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoFiles } from "./demoPythonProject";
+import { salesNotebookHead } from "./demoNotebooks";
 import { goDemoFiles, isGoDemo } from "./demoGoProject";
 import { cppDemoFiles, isCppDemo } from "./demoCppProject";
 import { isRustDemo, rustDemoFiles } from "./demoRustProject";
@@ -265,6 +266,8 @@ if (web || isPythonDemo() || isGoDemo() || isRustDemo() || isCppDemo()) {
   if (!web && isPythonDemo() && pythonDemoFiles["src/shop_api/main.py"]) {
     const main = "src/shop_api/main.py";
     for (const snapshot of [head, index]) snapshot[main] = pythonDemoFiles[main].replace("from rich.console import Console\n", "").replace("console = Console()\n\n\n", "");
+    // The notebook changed too (a newer data file, the error cell): its diff compares cells.
+    for (const snapshot of [head, index]) snapshot["notebooks/sales.ipynb"] = salesNotebookHead;
   }
 }
 // The Java demo (`?project=java`) is committed except for the low-stock report in progress.

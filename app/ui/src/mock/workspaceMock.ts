@@ -36,7 +36,7 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
 // the FastAPI service of PyForge (`?project=django` its Django bookshop), `?project=go` the
 // `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge,
-// `?project=java` a Gradle Java service, `?project=kotlin` a Gradle Kotlin service,
+// `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application), `?project=kotlin` a Gradle Kotlin service,
 // `?project=scala` an sbt build, `?project=android` a Gradle Android app.
 // `?project=cpp` the CMake project `shapes` of CForge.
 export const mockFiles: Record<string, string> = isSymfonyDemo()

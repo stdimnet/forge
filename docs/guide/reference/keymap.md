@@ -621,6 +621,27 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Fit Zoom to Window | `Images.Editor.FitZoomToWindow` |  |  | any |
 | Show Grid (image editor) | `Images.Editor.ToggleGrid` |  |  | any |
 | Show Chessboard (image editor) | `Images.ToggleTransparencyChessboard` |  |  | any |
+| Run Cell and Select Below | `Jupyter.RunCellSelectBelow` | `Shift+Enter` | `Shift+Enter` | notebook |
+| Run Cell | `Jupyter.RunCell` | `Ctrl+Enter` | `Cmd+Enter` | notebook |
+| Run Cell and Insert Below | `Jupyter.RunCellInsertBelow` | `Alt+Enter` | `Opt+Enter` | notebook |
+| Run All Cells | `Jupyter.RunAll` | `Ctrl+Alt+Shift+Enter` | `Cmd+Opt+Shift+Enter` | notebook |
+| Interrupt Kernel | `Jupyter.InterruptKernel` | `I I` | `I I` | notebook command mode |
+| Restart Kernel | `Jupyter.RestartKernel` | `0 0` | `0 0` | notebook command mode |
+| Shut Down Kernel | `Jupyter.ShutdownKernel` |  |  | any |
+| Enter Command Mode | `Jupyter.EnterCommandMode` | `Escape` | `Escape` | notebook |
+| Enter Edit Mode | `Jupyter.EnterEditMode` | `Enter` | `Enter` | notebook command mode |
+| Insert Cell Above | `Jupyter.InsertCellAbove` | `A` | `A` | notebook command mode |
+| Insert Cell Below | `Jupyter.InsertCellBelow` | `B` | `B` | notebook command mode |
+| Delete Cell | `Jupyter.DeleteCell` | `D D` | `D D` | notebook command mode |
+| Change Cell Type to Code | `Jupyter.ToCode` | `Y` | `Y` | notebook command mode |
+| Change Cell Type to Markdown | `Jupyter.ToMarkdown` | `M` | `M` | notebook command mode |
+| Change Cell Type to Raw | `Jupyter.ToRaw` | `R` | `R` | notebook command mode |
+| Select Cell Above | `Jupyter.SelectCellAbove` | `Up`, `K` | `Up`, `K` | notebook command mode |
+| Select Cell Below | `Jupyter.SelectCellBelow` | `Down`, `J` | `Down`, `J` | notebook command mode |
+| Move Cell Up | `Jupyter.MoveCellUp` | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | notebook command mode |
+| Move Cell Down | `Jupyter.MoveCellDown` | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | notebook command mode |
+| Clear All Outputs | `Jupyter.ClearAllOutputs` |  |  | any |
+| Show Variables (Jupyter) | `Jupyter.ShowVariables` |  |  | any |
 | Edit as Table (CSV/TSV) | `Csv.EditAsTable` |  |  | any |
 | Edit as Text (CSV/TSV) | `Csv.EditAsText` |  |  | any |
 | Select in Project View | `SelectInProjectView` |  |  | any |

@@ -143,6 +143,8 @@ const NPM_FRAMEWORKS: &[(&str, &str, &str)] = &[
 
 /// Most specific first: decides [`ProjectInfo::primary`].
 const PRIMARY_PRIORITY: &[&str] = &[
+    "spring-boot",
+    "jakarta-ee",
     "laravel",
     "symfony",
     "drupal",
@@ -628,8 +630,8 @@ fn locked_python_version(lock: &str, package: &str) -> Option<String> {
 /// Maven (`pom.xml`, `mvnw`) and Gradle (`build.gradle(.kts)`, `settings.gradle(.kts)`,
 /// `gradlew`) builds, and Java sources (`*.java` in the folder or a `src/main/java` tree).
 /// A Kotlin-only Gradle build (no Java sources, `kotlin("jvm")`) still counts: JavaForge
-/// runs its Gradle tasks.
-fn scan_java(dir: &Path, _rel: &str, c: &mut Collector, files: &[String]) {
+/// runs its Gradle tasks. Spring Boot and Jakarta EE are frameworks of the build.
+fn scan_java(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
     let has = |name: &str| files.iter().any(|f| f == name);
     let maven = has("pom.xml");
     let gradle = [
@@ -652,6 +654,118 @@ fn scan_java(dir: &Path, _rel: &str, c: &mut Collector, files: &[String]) {
     if maven || gradle || sources {
         c.language("java");
     }
+    // Spring Boot (the Gradle plugin, the Maven parent / BOM or a starter) and Jakarta EE /
+    // Java EE APIs (the platform APIs, JAX-RS, CDI, MicroProfile).
+    let builds: Vec<String> = ["build.gradle.kts", "build.gradle", "pom.xml"]
+        .iter()
+        .filter(|f| has(f))
+        .filter_map(|f| fs::read_to_string(dir.join(f)).ok())
+        .collect();
+    if builds
+        .iter()
+        .any(|b| b.contains("org.springframework.boot") || b.contains("spring-boot-starter"))
+    {
+        let version = builds.iter().find_map(|b| spring_boot_version(b));
+        c.framework("spring-boot", "Spring Boot", "java", version, rel);
+    }
+    const JAKARTA: &[&str] = &[
+        "jakarta.platform",
+        "jakarta.jakartaee",
+        "javaee-api",
+        "javaee-web-api",
+        "jakarta.ws.rs",
+        "javax.ws.rs",
+        "jakarta.enterprise",
+        "cdi-api",
+        "org.eclipse.microprofile",
+    ];
+    if let Some(b) = builds
+        .iter()
+        .find(|b| JAKARTA.iter().any(|m| b.contains(m)))
+    {
+        c.framework("jakarta-ee", "Jakarta EE", "java", jakarta_version(b), rel);
+    }
+}
+
+/// The Spring Boot version of a build: the Gradle plugin, the Maven parent or BOM.
+pub fn spring_boot_version(build: &str) -> Option<String> {
+    let after = |marker: &str| -> Option<String> {
+        let i = build.find(marker)? + marker.len();
+        let rest = &build[i..];
+        let v: String = rest
+            .trim_start_matches(['"', '\'', ')', ' ', ':'])
+            .trim_start_matches("version")
+            .trim_start_matches([' ', '"', '\'', '('])
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '-')
+            .collect();
+        (!v.is_empty() && v.chars().next().is_some_and(|c| c.is_ascii_digit())).then_some(v)
+    };
+    for marker in [
+        "id(\"org.springframework.boot\")",
+        "id 'org.springframework.boot'",
+        "id \"org.springframework.boot\"",
+        "spring-boot-gradle-plugin",
+        "spring-boot-dependencies",
+    ] {
+        if let Some(v) = after(marker) {
+            return Some(v);
+        }
+    }
+    // Maven: `<artifactId>spring-boot-starter-parent</artifactId>` then `<version>`.
+    for artifact in ["spring-boot-starter-parent", "spring-boot-dependencies"] {
+        let Some(i) = build.find(&format!("<artifactId>{artifact}</artifactId>")) else {
+            continue;
+        };
+        let v = build[i..]
+            .split("<version>")
+            .nth(1)
+            .and_then(|r| r.split("</version>").next())
+            .map(str::trim);
+        if let Some(v) = v.filter(|v| v.chars().next().is_some_and(|c| c.is_ascii_digit())) {
+            return Some(v.to_string());
+        }
+    }
+    None
+}
+
+/// The Jakarta EE / Java EE API version (`jakarta.jakartaee-api:10.0.0`).
+fn jakarta_version(build: &str) -> Option<String> {
+    for marker in [
+        "jakartaee-api:",
+        "jakartaee-web-api:",
+        "jakartaee-core-api:",
+        "javaee-api:",
+        "javaee-web-api:",
+    ] {
+        if let Some(i) = build.find(marker) {
+            let v: String = build[i + marker.len()..]
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '.')
+                .collect();
+            if v.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+                return Some(v);
+            }
+        }
+    }
+    for artifact in [
+        "jakarta.jakartaee-api",
+        "jakarta.jakartaee-web-api",
+        "javaee-api",
+        "javaee-web-api",
+    ] {
+        if let Some(i) = build.find(&format!("<artifactId>{artifact}</artifactId>")) {
+            let v = build[i..]
+                .split("<version>")
+                .nth(1)
+                .and_then(|r| r.split("</version>").next())
+                .map(str::trim);
+            if let Some(v) = v.filter(|v| v.chars().next().is_some_and(|c| c.is_ascii_digit())) {
+                return Some(v.to_string());
+            }
+        }
+    }
+    None
 }
 
 /// Kotlin (KotlinForge): Kotlin sources (`*.kt` in the folder, `src/main/kotlin`,
@@ -1350,6 +1464,72 @@ mod tests {
         let plain = tempfile::tempdir().unwrap();
         write(plain.path(), "Hello.java", "void main() {}");
         assert!(detect(plain.path()).uses("javaforge"));
+    }
+
+    #[test]
+    fn spring_boot_and_jakarta_ee() {
+        let gradle = tempfile::tempdir().unwrap();
+        write(
+            gradle.path(),
+            "build.gradle.kts",
+            "plugins {\n    java\n    id(\"org.springframework.boot\") version \"3.3.2\"\n}\ndependencies { implementation(\"org.springframework.boot:spring-boot-starter-web\") }",
+        );
+        let info = detect(gradle.path());
+        let boot = info.framework("spring-boot").unwrap();
+        assert_eq!(
+            (boot.name.as_str(), boot.version.as_deref()),
+            ("Spring Boot", Some("3.3.2"))
+        );
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.id.as_str()),
+            Some("spring-boot")
+        );
+        assert!(info.uses("javaforge"));
+
+        let maven = tempfile::tempdir().unwrap();
+        write(
+            maven.path(),
+            "pom.xml",
+            "<project><parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId>\n<version>3.4.0</version></parent></project>",
+        );
+        assert_eq!(
+            detect(maven.path())
+                .framework("spring-boot")
+                .unwrap()
+                .version
+                .as_deref(),
+            Some("3.4.0")
+        );
+        let groovy = tempfile::tempdir().unwrap();
+        write(
+            groovy.path(),
+            "build.gradle",
+            "plugins { id 'org.springframework.boot' version '2.7.18' }",
+        );
+        assert_eq!(
+            detect(groovy.path())
+                .framework("spring-boot")
+                .unwrap()
+                .version
+                .as_deref(),
+            Some("2.7.18")
+        );
+
+        let ee = tempfile::tempdir().unwrap();
+        write(
+            ee.path(),
+            "build.gradle",
+            "dependencies { compileOnly 'jakarta.platform:jakarta.jakartaee-api:10.0.0' }",
+        );
+        let info = detect(ee.path());
+        assert_eq!(
+            info.framework("jakarta-ee").unwrap().version.as_deref(),
+            Some("10.0.0")
+        );
+        assert!(info.framework("spring-boot").is_none());
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "pom.xml", "<project/>");
+        assert!(detect(plain.path()).frameworks.is_empty());
     }
 
     #[test]

@@ -864,6 +864,31 @@ export function json_schema_read(location: string): string;
 export function json_schema_validate(request_json: string): string;
 
 /**
+ * `{ frame, query }` → `Page`.
+ */
+export function jupyter_dataframe_query(request_json: string): string;
+
+/**
+ * `{ left, right }` → `NotebookDiff`.
+ */
+export function jupyter_diff(request_json: string): string;
+
+/**
+ * `{ text, root? }` → `NotebookView`.
+ */
+export function jupyter_open(request_json: string): string;
+
+/**
+ * `{ outputs, root? }` → `Rendered[]`.
+ */
+export function jupyter_render(request_json: string): string;
+
+/**
+ * `{ notebook, original? }` → the `.ipynb` text.
+ */
+export function jupyter_serialize(request_json: string): string;
+
+/**
  * `{settings, hostPlatform}` → `KeymapSnapshot`.
  */
 export function keymap_actions(json: string): string;
@@ -1524,6 +1549,42 @@ export function spell_dictionaries(): string;
 export function spell_inspect(request_json: string): string;
 
 /**
+ * `{ files, metadata, enums, path, content, offset }` plus `kind`: `complete` | `inspect`
+ * | `hover` | `goto` (the `spring_config_*` commands).
+ */
+export function spring_config(kind: string, request_json: string): string;
+
+/**
+ * `{ apps }` → nodes; `{ apps, nodeId, runtime? }` → details (`spring_dashboard*`).
+ */
+export function spring_dashboard(request_json: string): string;
+
+/**
+ * `{ files, path, content }` → `Marker[]` (`spring_gutter`).
+ */
+export function spring_gutter(request_json: string): string;
+
+/**
+ * `{ endpoint, baseUrl }` → `.http` text (`spring_http_request`).
+ */
+export function spring_http_request(request_json: string): string;
+
+/**
+ * `{ options, vmOptions, arguments }` → `{ vmOptions, arguments }` of the Application run.
+ */
+export function spring_launch(request_json: string): string;
+
+/**
+ * Console lines → what the dashboard reads from them (`Observed`).
+ */
+export function spring_observe(lines_json: string): string;
+
+/**
+ * `{ files, metadata, enums, runtime? }` → the `spring_model` answer.
+ */
+export function spring_overview(request_json: string): string;
+
+/**
  * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
  */
 export function sql_change_statements(request_json: string): string;
@@ -2001,6 +2062,11 @@ export interface InitOutput {
     readonly json_schema_hover: (a: number, b: number, c: number) => void;
     readonly json_schema_read: (a: number, b: number, c: number) => void;
     readonly json_schema_validate: (a: number, b: number, c: number) => void;
+    readonly jupyter_dataframe_query: (a: number, b: number, c: number) => void;
+    readonly jupyter_diff: (a: number, b: number, c: number) => void;
+    readonly jupyter_open: (a: number, b: number, c: number) => void;
+    readonly jupyter_render: (a: number, b: number, c: number) => void;
+    readonly jupyter_serialize: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
     readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;
@@ -2129,6 +2195,13 @@ export interface InitOutput {
     readonly spell_context_actions: (a: number, b: number, c: number) => void;
     readonly spell_dictionaries: (a: number) => void;
     readonly spell_inspect: (a: number, b: number, c: number) => void;
+    readonly spring_config: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly spring_dashboard: (a: number, b: number, c: number) => void;
+    readonly spring_gutter: (a: number, b: number, c: number) => void;
+    readonly spring_http_request: (a: number, b: number, c: number) => void;
+    readonly spring_launch: (a: number, b: number, c: number) => void;
+    readonly spring_observe: (a: number, b: number, c: number) => void;
+    readonly spring_overview: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;

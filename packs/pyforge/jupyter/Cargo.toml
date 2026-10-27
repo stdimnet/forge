@@ -1,0 +1,46 @@
+[package]
+name = "pyforge-jupyter"
+description = "PyForge: Jupyter notebooks (nbformat v4 parse and round-trip stable serialization, rendered outputs with sanitized HTML/SVG, DataFrame tables, cell-by-cell notebook diffs, the Jupyter messaging protocol with HMAC-SHA256 signing); pure, also built to WebAssembly. Feature `runtime`: kernels over ZeroMQ and Jupyter servers over REST/WebSocket"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Kernel connections (ZeroMQ, Jupyter server REST + WebSocket). The pure part builds to
+# WebAssembly without it.
+# Jupyter server tokens in the OS keychain.
+keychain = ["dep:keyring"]
+runtime = ["dep:zeromq", "dep:tokio", "dep:bytes", "dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:uuid", "dep:tracing"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+similar = "2"
+forge-output.workspace = true
+forge-viewers.workspace = true
+zeromq = { version = "0.6", optional = true, default-features = false, features = ["tokio-runtime", "tcp-transport"] }
+tokio = { workspace = true, optional = true }
+bytes = { version = "1", optional = true }
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots", "http2"] }
+tokio-tungstenite = { version = "0.30", optional = true, default-features = false, features = ["connect", "rustls-tls-native-roots"] }
+futures-util = { version = "0.3", optional = true, default-features = false, features = ["sink", "std"] }
+uuid = { version = "1", optional = true, features = ["v4"] }
+tracing = { workspace = true, optional = true }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile.workspace = true
+
+[[test]]
+name = "fake_kernel"
+required-features = ["runtime"]
+
+[[test]]
+name = "ipykernel_smoke"
+required-features = ["runtime"]

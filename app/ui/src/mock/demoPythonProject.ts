@@ -8,6 +8,7 @@
 import type { ProjectInfo } from "@/ipc/project";
 import type { InstalledPackage } from "@/ipc/python";
 import { djangoDemoFiles, djangoDemoInfo, djangoDemoInstalled, djangoDemoName } from "./demoDjangoProject";
+import { salesCsv, salesNotebook } from "./demoNotebooks";
 
 const demoParam = (): string | null => (typeof location !== "undefined" ? new URLSearchParams(location.search).get("project") : null);
 
@@ -442,6 +443,8 @@ if __name__ == "__main__":
     Base.metadata.create_all(engine)
     print("seeded")
 `,
+  "notebooks/sales.ipynb": salesNotebook,
+  "notebooks/data/sales.csv": salesCsv,
   "compose.yaml": `services:
   api:
     image: python:3.12-slim
