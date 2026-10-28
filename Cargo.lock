@@ -125,7 +125,7 @@ dependencies = [
  "ariadne",
  "futures",
  "indexmap 2.14.2",
- "rowan",
+ "rowan 0.16.1",
  "serde",
  "serde_json_bytes",
  "thiserror 2.0.21",
@@ -140,7 +140,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61e7b65fce383a71e165834de0bc0fb44b84c840e174f0c5b3914ab76c88ff14"
 dependencies = [
  "memchr",
- "rowan",
+ "rowan 0.16.1",
  "thiserror 2.0.21",
 ]
 
@@ -2091,6 +2091,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fluent-uri"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17c704e9dbe1ddd863da1e6ff3567795087b1eb201ce80d8fa81162e1516500d"
+dependencies = [
+ "bitflags 1.3.2",
+]
+
+[[package]]
 name = "flume"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2768,7 +2777,7 @@ dependencies = [
  "forge-codeintel",
  "forge-core",
  "futures-util",
- "lsp-types",
+ "lsp-types 0.95.1",
  "serde",
  "serde_json",
  "tempfile",
@@ -4998,6 +5007,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4050469837a6ff301cd14c1f8f24f88549e6d548f24f64e2148eb0f72cebc51f"
 
 [[package]]
+name = "lsp-server"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ee25a31f2e571e426eef2896179450cafc7e2f5be00d8a93b1c2d21c0ff7656"
+dependencies = [
+ "crossbeam-channel",
+ "log",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
 name = "lsp-types"
 version = "0.95.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5008,6 +5030,19 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "url",
+]
+
+[[package]]
+name = "lsp-types"
+version = "0.97.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53353550a17c04ac46c585feb189c2db82154fc84b79c7a66c96c2c644f66071"
+dependencies = [
+ "bitflags 1.3.2",
+ "fluent-uri",
+ "serde",
+ "serde_json",
+ "serde_repr",
 ]
 
 [[package]]
@@ -6157,6 +6192,101 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e57fef6bc5981e38c2ce2d63bfa546861309f875b8a75f092d1d54ae2d64f266"
 dependencies = [
  "siphasher",
+]
+
+[[package]]
+name = "php-fmt"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "php-syntax",
+ "regex",
+]
+
+[[package]]
+name = "php-hir"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "php-syntax",
+ "serde",
+ "text-size",
+]
+
+[[package]]
+name = "php-ide"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "bincode",
+ "globset",
+ "php-fmt",
+ "php-hir",
+ "php-index",
+ "php-stubs",
+ "php-syntax",
+ "rayon",
+ "serde",
+ "walkdir",
+]
+
+[[package]]
+name = "php-index"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "php-hir",
+]
+
+[[package]]
+name = "php-lsp"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "crossbeam-channel",
+ "lsp-server",
+ "lsp-types 0.97.0",
+ "php-ide",
+ "php-tools",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "php-stubs"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "miniz_oxide 0.8.9",
+]
+
+[[package]]
+name = "php-syntax"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "rowan 0.17.0",
+ "serde",
+]
+
+[[package]]
+name = "php-tools"
+version = "0.1.0"
+source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "phpforge-builtin-lsp"
+version = "0.1.0"
+dependencies = [
+ "forge-lsp",
+ "php-lsp",
+ "phpforge-lang-php",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -7327,6 +7457,19 @@ checksum = "417a3a9f582e349834051b8a10c8d71ca88da4211e4093528e36b9845f6b5f21"
 dependencies = [
  "countme",
  "hashbrown 0.14.5",
+ "rustc-hash 1.1.0",
+ "text-size",
+]
+
+[[package]]
+name = "rowan"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14b574c58582fa59fa43a2feb6608b8744184659f08a2e0117e4b8224d95ed61"
+dependencies = [
+ "countme",
+ "hashbrown 0.14.5",
+ "memoffset",
  "rustc-hash 1.1.0",
  "text-size",
 ]
@@ -9350,6 +9493,9 @@ name = "text-size"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f18aa187839b2bdb1ad2fa35ead8c4c2976b64e4363c386d45ac0f7ee85c9233"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "thiserror"

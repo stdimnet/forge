@@ -1,8 +1,15 @@
-//! How to launch a PHP language server: Intelephense (preferred, users bring their own
-//! licence key) with phpactor as fallback. Independent of the generic LSP client; the app
-//! turns [`LspServerConfig`] into a running server.
+//! How to launch a PHP language server: php-lsp, built into Forge (the default), or
+//! Intelephense (users bring their own licence key) and phpactor installed on the machine.
+//! Independent of the generic LSP client; the app turns [`LspServerConfig`] into a running
+//! server.
+//!
+//! php-lsp (<https://github.com/stdimnet/php-lsp>, MIT OR Apache-2.0) is linked into the
+//! Forge binary and the remote agent (`packs/phpforge/builtin-lsp`), which run it in a hidden
+//! `--php-lsp --stdio` mode. They announce it with [`register_builtin_server`]; binaries that
+//! do not (tests, tools) simply have no built-in server.
 
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -10,9 +17,12 @@ use serde_json::{json, Value};
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ServerChoice {
-    /// Intelephense if installed, else phpactor.
-    #[default]
+    /// php-lsp built into Forge; without it Intelephense if installed, else phpactor.
     Auto,
+    /// php-lsp, built into Forge (setting value `php-lsp`).
+    #[default]
+    #[serde(rename = "php-lsp")]
+    PhpLsp,
     Intelephense,
     Phpactor,
     None,
@@ -21,8 +31,34 @@ pub enum ServerChoice {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ServerKind {
+    #[serde(rename = "php-lsp")]
+    PhpLsp,
     Intelephense,
     Phpactor,
+}
+
+/// php-lsp as built into the running binary: how to start it (the binary itself in its
+/// hidden mode) and its version.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltinServer {
+    pub command: PathBuf,
+    pub args: Vec<String>,
+    /// php-lsp's version, e.g. `0.1.0 (0fd60bc)`.
+    pub version: String,
+}
+
+static BUILTIN: OnceLock<BuiltinServer> = OnceLock::new();
+
+/// Announce the built-in php-lsp of this binary (called once at startup by the Forge app
+/// and the remote agent). Later calls are ignored.
+pub fn register_builtin_server(server: BuiltinServer) {
+    let _ = BUILTIN.set(server);
+}
+
+/// The built-in php-lsp of this binary, if it has one.
+pub fn builtin_server() -> Option<&'static BuiltinServer> {
+    BUILTIN.get()
 }
 
 /// User settings relevant to the PHP language server (Settings > Languages & Frameworks > PHP).
@@ -48,7 +84,8 @@ pub struct PhpLspSettings {
     /// Node.js: Forge's managed install needs no Node.js on `PATH`.
     pub intelephense_node: Option<PathBuf>,
     pub phpactor_path: Option<PathBuf>,
-    /// Where Intelephense stores its cache; defaults to `<cache dir>/forge/intelephense`.
+    /// Where the server stores its cache; defaults to `<cache dir>/forge/intelephense`
+    /// (Intelephense) and `<cache dir>/forge/php-lsp` (php-lsp).
     pub storage_path: Option<PathBuf>,
     /// Brace placement of Reformat Code (`php.codeStyle.wrapping.*Braces`).
     pub braces: crate::style::Braces,
@@ -63,7 +100,7 @@ pub struct PhpLspSettings {
 impl Default for PhpLspSettings {
     fn default() -> Self {
         Self {
-            server: ServerChoice::Auto,
+            server: ServerChoice::PhpLsp,
             licence_key: None,
             php_version: "8.3".into(),
             level_from_interpreter: false,
@@ -388,6 +425,9 @@ pub fn find_executable(
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DetectedServers {
+    /// php-lsp built into the binary that starts the servers (Forge or the remote agent).
+    #[serde(default)]
+    pub php_lsp: Option<BuiltinServer>,
     pub intelephense: Option<PathBuf>,
     pub phpactor: Option<PathBuf>,
 }
@@ -404,6 +444,7 @@ pub fn detect(
             .or_else(|| find_executable(name, dirs, probe))
     };
     DetectedServers {
+        php_lsp: builtin_server().cloned(),
         intelephense: pick(&settings.intelephense_path, "intelephense"),
         phpactor: pick(&settings.phpactor_path, "phpactor"),
     }
@@ -416,11 +457,19 @@ pub fn default_storage_path() -> PathBuf {
         .join("intelephense")
 }
 
-pub fn intelephense_config(
-    command: PathBuf,
-    settings: &PhpLspSettings,
-    composer_json: Option<&str>,
-) -> LspServerConfig {
+/// Where php-lsp keeps its index cache and unpacked stubs: `<cache dir>/forge/php-lsp`
+/// (never inside the project; php-lsp names each project's cache after its folders).
+pub fn default_php_lsp_storage() -> PathBuf {
+    dirs::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("forge")
+        .join("php-lsp")
+}
+
+/// The `intelephense` settings section, shared by Intelephense and php-lsp (which reads
+/// Intelephense's settings): language level, include paths, files, stubs, completion and
+/// formatting.
+fn intelephense_section(settings: &PhpLspSettings, composer_json: Option<&str>) -> Value {
     let mut stubs: Vec<String> = DEFAULT_STUBS.iter().map(|s| s.to_string()).collect();
     for s in framework_stubs(composer_json)
         .into_iter()
@@ -429,21 +478,6 @@ pub fn intelephense_config(
         if !stubs.contains(&s) {
             stubs.push(s);
         }
-    }
-    let storage = settings
-        .storage_path
-        .clone()
-        .unwrap_or_else(default_storage_path);
-    let mut init = json!({
-        "storagePath": storage.to_string_lossy(),
-        "clearCache": false,
-    });
-    if let Some(key) = settings
-        .licence_key
-        .as_ref()
-        .filter(|k| !k.trim().is_empty())
-    {
-        init["licenceKey"] = json!(key.trim());
     }
     let mut intelephense = json!({
         "environment": {
@@ -464,13 +498,75 @@ pub fn intelephense_config(
         "format": { "enable": true, "braces": settings.braces.intelephense() },
         "telemetry": { "enabled": false },
     });
-    init["globalStoragePath"] = json!(storage.to_string_lossy());
-    // "Add packages as libraries" off: Intelephense ignores vendor/ like Forge's index.
+    // "Add packages as libraries" off: the server ignores vendor/ like Forge's index.
     if !settings.vendor_libraries {
         if let Some(exclude) = intelephense["files"]["exclude"].as_array_mut() {
             exclude.push(json!("**/vendor/**"));
         }
     }
+    intelephense
+}
+
+/// php-lsp, built into Forge: started as `<binary> --php-lsp --stdio`. It reads the same
+/// `intelephense` settings; its own `php-lsp` section turns off what Forge does itself:
+/// PHPStan, Psalm and PHP_CodeSniffer run through Forge's Quality Tools (no duplicate
+/// problems), and formatting stays with php-lsp's built-in formatter (Forge runs
+/// php-cs-fixer / phpcbf / Pint through Reformat with and Actions on Save).
+pub fn php_lsp_config(
+    server: &BuiltinServer,
+    settings: &PhpLspSettings,
+    composer_json: Option<&str>,
+) -> LspServerConfig {
+    let storage = settings
+        .storage_path
+        .clone()
+        .unwrap_or_else(default_php_lsp_storage);
+    let off = json!({ "enable": false });
+    LspServerConfig {
+        kind: ServerKind::PhpLsp,
+        name: "php-lsp".into(),
+        command: server.command.clone(),
+        args: server.args.clone(),
+        language_ids: vec!["php".into()],
+        file_extensions: vec!["php".into(), "phtml".into()],
+        initialization_options: json!({
+            "storagePath": storage.to_string_lossy(),
+            "clearCache": false,
+        }),
+        settings: json!({
+            "intelephense": intelephense_section(settings, composer_json),
+            "php-lsp": {
+                "tools": { "phpstan": off, "psalm": off, "phpcs": off },
+                "format": { "provider": "builtin" },
+                "index": { "cache": true },
+                "inlayHint": { "parameterNames": true, "parameterTypes": true, "returnTypes": true },
+            },
+        }),
+    }
+}
+
+pub fn intelephense_config(
+    command: PathBuf,
+    settings: &PhpLspSettings,
+    composer_json: Option<&str>,
+) -> LspServerConfig {
+    let storage = settings
+        .storage_path
+        .clone()
+        .unwrap_or_else(default_storage_path);
+    let mut init = json!({
+        "storagePath": storage.to_string_lossy(),
+        "clearCache": false,
+    });
+    if let Some(key) = settings
+        .licence_key
+        .as_ref()
+        .filter(|k| !k.trim().is_empty())
+    {
+        init["licenceKey"] = json!(key.trim());
+    }
+    init["globalStoragePath"] = json!(storage.to_string_lossy());
+    let intelephense = intelephense_section(settings, composer_json);
     // A managed install: `node <dir>/node_modules/intelephense/lib/intelephense.js --stdio`.
     let node = settings
         .intelephense_node
@@ -533,11 +629,18 @@ pub fn server_config(
             .clone()
             .map(|p| phpactor_config(p, settings))
     };
+    let php_lsp = || {
+        detected
+            .php_lsp
+            .as_ref()
+            .map(|s| php_lsp_config(s, settings, composer_json))
+    };
     match settings.server {
         ServerChoice::None => None,
+        ServerChoice::PhpLsp => php_lsp(),
         ServerChoice::Intelephense => intelephense(),
         ServerChoice::Phpactor => phpactor(),
-        ServerChoice::Auto => intelephense().or_else(phpactor),
+        ServerChoice::Auto => php_lsp().or_else(intelephense).or_else(phpactor),
     }
 }
 
@@ -637,6 +740,7 @@ mod tests {
     #[test]
     fn intelephense_config_with_licence_and_framework_stubs() {
         let settings = PhpLspSettings {
+            server: ServerChoice::Auto,
             licence_key: Some(" ABC123 ".into()),
             php_version: "8.2".into(),
             storage_path: Some(PathBuf::from("/tmp/ip")),
@@ -646,6 +750,7 @@ mod tests {
         };
         let composer = r#"{"require": {"laravel/framework": "^12", "doctrine/dbal": "^4"}, "require-dev": {"phpunit/phpunit": "^11"}}"#;
         let detected = DetectedServers {
+            php_lsp: None,
             intelephense: Some(PathBuf::from("/bin/intelephense")),
             phpactor: Some(PathBuf::from("/bin/phpactor")),
         };
@@ -706,11 +811,18 @@ mod tests {
     #[test]
     fn falls_back_to_phpactor_and_respects_choice() {
         let only_phpactor = DetectedServers {
+            php_lsp: None,
             intelephense: None,
             phpactor: Some(PathBuf::from("/bin/phpactor")),
         };
-        let cfg = server_config(&PhpLspSettings::default(), &only_phpactor, None).unwrap();
+        let auto = PhpLspSettings {
+            server: ServerChoice::Auto,
+            ..Default::default()
+        };
+        let cfg = server_config(&auto, &only_phpactor, None).unwrap();
         assert_eq!(cfg.kind, ServerKind::Phpactor);
+        // php-lsp chosen (the default) but not built into this binary.
+        assert!(server_config(&PhpLspSettings::default(), &only_phpactor, None).is_none());
         assert_eq!(cfg.args, vec!["language-server"]);
 
         let none = PhpLspSettings {
@@ -741,10 +853,13 @@ mod tests {
         assert!(s.licence_key.is_none());
 
         let defaults = PhpLspSettings::from_settings(|_| None);
-        assert_eq!(defaults.server, ServerChoice::Auto);
+        assert_eq!(defaults.server, ServerChoice::PhpLsp);
         assert_eq!(defaults.php_version, "8.3");
         let bad = PhpLspSettings::from_settings(|_| Some(json!(true)));
-        assert_eq!(bad.server, ServerChoice::Auto);
+        assert_eq!(bad.server, ServerChoice::PhpLsp);
+        let built_in = json!({ "php.lsp.server": "php-lsp" });
+        let s = PhpLspSettings::from_settings(|k| built_in.get(k).cloned());
+        assert_eq!(s.server, ServerChoice::PhpLsp);
         assert!(affects_server("php.lsp.server"));
         assert!(!affects_server("php.codeStyle.tabSize"));
     }
@@ -765,6 +880,89 @@ mod tests {
         assert_eq!(s.php_version, "8.3");
         assert!(!s.level_from_interpreter);
         assert!(affects_server("php.interpreter"));
+    }
+
+    fn builtin() -> BuiltinServer {
+        BuiltinServer {
+            command: PathBuf::from("/opt/forge/forge"),
+            args: vec!["--php-lsp".into(), "--stdio".into()],
+            version: "0.1.0 (0fd60bc)".into(),
+        }
+    }
+
+    #[test]
+    fn php_lsp_is_the_default_and_auto_prefers_it() {
+        let detected = DetectedServers {
+            php_lsp: Some(builtin()),
+            intelephense: Some(PathBuf::from("/bin/intelephense")),
+            phpactor: Some(PathBuf::from("/bin/phpactor")),
+        };
+        for server in [ServerChoice::PhpLsp, ServerChoice::Auto] {
+            let settings = PhpLspSettings {
+                server,
+                ..Default::default()
+            };
+            let cfg = server_config(&settings, &detected, None).unwrap();
+            assert_eq!(cfg.kind, ServerKind::PhpLsp);
+            assert_eq!(cfg.command, PathBuf::from("/opt/forge/forge"));
+            assert_eq!(cfg.args, vec!["--php-lsp", "--stdio"]);
+        }
+        // Intelephense and phpactor stay selectable.
+        let ip = PhpLspSettings {
+            server: ServerChoice::Intelephense,
+            ..Default::default()
+        };
+        assert_eq!(
+            server_config(&ip, &detected, None).unwrap().kind,
+            ServerKind::Intelephense
+        );
+        assert_eq!(
+            serde_json::to_value(ServerChoice::PhpLsp).unwrap(),
+            json!("php-lsp")
+        );
+        assert_eq!(
+            serde_json::to_value(&detected).unwrap()["phpLsp"]["version"],
+            "0.1.0 (0fd60bc)"
+        );
+        // Older peers send no php-lsp entry.
+        let old: DetectedServers = serde_json::from_value(json!({ "intelephense": null, "phpactor": null })).unwrap();
+        assert!(old.php_lsp.is_none());
+    }
+
+    #[test]
+    fn php_lsp_config_maps_forges_settings() {
+        let settings = PhpLspSettings {
+            php_version: "8.2".into(),
+            storage_path: Some(PathBuf::from("/cache/php-lsp")),
+            include_paths: vec!["/usr/share/php".into()],
+            max_file_size: 2_000_000,
+            vendor_libraries: false,
+            braces: crate::style::Braces::KAndR,
+            licence_key: Some("IGNORED".into()),
+            ..Default::default()
+        };
+        let composer = r#"{"require": {"laravel/framework": "^12"}}"#;
+        let cfg = php_lsp_config(&builtin(), &settings, Some(composer));
+        assert_eq!(cfg.name, "php-lsp");
+        assert_eq!(cfg.initialization_options["storagePath"], "/cache/php-lsp");
+        assert!(cfg.initialization_options.get("licenceKey").is_none());
+        let ip = &cfg.settings["intelephense"];
+        assert_eq!(ip["environment"]["phpVersion"], "8.2.0");
+        assert_eq!(ip["environment"]["includePaths"][0], "/usr/share/php");
+        assert_eq!(ip["files"]["maxSize"], 2_000_000);
+        assert!(ip["files"]["exclude"].to_string().contains("\"**/vendor/**\""));
+        assert_eq!(ip["format"]["braces"], "k&r");
+        assert!(ip["stubs"].as_array().unwrap().contains(&json!("laravel")));
+        // Forge runs PHPStan, Psalm and PHP_CodeSniffer itself.
+        let own = &cfg.settings["php-lsp"];
+        for tool in ["phpstan", "psalm", "phpcs"] {
+            assert_eq!(own["tools"][tool]["enable"], false, "{tool}");
+        }
+        assert_eq!(own["format"]["provider"], "builtin");
+        // The cache lives in Forge's cache folder by default, never in the project.
+        let default = php_lsp_config(&builtin(), &PhpLspSettings::default(), None);
+        let storage = default.initialization_options["storagePath"].as_str().unwrap();
+        assert!(storage.ends_with("php-lsp"), "{storage}");
     }
 
     #[test]

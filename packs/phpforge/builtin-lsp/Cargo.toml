@@ -1,0 +1,17 @@
+[package]
+name = "phpforge-builtin-lsp"
+description = "PHPForge: the built-in PHP language server (php-lsp), run by the Forge binary and the remote agent in a hidden `--php-lsp` mode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Pure-Rust PHP language server (MIT OR Apache-2.0), pinned to a reviewed revision.
+php-lsp = { git = "https://github.com/stdimnet/php-lsp", rev = "0fd60bc7f242112582544e4dfa0bd51232268287" }
+phpforge-lang-php = { path = "../lang-php" }
+
+[dev-dependencies]
+forge-lsp.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
