@@ -22,8 +22,8 @@ use forge_agent_tasks::commands::{run_process, split_command};
 use forge_agent_tasks::sandbox::{self, Sandbox};
 use forge_agent_tasks::{
     permission, run_builtin, run_cli, AgentBackend, AgentTask, ApplyResult, Budget, CliTurns,
-    FileChange, Host, Outcome, RunOutput, ShellCommand, StepKind, TaskContext,
-    TaskRequest, TaskStatus, TaskStore, TestChoice, TestSpec, Workspace,
+    FileChange, Host, Outcome, RunOutput, ShellCommand, StepKind, TaskContext, TaskRequest,
+    TaskStatus, TaskStore, TestChoice, TestSpec, Workspace,
 };
 use forge_ai::{AiFeature, CancellationToken};
 use forge_ai_editor::policy::IGNORE_FILES;
@@ -116,7 +116,12 @@ impl AgentTasksState {
     }
 
     /// Change a task, store the list and emit the task.
-    fn update<R>(&self, app: &AppHandle, id: &str, f: impl FnOnce(&mut AgentTask) -> R) -> Option<R> {
+    fn update<R>(
+        &self,
+        app: &AppHandle,
+        id: &str,
+        f: impl FnOnce(&mut AgentTask) -> R,
+    ) -> Option<R> {
         let (task, out, root, tasks) = {
             let mut inner = self.lock();
             let root = inner.project.clone();
@@ -140,7 +145,8 @@ impl AgentTasksState {
     }
 
     fn log(&self, app: &AppHandle, id: &str, kind: StepKind) -> usize {
-        self.update(app, id, |t| t.push(kind, now_ms())).unwrap_or(0)
+        self.update(app, id, |t| t.push(kind, now_ms()))
+            .unwrap_or(0)
     }
 }
 
@@ -170,7 +176,7 @@ pub async fn agent_tasks_list(
     let root = state.project_root()?;
     tasks.ensure(&root)?;
     let mut list = tasks.lock().tasks.clone();
-    list.sort_by(|a, b| b.created.cmp(&a.created));
+    list.sort_by_key(|a| std::cmp::Reverse(a.created));
     Ok(list)
 }
 
@@ -298,7 +304,12 @@ fn to_sandbox(text: &str, project: &str, sandbox: &str) -> String {
 }
 
 /// The test command of a task, pointed at the sandbox.
-fn test_spec(app: &AppHandle, choice: &TestChoice, project: &Path, sb: &Path) -> std::result::Result<Option<TestSpec>, String> {
+fn test_spec(
+    app: &AppHandle,
+    choice: &TestChoice,
+    project: &Path,
+    sb: &Path,
+) -> std::result::Result<Option<TestSpec>, String> {
     match choice {
         TestChoice::None => Ok(None),
         TestChoice::Command { command } => {
@@ -317,13 +328,15 @@ fn test_spec(app: &AppHandle, choice: &TestChoice, project: &Path, sb: &Path) ->
         TestChoice::Configuration { name } => {
             let state = app.state::<AppState>();
             let runs = app.state::<RunState>();
-            let configs = forge_process::RunConfigurations::load(project).map_err(|e| e.to_string())?;
+            let configs =
+                forge_process::RunConfigurations::load(project).map_err(|e| e.to_string())?;
             let cfg = configs
                 .configurations
                 .into_iter()
                 .find(|c| &c.name == name)
                 .ok_or_else(|| format!("run configuration {name:?} not found"))?;
-            let (cmd, report) = configuration_command(&state, &runs, cfg).map_err(|e| e.to_string())?;
+            let (cmd, report) =
+                configuration_command(&state, &runs, cfg).map_err(|e| e.to_string())?;
             let (p, s) = (project.to_string_lossy(), sb.to_string_lossy());
             let map = |t: &str| to_sandbox(t, &p, &s);
             let cwd = if cmd.cwd.as_os_str().is_empty() {
@@ -356,9 +369,13 @@ async fn prepare_and_run(
     let task = tasks.task(id).map_err(|e| e.to_string())?;
     let dir = store_for(&root).map_err(|e| e.to_string())?.sandbox_dir(id);
 
-    tasks.log(app, id, StepKind::Info {
-        text: "Creating the sandbox (a git worktree in Forge's cache folder)".into(),
-    });
+    tasks.log(
+        app,
+        id,
+        StepKind::Info {
+            text: "Creating the sandbox (a git worktree in Forge's cache folder)".into(),
+        },
+    );
     let sb = {
         let (r, d) = (root.clone(), dir.clone());
         tauri::async_runtime::spawn_blocking(move || sandbox::create(&r, &d))
@@ -369,9 +386,13 @@ async fn prepare_and_run(
         t.sandbox = Some(sb.dir.clone());
         t.base_commit = Some(sb.base.clone());
     });
-    tasks.log(app, id, StepKind::Info {
-        text: format!("Sandbox ready at {}", sb.dir.display()),
-    });
+    tasks.log(
+        app,
+        id,
+        StepKind::Info {
+            text: format!("Sandbox ready at {}", sb.dir.display()),
+        },
+    );
 
     let ignore = AiIgnore::merged(
         IGNORE_FILES
@@ -412,17 +433,34 @@ async fn prepare_and_run(
                 .selection(provider.as_deref(), model.as_deref(), Some(AiFeature::Chat))
                 .map_err(|e| e.to_string())?;
             let provider = ai.service.build(&cfg);
-            tasks.log(app, id, StepKind::Info {
-                text: format!(
-                    "Forge agent with {} ({})",
-                    cfg.name,
-                    model.clone().or(cfg.default_model.clone()).unwrap_or_default()
-                ),
-            });
+            tasks.log(
+                app,
+                id,
+                StepKind::Info {
+                    text: format!(
+                        "Forge agent with {} ({})",
+                        cfg.name,
+                        model
+                            .clone()
+                            .or(cfg.default_model.clone())
+                            .unwrap_or_default()
+                    ),
+                },
+            );
             run_builtin(provider.as_ref(), model, &ctx, &host, cancel).await
         }
         AgentBackend::Cli { agent_id, model } => {
-            run_with_cli(app, &state, agent_id, model.clone(), &sb, &ctx, &host, cancel).await
+            run_with_cli(
+                app,
+                &state,
+                agent_id,
+                model.clone(),
+                &sb,
+                &ctx,
+                &host,
+                cancel,
+            )
+            .await
         }
     }
 }
@@ -463,10 +501,13 @@ impl Host for AppHost {
     }
 }
 
+/// Where the end of the running CLI turn is reported.
+type TurnDone = Arc<Mutex<Option<oneshot::Sender<std::result::Result<Option<String>, String>>>>>;
+
 /// An agent CLI session in the sandbox, one turn at a time.
 struct CliSession {
     session: Arc<AgentSession>,
-    turn_done: Arc<Mutex<Option<oneshot::Sender<std::result::Result<Option<String>, String>>>>>,
+    turn_done: TurnDone,
 }
 
 #[async_trait]
@@ -474,15 +515,31 @@ impl CliTurns for CliSession {
     async fn turn(&self, message: &str) -> std::result::Result<Option<String>, String> {
         let (tx, rx) = oneshot::channel();
         *self.turn_done.lock().unwrap_or_else(|e| e.into_inner()) = Some(tx);
-        self.session.send(message).await.map_err(|e| e.to_string())?;
+        self.session
+            .send(message)
+            .await
+            .map_err(|e| e.to_string())?;
         rx.await.unwrap_or_else(|_| Err("the agent stopped".into()))
     }
 }
 
 fn short_input(input: &serde_json::Value) -> String {
-    for key in ["command", "file_path", "path", "pattern", "absolute_path", "description"] {
+    for key in [
+        "command",
+        "file_path",
+        "path",
+        "pattern",
+        "absolute_path",
+        "description",
+    ] {
         if let Some(v) = input.get(key).and_then(|v| v.as_str()) {
-            return v.lines().next().unwrap_or_default().chars().take(160).collect();
+            return v
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .chars()
+                .take(160)
+                .collect();
         }
     }
     String::new()
@@ -513,38 +570,66 @@ async fn run_with_cli(
         partial_messages: Some(false),
         ..Default::default()
     }
-    .with_settings(agent_id, |k| state.read_settings().get_str(k).map(String::from));
+    .with_settings(agent_id, |k| {
+        state.read_settings().get_str(k).map(String::from)
+    });
 
     let session_cell: Arc<OnceLock<Arc<AgentSession>>> = Arc::new(OnceLock::new());
-    let turn_done: Arc<Mutex<Option<oneshot::Sender<_>>>> = Arc::new(Mutex::new(None));
+    let turn_done: TurnDone = Arc::new(Mutex::new(None));
     let tool_steps: Arc<Mutex<HashMap<String, usize>>> = Arc::default();
     let sink: EventSink = {
         let (app, tasks, id) = (app.clone(), host.tasks.clone(), host.id.clone());
-        let (cell, turn_done, tool_steps) = (session_cell.clone(), turn_done.clone(), tool_steps.clone());
+        let (cell, turn_done, tool_steps) =
+            (session_cell.clone(), turn_done.clone(), tool_steps.clone());
         let ws = ctx.workspace.clone();
         let allowlist = ctx.allowlist.clone();
         let cancel = cancel.clone();
         Arc::new(move |event: AgentEvent| match event {
-            AgentEvent::AssistantText { text, delta: false, .. } if !text.trim().is_empty() => {
+            AgentEvent::AssistantText {
+                text, delta: false, ..
+            } if !text.trim().is_empty() => {
                 tasks.log(&app, &id, StepKind::Thought { text });
             }
-            AgentEvent::ToolUse { id: use_id, name, input, .. } => {
+            AgentEvent::ToolUse {
+                id: use_id,
+                name,
+                input,
+                ..
+            } => {
                 let summary = short_input(&input);
-                let step = tasks.log(&app, &id, StepKind::Tool {
-                    tool: name,
-                    summary,
-                    input,
-                    output: String::new(),
-                    is_error: false,
-                });
-                tool_steps.lock().unwrap_or_else(|e| e.into_inner()).insert(use_id, step);
+                let step = tasks.log(
+                    &app,
+                    &id,
+                    StepKind::Tool {
+                        tool: name,
+                        summary,
+                        input,
+                        output: String::new(),
+                        is_error: false,
+                    },
+                );
+                tool_steps
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .insert(use_id, step);
             }
-            AgentEvent::ToolResult { tool_use_id, content, is_error } => {
-                let step = tool_steps.lock().unwrap_or_else(|e| e.into_inner()).get(&tool_use_id).copied();
+            AgentEvent::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => {
+                let step = tool_steps
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .get(&tool_use_id)
+                    .copied();
                 if let Some(step) = step {
                     tasks.update(&app, &id, |t| {
-                        if let Some(StepKind::Tool { output, is_error: e, .. }) =
-                            t.steps.get_mut(step).map(|s| &mut s.kind)
+                        if let Some(StepKind::Tool {
+                            output,
+                            is_error: e,
+                            ..
+                        }) = t.steps.get_mut(step).map(|s| &mut s.kind)
                         {
                             *output = forge_agent_tasks::commands::tail(&content, 4000);
                             *e = is_error;
@@ -552,10 +637,22 @@ async fn run_with_cli(
                     });
                 }
             }
-            AgentEvent::PermissionRequest { request_id, tool_name, input, .. } => {
+            AgentEvent::PermissionRequest {
+                request_id,
+                tool_name,
+                input,
+                ..
+            } => {
                 let verdict = permission(&tool_name, &input, &ws, &allowlist);
-                let Some(session) = cell.get().cloned() else { return };
-                let host = AppHost { app: app.clone(), tasks: tasks.clone(), id: id.clone(), cancel: cancel.clone() };
+                let Some(session) = cell.get().cloned() else {
+                    return;
+                };
+                let host = AppHost {
+                    app: app.clone(),
+                    tasks: tasks.clone(),
+                    id: id.clone(),
+                    cancel: cancel.clone(),
+                };
                 tauri::async_runtime::spawn(async move {
                     let allowed = match verdict {
                         CliVerdict::Allow => Ok(()),
@@ -566,27 +663,41 @@ async fn run_with_cli(
                                 state: forge_agent_tasks::ApprovalState::Pending,
                             });
                             let ok = host.approve(step, &command).await;
-                            host.update(step, StepKind::Approval {
-                                command,
-                                state: if ok {
-                                    forge_agent_tasks::ApprovalState::Allowed
-                                } else {
-                                    forge_agent_tasks::ApprovalState::Denied
+                            host.update(
+                                step,
+                                StepKind::Approval {
+                                    command,
+                                    state: if ok {
+                                        forge_agent_tasks::ApprovalState::Allowed
+                                    } else {
+                                        forge_agent_tasks::ApprovalState::Denied
+                                    },
                                 },
-                            });
-                            if ok { Ok(()) } else { Err("The user denied this command.".into()) }
+                            );
+                            if ok {
+                                Ok(())
+                            } else {
+                                Err("The user denied this command.".into())
+                            }
                         }
                     };
                     let decision = match allowed {
-                        Ok(()) => PermissionDecision::Allow { updated_input: None, scope: Default::default() },
-                        Err(message) => PermissionDecision::Deny { message: Some(message) },
+                        Ok(()) => PermissionDecision::Allow {
+                            updated_input: None,
+                            scope: Default::default(),
+                        },
+                        Err(message) => PermissionDecision::Deny {
+                            message: Some(message),
+                        },
                     };
                     if let Err(e) = session.respond_permission(&request_id, decision).await {
                         tracing::warn!("permission answer failed: {e}");
                     }
                 });
             }
-            AgentEvent::TurnFinished { result, is_error, .. } => {
+            AgentEvent::TurnFinished {
+                result, is_error, ..
+            } => {
                 if let Some(tx) = turn_done.lock().unwrap_or_else(|e| e.into_inner()).take() {
                     let _ = tx.send(if is_error {
                         Err(result.unwrap_or_else(|| "the agent reported an error".into()))
@@ -600,7 +711,10 @@ async fn run_with_cli(
             }
             AgentEvent::Exited { code } => {
                 if let Some(tx) = turn_done.lock().unwrap_or_else(|e| e.into_inner()).take() {
-                    let _ = tx.send(Err(format!("the agent exited (code {})", code.map_or("none".into(), |c| c.to_string()))));
+                    let _ = tx.send(Err(format!(
+                        "the agent exited (code {})",
+                        code.map_or("none".into(), |c| c.to_string())
+                    )));
                 }
             }
             _ => {}
@@ -670,10 +784,16 @@ fn sandbox_of(task: &AgentTask, root: &Path) -> Result<Sandbox> {
     if !dir.exists() {
         return Err(err("The sandbox of this task is gone"));
     }
-    let prefix = sandbox::repository_of(root).map(|(_, p)| p).unwrap_or_default();
+    let prefix = sandbox::repository_of(root)
+        .map(|(_, p)| p)
+        .unwrap_or_default();
     Ok(Sandbox {
         dir: dir.clone(),
-        project_dir: if prefix.is_empty() { dir.clone() } else { dir.join(prefix) },
+        project_dir: if prefix.is_empty() {
+            dir.clone()
+        } else {
+            dir.join(prefix)
+        },
         base: base.clone(),
     })
 }
@@ -792,8 +912,12 @@ pub async fn agent_task_apply(
         let created = answer.created.clone();
         let applied_text = match &mode {
             ApplyMode::Apply => "Applied to the working tree".to_string(),
-            ApplyMode::Commit { .. } => format!("Committed as {}", created.clone().unwrap_or_default()),
-            ApplyMode::Branch { .. } => format!("Created branch {}", created.clone().unwrap_or_default()),
+            ApplyMode::Commit { .. } => {
+                format!("Committed as {}", created.clone().unwrap_or_default())
+            }
+            ApplyMode::Branch { .. } => {
+                format!("Created branch {}", created.clone().unwrap_or_default())
+            }
         };
         let dir = sb.dir.clone();
         let r = root.clone();
@@ -865,9 +989,16 @@ mod tests {
         );
         assert_eq!(to_sandbox("x", "", "/c"), "x");
         assert_eq!(to_sandbox("/p/apps:/p/app", "/p/app", "/c"), "/p/apps:/c");
-        assert_eq!(to_sandbox("-v/p/app/:/var/www", "/p/app/", "/c"), "-v/c/:/var/www");
-        assert_eq!(short_input(&serde_json::json!({ "command": "ls\n-la" })), "ls");
-        let m: ApplyMode = serde_json::from_str(r#"{"mode":"branch","branch":"b","message":"m"}"#).unwrap();
+        assert_eq!(
+            to_sandbox("-v/p/app/:/var/www", "/p/app/", "/c"),
+            "-v/c/:/var/www"
+        );
+        assert_eq!(
+            short_input(&serde_json::json!({ "command": "ls\n-la" })),
+            "ls"
+        );
+        let m: ApplyMode =
+            serde_json::from_str(r#"{"mode":"branch","branch":"b","message":"m"}"#).unwrap();
         assert!(matches!(m, ApplyMode::Branch { .. }));
     }
 }
