@@ -433,9 +433,15 @@ mod tests {
             "Generate getter and setter",
             "Generate getter and setter for $name"
         ));
-        assert!(!is_lsp_twin("Generate getter", "Generate getter and setter for $name"));
+        assert!(!is_lsp_twin(
+            "Generate getter",
+            "Generate getter and setter for $name"
+        ));
         assert!(is_lsp_twin("Generate setter", "Generate setter for $name"));
-        assert!(is_lsp_twin("Add method stubs", "Implement 2 missing methods"));
+        assert!(is_lsp_twin(
+            "Add method stubs",
+            "Implement 2 missing methods"
+        ));
         assert!(is_lsp_twin("Import class", "Import 'App\\Models\\User'"));
         assert!(is_lsp_twin(
             "Set namespace to 'App\\Models'",

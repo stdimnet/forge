@@ -943,16 +943,26 @@ mod tests {
             "0.1.0 (0fd60bc)"
         );
         // Older peers send no php-lsp entry.
-        let old: DetectedServers = serde_json::from_value(json!({ "intelephense": null, "phpactor": null })).unwrap();
+        let old: DetectedServers =
+            serde_json::from_value(json!({ "intelephense": null, "phpactor": null })).unwrap();
         assert!(old.php_lsp.is_none());
     }
 
     #[test]
     fn server_rows_of_configs() {
         let b = builtin();
-        assert_eq!(server_row_id(&b.command.to_string_lossy(), &b.args), Some("php-lsp"));
-        let managed = ["/data/intelephense/lib/intelephense.js".to_string(), "--stdio".into()];
-        assert_eq!(server_row_id("/usr/bin/node", &managed), Some("intelephense"));
+        assert_eq!(
+            server_row_id(&b.command.to_string_lossy(), &b.args),
+            Some("php-lsp")
+        );
+        let managed = [
+            "/data/intelephense/lib/intelephense.js".to_string(),
+            "--stdio".into(),
+        ];
+        assert_eq!(
+            server_row_id("/usr/bin/node", &managed),
+            Some("intelephense")
+        );
         assert_eq!(
             server_row_id("/usr/bin/phpactor", &["language-server".into()]),
             Some("phpactor")
@@ -981,7 +991,9 @@ mod tests {
         assert_eq!(ip["environment"]["phpVersion"], "8.2.0");
         assert_eq!(ip["environment"]["includePaths"][0], "/usr/share/php");
         assert_eq!(ip["files"]["maxSize"], 2_000_000);
-        assert!(ip["files"]["exclude"].to_string().contains("\"**/vendor/**\""));
+        assert!(ip["files"]["exclude"]
+            .to_string()
+            .contains("\"**/vendor/**\""));
         assert_eq!(ip["format"]["braces"], "k&r");
         assert!(ip["stubs"].as_array().unwrap().contains(&json!("laravel")));
         // Forge runs PHPStan, Psalm and PHP_CodeSniffer itself.
@@ -992,7 +1004,9 @@ mod tests {
         assert_eq!(own["format"]["provider"], "builtin");
         // The cache lives in Forge's cache folder by default, never in the project.
         let default = php_lsp_config(&builtin(), &PhpLspSettings::default(), None);
-        let storage = default.initialization_options["storagePath"].as_str().unwrap();
+        let storage = default.initialization_options["storagePath"]
+            .as_str()
+            .unwrap();
         assert!(storage.ends_with("php-lsp"), "{storage}");
     }
 

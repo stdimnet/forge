@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use forge_lsp::lsp_types::{
-    CompletionResponse, Diagnostic, DocumentChanges, FormattingOptions, GotoDefinitionResponse, HoverContents,
-    MarkedString, Position,
+    CompletionResponse, Diagnostic, DocumentChanges, FormattingOptions, GotoDefinitionResponse,
+    HoverContents, MarkedString, Position,
 };
 use forge_lsp::{Feature, LspClient, LspEvent, LspServerConfig};
 use phpforge_lang_php::lsp::{php_lsp_config, BuiltinServer, PhpLspSettings};
@@ -139,7 +139,11 @@ async fn the_hidden_mode_serves_a_php_project() {
     let project = tempfile::tempdir().unwrap();
     let cache = tempfile::tempdir().unwrap();
     let root = project.path().canonicalize().unwrap();
-    write(&root, "composer.json", r#"{"autoload": {"psr-4": {"App\\": "src/"}}}"#);
+    write(
+        &root,
+        "composer.json",
+        r#"{"autoload": {"psr-4": {"App\\": "src/"}}}"#,
+    );
     let user = write(&root, "src/Models/User.php", USER);
     let service = write(&root, "src/Greeter.php", SERVICE);
 
@@ -169,7 +173,16 @@ async fn the_hidden_mode_serves_a_php_project() {
     client.did_open(&service, SERVICE).unwrap();
 
     // hover on `displayName` in Greeter (line 10).
-    let call = Position::new(10, SERVICE.lines().nth(10).unwrap().find("displayName").unwrap() as u32 + 2);
+    let call = Position::new(
+        10,
+        SERVICE
+            .lines()
+            .nth(10)
+            .unwrap()
+            .find("displayName")
+            .unwrap() as u32
+            + 2,
+    );
     let hover = eventually(|| async {
         client
             .hover(&service, call)
@@ -217,7 +230,10 @@ async fn the_hidden_mode_serves_a_php_project() {
     assert!(labels.len() <= 2, "{labels:?}");
 
     // diagnostics: an undefined function.
-    let broken = SERVICE.replace("return 'Hello '", "undefined_helper();\n        return 'Hello '");
+    let broken = SERVICE.replace(
+        "return 'Hello '",
+        "undefined_helper();\n        return 'Hello '",
+    );
     client.did_change(&service, &broken).unwrap();
     let diags = diagnostics_for(&mut rx, &service, |d| {
         d.iter().any(|d| d.message.contains("undefined_helper"))
@@ -246,7 +262,10 @@ async fn the_hidden_mode_serves_a_php_project() {
     assert!(edits.iter().any(|e| e.new_text.contains('\n')), "{edits:?}");
 
     // rename: the method and its call in the other file.
-    let decl = Position::new(11, USER.lines().nth(11).unwrap().find("displayName").unwrap() as u32 + 1);
+    let decl = Position::new(
+        11,
+        USER.lines().nth(11).unwrap().find("displayName").unwrap() as u32 + 1,
+    );
     client.did_open(&user, USER).unwrap();
     assert!(client.prepare_rename(&user, decl).await.unwrap().is_some());
     let edit = eventually(|| async {
@@ -256,7 +275,10 @@ async fn the_hidden_mode_serves_a_php_project() {
             files.extend(changes.keys().filter_map(|u| u.to_file_path().ok()));
         }
         if let Some(DocumentChanges::Edits(docs)) = &edit.document_changes {
-            files.extend(docs.iter().filter_map(|d| d.text_document.uri.to_file_path().ok()));
+            files.extend(
+                docs.iter()
+                    .filter_map(|d| d.text_document.uri.to_file_path().ok()),
+            );
         }
         (files.contains(&user) && files.contains(&service)).then_some(files)
     })
