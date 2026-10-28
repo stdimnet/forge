@@ -54,6 +54,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Built-in PHP language server**: [php-lsp](docs/guide/user/language-servers.md#php-lsp-built-in) is
+  now Forge's default PHP server, built into Forge: completion, diagnostics, rename,
+  refactorings, type hierarchy and formatting in Intelephense's style with nothing to install
+  and no licence key. Intelephense and Phpactor stay selectable in Settings | Languages &
+  Frameworks | PHP.
 - **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
@@ -350,7 +355,7 @@ Forge works without any of these, but features light up when they are installed:
 | `php` | running PHP scripts, PHPUnit, artisan, the Symfony console, PHP scratches |
 | `composer` | Composer scripts, new Laravel/Symfony projects |
 | Node.js + `npm` | npm scripts and new web projects (language servers do not need it: Forge downloads Node.js itself when missing) |
-| language servers | completion, hover and diagnostics, see [Language servers](docs/guide/user/language-servers.md) |
+| language servers | completion, hover and diagnostics for languages other than PHP (PHP's server, php-lsp, is built into Forge), see [Language servers](docs/guide/user/language-servers.md) |
 | `docker`, `kubectl` | the Services tool window |
 | a Secret Service keyring (GNOME Keyring, KWallet) | storing API keys, tokens and passwords, see [Troubleshooting](docs/guide/troubleshooting.md#keychain-on-linux) |
 
@@ -772,7 +777,7 @@ what is not there yet.
 
 | Topic | PHPStorm | Forge |
 | --- | --- | --- |
-| PHP intelligence | built-in PHP engine | an external language server: Intelephense (free, or premium with your own licence key) or Phpactor, plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md). |
+| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), or Intelephense / Phpactor if you prefer, plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md#php-php-lsp-intelephense-and-phpactor). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](docs/guide/user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
@@ -800,9 +805,10 @@ The [keymap reference](docs/guide/reference/keymap.md) marks every action as imp
 ## Moving a project over
 
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
-2. Install the language servers you need from Settings | Languages & Frameworks |
-   Language Servers. For PHP, accept the offer "Intelephense is not installed" (or click **Install
-   Intelephense**) and, if you own a licence, enter the key on the same page.
+2. PHP works right away with the built-in language server php-lsp. Install the language
+   servers of your other languages from Settings | Languages & Frameworks | Language Servers.
+   If you prefer Intelephense (for example with your own licence), choose it in Settings |
+   Languages & Frameworks | PHP and accept the install offer.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.
@@ -5453,28 +5459,58 @@ runs for a file, Forge leaves schema problems, completion and hover to it.
 The language server widget shows "Indexing… TypeScript 45%" while a server reports progress,
 otherwise the running servers and their state. Click it to open the Language Servers page.
 
-## PHP: Intelephense and Phpactor
+## PHP: php-lsp, Intelephense and Phpactor
 
 PHP servers are configured by the PHP pack, on Settings | Languages & Frameworks | **PHP**
 (`php.lsp.server`):
 
 | Choice | Behaviour |
 | --- | --- |
-| Auto (default) | Intelephense if installed, else Phpactor |
-| Intelephense | always Intelephense (shows where it was found, or "not found on PATH (npm i -g intelephense)") |
+| php-lsp (built-in, default) | [php-lsp](https://github.com/stdimnet/php-lsp), built into Forge |
+| Auto | php-lsp; only a Forge build without it falls back to Intelephense, else Phpactor |
+| Intelephense | always Intelephense (shows where it was found, or "not installed") |
 | phpactor | always Phpactor |
-| None (built-in index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
+| None (Forge's index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
 
-The server starts when a PHP project opens and restarts when these settings change. Its cache
-goes to `<cache dir>/forge/intelephense`, never into your project.
+The server starts when a PHP project opens and restarts when these settings change.
+
+### php-lsp (built-in)
+
+php-lsp is a PHP language server written in Rust (MIT OR Apache-2.0) that works like
+Intelephense: the same diagnostics (codes, messages and severities), the same formatting and the
+same `intelephense.*` settings, with Intelephense's premium features included and free: rename,
+code actions and refactorings, Go to Implementation and Type Definition, type and call
+hierarchy, inlay hints. It is linked into Forge itself, so there is **nothing to install and no
+licence key**. Forge runs it in its own process (`forge --php-lsp --stdio`), so a crash of the
+server never takes the IDE down; the status bar and the Language Servers page show it as
+**php-lsp (built-in)** with its version.
+
+![php-lsp on the Language Servers page](docs/screenshots/php-lsp-language-servers.png)
+
+Forge configures it from the PHP settings: the language level (`environment.phpVersion`),
+include paths, the max indexed file size, the brace style of the PHP code style, "Add packages
+as libraries" and the stub sets of the frameworks in `composer.json`. PHPStan, Psalm and
+PHP_CodeSniffer stay with Forge's [Quality Tools](docs/guide/user/php.md#quality-tools), so php-lsp's own tool
+runners are off and no problem shows twice. Its index cache and unpacked PHP stubs live in
+`<cache dir>/forge/php-lsp`, never in your project; repeated starts only parse changed files.
+In [remote projects](#remote-projects) the Forge agent on the host runs the same built-in
+server.
+
+Forge does not use php-lsp's semantic tokens (Forge highlights PHP itself) or its code lenses
+(the gutter's run icons and "implemented / overridden" markers cover them).
+
+![Choosing the PHP language server](docs/screenshots/php-lsp-settings.png)
+
+Intelephense keeps its cache in `<cache dir>/forge/intelephense`, never in your project.
 
 ### Installing Intelephense
 
 Intelephense is never bundled with Forge (its licence forbids redistribution), but Forge
-downloads it for you from the npm registry. When a local PHP project opens without it, a
-balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
-and **Don't ask again**. The PHP settings page and the Language Servers page have an
-**Install Intelephense** button as well.
+downloads it for you from the npm registry. When Intelephense is chosen in the PHP settings and
+a local PHP project opens without it, a balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
+and **Don't ask again**. The PHP settings page (with Intelephense chosen) and the Language
+Servers page have an **Install Intelephense** button as well. With php-lsp, the default,
+nothing is offered.
 
 ![Install offer](docs/screenshots/intelephense-install-offer.png)
 
@@ -5486,7 +5522,7 @@ The first install asks you to accept the Intelephense licence (stored as
 
 | Option (Settings \| Languages & Frameworks \| PHP) | Setting | Default |
 | --- | --- | --- |
-| When Intelephense is not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
+| When Intelephense is chosen but not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
 | I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 
 You can still install it yourself (`npm install -g intelephense`); Forge finds it on the `PATH`.
@@ -5519,7 +5555,8 @@ Frameworks | Lua | **Lua environment**. See [LuaForge](docs/guide/user/luaforge.
 ## Remote projects
 
 In a [remote project](docs/guide/user/remote-development.md) language servers run on the remote host, next to
-the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the host) and the
+the files: the PHP server (the Forge agent runs its built-in php-lsp, or finds Intelephense or
+Phpactor on the host) and the
 catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
@@ -9327,9 +9364,12 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
   powers the Structure tool window, Go to Class/Symbol, index-based hover, the Generate
   actions and [navigation](#navigation) when no language server answers, and works without
   any language server.
-- **A PHP language server**, Intelephense or Phpactor, for completion, diagnostics,
-  Go to Declaration, hover and formatting. See
-  [Language servers](docs/guide/user/language-servers.md#php-intelephense-and-phpactor).
+- **A PHP language server** for completion, diagnostics, Go to Declaration, hover, rename,
+  quick fixes and formatting. By default this is
+  [php-lsp](https://github.com/stdimnet/php-lsp), which is **built into Forge**: nothing to
+  install, no licence key, and Intelephense's premium features (rename, code actions, type
+  hierarchy, implementations) included. Intelephense and Phpactor stay selectable. See
+  [Language servers](docs/guide/user/language-servers.md#php-php-lsp-intelephense-and-phpactor).
 
 The pack activates in projects with a `composer.json` or `.php` files.
 
@@ -9432,12 +9472,13 @@ Where the stubs come from:
    and keeps its licence file. The status bar shows the download.
 3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
-When Intelephense runs, its definition (which points into the stubs inside its package) is
-opened read-only directly.
+php-lsp carries phpstorm-stubs inside Forge: its definition of a built-in symbol points into
+`<cache dir>/forge/php-lsp/php-lsp-stubs-<version>/` and opens read-only, without any download.
+The same goes for Intelephense, whose definition points into the stubs inside its package.
 
 > **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
-> path** or install Intelephense; otherwise Go to Declaration on a built-in symbol explains how
-> to get the stubs.
+> path**; otherwise Go to Declaration on a built-in symbol explains how to get the stubs
+> (php-lsp still answers it from its own copy).
 
 ### Show Usages and Find Usages
 
@@ -9480,15 +9521,16 @@ override the parents' methods (see [Highlight usages](docs/guide/user/editor.md#
 | Super Method | `Ctrl+U` | `Cmd+U` | the method this method overrides or implements; on a class, its parent and interfaces |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
 
-Several targets open the Choose Declaration popup with names and namespaces. Go to
-Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
-the index, and says so when the index finds nothing either.
+Several targets open the Choose Declaration popup with names and namespaces. php-lsp answers
+Go to Implementation; with Intelephense it needs Intelephense Premium, and without a licence
+Forge answers from the index, and says so when the index finds nothing either.
 
 ### Hierarchies
 
 Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
 (`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
-merged with Intelephense Premium's type and call hierarchy when it runs. See
+merged with the language server's type and call hierarchy (php-lsp, or Intelephense Premium)
+when it runs. See
 [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md).
 
 ### Gutter icons
@@ -9511,8 +9553,8 @@ Click an icon to go to the target, or to choose one of several.
 constants, functions and variables; see [Editor](docs/guide/user/editor.md#rename) for the in-place editing,
 the dialog and undo.
 
-- With **Intelephense Premium** (licence key in Settings | Languages & Frameworks | PHP) or
-  Phpactor, the language server renames.
+- With **php-lsp** (the default), **Intelephense Premium** (licence key in Settings |
+  Languages & Frameworks | PHP) or Phpactor, the language server renames.
 - **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
   declaration and every usage the index finds in the project (imports, `new`, static calls,
   type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
@@ -9694,8 +9736,13 @@ class names in moved code are imported in the target file. New files come from y
 
 ## Context actions and intentions
 
-**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
-Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#show-context-actions):
+**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes and refactorings
+(php-lsp: remove unused import, add PHPDoc, generate constructor, promote constructor
+properties, extract variable / method / constant, inline variable, add return type, ...; with
+Intelephense they need Premium) and Forge's own PHP intentions, see
+[Editor](docs/guide/user/editor.md#show-context-actions). When the server offers what an intention below does
+(php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import 'App\Models\User'",
+"Change namespace to '…'"), the popup lists Forge's intention once, in PHPStorm's wording:
 
 | Intention | Where |
 | --- | --- |
@@ -9709,8 +9756,8 @@ Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#
 
 ![PHP intentions](docs/screenshots/context-actions-intentions.png)
 
-Without Intelephense Premium the popup shows only Forge's intentions and says that the language
-server's quick fixes need Premium.
+With Intelephense without a licence the popup shows only Forge's intentions and says that the
+language server's quick fixes need Premium.
 
 ### Create from usage
 
@@ -9871,7 +9918,11 @@ The attributes of the `jetbrains/phpstorm-attributes` package (and PHP 8.4's own
 ![Expected values in completion](docs/screenshots/php-meta-completion.png)
 
 The inspections are Forge's own (from the PHP index, next to the language server's problems)
-and appear in the editor and the Problems tool window. Turn them off with **Inspections from
+and appear in the editor and the Problems tool window. When the language server reports the
+same deprecated call or unreachable statement, it is shown once (the server's problem); the
+**Replace with '…'** fix stays in Alt+Enter. php-lsp does not know the `JetBrains\PhpStorm`
+attribute classes yet and reports them as undefined types unless the package is installed in
+`vendor/`. Turn them off with **Inspections from
 PHPStorm metadata and attributes** (`php.inspections.enabled`) on Settings | Languages &
 Frameworks | PHP.
 
@@ -9920,17 +9971,17 @@ relative to the project. Changing the include paths indexes the project again.
 | CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
 | CLI Interpreters (available in every project) | `php.interpreters` | empty |
 | CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
-| Language server (Auto, Intelephense, phpactor, None) | `php.lsp.server` | Auto |
+| Language server: php-lsp (built-in), Auto (php-lsp, else Intelephense, else phpactor), Intelephense, phpactor, None | `php.lsp.server` | php-lsp |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
-| When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](docs/guide/user/language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
+| When Intelephense is chosen but not installed (`ask`, `always`, `never`), see [Installing Intelephense](docs/guide/user/language-servers.md#installing-intelephense); shown when Intelephense is chosen | `php.intelephense.autoInstall` | `ask` |
+| I accept the Intelephense licence (shown when Intelephense is chosen) | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
 | Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
-says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
+says when it comes from composer.json); click it to open this page. With Intelephense chosen, the page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](docs/guide/user/debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -10024,7 +10075,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Wrapping and Braces**: brace placement in class declarations, function declarations and
   other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
   PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
-  Intelephense formats with the closest of its brace styles; the Generate actions write
+  The language server (php-lsp or Intelephense, both in Intelephense's style) formats with the
+  closest of its brace styles; the Generate actions write
   methods with the function brace placement.
 - **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
   sets the blank lines **After namespace**, **After imports**, **Around method** (at least)
@@ -10037,7 +10089,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
   namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
   the refactorings follow them, see [Optimize Imports and Auto Import](docs/guide/user/imports.md#php-code-style-imports).
 
-Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
+Reformat Code (`Ctrl+Alt+L`) lets the language server (php-lsp by default) format the file and
+then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
 comments and inline HTML are never changed.
 
@@ -21950,9 +22003,9 @@ Page id `lang.php`.
 | `projectStructure.excludePatterns` | string | `""` | user, project | Directories | Exclude files — File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`). |
 | `php.inspections.enabled` | bool | `true` | user | Inspections | Inspections from PHPStorm metadata and attributes — Deprecated symbols, expected values, #[Immutable] writes, unused #[Pure] results, unreachable code after exit points and the PSR-0/PSR-4 namespace check. |
 | `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
-| `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
+| `php.lsp.server` | enum: `php-lsp`, `auto`, `intelephense`, `phpactor`, `none` | `php-lsp` | user | Language Server | Language server — Started automatically when a PHP project opens. php-lsp is built into Forge (nothing to install); Intelephense and phpactor must be installed. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
-| `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
+| `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is chosen but not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
 | `php.intelephense.licenceAccepted` | bool | `false` | user | Language Server | I accept the Intelephense licence — Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy. |
 
 ### Languages & Frameworks | PHP | Composer
@@ -23248,8 +23301,9 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
-| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when Intelephense is not installed, or when chosen in the PHP settings. |
+| [php-lsp (built-in)](https://github.com/stdimnet/php-lsp) | `php-lsp` | PHP | `forge --php-lsp --stdio` | built into Forge | MIT OR Apache-2.0 | needs plugin `forge.php`; Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server. |
+| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Used when chosen in the PHP settings. Free by default; enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
+| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when chosen in the PHP settings. |
 
 
 ## Languages
@@ -25694,6 +25748,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
+| [phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md) | PHPForge: the built-in PHP language server php-lsp, run by the Forge binary and the remote agent in a hidden `--php-lsp --stdio` mode |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-quality-tools](docs/guide/developer/crates/phpforge-quality-tools.md) | PHPForge: PHP quality tools (PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector): configurations, command lines, JSON report parsing with path mapping, unified diffs (pure) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
@@ -28355,8 +28410,9 @@ Forge's catalog of language servers for many languages, and everything around it
   downloaded and verified into Forge's data directory) and their update check,
 - `licence`: the Intelephense licence key in the OS keychain.
 
-PHP servers (Intelephense, phpactor) stay in the PHP pack; the app lists them next to
-these rows.
+PHP servers (the built-in php-lsp, Intelephense, phpactor) stay in the PHP pack
+(`pack_servers.toml`); the app lists them next to these rows. `builtin = true` marks a server
+built into Forge (no install hint; the backend shows its version as `builtin_version`).
 
 ## Modules
 
@@ -29396,8 +29452,10 @@ The Forge agent: a headless `LocalBackend` behind the agent
 The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 `forge-remote-agent serve` and talks to it with `forge_backend::rpc::RpcClient`. Every
 service runs next to the project's files: file system, file search, git, terminals,
-processes, language servers (Intelephense indexes the remote project itself) and the
-PHP index.
+processes, language servers (the PHP server indexes the remote project itself) and the
+PHP index. The agent links the built-in PHP language server php-lsp
+([phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md)): `forge-remote-agent --php-lsp --stdio`
+runs it, and the PHP pack's config on the host starts the agent binary that way.
 
 ## Modules
 
@@ -32671,6 +32729,60 @@ cargo test -p pyforge-testing --test smoke -- --ignored
 
 ---
 
+Source: docs/guide/developer/crates/phpforge-builtin-lsp.md
+
+# phpforge-builtin-lsp
+
+`packs/phpforge/builtin-lsp` — PHPForge: the built-in PHP language server
+[php-lsp](https://github.com/stdimnet/php-lsp), run by the Forge binary and the remote agent in
+a hidden `--php-lsp --stdio` mode.
+
+## Purpose
+
+php-lsp is a pure-Rust PHP language server under MIT OR Apache-2.0, a drop-in for Intelephense
+(same CLI flags, `intelephense.*` settings, diagnostics and formatting) with its premium
+features free. It is Forge's default PHP language server and is linked into Forge, so users
+install nothing. It is a cargo git dependency pinned to one revision
+(`rev = "0fd60bc7f242112582544e4dfa0bd51232268287"`); its embedded JetBrains phpstorm-stubs
+(Apache-2.0) and the js-beautify port (MIT) are listed in `THIRD_PARTY_NOTICES.md`.
+
+The server runs in a **separate process** for crash isolation: `forge` (and
+`forge-remote-agent`) call `main_hook` first thing in `main`. With `--php-lsp` as the first
+argument it runs `php_lsp::run_stdio()` and exits, before Tauri, logging or the agent runtime
+start. Otherwise it announces the executable to `phpforge-lang-php`
+(`lsp::register_builtin_server`), whose `server_config` then starts `<current exe> --php-lsp
+--stdio` through forge-lsp like any other server. Transport, restarts, Safe Mode, remote
+projects (the agent runs its own copy on the host) and the Language Servers UI work unchanged.
+
+The in-process `php_lsp::Embedded` was not used: a server bug would take the IDE down, and the
+LSP client would need a second, in-memory transport.
+
+## Public items
+
+| Item | Summary |
+| --- | --- |
+| `FLAG` | `"--php-lsp"`, the first argument of the hidden mode. |
+| `VERSION`, `REVISION`, `version_label()` | php-lsp's version and pinned commit, `"0.1.0 (0fd60bc)"` (a test checks them against `Cargo.lock`; php-lsp exposes no version constant). |
+| `main_hook(args)` | Runs the server in the hidden mode (`--version` prints the version) and returns the exit code; otherwise registers the built-in server and returns `None`. |
+| `is_server_mode`, `server_args`, `run_stdio`, `register` | The pieces of `main_hook`. |
+
+## Dependencies
+
+`php-lsp` (git, pinned), `phpforge-lang-php`. It brings `lsp-types` 0.97 and `rowan` 0.17
+next to forge-lsp's `lsp-types` 0.95 and tree-sitter-based crates; the server talks to Forge only
+through JSON-RPC, so the versions never meet.
+
+## Tests
+
+- Unit tests: the hidden-mode arguments and the pinned version against `Cargo.lock`.
+- `tests/server.rs` starts the test host `phpforge-builtin-lsp-host` (`tests/support/host.rs`,
+  never shipped) through forge-lsp's `LspClient` with the configuration Forge builds from its
+  PHP settings, on a small project in a temporary folder: initialize (capabilities), hover,
+  cross-file definition, completion, diagnostics, formatting and rename. No network.
+
+
+---
+
 Source: docs/guide/developer/crates/phpforge-cli-tools.md
 
 # phpforge-cli-tools
@@ -33252,7 +33364,7 @@ PHPForge language pack: PHP support built on tree-sitter.
   access, the implementing / overriding methods on `implements` / `extends`.
 - `hierarchy` Type, Method and Call Hierarchy.
 - `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
-- `lsp` describes how to launch Intelephense / phpactor.
+- `lsp` describes how to launch the built-in php-lsp, Intelephense or phpactor.
 
 ## Modules
 
@@ -33268,14 +33380,14 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `highlight.rs` | Highlight Usages in File on the index (when no language server answers `documentHighlight`): the usages of the symbol at the caret in its file, the declaration as a write, and on `implements` / `extends` the class's methods that implement / override the parents' methods. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
-| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. `is_lsp_twin` tells which language server actions do the same (php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import '…'", "Change namespace to '…'") so Alt+Enter lists them once. |
 | `imports/` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and arranges the rest by the code style's Imports tab; group uses are expanded, braced namespaces handled separately. `style.rs`: `ImportStyle` (sorting, grouping, blank lines, Prefer FQN and the PHP Auto Import settings) and the style of the running call (`with_style`, `set_default`). `insert.rs`: `insert_imports`, the one helper every import goes through (Import class, completion, Create from usage, Move, Copy, Pull Members Up). `auto.rs`: Auto Import: unresolved class names with candidates (`ProjectIndex::class_candidates`, project and vendor by file name), `reference_edits` (import, short name or FQN), the "Import class" fix with the chooser, the import popup and the on-the-fly decisions. |
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `injections.rs` | `language_places`: every `#[Language]` parameter of the indexed functions, methods and constructors, handed to `forge-injections` (`InjectionSettings::places`). |
 | `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index), plus the data-flow inspections. Calls and names resolve through `navigate::resolve_word`. `PhpProblem::code` is the inspection id of [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md) (`PhpDeprecation`, `PhpExpectedValuesShouldBeUsed`, `PhpImmutablePropertyIsChanged`, `PhpExpressionResultUnused`, `PhpUnreachableStatement`, `PhpIllegalPsrClassPath`, …); `to_problem` turns a problem into the framework's `Problem`. |
 | `dataflow.rs` | PHP data flow on the tree-sitter tree, per function, method and closure (and the top level): values of local variables through straight-line code and branches (merged at joins, loops forget what they assign), reporting "Variable is always null" (`PhpVariableIsAlwaysNull`), "Undefined variable" (`PhpUndefinedVariable`), "Condition is always true / false" (`PhpConstantCondition`) and "Unused assignment" (`PhpUnusedAssignment`, with "Remove unused assignment" / "Remove assignment, keep the expression"). Functions with `$$name`, `extract()`, `compact()`, `get_defined_vars()`, `eval`, `include` or `goto` are skipped; variables shared by reference are never tracked. |
-| `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
+| `lsp.rs` | How to launch a PHP language server: php-lsp built into Forge (the default, `ServerChoice::PhpLsp`, see [phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md)), or Intelephense (users bring their own licence key) and phpactor installed on the machine. `register_builtin_server` / `builtin_server` (the binary's built-in server), `php_lsp_config` (the `intelephense` settings shared with Intelephense plus a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS runners, cache in `<cache dir>/forge/php-lsp`), `server_row_id` (the Language Servers row of a config). Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `meta.rs` | `.phpstorm.meta.php` (`is_meta_path`, `parse` → `PhpMeta`): `override()` with `map()` (`@` patterns, `::class` keys), `type()`, `elementType()`; `expectedArguments()`, `expectedReturnValues()`, `registerArgumentsSet()` / `argumentsSet()`, `exitPoint()`; lookups `function_return` / `method_return` (→ `MetaType`), `map_entry`, `map_keys`, `expected_arguments`, `expected_return_values`, `is_exit_point`. `ProjectIndex::meta()` merges the files of the project, vendor packages and include paths (cached with the index, read again on change). |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` / `find_usages_with` (usage kinds, dynamic usages, members through parent and child classes; with the Find Usages options also usages of a class's methods and fields, derived / implementing classes, derived interfaces and overriding methods, comments and strings), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
@@ -33848,8 +33960,10 @@ A PHPStorm-style IDE for Windows, Linux and macOS, written in Rust (Tauri 2) wit
 The layout, wording and keymap follow PHPStorm; the colors are Forge's own.
 
 **Is it free?**
-Forge is MIT-licensed. Third-party tools you connect keep their own terms: Intelephense premium
-needs your own licence, AI providers need your own API key or subscription.
+Forge is MIT-licensed. The built-in PHP language server php-lsp is free as well (MIT OR
+Apache-2.0) and needs no licence key. Third-party tools you connect keep their own terms:
+Intelephense premium needs your own licence, AI providers need your own API key or
+subscription.
 
 **Which version is this guide for?**
 Forge 0.1.0 as on the branch that contains this guide. Recent additions and what is not available
@@ -33869,7 +33983,8 @@ be imported yet; re-create changes in Settings | Keymap.
 No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 
 **Is PHP support as deep as PHPStorm's?**
-Not yet. Completion and diagnostics come from Intelephense (or Phpactor); Forge adds its own
+Not yet. Completion and diagnostics come from the built-in language server php-lsp
+(Intelephense-compatible, with rename and refactorings; or Intelephense / Phpactor); Forge adds its own
 index with navigation (Go to Declaration including PHP's own stubs, Find/Show Usages,
 implementations, gutter icons) that also works without a server, Generate actions, Laravel,
 Symfony and Doctrine support. Refactorings, inspections with quick-fixes and Replace in Files

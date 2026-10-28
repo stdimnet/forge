@@ -4298,7 +4298,7 @@
     "name": "PHP",
     "version": "0.1.0",
     "pack": "phpforge",
-    "description": "PHP language support: completion, inspections, navigation and refactorings via Intelephense.",
+    "description": "PHP language support: completion, inspections, navigation and refactorings via the built-in php-lsp (or Intelephense / phpactor).",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -4461,12 +4461,16 @@
         {
           "key": "php.lsp.server",
           "title": "Language server",
-          "description": "Started automatically when a PHP project opens.",
+          "description": "Started automatically when a PHP project opens. php-lsp is built into Forge (nothing to install); Intelephense and phpactor must be installed.",
           "type": "enum",
           "options": [
             {
+              "value": "php-lsp",
+              "label": "php-lsp (built-in)"
+            },
+            {
               "value": "auto",
-              "label": "Auto (Intelephense, else phpactor)"
+              "label": "Auto (php-lsp, else Intelephense, else phpactor)"
             },
             {
               "value": "intelephense",
@@ -4478,10 +4482,10 @@
             },
             {
               "value": "none",
-              "label": "None (built-in index only)"
+              "label": "None (Forge's index only)"
             }
           ],
-          "default": "auto",
+          "default": "php-lsp",
           "group": "lang.php",
           "section": "Language Server",
           "project": false,
@@ -4489,7 +4493,7 @@
         },
         {
           "key": "php.intelephense.autoInstall",
-          "title": "When Intelephense is not installed",
+          "title": "When Intelephense is chosen but not installed",
           "description": "Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge.",
           "type": "enum",
           "options": [
@@ -5409,6 +5413,19 @@
         }
       ],
       "lspServers": [
+        {
+          "id": "php-lsp",
+          "languageId": "php",
+          "command": "forge",
+          "args": [
+            "--php-lsp",
+            "--stdio"
+          ],
+          "fileExtensions": [
+            "php",
+            "phtml"
+          ]
+        },
         {
           "id": "intelephense",
           "languageId": "php",
