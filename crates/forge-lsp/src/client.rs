@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
@@ -149,6 +149,8 @@ struct Inner {
     /// Settings changed after the start (code style options before Reformat Code), merged
     /// over `config.settings`.
     overrides: Mutex<Value>,
+    /// The server process ended (crashed, was killed or quit) without being shut down.
+    exited: AtomicBool,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -219,6 +221,7 @@ impl LspClient {
                 process: tokio::sync::Mutex::new(Some(io.process)),
                 parent_pid: io.parent_pid,
                 overrides: Mutex::new(Value::Null),
+                exited: AtomicBool::new(false),
             }),
         };
         client.set_state(ServerState::Starting);
@@ -282,6 +285,12 @@ impl LspClient {
 
     pub fn config(&self) -> &LspServerConfig {
         &self.inner.config
+    }
+
+    /// Whether the server process ended on its own (crashed, killed or quit) instead of
+    /// being shut down by Forge.
+    pub fn has_exited(&self) -> bool {
+        self.inner.exited.load(Ordering::SeqCst)
     }
 
     pub fn state(&self) -> ServerState {
@@ -635,7 +644,11 @@ impl LspClient {
             .drain()
             .collect();
         drop(pending); // dropping the senders fails every waiting request
-        let state = match (error, self.state()) {
+        let previous = self.state();
+        if previous != ServerState::Stopped {
+            self.inner.exited.store(true, Ordering::SeqCst);
+        }
+        let state = match (error, previous) {
             (_, ServerState::Stopped) => ServerState::Stopped,
             (Some(error), _) => ServerState::Failed { error },
             (None, ServerState::Starting) => ServerState::Failed {
