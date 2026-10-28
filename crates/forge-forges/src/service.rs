@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
 use crate::accounts::{account_id, env_vars, Account, AccountsFile, SecretStore};
+use crate::azure::AzureDevOps;
 use crate::error::{HostError, HostResult};
 use crate::forgejo::Forgejo;
 use crate::github::GitHub;
@@ -27,6 +28,7 @@ pub fn open_host(
         HostKind::Gitlab => Arc::new(GitLab::new(client, api_base, token)),
         HostKind::Forgejo => Arc::new(Forgejo::new(client, api_base, token)),
         HostKind::Github => Arc::new(GitHub::new(client, api_base, token)),
+        HostKind::Azure => Arc::new(AzureDevOps::new(client, api_base, token)),
     }
 }
 
@@ -35,6 +37,8 @@ pub fn review_ref(kind: HostKind, number: u64) -> String {
     match kind {
         HostKind::Gitlab => format!("refs/merge-requests/{number}/head"),
         HostKind::Forgejo | HostKind::Github => format!("refs/pull/{number}/head"),
+        // Azure DevOps keeps only the merge commit of a pull request.
+        HostKind::Azure => format!("refs/pull/{number}/merge"),
     }
 }
 
@@ -292,6 +296,8 @@ fn clone_username(acc: &Account) -> String {
     match acc.kind {
         HostKind::Github => "x-access-token".into(),
         HostKind::Gitlab => "oauth2".into(),
+        // Any user name works with a personal access token.
+        HostKind::Azure => "pat".into(),
         HostKind::Forgejo => acc
             .username
             .clone()

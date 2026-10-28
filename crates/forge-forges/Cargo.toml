@@ -1,6 +1,6 @@
 [package]
 name = "forge-forges"
-description = "Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines"
+description = "Forge IDE code hosts: GitLab, Forgejo/Gitea, GitHub and Azure DevOps merge requests, issues and pipelines"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,6 +17,7 @@ tracing.workspace = true
 tokio.workspace = true
 async-trait = "0.1"
 futures-util = "0.3"
+similar = "2"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
