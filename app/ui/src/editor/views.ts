@@ -99,6 +99,33 @@ export function offsetAt(doc: Text, line: number, column = 1): number {
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
+/**
+ * Scroll `pos` to the middle of the editor and keep it there while the layout settles:
+ * block widgets far from the old position (rendered doc comments in Reader mode) are only
+ * measured once they come into view, which moves the target after the first scroll. Stops
+ * after a few frames or as soon as the selection moves away from `pos`.
+ */
+export function centerOnPos(view: EditorView, pos: number): void {
+  view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+  let frames = 0;
+  const recenter = () => {
+    const sel = view.state.selection.main;
+    if (++frames > 10 || !view.dom.isConnected || pos < sel.from || pos > sel.to) return;
+    view.requestMeasure({
+      read: (v) => {
+        const at = v.coordsAtPos(pos);
+        const box = v.scrollDOM.getBoundingClientRect();
+        return at ? Math.abs((at.top + at.bottom) / 2 - (box.top + box.bottom) / 2) > v.defaultLineHeight : false;
+      },
+      write: (off, v) => {
+        if (off) v.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+        requestAnimationFrame(recenter);
+      },
+    });
+  };
+  requestAnimationFrame(recenter);
+}
+
 /** The view of `path` once it is mounted and visible (new tabs need a few frames). */
 export async function visibleView(path: string): Promise<EditorView | undefined> {
   for (let i = 0; i < 60; i++) {
@@ -124,7 +151,8 @@ export async function openFileAt(
   const view = await visibleView(path);
   if (!view) return false;
   const pos = line ? offsetAt(view.state.doc, line, column ?? 1) : view.state.selection.main.head;
-  view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+  view.dispatch({ selection: { anchor: pos } });
+  centerOnPos(view, pos);
   if (opts.focus !== false) view.focus();
   if (line && opts.flash !== false) flashLineAt(view, pos);
   return true;

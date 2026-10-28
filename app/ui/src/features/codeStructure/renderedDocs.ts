@@ -50,10 +50,20 @@ class RenderedDoc extends WidgetType {
     return other.key === this.key;
   }
 
+  /** Roughly one rendered row per comment line, until the widget has been measured. */
+  get estimatedHeight(): number {
+    return (this.info.endLine - this.info.line + 1) * 20;
+  }
+
   toDOM(view: EditorView): HTMLElement {
+    // The spacing around the box is padding of an outer block: CodeMirror measures block
+    // widgets without their margins, so margins would push the line numbers out of line.
+    const block = document.createElement("div");
+    block.className = "cm-rendered-doc-block";
+    block.style.paddingLeft = `${this.info.column}ch`;
     const wrap = document.createElement("div");
     wrap.className = "cm-rendered-doc";
-    wrap.style.marginLeft = `${this.info.column}ch`;
+    block.append(wrap);
     // Back to the comment's text (PHPStorm shows this toggle in the gutter).
     const edit = document.createElement("button");
     edit.className = "cm-rendered-doc-edit";
@@ -73,7 +83,7 @@ class RenderedDoc extends WidgetType {
         window.open(href, "_blank", "noopener");
       }
     });
-    return wrap;
+    return block;
   }
 
   ignoreEvent(): boolean {
@@ -124,9 +134,9 @@ export const renderedDocsField = StateField.define<RenderState>({
 });
 
 const docsTheme = EditorView.baseTheme({
+  ".cm-rendered-doc-block": { padding: "2px 0 4px" },
   ".cm-rendered-doc": {
     position: "relative",
-    margin: "2px 0 4px",
     borderLeft: "2px solid var(--border-strong)",
     backgroundColor: "color-mix(in srgb, var(--bg-hover) 45%, transparent)",
     borderRadius: "0 var(--radius) var(--radius) 0",
