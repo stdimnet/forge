@@ -31,10 +31,35 @@ const bySource = new Map<string, Map<string, EditorDiagnostic[]>>();
 export type DiagnosticsFilter = (path: string, source: string, diags: EditorDiagnostic[]) => EditorDiagnostic[];
 let filter: DiagnosticsFilter | null = null;
 
+/** Source key of Forge's own PHP inspections (`features/php/meta.ts`). */
+export const PHP_INSPECTIONS_SOURCE = "php-inspections";
+
+const overlaps = (a: EditorDiagnostic["range"], b: EditorDiagnostic["range"]) => {
+  const before = (x: EditorDiagnostic["range"]["start"], y: EditorDiagnostic["range"]["start"]) =>
+    x.line < y.line || (x.line === y.line && x.character < y.character);
+  return !before(a.end, b.start) && !before(b.end, a.start);
+};
+
+/**
+ * Forge's PHP inspections and the PHP language server (php-lsp, Intelephense) both report
+ * deprecated symbol uses and unreachable code: show the server's problem once and drop the
+ * inspection's twin on the same range. Its quick fixes stay available through Alt+Enter.
+ */
+export function withoutInspectionTwins(source: string, list: EditorDiagnostic[], lsp: EditorDiagnostic[]): EditorDiagnostic[] {
+  if (source !== PHP_INSPECTIONS_SOURCE || !lsp.length) return list;
+  return list.filter(
+    (d) => !lsp.some((l) => overlaps(l.range, d.range) && ((d.deprecated && l.deprecated) || (d.unnecessary && l.unnecessary && d.code === "PhpUnreachableStatement"))),
+  );
+}
+
 function show(path: string): void {
   const sources = bySource.get(path);
   if (!sources) return;
-  const merged = [...sources.entries()].flatMap(([source, list]) => (filter && list.length ? filter(path, source, list) : list));
+  const lsp = sources.get("lsp") ?? [];
+  const merged = [...sources.entries()].flatMap(([source, list]) => {
+    const shown = withoutInspectionTwins(source, list, lsp);
+    return filter && shown.length ? filter(path, source, shown) : shown;
+  });
   setDiagnostics(path, reconcile(merged));
   listeners.forEach((l) => l(path, merged));
 }

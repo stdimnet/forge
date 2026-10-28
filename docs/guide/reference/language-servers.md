@@ -201,8 +201,9 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
-| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when Intelephense is not installed, or when chosen in the PHP settings. |
+| [php-lsp (built-in)](https://github.com/stdimnet/php-lsp) | `php-lsp` | PHP | `forge --php-lsp --stdio` | built into Forge | MIT OR Apache-2.0 | needs plugin `forge.php`; Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server. |
+| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Used when chosen in the PHP settings. Free by default; enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
+| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when chosen in the PHP settings. |
 
 
 ## Languages

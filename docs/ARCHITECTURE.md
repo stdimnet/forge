@@ -807,7 +807,8 @@ or without Git, for local and remote projects.
   `forge_vcs::GitExec`; `Backend::repo()` = `Repo::open_with`), `detect_project`, `watch`,
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
   `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
-  Intelephense / phpactor lookup, `forge_backend::PhpBackend`), `read_optional` (a file or
+  PHP language server lookup: the built-in php-lsp, Intelephense, phpactor;
+  `forge_backend::PhpBackend`), `read_optional` (a file or
   `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine / WordPress / CMS analysis,
   see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
   (agent CLIs and tools on the project's machine) and `tunnels()` (SSH port forwarding,
@@ -817,8 +818,9 @@ or without Git, for local and remote projects.
   `RemoteBackend` serves a folder on another machine through the **Forge agent**
   (`crates/forge-remote-agent`): a headless `LocalBackend` behind the agent protocol on
   stdin/stdout. Git output is parsed locally (`forge-vcs` only runs `git` remotely), language
-  servers run on the host with their stdio proxied over a byte channel (Intelephense indexes
-  the remote files itself; its config is resolved on the host), the PHP index, file watcher,
+  servers run on the host with their stdio proxied over a byte channel (the PHP server indexes
+  the remote files itself; its config is resolved on the host, where the agent runs its own
+  built-in php-lsp as `forge-remote-agent --php-lsp --stdio`), the PHP index, file watcher,
   terminals and processes live in the agent.
 - Remote projects have the features of local ones; whatever reads many project files runs
   next to them:
@@ -1361,9 +1363,33 @@ or without Git, for local and remote projects.
   ids) and ~32 servers (TypeScript, Vue, Angular, Svelte, Astro, HTML/CSS/JSON/ESLint, Tailwind,
   YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, Java,
   Kotlin, C#, Ruby, Zig) with command, initialization options, settings, install options and
-  licence. `pack_servers.toml` lists servers that packs start themselves (Intelephense, phpactor,
-  JDT LS, kotlin-lsp, clangd)
-  so they show up on the same settings page.
+  licence. `pack_servers.toml` lists servers that packs start themselves (php-lsp, Intelephense,
+  phpactor, JDT LS, kotlin-lsp, clangd)
+  so they show up on the same settings page (`builtin = true`: built into Forge, the row shows
+  `builtinVersion` instead of an install option).
+
+### Built-in PHP language server (php-lsp)
+
+- php-lsp (<https://github.com/stdimnet/php-lsp>, MIT OR Apache-2.0) is the default PHP server
+  (`php.lsp.server` = `php-lsp`; `auto` prefers it too). `packs/phpforge/builtin-lsp` depends on
+  it (cargo git dependency pinned to a `rev`) and is linked into `forge` and
+  `forge-remote-agent`. Their `main` calls `phpforge_builtin_lsp::main_hook` first: with
+  `--php-lsp` it runs `php_lsp::run_stdio()` and exits before Tauri / the agent start;
+  otherwise it registers `current_exe() --php-lsp --stdio` with
+  `phpforge_lang_php::lsp::register_builtin_server`. `lsp::server_config` then builds a normal
+  `LspServerConfig` (id `php`), so the server runs in its own process (crash isolation) through
+  forge-lsp, Safe Mode, restarts and the remote byte channel like any other server.
+- `lsp::php_lsp_config` sends Forge's PHP settings as the `intelephense` section (php-lsp reads
+  Intelephense's settings) and a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS
+  runners (Forge's Quality Tools run them) and keeps the built-in formatter; `storagePath` is
+  `<cache dir>/forge/php-lsp` (index cache, unpacked stubs).
+- Overlap with Forge's own PHP features: the index hover only answers where the server has
+  nothing (`setOtherHoverProvider`); `lsp/store.ts` `withoutInspectionTwins` drops a PHP
+  inspection problem (deprecated, unreachable) when the server reports the same range;
+  `code_context_actions` drops server actions that `intentions::is_lsp_twin` of Forge's
+  intentions (getters / setters, method stubs, Import class, Set namespace). Semantic tokens and
+  code lenses of the server are not requested.
+- Problems in php-lsp are reported upstream, never patched in Forge.
 - When a project's LSP manager is created, `commands::langservers::register_enabled` scans the
   project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
   and installed server whose languages occur (and whose `when` markers exist, e.g. an ESLint config).

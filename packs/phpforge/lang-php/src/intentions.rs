@@ -174,6 +174,27 @@ fn readonly_intention(src: &str, p: &crate::model::Member) -> Option<Intention> 
     })
 }
 
+/// Whether the language server's code action `lsp_title` does what Forge's own intention
+/// `own_title` does. Alt+Enter then lists Forge's (PHPStorm wording, Forge's code style and
+/// templates, the class chooser of "Import class") and drops the server's twin, e.g. php-lsp's
+/// "Generate getter for $name", "Implement 2 missing methods", "Change namespace to 'X'" and
+/// "Import 'App\\Models\\User'".
+pub fn is_lsp_twin(own_title: &str, lsp_title: &str) -> bool {
+    match own_title {
+        "Generate getter and setter" => lsp_title.starts_with("Generate getter and setter for "),
+        "Generate getter" => lsp_title.starts_with("Generate getter for "),
+        "Generate setter" => lsp_title.starts_with("Generate setter for "),
+        "Add method stubs" => {
+            lsp_title.starts_with("Implement ") && lsp_title.contains(" missing method")
+        }
+        "Import class" => lsp_title.starts_with("Import '"),
+        own => match own.strip_prefix("Set namespace to ") {
+            Some(ns) => lsp_title.strip_prefix("Change namespace to ") == Some(ns),
+            None => false,
+        },
+    }
+}
+
 /// Intentions at `offset` (bytes) of `src`, the content of `rel`. `options` carries the code
 /// style and the user's code templates for generated code.
 pub fn intentions(
@@ -403,5 +424,28 @@ mod tests {
         assert!(apply_edits(src, &i.edits).contains("(private readonly int $amount)"));
         assert!(readonly("$count", &mut idx).is_none(), "static");
         assert!(readonly("$cents", &mut idx).is_none(), "default value");
+    }
+
+    #[test]
+    fn language_server_twins_of_own_intentions() {
+        assert!(is_lsp_twin("Generate getter", "Generate getter for $name"));
+        assert!(is_lsp_twin(
+            "Generate getter and setter",
+            "Generate getter and setter for $name"
+        ));
+        assert!(!is_lsp_twin("Generate getter", "Generate getter and setter for $name"));
+        assert!(is_lsp_twin("Generate setter", "Generate setter for $name"));
+        assert!(is_lsp_twin("Add method stubs", "Implement 2 missing methods"));
+        assert!(is_lsp_twin("Import class", "Import 'App\\Models\\User'"));
+        assert!(is_lsp_twin(
+            "Set namespace to 'App\\Models'",
+            "Change namespace to 'App\\Models'"
+        ));
+        assert!(!is_lsp_twin(
+            "Set namespace to 'App\\Models'",
+            "Change namespace to 'App'"
+        ));
+        assert!(!is_lsp_twin("Add PHPDoc", "Add PHPDoc"));
+        assert!(!is_lsp_twin("Generate getter", "Extract variable"));
     }
 }

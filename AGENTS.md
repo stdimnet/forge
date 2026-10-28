@@ -105,6 +105,11 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   download a server for the user, with their consent, from its official source
   (`forge_langservers::managed`: npm registry with integrity check, Node.js from nodejs.org
   with SHA-256 check) into Forge's data directory.
+  **Exception:** php-lsp (MIT OR Apache-2.0, pure Rust) is built into Forge as the default PHP
+  server (`packs/phpforge/builtin-lsp`, a cargo git dependency pinned to a `rev`; the binary
+  runs it in its hidden `--php-lsp --stdio` mode). Permissively licensed servers may be linked
+  in this way when their notices go into `THIRD_PARTY_NOTICES.md`; do not patch them in Forge,
+  report problems upstream.
 
 ### Quality
 - Before every commit, run the `quality-gates` skill:

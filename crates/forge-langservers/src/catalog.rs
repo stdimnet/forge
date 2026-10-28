@@ -171,6 +171,9 @@ pub struct ServerSpec {
     pub enabled: bool,
     #[serde(default)]
     pub install: Vec<InstallOption>,
+    /// Built into Forge (php-lsp): nothing to install.
+    #[serde(default)]
+    pub builtin: bool,
     #[serde(default, alias = "initialization_options")]
     pub initialization_options: Value,
     #[serde(default)]
@@ -296,7 +299,7 @@ impl Catalog {
                     out.push(format!("server {} uses unknown language {l}", s.id));
                 }
             }
-            if s.install.is_empty() {
+            if s.install.is_empty() && !s.builtin {
                 out.push(format!("server {} has no install hint", s.id));
             }
             for i in &s.install {

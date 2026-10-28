@@ -52,6 +52,11 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **Built-in PHP language server**: [php-lsp](user/language-servers.md#php-lsp-built-in) is
+  now Forge's default PHP server, built into Forge: completion, diagnostics, rename,
+  refactorings, type hierarchy and formatting in Intelephense's style with nothing to install
+  and no licence key. Intelephense and Phpactor stay selectable in Settings | Languages &
+  Frameworks | PHP.
 - **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,

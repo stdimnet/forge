@@ -14,9 +14,12 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
   powers the Structure tool window, Go to Class/Symbol, index-based hover, the Generate
   actions and [navigation](#navigation) when no language server answers, and works without
   any language server.
-- **A PHP language server**, Intelephense or Phpactor, for completion, diagnostics,
-  Go to Declaration, hover and formatting. See
-  [Language servers](language-servers.md#php-intelephense-and-phpactor).
+- **A PHP language server** for completion, diagnostics, Go to Declaration, hover, rename,
+  quick fixes and formatting. By default this is
+  [php-lsp](https://github.com/stdimnet/php-lsp), which is **built into Forge**: nothing to
+  install, no licence key, and Intelephense's premium features (rename, code actions, type
+  hierarchy, implementations) included. Intelephense and Phpactor stay selectable. See
+  [Language servers](language-servers.md#php-php-lsp-intelephense-and-phpactor).
 
 The pack activates in projects with a `composer.json` or `.php` files.
 
@@ -119,12 +122,13 @@ Where the stubs come from:
    and keeps its licence file. The status bar shows the download.
 3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
-When Intelephense runs, its definition (which points into the stubs inside its package) is
-opened read-only directly.
+php-lsp carries phpstorm-stubs inside Forge: its definition of a built-in symbol points into
+`<cache dir>/forge/php-lsp/php-lsp-stubs-<version>/` and opens read-only, without any download.
+The same goes for Intelephense, whose definition points into the stubs inside its package.
 
 > **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
-> path** or install Intelephense; otherwise Go to Declaration on a built-in symbol explains how
-> to get the stubs.
+> path**; otherwise Go to Declaration on a built-in symbol explains how to get the stubs
+> (php-lsp still answers it from its own copy).
 
 ### Show Usages and Find Usages
 
@@ -167,15 +171,16 @@ override the parents' methods (see [Highlight usages](editor.md#highlight-usages
 | Super Method | `Ctrl+U` | `Cmd+U` | the method this method overrides or implements; on a class, its parent and interfaces |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
 
-Several targets open the Choose Declaration popup with names and namespaces. Go to
-Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
-the index, and says so when the index finds nothing either.
+Several targets open the Choose Declaration popup with names and namespaces. php-lsp answers
+Go to Implementation; with Intelephense it needs Intelephense Premium, and without a licence
+Forge answers from the index, and says so when the index finds nothing either.
 
 ### Hierarchies
 
 Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
 (`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
-merged with Intelephense Premium's type and call hierarchy when it runs. See
+merged with the language server's type and call hierarchy (php-lsp, or Intelephense Premium)
+when it runs. See
 [Type, Method and Call Hierarchy](hierarchies.md).
 
 ### Gutter icons
@@ -198,8 +203,8 @@ Click an icon to go to the target, or to choose one of several.
 constants, functions and variables; see [Editor](editor.md#rename) for the in-place editing,
 the dialog and undo.
 
-- With **Intelephense Premium** (licence key in Settings | Languages & Frameworks | PHP) or
-  Phpactor, the language server renames.
+- With **php-lsp** (the default), **Intelephense Premium** (licence key in Settings |
+  Languages & Frameworks | PHP) or Phpactor, the language server renames.
 - **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
   declaration and every usage the index finds in the project (imports, `new`, static calls,
   type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
@@ -381,8 +386,13 @@ class names in moved code are imported in the target file. New files come from y
 
 ## Context actions and intentions
 
-**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
-Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-actions):
+**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes and refactorings
+(php-lsp: remove unused import, add PHPDoc, generate constructor, promote constructor
+properties, extract variable / method / constant, inline variable, add return type, ...; with
+Intelephense they need Premium) and Forge's own PHP intentions, see
+[Editor](editor.md#show-context-actions). When the server offers what an intention below does
+(php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import 'App\Models\User'",
+"Change namespace to '…'"), the popup lists Forge's intention once, in PHPStorm's wording:
 
 | Intention | Where |
 | --- | --- |
@@ -396,8 +406,8 @@ Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-act
 
 ![PHP intentions](../../screenshots/context-actions-intentions.png)
 
-Without Intelephense Premium the popup shows only Forge's intentions and says that the language
-server's quick fixes need Premium.
+With Intelephense without a licence the popup shows only Forge's intentions and says that the
+language server's quick fixes need Premium.
 
 ### Create from usage
 
@@ -558,7 +568,11 @@ The attributes of the `jetbrains/phpstorm-attributes` package (and PHP 8.4's own
 ![Expected values in completion](../../screenshots/php-meta-completion.png)
 
 The inspections are Forge's own (from the PHP index, next to the language server's problems)
-and appear in the editor and the Problems tool window. Turn them off with **Inspections from
+and appear in the editor and the Problems tool window. When the language server reports the
+same deprecated call or unreachable statement, it is shown once (the server's problem); the
+**Replace with '…'** fix stays in Alt+Enter. php-lsp does not know the `JetBrains\PhpStorm`
+attribute classes yet and reports them as undefined types unless the package is installed in
+`vendor/`. Turn them off with **Inspections from
 PHPStorm metadata and attributes** (`php.inspections.enabled`) on Settings | Languages &
 Frameworks | PHP.
 
@@ -607,17 +621,17 @@ relative to the project. Changing the include paths indexes the project again.
 | CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
 | CLI Interpreters (available in every project) | `php.interpreters` | empty |
 | CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
-| Language server (Auto, Intelephense, phpactor, None) | `php.lsp.server` | Auto |
+| Language server: php-lsp (built-in), Auto (php-lsp, else Intelephense, else phpactor), Intelephense, phpactor, None | `php.lsp.server` | php-lsp |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
-| When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
+| When Intelephense is chosen but not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense); shown when Intelephense is chosen | `php.intelephense.autoInstall` | `ask` |
+| I accept the Intelephense licence (shown when Intelephense is chosen) | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
 | Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
-says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
+says when it comes from composer.json); click it to open this page. With Intelephense chosen, the page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -711,7 +725,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Wrapping and Braces**: brace placement in class declarations, function declarations and
   other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
   PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
-  Intelephense formats with the closest of its brace styles; the Generate actions write
+  The language server (php-lsp or Intelephense, both in Intelephense's style) formats with the
+  closest of its brace styles; the Generate actions write
   methods with the function brace placement.
 - **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
   sets the blank lines **After namespace**, **After imports**, **Around method** (at least)
@@ -724,7 +739,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
   namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
   the refactorings follow them, see [Optimize Imports and Auto Import](imports.md#php-code-style-imports).
 
-Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
+Reformat Code (`Ctrl+Alt+L`) lets the language server (php-lsp by default) format the file and
+then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
 comments and inline HTML are never changed.
 

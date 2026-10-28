@@ -25,8 +25,9 @@ Forge's catalog of language servers for many languages, and everything around it
   downloaded and verified into Forge's data directory) and their update check,
 - `licence`: the Intelephense licence key in the OS keychain.
 
-PHP servers (Intelephense, phpactor) stay in the PHP pack; the app lists them next to
-these rows.
+PHP servers (the built-in php-lsp, Intelephense, phpactor) stay in the PHP pack
+(`pack_servers.toml`); the app lists them next to these rows. `builtin = true` marks a server
+built into Forge (no install hint; the backend shows its version as `builtin_version`).
 
 ## Modules
 
