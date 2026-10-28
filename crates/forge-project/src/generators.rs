@@ -452,6 +452,70 @@ pub fn generators() -> Vec<Generator> {
         ),
         generator(
             Def {
+                id: "dotnet",
+                name: ".NET Project",
+                group: ".NET",
+                pack: "dotnetforge",
+                icon: "dotnet",
+                default_name: "MyApp",
+                description: "A solution with a project from a dotnet new template: console, class library, ASP.NET Core, Blazor, worker or tests.",
+                tools: &["dotnet"],
+                fallback: None,
+            },
+            vec![
+                enum_opt(
+                    "template",
+                    "Template",
+                    "console",
+                    vec![
+                        choice("console", "Console App"),
+                        choice("classlib", "Class Library"),
+                        choice("webapi", "ASP.NET Core Web API"),
+                        choice("mvc", "ASP.NET Core Web App (Model-View-Controller)"),
+                        choice("webapp", "ASP.NET Core Web App (Razor Pages)"),
+                        choice("blazor", "Blazor Web App"),
+                        choice("worker", "Worker Service"),
+                        choice("xunit", "xUnit Test Project"),
+                        choice("nunit", "NUnit Test Project"),
+                        choice("mstest", "MSTest Test Project"),
+                    ],
+                ),
+                enum_opt(
+                    "language",
+                    "Language",
+                    "C#",
+                    vec![choice("C#", "C#"), choice("F#", "F#"), choice("VB", "Visual Basic")],
+                ),
+                enum_opt(
+                    "framework",
+                    "Framework",
+                    "",
+                    vec![
+                        choice("", "The SDK's default"),
+                        choice("net10.0", ".NET 10"),
+                        choice("net9.0", ".NET 9"),
+                        choice("net8.0", ".NET 8 (LTS)"),
+                    ],
+                ),
+                GeneratorOption {
+                    id: "otherTemplate".into(),
+                    label: "Other template (short name)".into(),
+                    kind: "string".into(),
+                    default: json!(""),
+                    choices: Vec::new(),
+                    description: Some("Any template from dotnet new list, e.g. grpc or avalonia.app; replaces the template above.".into()),
+                },
+                bool_opt(
+                    "solution",
+                    "Create solution",
+                    true,
+                    Some("Puts the project into src/ and adds it to a new .sln."),
+                ),
+                git(),
+            ],
+        ),
+        generator(
+            Def {
                 id: "empty",
                 name: "Empty Project",
                 group: "Other",
@@ -792,6 +856,49 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
                 loc,
             ));
         }
+        "dotnet" => {
+            need("dotnet");
+            let template = match req.string(&gen, "otherTemplate").trim() {
+                "" => req.string(&gen, "template"),
+                t => t.to_string(),
+            };
+            let language = req.string(&gen, "language");
+            let framework = req.string(&gen, "framework");
+            let ext = match language.as_str() {
+                "F#" => "fsproj",
+                "VB" => "vbproj",
+                _ => "csproj",
+            };
+            let solution = req.bool(&gen, "solution");
+            let out_dir = if solution {
+                format!("src/{n}")
+            } else {
+                n.to_string()
+            };
+            let mut args: Vec<String> = vec![
+                "new".into(),
+                template.clone(),
+                "-n".into(),
+                n.into(),
+                "-o".into(),
+                out_dir.clone(),
+            ];
+            if !language.is_empty() && language != "C#" {
+                args.extend(["-lang".into(), language.clone()]);
+            }
+            if !framework.is_empty() {
+                args.extend(["--framework".into(), framework]);
+            }
+            let args_ref: Vec<&str> = args.iter().map(String::as_str).collect();
+            if solution {
+                steps.push(run("dotnet", &["new", "sln", "-n", n, "-o", n], loc));
+                steps.push(run("dotnet", &args_ref, tgt));
+                let proj = format!("{out_dir}/{n}.{ext}");
+                steps.push(run("dotnet", &["sln", "add", &proj], tgt));
+            } else {
+                steps.push(run("dotnet", &args_ref, loc));
+            }
+        }
         template => {
             let sample = gen.options.iter().any(|o| o.id == "sample") && req.bool(&gen, "sample")
                 || !gen.options.iter().any(|o| o.id == "sample");
@@ -874,7 +981,7 @@ mod tests {
         let groups: Vec<_> = gens.iter().map(|g| g.group.as_str()).collect();
         let mut dedup = groups.clone();
         dedup.dedup();
-        assert_eq!(dedup, vec!["PHP", "Web", "Lua", "Ruby", "Other"]);
+        assert_eq!(dedup, vec!["PHP", "Web", "Lua", "Ruby", ".NET", "Other"]);
         for g in gens.iter().filter(|g| g.tools.is_empty()) {
             assert!(
                 crate::templates::template(&g.id).is_some(),
@@ -887,6 +994,47 @@ mod tests {
                 assert!(find_generator(f).unwrap().tools.is_empty());
             }
         }
+    }
+
+    #[test]
+    fn dotnet_projects() {
+        let p = plan(&req("dotnet", &[]), &all_tools).unwrap();
+        assert_eq!(
+            p.preview,
+            vec![
+                "dotnet new sln -n demo -o demo",
+                "dotnet new console -n demo -o src/demo",
+                "dotnet sln add src/demo/demo.csproj",
+            ]
+        );
+        let p = plan(
+            &req(
+                "dotnet",
+                &[
+                    ("template", json!("classlib")),
+                    ("language", json!("F#")),
+                    ("framework", json!("net8.0")),
+                    ("solution", json!(false)),
+                ],
+            ),
+            &all_tools,
+        )
+        .unwrap();
+        assert_eq!(
+            p.preview,
+            vec!["dotnet new classlib -n demo -o demo -lang F# --framework net8.0"]
+        );
+        let other = plan(
+            &req(
+                "dotnet",
+                &[("otherTemplate", json!("grpc")), ("solution", json!(false))],
+            ),
+            &all_tools,
+        )
+        .unwrap();
+        assert!(other.preview[0].starts_with("dotnet new grpc "));
+        let missing = plan(&req("dotnet", &[]), &|t| t != "dotnet").unwrap();
+        assert_eq!(missing.missing_tools, vec!["dotnet"]);
     }
 
     #[test]

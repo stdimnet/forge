@@ -7,6 +7,7 @@ import { PROBE_ATTR, RESOLVE_EVENT, RESULT_ATTR, TARGET_ATTR } from "./lib/bridg
 import { displayPath, toOpenTarget } from "./lib/paths";
 import type { BackgroundRequest, ContentConfig, ContentMessage, OpenResult, SourceInfo } from "./lib/types";
 import { Overlay } from "./overlay";
+import { applyCss, plan, type LivePoll } from "./lib/liveEdit";
 
 interface Probe {
   info: SourceInfo;
@@ -191,3 +192,37 @@ void send<ContentConfig>({ type: "contentConfig" })
   .catch(() => {
     /* extension context gone (updated); the page keeps working without us */
   });
+
+// ---- Live Edit ------------------------------------------------------------------------
+// The top frame polls Forge through the background worker (which holds the token); style
+// sheets are swapped in place, other changed files reload the page if it loaded them.
+
+const LIVE_INTERVAL_MS = 1000;
+const LIVE_IDLE_MS = 5000;
+
+async function pollLiveEdit(since: number): Promise<void> {
+  let next = since;
+  let delay = LIVE_IDLE_MS;
+  try {
+    const poll = await send<LivePoll>({ type: "liveEditPoll", since });
+    if (poll?.enabled) {
+      delay = LIVE_INTERVAL_MS;
+      const resources = performance.getEntriesByType("resource").map((r) => r.name);
+      for (const e of since ? poll.events : []) {
+        const what = plan(document, e, resources);
+        if (what === "css") applyCss(document, e);
+        else if (what === "reload") {
+          location.reload();
+          return;
+        }
+      }
+      next = poll.seq;
+    }
+  } catch {
+    /* extension context gone */
+    return;
+  }
+  setTimeout(() => void pollLiveEdit(next), delay);
+}
+
+if (window.top === window) setTimeout(() => void pollLiveEdit(0), LIVE_INTERVAL_MS);

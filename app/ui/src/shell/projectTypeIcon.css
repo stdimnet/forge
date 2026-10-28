@@ -50,3 +50,8 @@
 .pt-icon[data-type="neovim"] { --pt: var(--success); }
 .pt-icon[data-type="lua"] { --pt: var(--graph-1); }
 .pt-icon[data-type="love"] { --pt: var(--graph-6); }
+.pt-icon[data-type="dotnet"],
+.pt-icon[data-type="csharp"],
+.pt-icon[data-type="aspnetcore"] { --pt: var(--graph-3); }
+.pt-icon[data-type="fsharp"],
+.pt-icon[data-type="vbnet"] { --pt: var(--info); }

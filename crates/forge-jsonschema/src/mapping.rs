@@ -134,8 +134,67 @@ pub static BUILTINS: &[Builtin] = &[
     },
 ];
 
+/// Built-in mappings chosen by content instead of the file name: OpenAPI 3.0 / 3.1
+/// documents (a top-level `openapi: 3.x` key in any JSON or YAML file).
+pub static CONTENT_BUILTINS: &[(&str, &str)] = &[
+    ("OpenAPI 3.0", bundled::OPENAPI_30),
+    ("OpenAPI 3.1", bundled::OPENAPI_31),
+];
+
+/// The OpenAPI version of a JSON / YAML document from its top-level `openapi` key
+/// (`3.0.3`, `3.1.0`), read from the first lines without parsing the whole file.
+pub fn openapi_version(text: &str) -> Option<String> {
+    let head = &text[..text.len().min(text.floor_char_boundary_compat(16 * 1024))];
+    // YAML: `openapi: 3.0.3` at column 0.
+    let yaml = head
+        .lines()
+        .find_map(|l| l.strip_prefix("openapi:"))
+        .map(|v| v.trim().trim_matches(['"', '\'']).to_string());
+    // JSON: `"openapi": "3.1.0"` anywhere in the head (first key of the root object).
+    let json = || {
+        let i = head.find("\"openapi\"")?;
+        let rest = head[i + 9..].trim_start().strip_prefix(':')?.trim_start();
+        let rest = rest.strip_prefix('"')?;
+        Some(rest[..rest.find('"')?].to_string())
+    };
+    yaml.or_else(json).filter(|v| v.starts_with('3'))
+}
+
+trait FloorBoundary {
+    fn floor_char_boundary_compat(&self, i: usize) -> usize;
+}
+
+impl FloorBoundary for str {
+    fn floor_char_boundary_compat(&self, mut i: usize) -> usize {
+        if i >= self.len() {
+            return self.len();
+        }
+        while !self.is_char_boundary(i) {
+            i -= 1;
+        }
+        i
+    }
+}
+
+fn content_builtin(text: &str) -> Option<(&'static str, &'static str)> {
+    let v = openapi_version(text)?;
+    if v.starts_with("3.0") {
+        Some(CONTENT_BUILTINS[0])
+    } else if v.starts_with("3.1") {
+        Some(CONTENT_BUILTINS[1])
+    } else {
+        None
+    }
+}
+
 /// The name the status bar shows for a schema URI.
 pub fn name_of(uri: &str) -> String {
+    if let Some((name, _)) = CONTENT_BUILTINS
+        .iter()
+        .find(|(_, u)| bundled::find(uri).is_some_and(|b| b.uri() == *u))
+    {
+        return name.to_string();
+    }
     if let Some(b) = bundled::find(uri) {
         if let Some(m) = BUILTINS.iter().find(|m| m.uri == b.uri()) {
             return m.name.to_string();
@@ -371,6 +430,14 @@ pub fn select(
         return Some(Selection {
             name: b.name.to_string(),
             uri: b.uri.to_string(),
+            source: Source::Builtin,
+            version: None,
+        });
+    }
+    if let Some((name, uri)) = content_builtin(text) {
+        return Some(Selection {
+            name: name.to_string(),
+            uri: uri.to_string(),
             source: Source::Builtin,
             version: None,
         });

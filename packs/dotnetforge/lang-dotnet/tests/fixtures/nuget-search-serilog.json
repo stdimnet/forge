@@ -1,0 +1,67 @@
+{
+  "@context": { "@vocab": "http://schema.nuget.org/schema#", "@base": "https://api.nuget.org/v3/registration5-gz-semver2/" },
+  "totalHits": 1784,
+  "data": [
+    {
+      "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog/index.json",
+      "@type": "Package",
+      "registration": "https://api.nuget.org/v3/registration5-gz-semver2/serilog/index.json",
+      "id": "Serilog",
+      "version": "4.1.0",
+      "description": "Simple .NET logging with fully-structured events",
+      "summary": "",
+      "title": "Serilog",
+      "iconUrl": "https://api.nuget.org/v3-flatcontainer/serilog/4.1.0/icon",
+      "licenseUrl": "https://www.nuget.org/packages/Serilog/4.1.0/license",
+      "projectUrl": "https://serilog.net/",
+      "tags": ["serilog", "logging", "semantic", "structured"],
+      "authors": ["Serilog Contributors"],
+      "owners": ["serilog"],
+      "totalDownloads": 1543210987,
+      "verified": true,
+      "packageTypes": [{ "name": "Dependency" }],
+      "versions": [
+        { "version": "3.1.1", "downloads": 98765432, "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog/3.1.1.json" },
+        { "version": "4.0.0", "downloads": 45678901, "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog/4.0.0.json" },
+        { "version": "4.0.1", "downloads": 34567890, "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog/4.0.1.json" },
+        { "version": "4.1.0", "downloads": 23456789, "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog/4.1.0.json" }
+      ],
+      "vulnerabilities": []
+    },
+    {
+      "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog.aspnetcore/index.json",
+      "@type": "Package",
+      "id": "Serilog.AspNetCore",
+      "version": "8.0.3",
+      "description": "Serilog support for ASP.NET Core logging",
+      "summary": "Serilog support for ASP.NET Core logging",
+      "iconUrl": "https://api.nuget.org/v3-flatcontainer/serilog.aspnetcore/8.0.3/icon",
+      "projectUrl": "https://github.com/serilog/serilog-aspnetcore",
+      "tags": ["serilog", "aspnet", "aspnetcore"],
+      "authors": ["Microsoft", "Serilog Contributors"],
+      "totalDownloads": 412345678,
+      "verified": true,
+      "versions": [
+        { "version": "8.0.0", "downloads": 30000000 },
+        { "version": "8.0.1", "downloads": 25000000 },
+        { "version": "8.0.3", "downloads": 9000000 }
+      ],
+      "vulnerabilities": []
+    },
+    {
+      "@id": "https://api.nuget.org/v3/registration5-gz-semver2/serilog.sinks.rollingfile/index.json",
+      "@type": "Package",
+      "id": "Serilog.Sinks.RollingFile",
+      "version": "3.3.0",
+      "description": "The rolling file sink for Serilog - Simple .NET logging with fully-structured events",
+      "iconUrl": "",
+      "tags": "serilog sinks",
+      "authors": "Serilog Contributors",
+      "totalDownloads": 98765432,
+      "verified": true,
+      "versions": [{ "version": "3.3.0", "downloads": 50000000 }],
+      "deprecation": { "message": "Use Serilog.Sinks.File instead", "reasons": ["Legacy"], "alternatePackage": { "id": "Serilog.Sinks.File", "range": "[0.0.0, )" } },
+      "vulnerabilities": [{ "advisoryUrl": "https://github.com/advisories/GHSA-0000-0000-0000", "severity": "1" }]
+    }
+  ]
+}

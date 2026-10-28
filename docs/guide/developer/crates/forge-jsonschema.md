@@ -27,12 +27,12 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `yaml.rs` | Tolerant YAML parser: block mappings and sequences (`- key: v` compact items), flow collections, plain/quoted/block scalars, comments, documents, anchors, aliases, `<<` merge keys (reported at the `<<` key), tags (`!!str`; other tags mark the node as not judged). YAML 1.2 core schema scalars. |
 | `uri.rs` | `$id`/`$ref` resolution (RFC 3986 section 5), fragments, JSON pointer decoding; project files are `project:/<path>`. |
 | `schema.rs` | `SchemaDoc` (a parsed schema file with its `$id`s, anchors and external refs), `Registry` (loaded documents, aliases, failed URIs, `missing()`), `Sch` (a subschema with its base URI), `Draft`. |
-| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under. |
+| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under, including the official OpenAPI 3.0 and 3.1 schemas (Apache-2.0). |
 | `validate.rs` | The validator: every keyword of draft 4–2020-12 (see the user page), best-branch reporting for `anyOf`/`oneOf`, evaluated properties/items for `unevaluated*`, ECMAScript patterns through `regex-lite`. |
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, the SchemaStore catalog; glob matching. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
 | `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
 

@@ -587,6 +587,132 @@
     ]
   },
   {
+    "id": "dotnet",
+    "name": ".NET Project",
+    "group": ".NET",
+    "pack": "dotnetforge",
+    "description": "A solution with a project from a dotnet new template: console, class library, ASP.NET Core, Blazor, worker or tests.",
+    "icon": "dotnet",
+    "defaultName": "MyApp",
+    "tools": [
+      "dotnet"
+    ],
+    "options": [
+      {
+        "id": "template",
+        "label": "Template",
+        "kind": "enum",
+        "default": "console",
+        "choices": [
+          {
+            "value": "console",
+            "label": "Console App"
+          },
+          {
+            "value": "classlib",
+            "label": "Class Library"
+          },
+          {
+            "value": "webapi",
+            "label": "ASP.NET Core Web API"
+          },
+          {
+            "value": "mvc",
+            "label": "ASP.NET Core Web App (Model-View-Controller)"
+          },
+          {
+            "value": "webapp",
+            "label": "ASP.NET Core Web App (Razor Pages)"
+          },
+          {
+            "value": "blazor",
+            "label": "Blazor Web App"
+          },
+          {
+            "value": "worker",
+            "label": "Worker Service"
+          },
+          {
+            "value": "xunit",
+            "label": "xUnit Test Project"
+          },
+          {
+            "value": "nunit",
+            "label": "NUnit Test Project"
+          },
+          {
+            "value": "mstest",
+            "label": "MSTest Test Project"
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "kind": "enum",
+        "default": "C#",
+        "choices": [
+          {
+            "value": "C#",
+            "label": "C#"
+          },
+          {
+            "value": "F#",
+            "label": "F#"
+          },
+          {
+            "value": "VB",
+            "label": "Visual Basic"
+          }
+        ]
+      },
+      {
+        "id": "framework",
+        "label": "Framework",
+        "kind": "enum",
+        "default": "",
+        "choices": [
+          {
+            "value": "",
+            "label": "The SDK's default"
+          },
+          {
+            "value": "net10.0",
+            "label": ".NET 10"
+          },
+          {
+            "value": "net9.0",
+            "label": ".NET 9"
+          },
+          {
+            "value": "net8.0",
+            "label": ".NET 8 (LTS)"
+          }
+        ]
+      },
+      {
+        "id": "otherTemplate",
+        "label": "Other template (short name)",
+        "kind": "string",
+        "default": "",
+        "description": "Any template from dotnet new list, e.g. grpc or avalonia.app; replaces the template above."
+      },
+      {
+        "id": "solution",
+        "label": "Create solution",
+        "kind": "bool",
+        "default": true,
+        "description": "Puts the project into src/ and adds it to a new .sln."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
     "id": "empty",
     "name": "Empty Project",
     "group": "Other",

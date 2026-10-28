@@ -197,6 +197,13 @@ async function handle(msg: BackgroundRequest, sender: chrome.runtime.MessageSend
       };
       return config;
     }
+    case "liveEditPoll": {
+      const s = await settings();
+      if (!s.token) return { enabled: false, seq: 0, events: [] };
+      const conn = await connect().catch(() => null);
+      if (!conn) return { enabled: false, seq: msg.since, events: [] };
+      return client.liveEdit(conn.port, s.token, msg.since).catch(() => ({ enabled: false, seq: msg.since, events: [] }));
+    }
     case "saveOptions": {
       const patch: Partial<Settings> = {};
       if (msg.altClick !== undefined) patch.altClick = msg.altClick;

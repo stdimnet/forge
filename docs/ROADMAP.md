@@ -136,11 +136,11 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Data editor: header sort/filter, value editor, foreign-key navigation, transpose, aggregates, compare data, charts
 - [x] Database objects: Create/Modify Table dialogs, Generate DDL, import (CSV/Excel/JSON), dump/restore with native tools
 - [x] ER diagrams, schema compare and migrations, query plans
-- [ ] Web tooling: File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, HTTP client extras (OAuth 2.0, cURL, WebSocket/gRPC)
+- [x] Web tooling: File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, HTTP client extras (OAuth 2.0, cURL, WebSocket/gRPC)
 
 ## Milestone 5 — Language packs II: .NET and Ruby
 
-- [ ] .NET pack: Roslyn LSP (managed), .NET SDK, solutions/projects, build window, run configurations and launch profiles, netcoredbg debugger, xUnit/NUnit/MSTest, NuGet window, `dotnet new` templates, EditorConfig cleanup
+- [x] .NET pack: Roslyn LSP (managed), .NET SDK, solutions/projects, build window, run configurations and launch profiles, netcoredbg debugger, xUnit/NUnit/MSTest, NuGet window, `dotnet new` templates, EditorConfig cleanup
 - [ ] .NET pack: ASP.NET Core (Razor/Blazor, endpoints), EF Core commands, Aspire, Docker, Hot Reload, user secrets, Azure DevOps code host
 - [ ] .NET pack: Unity and Godot integration (editor bridge, tests, debugging)
 - [x] Ruby pack: ruby-lsp, version managers, Bundler, Rake, RSpec/Minitest, rdbg debugger, RuboCop, ERB, IRB console

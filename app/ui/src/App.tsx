@@ -40,12 +40,14 @@ export function App() {
       scala: "core/src/main/scala/com/acme/shop/Cart.scala",
       android: "app/src/main/java/com/acme/notes/NoteRepository.kt",
       cpp: "src/geometry/polygon.cpp",
+      dotnet: "tests/Bookstore.Tests/CartTests.cs",
       wordpress: "acme-events.php",
       drupal: "acme_tools.module",
       react: "src/App.tsx",
       vue: "src/views/DashboardView.vue",
       angular: "src/app/users/user-card.component.ts",
       node: "src/orders/pricing.ts",
+      webtools: "apps/api/openapi.yaml",
     };
     await openFile(INITIAL[new URLSearchParams(location.search).get("project") ?? ""] ?? "app/Models/User.php");
   });

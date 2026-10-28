@@ -44,6 +44,7 @@ goforge-pprof.workspace = true
 forge-profiler.workspace = true
 rustforge-lang-rust.workspace = true
 rubyforge-lang-ruby.workspace = true
+dotnetforge-lang-dotnet.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 pyforge-jupyter.workspace = true
@@ -98,3 +99,9 @@ webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features =
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
+webforge-web-tooling.workspace = true
+
+# apollo-compiler (GraphQL) hashes with ahash, whose random seeds need getrandom's
+# JavaScript backend in the browser.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom_03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }

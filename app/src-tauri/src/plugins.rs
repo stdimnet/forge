@@ -53,6 +53,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/javaforge-android.toml"),
     ),
     ("cforge.toml", include_str!("../plugins/cforge.toml")),
+    (
+        "dotnetforge.toml",
+        include_str!("../plugins/dotnetforge.toml"),
+    ),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (
@@ -242,6 +246,12 @@ mod tests {
             ("config.ru", "ruby"),
             (".irbrc", "ruby"),
             ("app/views/carts/show.html.erb", "erb"),
+            ("src/Bookstore.Api/Bookstore.Api.csproj", "msbuild"),
+            ("Directory.Build.props", "msbuild"),
+            ("Bookstore.slnx", "msbuild"),
+            ("Bookstore.sln", "sln"),
+            ("src/Bookstore.Api/Program.cs", "csharp"),
+            ("Pages/Index.cshtml", "razor"),
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }

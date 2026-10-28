@@ -14,6 +14,7 @@
 //! | RSpec JSON | [`rspec`] | a report file |
 //! | Minitest verbose output | [`minitest`] | lines on stdout |
 //! | tox (environments as tests) | [`tox`] | lines on stdout |
+//! | Visual Studio TRX (`dotnet test --logger trx`) | [`trx`] | report files |
 //!
 //! [`line_parser`] picks the line parser of a [`TestReport`]; [`document_events`] reads a
 //! whole report (sniffing JSON, JSON lines and XML) for documents on stdout and report files.
@@ -28,6 +29,7 @@ pub mod pytest;
 pub mod rspec;
 pub mod tap;
 pub mod tox;
+pub mod trx;
 
 use crate::junit::{junit_messages, JUnitFlavor};
 use crate::run::TestReport;
@@ -43,6 +45,7 @@ pub use pytest::PytestReportLogParser;
 pub use rspec::rspec_events;
 pub use tap::TapParser;
 pub use tox::ToxParser;
+pub use trx::trx_events;
 
 /// The parser of a format that streams lines on stdout; `None` for whole documents.
 pub fn line_parser(report: TestReport) -> Option<Box<dyn LineParser>> {
@@ -65,6 +68,9 @@ pub fn line_parser(report: TestReport) -> Option<Box<dyn LineParser>> {
 pub fn document_events(text: &str, flavor: JUnitFlavor) -> Result<Vec<TestEvent>, String> {
     let t = text.trim_start_matches('\u{feff}').trim_start();
     if t.starts_with('<') {
+        if trx::is_trx(t) {
+            return trx_events(t);
+        }
         return Ok(junit_messages(t, flavor)?
             .iter()
             .filter_map(TestEvent::from_service_message)

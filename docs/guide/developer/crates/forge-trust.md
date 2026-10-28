@@ -30,7 +30,7 @@ The logic behind [Project trust and Safe Mode](../../user/project-trust.md):
 - `runs_project_program(root, program, args)` tells whether a command starts a program from
   the project (the program or a path argument lies inside `root`), lexically so it works for
   remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
-  project files (`SERVERS_RUNNING_PROJECT_CODE`).
+  project files (`SERVERS_RUNNING_PROJECT_CODE`; DotNetForge adds `roslyn` and `fsautocomplete`, which load MSBuild projects).
 - `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
   deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
   user's confirmation in Safe Mode; the user's own SSH configurations

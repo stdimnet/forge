@@ -1,0 +1,13 @@
+[package]
+name = "webforge-web-tooling"
+description = "WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-jsonschema.workspace = true
+# MIT OR Apache-2.0: GraphQL parser, schema and query validation.
+apollo-compiler = "1"

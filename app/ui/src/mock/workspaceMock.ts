@@ -28,6 +28,7 @@ import { isKotlinDemo, kotlinDemoFiles, kotlinDemoName } from "./demoKotlinProje
 import { isScalaDemo, scalaDemoFiles, scalaDemoName } from "./demoScalaProject";
 import { androidDemoFiles, androidDemoName, isAndroidDemo } from "./demoAndroidProject";
 import { cppDemoFiles, cppDemoName, isCppDemo } from "./demoCppProject";
+import { dotnetDemoFiles, dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
 import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
 import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
@@ -66,6 +67,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...androidDemoFiles }
     : isCppDemo()
     ? { ...cppDemoFiles }
+    : isDotnetDemo()
+    ? { ...dotnetDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -97,6 +100,8 @@ export const mockProjectName = isSymfonyDemo()
     ? androidDemoName
     : isCppDemo()
     ? cppDemoName
+    : isDotnetDemo()
+    ? dotnetDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.

@@ -61,6 +61,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   rdbg debugging; RuboCop offenses, Alt+Enter autocorrect and Reformat Code; Ruby LSP
   (installed on request with your own RubyGems); ERB templates and the IRB console
   ([RubyForge](docs/guide/user/ruby.md)).
+- **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
+  "Track only root files", problems from output filters), Live Edit through the Browser
+  Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
+  completion, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun basics, OpenAPI validation, preview,
+  endpoints and Generate HTTP Request, GraphQL validation and completion against the schema,
+  and the HTTP client's OAuth 2.0, cURL import/export, WebSocket and gRPC requests
+  ([Web tooling](docs/guide/user/web-tooling.md)).
 - **ER diagrams, Compare Structure and Explain Plan**: Diagrams | Show Diagram
   (`Ctrl+Alt+Shift+U`) draws a schema or a table with its relations (zoom, pan, SVG/PNG
   export); Compare Structure diffs two schemas or a schema and a DDL snapshot and generates the
@@ -80,6 +87,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
   null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
   CI ([Inspections](docs/guide/user/inspections.md)).
+- **DotNetForge**: .NET in the style of Rider: SDKs and `global.json`, `.sln` / `.slnx`
+  solutions and MSBuild projects (central package management, launch profiles), the Build
+  tool window with compiler, NuGet and MSBuild problems, .NET Project run configurations with
+  launch profiles and `dotnet watch`, xUnit / NUnit / MSTest through `dotnet test` with TRX
+  results, netcoredbg debugging, the NuGet tool window (search, upgrades, install / remove),
+  `dotnet new` templates, Code Cleanup with `dotnet format` and EditorConfig, and the Roslyn
+  language server downloaded on request ([DotNetForge](docs/guide/user/dotnet.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
@@ -624,6 +638,7 @@ and a plain Lua project does not start PHP language servers.
 | Ruby | `Gemfile` (also the tool `bundler`), `Rakefile` (also the tool `rake`), `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more `.rb` / `.rake` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
+| C# (`csharp`), F# (`fsharp`), Visual Basic (`vbnet`) | a solution (`.sln`, `.slnx`: the languages of its projects), a `.csproj`, `.fsproj` or `.vbproj` file (also the tool `dotnet`), a C# / F# file in the root or two or more in a folder, or `global.json` |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -631,6 +646,7 @@ and a plain Lua project does not start PHP language servers.
 | Framework | Detected from |
 | --- | --- |
 | Laravel | `laravel/framework` in `composer.json`, or an `artisan` file |
+| ASP.NET Core (`aspnetcore`) | a project file with the `Microsoft.NET.Sdk.Web` or `Microsoft.NET.Sdk.BlazorWebAssembly` SDK |
 | Symfony | `symfony/framework-bundle`, or `bin/console` together with `config/bundles.php` |
 | Doctrine | `doctrine/orm` |
 | Drupal | `drupal/core` or `drupal/core-recommended`, `core/lib/Drupal.php`, or a module / theme `<name>.info.yml` with `core_version_requirement` |
@@ -653,7 +669,7 @@ version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `bundler` (`Gemfile`), `rake` (`Rakefile`), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `bundler` (`Gemfile`), `rake` (`Rakefile`), `dotnet` (solutions and project files), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -664,9 +680,9 @@ Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `targe
 ## Primary type
 
 The most specific framework becomes the project's **primary** type, in this order: Laravel,
-Symfony, Drupal, WordPress, Shopware, Magento, Joomla, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
+Symfony, Drupal, WordPress, Shopware, Magento, Joomla, ASP.NET Core, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
 Neovim, Vite. Without a framework the primary language is used (PHP, TypeScript, JavaScript,
-Lua, Rust, Go, C/C++, Python, HTML, CSS).
+C#, F#, Visual Basic, Lua, Rust, Go, C/C++, Python, HTML, CSS).
 
 The primary type appears
 
@@ -691,6 +707,7 @@ The primary type appears
 | RustForge | Rust projects |
 | RubyForge | Ruby projects |
 | CForge | C and C++ projects |
+| DotNetForge | .NET projects (C#, F#, Visual Basic) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
@@ -850,6 +867,7 @@ not finished, the page says so.
 | [Drupal, Joomla and Shopware](docs/guide/user/cms.md) | CMS detection, Drupal file types and hook completion with Go to the hook docs, Shopware Twig tags, Drush and Shopware console |
 | [Doctrine and DQL](docs/guide/user/doctrine.md) | entity mappings, Doctrine tool window, DQL in PHP strings |
 | [WebForge](docs/guide/user/webforge.md) | npm scripts and package managers, React, Vue, Angular navigation |
+| [Web tooling](docs/guide/user/web-tooling.md) | File Watchers, Live Edit, Vite/Webpack aliases, Svelte/Astro/Nuxt/Nx/Prisma/Deno/Bun, OpenAPI, GraphQL, OAuth 2.0, cURL, WebSocket and gRPC requests |
 | [LuaForge](docs/guide/user/luaforge.md) | Lua index, LÖVE, Neovim, lua-language-server, StyLua, Lua runs |
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
@@ -859,6 +877,7 @@ not finished, the page says so.
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 | [CForge (C and C++)](docs/guide/user/cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
+| [DotNetForge (.NET)](docs/guide/user/dotnet.md) | .NET SDKs and global.json, solutions (.sln, .slnx) and MSBuild projects, the Build tool window with build problems, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg, the NuGet tool window, dotnet new templates, Code Cleanup with dotnet format, the Roslyn language server |
 | [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md) | Sanitizers (ASan, UBSan, TSan, MSan, LSan) in CMake profiles with the Sanitizers tab, Run with Valgrind Memcheck, Profile with perf (flame graph), vcpkg and Conan 2 |
 | [Profiling PHP and Node.js](docs/guide/user/profiling.md) | Xdebug and SPX snapshots and V8 CPU / heap profiles in the Profiler: Execution Statistics with callers and callees, Call Tree, Flame Graph, the Memory view of heap snapshots, Profile with Xdebug, SPX and V8 |
 | [Embedded development](docs/guide/user/embedded.md) | PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB Server debugging, the SVD Peripherals view |
@@ -9257,6 +9276,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger), Groovy, Scala with sbt, Android |
 | **CForge** | C and C++ (clangd, toolchains, CMake, CTest / GoogleTest / Catch2, LLDB / GDB) |
+| **DotNetForge** | .NET: C#, F# and Visual Basic (SDKs, solutions and MSBuild projects, the Build and NuGet tool windows, dotnet run / watch with launch profiles, xUnit / NUnit / MSTest, netcoredbg, dotnet new, dotnet format, the Roslyn language server) |
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
@@ -11351,6 +11371,266 @@ In [remote projects](docs/guide/user/remote-development.md) the npm tool window,
 component navigation and gutter icons are computed by the Forge agent on the host, and scripts
 run there like every run configuration.
 
+## More web tooling
+
+File Watchers, Live Edit, Vite/Webpack aliases in imports, Svelte, Astro, Nuxt, Nx, Prisma,
+Deno and Bun, OpenAPI and GraphQL are described in [Web tooling](docs/guide/user/web-tooling.md).
+
+
+---
+
+Source: docs/guide/user/web-tooling.md
+
+# Web tooling
+
+Tooling around the web languages of [WebForge](docs/guide/user/webforge.md), modelled on PHPStorm and
+WebStorm. Everything works at a solid basic level; the notes at the end of each section say
+what is not there yet. In browser mode the demo `?project=webtools` (an Nx workspace with a
+Nuxt storefront, an OpenAPI document, GraphQL, Prisma, Sass and `.http` requests) shows all of
+it.
+
+## File Watchers
+
+Settings | Tools | File Watchers runs a program whenever a file of some type changes, such as
+`sass`, `lessc`, `tsc`, `babel` or `prettier`. Watchers belong to the project (setting
+`tools.fileWatchers`).
+
+![File Watchers page](docs/screenshots/web-tooling-file-watchers.png)
+
+- **+** adds a watcher from a template: **SCSS**, **Sass**, **Less**, **TypeScript** (`tsc`),
+  **Babel**, **Prettier** or **Custom**. The check box turns a watcher off.
+- **Files to Watch**: the file type and the scope (Project Files or any scope from
+  Settings | Appearance & Behavior | Scopes).
+- **Tool to Run on Changes**: program, arguments, output paths to refresh and working
+  directory, all with macros such as `$FileName$`, `$FileNameWithoutExtension$`,
+  `$FileDir$`, `$FilePathRelativeToProjectRoot$` and `$ProjectFileDir$`, plus environment
+  variables. A bare program name (`sass`) runs the project's `node_modules/.bin/sass` when
+  there is one.
+- **Advanced Options**:
+  - **Auto-save edited files to trigger the watcher**: the file is saved after a short pause
+    in typing, so the watcher runs while you type.
+  - **Trigger the watcher on external changes**: also run for files changed outside Forge
+    (git checkout, another editor).
+  - **Track only root files**: a changed partial (`_variables.scss`) or imported module runs
+    the files that import it (`app.scss`, `print.scss`) instead of itself. `@use`, `@import`
+    and `@forward` (Sass, Less) and relative ES imports are followed.
+  - **Show console**: Always, On error (default) or Never.
+- **Output filters** (`$FILE_PATH$:$LINE$:$COLUMN$`, one regular expression per line, as for
+  External Tools) turn the program's error messages into links in the console and into
+  problems in the **File Watchers** tab of the Problems tool window.
+
+![A watcher run after saving a Sass partial](docs/screenshots/web-tooling-file-watcher-run.png)
+
+Watchers run in the Run tool window like any program, and never in
+[Safe Mode](docs/guide/user/project-trust.md): an untrusted project shows "File Watchers did not run" instead.
+Files a watcher writes (its output paths) never start it again.
+
+![Edit Watcher dialog](docs/screenshots/web-tooling-file-watcher-edit.png)
+
+> **Note:** watchers run one file at a time; PHPStorm's "Create output file from stdout" and
+> per-watcher "Level" (global watchers) are not available yet.
+
+## Live Edit
+
+With the [Browser Companion](docs/guide/user/browser-companion.md) extension paired, Forge updates the pages
+open in the browser:
+
+- **Style sheets** are swapped in place without a reload (CSS hot swap): while typing (after
+  `liveEdit.delayMs`, setting `liveEdit.updateWhileTyping`) with the editor's text, and on save
+  by reloading the `<link>`. CSS that a File Watcher writes (Sass, Less) is pushed when it
+  changes on disk.
+- **HTML, scripts, templates and images**: pages that loaded the saved file reload
+  (`liveEdit.reloadOnSave`).
+
+The extension matches changed files to what the page loaded by their path below the web root
+(`public/css/app.css` is `/css/app.css`), so other tabs are left alone. Turn it off with
+`liveEdit.enabled` (Settings | Tools | Browser Companion, section Live Edit).
+
+![Live Edit settings](docs/screenshots/web-tooling-live-edit.png)
+
+> **Note:** JavaScript is not hot-swapped (pages reload); use your dev server's HMR for that.
+> Style sheets a bundler injects from JavaScript reload the page instead of being swapped.
+
+## Vite and Webpack aliases
+
+`resolve.alias` of `vite.config.*` and `webpack.config.*` (in the root or one folder below) is
+read statically, together with `tsconfig.json` / `jsconfig.json` `paths`. Supported forms:
+object and array aliases, `path.resolve(__dirname, …)`, `path.join`,
+`fileURLToPath(new URL('./src', import.meta.url))`, `` `${__dirname}/src` ``, root-relative
+strings (`'/src'`) and Webpack's exact `name$`. Aliases to packages and computed values are
+skipped.
+
+- **Go to Declaration** (`Ctrl+B`, `Ctrl+Click`) on an import string such as
+  `'@ui/format'` opens the file, also where the TypeScript language server does not know the
+  alias.
+- **Completion** in import strings offers folders and modules through the aliases
+  (`'@/compo…'`), and the alias names themselves.
+
+## Svelte, Astro, Nuxt, Nx, Prisma, Deno and Bun
+
+| Framework | Detected by | What Forge does |
+| --- | --- | --- |
+| Svelte | `svelte` dependency, `svelte.config.*` | `.svelte` highlighting (HTML with script and style), the Svelte language server (npm, installed by Forge with your consent) |
+| Astro | `astro` dependency, `astro.config.*` | `.astro` highlighting, `@astrojs/language-server` |
+| Nuxt | `nuxt` dependency, `nuxt.config.*` | the **Nuxt** view of the Endpoints tool window (pages as routes, `[id]` → `:id`, catch-all and optional parameters, route groups; auto-imported components), Go to Declaration on component tags (`<BaseButton>`, `<base-button>`, `<LazyBaseButton>`) |
+| Nx | `nx.json` | the **Nx** tool window (projects, targets with their executors, dependencies, a project graph), double-click runs `nx run project:target` as an `Nx` run configuration, targets in Run Anything |
+| Prisma | `prisma` / `@prisma/client` dependency, `schema.prisma` | `.prisma` highlighting, the Prisma language server, Tools \| Prisma \| Generate Client / Migrate Dev…, Prisma commands in Run Anything |
+| Deno | `deno.json` / `deno.jsonc` | `deno lsp` replaces the TypeScript language server, `Deno` run configurations (`deno run`, `deno task`, `deno test`), tasks in Run Anything |
+| Bun | `bun.lock` / `bun.lockb` / `bunfig.toml` | `Bun` run configurations (`bun run`, `bun test`), scripts in Run Anything, and Bun as the Node interpreter: enter `bun` in Settings \| Languages & Frameworks \| Node.js |
+
+![Nx tool window](docs/screenshots/web-tooling-nx.png)
+
+![Nuxt pages in the Endpoints tool window](docs/screenshots/web-tooling-nuxt-pages.png)
+
+> **Note:** the Nx project graph lists dependencies as layers instead of drawing edges, and
+> dependencies Nx infers from imports are not shown (only `implicitDependencies` and
+> package.json dependencies between workspace packages).
+
+## OpenAPI
+
+YAML and JSON files with a top-level `openapi: 3.x` (or `swagger: "2.0"`) key are OpenAPI
+documents, whatever their name.
+
+- **Validation** uses the bundled official OpenAPI 3.0 and 3.1 JSON schemas (Apache-2.0, from
+  the OpenAPI Initiative) through the [JSON Schema](docs/guide/user/json-schema.md) support; the status bar
+  shows "JSON schema: OpenAPI 3.0".
+- **Preview**: OpenAPI files open with a Swagger-UI-like preview next to the text, rendered by
+  Forge itself (no remote JavaScript): title, version, servers, operations by tag with
+  parameters, request body and responses with examples generated from the schemas, and the
+  schemas. The layout buttons switch between editor, preview and both.
+- **Endpoints**: the **OpenAPI** view of the Endpoints tool window lists every operation of
+  the project's documents with speed search; a click opens it in the file.
+- **Generate HTTP Request** (the send button of an operation, the endpoint's context menu, or
+  the Generate HTTP Request action at the caret) opens a new HTTP scratch with the request: path
+  parameters and required query parameters as `{{variables}}`, the server URL as
+  `@baseUrl`, an `Accept` header and the example body.
+
+![OpenAPI preview](docs/screenshots/web-tooling-openapi-preview.png)
+
+![OpenAPI endpoints](docs/screenshots/web-tooling-openapi-endpoints.png)
+
+> **Note:** Swagger 2.0 documents get the preview and endpoints but no schema validation;
+> external `$ref`s to other files are not followed.
+
+## GraphQL
+
+`.graphql`, `.gql` and `.graphqls` files are highlighted and checked against the project's
+schema with apollo-compiler (MIT / Apache-2.0):
+
+- **Schema**: the `schema` of `graphql.config.*` / `.graphqlrc*` (files or globs; an
+  introspection result in JSON works too), else every `.graphql` file that defines types.
+- **Validation**: unknown fields and types, missing required arguments, wrong variables and
+  syntax errors are reported as you type. Schema files are checked against each other.
+- **Completion** (`Ctrl+Space`): fields with their types and descriptions (deprecated ones
+  struck through), arguments, types after `on` and in variable definitions, and the top-level
+  keywords.
+- **Get GraphQL Schema from Endpoint** (Tools menu) runs the introspection query against the
+  endpoint of `graphql.config` (`extensions.endpoints`, with its headers) or one you enter, and
+  saves the schema as SDL (`schema.graphql` by default).
+- Queries run in the HTTP client as `GRAPHQL` requests (below).
+
+![GraphQL validation and completion](docs/screenshots/web-tooling-graphql.png)
+
+> **Note:** fragments are not resolved for completion inside spreads; `graphql-tag` strings in
+> JavaScript are not checked yet.
+
+## HTTP client extras
+
+These extend [Scratches and the HTTP client](docs/guide/user/scratches-and-http.md).
+
+### OAuth 2.0
+
+Configure authorization in `http-client.env.json` (secrets in
+`http-client.private.env.json`) under `Security.Auth`, like PHPStorm, and use the token with
+`{{$auth.token("id")}}` (or `{{$auth.idToken("id")}}`):
+
+```json
+{
+  "dev": {
+    "Security": {
+      "Auth": {
+        "shop-api": {
+          "Type": "OAuth2",
+          "Grant Type": "Authorization Code",
+          "Auth URL": "https://id.example.com/authorize",
+          "Token URL": "https://id.example.com/token",
+          "Redirect URL": "http://localhost:51234/callback",
+          "Client ID": "storefront",
+          "Scope": "openid products:read",
+          "PKCE": true
+        }
+      }
+    }
+  }
+}
+```
+
+```http
+GET https://api.example.com/products
+Authorization: Bearer {{$auth.token("shop-api")}}
+```
+
+- Grant types: **Client Credentials**, **Password** and **Authorization Code** (with PKCE,
+  S256). The Authorization Code grant opens the login page in your browser and receives the
+  code on a loopback port (the `Redirect URL`'s, else a free one).
+- `Client Credentials: "in body"` sends the client secret in the form instead of
+  `Authorization: Basic`.
+- Tokens are kept in memory for the IDE session and refreshed with their refresh token when
+  they expire. Tools | HTTP Client | Clear OAuth Tokens forgets them.
+
+![An OAuth request](docs/screenshots/web-tooling-http-oauth.png)
+
+### cURL
+
+- **Import from cURL** (toolbar of `.http` editors, Tools | HTTP Client): paste a `curl`
+  command, for example from the browser's dev tools; it becomes a request (method, headers,
+  `-d`/`--data-*`/`--json` bodies, `-F` multipart forms, `-u` basic auth, cookies, `-G`).
+- **Copy as cURL**: the request at the caret, resolved with the environment, as a `curl`
+  command line in the clipboard.
+
+![Import from cURL](docs/screenshots/web-tooling-curl-import.png)
+
+### GraphQL, WebSocket and gRPC requests
+
+```http
+GRAPHQL https://api.example.com/graphql
+
+query Product($id: ID!) {
+  product(id: $id) { name price }
+}
+
+{ "id": "42" }
+
+###
+WEBSOCKET ws://localhost:8080/orders/live
+
+{"subscribe": "orders"}
+=== wait-for-server
+{"ping": 1}
+
+###
+GRPC localhost:50051/acme.inventory.v1.Stock/GetLevel
+
+{ "productId": 42 }
+```
+
+- **`GRAPHQL`** sends the query (and the JSON variables block after it) as a GraphQL-over-HTTP
+  `POST`.
+- **`WEBSOCKET`** connects, sends the messages (separated by `===`; `=== wait-for-server` waits
+  for a message from the server first) and keeps a live message log in the Run tool window
+  (`▶` sent, `◀` received). Text typed into the console is sent as a message; Stop closes the
+  connection.
+- **`GRPC`** makes a unary call with the JSON body. The message types come from the server's
+  reflection service (`grpc.reflection.v1`, then `v1alpha`); servers without reflection need
+  their `.proto` files in Settings | Tools | HTTP Client (`httpClient.grpc.protoFiles`, files or
+  import folders). `grpcs://` and `https://` use TLS.
+
+![WebSocket message log](docs/screenshots/web-tooling-http-websocket.png)
+
+> **Note:** streaming gRPC methods, GraphQL subscriptions over WebSocket and sending WebSocket
+> or gRPC requests from a remote project's host are not supported yet; they connect from this
+> machine.
+
 
 ---
 
@@ -13288,6 +13568,217 @@ tests, CMake presets and a `.clang-format`. `&build=broken` makes its build fail
 compiler errors. Toolchains, the CMake model and all output are canned; the parsing and the
 command lines run the Rust crates through WebAssembly. `?project=pio` opens the PlatformIO
 demo `blinky` ([Embedded development](docs/guide/user/embedded.md#browser-mode)).
+
+
+---
+
+Source: docs/guide/user/dotnet.md
+
+# DotNetForge (.NET)
+
+**DotNetForge** brings Rider's .NET support to Forge, inside Forge's PHPStorm-style layout.
+Its plugin **.NET** (`forge.dotnet`) is active in [.NET projects](docs/guide/getting-started/project-detection.md):
+a solution (`.sln`, `.slnx`), a project file (`.csproj`, `.fsproj`, `.vbproj`) in the root or
+one level below, `global.json`, a C# or F# file in the root, or two or more in a folder.
+
+- C#, F# and Visual Basic files are highlighted out of the box. MSBuild files (`.csproj`,
+  `.fsproj`, `.vbproj`, `.props`, `.targets`, `.slnx`, `.nuspec`, `.runsettings`, `.resx`)
+  are XML, Razor (`.razor`, `.cshtml`) is HTML, and `.sln` solutions have their own
+  highlighting (sections, GUIDs, configurations).
+- Completion, navigation, hover, rename, code actions and diagnostics for C# come from the
+  **Roslyn language server** (see [below](#roslyn-language-server)), F# from FsAutoComplete
+  when it is installed (`dotnet tool install --global fsautocomplete`).
+- Everything else is computed in Rust (`packs/dotnetforge/*`): solutions and project files,
+  launch profiles, SDK selection, build output, test discovery, TRX reports, command lines
+  and NuGet answers.
+
+![CartTests.cs with run icons on the xUnit test class and its facts and theories](docs/screenshots/dotnet-editor.png)
+
+## .NET SDK
+
+**Settings | Languages & Frameworks | .NET** shows the `dotnet` host, its SDKs and runtimes,
+and the SDK the solution builds with.
+
+![Settings | Languages & Frameworks | .NET](docs/screenshots/dotnet-settings.png)
+
+- The host is the **dotnet executable** of the page, else `DOTNET_ROOT`, the `PATH`, the
+  default install folders (`/usr/share/dotnet`, `/usr/lib/dotnet`, `/usr/local/share/dotnet`,
+  Homebrew, `C:\Program Files\dotnet`) or `~/.dotnet`.
+- SDKs and runtimes come from `dotnet --list-sdks` and `dotnet --list-runtimes`, run outside
+  the project, or from the host's `sdk/` and `shared/` folders.
+- **SDK in use** follows the dotnet host's rules: `global.json`'s `version`,
+  `rollForward` (`patch`, `feature`, `minor`, `major`, `latestPatch`, `latestFeature`,
+  `latestMinor`, `latestMajor`, `disable`) and `allowPrerelease`. When `global.json` asks
+  for an SDK that is not installed, the page says so.
+- Without an SDK, a balloon offers **Install .NET SDK…**: the platform's package manager
+  (`apt`, `dnf`, `pacman`, Homebrew, winget) in the Terminal, or the download page. Forge
+  never installs an SDK on its own.
+
+## Solutions and projects
+
+Forge reads the solution and its projects from the files, the way Rider shows them before a
+design-time build:
+
+- `.sln` (Visual Studio 2005+) and `.slnx` solutions: projects, solution folders and
+  configurations (`Debug|Any CPU`). With several solutions, the Build tool window picks the
+  active one (stored per project, `dotnet.solution`).
+- Project files with the nearest `Directory.Build.props` and `Directory.Packages.props`:
+  the SDK (`Microsoft.NET.Sdk.Web` makes a web project), `OutputType`, `TargetFramework(s)`,
+  `AssemblyName`, `RootNamespace`, project, framework and package references, F# compile
+  order, and properties such as `Nullable`, `LangVersion` and `Version`.
+- `$(Property)` references are expanded, and simple conditions
+  (`'$(Configuration)' == 'Release'`) are evaluated with the active configuration;
+  conditions that depend on the target framework keep their references listed.
+- **Central package management**: versions from `PackageVersion` items,
+  `VersionOverride`, and implicit references (`FSharp.Core`).
+- Launch profiles from `Properties/launchSettings.json` (comments and trailing commas are
+  fine).
+- A test project is one with `IsTestProject`, the `MSTest.Sdk`, or `Microsoft.NET.Test.Sdk`
+  with xUnit, NUnit or MSTest.
+
+The solution reloads when you save a solution, project, `Directory.*.props`,
+`launchSettings.json` or `global.json` file, and with **Reload Solution**.
+
+## Build tool window
+
+The **Build** tool window (bottom) shows the solution on the left and the last build on the
+right, like Rider's.
+
+![The Build tool window with the solution and the problems of a failed build](docs/screenshots/dotnet-build.png)
+
+- **Solution tree**: solution folders, projects with their language and target frameworks,
+  launch profiles and package references. Double-click runs a project or a launch profile.
+- Toolbar: **Build**, **Rebuild**, **Clean** and **Restore NuGet Packages** of the solution
+  (or the selected project), **Run** and **Debug** of the selected project or profile,
+  **Reload Solution**, **Show Build Output**, the active solution and the build
+  configuration (**Debug** / **Release**).
+- Builds run `dotnet build` in the Run tool window. Their output is parsed in Rust: the
+  compiler (C#, F#, VB), NuGet and MSBuild problems, each once, grouped by file, with the
+  summary (errors, warnings, time). Click a problem to open its location; the editor shows
+  the same problems (inspection *Build errors and warnings*, source `dotnet-build`).
+- **Build | Build Project** (`Ctrl+F9`) builds the solution in .NET projects; the Build menu
+  also has **Build Solution**, **Rebuild Solution**, **Clean Solution**, **Restore NuGet
+  Packages** and **Reload Solution**.
+
+## Run configurations
+
+The **.NET Project** configuration type runs a project with `dotnet run`:
+
+![Run/Debug Configurations with a .NET Project configuration and its launch profile](docs/screenshots/dotnet-run-config.png)
+
+- **Project**: the runnable projects (`Exe`, `WinExe` and web projects).
+- **Launch profile**: a profile of `launchSettings.json` (`--launch-profile`), the default
+  (the first one) or **None** (`--no-launch-profile`). Profiles of other kinds (IIS
+  Express, Docker) are listed in the Build tool window but `dotnet run` cannot start them.
+- **Run with**: `dotnet run`, or `dotnet watch` with hot reload (rude edits restart the
+  program).
+- **Target framework**, **Configuration** (else Settings | .NET), **Do not build** and more
+  `dotnet run` options; program arguments go after `--`.
+- **Build before running tests and debugging** (Settings | .NET) builds the solution through
+  the Build tool window first, so its problems show up there.
+
+## Testing
+
+The **.NET Tests** configuration type runs xUnit, NUnit and MSTest tests with `dotnet test`
+on the [shared test runner](docs/guide/user/testing.md):
+
+![A dotnet test run with a failed FluentAssertions comparison](docs/screenshots/dotnet-tests.png)
+
+- Gutter icons on test classes and methods: xUnit `[Fact]` / `[Theory]`, NUnit `[Test]` /
+  `[TestCase]` / `[TestCaseSource]`, MSTest `[TestMethod]` / `[DataTestMethod]` in C#, and
+  `[<Fact>]` / `[<Test>]` functions and members in F#. Nested classes count (`Outer+Inner`);
+  skipped tests (`Skip =`, `[Ignore]`) are marked.
+- Scopes: the solution, a test project, a class, a method or a `--filter` expression. Class
+  and method runs use `FullyQualifiedName` filters (data rows included).
+- Results come from the **TRX report** (`--logger trx`) that `dotnet test` writes into
+  Forge's report folder: suites per class, tests per data row, durations, output, failure
+  messages with stack traces, and **Click to see difference** for xUnit, NUnit, MSTest and
+  FluentAssertions comparisons. The gutter icons show the results.
+- **Rerun Failed Tests** runs only the failed methods.
+- `global.json` with `"test": { "runner": "Microsoft.Testing.Platform" }` switches to the new
+  platform's options (`--report-trx`).
+- **Debug** runs the tests with `VSTEST_HOST_DEBUG=1` and attaches netcoredbg to the test
+  host when it waits for a debugger.
+
+## Debugging
+
+Debugging uses **netcoredbg** (MIT, Samsung), a Debug Adapter Protocol server for .NET:
+
+- **Debug** on a .NET Project configuration builds the project, finds the built assembly in
+  the build output and starts `dotnet <assembly>` under netcoredbg with the launch profile's
+  arguments, working folder and environment (including `ASPNETCORE_URLS` from
+  `applicationUrl`). **Step through my code only** (Just My Code) is on by default.
+- netcoredbg comes from Settings | .NET's path, Forge's download, or the `PATH`. **Download…**
+  fetches the pinned release from GitHub after you agree and checks the SHA-256 GitHub
+  publishes for it; without one, the download is refused.
+
+## NuGet
+
+The **NuGet** tool window (bottom) searches the feed and manages the solution's packages.
+
+![The NuGet tool window with a search and a package's projects](docs/screenshots/dotnet-nuget.png)
+
+- Without a search term, the list shows the packages installed in the solution, with their
+  upgrades. A search asks the feed (nuget.org by default, Settings | .NET | NuGet feed)
+  through Forge's Rust client; **Prerelease** includes prerelease versions.
+- The details of a package show its versions and every project with the version it uses:
+  **Install**, **Upgrade** and **Remove** run `dotnet add <project> package <id> --version
+  <v>` / `dotnet remove <project> package <id>` in the Run tool window. With central package
+  management, `dotnet` updates `Directory.Packages.props`.
+- **Updates** lists the installed packages with a newer version (`Upgrade All`).
+- Versions are cached in the user cache folder for six hours and used when the feed cannot
+  be reached.
+
+![NuGet upgrades of the solution's packages](docs/screenshots/dotnet-nuget-updates.png)
+
+## Templates
+
+- **File | New Project | .NET Project** creates a solution with a project from a `dotnet
+  new` template (console, class library, ASP.NET Core, Blazor, worker, xUnit, NUnit, MSTest,
+  or any other template's short name), in C#, F# or Visual Basic, for a chosen framework.
+- **Tools | Add Project from Template…** lists the templates `dotnet new list` reports
+  (including those added with `dotnet new install`), creates the project in `src/` or
+  `tests/` and adds it to the solution (`dotnet sln add`).
+
+![Add Project from Template](docs/screenshots/dotnet-add-project.png)
+
+## Code Cleanup and formatting
+
+- **Code | Code Cleanup…** in a .NET project runs `dotnet format` on the current file, its
+  folder or the whole solution. Every rule comes from the project's `.editorconfig` files:
+  whitespace, code style (`IDE*`) and analyzers (`CA*`). Settings | .NET chooses what it fixes
+  (all, whitespace, style, analyzers) and the minimum severity; a balloon reports how many
+  fixes `dotnet format` made.
+- **Code | Reformat Code** (`Ctrl+Alt+L`) uses the Roslyn server by default. With *Reformat
+  Code with: dotnet format*, Forge formats the editor text with `dotnet format whitespace`
+  in a temporary copy that has the same `.editorconfig` files, so the project is not touched.
+
+## Roslyn language server
+
+C# code insight comes from **Microsoft.CodeAnalysis.LanguageServer** (MIT), the server of
+VS Code's C# extension. It is never bundled:
+
+- When it is missing, a balloon offers **Download…**. Forge downloads the pinned version for
+  your platform from Microsoft's public `vs-impl` NuGet feed, checks it against the SHA-256
+  recorded for that version, and keeps it in Forge's data folder. It runs on your .NET
+  runtime (9 or newer); **Download the Roslyn Language Server…** is also in Find Action.
+- Forge starts it for local projects and opens the active solution (`solution/open`), or the
+  project files without one. It replaces csharp-ls while it runs.
+- Settings: **Analyze** open files, the whole solution or nothing; parameter and type hints.
+
+## Project trust
+
+Building, running, testing, restoring, formatting and debugging run project code (MSBuild
+targets, source generators, analyzers), so [Safe Mode](docs/guide/user/project-trust.md) refuses them, and
+the Roslyn server and FsAutoComplete do not start. Reading the solution, project files and
+launch profiles and searching NuGet stay available.
+
+## Browser mode
+
+`?project=dotnet` opens the `Bookstore` demo solution (an ASP.NET Core API, a class library
+with two target frameworks, xUnit tests and an F# tool, with central package management);
+`&build=broken` makes its build fail with compiler errors, `&roslyn=missing` starts without
+the Roslyn server.
 
 
 ---
@@ -18333,6 +18824,13 @@ Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, 
 
 ![HTTP request sent from the remote host](docs/screenshots/remote-finish-http.png)
 
+## OAuth 2.0, cURL, GraphQL, WebSocket and gRPC
+
+The HTTP client also acquires OAuth 2.0 tokens (`{{$auth.token("id")}}` with `Security.Auth`
+in the environment file), imports and copies cURL commands, and runs `GRAPHQL`, `WEBSOCKET`
+(with a live message log) and `GRPC` requests. See
+[Web tooling](docs/guide/user/web-tooling.md#http-client-extras).
+
 
 ---
 
@@ -19480,6 +19978,13 @@ and applies `.env` changes on the host, and files the browser asks for open in t
 project: the host's absolute paths below the project, paths relative to it, and paths of other
 machines or containers (`/app/src/App.tsx`, `C:\Users\…\src\App.tsx`), which are matched by
 their longest tail that exists in the project. Symbol lookups search the host's files.
+
+## Live Edit
+
+With the extension paired, saved style sheets are swapped in the open pages without a reload
+(also while typing), and pages reload when HTML, scripts or templates they loaded are saved.
+The extension asks Forge for changes with `GET /api/forge/live-edit` (paired browsers only).
+See [Web tooling](docs/guide/user/web-tooling.md#live-edit) for the settings.
 
 
 ---
@@ -21643,6 +22148,30 @@ Page id `lang.cpp` (plugin `forge.cpp`; the page also shows clangd, the compilat
 | `cpp.clangFormat.path` | path | `""` | user | Code Style | clang-format executable — Empty: clang-format of the active toolchain or on the PATH. |
 | `cpp.clangFormat.fallbackStyle` | enum: `LLVM`, `Google`, `Chromium`, `Mozilla`, `WebKit`, `Microsoft`, `GNU`, `none` | `LLVM` | user, project | Code Style | Style without a .clang-format file. |
 | `cpp.debugger.stlRenderers` | bool | `true` | user | Debugger | Show STL containers with their elements — GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters. |
+### Languages & Frameworks | .NET
+
+Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet host, its SDKs and runtimes, the SDK `global.json` selects, the Roslyn server and netcoredbg with their downloads). See [DotNetForge](docs/guide/user/dotnet.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `dotnet.path` | path | `""` | user | .NET CLI | dotnet executable — The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder. |
+| `dotnet.environment` | list | `[]` | user, project | .NET CLI | Environment — Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES). |
+| `dotnet.solution` | string | `""` | user, project | Solution | Solution — The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root. (hidden: edited in the Build tool window) |
+| `dotnet.configuration` | enum: `Debug`, `Release` | `"Debug"` | user, project | Build | Build configuration |
+| `dotnet.build.verbosity` | enum: `quiet`, `minimal`, `normal`, `detailed` | `"minimal"` | user | Build | MSBuild verbosity |
+| `dotnet.build.beforeRun` | bool | `false` | user | Build | Build before running tests and debugging — dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there. |
+| `dotnet.formatter` | enum: `lsp`, `dotnetFormat`, `none` | `"lsp"` | user, project | Code Cleanup | Reformat Code with — Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files). |
+| `dotnet.cleanup.scope` | enum: `all`, `whitespace`, `style`, `analyzers` | `"all"` | user, project | Code Cleanup | Code Cleanup fixes — Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them. |
+| `dotnet.cleanup.severity` | enum: `info`, `warn`, `error` | `"warn"` | user, project | Code Cleanup | Minimum severity of fixed diagnostics |
+| `dotnet.roslyn.path` | path | `""` | user | Roslyn | Roslyn language server — The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download. |
+| `dotnet.roslyn.autoInstall` | enum: `ask`, `never` | `"ask"` | user | Roslyn | Offer to download the Roslyn language server |
+| `dotnet.roslyn.analysisScope` | enum: `openFiles`, `fullSolution`, `none` | `"openFiles"` | user, project | Roslyn | Analyze — Where the server reports compiler and analyzer problems. |
+| `dotnet.roslyn.inlayHints` | bool | `true` | user | Roslyn | Show parameter and type hints |
+| `dotnet.debugger.path` | path | `""` | user | Debugger | netcoredbg executable — Empty: Forge's download or netcoredbg on the PATH. |
+| `dotnet.debugger.justMyCode` | bool | `true` | user | Debugger | Step through my code only (Just My Code) |
+| `dotnet.nuget.source` | string | `"https://api.nuget.org/v3/index.json"` | user | NuGet | NuGet feed — The service index the NuGet tool window searches. |
+| `dotnet.nuget.prerelease` | bool | `false` | user, project | NuGet | Include prerelease versions |
+
 ### Languages & Frameworks | Jupyter
 
 Page id `lang.jupyter`. See [Jupyter notebooks](docs/guide/user/jupyter.md). The server token is stored in the OS keychain, not in settings.
@@ -21720,6 +22249,18 @@ Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
 | `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
 | `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
 | `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
+### Languages & Frameworks | GraphQL, OpenAPI, Deno and Bun
+
+Page ids `lang.graphql`, `lang.openapi`, `lang.deno` and `lang.bun`. See [Web tooling](docs/guide/user/web-tooling.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `graphql.validation` | bool | `true` | user |  | Check queries against the schema |
+| `graphql.endpoint` | string | `""` | user, project |  | Introspection endpoint — URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint. |
+| `openapi.preview` | bool | `true` | user |  | Show the preview next to OpenAPI files |
+| `deno.executable` | string | `deno` | user |  | Deno executable |
+| `bun.executable` | string | `bun` | user |  | Bun executable |
+
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -21955,6 +22496,10 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+| `liveEdit.enabled` | bool | `true` | user | Live Edit | Live Edit: update open pages in paired browsers — Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them. See [Web tooling](docs/guide/user/web-tooling.md#live-edit). |
+| `liveEdit.updateWhileTyping` | bool | `true` | user | Live Edit | Update style sheets while typing — Push the editor's CSS into the page after a short pause, before the file is saved. |
+| `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
+| `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
 ### Tools | External Tools
 
@@ -21971,6 +22516,15 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+| `httpClient.grpc.protoFiles` | list | `[]` | user, project | gRPC | .proto files for gRPC requests — Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service. |
+
+### Tools | File Watchers
+
+Page id `tools.file-watchers`. See [Web tooling](docs/guide/user/web-tooling.md#file-watchers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.fileWatchers` | objects | `[]` | user, project |  | File Watchers — Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, "Track only root files", console and output filters. |
 
 ### Build, Execution, Deployment | JDKs
 
@@ -22196,7 +22750,11 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
 | `stylus` | Stylus | `.styl`, `.stylus` |  |  |
-| `html` | HTML | `.html`, `.htm`, `.xhtml`, `.svelte`, `.astro` |  |  |
+| `html` | HTML | `.html`, `.htm`, `.xhtml` |  |  |
+| `svelte` | Svelte | `.svelte` |  |  |
+| `astro` | Astro | `.astro` |  |  |
+| `graphql` | GraphQL | `.graphql`, `.gql`, `.graphqls` |  |  |
+| `prisma` | Prisma | `.prisma` |  |  |
 | `vue` | Vue | `.vue` |  |  |
 | `twig` | Twig | `.twig`, `.html.twig` |  | yes |
 | `smarty` | Smarty | `.tpl`, `.smarty` |  | yes |
@@ -22382,6 +22940,8 @@ settings work.
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | [Astro Language Server](https://github.com/withastro/language-tools) | `astro-ls` | Astro | `astro-ls --stdio` | `npm install -g @astrojs/language-server typescript` | MIT | needs plugin `forge.web` |
+| [Deno Language Server](https://docs.deno.com/runtime/reference/lsp_integration/) | `deno` | TypeScript, JavaScript | `deno lsp` | `npm install -g deno`, `brew install deno`, `cargo install deno --locked` | MIT | needs plugin `forge.deno`; only with a root `deno.json` / `deno.jsonc`, where it replaces the TypeScript language server |
+| [Prisma Language Server](https://github.com/prisma/language-tools) | `prisma-language-server` | Prisma | `prisma-language-server --stdio` | `npm install -g @prisma/language-server` | Apache-2.0 | needs plugin `forge.prisma` |
 
 ### HTML & CSS
 
@@ -22893,7 +23453,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `rubyforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `rubyforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -22930,6 +23490,7 @@ script and config language plugins.
 | Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
+| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet; 10 commands; 18 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
@@ -24965,6 +25526,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) | CForge: C/C++ build problems (GCC, Clang, MSVC, linkers), compilation databases, GoogleTest and Catch2 discovery, the GoogleTest / Catch2 / CTest providers with gcov and llvm-cov coverage, clangd / clang-format command lines and debugger setup (pure, also built to WebAssembly) |
 | [cforge-analyzers](docs/guide/developer/crates/cforge-analyzers.md) | CForge: sanitizer reports (ASan, LSan, TSan, MSan, UBSan), Valgrind Memcheck XML and perf script output as Profiler views (pure, also built to WebAssembly) |
 | [cforge-embedded](docs/guide/developer/crates/cforge-embedded.md) | CForge: platformio.ini and PlatformIO tasks, ESP-IDF (idf.py) and Zephyr (west) commands, OpenOCD flashing and GDB server, CMSIS-SVD files with register decoding (pure, also built to WebAssembly) |
+| [dotnetforge-lang-dotnet](docs/guide/developer/crates/dotnetforge-lang-dotnet.md) | DotNetForge: .sln / .slnx solutions, MSBuild projects with Directory.Build.props and central package management, launch profiles, global.json and SDK selection, build output as problems, xUnit / NUnit / MSTest discovery and the .NET test provider with TRX reports, dotnet command lines, dotnet new list, NuGet answers, dotnet format reports, the Roslyn server setup (pure, also built to WebAssembly) |
+| [dotnetforge-sdk](docs/guide/developer/crates/dotnetforge-sdk.md) | DotNetForge: the dotnet host, SDKs and runtimes on the user's machine, netcoredbg and Roslyn server locations, the NuGet v3 feed client with a version cache |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
@@ -24986,6 +25549,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [webforge-js-testing](docs/guide/developer/crates/webforge-js-testing.md) | WebForge: the Node.js test runners (Jest, Vitest, Mocha, Playwright, Cypress, node --test): discovery, command lines, Rerun Failed Tests, debug programs (pure, also built to WebAssembly) |
 | [webforge-quality-tools](docs/guide/developer/crates/webforge-quality-tools.md) | WebForge: web code quality tools (ESLint, Prettier, Stylelint, Biome): configurations, automatic detection of packages and configuration files, command lines, JSON report parsing (pure) |
 | [webforge-lang-web](docs/guide/developer/crates/webforge-lang-web.md) | WebForge: package.json, npm scripts, package managers and the shared JavaScript/TypeScript/HTML scanning used by the framework plugins |
+| [webforge-web-tooling](docs/guide/developer/crates/webforge-web-tooling.md) | WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly) |
 
 
 ---
@@ -27395,12 +27959,12 @@ use UTF-16 offsets (CodeMirror positions); internally everything is byte offsets
 | `yaml.rs` | Tolerant YAML parser: block mappings and sequences (`- key: v` compact items), flow collections, plain/quoted/block scalars, comments, documents, anchors, aliases, `<<` merge keys (reported at the `<<` key), tags (`!!str`; other tags mark the node as not judged). YAML 1.2 core schema scalars. |
 | `uri.rs` | `$id`/`$ref` resolution (RFC 3986 section 5), fragments, JSON pointer decoding; project files are `project:/<path>`. |
 | `schema.rs` | `SchemaDoc` (a parsed schema file with its `$id`s, anchors and external refs), `Registry` (loaded documents, aliases, failed URIs, `missing()`), `Sch` (a subschema with its base URI), `Draft`. |
-| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under. |
+| `bundled.rs` | The bundled schemas (`schemas/*.json`, compressed by `build.rs`, parsed once) and the URLs they are published under, including the official OpenAPI 3.0 and 3.1 schemas (Apache-2.0). |
 | `validate.rs` | The validator: every keyword of draft 4–2020-12 (see the user page), best-branch reporting for `anyOf`/`oneOf`, evaluated properties/items for `unevaluated*`, ECMAScript patterns through `regex-lite`. |
 | `format.rs` | `format` checks: `date-time`, `date`, `time`, `email`, `ipv4`, `ipv6`, `uuid`, `uri`. |
 | `navigate.rs` | Schemas at a document path: `$ref`, `allOf`, the `anyOf`/`oneOf` branches compatible with the written value, `if`/`then`/`else`, `dependentSchemas`; `properties`/`patternProperties`/`additionalProperties`/`items` steps with the declaration's position. |
 | `complete.rs` | Completion contexts (JSON from the tree, YAML from indentation) and items: property names (required first) with value templates and commas, values (`enum`, `const`, booleans, `null`, `default`, `examples`, `{}`/`[]`). |
-| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, the SchemaStore catalog; glob matching. |
+| `mapping.rs` | Which schema a file uses: user mappings, `$schema` / the YAML modeline, built-in mappings, OpenAPI documents by their `openapi:` key, the SchemaStore catalog; glob matching. |
 | `remote.rs` | (`remote` feature) `RemoteCache`: downloads into `<cache dir>/forge/json-schemas/<sha256>.json`, fresh for a day, stale copies when offline. |
 | `lib.rs` | `validate`, `complete`, `hover`, `goto` on a registry and a root URI, `DocKind`, `load_bundled`. |
 
@@ -27563,6 +28127,8 @@ these rows.
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
 | `managed/clangd.rs` | CForge's clangd download from the official GitHub releases at a pinned version (`CLANGD_VERSION`, `clangd_release` per platform): the SHA-256 recorded in `CLANGD_BUILDS`, else the asset `digest` of the GitHub REST API for the pinned release (`asset_digest`); without one the install is refused. Unpacked into `<data dir>/forge/langservers/clangd/<version>` (`installed_clangd`). clangd is a pack server (plugin `forge.cpp`). |
 | `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`); so is Metals (plugin `forge.scala`, installed with the user's Coursier by `commands/scala.rs`). |
+| `managed/roslyn.rs` | DotNetForge's Roslyn language server (`Microsoft.CodeAnalysis.LanguageServer.<rid>`, MIT) from Microsoft's public `vs-impl` NuGet feed at a pinned version (`ROSLYN_VERSION`, `roslyn_release` per platform) with the SHA-256 recorded per platform in `ROSLYN_BUILDS` (a platform without one is refused); only `content/LanguageServer/<rid>/` of the package is unpacked (`archive::extract_zip_prefix`) into `<data dir>/forge/langservers/roslyn/<version>` (`installed_roslyn`, `inspect_roslyn`). `roslyn` is a pack server (plugin `forge.dotnet`). |
+| `managed/netcoredbg.rs` | DotNetForge's netcoredbg (MIT, Samsung) from its GitHub releases at a pinned version (`NETCOREDBG_VERSION`): the SHA-256 recorded in `NETCOREDBG_BUILDS`, else the GitHub API's asset digest; without one the install is refused. Unpacked into `<data dir>/forge/debuggers/netcoredbg/<version>`. |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
@@ -27797,7 +28363,7 @@ them.
 
 | Module | Summary |
 | --- | --- |
-| `client.rs` | An LSP client talking to one language server process over stdio. Servers with `LspServerConfig::pull_diagnostics` (kotlin-lsp) get the `textDocument.diagnostic` capability and are asked `textDocument/diagnostic` after `didOpen` / `didChange`; the answers become `LspEvent::Diagnostics`. `LspServerConfig::env` adds environment variables to local server processes (`spawn_local_with_env`). `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
+| `client.rs` | An LSP client talking to one language server process over stdio. Servers with `LspServerConfig::pull_diagnostics` (kotlin-lsp) get the `textDocument.diagnostic` capability and are asked `textDocument/diagnostic` after `didOpen` / `didChange`; the answers become `LspEvent::Diagnostics`. `LspServerConfig::env` adds environment variables to local server processes (`spawn_local_with_env`); `LspServerConfig::after_initialized` notifications (`LspNotification`) are sent right after `initialized` (the Roslyn server's `solution/open`). `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
@@ -28051,6 +28617,7 @@ Opening files in Forge from the outside world:
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
+| `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
 | `project.rs` | What the Browser Companion settings page needs to know about the open project to show the relevant framework snippets first, and the one config change it may apply itself: setting a variable in a dotenv file. |
 | `request.rs` | Open requests as they arrive from the browser extension, `forge://` links and the CLI, plus their validation. |
@@ -28141,6 +28708,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/playwright.rs` | Playwright JSON reports: a suite per file, `test.describe` blocks as nested suites, one test per spec and project (`title [project]` with several projects), expected / unexpected / flaky / skipped, `Expected…` / `Received…` values, errors outside tests. |
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
+| `formats/trx.rs` | Visual Studio test results (`dotnet test --logger trx`, xUnit / NUnit / MSTest): `TestDefinitions` give each test's class and method, `UnitTestResult`s their outcome, duration, output and error (MSTest data rows in `InnerResults`); a suite per class located by its full name (DotNetForge's location rules map it to the file), tests located by their method, comparisons of xUnit, NUnit, MSTest and FluentAssertions messages, the first `in <file>:line <n>` frame as the failure location. `document_events` sniffs TRX among XML reports. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
 | `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), GoogleTest's and CTest's `status="notrun"` / `result="suppressed"` as ignored, durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
@@ -28461,8 +29029,8 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
-| `generators.rs` | New Project generators (File \| New Project). |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. .NET: `.sln` / `.slnx` (the languages of their projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# files in the root or two in a folder, or `global.json` → languages `csharp`, `fsharp`, `vbnet`, pack `dotnetforge`; a `Microsoft.NET.Sdk.Web` project → framework `aspnetcore`. |
+| `generators.rs` | New Project generators (File \| New Project); the `.NET Project` generator (group `.NET`, pack `dotnetforge`) runs `dotnet new sln`, `dotnet new <template>` (`-lang`, `--framework`, any template short name) and `dotnet sln add`. |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
 ## Main public items
@@ -28701,6 +29269,7 @@ PHP files, settings) through the project backend and starts the processes with `
 | `args.rs` | Splitting and quoting of argument strings (shared with `forge-process`, which re-exports it). |
 | `macros.rs` | PHPStorm's macros (`$FilePath$`, `$ProjectFileDir$`, `$LineNumber$`, `$SelectedText$`, `$ClipboardContent$`, `$Prompt$`, `$PhpExecutable$`, …): the list with descriptions and previews for "Insert Macro…", and expansion with an `Expander` that hands out `$Prompt$` answers in order. Unknown `$Names$` stay as they are; macros without a value expand to nothing and are reported. |
 | `external.rs` | External Tools: the model, its settings object (`tools.externalTools`, string values), validation (name, program, output filters), the command of a run (arguments split first, then expanded) and grouping for menus; `action_id` is PHPStorm's `Tool_<group>_<name>`. |
+| `watchers.rs` | File Watchers: the model and its settings object (`tools.fileWatchers`), the templates (SCSS, Sass, Less, TypeScript, Babel, Prettier, Custom), validation, `plan` (which enabled watchers run for saved, typed-in or externally changed files by file type, scope and trigger; "Track only root files" follows `@use`/`@import`/`@forward` and relative imports to the root files; outputs never retrigger), `command` (macros expanded, `node_modules/.bin` programs) and `problems` (output filters to Problems). |
 | `launch.rs` | Launch plans: `plan(configurations, target)` returns the configurations to start (a compound's members, nested compounds expanded, duplicates once) and each one's ordered before-launch tasks, with "Run Another Configuration" flattened; missing configurations and cycles are errors. npm, Composer, Artisan and shell tasks come with the temporary configuration that runs them. |
 | `anything.rs` | Run Anything: `suggest` groups and ranks (with `forge-fuzzy`) the history, run configurations, npm and Composer scripts, PHP files, plugin commands and the typed command; `?` returns help. `resolve` turns a command into a temporary configuration (`php file.php` → PHP Script, `php artisan …` → Artisan, `composer …`, `npm`/`pnpm`/`yarn`/`bun` → npm, else Shell Script); `push_history` keeps the newest 50 entries. |
 
@@ -28851,6 +29420,11 @@ Everything except `store` and `client` is pure, so browser mode runs it as WebAs
 | Module | Summary |
 | --- | --- |
 | `client.rs` | Sends the requests of `.http` scratches (feature `client`). |
+| `curl.rs` | cURL commands: `parse_curl` (Import from cURL: shell quoting, `-X`, `-H`, `-d`/`--data-*`, `--json`, `-F`, `-u`, `-b`, `-A`, `-e`, `-G`, `-I`) and `to_curl` (Copy as cURL); `to_http`. |
+| `grpc.rs` | `GRPC` requests (feature `client`): unary calls over HTTP/2 (h2, rustls for TLS) with JSON bodies encoded by prost-reflect; message types from server reflection (`grpc.reflection.v1`, then `v1alpha`) or `.proto` files compiled with protox. |
+| `oauth.rs` | OAuth 2.0 of `Security.Auth` in the environment files: configs, `$auth.token("id")` references, PKCE (S256), authorization URLs, token request forms and responses (pure). |
+| `oauth_client.rs` | The OAuth flows (feature `client`): Client Credentials, Password, Authorization Code with PKCE through the browser and a loopback listener, refresh tokens, a session `TokenCache`. |
+| `ws.rs` | `WEBSOCKET` requests (feature `client`, tokio-tungstenite): messages with `=== wait-for-server`, a live event log, console input as messages and Stop as close. |
 | `handler.rs` | Response handler scripts of `.http` requests (`> {% … %}`), PHPStorm's HTTP Client API as a small, safe subset: no JavaScript engine, no loops, no access to anything but the response and the global variables. |
 | `http.rs` | `.http` request files (PHPStorm's HTTP Client, lite): parsing, `{{variable}}` substitution and the console text of a response. |
 | `languages.rs` | Languages of the "New Scratch File" popup (Ctrl+Alt+Shift+Insert): every file type of `forge-filetypes` with an extension, the extension a new scratch gets, and the popup's ordering and speed search. |
@@ -29361,7 +29935,7 @@ The logic behind [Project trust and Safe Mode](docs/guide/user/project-trust.md)
 - `runs_project_program(root, program, args)` tells whether a command starts a program from
   the project (the program or a path argument lies inside `root`), lexically so it works for
   remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
-  project files (`SERVERS_RUNNING_PROJECT_CODE`).
+  project files (`SERVERS_RUNNING_PROJECT_CODE`; DotNetForge adds `roslyn` and `fsautocomplete`, which load MSBuild projects).
 - `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
   deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
   user's confirmation in Safe Mode; the user's own SSH configurations
@@ -29713,6 +30287,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
+| `dotnet.rs` | DotNetForge (`dotnetforge-lang-dotnet`), mirroring the `dotnet_*` and `nuget_*` commands for the `Bookstore` demo: the workspace from the demo files, build output as problems, test discovery and source scans, run / build / NuGet / `dotnet new` / `dotnet format` command lines, `dotnet new list`, NuGet search answers and upgrades. |
 | `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
 | `hierarchy.rs` | The Hierarchy tool window's views (`forge_codeintel::hierarchy`), called synchronously in the desktop app and in browser mode alike: `hierarchy_type_view`, `hierarchy_method_view` and `hierarchy_call_view` recompute a tree from the data the `code_*_hierarchy` commands answered when the view, scope or sorting changes. |
@@ -31541,6 +32116,135 @@ description with `derivedFrom`, register and field arrays, a cluster and enumera
 
 ---
 
+Source: docs/guide/developer/crates/dotnetforge-lang-dotnet.md
+
+# dotnetforge-lang-dotnet
+
+`packs/dotnetforge/lang-dotnet` — DotNetForge's .NET logic. Pure Rust (no I/O), shared by the
+desktop backend and the WebAssembly build of browser mode.
+
+## Purpose
+
+- Read solutions and projects the way Rider shows them before a design-time build: `.sln`
+  and `.slnx` (projects, solution folders, configurations), MSBuild project files with the
+  nearest `Directory.Build.props` / `Directory.Packages.props` (properties with `$(…)`
+  references, simple conditions, target frameworks, output type, references, package
+  references with central versions and `VersionOverride`, F# compile order), and
+  `launchSettings.json` profiles.
+- `global.json` and the SDK the dotnet host picks (`rollForward` policies), `dotnet
+  --list-sdks` / `--list-runtimes`, install hints per platform.
+- MSBuild / compiler output as problems (C#, F#, VB, NuGet, MSBuild, `[project]` suffixes,
+  each problem once) with the built outputs and the summary.
+- A tolerant C# / F# scanner for xUnit, NUnit and MSTest tests and `Main` methods, and the
+  `dotnet-test` provider of the shared test runner (`DotnetTests`): discovery, `dotnet test`
+  with `FullyQualifiedName` filters and a TRX logger, Rerun Failed Tests, location rules from
+  test classes to files.
+- Command lines: build / rebuild / clean / restore / test / pack / publish / watch,
+  ".NET Project" runs (`dotnet run` / `dotnet watch` with launch profiles), the debug build,
+  `dotnet add|remove package`, `dotnet new` with `dotnet sln add`, `dotnet format`.
+- `dotnet new list` tables, NuGet v3 service index / search / versions, NuGet SemVer
+  comparison and upgrades, `dotnet format` JSON reports and EditorConfig lookup, the Roslyn
+  server's arguments, `solution/open` and settings.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `solution.rs` | `parse_sln`, `parse_slnx`, `Solution`, `SolutionProject`, `ProjectLanguage`. |
+| `msbuild.rs` | `parse_msbuild`, `evaluate_project`, `eval_condition`, `DotnetProject`, `PackageReference`, `TestFramework`. |
+| `workspace.rs` | `load_workspace`, `DotnetWorkspace`, `choose_solution`, `affects_workspace`. |
+| `launch.rs` | `parse_launch_settings`, `LaunchProfile`, `strip_jsonc`. |
+| `sdk.rs` | `parse_list_sdks`, `parse_list_runtimes`, `parse_global_json`, `select_sdk`, `install_options`. |
+| `build.rs` | `parse_build_output`, `BuildReport`, `BuildProblem`, `output_of`. |
+| `scan.rs` | `scan_csharp`, `scan_fsharp`, `SourceScan`, `TestClass`, `TestMethod`. |
+| `context.rs` | `DotnetContext` (`dotnet.context` of test runs), location rules. |
+| `provider.rs` | `DotnetTests`, `discover_file`, `test_args`, filters, `DOTNET_TEST`. |
+| `command.rs` | `action_command`, `run_command`, `debug_build_command`, `package_command`, `new_project_commands`, `format_command`. |
+| `templates.rs` | `parse_template_list`, `common_templates`. |
+| `nuget.rs`, `version.rs` | `parse_service_index`, `parse_search`, `parse_versions`, URLs; `NuGetVersion`, `compare`, `upgrade`. |
+| `format.rs` | `parse_format_report`, `editorconfig_candidates`. |
+| `roslyn.rs` | `RoslynSetup`, `file_uri`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/dotnet.rs`; `run.rs` registers `DotnetTests` and builds
+  ".NET Project" runs, `testing.rs` hands C# / F# files to `discover_file`.
+- WebAssembly: `crates/forge-wasm/src/dotnet.rs` and the test registry (browser mode).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`, `quick-xml`, `regex-lite`
+
+## Tests
+
+Unit tests on the `Bookstore` fixture solution (`tests/fixtures/bookstore`: `.sln` with CRLF
+and BOM, `.slnx`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`
+with comments, a web project with launch profiles, a multi-target library, an xUnit
+project, an F# tool) and recorded `dotnet build`, `dotnet --list-sdks`, `dotnet new list`
+and NuGet search output. No SDK or network is needed.
+
+```sh
+cargo test -p dotnetforge-lang-dotnet
+```
+
+
+---
+
+Source: docs/guide/developer/crates/dotnetforge-sdk.md
+
+# dotnetforge-sdk
+
+`packs/dotnetforge/sdk` — DotNetForge on the user's machine.
+
+## Purpose
+
+- `detect`: `DotnetStatus` — the `dotnet` hosts (the setting, `DOTNET_ROOT`, the `PATH`,
+  `/usr/share/dotnet`, `/usr/lib/dotnet`, Homebrew, `C:\Program Files\dotnet`, `~/.dotnet`),
+  SDKs and runtimes from `dotnet --list-sdks` / `--list-runtimes` (run in the temp folder
+  through a `Runner`, so tests use recorded output) or the host's `sdk/` and `shared/`
+  folders, the SDK `global.json` selects, problems and install hints.
+- `tools`: netcoredbg (setting, Forge's download through
+  `forge_langservers::managed::netcoredbg`, `PATH`) and the Roslyn server (setting, Forge's
+  download through `forge_langservers::managed::roslyn`).
+- `nuget`: `NuGetClient` — the service index of a feed (`SearchQueryService`,
+  `PackageBaseAddress`), search, versions and the upgrades of installed packages; versions
+  are cached in `<cache dir>/forge/nuget/<feed>/<id>.json` for six hours and used when the
+  feed is unreachable.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `find_hosts`, `sdks_in`, `runtimes_in`, `DetectEnv`, `DotnetStatus`, `system_runner`. |
+| `tools.rs` | `find_netcoredbg`, `find_roslyn`, `ToolLocation`. |
+| `nuget.rs` | `NuGetClient`, `PackageUpdate`, `default_cache_dir`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/dotnet.rs` (`dotnet_status`, `nuget_search`,
+  `nuget_versions`, `nuget_updates`, `dotnet_debug_request`, the Roslyn server).
+
+## Dependencies
+
+- Workspace crates: [`dotnetforge-lang-dotnet`](docs/guide/developer/crates/dotnetforge-lang-dotnet.md),
+  [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md)
+- External: `serde`, `serde_json`, `dirs`, `tokio`
+
+## Tests
+
+Detection runs against fake hosts in temporary folders and a fake runner; the NuGet client
+against a local HTTP server (`forge_langservers::managed::testserver`) with recorded
+answers, including the offline cache fallback. Nothing needs a .NET SDK or the network.
+
+```sh
+cargo test -p dotnetforge-sdk
+```
+
+
+---
+
 Source: docs/guide/developer/crates/pyforge-frameworks.md
 
 # pyforge-frameworks
@@ -32791,6 +33495,8 @@ WebAssembly (`crates/forge-wasm/src/web.rs`).
 
 | Module | Summary |
 | --- | --- |
+| `aliases.rs` | `resolve.alias` of `vite.config.*` / `webpack.config.*` read statically: object and array forms, `path.resolve`/`path.join`, `fileURLToPath(new URL(…))`, template strings, root-relative strings, Webpack's exact `name$`. |
+| `import_paths.rs` | The import specifier under the caret: Go to Declaration and path completion through relative paths, `tsconfig` paths and bundler aliases. |
 | `component.rs` | The component model shared by the React, Vue and Angular plugins, and the gutter marks and navigation answers they return to the UI. |
 | `fs.rs` | Loading `Sources` from disk (desktop app only; the browser mock passes its demo files). |
 | `imports.rs` | ES module imports and re-exports, read lexically from JavaScript/TypeScript source. |
@@ -32834,6 +33540,53 @@ pub trait FrameworkIndex { … }
 ```sh
 cargo test -p webforge-lang-web
 ```
+
+
+---
+
+Source: docs/guide/developer/crates/webforge-web-tooling.md
+
+# webforge-web-tooling
+
+`packs/webforge/web-tooling` — WebForge web tooling: OpenAPI endpoints and previews, GraphQL schemas, validation and completion, Nx workspaces, Nuxt pages and components, Deno tasks (pure, also built to WebAssembly).
+
+## Purpose
+
+The pure models behind [Web tooling](docs/guide/user/web-tooling.md). The desktop app reads the
+project through its backend (`app/src-tauri/src/commands/web_tooling.rs`); browser mode runs
+the same code as WebAssembly (`crates/forge-wasm/src/web_tooling.rs`) over the demo files.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `openapi.rs` | OpenAPI 3.x / Swagger 2.0 documents (YAML or JSON through `forge-jsonschema`'s parsers): `version`/`is_openapi` by the top-level key, `endpoints` (method, path, operationId, summary, tags, line), `preview` (servers, operations grouped by tag with parameters, request body and responses, examples generated from schemas with local `$ref`s, schemas) and `http_request` ("Generate HTTP Request" as `.http` text). |
+| `graphql.rs` | GraphQL with apollo-compiler (MIT / Apache-2.0): `SchemaSet` (SDL files, schema problems, `validate` of operations, `complete` of fields, arguments, types and keywords from a token scan of the text before the caret), `syntax_problems`, `introspection_to_sdl`, `parse_config` for `graphql.config.*` / `.graphqlrc*` (schema files, documents, endpoints with headers) and `request_body`. Offsets are UTF-16. |
+| `nx.rs` | Nx workspaces: `workspace` reads `nx.json` (`targetDefaults`, `defaultBase`), `project.json` files and workspace `package.json` files (the `nx` key, scripts as targets) into projects with kind, tags, targets (executor or command, line) and dependencies (`implicitDependencies` and dependencies between workspace packages); `run_args`. |
+| `nuxt.rs` | Nuxt: `routes` from `pages/` (index, `[id]`, `[[optional]]`, `[...slug]`, route groups, Nuxt 4's `app/`), `components` from `components/` with path prefixes collapsed like Nuxt, `component_for_tag` (`<base-button>`, `<LazyX>`). |
+| `deno.rs` | Tasks of `deno.json` / `deno.jsonc` (string and object tasks). |
+
+## Main public items
+
+```rust
+pub mod deno;
+pub mod graphql;
+pub mod nuxt;
+pub mod nx;
+pub mod openapi;
+```
+
+## Dependencies
+
+`serde`, `serde_json`, `forge-jsonschema` (YAML/JSON trees with positions), `apollo-compiler`
+(GraphQL parsing and validation).
+
+## Tests
+
+Unit tests in each module: endpoint extraction and the preview of a Pet Store document,
+Swagger 2.0, Generate HTTP Request, GraphQL validation (unknown fields, missing arguments,
+syntax errors), schema problems, completion contexts, introspection to SDL, config files, Nx
+projects and graph, Nuxt routes and components, Deno tasks.
 
 
 ---

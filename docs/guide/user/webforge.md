@@ -207,3 +207,8 @@ see [Opening and creating projects](../getting-started/projects.md).
 In [remote projects](remote-development.md) the npm tool window, package manager detection,
 component navigation and gutter icons are computed by the Forge agent on the host, and scripts
 run there like every run configuration.
+
+## More web tooling
+
+File Watchers, Live Edit, Vite/Webpack aliases in imports, Svelte, Astro, Nuxt, Nx, Prisma,
+Deno and Bun, OpenAPI and GraphQL are described in [Web tooling](web-tooling.md).

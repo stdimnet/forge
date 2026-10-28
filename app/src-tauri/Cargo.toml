@@ -104,6 +104,7 @@ webforge-lang-web = { path = "../../packs/webforge/lang-web" }
 webforge-js-debug.workspace = true
 webforge-js-testing.workspace = true
 webforge-quality-tools.workspace = true
+webforge-web-tooling.workspace = true
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 luaforge-lang-lua.workspace = true
@@ -119,6 +120,8 @@ rustforge-lang-rust.workspace = true
 rustforge-toolchain.workspace = true
 rubyforge-lang-ruby.workspace = true
 rubyforge-sdk.workspace = true
+dotnetforge-lang-dotnet.workspace = true
+dotnetforge-sdk.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 pyforge-jupyter = { workspace = true, features = ["runtime", "keychain"] }

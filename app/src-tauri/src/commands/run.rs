@@ -70,6 +70,8 @@ impl RunState {
         rustforge_lang_rust::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // RSpec and Minitest: the manifest specs with RubyForge's discovery and commands.
         rubyforge_lang_ruby::provider::register(&mut tests, plugins.test_frameworks().cloned());
+        // .NET Tests: the manifest spec with DotNetForge's discovery, filters and TRX reports.
+        dotnetforge_lang_dotnet::provider::register(&mut tests, plugins.test_frameworks().cloned());
         // JavaForge: JUnit and TestNG replace their manifest declarations (same ids).
         tests.register(Box::new(javaforge_lang_java::JavaTests::junit()));
         tests.register(Box::new(javaforge_lang_java::JavaTests::testng()));
@@ -112,6 +114,15 @@ impl RunState {
             tests,
             program_settings,
         }
+    }
+
+    /// Register a run that is not a process started here (a WebSocket request), so Stop,
+    /// console input and dispose reach it.
+    pub fn register(&self, run_id: &str, process: Arc<dyn Process>, output: Arc<Mutex<RunOutput>>) {
+        self.runs
+            .lock()
+            .expect("runs poisoned")
+            .insert(run_id.to_string(), Run { process, output });
     }
 
     fn get(&self, id: &str) -> Result<RunHandles> {
@@ -414,6 +425,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 || cfg.type_id == rubyforge_lang_ruby::RAKE
             {
                 super::ruby::run_command(state, &cfg)?
+            } else if cfg.type_id == dotnetforge_lang_dotnet::DOTNET_RUN {
+                super::dotnet::run_command_line(state, &cfg)?
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());
@@ -632,6 +645,7 @@ fn framework_command(
     super::cpp::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::rust::extend_test_context(state, &cfg.type_id, &mut ctx);
     super::ruby::extend_test_context(state, &cfg.type_id, &mut ctx);
+    super::dotnet::extend_test_context(state, &cfg.type_id, &mut ctx);
     let built = runs
         .tests
         .command(&test_frameworks::to_runtools(cfg)?, &ctx)

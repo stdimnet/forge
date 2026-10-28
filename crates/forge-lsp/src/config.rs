@@ -44,6 +44,19 @@ pub struct LspServerConfig {
     /// publishing.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub pull_diagnostics: bool,
+    /// Notifications sent right after `initialized` (the Roslyn server loads nothing until
+    /// it gets `solution/open` or `project/open`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub after_initialized: Vec<LspNotification>,
+}
+
+/// A notification of [`LspServerConfig::after_initialized`].
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LspNotification {
+    pub method: String,
+    #[serde(default)]
+    pub params: Value,
 }
 
 impl LspServerConfig {

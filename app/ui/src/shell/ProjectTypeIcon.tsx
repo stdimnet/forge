@@ -46,6 +46,11 @@ const GLYPHS: Record<string, Glyph> = {
   flask: { text: "Fl" },
   fastapi: { icon: Zap },
   celery: { text: "Ce" },
+  dotnet: { text: "NET" },
+  csharp: { text: "C#" },
+  fsharp: { text: "F#" },
+  vbnet: { text: "VB" },
+  aspnetcore: { text: "asp" },
   folder: { icon: Folder },
 };
 

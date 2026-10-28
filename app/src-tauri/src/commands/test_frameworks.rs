@@ -142,7 +142,7 @@ impl ReportDir {
         }
     }
 
-    /// The report texts in the folder (JUnit XML, JSON); the folder is removed.
+    /// The report texts in the folder (JUnit XML, TRX, JSON); the folder is removed.
     pub(crate) fn take(&self, backend: &dyn Backend) -> Vec<String> {
         let mut out = Vec::new();
         match self {
@@ -151,8 +151,9 @@ impl ReportDir {
                     let mut files: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
                     files.sort();
                     for f in files.iter().filter(|f| {
-                        f.extension()
-                            .is_some_and(|x| x == "xml" || x == "json" || x == "jsonl")
+                        f.extension().is_some_and(|x| {
+                            x == "xml" || x == "json" || x == "jsonl" || x == "trx"
+                        })
                     }) {
                         if let Ok(t) = std::fs::read_to_string(f) {
                             out.push(t);
@@ -168,6 +169,7 @@ impl ReportDir {
                         e.path.ends_with(".xml")
                             || e.path.ends_with(".json")
                             || e.path.ends_with(".jsonl")
+                            || e.path.ends_with(".trx")
                     }) {
                         if let Ok(t) = backend.read_file(&e.path) {
                             out.push(t);

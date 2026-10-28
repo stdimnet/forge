@@ -826,6 +826,30 @@ Page id `lang.cpp` (plugin `forge.cpp`; the page also shows clangd, the compilat
 | `cpp.clangFormat.path` | path | `""` | user | Code Style | clang-format executable — Empty: clang-format of the active toolchain or on the PATH. |
 | `cpp.clangFormat.fallbackStyle` | enum: `LLVM`, `Google`, `Chromium`, `Mozilla`, `WebKit`, `Microsoft`, `GNU`, `none` | `LLVM` | user, project | Code Style | Style without a .clang-format file. |
 | `cpp.debugger.stlRenderers` | bool | `true` | user | Debugger | Show STL containers with their elements — GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters. |
+### Languages & Frameworks | .NET
+
+Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet host, its SDKs and runtimes, the SDK `global.json` selects, the Roslyn server and netcoredbg with their downloads). See [DotNetForge](../user/dotnet.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `dotnet.path` | path | `""` | user | .NET CLI | dotnet executable — The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder. |
+| `dotnet.environment` | list | `[]` | user, project | .NET CLI | Environment — Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES). |
+| `dotnet.solution` | string | `""` | user, project | Solution | Solution — The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root. (hidden: edited in the Build tool window) |
+| `dotnet.configuration` | enum: `Debug`, `Release` | `"Debug"` | user, project | Build | Build configuration |
+| `dotnet.build.verbosity` | enum: `quiet`, `minimal`, `normal`, `detailed` | `"minimal"` | user | Build | MSBuild verbosity |
+| `dotnet.build.beforeRun` | bool | `false` | user | Build | Build before running tests and debugging — dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there. |
+| `dotnet.formatter` | enum: `lsp`, `dotnetFormat`, `none` | `"lsp"` | user, project | Code Cleanup | Reformat Code with — Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files). |
+| `dotnet.cleanup.scope` | enum: `all`, `whitespace`, `style`, `analyzers` | `"all"` | user, project | Code Cleanup | Code Cleanup fixes — Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them. |
+| `dotnet.cleanup.severity` | enum: `info`, `warn`, `error` | `"warn"` | user, project | Code Cleanup | Minimum severity of fixed diagnostics |
+| `dotnet.roslyn.path` | path | `""` | user | Roslyn | Roslyn language server — The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download. |
+| `dotnet.roslyn.autoInstall` | enum: `ask`, `never` | `"ask"` | user | Roslyn | Offer to download the Roslyn language server |
+| `dotnet.roslyn.analysisScope` | enum: `openFiles`, `fullSolution`, `none` | `"openFiles"` | user, project | Roslyn | Analyze — Where the server reports compiler and analyzer problems. |
+| `dotnet.roslyn.inlayHints` | bool | `true` | user | Roslyn | Show parameter and type hints |
+| `dotnet.debugger.path` | path | `""` | user | Debugger | netcoredbg executable — Empty: Forge's download or netcoredbg on the PATH. |
+| `dotnet.debugger.justMyCode` | bool | `true` | user | Debugger | Step through my code only (Just My Code) |
+| `dotnet.nuget.source` | string | `"https://api.nuget.org/v3/index.json"` | user | NuGet | NuGet feed — The service index the NuGet tool window searches. |
+| `dotnet.nuget.prerelease` | bool | `false` | user, project | NuGet | Include prerelease versions |
+
 ### Languages & Frameworks | Jupyter
 
 Page id `lang.jupyter`. See [Jupyter notebooks](../user/jupyter.md). The server token is stored in the OS keychain, not in settings.
@@ -903,6 +927,18 @@ Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
 | `rust.analyzer.path` | path | `""` | user | rust-analyzer | rust-analyzer executable — Empty: the toolchain's rust-analyzer component, Forge's download or the PATH. |
 | `rust.debugger` | enum: `auto`, `lldb`, `gdb` | `auto` | user | Debugger | Debugger — LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer. |
 | `rust.debugger.prettyPrinters` | bool | `true` | user | Debugger | Show Rust types with rustc's pretty printers — Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot). |
+### Languages & Frameworks | GraphQL, OpenAPI, Deno and Bun
+
+Page ids `lang.graphql`, `lang.openapi`, `lang.deno` and `lang.bun`. See [Web tooling](../user/web-tooling.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `graphql.validation` | bool | `true` | user |  | Check queries against the schema |
+| `graphql.endpoint` | string | `""` | user, project |  | Introspection endpoint — URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint. |
+| `openapi.preview` | bool | `true` | user |  | Show the preview next to OpenAPI files |
+| `deno.executable` | string | `deno` | user |  | Deno executable |
+| `bun.executable` | string | `bun` | user |  | Bun executable |
+
 ### Tools | Python Integrated Tools
 
 Page id `tools.python-integrated-tools`.
@@ -1138,6 +1174,10 @@ Page id `tools.browser-companion`.
 | `browserCompanion.enabled` | bool | `true` | user | Built-in Server | Accept open requests from paired browsers — Runs a small server on 127.0.0.1 that only paired browser extensions can use. |
 | `browserCompanion.port` | int (1024–65535) | `63342` | user | Built-in Server | Port — If the port is taken (for example by PhpStorm), the next 9 ports are tried. The extension finds Forge in this range. |
 | `browserCompanion.focusWindow` | bool | `true` | user | Built-in Server | Bring Forge to the front when a file is opened |
+| `liveEdit.enabled` | bool | `true` | user | Live Edit | Live Edit: update open pages in paired browsers — Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them. See [Web tooling](../user/web-tooling.md#live-edit). |
+| `liveEdit.updateWhileTyping` | bool | `true` | user | Live Edit | Update style sheets while typing — Push the editor's CSS into the page after a short pause, before the file is saved. |
+| `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
+| `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
 ### Tools | External Tools
 
@@ -1154,6 +1194,15 @@ Page id `tools.http-client`.
 | Key | Type | Default | Scope | Section | Title and description |
 | --- | --- | --- | --- | --- | --- |
 | `httpClient.environment` | string | `""` | user, project |  | Environment — Environment of http-client.env.json (and http-client.private.env.json) that requests of .http files run with. Empty: dev, else the first one; $none: no environment. Chosen in the toolbar of .http editors. |
+| `httpClient.grpc.protoFiles` | list | `[]` | user, project | gRPC | .proto files for gRPC requests — Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service. |
+
+### Tools | File Watchers
+
+Page id `tools.file-watchers`. See [Web tooling](../user/web-tooling.md#file-watchers).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `tools.fileWatchers` | objects | `[]` | user, project |  | File Watchers — Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, "Track only root files", console and output filters. |
 
 ### Build, Execution, Deployment | JDKs
 

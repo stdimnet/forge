@@ -9,6 +9,8 @@ use forge_backend::{web_call, WebCall};
 use forge_core::Result;
 use serde::de::DeserializeOwned;
 use tauri::State;
+use webforge_lang_web::aliases::Alias;
+use webforge_lang_web::import_paths::ImportCompletion;
 use webforge_lang_web::{npm, Component, GutterMark, Location, NpmPackage};
 
 use crate::commands::workspace::blocking;
@@ -94,4 +96,49 @@ pub async fn web_gutter(
         },
     )
     .await
+}
+
+/// Go to Declaration on an import specifier: the project file it resolves to through
+/// relative paths, `tsconfig` paths and Vite / Webpack aliases.
+#[tauri::command]
+pub async fn web_import_goto(
+    state: State<'_, AppState>,
+    path: String,
+    content: String,
+    offset: usize,
+) -> Result<Option<Location>> {
+    call(
+        &state,
+        WebCall::ImportGoto {
+            path,
+            content,
+            offset,
+        },
+    )
+    .await
+}
+
+/// Completion of the module path in an import string at `offset`.
+#[tauri::command]
+pub async fn web_import_complete(
+    state: State<'_, AppState>,
+    path: String,
+    content: String,
+    offset: usize,
+) -> Result<Option<ImportCompletion>> {
+    call(
+        &state,
+        WebCall::ImportComplete {
+            path,
+            content,
+            offset,
+        },
+    )
+    .await
+}
+
+/// The `resolve.alias` entries of the project's `vite.config.*` / `webpack.config.*`.
+#[tauri::command]
+pub async fn web_aliases(state: State<'_, AppState>) -> Result<Vec<Alias>> {
+    call(&state, WebCall::Aliases).await
 }

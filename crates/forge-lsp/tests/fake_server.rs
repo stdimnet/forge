@@ -533,6 +533,28 @@ async fn type_and_call_hierarchy() {
     assert_eq!(callees[0].calls[0].path, base.path);
 }
 
+/// Notifications of `after_initialized` reach the server once it is initialized (Roslyn's
+/// `solution/open`).
+#[tokio::test]
+async fn sends_notifications_after_initialized() {
+    let dir = tempfile::tempdir().unwrap();
+    let (tx, mut rx) = broadcast::channel(256);
+    let mut cfg = config();
+    cfg.after_initialized = vec![forge_lsp::LspNotification {
+        method: "solution/open".into(),
+        params: json!({"solution": "file:///p/Bookstore.sln"}),
+    }];
+    let _client = LspClient::start_with_events(cfg, dir.path(), tx)
+        .await
+        .unwrap();
+    let opened = next_matching(&mut rx, |e| match e {
+        LspEvent::Log { message, .. } if message.starts_with("opened:") => Some(message),
+        _ => None,
+    })
+    .await;
+    assert_eq!(opened, "opened: file:///p/Bookstore.sln");
+}
+
 /// kotlin-lsp only answers `textDocument/diagnostic`: the client pulls after opening and
 /// changing documents and starts the server with the configured environment.
 #[tokio::test]

@@ -21,6 +21,7 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   javaforge: { label: "JavaForge", order: 8 },
   kotlinforge: { label: "KotlinForge", order: 9 },
   cforge: { label: "CForge", order: 10 },
+  dotnetforge: { label: "DotNetForge", order: 11 },
   scriptforge: { label: "ScriptForge", order: 11 },
   configforge: { label: "ConfigForge", order: 12 },
 };

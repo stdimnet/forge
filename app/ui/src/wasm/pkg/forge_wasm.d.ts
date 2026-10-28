@@ -664,6 +664,11 @@ export function dbschema_explain_script(request_json: string): string;
 export function dbschema_parse_plan(request_json: string): string;
 
 /**
+ * `{ text }` -> `Task[]`.
+ */
+export function deno_tasks(request_json: string): string;
+
+/**
  * `{ local: {path, dir, text, modified}[], remote: …, by }` → `DirCompare`.
  */
 export function deploy_compare(request_json: string): string;
@@ -704,6 +709,57 @@ export function devcontainer_parse_list(output: string): string;
  * local environment, so `${localEnv:…}` is empty).
  */
 export function devcontainer_resolve(request_json: string): string;
+
+/**
+ * `{ action, target?, context }` → `DotnetCommand` (`dotnet_command`).
+ */
+export function dotnet_action_command(request_json: string): string;
+
+/**
+ * `{ output, root }` → `BuildReport` (`dotnet_build_problems`).
+ */
+export function dotnet_build_report(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `TestFile` (`test_discover` for C# / F# files).
+ */
+export function dotnet_discover(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand` (`dotnet_cleanup_command`).
+ */
+export function dotnet_format_command(request_json: string): string;
+
+/**
+ * `{ files, solution?, configuration? }` → `DotnetWorkspace` (`dotnet_workspace`).
+ */
+export function dotnet_load_workspace(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand[]` (`dotnet_new_project`).
+ */
+export function dotnet_new_project(request_json: string): string;
+
+/**
+ * `{ action, project, package, version?, prerelease?, context }` → `DotnetCommand`
+ * (`nuget_command`).
+ */
+export function dotnet_package_command(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `DotnetCommand` of a ".NET Project" configuration.
+ */
+export function dotnet_run_command(request_json: string): string;
+
+/**
+ * `{ path, text }` → `SourceScan` (test classes, entry points, declared classes).
+ */
+export function dotnet_scan(request_json: string): string;
+
+/**
+ * `{ text }` → `Template[]` of `dotnet new list` (Forge's common templates when empty).
+ */
+export function dotnet_templates(request_json: string): string;
 
 /**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
@@ -826,6 +882,27 @@ export function file_colors_resolve(request_json: string): string;
 export function file_structure_view(request_json: string): string;
 
 /**
+ * `{ watchers, paths, trigger, root, name, files }` -> `WatcherRun[]` (every scope
+ * matches in browser mode).
+ */
+export function file_watchers_plan(request_json: string): string;
+
+/**
+ * `{ output, filters, cwd, root }` -> `WatcherProblem[]`.
+ */
+export function file_watchers_problems(request_json: string): string;
+
+/**
+ * `{}` -> `WatcherTemplate[]`.
+ */
+export function file_watchers_templates(_request_json: string): string;
+
+/**
+ * `{ watcher, others }` -> `string[]`.
+ */
+export function file_watchers_validate(request_json: string): string;
+
+/**
  * `DetectRequest` → `FileTypeInfo[]`.
  */
 export function filetypes_detect(request_json: string): string;
@@ -907,6 +984,31 @@ export function go_mod_parse(request_json: string): string;
  * `{ action, arg?, dir?, context }` → `GoCommand` (`go mod tidy`, `go get …`).
  */
 export function go_module_command(request_json: string): string;
+
+/**
+ * `{ schema, content, offset }` -> `Completion`.
+ */
+export function graphql_complete(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `Config`.
+ */
+export function graphql_config(request_json: string): string;
+
+/**
+ * `{ content }` -> `boolean`.
+ */
+export function graphql_is_schema(request_json: string): string;
+
+/**
+ * `{ schema }` -> `string[]` (type names).
+ */
+export function graphql_types(request_json: string): string;
+
+/**
+ * `{ schema, path, content }` -> `Problem[]`.
+ */
+export function graphql_validate(request_json: string): string;
 
 /**
  * `{ text }` (Groovy source) → `Runnable` (`groovy_runnable`).
@@ -1382,6 +1484,41 @@ export function nav_bar_segments(request_json: string): string;
 export function node_coverage_wrap(request_json: string): string;
 
 /**
+ * `{ text }` → `SearchResult` of a NuGet search answer.
+ */
+export function nuget_parse_search(request_json: string): string;
+
+/**
+ * `{ installed, versions, prerelease }` → the upgrade version or `null`.
+ */
+export function nuget_upgrade(request_json: string): string;
+
+/**
+ * `{ root, paths }` -> `{ root, routes, components }`.
+ */
+export function nuxt_project(request_json: string): string;
+
+/**
+ * `{ files }` -> `Workspace`.
+ */
+export function nx_workspace(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `{ title, spec, endpoints } | null`.
+ */
+export function openapi_file(request_json: string): string;
+
+/**
+ * `{ path, content, method, opPath }` -> `string | null`.
+ */
+export function openapi_http_request(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `Preview | null`.
+ */
+export function openapi_preview(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
@@ -1781,6 +1918,11 @@ export function scopes_tree(request_json: string): string;
 export function scratches_http_environments(request_json: string): string;
 
 /**
+ * `{ command }` -> `{ text } | { error }` (Import from cURL).
+ */
+export function scratches_http_from_curl(request_json: string): string;
+
+/**
  * `{ script, response, globals }` → `{ report, globals, text }`: run a response handler.
  */
 export function scratches_http_handler(request_json: string): string;
@@ -1797,6 +1939,11 @@ export function scratches_http_render(request_json: string): string;
  * resolved against `base`, the `.http` file's directory.
  */
 export function scratches_http_request(request_json: string): string;
+
+/**
+ * `{ request }` (a resolved request) -> `string` (Copy as cURL).
+ */
+export function scratches_http_to_curl(request_json: string): string;
 
 /**
  * `LanguageRequest` → `LanguageItem[]` (the New Scratch File popup).
@@ -2280,6 +2427,11 @@ export function vulnerabilities_result(request_json: string): string;
 export function vulnerabilities_upgrade(request_json: string): string;
 
 /**
+ * `{ files, paths }` -> `Alias[]`.
+ */
+export function web_aliases(request_json: string): string;
+
+/**
  * `{ framework, files, paths }` -> `Component[]`.
  */
 export function web_components(request_json: string): string;
@@ -2303,6 +2455,16 @@ export function web_goto(request_json: string): string;
  * `{ framework, files, paths, path, content }` -> `GutterMark[]`.
  */
 export function web_gutter(request_json: string): string;
+
+/**
+ * `{ files, paths, path, content, offset }` -> `ImportCompletion | null`.
+ */
+export function web_import_complete(request_json: string): string;
+
+/**
+ * `{ files, paths, path, content, offset }` -> `Location | null`.
+ */
+export function web_import_goto(request_json: string): string;
 
 /**
  * `{ path, content }` -> `GutterMark[]` (run icons of a package.json).
@@ -2471,6 +2633,7 @@ export interface InitOutput {
     readonly dbschema_diagram: (a: number, b: number, c: number) => void;
     readonly dbschema_explain_script: (a: number, b: number, c: number) => void;
     readonly dbschema_parse_plan: (a: number, b: number, c: number) => void;
+    readonly deno_tasks: (a: number, b: number, c: number) => void;
     readonly deploy_compare: (a: number, b: number, c: number) => void;
     readonly deploy_entry_path: (a: number, b: number, c: number) => void;
     readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
@@ -2479,6 +2642,16 @@ export interface InitOutput {
     readonly devcontainer_gutter: (a: number, b: number, c: number) => void;
     readonly devcontainer_parse_list: (a: number, b: number, c: number) => void;
     readonly devcontainer_resolve: (a: number, b: number, c: number) => void;
+    readonly dotnet_action_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_build_report: (a: number, b: number, c: number) => void;
+    readonly dotnet_discover: (a: number, b: number, c: number) => void;
+    readonly dotnet_format_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_load_workspace: (a: number, b: number, c: number) => void;
+    readonly dotnet_new_project: (a: number, b: number, c: number) => void;
+    readonly dotnet_package_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_run_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_scan: (a: number, b: number, c: number) => void;
+    readonly dotnet_templates: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -2503,6 +2676,10 @@ export interface InitOutput {
     readonly external_tool_validate: (a: number, b: number, c: number) => void;
     readonly file_colors_resolve: (a: number, b: number, c: number) => void;
     readonly file_structure_view: (a: number, b: number, c: number) => void;
+    readonly file_watchers_plan: (a: number, b: number, c: number) => void;
+    readonly file_watchers_problems: (a: number, b: number, c: number) => void;
+    readonly file_watchers_templates: (a: number, b: number, c: number) => void;
+    readonly file_watchers_validate: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
     readonly filetypes_ignored: (a: number, b: number, c: number) => void;
     readonly filetypes_list: (a: number, b: number, c: number) => void;
@@ -2519,6 +2696,11 @@ export interface InitOutput {
     readonly go_mod_completion_context: (a: number, b: number, c: number) => void;
     readonly go_mod_parse: (a: number, b: number, c: number) => void;
     readonly go_module_command: (a: number, b: number, c: number) => void;
+    readonly graphql_complete: (a: number, b: number, c: number) => void;
+    readonly graphql_config: (a: number, b: number, c: number) => void;
+    readonly graphql_is_schema: (a: number, b: number, c: number) => void;
+    readonly graphql_types: (a: number, b: number, c: number) => void;
+    readonly graphql_validate: (a: number, b: number, c: number) => void;
     readonly groovy_runnable: (a: number, b: number, c: number) => void;
     readonly groovy_script_command: (a: number, b: number, c: number) => void;
     readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
@@ -2611,6 +2793,13 @@ export interface InitOutput {
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
+    readonly nuget_parse_search: (a: number, b: number, c: number) => void;
+    readonly nuget_upgrade: (a: number, b: number, c: number) => void;
+    readonly nuxt_project: (a: number, b: number, c: number) => void;
+    readonly nx_workspace: (a: number, b: number, c: number) => void;
+    readonly openapi_file: (a: number, b: number, c: number) => void;
+    readonly openapi_http_request: (a: number, b: number, c: number) => void;
+    readonly openapi_preview: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
     readonly php_coverage_plan: (a: number, b: number, c: number) => void;
     readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
@@ -2689,9 +2878,11 @@ export interface InitOutput {
     readonly scopes_entries: (a: number, b: number, c: number) => void;
     readonly scopes_tree: (a: number, b: number, c: number) => void;
     readonly scratches_http_environments: (a: number, b: number, c: number) => void;
+    readonly scratches_http_from_curl: (a: number, b: number, c: number) => void;
     readonly scratches_http_handler: (a: number, b: number, c: number) => void;
     readonly scratches_http_render: (a: number, b: number, c: number) => void;
     readonly scratches_http_request: (a: number, b: number, c: number) => void;
+    readonly scratches_http_to_curl: (a: number, b: number, c: number) => void;
     readonly scratches_languages: (a: number, b: number, c: number) => void;
     readonly scratches_load: (a: number, b: number, c: number) => void;
     readonly scratches_markers: (a: number, b: number, c: number) => void;
@@ -2786,11 +2977,14 @@ export interface InitOutput {
     readonly vulnerabilities_problems: (a: number, b: number, c: number) => void;
     readonly vulnerabilities_result: (a: number, b: number, c: number) => void;
     readonly vulnerabilities_upgrade: (a: number, b: number, c: number) => void;
+    readonly web_aliases: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
     readonly web_extract_component: (a: number, b: number, c: number) => void;
     readonly web_extract_component_prepare: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;
     readonly web_gutter: (a: number, b: number, c: number) => void;
+    readonly web_import_complete: (a: number, b: number, c: number) => void;
+    readonly web_import_goto: (a: number, b: number, c: number) => void;
     readonly web_npm_gutter: (a: number, b: number, c: number) => void;
     readonly web_npm_packages: (a: number, b: number, c: number) => void;
     readonly window_chrome: (a: number, b: number, c: number) => void;
@@ -2798,10 +2992,11 @@ export interface InitOutput {
     readonly wsl_map_path: (a: number, b: number, c: number) => void;
     readonly wsl_parse_list: (a: number, b: number, c: number) => void;
     readonly wsl_windows_path: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export: (a: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-    readonly __wbindgen_export: (a: number, b: number) => number;
-    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export2: (a: number, b: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

@@ -3,6 +3,7 @@
  * Forge listens on 63342 or, if that port is taken (e.g. by PhpStorm), one of the next nine.
  */
 import type { OpenTarget, PingResult } from "./types";
+import type { LivePoll } from "./liveEdit";
 
 export const DEFAULT_PORT = 63342;
 export const PORT_RANGE = 10;
@@ -93,6 +94,11 @@ export class ForgeClient {
 
   open(port: number, token: string, target: OpenTarget): Promise<OpenOutcome> {
     return this.request(port, "/api/forge/open", { method: "POST", token, body: JSON.stringify(target) });
+  }
+
+  /** Live Edit events after `since` (0: only the current sequence number). */
+  liveEdit(port: number, token: string, since: number): Promise<LivePoll> {
+    return this.request(port, `/api/forge/live-edit?since=${since}`, { token });
   }
 
   openSymbol(port: number, token: string, name: string, kind: "class" | "component" = "component"): Promise<OpenOutcome> {

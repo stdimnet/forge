@@ -1787,6 +1787,30 @@
           "order": 1
         },
         {
+          "key": "httpClient.grpc.protoFiles",
+          "title": ".proto files for gRPC requests",
+          "description": "Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service.",
+          "type": "list",
+          "default": [],
+          "group": "tools.http-client",
+          "section": "gRPC",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "tools.fileWatchers",
+          "title": "File Watchers",
+          "description": "Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, \"Track only root files\", console and output filters.",
+          "type": "objects",
+          "unique": [
+            "name"
+          ],
+          "default": [],
+          "group": "tools.file-watchers",
+          "project": true,
+          "order": 0
+        },
+        {
           "key": "actionsOnSave.reformat.enabled",
           "title": "Reformat code",
           "description": "Reformat Code (Ctrl+Alt+L) when the file is saved.",
@@ -8108,7 +8132,7 @@
         {
           "key": "web.node.interpreter",
           "title": "Node interpreter",
-          "description": "Runs Node.js configurations, test runners and the JavaScript debugger. Empty: node on the PATH, else the Node.js Forge downloaded.",
+          "description": "Runs Node.js configurations, test runners and the JavaScript debugger. Empty: node on the PATH, else the Node.js Forge downloaded. Enter bun (or the path of a bun executable) to run them with Bun instead.",
           "type": "path",
           "default": "",
           "group": "lang.node",
@@ -8879,6 +8903,319 @@
               "label": "Node options"
             }
           ]
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.graphql",
+    "name": "GraphQL",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "GraphQL files: highlighting, validation and completion against the project's schema (SDL files or introspection), graphql.config files and GRAPHQL requests in the HTTP client.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "GraphQL.Introspect",
+          "title": "Get GraphQL Schema from Endpoint",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "graphql.validation",
+          "title": "Check queries against the schema",
+          "type": "bool",
+          "default": true,
+          "group": "lang.graphql",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "graphql.endpoint",
+          "title": "Introspection endpoint",
+          "description": "URL used by Get GraphQL Schema from Endpoint when graphql.config has no endpoint.",
+          "type": "string",
+          "default": "",
+          "group": "lang.graphql",
+          "project": true,
+          "order": 1
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.openapi",
+    "name": "OpenAPI Specifications",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "OpenAPI 3 and Swagger 2 files: validation with the bundled official schemas, endpoints in the Endpoints tool window, a native Swagger-UI-like preview and Generate HTTP Request.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "OpenAPI.GenerateHttpRequest",
+          "title": "Generate HTTP Request",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "openapi.preview",
+          "title": "Show the preview next to OpenAPI files",
+          "type": "bool",
+          "default": true,
+          "group": "lang.openapi",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.prisma",
+    "name": "Prisma",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Prisma schema files: highlighting, the Prisma language server and prisma generate / migrate actions.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "prisma"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [
+        {
+          "id": "Prisma.Generate",
+          "title": "Prisma: Generate Client",
+          "category": "Tools"
+        },
+        {
+          "id": "Prisma.MigrateDev",
+          "title": "Prisma: Migrate Dev…",
+          "category": "Tools"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.nx",
+    "name": "Nx",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Nx workspaces: projects, targets and the project graph in the Nx tool window, targets as run configurations and in Run Anything.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "nx"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [
+        {
+          "id": "nx",
+          "title": "Nx",
+          "anchor": "left",
+          "icon": "network",
+          "order": 32
+        }
+      ],
+      "settings": [],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "nx",
+          "name": "Nx",
+          "description": "Run an Nx target (nx run project:target).",
+          "icon": "network",
+          "debuggable": false
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.deno",
+    "name": "Deno",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Deno projects (deno.json): deno lsp instead of the TypeScript server, deno tasks, and Deno run configurations.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "deno"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "deno.executable",
+          "title": "Deno executable",
+          "type": "string",
+          "default": "deno",
+          "group": "lang.deno",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "deno",
+          "name": "Deno",
+          "description": "Run a script with deno run, a task with deno task, or deno test.",
+          "icon": "feather",
+          "debuggable": false,
+          "fields": [
+            {
+              "key": "command",
+              "label": "Command",
+              "kind": "string",
+              "required": true
+            },
+            {
+              "key": "file",
+              "label": "Script or task",
+              "kind": "string",
+              "required": false
+            }
+          ],
+          "command": [
+            "${interpreter}",
+            "${command}",
+            "${interpreterOptions}",
+            "${file}",
+            "${arguments}"
+          ],
+          "defaultInterpreter": "deno",
+          "interpreterSetting": "deno.executable"
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
+    "id": "forge.bun",
+    "name": "Bun",
+    "version": "0.1.0",
+    "pack": "webforge",
+    "description": "Bun projects (bun.lock, bunfig.toml): bun run and bun test run configurations, and Bun as the JavaScript runtime.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "bun"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "bun.executable",
+          "title": "Bun executable",
+          "type": "string",
+          "default": "bun",
+          "group": "lang.bun",
+          "project": false,
+          "order": 0
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "bun",
+          "name": "Bun",
+          "description": "Run a file or package.json script with bun run, or tests with bun test.",
+          "icon": "croissant",
+          "debuggable": false,
+          "fields": [
+            {
+              "key": "command",
+              "label": "Command",
+              "kind": "string",
+              "required": true
+            },
+            {
+              "key": "file",
+              "label": "File or script",
+              "kind": "string",
+              "required": false
+            }
+          ],
+          "command": [
+            "${interpreter}",
+            "${command}",
+            "${interpreterOptions}",
+            "${file}",
+            "${arguments}"
+          ],
+          "defaultInterpreter": "bun",
+          "interpreterSetting": "bun.executable"
         }
       ],
       "aiProviders": [],
@@ -14016,6 +14353,519 @@
     }
   },
   {
+    "id": "forge.dotnet",
+    "name": ".NET",
+    "version": "0.1.0",
+    "pack": "dotnetforge",
+    "description": "Solutions (.sln, .slnx) and MSBuild projects, .NET SDKs and global.json, the Build and NuGet tool windows, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg debugging, dotnet new templates, Code Cleanup with dotnet format and EditorConfig, and the Roslyn language server.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.debugger"
+    ],
+    "required": false,
+    "projectTypes": [
+      "dotnetforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "csharp",
+        "fsharp",
+        "vb"
+      ],
+      "fileTypes": [
+        {
+          "id": "msbuild",
+          "name": "MSBuild",
+          "extensions": [
+            "csproj",
+            "fsproj",
+            "vbproj",
+            "props",
+            "targets",
+            "slnx",
+            "nuspec",
+            "runsettings",
+            "resx",
+            "proj"
+          ],
+          "fileNames": [],
+          "indentSize": 2
+        },
+        {
+          "id": "sln",
+          "name": "Solution File",
+          "extensions": [
+            "sln"
+          ],
+          "fileNames": [],
+          "indentSize": 4
+        },
+        {
+          "id": "razor",
+          "name": "Razor",
+          "extensions": [
+            "razor",
+            "cshtml"
+          ],
+          "fileNames": [],
+          "indentSize": 4
+        }
+      ],
+      "commands": [
+        {
+          "id": "dotnet.buildSolution",
+          "title": "Build Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.rebuildSolution",
+          "title": "Rebuild Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.cleanSolution",
+          "title": "Clean Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.restore",
+          "title": "Restore NuGet Packages",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.reloadSolution",
+          "title": "Reload Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.addProject",
+          "title": "Add Project from Template…",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.manageNuGet",
+          "title": "Manage NuGet Packages",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.installSdk",
+          "title": "Install .NET SDK…",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.downloadRoslyn",
+          "title": "Download the Roslyn Language Server…",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.downloadNetcoredbg",
+          "title": "Download netcoredbg…",
+          "category": ".NET"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "dotnet.path",
+          "title": "dotnet executable",
+          "description": "The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder.",
+          "type": "path",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": ".NET CLI",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "dotnet.environment",
+          "title": "Environment",
+          "description": "Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES).",
+          "type": "list",
+          "default": [],
+          "group": "lang.dotnet",
+          "section": ".NET CLI",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "dotnet.solution",
+          "title": "Solution",
+          "description": "The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root.",
+          "type": "string",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": "Solution",
+          "project": true,
+          "hidden": true,
+          "order": 10
+        },
+        {
+          "key": "dotnet.configuration",
+          "title": "Build configuration",
+          "type": "enum",
+          "options": [
+            {
+              "value": "Debug",
+              "label": "Debug"
+            },
+            {
+              "value": "Release",
+              "label": "Release"
+            }
+          ],
+          "default": "Debug",
+          "group": "lang.dotnet",
+          "section": "Build",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "dotnet.build.verbosity",
+          "title": "MSBuild verbosity",
+          "type": "enum",
+          "options": [
+            {
+              "value": "quiet",
+              "label": "Quiet"
+            },
+            {
+              "value": "minimal",
+              "label": "Minimal"
+            },
+            {
+              "value": "normal",
+              "label": "Normal"
+            },
+            {
+              "value": "detailed",
+              "label": "Detailed"
+            }
+          ],
+          "default": "minimal",
+          "group": "lang.dotnet",
+          "section": "Build",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "dotnet.build.beforeRun",
+          "title": "Build before running tests and debugging",
+          "description": "dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.dotnet",
+          "section": "Build",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "dotnet.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files).",
+          "type": "enum",
+          "options": [
+            {
+              "value": "lsp",
+              "label": "Roslyn language server"
+            },
+            {
+              "value": "dotnetFormat",
+              "label": "dotnet format"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "lsp",
+          "group": "lang.dotnet",
+          "section": "Code Cleanup",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "dotnet.cleanup.scope",
+          "title": "Code Cleanup fixes",
+          "description": "Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "all",
+              "label": "Whitespace, code style and analyzers"
+            },
+            {
+              "value": "whitespace",
+              "label": "Whitespace"
+            },
+            {
+              "value": "style",
+              "label": "Code style"
+            },
+            {
+              "value": "analyzers",
+              "label": "Analyzers"
+            }
+          ],
+          "default": "all",
+          "group": "lang.dotnet",
+          "section": "Code Cleanup",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "dotnet.cleanup.severity",
+          "title": "Minimum severity of fixed diagnostics",
+          "type": "enum",
+          "options": [
+            {
+              "value": "info",
+              "label": "Info"
+            },
+            {
+              "value": "warn",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "default": "warn",
+          "group": "lang.dotnet",
+          "section": "Code Cleanup",
+          "project": true,
+          "order": 22
+        },
+        {
+          "key": "dotnet.roslyn.path",
+          "title": "Roslyn language server",
+          "description": "The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download.",
+          "type": "path",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "dotnet.roslyn.autoInstall",
+          "title": "Offer to download the Roslyn language server",
+          "type": "enum",
+          "options": [
+            {
+              "value": "ask",
+              "label": "Ask"
+            },
+            {
+              "value": "never",
+              "label": "Never"
+            }
+          ],
+          "default": "ask",
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "dotnet.roslyn.analysisScope",
+          "title": "Analyze",
+          "description": "Where the server reports compiler and analyzer problems.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "openFiles",
+              "label": "Open files"
+            },
+            {
+              "value": "fullSolution",
+              "label": "The whole solution"
+            },
+            {
+              "value": "none",
+              "label": "Nothing"
+            }
+          ],
+          "default": "openFiles",
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": true,
+          "order": 32
+        },
+        {
+          "key": "dotnet.roslyn.inlayHints",
+          "title": "Show parameter and type hints",
+          "type": "bool",
+          "default": true,
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "dotnet.debugger.path",
+          "title": "netcoredbg executable",
+          "description": "Empty: Forge's download or netcoredbg on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": "Debugger",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "dotnet.debugger.justMyCode",
+          "title": "Step through my code only (Just My Code)",
+          "type": "bool",
+          "default": true,
+          "group": "lang.dotnet",
+          "section": "Debugger",
+          "project": false,
+          "order": 41
+        },
+        {
+          "key": "dotnet.nuget.source",
+          "title": "NuGet feed",
+          "description": "The service index the NuGet tool window searches.",
+          "type": "string",
+          "default": "https://api.nuget.org/v3/index.json",
+          "group": "lang.dotnet",
+          "section": "NuGet",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "dotnet.nuget.prerelease",
+          "title": "Include prerelease versions",
+          "type": "bool",
+          "default": false,
+          "group": "lang.dotnet",
+          "section": "NuGet",
+          "project": true,
+          "order": 51
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "dotnet",
+          "name": ".NET Project",
+          "description": "Run a .NET project with dotnet run or dotnet watch, optionally with a launch profile of Properties/launchSettings.json; Debug starts the built assembly under netcoredbg.",
+          "icon": "app-window",
+          "debuggable": true
+        }
+      ],
+      "debugAdapters": [
+        {
+          "type": "coreclr",
+          "label": ".NET (netcoredbg)",
+          "command": "netcoredbg",
+          "args": [
+            "--interpreter=vscode"
+          ],
+          "commandSetting": "dotnet.debugger.path",
+          "transport": "stdio",
+          "languages": [
+            "cs",
+            "fs",
+            "vb"
+          ],
+          "launch": {
+            "args": "${args}",
+            "cwd": "${cwd}",
+            "env": "${env}",
+            "program": "${program}",
+            "stopAtEntry": "${stopOnEntry}"
+          },
+          "attach": {
+            "processId": "${pid}"
+          },
+          "launchSchema": {
+            "properties": {
+              "enableStepFiltering": {
+                "description": "Step over properties and operators",
+                "type": "boolean"
+              },
+              "justMyCode": {
+                "description": "Step through your code only",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "dotnet-test",
+          "name": ".NET Tests",
+          "description": "Run xUnit, NUnit or MSTest tests with dotnet test: the solution, a project, a class, a method or a filter; results from the TRX report.",
+          "icon": "flask-conical",
+          "language": "csharp",
+          "detect": {
+            "files": [
+              "*.csproj",
+              "*/*.csproj",
+              "**/*.csproj",
+              "*.fsproj",
+              "*/*.fsproj",
+              "**/*.fsproj",
+              "*.vbproj",
+              "**/*.vbproj"
+            ],
+            "dependencies": []
+          },
+          "testFiles": [
+            "*.cs",
+            "*.fs"
+          ],
+          "program": "dotnet",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${test}"
+            ]
+          },
+          "report": "jUnitFile",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "DotnetBuild",
+          "name": "Build errors and warnings",
+          "group": ".NET/External tools",
+          "language": "csharp",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems of the last dotnet build (compiler, NuGet and MSBuild), shown in the editor and the Build tool window.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "dotnet-build",
+          "inspection": "DotnetBuild"
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.ai",
     "name": "AI Assistant",
     "version": "0.1.0",
@@ -14863,6 +15713,50 @@
           "section": "Built-in Server",
           "project": false,
           "order": 2
+        },
+        {
+          "key": "liveEdit.enabled",
+          "title": "Live Edit: update open pages in paired browsers",
+          "description": "Style sheets are swapped in place without a reload (CSS hot swap); other web files reload the pages that loaded them.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "liveEdit.updateWhileTyping",
+          "title": "Update style sheets while typing",
+          "description": "Push the editor's CSS into the page after a short pause, before the file is saved.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "liveEdit.reloadOnSave",
+          "title": "Reload pages when HTML, scripts or templates are saved",
+          "type": "bool",
+          "default": true,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "liveEdit.delayMs",
+          "title": "Delay before updating (ms)",
+          "type": "int",
+          "min": 100,
+          "max": 5000,
+          "default": 400,
+          "group": "tools.browser-companion",
+          "section": "Live Edit",
+          "project": false,
+          "order": 13
         }
       ],
       "lspServers": [],
