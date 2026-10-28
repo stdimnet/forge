@@ -25,6 +25,7 @@ import { viewFor } from "@/editor/views";
 import { registerKeymapActions, runAction } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { editor } from "@/state/editor";
+import { getSetting, saveSetting } from "@/state/settings";
 import { ACTION_TITLES, explainWithAi, problemsAt, proposalState, runProposal } from "./actions";
 import { AiAssistantPage } from "./AiAssistantPage";
 import {
@@ -91,6 +92,12 @@ registerCommand({ id: INSERT_LINE, title: "Insert Inline Proposal Line", categor
 registerCommand({ id: NEXT, title: "Show Next Inline Proposal", category: "AI", run: withEditor((_p, v) => cycleSuggestion(v, 1)) });
 registerCommand({ id: PREV, title: "Show Previous Inline Proposal", category: "AI", run: withEditor((_p, v) => cycleSuggestion(v, -1)) });
 registerCommand({ id: CALL, title: "Call Inline Completion", category: "AI", run: withEditor((_p, v) => callInlineCompletion(v)) });
+registerCommand({
+  id: "ai.toggleInlineCompletion",
+  title: "Enable/Disable AI Inline Completion",
+  category: "AI",
+  run: () => void saveSetting("ai.completion.enabled", !getSetting<boolean>("ai.completion.enabled", false)),
+});
 registerCommand({ id: "ai.dismissInline", title: "Dismiss Inline Proposal", category: "AI", run: withEditor((_p, v) => dismissSuggestion(v)) });
 
 // ---- actions

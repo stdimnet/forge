@@ -104,8 +104,8 @@ function cannedInline(req: InlineRequest, alternative: number): string {
   if (!trimmed) {
     const blocks = php
       ? [
-          `$total = 0;\n${indent}foreach ($this->items as $item) {\n${indent}    $total += $item->price * $item->quantity;\n${indent}}\n${indent}return $total;\n}`,
-          `return collect($this->items)\n${indent}    ->sum(fn ($item) => $item->price * $item->quantity);`,
+          `$subtotal = 0.0;\n${indent}foreach ($order->lines as $line) {\n${indent}    $subtotal += $line->price * $line->quantity;\n${indent}}\n\n${indent}return $subtotal;\n}`,
+          `return array_sum(array_map(fn ($line) => $line->price * $line->quantity, $order->lines));`,
         ]
       : [
           `let total = 0;\n${indent}for (const item of items) {\n${indent}  total += item.price * item.quantity;\n${indent}}\n${indent}return total;\n}`,
@@ -261,7 +261,14 @@ function cannedFix(req: ActionRequest, p: PromptInfo): string {
     const l = lines[i];
     if (l == null) continue;
     const undefinedVar = /Undefined variable '?\$?(\w+)'?/i.exec(problem.message);
-    if (undefinedVar) {
+    const deprecated = /'(\w+)' is deprecated.*Use (\w+)\(\)/.exec(problem.message);
+    if (deprecated) {
+      const [, old, replacement] = deprecated;
+      lines[i] =
+        old === "utf8_encode"
+          ? l.replace(/utf8_encode\(([^)]*)\)/, "mb_convert_encoding($1, 'UTF-8', 'ISO-8859-1')").replace(/\s*\/\/ FIXME:.*$/, "")
+          : l.replace(`${old}(`, `${replacement}(`);
+    } else if (undefinedVar) {
       const indent = /^\s*/.exec(l)?.[0] ?? "";
       lines.splice(i, 0, `${indent}$${undefinedVar[1]} = [];`);
     } else if (!/[;{}:,]\s*$/.test(l)) lines[i] = `${l.trimEnd()};`;

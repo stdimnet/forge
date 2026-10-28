@@ -322,11 +322,43 @@ fn strip_echo(s: &str, ctx: &InlineContext) -> String {
     s.to_string()
 }
 
-/// Lines up to the end of the block the caret is in (no dedent below the caret line).
+/// Opening minus closing brackets of a line (outside string literals).
+fn bracket_balance(line: &str) -> i32 {
+    let mut n = 0;
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    for c in line.chars() {
+        if let Some(q) = quote {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == q {
+                quote = None;
+            }
+            continue;
+        }
+        match c {
+            '"' | '\'' | '`' => quote = Some(c),
+            '{' | '(' | '[' => n += 1,
+            '}' | ')' | ']' => n -= 1,
+            _ => {}
+        }
+    }
+    n
+}
+
+/// Lines up to the end of the block the caret is in: no line indented less than the caret
+/// line, and a closing line at the caret's level ends the suggestion. That line is kept
+/// when the caret is after a block opener (it closes the new block), else it belongs to the
+/// code after the caret.
 fn limit_block(s: &str, ctx: &InlineContext) -> String {
     let base = indent_width(&ctx.indent);
+    let after_opener = ctx.line_prefix.trim_end().ends_with(['{', '(', '[', ':']);
     let mut lines = s.split('\n');
-    let mut out = vec![lines.next().unwrap_or_default()];
+    let first = lines.next().unwrap_or_default();
+    let mut depth = bracket_balance(first);
+    let mut out = vec![first];
     for line in lines {
         if out.len() >= MAX_LINES {
             break;
@@ -339,10 +371,14 @@ fn limit_block(s: &str, ctx: &InlineContext) -> String {
         if w < base {
             break;
         }
-        out.push(line);
-        if w == base && is_closer(line.trim_start()) {
+        if w == base && depth <= 0 && is_closer(line.trim_start()) {
+            if after_opener {
+                out.push(line);
+            }
             break;
         }
+        out.push(line);
+        depth += bracket_balance(line);
     }
     while out.len() > 1 && out.last().is_some_and(|l| l.trim().is_empty()) {
         out.pop();
@@ -558,6 +594,15 @@ mod tests {
             done(text, raw).as_deref(),
             Some("\n  return xs.reduce((a, b) => a + b, 0);")
         );
+        // A block the suggestion opens itself is kept whole.
+        let text = "function f(xs) {\n    |\n}\n";
+        let raw =
+            "let t = 0;\n    for (const x of xs) {\n        t += x;\n    }\n\n    return t;\n}";
+        assert_eq!(
+            done(text, raw).as_deref(),
+            Some("let t = 0;\n    for (const x of xs) {\n        t += x;\n    }\n\n    return t;")
+        );
+        assert_eq!(bracket_balance("if (a) { s = \"}\";"), 1);
         let long: String = (0..40).map(|i| format!("  f{i}();\n")).collect();
         let got = done("function f() {\n  |\n}", &long).unwrap();
         assert_eq!(got.lines().count(), MAX_LINES);
