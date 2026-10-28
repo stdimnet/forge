@@ -53,6 +53,7 @@ pub mod solution;
 pub mod templates;
 pub mod version;
 pub mod watch;
+pub mod web;
 pub mod workspace;
 mod xml;
 

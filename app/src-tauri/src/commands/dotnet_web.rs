@@ -13,14 +13,13 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use dotnetforge_lang_dotnet::aspire::{self, AppHost, AspireOutput, DOTNET_ASPIRE};
-use dotnetforge_lang_dotnet::aspnet::{self, Endpoint};
+use dotnetforge_lang_dotnet::aspire::{self, AppHost, DOTNET_ASPIRE};
+use dotnetforge_lang_dotnet::aspnet::Endpoint;
 use dotnetforge_lang_dotnet::docker::{self, GeneratedDocker, DOTNET_DOCKER};
 use dotnetforge_lang_dotnet::efcore::{self, EfModel, EfOutput, EfRequest};
-use dotnetforge_lang_dotnet::razor::{self, RazorComponent};
+use dotnetforge_lang_dotnet::razor::RazorComponent;
 use dotnetforge_lang_dotnet::secrets::{self, UserSecrets};
-use dotnetforge_lang_dotnet::watch::{parse_watch_output, WatchEvent};
-use dotnetforge_lang_dotnet::DotnetWorkspace;
+use dotnetforge_lang_dotnet::web::{self, EndpointsModel, RunOutput};
 use forge_core::{ForgeError, Result};
 use forge_process::{CommandLine, RunConfiguration};
 use serde::Serialize;
@@ -41,68 +40,20 @@ fn collect(state: &AppState, extensions: &[&str]) -> Result<BTreeMap<String, Str
     Ok(backend
         .collect_files(&req)?
         .into_iter()
-        .filter(|f| {
-            !f.path
-                .split('/')
-                .any(|s| s == "bin" || s == "obj" || s == "node_modules")
-        })
         .map(|f| (f.path, f.text))
         .collect())
 }
 
-/// The files below the folders of some projects.
-fn in_projects<'a>(
-    files: &'a BTreeMap<String, String>,
-    ws: &'a DotnetWorkspace,
-    keep: impl Fn(&dotnetforge_lang_dotnet::msbuild::DotnetProject) -> bool + 'a,
-) -> impl Iterator<Item = (&'a String, &'a String)> + 'a {
-    let dirs: Vec<String> = ws
-        .projects
-        .iter()
-        .filter(|p| keep(p))
-        .map(|p| p.dir())
-        .collect();
-    files.iter().filter(move |(p, _)| {
-        dirs.iter()
-            .any(|d| d.is_empty() || p.starts_with(&format!("{d}/")))
-    })
-}
-
 // ---- ASP.NET Core ------------------------------------------------------------------------------
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EndpointsPayload {
-    pub endpoints: Vec<Endpoint>,
-    /// Project file → the URL it listens on (launch profiles).
-    pub base_urls: BTreeMap<String, String>,
-}
 
 /// The endpoints of the solution's web projects (Endpoints tool window).
 #[tauri::command]
-pub async fn dotnet_endpoints(app: AppHandle) -> Result<EndpointsPayload> {
+pub async fn dotnet_endpoints(app: AppHandle) -> Result<EndpointsModel> {
     blocking(move || {
         let state = app.state::<AppState>();
         let ws = workspace(&state)?;
         let files = collect(&state, &["cs", "razor", "cshtml"])?;
-        let mut endpoints = Vec::new();
-        for (path, text) in in_projects(&files, &ws, |p| p.web) {
-            for mut e in aspnet::scan_file(path, text) {
-                e.project = ws.project_of_file(path).map(|p| p.path.clone());
-                endpoints.push(e);
-            }
-        }
-        aspnet::sort(&mut endpoints);
-        let base_urls = ws
-            .projects
-            .iter()
-            .filter(|p| p.web)
-            .map(|p| (p.path.clone(), aspnet::base_url(&p.launch_profiles)))
-            .collect();
-        Ok(EndpointsPayload {
-            endpoints,
-            base_urls,
-        })
+        Ok(web::endpoints(&ws, &files))
     })
     .await
 }
@@ -112,14 +63,7 @@ pub async fn dotnet_endpoints(app: AppHandle) -> Result<EndpointsPayload> {
 pub async fn dotnet_http_request(endpoint: Endpoint, app: AppHandle) -> Result<String> {
     blocking(move || {
         let state = app.state::<AppState>();
-        let ws = workspace(&state)?;
-        let base = endpoint
-            .project
-            .as_deref()
-            .and_then(|p| ws.project(p))
-            .map(|p| aspnet::base_url(&p.launch_profiles))
-            .unwrap_or_else(|| aspnet::base_url(&[]));
-        Ok(aspnet::http_request(&endpoint, &base))
+        Ok(web::http_request(&workspace(&state)?, &endpoint))
     })
     .await
 }
@@ -130,19 +74,7 @@ pub async fn dotnet_razor_components(app: AppHandle) -> Result<Vec<RazorComponen
     blocking(move || {
         let state = app.state::<AppState>();
         let files = collect(&state, &["razor", "cs"])?;
-        let razor_files: BTreeMap<String, String> = files
-            .iter()
-            .filter(|(p, _)| p.ends_with(".razor") || p.ends_with(".razor.cs"))
-            .map(|(p, t)| (p.clone(), t.clone()))
-            .collect();
-        let ws = workspace(&state).ok();
-        let mut out = razor::components(&razor_files);
-        if let Some(ws) = ws {
-            for c in &mut out {
-                c.project = ws.project_of_file(&c.path).map(|p| p.path.clone());
-            }
-        }
-        Ok(out)
+        Ok(web::components(&workspace(&state)?, &files))
     })
     .await
 }
@@ -155,33 +87,15 @@ pub async fn dotnet_ef_model(app: AppHandle) -> Result<EfModel> {
     blocking(move || {
         let state = app.state::<AppState>();
         let ws = workspace(&state)?;
-        let projects = efcore::ef_projects(&ws.projects);
-        let mut model = EfModel {
-            local_tool: state
-                .backend()?
-                .read_optional(".config/dotnet-tools.json")?
-                .is_some_and(|t| efcore::has_local_tool(&t)),
-            ..EfModel::default()
+        let tools = state
+            .backend()?
+            .read_optional(".config/dotnet-tools.json")?;
+        let files = if efcore::ef_projects(&ws.projects).is_empty() {
+            BTreeMap::new()
+        } else {
+            collect(&state, &["cs"])?
         };
-        if !projects.is_empty() {
-            let paths: Vec<String> = projects.iter().map(|p| p.path.clone()).collect();
-            let files = collect(&state, &["cs"])?;
-            for (path, text) in in_projects(&files, &ws, |p| paths.contains(&p.path)) {
-                let (contexts, migrations) = efcore::scan_source(path, text);
-                let project = ws.project_of_file(path).map(|p| p.path.clone());
-                model.contexts.extend(contexts.into_iter().map(|mut c| {
-                    c.project = project.clone();
-                    c
-                }));
-                model.migrations.extend(migrations.into_iter().map(|mut m| {
-                    m.project = project.clone();
-                    m
-                }));
-            }
-            model.migrations.sort_by(|a, b| a.id.cmp(&b.id));
-        }
-        model.projects = projects;
-        Ok(model)
+        Ok(web::ef_model(&ws, &files, tools.as_deref()))
     })
     .await
 }
@@ -219,20 +133,10 @@ pub async fn dotnet_aspire_hosts(app: AppHandle) -> Result<Vec<AppHost>> {
     .await
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RunOutputPayload {
-    pub aspire: AspireOutput,
-    pub watch: Vec<WatchEvent>,
-}
-
 /// What a chunk of run output says: the Aspire dashboard URL, Hot Reload events.
 #[tauri::command]
-pub fn dotnet_run_output(text: String) -> Result<RunOutputPayload> {
-    Ok(RunOutputPayload {
-        aspire: aspire::parse_output(&text),
-        watch: parse_watch_output(&text),
-    })
+pub fn dotnet_run_output(text: String) -> Result<RunOutput> {
+    Ok(web::run_output(&text))
 }
 
 #[derive(Debug, Serialize)]
