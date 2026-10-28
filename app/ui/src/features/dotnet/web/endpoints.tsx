@@ -4,7 +4,7 @@
  * (`dotnet_endpoints`). Click opens the handler; Generate HTTP Request opens an `.http`
  * request against the project's launch profile URL in the HTTP Client.
  */
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show, createRoot } from "solid-js";
 import { Copy, FileCode, Globe, Lock, RefreshCw, Search, Send, X } from "lucide-solid";
 import { dotnetWebApi, type Endpoint } from "@/ipc/dotnetWeb";
 import { openMenu } from "@/features/run/PopupMenu";
@@ -15,10 +15,10 @@ import { dotnetActive, dotnetWorkspace, errorText, showDotnetBalloon } from "../
 /** ASP.NET Core is used: a web project in the solution. */
 export const aspnetActive = () => dotnetActive() && (dotnetWorkspace()?.projects ?? []).some((p) => p.web);
 
-const [model, { refetch }] = createResource(
+const [model, { refetch }] = createRoot(() => createResource(
   () => (aspnetActive() ? dotnetWorkspace() : null),
   () => dotnetWebApi.endpoints(),
-);
+));
 export const refreshEndpoints = () => void refetch();
 
 const [query, setQuery] = createSignal("");
@@ -37,7 +37,7 @@ export function matchesEndpoint(e: Endpoint, q: string): boolean {
     .every((w) => hay.includes(w));
 }
 
-const visible = createMemo(() => (model()?.endpoints ?? []).filter((e) => (kind() === "all" || e.framework === kind()) && matchesEndpoint(e, query())));
+const visible = createRoot(() => createMemo(() => (model()?.endpoints ?? []).filter((e) => (kind() === "all" || e.framework === kind()) && matchesEndpoint(e, query()))));
 
 export async function generateHttpRequest(e: Endpoint): Promise<void> {
   try {

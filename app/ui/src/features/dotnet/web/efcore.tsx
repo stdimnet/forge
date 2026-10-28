@@ -5,7 +5,7 @@
  * Update Database and Scaffold DbContext open a dialog and run `dotnet ef` in the Run tool
  * window. Models, command lines and output are computed in Rust (`dotnet_ef_*`).
  */
-import { createMemo, createResource, createSignal, For, onCleanup, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, onCleanup, Show, createRoot } from "solid-js";
 import { render } from "solid-js/web";
 import { Check, CircleDashed, Clock, Database, DatabaseZap, FileCode, Minus, Plus, RefreshCw, Table2, Wand2 } from "lucide-solid";
 import { dotnetWebApi, SCAFFOLD_PROVIDERS, type EfAction, type EfModel, type EfRequest, type Migration } from "@/ipc/dotnetWeb";
@@ -18,10 +18,10 @@ import { getSetting } from "@/state/settings";
 import { onFileSaved } from "@/state/editor";
 import { dotnetActive, dotnetWorkspace, errorText, runDotnetCapture, runDotnetCommand, showDotnetBalloon } from "../state";
 
-const [model, { refetch: refetchModel }] = createResource(
+const [model, { refetch: refetchModel }] = createRoot(() => createResource(
   () => (dotnetActive() ? dotnetWorkspace() : null),
   () => dotnetWebApi.efModel().catch(() => null as EfModel | null),
-);
+));
 /** EF Core is used: a project references it. */
 export const efActive = () => dotnetActive() && (model()?.projects.length ?? 0) > 0;
 
@@ -37,12 +37,12 @@ if (typeof document !== "undefined")
   });
 
 /** Sources' migrations merged with the listed ones (applied state, database-only ones). */
-const migrations = createMemo<Migration[]>(() => {
+const migrations = createRoot(() => createMemo<Migration[]>(() => {
   const src = model()?.migrations ?? [];
   const out: Migration[] = src.map((m) => ({ ...m, applied: applied()[m.id] ?? m.applied ?? null }));
   for (const l of listed()) if (!out.some((m) => m.id === l.id)) out.push(l);
   return out.sort((a, b) => a.id.localeCompare(b.id));
-});
+}));
 
 const timestamp = (id: string) => {
   const t = id.split("_")[0] ?? "";

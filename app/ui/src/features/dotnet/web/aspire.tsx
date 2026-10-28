@@ -18,10 +18,10 @@ import { launch, openInBrowser, runningFor, stopConfiguration } from "@/features
 import { getSetting } from "@/state/settings";
 import { dotnetActive, dotnetWorkspace, PLUGIN, projectByPath, showDotnetBalloon } from "../state";
 
-const [hosts, { refetch }] = createResource(
+const [hosts, { refetch }] = createRoot(() => createResource(
   () => (dotnetActive() ? dotnetWorkspace() : null),
   () => dotnetWebApi.aspireHosts().catch(() => [] as AppHost[]),
-);
+));
 export const aspireActive = () => dotnetActive() && (hosts()?.length ?? 0) > 0;
 export const refreshAspire = () => void refetch();
 

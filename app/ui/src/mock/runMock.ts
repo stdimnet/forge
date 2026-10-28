@@ -787,7 +787,7 @@ export function composerSteps(args: string[]): Step[] {
 function externalToolSteps(cmd: CommandLine): Step[] {
   const program = cmd.program.split("/").pop() ?? cmd.program;
   // DotNetForge's build, NuGet, template and cleanup command lines.
-  if (program === "dotnet" && isDotnetDemo()) return dotnetCommandSteps(cmd.args);
+  if ((program === "dotnet" || program === "docker") && isDotnetDemo()) return dotnetWebSteps(cmd) ?? dotnetCommandSteps(cmd.args);
   if (program === "phpstan") {
     const file = cmd.args.find((a) => a.endsWith(".php")) ?? "app/Models/User.php";
     return [

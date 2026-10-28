@@ -10,6 +10,7 @@ describe("Razor scanner", () => {
     expect(kinds("@* note *@<b>x</b>")).toEqual(["comment:@* note *@"]);
     expect(kinds("@code {\n  int count;\n}")).toEqual(["directive:@code", "csharp:{\n  int count;\n}"]);
     expect(kinds('<button @onclick="Increment">+</button>')).toEqual(["attribute:@onclick", "csharp:Increment"]);
+    expect(kinds('<Rating Value="@book.Stars" />')).toEqual(["transition:@", "csharp:book.Stars"]);
     expect(kinds("@Format(x)[0].Name rest")).toEqual(["transition:@", "csharp:Format(x)[0].Name"]);
   });
 

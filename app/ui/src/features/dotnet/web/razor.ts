@@ -16,7 +16,7 @@ import { html } from "@codemirror/lang-html";
 import { EditorState, Prec, RangeSetBuilder, type Extension, type Text } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { createResource } from "solid-js";
+import { createResource, createRoot } from "solid-js";
 import { registerLanguage } from "@/editor/languages";
 import { registerEditorExtension } from "@/editor/extensions";
 import { openFileAt } from "@/editor/views";
@@ -153,7 +153,9 @@ export function scanRazor(text: string): RazorRegion[] {
     const lineStart = text.lastIndexOf("\n", at - 1) + 1;
     const before = text.slice(lineStart, at);
     const inTag = before.lastIndexOf("<") > before.lastIndexOf(">");
-    if (inTag) {
+    // `Value="@book.Stars"`: an expression inside an attribute value.
+    const inValue = ((before.slice(before.lastIndexOf("<")).match(/"/g) ?? []).length & 1) === 1;
+    if (inTag && !inValue) {
       push(at, j, "attribute");
       const eq = /^\s*=\s*"/.exec(text.slice(j));
       if (eq) {
@@ -297,10 +299,10 @@ registerLanguage({ id: "razor", load: () => razorLanguage() });
 
 const isRazor = (path: string) => /\.razor$/i.test(path);
 
-const [components, { refetch }] = createResource(
+const [components, { refetch }] = createRoot(() => createResource(
   () => (dotnetActive() ? true : null),
   () => dotnetWebApi.components().catch(() => [] as RazorComponent[]),
-);
+));
 export { components as razorComponents };
 
 if (typeof document !== "undefined")
