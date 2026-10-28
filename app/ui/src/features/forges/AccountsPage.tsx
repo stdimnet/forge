@@ -1,5 +1,5 @@
 /**
- * Settings | Version Control | GitLab / Forgejo / Gitea / GitHub: accounts per host. Tokens
+ * Settings | Version Control | GitLab / Forgejo / Gitea / GitHub / Azure DevOps: accounts per host. Tokens
  * are verified against the server and stored in the OS keychain (service `forge-forges`).
  */
 import { createResource, createSignal, For, Show } from "solid-js";
@@ -18,6 +18,9 @@ function tokenUrl(kind: HostKind, server: string): string {
       return `${s}/-/user_settings/personal_access_tokens?name=Forge&scopes=api,read_user`;
     case "github":
       return `${s === "https://github.com" ? s : `${s}`}/settings/tokens/new?description=Forge&scopes=repo,read:org,workflow`;
+    case "azure":
+      // The organization's personal access tokens page.
+      return `${s}/_usersSettings/tokens`;
     default:
       return `${s}/user/settings/applications`;
   }
@@ -27,12 +30,14 @@ const scopes: Record<HostKind, string> = {
   gitlab: "Scopes: api, read_user",
   github: "Scopes: repo, read:org, workflow (or a fine-grained token with pull request, issue and actions access)",
   forgejo: "Permissions: read/write for repository and issue, read for user",
+  azure: "Scopes: Code (Read & Write), Work Items (Read & Write), Build (Read), Project and Team (Read)",
 };
 
 const intro: Record<HostKind, string> = {
   gitlab: "Review merge requests, issues and pipelines on gitlab.com and self-managed GitLab servers.",
   forgejo: "Review pull requests, issues and Actions runs on Forgejo and Gitea servers such as Codeberg.",
   github: "Review pull requests, issues and workflow runs on github.com and GitHub Enterprise Server.",
+  azure: "Review pull requests, work items and builds on Azure DevOps Services (https://dev.azure.com/<organization>) and Azure DevOps Server (the collection URL).",
 };
 
 export function AccountsPage(props: { kind: HostKind }) {
@@ -171,7 +176,7 @@ export function AccountsPage(props: { kind: HostKind }) {
                 id="fg-token"
                 type="password"
                 autocomplete="off"
-                placeholder={props.kind === "gitlab" ? "glpat-…" : props.kind === "github" ? "ghp_… or github_pat_…" : "Access token"}
+                placeholder={props.kind === "gitlab" ? "glpat-…" : props.kind === "github" ? "ghp_… or github_pat_…" : props.kind === "azure" ? "Personal access token" : "Access token"}
                 value={token()}
                 onInput={(e) => setToken(e.currentTarget.value)}
                 onKeyDown={(e) => e.key === "Enter" && token().trim() && void login()}

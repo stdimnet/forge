@@ -1,5 +1,5 @@
 /**
- * Code hosts (GitLab, Forgejo/Gitea, GitHub): the Pull/Merge Requests tool window, request
+ * Code hosts (GitLab, Forgejo/Gitea, GitHub, Azure DevOps): the Pull/Merge Requests tool window, request
  * and issue editor tabs, Create Merge Request dialog, account settings pages and the CI
  * status of the current branch in the status bar.
  */
@@ -37,6 +37,7 @@ const pages = [
   { id: "vcs.gitlab", title: "GitLab", kind: "gitlab", keywords: ["merge request", "token", "self-managed"] },
   { id: "vcs.forgejo", title: "Forgejo / Gitea", kind: "forgejo", keywords: ["codeberg", "pull request", "token"] },
   { id: "vcs.github", title: "GitHub", kind: "github", keywords: ["pull request", "token", "enterprise"] },
+  { id: "vcs.azure", title: "Azure DevOps", kind: "azure", keywords: ["azure repos", "pull request", "work items", "pat", "token", "tfs", "visual studio team services"] },
 ] as const;
 // Version Control | Code Hosts: refresh interval and the status bar pipeline; the accounts
 // of each host are pages below it.
@@ -45,7 +46,7 @@ registerSettingsPage({
   title: "Code Hosts",
   group: "Version Control",
   order: 10,
-  keywords: ["pipeline", "ci", "merge request", "pull request", "refresh", "gitlab", "github", "forgejo"],
+  keywords: ["pipeline", "ci", "merge request", "pull request", "refresh", "gitlab", "github", "forgejo", "azure devops"],
   component: () => <SchemaPage pageId="vcs.hosts" />,
 });
 pages.forEach((p, i) =>

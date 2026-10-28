@@ -154,7 +154,7 @@ const state = {
   stashes: [
     { branch: "main", message: "Half-done invoice PDF layout", time: now - 3 * DAY, files: {} as Record<string, string> },
   ],
-  remotes: [{ name: "origin", fetchUrl: "git@github.com:acme/shop.git", pushUrl: null as string | null }],
+  remotes: [{ name: "origin", fetchUrl: isDotnetDemo() ? "https://acme@dev.azure.com/acme/Bookstore/_git/bookstore" : "git@github.com:acme/shop.git", pushUrl: null as string | null }],
   /** Worktrees (`git worktree list`); the first is the main one, where the demo project is. */
   worktrees: [
     { path: "/home/marlon/src/acme-shop", branch: demo.branch as string | null, locked: false, lockReason: null as string | null, prunable: false },
