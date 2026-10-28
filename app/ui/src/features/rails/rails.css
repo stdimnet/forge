@@ -1,0 +1,186 @@
+/* Ruby on Rails: the Rails view of the Endpoints tool window, the Run Rails Generator popup
+   and gutter icons. The tables reuse the Routes window's `.routes-*` classes; colors come
+   from theme.css variables only. */
+
+.rails-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rails-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.rails-tabs button.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.rails-controller {
+  color: var(--fg-muted);
+}
+.rails-handler-other {
+  color: var(--syn-type);
+}
+.rails-col-model {
+  width: 18%;
+}
+.rails-col-table {
+  width: 16%;
+  white-space: nowrap;
+}
+.rails-col-assoc {
+  width: 26%;
+  font-size: var(--fs-small);
+}
+.rails-table-icon {
+  color: var(--info);
+  vertical-align: -2px;
+}
+.rails-columns {
+  white-space: normal;
+}
+.rails-column {
+  display: inline-block;
+  margin-right: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--syn-variable);
+}
+
+/* ---------- Run Rails Generator ---------- */
+.rails-gen-popup {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(760px, 90vw);
+  display: flex;
+  flex-direction: column;
+  max-height: 72vh;
+}
+.rails-gen-source {
+  font-size: var(--fs-small);
+  margin-left: 8px;
+}
+.rails-gen-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 10px 4px;
+  padding: 0 8px;
+  height: 30px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.rails-gen-prompt {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.rails-gen-input input,
+.rails-gen-input input:focus {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+.rails-gen-usage {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 12px 8px;
+  font-size: var(--fs-small);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.rails-gen-usage code {
+  color: var(--syn-string);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rails-gen-list {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+.rails-gen-item {
+  display: grid;
+  grid-template-columns: 240px 100px 1fr;
+  gap: 10px;
+  align-items: center;
+  height: 24px;
+  padding: 0 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rails-gen-item.selected {
+  background: var(--bg-selection);
+}
+.rails-gen-name {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rails-gen-group {
+  color: var(--info);
+  font-size: var(--fs-small);
+}
+.rails-gen-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+}
+.rails-gen-empty {
+  padding: 16px;
+  text-align: center;
+}
+.rails-gen-options {
+  display: flex;
+  gap: 18px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-small);
+}
+.rails-gen-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* ---------- Gutter ---------- */
+.marker-rails-route {
+  color: var(--success);
+}
+.marker-rails-view,
+.marker-rails-partial,
+.marker-rails-controller,
+.marker-rails-action {
+  color: var(--info);
+}
+.marker-rails-table,
+.marker-rails-model {
+  color: var(--syn-type);
+}
+.marker-rails-stimulus {
+  color: var(--warning);
+}

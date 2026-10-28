@@ -64,6 +64,7 @@ import "./jupyter";
 import "./go";
 import "./rust";
 import "./ruby";
+import "./rails";
 import "./java";
 import "./kotlin";
 import "./spring";
