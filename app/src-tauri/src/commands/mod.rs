@@ -2,6 +2,7 @@
 //! commands in `lib.rs`.
 
 pub mod agent;
+pub mod agent_tasks;
 pub mod ai;
 pub mod ai_editor;
 pub mod android;

@@ -34,6 +34,7 @@ forge-plugin-api = { path = "crates/forge-plugin-api" }
 forge-ai = { path = "crates/forge-ai" }
 forge-ai-editor = { path = "crates/forge-ai-editor" }
 forge-agent-cli = { path = "crates/forge-agent-cli" }
+forge-agent-tasks = { path = "crates/forge-agent-tasks" }
 forge-lsp = { path = "crates/forge-lsp" }
 forge-langservers = { path = "crates/forge-langservers" }
 forge-vcs = { path = "crates/forge-vcs" }

@@ -1,0 +1,19 @@
+[package]
+name = "forge-agent-tasks"
+description = "Forge IDE agent tasks: AI agents that run, test and fix code in a git worktree sandbox, with the diff to review"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-ai.workspace = true
+forge-ai-editor.workspace = true
+forge-output.workspace = true
+forge-vcs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+async-trait = "0.1"
+
+[dev-dependencies]
+tempfile.workspace = true

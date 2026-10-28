@@ -15086,6 +15086,13 @@
           "anchor": "right",
           "icon": "sparkles",
           "order": 0
+        },
+        {
+          "id": "agent-tasks",
+          "title": "Agent Tasks",
+          "anchor": "right",
+          "icon": "list-checks",
+          "order": 0
         }
       ],
       "settings": [
@@ -15184,6 +15191,43 @@
           "section": "Inline Completion",
           "project": false,
           "order": 14
+        },
+        {
+          "key": "ai.agentTasks.maxSteps",
+          "title": "Step budget per task",
+          "description": "Most model turns (Forge agent) or agent CLI turns a task may take before it stops for review.",
+          "type": "int",
+          "min": 1,
+          "max": 500,
+          "default": 40,
+          "group": "tools.ai-assistant",
+          "section": "Agent Tasks",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "ai.agentTasks.maxTestRuns",
+          "title": "Test runs per task",
+          "description": "How often an agent may run the tests while it fixes failures.",
+          "type": "int",
+          "min": 1,
+          "max": 100,
+          "default": 6,
+          "group": "tools.ai-assistant",
+          "section": "Agent Tasks",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "ai.agentTasks.allowedCommands",
+          "title": "Commands that run without asking",
+          "description": "Command prefixes agents may run in their sandbox without your approval, e.g. composer test, php -l, npm run lint. Every other command asks first; network tools (curl, wget, ssh, ...) are always refused.",
+          "type": "list",
+          "default": [],
+          "group": "tools.ai-assistant",
+          "section": "Agent Tasks",
+          "project": false,
+          "order": 22
         }
       ],
       "lspServers": [],

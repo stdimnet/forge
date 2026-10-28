@@ -55,6 +55,7 @@ pub fn run() {
         .manage(commands::ai::AiState::load())
         .manage(commands::ai_editor::AiEditorState::default())
         .manage(commands::agent::AgentState::default())
+        .manage(commands::agent_tasks::AgentTasksState::default())
         .manage(commands::db::DbState::load())
         .manage(commands::db_objects::DbObjectsState::default())
         .manage(commands::forges::ForgesState::load())
@@ -202,6 +203,15 @@ pub fn run() {
             commands::ai::ai_provider_test,
             commands::ai::ai_models,
             commands::ai::ai_set_default,
+            commands::agent_tasks::agent_tasks_list,
+            commands::agent_tasks::agent_task_create,
+            commands::agent_tasks::agent_task_cancel,
+            commands::agent_tasks::agent_task_approve,
+            commands::agent_tasks::agent_task_changes,
+            commands::agent_tasks::agent_task_file_diff,
+            commands::agent_tasks::agent_task_apply,
+            commands::agent_tasks::agent_task_discard,
+            commands::agent_tasks::agent_task_remove,
             commands::ai_editor::ai_inline_complete,
             commands::ai_editor::ai_inline_cancel,
             commands::ai_editor::ai_editor_status,
