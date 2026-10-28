@@ -11438,6 +11438,455 @@
     }
   },
   {
+    "id": "forge.ruby",
+    "name": "Ruby",
+    "version": "0.1.0",
+    "pack": "rubyforge",
+    "description": "Ruby interpreters of rbenv, rvm, chruby, asdf and mise, Bundler (Gemfile, gems in External Libraries), Rake tasks, Ruby and Rake run configurations, RSpec and Minitest, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB and the IRB console.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "rubyforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "ruby",
+        "erb"
+      ],
+      "fileTypes": [
+        {
+          "id": "ruby",
+          "name": "Ruby",
+          "extensions": [
+            "rb",
+            "rake",
+            "gemspec",
+            "ru",
+            "rbw",
+            "jbuilder",
+            "builder"
+          ],
+          "fileNames": [
+            "Gemfile",
+            "gems.rb",
+            "Rakefile",
+            "rakefile",
+            "Guardfile",
+            "Capfile",
+            "Vagrantfile",
+            "Brewfile",
+            "Podfile",
+            "Fastfile",
+            "Appfile",
+            "Steepfile",
+            ".irbrc",
+            ".pryrc"
+          ],
+          "interpreters": [
+            "ruby",
+            "jruby",
+            "truffleruby"
+          ],
+          "indentSize": 2
+        },
+        {
+          "id": "gemfile-lock",
+          "name": "Gemfile.lock",
+          "extensions": [],
+          "fileNames": [
+            "Gemfile.lock",
+            "gems.locked"
+          ],
+          "indentSize": 2
+        }
+      ],
+      "commands": [
+        {
+          "id": "ruby.bundleInstall",
+          "title": "Bundle Install",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.bundleUpdate",
+          "title": "Bundle Update",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.bundleOutdated",
+          "title": "Show Outdated Gems (bundle outdated)",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.reloadRake",
+          "title": "Reload Rake Tasks",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.runRakeTask",
+          "title": "Run Rake Task…",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.rubocop",
+          "title": "Inspect Code with RuboCop",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.rubocopAutocorrect",
+          "title": "RuboCop: Autocorrect File",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.irbConsole",
+          "title": "Run IRB Console",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.installRubyLsp",
+          "title": "Install Ruby LSP…",
+          "category": "Ruby"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "ruby.interpreter",
+          "title": "Ruby interpreter",
+          "description": "The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest.",
+          "type": "string",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Ruby SDK",
+          "project": true,
+          "hidden": true,
+          "order": 0
+        },
+        {
+          "key": "ruby.interpreters",
+          "title": "Added interpreters",
+          "description": "Ruby executables added by hand (Add Interpreter…); detected ones are listed without this.",
+          "type": "list",
+          "default": [],
+          "group": "lang.ruby",
+          "section": "Ruby SDK",
+          "project": false,
+          "hidden": true,
+          "order": 1
+        },
+        {
+          "key": "ruby.environment",
+          "title": "Environment",
+          "description": "Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV).",
+          "type": "list",
+          "default": [],
+          "group": "lang.ruby",
+          "section": "Ruby SDK",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "ruby.bundler.useBundleExec",
+          "title": "Run commands with bundle exec",
+          "description": "In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.ruby",
+          "section": "Bundler",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "ruby.bundler.path",
+          "title": "bundle executable",
+          "description": "Empty: the interpreter's bundle, then PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Bundler",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "ruby.rake.runRake",
+          "title": "Load tasks with rake --tasks",
+          "description": "The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.ruby",
+          "section": "Rake",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "ruby.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Ruby files.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "rubocop",
+              "label": "RuboCop (safe autocorrect, -a)"
+            },
+            {
+              "value": "rubocopAll",
+              "label": "RuboCop (all autocorrect, -A)"
+            },
+            {
+              "value": "lsp",
+              "label": "Ruby LSP"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "rubocop",
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "ruby.rubocop.onTheFly",
+          "title": "Check files with RuboCop",
+          "description": "RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": true,
+          "order": 31
+        },
+        {
+          "key": "ruby.rubocop.path",
+          "title": "rubocop executable",
+          "description": "Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": false,
+          "order": 32
+        },
+        {
+          "key": "ruby.rubocop.options",
+          "title": "Additional options",
+          "description": "Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml.",
+          "type": "string",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": true,
+          "order": 33
+        },
+        {
+          "key": "ruby.lsp.path",
+          "title": "ruby-lsp executable",
+          "description": "Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Ruby LSP",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "ruby.lsp.formatter",
+          "title": "Ruby LSP formatter",
+          "description": "The formatter Ruby LSP uses for formatting and diagnostics.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Automatic (RuboCop when in the bundle)"
+            },
+            {
+              "value": "rubocop_internal",
+              "label": "RuboCop"
+            },
+            {
+              "value": "syntax_tree",
+              "label": "Syntax Tree"
+            },
+            {
+              "value": "none",
+              "label": "None"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.ruby",
+          "section": "Ruby LSP",
+          "project": true,
+          "order": 41
+        },
+        {
+          "key": "ruby.debugger.rdbgPath",
+          "title": "rdbg executable",
+          "description": "The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Debugger",
+          "project": false,
+          "order": 50
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "ruby",
+          "name": "Ruby",
+          "description": "Run a Ruby script with the project's interpreter, through bundle exec in Bundler projects.",
+          "icon": "gem",
+          "debuggable": true
+        },
+        {
+          "id": "rake",
+          "name": "Rake",
+          "description": "Run a Rake task with its arguments.",
+          "icon": "hammer",
+          "debuggable": true
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "rspec",
+          "name": "RSpec",
+          "description": "Run RSpec: all specs, a folder, a file, an example group or example (file:line), or examples whose description matches.",
+          "icon": "flask-conical",
+          "language": "ruby",
+          "detect": {
+            "files": [
+              ".rspec",
+              "spec/spec_helper.rb"
+            ],
+            "dependencies": [
+              {
+                "file": "Gemfile.lock",
+                "contains": "rspec-core"
+              },
+              {
+                "file": "Gemfile",
+                "contains": "rspec"
+              }
+            ]
+          },
+          "testFiles": [
+            "*_spec.rb"
+          ],
+          "program": "rspec",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${file}"
+            ]
+          },
+          "report": "jUnitFile",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": true
+        },
+        {
+          "id": "minitest",
+          "name": "Minitest",
+          "description": "Run Minitest (and test-unit style) tests: a folder, a file, a test class or method, or tests whose name matches.",
+          "icon": "flask-conical",
+          "language": "ruby",
+          "detect": {
+            "files": [
+              "test/test_helper.rb",
+              "test/**/*_test.rb",
+              "test/**/test_*.rb"
+            ],
+            "dependencies": [
+              {
+                "file": "Gemfile.lock",
+                "contains": "    minitest ("
+              },
+              {
+                "file": "Gemfile",
+                "contains": "minitest"
+              }
+            ]
+          },
+          "testFiles": [
+            "*_test.rb",
+            "test_*.rb"
+          ],
+          "program": "ruby",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${file}",
+              "${test}"
+            ]
+          },
+          "report": "minitestText",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": true,
+          "fields": [
+            {
+              "key": "class",
+              "label": "Test class",
+              "placeholder": "Shop::CartTest (with Scope: Test)"
+            }
+          ]
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "RuboCop",
+          "name": "RuboCop",
+          "group": "Ruby/External tools",
+          "language": "ruby",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Offenses reported by RuboCop with the project's .rubocop.yml; they keep RuboCop's level (convention, warning, error) until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "rubocop",
+          "inspection": "RuboCop"
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.java",
     "name": "Java",
     "version": "0.1.0",

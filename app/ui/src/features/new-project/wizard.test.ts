@@ -20,9 +20,9 @@ const gens = generatorsJson as unknown as Generator[];
 const gen = (id: string) => gens.find((g) => g.id === id)!;
 
 describe("generator list", () => {
-  it("groups by pack in PHP, Web, Lua, .NET, Other order", () => {
+  it("groups by pack in PHP, Web, Lua, Ruby, .NET, Other order", () => {
     const groups = groupGenerators(gens);
-    expect(groups.map((g) => g.group)).toEqual(["PHP", "Web", "Lua", ".NET", "Other"]);
+    expect(groups.map((g) => g.group)).toEqual(["PHP", "Web", "Lua", "Ruby", ".NET", "Other"]);
     expect(groups[0].items.map((g) => g.id)).toEqual([
       "empty-php",
       "laravel",

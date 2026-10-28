@@ -52,6 +52,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
+  chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
+  with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run
+  configurations; RSpec and Minitest with gutter icons and their results in the test tree;
+  rdbg debugging; RuboCop offenses, Alt+Enter autocorrect and Reformat Code; Ruby LSP
+  (installed on request with your own RubyGems); ERB templates and the IRB console
+  ([RubyForge](user/ruby.md)).
 - **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
   "Track only root files", problems from output filters), Live Edit through the Browser
   Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and

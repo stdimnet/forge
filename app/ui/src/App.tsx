@@ -33,6 +33,7 @@ export function App() {
       django: "catalog/views.py",
       go: "cmd/ledger/main.go",
       rust: "crates/shop-cli/src/main.rs",
+      ruby: "lib/pantry/inventory.rb",
       java: "src/main/java/com/acme/inventory/App.java",
       kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
       spring: "src/main/java/com/acme/inventory/InventoryApplication.java",

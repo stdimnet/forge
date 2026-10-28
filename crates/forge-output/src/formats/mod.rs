@@ -11,6 +11,8 @@
 //! | pytest report log / JUnit | [`pytest`] | lines on stdout or a report file / report files |
 //! | Jest / Vitest JSON | [`jest`] | a document on stdout or a report file |
 //! | Playwright JSON | [`playwright`] | a report file |
+//! | RSpec JSON | [`rspec`] | a report file |
+//! | Minitest verbose output | [`minitest`] | lines on stdout |
 //! | tox (environments as tests) | [`tox`] | lines on stdout |
 //! | Visual Studio TRX (`dotnet test --logger trx`) | [`trx`] | report files |
 //!
@@ -21,8 +23,10 @@ pub mod gotest;
 pub mod jest;
 pub mod libtest;
 pub mod libtest_text;
+pub mod minitest;
 pub mod playwright;
 pub mod pytest;
+pub mod rspec;
 pub mod tap;
 pub mod tox;
 pub mod trx;
@@ -35,8 +39,10 @@ pub use gotest::GoTestParser;
 pub use jest::jest_events;
 pub use libtest::LibtestParser;
 pub use libtest_text::LibtestTextParser;
+pub use minitest::MinitestParser;
 pub use playwright::playwright_events;
 pub use pytest::PytestReportLogParser;
+pub use rspec::rspec_events;
 pub use tap::TapParser;
 pub use tox::ToxParser;
 pub use trx::trx_events;
@@ -51,11 +57,13 @@ pub fn line_parser(report: TestReport) -> Option<Box<dyn LineParser>> {
         TestReport::LibtestText => Box::new(LibtestTextParser::new()),
         TestReport::PytestReportLog => Box::new(PytestReportLogParser::new()),
         TestReport::Tox => Box::new(ToxParser::new()),
+        TestReport::MinitestText => Box::new(MinitestParser::new()),
         TestReport::JUnitStdout | TestReport::JUnitFile | TestReport::JestJson => return None,
     })
 }
 
-/// The events of a whole report: JUnit XML, a Jest / Vitest JSON document or JSON lines
+/// The events of a whole report: JUnit XML, a Jest / Vitest, Playwright or RSpec JSON
+/// document or JSON lines
 /// (a pytest report log, `test2json` or libtest output saved to a file).
 pub fn document_events(text: &str, flavor: JUnitFlavor) -> Result<Vec<TestEvent>, String> {
     let t = text.trim_start_matches('\u{feff}').trim_start();
@@ -70,6 +78,9 @@ pub fn document_events(text: &str, flavor: JUnitFlavor) -> Result<Vec<TestEvent>
     }
     if !t.starts_with('{') {
         return Err("not a test report".into());
+    }
+    if rspec::is_rspec_report(t) {
+        return rspec_events(t);
     }
     if playwright::is_playwright_report(t) {
         if let Ok(events) = playwright_events(t) {

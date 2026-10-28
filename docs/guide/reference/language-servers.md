@@ -195,7 +195,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT |  |
+| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT | RubyForge configures it with the project's Ruby and can install it into Forge's data folder with your gem ([RubyForge](../user/ruby.md#ruby-lsp)) |
 
 ### PHP
 

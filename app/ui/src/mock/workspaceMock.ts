@@ -22,6 +22,7 @@ import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
 import { isPythonDemo, pythonDemoFiles, pythonDemoName } from "./demoPythonProject";
 import { goDemoFiles, goDemoName, isGoDemo } from "./demoGoProject";
 import { isRustDemo, rustDemoFiles, rustDemoName } from "./demoRustProject";
+import { isRubyDemo, rubyDemoFiles, rubyDemoName } from "./demoRubyProject";
 import { isJavaDemo, javaDemoFiles, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoFiles, kotlinDemoName } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoFiles, scalaDemoName } from "./demoScalaProject";
@@ -36,7 +37,7 @@ import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProje
 // `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
 // `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
 // the FastAPI service of PyForge (`?project=django` its Django bookshop), `?project=go` the
-// `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge,
+// `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge, `?project=ruby` the `pantry` gem of RubyForge,
 // `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application), `?project=kotlin` a Gradle Kotlin service,
 // `?project=scala` an sbt build, `?project=android` a Gradle Android app.
 // `?project=cpp` the CMake project `shapes` of CForge.
@@ -54,6 +55,8 @@ export const mockFiles: Record<string, string> = isSymfonyDemo()
     ? { ...goDemoFiles }
     : isRustDemo()
     ? { ...rustDemoFiles }
+    : isRubyDemo()
+    ? { ...rubyDemoFiles }
     : isJavaDemo()
     ? { ...javaDemoFiles }
     : isKotlinDemo()
@@ -85,6 +88,8 @@ export const mockProjectName = isSymfonyDemo()
     ? goDemoName
     : isRustDemo()
     ? rustDemoName
+    : isRubyDemo()
+    ? rubyDemoName
     : isJavaDemo()
     ? javaDemoName
     : isKotlinDemo()

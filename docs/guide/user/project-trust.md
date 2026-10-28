@@ -56,7 +56,7 @@ blocked even if a plugin or the UI tries to start them:
 | --- | --- |
 | Run/Debug configurations, Before launch tasks, Run Anything, External Tools | not started (every run goes through one place in the backend) |
 | Composer and npm scripts, Artisan, Symfony console, Command Line Tool Support | not started; the Run Command popup lists only the built-in Artisan and Symfony commands |
-| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
+| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest, RSpec, Minitest) | not started |
 | Xdebug: Start Listening, PHP Web Page | refused |
 | Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
 | [Vulnerable dependency check](vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
@@ -71,6 +71,7 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
 | SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |

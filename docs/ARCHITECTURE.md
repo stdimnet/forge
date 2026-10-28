@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge, rubyforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -1136,7 +1136,9 @@ or without Git, for local and remote projects.
   `dotnet test`, `trx.rs`; JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`,
+  `minitestText`; RSpec's JSON report is a `jUnitFile` report file sniffed by
+  `document_events`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is
@@ -2730,6 +2732,64 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   Clippy on save (`editor.ts`). Browser mode: `?project=rust` opens the `shop` demo
   (`mock/demoRustProject.ts`, `mock/rustMock.ts`, `mock/rustTestsMock.ts`, WebAssembly
   `crates/forge-wasm/src/rust.rs`).
+
+## RubyForge (`packs/rubyforge/*`)
+
+- Plugin (`app/src-tauri/plugins/rubyforge.toml`): `forge.ruby` (`projectTypes =
+  ["rubyforge"]`): the `ruby` file type (replacing the bundled one: more extensions, file
+  names and shebangs, indent 2) and `gemfile-lock`; ERB (`erb`) is a bundled template type of
+  `forge-filetypes` (`erbSyntax` in `editor/templates.ts`); run configuration types `ruby` and
+  `rake`; the `rspec` and `minitest` test frameworks (wrapped in Rust by `RubyTests`,
+  registered in `RunState::new` and in `forge-wasm`'s registry); the `RuboCop` inspection
+  (source `rubocop`); Settings | Languages & Frameworks | Ruby (`lang.ruby`, `ruby.*`).
+  `forge-project` reports the `ruby` language (pack `rubyforge`) for a `Gemfile`, `Rakefile`,
+  `.ruby-version`, a gemspec, Ruby files in the root or two or more in a folder, and the tools
+  `bundler` and `rake`; New Project has `ruby-gem` (`bundle gem`) and the `ruby-script`
+  template. Ruby LSP comes from the language server catalog; `commands::ruby::configure_lsp`
+  (called at the end of `langservers::apply`) sets its command (setting, the interpreter's
+  gems, Forge's install), environment (the interpreter first on `PATH`, `GEM_PATH` for
+  Forge's install) and formatter; setting changes call `spawn_sync_lsp`.
+- Crates: `rubyforge-lang-ruby` (pure, also WebAssembly: version files, Gemfile /
+  Gemfile.lock, Rake tasks, RSpec / Minitest discovery, the provider, command lines, RuboCop
+  reports, `RubyContext`) and `rubyforge-sdk` (interpreters of version managers and the
+  system, gem executables, `command_env`, ruby-lsp installs with the user's `gem`, the `rdbg`
+  adapter). `forge-output` reads RSpec's JSON report (a `jUnitFile` report folder file,
+  sniffed by `document_events`) and Minitest's verbose output (`TestReport::MinitestText`).
+- The Ruby context (`commands::ruby::context`: the chosen interpreter, `bundle`, `bundle exec`
+  when the project has a Gemfile and `ruby.bundler.useBundleExec`, gem executables, the
+  environment, the bundle's gems) reaches the provider through
+  `CommandContext.settings["ruby.context"]` (`run.rs::framework_command` calls
+  `ruby::extend_test_context`); Ruby and Rake runs are built by `ruby::run_command` in
+  `run.rs::build`. Test keys are `<file>::<full description>` (RSpec) and
+  `<file>::<test method>` (Minitest).
+- IPC (`app/ui/src/ipc/ruby.ts`, `commands/ruby.rs`): `ruby_status({ refresh? }) ->
+  RubyStatus & { setting, bundler, lsp: { path, managed, installDir } }`,
+  `ruby_interpreter_probe({ path })`, `ruby_bundle() -> Bundle | null`,
+  `ruby_bundle_command({ action, gem? }) -> CommandLine`, `ruby_gem_install_command({ gem })`,
+  `ruby_lsp_install_command()`, `ruby_lsp_refresh()`, `ruby_rake_tasks({ refresh? }) -> {
+  tasks, source: "rake" | "files", error? }` (Rake only in trusted projects),
+  `ruby_rake_command({ task, args? })`, `ruby_file_targets({ path, content })`,
+  `ruby_irb_command()` (trusted projects only), `ruby_rubocop({ path, text? }) ->
+  RubyProblem[]` (trusted projects only), `ruby_format({ path, content, mode? }) -> string |
+  null` (`null` in Safe Mode), `ruby_debug_plan() -> { port, found, rdbg }`. Command lines are
+  started by the UI through `run_start` (hidden type `ruby-command`), so they are refused in
+  Safe Mode.
+- Debugging: a debug run passes `FORGE_RDBG_PORT` in `RunRequest.env`; `run.rs::build` takes
+  it out and `ruby::wrap_rdbg` runs the built command under `rdbg --open --host 127.0.0.1
+  --port <port> --command --` (output stays in the Run console, test runs keep their tree);
+  the UI then attaches (`attachServer`, adapter `rdbg`). `commands::ruby::sync_debug` (called
+  from `dap.rs::sync`) registers `RdbgAdapter` while `forge.ruby` is enabled. rdbg maps
+  breakpoint paths only after `attach`, so the adapter answers
+  `DebugAdapterDescriptor::breakpoints_after_request` and the session sends breakpoints after
+  the request.
+- UI (`app/ui/src/features/ruby`): Settings | Ruby (interpreters, tools with Install), the
+  interpreter status item, the `rake` tool window, External Libraries (the SDK and the
+  bundle's gems, a `registerProjectViewSection`), run configuration types `ruby`, `rake`,
+  `ruby-command`, the `rdbg` debug launcher, script ▶ markers, RuboCop diagnostics (source
+  `rubocop`) with Alt+Enter autocorrect, the format provider, the IRB console in a Terminal
+  tab (`openTerminalWith`). Browser mode: `?project=ruby` opens the `pantry` demo
+  (`mock/demoRubyProject.ts`, `mock/rubyMock.ts`, `mock/rubyTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/ruby.rs`).
 
 ## JavaForge (`packs/javaforge/*`)
 

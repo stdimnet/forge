@@ -63,6 +63,7 @@ import "./pythonWeb";
 import "./jupyter";
 import "./go";
 import "./rust";
+import "./ruby";
 import "./java";
 import "./kotlin";
 import "./spring";

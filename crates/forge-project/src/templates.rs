@@ -116,6 +116,21 @@ const TEMPLATES: &[Template] = &[
         ],
     },
     Template {
+        id: "ruby-script",
+        dirs: &["lib", "test", "bin"],
+        files: &[
+            file!("ruby-script/Gemfile" => "Gemfile"),
+            file!("ruby-script/Rakefile" => "Rakefile"),
+            file!("ruby-script/main.rb" => "bin/{{module}}", When::Sample),
+            file!("ruby-script/main_min.rb" => "bin/{{module}}", When::NoSample),
+            file!("ruby-script/lib.rb" => "lib/{{module}}.rb", When::Sample),
+            file!("ruby-script/greeter_test.rb" => "test/greeter_test.rb", When::Sample),
+            file!("ruby-script/rubocop.yml" => ".rubocop.yml"),
+            file!("ruby-script/gitignore" => ".gitignore"),
+            file!("ruby-script/README.md" => "README.md"),
+        ],
+    },
+    Template {
         id: "empty-web",
         dirs: &["css", "js"],
         files: &[

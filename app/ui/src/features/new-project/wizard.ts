@@ -4,7 +4,7 @@
  */
 import type { CreateEvent, Generator, OptionValue, Plan } from "@/ipc/project";
 
-export const GROUP_ORDER = ["PHP", "Web", "Lua", ".NET", "Other"];
+export const GROUP_ORDER = ["PHP", "Web", "Lua", "Ruby", ".NET", "Other"];
 
 export interface GeneratorGroup {
   group: string;

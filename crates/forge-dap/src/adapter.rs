@@ -172,6 +172,12 @@ pub trait DebugAdapterDescriptor: Send + Sync {
     fn info(&self) -> AdapterInfo;
     /// Turn a request into the transport and the `launch`/`attach` arguments.
     fn resolve(&self, request: &LaunchRequest) -> DapResult<ResolvedLaunch>;
+    /// Whether breakpoints must follow the `launch` / `attach` request even when the
+    /// adapter sends `initialized` right after `initialize` (rdbg maps breakpoint paths
+    /// only once `attach` told it the file system is shared).
+    fn breakpoints_after_request(&self) -> bool {
+        false
+    }
 }
 
 /// Values for template placeholders.

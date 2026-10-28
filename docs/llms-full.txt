@@ -54,6 +54,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
+  chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
+  with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run
+  configurations; RSpec and Minitest with gutter icons and their results in the test tree;
+  rdbg debugging; RuboCop offenses, Alt+Enter autocorrect and Reformat Code; Ruby LSP
+  (installed on request with your own RubyGems); ERB templates and the IRB console
+  ([RubyForge](docs/guide/user/ruby.md)).
 - **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
   "Track only root files", problems from output filters), Live Edit through the Browser
   Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
@@ -574,9 +581,11 @@ Click **New Project** on the Welcome screen, or run the **New Project…** actio
 | Lua | Lua Script | a script, a module and a LuaLS configuration | — (offline template) | Lua version, sample code, Git repository |
 | Lua | LÖVE Game | LÖVE 11 game with `main.lua`, `conf.lua` and API completion | — (offline template) | sample code, Git repository |
 | Lua | Neovim Plugin | plugin with `setup()`, a user command and a help file | — (offline template) | GitHub user, Git repository |
+| Ruby | Ruby Gem | `bundle gem` with tests, RuboCop and no CI, licence or changelog files | `bundle` | Test framework (Minitest, RSpec, test-unit), RuboCop, executable, Git repository |
+| Ruby | Ruby Project | Gemfile, Rakefile, `lib/`, `bin/`, Minitest tests and `.rubocop.yml` | — (offline template) | sample code, Git repository |
 | Other | Empty Project | an empty folder | — | Git repository |
 
-Generators that call an official CLI (composer, symfony, npm, npx) check that the tool is on
+Generators that call an official CLI (composer, symfony, npm, npx, bundle) check that the tool is on
 your `PATH` first. If it is missing, the dialog says so and offers an offline alternative, for
 example "Create Empty HTML/CSS/JS instead":
 
@@ -626,6 +635,7 @@ and a plain Lua project does not start PHP language servers.
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
+| Ruby | `Gemfile` (also the tool `bundler`), `Rakefile` (also the tool `rake`), `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more `.rb` / `.rake` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
 | C# (`csharp`), F# (`fsharp`), Visual Basic (`vbnet`) | a solution (`.sln`, `.slnx`: the languages of its projects), a `.csproj`, `.fsproj` or `.vbproj` file (also the tool `dotnet`), a C# / F# file in the root or two or more in a folder, or `global.json` |
@@ -659,7 +669,7 @@ version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `dotnet` (solutions and project files), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `bundler` (`Gemfile`), `rake` (`Rakefile`), `dotnet` (solutions and project files), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -695,6 +705,7 @@ The primary type appears
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
 | RustForge | Rust projects |
+| RubyForge | Ruby projects |
 | CForge | C and C++ projects |
 | DotNetForge | .NET projects (C#, F#, Visual Basic) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
@@ -861,6 +872,7 @@ not finished, the page says so.
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [Jupyter notebooks](docs/guide/user/jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
+| [RubyForge (Ruby)](docs/guide/user/ruby.md) | Ruby interpreters of rbenv, rvm, chruby, asdf and mise (.ruby-version, .tool-versions), Bundler and gems in External Libraries, the Rake tool window, Ruby and Rake run configurations, RSpec and Minitest with gutter icons, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB, the IRB console |
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
@@ -888,7 +900,7 @@ not finished, the page says so.
 | --- | --- |
 | [Project trust and Safe Mode](docs/guide/user/project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
-| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest) |
+| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest, RSpec, Minitest) |
 | [Code coverage](docs/guide/user/coverage.md) | Run with Coverage, the Coverage tool window (line and branch coverage per directory and file), coverage marks with hits in the editor gutter, the Project view, Show Coverage Data (`Ctrl+Alt+F6`), importing LCOV, Cobertura, Clover, JaCoCo and Go reports |
 | [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
@@ -5231,7 +5243,7 @@ file is running (for example yaml-language-server), so you do not get every prob
 
 ## Template data languages
 
-Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates) mix template tags
+Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates, ERB) mix template tags
 with content in another language, the **data language**. Forge highlights the content in its
 real language and draws the template tags on top, so a LaTeX or SQL template is just as
 readable as an HTML one.
@@ -9260,6 +9272,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **LuaForge** | Lua |
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
+| **RubyForge** | Ruby: interpreters of rbenv, rvm, chruby, asdf and mise, Bundler, Rake, Ruby / Rake run configurations, RSpec and Minitest, rdbg, RuboCop, Ruby LSP, ERB, the IRB console |
 | **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger), Groovy, Scala with sbt, Android |
 | **CForge** | C and C++ (clangd, toolchains, CMake, CTest / GoogleTest / Catch2, LLDB / GDB) |
@@ -12422,6 +12435,211 @@ Settings | Languages & Frameworks | Jupyter:
   `<cache dir>/forge/jupyter/`, deleted when the kernel stops.
 - Server tokens in the OS keychain (service `forge-jupyter`).
 - Nothing in the project except the notebooks you save.
+
+
+---
+
+Source: docs/guide/user/ruby.md
+
+# RubyForge (Ruby)
+
+**RubyForge** brings RubyMine's Ruby support to Forge. Its plugin **Ruby** (`forge.ruby`)
+is active in [Ruby projects](docs/guide/getting-started/project-detection.md): a `Gemfile`, a
+`Rakefile`, a `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more
+`.rb` / `.rake` files in a folder. Rails support (routes, generators, the Rails console) is a
+separate plugin that builds on this one.
+
+- Ruby files (`.rb`, `.rake`, `.gemspec`, `.ru`, `.jbuilder`, `Gemfile`, `Rakefile`,
+  `Guardfile`, `Capfile`, `.irbrc`, scripts with a `ruby` shebang) get Ruby highlighting;
+  `Gemfile.lock` is its own file type.
+- Completion, navigation, hover, rename and diagnostics come from **Ruby LSP** (Shopify, MIT),
+  which runs like every other [language server](docs/guide/user/language-servers.md) with the project's Ruby.
+- Everything else is computed in Rust (`packs/rubyforge/*`): interpreters, the bundle, Rake
+  tasks, test discovery and results, command lines and RuboCop's reports.
+
+![inventory_spec.rb with run icons on the example groups and examples](docs/screenshots/ruby-editor.png)
+
+## Ruby SDK
+
+**Settings | Languages & Frameworks | Ruby** lists the interpreters Forge found and the one
+the project uses.
+
+![Settings | Languages & Frameworks | Ruby](docs/screenshots/ruby-settings.png)
+
+- Forge finds Rubies of **rbenv** (`$RBENV_ROOT` or `~/.rbenv/versions`), **rvm**
+  (`~/.rvm/rubies`, `/usr/local/rvm/rubies`, with the Ruby's gem sets), **chruby**
+  (`~/.rubies`, `/opt/rubies`), **asdf** (`~/.asdf/installs/ruby`), **mise**
+  (`~/.local/share/mise/installs/ruby`), frum and rv, **Homebrew** (`/opt/homebrew/opt/ruby`),
+  **RubyInstaller** (`C:\Ruby*`) and the system Ruby on the `PATH`. Version manager shims are
+  skipped: the Ruby behind them is listed by its manager. Forge only reads the folders; Rubies
+  outside a manager are asked for their version (`ruby -e 'print RUBY_VERSION'`).
+- **Automatic** (the default) uses the version the project asks for in `.ruby-version`,
+  `.tool-versions`, `mise.toml` or the Gemfile's `ruby "3.3.6"` / `ruby file:
+  ".ruby-version"` line (`3.3` matches the newest installed 3.3.x), else the version
+  manager's global version (`~/.rbenv/version`, `~/.tool-versions`), else the newest Ruby.
+  The page says which file asked, and a balloon tells you when that version is not installed.
+- Choose an interpreter in the list for the project, or **Add Interpreter…** for any other
+  `ruby` executable (it is checked before it is added).
+- **Tools** shows the gem executables Forge uses (Bundler, Rake, RSpec, RuboCop, rdbg, IRB,
+  Ruby LSP); missing RuboCop, the debug gem and Ruby LSP have an **Install** button.
+- **Environment** adds variables to every Ruby, Bundler, Rake and test command. Commands run
+  with the interpreter's `bin` folder first on the `PATH` (and rvm's `GEM_HOME` /
+  `GEM_PATH`), so `gem`, `bundle` and gem executables belong to the chosen Ruby.
+
+The interpreter appears in the status bar (`rbenv: 3.3.6`); clicking it opens the page.
+
+## Bundler and gems
+
+In projects with a `Gemfile`, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run
+through `bundle exec` (**Run commands with bundle exec**, on by default; Ruby and Rake
+configurations can turn it off for themselves).
+
+- The `Gemfile` and `Gemfile.lock` are read without running Bundler: declared gems with their
+  requirements and groups (`group :test do`, `group:` options), platforms, `path:` / `git:`
+  sources, and the locked versions with their dependencies. Gems pulled in by others get the
+  groups of the gems that need them.
+- **External Libraries** in the Project view lists the project's Ruby SDK and the **Bundled
+  Gems** with their locked versions; gems of the Gemfile come first, the others are dimmed.
+  Opening a Gemfile gem shows its line in the `Gemfile`.
+- When gems of the Gemfile are missing from `Gemfile.lock`, a balloon offers **bundle
+  install**. **Tools | Bundler: Install / Update** and **Show Outdated Gems** run Bundler in
+  the Run tool window. Saving the Gemfile or the lock file reads the bundle again.
+
+![External Libraries with the Ruby SDK and the bundle's gems; an ERB view](docs/screenshots/ruby-erb.png)
+
+## Rake
+
+The **Rake** tool window (right side) lists the project's tasks by namespace with their
+arguments and descriptions. Double-click (or **Run**) runs a task as a temporary Rake
+configuration, **Debug** runs it under the debugger, **Jump to Source** opens its definition.
+
+![The Rake tool window](docs/screenshots/ruby-rake.png)
+
+- Tasks come from `rake --tasks --all` and their places from `rake --where`. That loads the
+  Rakefile, so it runs only in [trusted projects](docs/guide/user/project-trust.md); in Safe Mode (or with
+  **Load tasks with rake --tasks** off) Forge reads the `Rakefile`, `rakelib/*.rake` and
+  `lib/tasks/**/*.rake` instead: `desc`, `task`, `namespace`, and the tasks of
+  `Bundler::GemHelper`, `RSpec::Core::RakeTask`, `Rake::TestTask`, `Minitest::TestTask` and
+  `RuboCop::RakeTask`.
+- **Run Rake Task…** (Tools) asks for a task, e.g. `release[origin]`.
+
+## Run configurations
+
+- **Ruby** runs a script with interpreter options and arguments (`bundle exec ruby -w
+  bin/report.rb --month 2026-10`). A ▶ in the gutter of scripts (a `ruby` shebang or `if
+  __FILE__ == $0`) runs or debugs them.
+- **Rake** runs a task with arguments (`rake release[origin]`) and Rake options.
+- **RSpec** and **Minitest** run tests (below).
+
+## RSpec and Minitest
+
+Spec files (`*_spec.rb`) get ▶ icons on `describe` / `context` / `feature` groups and on
+`it` / `specify` / `example` / `scenario`; test files (`*_test.rb`, `test_*.rb`) on test
+classes, `def test_*` methods, ActiveSupport `test "…" do` blocks and Minitest::Spec
+`describe` / `it` blocks. After a run the icons show the results.
+
+- **RSpec** runs `rspec <file>:<line>` for a group or example, a file, a folder, everything,
+  or the examples whose description matches (`--example`), with `--format progress --format
+  json --out <report>`. Forge reads the JSON report into the test tree: files, example groups,
+  examples, pending examples, the failure message with its backtrace, `expected: … got: …`
+  values for **Click to see difference**, and errors outside of examples (a spec that does
+  not load).
+- **Minitest** runs `ruby -Ilib -Itest <file> -v [-n <filter>]` (a class: `-n
+  "/^Shop::CartTest#/"`, a method: `-n Shop::CartTest#test_total`), or loads every test file
+  of a folder. Forge reads Minitest's verbose output: one suite per test class, failures,
+  errors and skips with their messages, `Expected:` / `Actual:` values, the location and the
+  test's own output.
+- **Rerun Failed Tests** runs the failed examples (`--example`) or methods (`-n
+  "/^(test_a|test_b)$/"`) of the files that failed.
+
+![RSpec results in the test tree](docs/screenshots/ruby-rspec.png)
+
+![Minitest results](docs/screenshots/ruby-minitest.png)
+
+## Debugging
+
+Debug (`Shift+F9`) on a Ruby, Rake, RSpec or Minitest configuration runs it under **rdbg**,
+the debugger of the `debug` gem (BSD-2-Clause, Ruby's default debugger): the command starts
+in the Run tool window as `rdbg --open --host 127.0.0.1 --port <port> --command -- <command>`,
+waits for the debugger, and Forge attaches to it. Breakpoints (also conditional), stepping,
+the stack, local and global variables and the debug console work as in the other
+[debuggers](docs/guide/user/debugging.md); the program's output stays in the Run console and test runs still
+fill the test tree.
+
+![rdbg stopped in Inventory#total_cents](docs/screenshots/ruby-debug.png)
+
+- rdbg comes from `bundle exec rdbg` when the bundle has the `debug` gem, else from the
+  interpreter (or **rdbg executable**). Without it, Forge offers to install the gem with the
+  interpreter's `gem` (with `--user-install` for system Rubies).
+- **Run | Attach to DAP Server…** with the adapter *Ruby (rdbg)* connects to any `rdbg --open
+  --port <port>` you started yourself, e.g. in a container.
+
+## RuboCop
+
+RuboCop checks open Ruby files after opening them, after a pause in typing and after saving
+(**Check files with RuboCop**). Its offenses appear in the editor and the **Problems** tool
+window with the cop name; conventions and refactorings are weak warnings, warnings and errors
+keep their level, and the inspection profile can change the severity (inspection
+*Ruby | External tools | RuboCop*).
+
+![RuboCop offenses with Alt+Enter autocorrect](docs/screenshots/ruby-rubocop.png)
+
+- `Alt+Enter` on a correctable offense: **RuboCop: autocorrect** (safe corrections, `-a`) or
+  **autocorrect all offenses in the file** (also unsafe ones, `-A`).
+- **Reformat Code** (`Ctrl+Alt+L`) uses RuboCop's autocorrect (**Reformat Code with**: safe,
+  all, Ruby LSP's formatter or nothing). The editor text goes to RuboCop on stdin with the
+  file's path, so the project's `.rubocop.yml` and its exclusions apply; nothing is written.
+- **Code | Inspect Code with RuboCop** checks the current file and shows the Problems tool
+  window. RuboCop runs through `bundle exec` when the bundle has it.
+- RuboCop loads the project's configuration and plugins, so it runs only in trusted projects.
+
+## Ruby LSP
+
+Ruby LSP runs with the project's Ruby and its bundle; its formatter follows **Ruby LSP
+formatter**. Forge uses `ruby-lsp` of the interpreter's gems, the **ruby-lsp executable**
+setting or the `PATH`. When it is missing, Forge offers **Install Ruby LSP**: it runs `gem
+install ruby-lsp --install-dir <Forge's data folder>/langservers/ruby/<version>` with the
+project interpreter's RubyGems (rubygems.org or your gem sources) — nothing is bundled with
+Forge and your Ruby's gems stay untouched — and starts the server with that folder on
+`GEM_PATH`. Ruby LSP sets up its own bundle in `.ruby-lsp/` of the project, so it does not
+start in Safe Mode.
+
+## ERB
+
+`.erb` files (`*.html.erb`, `*.text.erb`, `*.js.erb`, `.rhtml`) are a template language with
+a [template data language](docs/guide/user/file-types.md#template-data-languages): HTML by default, or the language of the inner
+extension (`welcome.text.erb` is plain text, `config.js.erb` JavaScript). `<%= %>`, `<%== %>`,
+`<% %>` (with `-%>`), and `<%# %>` comments are highlighted over it, with Ruby's keywords and
+common view helpers.
+
+## IRB console
+
+**Tools | Run IRB Console** opens a Terminal tab with `bundle exec irb -I lib` (or the
+interpreter's `irb`). IRB reads the project's `.irbrc` and Bundler its Gemfile, so the console
+is refused in Safe Mode.
+
+## New projects
+
+**File | New Project** has two Ruby generators: **Ruby Gem** runs `bundle gem` (Minitest,
+RSpec or test-unit, RuboCop, an executable), with **Ruby Project** — a Gemfile, Rakefile,
+`lib/`, `bin/`, Minitest tests and `.rubocop.yml` — as the offline fallback.
+
+## Settings
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Ruby interpreter | automatic | the project's Ruby (path or name) |
+| Environment | — | `KEY=VALUE` variables of Ruby commands |
+| Run commands with bundle exec | on | Bundler projects run gems through `bundle exec` |
+| bundle executable | — | another `bundle` |
+| Load tasks with rake --tasks | on | ask Rake (trusted projects) or read the Rakefile |
+| Reformat Code with | RuboCop (safe) | RuboCop `-a`, RuboCop `-A`, Ruby LSP or nothing |
+| Check files with RuboCop | on | on-the-fly and on-save RuboCop checks |
+| rubocop executable, Additional options | — | another RuboCop, extra options (`--only Style`) |
+| ruby-lsp executable, Ruby LSP formatter | —, automatic | Ruby LSP's executable and formatter |
+| rdbg executable | — | another rdbg |
+
+All keys are in the [settings reference](docs/guide/reference/settings.md#languages--frameworks--ruby).
 
 
 ---
@@ -15766,7 +15984,7 @@ blocked even if a plugin or the UI tries to start them:
 | --- | --- |
 | Run/Debug configurations, Before launch tasks, Run Anything, External Tools | not started (every run goes through one place in the backend) |
 | Composer and npm scripts, Artisan, Symfony console, Command Line Tool Support | not started; the Run Command popup lists only the built-in Artisan and Symfony commands |
-| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
+| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest, RSpec, Minitest) | not started |
 | Xdebug: Start Listening, PHP Web Page | refused |
 | Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
 | [Vulnerable dependency check](docs/guide/user/vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
@@ -15781,6 +15999,7 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
 | SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |
@@ -16272,10 +16491,13 @@ format into the same test events:
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
 | Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
+| RSpec JSON | `rspec --format progress --format json --out <file>` | a report file |
+| Minitest verbose output | `ruby -Itest test/x_test.rb -v`, `rake test TESTOPTS=-v` | streamed on stdout; failures, errors and skips are read from the summary |
 
 Failures keep their message, the failure location (a stack frame) and, where the tool reports
 them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`
-(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted).
+(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted),
+`expected: … got: …` (RSpec), `Expected:` / `Actual:` (Minitest).
 
 ## Safe Mode
 
@@ -21983,6 +22205,25 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Ruby
+
+Page id `lang.ruby` (`ruby.interpreter` and `ruby.interpreters` are set by the Ruby SDK list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ruby.interpreter` | string | `""` | user, project | Ruby SDK | Ruby interpreter — The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest. |
+| `ruby.interpreters` | list | `[]` | user | Ruby SDK | Added interpreters — Ruby executables added by hand (Add Interpreter…); detected ones are listed without this. |
+| `ruby.environment` | list | `[]` | user, project | Ruby SDK | Environment — Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV). |
+| `ruby.bundler.useBundleExec` | bool | `true` | user, project | Bundler | Run commands with bundle exec — In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle. |
+| `ruby.bundler.path` | path | `""` | user | Bundler | bundle executable — Empty: the interpreter's bundle, then PATH. |
+| `ruby.rake.runRake` | bool | `true` | user, project | Rake | Load tasks with rake --tasks — The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake. |
+| `ruby.formatter` | enum: `rubocop`, `rubocopAll`, `lsp`, `none` | `rubocop` | user, project | RuboCop | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Ruby files. |
+| `ruby.rubocop.onTheFly` | bool | `true` | user, project | RuboCop | Check files with RuboCop — RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins). |
+| `ruby.rubocop.path` | path | `""` | user | RuboCop | rubocop executable — Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH. |
+| `ruby.rubocop.options` | string | `""` | user, project | RuboCop | Additional options — Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml. |
+| `ruby.lsp.path` | path | `""` | user | Ruby LSP | ruby-lsp executable — Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder. |
+| `ruby.lsp.formatter` | enum: `auto`, `rubocop_internal`, `syntax_tree`, `none` | `auto` | user, project | Ruby LSP | Ruby LSP formatter — The formatter Ruby LSP uses for formatting and diagnostics. |
+| `ruby.debugger.rdbgPath` | path | `""` | user | Debugger | rdbg executable — The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem. |
 ### Languages & Frameworks | Rust
 
 Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
@@ -22522,6 +22763,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `jinja` | Jinja2 | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` |  | yes |
 | `django` | Django Template | `.djhtml` |  | yes |
 | `handlebars` | Handlebars | `.hbs`, `.handlebars`, `.mustache` |  | yes |
+| `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
 | `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
@@ -22605,6 +22847,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `eml` | E-Mail | `forge.eml` | `.eml` |  |  | 4 |
 | `ini` | INI | `forge.ini` | `.ini`, `.cfg`, `.inf`, `.desktop`, `.service`, `.socket`, `.timer`, `.mount`, `.target` | `php.ini`, `php.ini-*`, `.editorconfig`, `.gitconfig`, `.gitmodules`, `.npmrc`, `.pylintrc`, `.flake8`, `tox.ini`, `setup.cfg`, `pytest.ini`, `my.cnf`, `*.cnf`, `supervisord.conf`, `*.ini.*`, `pip.conf` |  | 4 |
 | `conf` | Config | `forge.conf` | `.conf`, `.config`, `.cnf` | `*.conf.*` |  | 4 |
+| `ruby` | Ruby | `forge.ruby` | `.rb`, `.rake`, `.gemspec`, `.ru`, `.rbw`, `.jbuilder`, `.builder` | `Gemfile`, `gems.rb`, `Rakefile`, `rakefile`, `Guardfile`, `Capfile`, `Vagrantfile`, `Brewfile`, `Podfile`, `Fastfile`, `Appfile`, `Steepfile`, `.irbrc`, `.pryrc` | `ruby`, `jruby`, `truffleruby` | 2 |
+| `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
 
@@ -22631,9 +22875,10 @@ compound file name, then HTML. Compound inner extensions:
 | `ini`, `env`, `conf` | INI / Properties |
 | `sh` | Shell Script |
 | `go` | Go |
-| `txt`, `md`, `csv`, `eml` | Plain text |
+| `txt`, `text`, `md`, `csv`, `eml` | Plain text |
 
-Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS.
+Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS,
+`welcome.text.erb` → plain text.
 
 ## Soft wraps
 
@@ -22835,7 +23080,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT |  |
+| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT | RubyForge configures it with the project's Ruby and can install it into Forge's data folder with your gem ([RubyForge](docs/guide/user/ruby.md#ruby-lsp)) |
 
 ### PHP
 
@@ -23208,7 +23453,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `rubyforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -23234,6 +23479,7 @@ script and config language plugins.
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
+| Ruby | `forge.ruby` | rubyforge |  | `rubyforge` | tool windows (UI): Rake; 9 commands; 13 settings; file types: Ruby, Gemfile.lock; run types: Ruby, Rake; test frameworks: RSpec, Minitest; 1 debug adapter (rdbg, in Rust); inspections: RuboCop |
 | Rust | `forge.rust` | rustforge |  | `rustforge` | tool windows (UI): Cargo; 8 commands; 18 settings; file types: TOML (Cargo.lock, rust-toolchain); run types: Cargo; test frameworks: Cargo Test; 1 debug adapter (rust-gdb, in Rust) |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Python Web Frameworks | `forge.python-web` | pyforge | `forge.python-env` | `django`, `flask`, `fastapi` | tool windows: Endpoints; 1 commands |
@@ -24033,7 +24279,7 @@ testFiles = ["*_spec.lua"]          # gutter icons in these files
 program = "busted"
 programSetting = "lua.busted.path"  # setting with the executable
 args = ["--output=TAP"]
-report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox | minitestText
 junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
 nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
 escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
@@ -25225,7 +25471,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
-| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
+| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, RSpec, Minitest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-ports](docs/guide/developer/crates/forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
@@ -25269,6 +25515,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-packages](docs/guide/developer/crates/pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
 | [rustforge-lang-rust](docs/guide/developer/crates/rustforge-lang-rust.md) | RustForge: Rust and Cargo support (cargo metadata, toolchain files, run / test / doctest discovery, the Cargo Test provider, Cargo command lines, Clippy messages with fixes, rustfmt, rust-analyzer settings, debugger pretty printers; pure, also built to WebAssembly) |
 | [rustforge-toolchain](docs/guide/developer/crates/rustforge-toolchain.md) | RustForge: rustup toolchains and tools on the user's machine, consented rustup installs, the pinned rust-analyzer download (SHA-256) and GDB with rustc's pretty printers as a debug adapter |
+| [rubyforge-lang-ruby](docs/guide/developer/crates/rubyforge-lang-ruby.md) | RubyForge: Ruby language support (version files, Gemfile and Gemfile.lock, Rake tasks, RSpec and Minitest discovery and the test provider, Ruby / Rake / Bundler / IRB / rdbg command lines, RuboCop reports; pure, also built to WebAssembly) |
+| [rubyforge-sdk](docs/guide/developer/crates/rubyforge-sdk.md) | RubyForge: Ruby interpreters of version managers and the system, gem executables, consented ruby-lsp installs with the user's gem, and rdbg as the `rdbg` debug adapter |
 | [goforge-lang-go](docs/guide/developer/crates/goforge-lang-go.md) | GoForge: Go language support (go.mod / go.work, module versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider, Go Build command lines, go:generate, go vet and golangci-lint reports; pure, also built to WebAssembly) |
 | [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
@@ -26368,6 +26616,9 @@ pub use views::{Instruction, MemoryBlock, MemoryRow};
 pub trait DebugAdapterDescriptor: Send + Sync {
     fn info(&self) -> AdapterInfo;
     fn resolve(&self, request: &LaunchRequest) -> DapResult<ResolvedLaunch>;
+    /// Breakpoints follow `launch` / `attach` even when `initialized` comes right after
+    /// `initialize` (rdbg maps breakpoint paths only after `attach`). Default: false.
+    fn breakpoints_after_request(&self) -> bool { false }
 }
 ```
 
@@ -28429,8 +28680,10 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON and pytest
-  report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON, pytest
+  report logs, RSpec JSON reports (`rspec`: files, example groups from the full
+  descriptions, `expected: … got: …`, errors outside of examples) and Minitest's verbose
+  output (`minitest`: one suite per class, failures / errors / skips from the summary), and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
   link targets.
@@ -31149,6 +31402,139 @@ machine's toolchains.
 ```sh
 cargo test -p rustforge-toolchain
 cargo test -p rustforge-toolchain -- --ignored   # this machine's rustup
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rubyforge-lang-ruby.md
+
+# rubyforge-lang-ruby
+
+`packs/rubyforge/lang-ruby` — RubyForge's Ruby language support, in the style of RubyMine.
+Pure Rust (no I/O), shared by the desktop backend and the WebAssembly build of browser mode.
+
+## Purpose
+
+- `version`: the Ruby a project asks for — `.ruby-version`, `.tool-versions`,
+  `mise.toml` / `.mise.toml`, the Gemfile's `ruby "3.3.6"` or `ruby file: ".ruby-version"`, in
+  that order — version parts, engines (`jruby-9.4`) and matching (`3.3` matches `3.3.6`).
+- `gemfile`: a tolerant Gemfile scanner (sources, `ruby`, `gemspec`, `gem` with requirements,
+  groups from blocks and options, platforms, `require: false`, `path:` / `git:` / `github:`)
+  and the Gemfile.lock sections (`GEM`, `GIT`, `PATH` specs with dependencies, `PLATFORMS`,
+  `DEPENDENCIES`, `RUBY VERSION`, `BUNDLED WITH`); `bundle` merges both into `Bundle` (direct
+  and transitive gems with groups, missing gems).
+- `rake`: `rake --tasks --all` output (tasks, arguments, descriptions), `rake --where`
+  locations, and `scan_rakefile` for `desc` / `task` / `namespace` and the tasks of
+  Bundler's gem tasks, `RSpec::Core::RakeTask`, `Rake::TestTask`, `Minitest::TestTask` and
+  `RuboCop::RakeTask` without running Rake.
+- `discovery`: RSpec groups and examples with their full descriptions, Minitest test classes,
+  `def test_*` methods, ActiveSupport `test "…"` blocks and Minitest::Spec blocks
+  (`test_0001_<description>`), nested by indentation.
+- `provider`: `RubyTests`, the `forge-testing` provider of the `rspec` and `minitest`
+  manifest frameworks — gutter targets keyed like the test tree's results, `rspec
+  file:line … --format json --out <report dir>/rspec.json` and `ruby -Ilib -Itest <file> -v
+  -n <filter>` (or a loader for folders) through `bundle exec`, Rerun Failed Tests.
+- `command`: Ruby script and Rake configurations, `rake --tasks`, Bundler actions, `gem
+  install`, the IRB console and `rdbg --open --host 127.0.0.1 --port ${port} --command -- …`.
+- `rubocop`: `rubocop --format json --stdin <path>` arguments, the JSON report as
+  `RubyProblem`s (0-based positions, RuboCop's levels as Forge's), autocorrect arguments
+  (`-a` / `-A` with `--stderr`) and the corrected source.
+- `context`: `RubyContext` (interpreter, `bundle`, `use_bundler`, gem executables,
+  environment, the bundle's gems), handed to the provider as `CommandContext.settings["ruby.context"]`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `version.rs` | `requested_version`, `parse_ruby_version`, `parse_tool_versions`, `parse_mise_toml`, `parse_gemfile_ruby`, `matches`, `compare`, `engine`. |
+| `gemfile.rs` | `parse_gemfile`, `parse_lockfile`, `bundle`, `Gemfile`, `Lockfile`, `Bundle`, `BundleGem`. |
+| `rake.rs` | `parse_tasks`, `merge_locations`, `scan_rakefile`, `RakeTask`. |
+| `discovery.rs` | `discover_rspec`, `discover_minitest`, `is_spec_file`, `is_test_file`, `RubyTest`. |
+| `provider.rs` | `RubyTests`, `register`, `rspec_command`, `minitest_command`, `RSPEC`, `MINITEST`. |
+| `command.rs` | `script_command`, `rake_command`, `rake_tasks_command`, `bundler_action`, `gem_install`, `irb_command`, `rdbg_command`, `RUBY`, `RAKE`. |
+| `rubocop.rs` | `check_args`, `autocorrect_args`, `parse_report`, `corrected_source`, `RubyProblem`. |
+| `context.rs` | `RubyContext`, `RubyCommand`, `CONTEXT_KEY`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/ruby.rs` and `run.rs` (`RubyTests` in `RunState::new`).
+- WebAssembly: `crates/forge-wasm/src/ruby.rs` (`ruby_bundle`, `ruby_rake_tasks`,
+  `ruby_command_line`, `ruby_action_command`, `ruby_script_entry`, `ruby_rubocop_report`,
+  `ruby_requested_version`) and the test registry of `testing.rs`.
+- [`rubyforge-sdk`](docs/guide/developer/crates/rubyforge-sdk.md).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests on fixtures (`tests/fixtures`: a Gemfile and Gemfile.lock, a real `rake --tasks
+--all` output, a RuboCop JSON report). An ignored smoke test runs Minitest through the
+provider's command lines with a real Ruby and parses the output with `forge-output`.
+
+```sh
+cargo test -p rubyforge-lang-ruby
+cargo test -p rubyforge-lang-ruby -- --ignored   # needs ruby with minitest
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rubyforge-sdk.md
+
+# rubyforge-sdk
+
+`packs/rubyforge/sdk` — RubyForge on the user's machine.
+
+## Purpose
+
+- `detect`: `RubyStatus` of a project — the interpreters of version managers (rbenv with
+  `RBENV_ROOT`, rvm with its gem sets, chruby, asdf with `ASDF_DATA_DIR`, mise with
+  `MISE_DATA_DIR`, frum, rv) read from their folders, and of Homebrew, RubyInstaller and the
+  `PATH` (shims skipped, symlinks resolved) asked for their version with the interpreter only
+  (`ruby -e …`, through a `Runner`); `choose` (the setting, the requested version, the
+  manager's global version, the newest); gem executables (`gem`, `bundle`, `rake`, `rspec`,
+  `rubocop`, `rdbg`, `irb`, `ruby-lsp`) in the interpreter's `bin`, the user gem folder, rvm's
+  gem sets, `GEM_HOME`, Forge's ruby-lsp install and the `PATH`; `command_env` (the
+  interpreter first on `PATH`, rvm's `GEM_HOME` / `GEM_PATH`).
+- `lsp`: Ruby LSP installs — `gem install ruby-lsp --install-dir <data dir>/forge/langservers/ruby/<version>`
+  with the user's own RubyGems (nothing bundled or downloaded by Forge itself), the installed
+  executable and its launch environment (`GEM_PATH`).
+- `rdbg`: `RdbgAdapter`, the `rdbg` debug adapter: attaches to a `rdbg --open` DAP server
+  (`localfs`, `nonstop` unless Stop on entry) and asks `forge-dap` to send breakpoints after
+  `attach` (`breakpoints_after_request`), because rdbg maps breakpoint paths only then.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `interpreters`, `choose`, `global_version`, `find_tool`, `command_env`, `parse_probe`, `RubyEnv`, `RubyStatus`, `Interpreter`, `system_runner`. |
+| `lsp.rs` | `install_command`, `install_dir`, `installed`, `launch_env`, `is_managed`, `default_dir`. |
+| `rdbg.rs` | `RdbgAdapter`, `attach_arguments`, `ADAPTER`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/ruby.rs` (`ruby_status`, `ruby_lsp_install_command`,
+  `configure_lsp`, `sync_debug`, `wrap_rdbg`).
+
+## Dependencies
+
+- Workspace crates: [`rubyforge-lang-ruby`](docs/guide/developer/crates/rubyforge-lang-ruby.md), [`forge-dap`](docs/guide/developer/crates/forge-dap.md)
+- External: `serde`, `serde_json`, `dirs`
+
+## Tests
+
+Detection runs against fake manager folders in temporary directories with a recorded probe;
+ignored smoke tests detect this machine's Rubies and debug a script with a real rdbg through
+`forge-dap` (breakpoint, stack, variables).
+
+```sh
+cargo test -p rubyforge-sdk
+cargo test -p rubyforge-sdk -- --ignored   # this machine's Ruby and rdbg
 ```
 
 

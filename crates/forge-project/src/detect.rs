@@ -79,6 +79,7 @@ pub fn language_name(id: &str) -> &str {
         "css" => "CSS",
         "lua" => "Lua",
         "rust" => "Rust",
+        "ruby" => "Ruby",
         "go" => "Go",
         "python" => "Python",
         "java" => "Java",
@@ -102,6 +103,7 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "python" => Some("pyforge"),
         "go" => Some("goforge"),
         "rust" => Some("rustforge"),
+        "ruby" => Some("rubyforge"),
         // Groovy, Scala and Android (a framework) are JavaForge's JVM extras.
         "java" | "groovy" | "scala" => Some("javaforge"),
         "kotlin" => Some("kotlinforge"),
@@ -188,6 +190,8 @@ const LANGUAGE_PRIORITY: &[&str] = &[
     "scala",
     "groovy",
     "java",
+    // A Gemfile wins over the JavaScript of a Ruby app's assets.
+    "ruby",
     "csharp",
     "fsharp",
     "vbnet",
@@ -471,6 +475,29 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
     if has("go.work") {
         c.tool("go-workspace");
+    }
+    // ---- Ruby (RubyForge)
+    // Bundler, Rake or version files, a gemspec, Ruby files in the root, or several in a
+    // folder.
+    let rb_files = files
+        .iter()
+        .filter(|f| f.ends_with(".rb") || f.ends_with(".rake"))
+        .count();
+    let gemspec = files.iter().any(|f| f.ends_with(".gemspec"));
+    if has("Gemfile")
+        || has("Rakefile")
+        || has(".ruby-version")
+        || gemspec
+        || rb_files >= 2
+        || (rel.is_empty() && rb_files > 0)
+    {
+        c.language("ruby");
+    }
+    if has("Gemfile") || has("gems.rb") {
+        c.tool("bundler");
+    }
+    if has("Rakefile") || has("rakefile") || has("Rakefile.rb") {
+        c.tool("rake");
     }
     // ---- C and C++ (CForge)
     scan_cpp(dir, rel, c, &files);
@@ -1950,6 +1977,34 @@ mod tests {
         let info = detect(dir.path());
         assert!(info.uses("rustforge"));
         assert!(info.tools.contains(&"cargo".to_string()));
+    }
+
+    #[test]
+    fn ruby_projects() {
+        for marker in [
+            "Gemfile",
+            "Rakefile",
+            "shop.gemspec",
+            ".ruby-version",
+            "app.rb",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["rubyforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().name, "Ruby", "{marker}");
+        }
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Gemfile", "source 'https://rubygems.org'");
+        write(dir.path(), "Rakefile", "");
+        let info = detect(dir.path());
+        assert!(info.tools.contains(&"bundler".to_string()));
+        assert!(info.tools.contains(&"rake".to_string()));
+        // A single helper script in a sub folder of another project is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "scripts/release.rb", "");
+        assert!(!detect(dir.path()).uses("ruby"));
     }
 
     #[test]

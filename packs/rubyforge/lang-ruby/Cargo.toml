@@ -1,0 +1,16 @@
+[package]
+name = "rubyforge-lang-ruby"
+description = "RubyForge: Ruby language support (version files, Gemfile and Gemfile.lock, Bundler commands, Rake tasks from rake -T and Rakefiles, RSpec and Minitest discovery and the test provider of the shared test runner, Ruby / Rake / IRB command lines, rdbg launch lines, RuboCop JSON reports and autocorrect; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-output.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
