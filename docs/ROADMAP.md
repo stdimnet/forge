@@ -143,7 +143,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [ ] .NET pack: Roslyn LSP (managed), .NET SDK, solutions/projects, build window, run configurations and launch profiles, netcoredbg debugger, xUnit/NUnit/MSTest, NuGet window, `dotnet new` templates, EditorConfig cleanup
 - [ ] .NET pack: ASP.NET Core (Razor/Blazor, endpoints), EF Core commands, Aspire, Docker, Hot Reload, user secrets, Azure DevOps code host
 - [ ] .NET pack: Unity and Godot integration (editor bridge, tests, debugging)
-- [ ] Ruby pack: ruby-lsp, version managers, Bundler, Rake, RSpec/Minitest, rdbg debugger, RuboCop, ERB, IRB console
+- [x] Ruby pack: ruby-lsp, version managers, Bundler, Rake, RSpec/Minitest, rdbg debugger, RuboCop, ERB, IRB console
 - [ ] Ruby pack: Rails (navigation, routes, generators, console, ActiveRecord data sources, i18n, Hotwire)
 
 ## Milestone 6 — AI and collaboration

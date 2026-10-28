@@ -1,6 +1,6 @@
 ---
 title: forge-output
-description: "Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, tox) and test trees, and terminal OSC sequences (pure, also built to WebAssembly)."
+description: "Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, tox, RSpec, Minitest) and test trees, and terminal OSC sequences (pure, also built to WebAssembly)."
 order: 170
 tags: [crate, rust]
 ---
@@ -26,8 +26,10 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON and pytest
-  report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON, pytest
+  report logs, RSpec JSON reports (`rspec`: files, example groups from the full
+  descriptions, `expected: … got: …`, errors outside of examples) and Minitest's verbose
+  output (`minitest`: one suite per class, failures / errors / skips from the summary), and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
   link targets.

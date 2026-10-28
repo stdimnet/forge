@@ -40,6 +40,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `jinja` | Jinja2 | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` |  | yes |
 | `django` | Django Template | `.djhtml` |  | yes |
 | `handlebars` | Handlebars | `.hbs`, `.handlebars`, `.mustache` |  | yes |
+| `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
 | `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
@@ -123,6 +124,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `eml` | E-Mail | `forge.eml` | `.eml` |  |  | 4 |
 | `ini` | INI | `forge.ini` | `.ini`, `.cfg`, `.inf`, `.desktop`, `.service`, `.socket`, `.timer`, `.mount`, `.target` | `php.ini`, `php.ini-*`, `.editorconfig`, `.gitconfig`, `.gitmodules`, `.npmrc`, `.pylintrc`, `.flake8`, `tox.ini`, `setup.cfg`, `pytest.ini`, `my.cnf`, `*.cnf`, `supervisord.conf`, `*.ini.*`, `pip.conf` |  | 4 |
 | `conf` | Config | `forge.conf` | `.conf`, `.config`, `.cnf` | `*.conf.*` |  | 4 |
+| `ruby` | Ruby | `forge.ruby` | `.rb`, `.rake`, `.gemspec`, `.ru`, `.rbw`, `.jbuilder`, `.builder` | `Gemfile`, `gems.rb`, `Rakefile`, `rakefile`, `Guardfile`, `Capfile`, `Vagrantfile`, `Brewfile`, `Podfile`, `Fastfile`, `Appfile`, `Steepfile`, `.irbrc`, `.pryrc` | `ruby`, `jruby`, `truffleruby` | 2 |
+| `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
 
@@ -149,9 +152,10 @@ compound file name, then HTML. Compound inner extensions:
 | `ini`, `env`, `conf` | INI / Properties |
 | `sh` | Shell Script |
 | `go` | Go |
-| `txt`, `md`, `csv`, `eml` | Plain text |
+| `txt`, `text`, `md`, `csv`, `eml` | Plain text |
 
-Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS.
+Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS,
+`welcome.text.erb` → plain text.
 
 ## Soft wraps
 
