@@ -256,7 +256,7 @@ function StepRow(props: { task: AgentTask; step: Step }) {
         </Match>
         <Match when={s.kind === "approval" && s}>
           {(st) => (
-            <div class="at-approval">
+            <div class={`at-approval at-approval-${st().state}`}>
               <div class="at-step-line">
                 <ShieldQuestion size={13} class="at-status-review" />
                 <span>{st().state === "pending" ? "Run this command?" : st().state === "allowed" ? "Allowed" : "Denied"}</span>

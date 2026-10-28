@@ -299,6 +299,16 @@
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
 }
+.at-approval-allowed,
+.at-approval-denied {
+  background: none;
+}
+.at-approval-allowed {
+  border-left-color: var(--success);
+}
+.at-approval-denied {
+  border-left-color: var(--danger);
+}
 .at-command {
   display: block;
   margin: 2px 0 0 20px;

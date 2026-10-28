@@ -8,7 +8,9 @@ import type { AgentTask, ApplyAnswer, ApplyMode, FileChange, StepKind, TaskReque
 import { mockSettingValue } from "./settingsMock";
 import { mockFiles } from "./workspaceMock";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Delays of the replay are multiplied by `scale` (tests set it to 0). */
+export const agentTaskMockTiming = { scale: 1 };
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms * agentTaskMockTiming.scale));
 const CHANGED = "agent-tasks://changed";
 
 const CHECKOUT = "app/Services/Checkout.php";
@@ -36,13 +38,15 @@ function checkoutAfter(): string {
 const testBefore = () => mockFiles[TEST] ?? "";
 const testAfter = () =>
   testBefore().replace(
-    "    public function test_empty_cart_cannot_be_checked_out(): void",
-    `    public function test_total_uses_the_default_tax_rate(): void
+    /\n}\n$/,
+    `
+
+    public function test_total_uses_the_default_tax_rate(): void
     {
         $this->assertSame(10.7, (new Checkout('EUR', 0.07))->total(10.0));
     }
-
-    public function test_empty_cart_cannot_be_checked_out(): void`,
+}
+`,
   );
 
 const failing: TestResult = {
