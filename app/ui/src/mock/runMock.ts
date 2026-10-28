@@ -21,6 +21,7 @@ import { goDemoName, isGoDemo } from "./demoGoProject";
 import { cppDemoName, isCppDemo } from "./demoCppProject";
 import { dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
 import { DOTNET_ROOT, dotnetCommandSteps, dotnetContext, dotnetRunSteps } from "./dotnetTestsMock";
+import { aspireRunSteps, dockerRunSteps, dotnetWebCommandLine, dotnetWebSteps } from "./dotnetWebMock";
 import { goContext } from "./goTestsMock";
 import { isRustDemo, rustDemoName } from "./demoRustProject";
 import { cargoRunSteps, RUST_ROOT, rustContext } from "./rustTestsMock";
@@ -95,6 +96,12 @@ const DOTNET_CONFIGURATIONS: RunConfigurations = {
     { name: "Bookstore.Api: http", type: "dotnet", storeAsProjectFile: true, options: { project: "src/Bookstore.Api/Bookstore.Api.csproj", profile: "http", mode: "run" } },
     { name: "Bookstore.Api (watch)", type: "dotnet", options: { project: "src/Bookstore.Api/Bookstore.Api.csproj", profile: "https", mode: "watch" } },
     { name: "Reports", type: "dotnet", options: { project: "tools/Reports/Reports.fsproj", mode: "run" } },
+    { name: "Bookstore.AppHost", type: "dotnet-aspire", options: { project: "src/Bookstore.AppHost/Bookstore.AppHost.csproj", profile: "https" } },
+    {
+      name: "Bookstore.Api (Docker)",
+      type: "dotnet-docker",
+      options: { dockerfile: "src/Bookstore.Api/Dockerfile", context: ".", image: "bookstore.api", ports: "8080:8080", env: "ASPNETCORE_ENVIRONMENT=Development" },
+    },
     { name: "All tests", type: "dotnet-test", storeAsProjectFile: true, options: { scope: "all" } },
   ],
 };
@@ -252,6 +259,7 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
     const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).dotnet_run_command, { configuration: cfg, context: await dotnetContext(mockFiles) });
     return { ...c, cwd: c.cwd ? `${DOTNET_ROOT}/${c.cwd}` : DOTNET_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
+  if (cfg.type === "dotnet-aspire" || cfg.type === "dotnet-docker") return dotnetWebCommandLine(cfg);
   if (cfg.type === "cargo") {
     const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).rust_command_line, { configuration: cfg, context: rustContext() });
     return { ...c, cwd: c.cwd ? `${RUST_ROOT}/${c.cwd}` : RUST_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
@@ -625,8 +633,14 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       return cargoRunSteps(cfg);
     case "dotnet":
       return dotnetRunSteps(cfg);
-    case "dotnet-command":
-      return dotnetCommandSteps((JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? []);
+    case "dotnet-command": {
+      const c = JSON.parse(o.commandLine ?? "{}") as { program?: string; args?: string[] };
+      return dotnetWebSteps(c) ?? dotnetCommandSteps(c.args ?? []);
+    }
+    case "dotnet-aspire":
+      return aspireRunSteps();
+    case "dotnet-docker":
+      return dockerRunSteps();
     case "cargo-command": {
       // Cargo tool window actions: `cargo build`, `check`, `clean`, `update`, `run`.
       const args = (JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? [];

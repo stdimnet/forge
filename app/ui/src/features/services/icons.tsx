@@ -2,6 +2,7 @@
 import { Show, type JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import {
+  AppWindow,
   Box,
   Boxes,
   CircleAlert,
@@ -14,6 +15,7 @@ import {
   Leaf,
   LoaderCircle,
   Network,
+  Orbit,
   Package,
   Rocket,
   Server,
@@ -41,6 +43,8 @@ export const NODE_ICONS: Record<NodeIcon, IconComp> = {
   kubeService: Waypoints,
   springBoot: Leaf,
   springApp: Leaf,
+  aspire: Orbit,
+  dotnetProject: AppWindow,
   error: CircleAlert,
 };
 

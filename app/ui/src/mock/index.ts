@@ -80,6 +80,7 @@ import "./pythonMock";
 import "./goMock";
 import "./rustMock";
 import "./dotnetMock";
+import "./dotnetWebMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";
 import "./pythonDebugMock";

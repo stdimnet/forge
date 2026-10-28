@@ -23,6 +23,8 @@ export type NodeIcon =
   | "kubeService"
   | "springBoot"
   | "springApp"
+  | "aspire"
+  | "dotnetProject"
   | "error";
 
 export type NodeStatus = "running" | "stopped" | "paused" | "pending" | "error" | "busy";

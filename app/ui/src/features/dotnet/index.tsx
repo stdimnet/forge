@@ -14,7 +14,9 @@
  *   Solution, Add Project from Template…, Manage NuGet Packages, Install .NET SDK…, the
  *   Roslyn and netcoredbg downloads,
  * - the editor (`editor.ts`): MSBuild, Razor and `.sln` highlighting, Reformat Code with
- *   dotnet format, Code Cleanup with dotnet format.
+ *   dotnet format, Code Cleanup with dotnet format,
+ * - web and cloud projects (`web/`): Razor / Blazor, ASP.NET Core endpoints, EF Core, .NET
+ *   Aspire, Docker, Hot Reload and user secrets.
  */
 import { createEffect, createRoot, on } from "solid-js";
 import { AppWindow, FlaskConical, Hammer, Package, Terminal } from "lucide-solid";
@@ -40,7 +42,10 @@ import { DotnetSettingsPage } from "./DotnetSettingsPage";
 import { openAddProjectDialog } from "./AddProjectDialog";
 import { installNetcoredbg, installRoslyn, installSdk } from "./install";
 import "./editor";
+import "./web";
+import { trackWatch } from "./web/hotReload";
 import {
+  captureFor,
   dotnetActive,
   errorText,
   PLUGIN,
@@ -56,6 +61,7 @@ import {
 } from "./state";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
+let watchSeq = 0;
 
 // ---- Settings and tool windows -----------------------------------------------------------------
 
@@ -64,7 +70,7 @@ registerSettingsPage({
   title: ".NET",
   group: "Languages & Frameworks",
   order: 28,
-  keywords: [".net", "dotnet", "c#", "csharp", "f#", "fsharp", "sdk", "global.json", "msbuild", "roslyn", "netcoredbg", "nuget", "dotnet format", "editorconfig", "code cleanup", "solution"],
+  keywords: [".net", "dotnet", "c#", "csharp", "f#", "fsharp", "sdk", "global.json", "msbuild", "roslyn", "netcoredbg", "nuget", "dotnet format", "editorconfig", "code cleanup", "solution", "asp.net core", "aspire", "ef core", "hot reload", "user secrets"],
   component: DotnetSettingsPage,
 });
 
@@ -161,9 +167,13 @@ registerRunConfigurationType({
     const profile = opt(cfg, "profile");
     return name ? (profile && profile !== "none" ? `${name}: ${profile}` : name) : undefined;
   },
-  start: async (_cfg, request) => {
+  start: async (cfg, request) => {
     await buildFirst();
-    return runApi.start(request);
+    if (opt(cfg, "mode") !== "watch") return runApi.start(request);
+    // dotnet watch: follow its Hot Reload events (status bar, Apply Changes).
+    const runId = request.runId ?? `dotnet-watch-${++watchSeq}`;
+    await trackWatch(runId, cfg.name);
+    return runApi.start({ ...request, runId });
   },
 });
 
@@ -241,6 +251,18 @@ registerRunConfigurationType({
   argumentsLabel: false,
   buildCommand: (cfg) => JSON.parse(cfg.options?.commandLine ?? "{}"),
   start: async (cfg, request) => {
+    const capture = cfg.options?.capture ? captureFor(cfg.options.capture) : undefined;
+    if (capture) {
+      const runId = request.runId ?? `dotnet-capture-${++commandSeq}`;
+      const off = await runApi.onEvent(runId, (e: RunEvent) => {
+        if (e.type === "output") capture.chunks.push(e.text);
+        if (e.type === "exited") {
+          off();
+          capture.done(e.code ?? null);
+        }
+      });
+      return runApi.start({ ...request, runId });
+    }
     if (cfg.options?.build !== "true") return runApi.start(request);
     const runId = request.runId ?? `dotnet-build-${++commandSeq}`;
     const chunks: string[] = [];

@@ -291,7 +291,7 @@ pub fn merge_migrations(sources: &[Migration], listed: &[Migration]) -> Vec<Migr
 #[serde(rename_all = "camelCase", default)]
 pub struct EfRequest {
     /// `addMigration`, `removeMigration`, `listMigrations`, `updateDatabase`,
-    /// `dropDatabase`, `script`, `scaffold`, `listContexts`.
+    /// `dropDatabase`, `script`, `scaffold`, `listContexts`, `installTool`.
     pub action: String,
     /// The project with the DbContext (`--project`).
     pub project: String,
@@ -327,6 +327,13 @@ fn quoted_ok(s: &str) -> Result<String, String> {
 /// their output is parsed by [`parse_migrations_list`].
 pub fn ef_command(r: &EfRequest, ctx: &DotnetContext) -> Result<DotnetCommand, String> {
     let s = |x: &str| x.to_string();
+    if r.action == "installTool" {
+        // `dotnet tool install --global dotnet-ef` (the UI asks first).
+        return Ok(DotnetCommand::new(
+            ctx,
+            vec![s("tool"), s("install"), s("--global"), s("dotnet-ef")],
+        ));
+    }
     let mut args = vec![s("ef")];
     match r.action.as_str() {
         "addMigration" => {

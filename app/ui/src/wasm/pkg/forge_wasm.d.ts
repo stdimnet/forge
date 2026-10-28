@@ -716,6 +716,16 @@ export function devcontainer_resolve(request_json: string): string;
 export function dotnet_action_command(request_json: string): string;
 
 /**
+ * `{ projectXml, id }` → the project file with a `UserSecretsId`.
+ */
+export function dotnet_add_user_secrets_id(request_json: string): string;
+
+/**
+ * `{ files }` → `AppHost[]` (`dotnet_aspire_hosts`).
+ */
+export function dotnet_aspire_hosts(request_json: string): string;
+
+/**
  * `{ output, root }` → `BuildReport` (`dotnet_build_problems`).
  */
 export function dotnet_build_report(request_json: string): string;
@@ -726,9 +736,39 @@ export function dotnet_build_report(request_json: string): string;
 export function dotnet_discover(request_json: string): string;
 
 /**
+ * `{ files, project, port? }` → `GeneratedDocker` (`dotnet_dockerfile`).
+ */
+export function dotnet_dockerfile(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand` (`dotnet_ef_command`).
+ */
+export function dotnet_ef_command(request_json: string): string;
+
+/**
+ * `{ files }` → `EfModel` (`dotnet_ef_model`).
+ */
+export function dotnet_ef_model(request_json: string): string;
+
+/**
+ * `{ text }` → `EfOutput` (`dotnet_ef_output`).
+ */
+export function dotnet_ef_output(request_json: string): string;
+
+/**
+ * `{ files }` → `EndpointsModel` (`dotnet_endpoints`).
+ */
+export function dotnet_endpoints(request_json: string): string;
+
+/**
  * `{ request, context }` → `DotnetCommand` (`dotnet_cleanup_command`).
  */
 export function dotnet_format_command(request_json: string): string;
+
+/**
+ * `{ files, endpoint }` → the `.http` request text (`dotnet_http_request`).
+ */
+export function dotnet_http_request(request_json: string): string;
 
 /**
  * `{ files, solution?, configuration? }` → `DotnetWorkspace` (`dotnet_workspace`).
@@ -747,9 +787,19 @@ export function dotnet_new_project(request_json: string): string;
 export function dotnet_package_command(request_json: string): string;
 
 /**
+ * `{ files }` → `RazorComponent[]` (`dotnet_razor_components`).
+ */
+export function dotnet_razor_components(request_json: string): string;
+
+/**
  * `{ configuration, context }` → `DotnetCommand` of a ".NET Project" configuration.
  */
 export function dotnet_run_command(request_json: string): string;
+
+/**
+ * `{ text }` → `RunOutput` (`dotnet_run_output`).
+ */
+export function dotnet_run_output(request_json: string): string;
 
 /**
  * `{ path, text }` → `SourceScan` (test classes, entry points, declared classes).
@@ -760,6 +810,12 @@ export function dotnet_scan(request_json: string): string;
  * `{ text }` → `Template[]` of `dotnet new list` (Forge's common templates when empty).
  */
 export function dotnet_templates(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `DockerCommands` of a ".NET Docker" configuration, or the
+ * `DotnetCommand` of a ".NET Aspire" one.
+ */
+export function dotnet_web_run_command(request_json: string): string;
 
 /**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
@@ -2607,15 +2663,26 @@ export interface InitOutput {
     readonly devcontainer_parse_list: (a: number, b: number, c: number) => void;
     readonly devcontainer_resolve: (a: number, b: number, c: number) => void;
     readonly dotnet_action_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_add_user_secrets_id: (a: number, b: number, c: number) => void;
+    readonly dotnet_aspire_hosts: (a: number, b: number, c: number) => void;
     readonly dotnet_build_report: (a: number, b: number, c: number) => void;
     readonly dotnet_discover: (a: number, b: number, c: number) => void;
+    readonly dotnet_dockerfile: (a: number, b: number, c: number) => void;
+    readonly dotnet_ef_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_ef_model: (a: number, b: number, c: number) => void;
+    readonly dotnet_ef_output: (a: number, b: number, c: number) => void;
+    readonly dotnet_endpoints: (a: number, b: number, c: number) => void;
     readonly dotnet_format_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_http_request: (a: number, b: number, c: number) => void;
     readonly dotnet_load_workspace: (a: number, b: number, c: number) => void;
     readonly dotnet_new_project: (a: number, b: number, c: number) => void;
     readonly dotnet_package_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_razor_components: (a: number, b: number, c: number) => void;
     readonly dotnet_run_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_run_output: (a: number, b: number, c: number) => void;
     readonly dotnet_scan: (a: number, b: number, c: number) => void;
     readonly dotnet_templates: (a: number, b: number, c: number) => void;
+    readonly dotnet_web_run_command: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;

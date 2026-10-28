@@ -151,7 +151,12 @@ export function dotnetRunSteps(cfg: RunConfiguration): Step[] {
     [10, "info: Microsoft.Hosting.Lifetime[0]\n"],
     [10, `      Content root path: ${R}/src/Bookstore.Api\n`],
   );
-  if (watch) out.push([10, "dotnet watch 🚀 Started\n"]);
+  if (watch)
+    out.push(
+      [10, "dotnet watch 🚀 Started\n"],
+      [2500, "dotnet watch ⌚ File changed: ./Program.cs.\n"],
+      [400, "dotnet watch 🔥 Hot reload of changes succeeded.\n"],
+    );
   return out;
 }
 
