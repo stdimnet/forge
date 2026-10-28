@@ -32,6 +32,7 @@ tags: [environment, variables, reference]
 | `GITLAB_TOKEN` | gitlab.com |
 | `FORGEJO_TOKEN`, `GITEA_TOKEN` | Forgejo / Gitea (public servers) |
 | `GITHUB_TOKEN`, `GH_TOKEN` | github.com |
+| `AZURE_DEVOPS_EXT_PAT` | Azure DevOps Services (`dev.azure.com` organizations) |
 
 ### Tools and environment
 

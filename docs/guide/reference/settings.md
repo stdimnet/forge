@@ -849,6 +849,9 @@ Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet hos
 | `dotnet.debugger.justMyCode` | bool | `true` | user | Debugger | Step through my code only (Just My Code) |
 | `dotnet.nuget.source` | string | `"https://api.nuget.org/v3/index.json"` | user | NuGet | NuGet feed — The service index the NuGet tool window searches. |
 | `dotnet.nuget.prerelease` | bool | `false` | user, project | NuGet | Include prerelease versions |
+| `dotnet.aspire.openDashboard` | bool | `false` | user | ASP.NET Core and Aspire | Open the Aspire dashboard when an AppHost starts |
+| `dotnet.ef.startupProject` | string | `""` | user, project | ASP.NET Core and Aspire | EF Core startup project — The project dotnet ef starts to find the DbContext (--startup-project). Empty: the first runnable project that references EF Core. |
+| `dotnet.hotReload.showStatus` | bool | `true` | user | ASP.NET Core and Aspire | Show the Hot Reload status of dotnet watch runs in the status bar |
 
 ### Languages & Frameworks | Jupyter
 

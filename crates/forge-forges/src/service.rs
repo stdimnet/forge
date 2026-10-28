@@ -124,7 +124,11 @@ impl ForgeService {
             Ok(_) => {}
             Err(e) => tracing::warn!("keychain lookup for {} failed: {e}", acc.id),
         }
-        if normalize_server(&acc.server) == acc.kind.default_server() {
+        let server = normalize_server(&acc.server);
+        // Azure DevOps accounts name the organization below the public server.
+        let public = server == acc.kind.default_server()
+            || acc.kind == HostKind::Azure && server.starts_with("https://dev.azure.com/");
+        if public {
             for var in env_vars(acc.kind) {
                 if let Some(t) = (self.env)(var).filter(|t| !t.is_empty()) {
                     return (Some(t), TokenSource::Env);
@@ -148,6 +152,11 @@ impl ForgeService {
         } else {
             server
         });
+        if kind == HostKind::Azure && server == HostKind::Azure.default_server() {
+            return Err(HostError::Config(
+                "Enter the organization: https://dev.azure.com/<organization>".into(),
+            ));
+        }
         let mut account = Account {
             id: String::new(),
             kind,
@@ -374,5 +383,14 @@ mod tests {
             ..gh
         };
         assert_eq!(svc.token(&ghe), (None, TokenSource::None));
+        let svc = svc.with_env(|k| (k == "AZURE_DEVOPS_EXT_PAT").then(|| "pat".to_string()));
+        let az = Account {
+            id: "azure-dev.azure.com-acme".into(),
+            kind: HostKind::Azure,
+            server: "https://dev.azure.com/acme".into(),
+            username: None,
+            api_url: None,
+        };
+        assert_eq!(svc.token(&az), (Some("pat".into()), TokenSource::Env));
     }
 }

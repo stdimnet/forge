@@ -20,7 +20,7 @@ script and config language plugins.
 | --- | --- | --- | --- | --- | --- |
 | Browser Companion | `forge.browser-companion` | core |  | always | 1 commands; 3 settings |
 | Natural Languages | `forge.natural-languages` | core |  | always | 17 settings |
-| GitLab, Forgejo and GitHub | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
+| GitLab, Forgejo, GitHub and Azure DevOps | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
 | Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 49 settings; 3 keybindings |
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
 | Git | `forge.git` | core |  | always | tool windows: Commit, Git; 2 commands; 8 settings; 1 keybindings |
@@ -49,7 +49,7 @@ script and config language plugins.
 | Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
-| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet; 10 commands; 18 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
+| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet, EF Core, the ASP.NET Core view of Endpoints; 19 commands; 21 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project, .NET Aspire, .NET Docker; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
