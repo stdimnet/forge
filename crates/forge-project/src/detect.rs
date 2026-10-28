@@ -174,6 +174,7 @@ const PRIMARY_PRIORITY: &[&str] = &[
     "vue",
     "react",
     "solid",
+    "rails",
     "django",
     "fastapi",
     "flask",
@@ -499,6 +500,9 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     if has("Rakefile") || has("rakefile") || has("Rakefile.rb") {
         c.tool("rake");
     }
+    if has("Gemfile") {
+        scan_rails(dir, rel, c);
+    }
     // ---- C and C++ (CForge)
     scan_cpp(dir, rel, c, &files);
     // ---- .NET (DotNetForge)
@@ -701,6 +705,52 @@ fn scan_cpp(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
     if makefile {
         c.tool("make");
     }
+}
+
+/// Ruby on Rails: `rails` (or `railties`) in the Gemfile and a `config/application.rb`;
+/// the version from Gemfile.lock, else the Gemfile's requirement.
+fn scan_rails(dir: &Path, rel: &str, c: &mut Collector) {
+    if !dir.join("config/application.rb").is_file() {
+        return;
+    }
+    let Ok(gemfile) = fs::read_to_string(dir.join("Gemfile")) else {
+        return;
+    };
+    let mut requirement = None;
+    let declared = gemfile.lines().any(|l| {
+        let t = l.trim();
+        let Some(rest) = t.strip_prefix("gem ").or_else(|| t.strip_prefix("gem(")) else {
+            return false;
+        };
+        let rest = rest.trim_start();
+        let found = ["\"rails\"", "'rails'", "\"railties\"", "'railties'"]
+            .iter()
+            .find_map(|g| rest.strip_prefix(g));
+        if let Some(after) = found {
+            requirement = after
+                .split(['"', '\''])
+                .nth(1)
+                .map(|r| {
+                    r.trim_start_matches(|ch: char| !ch.is_ascii_digit())
+                        .to_string()
+                })
+                .filter(|v| !v.is_empty());
+        }
+        found.is_some()
+    });
+    if !declared {
+        return;
+    }
+    let locked = fs::read_to_string(dir.join("Gemfile.lock"))
+        .ok()
+        .and_then(|l| {
+            l.lines().find_map(|line| {
+                line.strip_prefix("    rails (")
+                    .and_then(|v| v.strip_suffix(')'))
+                    .map(str::to_string)
+            })
+        });
+    c.framework("rails", "Rails", "ruby", locked.or(requirement), rel);
 }
 
 /// Python packages that identify a framework: (package, id, name).
@@ -1977,6 +2027,43 @@ mod tests {
         let info = detect(dir.path());
         assert!(info.uses("rustforge"));
         assert!(info.tools.contains(&"cargo".to_string()));
+    }
+
+    #[test]
+    fn rails_applications() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "Gemfile",
+            "source \"https://rubygems.org\"\ngem \"rails\", \"~> 7.2.1\"\n",
+        );
+        write(dir.path(), "config/application.rb", "module Blog\nend\n");
+        write(dir.path(), "app/javascript/application.js", "");
+        write(dir.path(), "package.json", "{}");
+        let info = detect(dir.path());
+        assert_eq!(
+            info.framework("rails").unwrap().version.as_deref(),
+            Some("7.2.1")
+        );
+        assert_eq!(info.primary.unwrap().id, "rails");
+        assert!(info.packs.contains(&"rubyforge".to_string()));
+        write(
+            dir.path(),
+            "Gemfile.lock",
+            "GEM\n  specs:\n    rails (7.2.2)\n",
+        );
+        assert_eq!(
+            detect(dir.path())
+                .framework("rails")
+                .unwrap()
+                .version
+                .as_deref(),
+            Some("7.2.2")
+        );
+        // A gem that only uses Rails parts is not a Rails application.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Gemfile", "gem \"rails\"\n");
+        assert!(detect(dir.path()).framework("rails").is_none());
     }
 
     #[test]

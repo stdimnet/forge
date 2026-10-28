@@ -476,6 +476,7 @@ export type RelatedKind =
   | "testSubject"
   | "controller"
   | "view"
+  | "helper"
   | "template"
   | "route"
   | "model"
@@ -483,6 +484,7 @@ export type RelatedKind =
   | "factory"
   | "policy"
   | "seeder"
+  | "fixture"
   | "component"
   | "story"
   | "style";

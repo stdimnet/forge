@@ -155,7 +155,7 @@ registerRunConfigurationType({
 
 registerDebugAdapter({ type: "rdbg", label: "Ruby (rdbg)", languages: ["rb", "rake", "ru", "gemspec"] });
 
-const RDBG_TYPES = new Set(["ruby", "rake", "rspec", "minitest"]);
+const RDBG_TYPES = new Set(["ruby", "rake", "rspec", "minitest", "rails"]);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Attach to rdbg once it listens (Ruby and the bundle load first). */

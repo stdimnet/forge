@@ -129,7 +129,7 @@ pub fn remote_project_opened(app: &AppHandle) {
     });
 }
 
-fn emit_sources(app: &AppHandle, svc: &DbService) {
+pub(crate) fn emit_sources(app: &AppHandle, svc: &DbService) {
     if let Err(e) = app.emit(DATA_SOURCES_EVENT, svc.list()) {
         tracing::warn!("cannot emit {DATA_SOURCES_EVENT}: {e}");
     }

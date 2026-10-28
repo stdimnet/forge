@@ -1,0 +1,21 @@
+en:
+  articles:
+    index:
+      title: "Latest articles"
+      new_article: "New article"
+      empty: "No articles yet."
+    show:
+      comments: "Comments"
+      copy_link: "Copy link"
+    form:
+      save: "Save article"
+    create:
+      created: "Article was successfully created."
+    update:
+      updated: "Article was successfully updated."
+  comments:
+    comment:
+      by: "by %{author}"
+  pages:
+    about:
+      title: "About this blog"

@@ -59,6 +59,7 @@ mod project_structure;
 mod python;
 mod python_testing;
 mod python_web;
+mod rails;
 mod ruby;
 mod runtools;
 mod rust;

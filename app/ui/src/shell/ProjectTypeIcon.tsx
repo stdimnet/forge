@@ -38,6 +38,7 @@ const GLYPHS: Record<string, Glyph> = {
   neovim: { text: "nv" },
   rust: { text: "Rs" },
   ruby: { icon: Gem },
+  rails: { text: "Rl" },
   go: { text: "Go" },
   python: { text: "Py" },
   "spring-boot": { icon: Leaf },
