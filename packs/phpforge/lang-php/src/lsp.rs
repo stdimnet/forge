@@ -44,7 +44,7 @@ pub enum ServerKind {
 pub struct BuiltinServer {
     pub command: PathBuf,
     pub args: Vec<String>,
-    /// php-lsp's version, e.g. `0.1.0 (0fd60bc)`.
+    /// php-lsp's version, e.g. `0.1.0 (6e00c57)`.
     pub version: String,
 }
 
@@ -904,7 +904,7 @@ mod tests {
         BuiltinServer {
             command: PathBuf::from("/opt/forge/forge"),
             args: vec!["--php-lsp".into(), "--stdio".into()],
-            version: "0.1.0 (0fd60bc)".into(),
+            version: "0.1.0 (6e00c57)".into(),
         }
     }
 
@@ -940,7 +940,7 @@ mod tests {
         );
         assert_eq!(
             serde_json::to_value(&detected).unwrap()["phpLsp"]["version"],
-            "0.1.0 (0fd60bc)"
+            "0.1.0 (6e00c57)"
         );
         // Older peers send no php-lsp entry.
         let old: DetectedServers =

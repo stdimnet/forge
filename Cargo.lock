@@ -1321,7 +1321,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.9",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -1655,7 +1655,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1971,7 +1971,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4461,7 +4461,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5390,7 +5390,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.21",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5505,7 +5505,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6218,7 +6218,7 @@ dependencies = [
 [[package]]
 name = "php-fmt"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "php-syntax",
  "regex",
@@ -6227,7 +6227,7 @@ dependencies = [
 [[package]]
 name = "php-hir"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "php-syntax",
  "serde",
@@ -6237,7 +6237,7 @@ dependencies = [
 [[package]]
 name = "php-ide"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "bincode",
  "globset",
@@ -6254,7 +6254,7 @@ dependencies = [
 [[package]]
 name = "php-index"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "php-hir",
 ]
@@ -6262,7 +6262,7 @@ dependencies = [
 [[package]]
 name = "php-lsp"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "crossbeam-channel",
  "lsp-server",
@@ -6276,7 +6276,7 @@ dependencies = [
 [[package]]
 name = "php-stubs"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "miniz_oxide 0.8.9",
 ]
@@ -6284,7 +6284,7 @@ dependencies = [
 [[package]]
 name = "php-syntax"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "rowan 0.17.0",
  "serde",
@@ -6293,7 +6293,7 @@ dependencies = [
 [[package]]
 name = "php-tools"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=0fd60bc7f242112582544e4dfa0bd51232268287#0fd60bc7f242112582544e4dfa0bd51232268287"
+source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
 dependencies = [
  "serde_json",
 ]
@@ -7054,7 +7054,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7764,7 +7764,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7823,7 +7823,7 @@ dependencies = [
  "security-framework 3.7.0",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8517,7 +8517,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8889,7 +8889,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -9507,7 +9507,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10012,7 +10012,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.21",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -10167,7 +10167,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -10708,7 +10708,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10729,7 +10729,7 @@ dependencies = [
  "objc2-foundation",
  "objc2-quartz-core",
  "raw-window-handle",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
  "windows-version",
 ]
 
@@ -11238,7 +11238,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d6f32a0ff4a9f6f01231eb2059cc85479330739333e0e58cadf03b6af2cca10"
 dependencies = [
  "cfg-if",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

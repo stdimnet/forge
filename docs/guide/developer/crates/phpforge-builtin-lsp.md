@@ -17,7 +17,7 @@ php-lsp is a pure-Rust PHP language server under MIT OR Apache-2.0, a drop-in fo
 (same CLI flags, `intelephense.*` settings, diagnostics and formatting) with its premium
 features free. It is Forge's default PHP language server and is linked into Forge, so users
 install nothing. It is a cargo git dependency pinned to one revision
-(`rev = "0fd60bc7f242112582544e4dfa0bd51232268287"`); its embedded JetBrains phpstorm-stubs
+(`rev = "6e00c57c0d8e1949038cc2ddb83572c4092e46ab"`); its embedded JetBrains phpstorm-stubs
 (Apache-2.0) and the js-beautify port (MIT) are listed in `THIRD_PARTY_NOTICES.md`.
 
 The server runs in a **separate process** for crash isolation: `forge` (and
@@ -36,7 +36,7 @@ LSP client would need a second, in-memory transport.
 | Item | Summary |
 | --- | --- |
 | `FLAG` | `"--php-lsp"`, the first argument of the hidden mode. |
-| `VERSION`, `REVISION`, `version_label()` | php-lsp's version and pinned commit, `"0.1.0 (0fd60bc)"` (a test checks them against `Cargo.lock`; php-lsp exposes no version constant). |
+| `VERSION`, `REVISION`, `version_label()` | php-lsp's version and pinned commit, `"0.1.0 (6e00c57)"` (`VERSION` is `php_lsp::VERSION`; a test checks the pinned commit against `Cargo.lock`). |
 | `main_hook(args)` | Runs the server in the hidden mode (`--version` prints the version) and returns the exit code; otherwise registers the built-in server and returns `None`. |
 | `is_server_mode`, `server_args`, `run_stdio`, `register` | The pieces of `main_hook`. |
 

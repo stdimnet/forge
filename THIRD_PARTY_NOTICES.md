@@ -9,7 +9,7 @@ travel with Forge.
 
 The built-in PHP language server (`packs/phpforge/builtin-lsp`), linked into `forge` and
 `forge-remote-agent`: https://github.com/stdimnet/php-lsp, revision
-`0fd60bc7f242112582544e4dfa0bd51232268287`, licensed under the MIT License **or** the Apache
+`6e00c57c0d8e1949038cc2ddb83572c4092e46ab`, licensed under the MIT License **or** the Apache
 License 2.0, at your option. Its own notices:
 
 ### JetBrains phpstorm-stubs

@@ -22,13 +22,12 @@ use phpforge_lang_php::lsp::{register_builtin_server, BuiltinServer};
 /// First argument of the hidden server mode.
 pub const FLAG: &str = "--php-lsp";
 
-/// php-lsp's version, as pinned in Cargo.toml (`rev`). The crate exposes none, so it is kept
-/// here and checked against Cargo.lock by a test.
-pub const VERSION: &str = "0.1.0";
-/// The pinned php-lsp commit.
-pub const REVISION: &str = "0fd60bc7f242112582544e4dfa0bd51232268287";
+/// php-lsp's version.
+pub const VERSION: &str = php_lsp::VERSION;
+/// The pinned php-lsp commit (`rev` in Cargo.toml), checked against Cargo.lock by a test.
+pub const REVISION: &str = "6e00c57c0d8e1949038cc2ddb83572c4092e46ab";
 
-/// `0.1.0 (0fd60bc)`, as shown in Settings.
+/// `0.1.0 (6e00c57)`, as shown in Settings.
 pub fn version_label() -> String {
     format!("{VERSION} ({})", &REVISION[..7])
 }
@@ -91,7 +90,7 @@ mod tests {
         assert!(!is_server_mode(&args(&["forge"])));
         assert!(!is_server_mode(&args(&["forge", "inspect", "--php-lsp"])));
         assert_eq!(server_args(), vec!["--php-lsp", "--stdio"]);
-        assert_eq!(version_label(), "0.1.0 (0fd60bc)");
+        assert_eq!(version_label(), "0.1.0 (6e00c57)");
     }
 
     #[test]

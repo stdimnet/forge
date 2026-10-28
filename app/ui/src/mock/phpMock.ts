@@ -487,7 +487,7 @@ registerMock("php_composer_outdated", async () => [
 ]);
 
 // php-lsp is built in. With `?intelephense=missing` Intelephense is found only after the (mock) install.
-const PHP_LSP = { command: "/usr/bin/forge", args: ["--php-lsp", "--stdio"], version: "0.1.0 (0fd60bc)" };
+const PHP_LSP = { command: "/usr/bin/forge", args: ["--php-lsp", "--stdio"], version: "0.1.0 (6e00c57)" };
 registerMock("php_detect_servers", async () => {
   if (!intelephenseMissingAtStart()) return { phpLsp: PHP_LSP, intelephense: "/usr/local/bin/intelephense", phpactor: null };
   const row = (await mockRows()).find((r) => r.id === "intelephense");

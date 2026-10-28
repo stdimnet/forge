@@ -7,7 +7,7 @@ license.workspace = true
 
 [dependencies]
 # Pure-Rust PHP language server (MIT OR Apache-2.0), pinned to a reviewed revision.
-php-lsp = { git = "https://github.com/stdimnet/php-lsp", rev = "0fd60bc7f242112582544e4dfa0bd51232268287" }
+php-lsp = { git = "https://github.com/stdimnet/php-lsp", rev = "6e00c57c0d8e1949038cc2ddb83572c4092e46ab" }
 phpforge-lang-php = { path = "../lang-php" }
 
 [dev-dependencies]

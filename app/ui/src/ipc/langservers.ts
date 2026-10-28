@@ -65,7 +65,7 @@ export interface ServerRow {
   extraSettingsError?: string | null;
   /** "catalog", or the pack that starts it itself ("php"). */
   source: string;
-  /** Version of a server built into Forge (php-lsp), e.g. "0.1.0 (0fd60bc)". */
+  /** Version of a server built into Forge (php-lsp), e.g. "0.1.0 (6e00c57)". */
   builtinVersion?: string | null;
 }
 
