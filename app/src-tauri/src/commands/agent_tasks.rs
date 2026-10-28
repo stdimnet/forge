@@ -95,6 +95,10 @@ impl AgentTasksState {
         if inner.project.as_deref() != Some(root) {
             inner.tasks = store_for(root)?.load();
             inner.project = Some(root.to_path_buf());
+            // Tasks of the previous project stop (their sandboxes stay for review).
+            for token in inner.running.values() {
+                token.cancel();
+            }
             inner.running.clear();
             inner.approvals.clear();
             inner.worker = false;
@@ -208,10 +212,15 @@ fn start_worker(app: &AppHandle, tasks: &AgentTasksState) {
         inner.worker = true;
     }
     let (app, tasks) = (app.clone(), tasks.clone());
+    let project = tasks.lock().project.clone();
     tauri::async_runtime::spawn(async move {
         loop {
             let next = {
                 let mut inner = tasks.lock();
+                if inner.project != project {
+                    // Another project was opened; its own worker takes over.
+                    break;
+                }
                 let next = inner
                     .tasks
                     .iter()
@@ -265,12 +274,27 @@ fn setting<T: serde::de::DeserializeOwned>(state: &AppState, key: &str, default:
     state.read_settings().get_as(key).unwrap_or(default)
 }
 
-/// Map a path of the project to the same path in the sandbox.
+/// Map paths of the project in `text` to the same paths in the sandbox (only whole path
+/// prefixes: `/p/app` matches `/p/app/x` but not `/p/apps`).
 fn to_sandbox(text: &str, project: &str, sandbox: &str) -> String {
+    let project = project.trim_end_matches(['/', '\\']);
     if project.is_empty() {
         return text.to_string();
     }
-    text.replace(project, sandbox)
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find(project) {
+        let after = &rest[at + project.len()..];
+        let whole = after
+            .chars()
+            .next()
+            .is_none_or(|c| !(c.is_alphanumeric() || matches!(c, '_' | '-' | '.')));
+        out.push_str(&rest[..at]);
+        out.push_str(if whole { sandbox } else { project });
+        rest = after;
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The test command of a task, pointed at the sandbox.
@@ -840,6 +864,8 @@ mod tests {
             "--configuration=/c/t1/phpunit.xml"
         );
         assert_eq!(to_sandbox("x", "", "/c"), "x");
+        assert_eq!(to_sandbox("/p/apps:/p/app", "/p/app", "/c"), "/p/apps:/c");
+        assert_eq!(to_sandbox("-v/p/app/:/var/www", "/p/app/", "/c"), "-v/c/:/var/www");
         assert_eq!(short_input(&serde_json::json!({ "command": "ls\n-la" })), "ls");
         let m: ApplyMode = serde_json::from_str(r#"{"mode":"branch","branch":"b","message":"m"}"#).unwrap();
         assert!(matches!(m, ApplyMode::Branch { .. }));
