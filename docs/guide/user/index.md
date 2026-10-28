@@ -38,7 +38,7 @@ not finished, the page says so.
 | [Go to Test and Create Test](go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
 | [File Structure, Navigation Bar and Related Symbol](navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
-| [Language servers](language-servers.md) | detection, installation, per-server settings, Intelephense licence |
+| [Language servers](language-servers.md) | detection, installation, per-server settings, the built-in php-lsp |
 | [Keymap](keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](shortcuts/reference-card.md) |
 | [Color schemes](color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |

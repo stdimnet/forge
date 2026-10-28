@@ -15,11 +15,11 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
   actions and [navigation](#navigation) when no language server answers, and works without
   any language server.
 - **A PHP language server** for completion, diagnostics, Go to Declaration, hover, rename,
-  quick fixes and formatting. By default this is
-  [php-lsp](https://github.com/stdimnet/php-lsp), which is **built into Forge**: nothing to
-  install, no licence key, and Intelephense's premium features (rename, code actions, type
-  hierarchy, implementations) included. Intelephense and Phpactor stay selectable. See
-  [Language servers](language-servers.md#php-php-lsp-intelephense-and-phpactor).
+  quick fixes and formatting: [php-lsp](https://github.com/stdimnet/php-lsp), which is
+  **built into Forge**: nothing to install, no licence key, and Intelephense's premium features
+  (rename, code actions, type hierarchy, implementations) included. It is Forge's only PHP
+  language server; Intelephense and Phpactor are no longer supported. See
+  [Language servers](language-servers.md#php-php-lsp).
 
 The pack activates in projects with a `composer.json` or `.php` files.
 
@@ -71,7 +71,7 @@ entry to jump to it.
 
 Navigation works like in PHPStorm on every PHP symbol. The language server answers first;
 when none runs (or it has no answer) Forge's PHP index does, so navigation also works without
-Intelephense. Everything runs through the project's backend, so it works the same in
+a language server. Everything runs through the project's backend, so it works the same in
 [remote projects](#remote-projects).
 
 ### Go to Declaration
@@ -120,11 +120,9 @@ Where the stubs come from:
 2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
    `<cache dir>/forge/php-stubs/<version>`, checks the unpacked files against a pinned digest
    and keeps its licence file. The status bar shows the download.
-3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
 php-lsp carries phpstorm-stubs inside Forge: its definition of a built-in symbol points into
 `<cache dir>/forge/php-lsp/php-lsp-stubs-<version>/` and opens read-only, without any download.
-The same goes for Intelephense, whose definition points into the stubs inside its package.
 
 > **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
 > path**; otherwise Go to Declaration on a built-in symbol explains how to get the stubs
@@ -172,15 +170,14 @@ override the parents' methods (see [Highlight usages](editor.md#highlight-usages
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
 
 Several targets open the Choose Declaration popup with names and namespaces. php-lsp answers
-Go to Implementation; with Intelephense it needs Intelephense Premium, and without a licence
-Forge answers from the index, and says so when the index finds nothing either.
+Go to Implementation; when it does not run, Forge answers from the index, and says so when the
+index finds nothing either.
 
 ### Hierarchies
 
 Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
 (`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
-merged with the language server's type and call hierarchy (php-lsp, or Intelephense Premium)
-when it runs. See
+merged with php-lsp's type and call hierarchy when it runs. See
 [Type, Method and Call Hierarchy](hierarchies.md).
 
 ### Gutter icons
@@ -203,27 +200,22 @@ Click an icon to go to the target, or to choose one of several.
 constants, functions and variables; see [Editor](editor.md#rename) for the in-place editing,
 the dialog and undo.
 
-- With **php-lsp** (the default), **Intelephense Premium** (licence key in Settings |
-  Languages & Frameworks | PHP) or Phpactor, the language server renames.
-- **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
-  declaration and every usage the index finds in the project (imports, `new`, static calls,
-  type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
-  classes). Members used on expressions the index cannot type (dynamic usages) are not renamed;
-  Forge says how many it skipped. The first time this happens in a session, a balloon explains
-  that the full rename needs Intelephense Premium and links to the licence key setting.
+- php-lsp, the built-in language server, renames.
+- Without a running language server (the PHP plugin's server did not start), Forge renames
+  with its PHP index: the declaration and every usage the index finds in the project (imports,
+  `new`, static calls, type hints, PHPDoc types, `$this->` and typed receivers, members through
+  parent and child classes). Members used on expressions the index cannot type (dynamic usages)
+  are not renamed; Forge says how many it skipped.
 - Renaming a class also renames its file when the file is named after it (`Order.php` →
   `Purchase.php`).
 - Conflicts: a class with the new name in the same namespace, or a method, property or constant
   with the new name in the same class, are listed in **Problems Detected** before anything
   changes.
 
-![Premium hint after a rename with the index](../../screenshots/rename-premium-hint.png)
-
 ## Extract, introduce and inline
 
 The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
-computes them itself from the PHP syntax tree, so they need no language server (and no
-Intelephense licence); call sites and usages in other files come from the PHP index. Every
+computes them itself from the PHP syntax tree, so they need no language server; call sites and usages in other files come from the PHP index. Every
 refactoring is one undo step, also when it changes several files, and works in remote projects.
 Problems (a name that is taken, a call that cannot be updated, an initializer with side
 effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
@@ -284,7 +276,7 @@ enclosing scope", "Inline variable"…) in a popup.
 ## Move, copy, safe delete, change signature and make static
 
 The other refactorings of the Refactor menu work like PHPStorm's too. Forge finds the usages
-with its PHP index and computes every edit itself (no language server or licence needed); the
+with its PHP index and computes every edit itself (no language server needed); the
 whole refactoring, file moves included, is one undo step (`Ctrl+Z` in any changed editor) and
 works in remote projects. **Preview** lists every change first, **Problems Detected** the
 conflicts (a class that already exists, a call that cannot be updated).
@@ -388,8 +380,8 @@ class names in moved code are imported in the target file. New files come from y
 
 **Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes and refactorings
 (php-lsp: remove unused import, add PHPDoc, generate constructor, promote constructor
-properties, extract variable / method / constant, inline variable, add return type, ...; with
-Intelephense they need Premium) and Forge's own PHP intentions, see
+properties, extract variable / method / constant, inline variable, add return type, ...) and
+Forge's own PHP intentions, see
 [Editor](editor.md#show-context-actions). When the server offers what an intention below does
 (php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import 'App\Models\User'",
 "Change namespace to '…'"), the popup lists Forge's intention once, in PHPStorm's wording:
@@ -405,9 +397,6 @@ Intelephense they need Premium) and Forge's own PHP intentions, see
 | Generate… | anywhere in a class: opens the Generate popup (`Alt+Insert`) |
 
 ![PHP intentions](../../screenshots/context-actions-intentions.png)
-
-With Intelephense without a licence the popup shows only Forge's intentions and says that the
-language server's quick fixes need Premium.
 
 ### Create from usage
 
@@ -621,17 +610,15 @@ relative to the project. Changing the include paths indexes the project again.
 | CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
 | CLI Interpreters (available in every project) | `php.interpreters` | empty |
 | CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
-| Language server: php-lsp (built-in), Auto (php-lsp, else Intelephense, else phpactor), Intelephense, phpactor, None | `php.lsp.server` | php-lsp |
+| Language server: php-lsp (built-in) with its version; there is no other choice | — | — |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
-| When Intelephense is chosen but not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense); shown when Intelephense is chosen | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence (shown when Intelephense is chosen) | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
 | Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
-says when it comes from composer.json); click it to open this page. With Intelephense chosen, the page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
+says when it comes from composer.json); click it to open this page.
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -697,7 +684,7 @@ Settings | Languages & Frameworks | PHP | Composer:
 | Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
 | Path to composer | `php.composer.executable` | `composer` | a composer executable or a composer.phar (run with the PHP interpreter); "Download composer.phar from getcomposer.org" fetches one with your consent |
 | Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
-| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by php-lsp; off leaves `vendor/` out |
 | Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
 | Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | package names, versions and outdated markers from packagist.org (cached); off: installed packages only |
 
@@ -725,7 +712,7 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Wrapping and Braces**: brace placement in class declarations, function declarations and
   other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
   PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
-  The language server (php-lsp or Intelephense, both in Intelephense's style) formats with the
+  The language server (php-lsp, in Intelephense's style) formats with the
   closest of its brace styles; the Generate actions write
   methods with the function brace placement.
 - **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and

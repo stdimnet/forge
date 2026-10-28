@@ -45,7 +45,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 ## Popular pages
 
 - [Keymap reference](docs/guide/reference/keymap.md) — every shortcut on Windows/Linux and macOS
-- [Language servers](docs/guide/user/language-servers.md) — install Intelephense and friends, licence keys
+- [Language servers](docs/guide/user/language-servers.md) — the built-in php-lsp, one-click installs of the others
 - [Laravel](docs/guide/user/laravel.md) and [Symfony](docs/guide/user/symfony.md)
 - [WordPress](docs/guide/user/wordpress.md) and [Drupal, Joomla and Shopware](docs/guide/user/cms.md)
 - [Debugging](docs/guide/user/debugging.md)
@@ -54,11 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **php-lsp is the only PHP language server**: support for Intelephense and Phpactor was
+  removed (no server choice, licence key or install offer any more); old settings are ignored
+  ([Language servers](docs/guide/user/language-servers.md#php-php-lsp)).
 - **Built-in PHP language server**: [php-lsp](docs/guide/user/language-servers.md#php-lsp-built-in) is
-  now Forge's default PHP server, built into Forge: completion, diagnostics, rename,
-  refactorings, type hierarchy and formatting in Intelephense's style with nothing to install
-  and no licence key. Intelephense and Phpactor stay selectable in Settings | Languages &
-  Frameworks | PHP.
+  built into Forge: completion, diagnostics, rename, refactorings, type hierarchy and
+  formatting in Intelephense's style with nothing to install and no licence key.
 - **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
@@ -223,7 +224,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   ([Workbench](docs/guide/user/workbench.md#main-menu)).
 - **Find in Files** (`Ctrl+Shift+F`) and the **Choose Declaration** popup
   ([Search Everywhere](docs/guide/user/search-everywhere.md#find-in-files), [Editor](docs/guide/user/editor.md#go-to-declaration)).
-- **One-click language server installs**, including Intelephense with its own Node.js
+- **One-click language server installs** of npm servers, with their own Node.js
   ([Language servers](docs/guide/user/language-servers.md#installing-a-server)).
 - **HTTP client**: environment picker, response handlers, body files, dynamic variables
   ([Scratches and HTTP client](docs/guide/user/scratches-and-http.md#http-client-http-files)).
@@ -784,7 +785,7 @@ what is not there yet.
 
 | Topic | PHPStorm | Forge |
 | --- | --- | --- |
-| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), or Intelephense / Phpactor if you prefer, plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md#php-php-lsp-intelephense-and-phpactor). |
+| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md#php-php-lsp). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](docs/guide/user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
@@ -814,8 +815,6 @@ The [keymap reference](docs/guide/reference/keymap.md) marks every action as imp
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
 2. PHP works right away with the built-in language server php-lsp. Install the language
    servers of your other languages from Settings | Languages & Frameworks | Language Servers.
-   If you prefer Intelephense (for example with your own licence), choose it in Settings |
-   Languages & Frameworks | PHP and accept the install offer.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.
@@ -862,7 +861,7 @@ not finished, the page says so.
 | [Go to Test and Create Test](docs/guide/user/go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
-| [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
+| [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, the built-in php-lsp |
 | [Keymap](docs/guide/user/keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](docs/guide/user/shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](docs/guide/user/shortcuts/reference-card.md) |
 | [Color schemes](docs/guide/user/color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
@@ -1840,8 +1839,8 @@ to where you were.
 | Super Method | `Ctrl+U` | `Cmd+U` |
 
 They ask the language servers (`textDocument/implementation`, `typeDefinition`) and fall back
-to the PHP index in PHP files. When a server lacks the feature (Go to Implementation in
-Intelephense without a licence) and the index finds nothing, the hint says so.
+to the PHP index in PHP files. When a server lacks the feature and the index finds
+nothing, the hint says so.
 
 > **Note:** Go to Test (`Ctrl+Shift+T`) is not available yet. In React and Vue projects, Go to
 > Declaration on a component's own name lists its usages through the framework provider.
@@ -1991,8 +1990,8 @@ check also runs when a language server computes the rename.
 
 ![Rename dialog](docs/screenshots/rename-dialog.png)
 
-- The language server computes the rename where it can (TypeScript, Vue, Lua, Intelephense
-  Premium, …); PHP files fall back to Forge's PHP index, see [PHP](docs/guide/user/php.md#rename).
+- The language server computes the rename where it can (TypeScript, Vue, Lua, php-lsp,
+  …); PHP files fall back to Forge's PHP index, see [PHP](docs/guide/user/php.md#rename).
 - Renaming a class whose file is named after it (`Order.php` declaring `class Order`) also
   renames the file, like PHPStorm; untick **Rename file** in the hint below the edit box or in
   the dialog to keep the name. Open tabs follow the file.
@@ -2347,7 +2346,7 @@ SQL **Upper case keywords**.
 Indents come from the scheme unless EditorConfig or the detected indent of the file wins
 (see above). Then:
 
-- The language server gets the options in its settings before it formats: Intelephense the
+- The language server gets the options in its settings before it formats: php-lsp the
   brace placement, typescript-language-server the spaces, braces, semicolons and quote
   preference (`typescript.format` / `javascript.format`), the CSS, HTML, JSON, YAML and XML
   servers their `format` settings, lua-language-server its `Lua.format.defaultConfig`.
@@ -2394,9 +2393,8 @@ Language servers show parameter names at call sites (`precision: 2`) and inferre
 | Implementations and inheritors (Code Vision) | `editor.inlayHints.implementations` | on |
 | Per language: PHP, JavaScript and TypeScript, Lua, other languages | `editor.inlayHints.languages.<id>` | on |
 
-Hints need a server that reports them: Intelephense Premium, phpactor,
-typescript-language-server / vtsls and lua-language-server (Forge turns their hints on and
-filters them by these settings). Free Intelephense shows none.
+Hints need a server that reports them: php-lsp, typescript-language-server / vtsls and
+lua-language-server (Forge turns their hints on and filters them by these settings).
 
 **Code Vision**: above PHP classes and methods with subclasses, implementations or overrides
 Forge shows "4 inheritors", "2 implementations" or "1 override" (from the PHP index); click
@@ -4921,7 +4919,7 @@ double click open the declaration.
 ## Where the data comes from
 
 - **Language servers** first: their `typeHierarchy` and `callHierarchy` requests (for example
-  the TypeScript server for JavaScript and TypeScript, Intelephense Premium for PHP).
+  the TypeScript server for JavaScript and TypeScript, php-lsp for PHP).
 - **Forge's PHP index** for PHP files: classes, interfaces, traits and enums of the project
   with their parents (vendor classes are resolved through Composer's PSR-4 autoloading when
   vendor packages are indexed as libraries), method declarations and calls. It works without
@@ -5333,7 +5331,8 @@ Source: docs/guide/user/language-servers.md
 
 Completion, hover documentation, diagnostics, Go to Declaration and formatting for most
 languages come from **language servers**: separate programs that speak the Language Server
-Protocol. Forge does not bundle them. It knows about 30 of them, finds the ones you have
+Protocol. Apart from PHP's [php-lsp](#php-lsp-built-in), which is built into Forge, Forge
+does not bundle them. It knows about 30 of them, finds the ones you have
 installed, offers to install missing ones, and starts them when a project needs them.
 
 Servers start **lazily**: when you open the first file of a language. Several servers can serve
@@ -5359,8 +5358,7 @@ Each row has:
 
 - an **Enabled** checkbox (`langservers.servers.<id>.enabled`);
 - the **Status**: Running (with indexing progress), Installed, Not found, Disabled, or why a
-  server is skipped (for example "Chosen in Languages & Frameworks | PHP" for the PHP
-  servers, or a server of the same alternative group already running);
+  server is skipped (for example a server of the same alternative group already running);
 - the **Path** where it was found, or an **Install…** button.
 
 Select a row to see its details:
@@ -5393,18 +5391,20 @@ everything itself, nothing else needs to be installed first:
    official Node.js LTS build from `langservers.download.nodeMirror`
    (default `https://nodejs.org/dist`), checks it against the release's `SHASUMS256.txt` and
    keeps it in `<data dir>/forge/runtimes/`.
-2. **The package**: packages without dependencies (Intelephense) come straight from the npm
+2. **The package**: packages without dependencies come straight from the npm
    registry (`langservers.download.npmRegistry`, default `https://registry.npmjs.org`) and are
    checked against the registry's sha512 integrity hash; others are installed with the npm that
    belongs to that Node.js, into Forge's server folder — never globally.
 3. Servers in Forge's folder are started with Forge's Node.js, so no `node` on your `PATH` is
    needed.
 
-Progress shows in the status bar ("Installing Intelephense: Downloading Node.js … 45%") and in
-the row. Afterwards the server starts with the next matching file, without reopening the
+Progress shows in the status bar ("Docker Compose Language Service: Downloading Node.js … 45%")
+and in the row. Afterwards the server starts with the next matching file, without reopening the
 project.
 
 ![Install buttons](docs/screenshots/language-servers-install-buttons.png)
+
+![Downloading Node.js for an install](docs/screenshots/managed-install-progress.png)
 
 Other servers keep **Install…**, which opens a dialog with the command and its output:
 
@@ -5435,7 +5435,7 @@ restarts the server.
 | Node.js download mirror | `langservers.download.nodeMirror` | `https://nodejs.org/dist` |
 
 For development there is also a command-line installer (`pnpm langservers` in `app/ui`, binary
-`forge-langservers`): `install [--accept-intelephense-licence] [package…]`, `updates`, `where`.
+`forge-langservers`): `install <package…>`, `updates`, `where`.
 
 ### Alternatives
 
@@ -5467,20 +5467,16 @@ runs for a file, Forge leaves schema problems, completion and hover to it.
 The language server widget shows "Indexing… TypeScript 45%" while a server reports progress,
 otherwise the running servers and their state. Click it to open the Language Servers page.
 
-## PHP: php-lsp, Intelephense and Phpactor
+## PHP: php-lsp
 
-PHP servers are configured by the PHP pack, on Settings | Languages & Frameworks | **PHP**
-(`php.lsp.server`):
+PHP has one language server: php-lsp, built into Forge. The PHP pack configures it from
+Settings | Languages & Frameworks | **PHP**; it starts when a PHP project opens and restarts
+when those settings change. To run PHP without a language server, turn off the PHP plugin
+(Settings | Plugins); Forge's own PHP index then still gives structure, search and hover.
 
-| Choice | Behaviour |
-| --- | --- |
-| php-lsp (built-in, default) | [php-lsp](https://github.com/stdimnet/php-lsp), built into Forge |
-| Auto | php-lsp; only a Forge build without it falls back to Intelephense, else Phpactor |
-| Intelephense | always Intelephense (shows where it was found, or "not installed") |
-| phpactor | always Phpactor |
-| None (Forge's index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
-
-The server starts when a PHP project opens and restarts when these settings change.
+> **Note:** earlier versions could also run Intelephense or Phpactor
+> (`php.lsp.server`, `php.intelephense.*`, a licence key in the keychain). Support for both was
+> removed; old values of these settings are ignored and php-lsp starts instead.
 
 ### php-lsp (built-in)
 
@@ -5507,53 +5503,7 @@ server.
 Forge does not use php-lsp's semantic tokens (Forge highlights PHP itself) or its code lenses
 (the gutter's run icons and "implemented / overridden" markers cover them).
 
-![Choosing the PHP language server](docs/screenshots/php-lsp-settings.png)
-
-Intelephense keeps its cache in `<cache dir>/forge/intelephense`, never in your project.
-
-### Installing Intelephense
-
-Intelephense is never bundled with Forge (its licence forbids redistribution), but Forge
-downloads it for you from the npm registry. When Intelephense is chosen in the PHP settings and
-a local PHP project opens without it, a balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
-and **Don't ask again**. The PHP settings page (with Intelephense chosen) and the Language
-Servers page have an **Install Intelephense** button as well. With php-lsp, the default,
-nothing is offered.
-
-![Install offer](docs/screenshots/intelephense-install-offer.png)
-
-The first install asks you to accept the Intelephense licence (stored as
-`php.intelephense.licenceAccepted`). Forge then installs it as described in
-[Installing a server](#installing-a-server) (with Node.js if needed) and starts it right away.
-
-![Installing](docs/screenshots/intelephense-install-progress.png)
-
-| Option (Settings \| Languages & Frameworks \| PHP) | Setting | Default |
-| --- | --- | --- |
-| When Intelephense is chosen but not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
-
-You can still install it yourself (`npm install -g intelephense`); Forge finds it on the `PATH`.
-
-### Intelephense licence key (premium)
-
-Intelephense is free; a licence key from intelephense.com unlocks its premium features (rename,
-code actions, type hierarchy and more). Forge never ships a key.
-
-1. Open Settings | Languages & Frameworks | Language Servers (or the PHP page) and find
-   **Intelephense: Free**.
-2. Click **Enter Licence Key…**, paste your key and confirm with `Enter`.
-3. The status changes to **Premium (key …1234)** and Intelephense restarts.
-
-![Licence dialog](docs/screenshots/intelephense-licence-dialog.png)
-
-The key is stored in the operating system's keychain (service `forge-lsp`, account
-`intelephense`), never in a settings file, and is passed to the server as `licenceKey`. In free
-mode no key is sent. **Change Licence Key…** replaces it; **Remove Licence** in the dialog
-deletes it.
-
-> **Note:** a key saved by an older Forge version in the setting `php.lsp.licenceKey` is moved
-> to the keychain once.
+![The language server on the PHP settings page](docs/screenshots/php-lsp-settings.png)
 
 ## Lua
 
@@ -5563,18 +5513,14 @@ Frameworks | Lua | **Lua environment**. See [LuaForge](docs/guide/user/luaforge.
 ## Remote projects
 
 In a [remote project](docs/guide/user/remote-development.md) language servers run on the remote host, next to
-the files: the PHP server (the Forge agent runs its built-in php-lsp, or finds Intelephense or
-Phpactor on the host) and the
-catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
+the files: the PHP server (the Forge agent runs its built-in php-lsp) and the catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
 **Install** on the Language Servers page installs on the host: the Forge agent downloads
 Node.js (when the host has none) and the npm package into Forge's directory on the host
 (`~/.local/share/forge`), checking their hashes, and streams its steps and download progress to
-the page. The page names the host, and so do the install dialog and the Intelephense offer, which
-always asks before downloading onto a host (also with `auto install` set to always). The
-Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
-checked on the host too.
+the page. The page and the install dialog name the host. Updates of the servers Forge installed
+are checked on the host too.
 
 ![Language Servers page of a remote project](docs/screenshots/remote-finish-langserver.png)
 
@@ -9284,7 +9230,7 @@ Optional:
 | Clear file system cache and Local History | the [Local History](docs/guide/user/local-history.md) of all projects |
 | Clear downloaded shared indexes | the PHP stubs downloaded for the PHP index (downloaded again when needed) |
 | Delete embedded browser engine cache | the cache of the webview that draws Forge's window |
-| Delete language server data | Intelephense's storage and the Java language server's workspaces |
+| Delete language server data | php-lsp's index cache, Intelephense data left by earlier versions and the Java language server's workspaces |
 
 **Invalidate and Restart** schedules the cleanup and restarts Forge; **Just Restart** only
 restarts; **Cancel** does nothing.
@@ -9373,11 +9319,11 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
   actions and [navigation](#navigation) when no language server answers, and works without
   any language server.
 - **A PHP language server** for completion, diagnostics, Go to Declaration, hover, rename,
-  quick fixes and formatting. By default this is
-  [php-lsp](https://github.com/stdimnet/php-lsp), which is **built into Forge**: nothing to
-  install, no licence key, and Intelephense's premium features (rename, code actions, type
-  hierarchy, implementations) included. Intelephense and Phpactor stay selectable. See
-  [Language servers](docs/guide/user/language-servers.md#php-php-lsp-intelephense-and-phpactor).
+  quick fixes and formatting: [php-lsp](https://github.com/stdimnet/php-lsp), which is
+  **built into Forge**: nothing to install, no licence key, and Intelephense's premium features
+  (rename, code actions, type hierarchy, implementations) included. It is Forge's only PHP
+  language server; Intelephense and Phpactor are no longer supported. See
+  [Language servers](docs/guide/user/language-servers.md#php-php-lsp).
 
 The pack activates in projects with a `composer.json` or `.php` files.
 
@@ -9429,7 +9375,7 @@ entry to jump to it.
 
 Navigation works like in PHPStorm on every PHP symbol. The language server answers first;
 when none runs (or it has no answer) Forge's PHP index does, so navigation also works without
-Intelephense. Everything runs through the project's backend, so it works the same in
+a language server. Everything runs through the project's backend, so it works the same in
 [remote projects](#remote-projects).
 
 ### Go to Declaration
@@ -9478,11 +9424,9 @@ Where the stubs come from:
 2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
    `<cache dir>/forge/php-stubs/<version>`, checks the unpacked files against a pinned digest
    and keeps its licence file. The status bar shows the download.
-3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
 php-lsp carries phpstorm-stubs inside Forge: its definition of a built-in symbol points into
 `<cache dir>/forge/php-lsp/php-lsp-stubs-<version>/` and opens read-only, without any download.
-The same goes for Intelephense, whose definition points into the stubs inside its package.
 
 > **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
 > path**; otherwise Go to Declaration on a built-in symbol explains how to get the stubs
@@ -9530,15 +9474,14 @@ override the parents' methods (see [Highlight usages](docs/guide/user/editor.md#
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
 
 Several targets open the Choose Declaration popup with names and namespaces. php-lsp answers
-Go to Implementation; with Intelephense it needs Intelephense Premium, and without a licence
-Forge answers from the index, and says so when the index finds nothing either.
+Go to Implementation; when it does not run, Forge answers from the index, and says so when the
+index finds nothing either.
 
 ### Hierarchies
 
 Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
 (`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
-merged with the language server's type and call hierarchy (php-lsp, or Intelephense Premium)
-when it runs. See
+merged with php-lsp's type and call hierarchy when it runs. See
 [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md).
 
 ### Gutter icons
@@ -9561,27 +9504,22 @@ Click an icon to go to the target, or to choose one of several.
 constants, functions and variables; see [Editor](docs/guide/user/editor.md#rename) for the in-place editing,
 the dialog and undo.
 
-- With **php-lsp** (the default), **Intelephense Premium** (licence key in Settings |
-  Languages & Frameworks | PHP) or Phpactor, the language server renames.
-- **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
-  declaration and every usage the index finds in the project (imports, `new`, static calls,
-  type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
-  classes). Members used on expressions the index cannot type (dynamic usages) are not renamed;
-  Forge says how many it skipped. The first time this happens in a session, a balloon explains
-  that the full rename needs Intelephense Premium and links to the licence key setting.
+- php-lsp, the built-in language server, renames.
+- Without a running language server (the PHP plugin's server did not start), Forge renames
+  with its PHP index: the declaration and every usage the index finds in the project (imports,
+  `new`, static calls, type hints, PHPDoc types, `$this->` and typed receivers, members through
+  parent and child classes). Members used on expressions the index cannot type (dynamic usages)
+  are not renamed; Forge says how many it skipped.
 - Renaming a class also renames its file when the file is named after it (`Order.php` →
   `Purchase.php`).
 - Conflicts: a class with the new name in the same namespace, or a method, property or constant
   with the new name in the same class, are listed in **Problems Detected** before anything
   changes.
 
-![Premium hint after a rename with the index](docs/screenshots/rename-premium-hint.png)
-
 ## Extract, introduce and inline
 
 The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
-computes them itself from the PHP syntax tree, so they need no language server (and no
-Intelephense licence); call sites and usages in other files come from the PHP index. Every
+computes them itself from the PHP syntax tree, so they need no language server; call sites and usages in other files come from the PHP index. Every
 refactoring is one undo step, also when it changes several files, and works in remote projects.
 Problems (a name that is taken, a call that cannot be updated, an initializer with side
 effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
@@ -9642,7 +9580,7 @@ enclosing scope", "Inline variable"…) in a popup.
 ## Move, copy, safe delete, change signature and make static
 
 The other refactorings of the Refactor menu work like PHPStorm's too. Forge finds the usages
-with its PHP index and computes every edit itself (no language server or licence needed); the
+with its PHP index and computes every edit itself (no language server needed); the
 whole refactoring, file moves included, is one undo step (`Ctrl+Z` in any changed editor) and
 works in remote projects. **Preview** lists every change first, **Problems Detected** the
 conflicts (a class that already exists, a call that cannot be updated).
@@ -9746,8 +9684,8 @@ class names in moved code are imported in the target file. New files come from y
 
 **Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes and refactorings
 (php-lsp: remove unused import, add PHPDoc, generate constructor, promote constructor
-properties, extract variable / method / constant, inline variable, add return type, ...; with
-Intelephense they need Premium) and Forge's own PHP intentions, see
+properties, extract variable / method / constant, inline variable, add return type, ...) and
+Forge's own PHP intentions, see
 [Editor](docs/guide/user/editor.md#show-context-actions). When the server offers what an intention below does
 (php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import 'App\Models\User'",
 "Change namespace to '…'"), the popup lists Forge's intention once, in PHPStorm's wording:
@@ -9763,9 +9701,6 @@ Intelephense they need Premium) and Forge's own PHP intentions, see
 | Generate… | anywhere in a class: opens the Generate popup (`Alt+Insert`) |
 
 ![PHP intentions](docs/screenshots/context-actions-intentions.png)
-
-With Intelephense without a licence the popup shows only Forge's intentions and says that the
-language server's quick fixes need Premium.
 
 ### Create from usage
 
@@ -9979,17 +9914,15 @@ relative to the project. Changing the include paths indexes the project again.
 | CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
 | CLI Interpreters (available in every project) | `php.interpreters` | empty |
 | CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
-| Language server: php-lsp (built-in), Auto (php-lsp, else Intelephense, else phpactor), Intelephense, phpactor, None | `php.lsp.server` | php-lsp |
+| Language server: php-lsp (built-in) with its version; there is no other choice | — | — |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
-| When Intelephense is chosen but not installed (`ask`, `always`, `never`), see [Installing Intelephense](docs/guide/user/language-servers.md#installing-intelephense); shown when Intelephense is chosen | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence (shown when Intelephense is chosen) | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
 | Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
-says when it comes from composer.json); click it to open this page. With Intelephense chosen, the page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
+says when it comes from composer.json); click it to open this page.
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](docs/guide/user/debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -10055,7 +9988,7 @@ Settings | Languages & Frameworks | PHP | Composer:
 | Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
 | Path to composer | `php.composer.executable` | `composer` | a composer executable or a composer.phar (run with the PHP interpreter); "Download composer.phar from getcomposer.org" fetches one with your consent |
 | Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
-| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by php-lsp; off leaves `vendor/` out |
 | Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
 | Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | package names, versions and outdated markers from packagist.org (cached); off: installed packages only |
 
@@ -10083,7 +10016,7 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Wrapping and Braces**: brace placement in class declarations, function declarations and
   other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
   PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
-  The language server (php-lsp or Intelephense, both in Intelephense's style) formats with the
+  The language server (php-lsp, in Intelephense's style) formats with the
   closest of its brace styles; the Generate actions write
   methods with the function brace placement.
 - **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
@@ -16233,7 +16166,7 @@ blocked even if a plugin or the UI tries to start them:
 
 What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
 Declaration, completion from the built-in analysis, language servers installed outside the
-project (for example Intelephense from npm or Forge's own install), Git, Local History,
+project (for example a server from npm or Forge's own install), Git, Local History,
 databases, the HTTP client and [Deployment](docs/guide/user/deployment.md) actions you start yourself (upload,
 download, compare and sync only copy files), and the [Remote Host](docs/guide/user/remote-host-and-ssh.md)
 tool window with Edit Remote File.
@@ -19329,7 +19262,7 @@ machine.
 
 | Side | Needs |
 | --- | --- |
-| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, Intelephense etc. installed on the host as you would need them locally. |
+| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, language servers etc. installed on the host as you would need them locally (PHP's php-lsp is built into the agent). |
 | Forge | a build that bundles the agents (`pnpm release`), or agent binaries in `FORGE_REMOTE_AGENT_DIR` / an `agents/` folder next to the `forge` binary. See [Release builds](docs/guide/developer/release-builds.md). |
 
 Nothing needs to be installed on the host in advance: Forge uploads the agent itself.
@@ -19424,9 +19357,9 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 | Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
 | Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
 | Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
-| PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
+| PHP index, Structure, Generate, php-lsp | yes; the agent's built-in php-lsp indexes the remote files itself |
 | Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
-| Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
+| Installing language servers (Settings) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here |
 | Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
 | WebForge: npm tool window, React / Vue / Angular navigation and gutter icons | yes: `package.json` files, scripts, package managers and components are read in the agent; scripts run on the host |
 | LuaForge index | yes, all Lua files are read on the host in one batch |
@@ -19446,7 +19379,7 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 ![Remote terminal](docs/screenshots/remote-terminal.png)
 
 Every feature works in remote projects. Things that are about your machine stay local on
-purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
+purpose: code host API calls (your tokens), the keychain and,
 when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
 of this machine (see [Services](docs/guide/user/services.md#remote-projects)).
 
@@ -19498,7 +19431,7 @@ Besides [SSH hosts](docs/guide/user/remote-development.md), Forge opens projects
 **inside a WSL distribution**, like PHPStorm and JetBrains Gateway. In both cases Forge starts its
 headless agent (the same one it uses over SSH) in the container or the distribution and talks to
 it over the stdio of `docker exec` or `wsl.exe` instead of an SSH channel. The project then opens
-like a remote project: indexing, Intelephense and other language servers, Git, terminals and run
+like a remote project: indexing, php-lsp and other language servers, Git, terminals and run
 configurations all happen in the container or the distribution, with its PHP, Composer, Node.js
 and tools.
 
@@ -22276,11 +22209,8 @@ Page id `lang.php`.
 | `projectStructure.folders` | objects (unique `path`) | `[]` | user, project | Directories | Excluded and resource folders — Folders marked as Excluded, Resource Root or Test Resources Root (Settings \| Directories, Project view: Mark Directory as), stored in the project. Kind `included` cancels the default exclusion of a folder like `node_modules`. Excluded folders are left out of the indexes, Find in Files, Search Everywhere, inspections and local history. |
 | `projectStructure.excludePatterns` | string | `""` | user, project | Directories | Exclude files — File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`). |
 | `php.inspections.enabled` | bool | `true` | user | Inspections | Inspections from PHPStorm metadata and attributes — Deprecated symbols, expected values, #[Immutable] writes, unused #[Pure] results, unreachable code after exit points and the PSR-0/PSR-4 namespace check. |
-| `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
-| `php.lsp.server` | enum: `php-lsp`, `auto`, `intelephense`, `phpactor`, `none` | `php-lsp` | user | Language Server | Language server — Started automatically when a PHP project opens. php-lsp is built into Forge (nothing to install); Intelephense and phpactor must be installed. |
+| `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
-| `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is chosen but not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
-| `php.intelephense.licenceAccepted` | bool | `false` | user | Language Server | I accept the Intelephense licence — Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy. |
 
 ### Languages & Frameworks | PHP | Composer
 
@@ -22291,7 +22221,7 @@ Page id `lang.php.composer`.
 | `php.composer.json` | path | `composer.json` | user, project |  | Path to composer.json — Relative to the project root. |
 | `php.composer.executable` | path | `composer` | user, project | Execution | Path to composer — A composer executable, or a composer.phar (run with the PHP interpreter of Settings \| PHP). Empty: `composer` from PATH. |
 | `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
-| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
+| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and the language server (php-lsp). Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
 | `php.composer.packagist` | bool | `true` | user |  | Use Packagist for completion, versions and outdated packages — Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist. |
 
@@ -23591,9 +23521,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [php-lsp (built-in)](https://github.com/stdimnet/php-lsp) | `php-lsp` | PHP | `forge --php-lsp --stdio` | built into Forge | MIT OR Apache-2.0 | needs plugin `forge.php`; Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server. |
-| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Used when chosen in the PHP settings. Free by default; enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
-| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when chosen in the PHP settings. |
+| [php-lsp (built-in)](https://github.com/stdimnet/php-lsp) | `php-lsp` | PHP | `forge --php-lsp --stdio` | built into Forge | MIT OR Apache-2.0 | needs plugin `forge.php`; Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server. |
 
 
 ## Languages
@@ -23783,7 +23711,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `vulnerabilities/<project hash>/<tool>-<folder hash>.json` | the last result of each audit tool of the vulnerable dependency check, with the hash of the manifest and lock file it was made from; reused on project open while the files are unchanged and younger than `vulnerabilities.cacheHours` |
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
-| `intelephense/` | Intelephense's storage (`storagePath`) |
+| `php-lsp/` | php-lsp's index cache and unpacked PHP stubs (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
@@ -23847,7 +23775,6 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | Service | Account | Secret |
 | --- | --- | --- |
 | `forge-ai` | provider id | AI provider API key |
-| `forge-lsp` | `intelephense` | Intelephense licence key |
 | `forge-forges` | account id | GitHub/GitLab/Forgejo token |
 | `forge-ssh` | SSH configuration id | SSH password or key passphrase |
 | `forge-db` | data source id | database password |
@@ -24331,7 +24258,7 @@ real file system, git, language servers, PTYs, databases and Docker.
 | `pnpm screenshots [scenario…]` | Playwright screenshots into `docs/screenshots/` |
 | `pnpm wasm` | rebuild `crates/forge-wasm` into `src/wasm/pkg` |
 | `pnpm agents [x86_64\|aarch64]` | build the static remote agents into `target/agents/` |
-| `pnpm langservers install [--accept-intelephense-licence] [package…]` | pre-install npm language servers (and Node.js if missing) into Forge's data directory, like the IDE does; also `updates`, `where` |
+| `pnpm langservers install <package…>` | pre-install npm language servers (and Node.js if missing) into Forge's data directory, like the IDE does; also `updates`, `where` |
 | `pnpm release …` | agents + `tauri build` with bundled agents |
 | `pnpm tauri …` | the Tauri CLI (runs from `app/` through `scripts/tauri.mjs`, which adds the updater signing settings to `tauri build`) |
 
@@ -26728,7 +26655,7 @@ pub fn lsp::stylua_args(values: &Values) -> Vec<String> { … }
   (registered as the last format post-processor of Reformat Code).
 - `editor_file_format` resolves indents with the selected scheme (`effective_settings`, file
   types mapped to their code style language); the PHP code style (braces, blank lines) and
-  Intelephense's settings read it too; `lsp_format({ …, languageId })` pushes
+  the `intelephense.*` settings php-lsp reads use it too; `lsp_format({ …, languageId })` pushes
   `settings_patch` to the file's server (`LspClient::update_settings`); `lua_format` passes
   `stylua_args`.
 - Browser mode: built into `forge-wasm` (`codestyle.rs`); the mocks in
@@ -28812,10 +28739,9 @@ Forge's catalog of language servers for many languages, and everything around it
 - `install`: running an install command with streamed output,
 - `managed`: installs of npm servers without prerequisites (Node.js and packages
   downloaded and verified into Forge's data directory) and their update check,
-- `licence`: the Intelephense licence key in the OS keychain.
 
-PHP servers (the built-in php-lsp, Intelephense, phpactor) stay in the PHP pack
-(`pack_servers.toml`); the app lists them next to these rows. `builtin = true` marks a server
+PHP's server, the built-in php-lsp, stays in the PHP pack (`pack_servers.toml`, next to the
+servers of other packs such as jdtls and clangd); the app lists them next to these rows. `builtin = true` marks a server
 built into Forge (no install hint; the backend shows its version as `builtin_version`).
 
 ## Modules
@@ -28827,7 +28753,6 @@ built into Forge (no install hint; the backend shows its version as `builtin_ver
 | `config.rs` | Turning a catalog entry into a `LspServerConfig` for one project: file routing, user overrides and the project specific bits some servers need (TypeScript SDK, the Vue TypeScript plugin, ESLint's workspace folder, jdtls' data directory, Lua runtime). |
 | `detect.rs` | Finding installed language servers: `PATH` plus the places package managers put executables that are often missing from `PATH` in a desktop session (npm global prefix, nvm/fnm/volta, `~/.local/bin` for pip/pipx, `~/.cargo/bin`, `~/go/bin`, `~/.dotnet/tools`, gem user dirs and Neovim's Mason directory). |
 | `install.rs` | Running an install command (`npm install …`, `pipx install …`) with streamed output. Commands come from the catalog only and run without a shell. |
-| `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
 | `managed/clangd.rs` | CForge's clangd download from the official GitHub releases at a pinned version (`CLANGD_VERSION`, `clangd_release` per platform): the SHA-256 recorded in `CLANGD_BUILDS`, else the asset `digest` of the GitHub REST API for the pinned release (`asset_digest`); without one the install is refused. Unpacked into `<data dir>/forge/langservers/clangd/<version>` (`installed_clangd`). clangd is a pack server (plugin `forge.cpp`). |
@@ -28836,10 +28761,10 @@ built into Forge (no install hint; the backend shows its version as `builtin_ver
 | `managed/netcoredbg.rs` | DotNetForge's netcoredbg (MIT, Samsung) from its GitHub releases at a pinned version (`NETCOREDBG_VERSION`): the SHA-256 recorded in `NETCOREDBG_BUILDS`, else the GitHub API's asset digest; without one the install is refused. Unpacked into `<data dir>/forge/debuggers/netcoredbg/<version>`. |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
-| `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
+| `managed/mod.rs` | Zero-prerequisite installs of npm language servers (typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
 | `managed/node.rs` | A Node.js runtime for npm language servers: a suitable one on the machine (>= 18), or the official build from nodejs.org (or a mirror) downloaded into `<data dir>/forge/runtimes/node-<version>`, verified against the release's `SHASUMS256.txt`. |
 | `managed/npm.rs` | npm packages without npm: registry metadata, tarball download with `dist.integrity` (sha512) verification, unpacking into `<managed dir>/node_modules/<name>` and the `node_modules/.bin` entries detection looks for. |
-| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, unpacked and checked against a pinned `content_digest` of its files (reproducible from `git archive <commit>`; see the ignored `print_content_digest` test), with its `LICENSE`; `intelephense_stubs` finds Intelephense's own `lib/stub`. |
+| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, unpacked and checked against a pinned `content_digest` of its files (reproducible from `git archive <commit>`; see the ignored `print_content_digest` test), with its `LICENSE`. Forge's PHP index uses them; nothing else needs them. |
 | `managed/testserver.rs` | A tiny HTTP/1.1 server on localhost for tests: fixed bodies per path, request counts. |
 | `managed/updates.rs` | "A newer version is available": at most one registry check a day, remembered in `<managed dir>/.forge-update-check.json`. |
 | `plan.rs` | Which servers to start for a project, and the rows of the Language Servers settings page. |
@@ -28859,19 +28784,19 @@ pub use scan::{scan_project, ProjectScan};
 
 ## Used by
 
-- IPC: `langservers_list`, `langservers_apply`, `langservers_install`, `langservers_check_updates`, `langservers_update`, `langservers_cancel_install`, `lsp_workspace_symbols`, `intelephense_licence_status`, `intelephense_set_licence` (`app/src-tauri/src/commands/langservers.rs`)
+- IPC: `langservers_list`, `langservers_apply`, `langservers_install`, `langservers_check_updates`, `langservers_update`, `langservers_cancel_install`, `lsp_workspace_symbols` (`app/src-tauri/src/commands/langservers.rs`)
 - UI: `app/ui/src/features/langservers`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
 - Workspace crates: [`forge-lsp`](docs/guide/developer/crates/forge-lsp.md)
-- External: `base64`, `dirs`, `flate2`, `ignore`, `keyring`, `reqwest`, `serde`, `serde_json`, `sha2`, `tar`, `tokio`, `toml`, `tracing`, `zip`
-- Features: `default` = `keychain`; `keychain` = `dep:keyring`
+- External: `base64`, `dirs`, `flate2`, `ignore`, `reqwest`, `serde`, `serde_json`, `sha2`, `tar`, `tokio`, `toml`, `tracing`, `zip`
+- Features: `testserver` (the download tests' HTTP server, for packs that test their own downloads)
 
 ## Tests
 
-17 source files, about 5313 lines; 54 unit tests.
+24 source files, about 8000 lines; 79 unit tests.
 
 ```sh
 cargo test -p forge-langservers
@@ -29201,7 +29126,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
   lines of every top-level block (synchronized scrolling), the front matter and the footnotes.
   Raw HTML is sanitized into the AST (`<img>`, `<a href>`, `<br>`, `<b>`, `<i>`, `<s>`); comments
   and every other tag are dropped.
-- `hover`: language server hover Markdown (Intelephense & co.) split into the parts of
+- `hover`: language server hover Markdown (php-lsp & co.) split into the parts of
   a PHPStorm-style documentation popup.
 
 ## Modules
@@ -29211,7 +29136,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 | `ast.rs` | The Markdown AST sent to the UI (JSON tagged by `t`). |
 | `doc_comment.rs` | Documentation comments for the editor's rendered view and Reader mode: `doc_comments(text, language)` finds `/** … */` (PHPDoc, JSDoc / TSDoc) and `---` (LuaDoc / LuaCATS) comments, `parse_doc_comment` turns one into a `HoverDoc`: the description as Markdown (inline `{@link url text}` / `{@see X}` as links and code), the tags as `Params:` / `Returns:` / `Throws:` / `Properties:` / `See also:` … sections, `@deprecated` as the note and `@example` as a code block. |
 | `document.rs` | The Markdown preview of a file: GitHub-flavored blocks with the source lines of every top-level block, the front matter and the footnotes; `anchor_line` for links into a file. |
-| `hover.rs` | Language server hovers (Markdown as Intelephense, phpactor & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
+| `hover.rs` | Language server hovers (Markdown as php-lsp & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
 | `parse.rs` | pulldown-cmark events into the `Block` tree. |
 
 ## Main public items
@@ -29778,7 +29703,7 @@ Source: docs/guide/developer/crates/forge-remote.md
 
 Remote development over SSH, like JetBrains Gateway: Forge connects to a host, installs
 its headless agent (`crates/forge-remote-agent`) there and opens the project through a
-`forge_backend::RemoteBackend`, so indexing, Intelephense, git, terminals and runs all
+`forge_backend::RemoteBackend`, so indexing, language servers, git, terminals and runs all
 happen next to the files.
 
 Pure modules (also built for WebAssembly without the `client` feature):
@@ -33222,7 +33147,7 @@ a hidden `--php-lsp --stdio` mode.
 
 php-lsp is a pure-Rust PHP language server under MIT OR Apache-2.0, a drop-in for Intelephense
 (same CLI flags, `intelephense.*` settings, diagnostics and formatting) with its premium
-features free. It is Forge's default PHP language server and is linked into Forge, so users
+features free. It is Forge's only PHP language server and is linked into Forge, so users
 install nothing. It is a cargo git dependency pinned to one revision
 (`rev = "6e00c57c0d8e1949038cc2ddb83572c4092e46ab"`); its embedded JetBrains phpstorm-stubs
 (Apache-2.0) and the js-beautify port (MIT) are listed in `THIRD_PARTY_NOTICES.md`.
@@ -33845,7 +33770,7 @@ PHPForge language pack: PHP support built on tree-sitter.
   access, the implementing / overriding methods on `implements` / `extends`.
 - `hierarchy` Type, Method and Call Hierarchy.
 - `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
-- `lsp` describes how to launch the built-in php-lsp, Intelephense or phpactor.
+- `lsp` describes how to launch the built-in php-lsp, Forge's only PHP language server.
 
 ## Modules
 
@@ -33868,7 +33793,7 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `injections.rs` | `language_places`: every `#[Language]` parameter of the indexed functions, methods and constructors, handed to `forge-injections` (`InjectionSettings::places`). |
 | `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index), plus the data-flow inspections. Calls and names resolve through `navigate::resolve_word`. `PhpProblem::code` is the inspection id of [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md) (`PhpDeprecation`, `PhpExpectedValuesShouldBeUsed`, `PhpImmutablePropertyIsChanged`, `PhpExpressionResultUnused`, `PhpUnreachableStatement`, `PhpIllegalPsrClassPath`, …); `to_problem` turns a problem into the framework's `Problem`. |
 | `dataflow.rs` | PHP data flow on the tree-sitter tree, per function, method and closure (and the top level): values of local variables through straight-line code and branches (merged at joins, loops forget what they assign), reporting "Variable is always null" (`PhpVariableIsAlwaysNull`), "Undefined variable" (`PhpUndefinedVariable`), "Condition is always true / false" (`PhpConstantCondition`) and "Unused assignment" (`PhpUnusedAssignment`, with "Remove unused assignment" / "Remove assignment, keep the expression"). Functions with `$$name`, `extract()`, `compact()`, `get_defined_vars()`, `eval`, `include` or `goto` are skipped; variables shared by reference are never tracked. |
-| `lsp.rs` | How to launch a PHP language server: php-lsp built into Forge (the default, `ServerChoice::PhpLsp`, see [phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md)), or Intelephense (users bring their own licence key) and phpactor installed on the machine. `register_builtin_server` / `builtin_server` (the binary's built-in server), `php_lsp_config` (the `intelephense` settings shared with Intelephense plus a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS runners, cache in `<cache dir>/forge/php-lsp`), `server_row_id` (the Language Servers row of a config). Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
+| `lsp.rs` | How to launch PHP's language server: php-lsp, built into Forge (see [phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md)) and its only PHP server. `register_builtin_server` / `builtin_server` (the binary's built-in server), `detect` (`DetectedServers` for the settings page), `php_lsp_config` (the `intelephense` settings php-lsp reads plus a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS runners, cache in `<cache dir>/forge/php-lsp`). Settings of removed servers (`php.lsp.server`, `php.intelephense.*`) are not read, so old values fall back to php-lsp. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `meta.rs` | `.phpstorm.meta.php` (`is_meta_path`, `parse` → `PhpMeta`): `override()` with `map()` (`@` patterns, `::class` keys), `type()`, `elementType()`; `expectedArguments()`, `expectedReturnValues()`, `registerArgumentsSet()` / `argumentsSet()`, `exitPoint()`; lookups `function_return` / `method_return` (→ `MetaType`), `map_entry`, `map_keys`, `expected_arguments`, `expected_return_values`, `is_exit_point`. `ProjectIndex::meta()` merges the files of the project, vendor packages and include paths (cached with the index, read again on change). |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` / `find_usages_with` (usage kinds, dynamic usages, members through parent and child classes; with the Find Usages options also usages of a class's methods and fields, derived / implementing classes, derived interfaces and overriding methods, comments and strings), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
@@ -33892,7 +33817,7 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_inspect`, `php_complete`, `php_language_places`, `php_libraries`, `php_library_list`, `php_source_roots` (`commands/php_meta.rs`), `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_inspect`, `php_complete`, `php_language_places`, `php_libraries`, `php_library_list`, `php_source_roots` (`commands/php_meta.rs`), `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -34443,8 +34368,7 @@ The layout, wording and keymap follow PHPStorm; the colors are Forge's own.
 **Is it free?**
 Forge is MIT-licensed. The built-in PHP language server php-lsp is free as well (MIT OR
 Apache-2.0) and needs no licence key. Third-party tools you connect keep their own terms:
-Intelephense premium needs your own licence, AI providers need your own API key or
-subscription.
+AI providers need your own API key or subscription.
 
 **Which version is this guide for?**
 Forge 0.1.0 as on the branch that contains this guide. Recent additions and what is not available
@@ -34465,7 +34389,7 @@ No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 
 **Is PHP support as deep as PHPStorm's?**
 Not yet. Completion and diagnostics come from the built-in language server php-lsp
-(Intelephense-compatible, with rename and refactorings; or Intelephense / Phpactor); Forge adds its own
+(Intelephense-compatible, with rename and refactorings); Forge adds its own
 index with navigation (Go to Declaration including PHP's own stubs, Find/Show Usages,
 implementations, gutter icons) that also works without a server, Generate actions, Laravel,
 Symfony and Doctrine support. Refactorings, inspections with quick-fixes and Replace in Files
@@ -34490,7 +34414,7 @@ No. They are separate programs you install, from the Language Servers settings p
 click or with your package manager. Forge never bundles paid tools or keys.
 
 **Do I need Node.js?**
-Only for npm scripts and web project generators. npm-based language servers (Intelephense, TypeScript, Vue, …) do not need it: Forge
+Only for npm scripts and web project generators. npm-based language servers (TypeScript, Vue, YAML, …) do not need it: Forge
 downloads an official Node.js build for them when none (18 or newer) is installed.
 
 ## AI
@@ -34626,17 +34550,13 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
    ESLint, Tailwind and Angular the project must use them.
 
-### Intelephense starts but premium features are missing
-
-Enter your licence key (Settings | Languages & Frameworks | Language Servers or PHP →
-**Enter Licence Key…**). The status must read "Premium (key …1234)". If the keychain is not
-available, the key cannot be stored (see below).
-
 ### No completion in PHP at all
 
-Check Settings | Languages & Frameworks | PHP | **Language server**: with "None (built-in index
-only)" no server runs. With "Auto", install Intelephense (**Install Intelephense** on the PHP page) or
-Phpactor.
+PHP's language server, php-lsp, is built into Forge and starts when a PHP project opens. Check
+that the PHP plugin is enabled (Settings | Plugins) and that Settings | Languages & Frameworks |
+PHP shows **php-lsp (built-in)** with a version, and look at the language server widget in the
+status bar. Earlier versions could run Intelephense or Phpactor instead; that choice
+(`php.lsp.server`) is ignored now.
 
 ## Keychain on Linux
 
@@ -34683,9 +34603,10 @@ fingerprints. Confirm only if you know why it changed (reinstalled server).
 
 ### Language server missing in a remote project
 
-Catalog servers and Intelephense run **on the host**. Install them from Settings | Languages &
-Frameworks | Language Servers (Forge installs npm servers on the host) or on the host yourself,
-e.g. `npm install -g intelephense`, then reopen the project.
+Catalog servers run **on the host** (PHP's php-lsp runs inside the Forge agent there). Install
+them from Settings | Languages & Frameworks | Language Servers (Forge installs npm servers on the
+host) or on the host yourself, e.g. `npm install -g yaml-language-server`, then reopen the
+project.
 
 ### HTTP request in a remote project cannot connect
 

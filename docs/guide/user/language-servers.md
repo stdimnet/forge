@@ -1,15 +1,16 @@
 ---
 title: Language servers
-description: How Forge finds, installs, configures and starts language servers, Intelephense free and premium licence keys, and per-server settings.
+description: How Forge finds, installs, configures and starts language servers, the built-in PHP language server php-lsp, and per-server settings.
 order: 50
-tags: [lsp, language servers, intelephense, phpactor, install]
+tags: [lsp, language servers, php-lsp, install]
 ---
 
 # Language servers
 
 Completion, hover documentation, diagnostics, Go to Declaration and formatting for most
 languages come from **language servers**: separate programs that speak the Language Server
-Protocol. Forge does not bundle them. It knows about 30 of them, finds the ones you have
+Protocol. Apart from PHP's [php-lsp](#php-lsp-built-in), which is built into Forge, Forge
+does not bundle them. It knows about 30 of them, finds the ones you have
 installed, offers to install missing ones, and starts them when a project needs them.
 
 Servers start **lazily**: when you open the first file of a language. Several servers can serve
@@ -35,8 +36,7 @@ Each row has:
 
 - an **Enabled** checkbox (`langservers.servers.<id>.enabled`);
 - the **Status**: Running (with indexing progress), Installed, Not found, Disabled, or why a
-  server is skipped (for example "Chosen in Languages & Frameworks | PHP" for the PHP
-  servers, or a server of the same alternative group already running);
+  server is skipped (for example a server of the same alternative group already running);
 - the **Path** where it was found, or an **Install…** button.
 
 Select a row to see its details:
@@ -69,18 +69,20 @@ everything itself, nothing else needs to be installed first:
    official Node.js LTS build from `langservers.download.nodeMirror`
    (default `https://nodejs.org/dist`), checks it against the release's `SHASUMS256.txt` and
    keeps it in `<data dir>/forge/runtimes/`.
-2. **The package**: packages without dependencies (Intelephense) come straight from the npm
+2. **The package**: packages without dependencies come straight from the npm
    registry (`langservers.download.npmRegistry`, default `https://registry.npmjs.org`) and are
    checked against the registry's sha512 integrity hash; others are installed with the npm that
    belongs to that Node.js, into Forge's server folder — never globally.
 3. Servers in Forge's folder are started with Forge's Node.js, so no `node` on your `PATH` is
    needed.
 
-Progress shows in the status bar ("Installing Intelephense: Downloading Node.js … 45%") and in
-the row. Afterwards the server starts with the next matching file, without reopening the
+Progress shows in the status bar ("Docker Compose Language Service: Downloading Node.js … 45%")
+and in the row. Afterwards the server starts with the next matching file, without reopening the
 project.
 
 ![Install buttons](../../screenshots/language-servers-install-buttons.png)
+
+![Downloading Node.js for an install](../../screenshots/managed-install-progress.png)
 
 Other servers keep **Install…**, which opens a dialog with the command and its output:
 
@@ -111,7 +113,7 @@ restarts the server.
 | Node.js download mirror | `langservers.download.nodeMirror` | `https://nodejs.org/dist` |
 
 For development there is also a command-line installer (`pnpm langservers` in `app/ui`, binary
-`forge-langservers`): `install [--accept-intelephense-licence] [package…]`, `updates`, `where`.
+`forge-langservers`): `install <package…>`, `updates`, `where`.
 
 ### Alternatives
 
@@ -143,20 +145,16 @@ runs for a file, Forge leaves schema problems, completion and hover to it.
 The language server widget shows "Indexing… TypeScript 45%" while a server reports progress,
 otherwise the running servers and their state. Click it to open the Language Servers page.
 
-## PHP: php-lsp, Intelephense and Phpactor
+## PHP: php-lsp
 
-PHP servers are configured by the PHP pack, on Settings | Languages & Frameworks | **PHP**
-(`php.lsp.server`):
+PHP has one language server: php-lsp, built into Forge. The PHP pack configures it from
+Settings | Languages & Frameworks | **PHP**; it starts when a PHP project opens and restarts
+when those settings change. To run PHP without a language server, turn off the PHP plugin
+(Settings | Plugins); Forge's own PHP index then still gives structure, search and hover.
 
-| Choice | Behaviour |
-| --- | --- |
-| php-lsp (built-in, default) | [php-lsp](https://github.com/stdimnet/php-lsp), built into Forge |
-| Auto | php-lsp; only a Forge build without it falls back to Intelephense, else Phpactor |
-| Intelephense | always Intelephense (shows where it was found, or "not installed") |
-| phpactor | always Phpactor |
-| None (Forge's index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
-
-The server starts when a PHP project opens and restarts when these settings change.
+> **Note:** earlier versions could also run Intelephense or Phpactor
+> (`php.lsp.server`, `php.intelephense.*`, a licence key in the keychain). Support for both was
+> removed; old values of these settings are ignored and php-lsp starts instead.
 
 ### php-lsp (built-in)
 
@@ -183,53 +181,7 @@ server.
 Forge does not use php-lsp's semantic tokens (Forge highlights PHP itself) or its code lenses
 (the gutter's run icons and "implemented / overridden" markers cover them).
 
-![Choosing the PHP language server](../../screenshots/php-lsp-settings.png)
-
-Intelephense keeps its cache in `<cache dir>/forge/intelephense`, never in your project.
-
-### Installing Intelephense
-
-Intelephense is never bundled with Forge (its licence forbids redistribution), but Forge
-downloads it for you from the npm registry. When Intelephense is chosen in the PHP settings and
-a local PHP project opens without it, a balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
-and **Don't ask again**. The PHP settings page (with Intelephense chosen) and the Language
-Servers page have an **Install Intelephense** button as well. With php-lsp, the default,
-nothing is offered.
-
-![Install offer](../../screenshots/intelephense-install-offer.png)
-
-The first install asks you to accept the Intelephense licence (stored as
-`php.intelephense.licenceAccepted`). Forge then installs it as described in
-[Installing a server](#installing-a-server) (with Node.js if needed) and starts it right away.
-
-![Installing](../../screenshots/intelephense-install-progress.png)
-
-| Option (Settings \| Languages & Frameworks \| PHP) | Setting | Default |
-| --- | --- | --- |
-| When Intelephense is chosen but not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
-
-You can still install it yourself (`npm install -g intelephense`); Forge finds it on the `PATH`.
-
-### Intelephense licence key (premium)
-
-Intelephense is free; a licence key from intelephense.com unlocks its premium features (rename,
-code actions, type hierarchy and more). Forge never ships a key.
-
-1. Open Settings | Languages & Frameworks | Language Servers (or the PHP page) and find
-   **Intelephense: Free**.
-2. Click **Enter Licence Key…**, paste your key and confirm with `Enter`.
-3. The status changes to **Premium (key …1234)** and Intelephense restarts.
-
-![Licence dialog](../../screenshots/intelephense-licence-dialog.png)
-
-The key is stored in the operating system's keychain (service `forge-lsp`, account
-`intelephense`), never in a settings file, and is passed to the server as `licenceKey`. In free
-mode no key is sent. **Change Licence Key…** replaces it; **Remove Licence** in the dialog
-deletes it.
-
-> **Note:** a key saved by an older Forge version in the setting `php.lsp.licenceKey` is moved
-> to the keychain once.
+![The language server on the PHP settings page](../../screenshots/php-lsp-settings.png)
 
 ## Lua
 
@@ -239,18 +191,14 @@ Frameworks | Lua | **Lua environment**. See [LuaForge](luaforge.md#lua-language-
 ## Remote projects
 
 In a [remote project](remote-development.md) language servers run on the remote host, next to
-the files: the PHP server (the Forge agent runs its built-in php-lsp, or finds Intelephense or
-Phpactor on the host) and the
-catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
+the files: the PHP server (the Forge agent runs its built-in php-lsp) and the catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
 **Install** on the Language Servers page installs on the host: the Forge agent downloads
 Node.js (when the host has none) and the npm package into Forge's directory on the host
 (`~/.local/share/forge`), checking their hashes, and streams its steps and download progress to
-the page. The page names the host, and so do the install dialog and the Intelephense offer, which
-always asks before downloading onto a host (also with `auto install` set to always). The
-Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
-checked on the host too.
+the page. The page and the install dialog name the host. Updates of the servers Forge installed
+are checked on the host too.
 
 ![Language Servers page of a remote project](../../screenshots/remote-finish-langserver.png)
 

@@ -15,7 +15,7 @@ a hidden `--php-lsp --stdio` mode.
 
 php-lsp is a pure-Rust PHP language server under MIT OR Apache-2.0, a drop-in for Intelephense
 (same CLI flags, `intelephense.*` settings, diagnostics and formatting) with its premium
-features free. It is Forge's default PHP language server and is linked into Forge, so users
+features free. It is Forge's only PHP language server and is linked into Forge, so users
 install nothing. It is a cargo git dependency pinned to one revision
 (`rev = "6e00c57c0d8e1949038cc2ddb83572c4092e46ab"`); its embedded JetBrains phpstorm-stubs
 (Apache-2.0) and the js-beautify port (MIT) are listed in `THIRD_PARTY_NOTICES.md`.

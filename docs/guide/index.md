@@ -43,7 +43,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 ## Popular pages
 
 - [Keymap reference](reference/keymap.md) — every shortcut on Windows/Linux and macOS
-- [Language servers](user/language-servers.md) — install Intelephense and friends, licence keys
+- [Language servers](user/language-servers.md) — the built-in php-lsp, one-click installs of the others
 - [Laravel](user/laravel.md) and [Symfony](user/symfony.md)
 - [WordPress](user/wordpress.md) and [Drupal, Joomla and Shopware](user/cms.md)
 - [Debugging](user/debugging.md)
@@ -52,11 +52,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **php-lsp is the only PHP language server**: support for Intelephense and Phpactor was
+  removed (no server choice, licence key or install offer any more); old settings are ignored
+  ([Language servers](user/language-servers.md#php-php-lsp)).
 - **Built-in PHP language server**: [php-lsp](user/language-servers.md#php-lsp-built-in) is
-  now Forge's default PHP server, built into Forge: completion, diagnostics, rename,
-  refactorings, type hierarchy and formatting in Intelephense's style with nothing to install
-  and no licence key. Intelephense and Phpactor stay selectable in Settings | Languages &
-  Frameworks | PHP.
+  built into Forge: completion, diagnostics, rename, refactorings, type hierarchy and
+  formatting in Intelephense's style with nothing to install and no licence key.
 - **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
@@ -221,7 +222,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   ([Workbench](user/workbench.md#main-menu)).
 - **Find in Files** (`Ctrl+Shift+F`) and the **Choose Declaration** popup
   ([Search Everywhere](user/search-everywhere.md#find-in-files), [Editor](user/editor.md#go-to-declaration)).
-- **One-click language server installs**, including Intelephense with its own Node.js
+- **One-click language server installs** of npm servers, with their own Node.js
   ([Language servers](user/language-servers.md#installing-a-server)).
 - **HTTP client**: environment picker, response handlers, body files, dynamic variables
   ([Scratches and HTTP client](user/scratches-and-http.md#http-client-http-files)).

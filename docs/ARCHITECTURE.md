@@ -820,7 +820,7 @@ or without Git, for local and remote projects.
   `forge_vcs::GitExec`; `Backend::repo()` = `Repo::open_with`), `detect_project`, `watch`,
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
   `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
-  PHP language server lookup: the built-in php-lsp, Intelephense, phpactor;
+  PHP language server config: the built-in php-lsp;
   `forge_backend::PhpBackend`), `read_optional` (a file or
   `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine / WordPress / CMS analysis,
   see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
@@ -855,8 +855,7 @@ or without Git, for local and remote projects.
     npm packages with integrity checks into the host's Forge directories) is
     `Call::LangServerInstall { channel, request }` in the agent, whose steps, output and
     download progress stream back as `Event::Install { channel, event }`; closing the channel
-    cancels it. `Call::LangServerUpdates` checks the host's installed packages. The Intelephense
-    licence is still accepted in the UI before the call.
+    cancels it. `Call::LangServerUpdates` checks the host's installed packages.
   - **WebForge** (`forge_backend::web`): `LocalWeb` loads and caches (5 s) the project's script,
     template and manifest files next to them and answers `Call::Web(WebCall)`: npm packages
     with scripts and package manager detection, React / Vue / Angular components, Go to
@@ -1376,15 +1375,16 @@ or without Git, for local and remote projects.
   ids) and ~32 servers (TypeScript, Vue, Angular, Svelte, Astro, HTML/CSS/JSON/ESLint, Tailwind,
   YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, Java,
   Kotlin, C#, Ruby, Zig) with command, initialization options, settings, install options and
-  licence. `pack_servers.toml` lists servers that packs start themselves (php-lsp, Intelephense,
-  phpactor, JDT LS, kotlin-lsp, clangd)
+  licence. `pack_servers.toml` lists servers that packs start themselves (php-lsp, JDT LS,
+  kotlin-lsp, clangd)
   so they show up on the same settings page (`builtin = true`: built into Forge, the row shows
   `builtinVersion` instead of an install option).
 
 ### Built-in PHP language server (php-lsp)
 
-- php-lsp (<https://github.com/stdimnet/php-lsp>, MIT OR Apache-2.0) is the default PHP server
-  (`php.lsp.server` = `php-lsp`; `auto` prefers it too). `packs/phpforge/builtin-lsp` depends on
+- php-lsp (<https://github.com/stdimnet/php-lsp>, MIT OR Apache-2.0) is Forge's only PHP server
+  (Intelephense and phpactor support was removed; the old `php.lsp.server` and
+  `php.intelephense.*` settings are ignored). `packs/phpforge/builtin-lsp` depends on
   it (cargo git dependency pinned to a `rev`) and is linked into `forge` and
   `forge-remote-agent`. Their `main` calls `phpforge_builtin_lsp::main_hook` first: with
   `--php-lsp` it runs `php_lsp::run_stdio()` and exits before Tauri / the agent start;
@@ -1421,7 +1421,7 @@ or without Git, for local and remote projects.
      `langservers.download.nodeMirror` (default `https://nodejs.org/dist`, `index.json`),
      checked against the release's `SHASUMS256.txt` and unpacked (`.tar.gz` on Linux/macOS,
      `.zip` on Windows) into a staging directory that is renamed into place (`managed::node`).
-  2. Packages without runtime dependencies (Intelephense) come straight from
+  2. Packages without runtime dependencies come straight from
      `langservers.download.npmRegistry` (`<registry>/<name>/latest` or a pinned version): the
      tarball is checked against `dist.integrity` (sha512), unpacked into
      `<dir>/node_modules/<name>`, `.bin` entries are created (symlink / `.cmd` shim) and the
@@ -1430,9 +1430,7 @@ or without Git, for local and remote projects.
      yaml-language-server, ...) run `npm install --prefix <dir> <name>@<version>` with the npm
      next to the Node.js in use (Forge's Node.js ships its own `npm-cli.js`).
   3. Servers in Forge's directory are started as `<node> <package script> <args>`
-     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH. Intelephense
-     (PHP pack) gets the same through `PhpLspSettings::intelephense_node`
-     (`commands::php::for_host`, local projects only).
+     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH.
   4. Updates: `langservers_check_updates({ force }) -> PackageUpdate[] | null` asks the registry
      for newer versions of the recorded packages at most once a day
      (`<dir>/.forge-update-check.json`, setting `langservers.updates.check`);
@@ -1450,14 +1448,9 @@ or without Git, for local and remote projects.
   shows a one-click "Install" for them and keeps "Install…" (dialog) for the others. Other tools
   (brew, pipx, go, cargo, dotnet, ...) run as listed in the catalog. Tests use a local HTTP
   server (`managed::testserver`) with fake tarballs, never the network.
-- Intelephense is never bundled or committed: its licence forbids redistribution. When a local
-  PHP project opens without it, `src/features/langservers/managed.ts` shows a balloon
-  "PHP language server Intelephense is not installed" with Install / Not now / Don't ask again
-  (`php.intelephense.autoInstall`: `ask` | `always` | `never`; decisions in `autoInstall.ts`).
-  The first install asks for the licence (`IntelephenseConsent.tsx`, stored as
-  `php.intelephense.licenceAccepted`); after the install `langservers_install` registers the
-  catalog servers and runs `php::sync_lsp_server`, so Intelephense starts without reopening the
-  project. Browser mode simulates all of it with `?intelephense=missing` (and `?updates=1`).
+- Nothing is bundled or committed: servers are downloaded by each user, with their consent, from
+  the official source. Browser mode simulates a managed install with `?node=missing` (Node.js
+  downloaded first) and the update offer with `?updates=1`.
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
@@ -1474,13 +1467,6 @@ or without Git, for local and remote projects.
   `langservers://changed`. Install commands come from the catalog only and run without a shell.
   Managed installs add `langservers://install-progress`, `langservers_check_updates` and
   `langservers_update` (see above).
-- Intelephense licence: `intelephense_licence_status() -> { premium, maskedKey?, error?,
-  purchaseUrl }`, `intelephense_set_licence({ key | null })`. The key lives in the OS keychain
-  (service `forge-lsp`, account `intelephense`); free mode never sends `licenceKey`. A registered
-  `intelephense` config gets the key applied (and restarts) when the manager is created or the key
-  changes; pack code building Intelephense configs can call
-  `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
-  `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
 
 ## Code intelligence: navigation and usages (`forge-codeintel`)
@@ -1507,8 +1493,8 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
 - PHP stubs (`forge_langservers::managed::stubs`, app state `commands::library::LibraryState`):
   `php.stubs.path`, else a pinned JetBrains phpstorm-stubs release downloaded on first use into
   `<cache dir>/forge/php-stubs/<version>` (the unpacked files are checked against a pinned
-  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept), else
-  Intelephense's own `lib/stub`. Progress is reported as
+  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept). Progress is
+  reported as
   `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
 - Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
   (a file outside the project a language server pointed to; only paths handed out by a
@@ -1545,7 +1531,7 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     dialog's checkboxes for the element at the caret.
   - `code_navigate({ path, line, character, kind: "implementation" | "superMethod" |
     "typeDeclaration", content? }) -> { targets, missing? }` — `missing` explains a server
-    without the feature (Intelephense Premium) when the index found nothing either.
+    without the feature when the index found nothing either.
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
@@ -1581,7 +1567,7 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
     sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
     file (a rename to the same name); PHP files fall back to the PHP index when the server
-    cannot rename (`missing`, Intelephense without a licence) or none runs. `$` is not part of
+    cannot rename (`missing`) or none runs. `$` is not part of
     the ranges (`sigil`).
   - `code_rename({ path, line, character, newName, buffers?, renameFile? }) -> { edit, preview,
     conflicts, source, missing?, fileRename?, skipped }` — the server's edit, else the index's
@@ -3417,13 +3403,13 @@ plugin manifest entry, and the chat UI needs no changes:
   `code_style_post_format({ request: { fileType, original, text } }) -> string`. The pages
   keep the edited schemes as a draft of the Settings dialog (`registerDraftSource` in
   `features/settings/dialogState.ts`). `editor_file_format`, the PHP code style and
-  Intelephense's settings read the selected scheme (`forge_codestyle::effective_settings`);
+  the `intelephense.*` settings for php-lsp read the selected scheme (`forge_codestyle::effective_settings`);
   `lsp_format({ path, tabSize, insertSpaces, languageId })` pushes the language's options to the
   server (`forge_codestyle::lsp::settings_patch`, `LspClient::update_settings`, which also
   answers later `workspace/configuration` requests), and `lua_format` passes StyLua's options
   when the project has no `stylua.toml`.
-- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (Intelephense's
-  `format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
+- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (php-lsp's
+  `intelephense.format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
   line pass after Reformat Code. Format post-processors (`registerFormatPostProcessor(fn,
   order)` in `features/lsp/format.ts`) run after the language server or a format provider and
   get the text before formatting too; the code style pass runs last (order 100).

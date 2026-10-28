@@ -88,7 +88,7 @@ pub fn lsp::stylua_args(values: &Values) -> Vec<String> { … }
   (registered as the last format post-processor of Reformat Code).
 - `editor_file_format` resolves indents with the selected scheme (`effective_settings`, file
   types mapped to their code style language); the PHP code style (braces, blank lines) and
-  Intelephense's settings read it too; `lsp_format({ …, languageId })` pushes
+  the `intelephense.*` settings php-lsp reads use it too; `lsp_format({ …, languageId })` pushes
   `settings_patch` to the file's server (`LspClient::update_settings`); `lua_format` passes
   `stylua_args`.
 - Browser mode: built into `forge-wasm` (`codestyle.rs`); the mocks in

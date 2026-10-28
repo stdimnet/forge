@@ -91,7 +91,7 @@ double click open the declaration.
 ## Where the data comes from
 
 - **Language servers** first: their `typeHierarchy` and `callHierarchy` requests (for example
-  the TypeScript server for JavaScript and TypeScript, Intelephense Premium for PHP).
+  the TypeScript server for JavaScript and TypeScript, php-lsp for PHP).
 - **Forge's PHP index** for PHP files: classes, interfaces, traits and enums of the project
   with their parents (vendor classes are resolved through Composer's PSR-4 autoloading when
   vendor packages are indexed as libraries), method declarations and calls. It works without

@@ -16,7 +16,7 @@ machine.
 
 | Side | Needs |
 | --- | --- |
-| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, Intelephense etc. installed on the host as you would need them locally. |
+| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, language servers etc. installed on the host as you would need them locally (PHP's php-lsp is built into the agent). |
 | Forge | a build that bundles the agents (`pnpm release`), or agent binaries in `FORGE_REMOTE_AGENT_DIR` / an `agents/` folder next to the `forge` binary. See [Release builds](../developer/release-builds.md). |
 
 Nothing needs to be installed on the host in advance: Forge uploads the agent itself.
@@ -111,9 +111,9 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 | Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
 | Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
 | Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
-| PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
+| PHP index, Structure, Generate, php-lsp | yes; the agent's built-in php-lsp indexes the remote files itself |
 | Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
-| Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
+| Installing language servers (Settings) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here |
 | Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
 | WebForge: npm tool window, React / Vue / Angular navigation and gutter icons | yes: `package.json` files, scripts, package managers and components are read in the agent; scripts run on the host |
 | LuaForge index | yes, all Lua files are read on the host in one batch |
@@ -133,7 +133,7 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 ![Remote terminal](../../screenshots/remote-terminal.png)
 
 Every feature works in remote projects. Things that are about your machine stay local on
-purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
+purpose: code host API calls (your tokens), the keychain and,
 when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
 of this machine (see [Services](services.md#remote-projects)).
 

@@ -11,7 +11,7 @@ Besides [SSH hosts](remote-development.md), Forge opens projects **inside a dev 
 **inside a WSL distribution**, like PHPStorm and JetBrains Gateway. In both cases Forge starts its
 headless agent (the same one it uses over SSH) in the container or the distribution and talks to
 it over the stdio of `docker exec` or `wsl.exe` instead of an SSH channel. The project then opens
-like a remote project: indexing, Intelephense and other language servers, Git, terminals and run
+like a remote project: indexing, php-lsp and other language servers, Git, terminals and run
 configurations all happen in the container or the distribution, with its PHP, Composer, Node.js
 and tools.
 
