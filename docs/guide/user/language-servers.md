@@ -143,28 +143,58 @@ runs for a file, Forge leaves schema problems, completion and hover to it.
 The language server widget shows "Indexing… TypeScript 45%" while a server reports progress,
 otherwise the running servers and their state. Click it to open the Language Servers page.
 
-## PHP: Intelephense and Phpactor
+## PHP: php-lsp, Intelephense and Phpactor
 
 PHP servers are configured by the PHP pack, on Settings | Languages & Frameworks | **PHP**
 (`php.lsp.server`):
 
 | Choice | Behaviour |
 | --- | --- |
-| Auto (default) | Intelephense if installed, else Phpactor |
-| Intelephense | always Intelephense (shows where it was found, or "not found on PATH (npm i -g intelephense)") |
+| php-lsp (built-in, default) | [php-lsp](https://github.com/stdimnet/php-lsp), built into Forge |
+| Auto | php-lsp; only a Forge build without it falls back to Intelephense, else Phpactor |
+| Intelephense | always Intelephense (shows where it was found, or "not installed") |
 | phpactor | always Phpactor |
-| None (built-in index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
+| None (Forge's index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
 
-The server starts when a PHP project opens and restarts when these settings change. Its cache
-goes to `<cache dir>/forge/intelephense`, never into your project.
+The server starts when a PHP project opens and restarts when these settings change.
+
+### php-lsp (built-in)
+
+php-lsp is a PHP language server written in Rust (MIT OR Apache-2.0) that works like
+Intelephense: the same diagnostics (codes, messages and severities), the same formatting and the
+same `intelephense.*` settings, with Intelephense's premium features included and free: rename,
+code actions and refactorings, Go to Implementation and Type Definition, type and call
+hierarchy, inlay hints. It is linked into Forge itself, so there is **nothing to install and no
+licence key**. Forge runs it in its own process (`forge --php-lsp --stdio`), so a crash of the
+server never takes the IDE down; the status bar and the Language Servers page show it as
+**php-lsp (built-in)** with its version.
+
+![php-lsp on the Language Servers page](../../screenshots/php-lsp-language-servers.png)
+
+Forge configures it from the PHP settings: the language level (`environment.phpVersion`),
+include paths, the max indexed file size, the brace style of the PHP code style, "Add packages
+as libraries" and the stub sets of the frameworks in `composer.json`. PHPStan, Psalm and
+PHP_CodeSniffer stay with Forge's [Quality Tools](php.md#quality-tools), so php-lsp's own tool
+runners are off and no problem shows twice. Its index cache and unpacked PHP stubs live in
+`<cache dir>/forge/php-lsp`, never in your project; repeated starts only parse changed files.
+In [remote projects](#remote-projects) the Forge agent on the host runs the same built-in
+server.
+
+Forge does not use php-lsp's semantic tokens (Forge highlights PHP itself) or its code lenses
+(the gutter's run icons and "implemented / overridden" markers cover them).
+
+![Choosing the PHP language server](../../screenshots/php-lsp-settings.png)
+
+Intelephense keeps its cache in `<cache dir>/forge/intelephense`, never in your project.
 
 ### Installing Intelephense
 
 Intelephense is never bundled with Forge (its licence forbids redistribution), but Forge
-downloads it for you from the npm registry. When a local PHP project opens without it, a
-balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
-and **Don't ask again**. The PHP settings page and the Language Servers page have an
-**Install Intelephense** button as well.
+downloads it for you from the npm registry. When Intelephense is chosen in the PHP settings and
+a local PHP project opens without it, a balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
+and **Don't ask again**. The PHP settings page (with Intelephense chosen) and the Language
+Servers page have an **Install Intelephense** button as well. With php-lsp, the default,
+nothing is offered.
 
 ![Install offer](../../screenshots/intelephense-install-offer.png)
 
@@ -176,7 +206,7 @@ The first install asks you to accept the Intelephense licence (stored as
 
 | Option (Settings \| Languages & Frameworks \| PHP) | Setting | Default |
 | --- | --- | --- |
-| When Intelephense is not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
+| When Intelephense is chosen but not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
 | I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 
 You can still install it yourself (`npm install -g intelephense`); Forge finds it on the `PATH`.
@@ -209,7 +239,8 @@ Frameworks | Lua | **Lua environment**. See [LuaForge](luaforge.md#lua-language-
 ## Remote projects
 
 In a [remote project](remote-development.md) language servers run on the remote host, next to
-the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the host) and the
+the files: the PHP server (the Forge agent runs its built-in php-lsp, or finds Intelephense or
+Phpactor on the host) and the
 catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 

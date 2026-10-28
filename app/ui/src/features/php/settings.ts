@@ -34,7 +34,7 @@ export const PHP_SETTING_KEYS: Record<keyof PhpSettings, string> = {
 export const defaultPhpSettings: PhpSettings = {
   languageLevel: "8.3",
   cliInterpreter: "php",
-  server: "auto",
+  server: "php-lsp",
   includePaths: [],
 };
 
@@ -99,7 +99,7 @@ export function legacyPhpChanges(raw: string | null, hasValue: (key: string) => 
   };
   take("languageLevel", (v) => (LANGUAGE_LEVELS as readonly unknown[]).includes(v));
   take("cliInterpreter", (v) => typeof v === "string" && v.trim() !== "" && v !== defaultPhpSettings.cliInterpreter);
-  take("server", (v) => ["auto", "intelephense", "phpactor", "none"].includes(String(v)));
+  take("server", (v) => ["php-lsp", "auto", "intelephense", "phpactor", "none"].includes(String(v)));
   take("includePaths", (v) => Array.isArray(v) && v.length > 0 && v.every((p) => typeof p === "string"));
   return out;
 }

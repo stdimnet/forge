@@ -2,7 +2,7 @@
 
 > Forge is a PHPStorm-style IDE for Windows, Linux and macOS with a Rust + Tauri 2 backend and a SolidJS + CodeMirror 6 UI. Layout, wording, behaviour and the default keymap follow PHPStorm; language and framework support comes in packs: PHPForge (PHP, Laravel, Symfony, Doctrine), WebForge (HTML/CSS/JS/TS, Vue, React, Angular), LuaForge (Lua), PyForge (Python), JavaForge (Java with Maven and Gradle, Groovy, Scala, Android), GoForge (Go), RustForge (Rust), RubyForge (Ruby), KotlinForge (Kotlin/JVM), CForge (C/C++) and DotNetForge (.NET). AI providers, AI in the editor (inline completion, Explain / Fix / Generate with AI), Claude Code / Gemini CLI chat, AI commit messages and Agent Tasks (run, test and fix in a sandbox) are part of the core. Links below are relative to this file (docs/); docs/llms-full.txt has every guide page in one file.
 
-Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rust crates (`crates/forge-*`, `packs/<pack>/<plugin>`), the UI only renders, and browser mode (`pnpm dev` in `app/ui`) runs the UI against mocks and the same Rust crates compiled to WebAssembly. Language servers are external and installed by the user.
+Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rust crates (`crates/forge-*`, `packs/<pack>/<plugin>`), the UI only renders, and browser mode (`pnpm dev` in `app/ui`) runs the UI against mocks and the same Rust crates compiled to WebAssembly. Language servers are external and installed by the user, except the default PHP server php-lsp, which is built into Forge.
 
 ## Getting started
 
@@ -83,7 +83,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 - [Git](guide/user/git.md) and [Code hosts](guide/user/code-hosts.md): clone (Get from VCS), commit, message history, signing, branches, worktrees, log, blame, pull requests
 - [Local History](guide/user/local-history.md): revisions recorded on save, refactorings, VCS operations and external changes; Show History, Show History for Selection, Revert, Create Patch, labels, Recent Changes
 - [AI](guide/user/ai.md): AI providers, inline code completion, Explain / Fix with AI, AI-generated tests and docs (.aiignore), agent chat, AI commit messages and Agent Tasks (agents that run, test and fix code in a git worktree sandbox, command approvals, diff review with Apply / Commit / Branch / Discard)
-- [Language servers](guide/user/language-servers.md): installing and configuring external language servers
+- [Language servers](guide/user/language-servers.md): the built-in PHP language server php-lsp (default), installing and configuring external language servers, Intelephense and its licence
 - [Settings and themes](guide/user/settings-and-themes.md): the Settings dialog, Settings for New Projects, Restore Defaults, Export / Import Settings, Restore Default Settings, Ember and Anvil themes
 - [Color schemes](guide/user/color-schemes.md): Settings | Editor | Color Scheme, Ember and Anvil, user schemes, per-attribute editing with live preview, IntelliJ .icls import and export
 - [Invalidate Caches and Repair IDE](guide/user/repair-ide.md): Reload All from Disk, the step-by-step Repair IDE, Invalidate Caches and which caches it clears
@@ -115,6 +115,7 @@ Forge's rule of thumb is "Rust computes, TypeScript renders": logic lives in Rus
 
 - [Full text of the guide](llms-full.txt): every guide page concatenated in reading order
 - [Crate reference](guide/developer/crates/index.md): one page per Rust crate
+- [phpforge-builtin-lsp](guide/developer/crates/phpforge-builtin-lsp.md): the built-in PHP language server php-lsp, run by `forge` and the remote agent in a hidden `--php-lsp --stdio` mode
 - [forge-dataedit](guide/developer/crates/forge-dataedit.md): the database data editor's logic (pure, also WebAssembly): sort/filter SQL per dialect with the read-only filter check, local sort/filter, row keys and DML preview, foreign-key navigation, aggregates, data compare, chart series and the value editor
 - [forge-inspections](guide/developer/crates/forge-inspections.md): the inspection framework: registry and tool mappings from plugin manifests, severities, profiles (PHPStorm XML), suppression comments, the duplicate code detector, the batch runner with InspectionProvider / ProblemSource, results tree, exports and Code Cleanup
 - [forge-dbtransfer](guide/developer/crates/forge-dbtransfer.md): import sources (CSV quirks and encodings, Excel through calamine, JSON / NDJSON), type detection, batched INSERTs per dialect, the Excel writer and the native dump / restore command lines

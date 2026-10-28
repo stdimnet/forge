@@ -1,12 +1,13 @@
 /**
- * "Click and play" language servers: when a PHP project opens without Intelephense, Forge
- * offers to install it (PHPStorm-style balloon with Install / Not now / Don't ask again),
+ * "Click and play" language servers: when a PHP project that chose Intelephense opens
+ * without it, Forge offers to install it (PHPStorm-style balloon with Install / Not now / Don't ask again),
  * or installs it right away when `php.intelephense.autoInstall` is `always`. The decisions
  * live here as plain functions; `managed.ts` runs them against the real UI.
  *
  * Intelephense is never bundled with Forge (its licence forbids redistribution): the
  * backend downloads it from the npm registry onto the user's machine after they accepted
- * its licence once.
+ * its licence once. The default PHP server, php-lsp, is built into Forge, so with it (or
+ * Auto, which prefers it) there is nothing to offer.
  */
 import type { InstallRow, PackageUpdate, ServerRow } from "@/ipc/langservers";
 
@@ -32,7 +33,7 @@ export interface PromptInput {
   /** The Intelephense row of the Language Servers list. */
   row: ServerRow | undefined;
   autoInstall: string;
-  /** `php.lsp.server`: phpactor or none means the user does not want Intelephense. */
+  /** `php.lsp.server`: only `intelephense` wants Intelephense (php-lsp is built in). */
   server: string;
   /** Already offered in this session (Not now). */
   offered: boolean;
@@ -44,7 +45,7 @@ export type PromptAction = "none" | "ask" | "install";
 export function intelephenseAction(i: PromptInput): PromptAction {
   if (!i.php || i.offered || !i.row) return "none";
   if (i.row.status !== "notInstalled" || i.row.path) return "none";
-  if (i.server === "phpactor" || i.server === "none") return "none";
+  if (i.server !== "intelephense") return "none";
   if (!managedOption(i.row)) return "none";
   if (i.autoInstall === "never") return "none";
   return i.autoInstall === "always" && !i.host ? "install" : "ask";

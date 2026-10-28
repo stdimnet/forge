@@ -1369,6 +1369,19 @@ pub async fn code_context_actions(
         {
             actions.push(php_action(&path, &text, fix));
         }
+        // The server's twins of Forge's intentions (php-lsp's "Generate getter for $name",
+        // "Import 'App\Models\User'"): Forge's own are listed once, in PHPStorm's wording.
+        let own: Vec<String> = actions
+            .iter()
+            .filter(|a| a.source != "lsp")
+            .map(|a| a.title.clone())
+            .collect();
+        actions.retain(|a| {
+            a.source != "lsp"
+                || !own
+                    .iter()
+                    .any(|o| phpforge_lang_php::intentions::is_lsp_twin(o, &a.title))
+        });
     }
     // Extract Component on whole Vue template or JSX elements.
     if is_web_script(&path) && end != start {

@@ -34,6 +34,8 @@ async function openPage(page) {
 async function openPhpPage(page) {
   await page.evaluate(() => window.__forgeRunCommand("settings.open"));
   await page.click('.set-tree-row[data-node="lang.php"]');
+  // The licence shows when Intelephense is chosen instead of the built-in php-lsp.
+  await page.click('.php-radio:has-text("Intelephense") input');
   await page.waitForSelector('[data-testid="intelephense-licence"]');
   await page.waitForTimeout(150);
 }

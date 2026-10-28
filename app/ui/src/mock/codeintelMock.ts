@@ -44,6 +44,7 @@ import { demoStubs, demoStubsDetail } from "./demoStubs";
 import { parsePhp, classAt, memberType, type MockClass, type MockFile, type MockMember } from "./phpMockParser";
 import { mockImportClassAction } from "./importsMock";
 import { mockFiles } from "./workspaceMock";
+import { mockSettingValue } from "./settingsMock";
 import { createFromUsage } from "./createFromUsageMock";
 
 const STUBS = "library://php-stubs/";
@@ -868,8 +869,12 @@ registerMock("library_read", ({ path }): LibraryFile => {
 
 // ---- Rename ----
 
-/** Intelephense renames only with a licence; without one the PHP index does it. */
+/**
+ * The language server renames and offers quick fixes: the built-in php-lsp (the default)
+ * always, Intelephense only with a licence; without one the PHP index renames.
+ */
 async function premium(): Promise<boolean> {
+  if (mockSettingValue("php.lsp.server") !== "intelephense") return true;
   return invoke<{ premium: boolean }>("intelephense_licence_status")
     .then((s) => s.premium)
     .catch(() => false);
@@ -1210,7 +1215,7 @@ registerMock("code_context_actions", async (args): Promise<ContextActionsAnswer>
         if (!line.includes(fix.line)) continue;
         const edit = fix.edit(text);
         if (!edit) continue;
-        const lsp = { source: "lsp", server: "intelephense" };
+        const lsp = { source: "lsp", server: mockSettingValue("php.lsp.server") === "intelephense" ? "intelephense" : "php-lsp" };
         actions.push(action(fix.title, "quickFix", { ...lsp, edit, isPreferred: !!fix.preferred, raw: { kind: "quickfix" } }));
         if (fix.fixAll) actions.push(action(fix.fixAll, "source", { ...lsp, edit, raw: { kind: "source.fixAll.intelephense" } }));
       }

@@ -486,9 +486,10 @@ registerMock("php_composer_outdated", async () => [
   { name: "phpunit/phpunit", version: "11.4.0", latest: "12.0.2", status: "update-possible" },
 ]);
 
-// With `?intelephense=missing` it is found only after the (mock) install.
+// php-lsp is built in. With `?intelephense=missing` Intelephense is found only after the (mock) install.
+const PHP_LSP = { command: "/usr/bin/forge", args: ["--php-lsp", "--stdio"], version: "0.1.0 (6e00c57)" };
 registerMock("php_detect_servers", async () => {
-  if (!intelephenseMissingAtStart()) return { intelephense: "/usr/local/bin/intelephense", phpactor: null };
+  if (!intelephenseMissingAtStart()) return { phpLsp: PHP_LSP, intelephense: "/usr/local/bin/intelephense", phpactor: null };
   const row = (await mockRows()).find((r) => r.id === "intelephense");
-  return { intelephense: row?.path ?? null, phpactor: null };
+  return { phpLsp: PHP_LSP, intelephense: row?.path ?? null, phpactor: null };
 });

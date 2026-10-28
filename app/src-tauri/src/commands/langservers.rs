@@ -157,7 +157,14 @@ fn live_states(manager: Option<&LspManager>) -> Vec<LiveServer> {
     let Some(manager) = manager else {
         return Vec::new();
     };
-    manager
+    // The PHP pack registers its server (php-lsp, Intelephense or phpactor) as `php`; its
+    // state belongs to that server's row, too.
+    let php_row = manager
+        .configs()
+        .into_iter()
+        .find(|c| c.id == crate::commands::php::PHP_SERVER_ID)
+        .and_then(|c| phpforge_lang_php::lsp::server_row_id(&c.command, &c.args));
+    let mut live: Vec<LiveServer> = manager
         .statuses()
         .into_iter()
         .map(|s| {
@@ -183,7 +190,20 @@ fn live_states(manager: Option<&LspManager>) -> Vec<LiveServer> {
                 detail,
             }
         })
-        .collect()
+        .collect();
+    if let Some(row) = php_row {
+        if let Some(php) = live
+            .iter()
+            .find(|l| l.id == crate::commands::php::PHP_SERVER_ID)
+            .cloned()
+        {
+            live.push(LiveServer {
+                id: row.into(),
+                ..php
+            });
+        }
+    }
+    live
 }
 
 fn build_rows(manager: Option<&LspManager>, ws: &AppState) -> Vec<ServerRow> {

@@ -12,8 +12,8 @@
 //!   downloaded and verified into Forge's data directory) and their update check,
 //! - [`licence`]: the Intelephense licence key in the OS keychain.
 //!
-//! PHP servers (Intelephense, phpactor) stay in the PHP pack; the app lists them next to
-//! these rows.
+//! PHP servers (the built-in php-lsp, Intelephense, phpactor) stay in the PHP pack; the app
+//! lists them next to these rows.
 
 pub mod catalog;
 pub mod config;

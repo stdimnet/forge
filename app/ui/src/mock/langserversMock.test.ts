@@ -11,6 +11,9 @@ describe("language servers mock", () => {
     expect(statuses).toEqual(new Set(["running", "installed", "notInstalled", "disabled"]));
     const ip = rows.find((r) => r.id === "intelephense")!;
     expect(ip.source).toBe("php");
+    // php-lsp is built in: running, with its version instead of an install option.
+    const builtin = rows.find((r) => r.id === "php-lsp")!;
+    expect(builtin).toMatchObject({ status: "running", source: "php", builtinVersion: "0.1.0 (6e00c57)", install: [] });
     expect(rows.filter((r) => r.source === "catalog").length).toBeGreaterThanOrEqual(30);
   });
 

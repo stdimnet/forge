@@ -126,7 +126,7 @@ export async function checkIntelephense(): Promise<void> {
       host: workspace()?.remote?.label,
       row: rows().find((r) => r.id === INTELEPHENSE_ID),
       autoInstall: getSetting<string>(AUTO_INSTALL_KEY, "ask"),
-      server: getSetting<string>("php.lsp.server", "auto"),
+      server: getSetting<string>("php.lsp.server", "php-lsp"),
       offered,
     },
     { showBalloon, install: installManaged, saveSetting: (k, v) => saveSetting(k, v) },

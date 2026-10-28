@@ -14,6 +14,19 @@ name = "PHP"
 extensions = ["php", "phtml"]
 
 [[server]]
+id = "php-lsp"
+name = "php-lsp (built-in)"
+group = "PHP"
+languages = ["php"]
+command = "forge"
+args = ["--php-lsp", "--stdio"]
+plugin = "forge.php"
+homepage = "https://github.com/stdimnet/php-lsp"
+license = "MIT OR Apache-2.0"
+builtin = true
+note = "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server."
+
+[[server]]
 id = "intelephense"
 name = "Intelephense"
 group = "PHP"
@@ -23,7 +36,7 @@ args = ["--stdio"]
 plugin = "forge.php"
 homepage = "https://intelephense.com"
 license = "Proprietary (free core, premium licence key optional)"
-note = "Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy."
+note = "Used when chosen in the PHP settings. Free by default; enter your own licence key to unlock premium features such as rename, code actions and type hierarchy."
 install = [
   { tool = "npm", command = ["npm", "install", "-g", "intelephense"] },
 ]
@@ -38,7 +51,7 @@ args = ["language-server"]
 plugin = "forge.php"
 homepage = "https://phpactor.readthedocs.io"
 license = "MIT"
-note = "Used when Intelephense is not installed, or when chosen in the PHP settings."
+note = "Used when chosen in the PHP settings."
 install = [
   { tool = "composer", command = ["composer", "global", "require", "phpactor/phpactor"] },
   { tool = "download", url = "https://github.com/phpactor/phpactor/releases" },
