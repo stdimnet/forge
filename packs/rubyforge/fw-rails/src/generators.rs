@@ -149,7 +149,7 @@ pub fn parse_generate_output(output: &str, known: &[Generator]) -> Vec<Generator
         if indented && !t.contains(' ') {
             let k = known
                 .iter()
-                .find(|g| g.name == t || t.ends_with(&format!(":{}", g.name)));
+                .find(|g| g.name == t || t.strip_prefix("rails:") == Some(g.name.as_str()));
             out.push(Generator {
                 name: t.to_string(),
                 group: group.clone(),
