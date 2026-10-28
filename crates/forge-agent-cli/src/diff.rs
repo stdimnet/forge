@@ -156,6 +156,15 @@ pub fn edit_diff(name: &str, input: &Value) -> EditDiff {
         .iter()
         .map(|(o, n)| diff_lines(o, n))
         .collect();
+    with_counts(hunks)
+}
+
+/// The diff between two whole texts (one hunk), e.g. an AI proposal's preview.
+pub fn text_diff(old: &str, new: &str) -> EditDiff {
+    with_counts(vec![diff_lines(old, new)])
+}
+
+fn with_counts(hunks: Vec<Vec<DiffLine>>) -> EditDiff {
     let count = |k| hunks.iter().flatten().filter(|l| l.kind == k).count();
     EditDiff {
         added: count(LineKind::Add),
@@ -186,6 +195,7 @@ mod tests {
             &json!({ "old_string": "a\nb\nc", "new_string": "a\nB\nc\nd" }),
         );
         assert_eq!((d.added, d.removed), (2, 1));
+        assert_eq!(text_diff("a\nb\nc", "a\nB\nc\nd"), d);
     }
 
     #[test]

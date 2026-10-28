@@ -54,6 +54,17 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
+  hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
+  "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
+  `.aiignore` and a per-project switch ([AI](docs/guide/user/ai.md#ai-in-the-editor)).
+- **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
+  chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
+  with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run
+  configurations; RSpec and Minitest with gutter icons and their results in the test tree;
+  rdbg debugging; RuboCop offenses, Alt+Enter autocorrect and Reformat Code; Ruby LSP
+  (installed on request with your own RubyGems); ERB templates and the IRB console
+  ([RubyForge](docs/guide/user/ruby.md)).
 - **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
   "Track only root files", problems from output filters), Live Edit through the Browser
   Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
@@ -574,9 +585,11 @@ Click **New Project** on the Welcome screen, or run the **New Project…** actio
 | Lua | Lua Script | a script, a module and a LuaLS configuration | — (offline template) | Lua version, sample code, Git repository |
 | Lua | LÖVE Game | LÖVE 11 game with `main.lua`, `conf.lua` and API completion | — (offline template) | sample code, Git repository |
 | Lua | Neovim Plugin | plugin with `setup()`, a user command and a help file | — (offline template) | GitHub user, Git repository |
+| Ruby | Ruby Gem | `bundle gem` with tests, RuboCop and no CI, licence or changelog files | `bundle` | Test framework (Minitest, RSpec, test-unit), RuboCop, executable, Git repository |
+| Ruby | Ruby Project | Gemfile, Rakefile, `lib/`, `bin/`, Minitest tests and `.rubocop.yml` | — (offline template) | sample code, Git repository |
 | Other | Empty Project | an empty folder | — | Git repository |
 
-Generators that call an official CLI (composer, symfony, npm, npx) check that the tool is on
+Generators that call an official CLI (composer, symfony, npm, npx, bundle) check that the tool is on
 your `PATH` first. If it is missing, the dialog says so and offers an offline alternative, for
 example "Create Empty HTML/CSS/JS instead":
 
@@ -626,6 +639,7 @@ and a plain Lua project does not start PHP language servers.
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
+| Ruby | `Gemfile` (also the tool `bundler`), `Rakefile` (also the tool `rake`), `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more `.rb` / `.rake` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
 | C# (`csharp`), F# (`fsharp`), Visual Basic (`vbnet`) | a solution (`.sln`, `.slnx`: the languages of its projects), a `.csproj`, `.fsproj` or `.vbproj` file (also the tool `dotnet`), a C# / F# file in the root or two or more in a folder, or `global.json` |
@@ -659,7 +673,7 @@ version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `dotnet` (solutions and project files), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `bundler` (`Gemfile`), `rake` (`Rakefile`), `dotnet` (solutions and project files), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -695,6 +709,7 @@ The primary type appears
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
 | RustForge | Rust projects |
+| RubyForge | Ruby projects |
 | CForge | C and C++ projects |
 | DotNetForge | .NET projects (C#, F#, Visual Basic) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
@@ -861,6 +876,7 @@ not finished, the page says so.
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [Jupyter notebooks](docs/guide/user/jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
+| [RubyForge (Ruby)](docs/guide/user/ruby.md) | Ruby interpreters of rbenv, rvm, chruby, asdf and mise (.ruby-version, .tool-versions), Bundler and gems in External Libraries, the Rake tool window, Ruby and Rake run configurations, RSpec and Minitest with gutter icons, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB, the IRB console |
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
@@ -888,7 +904,7 @@ not finished, the page says so.
 | --- | --- |
 | [Project trust and Safe Mode](docs/guide/user/project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
-| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest) |
+| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest, RSpec, Minitest) |
 | [Code coverage](docs/guide/user/coverage.md) | Run with Coverage, the Coverage tool window (line and branch coverage per directory and file), coverage marks with hits in the editor gutter, the Project view, Show Coverage Data (`Ctrl+Alt+F6`), importing LCOV, Cobertura, Clover, JaCoCo and Go reports |
 | [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
@@ -5231,7 +5247,7 @@ file is running (for example yaml-language-server), so you do not get every prob
 
 ## Template data languages
 
-Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates) mix template tags
+Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates, ERB) mix template tags
 with content in another language, the **data language**. Forge highlights the content in its
 real language and draws the template tags on top, so a LaTeX or SQL template is just as
 readable as an HTML one.
@@ -9260,6 +9276,7 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **LuaForge** | Lua |
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
+| **RubyForge** | Ruby: interpreters of rbenv, rvm, chruby, asdf and mise, Bundler, Rake, Ruby / Rake run configurations, RSpec and Minitest, rdbg, RuboCop, Ruby LSP, ERB, the IRB console |
 | **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger), Groovy, Scala with sbt, Android |
 | **CForge** | C and C++ (clangd, toolchains, CMake, CTest / GoogleTest / Catch2, LLDB / GDB) |
@@ -12422,6 +12439,211 @@ Settings | Languages & Frameworks | Jupyter:
   `<cache dir>/forge/jupyter/`, deleted when the kernel stops.
 - Server tokens in the OS keychain (service `forge-jupyter`).
 - Nothing in the project except the notebooks you save.
+
+
+---
+
+Source: docs/guide/user/ruby.md
+
+# RubyForge (Ruby)
+
+**RubyForge** brings RubyMine's Ruby support to Forge. Its plugin **Ruby** (`forge.ruby`)
+is active in [Ruby projects](docs/guide/getting-started/project-detection.md): a `Gemfile`, a
+`Rakefile`, a `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more
+`.rb` / `.rake` files in a folder. Rails support (routes, generators, the Rails console) is a
+separate plugin that builds on this one.
+
+- Ruby files (`.rb`, `.rake`, `.gemspec`, `.ru`, `.jbuilder`, `Gemfile`, `Rakefile`,
+  `Guardfile`, `Capfile`, `.irbrc`, scripts with a `ruby` shebang) get Ruby highlighting;
+  `Gemfile.lock` is its own file type.
+- Completion, navigation, hover, rename and diagnostics come from **Ruby LSP** (Shopify, MIT),
+  which runs like every other [language server](docs/guide/user/language-servers.md) with the project's Ruby.
+- Everything else is computed in Rust (`packs/rubyforge/*`): interpreters, the bundle, Rake
+  tasks, test discovery and results, command lines and RuboCop's reports.
+
+![inventory_spec.rb with run icons on the example groups and examples](docs/screenshots/ruby-editor.png)
+
+## Ruby SDK
+
+**Settings | Languages & Frameworks | Ruby** lists the interpreters Forge found and the one
+the project uses.
+
+![Settings | Languages & Frameworks | Ruby](docs/screenshots/ruby-settings.png)
+
+- Forge finds Rubies of **rbenv** (`$RBENV_ROOT` or `~/.rbenv/versions`), **rvm**
+  (`~/.rvm/rubies`, `/usr/local/rvm/rubies`, with the Ruby's gem sets), **chruby**
+  (`~/.rubies`, `/opt/rubies`), **asdf** (`~/.asdf/installs/ruby`), **mise**
+  (`~/.local/share/mise/installs/ruby`), frum and rv, **Homebrew** (`/opt/homebrew/opt/ruby`),
+  **RubyInstaller** (`C:\Ruby*`) and the system Ruby on the `PATH`. Version manager shims are
+  skipped: the Ruby behind them is listed by its manager. Forge only reads the folders; Rubies
+  outside a manager are asked for their version (`ruby -e 'print RUBY_VERSION'`).
+- **Automatic** (the default) uses the version the project asks for in `.ruby-version`,
+  `.tool-versions`, `mise.toml` or the Gemfile's `ruby "3.3.6"` / `ruby file:
+  ".ruby-version"` line (`3.3` matches the newest installed 3.3.x), else the version
+  manager's global version (`~/.rbenv/version`, `~/.tool-versions`), else the newest Ruby.
+  The page says which file asked, and a balloon tells you when that version is not installed.
+- Choose an interpreter in the list for the project, or **Add Interpreter…** for any other
+  `ruby` executable (it is checked before it is added).
+- **Tools** shows the gem executables Forge uses (Bundler, Rake, RSpec, RuboCop, rdbg, IRB,
+  Ruby LSP); missing RuboCop, the debug gem and Ruby LSP have an **Install** button.
+- **Environment** adds variables to every Ruby, Bundler, Rake and test command. Commands run
+  with the interpreter's `bin` folder first on the `PATH` (and rvm's `GEM_HOME` /
+  `GEM_PATH`), so `gem`, `bundle` and gem executables belong to the chosen Ruby.
+
+The interpreter appears in the status bar (`rbenv: 3.3.6`); clicking it opens the page.
+
+## Bundler and gems
+
+In projects with a `Gemfile`, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run
+through `bundle exec` (**Run commands with bundle exec**, on by default; Ruby and Rake
+configurations can turn it off for themselves).
+
+- The `Gemfile` and `Gemfile.lock` are read without running Bundler: declared gems with their
+  requirements and groups (`group :test do`, `group:` options), platforms, `path:` / `git:`
+  sources, and the locked versions with their dependencies. Gems pulled in by others get the
+  groups of the gems that need them.
+- **External Libraries** in the Project view lists the project's Ruby SDK and the **Bundled
+  Gems** with their locked versions; gems of the Gemfile come first, the others are dimmed.
+  Opening a Gemfile gem shows its line in the `Gemfile`.
+- When gems of the Gemfile are missing from `Gemfile.lock`, a balloon offers **bundle
+  install**. **Tools | Bundler: Install / Update** and **Show Outdated Gems** run Bundler in
+  the Run tool window. Saving the Gemfile or the lock file reads the bundle again.
+
+![External Libraries with the Ruby SDK and the bundle's gems; an ERB view](docs/screenshots/ruby-erb.png)
+
+## Rake
+
+The **Rake** tool window (right side) lists the project's tasks by namespace with their
+arguments and descriptions. Double-click (or **Run**) runs a task as a temporary Rake
+configuration, **Debug** runs it under the debugger, **Jump to Source** opens its definition.
+
+![The Rake tool window](docs/screenshots/ruby-rake.png)
+
+- Tasks come from `rake --tasks --all` and their places from `rake --where`. That loads the
+  Rakefile, so it runs only in [trusted projects](docs/guide/user/project-trust.md); in Safe Mode (or with
+  **Load tasks with rake --tasks** off) Forge reads the `Rakefile`, `rakelib/*.rake` and
+  `lib/tasks/**/*.rake` instead: `desc`, `task`, `namespace`, and the tasks of
+  `Bundler::GemHelper`, `RSpec::Core::RakeTask`, `Rake::TestTask`, `Minitest::TestTask` and
+  `RuboCop::RakeTask`.
+- **Run Rake Task…** (Tools) asks for a task, e.g. `release[origin]`.
+
+## Run configurations
+
+- **Ruby** runs a script with interpreter options and arguments (`bundle exec ruby -w
+  bin/report.rb --month 2026-10`). A ▶ in the gutter of scripts (a `ruby` shebang or `if
+  __FILE__ == $0`) runs or debugs them.
+- **Rake** runs a task with arguments (`rake release[origin]`) and Rake options.
+- **RSpec** and **Minitest** run tests (below).
+
+## RSpec and Minitest
+
+Spec files (`*_spec.rb`) get ▶ icons on `describe` / `context` / `feature` groups and on
+`it` / `specify` / `example` / `scenario`; test files (`*_test.rb`, `test_*.rb`) on test
+classes, `def test_*` methods, ActiveSupport `test "…" do` blocks and Minitest::Spec
+`describe` / `it` blocks. After a run the icons show the results.
+
+- **RSpec** runs `rspec <file>:<line>` for a group or example, a file, a folder, everything,
+  or the examples whose description matches (`--example`), with `--format progress --format
+  json --out <report>`. Forge reads the JSON report into the test tree: files, example groups,
+  examples, pending examples, the failure message with its backtrace, `expected: … got: …`
+  values for **Click to see difference**, and errors outside of examples (a spec that does
+  not load).
+- **Minitest** runs `ruby -Ilib -Itest <file> -v [-n <filter>]` (a class: `-n
+  "/^Shop::CartTest#/"`, a method: `-n Shop::CartTest#test_total`), or loads every test file
+  of a folder. Forge reads Minitest's verbose output: one suite per test class, failures,
+  errors and skips with their messages, `Expected:` / `Actual:` values, the location and the
+  test's own output.
+- **Rerun Failed Tests** runs the failed examples (`--example`) or methods (`-n
+  "/^(test_a|test_b)$/"`) of the files that failed.
+
+![RSpec results in the test tree](docs/screenshots/ruby-rspec.png)
+
+![Minitest results](docs/screenshots/ruby-minitest.png)
+
+## Debugging
+
+Debug (`Shift+F9`) on a Ruby, Rake, RSpec or Minitest configuration runs it under **rdbg**,
+the debugger of the `debug` gem (BSD-2-Clause, Ruby's default debugger): the command starts
+in the Run tool window as `rdbg --open --host 127.0.0.1 --port <port> --command -- <command>`,
+waits for the debugger, and Forge attaches to it. Breakpoints (also conditional), stepping,
+the stack, local and global variables and the debug console work as in the other
+[debuggers](docs/guide/user/debugging.md); the program's output stays in the Run console and test runs still
+fill the test tree.
+
+![rdbg stopped in Inventory#total_cents](docs/screenshots/ruby-debug.png)
+
+- rdbg comes from `bundle exec rdbg` when the bundle has the `debug` gem, else from the
+  interpreter (or **rdbg executable**). Without it, Forge offers to install the gem with the
+  interpreter's `gem` (with `--user-install` for system Rubies).
+- **Run | Attach to DAP Server…** with the adapter *Ruby (rdbg)* connects to any `rdbg --open
+  --port <port>` you started yourself, e.g. in a container.
+
+## RuboCop
+
+RuboCop checks open Ruby files after opening them, after a pause in typing and after saving
+(**Check files with RuboCop**). Its offenses appear in the editor and the **Problems** tool
+window with the cop name; conventions and refactorings are weak warnings, warnings and errors
+keep their level, and the inspection profile can change the severity (inspection
+*Ruby | External tools | RuboCop*).
+
+![RuboCop offenses with Alt+Enter autocorrect](docs/screenshots/ruby-rubocop.png)
+
+- `Alt+Enter` on a correctable offense: **RuboCop: autocorrect** (safe corrections, `-a`) or
+  **autocorrect all offenses in the file** (also unsafe ones, `-A`).
+- **Reformat Code** (`Ctrl+Alt+L`) uses RuboCop's autocorrect (**Reformat Code with**: safe,
+  all, Ruby LSP's formatter or nothing). The editor text goes to RuboCop on stdin with the
+  file's path, so the project's `.rubocop.yml` and its exclusions apply; nothing is written.
+- **Code | Inspect Code with RuboCop** checks the current file and shows the Problems tool
+  window. RuboCop runs through `bundle exec` when the bundle has it.
+- RuboCop loads the project's configuration and plugins, so it runs only in trusted projects.
+
+## Ruby LSP
+
+Ruby LSP runs with the project's Ruby and its bundle; its formatter follows **Ruby LSP
+formatter**. Forge uses `ruby-lsp` of the interpreter's gems, the **ruby-lsp executable**
+setting or the `PATH`. When it is missing, Forge offers **Install Ruby LSP**: it runs `gem
+install ruby-lsp --install-dir <Forge's data folder>/langservers/ruby/<version>` with the
+project interpreter's RubyGems (rubygems.org or your gem sources) — nothing is bundled with
+Forge and your Ruby's gems stay untouched — and starts the server with that folder on
+`GEM_PATH`. Ruby LSP sets up its own bundle in `.ruby-lsp/` of the project, so it does not
+start in Safe Mode.
+
+## ERB
+
+`.erb` files (`*.html.erb`, `*.text.erb`, `*.js.erb`, `.rhtml`) are a template language with
+a [template data language](docs/guide/user/file-types.md#template-data-languages): HTML by default, or the language of the inner
+extension (`welcome.text.erb` is plain text, `config.js.erb` JavaScript). `<%= %>`, `<%== %>`,
+`<% %>` (with `-%>`), and `<%# %>` comments are highlighted over it, with Ruby's keywords and
+common view helpers.
+
+## IRB console
+
+**Tools | Run IRB Console** opens a Terminal tab with `bundle exec irb -I lib` (or the
+interpreter's `irb`). IRB reads the project's `.irbrc` and Bundler its Gemfile, so the console
+is refused in Safe Mode.
+
+## New projects
+
+**File | New Project** has two Ruby generators: **Ruby Gem** runs `bundle gem` (Minitest,
+RSpec or test-unit, RuboCop, an executable), with **Ruby Project** — a Gemfile, Rakefile,
+`lib/`, `bin/`, Minitest tests and `.rubocop.yml` — as the offline fallback.
+
+## Settings
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Ruby interpreter | automatic | the project's Ruby (path or name) |
+| Environment | — | `KEY=VALUE` variables of Ruby commands |
+| Run commands with bundle exec | on | Bundler projects run gems through `bundle exec` |
+| bundle executable | — | another `bundle` |
+| Load tasks with rake --tasks | on | ask Rake (trusted projects) or read the Rakefile |
+| Reformat Code with | RuboCop (safe) | RuboCop `-a`, RuboCop `-A`, Ruby LSP or nothing |
+| Check files with RuboCop | on | on-the-fly and on-save RuboCop checks |
+| rubocop executable, Additional options | — | another RuboCop, extra options (`--only Style`) |
+| ruby-lsp executable, Ruby LSP formatter | —, automatic | Ruby LSP's executable and formatter |
+| rdbg executable | — | another rdbg |
+
+All keys are in the [settings reference](docs/guide/reference/settings.md#languages--frameworks--ruby).
 
 
 ---
@@ -15938,7 +16160,7 @@ blocked even if a plugin or the UI tries to start them:
 | --- | --- |
 | Run/Debug configurations, Before launch tasks, Run Anything, External Tools | not started (every run goes through one place in the backend) |
 | Composer and npm scripts, Artisan, Symfony console, Command Line Tool Support | not started; the Run Command popup lists only the built-in Artisan and Symfony commands |
-| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
+| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest, RSpec, Minitest) | not started |
 | Xdebug: Start Listening, PHP Web Page | refused |
 | Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
 | [Vulnerable dependency check](docs/guide/user/vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
@@ -15953,6 +16175,7 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
 | SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |
@@ -16444,10 +16667,13 @@ format into the same test events:
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
 | Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
+| RSpec JSON | `rspec --format progress --format json --out <file>` | a report file |
+| Minitest verbose output | `ruby -Itest test/x_test.rb -v`, `rake test TESTOPTS=-v` | streamed on stdout; failures, errors and skips are read from the summary |
 
 Failures keep their message, the failure location (a stack frame) and, where the tool reports
 them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`
-(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted).
+(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted),
+`expected: … got: …` (RSpec), `Expected:` / `Actual:` (Minitest).
 
 ## Safe Mode
 
@@ -19655,10 +19881,12 @@ Source: docs/guide/user/ai.md
 # AI
 
 AI is part of Forge's core and works with **your own** providers and tools; Forge ships no
-credentials and no subscription. There are two parts:
+credentials and no subscription. There are three parts:
 
-- **AI providers**: language model APIs Forge calls itself, used for AI commit messages and
-  available to plugins.
+- **AI providers**: language model APIs Forge calls itself, used for AI in the editor, AI
+  commit messages and available to plugins.
+- **AI in the editor**: inline code completion, "Explain with AI" and "Fix with AI" in
+  `Alt+Enter`, and AI-generated documentation and tests, all with a diff preview.
 - **AI Chat**: Claude Code or Gemini CLI, installed on your machine with your own login, run
   headless and rendered as a native chat.
 
@@ -19697,11 +19925,136 @@ Ollama running? Start it with `ollama serve`".
 - **Models per feature**: pick the provider/model for **Chat**, **Code completion** ("prefer a
   fast local model") and **Commit messages** separately.
 
-> **Note:** among the features listed under "Models per feature", only AI commit messages use
-> a provider on this version; inline code completion and a provider-based chat are not
-> implemented yet. The AI Chat uses the agent CLIs below. The "Google Gemini" provider kind
-> declared in the AI plugin manifest has no implementation yet; use Gemini through Gemini CLI
-> or an OpenAI-compatible endpoint.
+> **Note:** the **Chat** model is used by the editor actions (Explain, Fix, Generate) and the
+> **Code completion** model by inline completion; the AI Chat tool window itself uses the
+> agent CLIs below. The "Google Gemini" provider kind declared in the AI plugin manifest has
+> no implementation yet; use Gemini through Gemini CLI or an OpenAI-compatible endpoint.
+
+A provider can be switched off with its **Enabled** checkbox; Forge then sends nothing to it,
+also not through a feature that selected it.
+
+## AI in the editor
+
+Settings | Tools | **AI Assistant** (`ai.assistantSettings`) turns the editor features on and
+picks their models. Nothing is sent before you add a provider; inline completion is off until
+you enable it.
+
+![AI Assistant settings](docs/screenshots/ai-assistant-settings.png)
+
+| Setting | Meaning |
+| --- | --- |
+| Actions model | Provider and model of Explain, Fix and Generate with AI (the **Chat** model of Settings \| Tools \| AI Providers). |
+| Enable AI features in this project (`ai.enabled`) | A **project** setting: off keeps all of the project's code away from AI. |
+| Completion model | Provider and model of inline completion (the **Code completion** model). A fast local code model such as `qwen2.5-coder` on Ollama works best. |
+| Enable inline code completion (`ai.completion.enabled`) | Gray suggestions while you type. Also in the status bar widget and as Enable/Disable AI Inline Completion (`ai.toggleInlineCompletion`). |
+| Suggestion length (`ai.completion.multiline`) | **Automatic**: several lines on an empty line and after a block opener such as `{`, else one line; or always **Single line** / **Multi-line**. |
+| Request type (`ai.completion.mode`) | **Fill-in-the-middle** sends the code before and after the caret to the server's `/completions` endpoint (code models on Ollama, LM Studio, llama.cpp, other OpenAI-compatible servers); **Chat** asks a chat model with a `<CURSOR>` marker (Anthropic, OpenAI, OpenRouter). **Automatic** picks fill-in-the-middle for local servers and chat for hosted APIs. |
+| Delay before asking (`ai.completion.debounceMs`) | How long typing must pause before a suggestion is requested (350 ms). |
+| Disable for languages (`ai.completion.disabledLanguages`) | Language ids without inline completion, e.g. `markdown`, `json`. |
+
+### Excluding files: .aiignore
+
+An `.aiignore` file in the project root (gitignore syntax; `.aiexclude` is read too) keeps
+files away from every AI feature: inline completion is not asked there and the actions report
+"… is excluded from AI by .aiignore".
+
+```text
+# secrets and generated code never go to a model
+.env
+*.pem
+config/secrets/
+src/**/generated/*.ts
+!docs/examples/*.pem
+```
+
+A pattern without `/` matches the name anywhere; with a `/` it is relative to the project root;
+a trailing `/` matches folders and everything in them; `!` includes a file again (not inside an
+excluded folder).
+
+### Inline completion
+
+While you type, Forge asks the completion model after a short pause and shows the answer as
+gray text at the caret, like PHPStorm's AI Assistant. Typing on cancels the request; typing
+the characters the suggestion starts with keeps the rest.
+
+![Inline completion](docs/screenshots/ai-inline-completion.png)
+
+| Key | Action |
+| --- | --- |
+| `Tab` | Insert Inline Proposal (`InsertInlineCompletionAction`) |
+| `Ctrl+Right` (macOS `Alt+Right`) | Insert Inline Proposal Word (`InsertInlineCompletionWordAction`) |
+| no default | Insert Inline Proposal Line (`InsertInlineCompletionLineAction`) |
+| `Alt+]` / `Alt+[` | Show Next / Previous Inline Proposal: asks the model for alternatives and cycles through them |
+| `Alt+Shift+\` | Call Inline Completion (`CallInlineCompletionAction`): ask now |
+| `Escape` | Dismiss the suggestion |
+
+The keys are keymap actions (rebind them in Settings | Keymap, group Editor Actions | Inline
+Completion). They act only while a suggestion is shown, so `Tab` still indents and
+`Ctrl+Right` still moves by word otherwise; while the code completion popup is open, `Tab`
+chooses its item.
+
+![Accepted suggestion](docs/screenshots/ai-inline-completion-accepted.png)
+
+What the model gets: the code before and after the caret (about 8 KB / 2.5 KB), the file's
+imports when they are outside that window, the path, and the beginning of up to three other
+open files (same language first). Answers are cleaned before they are shown: Markdown fences,
+end tokens and code the model repeated from before the caret are removed, the text that is
+already after the caret (`)`, `;`, a closing `}` line) is not suggested twice, single-line mode
+keeps one line, and multi-line suggestions end with the block they are in.
+
+The **status bar widget** (✨) shows whether inline completion is on for the current file, a
+spinner while a suggestion is asked and red after an error. Click it to enable or disable
+inline completion, turn it off for the file's language, or open the settings.
+
+![Status bar widget](docs/screenshots/ai-inline-status-menu.png)
+
+### Explain with AI and Fix with AI
+
+`Alt+Enter` offers **Explain with AI** everywhere and **Fix with AI** on a line with a problem
+(errors and warnings of the language servers and inspections). They are also in the editor's
+context menu under **AI Actions** and in Find Action.
+
+![Alt+Enter](docs/screenshots/ai-intentions.png)
+
+- **Explain with AI** explains the selection, or the function or class around the caret. The
+  explanation streams into the **AI Chat** tool window as a new turn; its footer names the
+  provider and model.
+
+  ![Explanation in the AI Chat](docs/screenshots/ai-explain-chat.png)
+
+- **Fix with AI** sends the problems at the caret with the code around them and shows the
+  proposed change as a diff. **Apply** (`Ctrl+Enter`) changes the editor in one undoable step;
+  **Discard** (`Escape`) changes nothing. If the file changed while the AI was answering, Forge
+  asks you to run the action again.
+
+  ![Fix with AI](docs/screenshots/ai-fix-preview.png)
+
+### Generate documentation and tests
+
+**Generate** (`Alt+Insert`) lists **Documentation with AI…** and **Tests with AI…** below the
+language's own entries (in files without a Generate menu only these two); they are also under
+**AI Actions** in the editor's context menu.
+
+![Generate menu](docs/screenshots/ai-generate-menu.png)
+
+- **Generate Documentation with AI** (`ai.generateDocs`) writes the documentation comment of
+  the function or class at the caret in the language's format: PHPDoc, JSDoc, Javadoc, KDoc,
+  Doxygen, rustdoc `///`, LuaDoc `---`, Go `//` comments or a Python docstring. It goes above
+  attributes and annotations and replaces an existing doc comment.
+
+  ![Generate Documentation](docs/screenshots/ai-generate-docs-preview.png)
+
+- **Generate Tests with AI** (`ai.generateTests`) writes tests for the selection or the
+  declaration at the caret with the language's usual framework (PHPUnit, Vitest, pytest,
+  busted, Go `testing`, JUnit, …) into the conventional test file: `tests/Unit/…Test.php`,
+  `name.test.ts`, `tests/test_name.py`, `name_test.go`, `src/test/java/…Test.java`,
+  `spec/name_spec.lua`; Rust tests are appended to the file as `#[cfg(test)] mod tests`. An
+  existing test file is sent along and extended. **Create File** / **Apply** writes the file
+  and opens it.
+
+  ![Generate Tests](docs/screenshots/ai-generate-tests-preview.png)
+
+![Fix with AI, light theme](docs/screenshots/ai-fix-preview-light.png)
 
 ## AI commit messages
 
@@ -19795,8 +20148,13 @@ next to the files.
 ## Privacy
 
 Forge sends data only to the providers you configure and the CLIs you run: commit diffs to the
-commit message provider, your chat messages and attached context to the agent CLI (which talks
-to its own service). Nothing is sent anywhere by default.
+commit message provider, code around the caret to the completion provider (only with inline
+completion enabled), the code an editor action is about to the actions provider, and your chat
+messages and attached context to the agent CLI (which talks to its own service). Nothing is
+sent anywhere by default. Disabled providers, projects with AI turned off and files in
+`.aiignore` are never sent. A local provider (Ollama, LM Studio, llama.cpp) keeps everything
+on your machine. None of the AI features runs project code, so they work the same in
+[Safe Mode](docs/guide/user/project-trust.md).
 
 
 ---
@@ -20529,6 +20887,16 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 
 | Action | Action id | Windows / Linux | macOS | Context |
 | --- | --- | --- | --- | --- |
+| Insert Inline Proposal | `InsertInlineCompletionAction` | `Tab` | `Tab` | editor, while an AI suggestion is shown |
+| Insert Inline Proposal Word | `InsertInlineCompletionWordAction` | `Ctrl+Right` | `Alt+Right` | editor, while an AI suggestion is shown |
+| Insert Inline Proposal Line | `InsertInlineCompletionLineAction` |  |  | editor, while an AI suggestion is shown |
+| Show Next Inline Proposal | `NextInlineCompletionAction` | `Alt+]` | `Alt+]` | editor, while an AI suggestion is shown |
+| Show Previous Inline Proposal | `PrevInlineCompletionAction` | `Alt+[` | `Alt+[` | editor, while an AI suggestion is shown |
+| Call Inline Completion | `CallInlineCompletionAction` | `Alt+Shift+\` | `Alt+Shift+\` | editor |
+| Explain with AI | `ai.explain` |  |  | any |
+| Fix with AI | `ai.fix` |  |  | any |
+| Generate Documentation with AI | `ai.generateDocs` |  |  | any |
+| Generate Tests with AI | `ai.generateTests` |  |  | any |
 | Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
 | Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
 | Composer: Add Dependency… | `Composer.AddDependency` |  |  | any |
@@ -20640,7 +21008,8 @@ Type (`project.redetect`), Reindex PHP Files (`php.reindex`), Generate PHPDoc Co
 (`Services.Refresh`), Pull Image… (`Docker.PullImage`), New SSH Connection…
 (`Remote.NewSshConnection`), Reconnect to Remote Host (`Remote.Reconnect`), SSH
 Configurations… (`remote.settings`), Language Servers… (`langservers.settings`), AI Providers…
-(`ai.settings`), Open AI Chat (`AIChat.Focus`), New AI Chat (`AIChat.NewChat`), Browser
+(`ai.settings`), AI Assistant Settings… (`ai.assistantSettings`), Enable/Disable AI Inline
+Completion (`ai.toggleInlineCompletion`), Open AI Chat (`AIChat.Focus`), New AI Chat (`AIChat.NewChat`), Browser
 Companion Settings (`BrowserCompanion.Settings`), Keymap Settings (`settings.keymap`).
 
 
@@ -22159,6 +22528,25 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Ruby
+
+Page id `lang.ruby` (`ruby.interpreter` and `ruby.interpreters` are set by the Ruby SDK list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ruby.interpreter` | string | `""` | user, project | Ruby SDK | Ruby interpreter — The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest. |
+| `ruby.interpreters` | list | `[]` | user | Ruby SDK | Added interpreters — Ruby executables added by hand (Add Interpreter…); detected ones are listed without this. |
+| `ruby.environment` | list | `[]` | user, project | Ruby SDK | Environment — Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV). |
+| `ruby.bundler.useBundleExec` | bool | `true` | user, project | Bundler | Run commands with bundle exec — In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle. |
+| `ruby.bundler.path` | path | `""` | user | Bundler | bundle executable — Empty: the interpreter's bundle, then PATH. |
+| `ruby.rake.runRake` | bool | `true` | user, project | Rake | Load tasks with rake --tasks — The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake. |
+| `ruby.formatter` | enum: `rubocop`, `rubocopAll`, `lsp`, `none` | `rubocop` | user, project | RuboCop | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Ruby files. |
+| `ruby.rubocop.onTheFly` | bool | `true` | user, project | RuboCop | Check files with RuboCop — RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins). |
+| `ruby.rubocop.path` | path | `""` | user | RuboCop | rubocop executable — Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH. |
+| `ruby.rubocop.options` | string | `""` | user, project | RuboCop | Additional options — Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml. |
+| `ruby.lsp.path` | path | `""` | user | Ruby LSP | ruby-lsp executable — Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder. |
+| `ruby.lsp.formatter` | enum: `auto`, `rubocop_internal`, `syntax_tree`, `none` | `auto` | user, project | Ruby LSP | Ruby LSP formatter — The formatter Ruby LSP uses for formatting and diagnostics. |
+| `ruby.debugger.rdbgPath` | path | `""` | user | Debugger | rdbg executable — The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem. |
 ### Languages & Frameworks | Rust
 
 Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
@@ -22408,6 +22796,21 @@ Page id `tools.vulnerabilities`. See [Vulnerable dependencies](docs/guide/user/v
 | `vulnerabilities.checkOnOpen` | bool | `true` | user |  | Check when a project is opened and when a lock file changes — Results are cached per lock file in Forge's cache folder; Check for Vulnerable Dependencies always runs the tools. |
 | `vulnerabilities.cacheHours` | int | `24` | user |  | Re-check unchanged projects after (hours) — How long the result of an unchanged manifest and lock file is reused on project open. |
 | `vulnerabilities.dependencyCheckReport` | string | (empty) | user, project |  | OWASP dependency-check report (Maven / Gradle) — The JSON report your build writes with dependency-check; Forge reads it and does not run dependency-check. Empty: Maven and Gradle projects are not checked. |
+
+### Tools | AI Assistant
+
+Page id `tools.ai-assistant`. The page also picks the provider and model of the actions (the
+Chat model) and of inline completion (the Code completion model), stored in `ai.toml` like
+Settings | Tools | AI Providers.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ai.enabled` | bool | `true` | user, project | General | Enable AI features in this project — Turn off to keep this project's code away from all AI providers: no inline completion, no Explain / Fix / Generate with AI. Files can also be excluded with an .aiignore file in the project root (gitignore syntax). |
+| `ai.completion.enabled` | bool | `false` | user | Inline Completion | Enable inline code completion — Show AI suggestions as gray text while you type. Tab accepts, Ctrl+Right accepts the next word, Escape dismisses. Uses the Code completion model of Settings \| Tools \| AI Providers. |
+| `ai.completion.multiline` | enum: `auto`, `single`, `multi` | `auto` | user | Inline Completion | Suggestion length — Automatic suggests several lines on an empty line and after a block opener such as `{`, else one line. |
+| `ai.completion.mode` | enum: `auto`, `fim`, `chat` | `auto` | user | Inline Completion | Request type — Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs. |
+| `ai.completion.debounceMs` | int (50–3000) | `350` | user | Inline Completion | Delay before asking (ms) — How long typing must pause before a suggestion is requested. |
+| `ai.completion.disabledLanguages` | list | `[]` | user | Inline Completion | Disable for languages — Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript. |
 
 ### Tools | AI Agents
 
@@ -22698,6 +23101,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `jinja` | Jinja2 | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` |  | yes |
 | `django` | Django Template | `.djhtml` |  | yes |
 | `handlebars` | Handlebars | `.hbs`, `.handlebars`, `.mustache` |  | yes |
+| `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
 | `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
@@ -22781,6 +23185,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `eml` | E-Mail | `forge.eml` | `.eml` |  |  | 4 |
 | `ini` | INI | `forge.ini` | `.ini`, `.cfg`, `.inf`, `.desktop`, `.service`, `.socket`, `.timer`, `.mount`, `.target` | `php.ini`, `php.ini-*`, `.editorconfig`, `.gitconfig`, `.gitmodules`, `.npmrc`, `.pylintrc`, `.flake8`, `tox.ini`, `setup.cfg`, `pytest.ini`, `my.cnf`, `*.cnf`, `supervisord.conf`, `*.ini.*`, `pip.conf` |  | 4 |
 | `conf` | Config | `forge.conf` | `.conf`, `.config`, `.cnf` | `*.conf.*` |  | 4 |
+| `ruby` | Ruby | `forge.ruby` | `.rb`, `.rake`, `.gemspec`, `.ru`, `.rbw`, `.jbuilder`, `.builder` | `Gemfile`, `gems.rb`, `Rakefile`, `rakefile`, `Guardfile`, `Capfile`, `Vagrantfile`, `Brewfile`, `Podfile`, `Fastfile`, `Appfile`, `Steepfile`, `.irbrc`, `.pryrc` | `ruby`, `jruby`, `truffleruby` | 2 |
+| `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
 
@@ -22807,9 +23213,10 @@ compound file name, then HTML. Compound inner extensions:
 | `ini`, `env`, `conf` | INI / Properties |
 | `sh` | Shell Script |
 | `go` | Go |
-| `txt`, `md`, `csv`, `eml` | Plain text |
+| `txt`, `text`, `md`, `csv`, `eml` | Plain text |
 
-Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS.
+Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS,
+`welcome.text.erb` → plain text.
 
 ## Soft wraps
 
@@ -23011,7 +23418,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT |  |
+| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT | RubyForge configures it with the project's Ruby and can install it into Forge's data folder with your gem ([RubyForge](docs/guide/user/ruby.md#ruby-lsp)) |
 
 ### PHP
 
@@ -23385,7 +23792,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `rubyforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -23411,6 +23818,7 @@ script and config language plugins.
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
+| Ruby | `forge.ruby` | rubyforge |  | `rubyforge` | tool windows (UI): Rake; 9 commands; 13 settings; file types: Ruby, Gemfile.lock; run types: Ruby, Rake; test frameworks: RSpec, Minitest; 1 debug adapter (rdbg, in Rust); inspections: RuboCop |
 | Rust | `forge.rust` | rustforge |  | `rustforge` | tool windows (UI): Cargo; 8 commands; 18 settings; file types: TOML (Cargo.lock, rust-toolchain); run types: Cargo; test frameworks: Cargo Test; 1 debug adapter (rust-gdb, in Rust) |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Python Web Frameworks | `forge.python-web` | pyforge | `forge.python-env` | `django`, `flask`, `fastapi` | tool windows: Endpoints; 1 commands |
@@ -24210,7 +24618,7 @@ testFiles = ["*_spec.lua"]          # gutter icons in these files
 program = "busted"
 programSetting = "lua.busted.path"  # setting with the executable
 args = ["--output=TAP"]
-report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox | minitestText
 junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
 nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
 escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
@@ -25365,6 +25773,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | --- | --- |
 | [forge-agent-cli](docs/guide/developer/crates/forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](docs/guide/developer/crates/forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
+| [forge-ai-editor](docs/guide/developer/crates/forge-ai-editor.md) | AI in the editor: inline completion context and post-processing, AI actions (explain, fix, tests, docs) and the .aiignore policy (pure, WebAssembly-friendly) |
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](docs/guide/developer/crates/forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
@@ -25402,7 +25811,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
-| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
+| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, RSpec, Minitest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-ports](docs/guide/developer/crates/forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
@@ -25446,6 +25855,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-packages](docs/guide/developer/crates/pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
 | [rustforge-lang-rust](docs/guide/developer/crates/rustforge-lang-rust.md) | RustForge: Rust and Cargo support (cargo metadata, toolchain files, run / test / doctest discovery, the Cargo Test provider, Cargo command lines, Clippy messages with fixes, rustfmt, rust-analyzer settings, debugger pretty printers; pure, also built to WebAssembly) |
 | [rustforge-toolchain](docs/guide/developer/crates/rustforge-toolchain.md) | RustForge: rustup toolchains and tools on the user's machine, consented rustup installs, the pinned rust-analyzer download (SHA-256) and GDB with rustc's pretty printers as a debug adapter |
+| [rubyforge-lang-ruby](docs/guide/developer/crates/rubyforge-lang-ruby.md) | RubyForge: Ruby language support (version files, Gemfile and Gemfile.lock, Rake tasks, RSpec and Minitest discovery and the test provider, Ruby / Rake / Bundler / IRB / rdbg command lines, RuboCop reports; pure, also built to WebAssembly) |
+| [rubyforge-sdk](docs/guide/developer/crates/rubyforge-sdk.md) | RubyForge: Ruby interpreters of version managers and the system, gem executables, consented ruby-lsp installs with the user's gem, and rdbg as the `rdbg` debug adapter |
 | [goforge-lang-go](docs/guide/developer/crates/goforge-lang-go.md) | GoForge: Go language support (go.mod / go.work, module versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider, Go Build command lines, go:generate, go vet and golangci-lint reports; pure, also built to WebAssembly) |
 | [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
@@ -25572,7 +25983,10 @@ Source: docs/guide/developer/crates/forge-ai.md
 Forge AI provider layer.
 
 A `Provider` turns a provider-neutral `CompletionRequest` into a one-shot
-`Completion` or a stream of `Delta`s. Two wire protocols are implemented:
+`Completion` or a stream of `Delta`s; providers whose servers support it also answer
+fill-in-the-middle `FimRequest`s (`Provider::fim`, OpenAI-compatible `POST {base}/completions`
+with `prompt` + `suffix`; `ProviderKind::supports_fim`: Ollama, LM Studio, llama.cpp, custom)
+for inline code completion. Two wire protocols are implemented:
 the Anthropic Messages API and OpenAI-compatible chat completions (OpenAI, OpenRouter,
 LM Studio, Ollama, llama.cpp, custom servers). `AiService` stores provider configs in
 `ai.toml` and API keys in the OS keychain.
@@ -25587,7 +26001,7 @@ LM Studio, Ollama, llama.cpp, custom servers). `AiService` stores provider confi
 | `openai.rs` | OpenAI-compatible chat completions (`POST {base}/chat/completions`): OpenAI, OpenRouter, LM Studio, Ollama, llama.cpp server and any other compatible endpoint. |
 | `provider.rs` | The `Provider` trait plus HTTP helpers shared by the implementations. |
 | `secrets.rs` | API key storage: the OS keychain (service `forge-ai`, account = provider id) with an environment-variable fallback per provider kind. |
-| `service.rs` | `AiService`: owns the provider config + key store and builds providers on demand. This is what the app's IPC layer talks to. |
+| `service.rs` | `AiService`: owns the provider config + key store and builds providers on demand. This is what the app's IPC layer talks to. `selection` / `resolve` refuse disabled providers (`AiError::ProviderDisabled`). |
 | `sse.rs` | Minimal Server-Sent Events parser (WHATWG event-stream format). |
 | `types.rs` | Provider-neutral request/response types. |
 
@@ -25605,8 +26019,8 @@ pub use types::{…};
 
 ## Used by
 
-- IPC: `ai_complete`, `ai_stream`, `ai_cancel`, `ai_providers_list`, `ai_provider_save`, `ai_provider_delete`, `ai_provider_test`, `ai_models`, `ai_set_default` (`app/src-tauri/src/commands/ai.rs`)
-- UI: `app/ui/src/features/ai`, `app/ui/src/features/git (AI commit messages)`
+- IPC: `ai_complete`, `ai_stream`, `ai_cancel`, `ai_providers_list`, `ai_provider_save`, `ai_provider_delete`, `ai_provider_test`, `ai_models`, `ai_set_default` (`app/src-tauri/src/commands/ai.rs`); `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` with [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md) (`app/src-tauri/src/commands/ai_editor.rs`)
+- UI: `app/ui/src/features/ai`, `app/ui/src/features/ai-editor`, `app/ui/src/features/git (AI commit messages)`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
@@ -25616,10 +26030,89 @@ pub use types::{…};
 
 ## Tests
 
-10 source files, about 1862 lines; 10 unit tests and 16 integration tests in `tests/` (`providers.rs`).
+10 source files, about 2000 lines; 10 unit tests and 18 integration tests in `tests/` (`providers.rs`, against a local mock HTTP server: chat, streaming, fill-in-the-middle, errors).
 
 ```sh
 cargo test -p forge-ai
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-ai-editor.md
+
+# forge-ai-editor
+
+`crates/forge-ai-editor` — AI in the editor: inline completion context and post-processing,
+AI actions (explain, fix, tests, docs) and the `.aiignore` policy. Pure logic (no network, no
+file system), also built to WebAssembly for browser mode.
+
+## Purpose
+
+- **Inline (ghost text) completion** (`inline.rs`): `build_context` cuts the code around the
+  caret (UTF-16 offsets from CodeMirror) to a prefix and suffix window, collects the file's
+  imports outside the window and the heads of other open files (same language first), and
+  decides single or multi-line (`MultilinePolicy`). `build_prompt` makes both request forms: a
+  fill-in-the-middle prompt with a commented context header and stop sequences, and a chat
+  prompt with a `<CURSOR>` marker. `postprocess` cleans the answer: end tokens and markers,
+  Markdown fences, code echoed from before the caret, re-indented first lines, the
+  single-line cut, the end of the block for multi-line suggestions (indentation and bracket
+  depth), and overlap with the text after the caret (closing brackets, a duplicated `}` line).
+- **AI actions** (`actions.rs`): `prompt` builds the request of "Explain with AI", "Fix with
+  AI" (the problems at the caret, the region with context before and after), "Generate
+  Documentation with AI" (the declaration at the caret, the language's doc format) and
+  "Generate Tests with AI" (the code under test, the framework and the conventional test
+  file, `test_path`). `proposal` turns the reply into a `Proposal`: the new text with a diff
+  (`forge_agent_cli::diff::text_diff`) and, for the requesting file, the minimal `TextEdit`.
+  Doc comments go above attributes and replace an existing one; Python docstrings go into the
+  body; Rust tests are appended as `#[cfg(test)] mod tests`.
+- **Policy** (`policy.rs`): `Policy::check` decides whether code of a file may be sent:
+  `ai.enabled` for the project, `.aiignore` / `.aiexclude` (gitignore syntax: anchored and
+  unanchored patterns, `**`, character classes, `!`, folder rules) and, for inline completion,
+  the languages turned off.
+- `lang.rs`: language ids, comment and doc styles, declaration and import lines, test
+  frameworks.
+
+The network calls are made by the app with [`forge-ai`](docs/guide/developer/crates/forge-ai.md) providers.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `actions.rs` | AI actions in the editor: prompts and proposals with diff previews. |
+| `inline.rs` | Inline completion: context, fill-in-the-middle / chat prompts, post-processing. |
+| `lang.rs` | What the AI features need to know about a language. |
+| `policy.rs` | Whether code may be sent: project switch, `.aiignore`, per-language switch. |
+| `text.rs` | UTF-16 / byte offsets, lines and indentation, code from fenced replies. |
+
+## Main public items
+
+```rust
+pub use actions::{explain_prompt, prompt, proposal, test_path, ActionKind, ActionPrompt, ActionRequest, Problem, Proposal, TextEdit};
+pub use inline::{build_context, build_prompt, finish, postprocess, CompletionMode, InlineContext, InlinePrompt, InlineRequest, MultilinePolicy, RelatedFile};
+pub use lang::{language_of, Language};
+pub use policy::{AiIgnore, Feature, Policy, Verdict};
+```
+
+## Used by
+
+- IPC: `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` (`app/src-tauri/src/commands/ai_editor.rs`)
+- UI: `app/ui/src/features/ai-editor`
+- Browser mode: [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) `ai_editor.rs` (`ai_inline_finish`, `ai_action_prompt`, `ai_action_proposal`, `ai_policy_check`) for `app/ui/src/mock/aiEditorMock.ts`
+
+## Dependencies
+
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md) (without the `runtime` feature, for the diff)
+- External: `serde`, `serde_json`
+
+## Tests
+
+6 source files; 21 unit tests (context and trimming, multi-line policy, post-processing,
+region detection, fix / docs / tests proposals in PHP, Rust, Python and Lua, test paths,
+`.aiignore` matching and the policy).
+
+```sh
+cargo test -p forge-ai-editor
 ```
 
 
@@ -26545,6 +27038,9 @@ pub use views::{Instruction, MemoryBlock, MemoryRow};
 pub trait DebugAdapterDescriptor: Send + Sync {
     fn info(&self) -> AdapterInfo;
     fn resolve(&self, request: &LaunchRequest) -> DapResult<ResolvedLaunch>;
+    /// Breakpoints follow `launch` / `attach` even when `initialized` comes right after
+    /// `initialize` (rdbg maps breakpoint paths only after `attach`). Default: false.
+    fn breakpoints_after_request(&self) -> bool { false }
 }
 ```
 
@@ -28611,8 +29107,10 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON and pytest
-  report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON, pytest
+  report logs, RSpec JSON reports (`rspec`: files, example groups from the full
+  descriptions, `expected: … got: …`, errors outside of examples) and Minitest's verbose
+  output (`minitest`: one suite per class, failures / errors / skips from the summary), and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
   link targets.
@@ -30213,6 +30711,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | Module | Summary |
 | --- | --- |
 | `cli_tools.rs` | Command Line Tool Support (`phpforge-cli-tools`), mirroring the `cli_tools_*` commands: the effective tools from the demo files and settings, parsing of recorded `list --format=json` output, completion and the command line of a console input. |
+| `ai_editor.rs` | AI in the editor (`forge_ai_editor`) for the browser-mode mock: the fake provider's canned answers go through the same post-processing, prompts, proposals and `.aiignore` policy as the desktop app's `ai_inline_complete`, `ai_action` and `ai_explain`. |
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
@@ -30263,7 +30762,7 @@ pub fn bridge_version() -> String { … }
 
 ## Dependencies
 
-- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-dbschema`](docs/guide/developer/crates/forge-dbschema.md), [`forge-dbtransfer`](docs/guide/developer/crates/forge-dbtransfer.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
+- Workspace crates: [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md), [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md), [`forge-containers`](docs/guide/developer/crates/forge-containers.md), [`forge-colors`](docs/guide/developer/crates/forge-colors.md), [`forge-dbmodel`](docs/guide/developer/crates/forge-dbmodel.md), [`forge-dbschema`](docs/guide/developer/crates/forge-dbschema.md), [`forge-dbtransfer`](docs/guide/developer/crates/forge-dbtransfer.md), [`forge-editing`](docs/guide/developer/crates/forge-editing.md), [`forge-emmet`](docs/guide/developer/crates/forge-emmet.md), [`forge-filetypes`](docs/guide/developer/crates/forge-filetypes.md), [`forge-find`](docs/guide/developer/crates/forge-find.md), [`forge-fuzzy`](docs/guide/developer/crates/forge-fuzzy.md), [`forge-jsonschema`](docs/guide/developer/crates/forge-jsonschema.md), [`forge-keymap`](docs/guide/developer/crates/forge-keymap.md), [`forge-markdown`](docs/guide/developer/crates/forge-markdown.md), [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-plugin-api`](docs/guide/developer/crates/forge-plugin-api.md), [`forge-remote`](docs/guide/developer/crates/forge-remote.md), [`forge-scratches`](docs/guide/developer/crates/forge-scratches.md), [`forge-spell`](docs/guide/developer/crates/forge-spell.md), [`forge-sql`](docs/guide/developer/crates/forge-sql.md), [`forge-viewers`](docs/guide/developer/crates/forge-viewers.md), [`forge-window`](docs/guide/developer/crates/forge-window.md), [`luaforge-lang-lua`](docs/guide/developer/crates/luaforge-lang-lua.md), [`phpforge-dql`](docs/guide/developer/crates/phpforge-dql.md), [`webforge-fw-angular`](docs/guide/developer/crates/webforge-fw-angular.md), [`webforge-fw-react`](docs/guide/developer/crates/webforge-fw-react.md), [`webforge-fw-vue`](docs/guide/developer/crates/webforge-fw-vue.md), [`webforge-lang-web`](docs/guide/developer/crates/webforge-lang-web.md)
 - External: `serde`, `serde_json`, `wasm-bindgen`
 
 ## Tests
@@ -31331,6 +31830,139 @@ machine's toolchains.
 ```sh
 cargo test -p rustforge-toolchain
 cargo test -p rustforge-toolchain -- --ignored   # this machine's rustup
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rubyforge-lang-ruby.md
+
+# rubyforge-lang-ruby
+
+`packs/rubyforge/lang-ruby` — RubyForge's Ruby language support, in the style of RubyMine.
+Pure Rust (no I/O), shared by the desktop backend and the WebAssembly build of browser mode.
+
+## Purpose
+
+- `version`: the Ruby a project asks for — `.ruby-version`, `.tool-versions`,
+  `mise.toml` / `.mise.toml`, the Gemfile's `ruby "3.3.6"` or `ruby file: ".ruby-version"`, in
+  that order — version parts, engines (`jruby-9.4`) and matching (`3.3` matches `3.3.6`).
+- `gemfile`: a tolerant Gemfile scanner (sources, `ruby`, `gemspec`, `gem` with requirements,
+  groups from blocks and options, platforms, `require: false`, `path:` / `git:` / `github:`)
+  and the Gemfile.lock sections (`GEM`, `GIT`, `PATH` specs with dependencies, `PLATFORMS`,
+  `DEPENDENCIES`, `RUBY VERSION`, `BUNDLED WITH`); `bundle` merges both into `Bundle` (direct
+  and transitive gems with groups, missing gems).
+- `rake`: `rake --tasks --all` output (tasks, arguments, descriptions), `rake --where`
+  locations, and `scan_rakefile` for `desc` / `task` / `namespace` and the tasks of
+  Bundler's gem tasks, `RSpec::Core::RakeTask`, `Rake::TestTask`, `Minitest::TestTask` and
+  `RuboCop::RakeTask` without running Rake.
+- `discovery`: RSpec groups and examples with their full descriptions, Minitest test classes,
+  `def test_*` methods, ActiveSupport `test "…"` blocks and Minitest::Spec blocks
+  (`test_0001_<description>`), nested by indentation.
+- `provider`: `RubyTests`, the `forge-testing` provider of the `rspec` and `minitest`
+  manifest frameworks — gutter targets keyed like the test tree's results, `rspec
+  file:line … --format json --out <report dir>/rspec.json` and `ruby -Ilib -Itest <file> -v
+  -n <filter>` (or a loader for folders) through `bundle exec`, Rerun Failed Tests.
+- `command`: Ruby script and Rake configurations, `rake --tasks`, Bundler actions, `gem
+  install`, the IRB console and `rdbg --open --host 127.0.0.1 --port ${port} --command -- …`.
+- `rubocop`: `rubocop --format json --stdin <path>` arguments, the JSON report as
+  `RubyProblem`s (0-based positions, RuboCop's levels as Forge's), autocorrect arguments
+  (`-a` / `-A` with `--stderr`) and the corrected source.
+- `context`: `RubyContext` (interpreter, `bundle`, `use_bundler`, gem executables,
+  environment, the bundle's gems), handed to the provider as `CommandContext.settings["ruby.context"]`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `version.rs` | `requested_version`, `parse_ruby_version`, `parse_tool_versions`, `parse_mise_toml`, `parse_gemfile_ruby`, `matches`, `compare`, `engine`. |
+| `gemfile.rs` | `parse_gemfile`, `parse_lockfile`, `bundle`, `Gemfile`, `Lockfile`, `Bundle`, `BundleGem`. |
+| `rake.rs` | `parse_tasks`, `merge_locations`, `scan_rakefile`, `RakeTask`. |
+| `discovery.rs` | `discover_rspec`, `discover_minitest`, `is_spec_file`, `is_test_file`, `RubyTest`. |
+| `provider.rs` | `RubyTests`, `register`, `rspec_command`, `minitest_command`, `RSPEC`, `MINITEST`. |
+| `command.rs` | `script_command`, `rake_command`, `rake_tasks_command`, `bundler_action`, `gem_install`, `irb_command`, `rdbg_command`, `RUBY`, `RAKE`. |
+| `rubocop.rs` | `check_args`, `autocorrect_args`, `parse_report`, `corrected_source`, `RubyProblem`. |
+| `context.rs` | `RubyContext`, `RubyCommand`, `CONTEXT_KEY`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/ruby.rs` and `run.rs` (`RubyTests` in `RunState::new`).
+- WebAssembly: `crates/forge-wasm/src/ruby.rs` (`ruby_bundle`, `ruby_rake_tasks`,
+  `ruby_command_line`, `ruby_action_command`, `ruby_script_entry`, `ruby_rubocop_report`,
+  `ruby_requested_version`) and the test registry of `testing.rs`.
+- [`rubyforge-sdk`](docs/guide/developer/crates/rubyforge-sdk.md).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests on fixtures (`tests/fixtures`: a Gemfile and Gemfile.lock, a real `rake --tasks
+--all` output, a RuboCop JSON report). An ignored smoke test runs Minitest through the
+provider's command lines with a real Ruby and parses the output with `forge-output`.
+
+```sh
+cargo test -p rubyforge-lang-ruby
+cargo test -p rubyforge-lang-ruby -- --ignored   # needs ruby with minitest
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rubyforge-sdk.md
+
+# rubyforge-sdk
+
+`packs/rubyforge/sdk` — RubyForge on the user's machine.
+
+## Purpose
+
+- `detect`: `RubyStatus` of a project — the interpreters of version managers (rbenv with
+  `RBENV_ROOT`, rvm with its gem sets, chruby, asdf with `ASDF_DATA_DIR`, mise with
+  `MISE_DATA_DIR`, frum, rv) read from their folders, and of Homebrew, RubyInstaller and the
+  `PATH` (shims skipped, symlinks resolved) asked for their version with the interpreter only
+  (`ruby -e …`, through a `Runner`); `choose` (the setting, the requested version, the
+  manager's global version, the newest); gem executables (`gem`, `bundle`, `rake`, `rspec`,
+  `rubocop`, `rdbg`, `irb`, `ruby-lsp`) in the interpreter's `bin`, the user gem folder, rvm's
+  gem sets, `GEM_HOME`, Forge's ruby-lsp install and the `PATH`; `command_env` (the
+  interpreter first on `PATH`, rvm's `GEM_HOME` / `GEM_PATH`).
+- `lsp`: Ruby LSP installs — `gem install ruby-lsp --install-dir <data dir>/forge/langservers/ruby/<version>`
+  with the user's own RubyGems (nothing bundled or downloaded by Forge itself), the installed
+  executable and its launch environment (`GEM_PATH`).
+- `rdbg`: `RdbgAdapter`, the `rdbg` debug adapter: attaches to a `rdbg --open` DAP server
+  (`localfs`, `nonstop` unless Stop on entry) and asks `forge-dap` to send breakpoints after
+  `attach` (`breakpoints_after_request`), because rdbg maps breakpoint paths only then.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `interpreters`, `choose`, `global_version`, `find_tool`, `command_env`, `parse_probe`, `RubyEnv`, `RubyStatus`, `Interpreter`, `system_runner`. |
+| `lsp.rs` | `install_command`, `install_dir`, `installed`, `launch_env`, `is_managed`, `default_dir`. |
+| `rdbg.rs` | `RdbgAdapter`, `attach_arguments`, `ADAPTER`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/ruby.rs` (`ruby_status`, `ruby_lsp_install_command`,
+  `configure_lsp`, `sync_debug`, `wrap_rdbg`).
+
+## Dependencies
+
+- Workspace crates: [`rubyforge-lang-ruby`](docs/guide/developer/crates/rubyforge-lang-ruby.md), [`forge-dap`](docs/guide/developer/crates/forge-dap.md)
+- External: `serde`, `serde_json`, `dirs`
+
+## Tests
+
+Detection runs against fake manager folders in temporary directories with a recorded probe;
+ignored smoke tests detect this machine's Rubies and debug a script with a real rdbg through
+`forge-dap` (breakpoint, stack, variables).
+
+```sh
+cargo test -p rubyforge-sdk
+cargo test -p rubyforge-sdk -- --ignored   # this machine's Ruby and rdbg
 ```
 
 

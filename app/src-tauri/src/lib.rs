@@ -53,6 +53,7 @@ pub fn run() {
         .manage(commands::updates::UpdatesState::default())
         .manage(companion::CompanionState::load())
         .manage(commands::ai::AiState::load())
+        .manage(commands::ai_editor::AiEditorState::default())
         .manage(commands::agent::AgentState::default())
         .manage(commands::db::DbState::load())
         .manage(commands::db_objects::DbObjectsState::default())
@@ -201,6 +202,11 @@ pub fn run() {
             commands::ai::ai_provider_test,
             commands::ai::ai_models,
             commands::ai::ai_set_default,
+            commands::ai_editor::ai_inline_complete,
+            commands::ai_editor::ai_inline_cancel,
+            commands::ai_editor::ai_editor_status,
+            commands::ai_editor::ai_action,
+            commands::ai_editor::ai_explain,
             commands::agent::agent_list,
             commands::agent::agent_start,
             commands::agent::agent_send,
@@ -902,6 +908,20 @@ pub fn run() {
             commands::rust::rust_format,
             commands::rust::rust_clippy,
             commands::rust::rust_debug_request,
+            commands::ruby::ruby_status,
+            commands::ruby::ruby_interpreter_probe,
+            commands::ruby::ruby_bundle,
+            commands::ruby::ruby_bundle_command,
+            commands::ruby::ruby_gem_install_command,
+            commands::ruby::ruby_lsp_install_command,
+            commands::ruby::ruby_lsp_refresh,
+            commands::ruby::ruby_rake_tasks,
+            commands::ruby::ruby_rake_command,
+            commands::ruby::ruby_file_targets,
+            commands::ruby::ruby_irb_command,
+            commands::ruby::ruby_rubocop,
+            commands::ruby::ruby_format,
+            commands::ruby::ruby_debug_plan,
             commands::dap::dap_start,
             commands::dap::dap_restart,
             commands::dap::dap_threads,
@@ -1226,6 +1246,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::rust::spawn_sync_analyzer(&handle);
+            }
+            // Ruby LSP: Settings | Ruby (interpreter, environment, ruby-lsp, formatter).
+            if commands::ruby::affects_lsp(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::ruby::spawn_sync_lsp(&handle);
             }
             // Eclipse JDT LS: JDKs, its installation and options, the Java plugin.
             if commands::java::affects_server(&change.key)

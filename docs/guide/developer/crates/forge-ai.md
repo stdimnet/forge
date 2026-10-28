@@ -14,7 +14,10 @@ tags: [crate, rust]
 Forge AI provider layer.
 
 A `Provider` turns a provider-neutral `CompletionRequest` into a one-shot
-`Completion` or a stream of `Delta`s. Two wire protocols are implemented:
+`Completion` or a stream of `Delta`s; providers whose servers support it also answer
+fill-in-the-middle `FimRequest`s (`Provider::fim`, OpenAI-compatible `POST {base}/completions`
+with `prompt` + `suffix`; `ProviderKind::supports_fim`: Ollama, LM Studio, llama.cpp, custom)
+for inline code completion. Two wire protocols are implemented:
 the Anthropic Messages API and OpenAI-compatible chat completions (OpenAI, OpenRouter,
 LM Studio, Ollama, llama.cpp, custom servers). `AiService` stores provider configs in
 `ai.toml` and API keys in the OS keychain.
@@ -29,7 +32,7 @@ LM Studio, Ollama, llama.cpp, custom servers). `AiService` stores provider confi
 | `openai.rs` | OpenAI-compatible chat completions (`POST {base}/chat/completions`): OpenAI, OpenRouter, LM Studio, Ollama, llama.cpp server and any other compatible endpoint. |
 | `provider.rs` | The `Provider` trait plus HTTP helpers shared by the implementations. |
 | `secrets.rs` | API key storage: the OS keychain (service `forge-ai`, account = provider id) with an environment-variable fallback per provider kind. |
-| `service.rs` | `AiService`: owns the provider config + key store and builds providers on demand. This is what the app's IPC layer talks to. |
+| `service.rs` | `AiService`: owns the provider config + key store and builds providers on demand. This is what the app's IPC layer talks to. `selection` / `resolve` refuse disabled providers (`AiError::ProviderDisabled`). |
 | `sse.rs` | Minimal Server-Sent Events parser (WHATWG event-stream format). |
 | `types.rs` | Provider-neutral request/response types. |
 
@@ -47,8 +50,8 @@ pub use types::{…};
 
 ## Used by
 
-- IPC: `ai_complete`, `ai_stream`, `ai_cancel`, `ai_providers_list`, `ai_provider_save`, `ai_provider_delete`, `ai_provider_test`, `ai_models`, `ai_set_default` (`app/src-tauri/src/commands/ai.rs`)
-- UI: `app/ui/src/features/ai`, `app/ui/src/features/git (AI commit messages)`
+- IPC: `ai_complete`, `ai_stream`, `ai_cancel`, `ai_providers_list`, `ai_provider_save`, `ai_provider_delete`, `ai_provider_test`, `ai_models`, `ai_set_default` (`app/src-tauri/src/commands/ai.rs`); `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` with [`forge-ai-editor`](forge-ai-editor.md) (`app/src-tauri/src/commands/ai_editor.rs`)
+- UI: `app/ui/src/features/ai`, `app/ui/src/features/ai-editor`, `app/ui/src/features/git (AI commit messages)`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
@@ -58,7 +61,7 @@ pub use types::{…};
 
 ## Tests
 
-10 source files, about 1862 lines; 10 unit tests and 16 integration tests in `tests/` (`providers.rs`).
+10 source files, about 2000 lines; 10 unit tests and 18 integration tests in `tests/` (`providers.rs`, against a local mock HTTP server: chat, streaming, fill-in-the-middle, errors).
 
 ```sh
 cargo test -p forge-ai

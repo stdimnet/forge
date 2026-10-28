@@ -3,6 +3,7 @@
 
 pub mod agent;
 pub mod ai;
+pub mod ai_editor;
 pub mod android;
 pub mod clipboard;
 pub mod cms;
@@ -77,6 +78,7 @@ pub mod refactor_hierarchy;
 pub mod refactor_move;
 pub mod remote;
 pub mod remote_host;
+pub mod ruby;
 pub mod run;
 pub mod runtools;
 pub mod rust;

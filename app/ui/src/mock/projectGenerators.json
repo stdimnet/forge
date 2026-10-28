@@ -509,6 +509,84 @@
     ]
   },
   {
+    "id": "ruby-gem",
+    "name": "Ruby Gem",
+    "group": "Ruby",
+    "pack": "rubyforge",
+    "description": "A gem created with Bundler (bundle gem): gemspec, Rakefile, tests and RuboCop.",
+    "icon": "ruby",
+    "defaultName": "my_gem",
+    "tools": [
+      "bundle"
+    ],
+    "fallback": "ruby-script",
+    "options": [
+      {
+        "id": "testFramework",
+        "label": "Test framework",
+        "kind": "enum",
+        "default": "minitest",
+        "choices": [
+          {
+            "value": "minitest",
+            "label": "Minitest"
+          },
+          {
+            "value": "rspec",
+            "label": "RSpec"
+          },
+          {
+            "value": "test-unit",
+            "label": "test-unit"
+          }
+        ]
+      },
+      {
+        "id": "rubocop",
+        "label": "RuboCop",
+        "kind": "bool",
+        "default": true
+      },
+      {
+        "id": "exe",
+        "label": "Executable (exe/)",
+        "kind": "bool",
+        "default": false
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
+    "id": "ruby-script",
+    "name": "Ruby Project",
+    "group": "Ruby",
+    "pack": "rubyforge",
+    "description": "A Ruby project with a Gemfile, a Rakefile, Minitest tests and RuboCop.",
+    "icon": "ruby",
+    "defaultName": "ruby-project",
+    "tools": [],
+    "options": [
+      {
+        "id": "sample",
+        "label": "Create sample code",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a small example to start from."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
     "id": "dotnet",
     "name": ".NET Project",
     "group": ".NET",

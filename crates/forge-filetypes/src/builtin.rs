@@ -81,6 +81,8 @@ const ROWS: &[Row] = &[
         &["hbs", "handlebars", "mustache"],
         &[],
     ),
+    // Embedded Ruby (Rails views, `*.html.erb`, `*.text.erb`); RubyForge's ERB support.
+    ("erb", "ERB", &["erb", "rhtml"], &[]),
     ("velocity", "Velocity", &["vm", "vtl"], &[]),
     ("pug", "Pug", &["pug", "jade"], &[]),
     (
@@ -202,6 +204,7 @@ const TEMPLATES: &[&str] = &[
     "jinja",
     "django",
     "handlebars",
+    "erb",
 ];
 
 /// The bundled file types, in registration order.

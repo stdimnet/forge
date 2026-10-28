@@ -22,6 +22,7 @@ mod remote;
 use wasm_bindgen::prelude::*;
 
 mod agents;
+mod ai_editor;
 mod cli_tools;
 mod codeintel;
 mod codestyle;
@@ -58,6 +59,7 @@ mod project_structure;
 mod python;
 mod python_testing;
 mod python_web;
+mod ruby;
 mod runtools;
 mod rust;
 mod save_actions;

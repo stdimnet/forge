@@ -110,7 +110,7 @@ file is running (for example yaml-language-server), so you do not get every prob
 
 ## Template data languages
 
-Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates) mix template tags
+Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates, ERB) mix template tags
 with content in another language, the **data language**. Forge highlights the content in its
 real language and draws the template tags on top, so a LaTeX or SQL template is just as
 readable as an HTML one.

@@ -89,6 +89,9 @@ pub use views::{Instruction, MemoryBlock, MemoryRow};
 pub trait DebugAdapterDescriptor: Send + Sync {
     fn info(&self) -> AdapterInfo;
     fn resolve(&self, request: &LaunchRequest) -> DapResult<ResolvedLaunch>;
+    /// Breakpoints follow `launch` / `attach` even when `initialized` comes right after
+    /// `initialize` (rdbg maps breakpoint paths only after `attach`). Default: false.
+    fn breakpoints_after_request(&self) -> bool { false }
 }
 ```
 

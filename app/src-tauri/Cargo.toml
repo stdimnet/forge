@@ -34,6 +34,7 @@ forge-save-actions = { workspace = true, features = ["backend"] }
 forge-editing.workspace = true
 forge-file-templates.workspace = true
 forge-ai.workspace = true
+forge-ai-editor.workspace = true
 futures-util = "0.3"
 forge-agent-cli.workspace = true
 forge-lsp.workspace = true
@@ -118,6 +119,8 @@ goforge-pprof.workspace = true
 forge-profiler.workspace = true
 rustforge-lang-rust.workspace = true
 rustforge-toolchain.workspace = true
+rubyforge-lang-ruby.workspace = true
+rubyforge-sdk.workspace = true
 dotnetforge-lang-dotnet.workspace = true
 dotnetforge-sdk.workspace = true
 pyforge-testing.workspace = true

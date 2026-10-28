@@ -1,0 +1,21 @@
+source "https://rubygems.org"
+
+ruby "3.3.6"
+
+gem "rake", "~> 13.0"
+gem "money", ">= 6.16", "< 7"
+gem "tzinfo-data", platforms: %i[windows jruby]
+
+group :development, :test do
+  gem "debug", platforms: %i[mri windows], require: "debug/prelude"
+  gem "rubocop", "~> 1.66", require: false
+end
+
+group :test do
+  gem "rspec", "~> 3.13"
+  gem "minitest"
+  gem "simplecov", group: :coverage
+end
+
+gem "pry", group: :development
+gem "shop_core", path: "engines/shop_core"

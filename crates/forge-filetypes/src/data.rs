@@ -67,6 +67,7 @@ const COMPOUND: &[(&str, &str)] = &[
     ("sh", "shell"),
     ("go", "go"),
     ("txt", "text"),
+    ("text", "text"),
     ("md", "text"),
     ("csv", "text"),
     ("eml", "text"),

@@ -67,6 +67,11 @@ const byExt: Record<string, Spec> = {
   pyi: { icon: FileCode, color: "#6aa5e8" },
   go: { icon: FileCode, color: "#4fc3e0" },
   rs: { icon: FileCode, color: "#d08050" },
+  rb: { icon: FileCode, color: "#e0524f" },
+  rake: { icon: FileCode, color: "#e0524f" },
+  gemspec: { icon: Package, color: "#e0524f" },
+  ru: { icon: FileCode, color: "#e0524f" },
+  erb: { icon: FileCode, color: "#e0524f" },
   cs: { icon: FileCode, color: "#9b6fd8" },
   csx: { icon: FileCode, color: "#9b6fd8" },
   fs: { icon: FileCode, color: "#4fa8d8" },
@@ -109,6 +114,10 @@ function specFor(name: string): Spec {
   // Go modules and workspaces.
   if (/^go\.(?:mod|work)$/.test(name)) return { icon: Package, color: "#4fc3e0" };
   if (/^go\.(?:work\.)?sum$/.test(name)) return { icon: Lock, color: "#4fc3e0" };
+  // Bundler and Rake.
+  if (name === "Gemfile" || name === "gems.rb") return { icon: Package, color: "#e0524f" };
+  if (name === "Gemfile.lock" || name === "gems.locked") return { icon: Lock, color: "#e0524f" };
+  if (/^(?:Rakefile|rakefile|Guardfile|Capfile|\.irbrc|\.pryrc)$/.test(name)) return { icon: FileCode, color: "#e0524f" };
   // Cargo manifests and lock files.
   if (name === "Cargo.toml") return { icon: Package, color: "#dea584" };
   if (name === "Cargo.lock") return { icon: Lock, color: "#dea584" };

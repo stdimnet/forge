@@ -15,6 +15,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | --- | --- |
 | [forge-agent-cli](forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
+| [forge-ai-editor](forge-ai-editor.md) | AI in the editor: inline completion context and post-processing, AI actions (explain, fix, tests, docs) and the .aiignore policy (pure, WebAssembly-friendly) |
 | [forge-backend](forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
@@ -52,7 +53,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-markdown](forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
-| [forge-output](forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
+| [forge-output](forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, RSpec, Minitest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-ports](forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
@@ -96,6 +97,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-packages](pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
 | [rustforge-lang-rust](rustforge-lang-rust.md) | RustForge: Rust and Cargo support (cargo metadata, toolchain files, run / test / doctest discovery, the Cargo Test provider, Cargo command lines, Clippy messages with fixes, rustfmt, rust-analyzer settings, debugger pretty printers; pure, also built to WebAssembly) |
 | [rustforge-toolchain](rustforge-toolchain.md) | RustForge: rustup toolchains and tools on the user's machine, consented rustup installs, the pinned rust-analyzer download (SHA-256) and GDB with rustc's pretty printers as a debug adapter |
+| [rubyforge-lang-ruby](rubyforge-lang-ruby.md) | RubyForge: Ruby language support (version files, Gemfile and Gemfile.lock, Rake tasks, RSpec and Minitest discovery and the test provider, Ruby / Rake / Bundler / IRB / rdbg command lines, RuboCop reports; pure, also built to WebAssembly) |
+| [rubyforge-sdk](rubyforge-sdk.md) | RubyForge: Ruby interpreters of version managers and the system, gem executables, consented ruby-lsp installs with the user's gem, and rdbg as the `rdbg` debug adapter |
 | [goforge-lang-go](goforge-lang-go.md) | GoForge: Go language support (go.mod / go.work, module versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider, Go Build command lines, go:generate, go vet and golangci-lint reports; pure, also built to WebAssembly) |
 | [goforge-sdk](goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |

@@ -25,6 +25,8 @@ import { aspireRunSteps, dockerRunSteps, dotnetWebCommandLine, dotnetWebSteps } 
 import { goContext } from "./goTestsMock";
 import { isRustDemo, rustDemoName } from "./demoRustProject";
 import { cargoRunSteps, RUST_ROOT, rustContext } from "./rustTestsMock";
+import { isRubyDemo, rubyDemoName } from "./demoRubyProject";
+import { RUBY_ROOT, rubyCommandSteps, rubyContext, rubyRunSteps } from "./rubyTestsMock";
 import { isJavaDemo, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoName } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoName } from "./demoScalaProject";
@@ -36,7 +38,7 @@ import { addMockCoverage, demoClover, demoPhpunitXml, demoReportFor } from "./co
 
 const ROOT = `~/Projects/${demoProjectName}`;
 export const projectRoot = () =>
-  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isCppDemo() ? cppDemoName : isDotnetDemo() ? dotnetDemoName : (webDemo()?.name ?? demoProjectName)}`;
+  `~/Projects/${isSymfonyDemo() ? symfonyDemoName : isWordPressDemo() ? wordpressDemoName : isDrupalDemo() ? drupalDemoName : isLuaDemo() ? luaDemoName : isPythonDemo() ? pythonDemoName : isGoDemo() ? goDemoName : isRustDemo() ? rustDemoName : isRubyDemo() ? rubyDemoName : isJavaDemo() ? javaDemoName : isKotlinDemo() ? kotlinDemoName : isScalaDemo() ? scalaDemoName : isAndroidDemo() ? androidDemoName : isCppDemo() ? cppDemoName : isDotnetDemo() ? dotnetDemoName : (webDemo()?.name ?? demoProjectName)}`;
 
 /** The Lua demo (`?project=lua`): the LÖVE game and its build script. */
 const LUA_CONFIGURATIONS: RunConfigurations = {
@@ -89,6 +91,17 @@ const RUST_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
+/** The Ruby demo (`?project=ruby`): the restock script, the specs, the tests and a Rake task. */
+const RUBY_CONFIGURATIONS: RunConfigurations = {
+  selected: "restock",
+  configurations: [
+    { name: "restock", type: "ruby", storeAsProjectFile: true, options: { script: "bin/restock" } },
+    { name: "All specs", type: "rspec", storeAsProjectFile: true, options: { scope: "all" } },
+    { name: "All tests", type: "minitest", options: { scope: "all" } },
+    { name: "rake db:seed", type: "rake", options: { task: "db:seed" } },
+  ],
+};
+
 /** The .NET demo (`?project=dotnet`): the API with its launch profiles, the F# tool and the tests. */
 const DOTNET_CONFIGURATIONS: RunConfigurations = {
   selected: "Bookstore.Api: http",
@@ -106,7 +119,7 @@ const DOTNET_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : {
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isRubyDemo() ? RUBY_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -263,6 +276,10 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
   if (cfg.type === "cargo") {
     const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).rust_command_line, { configuration: cfg, context: rustContext() });
     return { ...c, cwd: c.cwd ? `${RUST_ROOT}/${c.cwd}` : RUST_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
+  }
+  if (cfg.type === "ruby" || cfg.type === "rake") {
+    const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).ruby_command_line, { configuration: cfg, context: rubyContext() });
+    return { ...c, cwd: c.cwd ? `${RUBY_ROOT}/${c.cwd}` : RUBY_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
   if (cfg.type === "go-build") {
     const c = callWasmSync<CommandLine>((await forgeWasm()).go_build_command, { configuration: cfg, context: goContext() });
@@ -650,6 +667,11 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
       const target = args.includes("--example") ? `example:${args[args.indexOf("--example") + 1]}` : "bin:shop";
       return cargoRunSteps({ ...cfg, options: { command: sub, target } });
     }
+    case "ruby":
+    case "rake":
+      return rubyRunSteps(cfg);
+    case "ruby-command":
+      return rubyCommandSteps((JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? []);
     case "go-build":
       return o.runAfterBuild === "false"
         ? [[900, ""], [10, { code: 0 }]]

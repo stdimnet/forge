@@ -27,6 +27,7 @@ forge-markdown.workspace = true
 forge-viewers.workspace = true
 base64 = "0.22"
 forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
+forge-ai-editor.workspace = true
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 phpforge-composer = { path = "../../packs/phpforge/composer" }
 phpforge-interpreters = { path = "../../packs/phpforge/interpreters" }
@@ -43,6 +44,7 @@ goforge-lang-go.workspace = true
 goforge-pprof.workspace = true
 forge-profiler.workspace = true
 rustforge-lang-rust.workspace = true
+rubyforge-lang-ruby.workspace = true
 dotnetforge-lang-dotnet.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true

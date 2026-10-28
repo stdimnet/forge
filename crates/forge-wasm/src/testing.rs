@@ -34,6 +34,7 @@ fn registry(specs: &[TestFrameworkSpec]) -> TestFrameworks {
     webforge_js_testing::register(&mut r, specs.iter().cloned());
     goforge_lang_go::provider::register(&mut r, specs.iter().cloned());
     rustforge_lang_rust::provider::register(&mut r, specs.iter().cloned());
+    rubyforge_lang_ruby::provider::register(&mut r, specs.iter().cloned());
     dotnetforge_lang_dotnet::provider::register(&mut r, specs.iter().cloned());
     // JavaForge's JUnit and TestNG replace their manifest declarations, like in the app.
     r.register(Box::new(javaforge_lang_java::JavaTests::junit()));
@@ -108,6 +109,9 @@ struct CommandRequest {
     /// The project's Cargo context for Cargo Test configurations.
     #[serde(default)]
     rust_context: Option<serde_json::Value>,
+    /// The project's Ruby context for RSpec and Minitest configurations.
+    #[serde(default)]
+    ruby_context: Option<serde_json::Value>,
     /// The project's .NET context for .NET Tests configurations.
     #[serde(default)]
     dotnet_context: Option<serde_json::Value>,
@@ -136,6 +140,10 @@ pub fn testing_command(request_json: &str) -> String {
                 ctx.settings
                     .insert(rustforge_lang_rust::CONTEXT_KEY.into(), rust.to_string());
             }
+            if let Some(ruby) = &r.ruby_context {
+                ctx.settings
+                    .insert(rubyforge_lang_ruby::CONTEXT_KEY.into(), ruby.to_string());
+            }
             if let Some(dotnet) = &r.dotnet_context {
                 ctx.settings.insert(
                     dotnetforge_lang_dotnet::CONTEXT_KEY.into(),
@@ -159,6 +167,10 @@ pub fn testing_command(request_json: &str) -> String {
             } else if let Some(rust) = rustforge_lang_rust::CargoTestProvider::new(r.spec.clone()) {
                 use forge_testing::TestFrameworkProvider;
                 rust.command(&r.configuration, &ctx)
+                    .unwrap_or_else(|| Err("no command".into()))
+            } else if let Some(ruby) = rubyforge_lang_ruby::RubyTests::new(r.spec.clone()) {
+                use forge_testing::TestFrameworkProvider;
+                ruby.command(&r.configuration, &ctx)
                     .unwrap_or_else(|| Err("no command".into()))
             } else if let Some(dotnet) = dotnetforge_lang_dotnet::DotnetTests::new(r.spec.clone()) {
                 use forge_testing::TestFrameworkProvider;

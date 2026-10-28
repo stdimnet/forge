@@ -886,6 +886,25 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Ruby
+
+Page id `lang.ruby` (`ruby.interpreter` and `ruby.interpreters` are set by the Ruby SDK list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ruby.interpreter` | string | `""` | user, project | Ruby SDK | Ruby interpreter — The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest. |
+| `ruby.interpreters` | list | `[]` | user | Ruby SDK | Added interpreters — Ruby executables added by hand (Add Interpreter…); detected ones are listed without this. |
+| `ruby.environment` | list | `[]` | user, project | Ruby SDK | Environment — Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV). |
+| `ruby.bundler.useBundleExec` | bool | `true` | user, project | Bundler | Run commands with bundle exec — In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle. |
+| `ruby.bundler.path` | path | `""` | user | Bundler | bundle executable — Empty: the interpreter's bundle, then PATH. |
+| `ruby.rake.runRake` | bool | `true` | user, project | Rake | Load tasks with rake --tasks — The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake. |
+| `ruby.formatter` | enum: `rubocop`, `rubocopAll`, `lsp`, `none` | `rubocop` | user, project | RuboCop | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Ruby files. |
+| `ruby.rubocop.onTheFly` | bool | `true` | user, project | RuboCop | Check files with RuboCop — RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins). |
+| `ruby.rubocop.path` | path | `""` | user | RuboCop | rubocop executable — Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH. |
+| `ruby.rubocop.options` | string | `""` | user, project | RuboCop | Additional options — Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml. |
+| `ruby.lsp.path` | path | `""` | user | Ruby LSP | ruby-lsp executable — Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder. |
+| `ruby.lsp.formatter` | enum: `auto`, `rubocop_internal`, `syntax_tree`, `none` | `auto` | user, project | Ruby LSP | Ruby LSP formatter — The formatter Ruby LSP uses for formatting and diagnostics. |
+| `ruby.debugger.rdbgPath` | path | `""` | user | Debugger | rdbg executable — The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem. |
 ### Languages & Frameworks | Rust
 
 Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
@@ -1135,6 +1154,21 @@ Page id `tools.vulnerabilities`. See [Vulnerable dependencies](../user/vulnerabl
 | `vulnerabilities.checkOnOpen` | bool | `true` | user |  | Check when a project is opened and when a lock file changes — Results are cached per lock file in Forge's cache folder; Check for Vulnerable Dependencies always runs the tools. |
 | `vulnerabilities.cacheHours` | int | `24` | user |  | Re-check unchanged projects after (hours) — How long the result of an unchanged manifest and lock file is reused on project open. |
 | `vulnerabilities.dependencyCheckReport` | string | (empty) | user, project |  | OWASP dependency-check report (Maven / Gradle) — The JSON report your build writes with dependency-check; Forge reads it and does not run dependency-check. Empty: Maven and Gradle projects are not checked. |
+
+### Tools | AI Assistant
+
+Page id `tools.ai-assistant`. The page also picks the provider and model of the actions (the
+Chat model) and of inline completion (the Code completion model), stored in `ai.toml` like
+Settings | Tools | AI Providers.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ai.enabled` | bool | `true` | user, project | General | Enable AI features in this project — Turn off to keep this project's code away from all AI providers: no inline completion, no Explain / Fix / Generate with AI. Files can also be excluded with an .aiignore file in the project root (gitignore syntax). |
+| `ai.completion.enabled` | bool | `false` | user | Inline Completion | Enable inline code completion — Show AI suggestions as gray text while you type. Tab accepts, Ctrl+Right accepts the next word, Escape dismisses. Uses the Code completion model of Settings \| Tools \| AI Providers. |
+| `ai.completion.multiline` | enum: `auto`, `single`, `multi` | `auto` | user | Inline Completion | Suggestion length — Automatic suggests several lines on an empty line and after a block opener such as `{`, else one line. |
+| `ai.completion.mode` | enum: `auto`, `fim`, `chat` | `auto` | user | Inline Completion | Request type — Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs. |
+| `ai.completion.debounceMs` | int (50–3000) | `350` | user | Inline Completion | Delay before asking (ms) — How long typing must pause before a suggestion is requested. |
+| `ai.completion.disabledLanguages` | list | `[]` | user | Inline Completion | Disable for languages — Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript. |
 
 ### Tools | AI Agents
 

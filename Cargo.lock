@@ -2183,6 +2183,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-ai-editor"
+version = "0.1.0"
+dependencies = [
+ "forge-agent-cli",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
@@ -2197,6 +2206,7 @@ dependencies = [
  "dotnetforge-sdk",
  "forge-agent-cli",
  "forge-ai",
+ "forge-ai-editor",
  "forge-backend",
  "forge-bookmarks",
  "forge-codestyle",
@@ -2284,6 +2294,8 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-lang-ruby",
+ "rubyforge-sdk",
  "rustforge-lang-rust",
  "rustforge-toolchain",
  "serde",
@@ -3178,6 +3190,7 @@ dependencies = [
  "cforge-lang-cpp",
  "dotnetforge-lang-dotnet",
  "forge-agent-cli",
+ "forge-ai-editor",
  "forge-bookmarks",
  "forge-codeintel",
  "forge-codestyle",
@@ -3251,6 +3264,7 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-lang-ruby",
  "rustforge-lang-rust",
  "serde",
  "serde_json",
@@ -7355,6 +7369,32 @@ dependencies = [
  "signature 3.0.0",
  "spki 0.8.1",
  "zeroize",
+]
+
+[[package]]
+name = "rubyforge-lang-ruby"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "rubyforge-sdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-dap",
+ "forge-debug",
+ "rubyforge-lang-ruby",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

@@ -18,6 +18,7 @@ import "./clipboardMock";
 import "./vimMock";
 import "./projectStateMock";
 import "./aiMock";
+import "./aiEditorMock";
 import "./agentMock";
 import "./lspMock";
 import "./inlayHintsMock";
@@ -79,6 +80,7 @@ import "./luaMock";
 import "./pythonMock";
 import "./goMock";
 import "./rustMock";
+import "./rubyMock";
 import "./dotnetMock";
 import "./dotnetWebMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
