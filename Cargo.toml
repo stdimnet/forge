@@ -78,6 +78,7 @@ forge-deploy = { path = "crates/forge-deploy" }
 forge-window = { path = "crates/forge-window" }
 forge-update = { path = "crates/forge-update" }
 forge-vulns = { path = "crates/forge-vulns" }
+forge-mcp = { path = "crates/forge-mcp" }
 phpforge-composer = { path = "packs/phpforge/composer" }
 phpforge-interpreters = { path = "packs/phpforge/interpreters" }
 phpforge-cli-tools = { path = "packs/phpforge/cli-tools" }
