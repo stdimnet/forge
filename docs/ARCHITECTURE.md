@@ -438,6 +438,19 @@ app/ui/            SolidJS UI
   `ai.completion.disabledLanguages`. Context actions can opt out of lighting the bulb with
   `registerContextActionProvider(provider, { bulb: false })`; other features add Generate
   (`Alt+Insert`) entries with `registerGenerateItems` (`editor/generateItems.ts`).
+- Agent Tasks (`forge-agent-tasks`, `commands/agent_tasks.rs`, UI `features/agent-tasks`):
+  `agent_tasks_list() -> AgentTask[]`, `agent_task_create({ request: { prompt, scope, backend:
+  { kind: "builtin", provider?, model? } | { kind: "cli", agentId, model? }, tests: { kind: "none" }
+  | { kind: "configuration", name } | { kind: "command", command }, maxSteps? } }) -> AgentTask`,
+  `agent_task_cancel({ id })`, `agent_task_approve({ id, step, allow })` (the index of a pending
+  `approval` step), `agent_task_changes({ id }) -> { path, kind, additions, deletions, binary }[]`,
+  `agent_task_file_diff({ id, path }) -> { before?, after? }`, `agent_task_apply({ id, mode: { mode:
+  "apply" } | { mode: "commit", message } | { mode: "branch", branch, message }, paths? }) ->
+  { applied, files, conflicts, message?, created? }`, `agent_task_discard({ id })`,
+  `agent_task_remove({ id })`; every change emits `agent-tasks://changed` with the whole task
+  (`{ id, title, request, status, steps: { index, at, kind, ... }[], outcome?, ... }`). Tasks run
+  one at a time per project in a git worktree under `<cache dir>/forge/agent-tasks/<project>`;
+  refused in Safe Mode, for remote projects and with `ai.enabled` off.
 - Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`
   (`{ id, name, models, installHint, permissionPrompts, permissionModes: { value, label, short, hint }[],
   supported, installed, path }`),

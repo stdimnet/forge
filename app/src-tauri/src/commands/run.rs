@@ -802,6 +802,23 @@ pub(crate) fn on_target(
     })
 }
 
+/// The command line of a run configuration plus, for test configurations, the format its
+/// results arrive in (agent tasks run it in their sandbox).
+pub(crate) fn configuration_command(
+    state: &AppState,
+    runs: &RunState,
+    configuration: RunConfiguration,
+) -> Result<(CommandLine, Option<forge_process::output::TestReport>)> {
+    let test_runner = runs.tests.is_test_type(&configuration.type_id);
+    let request: RunRequest = serde_json::from_value(serde_json::json!({
+        "configuration": configuration,
+        "testRunner": test_runner,
+    }))
+    .map_err(|e| ForgeError::Other(e.to_string()))?;
+    let built = build(state, runs, request)?;
+    Ok((built.cmd, test_runner.then_some(built.tests.report)))
+}
+
 /// The command line a request would start, for previews in the configuration dialog.
 #[tauri::command]
 pub fn run_command_line(

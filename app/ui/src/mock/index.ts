@@ -20,6 +20,7 @@ import "./projectStateMock";
 import "./aiMock";
 import "./aiEditorMock";
 import "./agentMock";
+import "./agentTasksMock";
 import "./lspMock";
 import "./inlayHintsMock";
 import "./langserversMock";
