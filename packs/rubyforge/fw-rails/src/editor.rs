@@ -136,16 +136,24 @@ fn line_bounds(text: &str, at: usize) -> (usize, usize) {
 
 fn routes_named<'a>(p: &'a Project, name: &str) -> impl Iterator<Item = &'a crate::Route> {
     let name = name.to_string();
-    p.info.routes.iter().filter(move |r| r.name.as_deref() == Some(name.as_str()))
+    p.info
+        .routes
+        .iter()
+        .filter(move |r| r.name.as_deref() == Some(name.as_str()))
 }
 
 /// `articles_path` → `articles`.
 fn helper_route(word: &str) -> Option<&str> {
-    word.strip_suffix("_path").or_else(|| word.strip_suffix("_url"))
+    word.strip_suffix("_path")
+        .or_else(|| word.strip_suffix("_url"))
 }
 
 fn route_label(r: &crate::Route) -> String {
-    let m = if r.methods.is_empty() { "ANY".to_string() } else { r.methods.join("|") };
+    let m = if r.methods.is_empty() {
+        "ANY".to_string()
+    } else {
+        r.methods.join("|")
+    };
     format!("{m} {}", r.path)
 }
 
@@ -169,7 +177,9 @@ pub fn goto(p: &Project, path: &str, text: &str, offset: usize) -> Vec<Location>
                 .iter()
                 .map(|t| t.location.clone())
                 .collect();
-            out.sort_by_key(|l| l.path != format!("config/locales/{}.yml", p.catalog.default_locale));
+            out.sort_by_key(|l| {
+                l.path != format!("config/locales/{}.yml", p.catalog.default_locale)
+            });
             return out;
         }
     }
@@ -195,7 +205,9 @@ pub fn goto(p: &Project, path: &str, text: &str, offset: usize) -> Vec<Location>
             StimulusRefKind::Method => c.methods.iter().find(|m| m.name == r.name),
             StimulusRefKind::Target => c.targets.iter().find(|m| m.name == r.name),
         };
-        return vec![found.map(|n| n.location.clone()).unwrap_or_else(|| c.location.clone())];
+        return vec![found
+            .map(|n| n.location.clone())
+            .unwrap_or_else(|| c.location.clone())];
     }
     // Turbo frames: the frame and the other places that target it.
     let frames = hotwire::frame_refs(text);
@@ -208,7 +220,12 @@ pub fn goto(p: &Project, path: &str, text: &str, offset: usize) -> Vec<Location>
     if is_routes_file(path) && string_around(line, at - ls).is_some() {
         let n = LineIndex::new(text).position(ls).0;
         let mut out: Vec<Location> = Vec::new();
-        for r in p.info.routes.iter().filter(|r| r.location.path == path && r.location.line == n) {
+        for r in p
+            .info
+            .routes
+            .iter()
+            .filter(|r| r.location.path == path && r.location.line == n)
+        {
             if let Some(l) = &r.action_location {
                 if !out.contains(l) {
                     out.push(l.clone());
@@ -285,7 +302,9 @@ fn trailing_call(s: &str) -> (String, &str) {
     let start = t
         .char_indices()
         .rev()
-        .take_while(|(_, c)| c.is_alphanumeric() || *c == '_' || *c == '.' || *c == ':' || *c == '-')
+        .take_while(|(_, c)| {
+            c.is_alphanumeric() || *c == '_' || *c == '.' || *c == ':' || *c == '-'
+        })
         .last()
         .map(|(i, _)| i)
         .unwrap_or(t.len());
@@ -341,7 +360,11 @@ pub fn complete(p: &Project, path: &str, text: &str, offset: usize) -> Option<Co
         }
     }
     let symbol = before[..ws].ends_with(':') && !before[..ws].ends_with("::");
-    let head = if symbol { &before[..ws - 1] } else { &before[..ws] };
+    let head = if symbol {
+        &before[..ws - 1]
+    } else {
+        &before[..ws]
+    };
     let typed = &before[ws..];
     let from = ls + if symbol { ws - 1 } else { ws };
     let items = code_items(p, path, text, at, head, typed, symbol)?;
@@ -363,17 +386,26 @@ fn string_items(
 ) -> Option<(Vec<CompletionItem>, usize)> {
     let (call, _) = trailing_call(head);
     // Translation keys.
-    if matches!(call.as_str(), "t" | "translate" | "I18n.t" | "I18n.translate") {
+    if matches!(
+        call.as_str(),
+        "t" | "translate" | "I18n.t" | "I18n.translate"
+    ) {
         let items = if let Some(rel) = typed.strip_prefix('.') {
             let _ = rel;
             let scope = i18n::lazy_scope(path, text, at)?;
             let prefix = format!("{scope}.");
             p.catalog
                 .keys()
-                .filter_map(|(k, v)| k.strip_prefix(&prefix).map(|r| item(format!(".{r}"), "i18n", truncate(v, 40))))
+                .filter_map(|(k, v)| {
+                    k.strip_prefix(&prefix)
+                        .map(|r| item(format!(".{r}"), "i18n", truncate(v, 40)))
+                })
                 .collect()
         } else {
-            p.catalog.keys().map(|(k, v)| item(k, "i18n", truncate(v, 40))).collect()
+            p.catalog
+                .keys()
+                .map(|(k, v)| item(k, "i18n", truncate(v, 40)))
+                .collect()
         };
         return Some((items, 0));
     }
@@ -418,14 +450,22 @@ fn string_items(
                     if matches!(m.name.as_str(), "connect" | "disconnect" | "initialize") {
                         continue;
                     }
-                    items.push(item(format!("{}#{}", c.identifier, m.name), "action", &c.path));
+                    items.push(item(
+                        format!("{}#{}", c.identifier, m.name),
+                        "action",
+                        &c.path,
+                    ));
                 }
             }
             return Some((items, start));
         }
         if let Some(id) = attr.strip_suffix("-target") {
             let c = p.stimulus(id)?;
-            let items = c.targets.iter().map(|t| item(&t.name, "target", &c.identifier)).collect();
+            let items = c
+                .targets
+                .iter()
+                .map(|t| item(&t.name, "target", &c.identifier))
+                .collect();
             return Some((items, word_from));
         }
         if attr == "turbo-frame" {
@@ -434,11 +474,13 @@ fn string_items(
         return None;
     }
     // turbo_stream.replace "…", turbo_frame_tag "…", target: "…".
-    if call.starts_with("turbo_stream.") || call == "turbo_frame_tag" || head_t.ends_with("target:") {
+    if call.starts_with("turbo_stream.") || call == "turbo_frame_tag" || head_t.ends_with("target:")
+    {
         return Some((frame_items(p), 0));
     }
     // routes.rb: to: "controller#action".
-    if is_routes_file(path) && (head_t.ends_with("to:") || head_t.ends_with("=>") || call == "root") {
+    if is_routes_file(path) && (head_t.ends_with("to:") || head_t.ends_with("=>") || call == "root")
+    {
         let mut items = Vec::new();
         for c in p.info.controllers.iter().filter(|c| c.kind == "controller") {
             for a in &c.actions {
@@ -468,7 +510,8 @@ fn frame_items(p: &Project) -> Vec<CompletionItem> {
 
 fn render_items(p: &Project, path: &str, head: &str) -> Vec<CompletionItem> {
     let dir = app::view_dir(path).unwrap_or_default();
-    let layouts = head.ends_with("layout") || head.trim_end_matches('(').trim_end().ends_with("layout");
+    let layouts =
+        head.ends_with("layout") || head.trim_end_matches('(').trim_end().ends_with("layout");
     let partials = path.starts_with("app/views/") || head.ends_with("partial:");
     let mut out = Vec::new();
     let mut seen = BTreeSet::new();
@@ -599,7 +642,10 @@ fn model_of<'a>(p: &'a Project, path: &str, expr: &str) -> Option<&'a Model> {
     let expr = expr.trim();
     let parts: Vec<&str> = expr.split('.').filter(|s| !s.is_empty()).collect();
     // The first constant of a chain: `Article.published.where`.
-    if let Some(c) = parts.iter().find(|s| s.starts_with(|c: char| c.is_uppercase())) {
+    if let Some(c) = parts
+        .iter()
+        .find(|s| s.starts_with(|c: char| c.is_uppercase()))
+    {
         if let Some(m) = p.model(c) {
             return Some(m);
         }
@@ -674,7 +720,13 @@ fn open_call(head: &str) -> Option<(String, String)> {
 
 /// The model of a form builder variable: `form_with(model: @article) do |form|`,
 /// `form_for @article do |f|`, or the folder of a `_form` partial.
-fn form_model<'a>(p: &'a Project, path: &str, text: &str, at: usize, var: &str) -> Option<&'a Model> {
+fn form_model<'a>(
+    p: &'a Project,
+    path: &str,
+    text: &str,
+    at: usize,
+    var: &str,
+) -> Option<&'a Model> {
     let before = &text[..at];
     let needle = format!("|{var}|");
     if let Some(i) = before.rfind(&needle) {
@@ -730,7 +782,10 @@ fn code_items(
     // `@article.` / `article.` / `Article.`: attributes and associations, scopes.
     if let Some(recv) = head.strip_suffix('.') {
         let (expr, _) = trailing_call(recv);
-        let is_class = expr.rsplit('.').next().is_some_and(|s| s.starts_with(|c: char| c.is_uppercase()));
+        let is_class = expr
+            .rsplit('.')
+            .next()
+            .is_some_and(|s| s.starts_with(|c: char| c.is_uppercase()));
         let m = model_of(p, path, &expr)?;
         if is_class {
             return Some(
@@ -748,21 +803,38 @@ fn code_items(
             let m = text[..at]
                 .rfind("require(:")
                 .map(|i| &text[i + 9..])
-                .and_then(|r| model_of(p, path, &r.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect::<String>()))
+                .and_then(|r| {
+                    model_of(
+                        p,
+                        path,
+                        &r.chars()
+                            .take_while(|c| c.is_alphanumeric() || *c == '_')
+                            .collect::<String>(),
+                    )
+                })
                 .or_else(|| {
                     let (name, _) = app::controller_name(path)?;
                     model_of(p, path, name.rsplit('/').next()?)
                 })?;
             return Some(attribute_items(m, "symbol"));
         }
-        let recv = if recv.is_empty() { "self".to_string() } else { recv };
-        let recv = recv.strip_suffix(".where").map(str::to_string).unwrap_or(recv);
+        let recv = if recv.is_empty() {
+            "self".to_string()
+        } else {
+            recv
+        };
+        let recv = recv
+            .strip_suffix(".where")
+            .map(str::to_string)
+            .unwrap_or(recv);
         if KEY_METHODS.contains(&method.as_str()) && !symbol {
             if let Some(m) = model_of(p, path, &recv) {
                 return Some(attribute_items(m, "key"));
             }
         }
-        if SYMBOL_METHODS.contains(&method.as_str()) || (KEY_METHODS.contains(&method.as_str()) && symbol) {
+        if SYMBOL_METHODS.contains(&method.as_str())
+            || (KEY_METHODS.contains(&method.as_str()) && symbol)
+        {
             if let Some(m) = model_of(p, path, &recv) {
                 return Some(attribute_items(m, "symbol"));
             }
@@ -805,7 +877,11 @@ fn code_items(
         items.push(item(format!("{name}_url"), "route", &detail));
     }
     if is_erb(path) && "turbo".starts_with(&typed[..typed.len().min(5)]) {
-        items.extend(hotwire::TURBO_HELPERS.iter().map(|(n, d)| item(*n, "turbo", *d)));
+        items.extend(
+            hotwire::TURBO_HELPERS
+                .iter()
+                .map(|(n, d)| item(*n, "turbo", *d)),
+        );
     }
     let lower = typed.to_ascii_lowercase();
     items.retain(|i| {
@@ -821,7 +897,17 @@ fn short(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
 
-fn push_problem(out: &mut Vec<Problem>, text: &str, idx: &LineIndex, s: usize, e: usize, message: String, severity: &str, code: &str) {
+#[allow(clippy::too_many_arguments)]
+fn push_problem(
+    out: &mut Vec<Problem>,
+    text: &str,
+    idx: &LineIndex,
+    s: usize,
+    e: usize,
+    message: String,
+    severity: &str,
+    code: &str,
+) {
     let (line, start) = idx.position(s);
     let (_, end) = idx.position(e.max(s).min(text.len()));
     out.push(Problem {
@@ -843,14 +929,22 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
     if let Some((name, kind)) = app::controller_name(path) {
         let c = app::controller(path, text);
         for a in c.iter().flat_map(|c| c.actions.iter()) {
-            let views: Vec<&app::View> = p.views.iter().filter(|v| v.dir == name && v.name == a.name && !v.partial).collect();
+            let views: Vec<&app::View> = p
+                .views
+                .iter()
+                .filter(|v| v.dir == name && v.name == a.name && !v.partial)
+                .collect();
             if !views.is_empty() {
                 m.gutter.push(GutterMark {
                     line: a.location.line,
                     kind: "view".into(),
                     tooltip: format!(
                         "Go to view: {}",
-                        views.iter().map(|v| short(&v.path)).collect::<Vec<_>>().join(", ")
+                        views
+                            .iter()
+                            .map(|v| short(&v.path))
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     ),
                     targets: views.iter().map(|v| Location::file(&v.path)).collect(),
                 });
@@ -893,7 +987,9 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
         } else {
             let mut targets = Vec::new();
             for (other, t) in p.files() {
-                if other == path || !(other.starts_with("app/views/") || other.starts_with("app/controllers/")) {
+                if other == path
+                    || !(other.starts_with("app/views/") || other.starts_with("app/controllers/"))
+                {
                     continue;
                 }
                 if !t.contains("render") {
@@ -901,7 +997,11 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
                 }
                 let oidx = LineIndex::new(t);
                 for r in app::render_refs(other, t) {
-                    if r.kind == RenderKind::Partial && app::resolve_render(other, &r, &p.views).iter().any(|f| f == path) {
+                    if r.kind == RenderKind::Partial
+                        && app::resolve_render(other, &r, &p.views)
+                            .iter()
+                            .any(|f| f == path)
+                    {
                         let (line, character) = oidx.position(r.start);
                         targets.push(Location {
                             path: other.to_string(),
@@ -915,7 +1015,11 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
                 m.gutter.push(GutterMark {
                     line: 0,
                     kind: "partial".into(),
-                    tooltip: format!("Rendered in {} place{}", targets.len(), if targets.len() == 1 { "" } else { "s" }),
+                    tooltip: format!(
+                        "Rendered in {} place{}",
+                        targets.len(),
+                        if targets.len() == 1 { "" } else { "s" }
+                    ),
                     targets,
                 });
             }
@@ -952,7 +1056,13 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
     }
     // Routes: the actions they lead to.
     if is_routes_file(path) {
-        let mut lines: Vec<u32> = p.info.routes.iter().filter(|r| r.location.path == path).map(|r| r.location.line).collect();
+        let mut lines: Vec<u32> = p
+            .info
+            .routes
+            .iter()
+            .filter(|r| r.location.path == path)
+            .map(|r| r.location.line)
+            .collect();
         lines.dedup();
         for line in lines {
             let rs: Vec<&crate::Route> = p
@@ -976,7 +1086,11 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
             m.gutter.push(GutterMark {
                 line,
                 kind: "action".into(),
-                tooltip: format!("{}{}", handlers.join(", "), if rs.len() > 4 { ", …" } else { "" }),
+                tooltip: format!(
+                    "{}{}",
+                    handlers.join(", "),
+                    if rs.len() > 4 { ", …" } else { "" }
+                ),
                 targets,
             });
         }
@@ -1005,7 +1119,11 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
             m.gutter.push(GutterMark {
                 line,
                 kind: "stimulus".into(),
-                tooltip: format!("Used in {} place{}", targets.len(), if targets.len() == 1 { "" } else { "s" }),
+                tooltip: format!(
+                    "Used in {} place{}",
+                    targets.len(),
+                    if targets.len() == 1 { "" } else { "s" }
+                ),
                 targets,
             });
         }
@@ -1039,33 +1157,50 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
                     "info",
                     "RailsStimulus",
                 ),
-                (StimulusRefKind::Method, Some(c)) if !c.methods.iter().any(|x| x.name == r.name) => push_problem(
-                    &mut m.problems,
-                    text,
-                    &idx,
-                    r.start,
-                    r.end,
-                    format!("Unknown action '{}' of Stimulus controller '{}'", r.name, c.identifier),
-                    "warning",
-                    "RailsStimulus",
-                ),
-                (StimulusRefKind::Target, Some(c)) if !c.targets.iter().any(|x| x.name == r.name) => push_problem(
-                    &mut m.problems,
-                    text,
-                    &idx,
-                    r.start,
-                    r.end,
-                    format!("Unknown target '{}' of Stimulus controller '{}'", r.name, c.identifier),
-                    "warning",
-                    "RailsStimulus",
-                ),
+                (StimulusRefKind::Method, Some(c))
+                    if !c.methods.iter().any(|x| x.name == r.name) =>
+                {
+                    push_problem(
+                        &mut m.problems,
+                        text,
+                        &idx,
+                        r.start,
+                        r.end,
+                        format!(
+                            "Unknown action '{}' of Stimulus controller '{}'",
+                            r.name, c.identifier
+                        ),
+                        "warning",
+                        "RailsStimulus",
+                    )
+                }
+                (StimulusRefKind::Target, Some(c))
+                    if !c.targets.iter().any(|x| x.name == r.name) =>
+                {
+                    push_problem(
+                        &mut m.problems,
+                        text,
+                        &idx,
+                        r.start,
+                        r.end,
+                        format!(
+                            "Unknown target '{}' of Stimulus controller '{}'",
+                            r.name, c.identifier
+                        ),
+                        "warning",
+                        "RailsStimulus",
+                    )
+                }
                 _ => {}
             }
         }
     }
     // Unresolved partials and templates.
     for r in app::render_refs(path, text) {
-        if !r.literal || r.name.contains("#{") || !app::resolve_render(path, &r, &p.views).is_empty() {
+        if !r.literal
+            || r.name.contains("#{")
+            || !app::resolve_render(path, &r, &p.views).is_empty()
+        {
             continue;
         }
         let what = match r.kind {
@@ -1108,7 +1243,11 @@ pub fn marks(p: &Project, path: &str, text: &str) -> FileMarks {
                     "RailsI18nMissing",
                 );
             }
-        } else if has_catalog && !p.catalog.is_namespace(&full) && !Catalog::is_framework_key(&full) && !full.ends_with('.') {
+        } else if has_catalog
+            && !p.catalog.is_namespace(&full)
+            && !Catalog::is_framework_key(&full)
+            && !full.ends_with('.')
+        {
             push_problem(
                 &mut m.problems,
                 text,

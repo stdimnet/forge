@@ -28,10 +28,7 @@ impl<'a> LineIndex<'a> {
 
     /// The byte offset of a 0-based line's start.
     pub fn line_start(&self, line: usize) -> usize {
-        self.starts
-            .get(line)
-            .copied()
-            .unwrap_or(self.text.len())
+        self.starts.get(line).copied().unwrap_or(self.text.len())
     }
 
     pub fn line_count(&self) -> usize {
@@ -235,7 +232,10 @@ pub enum Tok {
     /// `:articles`, `:"x-y"`.
     Sym(String),
     /// A string literal (`interp`: it has `#{…}`).
-    Str { value: String, interp: bool },
+    Str {
+        value: String,
+        interp: bool,
+    },
     /// `only:` / `"only":` hash keys.
     Key(String),
     /// `%w[a b]` / `%i[a b]` word lists.
@@ -354,8 +354,7 @@ pub fn tokens(code: &str) -> Vec<Token> {
         if c == ':' && at(i + 1) != ':' {
             let prev = if i == 0 { ' ' } else { at(i - 1) };
             let n = at(i + 1);
-            if !is_ident_char(prev) && prev != ':' && (is_ident_char(n) || n == '"' || n == '\'')
-            {
+            if !is_ident_char(prev) && prev != ':' && (is_ident_char(n) || n == '"' || n == '\'') {
                 if n == '"' || n == '\'' {
                     let (value, _, next) = string_at(&chars, i + 2, n, false);
                     i = next;
@@ -401,7 +400,10 @@ pub fn tokens(code: &str) -> Vec<Token> {
         }
         if c.is_ascii_digit() {
             let mut j = i;
-            while at(j).is_ascii_alphanumeric() || at(j) == '_' || (at(j) == '.' && at(j + 1).is_ascii_digit()) {
+            while at(j).is_ascii_alphanumeric()
+                || at(j) == '_'
+                || (at(j) == '.' && at(j + 1).is_ascii_digit())
+            {
                 j += 1;
             }
             out.push(Token {
@@ -482,7 +484,12 @@ pub fn tokens(code: &str) -> Vec<Token> {
     out
 }
 
-fn string_at(chars: &[(usize, char)], mut i: usize, quote: char, interp: bool) -> (String, bool, usize) {
+fn string_at(
+    chars: &[(usize, char)],
+    mut i: usize,
+    quote: char,
+    interp: bool,
+) -> (String, bool, usize) {
     let mut value = String::new();
     let mut has_interp = false;
     while i < chars.len() {
@@ -539,7 +546,10 @@ impl Val {
     /// Strings and symbols of a value or list (`only: %i[index show]`).
     pub fn texts(&self) -> Vec<String> {
         match self {
-            Val::List(l) => l.iter().filter_map(|v| v.text().map(str::to_string)).collect(),
+            Val::List(l) => l
+                .iter()
+                .filter_map(|v| v.text().map(str::to_string))
+                .collect(),
             v => v.text().map(|s| vec![s.to_string()]).unwrap_or_default(),
         }
     }
@@ -634,7 +644,10 @@ fn value(toks: &[Token], i: &mut usize) -> Val {
                     Tok::Punct(')' | ']' | '}') if depth > 0 => depth -= 1,
                     Tok::Punct(',' | ')' | ']') if depth == 0 => break,
                     Tok::Ident(s) if depth == 0 && s == "do" => break,
-                    _ if depth == 0 && !matches!(n.tok, Tok::Punct('(') | Tok::Str { .. }) && name != "->" => {
+                    _ if depth == 0
+                        && !matches!(n.tok, Tok::Punct('(') | Tok::Str { .. })
+                        && name != "->" =>
+                    {
                         break
                     }
                     _ => {}
@@ -656,7 +669,10 @@ fn value(toks: &[Token], i: &mut usize) -> Val {
 pub fn call_args(toks: &[Token]) -> Args {
     let mut args = Args::default();
     let mut i = 1;
-    if toks.get(1).is_some_and(|t| t.is_punct('(') && t.start == toks[0].end) {
+    if toks
+        .get(1)
+        .is_some_and(|t| t.is_punct('(') && t.start == toks[0].end)
+    {
         i = 2;
     }
     while i < toks.len() {
@@ -699,7 +715,12 @@ pub fn call_args(toks: &[Token]) -> Args {
 /// A string literal in a line around a byte offset: (content start, content end, value).
 pub fn string_around(line: &str, at: usize) -> Option<(usize, usize, String)> {
     for t in tokens(line) {
-        if let Tok::Str { value, interp: false } | Tok::Sym(value) = &t.tok {
+        if let Tok::Str {
+            value,
+            interp: false,
+        }
+        | Tok::Sym(value) = &t.tok
+        {
             let quoted = matches!(t.tok, Tok::Str { .. }) || line[t.start..].starts_with(":\"");
             let (s, e) = match &t.tok {
                 Tok::Sym(_) if !quoted => (t.start + 1, t.end),
@@ -754,7 +775,8 @@ mod tests {
 
     #[test]
     fn logical_lines_join_continued_calls() {
-        let src = "get \"about\",\n    to: \"pages#about\" # the page\n=begin\nx\n=end\nroot \"a#b\"\n";
+        let src =
+            "get \"about\",\n    to: \"pages#about\" # the page\n=begin\nx\n=end\nroot \"a#b\"\n";
         let l = logical_lines(src);
         assert_eq!(l.len(), 2);
         assert_eq!(l[0].text, "get \"about\", to: \"pages#about\"");
@@ -773,7 +795,9 @@ mod tests {
         let (p, to) = a.pair().unwrap();
         assert_eq!((p.text(), to.text()), (Some("/old"), Some("pages#home")));
         assert_eq!(a.text("as"), Some("old"));
-        let a = call_args(&tokens("match \"x\", to: redirect(\"/y\"), via: [:get, :post]"));
+        let a = call_args(&tokens(
+            "match \"x\", to: redirect(\"/y\"), via: [:get, :post]",
+        ));
         assert_eq!(a.get("to"), Some(&Val::Redirect("/y".into())));
         assert_eq!(a.get("via").unwrap().texts(), ["get", "post"]);
         let a = call_args(&tokens("scope(path: \"/admin\", module: :admin) do"));
@@ -786,7 +810,10 @@ mod tests {
         let line = "<%= t(\".title\") %> <%= render \"form\" %>";
         let at = line.find("title").unwrap() + 2;
         assert_eq!(string_around(line, at).unwrap().2, ".title");
-        assert_eq!(word_at("link_to x, articles_path", 15).unwrap().2, "articles_path");
+        assert_eq!(
+            word_at("link_to x, articles_path", 15).unwrap().2,
+            "articles_path"
+        );
         assert_eq!(code("x = 1 # \"y\""), "x = 1");
         assert_eq!(code("x = \"#{a}\" # c"), "x = \"#{a}\"");
     }

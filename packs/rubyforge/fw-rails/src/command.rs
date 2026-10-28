@@ -28,7 +28,10 @@ fn environment(env: &str) -> Result<Option<String>, String> {
     if env.is_empty() {
         return Ok(None);
     }
-    if !env.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    if !env
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
         return Err(format!("'{env}' is not an environment name"));
     }
     Ok(Some(env.to_string()))
@@ -36,7 +39,11 @@ fn environment(env: &str) -> Result<Option<String>, String> {
 
 /// The "Rails" run configuration: `bin/rails server -b <host> -p <port> -e <environment>`
 /// with Ruby options (`interpreterOptions`) and extra server arguments.
-pub fn server_command(cfg: &Configuration, ctx: &RubyContext, has_binstub: bool) -> Result<RubyCommand, String> {
+pub fn server_command(
+    cfg: &Configuration,
+    ctx: &RubyContext,
+    has_binstub: bool,
+) -> Result<RubyCommand, String> {
     let mut args = vec!["server".to_string()];
     let host = cfg.option("host").trim();
     if !host.is_empty() {
@@ -44,7 +51,8 @@ pub fn server_command(cfg: &Configuration, ctx: &RubyContext, has_binstub: bool)
     }
     let port = cfg.option("port").trim();
     if !port.is_empty() {
-        port.parse::<u16>().map_err(|_| format!("'{port}' is not a port"))?;
+        port.parse::<u16>()
+            .map_err(|_| format!("'{port}' is not a port"))?;
         args.extend(["-p".into(), port.to_string()]);
     }
     if let Some(env) = environment(cfg.option("environment"))? {
@@ -61,7 +69,12 @@ pub fn server_command(cfg: &Configuration, ctx: &RubyContext, has_binstub: bool)
 }
 
 /// `bin/rails console [-e env] [--sandbox]`.
-pub fn console_command(ctx: &RubyContext, has_binstub: bool, env: &str, sandbox: bool) -> Result<RubyCommand, String> {
+pub fn console_command(
+    ctx: &RubyContext,
+    has_binstub: bool,
+    env: &str,
+    sandbox: bool,
+) -> Result<RubyCommand, String> {
     let mut args = vec!["console".to_string()];
     if let Some(e) = environment(env)? {
         args.extend(["-e".into(), e]);
@@ -73,7 +86,11 @@ pub fn console_command(ctx: &RubyContext, has_binstub: bool, env: &str, sandbox:
 }
 
 /// `bin/rails dbconsole [-e env]`.
-pub fn dbconsole_command(ctx: &RubyContext, has_binstub: bool, env: &str) -> Result<RubyCommand, String> {
+pub fn dbconsole_command(
+    ctx: &RubyContext,
+    has_binstub: bool,
+    env: &str,
+) -> Result<RubyCommand, String> {
     let mut args = vec!["dbconsole".to_string()];
     if let Some(e) = environment(env)? {
         args.extend(["-e".into(), e]);
@@ -141,7 +158,8 @@ mod tests {
         };
         cfg.options.insert("port".into(), "3001".into());
         cfg.options.insert("host".into(), "0.0.0.0".into());
-        cfg.options.insert("environment".into(), "development".into());
+        cfg.options
+            .insert("environment".into(), "development".into());
         let c = server_command(&cfg, &ctx(), true).unwrap();
         assert_eq!(c.program, "/home/anna/.rbenv/versions/3.3.6/bin/ruby");
         assert_eq!(
@@ -149,19 +167,36 @@ mod tests {
             "-W0 bin/rails server -b 0.0.0.0 -p 3001 -e development --early-hints"
         );
         let c = server_command(&Configuration::default(), &ctx(), false).unwrap();
-        assert_eq!((c.program.as_str(), c.args.join(" ")), ("bundle", "exec rails server".into()));
+        assert_eq!(
+            (c.program.as_str(), c.args.join(" ")),
+            ("bundle", "exec rails server".into())
+        );
         cfg.options.insert("port".into(), "x".into());
         assert!(server_command(&cfg, &ctx(), true).is_err());
 
         let c = console_command(&ctx(), true, "test", true).unwrap();
         assert_eq!(c.args.join(" "), "bin/rails console -e test --sandbox");
         assert!(console_command(&ctx(), true, "x; rm", false).is_err());
-        let c = generate_command(&ctx(), true, "model", "Article title:string body:text", &["--pretend".into()], false).unwrap();
-        assert_eq!(c.args.join(" "), "bin/rails generate model Article title:string body:text --pretend");
+        let c = generate_command(
+            &ctx(),
+            true,
+            "model",
+            "Article title:string body:text",
+            &["--pretend".into()],
+            false,
+        )
+        .unwrap();
+        assert_eq!(
+            c.args.join(" "),
+            "bin/rails generate model Article title:string body:text --pretend"
+        );
         let c = generate_command(&ctx(), true, "controller", "Pages", &[], true).unwrap();
         assert_eq!(c.args[1], "destroy");
         assert!(generate_command(&ctx(), true, "model;x", "", &[], false).is_err());
         assert_eq!(routes_command(&ctx(), true).args, ["bin/rails", "routes"]);
-        assert_eq!(dbconsole_command(&ctx(), true, "").unwrap().args, ["bin/rails", "dbconsole"]);
+        assert_eq!(
+            dbconsole_command(&ctx(), true, "").unwrap().args,
+            ["bin/rails", "dbconsole"]
+        );
     }
 }

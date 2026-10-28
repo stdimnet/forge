@@ -42,12 +42,9 @@ fn eval(expr: &str, env: &dyn Fn(&str) -> Option<String>) -> String {
         // ENV["X"] / ENV['X'] / ENV.fetch("X" …
         let i = s.find("ENV")?;
         let rest = &s[i + 3..];
-        let (q, after) = if let Some(r) = rest.strip_prefix('[') {
-            (r, 1)
-        } else if let Some(r) = rest.strip_prefix(".fetch(") {
-            (r, 7)
-        } else {
-            return None;
+        let (q, after) = match rest.strip_prefix('[') {
+            Some(r) => (r, 1),
+            None => (rest.strip_prefix(".fetch(")?, 7),
         };
         let quote = q.chars().next()?;
         if quote != '"' && quote != '\'' {
@@ -59,7 +56,10 @@ fn eval(expr: &str, env: &dyn Fn(&str) -> Option<String>) -> String {
     let Some((name, end)) = var_at(e) else {
         let v = unq(e);
         // A literal (`<%= 5 %>`) stays; Ruby code is dropped.
-        return if v.chars().all(|c| c.is_alphanumeric() || "._-/:@".contains(c)) {
+        return if v
+            .chars()
+            .all(|c| c.is_alphanumeric() || "._-/:@".contains(c))
+        {
             v
         } else {
             String::new()
@@ -159,7 +159,13 @@ fn apply_url(c: &mut DatabaseConfig, url: &str) {
 }
 
 fn config(env: &str, v: &Value, path: &str, line: u32, col: u32) -> DatabaseConfig {
-    let s = |k: &str| v.get(k).and_then(Value::as_str).unwrap_or("").trim().to_string();
+    let s = |k: &str| {
+        v.get(k)
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .trim()
+            .to_string()
+    };
     let mut c = DatabaseConfig {
         environment: env.to_string(),
         adapter: s("adapter"),
@@ -201,7 +207,10 @@ fn config(env: &str, v: &Value, path: &str, line: u32, col: u32) -> DatabaseConf
 }
 
 fn is_config(v: &Value) -> bool {
-    v.is_map() && ["adapter", "database", "url"].iter().any(|k| v.get(k).is_some())
+    v.is_map()
+        && ["adapter", "database", "url"]
+            .iter()
+            .any(|k| v.get(k).is_some())
 }
 
 /// The databases of `config/database.yml`; `env` reads environment variables
@@ -264,7 +273,9 @@ production:
 "#;
         let env = |k: &str| match k {
             "DB_PASSWORD" => Some("s3cret".to_string()),
-            "DATABASE_URL" => Some("postgres://deploy:pw@db.example.com:5433/blog_production".to_string()),
+            "DATABASE_URL" => {
+                Some("postgres://deploy:pw@db.example.com:5433/blog_production".to_string())
+            }
             _ => None,
         };
         let dbs = parse("config/database.yml", yml, &env);
@@ -296,6 +307,12 @@ production:
         );
         assert_eq!(dbs[0].password.as_deref(), Some("s3cret"));
         assert_eq!(dbs[0].location.line, 6);
-        assert_eq!(render_erb("pool: <%= ENV.fetch(\"X\") { 5 } %>\n<% if x %>\na: 1\n", &|_| None), "pool: 5\na: 1\n");
+        assert_eq!(
+            render_erb(
+                "pool: <%= ENV.fetch(\"X\") { 5 } %>\n<% if x %>\na: 1\n",
+                &|_| None
+            ),
+            "pool: 5\na: 1\n"
+        );
     }
 }

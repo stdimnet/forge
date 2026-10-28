@@ -52,7 +52,8 @@ pub fn controller_name(path: &str) -> Option<(String, &'static str)> {
     }
     let rest = path.strip_prefix("app/mailers/")?;
     let name = rest.strip_suffix(".rb")?;
-    (name != "application_mailer" && name.ends_with("_mailer")).then(|| (name.to_string(), "mailer"))
+    (name != "application_mailer" && name.ends_with("_mailer"))
+        .then(|| (name.to_string(), "mailer"))
 }
 
 /// Public `def`s of a class (before `private` / `protected`).
@@ -74,7 +75,9 @@ pub fn public_methods(path: &str, text: &str) -> Vec<Named> {
             public = true;
             continue;
         }
-        let Some(rest) = t.strip_prefix("def ") else { continue };
+        let Some(rest) = t.strip_prefix("def ") else {
+            continue;
+        };
         if !public || rest.starts_with("self.") {
             continue;
         }
@@ -121,7 +124,10 @@ pub fn first_class(text: &str) -> Option<(String, String, usize)> {
                 Some((n, s)) => (n.trim(), s.trim()),
                 None => (rest.trim(), ""),
             };
-            let sup = sup.split(|ch: char| ch.is_whitespace() || ch == ';').next().unwrap_or("");
+            let sup = sup
+                .split(|ch: char| ch.is_whitespace() || ch == ';')
+                .next()
+                .unwrap_or("");
             let mut full = modules.clone();
             full.push(name.to_string());
             let at = start + (c.len() - t.len()) + 6;
@@ -159,7 +165,11 @@ pub fn controller(path: &str, text: &str) -> Option<Controller> {
         let rest = t.strip_prefix("layout ")?;
         let toks = tokens(rest);
         match &toks.first()?.tok {
-            Tok::Str { value, interp: false } | Tok::Sym(value) => Some(value.clone()),
+            Tok::Str {
+                value,
+                interp: false,
+            }
+            | Tok::Sym(value) => Some(value.clone()),
             _ => None,
         }
     });
@@ -260,7 +270,10 @@ pub fn render_refs(path: &str, text: &str) -> Vec<RenderRef> {
             if toks.get(j).is_some_and(|t| t.is_punct('(')) {
                 j += 1;
             }
-            let push = |out: &mut Vec<RenderRef>, tok: &crate::source::Token, value: &str, kind: RenderKind| {
+            let push = |out: &mut Vec<RenderRef>,
+                        tok: &crate::source::Token,
+                        value: &str,
+                        kind: RenderKind| {
                 let (s, e) = match &tok.tok {
                     Tok::Sym(_) => (tok.start + 1, tok.end),
                     _ => (tok.start + 1, tok.end.saturating_sub(1)),
@@ -275,7 +288,12 @@ pub fn render_refs(path: &str, text: &str) -> Vec<RenderRef> {
             };
             if name == "layout" {
                 if let Some(tok) = toks.get(j) {
-                    if let Tok::Str { value, interp: false } | Tok::Sym(value) = &tok.tok {
+                    if let Tok::Str {
+                        value,
+                        interp: false,
+                    }
+                    | Tok::Sym(value) = &tok.tok
+                    {
                         push(&mut out, tok, value, RenderKind::Layout);
                     }
                 }
@@ -293,7 +311,15 @@ pub fn render_refs(path: &str, text: &str) -> Vec<RenderRef> {
                         "layout" => Some(RenderKind::Layout),
                         _ => None,
                     };
-                    if let (Some(kind), Tok::Str { value, interp: false } | Tok::Sym(value)) = (kind, &toks[k + 1].tok) {
+                    if let (
+                        Some(kind),
+                        Tok::Str {
+                            value,
+                            interp: false,
+                        }
+                        | Tok::Sym(value),
+                    ) = (kind, &toks[k + 1].tok)
+                    {
                         push(&mut out, &toks[k + 1], value, kind);
                         found = true;
                     }
@@ -308,11 +334,20 @@ pub fn render_refs(path: &str, text: &str) -> Vec<RenderRef> {
             }
             let Some(first) = toks.get(j) else { continue };
             match &first.tok {
-                Tok::Str { value, interp: false } => {
-                    let kind = if in_view { RenderKind::Partial } else { RenderKind::Template };
+                Tok::Str {
+                    value,
+                    interp: false,
+                } => {
+                    let kind = if in_view {
+                        RenderKind::Partial
+                    } else {
+                        RenderKind::Template
+                    };
                     push(&mut out, first, value, kind);
                 }
-                Tok::Sym(value) if in_controller => push(&mut out, first, value, RenderKind::Template),
+                Tok::Sym(value) if in_controller => {
+                    push(&mut out, first, value, RenderKind::Template)
+                }
                 Tok::Ivar(var) if in_view || args.positional.len() == 1 => {
                     // `render @articles` → articles/_article.
                     let singular = singularize(var);
@@ -402,7 +437,11 @@ impl Model {
     }
 }
 
-const BASES: &[&str] = &["ApplicationRecord", "ActiveRecord::Base", "::ApplicationRecord"];
+const BASES: &[&str] = &[
+    "ApplicationRecord",
+    "ActiveRecord::Base",
+    "::ApplicationRecord",
+];
 
 /// Read a model file (`app/models/**/*.rb`); `None` for other classes and abstract ones.
 pub fn model(path: &str, text: &str) -> Option<Model> {
@@ -442,7 +481,11 @@ pub fn model(path: &str, text: &str) -> Option<Model> {
         let indent = c.len() - t.len();
         let toks = tokens(t);
         if t.starts_with("self.table_name") {
-            if let Some(Tok::Str { value, .. }) = toks.iter().map(|x| &x.tok).find(|x| matches!(x, Tok::Str { .. })) {
+            if let Some(Tok::Str { value, .. }) = toks
+                .iter()
+                .map(|x| &x.tok)
+                .find(|x| matches!(x, Tok::Str { .. }))
+            {
                 m.table = value.clone();
             }
             continue;
@@ -458,13 +501,16 @@ pub fn model(path: &str, text: &str) -> Option<Model> {
         match first {
             "belongs_to" | "has_many" | "has_one" | "has_and_belongs_to_many" => {
                 let Some(n) = first_name(&args) else { continue };
-                let class_name = args.text("class_name").map(str::to_string).unwrap_or_else(|| {
-                    if first == "has_many" || first == "has_and_belongs_to_many" {
-                        camelize(&singularize(&n))
-                    } else {
-                        camelize(&n)
-                    }
-                });
+                let class_name = args
+                    .text("class_name")
+                    .map(str::to_string)
+                    .unwrap_or_else(|| {
+                        if first == "has_many" || first == "has_and_belongs_to_many" {
+                            camelize(&singularize(&n))
+                        } else {
+                            camelize(&n)
+                        }
+                    });
                 m.associations.push(Association {
                     kind: first.to_string(),
                     name: n,
@@ -488,8 +534,15 @@ pub fn model(path: &str, text: &str) -> Option<Model> {
 
 /// Resolve single table inheritance (a model whose superclass is another model shares its
 /// table) and namespaces with a `table_name_prefix`, then attach the columns.
-pub fn link_models(models: &mut [Model], tables: &[crate::schema::Table], prefix_of: &dyn Fn(&str) -> Option<String>) {
-    let explicit: Vec<bool> = models.iter().map(|m| m.table != tableize(&m.name)).collect();
+pub fn link_models(
+    models: &mut [Model],
+    tables: &[crate::schema::Table],
+    prefix_of: &dyn Fn(&str) -> Option<String>,
+) {
+    let explicit: Vec<bool> = models
+        .iter()
+        .map(|m| m.table != tableize(&m.name))
+        .collect();
     for (i, e) in explicit.iter().enumerate() {
         if *e {
             continue;
@@ -506,7 +559,10 @@ pub fn link_models(models: &mut [Model], tables: &[crate::schema::Table], prefix
                 continue;
             }
             let sup = models[i].superclass.trim_start_matches("::").to_string();
-            if let Some(base) = models.iter().find(|m| m.name == sup || m.name.ends_with(&format!("::{sup}"))) {
+            if let Some(base) = models
+                .iter()
+                .find(|m| m.name == sup || m.name.ends_with(&format!("::{sup}")))
+            {
                 let table = base.table.clone();
                 models[i].table = table;
             }
@@ -537,15 +593,24 @@ mod tests {
         assert_eq!(c.layout.as_deref(), Some("admin"));
         let names: Vec<&str> = c.actions.iter().map(|a| a.name.as_str()).collect();
         assert_eq!(names, ["index", "show"]);
-        assert_eq!((c.actions[0].location.line, c.actions[0].location.character), (3, 8));
+        assert_eq!(
+            (c.actions[0].location.line, c.actions[0].location.character),
+            (3, 8)
+        );
         assert!(controller("app/controllers/concerns/auth_controller.rb", "").is_none());
-        assert_eq!(controller_name("app/mailers/user_mailer.rb").unwrap().0, "user_mailer");
+        assert_eq!(
+            controller_name("app/mailers/user_mailer.rb").unwrap().0,
+            "user_mailer"
+        );
     }
 
     #[test]
     fn views_and_render_references() {
         let v = view("app/views/articles/_form.html.erb").unwrap();
-        assert_eq!((v.dir.as_str(), v.name.as_str(), v.partial), ("articles", "form", true));
+        assert_eq!(
+            (v.dir.as_str(), v.name.as_str(), v.partial),
+            ("articles", "form", true)
+        );
         assert!(view("app/views/articles/index.html.erb").is_some_and(|v| !v.partial));
         assert!(view("app/views/articles/README.md").is_none());
         let views: Vec<View> = [
@@ -562,11 +627,22 @@ mod tests {
         let refs = render_refs("app/views/articles/new.html.erb", text);
         let got: Vec<(String, Vec<String>)> = refs
             .iter()
-            .map(|r| (r.name.clone(), resolve_render("app/views/articles/new.html.erb", r, &views)))
+            .map(|r| {
+                (
+                    r.name.clone(),
+                    resolve_render("app/views/articles/new.html.erb", r, &views),
+                )
+            })
             .collect();
         assert_eq!(got[0].1, ["app/views/articles/_form.html.erb"]);
         assert_eq!(&text[refs[0].start..refs[0].end], "form");
-        assert_eq!(got[1], ("articles/article".into(), vec!["app/views/articles/_article.html.erb".to_string()]));
+        assert_eq!(
+            got[1],
+            (
+                "articles/article".into(),
+                vec!["app/views/articles/_article.html.erb".to_string()]
+            )
+        );
         assert_eq!(got[2].1, ["app/views/application/_flash.html.erb"]);
         assert!(got[3].1.is_empty());
         let ctl = "class ArticlesController < ApplicationController\n  layout \"admin\"\n  def update\n    render :edit, status: :unprocessable_entity\n  end\nend\n";
@@ -575,7 +651,13 @@ mod tests {
             .iter()
             .map(|r| resolve_render("app/controllers/articles_controller.rb", r, &views))
             .collect();
-        assert_eq!(got, [vec!["app/views/layouts/admin.html.erb".to_string()], vec!["app/views/articles/edit.html.erb".to_string()]]);
+        assert_eq!(
+            got,
+            [
+                vec!["app/views/layouts/admin.html.erb".to_string()],
+                vec!["app/views/articles/edit.html.erb".to_string()]
+            ]
+        );
     }
 
     #[test]
@@ -583,19 +665,44 @@ mod tests {
         let article = "class Article < ApplicationRecord\n  belongs_to :author, class_name: \"User\"\n  has_many :comments, dependent: :destroy\n  scope :published, -> { where(status: :published) }\nend\n";
         let m = model("app/models/article.rb", article).unwrap();
         assert_eq!(m.table, "articles");
-        let a: Vec<(&str, &str)> = m.associations.iter().map(|a| (a.name.as_str(), a.class_name.as_str())).collect();
+        let a: Vec<(&str, &str)> = m
+            .associations
+            .iter()
+            .map(|a| (a.name.as_str(), a.class_name.as_str()))
+            .collect();
         assert_eq!(a, [("author", "User"), ("comments", "Comment")]);
         assert_eq!(m.scopes[0].name, "published");
-        assert!(model("app/models/application_record.rb", "class ApplicationRecord < ActiveRecord::Base\n  primary_abstract_class\nend\n").is_none());
+        assert!(model(
+            "app/models/application_record.rb",
+            "class ApplicationRecord < ActiveRecord::Base\n  primary_abstract_class\nend\n"
+        )
+        .is_none());
         let mut models = vec![
             m,
-            model("app/models/featured_article.rb", "class FeaturedArticle < Article\nend\n").unwrap(),
-            model("app/models/admin/user.rb", "module Admin\n  class User < ApplicationRecord\n  end\nend\n").unwrap(),
-            model("app/models/legacy.rb", "class Legacy < ApplicationRecord\n  self.table_name = \"tbl_legacy\"\nend\n").unwrap(),
+            model(
+                "app/models/featured_article.rb",
+                "class FeaturedArticle < Article\nend\n",
+            )
+            .unwrap(),
+            model(
+                "app/models/admin/user.rb",
+                "module Admin\n  class User < ApplicationRecord\n  end\nend\n",
+            )
+            .unwrap(),
+            model(
+                "app/models/legacy.rb",
+                "class Legacy < ApplicationRecord\n  self.table_name = \"tbl_legacy\"\nend\n",
+            )
+            .unwrap(),
         ];
-        link_models(&mut models, &[], &|ns| (ns == "Admin").then(|| "admin_".to_string()));
+        link_models(&mut models, &[], &|ns| {
+            (ns == "Admin").then(|| "admin_".to_string())
+        });
         let tables: Vec<&str> = models.iter().map(|m| m.table.as_str()).collect();
-        assert_eq!(tables, ["articles", "articles", "admin_users", "tbl_legacy"]);
+        assert_eq!(
+            tables,
+            ["articles", "articles", "admin_users", "tbl_legacy"]
+        );
         assert_eq!(models[2].variable(), "user");
     }
 }

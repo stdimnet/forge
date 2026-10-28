@@ -20,21 +20,57 @@ const FIELDS: &str = "NAME [field[:type][:index] field[:type][:index]]";
 
 /// Rails' own generators (Rails 7.1 – 8).
 pub const BUILT_IN: &[(&str, &str, &str)] = &[
-    ("model", FIELDS, "A model with its migration, test and fixtures"),
-    ("controller", "NAME [action action]", "A controller with actions, views, routes and tests"),
-    ("scaffold", FIELDS, "Model, migration, controller, views, routes and tests of a resource"),
-    ("resource", FIELDS, "Model, migration, an empty controller and resource routes"),
-    ("migration", "NAME [field[:type][:index] field[:type][:index]]", "A database migration (AddXToY / RemoveXFromY / CreateJoinTableXY)"),
-    ("scaffold_controller", FIELDS, "A scaffolded controller and views for an existing model"),
-    ("authentication", "", "Session-based authentication (User, Session, controllers, views)"),
-    ("mailer", "NAME [method method]", "A mailer with its views and previews"),
+    (
+        "model",
+        FIELDS,
+        "A model with its migration, test and fixtures",
+    ),
+    (
+        "controller",
+        "NAME [action action]",
+        "A controller with actions, views, routes and tests",
+    ),
+    (
+        "scaffold",
+        FIELDS,
+        "Model, migration, controller, views, routes and tests of a resource",
+    ),
+    (
+        "resource",
+        FIELDS,
+        "Model, migration, an empty controller and resource routes",
+    ),
+    (
+        "migration",
+        "NAME [field[:type][:index] field[:type][:index]]",
+        "A database migration (AddXToY / RemoveXFromY / CreateJoinTableXY)",
+    ),
+    (
+        "scaffold_controller",
+        FIELDS,
+        "A scaffolded controller and views for an existing model",
+    ),
+    (
+        "authentication",
+        "",
+        "Session-based authentication (User, Session, controllers, views)",
+    ),
+    (
+        "mailer",
+        "NAME [method method]",
+        "A mailer with its views and previews",
+    ),
     ("job", "NAME", "An Active Job"),
     ("channel", "NAME [method method]", "An Action Cable channel"),
     ("mailbox", "NAME", "An Action Mailbox mailbox"),
     ("helper", "NAME", "A view helper module"),
     ("integration_test", "NAME", "An integration test"),
     ("system_test", "NAME", "A system test"),
-    ("task", "NAMESPACE [task task]", "A Rake task file in lib/tasks"),
+    (
+        "task",
+        "NAMESPACE [task task]",
+        "A Rake task file in lib/tasks",
+    ),
     ("generator", "NAME", "A new generator in lib/generators"),
     ("application_record", "", "The ApplicationRecord base class"),
     ("benchmark", "NAME [report report]", "A benchmark script"),
@@ -49,7 +85,12 @@ pub fn built_in() -> Vec<Generator> {
         .iter()
         .map(|(name, usage, description)| Generator {
             name: name.to_string(),
-            group: if *name == "stimulus" { "Stimulus" } else { "Rails" }.into(),
+            group: if *name == "stimulus" {
+                "Stimulus"
+            } else {
+                "Rails"
+            }
+            .into(),
             usage: usage.to_string(),
             description: description.to_string(),
         })
@@ -60,8 +101,12 @@ pub fn built_in() -> Vec<Generator> {
 pub fn project_generators<'a>(paths: impl Iterator<Item = &'a str>) -> Vec<Generator> {
     let mut out: Vec<Generator> = Vec::new();
     for p in paths {
-        let Some(rest) = p.strip_prefix("lib/generators/") else { continue };
-        let Some(stem) = rest.strip_suffix("_generator.rb") else { continue };
+        let Some(rest) = p.strip_prefix("lib/generators/") else {
+            continue;
+        };
+        let Some(stem) = rest.strip_suffix("_generator.rb") else {
+            continue;
+        };
         let name = stem.rsplit('/').next().unwrap_or(stem).to_string();
         let ns: Vec<&str> = stem.split('/').collect();
         let full = if ns.len() > 2 {
@@ -102,7 +147,9 @@ pub fn parse_generate_output(output: &str, known: &[Generator]) -> Vec<Generator
             continue;
         }
         if indented && !t.contains(' ') {
-            let k = known.iter().find(|g| g.name == t || t.ends_with(&format!(":{}", g.name)));
+            let k = known
+                .iter()
+                .find(|g| g.name == t || t.ends_with(&format!(":{}", g.name)));
             out.push(Generator {
                 name: t.to_string(),
                 group: group.clone(),
@@ -130,7 +177,10 @@ mod tests {
     fn lists_from_rails_and_the_project() {
         let output = "Usage:\n  bin/rails generate GENERATOR [args] [options]\n\nGeneral options:\n  -h, [--help]     # Print generator's options and usage\n\nPlease choose a generator below.\n\nRails:\n  application_record\n  controller\n  model\n\nActiveRecord:\n  active_record:application_record\n  active_record:multi_db\n\nStimulus:\n  stimulus\n";
         let g = parse_generate_output(output, &built_in());
-        let names: Vec<(&str, &str)> = g.iter().map(|x| (x.group.as_str(), x.name.as_str())).collect();
+        let names: Vec<(&str, &str)> = g
+            .iter()
+            .map(|x| (x.group.as_str(), x.name.as_str()))
+            .collect();
         assert_eq!(
             names,
             [
@@ -143,7 +193,13 @@ mod tests {
             ]
         );
         assert_eq!(g[2].usage, FIELDS);
-        let p = project_generators(["lib/generators/service/service_generator.rb", "lib/generators/admin/page/page_generator.rb"].into_iter());
+        let p = project_generators(
+            [
+                "lib/generators/service/service_generator.rb",
+                "lib/generators/admin/page/page_generator.rb",
+            ]
+            .into_iter(),
+        );
         let names: Vec<&str> = p.iter().map(|x| x.name.as_str()).collect();
         assert_eq!(names, ["service", "admin:page"]);
         assert!(valid_name("active_record:migration") && !valid_name("x; rm -rf"));

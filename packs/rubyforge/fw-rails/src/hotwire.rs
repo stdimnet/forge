@@ -25,15 +25,24 @@ pub struct StimulusController {
     pub methods: Vec<Named>,
 }
 
-const ROOTS: &[&str] = &["app/javascript/controllers/", "app/frontend/controllers/", "app/assets/javascripts/controllers/"];
+const ROOTS: &[&str] = &[
+    "app/javascript/controllers/",
+    "app/frontend/controllers/",
+    "app/assets/javascripts/controllers/",
+];
 
 /// The identifier of a controller file: `app/javascript/controllers/users/list_item_controller.js`
 /// → `users--list-item`.
 pub fn identifier(path: &str) -> Option<String> {
     let rest = ROOTS.iter().find_map(|r| path.strip_prefix(r))?;
-    let stem = ["_controller.js", "-controller.js", "_controller.ts", "-controller.ts"]
-        .iter()
-        .find_map(|s| rest.strip_suffix(s))?;
+    let stem = [
+        "_controller.js",
+        "-controller.js",
+        "_controller.ts",
+        "-controller.ts",
+    ]
+    .iter()
+    .find_map(|s| rest.strip_suffix(s))?;
     Some(stem.replace('/', "--").replace('_', "-"))
 }
 
@@ -85,7 +94,10 @@ fn object_keys(text: &str, from: usize, to: usize) -> Vec<(String, usize)> {
             b'{' | b'[' | b'(' => depth += 1,
             b'}' | b']' | b')' => depth -= 1,
             b',' if depth == 0 => expect_key = true,
-            _ if depth == 0 && expect_key && (c.is_ascii_alphabetic() || c == b'_' || c == b'"' || c == b'\'') => {
+            _ if depth == 0
+                && expect_key
+                && (c.is_ascii_alphabetic() || c == b'_' || c == b'"' || c == b'\'') =>
+            {
                 let quoted = c == b'"' || c == b'\'';
                 let s = if quoted { i + 1 } else { i };
                 let mut e = s;
@@ -104,7 +116,17 @@ fn object_keys(text: &str, from: usize, to: usize) -> Vec<(String, usize)> {
     out
 }
 
-const NOT_METHODS: &[&str] = &["if", "for", "while", "switch", "catch", "function", "return", "constructor", "super"];
+const NOT_METHODS: &[&str] = &[
+    "if",
+    "for",
+    "while",
+    "switch",
+    "catch",
+    "function",
+    "return",
+    "constructor",
+    "super",
+];
 
 /// Read a Stimulus controller.
 pub fn controller(path: &str, text: &str) -> Option<StimulusController> {
@@ -132,9 +154,13 @@ pub fn controller(path: &str, text: &str) -> Option<StimulusController> {
         ("outlets", &mut c.outlets),
     ] {
         let needle = format!("static {kind}");
-        let Some(at) = text.find(&needle) else { continue };
+        let Some(at) = text.find(&needle) else {
+            continue;
+        };
         let rest = &text[at + needle.len()..];
-        let Some(open) = rest.find(['[', '{']) else { continue };
+        let Some(open) = rest.find(['[', '{']) else {
+            continue;
+        };
         let open = at + needle.len() + open;
         let close = matching(text, open);
         let items = if text.as_bytes()[open] == b'[' {
@@ -144,7 +170,10 @@ pub fn controller(path: &str, text: &str) -> Option<StimulusController> {
         };
         *list = items
             .into_iter()
-            .map(|(name, at)| Named { name, location: loc(at) })
+            .map(|(name, at)| Named {
+                name,
+                location: loc(at),
+            })
             .collect();
     }
     // Methods: definitions one level inside the class body.
@@ -186,8 +215,13 @@ pub fn controller(path: &str, text: &str) -> Option<StimulusController> {
                         .collect();
                     let after = r[name.len()..].trim_start();
                     let is_method = after.starts_with('(')
-                        || (after.starts_with('=') && (after.contains("=>") || after.contains("function")));
-                    if !name.is_empty() && is_method && !NOT_METHODS.contains(&name.as_str()) && !name.starts_with('#') {
+                        || (after.starts_with('=')
+                            && (after.contains("=>") || after.contains("function")));
+                    if !name.is_empty()
+                        && is_method
+                        && !NOT_METHODS.contains(&name.as_str())
+                        && !name.starts_with('#')
+                    {
                         let at = i + (rest.len() - r.len());
                         c.methods.push(Named {
                             name,
@@ -243,19 +277,31 @@ pub fn data_attributes(line: &str, base: usize) -> Vec<AttrValue> {
     while let Some(i) = line[search..].find("data-") {
         let at = search + i;
         search = at + 5;
-        if at > 0 && line[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+        if at > 0
+            && line[..at]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_alphanumeric() || c == '-' || c == '_')
+        {
             continue;
         }
-        let name_end = at + line[at..].find(|c: char| !(c.is_alphanumeric() || c == '-' || c == '_')).unwrap_or(line.len() - at);
+        let name_end = at
+            + line[at..]
+                .find(|c: char| !(c.is_alphanumeric() || c == '-' || c == '_'))
+                .unwrap_or(line.len() - at);
         let attr = &line[at + 5..name_end];
         let rest = &line[name_end..];
-        let Some(eq) = rest.strip_prefix('=') else { continue };
+        let Some(eq) = rest.strip_prefix('=') else {
+            continue;
+        };
         let q = eq.chars().next().unwrap_or(' ');
         if q != '"' && q != '\'' {
             continue;
         }
         let vstart = name_end + 2;
-        let Some(len) = line[vstart..].find(q) else { continue };
+        let Some(len) = line[vstart..].find(q) else {
+            continue;
+        };
         out.push(AttrValue {
             attr: attr.to_string(),
             value: line[vstart..vstart + len].to_string(),
@@ -265,7 +311,9 @@ pub fn data_attributes(line: &str, base: usize) -> Vec<AttrValue> {
     // `data: { controller: "x", hello_target: "y" }` hashes of tag helpers.
     let toks = tokens(line);
     for (i, t) in toks.iter().enumerate() {
-        if !matches!(&t.tok, Tok::Key(k) if k == "data") || !toks.get(i + 1).is_some_and(|x| x.is_punct('{')) {
+        if !matches!(&t.tok, Tok::Key(k) if k == "data")
+            || !toks.get(i + 1).is_some_and(|x| x.is_punct('{'))
+        {
             continue;
         }
         let mut depth = 0;
@@ -279,11 +327,22 @@ pub fn data_attributes(line: &str, base: usize) -> Vec<AttrValue> {
                     }
                 }
                 Tok::Key(k) if depth == 1 => {
-                    if let Some(Token2 { value, start }) = toks.get(j + 1).and_then(|v| match &v.tok {
-                        Tok::Str { value, interp: false } => Some(Token2 { value: value.clone(), start: v.start + 1 }),
-                        Tok::Sym(value) => Some(Token2 { value: value.clone(), start: v.start + 1 }),
-                        _ => None,
-                    }) {
+                    if let Some(Token2 { value, start }) =
+                        toks.get(j + 1).and_then(|v| match &v.tok {
+                            Tok::Str {
+                                value,
+                                interp: false,
+                            } => Some(Token2 {
+                                value: value.clone(),
+                                start: v.start + 1,
+                            }),
+                            Tok::Sym(value) => Some(Token2 {
+                                value: value.clone(),
+                                start: v.start + 1,
+                            }),
+                            _ => None,
+                        })
+                    {
                         out.push(AttrValue {
                             attr: k.replace('_', "-"),
                             value,
@@ -343,7 +402,9 @@ pub fn stimulus_refs(text: &str) -> Vec<StimulusRef> {
                         Some(i) => (&w[i + 2..], s + i + 2),
                         None => (w.as_str(), s),
                     };
-                    let Some((id, method)) = desc.split_once('#') else { continue };
+                    let Some((id, method)) = desc.split_once('#') else {
+                        continue;
+                    };
                     let method = method.split(':').next().unwrap_or(method);
                     out.push(StimulusRef {
                         kind: StimulusRefKind::Controller,
@@ -387,7 +448,9 @@ pub struct FrameRef {
     pub definition: bool,
 }
 
-const STREAM_ACTIONS: &[&str] = &["append", "prepend", "replace", "update", "remove", "before", "after", "refresh"];
+const STREAM_ACTIONS: &[&str] = &[
+    "append", "prepend", "replace", "update", "remove", "before", "after", "refresh",
+];
 
 /// Turbo frame ids of a file.
 pub fn frame_refs(text: &str) -> Vec<FrameRef> {
@@ -443,7 +506,10 @@ pub fn frame_refs(text: &str) -> Vec<FrameRef> {
             }
             if let Some(arg) = toks.get(j) {
                 let (s, e, id) = match &arg.tok {
-                    Tok::Str { value, interp: false } => (arg.start + 1, arg.end - 1, value.clone()),
+                    Tok::Str {
+                        value,
+                        interp: false,
+                    } => (arg.start + 1, arg.end - 1, value.clone()),
                     Tok::Sym(value) => (arg.start + 1, arg.end, value.clone()),
                     _ => continue,
                 };
@@ -459,7 +525,11 @@ pub fn frame_refs(text: &str) -> Vec<FrameRef> {
                 for (k, x) in toks.iter().enumerate().skip(j) {
                     if matches!(&x.tok, Tok::Key(key) if key == "target") {
                         if let Some(v) = toks.get(k + 1) {
-                            if let Tok::Str { value, interp: false } = &v.tok {
+                            if let Tok::Str {
+                                value,
+                                interp: false,
+                            } = &v.tok
+                            {
                                 out.push(FrameRef {
                                     id: value.clone(),
                                     start: base + v.start + 1,
@@ -537,7 +607,10 @@ export default class extends Controller {
         assert_eq!(names(&c.methods), ["connect", "copy", "reset"]);
         assert_eq!(c.targets[0].location.line, 4);
         assert_eq!(c.methods[1].location.line, 12);
-        assert_eq!(identifier("app/javascript/controllers/users/list_item_controller.js").as_deref(), Some("users--list-item"));
+        assert_eq!(
+            identifier("app/javascript/controllers/users/list_item_controller.js").as_deref(),
+            Some("users--list-item")
+        );
         assert!(identifier("app/javascript/application.js").is_none());
     }
 
@@ -547,7 +620,15 @@ export default class extends Controller {
         let refs = stimulus_refs(html);
         let got: Vec<String> = refs
             .iter()
-            .map(|r| format!("{:?} {} {} {}", r.kind, r.identifier, r.name, &html[r.start..r.end]))
+            .map(|r| {
+                format!(
+                    "{:?} {} {} {}",
+                    r.kind,
+                    r.identifier,
+                    r.name,
+                    &html[r.start..r.end]
+                )
+            })
             .collect();
         assert_eq!(
             got,
@@ -575,7 +656,11 @@ export default class extends Controller {
         let got: Vec<(String, bool)> = f.iter().map(|r| (r.id.clone(), r.definition)).collect();
         assert_eq!(
             got,
-            [("new_article".into(), true), ("comments".into(), true), ("new_article".into(), false)]
+            [
+                ("new_article".into(), true),
+                ("comments".into(), true),
+                ("new_article".into(), false)
+            ]
         );
         assert_eq!(&erb[f[2].start..f[2].end], "new_article");
         let f = frame_refs(ctl);

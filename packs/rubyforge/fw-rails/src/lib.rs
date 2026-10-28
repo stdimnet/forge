@@ -97,7 +97,9 @@ pub struct RailsInfo {
 }
 
 /// File extensions the analysis reads.
-pub const EXTENSIONS: &[&str] = &["rb", "erb", "haml", "slim", "jbuilder", "builder", "yml", "yaml", "js", "ts", "html"];
+pub const EXTENSIONS: &[&str] = &[
+    "rb", "erb", "haml", "slim", "jbuilder", "builder", "yml", "yaml", "js", "ts", "html",
+];
 
 /// Files without those extensions that the analysis reads.
 pub const FILE_NAMES: &[&str] = &["Gemfile", "Gemfile.lock", "bin/rails", ".env"];
@@ -116,7 +118,10 @@ const SKIPPED: &[&str] = &[
 
 /// Whether the analysis needs a file (the caller may skip the others before reading).
 pub fn wanted(path: &str) -> bool {
-    if SKIPPED.iter().any(|d| path.starts_with(d) || path.contains(&format!("/{d}"))) {
+    if SKIPPED
+        .iter()
+        .any(|d| path.starts_with(d) || path.contains(&format!("/{d}")))
+    {
         return false;
     }
     if FILE_NAMES.contains(&path) {
@@ -153,14 +158,18 @@ pub fn gemfile_has_rails(gemfile: &str) -> bool {
 
 /// A Rails application: `rails` in the Gemfile and a `config/application.rb`.
 pub fn is_rails_app(read: &dyn Fn(&str) -> Option<String>) -> bool {
-    read("config/application.rb").is_some() && read("Gemfile").is_some_and(|g| gemfile_has_rails(&g))
+    read("config/application.rb").is_some()
+        && read("Gemfile").is_some_and(|g| gemfile_has_rails(&g))
 }
 
 /// The locked Rails version (`    rails (7.2.1)` in Gemfile.lock), else the Gemfile's.
 pub fn rails_version(gemfile: Option<&str>, lock: Option<&str>) -> Option<String> {
     if let Some(lock) = lock {
         for l in lock.lines() {
-            if let Some(v) = l.strip_prefix("    rails (").and_then(|r| r.strip_suffix(')')) {
+            if let Some(v) = l
+                .strip_prefix("    rails (")
+                .and_then(|r| r.strip_suffix(')'))
+            {
                 return Some(v.to_string());
             }
         }
@@ -225,21 +234,24 @@ impl Project {
         let read = |p: &str| files.get(p).cloned();
         let mut info = RailsInfo {
             rails: is_rails_app(&read),
-            version: rails_version(files.get("Gemfile").map(String::as_str), files.get("Gemfile.lock").map(String::as_str)),
+            version: rails_version(
+                files.get("Gemfile").map(String::as_str),
+                files.get("Gemfile.lock").map(String::as_str),
+            ),
             binstub: files.contains_key("bin/rails"),
             ..RailsInfo::default()
         };
         info.app_name = files.get("config/application.rb").and_then(|t| {
-            t.lines()
-                .find_map(|l| l.trim().strip_prefix("module ").map(|m| m.trim().to_string()))
+            t.lines().find_map(|l| {
+                l.trim()
+                    .strip_prefix("module ")
+                    .map(|m| m.trim().to_string())
+            })
         });
         let views: Vec<View> = files.keys().filter_map(|p| app::view(p)).collect();
         info.views = views.len();
         info.tables = schema::tables(files.iter().map(|(p, t)| (p.as_str(), t.as_str())));
-        let mut models: Vec<Model> = files
-            .iter()
-            .filter_map(|(p, t)| app::model(p, t))
-            .collect();
+        let mut models: Vec<Model> = files.iter().filter_map(|(p, t)| app::model(p, t)).collect();
         let prefix_of = |ns: &str| -> Option<String> {
             let path = format!("app/models/{}.rb", inflect::underscore(ns));
             let text = files.get(&path)?;
@@ -261,7 +273,11 @@ impl Project {
             info.routes = routes::parse_routes("config/routes.rb", text, &read);
             info.routes_source = "routes.rb".into();
         }
-        if let Some(out) = options.routes_output.as_deref().filter(|o| !o.trim().is_empty()) {
+        if let Some(out) = options
+            .routes_output
+            .as_deref()
+            .filter(|o| !o.trim().is_empty())
+        {
             let parsed = routes::parse_rails_routes(out, &info.routes);
             if !parsed.is_empty() {
                 info.routes = parsed;
@@ -277,11 +293,15 @@ impl Project {
                 );
             }
         }
-        info.default_locale = i18n::default_locale(files.iter().map(|(p, t)| (p.as_str(), t.as_str())));
+        info.default_locale =
+            i18n::default_locale(files.iter().map(|(p, t)| (p.as_str(), t.as_str())));
         let catalog = i18n::Catalog::new(
             files
                 .iter()
-                .filter(|(p, _)| p.starts_with("config/locales/") && (p.ends_with(".yml") || p.ends_with(".yaml")))
+                .filter(|(p, _)| {
+                    p.starts_with("config/locales/")
+                        && (p.ends_with(".yml") || p.ends_with(".yaml"))
+                })
                 .map(|(p, t)| (p.as_str(), t.as_str())),
             &info.default_locale,
         );
@@ -326,7 +346,10 @@ impl Project {
     }
 
     pub fn stimulus(&self, identifier: &str) -> Option<&StimulusController> {
-        self.info.stimulus.iter().find(|s| s.identifier == identifier)
+        self.info
+            .stimulus
+            .iter()
+            .find(|s| s.identifier == identifier)
     }
 }
 
@@ -336,12 +359,28 @@ mod tests {
 
     #[test]
     fn detection_and_versions() {
-        assert!(gemfile_has_rails("source \"https://rubygems.org\"\ngem \"rails\", \"~> 7.2.1\"\n"));
+        assert!(gemfile_has_rails(
+            "source \"https://rubygems.org\"\ngem \"rails\", \"~> 7.2.1\"\n"
+        ));
         assert!(gemfile_has_rails("gem 'railties', '>= 7'\n"));
-        assert!(!gemfile_has_rails("gem \"rails-html-sanitizer\"\n# gem \"rails\"\n"));
-        assert_eq!(rails_version(Some("gem \"rails\", \"~> 7.2.1\""), None).as_deref(), Some("7.2.1"));
-        assert_eq!(rails_version(None, Some("GEM\n  specs:\n    rails (8.0.1)\n      actioncable (= 8.0.1)\n")).as_deref(), Some("8.0.1"));
-        assert!(wanted("app/models/article.rb") && wanted("config/locales/en.yml") && wanted("Gemfile"));
+        assert!(!gemfile_has_rails(
+            "gem \"rails-html-sanitizer\"\n# gem \"rails\"\n"
+        ));
+        assert_eq!(
+            rails_version(Some("gem \"rails\", \"~> 7.2.1\""), None).as_deref(),
+            Some("7.2.1")
+        );
+        assert_eq!(
+            rails_version(
+                None,
+                Some("GEM\n  specs:\n    rails (8.0.1)\n      actioncable (= 8.0.1)\n")
+            )
+            .as_deref(),
+            Some("8.0.1")
+        );
+        assert!(
+            wanted("app/models/article.rb") && wanted("config/locales/en.yml") && wanted("Gemfile")
+        );
         assert!(wanted("app/javascript/controllers/hello_controller.js"));
         assert!(!wanted("app/javascript/application.js") && !wanted("node_modules/x/app/y.rb"));
         assert!(!wanted("test/models/article_test.rb") && !wanted("public/index.html"));

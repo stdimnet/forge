@@ -93,16 +93,19 @@ impl Catalog {
     fn walk(&mut self, path: &str, locale: &str, prefix: &str, v: &Value, line: u32, col: u32) {
         if !prefix.is_empty() {
             if let Some(text) = display(v) {
-                self.entries.entry(prefix.to_string()).or_default().push(Translation {
-                    locale: locale.to_string(),
-                    key: prefix.to_string(),
-                    value: text,
-                    location: Location {
-                        path: path.to_string(),
-                        line,
-                        character: col,
-                    },
-                });
+                self.entries
+                    .entry(prefix.to_string())
+                    .or_default()
+                    .push(Translation {
+                        locale: locale.to_string(),
+                        key: prefix.to_string(),
+                        value: text,
+                        location: Location {
+                            path: path.to_string(),
+                            line,
+                            character: col,
+                        },
+                    });
             }
         }
         if let Value::Map(m) = v {
@@ -182,9 +185,14 @@ pub fn default_locale<'a>(files: impl Iterator<Item = (&'a str, &'a str)>) -> St
             else {
                 continue;
             };
-            let Some(v) = rest.trim().strip_prefix('=') else { continue };
+            let Some(v) = rest.trim().strip_prefix('=') else {
+                continue;
+            };
             let v = v.trim().trim_start_matches(':').trim_matches(['"', '\'']);
-            if !v.is_empty() && v.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+            if !v.is_empty()
+                && v.chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+            {
                 return v.to_string();
             }
         }
@@ -212,7 +220,11 @@ pub struct TRef {
 pub fn lazy_scope(path: &str, text: &str, at: usize) -> Option<String> {
     if let Some(v) = crate::app::view(path) {
         let dir = v.dir.replace('/', ".");
-        return Some(if dir.is_empty() { v.name } else { format!("{dir}.{}", v.name) });
+        return Some(if dir.is_empty() {
+            v.name
+        } else {
+            format!("{dir}.{}", v.name)
+        });
     }
     let (name, _) = crate::app::controller_name(path)?;
     let action = crate::editor::enclosing_def(text, at)?;
@@ -244,7 +256,9 @@ pub fn refs(path: &str, text: &str) -> Vec<TRef> {
                 }
             }
             let mut j = i + 1;
-            let paren = toks.get(j).is_some_and(|x| x.is_punct('(') && x.start == t.end);
+            let paren = toks
+                .get(j)
+                .is_some_and(|x| x.is_punct('(') && x.start == t.end);
             if paren {
                 j += 1;
             } else if toks.get(j).is_some_and(|x| x.start == t.end) {
@@ -253,7 +267,10 @@ pub fn refs(path: &str, text: &str) -> Vec<TRef> {
             }
             let Some(arg) = toks.get(j) else { continue };
             let (key, s, e) = match &arg.tok {
-                Tok::Str { value, interp: false } => (value.clone(), arg.start + 1, arg.end.saturating_sub(1)),
+                Tok::Str {
+                    value,
+                    interp: false,
+                } => (value.clone(), arg.start + 1, arg.end.saturating_sub(1)),
                 Tok::Sym(value) => (value.clone(), arg.start + 1, arg.end),
                 _ => continue,
             };
@@ -303,7 +320,10 @@ mod tests {
         assert!(c.is_namespace("articles.index"));
         assert_eq!(c.missing_locales("hello"), ["de"]);
         let t = &c.get("articles.index.title").unwrap()[1];
-        assert_eq!((t.locale.as_str(), t.location.line, t.location.character), ("de", 3, 6));
+        assert_eq!(
+            (t.locale.as_str(), t.location.line, t.location.character),
+            ("de", 3, 6)
+        );
         assert!(Catalog::is_framework_key("helpers.submit.create"));
     }
 
@@ -311,10 +331,17 @@ mod tests {
     fn calls_and_lazy_lookup() {
         let view = "<h1><%= t(\".title\") %></h1>\n<p><%= t \"hello\", name: x %> <%= I18n.t(:hello) %> <%= form.t(\"x\") %></p>\n";
         let r = refs("app/views/articles/index.html.erb", view);
-        let keys: Vec<(&str, Option<&str>)> = r.iter().map(|x| (x.key.as_str(), x.full.as_deref())).collect();
+        let keys: Vec<(&str, Option<&str>)> = r
+            .iter()
+            .map(|x| (x.key.as_str(), x.full.as_deref()))
+            .collect();
         assert_eq!(
             keys,
-            [(".title", Some("articles.index.title")), ("hello", Some("hello")), ("hello", Some("hello"))]
+            [
+                (".title", Some("articles.index.title")),
+                ("hello", Some("hello")),
+                ("hello", Some("hello"))
+            ]
         );
         assert_eq!(&view[r[0].fold_start..r[0].fold_end], "t(\".title\")");
         assert_eq!(&view[r[1].fold_start..r[1].fold_end], "\"hello\"");
@@ -324,6 +351,15 @@ mod tests {
         assert_eq!(r[0].full.as_deref(), Some("admin.users.create.created"));
         let partial = refs("app/views/articles/_form.html.erb", "<%= t('.save') %>");
         assert_eq!(partial[0].full.as_deref(), Some("articles.form.save"));
-        assert_eq!(default_locale([("config/application.rb", "    config.i18n.default_locale = :de\n")].into_iter()), "de");
+        assert_eq!(
+            default_locale(
+                [(
+                    "config/application.rb",
+                    "    config.i18n.default_locale = :de\n"
+                )]
+                .into_iter()
+            ),
+            "de"
+        );
     }
 }

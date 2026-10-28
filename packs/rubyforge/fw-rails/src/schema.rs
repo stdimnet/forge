@@ -132,7 +132,13 @@ impl Builder {
     }
 
     /// A column call on the table variable: `t.string :title, null: false`.
-    fn column_call(&mut self, table: &str, method: &str, args: &crate::source::Args, loc: &Location) {
+    fn column_call(
+        &mut self,
+        table: &str,
+        method: &str,
+        args: &crate::source::Args,
+        loc: &Location,
+    ) {
         let names: Vec<String> = args
             .positional
             .iter()
@@ -145,7 +151,13 @@ impl Builder {
         match method {
             "timestamps" => {
                 for n in ["created_at", "updated_at"] {
-                    self.add(table, n, "datetime", !matches!(args.get("null"), Some(Val::Bool(true))), loc);
+                    self.add(
+                        table,
+                        n,
+                        "datetime",
+                        !matches!(args.get("null"), Some(Val::Bool(true))),
+                        loc,
+                    );
                 }
             }
             "references" | "belongs_to" => {
@@ -160,8 +172,11 @@ impl Builder {
             }
             "remove_references" | "remove_belongs_to" => {
                 if let Some(t) = self.table(table) {
-                    t.columns
-                        .retain(|c| !names.iter().any(|n| c.name == format!("{n}_id") || c.name == format!("{n}_type")));
+                    t.columns.retain(|c| {
+                        !names
+                            .iter()
+                            .any(|n| c.name == format!("{n}_id") || c.name == format!("{n}_type"))
+                    });
                 }
             }
             "rename" => {
@@ -226,7 +241,9 @@ impl Builder {
                 }
                 continue;
             }
-            let Tok::Ident(method) = &first.tok else { continue };
+            let Tok::Ident(method) = &first.tok else {
+                continue;
+            };
             let args = call_args(&toks);
             let pos: Vec<String> = args
                 .positional
@@ -293,7 +310,9 @@ impl Builder {
                     }
                 }
                 "add_column" => {
-                    if let (Some(table), Some(col), Some(kind)) = (pos.first(), pos.get(1), pos.get(2)) {
+                    if let (Some(table), Some(col), Some(kind)) =
+                        (pos.first(), pos.get(1), pos.get(2))
+                    {
                         let not_null = matches!(args.get("null"), Some(Val::Bool(false)));
                         self.add(table, col, kind, not_null, &loc);
                         self.touch(table, &loc);
@@ -330,12 +349,16 @@ impl Builder {
                 "remove_reference" | "remove_belongs_to" => {
                     if let (Some(table), Some(name)) = (pos.first(), pos.get(1)) {
                         if let Some(t) = self.table(table) {
-                            t.columns.retain(|c| c.name != format!("{name}_id") && c.name != format!("{name}_type"));
+                            t.columns.retain(|c| {
+                                c.name != format!("{name}_id") && c.name != format!("{name}_type")
+                            });
                         }
                     }
                 }
                 "rename_column" => {
-                    if let (Some(table), Some(from), Some(to)) = (pos.first(), pos.get(1), pos.get(2)) {
+                    if let (Some(table), Some(from), Some(to)) =
+                        (pos.first(), pos.get(1), pos.get(2))
+                    {
                         if let Some(t) = self.table(table) {
                             if let Some(c) = t.columns.iter_mut().find(|c| &c.name == from) {
                                 c.name = to.clone();
@@ -344,7 +367,9 @@ impl Builder {
                     }
                 }
                 "change_column" => {
-                    if let (Some(table), Some(col), Some(kind)) = (pos.first(), pos.get(1), pos.get(2)) {
+                    if let (Some(table), Some(col), Some(kind)) =
+                        (pos.first(), pos.get(1), pos.get(2))
+                    {
                         if let Some(t) = self.table(table) {
                             if let Some(c) = t.columns.iter_mut().find(|c| &c.name == col) {
                                 c.kind = kind.clone();
@@ -445,13 +470,33 @@ end
             .collect();
         assert_eq!(
             cols,
-            ["id:bigint!", "title:string!", "content:text", "user_id:bigint!", "updated_at:datetime!", "status:integer!"]
+            [
+                "id:bigint!",
+                "title:string!",
+                "content:text",
+                "user_id:bigint!",
+                "updated_at:datetime!",
+                "status:integer!"
+            ]
         );
         assert_eq!(tables[0].location.line, 1);
         assert_eq!(tables[0].migrations.len(), 2);
-        assert_eq!(tables[0].migrations[0].path, "db/migrate/20240901000000_create_articles.rb");
+        assert_eq!(
+            tables[0].migrations[0].path,
+            "db/migrate/20240901000000_create_articles.rb"
+        );
         let comments: Vec<&str> = tables[1].columns.iter().map(|c| c.name.as_str()).collect();
-        assert_eq!(comments, ["id", "commentable_id", "commentable_type", "body", "created_at", "updated_at"]);
+        assert_eq!(
+            comments,
+            [
+                "id",
+                "commentable_id",
+                "commentable_type",
+                "body",
+                "created_at",
+                "updated_at"
+            ]
+        );
         assert_eq!(tables[2].columns.len(), 1);
     }
 }

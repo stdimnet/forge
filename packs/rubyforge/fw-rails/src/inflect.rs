@@ -117,7 +117,10 @@ pub fn singularize(word: &str) -> String {
     let l = last;
     let single = if lower.ends_with("quizzes") {
         l[..l.len() - 3].to_string()
-    } else if lower.ends_with("matrices") || lower.ends_with("vertices") || lower.ends_with("indices") {
+    } else if lower.ends_with("matrices")
+        || lower.ends_with("vertices")
+        || lower.ends_with("indices")
+    {
         format!("{}ex", &l[..l.len() - 4])
     } else if lower.ends_with("ies") && lower.len() > 3 && !lower.ends_with("movies") {
         format!("{}y", &l[..l.len() - 3])
@@ -131,9 +134,7 @@ pub fn singularize(word: &str) -> String {
         || lower.ends_with("buses")
         || lower.ends_with("ruses")
         || lower.ends_with("sses")
-    {
-        l[..l.len() - 2].to_string()
-    } else if lower.ends_with("xes")
+        || lower.ends_with("xes")
         || lower.ends_with("ches")
         || lower.ends_with("shes")
         || lower.ends_with("zzes")

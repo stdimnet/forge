@@ -71,10 +71,14 @@ fn strip_comment(s: &str) -> &str {
             Some(q) if c == q => quote = None,
             Some(_) => {}
             None => match c {
-                b'"' | b'\'' if i == 0 || matches!(b[i - 1], b' ' | b':' | b'[' | b'{' | b',' | b'-') => {
+                b'"' | b'\''
+                    if i == 0 || matches!(b[i - 1], b' ' | b':' | b'[' | b'{' | b',' | b'-') =>
+                {
                     quote = Some(c)
                 }
-                b'#' if i == 0 || b[i - 1] == b' ' || b[i - 1] == b'\t' => return s[..i].trim_end(),
+                b'#' if i == 0 || b[i - 1] == b' ' || b[i - 1] == b'\t' => {
+                    return s[..i].trim_end()
+                }
                 _ => {}
             },
         }
@@ -326,7 +330,9 @@ impl Parser<'_> {
                         let ni = n.indent;
                         self.block(ni)
                     }
-                    Some(n) if n.indent == indent && (n.text.starts_with("- ") || n.text == "-") => {
+                    Some(n)
+                        if n.indent == indent && (n.text.starts_with("- ") || n.text == "-") =>
+                    {
                         self.sequence(indent)
                     }
                     _ => Value::Null,
@@ -387,7 +393,10 @@ impl Parser<'_> {
                     }
                     _ => items.push(Value::Null),
                 }
-            } else if split_key(&rest).is_some() && !rest.starts_with('"') && !rest.starts_with('\'') {
+            } else if split_key(&rest).is_some()
+                && !rest.starts_with('"')
+                && !rest.starts_with('\'')
+            {
                 // `- key: value` starts a mapping at the item's indentation.
                 self.lines[self.i].indent = item_indent;
                 self.lines[self.i].text = rest;
@@ -416,7 +425,10 @@ mod tests {
         assert_eq!(idx.get("empty").unwrap().as_str(), Some("It's empty"));
         let e = idx.entry("title").unwrap();
         assert_eq!((e.line, e.col), (4, 6));
-        assert_eq!(en.get("hello").unwrap().as_str(), Some("Hello #world".split(' ').next().unwrap()));
+        assert_eq!(
+            en.get("hello").unwrap().as_str(),
+            Some("Hello #world".split(' ').next().unwrap())
+        );
         assert_eq!(en.entry("quoted key").unwrap().col, 3);
     }
 
@@ -435,9 +447,14 @@ mod tests {
             ]))
         );
         assert!(matches!(date.get("abbr"), Some(Value::Seq(s)) if s.len() == 2));
-        assert_eq!(en.get("body").unwrap().as_str(), Some("Line one\nLine two\n"));
+        assert_eq!(
+            en.get("body").unwrap().as_str(),
+            Some("Line one\nLine two\n")
+        );
         assert_eq!(en.get("folded").unwrap().as_str(), Some("a b"));
-        let Some(Value::Seq(items)) = en.get("items") else { panic!() };
+        let Some(Value::Seq(items)) = en.get("items") else {
+            panic!()
+        };
         assert_eq!(items[1].get("name").unwrap().as_str(), Some("y"));
         assert_eq!(en.get("after").unwrap().as_str(), Some("z"));
     }

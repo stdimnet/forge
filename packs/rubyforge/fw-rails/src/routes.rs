@@ -277,17 +277,20 @@ pub fn parse_routes(path: &str, text: &str, read: &dyn Fn(&str) -> Option<String
     p.out
 }
 
+/// A logical line with its file and position, kept to replay a `concern`.
+type Captured = (String, Logical, u32, u32);
+
 struct Capture {
     name: String,
     depth: usize,
-    lines: Vec<(String, Logical, u32, u32)>,
+    lines: Vec<Captured>,
 }
 
 struct RouteParser<'a> {
     read: &'a dyn Fn(&str) -> Option<String>,
     out: Vec<Route>,
     stack: Vec<Frame>,
-    concerns: Vec<(String, Vec<(String, Logical, u32, u32)>)>,
+    concerns: Vec<(String, Vec<Captured>)>,
     capture: Option<Capture>,
     /// `draw` nesting, against include loops.
     depth: usize,
@@ -356,7 +359,12 @@ impl RouteParser<'_> {
         match name {
             "resources" | "resource" => self.resources(name == "resource", &args, &loc),
             "namespace" => {
-                let n = args.positional.first().and_then(Val::text).unwrap_or("").to_string();
+                let n = args
+                    .positional
+                    .first()
+                    .and_then(Val::text)
+                    .unwrap_or("")
+                    .to_string();
                 let frame = Frame::Scope {
                     path: args.text("path").unwrap_or(&n).to_string(),
                     module: args.text("module").unwrap_or(&n).to_string(),
@@ -384,7 +392,11 @@ impl RouteParser<'_> {
                     path: String::new(),
                     module: String::new(),
                     name: String::new(),
-                    controller: args.positional.first().and_then(Val::text).map(str::to_string),
+                    controller: args
+                        .positional
+                        .first()
+                        .and_then(Val::text)
+                        .map(str::to_string),
                 };
                 self.block(frame, args.block);
             }
@@ -392,7 +404,12 @@ impl RouteParser<'_> {
             "collection" if args.block => self.stack.push(Frame::Collection),
             "concern" if args.block => {
                 self.capture = Some(Capture {
-                    name: args.positional.first().and_then(Val::text).unwrap_or("").to_string(),
+                    name: args
+                        .positional
+                        .first()
+                        .and_then(Val::text)
+                        .unwrap_or("")
+                        .to_string(),
                     depth: 0,
                     lines: Vec::new(),
                 });
@@ -435,7 +452,7 @@ impl RouteParser<'_> {
     }
 
     fn replay(&mut self, names: &[String]) {
-        let lines: Vec<(String, Logical, u32, u32)> = names
+        let lines: Vec<Captured> = names
             .iter()
             .filter_map(|n| self.concerns.iter().find(|(c, _)| c == n))
             .flat_map(|(_, l)| l.clone())
@@ -459,7 +476,11 @@ impl RouteParser<'_> {
         for (i, name) in names.into_iter().enumerate() {
             let base = context(&self.stack);
             let module = base.module.clone();
-            let default_controller = if singular { pluralize(&name) } else { name.clone() };
+            let default_controller = if singular {
+                pluralize(&name)
+            } else {
+                name.clone()
+            };
             let controller = module_join(
                 &module,
                 args.text("controller").unwrap_or(&default_controller),
@@ -511,7 +532,12 @@ impl RouteParser<'_> {
             let base = join_name(&names);
             let prefixed = |p: &str| base.as_ref().map(|b| format!("{p}_{b}"));
             for (action, methods, p, name) in [
-                ("new", &["GET"][..], join_path(&path, "new"), prefixed("new")),
+                (
+                    "new",
+                    &["GET"][..],
+                    join_path(&path, "new"),
+                    prefixed("new"),
+                ),
                 ("edit", &["GET"], join_path(&path, "edit"), prefixed("edit")),
                 ("show", &["GET"], path.clone(), base.clone()),
                 ("update", &["PATCH", "PUT"], path.clone(), None),
@@ -533,7 +559,12 @@ impl RouteParser<'_> {
                 ("index", &["GET"][..], coll.clone(), coll_name.clone()),
                 ("create", &["POST"], coll.clone(), None),
                 ("new", &["GET"], join_path(&coll, "new"), prefixed("new")),
-                ("edit", &["GET"], join_path(&member, "edit"), prefixed("edit")),
+                (
+                    "edit",
+                    &["GET"],
+                    join_path(&member, "edit"),
+                    prefixed("edit"),
+                ),
                 ("show", &["GET"], member.clone(), member_name.clone()),
                 ("update", &["PATCH", "PUT"], member.clone(), None),
                 ("destroy", &["DELETE"], member.clone(), None),
@@ -556,7 +587,10 @@ impl RouteParser<'_> {
             }
             seen.push(x.path.clone());
             if x.name.is_none() {
-                x.name = named.iter().find(|(p, _)| *p == x.path).map(|(_, n)| n.clone());
+                x.name = named
+                    .iter()
+                    .find(|(p, _)| *p == x.path)
+                    .map(|(_, n)| n.clone());
             }
         }
         self.out.extend(out);
@@ -577,7 +611,11 @@ impl RouteParser<'_> {
         };
         let mut names = c.names.clone();
         names.push("root".into());
-        let path = if c.path.is_empty() { "/".into() } else { c.path.clone() };
+        let path = if c.path.is_empty() {
+            "/".into()
+        } else {
+            c.path.clone()
+        };
         self.out.push(Route {
             methods: vec!["GET".into()],
             sample_path: sample_path(&path),
@@ -606,7 +644,12 @@ impl RouteParser<'_> {
                 (app.trim().trim_start_matches('(').trim().to_string(), path)
             }
             None => (
-                rest.split(',').next().unwrap_or("").trim().trim_start_matches('(').to_string(),
+                rest.split(',')
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .trim_start_matches('(')
+                    .to_string(),
                 args.text("at").unwrap_or("").to_string(),
             ),
         };
@@ -680,7 +723,11 @@ impl RouteParser<'_> {
             };
         }
         let path = join_path(&c.path, &path_arg);
-        let path = if path.is_empty() { "/".to_string() } else { path };
+        let path = if path.is_empty() {
+            "/".to_string()
+        } else {
+            path
+        };
         let mode = c.res.as_ref().map(|(_, m)| m.0);
         let res_controller = c.res.as_ref().map(|(r, _)| r.controller.clone());
         let simple = !path_arg.contains([':', '*', '(']);
@@ -691,9 +738,11 @@ impl RouteParser<'_> {
             .unwrap_or("")
             .replace('-', "_");
         let (kind, controller, action) = match target.as_deref() {
-            Some(t) if t.starts_with("redirect:") => {
-                ("redirect", String::new(), t["redirect:".len()..].to_string())
-            }
+            Some(t) if t.starts_with("redirect:") => (
+                "redirect",
+                String::new(),
+                t["redirect:".len()..].to_string(),
+            ),
             Some(t) if t.contains('#') => {
                 let (ctl, act) = t.split_once('#').unwrap_or((t, ""));
                 let controller = if ctl.is_empty() {
@@ -736,7 +785,11 @@ impl RouteParser<'_> {
                         .collect();
                     if segs.len() >= 2 {
                         let (act, ctl) = segs.split_last().expect("segments");
-                        ("route", module_join(&c.module, &ctl.join("/")), act.replace('-', "_"))
+                        (
+                            "route",
+                            module_join(&c.module, &ctl.join("/")),
+                            act.replace('-', "_"),
+                        )
                     } else {
                         ("route", String::new(), action.unwrap_or(seg_action.clone()))
                     }
@@ -748,11 +801,7 @@ impl RouteParser<'_> {
             if !simple || path_arg.trim_matches('/').is_empty() {
                 return None;
             }
-            Some(
-                path_arg
-                    .trim_matches('/')
-                    .replace(['/', '-', '.'], "_"),
-            )
+            Some(path_arg.trim_matches('/').replace(['/', '-', '.'], "_"))
         };
         let name = match (mode, &c.res) {
             (Some(Mode::Member), Some((r, _))) => {
@@ -819,7 +868,10 @@ pub fn parse_rails_routes(output: &str, known: &[Route]) -> Vec<Route> {
         let is_verb = |w: &str| {
             !w.is_empty()
                 && w.split('|').all(|v| {
-                    matches!(v, "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD")
+                    matches!(
+                        v,
+                        "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD"
+                    )
                 })
         };
         let (name, verb) = match before {
@@ -832,7 +884,9 @@ pub fn parse_rails_routes(output: &str, known: &[Route]) -> Vec<Route> {
         let target = words.get(ui + 1).copied().unwrap_or("");
         let (kind, controller, action) = match target.split_once('#') {
             Some((c, a)) => ("route", c.to_string(), a.to_string()),
-            None if target.starts_with("redirect") => ("redirect", String::new(), target.to_string()),
+            None if target.starts_with("redirect") => {
+                ("redirect", String::new(), target.to_string())
+            }
             None => ("mount", target.to_string(), String::new()),
         };
         let methods: Vec<String> = verb
@@ -846,7 +900,11 @@ pub fn parse_rails_routes(output: &str, known: &[Route]) -> Vec<Route> {
             .unwrap_or_else(|| fallback.clone());
         // `PATCH` and `PUT` rows of the same action merge into one route.
         if let Some(prev) = out.last_mut() {
-            if prev.path == path && prev.controller == controller && prev.action == action && name.is_none() {
+            if prev.path == path
+                && prev.controller == controller
+                && prev.action == action
+                && name.is_none()
+            {
                 prev.methods.extend(methods);
                 continue;
             }
@@ -877,7 +935,11 @@ mod tests {
                 format!(
                     "{} {} {} {}",
                     r.name.clone().unwrap_or_else(|| "-".into()),
-                    if r.methods.is_empty() { "ANY".into() } else { r.methods.join("|") },
+                    if r.methods.is_empty() {
+                        "ANY".into()
+                    } else {
+                        r.methods.join("|")
+                    },
                     r.path,
                     r.handler()
                 )
@@ -984,7 +1046,11 @@ end
 
     #[test]
     fn concerns_and_drawn_files() {
-        let read = |p: &str| (p == "config/routes/admin.rb").then(|| "namespace :admin do\n  resources :reports, only: :index\nend\n".to_string());
+        let read = |p: &str| {
+            (p == "config/routes/admin.rb").then(|| {
+                "namespace :admin do\n  resources :reports, only: :index\nend\n".to_string()
+            })
+        };
         let routes = parse_routes(
             "config/routes.rb",
             "Rails.application.routes.draw do\n  concern :commentable do\n    resources :comments, only: :index\n  end\n  resources :photos, only: :show, concerns: :commentable\n  draw :admin\nend\n",
@@ -992,7 +1058,14 @@ end
         );
         let got: Vec<String> = routes
             .iter()
-            .map(|r| format!("{} {} {}", r.name.clone().unwrap_or_default(), r.path, r.location.path))
+            .map(|r| {
+                format!(
+                    "{} {} {}",
+                    r.name.clone().unwrap_or_default(),
+                    r.path,
+                    r.location.path
+                )
+            })
             .collect();
         assert_eq!(
             got,
@@ -1013,7 +1086,8 @@ end
             "Rails.application.routes.draw do\n  resources :articles\nend\n",
             &|_| None,
         );
-        let out = "                  Prefix Verb   URI Pattern                  Controller#Action\n\
+        let out =
+            "                  Prefix Verb   URI Pattern                  Controller#Action\n\
                          articles GET    /articles(.:format)          articles#index\n\
                                   POST   /articles(.:format)          articles#create\n\
                           article PATCH  /articles/:id(.:format)      articles#update\n\
@@ -1025,7 +1099,13 @@ end
         assert_eq!(r[0].location.line, 1);
         assert_eq!(r[2].methods, ["PATCH", "PUT"]);
         assert_eq!(r[3].location.line, 0);
-        assert_eq!((r[4].kind.as_str(), r[4].name.as_deref()), ("mount", Some("sidekiq_web")));
-        assert_eq!(sample_path("/(:locale)/articles/:slug/*rest"), "/articles/slug/rest");
+        assert_eq!(
+            (r[4].kind.as_str(), r[4].name.as_deref()),
+            ("mount", Some("sidekiq_web"))
+        );
+        assert_eq!(
+            sample_path("/(:locale)/articles/:slug/*rest"),
+            "/articles/slug/rest"
+        );
     }
 }
