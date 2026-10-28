@@ -1166,6 +1166,9 @@ Settings | Tools | AI Providers.
 | `ai.completion.mode` | enum: `auto`, `fim`, `chat` | `auto` | user | Inline Completion | Request type — Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs. |
 | `ai.completion.debounceMs` | int (50–3000) | `350` | user | Inline Completion | Delay before asking (ms) — How long typing must pause before a suggestion is requested. |
 | `ai.completion.disabledLanguages` | list | `[]` | user | Inline Completion | Disable for languages — Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript. |
+| `ai.agentTasks.maxSteps` | int (1–500) | `40` | user | Agent Tasks | Step budget per task — Most model turns (Forge agent) or agent CLI turns a task may take before it stops for review. |
+| `ai.agentTasks.maxTestRuns` | int (1–100) | `6` | user | Agent Tasks | Test runs per task — How often an agent may run the tests while it fixes failures. |
+| `ai.agentTasks.allowedCommands` | list | `[]` | user | Agent Tasks | Commands that run without asking — Command prefixes agents may run in their sandbox without your approval, e.g. composer test, php -l, npm run lint. Every other command asks first; network tools (curl, wget, ssh, ...) are always refused. |
 
 ### Tools | AI Agents
 

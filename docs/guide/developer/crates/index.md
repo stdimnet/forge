@@ -16,6 +16,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-cli](forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
 | [forge-ai-editor](forge-ai-editor.md) | AI in the editor: inline completion context and post-processing, AI actions (explain, fix, tests, docs) and the .aiignore policy (pure, WebAssembly-friendly) |
+| [forge-agent-tasks](forge-agent-tasks.md) | Agent tasks: AI agents that run, test and fix code in a git worktree sandbox, with path confinement, a command allowlist, step budgets and the diff to review and apply |
 | [forge-backend](forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
