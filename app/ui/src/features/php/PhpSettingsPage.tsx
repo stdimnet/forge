@@ -93,16 +93,24 @@ export function PhpSettingsPage() {
   const [detected, { refetch }] = createResource(() => phpApi.detectServers().catch((): DetectedServers => ({})));
   const server = () => draftValue<string>(KEYS.server) as ServerChoice;
   const includePaths = () => draftValue<string[]>(KEYS.includePaths) ?? [];
+  const builtin = () => detected()?.phpLsp;
   const servers: { id: ServerChoice; label: string; hint: () => string }[] = [
+    {
+      id: "php-lsp",
+      label: "php-lsp (built-in)",
+      hint: () => (builtin() ? `version ${builtin()!.version}, nothing to install` : detected.state === "ready" ? "not in this build" : ""),
+    },
     {
       id: "auto",
       label: "Auto",
-      hint: () => (detected()?.intelephense ? "Intelephense" : detected()?.phpactor ? "phpactor" : "Intelephense or phpactor, whichever is installed"),
+      hint: () => (builtin() ? "php-lsp" : detected()?.intelephense ? "Intelephense" : detected()?.phpactor ? "phpactor" : "php-lsp, Intelephense or phpactor"),
     },
     { id: "intelephense", label: "Intelephense", hint: () => detected()?.intelephense ?? "not installed" },
     { id: "phpactor", label: "phpactor", hint: () => detected()?.phpactor ?? "not found on PATH" },
-    { id: "none", label: "None (built-in index only)", hint: () => "" },
+    { id: "none", label: "None (Forge's index only)", hint: () => "" },
   ];
+  /** Intelephense install and licence options matter only when it is chosen. */
+  const intelephenseChosen = () => server() === "intelephense";
   const addPath = () => {
     const p = newPath().trim();
     if (p && !includePaths().includes(p)) setDraft(KEYS.includePaths, [...includePaths(), p]);
@@ -134,7 +142,7 @@ export function PhpSettingsPage() {
             </label>
           )}
         </For>
-        <Show when={detected.state === "ready" && !detected()?.intelephense}>
+        <Show when={intelephenseChosen() && detected.state === "ready" && !detected()?.intelephense}>
           <div class="php-licence">
             <span class="php-hint">Intelephense is not installed. Forge can download it for you; nothing else is needed.</span>
             <button class="btn-secondary" onClick={() => void installIntelephense().then(() => refetch())}>
@@ -142,15 +150,27 @@ export function PhpSettingsPage() {
             </button>
           </div>
         </Show>
-        <For each={[AUTO_INSTALL_KEY, LICENCE_ACCEPTED_KEY].map(findSpec).filter((s) => !!s)}>
-          {(spec) => <SettingRow spec={spec!} />}
-        </For>
-        <div class="php-licence">
-          <IntelephenseLicence />
-        </div>
+        <Show when={intelephenseChosen()}>
+          <For each={[AUTO_INSTALL_KEY, LICENCE_ACCEPTED_KEY].map(findSpec).filter((s) => !!s)}>
+            {(spec) => <SettingRow spec={spec!} />}
+          </For>
+          <div class="php-licence">
+            <IntelephenseLicence />
+          </div>
+        </Show>
         <p class="php-hint">
-          The server starts when a PHP project opens and restarts when these settings change. Premium features need your own licence from intelephense.com. The key is kept in the system keychain and passed
-          to the server as licenceKey.
+          <Show
+            when={intelephenseChosen()}
+            fallback={
+              <>
+                The server starts when a PHP project opens and restarts when these settings change. php-lsp is built into Forge and free (MIT OR Apache-2.0): rename, code actions, type hierarchy and the
+                other premium features of Intelephense need no licence.
+              </>
+            }
+          >
+            The server starts when a PHP project opens and restarts when these settings change. Premium features need your own licence from intelephense.com. The key is kept in the system keychain and
+            passed to the server as licenceKey.
+          </Show>
         </p>
       </section>
       <section>

@@ -21,6 +21,7 @@ forge-process.workspace = true
 forge-vcs.workspace = true
 forge-lsp.workspace = true
 forge-project.workspace = true
+phpforge-builtin-lsp.workspace = true
 serde.workspace = true
 serde_bytes = "0.11"
 tokio = { workspace = true, features = ["full"] }

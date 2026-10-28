@@ -179,6 +179,9 @@ pub struct ServerRow {
     /// Who owns the row: `"catalog"`, or a pack (`"php"`) whose own settings page
     /// configures the server.
     pub source: String,
+    /// Version of a server built into Forge (php-lsp); `None` for installed servers.
+    #[serde(default)]
+    pub builtin_version: Option<String>,
 }
 
 /// Live state of a registered server as the LSP manager reports it.
@@ -284,6 +287,7 @@ pub fn rows(
                 extra_settings: prefs.settings_json.clone(),
                 extra_settings_error: prefs.extra_settings().err(),
                 source: "catalog".into(),
+                builtin_version: None,
             }
         })
         .collect()

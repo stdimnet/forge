@@ -236,6 +236,24 @@ pub struct LspServerConfig {
     pub settings: Value,
 }
 
+/// The Language Servers row (`pack_servers.toml` id) of a PHP server config: `php-lsp`,
+/// `intelephense` or `phpactor`. The PHP pack registers each under the generic id `php`.
+pub fn server_row_id(command: &str, args: &[String]) -> Option<&'static str> {
+    let lower = |s: &str| s.to_ascii_lowercase();
+    if args.first().map(String::as_str) == Some("--php-lsp") {
+        Some("php-lsp")
+    } else if std::iter::once(command)
+        .chain(args.iter().map(String::as_str))
+        .any(|s| lower(s).contains("intelephense"))
+    {
+        Some("intelephense")
+    } else if lower(command).contains("phpactor") {
+        Some("phpactor")
+    } else {
+        None
+    }
+}
+
 /// Intelephense's built-in stub set (its default `intelephense.stubs`).
 pub const DEFAULT_STUBS: &[&str] = &[
     "apache",
@@ -927,6 +945,19 @@ mod tests {
         // Older peers send no php-lsp entry.
         let old: DetectedServers = serde_json::from_value(json!({ "intelephense": null, "phpactor": null })).unwrap();
         assert!(old.php_lsp.is_none());
+    }
+
+    #[test]
+    fn server_rows_of_configs() {
+        let b = builtin();
+        assert_eq!(server_row_id(&b.command.to_string_lossy(), &b.args), Some("php-lsp"));
+        let managed = ["/data/intelephense/lib/intelephense.js".to_string(), "--stdio".into()];
+        assert_eq!(server_row_id("/usr/bin/node", &managed), Some("intelephense"));
+        assert_eq!(
+            server_row_id("/usr/bin/phpactor", &["language-server".into()]),
+            Some("phpactor")
+        );
+        assert_eq!(server_row_id("other", &[]), None);
     }
 
     #[test]

@@ -126,7 +126,7 @@ mod tests {
             registry
                 .lsp_server_for_extension("php")
                 .map(|s| s.id.as_str()),
-            Some("intelephense")
+            Some("php-lsp")
         );
         let mut adapters = HashSet::new();
         for a in registry.debug_adapters() {

@@ -31,6 +31,7 @@ interface MockServer {
   homepage?: string;
   source?: string;
   skip?: ServerRow["skip"];
+  builtinVersion?: string;
 }
 
 const HOME = "/home/marlon";
@@ -74,8 +75,9 @@ const servers: MockServer[] = [
   { id: "kotlin-language-server", name: "Kotlin Language Server", group: "Kotlin", languages: ["Kotlin"], command: "kotlin-language-server", status: "notInstalled", install: [brew("kotlin-language-server"), download("https://github.com/fwcd/kotlin-language-server/releases")], license: "MIT", skip: { reason: "notInProject" }, note: "Used when chosen in the Kotlin settings instead of kotlin-lsp." },
   { id: "csharp-ls", name: "csharp-ls", group: "C#", languages: ["C#"], command: "csharp-ls", status: "notInstalled", install: [["dotnet", "dotnet tool install --global csharp-ls"]], skip: { reason: "notInProject" }, note: "Needs the .NET SDK." },
   { id: "ruby-lsp", name: "Ruby LSP", group: "Ruby", languages: ["Ruby"], command: "ruby-lsp", status: "notInstalled", install: [["gem", "gem install --user-install ruby-lsp"]], skip: { reason: "notInProject" } },
-  { id: "intelephense", name: "Intelephense", group: "PHP", languages: ["PHP"], command: "intelephense", args: ["--stdio"], status: "running", path: `${HOME}/.npm-global/bin/intelephense`, inProject: true, install: [npm("intelephense")], source: "php", homepage: "https://intelephense.com", license: "Proprietary (free core, premium licence key optional)", note: "Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy." },
-  { id: "phpactor", name: "Phpactor", group: "PHP", languages: ["PHP"], command: "phpactor", args: ["language-server"], status: "notInstalled", inProject: true, install: [["composer", "composer global require phpactor/phpactor"], download("https://github.com/phpactor/phpactor/releases")], source: "php", homepage: "https://phpactor.readthedocs.io", note: "Used when Intelephense is not installed, or when chosen in the PHP settings." },
+  { id: "php-lsp", name: "php-lsp (built-in)", group: "PHP", languages: ["PHP"], command: "forge", args: ["--php-lsp", "--stdio"], status: "running", path: "/usr/bin/forge", inProject: true, install: [], source: "php", homepage: "https://github.com/stdimnet/php-lsp", license: "MIT OR Apache-2.0", builtinVersion: "0.1.0 (0fd60bc)", note: "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server." },
+  { id: "intelephense", name: "Intelephense", group: "PHP", languages: ["PHP"], command: "intelephense", args: ["--stdio"], status: "installed", path: `${HOME}/.npm-global/bin/intelephense`, inProject: true, install: [npm("intelephense")], source: "php", homepage: "https://intelephense.com", license: "Proprietary (free core, premium licence key optional)", note: "Used when chosen in the PHP settings. Free by default; enter your own licence key to unlock premium features such as rename, code actions and type hierarchy." },
+  { id: "phpactor", name: "Phpactor", group: "PHP", languages: ["PHP"], command: "phpactor", args: ["language-server"], status: "notInstalled", inProject: true, install: [["composer", "composer global require phpactor/phpactor"], download("https://github.com/phpactor/phpactor/releases")], source: "php", homepage: "https://phpactor.readthedocs.io", note: "Used when chosen in the PHP settings." },
 ];
 
 // `?intelephense=missing`: Intelephense (and Node.js) are not installed yet.
@@ -85,6 +87,8 @@ if (intelephenseMissingAtStart()) {
   intelephense.status = "notInstalled";
   intelephense.path = undefined;
   nodeInstalled = false;
+  // The project chose Intelephense: the built-in server is not running.
+  servers.find((s) => s.id === "php-lsp")!.status = "installed";
 }
 
 /** Tools present on the "machine" in browser mode. */
@@ -167,6 +171,7 @@ function toRow(s: MockServer, values: Record<string, SettingValue>): ServerRow {
     extraSettings: extra,
     extraSettingsError: extraError,
     source: s.source ?? "catalog",
+    builtinVersion: s.builtinVersion ?? null,
   };
 }
 

@@ -37,7 +37,7 @@ const input = (extra: Partial<PromptInput> = {}): PromptInput => ({
   php: true,
   row: missing,
   autoInstall: "ask",
-  server: "auto",
+  server: "intelephense",
   offered: false,
   ...extra,
 });
@@ -63,6 +63,9 @@ describe("Intelephense install offer", () => {
     expect(intelephenseAction(input({ autoInstall: "never" }))).toBe("none");
     expect(intelephenseAction(input({ server: "phpactor" }))).toBe("none");
     expect(intelephenseAction(input({ server: "none" }))).toBe("none");
+    // php-lsp is built in: no Intelephense nag with it or with Auto.
+    expect(intelephenseAction(input({ server: "php-lsp" }))).toBe("none");
+    expect(intelephenseAction(input({ server: "auto" }))).toBe("none");
     expect(intelephenseAction(input({ row: { ...missing, status: "running", path: "/x/intelephense" } }))).toBe("none");
     expect(intelephenseAction(input({ row: { ...missing, install: [{ ...missing.install[0], managed: false }] } }))).toBe("none");
     expect(intelephenseAction(input({ row: undefined }))).toBe("none");

@@ -15,3 +15,10 @@ forge-lsp.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
 tokio = { workspace = true, features = ["full"] }
+
+# Test host of the hidden mode (never shipped; the Forge binary and the agent host it).
+[[bin]]
+name = "phpforge-builtin-lsp-host"
+path = "tests/support/host.rs"
+test = false
+doc = false
