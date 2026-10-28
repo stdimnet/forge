@@ -1109,6 +1109,21 @@ Page id `tools.vulnerabilities`. See [Vulnerable dependencies](../user/vulnerabl
 | `vulnerabilities.cacheHours` | int | `24` | user |  | Re-check unchanged projects after (hours) — How long the result of an unchanged manifest and lock file is reused on project open. |
 | `vulnerabilities.dependencyCheckReport` | string | (empty) | user, project |  | OWASP dependency-check report (Maven / Gradle) — The JSON report your build writes with dependency-check; Forge reads it and does not run dependency-check. Empty: Maven and Gradle projects are not checked. |
 
+### Tools | AI Assistant
+
+Page id `tools.ai-assistant`. The page also picks the provider and model of the actions (the
+Chat model) and of inline completion (the Code completion model), stored in `ai.toml` like
+Settings | Tools | AI Providers.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ai.enabled` | bool | `true` | user, project | General | Enable AI features in this project — Turn off to keep this project's code away from all AI providers: no inline completion, no Explain / Fix / Generate with AI. Files can also be excluded with an .aiignore file in the project root (gitignore syntax). |
+| `ai.completion.enabled` | bool | `false` | user | Inline Completion | Enable inline code completion — Show AI suggestions as gray text while you type. Tab accepts, Ctrl+Right accepts the next word, Escape dismisses. Uses the Code completion model of Settings \| Tools \| AI Providers. |
+| `ai.completion.multiline` | enum: `auto`, `single`, `multi` | `auto` | user | Inline Completion | Suggestion length — Automatic suggests several lines on an empty line and after a block opener such as `{`, else one line. |
+| `ai.completion.mode` | enum: `auto`, `fim`, `chat` | `auto` | user | Inline Completion | Request type — Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs. |
+| `ai.completion.debounceMs` | int (50–3000) | `350` | user | Inline Completion | Delay before asking (ms) — How long typing must pause before a suggestion is requested. |
+| `ai.completion.disabledLanguages` | list | `[]` | user | Inline Completion | Disable for languages — Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript. |
+
 ### Tools | AI Agents
 
 Page id `tools.ai-agents`.
