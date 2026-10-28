@@ -597,10 +597,10 @@ mod tests {
             group = "lang.php"
             project = true
             [[lspServers]]
-            id = "intelephense"
+            id = "php-lsp"
             languageId = "php"
-            command = "intelephense"
-            args = ["--stdio"]
+            command = "forge"
+            args = ["--php-lsp", "--stdio"]
             fileExtensions = ["php"]
             "#,
         )
@@ -608,7 +608,7 @@ mod tests {
         assert_eq!(c.commands[0].id, "php.run");
         assert!(c.run_configuration_types.is_empty());
         assert!(c.settings[0].project);
-        assert_eq!(c.lsp_servers[0].args, vec!["--stdio"]);
+        assert_eq!(c.lsp_servers[0].args, vec!["--php-lsp", "--stdio"]);
     }
 
     #[test]

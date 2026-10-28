@@ -1,7 +1,7 @@
 /**
  * Language servers for many languages (see app/src-tauri/src/commands/langservers.rs):
  * the Language Servers settings page, installs with streamed output, project-wide symbol
- * search over every running server and the Intelephense licence key (OS keychain).
+ * search over every running server.
  */
 import { invoke, listen } from "./index";
 import type { LspRange } from "./lsp";
