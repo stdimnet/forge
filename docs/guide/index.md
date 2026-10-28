@@ -61,6 +61,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
   `.aiignore` and a per-project switch ([AI](user/ai.md#ai-in-the-editor)).
+- **Ruby on Rails**: routes of `config/routes.rb` in the Endpoints tool window with Generate HTTP
+  Request; Go to Related between models, controllers, views, helpers, tests and migrations;
+  navigation and completion of route helpers, partials, translation keys, model attributes
+  (from `db/schema.rb` and migrations), Stimulus controllers and Turbo frames; gutter icons;
+  Run Rails Generator (`Ctrl+Alt+G`); the Rails console and the Rails server configuration;
+  data sources from `config/database.yml`; translations folded to their text with a missing-key
+  inspection ([Ruby on Rails](user/rails.md)).
 - **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
   chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
   with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run

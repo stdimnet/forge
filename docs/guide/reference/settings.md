@@ -902,6 +902,19 @@ Page id `lang.ruby` (`ruby.interpreter` and `ruby.interpreters` are set by the R
 | `ruby.lsp.path` | path | `""` | user | Ruby LSP | ruby-lsp executable — Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder. |
 | `ruby.lsp.formatter` | enum: `auto`, `rubocop_internal`, `syntax_tree`, `none` | `auto` | user, project | Ruby LSP | Ruby LSP formatter — The formatter Ruby LSP uses for formatting and diagnostics. |
 | `ruby.debugger.rdbgPath` | path | `""` | user | Debugger | rdbg executable — The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem. |
+### Languages & Frameworks | Ruby | Rails
+
+Page id `lang.rails`.
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `rails.routesFromRails` | bool | `false` | user, project | Routes | Read routes with bin/rails routes — The Endpoints tool window asks Rails for the routes, with those of engines and gems (trusted projects only: it boots the application). Off: config/routes.rb is read without running anything. |
+| `rails.generatorsFromRails` | bool | `true` | user, project | Generators | List generators with bin/rails generate — The Run Rails Generator dialog lists the generators of the application and its gems (trusted projects only). Off: Rails' own generators and lib/generators. |
+| `rails.console.environment` | string | `""` | user, project | Console | Console environment — The environment of the Rails console and database console (empty: development). |
+| `rails.console.sandbox` | bool | `false` | user, project | Console | Run the console in a sandbox — bin/rails console --sandbox: changes to the database are rolled back on exit. |
+| `rails.i18n.folding` | bool | `true` | user | I18n | Fold translation calls — t(".title") shows the text of the default locale; the key shows while the caret is on it. |
+| `rails.i18n.inspection` | bool | `true` | user | I18n | Report missing translations — Keys missing in config/locales are warnings; keys missing in some locales are weak warnings. |
+| `rails.database.suggest` | bool | `true` | user | Database | Offer data sources from database.yml — When a Rails project opens, a balloon offers the databases of config/database.yml that the Database tool window does not have yet. |
 ### Languages & Frameworks | Rust
 
 Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).

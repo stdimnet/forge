@@ -1,0 +1,17 @@
+de:
+  articles:
+    index:
+      title: "Neueste Artikel"
+      new_article: "Neuer Artikel"
+      empty: "Noch keine Artikel."
+    show:
+      comments: "Kommentare"
+    form:
+      save: "Artikel speichern"
+    create:
+      created: "Der Artikel wurde angelegt."
+    update:
+      updated: "Der Artikel wurde gespeichert."
+  pages:
+    about:
+      title: "Über dieses Blog"

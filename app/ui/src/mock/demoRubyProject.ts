@@ -5,14 +5,15 @@
  * answers the `ruby_*` commands, running the Rust crates through WebAssembly.
  */
 import type { ProjectInfo } from "@/ipc/project";
+import { isRailsDemo, railsDemoFiles, railsDemoInfo, railsDemoName } from "./demoRailsProject";
 
-export const rubyDemoName = "pantry";
-
-/** True when the page asks for the Ruby demo project. */
+/** True when the page asks for the Ruby demo project (or its Rails variant, `?project=rails`). */
 export const isRubyDemo = (): boolean =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).get("project") === "ruby";
+  typeof location !== "undefined" && ["ruby", "rails"].includes(new URLSearchParams(location.search).get("project") ?? "");
 
-export const rubyDemoInfo: ProjectInfo = {
+export const rubyDemoName = isRailsDemo() ? railsDemoName : "pantry";
+
+const pantryInfo: ProjectInfo = {
   languages: ["ruby"],
   frameworks: [],
   packs: ["rubyforge"],
@@ -385,7 +386,9 @@ Keeps track of what is in the pantry and what to buy.
     bin/restock
 `;
 
-export const rubyDemoFiles: Record<string, string> = {
+export const rubyDemoInfo: ProjectInfo = isRailsDemo() ? railsDemoInfo : pantryInfo;
+
+const pantryFiles: Record<string, string> = {
   Gemfile: GEMFILE,
   "Gemfile.lock": GEMFILE_LOCK,
   "pantry.gemspec": GEMSPEC,
@@ -407,3 +410,5 @@ export const rubyDemoFiles: Record<string, string> = {
   "test/pantry/item_test.rb": ITEM_TEST,
   "app/views/inventory/index.html.erb": VIEW,
 };
+
+export const rubyDemoFiles: Record<string, string> = isRailsDemo() ? railsDemoFiles : pantryFiles;

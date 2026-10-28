@@ -13,6 +13,7 @@ import type { AdapterInfo, LaunchRequest } from "@/features/debug/dapApi";
 import type { RubyStatus } from "@/ipc/ruby";
 import { callWasm, forgeWasm } from "@/wasm";
 import { isRubyDemo, rubyDemoInfo, rubyDemoName } from "./demoRubyProject";
+import { isRailsDemo } from "./demoRailsProject";
 import { onMockDidOpen, setMockServerStatus } from "./lspMock";
 import { RUBY_ROOT, RUBY_TOOLS, rubyContext } from "./rubyTestsMock";
 import { mockSettingValue, setSetting } from "./settingsMock";
@@ -93,7 +94,7 @@ registerMock("ruby_lsp_refresh", () => {
   setMockServerStatus({ id: "ruby-lsp", name: "Ruby LSP", state: "ready" });
 });
 
-const RAKE_TASKS = `rake build                     # Build pantry-0.4.0.gem into the pkg directory
+const PANTRY_RAKE_TASKS = `rake build                     # Build pantry-0.4.0.gem into the pkg directory
 rake build:checksum            # Generate SHA512 checksum of pantry-0.4.0.gem into the checksums directory
 rake clean                     # Remove any temporary products
 rake clobber                   # Remove any generated files
@@ -109,6 +110,27 @@ rake shopping_list[month]      # Print the shopping list for a month
 rake spec                      # Run RSpec code examples
 rake test                      # Run tests
 `;
+
+/** `bin/rails --tasks` of the Rails demo (a few of them). */
+const RAILS_RAKE_TASKS = `rake about                              # List versions of all Rails frameworks and the environment
+rake assets:precompile                 # Compile all the assets named in config.assets.precompile
+rake db:create                         # Create the database from DATABASE_URL or config/database.yml for the current RAILS_ENV
+rake db:drop                           # Drop the database from DATABASE_URL or config/database.yml for the current RAILS_ENV
+rake db:migrate                        # Migrate the database (options: VERSION=x, VERBOSE=false, SCOPE=blog)
+rake db:migrate:status                 # Display status of migrations
+rake db:prepare                        # Run setup if database does not exist, or run migrations if it does
+rake db:reset                          # Drop and recreate all databases from their schema for the current environment and load the seeds
+rake db:rollback                       # Roll the schema back to the previous version (specify steps w/ STEP=n)
+rake db:schema:load                    # Load a database schema file (either db/schema.rb or db/structure.sql, depending on \`ENV['SCHEMA_FORMAT']\` or \`config.active_record.schema_format\`) into the database
+rake db:seed                           # Load the seed data from db/seeds.rb
+rake log:clear                         # Truncate all/specified *.log files in log/ to zero bytes (specify which logs with LOGS=test,development)
+rake routes                            # Lists all your defined routes
+rake stimulus:manifest:update          # Update the Stimulus manifest
+rake test                              # Run all tests in test folder except system ones
+rake test:system                       # Run system tests only
+rake tmp:clear                         # Clear cache, socket and screenshot files from tmp/ (narrow w/ tmp:cache:clear, tmp:sockets:clear, tmp:screenshots:clear)
+`;
+const RAKE_TASKS = isRailsDemo() ? RAILS_RAKE_TASKS : PANTRY_RAKE_TASKS;
 
 registerMock("ruby_rake_tasks", async () => {
   await new Promise((r) => setTimeout(r, 300));

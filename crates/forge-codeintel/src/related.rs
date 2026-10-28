@@ -7,6 +7,8 @@
 //!   model's migrations, factory, policy and seeder (and back).
 //! - Symfony: a controller's Twig templates (`render()`, `#[Template]`); a template's
 //!   controllers.
+//! - Rails: a resource's model, controller, views, helper, tests and specs, fixtures and
+//!   factories, migrations and routes (from any of them).
 //! - JavaScript / TypeScript / Vue / Svelte: a component's or module's tests
 //!   (`*.test.ts`, `*.spec.ts`, `__tests__/`), stories and style sheets (and back).
 //!
@@ -33,6 +35,7 @@ pub enum RelatedKind {
     TestSubject,
     Controller,
     View,
+    Helper,
     Template,
     Route,
     Model,
@@ -40,6 +43,7 @@ pub enum RelatedKind {
     Factory,
     Policy,
     Seeder,
+    Fixture,
     Component,
     Story,
     Style,
@@ -53,6 +57,7 @@ impl RelatedKind {
             Self::TestSubject => "Test Subject",
             Self::Controller => "Controllers",
             Self::View => "Views",
+            Self::Helper => "Helpers",
             Self::Template => "Templates",
             Self::Route => "Routes",
             Self::Model => "Model",
@@ -60,6 +65,7 @@ impl RelatedKind {
             Self::Factory => "Factory",
             Self::Policy => "Policy",
             Self::Seeder => "Seeder",
+            Self::Fixture => "Fixtures",
             Self::Component => "Component",
             Self::Story => "Stories",
             Self::Style => "Styles",
@@ -356,6 +362,8 @@ pub fn related(
         php_file(&mut cx, path, &req.text);
     } else if twig_name(path).is_some() {
         twig_template(&mut cx, path);
+    } else if files.iter().any(|f| f == "config/application.rb") && rails_resource(path).is_some() {
+        rails_file(&mut cx, path);
     } else {
         web_file(&mut cx, path);
     }
@@ -648,6 +656,248 @@ fn web_file(cx: &mut Ctx, path: &str) {
     }
 }
 
+// ---- Rails ------------------------------------------------------------------------------------
+
+/// What a file is to its Rails resource.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RailsRole {
+    Model,
+    Controller,
+    View,
+    Helper,
+    Test,
+    Fixture,
+    Migration,
+}
+
+/// `articles` → `article`, `categories` → `category`, `addresses` → `address`.
+fn rails_singular(word: &str) -> String {
+    if let Some(stem) = word.strip_suffix("ies") {
+        return format!("{stem}y");
+    }
+    for end in ["sses", "xes", "ches", "shes"] {
+        if word.ends_with(end) {
+            return word[..word.len() - 2].to_string();
+        }
+    }
+    match word.strip_suffix('s') {
+        Some(s) if !word.ends_with("ss") => s.to_string(),
+        _ => word.to_string(),
+    }
+}
+
+/// The resource of a Rails file: (namespace with a trailing `/`, plural name, role).
+fn rails_resource(path: &str) -> Option<(String, String, RailsRole)> {
+    let split = |rest: &str| -> (String, String) {
+        match rest.rsplit_once('/') {
+            Some((ns, name)) => (format!("{ns}/"), name.to_string()),
+            None => (String::new(), rest.to_string()),
+        }
+    };
+    if let Some(rest) = path
+        .strip_prefix("app/models/")
+        .and_then(|r| r.strip_suffix(".rb"))
+    {
+        if rest.starts_with("concerns/") || rest == "application_record" {
+            return None;
+        }
+        let (ns, name) = split(rest);
+        return Some((ns, plural(&name), RailsRole::Model));
+    }
+    if let Some(rest) = path
+        .strip_prefix("app/controllers/")
+        .and_then(|r| r.strip_suffix("_controller.rb"))
+    {
+        if rest.starts_with("concerns/") || rest == "application" {
+            return None;
+        }
+        let (ns, name) = split(rest);
+        return Some((ns, name, RailsRole::Controller));
+    }
+    if let Some(rest) = path.strip_prefix("app/views/") {
+        let dir = rest.rsplit_once('/')?.0;
+        if matches!(dir, "layouts" | "application" | "shared") {
+            return None;
+        }
+        let (ns, name) = split(dir);
+        return Some((ns, name, RailsRole::View));
+    }
+    if let Some(rest) = path
+        .strip_prefix("app/helpers/")
+        .and_then(|r| r.strip_suffix("_helper.rb"))
+    {
+        let (ns, name) = split(rest);
+        return (name != "application").then_some((ns, name, RailsRole::Helper));
+    }
+    for (dir, suffix) in [("test/", "_test.rb"), ("spec/", "_spec.rb")] {
+        let Some(rest) = path.strip_prefix(dir).and_then(|r| r.strip_suffix(suffix)) else {
+            continue;
+        };
+        let (kind, rest) = rest.split_once('/')?;
+        let (ns, name) = split(rest);
+        let name = match kind {
+            "models" => plural(&name),
+            "controllers" => name.strip_suffix("_controller")?.to_string(),
+            "helpers" => name.strip_suffix("_helper")?.to_string(),
+            "requests" | "system" | "integration" | "features" | "views" => name
+                .strip_suffix("_controller")
+                .unwrap_or(&name)
+                .to_string(),
+            _ => return None,
+        };
+        return Some((ns, name, RailsRole::Test));
+    }
+    if let Some(rest) = path
+        .strip_prefix("test/fixtures/")
+        .and_then(|r| r.strip_suffix(".yml"))
+    {
+        let (ns, name) = split(rest);
+        return Some((ns, name, RailsRole::Fixture));
+    }
+    if let Some(rest) = path
+        .strip_prefix("spec/factories/")
+        .and_then(|r| r.strip_suffix(".rb"))
+    {
+        let (ns, name) = split(rest);
+        return Some((ns, name, RailsRole::Fixture));
+    }
+    if let Some(rest) = path
+        .strip_prefix("db/migrate/")
+        .and_then(|r| r.strip_suffix(".rb"))
+    {
+        // 20241001100000_create_articles → articles
+        let name = rest.trim_start_matches(|c: char| c.is_ascii_digit() || c == '_');
+        for w in ["create_", "_to_", "_from_", "_on_", "_in_"] {
+            if let Some(i) = name.rfind(w) {
+                return Some((
+                    String::new(),
+                    name[i + w.len()..].to_string(),
+                    RailsRole::Migration,
+                ));
+            }
+        }
+        return None;
+    }
+    None
+}
+
+/// Whether a migration creates or changes `table`.
+fn rails_migrates(text: &str, table: &str) -> bool {
+    [
+        "create_table",
+        "change_table",
+        "add_column",
+        "add_reference",
+        "add_belongs_to",
+        "remove_column",
+        "rename_column",
+        "add_index",
+        "drop_table",
+    ]
+    .iter()
+    .any(|call| {
+        text.lines().any(|l| {
+            let t = l.trim_start();
+            t.starts_with(call)
+                && (t.contains(&format!(":{table},"))
+                    || t.contains(&format!(":{table} "))
+                    || t.ends_with(&format!(":{table}"))
+                    || t.contains(&format!("\"{table}\"")))
+        })
+    })
+}
+
+/// A Rails file: the other files of its resource.
+fn rails_file(cx: &mut Ctx, path: &str) {
+    let Some((ns, plural_name, role)) = rails_resource(path) else {
+        return;
+    };
+    let singular = rails_singular(&plural_name);
+    let any_ns = role == RailsRole::Model || role == RailsRole::Migration;
+    let push_files = |cx: &mut Ctx, kind: RelatedKind, wanted: &dyn Fn(&str) -> bool| {
+        for f in cx.files_where(|f| wanted(f)) {
+            cx.push(item(kind, file_name(&f), &f, 0));
+        }
+    };
+    let model = format!("app/models/{ns}{singular}.rb");
+    let plain_model = format!("app/models/{singular}.rb");
+    push_files(cx, RelatedKind::Model, &|f| f == model || f == plain_model);
+    let ctl = format!("{ns}{plural_name}_controller.rb");
+    push_files(cx, RelatedKind::Controller, &|f| {
+        f.strip_prefix("app/controllers/").is_some_and(|r| {
+            r == ctl
+                || (any_ns
+                    && (r == format!("{plural_name}_controller.rb")
+                        || r.ends_with(&format!("/{plural_name}_controller.rb"))))
+        })
+    });
+    let views = format!("app/views/{ns}{plural_name}/");
+    push_files(cx, RelatedKind::View, &|f| {
+        f.starts_with(&views)
+            || (any_ns
+                && f.strip_prefix("app/views/").is_some_and(|r| {
+                    r.rsplit_once('/').is_some_and(|(d, _)| {
+                        d == plural_name || d.ends_with(&format!("/{plural_name}"))
+                    })
+                }))
+    });
+    let helper = format!("app/helpers/{ns}{plural_name}_helper.rb");
+    push_files(cx, RelatedKind::Helper, &|f| f == helper);
+    let tests = [
+        format!("test/models/{ns}{singular}_test.rb"),
+        format!("test/controllers/{ns}{plural_name}_controller_test.rb"),
+        format!("test/helpers/{ns}{plural_name}_helper_test.rb"),
+        format!("test/system/{ns}{plural_name}_test.rb"),
+        format!("test/integration/{ns}{plural_name}_test.rb"),
+        format!("spec/models/{ns}{singular}_spec.rb"),
+        format!("spec/controllers/{ns}{plural_name}_controller_spec.rb"),
+        format!("spec/requests/{ns}{plural_name}_spec.rb"),
+        format!("spec/system/{ns}{plural_name}_spec.rb"),
+        format!("spec/helpers/{ns}{plural_name}_helper_spec.rb"),
+    ];
+    push_files(cx, RelatedKind::Test, &|f| tests.iter().any(|t| t == f));
+    let fixtures = [
+        format!("test/fixtures/{ns}{plural_name}.yml"),
+        format!("spec/factories/{ns}{plural_name}.rb"),
+    ];
+    push_files(cx, RelatedKind::Fixture, &|f| {
+        fixtures.iter().any(|t| t == f)
+    });
+    // Migrations that create or change the table.
+    let table = format!("{}{plural_name}", ns.replace('/', "_"));
+    for f in cx.files_where(|f| f.starts_with("db/migrate/") && f.ends_with(".rb")) {
+        if let Some(src) = (cx.read)(&f) {
+            if rails_migrates(&src, &plural_name) || (ns.is_empty() && rails_migrates(&src, &table))
+            {
+                cx.push(item(RelatedKind::Migration, file_name(&f), &f, 0));
+            }
+        }
+    }
+    // Routes.
+    for f in cx.files_where(|f| {
+        f == "config/routes.rb" || (f.starts_with("config/routes/") && f.ends_with(".rb"))
+    }) {
+        let Some(src) = (cx.read)(&f) else { continue };
+        let needles = [
+            format!("resources :{plural_name}"),
+            format!("resource :{singular}"),
+            format!("\"{plural_name}#"),
+            format!("'{plural_name}#"),
+        ];
+        for (i, line) in src.lines().enumerate() {
+            let t = line.trim();
+            if needles.iter().any(|n| {
+                t.match_indices(n.as_str()).any(|(at, _)| {
+                    !t[at + n.len()..].starts_with(|c: char| c.is_alphanumeric() || c == '_')
+                })
+            }) {
+                let label: String = t.chars().take(80).collect();
+                cx.push(item(RelatedKind::Route, label, &f, i as u32));
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -882,5 +1132,89 @@ mod tests {
         assert_eq!(snake("OrderItem"), "order_item");
         assert_eq!(snake("HTMLParser"), "html_parser");
         assert_eq!(plural("category"), "categories");
+    }
+    #[test]
+    fn rails_resources() {
+        let files = [
+            ("Gemfile", "gem \"rails\""),
+            ("config/application.rb", "module Blog\nend\n"),
+            ("config/routes.rb", "Rails.application.routes.draw do\n  resources :articles do\n    resources :comments\n  end\n  get \"about\", to: \"pages#about\"\nend\n"),
+            ("app/models/article.rb", "class Article < ApplicationRecord\nend\n"),
+            ("app/models/comment.rb", "class Comment < ApplicationRecord\nend\n"),
+            ("app/controllers/articles_controller.rb", "class ArticlesController\nend\n"),
+            ("app/controllers/admin/articles_controller.rb", "class Admin::ArticlesController\nend\n"),
+            ("app/views/articles/index.html.erb", ""),
+            ("app/views/articles/_form.html.erb", ""),
+            ("app/views/admin/articles/index.html.erb", ""),
+            ("app/helpers/articles_helper.rb", "module ArticlesHelper\nend\n"),
+            ("test/models/article_test.rb", ""),
+            ("test/controllers/articles_controller_test.rb", ""),
+            ("test/fixtures/articles.yml", ""),
+            ("db/migrate/20241001100000_create_articles.rb", "class CreateArticles < ActiveRecord::Migration[7.2]\n  def change\n    create_table :articles do |t|\n    end\n  end\nend\n"),
+            ("db/migrate/20241015080000_add_slug_to_articles.rb", "    add_column :articles, :slug, :string\n"),
+            ("db/migrate/20241002120000_create_comments.rb", "    create_table :comments do |t|\n      t.references :article\n"),
+        ];
+        let model = run(&files, "app/models/article.rb");
+        let got: Vec<(RelatedKind, &str)> =
+            model.iter().map(|(k, _, p, _)| (*k, p.as_str())).collect();
+        assert_eq!(
+            got,
+            [
+                (RelatedKind::Test, "test/models/article_test.rb"),
+                (
+                    RelatedKind::Test,
+                    "test/controllers/articles_controller_test.rb"
+                ),
+                (
+                    RelatedKind::Controller,
+                    "app/controllers/articles_controller.rb"
+                ),
+                (
+                    RelatedKind::Controller,
+                    "app/controllers/admin/articles_controller.rb"
+                ),
+                (RelatedKind::View, "app/views/articles/index.html.erb"),
+                (RelatedKind::View, "app/views/articles/_form.html.erb"),
+                (RelatedKind::View, "app/views/admin/articles/index.html.erb"),
+                (RelatedKind::Helper, "app/helpers/articles_helper.rb"),
+                (RelatedKind::Route, "config/routes.rb"),
+                (
+                    RelatedKind::Migration,
+                    "db/migrate/20241001100000_create_articles.rb"
+                ),
+                (
+                    RelatedKind::Migration,
+                    "db/migrate/20241015080000_add_slug_to_articles.rb"
+                ),
+                (RelatedKind::Fixture, "test/fixtures/articles.yml"),
+            ]
+        );
+        let view = run(&files, "app/views/articles/_form.html.erb");
+        let paths: Vec<&str> = view.iter().map(|(_, _, p, _)| p.as_str()).collect();
+        assert!(
+            paths.contains(&"app/controllers/articles_controller.rb")
+                && paths.contains(&"app/models/article.rb")
+        );
+        assert!(!paths.contains(&"app/controllers/admin/articles_controller.rb"));
+        let admin = run(&files, "app/controllers/admin/articles_controller.rb");
+        let paths: Vec<&str> = admin.iter().map(|(_, _, p, _)| p.as_str()).collect();
+        assert_eq!(
+            paths,
+            [
+                "app/views/admin/articles/index.html.erb",
+                "config/routes.rb",
+                "app/models/article.rb",
+                "db/migrate/20241001100000_create_articles.rb",
+                "db/migrate/20241015080000_add_slug_to_articles.rb"
+            ]
+        );
+        let test = run(&files, "test/models/article_test.rb");
+        assert!(test
+            .iter()
+            .any(|(k, _, p, _)| *k == RelatedKind::Model && p == "app/models/article.rb"));
+        let migration = run(&files, "db/migrate/20241015080000_add_slug_to_articles.rb");
+        assert!(migration
+            .iter()
+            .any(|(_, _, p, _)| p == "app/models/article.rb"));
     }
 }

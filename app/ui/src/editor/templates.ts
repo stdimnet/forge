@@ -473,5 +473,7 @@ export const erbSyntax: TemplateSyntax = {
   builtins: [
     "render", "link_to", "form_with", "form_for", "image_tag", "content_tag", "content_for", "t", "l", "raw", "puts",
     "each", "map", "button_to", "javascript_include_tag", "stylesheet_link_tag", "csrf_meta_tags", "turbo_frame_tag",
+    "turbo_stream_from", "turbo_stream", "turbo_include_tags", "turbo_refreshes_with", "javascript_importmap_tags", "dom_id",
+    "tag", "simple_format", "truncate", "yield", "fields_for", "time_ago_in_words", "number_to_currency",
   ],
 };

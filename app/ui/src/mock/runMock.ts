@@ -25,7 +25,8 @@ import { goContext } from "./goTestsMock";
 import { isRustDemo, rustDemoName } from "./demoRustProject";
 import { cargoRunSteps, RUST_ROOT, rustContext } from "./rustTestsMock";
 import { isRubyDemo, rubyDemoName } from "./demoRubyProject";
-import { RUBY_ROOT, rubyCommandSteps, rubyContext, rubyRunSteps } from "./rubyTestsMock";
+import { RUBY_ROOT, railsServerSteps, rubyCommandSteps, rubyContext, rubyRunSteps } from "./rubyTestsMock";
+import { isRailsDemo } from "./demoRailsProject";
 import { isJavaDemo, javaDemoName } from "./demoJavaProject";
 import { isKotlinDemo, kotlinDemoName } from "./demoKotlinProject";
 import { isScalaDemo, scalaDemoName } from "./demoScalaProject";
@@ -101,6 +102,16 @@ const RUBY_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
+/** The Rails demo (`?project=rails`): the server, the tests and database tasks. */
+const RAILS_CONFIGURATIONS: RunConfigurations = {
+  selected: "blog: development",
+  configurations: [
+    { name: "blog: development", type: "rails", storeAsProjectFile: true, options: { environment: "development", port: "3000" } },
+    { name: "All tests", type: "minitest", storeAsProjectFile: true, options: { scope: "all" } },
+    { name: "rake db:migrate", type: "rake", options: { task: "db:migrate" } },
+  ],
+};
+
 /** The .NET demo (`?project=dotnet`): the API with its launch profiles, the F# tool and the tests. */
 const DOTNET_CONFIGURATIONS: RunConfigurations = {
   selected: "Bookstore.Api: http",
@@ -112,7 +123,7 @@ const DOTNET_CONFIGURATIONS: RunConfigurations = {
   ],
 };
 
-let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isRubyDemo() ? RUBY_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : {
+let stored: RunConfigurations = isLuaDemo() ? LUA_CONFIGURATIONS : isDjangoDemo() ? DJANGO_CONFIGURATIONS : isPythonDemo() ? PYTHON_CONFIGURATIONS : isGoDemo() ? GO_CONFIGURATIONS : isRustDemo() ? RUST_CONFIGURATIONS : isRailsDemo() ? RAILS_CONFIGURATIONS : isRubyDemo() ? RUBY_CONFIGURATIONS : isDotnetDemo() ? DOTNET_CONFIGURATIONS : {
   selected: "UserTest",
   configurations: [
     {
@@ -268,6 +279,10 @@ async function commandLineOf(cfg: RunConfiguration, coverage = false): Promise<C
   if (cfg.type === "cargo") {
     const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).rust_command_line, { configuration: cfg, context: rustContext() });
     return { ...c, cwd: c.cwd ? `${RUST_ROOT}/${c.cwd}` : RUST_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
+  }
+  if (cfg.type === "rails") {
+    const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).rails_command, { kind: "server", configuration: cfg, context: rubyContext(), binstub: true });
+    return { ...c, cwd: c.cwd ? `${RUBY_ROOT}/${c.cwd}` : RUBY_ROOT, env: { ...(c.env ?? {}), ...(cfg.env ?? {}) } };
   }
   if (cfg.type === "ruby" || cfg.type === "rake") {
     const c = callWasmSync<CommandLine & { cwd: string }>((await forgeWasm()).ruby_command_line, { configuration: cfg, context: rubyContext() });
@@ -656,6 +671,8 @@ function stepsFor(cfg: RunConfiguration | undefined, cmd: CommandLine): Step[] {
     case "ruby":
     case "rake":
       return rubyRunSteps(cfg);
+    case "rails":
+      return railsServerSteps(cfg);
     case "ruby-command":
       return rubyCommandSteps((JSON.parse(o.commandLine ?? "{}") as { args?: string[] }).args ?? []);
     case "go-build":

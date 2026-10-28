@@ -1,0 +1,13 @@
+<% content_for :title, t(".title") %>
+
+<h1><%= t(".title") %></h1>
+
+<%= turbo_frame_tag "articles" do %>
+  <% if @articles.any? %>
+    <%= render @articles %>
+  <% else %>
+    <p><%= t(".empty") %></p>
+  <% end %>
+<% end %>
+
+<%= link_to t(".new_article"), new_article_path, data: { turbo_frame: "_top" } %>

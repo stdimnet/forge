@@ -2849,6 +2849,36 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   tab (`openTerminalWith`). Browser mode: `?project=ruby` opens the `pantry` demo
   (`mock/demoRubyProject.ts`, `mock/rubyMock.ts`, `mock/rubyTestsMock.ts`, WebAssembly
   `crates/forge-wasm/src/ruby.rs`).
+- Rails (`forge.rails`, `depends = ["forge.ruby"]`, `projectTypes = ["rails"]`): `forge-project`
+  reports the `rails` framework (version from Gemfile.lock) for `gem "rails"` / `railties` in the
+  Gemfile plus `config/application.rb`. The crate `rubyforge-fw-rails` (pure, also WebAssembly)
+  reads routes (`routes.rb`, or `bin/rails routes` output), controllers, views, models with
+  columns from `db/schema.rb` and newer migrations, `config/database.yml` (ERB-lite), locale
+  files, Stimulus controllers and Turbo frames, and answers the editor (`editor::goto`,
+  `complete`, `marks` with gutter marks, problems and translation folds). Go to Related for
+  Rails files is part of `forge_codeintel::related` (`rails_file`).
+- Rails IPC (`app/ui/src/ipc/rails.ts`, `commands/rails.rs`; the analysed project is cached for
+  5 s): `rails_project({ refresh }) -> RailsProject` (with `routesError` when `bin/rails routes`
+  was refused or failed; it runs only with `rails.routesFromRails` in trusted projects),
+  `rails_goto({ path, content, offset }) -> Location[]`, `rails_complete({ path, content,
+  offset }) -> Completions | null` (UTF-16 offsets), `rails_marks({ path, content }) -> {
+  gutter, problems, folds }`, `rails_generators({ refresh }) -> { generators, source, message?
+  }` (`bin/rails generate` in trusted projects), `rails_generate_command({ generator,
+  arguments, options, destroy }) -> CommandLine` and `rails_console_command({ kind: "console" |
+  "dbconsole" }) -> CommandLine` (both trusted projects only; the UI runs them through the
+  hidden `ruby-command` type or a Terminal tab), `rails_add_data_sources({ environments }) ->
+  DataSourceInfo[]` (project data sources, passwords to the keychain, production colored).
+  The `rails` run configuration type is built by `rails::run_command` (`bin/rails server`) and
+  debugged like the other Ruby types (`ruby::is_ruby_type`, `wrap_rdbg`). Problems use the
+  diagnostics source `rails` with the inspections `RailsI18nMissing`, `RailsMissingView` and
+  `RailsStimulus`.
+- Rails UI (`app/ui/src/features/rails`): the `rails` view of the shared Endpoints tool window
+  (routes and models), the Run Rails Generator popup (`rails.generate`, `Ctrl+Alt+G`), the
+  consoles, the `rails` run configuration type, the database.yml balloon, Go to Declaration /
+  completion / gutter / problems / folds (`editor.ts`) and Settings | Ruby | Rails
+  (`lang.rails`). Browser mode: `?project=rails` opens the `blog` demo
+  (`mock/demoRailsProject.ts`, generated from the crate's fixture, served by the Ruby mocks and
+  `mock/railsMock.ts` through `crates/forge-wasm/src/rails.rs`).
 
 ## JavaForge (`packs/javaforge/*`)
 
