@@ -2210,6 +2210,7 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "cforge-analyzers",
  "cforge-cmake",
@@ -2220,6 +2221,7 @@ dependencies = [
  "dotnetforge-lang-dotnet",
  "dotnetforge-sdk",
  "forge-agent-cli",
+ "forge-agent-tasks",
  "forge-ai",
  "forge-ai-editor",
  "forge-backend",
