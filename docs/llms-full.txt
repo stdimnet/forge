@@ -19762,7 +19762,7 @@ Source: docs/guide/user/ai.md
 # AI
 
 AI is part of Forge's core and works with **your own** providers and tools; Forge ships no
-credentials and no subscription. There are three parts:
+credentials and no subscription. There are four parts:
 
 - **AI providers**: language model APIs Forge calls itself, used for AI in the editor, AI
   commit messages and available to plugins.
@@ -19770,6 +19770,8 @@ credentials and no subscription. There are three parts:
   `Alt+Enter`, and AI-generated documentation and tests, all with a diff preview.
 - **AI Chat**: Claude Code or Gemini CLI, installed on your machine with your own login, run
   headless and rendered as a native chat.
+- **Agent Tasks**: an agent works on a task in a sandbox copy of the project, runs the tests,
+  fixes failures and leaves a diff for you to review and apply.
 
 ## Providers
 
@@ -20026,6 +20028,107 @@ In [remote projects](docs/guide/user/remote-development.md) the agent CLI runs *
 in to `claude` or `gemini` there. Forge finds the executable on the host and the agent works
 next to the files.
 
+## Agent Tasks
+
+The **Agent Tasks** tool window (right stripe, below AI Chat; **New Agent Task…** in Find
+Action) hands a task to an agent that works on its own: it explores the code, edits files,
+runs the tests and fixes failures until they pass, then stops for your review. It never
+touches your working tree: every task runs in a **sandbox**, and nothing changes in your
+project until you apply its diff.
+
+![Agent Tasks](docs/screenshots/agent-tasks-review.png)
+
+### Creating a task
+
+Click **+** in the tool window header:
+
+| Field | Meaning |
+| --- | --- |
+| **Task** | What to do, e.g. "Fix the failing CheckoutTest". `Ctrl+Enter` starts it. |
+| **Files it may change** | Comma-separated files and folders (`app/Services, tests/Unit`). The agent can read everything (except `.aiignore`d files) but writes only there. Empty: the whole project. |
+| **Agent** | **Forge agent** (Forge's own agent over a model of Settings \| Tools \| AI Providers: the default provider or a chosen one, the Chat model), **Claude Code** or **Gemini CLI** (your installed CLI, see [AI Chat](#agents)). |
+| **Verify with** | **No tests**, one of the project's **run configurations** (its test runner and result format), or a **command** such as `vendor/bin/phpunit`. |
+
+![New Agent Task](docs/screenshots/agent-tasks-new.png)
+
+Tasks run one at a time per project; later ones wait as **Queued**. The list shows each task's
+status: **Queued**, **Running**, **Needs review**, **Applied**, **Discarded**, **Failed** or
+**Cancelled**. **Stop** cancels a running task (what it changed so far stays reviewable).
+
+### The sandbox
+
+A task's sandbox is a detached **git worktree** in Forge's cache folder
+(`<cache dir>/forge/agent-tasks/<project>/<task>`, e.g. `~/.cache/forge/...` on Linux), never
+inside the project. It starts from a snapshot of your working tree, taken without touching it
+(`git stash create`): committed files, uncommitted changes and untracked files that are not
+ignored. The review shows only what the agent changed against that snapshot. Agent tasks need
+a Git repository with at least one commit; remote projects are not supported yet.
+
+### Run, test and fix
+
+The **Forge agent** works in steps, one tool per model turn, all confined to the sandbox:
+
+| Tool | Does |
+| --- | --- |
+| `list_files`, `read_file`, `search` | explore the project (no `.git`, no `.aiignore`d files, no paths outside the sandbox or through symlinks) |
+| `write_file`, `edit_file`, `delete_file` | change files inside the task's scope |
+| `run_tests` | run the tests of the task and get the failures (parsed by Forge's test runners) |
+| `run_command` | run one program in the sandbox without a shell (no pipes), after your approval unless allowlisted |
+| `finish` | report what it did |
+
+When the agent says it is done, Forge runs the tests again if files changed since the last
+run. If they fail, the failures go back to the agent and it keeps fixing. The task stops when
+the tests pass, when the **step budget** is used up or when the **test runs** are used up; the
+last step says which. There are no network tools; `curl`, `wget`, `ssh`, `scp`, `rsync`, `nc`
+and similar programs are always refused.
+
+**Claude Code** runs headless in the sandbox. Each tool it wants to use is checked by Forge:
+reads and edits inside the sandbox (edits inside the scope) are allowed, shell commands need
+your approval unless allowlisted, web tools are refused. **Gemini CLI** cannot ask in headless
+mode, so it may edit files (in the sandbox) but gets no shell. For both, Forge runs the tests
+after each turn and sends failures back until they pass.
+
+### Approving commands
+
+A command that is not allowlisted shows **Run this command?** in the task's log with **Allow**
+and **Deny**; the agent waits for the answer.
+
+![Command approval](docs/screenshots/agent-tasks-approval.png)
+
+### Reviewing and applying
+
+When a task needs review, **Changes** lists the changed files with added and removed lines.
+Double-click a file (or its diff button) to open it in the diff viewer: the snapshot on the
+left, the agent's version on the right.
+
+![Diff of a task](docs/screenshots/agent-tasks-diff.png)
+
+| Button | Does |
+| --- | --- |
+| **Apply** | patches your working tree. All or nothing: if a file changed meanwhile so the patch does not apply cleanly, nothing is changed and the conflicting files are listed. The ✓ next to a file applies just that file. |
+| **Commit…** | applies, then commits only the agent's files with your message (other staged changes stay staged). |
+| **Branch…** | commits the changes on a new branch (default `agent/<title>`); your working tree stays as it is. Use it when Apply reports conflicts. |
+| **Discard** | removes the sandbox without applying anything. |
+| **Remove** | deletes the task from the list (and its sandbox). |
+
+After a complete Apply, Commit or Branch the sandbox is removed and the task is **Applied**.
+
+### Settings and safety
+
+Settings | Tools | **AI Assistant** › Agent Tasks:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Step budget per task (`ai.agentTasks.maxSteps`) | 40 | model turns (Forge agent) or CLI turns per task |
+| Test runs per task (`ai.agentTasks.maxTestRuns`) | 6 | test runs while fixing failures |
+| Commands that run without asking (`ai.agentTasks.allowedCommands`) | none | command prefixes, e.g. `composer test`, `php -l`, `npm run lint` |
+
+Agent tasks run project code (tests, commands, the agent CLI's tools), so they are refused in
+[Safe Mode](docs/guide/user/project-trust.md). They are refused as well when AI is turned off for the project
+(`ai.enabled`), and the Forge agent never reads files matched by `.aiignore`. Tasks and their
+logs are stored next to the sandboxes in the cache folder; a task that was running when Forge
+quit shows as Cancelled.
+
 ## Privacy
 
 Forge sends data only to the providers you configure and the CLIs you run: commit diffs to the
@@ -20034,8 +20137,9 @@ completion enabled), the code an editor action is about to the actions provider,
 messages and attached context to the agent CLI (which talks to its own service). Nothing is
 sent anywhere by default. Disabled providers, projects with AI turned off and files in
 `.aiignore` are never sent. A local provider (Ollama, LM Studio, llama.cpp) keeps everything
-on your machine. None of the AI features runs project code, so they work the same in
-[Safe Mode](docs/guide/user/project-trust.md).
+on your machine. Apart from Agent Tasks, none of the AI features runs project code, so they
+work the same in [Safe Mode](docs/guide/user/project-trust.md). Agent Tasks send the task, the files the agent
+reads and the test output to the chosen provider or CLI.
 
 
 ---
@@ -22688,6 +22792,9 @@ Settings | Tools | AI Providers.
 | `ai.completion.mode` | enum: `auto`, `fim`, `chat` | `auto` | user | Inline Completion | Request type — Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs. |
 | `ai.completion.debounceMs` | int (50–3000) | `350` | user | Inline Completion | Delay before asking (ms) — How long typing must pause before a suggestion is requested. |
 | `ai.completion.disabledLanguages` | list | `[]` | user | Inline Completion | Disable for languages — Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript. |
+| `ai.agentTasks.maxSteps` | int (1–500) | `40` | user | Agent Tasks | Step budget per task — Most model turns (Forge agent) or agent CLI turns a task may take before it stops for review. |
+| `ai.agentTasks.maxTestRuns` | int (1–100) | `6` | user | Agent Tasks | Test runs per task — How often an agent may run the tests while it fixes failures. |
+| `ai.agentTasks.allowedCommands` | list | `[]` | user | Agent Tasks | Commands that run without asking — Command prefixes agents may run in their sandbox without your approval, e.g. composer test, php -l, npm run lint. Every other command asks first; network tools (curl, wget, ssh, ...) are always refused. |
 
 ### Tools | AI Agents
 
@@ -25651,6 +25758,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-cli](docs/guide/developer/crates/forge-agent-cli.md) | Runs AI coding agent CLIs (Claude Code, Gemini CLI) headless and normalizes their output |
 | [forge-ai](docs/guide/developer/crates/forge-ai.md) | Forge IDE AI provider layer: Anthropic and OpenAI-compatible chat models |
 | [forge-ai-editor](docs/guide/developer/crates/forge-ai-editor.md) | AI in the editor: inline completion context and post-processing, AI actions (explain, fix, tests, docs) and the .aiignore policy (pure, WebAssembly-friendly) |
+| [forge-agent-tasks](docs/guide/developer/crates/forge-agent-tasks.md) | Agent tasks: AI agents that run, test and fix code in a git worktree sandbox, with path confinement, a command allowlist, step budgets and the diff to review and apply |
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](docs/guide/developer/crates/forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
@@ -25991,6 +26099,117 @@ region detection, fix / docs / tests proposals in PHP, Rust, Python and Lua, tes
 
 ```sh
 cargo test -p forge-ai-editor
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-agent-tasks.md
+
+# forge-agent-tasks
+
+`crates/forge-agent-tasks` — agent tasks: an AI agent works on a task in a sandbox (a git
+worktree in Forge's cache folder), runs the tests, fixes failures and leaves a diff for the
+user to review. The user's working tree is not touched until they apply it.
+
+## Purpose
+
+- **Task model** (`task.rs`): `AgentTask` with its `TaskRequest` (prompt, scope, backend,
+  tests, step budget), `TaskStatus` (queued, running, needs review, applied, discarded,
+  failed, cancelled), the log of `Step`s (info, thought, tool call, command approval, test
+  run, error, finished) and the `Outcome` (completed, step budget exhausted, tests still
+  failing). `TaskStore` keeps a project's tasks as `tasks.json` next to the sandboxes; tasks
+  that were running when Forge quit load as cancelled.
+- **Sandbox** (`sandbox.rs`): `create` adds a detached worktree of the project's repository
+  in the given folder (refused inside the project), starting from `git stash create` (the
+  working tree and index without touching them) or HEAD, copies untracked non-ignored files
+  and commits that snapshot as the base, so the review shows only the agent's changes.
+  `changes` lists the changed files (`--name-status` + `--numstat` against the base),
+  `file_versions` gives both sides for the diff viewer, `patch` the binary patch.
+  `apply` is all or nothing (`git apply --check` first; conflicting files are parsed from its
+  errors), `apply_as_commit` applies and commits only the agent's files (`git commit --only`),
+  `apply_as_branch` commits in the sandbox and creates a branch (shared refs, so it shows up
+  in the repository at once), `remove` removes the worktree and its folder.
+- **Workspace** (`workspace.rs`): the agent's view of the sandbox. `normalize` refuses absolute
+  paths, `..` escapes and `.git`; `resolve` also refuses symlinks that lead out of the sandbox
+  and files matched by `.aiignore`; writes are limited to the task's scope. File tools:
+  `list` (breadth first, dependency folders not descended into), `read` (line ranges),
+  `search` (case-insensitive), `write`, `edit` (unique match), `delete`.
+- **Tools** (`tools.rs`): the built-in agent's tools and the text protocol — one JSON call
+  `{"tool": ..., "args": ...}` per turn inside a `<tool>` tag (fenced or bare JSON accepted),
+  so it works with every chat model of [`forge-ai`](docs/guide/developer/crates/forge-ai.md); bad calls are explained to
+  the model. `system_prompt` describes the tools, the scope and the test loop.
+- **Commands** (`commands.rs`): `split_command` (quotes and escapes, shell operators refused —
+  no shell runs), `allowlisted` (word prefixes from `ai.agentTasks.allowedCommands`),
+  `refused` (network clients: curl, wget, ssh, scp, rsync, nc, ...), `run_process` (timeout,
+  cancellation, `CI=1`) and `evaluate_tests`, which parses test output with the line parsers
+  of [`forge-output`](docs/guide/developer/crates/forge-output.md) (TeamCity, TAP, libtest, go test2json, ...) or goes by
+  the exit code.
+- **Loops** (`agent.rs`): `run_builtin` asks a `forge_ai::Provider` for one tool call per turn,
+  runs it in the sandbox and returns the result until the agent calls `finish`; with tests,
+  `finish` is verified by a test run (when files changed since the last run) and failures are
+  sent back until the tests pass or the step / test-run budget is used up. Commands that are
+  not allowlisted wait for `Host::approve`. `run_cli` drives an agent CLI turn by turn
+  (`CliTurns`) and runs the tests between turns, sending failures back.
+- **CLI permissions** (`cli.rs`): `permission` maps a permission request of Claude Code or
+  Gemini CLI to allow (reads inside the sandbox, edits inside the scope, bookkeeping tools),
+  deny (outside the sandbox, `.aiignore`, network tools, unknown tools) or ask the user (shell
+  commands that are not allowlisted).
+
+The app (`app/src-tauri/src/commands/agent_tasks.rs`) owns the queue, the `Host` (processes,
+approvals, the log as `agent-tasks://changed` events), maps run configurations into the
+sandbox and starts agent CLIs through [`forge-agent-cli`](docs/guide/developer/crates/forge-agent-cli.md).
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `agent.rs` | The built-in tool-calling loop and the run-test-fix loop around agent CLIs. |
+| `cli.rs` | Permission requests of agent CLIs mapped to the sandbox. |
+| `commands.rs` | Command lines without a shell, allowlist, refused programs, processes, test results. |
+| `sandbox.rs` | The git worktree sandbox: create, changes, diff sides, apply, commit, branch, remove. |
+| `task.rs` | Task model, steps, outcomes and the task store. |
+| `tools.rs` | Tool calls of the built-in agent, the text protocol and the system prompt. |
+| `workspace.rs` | Path confinement, `.aiignore` and scope checks, file tools. |
+
+## Main public items
+
+```rust
+pub use agent::{run_builtin, run_cli, Budget, CliTurns, Host, TaskContext};
+pub use cli::{permission, CliVerdict};
+pub use commands::{RunOutput, ShellCommand, TestSpec};
+pub use sandbox::{ApplyResult, ChangeKind, FileChange, Sandbox};
+pub use task::{AgentBackend, AgentTask, ApprovalState, Outcome, OutcomeKind, Step, StepKind, TaskRequest, TaskStatus, TaskStore, TestChoice, TestResult};
+pub use workspace::Workspace;
+```
+
+## Used by
+
+- IPC: `agent_tasks_list`, `agent_task_create`, `agent_task_cancel`, `agent_task_approve`,
+  `agent_task_changes`, `agent_task_file_diff`, `agent_task_apply`, `agent_task_discard`,
+  `agent_task_remove` (`app/src-tauri/src/commands/agent_tasks.rs`), event
+  `agent-tasks://changed`
+- UI: `app/ui/src/features/agent-tasks` (Agent Tasks tool window)
+- Browser mode: `app/ui/src/mock/agentTasksMock.ts` replays a scripted task (nothing runs)
+
+## Dependencies
+
+- Workspace crates: [`forge-ai`](docs/guide/developer/crates/forge-ai.md) (the `Provider` trait), [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md)
+  (`.aiignore`), [`forge-output`](docs/guide/developer/crates/forge-output.md) (test output parsers), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md)
+  (git binary, patch splitting)
+- External: `serde`, `serde_json`, `tokio`, `async-trait`
+
+## Tests
+
+7 source files; 24 unit tests without network: a fake provider and a fake host drive the
+built-in loop (fix until green, step budget, approvals and refusals, cancellation), a fake CLI
+drives the run-test-fix loop, temporary git repositories cover the sandbox (snapshot of
+uncommitted and untracked files, changes, partial apply, conflicts that change nothing, apply
+as commit and as branch, removal), plus path confinement (symlinks, `.git`, `.aiignore`,
+scope), command parsing, the allowlist, process timeouts, test evaluation and CLI permissions.
+
+```sh
+cargo test -p forge-agent-tasks
 ```
 
 

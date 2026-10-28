@@ -1,14 +1,14 @@
 ---
 title: AI
-description: AI in Forge - model providers (Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp, any OpenAI-compatible server), inline code completion, Explain / Fix with AI, AI-generated tests and documentation, AI commit messages, and the AI Chat with Claude Code and Gemini CLI.
+description: AI in Forge - model providers (Anthropic, OpenAI, OpenRouter, Ollama, LM Studio, llama.cpp, any OpenAI-compatible server), inline code completion, Explain / Fix with AI, AI-generated tests and documentation, AI commit messages, the AI Chat with Claude Code and Gemini CLI, and Agent Tasks that run, test and fix code in a sandbox.
 order: 210
-tags: [ai, llm, claude, claude code, gemini, ollama, openai, chat, inline completion, aiignore]
+tags: [ai, llm, claude, claude code, gemini, ollama, openai, chat, inline completion, aiignore, agent tasks, sandbox, worktree]
 ---
 
 # AI
 
 AI is part of Forge's core and works with **your own** providers and tools; Forge ships no
-credentials and no subscription. There are three parts:
+credentials and no subscription. There are four parts:
 
 - **AI providers**: language model APIs Forge calls itself, used for AI in the editor, AI
   commit messages and available to plugins.
@@ -16,6 +16,8 @@ credentials and no subscription. There are three parts:
   `Alt+Enter`, and AI-generated documentation and tests, all with a diff preview.
 - **AI Chat**: Claude Code or Gemini CLI, installed on your machine with your own login, run
   headless and rendered as a native chat.
+- **Agent Tasks**: an agent works on a task in a sandbox copy of the project, runs the tests,
+  fixes failures and leaves a diff for you to review and apply.
 
 ## Providers
 
@@ -272,6 +274,107 @@ In [remote projects](remote-development.md) the agent CLI runs **on the host**: 
 in to `claude` or `gemini` there. Forge finds the executable on the host and the agent works
 next to the files.
 
+## Agent Tasks
+
+The **Agent Tasks** tool window (right stripe, below AI Chat; **New Agent Task…** in Find
+Action) hands a task to an agent that works on its own: it explores the code, edits files,
+runs the tests and fixes failures until they pass, then stops for your review. It never
+touches your working tree: every task runs in a **sandbox**, and nothing changes in your
+project until you apply its diff.
+
+![Agent Tasks](../../screenshots/agent-tasks-review.png)
+
+### Creating a task
+
+Click **+** in the tool window header:
+
+| Field | Meaning |
+| --- | --- |
+| **Task** | What to do, e.g. "Fix the failing CheckoutTest". `Ctrl+Enter` starts it. |
+| **Files it may change** | Comma-separated files and folders (`app/Services, tests/Unit`). The agent can read everything (except `.aiignore`d files) but writes only there. Empty: the whole project. |
+| **Agent** | **Forge agent** (Forge's own agent over a model of Settings \| Tools \| AI Providers: the default provider or a chosen one, the Chat model), **Claude Code** or **Gemini CLI** (your installed CLI, see [AI Chat](#agents)). |
+| **Verify with** | **No tests**, one of the project's **run configurations** (its test runner and result format), or a **command** such as `vendor/bin/phpunit`. |
+
+![New Agent Task](../../screenshots/agent-tasks-new.png)
+
+Tasks run one at a time per project; later ones wait as **Queued**. The list shows each task's
+status: **Queued**, **Running**, **Needs review**, **Applied**, **Discarded**, **Failed** or
+**Cancelled**. **Stop** cancels a running task (what it changed so far stays reviewable).
+
+### The sandbox
+
+A task's sandbox is a detached **git worktree** in Forge's cache folder
+(`<cache dir>/forge/agent-tasks/<project>/<task>`, e.g. `~/.cache/forge/...` on Linux), never
+inside the project. It starts from a snapshot of your working tree, taken without touching it
+(`git stash create`): committed files, uncommitted changes and untracked files that are not
+ignored. The review shows only what the agent changed against that snapshot. Agent tasks need
+a Git repository with at least one commit; remote projects are not supported yet.
+
+### Run, test and fix
+
+The **Forge agent** works in steps, one tool per model turn, all confined to the sandbox:
+
+| Tool | Does |
+| --- | --- |
+| `list_files`, `read_file`, `search` | explore the project (no `.git`, no `.aiignore`d files, no paths outside the sandbox or through symlinks) |
+| `write_file`, `edit_file`, `delete_file` | change files inside the task's scope |
+| `run_tests` | run the tests of the task and get the failures (parsed by Forge's test runners) |
+| `run_command` | run one program in the sandbox without a shell (no pipes), after your approval unless allowlisted |
+| `finish` | report what it did |
+
+When the agent says it is done, Forge runs the tests again if files changed since the last
+run. If they fail, the failures go back to the agent and it keeps fixing. The task stops when
+the tests pass, when the **step budget** is used up or when the **test runs** are used up; the
+last step says which. There are no network tools; `curl`, `wget`, `ssh`, `scp`, `rsync`, `nc`
+and similar programs are always refused.
+
+**Claude Code** runs headless in the sandbox. Each tool it wants to use is checked by Forge:
+reads and edits inside the sandbox (edits inside the scope) are allowed, shell commands need
+your approval unless allowlisted, web tools are refused. **Gemini CLI** cannot ask in headless
+mode, so it may edit files (in the sandbox) but gets no shell. For both, Forge runs the tests
+after each turn and sends failures back until they pass.
+
+### Approving commands
+
+A command that is not allowlisted shows **Run this command?** in the task's log with **Allow**
+and **Deny**; the agent waits for the answer.
+
+![Command approval](../../screenshots/agent-tasks-approval.png)
+
+### Reviewing and applying
+
+When a task needs review, **Changes** lists the changed files with added and removed lines.
+Double-click a file (or its diff button) to open it in the diff viewer: the snapshot on the
+left, the agent's version on the right.
+
+![Diff of a task](../../screenshots/agent-tasks-diff.png)
+
+| Button | Does |
+| --- | --- |
+| **Apply** | patches your working tree. All or nothing: if a file changed meanwhile so the patch does not apply cleanly, nothing is changed and the conflicting files are listed. The ✓ next to a file applies just that file. |
+| **Commit…** | applies, then commits only the agent's files with your message (other staged changes stay staged). |
+| **Branch…** | commits the changes on a new branch (default `agent/<title>`); your working tree stays as it is. Use it when Apply reports conflicts. |
+| **Discard** | removes the sandbox without applying anything. |
+| **Remove** | deletes the task from the list (and its sandbox). |
+
+After a complete Apply, Commit or Branch the sandbox is removed and the task is **Applied**.
+
+### Settings and safety
+
+Settings | Tools | **AI Assistant** › Agent Tasks:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Step budget per task (`ai.agentTasks.maxSteps`) | 40 | model turns (Forge agent) or CLI turns per task |
+| Test runs per task (`ai.agentTasks.maxTestRuns`) | 6 | test runs while fixing failures |
+| Commands that run without asking (`ai.agentTasks.allowedCommands`) | none | command prefixes, e.g. `composer test`, `php -l`, `npm run lint` |
+
+Agent tasks run project code (tests, commands, the agent CLI's tools), so they are refused in
+[Safe Mode](project-trust.md). They are refused as well when AI is turned off for the project
+(`ai.enabled`), and the Forge agent never reads files matched by `.aiignore`. Tasks and their
+logs are stored next to the sandboxes in the cache folder; a task that was running when Forge
+quit shows as Cancelled.
+
 ## Privacy
 
 Forge sends data only to the providers you configure and the CLIs you run: commit diffs to the
@@ -280,5 +383,6 @@ completion enabled), the code an editor action is about to the actions provider,
 messages and attached context to the agent CLI (which talks to its own service). Nothing is
 sent anywhere by default. Disabled providers, projects with AI turned off and files in
 `.aiignore` are never sent. A local provider (Ollama, LM Studio, llama.cpp) keeps everything
-on your machine. None of the AI features runs project code, so they work the same in
-[Safe Mode](project-trust.md).
+on your machine. Apart from Agent Tasks, none of the AI features runs project code, so they
+work the same in [Safe Mode](project-trust.md). Agent Tasks send the task, the files the agent
+reads and the test output to the chosen provider or CLI.

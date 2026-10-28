@@ -1,0 +1,341 @@
+/* Agent Tasks tool window. Colors come only from theme.css variables. */
+
+.at-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  user-select: text;
+  font-size: var(--fs-ui);
+}
+.at-flex {
+  flex: 1;
+}
+.at-spin {
+  animation: at-spin 1s linear infinite;
+}
+@keyframes at-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.at-status-queued,
+.at-status-discarded {
+  color: var(--fg-muted);
+}
+.at-status-running,
+.at-accent {
+  color: var(--accent);
+}
+.at-status-review {
+  color: var(--warning);
+}
+.at-status-applied {
+  color: var(--success);
+}
+.at-status-failed {
+  color: var(--danger);
+}
+
+/* ---------- list ---------- */
+.at-list {
+  flex-shrink: 0;
+  max-height: 34%;
+  overflow: auto;
+  border-bottom: 1px solid var(--border);
+  padding: 4px 0;
+}
+.at-row {
+  padding-left: 10px;
+  gap: 7px;
+}
+.at-row svg {
+  flex-shrink: 0;
+}
+.at-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.at-row-meta {
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+
+/* ---------- form ---------- */
+.at-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.at-form-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+  margin-bottom: 4px;
+}
+.at-label {
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  margin-top: 4px;
+}
+.at-input {
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
+  font: inherit;
+  outline: none;
+}
+.at-input:focus {
+  border-color: var(--accent);
+}
+.at-prompt {
+  min-height: 72px;
+  resize: vertical;
+}
+.at-hint {
+  font-size: var(--fs-small);
+  margin: 6px 0 2px;
+}
+.at-form-buttons,
+.at-review-buttons,
+.at-approval-buttons,
+.at-details-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.at-form-buttons {
+  justify-content: flex-end;
+}
+.at-review-buttons button,
+.at-details-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ---------- details ---------- */
+.at-details {
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.at-details-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+.at-details-head svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.at-details-title {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.at-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: var(--fs-small);
+  padding-left: 23px;
+}
+.at-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.at-section-title {
+  margin-top: 12px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.at-banner {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-small);
+  margin: 6px 8px 0;
+}
+.at-details .at-banner {
+  margin: 4px 0;
+}
+.at-banner-ok {
+  background: var(--diff-inserted-bg);
+  color: var(--fg);
+}
+.at-banner-warn {
+  background: var(--diff-deleted-bg);
+  color: var(--fg);
+}
+
+/* ---------- review ---------- */
+.at-files {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 0;
+  margin-top: 4px;
+}
+.at-file {
+  padding-left: 8px;
+}
+.at-file .icon-btn {
+  opacity: 0;
+}
+.at-file:hover .icon-btn {
+  opacity: 1;
+}
+.at-file-name.at-kind-modified {
+  color: var(--vcs-modified);
+}
+.at-file-name.at-kind-added {
+  color: var(--vcs-added);
+}
+.at-file-name.at-kind-deleted {
+  color: var(--vcs-deleted);
+  text-decoration: line-through;
+}
+.at-file-dir {
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.at-add {
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.at-del {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.at-empty {
+  padding: 6px 0;
+}
+
+/* ---------- steps ---------- */
+.at-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+.at-step-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 2px 0;
+  line-height: 18px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+.at-step-line > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.at-tool {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.at-tool:hover {
+  background: var(--bg-hover);
+}
+.at-tool-name {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--syn-function);
+  flex-shrink: 0;
+}
+.at-tool-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  color: var(--fg-muted);
+}
+.at-thought {
+  white-space: pre-wrap;
+}
+.at-output {
+  margin: 2px 0 4px 20px;
+  padding: 6px 8px;
+  max-height: 220px;
+  overflow: auto;
+  background: var(--bg-editor);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+}
+.at-failure {
+  margin-left: 20px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--danger);
+}
+.at-approval {
+  margin: 4px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.at-approval-allowed,
+.at-approval-denied {
+  background: none;
+}
+.at-approval-allowed {
+  border-left-color: var(--success);
+}
+.at-approval-denied {
+  border-left-color: var(--danger);
+}
+.at-command {
+  display: block;
+  margin: 2px 0 0 20px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-strong);
+}
+.at-approval-buttons {
+  margin-left: 20px;
+}
+.at-finished {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.at-summary {
+  margin-left: 20px;
+  white-space: pre-wrap;
+}
+
+/* ---------- empty state ---------- */
+.at-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 24px;
+  text-align: center;
+}

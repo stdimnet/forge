@@ -149,7 +149,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 ## Milestone 6 — AI and collaboration
 
 - [x] AI in the editor: Inline completion (local or hosted models), "Explain / Fix with AI" in Alt+Enter, AI-generated tests and docs
-- [ ] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
+- [x] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
 - [ ] Code review: Review pull/merge requests inside Forge with AI summaries
 - [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — in progress on `feat/code-with-me` (not the auto-runner's; leave it to its owner)
 - [ ] MCP: Forge as an MCP server for external agents

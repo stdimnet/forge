@@ -2170,6 +2170,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-agent-tasks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "forge-ai",
+ "forge-ai-editor",
+ "forge-output",
+ "forge-vcs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "forge-ai"
 version = "0.1.0"
 dependencies = [
@@ -2204,6 +2219,7 @@ dependencies = [
 name = "forge-app"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "cforge-analyzers",
  "cforge-cmake",
@@ -2214,6 +2230,7 @@ dependencies = [
  "dotnetforge-lang-dotnet",
  "dotnetforge-sdk",
  "forge-agent-cli",
+ "forge-agent-tasks",
  "forge-ai",
  "forge-ai-editor",
  "forge-backend",

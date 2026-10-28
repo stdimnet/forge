@@ -14,6 +14,12 @@ title = "AI Chat"
 anchor = "right"
 icon = "sparkles"
 
+[[plugin.contributions.toolWindows]]
+id = "agent-tasks"
+title = "Agent Tasks"
+anchor = "right"
+icon = "list-checks"
+
 [[plugin.contributions.aiProviders]]
 id = "anthropic"
 name = "Anthropic"
@@ -122,6 +128,42 @@ default = []
 group = "tools.ai-assistant"
 section = "Inline Completion"
 order = 14
+
+# ---- Tools > AI Assistant > Agent Tasks ----------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.maxSteps"
+title = "Step budget per task"
+description = "Most model turns (Forge agent) or agent CLI turns a task may take before it stops for review."
+type = "int"
+default = 40
+min = 1
+max = 500
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 20
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.maxTestRuns"
+title = "Test runs per task"
+description = "How often an agent may run the tests while it fixes failures."
+type = "int"
+default = 6
+min = 1
+max = 100
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 21
+
+[[plugin.contributions.settings]]
+key = "ai.agentTasks.allowedCommands"
+title = "Commands that run without asking"
+description = "Command prefixes agents may run in their sandbox without your approval, e.g. composer test, php -l, npm run lint. Every other command asks first; network tools (curl, wget, ssh, ...) are always refused."
+type = "list"
+default = []
+group = "tools.ai-assistant"
+section = "Agent Tasks"
+order = 22
 
 [[plugin]]
 id = "forge.claude-code"
