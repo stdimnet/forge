@@ -103,24 +103,28 @@ const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()
  * Scroll `pos` to the middle of the editor and keep it there while the layout settles:
  * block widgets far from the old position (rendered doc comments in Reader mode) are only
  * measured once they come into view, which moves the target after the first scroll. Stops
- * after a few frames or as soon as the selection moves away from `pos`.
+ * after half a second or as soon as the selection moves away from `pos`.
  */
 export function centerOnPos(view: EditorView, pos: number): void {
   view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
   let frames = 0;
   const recenter = () => {
     const sel = view.state.selection.main;
-    if (++frames > 10 || !view.dom.isConnected || pos < sel.from || pos > sel.to) return;
+    if (++frames > 30 || !view.dom.isConnected || pos < sel.from || pos > sel.to) return;
     view.requestMeasure({
       read: (v) => {
         const at = v.coordsAtPos(pos);
+        // Not rendered at all: the first scroll went to the wrong place.
+        if (!at) return true;
         const box = v.scrollDOM.getBoundingClientRect();
-        return at ? Math.abs((at.top + at.bottom) / 2 - (box.top + box.bottom) / 2) > v.defaultLineHeight : false;
+        return Math.abs((at.top + at.bottom) / 2 - (box.top + box.bottom) / 2) > v.defaultLineHeight;
       },
-      write: (off, v) => {
-        if (off) v.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
-        requestAnimationFrame(recenter);
-      },
+      // Dispatching is not allowed while measuring: scroll in the next frame.
+      write: (off) =>
+        requestAnimationFrame(() => {
+          if (off && view.dom.isConnected) view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+          recenter();
+        }),
     });
   };
   requestAnimationFrame(recenter);
