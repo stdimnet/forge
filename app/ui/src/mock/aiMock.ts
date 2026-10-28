@@ -182,6 +182,23 @@ registerMock("ai_complete", async ({ request }) => {
 
 const streams = new Map<string, ReturnType<typeof setTimeout>>();
 
+/** Emit `text` token by token on `ai://stream/<streamId>`; `ai_cancel` stops it. */
+export function streamMockText(streamId: string, text: string, delayMs = 35): void {
+  const event = `ai://stream/${streamId}`;
+  const tokens = text.match(/\S+\s*|\s+/g) ?? [];
+  let i = 0;
+  const tick = () => {
+    if (i < tokens.length) {
+      emitMock(event, { delta: tokens[i++] });
+      streams.set(streamId, setTimeout(tick, delayMs));
+    } else {
+      streams.delete(streamId);
+      emitMock(event, { done: true });
+    }
+  };
+  streams.set(streamId, setTimeout(tick, 120));
+}
+
 registerMock("ai_stream", ({ request, streamId }) => {
   const req = request as AiRequest;
   const event = `ai://stream/${streamId}`;
@@ -192,18 +209,7 @@ registerMock("ai_stream", ({ request, streamId }) => {
     setTimeout(() => emitMock(event, { error }), 0);
     throw new Error(error);
   }
-  const tokens = cannedAnswer(req).match(/\S+\s*|\s+/g) ?? [];
-  let i = 0;
-  const tick = () => {
-    if (i < tokens.length) {
-      emitMock(event, { delta: tokens[i++] });
-      streams.set(String(streamId), setTimeout(tick, 35));
-    } else {
-      streams.delete(String(streamId));
-      emitMock(event, { done: true });
-    }
-  };
-  streams.set(String(streamId), setTimeout(tick, 120));
+  streamMockText(String(streamId), cannedAnswer(req));
 });
 
 registerMock("ai_cancel", ({ streamId }) => {

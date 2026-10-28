@@ -2,7 +2,9 @@
 import type { FieldTarget, GenerateKind, GenerateTargets, MethodTarget } from "./api";
 
 export interface GenerateMenuItem {
-  kind: GenerateKind;
+  /** `extra`: an entry of another feature (`registerGenerateItems`), run with `run`. */
+  kind: GenerateKind | "extra";
+  run?: () => void;
   label: string;
   /** Mnemonic letter index in the label (underlined, typed to pick). */
   mnemonic: number;

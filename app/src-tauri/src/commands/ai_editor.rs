@@ -215,6 +215,8 @@ pub struct AiEditorStatus {
     /// Provider for the actions (Explain, Fix, Generate), or why there is none.
     pub actions: Option<ProviderSummary>,
     pub actions_problem: Option<String>,
+    /// Language id of `path` (for the per-language switch).
+    pub language: Option<String>,
     /// Inline completion verdict for `path`.
     pub file: Option<Verdict>,
     /// Actions verdict for `path`.
@@ -248,16 +250,17 @@ pub async fn ai_editor_status(
     };
     let (completion, completion_problem) = summary(AiFeature::Completion);
     let (actions, actions_problem) = summary(AiFeature::Chat);
-    let (file, file_actions) = match path {
+    let (file, file_actions, language) = match path {
         Some(p) => {
             let policy = policy(&state).await;
             let lang = forge_ai_editor::language_of(&p, language.as_deref());
             (
                 Some(policy.check(&p, lang.id(), Feature::InlineCompletion)),
                 Some(policy.check(&p, lang.id(), Feature::Action)),
+                Some(lang.id().to_string()),
             )
         }
-        None => (None, None),
+        None => (None, None, None),
     };
     Ok(AiEditorStatus {
         project_enabled: setting(&state, PROJECT_ENABLED, true),
@@ -266,6 +269,7 @@ pub async fn ai_editor_status(
         completion_problem,
         actions,
         actions_problem,
+        language,
         file,
         file_actions,
     })
@@ -338,6 +342,9 @@ pub struct ExplainStarted {
     pub prompt: String,
     pub provider: String,
     pub model: Option<String>,
+    /// 0-based first and last line of the explained code.
+    pub start_line: usize,
+    pub end_line: usize,
 }
 
 /// "Explain with AI": stream the explanation as `ai://stream/<streamId>` events (subscribe
@@ -359,6 +366,8 @@ pub async fn ai_explain(
         prompt: prompt.user.clone(),
         provider: cfg.name.clone(),
         model: model.clone().or_else(|| cfg.default_model.clone()),
+        start_line: prompt.start_line,
+        end_line: prompt.end_line,
     };
     let event = stream_event_name(&stream_id);
     let emit = move |payload: StreamEvent| {

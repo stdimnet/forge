@@ -258,7 +258,9 @@ fn split_name(path: &str) -> (&str, &str, &str) {
 }
 
 fn join(dir: &str, name: &str) -> String {
-    if dir.is_empty() {
+    if name.is_empty() {
+        dir.to_string()
+    } else if dir.is_empty() {
         name.to_string()
     } else {
         format!("{dir}/{name}")
@@ -980,6 +982,10 @@ mod tests {
         assert_eq!(
             test_path("app/Services/Checkout.php", Language::Php),
             "tests/Unit/Services/CheckoutTest.php"
+        );
+        assert_eq!(
+            test_path("app/Cart.php", Language::Php),
+            "tests/Unit/CartTest.php"
         );
         assert_eq!(
             test_path("src/utils/math.ts", Language::TypeScript),
