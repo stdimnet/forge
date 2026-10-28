@@ -1971,7 +1971,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4460,7 +4460,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6217,7 +6217,7 @@ dependencies = [
 [[package]]
 name = "php-fmt"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "php-syntax",
  "regex",
@@ -6226,7 +6226,7 @@ dependencies = [
 [[package]]
 name = "php-hir"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "php-syntax",
  "serde",
@@ -6236,7 +6236,7 @@ dependencies = [
 [[package]]
 name = "php-ide"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "bincode",
  "globset",
@@ -6253,7 +6253,7 @@ dependencies = [
 [[package]]
 name = "php-index"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "php-hir",
 ]
@@ -6261,7 +6261,7 @@ dependencies = [
 [[package]]
 name = "php-lsp"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "crossbeam-channel",
  "lsp-server",
@@ -6275,7 +6275,7 @@ dependencies = [
 [[package]]
 name = "php-stubs"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "miniz_oxide 0.8.9",
 ]
@@ -6283,7 +6283,7 @@ dependencies = [
 [[package]]
 name = "php-syntax"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "rowan 0.17.0",
  "serde",
@@ -6292,7 +6292,7 @@ dependencies = [
 [[package]]
 name = "php-tools"
 version = "0.1.0"
-source = "git+https://github.com/stdimnet/php-lsp?rev=6e00c57c0d8e1949038cc2ddb83572c4092e46ab#6e00c57c0d8e1949038cc2ddb83572c4092e46ab"
+source = "git+https://github.com/stdimnet/php-lsp?rev=7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09#7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"
 dependencies = [
  "serde_json",
 ]
@@ -7053,7 +7053,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7763,7 +7763,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7822,7 +7822,7 @@ dependencies = [
  "security-framework 3.7.0",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9506,7 +9506,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -10707,7 +10707,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

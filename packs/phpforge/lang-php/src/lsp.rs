@@ -20,7 +20,7 @@ use serde_json::{json, Value};
 pub struct BuiltinServer {
     pub command: PathBuf,
     pub args: Vec<String>,
-    /// php-lsp's version, e.g. `0.1.0 (6e00c57)`.
+    /// php-lsp's version, e.g. `0.1.0 (7011d4c)`.
     pub version: String,
 }
 
@@ -518,7 +518,7 @@ mod tests {
         BuiltinServer {
             command: PathBuf::from("/opt/forge/forge"),
             args: vec!["--php-lsp".into(), "--stdio".into()],
-            version: "0.1.0 (6e00c57)".into(),
+            version: "0.1.0 (7011d4c)".into(),
         }
     }
 
@@ -532,7 +532,7 @@ mod tests {
         assert_eq!(cfg.args, vec!["--php-lsp", "--stdio"]);
         assert_eq!(
             serde_json::to_value(&detected).unwrap()["phpLsp"]["version"],
-            "0.1.0 (6e00c57)"
+            "0.1.0 (7011d4c)"
         );
         // A binary without the built-in server (tests, tools) starts none.
         let none = DetectedServers::default();

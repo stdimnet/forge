@@ -485,5 +485,5 @@ registerMock("php_composer_outdated", async () => [
 ]);
 
 // php-lsp is built in.
-const PHP_LSP = { command: "/usr/bin/forge", args: ["--php-lsp", "--stdio"], version: "0.1.0 (6e00c57)" };
+const PHP_LSP = { command: "/usr/bin/forge", args: ["--php-lsp", "--stdio"], version: "0.1.0 (7011d4c)" };
 registerMock("php_detect_servers", () => ({ phpLsp: PHP_LSP }));
