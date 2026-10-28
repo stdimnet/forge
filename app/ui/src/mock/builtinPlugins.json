@@ -13953,11 +13953,12 @@
         {
           "key": "ai.completion.multiline",
           "title": "Suggestion length",
+          "description": "Automatic suggests several lines on an empty line and after a block opener such as `{`, else one line.",
           "type": "enum",
           "options": [
             {
               "value": "auto",
-              "label": "Automatic (multi-line on empty lines and after block openers)"
+              "label": "Automatic"
             },
             {
               "value": "single",
@@ -13977,12 +13978,12 @@
         {
           "key": "ai.completion.mode",
           "title": "Request type",
-          "description": "Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter).",
+          "description": "Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs.",
           "type": "enum",
           "options": [
             {
               "value": "auto",
-              "label": "Automatic (fill-in-the-middle for local servers, chat for hosted APIs)"
+              "label": "Automatic"
             },
             {
               "value": "fim",

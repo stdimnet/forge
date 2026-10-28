@@ -18,6 +18,7 @@ import type { ContextAction } from "@/ipc/codeintel";
 import { registerContextActionHandler, registerContextActionProvider } from "@/features/codeintel/intentions";
 import { item, registerContextMenuProvider, separator, submenu } from "@/features/contextMenu/state";
 import { registerSettingsPage } from "@/features/settingsPages";
+import { openSettings } from "@/features/settings/dialogState";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerGenerateItems } from "@/editor/generateItems";
@@ -169,6 +170,8 @@ registerSettingsPage({
   keywords: ["AI", "inline completion", "ghost text", "completion", "explain", "fix", "tests", "documentation", "aiignore", "local model", "Ollama"],
   component: AiAssistantPage,
 });
+
+registerCommand({ id: "ai.assistantSettings", title: "AI Assistant Settings…", category: "AI", run: () => openSettings("tools.ai-assistant") });
 
 registerStatusItem({ id: "ai.status", align: "right", order: 90, component: AiStatusWidget });
 

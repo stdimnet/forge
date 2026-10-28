@@ -96,6 +96,14 @@ pub struct Proposal {
 }
 
 const MAX_REGION_LINES: usize = 150;
+
+/// The diff shown in the preview (a final newline is not an extra line).
+fn preview_diff(old: &str, new: &str) -> EditDiff {
+    text_diff(
+        old.strip_suffix('\n').unwrap_or(old),
+        new.strip_suffix('\n').unwrap_or(new),
+    )
+}
 const CONTEXT_LINES: usize = 15;
 
 fn lines_of(text: &str) -> Vec<&str> {
@@ -752,7 +760,7 @@ fn same_file_proposal(
         kind: req.kind,
         title,
         path: req.path.clone(),
-        diff: text_diff(text, &proposed),
+        diff: preview_diff(text, &proposed),
         original: text.to_string(),
         proposed,
         edit: Some(TextEdit {
@@ -807,7 +815,7 @@ pub fn proposal(req: &ActionRequest, reply: &str) -> Result<Proposal, String> {
                 kind: req.kind,
                 title: p.title,
                 path: p.test_path.unwrap_or_default(),
-                diff: text_diff(&original, &proposed),
+                diff: preview_diff(&original, &proposed),
                 new_file: req.existing_test.is_none(),
                 original,
                 proposed,
@@ -1032,8 +1040,7 @@ mod tests {
         let prop = proposal(&r, "```php\n<?php\nclass CheckoutTest {}\n```").unwrap();
         assert!(prop.new_file && prop.edit.is_none());
         assert_eq!(prop.proposed, "<?php\nclass CheckoutTest {}\n");
-        // Two lines plus the empty one after the final newline.
-        assert_eq!(prop.diff.added, 3);
+        assert_eq!(prop.diff.added, 2);
 
         let mut r2 = r.clone();
         r2.existing_test = Some("<?php\nclass CheckoutTest {}\n".into());

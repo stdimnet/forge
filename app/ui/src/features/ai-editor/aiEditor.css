@@ -47,11 +47,14 @@
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
+.ai-proposal-stat {
+  font-family: var(--font-mono);
+}
 .ai-proposal-stat.add {
-  color: var(--diff-inserted-text);
+  color: var(--vcs-added);
 }
 .ai-proposal-stat.del {
-  color: var(--diff-deleted-text);
+  color: var(--danger);
 }
 .ai-proposal-body {
   min-height: 120px;
@@ -80,6 +83,9 @@
 }
 
 .ai-assistant-model {
+  /* Spans the settings section's label | control grid. */
+  grid-column: 1 / -1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

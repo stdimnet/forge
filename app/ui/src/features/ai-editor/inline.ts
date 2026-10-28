@@ -189,13 +189,13 @@ class InlinePlugin {
     this.cancel();
     if (!getSetting<boolean>("ai.completion.enabled", false)) return;
     const delay = Math.max(50, getSetting<number>("ai.completion.debounceMs", 350));
-    this.timer = setTimeout(() => void this.request(), delay);
+    this.timer = setTimeout(() => void this.show(), delay);
   }
 
-  /** Whether a suggestion makes sense here (one empty caret, no popup, no snippet, focused). */
+  /** Whether a suggestion makes sense here (one empty caret, no completion popup, no snippet). */
   applicable(): boolean {
     const st = this.view.state;
-    return st.selection.ranges.length === 1 && st.selection.main.empty && completionStatus(st) == null && !hasNextSnippetField(st) && !st.readOnly;
+    return st.selection.ranges.length === 1 && st.selection.main.empty && completionStatus(st) !== "active" && !hasNextSnippetField(st) && !st.readOnly;
   }
 
   async request(temperature?: number): Promise<string | null> {
@@ -281,7 +281,8 @@ function onKey(e: KeyboardEvent, view: EditorView): boolean {
     }
     return false;
   }
-  if (completionStatus(view.state) != null) return false;
+  // The completion popup keeps its keys (Tab chooses its item).
+  if (completionStatus(view.state) === "active") return false;
   if (bound(INSERT)) return acceptSuggestion(view);
   if (bound(INSERT_WORD)) return acceptWord(view);
   if (bound(INSERT_LINE)) return acceptLine(view);
