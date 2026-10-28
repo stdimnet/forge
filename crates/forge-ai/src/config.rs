@@ -85,6 +85,26 @@ impl ProviderKind {
         }
     }
 
+    /// Servers whose OpenAI-compatible `completions` endpoint takes a `suffix`
+    /// (fill-in-the-middle), the usual setup for local code models.
+    pub fn supports_fim(self) -> bool {
+        matches!(
+            self,
+            ProviderKind::Ollama
+                | ProviderKind::LmStudio
+                | ProviderKind::LlamaCpp
+                | ProviderKind::Custom
+        )
+    }
+
+    /// Runs on this machine (by default): code sent to it stays local.
+    pub fn is_local(self) -> bool {
+        matches!(
+            self,
+            ProviderKind::Ollama | ProviderKind::LmStudio | ProviderKind::LlamaCpp
+        )
+    }
+
     pub fn is_anthropic(self) -> bool {
         self == ProviderKind::Anthropic
     }

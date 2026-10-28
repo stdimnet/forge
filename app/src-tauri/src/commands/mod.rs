@@ -3,6 +3,7 @@
 
 pub mod agent;
 pub mod ai;
+pub mod ai_editor;
 pub mod android;
 pub mod clipboard;
 pub mod cms;

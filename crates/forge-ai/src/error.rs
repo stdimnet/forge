@@ -31,6 +31,10 @@ pub enum AiError {
     InvalidResponse(String),
     #[error("request cancelled")]
     Cancelled,
+    #[error("{provider} does not support {what}")]
+    Unsupported { provider: String, what: String },
+    #[error("AI provider {0} is disabled (enable it in Settings | Tools | AI Providers)")]
+    ProviderDisabled(String),
     #[error("unknown AI provider: {0}")]
     UnknownProvider(String),
     #[error("no AI provider configured")]

@@ -16,6 +16,7 @@ import {
   type PermissionModeInfo,
 } from "@/ipc/agent";
 import { projectStateApi, type ChatSummary } from "@/ipc/projectState";
+import { markdownApi } from "@/ipc/markdown";
 import { reloadFile } from "@/state/editor";
 import { workspace } from "@/state/workspace";
 import { addTurn, applyChatUpdate, emptyConversation, failTurn, findPermission, type Conversation } from "./model";
@@ -133,6 +134,80 @@ export async function sendMessage(text: string, context: MessageContext): Promis
     setChat("running", false);
     void saveChat();
   }
+}
+
+/** A turn answered by an AI provider instead of the agent CLI ("Explain with AI"). */
+export interface ProviderTurn {
+  append(delta: string): void;
+  /** `note` goes to the turn footer (provider and model). */
+  finish(note?: string): void;
+  fail(message: string): void;
+}
+
+/**
+ * Add a turn whose answer streams from an AI provider (`forge-ai`), e.g. an explanation
+ * requested in the editor. `null` while the agent is working on a turn.
+ */
+export function startProviderTurn(prompt: string, context: MessageContext): ProviderTurn | null {
+  if (chat.running) return null;
+  let turnId = 0;
+  setChat("conv", produce((conv) => void (turnId = addTurn(conv, prompt, context).id)));
+  const started = Date.now();
+  let text = "";
+  let parsing = false;
+  let dirty = false;
+  let ended = false;
+  const update = (fn: (turn: Conversation["turns"][number]) => void) =>
+    setChat(
+      "conv",
+      produce((conv) => {
+        const turn = conv.turns.find((t) => t.id === turnId);
+        if (turn) fn(turn);
+      }),
+    );
+  // Markdown is parsed in Rust; while a parse runs, newer text waits for the next one.
+  const render = async () => {
+    if (parsing) {
+      dirty = true;
+      return;
+    }
+    parsing = true;
+    do {
+      dirty = false;
+      const snapshot = text;
+      const markdown = await markdownApi.parse(snapshot, "chat").catch(() => []);
+      update((turn) => {
+        const block = { kind: "text" as const, text: snapshot, streaming: !ended, markdown };
+        if (turn.blocks[0]?.kind === "text") turn.blocks[0] = block;
+        else turn.blocks.unshift(block);
+      });
+    } while (dirty);
+    parsing = false;
+  };
+  return {
+    append(delta) {
+      text += delta;
+      update((turn) => void (turn.working = false));
+      void render();
+    },
+    finish(note) {
+      ended = true;
+      void render().then(() => {
+        update((turn) => {
+          turn.status = "done";
+          turn.working = false;
+          const secs = ((Date.now() - started) / 1000).toFixed(1);
+          turn.summary = { durationMs: Date.now() - started, numTurns: 1, costUsd: null, usage: null, durationText: `${secs}s`, tokensText: note };
+        });
+        void saveChat();
+      });
+    },
+    fail(message) {
+      ended = true;
+      setChat("conv", produce((conv) => failTurn(conv, message)));
+      void saveChat();
+    },
+  };
 }
 
 /** Answer a permission request shown in the chat (Allow once / for the session / Deny). */

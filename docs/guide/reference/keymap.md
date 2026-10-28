@@ -572,6 +572,16 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 
 | Action | Action id | Windows / Linux | macOS | Context |
 | --- | --- | --- | --- | --- |
+| Insert Inline Proposal | `InsertInlineCompletionAction` | `Tab` | `Tab` | editor, while an AI suggestion is shown |
+| Insert Inline Proposal Word | `InsertInlineCompletionWordAction` | `Ctrl+Right` | `Alt+Right` | editor, while an AI suggestion is shown |
+| Insert Inline Proposal Line | `InsertInlineCompletionLineAction` |  |  | editor, while an AI suggestion is shown |
+| Show Next Inline Proposal | `NextInlineCompletionAction` | `Alt+]` | `Alt+]` | editor, while an AI suggestion is shown |
+| Show Previous Inline Proposal | `PrevInlineCompletionAction` | `Alt+[` | `Alt+[` | editor, while an AI suggestion is shown |
+| Call Inline Completion | `CallInlineCompletionAction` | `Alt+Shift+\` | `Alt+Shift+\` | editor |
+| Explain with AI | `ai.explain` |  |  | any |
+| Fix with AI | `ai.fix` |  |  | any |
+| Generate Documentation with AI | `ai.generateDocs` |  |  | any |
+| Generate Tests with AI | `ai.generateTests` |  |  | any |
 | Vim (Tools \| Vim) | `VimPluginToggle` | `Ctrl+Alt+V` | `Cmd+Alt+V` | any (in the editor `Introduce Variable` wins) |
 | Reload .ideavimrc | `IdeaVim.ReloadVimRc` |  |  | any |
 | Composer: Add Dependency… | `Composer.AddDependency` |  |  | any |
@@ -682,5 +692,6 @@ Type (`project.redetect`), Reindex PHP Files (`php.reindex`), Generate PHPDoc Co
 (`Services.Refresh`), Pull Image… (`Docker.PullImage`), New SSH Connection…
 (`Remote.NewSshConnection`), Reconnect to Remote Host (`Remote.Reconnect`), SSH
 Configurations… (`remote.settings`), Language Servers… (`langservers.settings`), AI Providers…
-(`ai.settings`), Open AI Chat (`AIChat.Focus`), New AI Chat (`AIChat.NewChat`), Browser
+(`ai.settings`), AI Assistant Settings… (`ai.assistantSettings`), Enable/Disable AI Inline
+Completion (`ai.toggleInlineCompletion`), Open AI Chat (`AIChat.Focus`), New AI Chat (`AIChat.NewChat`), Browser
 Companion Settings (`BrowserCompanion.Settings`), Keymap Settings (`settings.keymap`).

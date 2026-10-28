@@ -52,6 +52,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
+  hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
+  "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
+  `.aiignore` and a per-project switch ([AI](user/ai.md#ai-in-the-editor)).
 - **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
   chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
   with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run

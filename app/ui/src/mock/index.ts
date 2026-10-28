@@ -18,6 +18,7 @@ import "./clipboardMock";
 import "./vimMock";
 import "./projectStateMock";
 import "./aiMock";
+import "./aiEditorMock";
 import "./agentMock";
 import "./lspMock";
 import "./inlayHintsMock";
