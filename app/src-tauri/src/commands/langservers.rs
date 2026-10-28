@@ -1,14 +1,14 @@
 //! Language servers for many languages (catalog in `forge-langservers`): activation for
 //! the open project, the Language Servers settings page, installs with streamed output,
-//! project-wide symbol search and the Intelephense licence key. Which servers start is
+//! project-wide symbol search. Which servers start is
 //! planned where the project's files are (`forge_backend::langservers`): on the remote host
 //! for remote projects, whose servers then run there.
 //!
-//! npm servers (Intelephense, typescript-language-server, …) are installed by Forge itself
+//! npm servers (typescript-language-server, yaml-language-server, …) are installed by Forge itself
 //! (`forge_langservers::managed`): Node.js and the packages are downloaded and verified
 //! into Forge's data directory, so nothing has to be installed first. For a remote project
 //! the install runs in the agent on the host (`Backend::install_langserver`), where its
-//! servers run; the Intelephense licence is still accepted in the UI here.
+//! servers run.
 //!
 //! Events:
 //! - `langservers://install-output` `{ id, stream, line }`
@@ -24,7 +24,6 @@ use forge_backend::langservers::{is_planner_setting, system_rows, LiveServer};
 use forge_backend::{InstallRequest, InstallSink, InstallTarget, LangServersRequest};
 use forge_core::{ForgeError, Result};
 use forge_langservers::install::{InstallOutcome, Stream};
-use forge_langservers::licence::{self, KeyringStore, Licence, LicenceStatus};
 use forge_langservers::managed::{Event, PackageUpdate};
 use forge_langservers::{Catalog, ServerRow};
 use forge_lsp::model::EditorWorkspaceSymbol;
@@ -74,8 +73,7 @@ fn request(ws: &AppState, manager: Option<&LspManager>, rescan: bool) -> LangSer
 
 /// Register the enabled and installed catalog servers for the languages of the manager's
 /// project and unregister the ones no longer wanted. Called when the LSP manager of a
-/// project is created and after settings change. Also applies the Intelephense licence
-/// key to a registered Intelephense config. Blocks while a remote host plans.
+/// project is created and after settings change. Blocks while a remote host plans.
 pub fn register_enabled(manager: &LspManager, ws: &AppState) {
     apply(manager, ws, true);
 }
@@ -110,60 +108,21 @@ fn apply(manager: &LspManager, ws: &AppState, rescan: bool) {
             None => {}
         }
     }
-    apply_intelephense_licence(manager);
     crate::commands::rust::configure_analyzer(manager, ws);
     crate::commands::ruby::configure_lsp(manager, ws);
     crate::commands::dotnet::configure_servers(manager, ws);
-}
-
-/// Put the keychain licence key into a registered Intelephense config (or remove it),
-/// restarting Intelephense when that changes anything.
-fn apply_intelephense_licence(manager: &LspManager) {
-    let Some(mut config) = manager
-        .configs()
-        .into_iter()
-        // The PHP pack registers Intelephense under the generic PHP server id.
-        .find(|c| {
-            c.id == licence::INTELEPHENSE_ACCOUNT
-                || (c.id == crate::commands::php::PHP_SERVER_ID
-                    && c.command.contains("intelephense"))
-        })
-    else {
-        return;
-    };
-    let before = config.initialization_options.clone();
-    with_intelephense_licence(&mut config);
-    if config.initialization_options != before {
-        manager.register_server(config);
-    }
-}
-
-/// Add the Intelephense licence key from the keychain to `config`'s initialization options,
-/// or make sure none is sent (free mode). For pack code that builds Intelephense configs.
-pub fn with_intelephense_licence(config: &mut LspServerConfig) {
-    let key = Licence::new(&KeyringStore).key().unwrap_or_else(|e| {
-        tracing::warn!("cannot read the Intelephense licence key: {e}");
-        None
-    });
-    licence::apply_licence(&mut config.initialization_options, key.as_deref());
-}
-
-/// The licence key for PHP's own config builder (`lang-php`'s `PhpLspSettings`).
-pub fn intelephense_licence_key() -> Option<String> {
-    Licence::new(&KeyringStore).key().ok().flatten()
 }
 
 fn live_states(manager: Option<&LspManager>) -> Vec<LiveServer> {
     let Some(manager) = manager else {
         return Vec::new();
     };
-    // The PHP pack registers its server (php-lsp, Intelephense or phpactor) as `php`; its
-    // state belongs to that server's row, too.
+    // The PHP pack registers php-lsp as `php`; its state belongs to php-lsp's row, too.
     let php_row = manager
         .configs()
-        .into_iter()
-        .find(|c| c.id == crate::commands::php::PHP_SERVER_ID)
-        .and_then(|c| phpforge_lang_php::lsp::server_row_id(&c.command, &c.args));
+        .iter()
+        .any(|c| c.id == crate::commands::php::PHP_SERVER_ID)
+        .then_some(forge_backend::langservers::BUILTIN_PHP_ROW);
     let mut live: Vec<LiveServer> = manager
         .statuses()
         .into_iter()
@@ -350,7 +309,7 @@ fn emit_line(app: &AppHandle, id: &str, stream: Stream, line: String) {
     );
 }
 
-/// Register what was just installed: catalog servers and the PHP pack's Intelephense.
+/// Register the catalog servers that were just installed.
 async fn register_installed(app: &AppHandle) {
     let handle = app.clone();
     let _ = tauri::async_runtime::spawn_blocking(move || {
@@ -359,7 +318,6 @@ async fn register_installed(app: &AppHandle) {
         if let Ok(manager) = lsp.manager(&handle, &ws) {
             apply(&manager, &ws, false);
         }
-        crate::commands::php::sync_lsp_server(&handle, None);
     })
     .await;
 }
@@ -531,59 +489,4 @@ pub async fn lsp_workspace_symbols(
     }
     hits.truncate(limit.unwrap_or(500));
     Ok(hits)
-}
-
-/// Move a plaintext licence key from the settings files into the keychain (once).
-fn migrate_plaintext_licence(ws: &AppState) {
-    let plaintext = ws
-        .read_settings()
-        .get(licence::LEGACY_SETTING_KEY)
-        .and_then(Value::as_str)
-        .map(str::to_owned);
-    match Licence::new(&KeyringStore).migrate(plaintext.as_deref()) {
-        Ok(true) => {
-            let mut settings = ws.write_settings();
-            for scope in [
-                forge_core::SettingsScope::User,
-                forge_core::SettingsScope::Project,
-            ] {
-                if settings
-                    .layer_values(scope)
-                    .contains_key(licence::LEGACY_SETTING_KEY)
-                {
-                    if let Err(e) = settings.set(licence::LEGACY_SETTING_KEY, Value::Null, scope) {
-                        tracing::warn!("cannot remove the plaintext licence key: {e}");
-                    }
-                }
-            }
-        }
-        Ok(false) => {}
-        Err(e) => tracing::warn!("cannot migrate the Intelephense licence key: {e}"),
-    }
-}
-
-/// "Free" or "Premium (…1234)"; migrates a plaintext key from older settings first.
-#[tauri::command]
-pub fn intelephense_licence_status(ws: State<'_, AppState>) -> LicenceStatus {
-    migrate_plaintext_licence(&ws);
-    Licence::new(&KeyringStore).status()
-}
-
-/// Store (or with `null`/empty remove) the licence key in the keychain and restart
-/// Intelephense when it changed.
-#[tauri::command]
-pub fn intelephense_set_licence(
-    key: Option<String>,
-    app: AppHandle,
-    lsp: State<'_, LspState>,
-    ws: State<'_, AppState>,
-) -> Result<LicenceStatus> {
-    let l = Licence::new(&KeyringStore);
-    let changed = l.set(key.as_deref()).map_err(other)?;
-    if changed {
-        if let Ok(manager) = lsp.manager(&app, &ws) {
-            apply_intelephense_licence(&manager);
-        }
-    }
-    Ok(l.status())
 }

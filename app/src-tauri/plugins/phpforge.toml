@@ -92,7 +92,7 @@ order = 2
 [[plugin.contributions.settings]]
 key = "php.composer.addPackagesAsLibraries"
 title = "Add packages as libraries"
-description = "Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out."
+description = "Classes in vendor/ are resolved for navigation, completion and the language server (php-lsp). Off: vendor/ is left out."
 type = "bool"
 default = true
 group = "lang.php.composer"

@@ -626,7 +626,7 @@ impl LspManager {
     // ---- Navigation, rename and code actions (servers that announce the feature) ----
 
     /// Names of the servers attached to `path` when none of them announces `feature`, so
-    /// the UI can say why nothing happens (free Intelephense has no rename). `None` when a
+    /// the UI can say why nothing happens (a server without rename). `None` when a
     /// server supports it or no server serves the file.
     pub async fn missing_feature(&self, path: &Path, feature: Feature) -> Option<Vec<String>> {
         let clients = self.clients_for(path).await;

@@ -212,7 +212,7 @@ impl Catalog {
         CATALOG.get_or_init(|| Catalog::parse(CATALOG_TOML).expect("built-in catalog.toml"))
     }
 
-    /// Servers that packs start themselves (Intelephense, phpactor): listed, never planned.
+    /// Servers that packs start themselves (php-lsp, jdtls, clangd, …): listed, never planned.
     pub fn pack_servers() -> &'static Catalog {
         static PACKS: OnceLock<Catalog> = OnceLock::new();
         PACKS.get_or_init(|| Catalog::parse(PACK_SERVERS_TOML).expect("built-in pack_servers.toml"))

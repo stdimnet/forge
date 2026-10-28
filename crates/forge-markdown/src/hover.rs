@@ -1,4 +1,4 @@
-//! Language server hovers (Markdown as Intelephense, phpactor & co. send it) split into the
+//! Language server hovers (Markdown as php-lsp & co. send it) split into the
 //! parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and
 //! `Params:` / `Returns:` / `Throws:` sections.
 

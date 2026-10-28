@@ -46,32 +46,18 @@ use crate::state::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct MissingFeature {
     pub feature: String,
-    /// "Rename requires Intelephense Premium (licence key in Settings | PHP)"
+    /// "Rename is not supported by yaml-language-server"
     pub message: String,
-    /// The server is Intelephense without a licence.
-    pub premium: bool,
 }
 
 fn missing_feature(feature: Feature, servers: &[String]) -> MissingFeature {
-    let premium = servers
-        .iter()
-        .any(|s| s.to_ascii_lowercase().contains("intelephense"));
-    let message = if premium {
-        format!(
-            "{} requires Intelephense Premium (licence key in Settings | PHP)",
-            feature.title()
-        )
-    } else {
-        format!(
+    MissingFeature {
+        feature: feature.title().into(),
+        message: format!(
             "{} is not supported by {}",
             feature.title(),
             servers.join(", ")
-        )
-    };
-    MissingFeature {
-        feature: feature.title().into(),
-        message,
-        premium,
+        ),
     }
 }
 
@@ -823,7 +809,7 @@ const NOT_RENAMEABLE: &str =
     "Cannot perform refactoring. Caret should be positioned at the symbol to be renamed";
 
 /// Whether the language servers rename this file: `Ok(None)` when they can, the missing
-/// feature when they cannot (Intelephense without a licence), `Err` when no server serves
+/// feature when they cannot, `Err` when no server serves
 /// the file at all.
 async fn lsp_rename_support(c: &Ctx) -> std::result::Result<Option<MissingFeature>, ()> {
     if let Some(servers) = c.manager.missing_feature(&c.abs, Feature::Rename).await {
@@ -854,8 +840,8 @@ pub struct PrepareRenameAnswer {
     pub invalid: bool,
     /// Why nothing can be renamed ("Cannot perform refactoring ...").
     pub message: Option<String>,
-    /// The language server cannot rename (Intelephense Premium); the PHP index renames
-    /// instead when `source` is `index`.
+    /// The language server cannot rename; the PHP index renames instead when `source` is
+    /// `index`.
     pub missing: Option<MissingFeature>,
     /// `lsp` or `index`: who computes the rename.
     pub source: String,
@@ -872,7 +858,7 @@ pub struct PrepareRenameAnswer {
 
 /// Start an in-place rename (Shift+F6): the range to edit, its occurrences in this file and
 /// who renames. The language servers rename when they can; PHP files fall back to the PHP
-/// index (Intelephense without a licence, or no server), with `missing` explaining why.
+/// index (a server without rename, or no server), with `missing` explaining why.
 #[tauri::command]
 pub async fn code_prepare_rename(
     path: String,
@@ -1268,7 +1254,7 @@ pub struct ContextActionsAnswer {
     /// The light bulb to show at the caret line (none when only links like "Generate..."
     /// are available).
     pub bulb: Option<Bulb>,
-    /// The language server offers no code actions (Intelephense without a licence).
+    /// The language server offers no code actions.
     pub missing: Option<MissingFeature>,
 }
 
@@ -1990,18 +1976,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn missing_features_mention_intelephense_premium() {
-        let m = missing_feature(Feature::Rename, &["Intelephense".into()]);
-        assert!(m.premium);
+    fn missing_features_name_the_servers() {
+        let m = missing_feature(Feature::Implementation, &["yaml-language-server".into()]);
         assert_eq!(
             m.message,
-            "Rename requires Intelephense Premium (licence key in Settings | PHP)"
-        );
-        let m = missing_feature(Feature::Implementation, &["phpactor".into()]);
-        assert!(!m.premium);
-        assert_eq!(
-            m.message,
-            "Go to Implementation is not supported by phpactor"
+            "Go to Implementation is not supported by yaml-language-server"
         );
     }
 

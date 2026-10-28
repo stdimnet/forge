@@ -128,7 +128,7 @@ group = "General"
 severity = "WARNING"
 external = true
 batch = false
-description = "Problems reported by language servers (Intelephense, typescript-language-server, basedpyright, rust-analyzer, gopls, ...). They keep the server's level until the profile sets a severity."
+description = "Problems reported by language servers (php-lsp, typescript-language-server, basedpyright, rust-analyzer, gopls, ...). They keep the server's level until the profile sets a severity."
 
 [[contributions.inspectionMappings]]
 source = "lsp"

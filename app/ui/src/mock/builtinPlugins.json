@@ -4298,7 +4298,7 @@
     "name": "PHP",
     "version": "0.1.0",
     "pack": "phpforge",
-    "description": "PHP language support: completion, inspections, navigation and refactorings via the built-in php-lsp (or Intelephense / phpactor).",
+    "description": "PHP language support: completion, inspections, navigation and refactorings via the built-in php-lsp language server.",
     "vendor": "Forge",
     "depends": [],
     "required": false,
@@ -4450,82 +4450,13 @@
         {
           "key": "php.stubs.path",
           "title": "Default stubs path",
-          "description": "A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \\Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs.",
+          "description": "A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \\Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use.",
           "type": "path",
           "default": "",
           "group": "lang.php",
           "section": "PHP Runtime",
           "project": false,
           "order": 20
-        },
-        {
-          "key": "php.lsp.server",
-          "title": "Language server",
-          "description": "Started automatically when a PHP project opens. php-lsp is built into Forge (nothing to install); Intelephense and phpactor must be installed.",
-          "type": "enum",
-          "options": [
-            {
-              "value": "php-lsp",
-              "label": "php-lsp (built-in)"
-            },
-            {
-              "value": "auto",
-              "label": "Auto (php-lsp, else Intelephense, else phpactor)"
-            },
-            {
-              "value": "intelephense",
-              "label": "Intelephense"
-            },
-            {
-              "value": "phpactor",
-              "label": "phpactor"
-            },
-            {
-              "value": "none",
-              "label": "None (Forge's index only)"
-            }
-          ],
-          "default": "php-lsp",
-          "group": "lang.php",
-          "section": "Language Server",
-          "project": false,
-          "order": 19
-        },
-        {
-          "key": "php.intelephense.autoInstall",
-          "title": "When Intelephense is chosen but not installed",
-          "description": "Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge.",
-          "type": "enum",
-          "options": [
-            {
-              "value": "ask",
-              "label": "Ask when a PHP project opens"
-            },
-            {
-              "value": "always",
-              "label": "Install automatically"
-            },
-            {
-              "value": "never",
-              "label": "Do not install"
-            }
-          ],
-          "default": "ask",
-          "group": "lang.php",
-          "section": "Language Server",
-          "project": false,
-          "order": 21
-        },
-        {
-          "key": "php.intelephense.licenceAccepted",
-          "title": "I accept the Intelephense licence",
-          "description": "Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy.",
-          "type": "bool",
-          "default": false,
-          "group": "lang.php",
-          "section": "Language Server",
-          "project": false,
-          "order": 22
         },
         {
           "key": "php.lsp.maxFileSize",
@@ -5425,22 +5356,6 @@
             "php",
             "phtml"
           ]
-        },
-        {
-          "id": "intelephense",
-          "languageId": "php",
-          "command": "intelephense",
-          "args": [
-            "--stdio"
-          ],
-          "fileExtensions": [
-            "php",
-            "phtml"
-          ],
-          "initializationOptions": {
-            "clearCache": false,
-            "storagePath": ".forge/intelephense"
-          }
         }
       ],
       "runConfigurationTypes": [
@@ -5859,7 +5774,7 @@
           "group": "General",
           "severity": "WARNING",
           "enabled": true,
-          "description": "Problems reported by language servers (Intelephense, typescript-language-server, basedpyright, rust-analyzer, gopls, ...). They keep the server's level until the profile sets a severity.",
+          "description": "Problems reported by language servers (php-lsp, typescript-language-server, basedpyright, rust-analyzer, gopls, ...). They keep the server's level until the profile sets a severity.",
           "external": true,
           "batch": false
         }
@@ -5959,7 +5874,7 @@
         {
           "key": "php.composer.addPackagesAsLibraries",
           "title": "Add packages as libraries",
-          "description": "Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out.",
+          "description": "Classes in vendor/ are resolved for navigation, completion and the language server (php-lsp). Off: vendor/ is left out.",
           "type": "bool",
           "default": true,
           "group": "lang.php.composer",

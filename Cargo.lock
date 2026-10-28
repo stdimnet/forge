@@ -2754,7 +2754,6 @@ dependencies = [
  "flate2",
  "forge-lsp",
  "ignore",
- "keyring",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

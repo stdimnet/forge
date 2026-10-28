@@ -207,11 +207,11 @@ pub(crate) mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let tgz = tar_gz(&[
             ("package/package.json", b"{}", 0o644),
-            ("package/lib/intelephense.js", b"// js", 0o755),
+            ("package/lib/server.js", b"// js", 0o755),
         ]);
         extract_tar_gz(&tgz, tmp.path(), 1).unwrap();
         assert_eq!(
-            std::fs::read_to_string(tmp.path().join("lib/intelephense.js")).unwrap(),
+            std::fs::read_to_string(tmp.path().join("lib/server.js")).unwrap(),
             "// js"
         );
         assert!(tmp.path().join("package.json").is_file());

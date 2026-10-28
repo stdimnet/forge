@@ -242,7 +242,7 @@ pub struct InstallRequest {
 /// Receives the steps, download progress and output of an install.
 pub type InstallSink = Arc<dyn Fn(Event) + Send + Sync>;
 
-/// The name an install reports when it is done ("Intelephense installed.").
+/// The name an install reports when it is done ("Pyright installed.").
 pub fn install_name(target: &InstallTarget) -> String {
     match target {
         InstallTarget::Server { id, .. } => Catalog::builtin()

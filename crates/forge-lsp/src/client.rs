@@ -84,8 +84,8 @@ pub enum LspEvent {
     },
 }
 
-/// Language features a server may or may not announce in its capabilities. Free
-/// Intelephense, for example, leaves out rename, implementation and type definition.
+/// Language features a server may or may not announce in its capabilities; many leave out
+/// rename, implementation or type definition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Feature {

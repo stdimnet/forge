@@ -6,10 +6,6 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["keychain"]
-# The Intelephense licence key in the OS keychain (`licence::KeyringStore`). The remote agent
-# builds without it: it runs statically linked on hosts without a keychain.
-keychain = ["dep:keyring"]
 # The tiny HTTP server of the download tests, for packs that test their own downloads.
 testserver = []
 
@@ -29,7 +25,6 @@ base64 = "0.22"
 flate2 = "1"
 tar = { version = "0.4", default-features = false }
 zip = { version = "2", default-features = false, features = ["deflate"] }
-keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 [dev-dependencies]
 tempfile.workspace = true
