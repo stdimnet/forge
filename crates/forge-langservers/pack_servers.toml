@@ -25,7 +25,7 @@ plugin = "forge.php"
 homepage = "https://github.com/stdimnet/php-lsp"
 license = "MIT OR Apache-2.0"
 builtin = true
-note = "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server."
+note = "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server."
 
 [[language]]
 id = "java"

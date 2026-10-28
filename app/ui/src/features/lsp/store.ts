@@ -41,7 +41,7 @@ const overlaps = (a: EditorDiagnostic["range"], b: EditorDiagnostic["range"]) =>
 };
 
 /**
- * Forge's PHP inspections and the PHP language server (php-lsp, Intelephense) both report
+ * Forge's PHP inspections and the PHP language server (php-lsp) both report
  * deprecated symbol uses and unreachable code: show the server's problem once and drop the
  * inspection's twin on the same range. Its quick fixes stay available through Alt+Enter.
  */

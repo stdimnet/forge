@@ -29,7 +29,6 @@ import { codeApi, isLibraryPath, type PrepareRenameAnswer, type RenameAnswer } f
 import { editor, isDirty } from "@/state/editor";
 import { showBalloon } from "@/keymap";
 import { shortcutLabel } from "@/keymap/store";
-import { openSettings } from "@/features/settings/dialogState";
 import { showHint } from "@/features/lsp/hint";
 import { syncNow } from "@/features/lsp/sync";
 import { fromLsp, h, toLsp } from "@/features/lsp/util";
@@ -361,24 +360,6 @@ function dirtyBuffers(): Record<string, string> {
   return Object.fromEntries(editor.tabs.filter((t) => isDirty(t) && !isLibraryPath(t.path)).map((t) => [t.path, t.content]));
 }
 
-let premiumHintShown = false;
-
-/** Once per session: the index renamed because the server cannot (Intelephense Premium). */
-export function premiumHint(answer: Pick<RenameAnswer, "source" | "missing">): boolean {
-  if (premiumHintShown || answer.source !== "index" || !answer.missing?.premium) return false;
-  premiumHintShown = true;
-  showBalloon(
-    "Renamed with the PHP index",
-    "Intelephense renames only with a premium licence, so Forge used its own index of the project's classes, methods, functions and properties. Enter a licence key in Settings | PHP for the full rename.",
-    0,
-    [{ label: "Enter Licence Key…", run: () => openSettings("lang.php") }],
-  );
-  return true;
-}
-
-/** Test hook. */
-export const resetPremiumHint = () => (premiumHintShown = false);
-
 export interface PreviewRequest {
   title: string;
   answer: RenameAnswer;
@@ -498,7 +479,7 @@ export async function commitRename(view: EditorView, opts: { name?: string; prev
       showBalloon(`${label} failed`, String(e instanceof Error ? e.message : e), 6000);
       return;
     }
-    if (!premiumHint(answer) && answer.skipped > 0) {
+    if (answer.skipped > 0) {
       showBalloon(`${answer.skipped} dynamic usage${answer.skipped === 1 ? " was" : "s were"} not renamed`, "Find them with Find Usages (Alt+F7).");
     }
     if (view.dom.isConnected) view.focus();

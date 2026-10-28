@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { invoke, listen } from "@/ipc";
-import type { InstallLine, InstallProgress, LicenceStatus, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
+import type { InstallLine, InstallProgress, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
 import "./settingsMock";
 import { demoWorkspaceSymbols, mockRows } from "./langserversMock";
 
@@ -9,11 +9,10 @@ describe("language servers mock", () => {
     const rows = await mockRows();
     const statuses = new Set(rows.map((r) => r.status));
     expect(statuses).toEqual(new Set(["running", "installed", "notInstalled", "disabled"]));
-    const ip = rows.find((r) => r.id === "intelephense")!;
-    expect(ip.source).toBe("php");
-    // php-lsp is built in: running, with its version instead of an install option.
+    // php-lsp, the only PHP server, is built in: running, with its version instead of an install option.
     const builtin = rows.find((r) => r.id === "php-lsp")!;
     expect(builtin).toMatchObject({ status: "running", source: "php", builtinVersion: "0.1.0 (6e00c57)", install: [] });
+    expect(rows.filter((r) => r.group === "PHP").map((r) => r.id)).toEqual(["php-lsp"]);
     expect(rows.filter((r) => r.source === "catalog").length).toBeGreaterThanOrEqual(30);
   });
 
@@ -68,13 +67,5 @@ describe("language servers mock", () => {
     const hits = await invoke<WorkspaceSymbol[]>("lsp_workspace_symbols", { query: "order" });
     expect(hits.map((h) => h.name)).toEqual(expect.arrayContaining(["Order", "loadOrders"]));
     expect(hits.find((h) => h.name === "Order")).toMatchObject({ kind: "interface", path: "resources/js/app.ts" });
-  });
-
-  it("switches Intelephense between Free and Premium", async () => {
-    expect((await invoke<LicenceStatus>("intelephense_licence_status")).premium).toBe(false);
-    await expect(invoke("intelephense_set_licence", { key: "bad key" })).rejects.toThrow(/licence key/);
-    const premium = await invoke<LicenceStatus>("intelephense_set_licence", { key: "ABCDEFGH1234" });
-    expect(premium).toMatchObject({ premium: true, maskedKey: "…1234" });
-    expect((await invoke<LicenceStatus>("intelephense_set_licence", { key: null })).premium).toBe(false);
   });
 });

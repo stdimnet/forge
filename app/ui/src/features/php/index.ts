@@ -99,7 +99,7 @@ registerSettingsPage({
   title: "PHP",
   group: "Languages & Frameworks",
   order: 10,
-  keywords: ["php", "interpreter", "language level", "intelephense", "phpactor", "licence", "license", "include path"],
+  keywords: ["php", "interpreter", "language level", "php-lsp", "language server", "include path"],
   component: PhpSettingsPage,
 });
 

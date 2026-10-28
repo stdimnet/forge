@@ -149,8 +149,6 @@ export interface GenerateTargets {
   phpDocTarget?: string;
 }
 
-export type ServerChoice = "php-lsp" | "auto" | "intelephense" | "phpactor" | "none";
-
 /** The language level in effect; `fromComposer` while it follows composer.json. */
 export interface LanguageLevel {
   level: string;
@@ -168,14 +166,10 @@ export interface OutdatedPackage {
 }
 
 export interface PhpLspSettings {
-  server: ServerChoice;
-  licenceKey?: string | null;
   phpVersion: string;
   maxFileSize: number;
   extraStubs: string[];
   includePaths: string[];
-  intelephensePath?: string | null;
-  phpactorPath?: string | null;
 }
 
 /** php-lsp as built into Forge (or the remote agent): started as `<binary> --php-lsp --stdio`. */
@@ -188,8 +182,6 @@ export interface BuiltinServer {
 
 export interface DetectedServers {
   phpLsp?: BuiltinServer | null;
-  intelephense?: string | null;
-  phpactor?: string | null;
 }
 
 export const phpApi = {

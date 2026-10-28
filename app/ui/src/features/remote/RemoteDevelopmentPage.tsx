@@ -34,7 +34,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
         <div>
           <h2>Remote Development</h2>
           <p class="muted">
-            Open a project on another machine over SSH. Forge starts its agent there, so indexing, Intelephense and other
+            Open a project on another machine over SSH. Forge starts its agent there, so indexing, php-lsp and other
             language servers, git, terminals and run configurations work next to the files.
           </p>
         </div>

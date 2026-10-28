@@ -102,7 +102,7 @@ export default {
     await page.waitForSelector(".balloon");
     await page.evaluate(async () => {
       const { showBalloon } = await import("/src/keymap/dispatch.ts");
-      showBalloon("Intelephense was installed", "Version 1.14.4 in Forge's data directory", 2600, undefined, { group: "Language Servers" });
+      showBalloon("yaml-language-server was installed", "Version 1.15.0 in Forge's data directory", 2600, undefined, { group: "Language Servers" });
       showBalloon("Xdebug is not configured", "PHP 8.3 has no xdebug extension loaded.", 0, [{ label: "Configure", run: () => {} }], {
         group: "Debugger",
         type: "warning",
@@ -113,7 +113,7 @@ export default {
     await page.waitForSelector(".notif-entry");
     // Opened entries are read; the newest one stays unread.
     await page.click('.notif-entry:has-text("Push failed")');
-    await page.click('.notif-entry:has-text("Intelephense")', { button: "right" });
+    await page.click('.notif-entry:has-text("yaml-language-server")', { button: "right" });
     await page.waitForSelector(".context-menu");
     await page.hover('.context-menu-item:has-text("Display")');
     await page.waitForTimeout(250);

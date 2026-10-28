@@ -1,7 +1,7 @@
 /**
  * Language servers for many languages: Settings | Languages & Frameworks | Language
  * Servers (status, install, options), project-wide symbol search through
- * every running server, and the Intelephense licence UI used by the PHP page.
+ * every running server, Forge-managed installs and their update check.
  */
 import { render } from "solid-js/web";
 import { Show } from "solid-js";
@@ -12,16 +12,13 @@ import { registerCommand } from "@/state/commands";
 import { registerStatusItem } from "@/features/statusItems";
 import { InstallDialog } from "./InstallDialog";
 import { InstallStatus } from "./InstallStatus";
-import { IntelephenseConsent } from "./IntelephenseConsent";
-import { answerConsent, checkUpdates, consentRequest, installIntelephense, startAutoInstall } from "./managed";
+import { checkUpdates, startUpdateChecks } from "./managed";
 import { LanguageServersPage } from "./LanguageServersPage";
 import { serverHintPanel } from "./serverHint";
 import { closeInstallRequest, installRequest, startLangserverListeners } from "./store";
 import { registerSymbolProviders } from "./symbols";
 import { isDialogWindow } from "@/shell/window/mode";
 import "./langservers.css";
-
-export { IntelephenseLicence } from "./Licence";
 
 registerSettingsPage({
   id: "lang.servers",
@@ -45,8 +42,7 @@ registerSettingsPage({
     "yaml",
     "json",
     "schema",
-    "intelephense",
-    "licence",
+    "php-lsp",
   ],
   component: LanguageServersPage,
 });
@@ -59,13 +55,6 @@ registerCommand({
 });
 
 registerCommand({
-  id: "langservers.installIntelephense",
-  title: "Install Intelephense",
-  category: "PHP",
-  run: () => void installIntelephense(),
-});
-
-registerCommand({
   id: "langservers.checkUpdates",
   title: "Check for Language Server Updates",
   category: "Languages & Frameworks",
@@ -74,8 +63,8 @@ registerCommand({
 
 registerSymbolProviders();
 startLangserverListeners();
-// Offers and update checks belong to the main window, not to dialog windows (Settings).
-if (typeof document !== "undefined" && !isDialogWindow()) startAutoInstall();
+// Update checks belong to the main window, not to dialog windows (Settings).
+if (typeof document !== "undefined" && !isDialogWindow()) startUpdateChecks();
 
 // Downloads of Forge-managed installs (Node.js, npm packages), like background tasks.
 registerStatusItem({ id: "langservers.install", align: "right", order: -30, component: InstallStatus });
@@ -85,14 +74,7 @@ registerEditorExtension(({ path }) => serverHintPanel(path));
 
 /** Hosts the install dialog for requests from outside the settings page (the banner). */
 function InstallHost() {
-  return (
-    <>
-      <Show when={installRequest()}>{(row) => <InstallDialog row={row()} onClose={closeInstallRequest} />}</Show>
-      <Show when={consentRequest()}>
-        <IntelephenseConsent onAnswer={answerConsent} />
-      </Show>
-    </>
-  );
+  return <Show when={installRequest()}>{(row) => <InstallDialog row={row()} onClose={closeInstallRequest} />}</Show>;
 }
 
 if (typeof document !== "undefined") {

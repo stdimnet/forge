@@ -1,16 +1,15 @@
 /**
  * Browser-mode language servers: a catalog with mixed states (running, installed, not
  * installed, disabled), installs that stream fake npm output, a TypeScript server that
- * indexes when a script or style file opens, workspace symbols over the demo project and
- * the Intelephense licence (kept in memory, like a keychain that forgets on reload).
+ * indexes when a script or style file opens and workspace symbols over the demo project.
  */
 import { emitMock, invoke, registerMock } from "@/ipc";
-import type { InstallRow, LicenceStatus, RowStatus, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
+import type { InstallRow, RowStatus, ServerRow, WorkspaceSymbol } from "@/ipc/langservers";
 import type { ServerStatus } from "@/ipc/lsp";
 import type { SettingValue } from "@/ipc/settings";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoFiles } from "./demoProject";
-import { intelephenseMissingAtStart, markMockIntelephenseInstalled, onMockDidOpen, setMockServerStatus } from "./lspMock";
+import { onMockDidOpen, setMockServerStatus } from "./lspMock";
 import { currentRemote } from "./remoteMock";
 
 type Install = [tool: string, command: string, runnable?: boolean];
@@ -75,21 +74,11 @@ const servers: MockServer[] = [
   { id: "kotlin-language-server", name: "Kotlin Language Server", group: "Kotlin", languages: ["Kotlin"], command: "kotlin-language-server", status: "notInstalled", install: [brew("kotlin-language-server"), download("https://github.com/fwcd/kotlin-language-server/releases")], license: "MIT", skip: { reason: "notInProject" }, note: "Used when chosen in the Kotlin settings instead of kotlin-lsp." },
   { id: "csharp-ls", name: "csharp-ls", group: "C#", languages: ["C#"], command: "csharp-ls", status: "notInstalled", install: [["dotnet", "dotnet tool install --global csharp-ls"]], skip: { reason: "notInProject" }, note: "Needs the .NET SDK." },
   { id: "ruby-lsp", name: "Ruby LSP", group: "Ruby", languages: ["Ruby"], command: "ruby-lsp", status: "notInstalled", install: [["gem", "gem install --user-install ruby-lsp"]], skip: { reason: "notInProject" } },
-  { id: "php-lsp", name: "php-lsp (built-in)", group: "PHP", languages: ["PHP"], command: "forge", args: ["--php-lsp", "--stdio"], status: "running", path: "/usr/bin/forge", inProject: true, install: [], source: "php", homepage: "https://github.com/stdimnet/php-lsp", license: "MIT OR Apache-2.0", builtinVersion: "0.1.0 (6e00c57)", note: "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. The default PHP language server." },
-  { id: "intelephense", name: "Intelephense", group: "PHP", languages: ["PHP"], command: "intelephense", args: ["--stdio"], status: "installed", path: `${HOME}/.npm-global/bin/intelephense`, inProject: true, install: [npm("intelephense")], source: "php", homepage: "https://intelephense.com", license: "Proprietary (free core, premium licence key optional)", note: "Used when chosen in the PHP settings. Free by default; enter your own licence key to unlock premium features such as rename, code actions and type hierarchy." },
-  { id: "phpactor", name: "Phpactor", group: "PHP", languages: ["PHP"], command: "phpactor", args: ["language-server"], status: "notInstalled", inProject: true, install: [["composer", "composer global require phpactor/phpactor"], download("https://github.com/phpactor/phpactor/releases")], source: "php", homepage: "https://phpactor.readthedocs.io", note: "Used when chosen in the PHP settings." },
+  { id: "php-lsp", name: "php-lsp (built-in)", group: "PHP", languages: ["PHP"], command: "forge", args: ["--php-lsp", "--stdio"], status: "running", path: "/usr/bin/forge", inProject: true, install: [], source: "php", homepage: "https://github.com/stdimnet/php-lsp", license: "MIT OR Apache-2.0", builtinVersion: "0.1.0 (6e00c57)", note: "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server." },
 ];
 
-// `?intelephense=missing`: Intelephense (and Node.js) are not installed yet.
-const intelephense = servers.find((s) => s.id === "intelephense")!;
-let nodeInstalled = true;
-if (intelephenseMissingAtStart()) {
-  intelephense.status = "notInstalled";
-  intelephense.path = undefined;
-  nodeInstalled = false;
-  // The project chose Intelephense: the built-in server is not running.
-  servers.find((s) => s.id === "php-lsp")!.status = "installed";
-}
+// `?node=missing`: no Node.js yet, so a managed npm install downloads it first.
+let nodeInstalled = typeof location === "undefined" || new URLSearchParams(location.search).get("node") !== "missing";
 
 /** Tools present on the "machine" in browser mode. */
 const TOOLS = new Set(["npm", "cargo", "go", "pipx", "rustup", "composer"]);
@@ -215,7 +204,7 @@ const hold = () => (window as unknown as { __forgeMockInstallHold?: number }).__
 
 const MB = 1048576;
 const NODE = "v22.11.0";
-const PACKAGE_SIZES: Record<string, number> = { intelephense: 9.6 * MB };
+const PACKAGE_SIZES: Record<string, number> = { "twiggy-language-server": 9.6 * MB };
 
 /**
  * A Forge-managed npm install as the backend reports it: Node.js download (when "missing"),
@@ -256,7 +245,7 @@ async function managedInstall(id: string, packages: string[], cancelled: () => b
   for (const pkg of packages) {
     emit(`Fetching ${pkg} from https://registry.npmjs.org…`);
     await sleep(200);
-    const version = pkg === "intelephense" ? "1.14.4" : "1.0.0";
+    const version = pkg === "yaml-language-server" ? "1.15.0" : "1.0.0";
     emit(`Downloading ${pkg}@${version} from https://registry.npmjs.org/${pkg}/-/${pkg.split("/").pop()}-${version}.tgz…`);
     await download(`Downloading ${pkg} ${version}`, PACKAGE_SIZES[pkg] ?? 2.4 * MB);
     if (cancelled()) return false;
@@ -294,22 +283,17 @@ registerMock("langservers_install", async ({ id, index }) => {
   s.status = "installed";
   const home = currentRemote() ? `/home/${currentRemote()!.user}` : HOME;
   s.path = managed ? `${home}/.local/share/forge/langservers/node_modules/.bin/${s.command}` : `${home}/.local/bin/${s.command}`;
-  if (s.id === "intelephense") {
-    // The PHP pack registers it right away and it starts for the open PHP files.
-    s.status = "running";
-    markMockIntelephenseInstalled();
-  }
   emit("info", `${s.name} installed.`);
   emitMock("langservers://changed", null);
   return "succeeded";
 });
 
-// `?updates=1`: a newer Intelephense is available.
+// `?updates=1`: a newer yaml-language-server is available.
 const offerUpdates = () => new URLSearchParams(location.search).get("updates") === "1";
 let updated = false;
 
 registerMock("langservers_check_updates", () =>
-  offerUpdates() && !updated ? [{ name: "intelephense", installed: "1.12.6", latest: "1.14.4" }] : null,
+  offerUpdates() && !updated ? [{ name: "yaml-language-server", installed: "1.14.0", latest: "1.15.0" }] : null,
 );
 
 registerMock("langservers_update", async ({ package: pkg }) => {
@@ -450,23 +434,3 @@ registerMock("lsp_workspace_symbols", ({ query, limit }) => {
   return allSymbols.filter((s) => matches(s.name)).slice(0, Number(limit ?? 200));
 });
 
-// ---------- Intelephense licence ----------
-
-let licenceKey: string | null = null;
-
-const status = (): LicenceStatus => ({
-  premium: licenceKey !== null,
-  maskedKey: licenceKey ? `…${licenceKey.slice(-4)}` : null,
-  error: null,
-  purchaseUrl: "https://intelephense.com",
-});
-
-registerMock("intelephense_licence_status", () => status());
-// Screenshot scenarios switch Intelephense Premium on (rename and code actions by the server).
-(window as unknown as { __forgeMockLicence?: (key: string | null) => void }).__forgeMockLicence = (key) => (licenceKey = key);
-registerMock("intelephense_set_licence", ({ key }) => {
-  const k = String(key ?? "").trim();
-  if (k && !/^[A-Za-z0-9_-]{8,64}$/.test(k)) throw new Error("This does not look like an Intelephense licence key.");
-  licenceKey = k || null;
-  return status();
-});

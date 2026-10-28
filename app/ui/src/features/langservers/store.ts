@@ -4,7 +4,7 @@
  */
 import { createSignal } from "solid-js";
 import { listen } from "@/ipc";
-import { langserversApi, type InstallLine, type LicenceStatus, type ServerRow } from "@/ipc/langservers";
+import { langserversApi, type InstallLine, type ServerRow } from "@/ipc/langservers";
 import { lspApi } from "@/ipc/lsp";
 import { reopenDocuments } from "@/features/lsp/sync";
 import { SETTINGS_CHANGED_EVENT, type SettingsChange } from "@/ipc/settings";
@@ -12,9 +12,7 @@ import { getSetting, saveSetting } from "@/state/settings";
 
 const [rows, setRows] = createSignal<ServerRow[]>([]);
 const [loading, setLoading] = createSignal(false);
-const [licence, setLicence] = createSignal<LicenceStatus | null>(null);
-
-export { rows, loading, licence };
+export { rows, loading };
 
 /** The server the user asked to install from outside the settings page (editor hints). */
 const [installRequest, setInstallRequest] = createSignal<ServerRow | null>(null);
@@ -64,16 +62,6 @@ export function applyServers(): Promise<void> {
     })
     .catch((e) => console.warn("language servers could not be applied", e))
     .finally(() => setLoading(false));
-}
-
-export async function refreshLicence(): Promise<void> {
-  setLicence(await langserversApi.licenceStatus().catch(() => null));
-}
-
-export async function saveLicence(key: string | null): Promise<LicenceStatus> {
-  const s = await langserversApi.setLicence(key);
-  setLicence(s);
-  return s;
 }
 
 /** Output lines per server id, kept while the install dialog is open. */

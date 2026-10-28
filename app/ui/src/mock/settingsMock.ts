@@ -34,11 +34,7 @@ const layers: Record<SettingsScope, Record<string, SettingValue>> = {
     }
   })(),
   newProjects: {},
-  // `?intelephense=missing`: a project that chose Intelephense (php-lsp, the default, is built in).
-  project:
-    typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing"
-      ? { "php.lsp.server": "intelephense" }
-      : {},
+  project: {},
 };
 
 const persistUser = () => {
