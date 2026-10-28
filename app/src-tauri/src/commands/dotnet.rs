@@ -55,7 +55,7 @@ const FORMAT_TIMEOUT: Duration = Duration::from_secs(120);
 
 // ---- Settings ------------------------------------------------------------------------------
 
-fn setting(state: &AppState, key: &str) -> String {
+pub(crate) fn setting(state: &AppState, key: &str) -> String {
     state
         .read_settings()
         .get_as::<String>(key)
@@ -79,7 +79,7 @@ fn environment(state: &AppState) -> BTreeMap<String, String> {
         .collect()
 }
 
-fn is_local(state: &AppState) -> bool {
+pub(crate) fn is_local(state: &AppState) -> bool {
     state
         .backend()
         .map(|b| b.info().remote.is_none())
@@ -94,11 +94,11 @@ fn enabled(state: &AppState) -> bool {
         .is_enabled(PLUGIN)
 }
 
-fn other(e: impl ToString) -> ForgeError {
+pub(crate) fn other(e: impl ToString) -> ForgeError {
     ForgeError::Other(e.to_string())
 }
 
-fn path_string(p: &Path) -> String {
+pub(crate) fn path_string(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/")
 }
 
@@ -280,7 +280,7 @@ fn load_workspace(state: &AppState) -> Result<DotnetWorkspace> {
 }
 
 /// The last loaded workspace of the open project (never reads files).
-fn cached_workspace(state: &AppState) -> Option<DotnetWorkspace> {
+pub(crate) fn cached_workspace(state: &AppState) -> Option<DotnetWorkspace> {
     let root = state.project_root().ok()?;
     WORKSPACE
         .lock()
@@ -290,7 +290,7 @@ fn cached_workspace(state: &AppState) -> Option<DotnetWorkspace> {
         .map(|(_, w)| w.clone())
 }
 
-fn workspace(state: &AppState) -> Result<DotnetWorkspace> {
+pub(crate) fn workspace(state: &AppState) -> Result<DotnetWorkspace> {
     match cached_workspace(state) {
         Some(w) => Ok(w),
         None => load_workspace(state),
@@ -317,7 +317,7 @@ pub async fn dotnet_workspace(refresh: Option<bool>, app: AppHandle) -> Result<D
 
 // ---- Context, runs and tests -------------------------------------------------------------------
 
-fn base_context(state: &AppState) -> DotnetContext {
+pub(crate) fn base_context(state: &AppState) -> DotnetContext {
     DotnetContext {
         dotnet: dotnet_program(state),
         configuration: setting(state, "dotnet.configuration"),
@@ -393,7 +393,7 @@ pub(crate) fn discover_file(state: &AppState, path: &str, text: &str) -> forge_t
     dotnetforge_lang_dotnet::discover_file(path, text, ctx.as_ref())
 }
 
-fn to_command_line(c: DotnetCommand, root: &Path) -> CommandLine {
+pub(crate) fn to_command_line(c: DotnetCommand, root: &Path) -> CommandLine {
     let mut cmd = CommandLine::new(c.program).args(c.args);
     cmd.cwd = if c.cwd.is_empty() {
         root.to_path_buf()
@@ -406,7 +406,7 @@ fn to_command_line(c: DotnetCommand, root: &Path) -> CommandLine {
     cmd
 }
 
-fn to_runtools(cfg: &RunConfiguration) -> forge_runtools::Configuration {
+pub(crate) fn to_runtools(cfg: &RunConfiguration) -> forge_runtools::Configuration {
     forge_runtools::Configuration {
         name: cfg.name.clone(),
         type_id: cfg.type_id.clone(),

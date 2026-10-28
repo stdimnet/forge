@@ -13,7 +13,7 @@ pack = "dotnetforge"
 vendor = "Forge"
 projectTypes = ["dotnetforge"]
 depends = ["forge.debugger"]
-description = "Solutions (.sln, .slnx) and MSBuild projects, .NET SDKs and global.json, the Build and NuGet tool windows, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg debugging, dotnet new templates, Code Cleanup with dotnet format and EditorConfig, and the Roslyn language server."
+description = "Solutions (.sln, .slnx) and MSBuild projects, .NET SDKs and global.json, the Build and NuGet tool windows, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg debugging, dotnet new templates, Code Cleanup with dotnet format and EditorConfig, and the Roslyn language server. For web and cloud projects: ASP.NET Core endpoints, Razor and Blazor, EF Core, .NET Aspire, Docker, Hot Reload and user secrets."
 
 [plugin.contributions]
 languages = ["csharp", "fsharp", "vb"]
@@ -86,12 +86,69 @@ id = "dotnet.downloadNetcoredbg"
 title = "Download netcoredbg…"
 category = ".NET"
 
+[[plugin.contributions.commands]]
+id = "dotnet.showEndpoints"
+title = "ASP.NET Core Endpoints"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.ef.addMigration"
+title = "EF Core: Add Migration…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.ef.removeMigration"
+title = "EF Core: Remove Last Migration…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.ef.updateDatabase"
+title = "EF Core: Update Database…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.ef.listMigrations"
+title = "EF Core: Refresh Migrations"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.ef.scaffold"
+title = "EF Core: Scaffold DbContext…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.addDockerSupport"
+title = "Add Docker Support…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.manageUserSecrets"
+title = "Manage User Secrets"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.aspire.openDashboard"
+title = "Open Aspire Dashboard"
+category = ".NET"
+
 [[plugin.contributions.runConfigurationTypes]]
 id = "dotnet"
 name = ".NET Project"
 description = "Run a .NET project with dotnet run or dotnet watch, optionally with a launch profile of Properties/launchSettings.json; Debug starts the built assembly under netcoredbg."
 icon = "app-window"
 debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "dotnet-aspire"
+name = ".NET Aspire"
+description = "Run a .NET Aspire AppHost with dotnet run: its resources show up in the Services tool window, the dashboard link in the console."
+icon = "boxes"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "dotnet-docker"
+name = ".NET Docker"
+description = "Build a .NET project's Dockerfile from the solution folder (docker build) and run the image as a container with published ports and environment."
+icon = "container"
 
 # The .NET test provider (dotnetforge_lang_dotnet::provider) wraps this spec: discovery of
 # xUnit, NUnit and MSTest classes and methods, `dotnet test` command lines with filters and a
@@ -333,6 +390,35 @@ group = "lang.dotnet"
 section = "NuGet"
 project = true
 order = 51
+
+[[plugin.contributions.settings]]
+key = "dotnet.aspire.openDashboard"
+title = "Open the Aspire dashboard when an AppHost starts"
+type = "bool"
+default = false
+group = "lang.dotnet"
+section = "ASP.NET Core and Aspire"
+order = 60
+
+[[plugin.contributions.settings]]
+key = "dotnet.ef.startupProject"
+title = "EF Core startup project"
+description = "The project dotnet ef starts to find the DbContext (--startup-project). Empty: the first runnable project that references EF Core."
+type = "string"
+default = ""
+group = "lang.dotnet"
+section = "ASP.NET Core and Aspire"
+project = true
+order = 61
+
+[[plugin.contributions.settings]]
+key = "dotnet.hotReload.showStatus"
+title = "Show the Hot Reload status of dotnet watch runs in the status bar"
+type = "bool"
+default = true
+group = "lang.dotnet"
+section = "ASP.NET Core and Aspire"
+order = 62
 
 [[plugin.contributions.inspections]]
 id = "DotnetBuild"

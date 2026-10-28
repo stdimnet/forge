@@ -8,8 +8,23 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use forge_runtools::Configuration;
+
+use crate::command::DotnetCommand;
+use crate::context::DotnetContext;
 use crate::csharp::{arguments, matching, tokenize, Token};
 use crate::msbuild::DotnetProject;
+
+/// The ".NET Aspire" run configuration type: `dotnet run` of an AppHost.
+pub const DOTNET_ASPIRE: &str = "dotnet-aspire";
+
+/// The command line of a ".NET Aspire" configuration (`project`, `profile`, `mode`
+/// `run` / `watch`, `configuration`, `dotnetArgs` as for ".NET Project").
+pub fn run_command(cfg: &Configuration, ctx: &DotnetContext) -> Result<DotnetCommand, String> {
+    let mut c = cfg.clone();
+    c.type_id = crate::command::DOTNET_RUN.into();
+    crate::command::run_command(&c, ctx)
+}
 
 /// Whether a project is an Aspire AppHost.
 pub fn is_app_host(p: &DotnetProject) -> bool {
