@@ -440,6 +440,7 @@ const SHOWN_PROPERTIES: &[&str] = &[
     "ImplicitUsings",
     "Version",
     "UserSecretsId",
+    "IsAspireHost",
     "Description",
     "Company",
     "Authors",
