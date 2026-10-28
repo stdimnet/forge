@@ -15088,7 +15088,104 @@
           "order": 0
         }
       ],
-      "settings": [],
+      "settings": [
+        {
+          "key": "ai.enabled",
+          "title": "Enable AI features in this project",
+          "description": "Turn off to keep this project's code away from all AI providers: no inline completion, no Explain / Fix / Generate with AI. Files can also be excluded with an .aiignore file in the project root (gitignore syntax).",
+          "type": "bool",
+          "default": true,
+          "group": "tools.ai-assistant",
+          "section": "General",
+          "project": true,
+          "order": 0
+        },
+        {
+          "key": "ai.completion.enabled",
+          "title": "Enable inline code completion",
+          "description": "Show AI suggestions as gray text while you type. Tab accepts, Ctrl+Right accepts the next word, Escape dismisses. Uses the Code completion model of Settings | Tools | AI Providers.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.ai-assistant",
+          "section": "Inline Completion",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "ai.completion.multiline",
+          "title": "Suggestion length",
+          "description": "Automatic suggests several lines on an empty line and after a block opener such as `{`, else one line.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Automatic"
+            },
+            {
+              "value": "single",
+              "label": "Single line"
+            },
+            {
+              "value": "multi",
+              "label": "Multi-line"
+            }
+          ],
+          "default": "auto",
+          "group": "tools.ai-assistant",
+          "section": "Inline Completion",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "ai.completion.mode",
+          "title": "Request type",
+          "description": "Fill-in-the-middle sends the code before and after the caret to the server's completions endpoint (code models on Ollama, LM Studio, llama.cpp). Chat asks a chat model (Anthropic, OpenAI, OpenRouter). Automatic picks fill-in-the-middle for local servers and chat for hosted APIs.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Automatic"
+            },
+            {
+              "value": "fim",
+              "label": "Fill-in-the-middle"
+            },
+            {
+              "value": "chat",
+              "label": "Chat"
+            }
+          ],
+          "default": "auto",
+          "group": "tools.ai-assistant",
+          "section": "Inline Completion",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "ai.completion.debounceMs",
+          "title": "Delay before asking (ms)",
+          "description": "How long typing must pause before a suggestion is requested.",
+          "type": "int",
+          "min": 50,
+          "max": 3000,
+          "default": 350,
+          "group": "tools.ai-assistant",
+          "section": "Inline Completion",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "ai.completion.disabledLanguages",
+          "title": "Disable for languages",
+          "description": "Language ids without inline completion, e.g. markdown, text, json, yaml, php, typescript.",
+          "type": "list",
+          "default": [],
+          "group": "tools.ai-assistant",
+          "section": "Inline Completion",
+          "project": false,
+          "order": 14
+        }
+      ],
       "lspServers": [],
       "runConfigurationTypes": [],
       "aiProviders": [

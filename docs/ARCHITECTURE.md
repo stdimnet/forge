@@ -418,6 +418,26 @@ app/ui/            SolidJS UI
   `ai_models({ providerId })`, `ai_set_default({ providerId, model?, feature? })`. Config lives in
   `<config dir>/forge/ai.toml`; API keys in the OS keychain (service `forge-ai`) with
   `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` as fallback. Backend: `crates/forge-ai`.
+- AI in the editor (`forge-ai-editor`, `commands/ai_editor.rs`, UI `features/ai-editor`):
+  `ai_inline_complete({ request: { path, language?, text, offset (UTF-16), related?: { path, text }[] },
+  requestId, temperature? }) -> { text: string | null, reason? }` (ghost text; `reason` is
+  `disabled`, `cancelled` or a policy message, not an error; the context, prompt and clean-up
+  are in Rust, the provider is the `completion` feature's, fill-in-the-middle via
+  `Provider::fim` when `ai.completion.mode` allows), `ai_inline_cancel({ requestId })`,
+  `ai_editor_status({ path?, language? }) -> { projectEnabled, completionEnabled, completion?,
+  completionProblem?, actions?, actionsProblem?, language?, file?, fileActions? }` (providers as
+  `{ id, name, model?, local, fim }`, verdicts as `{ status: "allowed" | "projectDisabled" |
+  "languageDisabled" | "ignored", message? }`), `ai_action({ request: { kind: "fix" | "docs" |
+  "tests", path, language?, text, from, to, problems?: { message, line, endLine?, source? }[] } })
+  -> Proposal` (`{ kind, title, path, original, proposed, edit?: { from, to, text }, newFile,
+  diff: EditDiff }`; nothing is written) and `ai_explain({ request, streamId }) -> { title, prompt,
+  provider, model?, startLine, endLine }` (streams `ai://stream/<streamId>` like `ai_stream`;
+  the UI adds the answer to the AI Chat with `startProviderTurn`). Every command checks the
+  policy first: an enabled provider, `ai.enabled` (project), `.aiignore` / `.aiexclude` in the
+  project root, and for inline completion `ai.completion.enabled` and
+  `ai.completion.disabledLanguages`. Context actions can opt out of lighting the bulb with
+  `registerContextActionProvider(provider, { bulb: false })`; other features add Generate
+  (`Alt+Insert`) entries with `registerGenerateItems` (`editor/generateItems.ts`).
 - Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`
   (`{ id, name, models, installHint, permissionPrompts, permissionModes: { value, label, short, hint }[],
   supported, installed, path }`),

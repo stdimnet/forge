@@ -6,6 +6,7 @@ import "./placeholders";
 import "./project";
 import "./ai";
 import "./ai-chat";
+import "./ai-editor";
 import "./settings";
 import "./maintenance";
 import "./fileTypes";

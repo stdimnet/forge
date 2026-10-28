@@ -1,0 +1,107 @@
+/* AI in the editor: ghost text, status bar widget, proposal diff dialog, settings page. */
+
+.cm-ai-ghost {
+  color: var(--fg-faint);
+  font-style: italic;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.status-item.ai-status {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+}
+.status-item.ai-status.off {
+  color: var(--fg-faint);
+}
+.status-item.ai-status.error {
+  color: var(--danger);
+}
+
+.ai-proposal {
+  width: min(960px, 88vw);
+}
+.ai-proposal:focus {
+  outline: none;
+}
+.ai-proposal-icon {
+  color: var(--accent);
+}
+.ai-proposal-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-small);
+  background: var(--bg-toolbar);
+}
+.ai-proposal-name {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.ai-proposal-badge {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.ai-proposal-stat {
+  font-family: var(--font-mono);
+}
+.ai-proposal-stat.add {
+  color: var(--vcs-added);
+}
+.ai-proposal-stat.del {
+  color: var(--danger);
+}
+.ai-proposal-body {
+  min-height: 120px;
+  flex: 1;
+}
+.ai-proposal-wait,
+.ai-proposal-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--fg-muted);
+}
+.ai-proposal-error {
+  color: var(--danger);
+}
+.ai-proposal-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+.ai-proposal-note {
+  font-size: var(--fs-small);
+}
+
+.ai-assistant-model {
+  /* Spans the settings section's label | control grid. */
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 4px 0 10px;
+}
+.ai-assistant-model select,
+.ai-assistant-model input {
+  min-width: 160px;
+}
+.ai-assistant-hint {
+  flex-basis: 100%;
+  font-size: var(--fs-small);
+}
+.ai-assistant-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

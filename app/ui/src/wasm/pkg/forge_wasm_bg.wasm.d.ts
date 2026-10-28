@@ -3,6 +3,10 @@
 export const memory: WebAssembly.Memory;
 export const agent_parse_lines: (a: number, b: number, c: number) => void;
 export const agent_profiles: (a: number) => void;
+export const ai_action_prompt: (a: number, b: number, c: number) => void;
+export const ai_action_proposal: (a: number, b: number, c: number) => void;
+export const ai_inline_finish: (a: number, b: number, c: number) => void;
+export const ai_policy_check: (a: number, b: number, c: number) => void;
 export const android_adb: (a: number, b: number, c: number) => void;
 export const android_app_command: (a: number, b: number, c: number) => void;
 export const android_logcat_view: (a: number, b: number, c: number) => void;

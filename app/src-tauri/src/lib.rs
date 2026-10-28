@@ -53,6 +53,7 @@ pub fn run() {
         .manage(commands::updates::UpdatesState::default())
         .manage(companion::CompanionState::load())
         .manage(commands::ai::AiState::load())
+        .manage(commands::ai_editor::AiEditorState::default())
         .manage(commands::agent::AgentState::default())
         .manage(commands::db::DbState::load())
         .manage(commands::db_objects::DbObjectsState::default())
@@ -201,6 +202,11 @@ pub fn run() {
             commands::ai::ai_provider_test,
             commands::ai::ai_models,
             commands::ai::ai_set_default,
+            commands::ai_editor::ai_inline_complete,
+            commands::ai_editor::ai_inline_cancel,
+            commands::ai_editor::ai_editor_status,
+            commands::ai_editor::ai_action,
+            commands::ai_editor::ai_explain,
             commands::agent::agent_list,
             commands::agent::agent_start,
             commands::agent::agent_send,

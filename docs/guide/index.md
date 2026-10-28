@@ -52,6 +52,10 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
+  hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
+  "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
+  `.aiignore` and a per-project switch ([AI](user/ai.md#ai-in-the-editor)).
 - **Ruby on Rails**: routes of `config/routes.rb` in the Endpoints tool window with Generate HTTP
   Request; Go to Related between models, controllers, views, helpers, tests and migrations;
   navigation and completion of route helpers, partials, translation keys, model attributes

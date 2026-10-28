@@ -47,16 +47,21 @@ export function closeIntentionPopup(focus = true): void {
  * (the spelling and grammar fixes of `features/spelling`).
  */
 export type ContextActionProvider = (path: string, view: EditorView) => Promise<ContextAction[]>;
-const providers: ContextActionProvider[] = [];
+const providers: { provide: ContextActionProvider; bulb: boolean }[] = [];
 
-export function registerContextActionProvider(provider: ContextActionProvider): void {
-  providers.push(provider);
+/**
+ * `bulb: false`: the entries are offered on Alt+Enter but do not light the bulb (actions
+ * available everywhere, such as "Explain with AI"); such providers are not asked for the bulb.
+ */
+export function registerContextActionProvider(provider: ContextActionProvider, opts: { bulb?: boolean } = {}): void {
+  providers.push({ provide: provider, bulb: opts.bulb ?? true });
 }
 
-async function queryActions(path: string, view: EditorView): Promise<ContextActionsAnswer> {
+async function queryActions(path: string, view: EditorView, forBulb = false): Promise<ContextActionsAnswer> {
   const sel = view.state.selection.main;
   const doc = view.state.doc;
-  const extra = Promise.all(providers.map((p) => p(path, view).catch(() => [] as ContextAction[])));
+  const asked = providers.filter((p) => p.bulb || !forBulb);
+  const extra = Promise.all(asked.map((p) => p.provide(path, view).catch(() => [] as ContextAction[])));
   let answer: ContextActionsAnswer;
   try {
     await syncNow(path);
@@ -225,7 +230,7 @@ class BulbPlugin {
   async query(id: number) {
     const view = this.view;
     if (!view.hasFocus || renameSessionOf(view) || intentionPopup()) return;
-    const answer = await queryActions(this.path, view).catch(() => null);
+    const answer = await queryActions(this.path, view, true).catch(() => null);
     if (id !== this.seq || !answer?.bulb) {
       if (id === this.seq) this.hide();
       return;
