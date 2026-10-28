@@ -44,6 +44,7 @@ goforge-pprof.workspace = true
 forge-profiler.workspace = true
 rustforge-lang-rust.workspace = true
 rubyforge-lang-ruby.workspace = true
+rubyforge-fw-rails.workspace = true
 dotnetforge-lang-dotnet.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true

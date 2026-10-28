@@ -38,7 +38,7 @@ const RUBOCOP_TIMEOUT: Duration = Duration::from_secs(60);
 
 // ---- Settings ------------------------------------------------------------------------------
 
-fn setting(state: &AppState, key: &str) -> String {
+pub(crate) fn setting(state: &AppState, key: &str) -> String {
     state
         .read_settings()
         .get_as::<String>(key)
@@ -46,7 +46,7 @@ fn setting(state: &AppState, key: &str) -> String {
         .unwrap_or_default()
 }
 
-fn flag(state: &AppState, key: &str, default: bool) -> bool {
+pub(crate) fn flag(state: &AppState, key: &str, default: bool) -> bool {
     state.read_settings().get_bool(key).unwrap_or(default)
 }
 
@@ -230,7 +230,7 @@ pub(crate) fn context(state: &AppState) -> RubyContext {
     }
 }
 
-fn to_command_line(c: RubyCommand, root: &Path) -> CommandLine {
+pub(crate) fn to_command_line(c: RubyCommand, root: &Path) -> CommandLine {
     let mut cmd = CommandLine::new(c.program).args(c.args);
     cmd.cwd = if c.cwd.is_empty() {
         root.to_path_buf()
@@ -243,7 +243,7 @@ fn to_command_line(c: RubyCommand, root: &Path) -> CommandLine {
     cmd
 }
 
-fn to_runtools(cfg: &RunConfiguration) -> forge_runtools::Configuration {
+pub(crate) fn to_runtools(cfg: &RunConfiguration) -> forge_runtools::Configuration {
     let mut options = cfg.options.clone();
     // The configuration's own interpreter (Ruby configurations' "Ruby interpreter" field).
     if !cfg.interpreter.trim().is_empty() {
@@ -552,6 +552,7 @@ pub(crate) fn is_ruby_type(type_id: &str) -> bool {
             | rubyforge_lang_ruby::RAKE
             | rubyforge_lang_ruby::RSPEC
             | rubyforge_lang_ruby::MINITEST
+            | rubyforge_fw_rails::command::RAILS
     )
 }
 

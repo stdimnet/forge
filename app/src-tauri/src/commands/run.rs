@@ -425,6 +425,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 || cfg.type_id == rubyforge_lang_ruby::RAKE
             {
                 super::ruby::run_command(state, &cfg)?
+            } else if cfg.type_id == rubyforge_fw_rails::command::RAILS {
+                super::rails::run_command(state, &cfg)?
             } else if cfg.type_id == dotnetforge_lang_dotnet::DOTNET_RUN {
                 super::dotnet::run_command_line(state, &cfg)?
             } else {
