@@ -7360,6 +7360,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rubyforge-fw-rails"
+version = "0.1.0"
+dependencies = [
+ "forge-runtools",
+ "rubyforge-lang-ruby",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rubyforge-lang-ruby"
 version = "0.1.0"
 dependencies = [
