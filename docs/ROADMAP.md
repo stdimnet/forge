@@ -6,7 +6,7 @@
 - [x] Plugin API + registry, layered settings with searchable Settings dialog; every setting in the dialog is applied
 - [x] Editor + LSP client: hover docs, completion, diagnostics, go to definition
 - [x] Language servers for ~30 languages: catalog, detection, install from Settings, several servers per file, project-wide symbol search
-- [x] PHPForge language pack: Intelephense (bring your own license, one-click install) / phpactor, PHPDoc & attribute hover, Generate menu (Alt+Insert: getters/setters/constructor)
+- [x] PHPForge language pack: Intelephense (bring your own license, one-click install) / phpactor (both later replaced by the built-in php-lsp), PHPDoc & attribute hover, Generate menu (Alt+Insert: getters/setters/constructor)
 - [x] Git: Commit tool window, diff, inline blame, branches, AI commit messages, Project view Git submenu (Add to .gitignore, tags, stash, remotes)
 - [x] AI providers: Anthropic, OpenRouter, Ollama, llama.cpp, LM Studio, any OpenAI-compatible API
 - [x] AI chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards; Gemini CLI as a second agent; chat history per project

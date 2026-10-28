@@ -141,7 +141,7 @@ pub fn upload_command(version: &str) -> String {
 }
 
 /// Shell command that starts the agent in a login shell (so `PATH` includes the user's
-/// tools, e.g. Intelephense installed with npm) and prints [`READY_MARKER`] first.
+/// tools, e.g. language servers installed with npm) and prints [`READY_MARKER`] first.
 pub fn start_command(version: &str) -> String {
     let path = agent_path(version);
     format!("exec \"${{SHELL:-/bin/sh}}\" -lc 'echo {READY_MARKER}; exec \"$HOME/{path}\" serve'")

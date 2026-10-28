@@ -10,8 +10,6 @@ import { CircleCheck, CircleX, Copy, ExternalLink, LoaderCircle, TriangleAlert, 
 import { langserversApi, type InstallLine, type InstallOutcome, type ServerRow } from "@/ipc/langservers";
 import { workspace } from "@/state/workspace";
 import { applyServers, onInstallOutput } from "./store";
-import { INTELEPHENSE_ID } from "./autoInstall";
-import { ensureLicence } from "./managed";
 
 type Phase = "confirm" | "running" | "done";
 
@@ -47,8 +45,6 @@ export function InstallDialog(props: { row: ServerRow; onClose: () => void }) {
   const start = async () => {
     const o = option();
     if (!o) return;
-    // Intelephense is downloaded only after its licence was accepted (once).
-    if (o.managed && props.row.id === INTELEPHENSE_ID && !(await ensureLicence())) return;
     setPhase("running");
     setLines([]);
     setError(null);

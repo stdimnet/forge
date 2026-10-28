@@ -43,7 +43,7 @@ what is not there yet.
 
 | Topic | PHPStorm | Forge |
 | --- | --- | --- |
-| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), or Intelephense / Phpactor if you prefer, plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](../user/language-servers.md#php-php-lsp-intelephense-and-phpactor). |
+| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](../user/language-servers.md#php-php-lsp). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](../user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
@@ -73,8 +73,6 @@ The [keymap reference](../reference/keymap.md) marks every action as implemented
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
 2. PHP works right away with the built-in language server php-lsp. Install the language
    servers of your other languages from Settings | Languages & Frameworks | Language Servers.
-   If you prefer Intelephense (for example with your own licence), choose it in Settings |
-   Languages & Frameworks | PHP and accept the install offer.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.

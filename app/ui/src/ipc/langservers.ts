@@ -1,7 +1,7 @@
 /**
  * Language servers for many languages (see app/src-tauri/src/commands/langservers.rs):
  * the Language Servers settings page, installs with streamed output, project-wide symbol
- * search over every running server and the Intelephense licence key (OS keychain).
+ * search over every running server.
  */
 import { invoke, listen } from "./index";
 import type { LspRange } from "./lsp";
@@ -108,14 +108,6 @@ export interface WorkspaceSymbol {
   server: string;
 }
 
-export interface LicenceStatus {
-  premium: boolean;
-  /** "…1234" */
-  maskedKey?: string | null;
-  error?: string | null;
-  purchaseUrl: string;
-}
-
 /** Settings keys of per-server preferences. */
 export const serverKey = (id: string, field: "enabled" | "path" | "settings") => `langservers.servers.${id}.${field}`;
 
@@ -131,8 +123,6 @@ export const langserversApi = {
   update: (pkg: string) => invoke<InstallOutcome>("langservers_update", { package: pkg }),
   onInstallProgress: (cb: (p: InstallProgress) => void) => listen<InstallProgress>("langservers://install-progress", cb),
   workspaceSymbols: (query: string, limit = 200) => invoke<WorkspaceSymbol[]>("lsp_workspace_symbols", { query, limit }),
-  licenceStatus: () => invoke<LicenceStatus>("intelephense_licence_status"),
-  setLicence: (key: string | null) => invoke<LicenceStatus>("intelephense_set_licence", { key }),
   onInstallOutput: (cb: (l: InstallLine) => void) => listen<InstallLine>("langservers://install-output", cb),
   onChanged: (cb: () => void) => listen<unknown>("langservers://changed", () => cb()),
 };

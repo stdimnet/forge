@@ -301,7 +301,7 @@ impl Detector {
     }
 
     /// `node` and the script of `command` when it is an npm server in Forge's directory
-    /// (`intelephense` → `(node, <dir>/node_modules/intelephense/lib/intelephense.js)`).
+    /// (`vls` → `(node, <dir>/node_modules/vls/lib/server.js)`).
     pub fn managed_launch(&self, command: &str) -> Option<(PathBuf, PathBuf)> {
         let script = crate::managed::npm::find_bin(self.managed_dir()?, command)?;
         Some((self.node()?, script))
@@ -500,7 +500,7 @@ pub(crate) mod tests {
     fn windows_tries_cmd_shims() {
         let tmp = tempfile::tempdir().unwrap();
         let appdata = tmp.path().join("AppData/Roaming");
-        fake_bin(&appdata.join("npm/intelephense.cmd"));
+        fake_bin(&appdata.join("npm/typescript-language-server.cmd"));
         let local = tmp.path().join("AppData/Local");
         fake_bin(&local.join("nvim-data/mason/bin/gopls.exe"));
         let d = Detector::new(DetectEnv {
@@ -510,8 +510,8 @@ pub(crate) mod tests {
             ..Default::default()
         });
         assert_eq!(
-            d.find("intelephense"),
-            Some(appdata.join("npm/intelephense.cmd"))
+            d.find("typescript-language-server"),
+            Some(appdata.join("npm/typescript-language-server.cmd"))
         );
         assert_eq!(
             d.find("gopls"),

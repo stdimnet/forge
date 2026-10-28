@@ -5,7 +5,7 @@
 //! - [`parse`]: Markdown into [`Block`]s ([`Flavor::Chat`] or [`Flavor::Docs`]).
 //! - [`parse_document`]: a Markdown file for the preview (GitHub-flavored, with source lines,
 //!   front matter and footnotes).
-//! - [`hover`]: language server hover Markdown (Intelephense & co.) split into the parts of
+//! - [`hover`]: language server hover Markdown (php-lsp & co.) split into the parts of
 //!   a PHPStorm-style documentation popup.
 //! - [`doc_comments`]: PHPDoc / JSDoc / LuaDoc comments of a file in the same parts, for
 //!   the editor's rendered view of documentation comments (Reader mode).

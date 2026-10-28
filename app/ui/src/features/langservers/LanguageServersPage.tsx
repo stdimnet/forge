@@ -12,7 +12,6 @@ import { workspace } from "@/state/workspace";
 import { draft, draftValue, openSettings, setDraft } from "@/features/settings/dialogState";
 import { SettingRow } from "@/features/settings/SchemaPage";
 import { InstallDialog } from "./InstallDialog";
-import { IntelephenseLicence } from "./Licence";
 import { groupRows, jsonError, shortenHome, skipText, STATUS_LABEL } from "./model";
 import { applyServers, loading, refreshRows, rows } from "./store";
 import { managedOption, progressText } from "./autoInstall";
@@ -161,10 +160,6 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
           </span>
         </Show>
 
-        <Show when={row().id === "intelephense"}>
-          <span class="ls-form-label">Licence:</span>
-          <IntelephenseLicence compact />
-        </Show>
         <Show when={row().id === "lua-language-server"}>
           <span class="ls-form-label">Environment:</span>
           <span>

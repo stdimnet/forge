@@ -65,5 +65,4 @@ skills in `.claude/skills/`), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 MIT. The built-in PHP language server php-lsp (MIT OR Apache-2.0) and the components listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) keep their own licences. Third-party language
-servers you install (e.g. Intelephense premium) and AI providers require your own license or
-API key.
+servers you install and AI providers keep their own licences and may need your own API key.

@@ -34,8 +34,7 @@ webforge-lang-web = { path = "../../packs/webforge/lang-web" }
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
-# Without the keychain: the remote agent embeds this crate and is linked statically.
-forge-langservers = { path = "../forge-langservers", default-features = false }
+forge-langservers.workspace = true
 dirs.workspace = true
 serde.workspace = true
 serde_json.workspace = true

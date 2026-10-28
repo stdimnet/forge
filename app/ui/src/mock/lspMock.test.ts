@@ -21,7 +21,7 @@ const posOf = (path: string, needle: string, delta = 0) =>
   positionAt(demoFiles[path], demoFiles[path].indexOf(needle) + delta);
 
 describe("mock language server", () => {
-  it("answers hovers with Intelephense-style markdown", () => {
+  it("answers hovers with php-lsp's (Intelephense-style) markdown", () => {
     const hover = hoverAt(USER, posOf(USER, "hasMany(", 2))!;
     expect(hover.contents).toContain("HasRelationships::hasMany");
     expect(hover.contents).toContain("_@param_");

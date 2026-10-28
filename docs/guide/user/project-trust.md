@@ -78,7 +78,7 @@ blocked even if a plugin or the UI tries to start them:
 
 What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
 Declaration, completion from the built-in analysis, language servers installed outside the
-project (for example Intelephense from npm or Forge's own install), Git, Local History,
+project (for example a server from npm or Forge's own install), Git, Local History,
 databases, the HTTP client and [Deployment](deployment.md) actions you start yourself (upload,
 download, compare and sync only copy files), and the [Remote Host](remote-host-and-ssh.md)
 tool window with Edit Remote File.

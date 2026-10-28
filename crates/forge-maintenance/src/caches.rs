@@ -15,7 +15,7 @@
 //! | Local History (option) | `<data>/forge/projects/*/local-history` |
 //! | PHP stubs (option) | `<cache>/forge/php-stubs` |
 //! | Browser engine (option) | the webview's cache folders (`<cache>/<identifier>`, WebView2's `Cache`) |
-//! | Language server data (option) | `<cache>/forge/intelephense`, `<cache>/forge/jdtls` |
+//! | Language server data (option) | `<cache>/forge/php-lsp`, `<cache>/forge/jdtls` |
 //!
 //! Installed language servers and runtimes (`<data>/forge/langservers`, `runtimes`) are not
 //! caches and stay.
@@ -58,7 +58,7 @@ impl CacheOption {
             Self::FileSystemAndLocalHistory => "Local History of all projects",
             Self::SharedIndexes => "PHP stubs downloaded for the PHP index",
             Self::BrowserEngine => "Cached pages, scripts and images of the Forge window",
-            Self::LanguageServerData => "Indexes and workspaces of Intelephense and Java",
+            Self::LanguageServerData => "Indexes and workspaces of php-lsp and Java",
         }
     }
 }
@@ -185,6 +185,8 @@ mod disk {
                 }
                 CacheOption::LanguageServerData => {
                     if let Some(cache) = dirs.forge_cache() {
+                        push("php-lsp data", cache.join("php-lsp"));
+                        // Left behind by earlier versions, which could run Intelephense.
                         push("Intelephense data", cache.join("intelephense"));
                         push("Java language server data", cache.join("jdtls"));
                     }
@@ -260,6 +262,7 @@ mod tests {
         touch(&cache.join("Forge/search/0001.bin"));
         touch(&cache.join("forge/packagist/laravel.json"));
         touch(&cache.join("forge/php-stubs/core.php"));
+        touch(&cache.join("forge/php-lsp/index"));
         touch(&cache.join("forge/intelephense/index"));
         touch(&data.join("projects/shop-1/local-history/log"));
         touch(&data.join("projects/shop-1/bookmarks.json"));
@@ -285,11 +288,12 @@ mod tests {
                 "Local History",
                 "PHP stubs",
                 "Embedded browser engine cache",
+                "php-lsp data",
                 "Intelephense data"
             ]
         );
         let report = run_cleanup(all);
-        assert_eq!(report.deleted.len(), 8);
+        assert_eq!(report.deleted.len(), 9);
         assert!(report.failed.is_empty());
         assert!(!cache.join("forge/php-index").exists());
         assert!(!data.join("projects/shop-1/local-history").exists());
