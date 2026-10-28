@@ -1,0 +1,18 @@
+  Determining projects to restore...
+/home/anna/Projects/Bookstore/tests/Bookstore.Tests/Bookstore.Tests.csproj : warning NU1603: Bookstore.Tests depends on xunit (>= 2.7.0) but xunit 2.7.0 was not found. An approximate best match of xunit 2.7.1 was resolved. [/home/anna/Projects/Bookstore/Bookstore.sln]
+  All projects are up-to-date for restore.
+/home/anna/Projects/Bookstore/src/Bookstore.Core/Catalog/Book.cs(10,20): warning CS8618: Non-nullable property 'Title' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/home/anna/Projects/Bookstore/src/Bookstore.Core/Bookstore.Core.csproj::TargetFramework=net8.0]
+  Bookstore.Core -> /home/anna/Projects/Bookstore/src/Bookstore.Core/bin/Debug/net8.0/Acme.Bookstore.Core.dll
+/home/anna/Projects/Bookstore/src/Bookstore.Api/Program.cs(12,30): error CS0103: The name 'inventry' does not exist in the current context [/home/anna/Projects/Bookstore/src/Bookstore.Api/Bookstore.Api.csproj]
+/home/anna/Projects/Bookstore/tools/Reports/Sales.fs(5,11,5,18): error FS0039: The value or constructor 'revenue' is not defined. [/home/anna/Projects/Bookstore/tools/Reports/Reports.fsproj]
+
+Build FAILED.
+
+/home/anna/Projects/Bookstore/tests/Bookstore.Tests/Bookstore.Tests.csproj : warning NU1603: Bookstore.Tests depends on xunit (>= 2.7.0) but xunit 2.7.0 was not found. An approximate best match of xunit 2.7.1 was resolved. [/home/anna/Projects/Bookstore/Bookstore.sln]
+/home/anna/Projects/Bookstore/src/Bookstore.Core/Catalog/Book.cs(10,20): warning CS8618: Non-nullable property 'Title' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/home/anna/Projects/Bookstore/src/Bookstore.Core/Bookstore.Core.csproj::TargetFramework=net8.0]
+/home/anna/Projects/Bookstore/src/Bookstore.Api/Program.cs(12,30): error CS0103: The name 'inventry' does not exist in the current context [/home/anna/Projects/Bookstore/src/Bookstore.Api/Bookstore.Api.csproj]
+/home/anna/Projects/Bookstore/tools/Reports/Sales.fs(5,11,5,18): error FS0039: The value or constructor 'revenue' is not defined. [/home/anna/Projects/Bookstore/tools/Reports/Reports.fsproj]
+    2 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:03.71

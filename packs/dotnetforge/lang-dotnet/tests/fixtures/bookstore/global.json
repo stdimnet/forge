@@ -1,0 +1,11 @@
+{
+  // The SDK the solution was written with.
+  "sdk": {
+    "version": "8.0.400",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  },
+  "msbuild-sdks": {
+    "Microsoft.Build.Traversal": "4.1.0"
+  }
+}

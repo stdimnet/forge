@@ -1,0 +1,28 @@
+Run options: -v --seed 42
+
+# Running:
+
+Shop::MoneyTest#test_formats = 0.00 s = .
+CartTest#test_boom = 0.00 s = E
+CartTest#test_voucher = 0.00 s = S
+CartTest#test_adds_items = 0.00 s = .
+CartTest#test_total = computing total
+0.00 s = F
+
+Finished in 0.010264s, 487.1549 runs/s, 292.2930 assertions/s.
+
+  1) Error:
+CartTest#test_boom:
+ArgumentError: boom
+    /home/anna/Projects/shop/test/cart_test.rb:18:in `test_boom'
+
+  2) Skipped:
+CartTest#test_voucher [/home/anna/Projects/shop/test/cart_test.rb:14]:
+vouchers are not ready
+
+  3) Failure:
+CartTest#test_total [/home/anna/Projects/shop/test/cart_test.rb:10]:
+Expected: 1050
+  Actual: 1049
+
+5 runs, 3 assertions, 1 failures, 1 errors, 1 skips

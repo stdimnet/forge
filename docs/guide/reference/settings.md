@@ -826,6 +826,30 @@ Page id `lang.cpp` (plugin `forge.cpp`; the page also shows clangd, the compilat
 | `cpp.clangFormat.path` | path | `""` | user | Code Style | clang-format executable — Empty: clang-format of the active toolchain or on the PATH. |
 | `cpp.clangFormat.fallbackStyle` | enum: `LLVM`, `Google`, `Chromium`, `Mozilla`, `WebKit`, `Microsoft`, `GNU`, `none` | `LLVM` | user, project | Code Style | Style without a .clang-format file. |
 | `cpp.debugger.stlRenderers` | bool | `true` | user | Debugger | Show STL containers with their elements — GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters. |
+### Languages & Frameworks | .NET
+
+Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet host, its SDKs and runtimes, the SDK `global.json` selects, the Roslyn server and netcoredbg with their downloads). See [DotNetForge](../user/dotnet.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `dotnet.path` | path | `""` | user | .NET CLI | dotnet executable — The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder. |
+| `dotnet.environment` | list | `[]` | user, project | .NET CLI | Environment — Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES). |
+| `dotnet.solution` | string | `""` | user, project | Solution | Solution — The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root. (hidden: edited in the Build tool window) |
+| `dotnet.configuration` | enum: `Debug`, `Release` | `"Debug"` | user, project | Build | Build configuration |
+| `dotnet.build.verbosity` | enum: `quiet`, `minimal`, `normal`, `detailed` | `"minimal"` | user | Build | MSBuild verbosity |
+| `dotnet.build.beforeRun` | bool | `false` | user | Build | Build before running tests and debugging — dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there. |
+| `dotnet.formatter` | enum: `lsp`, `dotnetFormat`, `none` | `"lsp"` | user, project | Code Cleanup | Reformat Code with — Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files). |
+| `dotnet.cleanup.scope` | enum: `all`, `whitespace`, `style`, `analyzers` | `"all"` | user, project | Code Cleanup | Code Cleanup fixes — Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them. |
+| `dotnet.cleanup.severity` | enum: `info`, `warn`, `error` | `"warn"` | user, project | Code Cleanup | Minimum severity of fixed diagnostics |
+| `dotnet.roslyn.path` | path | `""` | user | Roslyn | Roslyn language server — The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download. |
+| `dotnet.roslyn.autoInstall` | enum: `ask`, `never` | `"ask"` | user | Roslyn | Offer to download the Roslyn language server |
+| `dotnet.roslyn.analysisScope` | enum: `openFiles`, `fullSolution`, `none` | `"openFiles"` | user, project | Roslyn | Analyze — Where the server reports compiler and analyzer problems. |
+| `dotnet.roslyn.inlayHints` | bool | `true` | user | Roslyn | Show parameter and type hints |
+| `dotnet.debugger.path` | path | `""` | user | Debugger | netcoredbg executable — Empty: Forge's download or netcoredbg on the PATH. |
+| `dotnet.debugger.justMyCode` | bool | `true` | user | Debugger | Step through my code only (Just My Code) |
+| `dotnet.nuget.source` | string | `"https://api.nuget.org/v3/index.json"` | user | NuGet | NuGet feed — The service index the NuGet tool window searches. |
+| `dotnet.nuget.prerelease` | bool | `false` | user, project | NuGet | Include prerelease versions |
+
 ### Languages & Frameworks | Jupyter
 
 Page id `lang.jupyter`. See [Jupyter notebooks](../user/jupyter.md). The server token is stored in the OS keychain, not in settings.
@@ -859,6 +883,25 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Ruby
+
+Page id `lang.ruby` (`ruby.interpreter` and `ruby.interpreters` are set by the Ruby SDK list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ruby.interpreter` | string | `""` | user, project | Ruby SDK | Ruby interpreter — The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest. |
+| `ruby.interpreters` | list | `[]` | user | Ruby SDK | Added interpreters — Ruby executables added by hand (Add Interpreter…); detected ones are listed without this. |
+| `ruby.environment` | list | `[]` | user, project | Ruby SDK | Environment — Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV). |
+| `ruby.bundler.useBundleExec` | bool | `true` | user, project | Bundler | Run commands with bundle exec — In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle. |
+| `ruby.bundler.path` | path | `""` | user | Bundler | bundle executable — Empty: the interpreter's bundle, then PATH. |
+| `ruby.rake.runRake` | bool | `true` | user, project | Rake | Load tasks with rake --tasks — The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake. |
+| `ruby.formatter` | enum: `rubocop`, `rubocopAll`, `lsp`, `none` | `rubocop` | user, project | RuboCop | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Ruby files. |
+| `ruby.rubocop.onTheFly` | bool | `true` | user, project | RuboCop | Check files with RuboCop — RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins). |
+| `ruby.rubocop.path` | path | `""` | user | RuboCop | rubocop executable — Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH. |
+| `ruby.rubocop.options` | string | `""` | user, project | RuboCop | Additional options — Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml. |
+| `ruby.lsp.path` | path | `""` | user | Ruby LSP | ruby-lsp executable — Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder. |
+| `ruby.lsp.formatter` | enum: `auto`, `rubocop_internal`, `syntax_tree`, `none` | `auto` | user, project | Ruby LSP | Ruby LSP formatter — The formatter Ruby LSP uses for formatting and diagnostics. |
+| `ruby.debugger.rdbgPath` | path | `""` | user | Debugger | rdbg executable — The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem. |
 ### Languages & Frameworks | Rust
 
 Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).

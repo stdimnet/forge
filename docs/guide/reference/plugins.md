@@ -13,7 +13,7 @@ them (a language, framework, pack or tool id from
 [project detection](../getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `rubyforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -39,6 +39,7 @@ script and config language plugins.
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
+| Ruby | `forge.ruby` | rubyforge |  | `rubyforge` | tool windows (UI): Rake; 9 commands; 13 settings; file types: Ruby, Gemfile.lock; run types: Ruby, Rake; test frameworks: RSpec, Minitest; 1 debug adapter (rdbg, in Rust); inspections: RuboCop |
 | Rust | `forge.rust` | rustforge |  | `rustforge` | tool windows (UI): Cargo; 8 commands; 18 settings; file types: TOML (Cargo.lock, rust-toolchain); run types: Cargo; test frameworks: Cargo Test; 1 debug adapter (rust-gdb, in Rust) |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Python Web Frameworks | `forge.python-web` | pyforge | `forge.python-env` | `django`, `flask`, `fastapi` | tool windows: Endpoints; 1 commands |
@@ -49,6 +50,7 @@ script and config language plugins.
 | Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
+| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet; 10 commands; 18 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |

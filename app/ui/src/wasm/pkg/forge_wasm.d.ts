@@ -732,6 +732,57 @@ export function devcontainer_parse_list(output: string): string;
 export function devcontainer_resolve(request_json: string): string;
 
 /**
+ * `{ action, target?, context }` → `DotnetCommand` (`dotnet_command`).
+ */
+export function dotnet_action_command(request_json: string): string;
+
+/**
+ * `{ output, root }` → `BuildReport` (`dotnet_build_problems`).
+ */
+export function dotnet_build_report(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `TestFile` (`test_discover` for C# / F# files).
+ */
+export function dotnet_discover(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand` (`dotnet_cleanup_command`).
+ */
+export function dotnet_format_command(request_json: string): string;
+
+/**
+ * `{ files, solution?, configuration? }` → `DotnetWorkspace` (`dotnet_workspace`).
+ */
+export function dotnet_load_workspace(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand[]` (`dotnet_new_project`).
+ */
+export function dotnet_new_project(request_json: string): string;
+
+/**
+ * `{ action, project, package, version?, prerelease?, context }` → `DotnetCommand`
+ * (`nuget_command`).
+ */
+export function dotnet_package_command(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `DotnetCommand` of a ".NET Project" configuration.
+ */
+export function dotnet_run_command(request_json: string): string;
+
+/**
+ * `{ path, text }` → `SourceScan` (test classes, entry points, declared classes).
+ */
+export function dotnet_scan(request_json: string): string;
+
+/**
+ * `{ text }` → `Template[]` of `dotnet new list` (Forge's common templates when empty).
+ */
+export function dotnet_templates(request_json: string): string;
+
+/**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
  */
 export function dql_complete(request_json: string): string;
@@ -1454,6 +1505,16 @@ export function nav_bar_segments(request_json: string): string;
 export function node_coverage_wrap(request_json: string): string;
 
 /**
+ * `{ text }` → `SearchResult` of a NuGet search answer.
+ */
+export function nuget_parse_search(request_json: string): string;
+
+/**
+ * `{ installed, versions, prerelease }` → the upgrade version or `null`.
+ */
+export function nuget_upgrade(request_json: string): string;
+
+/**
  * `{ root, paths }` -> `{ root, routes, components }`.
  */
 export function nuxt_project(request_json: string): string;
@@ -1692,6 +1753,42 @@ export function replace_in_files(request_json: string): string;
  * `{ request, with, files }` → the changed lines per file, like the `replace_preview` command.
  */
 export function replace_preview(request_json: string): string;
+
+/**
+ * `{ action, arg?, context }` → `RubyCommand` of a Bundler action, Rake task, gem install
+ * or the IRB console.
+ */
+export function ruby_action_command(request_json: string): string;
+
+/**
+ * `{ gemfile, lock? }` → `Bundle` (`ruby_bundle`).
+ */
+export function ruby_bundle(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `RubyCommand` of a Ruby or Rake configuration.
+ */
+export function ruby_command_line(request_json: string): string;
+
+/**
+ * `{ output? , files? }` → `RakeTask[]` (`ruby_rake_tasks`).
+ */
+export function ruby_rake_tasks(request_json: string): string;
+
+/**
+ * `{ files }` → the requested Ruby version (`.ruby-version`, `.tool-versions`, Gemfile).
+ */
+export function ruby_requested_version(request_json: string): string;
+
+/**
+ * `{ json, root, path? }` → `RubyProblem[]` (`ruby_rubocop`).
+ */
+export function ruby_rubocop_report(request_json: string): string;
+
+/**
+ * `{ text }` → the script ▶ line (`ruby_file_targets`), or `null`.
+ */
+export function ruby_script_entry(request_json: string): string;
 
 /**
  * `{ history, entry }` → the new history.
@@ -2570,6 +2667,16 @@ export interface InitOutput {
     readonly devcontainer_gutter: (a: number, b: number, c: number) => void;
     readonly devcontainer_parse_list: (a: number, b: number, c: number) => void;
     readonly devcontainer_resolve: (a: number, b: number, c: number) => void;
+    readonly dotnet_action_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_build_report: (a: number, b: number, c: number) => void;
+    readonly dotnet_discover: (a: number, b: number, c: number) => void;
+    readonly dotnet_format_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_load_workspace: (a: number, b: number, c: number) => void;
+    readonly dotnet_new_project: (a: number, b: number, c: number) => void;
+    readonly dotnet_package_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_run_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_scan: (a: number, b: number, c: number) => void;
+    readonly dotnet_templates: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -2711,6 +2818,8 @@ export interface InitOutput {
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
+    readonly nuget_parse_search: (a: number, b: number, c: number) => void;
+    readonly nuget_upgrade: (a: number, b: number, c: number) => void;
     readonly nuxt_project: (a: number, b: number, c: number) => void;
     readonly nx_workspace: (a: number, b: number, c: number) => void;
     readonly openapi_file: (a: number, b: number, c: number) => void;
@@ -2758,6 +2867,13 @@ export interface InitOutput {
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
     readonly replace_in_files: (a: number, b: number, c: number) => void;
     readonly replace_preview: (a: number, b: number, c: number) => void;
+    readonly ruby_action_command: (a: number, b: number, c: number) => void;
+    readonly ruby_bundle: (a: number, b: number, c: number) => void;
+    readonly ruby_command_line: (a: number, b: number, c: number) => void;
+    readonly ruby_rake_tasks: (a: number, b: number, c: number) => void;
+    readonly ruby_requested_version: (a: number, b: number, c: number) => void;
+    readonly ruby_rubocop_report: (a: number, b: number, c: number) => void;
+    readonly ruby_script_entry: (a: number, b: number, c: number) => void;
     readonly run_anything_push_history: (a: number, b: number, c: number) => void;
     readonly run_anything_resolve: (a: number, b: number, c: number) => void;
     readonly run_anything_suggest: (a: number, b: number, c: number) => void;

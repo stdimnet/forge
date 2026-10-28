@@ -23,6 +23,10 @@
 //! [`clangd`] installs clangd from its official GitHub releases (pinned version, SHA-256
 //! checked) for CForge.
 //!
+//! [`roslyn`] installs the Roslyn language server from Microsoft's public `vs-impl` feed
+//! and [`netcoredbg`] Samsung's netcoredbg from its GitHub releases (pinned versions,
+//! SHA-256 checked) for DotNetForge.
+//!
 //! Nothing is bundled with Forge: servers whose licence forbids redistribution
 //! (Intelephense) are downloaded by each user, with their consent, from the official source.
 
@@ -32,9 +36,11 @@ pub mod http;
 pub mod javadebug;
 pub mod jdtls;
 pub mod kotlin;
+pub mod netcoredbg;
 pub mod node;
 pub mod npm;
 pub mod pypi;
+pub mod roslyn;
 pub mod stubs;
 pub mod updates;
 

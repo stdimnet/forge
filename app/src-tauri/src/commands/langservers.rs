@@ -112,6 +112,8 @@ fn apply(manager: &LspManager, ws: &AppState, rescan: bool) {
     }
     apply_intelephense_licence(manager);
     crate::commands::rust::configure_analyzer(manager, ws);
+    crate::commands::ruby::configure_lsp(manager, ws);
+    crate::commands::dotnet::configure_servers(manager, ws);
 }
 
 /// Put the keychain licence key into a registered Intelephense config (or remove it),

@@ -854,6 +854,23 @@ pub fn run() {
             commands::cpp::cpp_clangd_install,
             commands::cpp::cpp_format,
             commands::cpp::cmake_complete,
+            commands::dotnet::dotnet_status,
+            commands::dotnet::dotnet_roslyn_install,
+            commands::dotnet::dotnet_netcoredbg_install,
+            commands::dotnet::dotnet_workspace,
+            commands::dotnet::dotnet_command,
+            commands::dotnet::dotnet_build_problems,
+            commands::dotnet::dotnet_templates,
+            commands::dotnet::dotnet_new_project,
+            commands::dotnet::nuget_search,
+            commands::dotnet::nuget_versions,
+            commands::dotnet::nuget_updates,
+            commands::dotnet::nuget_command,
+            commands::dotnet::dotnet_format,
+            commands::dotnet::dotnet_cleanup_command,
+            commands::dotnet::dotnet_format_report,
+            commands::dotnet::dotnet_debug_request,
+            commands::dotnet::dotnet_attach_request,
             commands::cpp_tools::cpp_sanitizer_reports,
             commands::cpp_tools::cpp_native_tools,
             commands::cpp_tools::cpp_valgrind_open,
@@ -877,6 +894,20 @@ pub fn run() {
             commands::rust::rust_format,
             commands::rust::rust_clippy,
             commands::rust::rust_debug_request,
+            commands::ruby::ruby_status,
+            commands::ruby::ruby_interpreter_probe,
+            commands::ruby::ruby_bundle,
+            commands::ruby::ruby_bundle_command,
+            commands::ruby::ruby_gem_install_command,
+            commands::ruby::ruby_lsp_install_command,
+            commands::ruby::ruby_lsp_refresh,
+            commands::ruby::ruby_rake_tasks,
+            commands::ruby::ruby_rake_command,
+            commands::ruby::ruby_file_targets,
+            commands::ruby::ruby_irb_command,
+            commands::ruby::ruby_rubocop,
+            commands::ruby::ruby_format,
+            commands::ruby::ruby_debug_plan,
             commands::dap::dap_start,
             commands::dap::dap_restart,
             commands::dap::dap_threads,
@@ -1202,6 +1233,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
             {
                 commands::rust::spawn_sync_analyzer(&handle);
             }
+            // Ruby LSP: Settings | Ruby (interpreter, environment, ruby-lsp, formatter).
+            if commands::ruby::affects_lsp(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::ruby::spawn_sync_lsp(&handle);
+            }
             // Eclipse JDT LS: JDKs, its installation and options, the Java plugin.
             if commands::java::affects_server(&change.key)
                 || change.key == plugins::DISABLED_PLUGINS_KEY
@@ -1228,6 +1265,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::scala::spawn_sync_lsp_server(&handle);
+            }
+            // DotNetForge: the Roslyn server, the solution and the dotnet host.
+            if commands::dotnet::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::dotnet::spawn_sync_lsp_server(&handle);
             }
         });
 }

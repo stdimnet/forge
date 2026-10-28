@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge, rubyforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -1152,10 +1152,13 @@ or without Git, for local and remote projects.
   `TestEvent::from_service_message`). Parsers in `formats/`: streamed lines implement
   `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`):
   TeamCity, TAP (`tap.rs`), Go `test2json` (`gotest.rs`), libtest JSON (`libtest.rs`), pytest
-  report logs (`pytest.rs`); whole documents are read by `document_events` (JUnit XML with a
+  report logs (`pytest.rs`); whole documents are read by `document_events` (TRX of
+  `dotnet test`, `trx.rs`; JUnit XML with a
   `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
   `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
-  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`); `locationRules`
+  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`,
+  `minitestText`; RSpec's JSON report is a `jUnitFile` report file sniffed by
+  `document_events`); `locationRules`
   (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
   project files.
 - **Test frameworks** (`forge-testing`): the contribution point is
@@ -2750,6 +2753,64 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   (`mock/demoRustProject.ts`, `mock/rustMock.ts`, `mock/rustTestsMock.ts`, WebAssembly
   `crates/forge-wasm/src/rust.rs`).
 
+## RubyForge (`packs/rubyforge/*`)
+
+- Plugin (`app/src-tauri/plugins/rubyforge.toml`): `forge.ruby` (`projectTypes =
+  ["rubyforge"]`): the `ruby` file type (replacing the bundled one: more extensions, file
+  names and shebangs, indent 2) and `gemfile-lock`; ERB (`erb`) is a bundled template type of
+  `forge-filetypes` (`erbSyntax` in `editor/templates.ts`); run configuration types `ruby` and
+  `rake`; the `rspec` and `minitest` test frameworks (wrapped in Rust by `RubyTests`,
+  registered in `RunState::new` and in `forge-wasm`'s registry); the `RuboCop` inspection
+  (source `rubocop`); Settings | Languages & Frameworks | Ruby (`lang.ruby`, `ruby.*`).
+  `forge-project` reports the `ruby` language (pack `rubyforge`) for a `Gemfile`, `Rakefile`,
+  `.ruby-version`, a gemspec, Ruby files in the root or two or more in a folder, and the tools
+  `bundler` and `rake`; New Project has `ruby-gem` (`bundle gem`) and the `ruby-script`
+  template. Ruby LSP comes from the language server catalog; `commands::ruby::configure_lsp`
+  (called at the end of `langservers::apply`) sets its command (setting, the interpreter's
+  gems, Forge's install), environment (the interpreter first on `PATH`, `GEM_PATH` for
+  Forge's install) and formatter; setting changes call `spawn_sync_lsp`.
+- Crates: `rubyforge-lang-ruby` (pure, also WebAssembly: version files, Gemfile /
+  Gemfile.lock, Rake tasks, RSpec / Minitest discovery, the provider, command lines, RuboCop
+  reports, `RubyContext`) and `rubyforge-sdk` (interpreters of version managers and the
+  system, gem executables, `command_env`, ruby-lsp installs with the user's `gem`, the `rdbg`
+  adapter). `forge-output` reads RSpec's JSON report (a `jUnitFile` report folder file,
+  sniffed by `document_events`) and Minitest's verbose output (`TestReport::MinitestText`).
+- The Ruby context (`commands::ruby::context`: the chosen interpreter, `bundle`, `bundle exec`
+  when the project has a Gemfile and `ruby.bundler.useBundleExec`, gem executables, the
+  environment, the bundle's gems) reaches the provider through
+  `CommandContext.settings["ruby.context"]` (`run.rs::framework_command` calls
+  `ruby::extend_test_context`); Ruby and Rake runs are built by `ruby::run_command` in
+  `run.rs::build`. Test keys are `<file>::<full description>` (RSpec) and
+  `<file>::<test method>` (Minitest).
+- IPC (`app/ui/src/ipc/ruby.ts`, `commands/ruby.rs`): `ruby_status({ refresh? }) ->
+  RubyStatus & { setting, bundler, lsp: { path, managed, installDir } }`,
+  `ruby_interpreter_probe({ path })`, `ruby_bundle() -> Bundle | null`,
+  `ruby_bundle_command({ action, gem? }) -> CommandLine`, `ruby_gem_install_command({ gem })`,
+  `ruby_lsp_install_command()`, `ruby_lsp_refresh()`, `ruby_rake_tasks({ refresh? }) -> {
+  tasks, source: "rake" | "files", error? }` (Rake only in trusted projects),
+  `ruby_rake_command({ task, args? })`, `ruby_file_targets({ path, content })`,
+  `ruby_irb_command()` (trusted projects only), `ruby_rubocop({ path, text? }) ->
+  RubyProblem[]` (trusted projects only), `ruby_format({ path, content, mode? }) -> string |
+  null` (`null` in Safe Mode), `ruby_debug_plan() -> { port, found, rdbg }`. Command lines are
+  started by the UI through `run_start` (hidden type `ruby-command`), so they are refused in
+  Safe Mode.
+- Debugging: a debug run passes `FORGE_RDBG_PORT` in `RunRequest.env`; `run.rs::build` takes
+  it out and `ruby::wrap_rdbg` runs the built command under `rdbg --open --host 127.0.0.1
+  --port <port> --command --` (output stays in the Run console, test runs keep their tree);
+  the UI then attaches (`attachServer`, adapter `rdbg`). `commands::ruby::sync_debug` (called
+  from `dap.rs::sync`) registers `RdbgAdapter` while `forge.ruby` is enabled. rdbg maps
+  breakpoint paths only after `attach`, so the adapter answers
+  `DebugAdapterDescriptor::breakpoints_after_request` and the session sends breakpoints after
+  the request.
+- UI (`app/ui/src/features/ruby`): Settings | Ruby (interpreters, tools with Install), the
+  interpreter status item, the `rake` tool window, External Libraries (the SDK and the
+  bundle's gems, a `registerProjectViewSection`), run configuration types `ruby`, `rake`,
+  `ruby-command`, the `rdbg` debug launcher, script ▶ markers, RuboCop diagnostics (source
+  `rubocop`) with Alt+Enter autocorrect, the format provider, the IRB console in a Terminal
+  tab (`openTerminalWith`). Browser mode: `?project=ruby` opens the `pantry` demo
+  (`mock/demoRubyProject.ts`, `mock/rubyMock.ts`, `mock/rubyTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/ruby.rs`).
+
 ## JavaForge (`packs/javaforge/*`)
 
 - The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)
@@ -2995,6 +3056,76 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   ESP-IDF and Zephyr, the `openocd` / `embedded-gdb-server` types with the `cforge-embedded`
   debug launcher, the Debug tool window's Peripherals tab, page `build.embedded`). Browser
   mode: `cppToolsMock.ts`, `embeddedMock.ts`, `?project=pio` (`demoPioProject.ts`).
+## DotNetForge (`packs/dotnetforge/*`)
+
+- The plugin `forge.dotnet` (`app/src-tauri/plugins/dotnetforge.toml`, `projectTypes =
+  ["dotnetforge"]`, depends on `forge.debugger`) is active for .NET projects: `forge-project`
+  reports `csharp` / `fsharp` / `vbnet` for `.sln` / `.slnx` (the languages of their
+  projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# sources or
+  `global.json`, and the framework `aspnetcore` for `Microsoft.NET.Sdk.Web` projects. C#, F#
+  and VB highlighting is bundled; the manifest adds the file types `msbuild` (XML), `sln`
+  (its own stream parser) and `razor` (HTML), the `.NET Project` run type, the `dotnet-test`
+  test framework (wrapped by `DotnetTests`, registered in `RunState::new` and `forge-wasm`'s
+  registry), the `coreclr` debug adapter (netcoredbg, `--interpreter=vscode`), Settings |
+  Languages & Frameworks | .NET (`lang.dotnet`, `dotnet.*`) and the inspection `DotnetBuild`
+  (source `dotnet-build`).
+- Crates: `dotnetforge-lang-dotnet` (pure, also WebAssembly: `.sln` / `.slnx`, MSBuild
+  evaluation with `Directory.Build.props` and central package management, launch profiles,
+  `global.json` and SDK selection, build output problems, the C# / F# test scanner, the
+  provider with filters and TRX, command lines, `dotnet new list`, NuGet answers and
+  versions, `dotnet format` reports, the Roslyn setup) and `dotnetforge-sdk` (host / SDK
+  detection with `dotnet --list-sdks`, netcoredbg and Roslyn locations, the NuGet feed client
+  with a cache in `<cache>/forge/nuget`). TRX reports are read by `forge-output`
+  (`formats/trx.rs`, sniffed by `document_events`; report folders also pick up `.trx`).
+- The .NET context (`commands::dotnet::context`: the dotnet host, configuration, verbosity,
+  `dotnet.environment`, the workspace's projects, test classes → files) reaches the provider
+  through `CommandContext.settings["dotnet.context"]` (`run.rs::framework_command` calls
+  `dotnet::extend_test_context`); `.NET Project` runs are built by
+  `dotnet::run_command_line`; `testing.rs::test_discover` hands `.cs` / `.fs` files to
+  `dotnet::discover_file`. Test keys are `<file>::<method>`; TRX suites are located by class
+  full name and `DotnetContext::location_rules` map them to files.
+- IPC (`app/ui/src/ipc/dotnet.ts`, `commands/dotnet.rs`; lines and columns 0-based):
+  `dotnet_status({ refresh? }) -> { host, hosts, sdks, runtimes, sdk, requestedSdk,
+  problems, install, roslyn?, roslynProblem?, roslynVersion, roslynSize?, netcoredbg?,
+  netcoredbgProblem?, netcoredbgVersion, remote }`, `dotnet_roslyn_install() -> version`,
+  `dotnet_netcoredbg_install() -> version` (events `dotnet://install` `{ id, event }`),
+  `dotnet_workspace({ refresh? }) -> DotnetWorkspace` (event `dotnet://workspace`),
+  `dotnet_command({ action, target? }) -> CommandLine`, `dotnet_build_problems({ output }) ->
+  BuildReport`, `dotnet_templates() -> { templates, fromSdk, error? }` (`dotnet new list` in
+  the temp folder), `dotnet_new_project({ request }) -> CommandLine[]`, `nuget_search({
+  query, prerelease?, skip?, take? }) -> SearchResult`, `nuget_versions({ id })`,
+  `nuget_updates({ prerelease? }) -> PackageUpdate[]`, `nuget_command({ action, project,
+  package, version?, prerelease? }) -> CommandLine`, `dotnet_format({ path, content }) ->
+  string | null` (`dotnet format whitespace --folder` on a temporary copy with the file's
+  `.editorconfig` chain; trusted projects only), `dotnet_cleanup_command({ paths? }) -> {
+  command, reportDir }`, `dotnet_format_report({ reportDir }) -> FormatChange[]`,
+  `dotnet_debug_request({ configuration }) -> LaunchRequest` (builds, finds the assembly in
+  the build output, `dotnet <assembly>` under netcoredbg with the launch profile's
+  environment; trusted projects only), `dotnet_attach_request({ pid, name? })`. Command
+  lines are started by the UI through `run_start` (hidden type `dotnet-command`), so Safe
+  Mode refuses them; builds' output becomes the Build tool window's problems.
+- Language server: the Roslyn server (`Microsoft.CodeAnalysis.LanguageServer`) is a pack server
+  (`pack_servers.toml`, id `roslyn`), downloaded by `forge_langservers::managed::roslyn` with
+  the user's consent from Microsoft's `vs-impl` feed (pinned version, SHA-256 per platform).
+  `commands::dotnet::sync_lsp_server` (after detection and when `dotnet.roslyn.*`,
+  `dotnet.path`, `dotnet.solution`, `dotnet.environment` or `dotnet.configuration` change)
+  registers it for local C# projects: `dotnet <dll> --logLevel Information
+  --extensionLogDirectory <cache>/forge/roslyn/logs --stdio`, pull diagnostics, settings
+  answered to `workspace/configuration` (`csharp|background_analysis.*`, inlay hints) and
+  `LspServerConfig::after_initialized` = `solution/open` (or `project/open`). It replaces
+  `csharp-ls` (`configure_servers` after `langservers::apply`). `roslyn` and
+  `fsautocomplete` are in `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- UI (`app/ui/src/features/dotnet`): settings page `lang.dotnet`, the `dotnet-build` (Build)
+  and `nuget` (NuGet) tool windows, the `dotnet`, `dotnet-test` and hidden `dotnet-command`
+  run types, the `dotnet` debug launcher (tests: `VSTEST_HOST_DEBUG=1`, attach to the test
+  host's process id), Build Project (`CompileDirty`) / Build / Rebuild / Clean Solution,
+  Restore, Reload Solution, Add Project from Template…, Manage NuGet Packages, Install .NET
+  SDK…, the downloads, Code Cleanup (`CodeCleanup` wraps the core cleanup with `dotnet
+  format`) and the `dotnet format` format provider (`editor.ts`). The New Project wizard's
+  `.NET Project` generator lives in `forge-project`. Browser mode: `?project=dotnet` opens
+  the `Bookstore` demo (`mock/demoDotnetProject.ts`, `dotnetMock.ts`, `dotnetTestsMock.ts`;
+  `&build=broken`, `&roslyn=missing`; WebAssembly `crates/forge-wasm/src/dotnet.rs`).
+
 ## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
 
 - The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,

@@ -119,6 +119,10 @@ goforge-pprof.workspace = true
 forge-profiler.workspace = true
 rustforge-lang-rust.workspace = true
 rustforge-toolchain.workspace = true
+rubyforge-lang-ruby.workspace = true
+rubyforge-sdk.workspace = true
+dotnetforge-lang-dotnet.workspace = true
+dotnetforge-sdk.workspace = true
 pyforge-testing.workspace = true
 pyforge-frameworks.workspace = true
 pyforge-jupyter = { workspace = true, features = ["runtime", "keychain"] }

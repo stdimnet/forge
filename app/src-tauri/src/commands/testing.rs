@@ -277,6 +277,16 @@ pub async fn test_discover(
     {
         return Ok(crate::commands::rust::discover_file(&state, &path, &text));
     }
+    // C# and F# files: the solution knows their project and its test framework.
+    if dotnetforge_lang_dotnet::provider::is_test_source(&path)
+        && state
+            .plugins
+            .read()
+            .expect("plugins lock poisoned")
+            .is_enabled(crate::commands::dotnet::PLUGIN)
+    {
+        return Ok(crate::commands::dotnet::discover_file(&state, &path, &text));
+    }
     let backend = state.backend()?;
     let root = backend.info().root.clone();
     let specs = specs(&state);

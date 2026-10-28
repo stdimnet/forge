@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/quality-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/js-testing", "packs/webforge/js-debug", "packs/webforge/quality-tools", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/webforge/web-tooling", "packs/luaforge/lang-lua", "packs/pyforge/lang-python", "packs/pyforge/interpreters", "packs/pyforge/packages", "packs/goforge/lang-go", "packs/goforge/pprof", "packs/goforge/delve", "packs/goforge/sdk", "packs/pyforge/testing", "packs/pyforge/frameworks", "packs/javaforge/build", "packs/javaforge/lang-java", "packs/javaforge/jdk", "packs/javaforge/fw-spring", "packs/javaforge/lang-groovy", "packs/javaforge/lang-scala", "packs/javaforge/android", "packs/kotlinforge/lang-kotlin", "packs/rustforge/lang-rust", "packs/rustforge/toolchain", "packs/pyforge/jupyter", "packs/cforge/toolchains", "packs/cforge/cmake", "packs/cforge/lang-cpp", "packs/cforge/analyzers", "packs/cforge/embedded", "app/src-tauri"]
+members = ["crates/*", "packs/phpforge/lang-php", "packs/phpforge/fw-laravel", "packs/phpforge/fw-symfony", "packs/phpforge/orm-doctrine", "packs/phpforge/dql", "packs/phpforge/composer", "packs/phpforge/interpreters", "packs/phpforge/cli-tools", "packs/phpforge/quality-tools", "packs/phpforge/test-frameworks", "packs/phpforge/fw-wordpress", "packs/phpforge/fw-cms", "packs/webforge/lang-web", "packs/webforge/js-testing", "packs/webforge/js-debug", "packs/webforge/quality-tools", "packs/webforge/fw-react", "packs/webforge/fw-vue", "packs/webforge/fw-angular", "packs/webforge/web-tooling", "packs/luaforge/lang-lua", "packs/pyforge/lang-python", "packs/pyforge/interpreters", "packs/pyforge/packages", "packs/goforge/lang-go", "packs/goforge/pprof", "packs/goforge/delve", "packs/goforge/sdk", "packs/pyforge/testing", "packs/pyforge/frameworks", "packs/javaforge/build", "packs/javaforge/lang-java", "packs/javaforge/jdk", "packs/javaforge/fw-spring", "packs/javaforge/lang-groovy", "packs/javaforge/lang-scala", "packs/javaforge/android", "packs/kotlinforge/lang-kotlin", "packs/rustforge/lang-rust", "packs/rustforge/toolchain", "packs/rubyforge/lang-ruby", "packs/rubyforge/sdk", "packs/pyforge/jupyter", "packs/cforge/toolchains", "packs/cforge/cmake", "packs/cforge/lang-cpp", "packs/cforge/analyzers", "packs/cforge/embedded", "packs/dotnetforge/lang-dotnet", "packs/dotnetforge/sdk", "app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -98,6 +98,10 @@ goforge-delve = { path = "packs/goforge/delve" }
 goforge-sdk = { path = "packs/goforge/sdk" }
 rustforge-lang-rust = { path = "packs/rustforge/lang-rust" }
 rustforge-toolchain = { path = "packs/rustforge/toolchain" }
+rubyforge-lang-ruby = { path = "packs/rubyforge/lang-ruby" }
+rubyforge-sdk = { path = "packs/rubyforge/sdk" }
+dotnetforge-lang-dotnet = { path = "packs/dotnetforge/lang-dotnet" }
+dotnetforge-sdk = { path = "packs/dotnetforge/sdk" }
 pyforge-testing = { path = "packs/pyforge/testing" }
 pyforge-frameworks = { path = "packs/pyforge/frameworks" }
 pyforge-jupyter = { path = "packs/pyforge/jupyter" }

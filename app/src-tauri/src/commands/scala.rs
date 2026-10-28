@@ -152,6 +152,7 @@ fn lsp_config(state: &AppState, command: String) -> LspServerConfig {
         settings: metals::settings(java_home.as_deref(), sbt.as_deref()),
         env,
         pull_diagnostics: false,
+        after_initialized: Vec::new(),
     }
 }
 

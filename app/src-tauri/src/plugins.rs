@@ -33,6 +33,7 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("pyforge.toml", include_str!("../plugins/pyforge.toml")),
     ("goforge.toml", include_str!("../plugins/goforge.toml")),
     ("rustforge.toml", include_str!("../plugins/rustforge.toml")),
+    ("rubyforge.toml", include_str!("../plugins/rubyforge.toml")),
     ("javaforge.toml", include_str!("../plugins/javaforge.toml")),
     (
         "kotlinforge.toml",
@@ -52,6 +53,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/javaforge-android.toml"),
     ),
     ("cforge.toml", include_str!("../plugins/cforge.toml")),
+    (
+        "dotnetforge.toml",
+        include_str!("../plugins/dotnetforge.toml"),
+    ),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (
@@ -234,6 +239,19 @@ mod tests {
             ("Cargo.toml", "toml"),
             ("Cargo.lock", "toml"),
             ("rust-toolchain", "toml"),
+            ("Gemfile", "ruby"),
+            ("Gemfile.lock", "gemfile-lock"),
+            ("lib/tasks/db.rake", "ruby"),
+            ("shop.gemspec", "ruby"),
+            ("config.ru", "ruby"),
+            (".irbrc", "ruby"),
+            ("app/views/carts/show.html.erb", "erb"),
+            ("src/Bookstore.Api/Bookstore.Api.csproj", "msbuild"),
+            ("Directory.Build.props", "msbuild"),
+            ("Bookstore.slnx", "msbuild"),
+            ("Bookstore.sln", "sln"),
+            ("src/Bookstore.Api/Program.cs", "csharp"),
+            ("Pages/Index.cshtml", "razor"),
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }

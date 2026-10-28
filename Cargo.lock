@@ -1735,6 +1735,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
+name = "dotnetforge-lang-dotnet"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "quick-xml",
+ "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "dotnetforge-sdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "dotnetforge-lang-dotnet",
+ "forge-langservers",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2176,6 +2202,8 @@ dependencies = [
  "cforge-lang-cpp",
  "cforge-toolchains",
  "dirs 6.0.0",
+ "dotnetforge-lang-dotnet",
+ "dotnetforge-sdk",
  "forge-agent-cli",
  "forge-ai",
  "forge-ai-editor",
@@ -2266,6 +2294,8 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-lang-ruby",
+ "rubyforge-sdk",
  "rustforge-lang-rust",
  "rustforge-toolchain",
  "serde",
@@ -3157,6 +3187,7 @@ dependencies = [
  "cforge-cmake",
  "cforge-embedded",
  "cforge-lang-cpp",
+ "dotnetforge-lang-dotnet",
  "forge-agent-cli",
  "forge-ai-editor",
  "forge-bookmarks",
@@ -3232,6 +3263,7 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-lang-ruby",
  "rustforge-lang-rust",
  "serde",
  "serde_json",
@@ -7336,6 +7368,32 @@ dependencies = [
  "signature 3.0.0",
  "spki 0.8.1",
  "zeroize",
+]
+
+[[package]]
+name = "rubyforge-lang-ruby"
+version = "0.1.0"
+dependencies = [
+ "forge-output",
+ "forge-runtools",
+ "forge-testing",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "rubyforge-sdk"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "forge-dap",
+ "forge-debug",
+ "rubyforge-lang-ruby",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

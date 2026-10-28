@@ -1,0 +1,349 @@
+# DotNetForge: .NET in the style of Rider. The logic lives in packs/dotnetforge (lang-dotnet:
+# solutions, MSBuild projects, launch profiles, global.json, build output, test discovery and
+# the .NET test provider, dotnet command lines, NuGet answers, dotnet format; sdk: .NET host
+# and SDK detection, netcoredbg and Roslyn locations, the NuGet feed client). The Roslyn
+# language server and netcoredbg are downloaded on request (forge_langservers::managed::roslyn
+# and ::netcoredbg); app/src-tauri/src/commands/dotnet.rs wires them up.
+
+[[plugin]]
+id = "forge.dotnet"
+name = ".NET"
+version = "0.1.0"
+pack = "dotnetforge"
+vendor = "Forge"
+projectTypes = ["dotnetforge"]
+depends = ["forge.debugger"]
+description = "Solutions (.sln, .slnx) and MSBuild projects, .NET SDKs and global.json, the Build and NuGet tool windows, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg debugging, dotnet new templates, Code Cleanup with dotnet format and EditorConfig, and the Roslyn language server."
+
+[plugin.contributions]
+languages = ["csharp", "fsharp", "vb"]
+
+[[plugin.contributions.fileTypes]]
+id = "msbuild"
+name = "MSBuild"
+extensions = ["csproj", "fsproj", "vbproj", "props", "targets", "slnx", "nuspec", "runsettings", "resx", "proj"]
+indentSize = 2
+
+[[plugin.contributions.fileTypes]]
+id = "sln"
+name = "Solution File"
+extensions = ["sln"]
+indentSize = 4
+
+[[plugin.contributions.fileTypes]]
+id = "razor"
+name = "Razor"
+extensions = ["razor", "cshtml"]
+indentSize = 4
+
+[[plugin.contributions.commands]]
+id = "dotnet.buildSolution"
+title = "Build Solution"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.rebuildSolution"
+title = "Rebuild Solution"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.cleanSolution"
+title = "Clean Solution"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.restore"
+title = "Restore NuGet Packages"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.reloadSolution"
+title = "Reload Solution"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.addProject"
+title = "Add Project from Template…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.manageNuGet"
+title = "Manage NuGet Packages"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.installSdk"
+title = "Install .NET SDK…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.downloadRoslyn"
+title = "Download the Roslyn Language Server…"
+category = ".NET"
+
+[[plugin.contributions.commands]]
+id = "dotnet.downloadNetcoredbg"
+title = "Download netcoredbg…"
+category = ".NET"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "dotnet"
+name = ".NET Project"
+description = "Run a .NET project with dotnet run or dotnet watch, optionally with a launch profile of Properties/launchSettings.json; Debug starts the built assembly under netcoredbg."
+icon = "app-window"
+debuggable = true
+
+# The .NET test provider (dotnetforge_lang_dotnet::provider) wraps this spec: discovery of
+# xUnit, NUnit and MSTest classes and methods, `dotnet test` command lines with filters and a
+# TRX report, Rerun Failed Tests and the location rules of the test classes are built in Rust.
+[[plugin.contributions.testFrameworks]]
+id = "dotnet-test"
+name = ".NET Tests"
+description = "Run xUnit, NUnit or MSTest tests with dotnet test: the solution, a project, a class, a method or a filter; results from the TRX report."
+icon = "flask-conical"
+language = "csharp"
+detect = { files = ["*.csproj", "*/*.csproj", "**/*.csproj", "*.fsproj", "*/*.fsproj", "**/*.fsproj", "*.vbproj", "**/*.vbproj"] }
+testFiles = ["*.cs", "*.fs"]
+program = "dotnet"
+report = "jUnitFile"
+debuggable = true
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+test = ["${test}"]
+pattern = ["${pattern}"]
+
+# netcoredbg (MIT, Samsung) speaks the Debug Adapter Protocol with --interpreter=vscode.
+[[plugin.contributions.debugAdapters]]
+type = "coreclr"
+label = ".NET (netcoredbg)"
+command = "netcoredbg"
+args = ["--interpreter=vscode"]
+commandSetting = "dotnet.debugger.path"
+languages = ["cs", "fs", "vb"]
+launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopAtEntry = "${stopOnEntry}" }
+attach = { processId = "${pid}" }
+launchSchema = { type = "object", properties = { justMyCode = { type = "boolean", description = "Step through your code only" }, enableStepFiltering = { type = "boolean", description = "Step over properties and operators" } } }
+
+# ---- Settings | .NET --------------------------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "dotnet.path"
+title = "dotnet executable"
+description = "The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder."
+type = "path"
+default = ""
+group = "lang.dotnet"
+section = ".NET CLI"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "dotnet.environment"
+title = "Environment"
+description = "Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES)."
+type = "list"
+default = []
+group = "lang.dotnet"
+section = ".NET CLI"
+project = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "dotnet.solution"
+title = "Solution"
+description = "The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root."
+type = "string"
+default = ""
+group = "lang.dotnet"
+section = "Solution"
+project = true
+hidden = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "dotnet.configuration"
+title = "Build configuration"
+type = "enum"
+options = [
+  { value = "Debug", label = "Debug" },
+  { value = "Release", label = "Release" },
+]
+default = "Debug"
+group = "lang.dotnet"
+section = "Build"
+project = true
+order = 11
+
+[[plugin.contributions.settings]]
+key = "dotnet.build.verbosity"
+title = "MSBuild verbosity"
+type = "enum"
+options = [
+  { value = "quiet", label = "Quiet" },
+  { value = "minimal", label = "Minimal" },
+  { value = "normal", label = "Normal" },
+  { value = "detailed", label = "Detailed" },
+]
+default = "minimal"
+group = "lang.dotnet"
+section = "Build"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "dotnet.build.beforeRun"
+title = "Build before running tests and debugging"
+description = "dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there."
+type = "bool"
+default = false
+group = "lang.dotnet"
+section = "Build"
+order = 13
+
+[[plugin.contributions.settings]]
+key = "dotnet.formatter"
+title = "Reformat Code with"
+description = "Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files)."
+type = "enum"
+options = [
+  { value = "lsp", label = "Roslyn language server" },
+  { value = "dotnetFormat", label = "dotnet format" },
+  { value = "none", label = "Do not format" },
+]
+default = "lsp"
+group = "lang.dotnet"
+section = "Code Cleanup"
+project = true
+order = 20
+
+[[plugin.contributions.settings]]
+key = "dotnet.cleanup.scope"
+title = "Code Cleanup fixes"
+description = "Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them."
+type = "enum"
+options = [
+  { value = "all", label = "Whitespace, code style and analyzers" },
+  { value = "whitespace", label = "Whitespace" },
+  { value = "style", label = "Code style" },
+  { value = "analyzers", label = "Analyzers" },
+]
+default = "all"
+group = "lang.dotnet"
+section = "Code Cleanup"
+project = true
+order = 21
+
+[[plugin.contributions.settings]]
+key = "dotnet.cleanup.severity"
+title = "Minimum severity of fixed diagnostics"
+type = "enum"
+options = [
+  { value = "info", label = "Info" },
+  { value = "warn", label = "Warning" },
+  { value = "error", label = "Error" },
+]
+default = "warn"
+group = "lang.dotnet"
+section = "Code Cleanup"
+project = true
+order = 22
+
+[[plugin.contributions.settings]]
+key = "dotnet.roslyn.path"
+title = "Roslyn language server"
+description = "The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download."
+type = "path"
+default = ""
+group = "lang.dotnet"
+section = "Roslyn"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "dotnet.roslyn.autoInstall"
+title = "Offer to download the Roslyn language server"
+type = "enum"
+options = [
+  { value = "ask", label = "Ask" },
+  { value = "never", label = "Never" },
+]
+default = "ask"
+group = "lang.dotnet"
+section = "Roslyn"
+order = 31
+
+[[plugin.contributions.settings]]
+key = "dotnet.roslyn.analysisScope"
+title = "Analyze"
+description = "Where the server reports compiler and analyzer problems."
+type = "enum"
+options = [
+  { value = "openFiles", label = "Open files" },
+  { value = "fullSolution", label = "The whole solution" },
+  { value = "none", label = "Nothing" },
+]
+default = "openFiles"
+group = "lang.dotnet"
+section = "Roslyn"
+project = true
+order = 32
+
+[[plugin.contributions.settings]]
+key = "dotnet.roslyn.inlayHints"
+title = "Show parameter and type hints"
+type = "bool"
+default = true
+group = "lang.dotnet"
+section = "Roslyn"
+order = 33
+
+[[plugin.contributions.settings]]
+key = "dotnet.debugger.path"
+title = "netcoredbg executable"
+description = "Empty: Forge's download or netcoredbg on the PATH."
+type = "path"
+default = ""
+group = "lang.dotnet"
+section = "Debugger"
+order = 40
+
+[[plugin.contributions.settings]]
+key = "dotnet.debugger.justMyCode"
+title = "Step through my code only (Just My Code)"
+type = "bool"
+default = true
+group = "lang.dotnet"
+section = "Debugger"
+order = 41
+
+[[plugin.contributions.settings]]
+key = "dotnet.nuget.source"
+title = "NuGet feed"
+description = "The service index the NuGet tool window searches."
+type = "string"
+default = "https://api.nuget.org/v3/index.json"
+group = "lang.dotnet"
+section = "NuGet"
+order = 50
+
+[[plugin.contributions.settings]]
+key = "dotnet.nuget.prerelease"
+title = "Include prerelease versions"
+type = "bool"
+default = false
+group = "lang.dotnet"
+section = "NuGet"
+project = true
+order = 51
+
+[[plugin.contributions.inspections]]
+id = "DotnetBuild"
+name = "Build errors and warnings"
+group = ".NET/External tools"
+language = "csharp"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems of the last dotnet build (compiler, NuGet and MSBuild), shown in the editor and the Build tool window."
+
+[[plugin.contributions.inspectionMappings]]
+source = "dotnet-build"
+inspection = "DotnetBuild"

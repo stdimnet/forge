@@ -56,6 +56,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
   `.aiignore` and a per-project switch ([AI](user/ai.md#ai-in-the-editor)).
+- **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
+  chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
+  with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run
+  configurations; RSpec and Minitest with gutter icons and their results in the test tree;
+  rdbg debugging; RuboCop offenses, Alt+Enter autocorrect and Reformat Code; Ruby LSP
+  (installed on request with your own RubyGems); ERB templates and the IRB console
+  ([RubyForge](user/ruby.md)).
 - **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
   "Track only root files", problems from output filters), Live Edit through the Browser
   Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
@@ -82,6 +89,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
   null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
   CI ([Inspections](user/inspections.md)).
+- **DotNetForge**: .NET in the style of Rider: SDKs and `global.json`, `.sln` / `.slnx`
+  solutions and MSBuild projects (central package management, launch profiles), the Build
+  tool window with compiler, NuGet and MSBuild problems, .NET Project run configurations with
+  launch profiles and `dotnet watch`, xUnit / NUnit / MSTest through `dotnet test` with TRX
+  results, netcoredbg debugging, the NuGet tool window (search, upgrades, install / remove),
+  `dotnet new` templates, Code Cleanup with `dotnet format` and EditorConfig, and the Roslyn
+  language server downloaded on request ([DotNetForge](user/dotnet.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2

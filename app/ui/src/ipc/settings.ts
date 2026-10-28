@@ -149,7 +149,7 @@ export interface Contributions {
   mainMenu?: MainMenuContribution[];
 }
 
-export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "pyforge" | "javaforge" | "goforge" | "rustforge" | "kotlinforge" | "cforge" | "scriptforge" | "configforge";
+export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "pyforge" | "javaforge" | "goforge" | "rustforge" | "rubyforge" | "kotlinforge" | "cforge" | "dotnetforge" | "scriptforge" | "configforge";
 
 export interface PluginInfo {
   id: string;

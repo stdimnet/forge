@@ -11438,6 +11438,455 @@
     }
   },
   {
+    "id": "forge.ruby",
+    "name": "Ruby",
+    "version": "0.1.0",
+    "pack": "rubyforge",
+    "description": "Ruby interpreters of rbenv, rvm, chruby, asdf and mise, Bundler (Gemfile, gems in External Libraries), Rake tasks, Ruby and Rake run configurations, RSpec and Minitest, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB and the IRB console.",
+    "vendor": "Forge",
+    "depends": [],
+    "required": false,
+    "projectTypes": [
+      "rubyforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "ruby",
+        "erb"
+      ],
+      "fileTypes": [
+        {
+          "id": "ruby",
+          "name": "Ruby",
+          "extensions": [
+            "rb",
+            "rake",
+            "gemspec",
+            "ru",
+            "rbw",
+            "jbuilder",
+            "builder"
+          ],
+          "fileNames": [
+            "Gemfile",
+            "gems.rb",
+            "Rakefile",
+            "rakefile",
+            "Guardfile",
+            "Capfile",
+            "Vagrantfile",
+            "Brewfile",
+            "Podfile",
+            "Fastfile",
+            "Appfile",
+            "Steepfile",
+            ".irbrc",
+            ".pryrc"
+          ],
+          "interpreters": [
+            "ruby",
+            "jruby",
+            "truffleruby"
+          ],
+          "indentSize": 2
+        },
+        {
+          "id": "gemfile-lock",
+          "name": "Gemfile.lock",
+          "extensions": [],
+          "fileNames": [
+            "Gemfile.lock",
+            "gems.locked"
+          ],
+          "indentSize": 2
+        }
+      ],
+      "commands": [
+        {
+          "id": "ruby.bundleInstall",
+          "title": "Bundle Install",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.bundleUpdate",
+          "title": "Bundle Update",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.bundleOutdated",
+          "title": "Show Outdated Gems (bundle outdated)",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.reloadRake",
+          "title": "Reload Rake Tasks",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.runRakeTask",
+          "title": "Run Rake Task…",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.rubocop",
+          "title": "Inspect Code with RuboCop",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.rubocopAutocorrect",
+          "title": "RuboCop: Autocorrect File",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.irbConsole",
+          "title": "Run IRB Console",
+          "category": "Ruby"
+        },
+        {
+          "id": "ruby.installRubyLsp",
+          "title": "Install Ruby LSP…",
+          "category": "Ruby"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "ruby.interpreter",
+          "title": "Ruby interpreter",
+          "description": "The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest.",
+          "type": "string",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Ruby SDK",
+          "project": true,
+          "hidden": true,
+          "order": 0
+        },
+        {
+          "key": "ruby.interpreters",
+          "title": "Added interpreters",
+          "description": "Ruby executables added by hand (Add Interpreter…); detected ones are listed without this.",
+          "type": "list",
+          "default": [],
+          "group": "lang.ruby",
+          "section": "Ruby SDK",
+          "project": false,
+          "hidden": true,
+          "order": 1
+        },
+        {
+          "key": "ruby.environment",
+          "title": "Environment",
+          "description": "Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV).",
+          "type": "list",
+          "default": [],
+          "group": "lang.ruby",
+          "section": "Ruby SDK",
+          "project": true,
+          "order": 2
+        },
+        {
+          "key": "ruby.bundler.useBundleExec",
+          "title": "Run commands with bundle exec",
+          "description": "In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.ruby",
+          "section": "Bundler",
+          "project": true,
+          "order": 10
+        },
+        {
+          "key": "ruby.bundler.path",
+          "title": "bundle executable",
+          "description": "Empty: the interpreter's bundle, then PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Bundler",
+          "project": false,
+          "order": 11
+        },
+        {
+          "key": "ruby.rake.runRake",
+          "title": "Load tasks with rake --tasks",
+          "description": "The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake.",
+          "type": "bool",
+          "default": true,
+          "group": "lang.ruby",
+          "section": "Rake",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "ruby.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Ruby files.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "rubocop",
+              "label": "RuboCop (safe autocorrect, -a)"
+            },
+            {
+              "value": "rubocopAll",
+              "label": "RuboCop (all autocorrect, -A)"
+            },
+            {
+              "value": "lsp",
+              "label": "Ruby LSP"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "rubocop",
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": true,
+          "order": 30
+        },
+        {
+          "key": "ruby.rubocop.onTheFly",
+          "title": "Check files with RuboCop",
+          "description": "RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins).",
+          "type": "bool",
+          "default": true,
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": true,
+          "order": 31
+        },
+        {
+          "key": "ruby.rubocop.path",
+          "title": "rubocop executable",
+          "description": "Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": false,
+          "order": 32
+        },
+        {
+          "key": "ruby.rubocop.options",
+          "title": "Additional options",
+          "description": "Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml.",
+          "type": "string",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "RuboCop",
+          "project": true,
+          "order": 33
+        },
+        {
+          "key": "ruby.lsp.path",
+          "title": "ruby-lsp executable",
+          "description": "Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Ruby LSP",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "ruby.lsp.formatter",
+          "title": "Ruby LSP formatter",
+          "description": "The formatter Ruby LSP uses for formatting and diagnostics.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "auto",
+              "label": "Automatic (RuboCop when in the bundle)"
+            },
+            {
+              "value": "rubocop_internal",
+              "label": "RuboCop"
+            },
+            {
+              "value": "syntax_tree",
+              "label": "Syntax Tree"
+            },
+            {
+              "value": "none",
+              "label": "None"
+            }
+          ],
+          "default": "auto",
+          "group": "lang.ruby",
+          "section": "Ruby LSP",
+          "project": true,
+          "order": 41
+        },
+        {
+          "key": "ruby.debugger.rdbgPath",
+          "title": "rdbg executable",
+          "description": "The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem.",
+          "type": "path",
+          "default": "",
+          "group": "lang.ruby",
+          "section": "Debugger",
+          "project": false,
+          "order": 50
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "ruby",
+          "name": "Ruby",
+          "description": "Run a Ruby script with the project's interpreter, through bundle exec in Bundler projects.",
+          "icon": "gem",
+          "debuggable": true
+        },
+        {
+          "id": "rake",
+          "name": "Rake",
+          "description": "Run a Rake task with its arguments.",
+          "icon": "hammer",
+          "debuggable": true
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "rspec",
+          "name": "RSpec",
+          "description": "Run RSpec: all specs, a folder, a file, an example group or example (file:line), or examples whose description matches.",
+          "icon": "flask-conical",
+          "language": "ruby",
+          "detect": {
+            "files": [
+              ".rspec",
+              "spec/spec_helper.rb"
+            ],
+            "dependencies": [
+              {
+                "file": "Gemfile.lock",
+                "contains": "rspec-core"
+              },
+              {
+                "file": "Gemfile",
+                "contains": "rspec"
+              }
+            ]
+          },
+          "testFiles": [
+            "*_spec.rb"
+          ],
+          "program": "rspec",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${file}"
+            ]
+          },
+          "report": "jUnitFile",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": true
+        },
+        {
+          "id": "minitest",
+          "name": "Minitest",
+          "description": "Run Minitest (and test-unit style) tests: a folder, a file, a test class or method, or tests whose name matches.",
+          "icon": "flask-conical",
+          "language": "ruby",
+          "detect": {
+            "files": [
+              "test/test_helper.rb",
+              "test/**/*_test.rb",
+              "test/**/test_*.rb"
+            ],
+            "dependencies": [
+              {
+                "file": "Gemfile.lock",
+                "contains": "    minitest ("
+              },
+              {
+                "file": "Gemfile",
+                "contains": "minitest"
+              }
+            ]
+          },
+          "testFiles": [
+            "*_test.rb",
+            "test_*.rb"
+          ],
+          "program": "ruby",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "directory": [
+              "${directory}"
+            ],
+            "file": [
+              "${file}"
+            ],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${file}",
+              "${test}"
+            ]
+          },
+          "report": "minitestText",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": true,
+          "fields": [
+            {
+              "key": "class",
+              "label": "Test class",
+              "placeholder": "Shop::CartTest (with Scope: Test)"
+            }
+          ]
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "RuboCop",
+          "name": "RuboCop",
+          "group": "Ruby/External tools",
+          "language": "ruby",
+          "severity": "WEAK WARNING",
+          "enabled": true,
+          "description": "Offenses reported by RuboCop with the project's .rubocop.yml; they keep RuboCop's level (convention, warning, error) until the profile sets a severity.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "rubocop",
+          "inspection": "RuboCop"
+        }
+      ]
+    }
+  },
+  {
     "id": "forge.java",
     "name": "Java",
     "version": "0.1.0",
@@ -13899,6 +14348,519 @@
         {
           "source": "cmake-build",
           "inspection": "CppBuildProblems"
+        }
+      ]
+    }
+  },
+  {
+    "id": "forge.dotnet",
+    "name": ".NET",
+    "version": "0.1.0",
+    "pack": "dotnetforge",
+    "description": "Solutions (.sln, .slnx) and MSBuild projects, .NET SDKs and global.json, the Build and NuGet tool windows, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg debugging, dotnet new templates, Code Cleanup with dotnet format and EditorConfig, and the Roslyn language server.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.debugger"
+    ],
+    "required": false,
+    "projectTypes": [
+      "dotnetforge"
+    ],
+    "enabled": true,
+    "contributions": {
+      "languages": [
+        "csharp",
+        "fsharp",
+        "vb"
+      ],
+      "fileTypes": [
+        {
+          "id": "msbuild",
+          "name": "MSBuild",
+          "extensions": [
+            "csproj",
+            "fsproj",
+            "vbproj",
+            "props",
+            "targets",
+            "slnx",
+            "nuspec",
+            "runsettings",
+            "resx",
+            "proj"
+          ],
+          "fileNames": [],
+          "indentSize": 2
+        },
+        {
+          "id": "sln",
+          "name": "Solution File",
+          "extensions": [
+            "sln"
+          ],
+          "fileNames": [],
+          "indentSize": 4
+        },
+        {
+          "id": "razor",
+          "name": "Razor",
+          "extensions": [
+            "razor",
+            "cshtml"
+          ],
+          "fileNames": [],
+          "indentSize": 4
+        }
+      ],
+      "commands": [
+        {
+          "id": "dotnet.buildSolution",
+          "title": "Build Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.rebuildSolution",
+          "title": "Rebuild Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.cleanSolution",
+          "title": "Clean Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.restore",
+          "title": "Restore NuGet Packages",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.reloadSolution",
+          "title": "Reload Solution",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.addProject",
+          "title": "Add Project from Template…",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.manageNuGet",
+          "title": "Manage NuGet Packages",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.installSdk",
+          "title": "Install .NET SDK…",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.downloadRoslyn",
+          "title": "Download the Roslyn Language Server…",
+          "category": ".NET"
+        },
+        {
+          "id": "dotnet.downloadNetcoredbg",
+          "title": "Download netcoredbg…",
+          "category": ".NET"
+        }
+      ],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "dotnet.path",
+          "title": "dotnet executable",
+          "description": "The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder.",
+          "type": "path",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": ".NET CLI",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "dotnet.environment",
+          "title": "Environment",
+          "description": "Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES).",
+          "type": "list",
+          "default": [],
+          "group": "lang.dotnet",
+          "section": ".NET CLI",
+          "project": true,
+          "order": 1
+        },
+        {
+          "key": "dotnet.solution",
+          "title": "Solution",
+          "description": "The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root.",
+          "type": "string",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": "Solution",
+          "project": true,
+          "hidden": true,
+          "order": 10
+        },
+        {
+          "key": "dotnet.configuration",
+          "title": "Build configuration",
+          "type": "enum",
+          "options": [
+            {
+              "value": "Debug",
+              "label": "Debug"
+            },
+            {
+              "value": "Release",
+              "label": "Release"
+            }
+          ],
+          "default": "Debug",
+          "group": "lang.dotnet",
+          "section": "Build",
+          "project": true,
+          "order": 11
+        },
+        {
+          "key": "dotnet.build.verbosity",
+          "title": "MSBuild verbosity",
+          "type": "enum",
+          "options": [
+            {
+              "value": "quiet",
+              "label": "Quiet"
+            },
+            {
+              "value": "minimal",
+              "label": "Minimal"
+            },
+            {
+              "value": "normal",
+              "label": "Normal"
+            },
+            {
+              "value": "detailed",
+              "label": "Detailed"
+            }
+          ],
+          "default": "minimal",
+          "group": "lang.dotnet",
+          "section": "Build",
+          "project": false,
+          "order": 12
+        },
+        {
+          "key": "dotnet.build.beforeRun",
+          "title": "Build before running tests and debugging",
+          "description": "dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there.",
+          "type": "bool",
+          "default": false,
+          "group": "lang.dotnet",
+          "section": "Build",
+          "project": false,
+          "order": 13
+        },
+        {
+          "key": "dotnet.formatter",
+          "title": "Reformat Code with",
+          "description": "Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files).",
+          "type": "enum",
+          "options": [
+            {
+              "value": "lsp",
+              "label": "Roslyn language server"
+            },
+            {
+              "value": "dotnetFormat",
+              "label": "dotnet format"
+            },
+            {
+              "value": "none",
+              "label": "Do not format"
+            }
+          ],
+          "default": "lsp",
+          "group": "lang.dotnet",
+          "section": "Code Cleanup",
+          "project": true,
+          "order": 20
+        },
+        {
+          "key": "dotnet.cleanup.scope",
+          "title": "Code Cleanup fixes",
+          "description": "Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "all",
+              "label": "Whitespace, code style and analyzers"
+            },
+            {
+              "value": "whitespace",
+              "label": "Whitespace"
+            },
+            {
+              "value": "style",
+              "label": "Code style"
+            },
+            {
+              "value": "analyzers",
+              "label": "Analyzers"
+            }
+          ],
+          "default": "all",
+          "group": "lang.dotnet",
+          "section": "Code Cleanup",
+          "project": true,
+          "order": 21
+        },
+        {
+          "key": "dotnet.cleanup.severity",
+          "title": "Minimum severity of fixed diagnostics",
+          "type": "enum",
+          "options": [
+            {
+              "value": "info",
+              "label": "Info"
+            },
+            {
+              "value": "warn",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "default": "warn",
+          "group": "lang.dotnet",
+          "section": "Code Cleanup",
+          "project": true,
+          "order": 22
+        },
+        {
+          "key": "dotnet.roslyn.path",
+          "title": "Roslyn language server",
+          "description": "The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download.",
+          "type": "path",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": false,
+          "order": 30
+        },
+        {
+          "key": "dotnet.roslyn.autoInstall",
+          "title": "Offer to download the Roslyn language server",
+          "type": "enum",
+          "options": [
+            {
+              "value": "ask",
+              "label": "Ask"
+            },
+            {
+              "value": "never",
+              "label": "Never"
+            }
+          ],
+          "default": "ask",
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": false,
+          "order": 31
+        },
+        {
+          "key": "dotnet.roslyn.analysisScope",
+          "title": "Analyze",
+          "description": "Where the server reports compiler and analyzer problems.",
+          "type": "enum",
+          "options": [
+            {
+              "value": "openFiles",
+              "label": "Open files"
+            },
+            {
+              "value": "fullSolution",
+              "label": "The whole solution"
+            },
+            {
+              "value": "none",
+              "label": "Nothing"
+            }
+          ],
+          "default": "openFiles",
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": true,
+          "order": 32
+        },
+        {
+          "key": "dotnet.roslyn.inlayHints",
+          "title": "Show parameter and type hints",
+          "type": "bool",
+          "default": true,
+          "group": "lang.dotnet",
+          "section": "Roslyn",
+          "project": false,
+          "order": 33
+        },
+        {
+          "key": "dotnet.debugger.path",
+          "title": "netcoredbg executable",
+          "description": "Empty: Forge's download or netcoredbg on the PATH.",
+          "type": "path",
+          "default": "",
+          "group": "lang.dotnet",
+          "section": "Debugger",
+          "project": false,
+          "order": 40
+        },
+        {
+          "key": "dotnet.debugger.justMyCode",
+          "title": "Step through my code only (Just My Code)",
+          "type": "bool",
+          "default": true,
+          "group": "lang.dotnet",
+          "section": "Debugger",
+          "project": false,
+          "order": 41
+        },
+        {
+          "key": "dotnet.nuget.source",
+          "title": "NuGet feed",
+          "description": "The service index the NuGet tool window searches.",
+          "type": "string",
+          "default": "https://api.nuget.org/v3/index.json",
+          "group": "lang.dotnet",
+          "section": "NuGet",
+          "project": false,
+          "order": 50
+        },
+        {
+          "key": "dotnet.nuget.prerelease",
+          "title": "Include prerelease versions",
+          "type": "bool",
+          "default": false,
+          "group": "lang.dotnet",
+          "section": "NuGet",
+          "project": true,
+          "order": 51
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [
+        {
+          "id": "dotnet",
+          "name": ".NET Project",
+          "description": "Run a .NET project with dotnet run or dotnet watch, optionally with a launch profile of Properties/launchSettings.json; Debug starts the built assembly under netcoredbg.",
+          "icon": "app-window",
+          "debuggable": true
+        }
+      ],
+      "debugAdapters": [
+        {
+          "type": "coreclr",
+          "label": ".NET (netcoredbg)",
+          "command": "netcoredbg",
+          "args": [
+            "--interpreter=vscode"
+          ],
+          "commandSetting": "dotnet.debugger.path",
+          "transport": "stdio",
+          "languages": [
+            "cs",
+            "fs",
+            "vb"
+          ],
+          "launch": {
+            "args": "${args}",
+            "cwd": "${cwd}",
+            "env": "${env}",
+            "program": "${program}",
+            "stopAtEntry": "${stopOnEntry}"
+          },
+          "attach": {
+            "processId": "${pid}"
+          },
+          "launchSchema": {
+            "properties": {
+              "enableStepFiltering": {
+                "description": "Step over properties and operators",
+                "type": "boolean"
+              },
+              "justMyCode": {
+                "description": "Step through your code only",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ],
+      "testFrameworks": [
+        {
+          "id": "dotnet-test",
+          "name": ".NET Tests",
+          "description": "Run xUnit, NUnit or MSTest tests with dotnet test: the solution, a project, a class, a method or a filter; results from the TRX report.",
+          "icon": "flask-conical",
+          "language": "csharp",
+          "detect": {
+            "files": [
+              "*.csproj",
+              "*/*.csproj",
+              "**/*.csproj",
+              "*.fsproj",
+              "*/*.fsproj",
+              "**/*.fsproj",
+              "*.vbproj",
+              "**/*.vbproj"
+            ],
+            "dependencies": []
+          },
+          "testFiles": [
+            "*.cs",
+            "*.fs"
+          ],
+          "program": "dotnet",
+          "args": [],
+          "scopes": {
+            "all": [],
+            "pattern": [
+              "${pattern}"
+            ],
+            "test": [
+              "${test}"
+            ]
+          },
+          "report": "jUnitFile",
+          "junitFlavor": "generic",
+          "discovery": [],
+          "escape": "regex",
+          "locationRules": [],
+          "debuggable": true
+        }
+      ],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": [],
+      "inspections": [
+        {
+          "id": "DotnetBuild",
+          "name": "Build errors and warnings",
+          "group": ".NET/External tools",
+          "language": "csharp",
+          "severity": "WARNING",
+          "enabled": true,
+          "description": "Problems of the last dotnet build (compiler, NuGet and MSBuild), shown in the editor and the Build tool window.",
+          "external": true,
+          "batch": false
+        }
+      ],
+      "inspectionMappings": [
+        {
+          "source": "dotnet-build",
+          "inspection": "DotnetBuild"
         }
       ]
     }

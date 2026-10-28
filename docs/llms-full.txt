@@ -58,6 +58,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
   `.aiignore` and a per-project switch ([AI](docs/guide/user/ai.md#ai-in-the-editor)).
+- **RubyForge**: Settings | Languages & Frameworks | Ruby with the Rubies of rbenv, rvm,
+  chruby, asdf and mise and the version `.ruby-version` / `.tool-versions` asks for; Bundler
+  with the bundle's gems in External Libraries; the Rake tool window; Ruby and Rake run
+  configurations; RSpec and Minitest with gutter icons and their results in the test tree;
+  rdbg debugging; RuboCop offenses, Alt+Enter autocorrect and Reformat Code; Ruby LSP
+  (installed on request with your own RubyGems); ERB templates and the IRB console
+  ([RubyForge](docs/guide/user/ruby.md)).
 - **Web tooling**: File Watchers (Sass/SCSS, Less, TypeScript, Babel, Prettier, custom; macros,
   "Track only root files", problems from output filters), Live Edit through the Browser
   Companion (CSS hot swap, reload on save), Vite/Webpack aliases in import navigation and
@@ -84,6 +91,13 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   Cleanup with a preview, `@noinspection` suppressions, duplicated code, PHP data flow (always
   null, undefined variables, constant conditions, unused assignments) and `forge inspect` for
   CI ([Inspections](docs/guide/user/inspections.md)).
+- **DotNetForge**: .NET in the style of Rider: SDKs and `global.json`, `.sln` / `.slnx`
+  solutions and MSBuild projects (central package management, launch profiles), the Build
+  tool window with compiler, NuGet and MSBuild problems, .NET Project run configurations with
+  launch profiles and `dotnet watch`, xUnit / NUnit / MSTest through `dotnet test` with TRX
+  results, netcoredbg debugging, the NuGet tool window (search, upgrades, install / remove),
+  `dotnet new` templates, Code Cleanup with `dotnet format` and EditorConfig, and the Roslyn
+  language server downloaded on request ([DotNetForge](docs/guide/user/dotnet.md)).
 - **CForge v2**: sanitizers (ASan, UBSan, TSan, MSan, LSan) as CMake profile options with a
   Sanitizers tab in the Run tool window, Run with Valgrind Memcheck (errors, stacks and the
   leak summary), Profile with perf (flame graph in the Profiler), vcpkg and Conan 2
@@ -571,9 +585,11 @@ Click **New Project** on the Welcome screen, or run the **New Project…** actio
 | Lua | Lua Script | a script, a module and a LuaLS configuration | — (offline template) | Lua version, sample code, Git repository |
 | Lua | LÖVE Game | LÖVE 11 game with `main.lua`, `conf.lua` and API completion | — (offline template) | sample code, Git repository |
 | Lua | Neovim Plugin | plugin with `setup()`, a user command and a help file | — (offline template) | GitHub user, Git repository |
+| Ruby | Ruby Gem | `bundle gem` with tests, RuboCop and no CI, licence or changelog files | `bundle` | Test framework (Minitest, RSpec, test-unit), RuboCop, executable, Git repository |
+| Ruby | Ruby Project | Gemfile, Rakefile, `lib/`, `bin/`, Minitest tests and `.rubocop.yml` | — (offline template) | sample code, Git repository |
 | Other | Empty Project | an empty folder | — | Git repository |
 
-Generators that call an official CLI (composer, symfony, npm, npx) check that the tool is on
+Generators that call an official CLI (composer, symfony, npm, npx, bundle) check that the tool is on
 your `PATH` first. If it is missing, the dialog says so and offers an offline alternative, for
 example "Create Empty HTML/CSS/JS instead":
 
@@ -623,8 +639,10 @@ and a plain Lua project does not start PHP language servers.
 | CSS | `.css` or `.scss` files |
 | Lua | a `.lua` file in the root, two or more `.lua` files in a folder, `.luarc.json`, `.luarc.jsonc`, `.luacheckrc`, `stylua.toml`, `.stylua.toml`, `selene.toml` or a `*.rockspec` |
 | Rust | `Cargo.toml` (also the tool `cargo`), a `.rs` file in the root, or two or more `.rs` files in a folder |
+| Ruby | `Gemfile` (also the tool `bundler`), `Rakefile` (also the tool `rake`), `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more `.rb` / `.rake` files in a folder |
 | Go | a `.go` file in the root, two or more `.go` files in a folder, `go.mod` or `go.work` (also the tool `go-workspace`) |
 | C/C++ (`cpp`) | a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), a C/C++ file in the root, or two or more in a folder; a `platformio.ini` (tool `platformio`) or a Zephyr `west.yml` (tool `zephyr`); tools `esp-idf` (`sdkconfig` / `idf_component.yml`), `zephyr` (`prj.conf`) and `vcpkg` (`vcpkg.json`) next to a `CMakeLists.txt`, and `conan` (`conanfile.txt` / `conanfile.py`) |
+| C# (`csharp`), F# (`fsharp`), Visual Basic (`vbnet`) | a solution (`.sln`, `.slnx`: the languages of its projects), a `.csproj`, `.fsproj` or `.vbproj` file (also the tool `dotnet`), a C# / F# file in the root or two or more in a folder, or `global.json` |
 | Python | a `.py` file in the root, two or more `.py` files in a folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` / `constraints*.txt`, `Pipfile` or `environment.yml` |
 
 ### Frameworks
@@ -632,6 +650,7 @@ and a plain Lua project does not start PHP language servers.
 | Framework | Detected from |
 | --- | --- |
 | Laravel | `laravel/framework` in `composer.json`, or an `artisan` file |
+| ASP.NET Core (`aspnetcore`) | a project file with the `Microsoft.NET.Sdk.Web` or `Microsoft.NET.Sdk.BlazorWebAssembly` SDK |
 | Symfony | `symfony/framework-bundle`, or `bin/console` together with `config/bundles.php` |
 | Doctrine | `doctrine/orm` |
 | Drupal | `drupal/core` or `drupal/core-recommended`, `core/lib/Drupal.php`, or a module / theme `<name>.info.yml` with `core_version_requirement` |
@@ -654,7 +673,7 @@ version comes from `require.php`.
 
 ### Tools
 
-`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `luarocks`
+`composer`, `npm`, `pnpm`, `yarn`, `bun` (from lock files and `package.json`), `go-workspace` (`go.work`), `cargo` (`Cargo.toml`), `bundler` (`Gemfile`), `rake` (`Rakefile`), `dotnet` (solutions and project files), `luarocks`
 (`*.rockspec`), `uv` (`uv.lock`), `poetry` (`poetry.lock`), `pipenv` (`Pipfile`), `conda`
 (`environment.yml`), `docker` (`Dockerfile`, `compose.yaml`/`compose.yml`,
 `docker-compose.yml`/`.yaml`) and `git` (a `.git` folder).
@@ -665,9 +684,9 @@ Folders that are never scanned as sub-projects: `vendor`, `node_modules`, `targe
 ## Primary type
 
 The most specific framework becomes the project's **primary** type, in this order: Laravel,
-Symfony, Drupal, WordPress, Shopware, Magento, Joomla, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
+Symfony, Drupal, WordPress, Shopware, Magento, Joomla, ASP.NET Core, Next.js, Nuxt, Angular, Svelte, Vue.js, React, Solid, LÖVE,
 Neovim, Vite. Without a framework the primary language is used (PHP, TypeScript, JavaScript,
-Lua, Rust, Go, C/C++, Python, HTML, CSS).
+C#, F#, Visual Basic, Lua, Rust, Go, C/C++, Python, HTML, CSS).
 
 The primary type appears
 
@@ -690,7 +709,9 @@ The primary type appears
 | PyForge | Python projects (Python Interpreters and Packages); the Python editing plugin is always active |
 | GoForge | Go projects |
 | RustForge | Rust projects |
+| RubyForge | Ruby projects |
 | CForge | C and C++ projects |
+| DotNetForge | .NET projects (C#, F#, Visual Basic) |
 | KotlinForge | Kotlin projects: `*.kt` files, Kotlin scripts (not `*.gradle.kts`), a `src/main/kotlin` / `src/test/kotlin` tree or a build applying the Kotlin plugin; `io.kotest` in the build reports Kotest |
 | JavaForge | Java projects: a `pom.xml`, a Gradle build (`build.gradle(.kts)`, `settings.gradle(.kts)`), `*.java` files or a `src/main/java` / `src/test/java` tree; Maven and Gradle are reported as tools. Spring Boot (the Gradle plugin, the Maven parent or BOM, a starter, with its version) and Jakarta EE (platform APIs, JAX-RS, CDI, MicroProfile in the build) are frameworks that activate [Spring Boot and Jakarta EE](docs/guide/user/spring.md) |
 | JavaForge: Groovy | Groovy sources (`*.groovy`, `*.gvy`, `*.gy`, `src/main/groovy`, `src/test/groovy`) or a build applying the `groovy` plugin (not Gradle build scripts); `org.spockframework` reports Spock |
@@ -855,10 +876,12 @@ not finished, the page says so.
 | [Django, Flask, FastAPI and Celery](docs/guide/user/python-web-frameworks.md) | Endpoints tool window, Django settings, URLs, models, templates and manage.py tasks, Flask and FastAPI routes, Celery tasks, template navigation and completion, Django Server / Django tests / Flask Server / FastAPI / Celery run configurations |
 | [PyForge (Python)](docs/guide/user/python.md) | Python interpreters (venv, uv, Poetry, conda, Pipenv, Hatch, Docker, SSH, WSL), Python Packages, requirements inspections, basedpyright / ty / ruff, Black, Python runs |
 | [Jupyter notebooks](docs/guide/user/jupyter.md) | The notebook editor, command and edit mode, outputs (images, HTML, errors, JSON), DataFrame tables, kernels in the project's interpreter or on a Jupyter server, Variables and View as DataFrame, notebook diffs cell by cell |
+| [RubyForge (Ruby)](docs/guide/user/ruby.md) | Ruby interpreters of rbenv, rvm, chruby, asdf and mise (.ruby-version, .tool-versions), Bundler and gems in External Libraries, the Rake tool window, Ruby and Rake run configurations, RSpec and Minitest with gutter icons, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB, the IRB console |
 | [RustForge (Rust)](docs/guide/user/rust.md) | rustup toolchains and rust-toolchain.toml, the Cargo tool window (members, targets, features, dependencies), Cargo and Cargo Test run configurations (libtest, nextest, doctests, coverage with cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | [GoForge (Go)](docs/guide/user/go.md) | Go SDK and GOPATH (SDK downloads), go.mod / go.work, gofmt / goimports, go vet and golangci-lint, go generate, Go Build and Go Test (benchmarks, fuzzing, coverage), Delve (launch, attach, remote), the pprof Profiler |
 | [JavaForge](docs/guide/user/java.md) | Eclipse JDT LS (installed on request), JDKs (detection, Temurin downloads, project JDK, language level), Maven and Gradle (wrappers, Build Project, Gradle / Maven tool windows), Application runs with a Run gutter on `main`, JUnit 5/4 and TestNG with JaCoCo coverage, the Java debugger (java-debug) and Remote JVM Debug |
 | [CForge (C and C++)](docs/guide/user/cpp.md) | clangd with clang-tidy (downloaded on request), toolchains (GCC, Clang, MSVC, MinGW, cross compilers), CMake profiles and presets with the CMake tool window, compilation databases, Build / Rebuild / Clean with build problems, CMake Application, GoogleTest, Catch2 and CTest with coverage, LLDB / GDB debugging with STL renderers |
+| [DotNetForge (.NET)](docs/guide/user/dotnet.md) | .NET SDKs and global.json, solutions (.sln, .slnx) and MSBuild projects, the Build tool window with build problems, .NET Project run configurations with launch profiles and dotnet watch, xUnit / NUnit / MSTest through dotnet test, netcoredbg, the NuGet tool window, dotnet new templates, Code Cleanup with dotnet format, the Roslyn language server |
 | [C/C++ dynamic analysis and packages](docs/guide/user/cpp-tools.md) | Sanitizers (ASan, UBSan, TSan, MSan, LSan) in CMake profiles with the Sanitizers tab, Run with Valgrind Memcheck, Profile with perf (flame graph), vcpkg and Conan 2 |
 | [Profiling PHP and Node.js](docs/guide/user/profiling.md) | Xdebug and SPX snapshots and V8 CPU / heap profiles in the Profiler: Execution Statistics with callers and callees, Call Tree, Flame Graph, the Memory view of heap snapshots, Profile with Xdebug, SPX and V8 |
 | [Embedded development](docs/guide/user/embedded.md) | PlatformIO tool window, ESP-IDF and Zephyr actions, OpenOCD Download & Run and Embedded GDB Server debugging, the SVD Peripherals view |
@@ -881,7 +904,7 @@ not finished, the page says so.
 | --- | --- |
 | [Project trust and Safe Mode](docs/guide/user/project-trust.md) | "Trust and Open Project?", Safe Mode for untrusted projects (no scripts, runs, tests, debugger, build tools or project-local language servers), the Safe Mode banner, Settings \| Build, Execution, Deployment \| Trusted Locations, remote projects |
 | [Run/Debug configurations](docs/guide/user/run-debug.md) | configuration types, run widget, Run tool window, Analyze Stack Trace, test results |
-| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest) |
+| [Testing](docs/guide/user/testing.md) | the shared test runner of every pack: gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, busted, and the result formats (TeamCity, JUnit, TAP, Go, libtest JSON and plain text, pytest, Jest / Vitest, RSpec, Minitest) |
 | [Code coverage](docs/guide/user/coverage.md) | Run with Coverage, the Coverage tool window (line and branch coverage per directory and file), coverage marks with hits in the editor gutter, the Project view, Show Coverage Data (`Ctrl+Alt+F6`), importing LCOV, Cobertura, Clover, JaCoCo and Go reports |
 | [Run targets (Run on)](docs/guide/user/run-targets.md) | running, testing and debugging a configuration in a Docker image, a Docker Compose service, over SSH, in WSL or a Dev Container, with path mappings and debugger ports |
 | [PHP test frameworks](docs/guide/user/test-frameworks.md) | Settings \| PHP \| Test Frameworks, PHPUnit, Pest, Codeception, Behat and PHPSpec configurations, gutter icons, Rerun Failed Tests, Test History, auto-test, Gherkin and Behat step navigation |
@@ -5224,7 +5247,7 @@ file is running (for example yaml-language-server), so you do not get every prob
 
 ## Template data languages
 
-Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates) mix template tags
+Template languages (Twig, Smarty, Latte, Jinja2, Handlebars, Go templates, ERB) mix template tags
 with content in another language, the **data language**. Forge highlights the content in its
 real language and draws the template tags on top, so a LaTeX or SQL template is just as
 readable as an HTML one.
@@ -9253,9 +9276,11 @@ Everything in Forge beyond the workbench is a **plugin**. Plugins are grouped in
 | **LuaForge** | Lua |
 | **PyForge** | Python: interpreters, packages, requirements inspections |
 | **GoForge** | Go: SDK and GOPATH, modules, gofmt / goimports, go vet, golangci-lint, Go Build / Go Test, Delve, Profiler |
+| **RubyForge** | Ruby: interpreters of rbenv, rvm, chruby, asdf and mise, Bundler, Rake, Ruby / Rake run configurations, RSpec and Minitest, rdbg, RuboCop, Ruby LSP, ERB, the IRB console |
 | **RustForge** | Rust: rustup toolchains, the Cargo tool window, Cargo and Cargo Test configurations (nextest, doctests, coverage), Clippy, rustfmt, rust-analyzer, LLDB / GDB with Rust type renderers |
 | **JavaForge** | Java (Maven, Gradle, JUnit, TestNG, the Java debugger), Groovy, Scala with sbt, Android |
 | **CForge** | C and C++ (clangd, toolchains, CMake, CTest / GoogleTest / Catch2, LLDB / GDB) |
+| **DotNetForge** | .NET: C#, F# and Visual Basic (SDKs, solutions and MSBuild projects, the Build and NuGet tool windows, dotnet run / watch with launch profiles, xUnit / NUnit / MSTest, netcoredbg, dotnet new, dotnet format, the Roslyn language server) |
 | **KotlinForge** | Kotlin (kotlin-lsp, Kotest, coroutines debugging, ktlint, detekt) |
 | **ScriptForge** / **ConfigForge** | Bash, Python / YAML, JSON, .env, Ignore Files, Docker files, Postfix, E-Mail, INI, Config Files |
 
@@ -12418,6 +12443,211 @@ Settings | Languages & Frameworks | Jupyter:
 
 ---
 
+Source: docs/guide/user/ruby.md
+
+# RubyForge (Ruby)
+
+**RubyForge** brings RubyMine's Ruby support to Forge. Its plugin **Ruby** (`forge.ruby`)
+is active in [Ruby projects](docs/guide/getting-started/project-detection.md): a `Gemfile`, a
+`Rakefile`, a `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more
+`.rb` / `.rake` files in a folder. Rails support (routes, generators, the Rails console) is a
+separate plugin that builds on this one.
+
+- Ruby files (`.rb`, `.rake`, `.gemspec`, `.ru`, `.jbuilder`, `Gemfile`, `Rakefile`,
+  `Guardfile`, `Capfile`, `.irbrc`, scripts with a `ruby` shebang) get Ruby highlighting;
+  `Gemfile.lock` is its own file type.
+- Completion, navigation, hover, rename and diagnostics come from **Ruby LSP** (Shopify, MIT),
+  which runs like every other [language server](docs/guide/user/language-servers.md) with the project's Ruby.
+- Everything else is computed in Rust (`packs/rubyforge/*`): interpreters, the bundle, Rake
+  tasks, test discovery and results, command lines and RuboCop's reports.
+
+![inventory_spec.rb with run icons on the example groups and examples](docs/screenshots/ruby-editor.png)
+
+## Ruby SDK
+
+**Settings | Languages & Frameworks | Ruby** lists the interpreters Forge found and the one
+the project uses.
+
+![Settings | Languages & Frameworks | Ruby](docs/screenshots/ruby-settings.png)
+
+- Forge finds Rubies of **rbenv** (`$RBENV_ROOT` or `~/.rbenv/versions`), **rvm**
+  (`~/.rvm/rubies`, `/usr/local/rvm/rubies`, with the Ruby's gem sets), **chruby**
+  (`~/.rubies`, `/opt/rubies`), **asdf** (`~/.asdf/installs/ruby`), **mise**
+  (`~/.local/share/mise/installs/ruby`), frum and rv, **Homebrew** (`/opt/homebrew/opt/ruby`),
+  **RubyInstaller** (`C:\Ruby*`) and the system Ruby on the `PATH`. Version manager shims are
+  skipped: the Ruby behind them is listed by its manager. Forge only reads the folders; Rubies
+  outside a manager are asked for their version (`ruby -e 'print RUBY_VERSION'`).
+- **Automatic** (the default) uses the version the project asks for in `.ruby-version`,
+  `.tool-versions`, `mise.toml` or the Gemfile's `ruby "3.3.6"` / `ruby file:
+  ".ruby-version"` line (`3.3` matches the newest installed 3.3.x), else the version
+  manager's global version (`~/.rbenv/version`, `~/.tool-versions`), else the newest Ruby.
+  The page says which file asked, and a balloon tells you when that version is not installed.
+- Choose an interpreter in the list for the project, or **Add Interpreter…** for any other
+  `ruby` executable (it is checked before it is added).
+- **Tools** shows the gem executables Forge uses (Bundler, Rake, RSpec, RuboCop, rdbg, IRB,
+  Ruby LSP); missing RuboCop, the debug gem and Ruby LSP have an **Install** button.
+- **Environment** adds variables to every Ruby, Bundler, Rake and test command. Commands run
+  with the interpreter's `bin` folder first on the `PATH` (and rvm's `GEM_HOME` /
+  `GEM_PATH`), so `gem`, `bundle` and gem executables belong to the chosen Ruby.
+
+The interpreter appears in the status bar (`rbenv: 3.3.6`); clicking it opens the page.
+
+## Bundler and gems
+
+In projects with a `Gemfile`, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run
+through `bundle exec` (**Run commands with bundle exec**, on by default; Ruby and Rake
+configurations can turn it off for themselves).
+
+- The `Gemfile` and `Gemfile.lock` are read without running Bundler: declared gems with their
+  requirements and groups (`group :test do`, `group:` options), platforms, `path:` / `git:`
+  sources, and the locked versions with their dependencies. Gems pulled in by others get the
+  groups of the gems that need them.
+- **External Libraries** in the Project view lists the project's Ruby SDK and the **Bundled
+  Gems** with their locked versions; gems of the Gemfile come first, the others are dimmed.
+  Opening a Gemfile gem shows its line in the `Gemfile`.
+- When gems of the Gemfile are missing from `Gemfile.lock`, a balloon offers **bundle
+  install**. **Tools | Bundler: Install / Update** and **Show Outdated Gems** run Bundler in
+  the Run tool window. Saving the Gemfile or the lock file reads the bundle again.
+
+![External Libraries with the Ruby SDK and the bundle's gems; an ERB view](docs/screenshots/ruby-erb.png)
+
+## Rake
+
+The **Rake** tool window (right side) lists the project's tasks by namespace with their
+arguments and descriptions. Double-click (or **Run**) runs a task as a temporary Rake
+configuration, **Debug** runs it under the debugger, **Jump to Source** opens its definition.
+
+![The Rake tool window](docs/screenshots/ruby-rake.png)
+
+- Tasks come from `rake --tasks --all` and their places from `rake --where`. That loads the
+  Rakefile, so it runs only in [trusted projects](docs/guide/user/project-trust.md); in Safe Mode (or with
+  **Load tasks with rake --tasks** off) Forge reads the `Rakefile`, `rakelib/*.rake` and
+  `lib/tasks/**/*.rake` instead: `desc`, `task`, `namespace`, and the tasks of
+  `Bundler::GemHelper`, `RSpec::Core::RakeTask`, `Rake::TestTask`, `Minitest::TestTask` and
+  `RuboCop::RakeTask`.
+- **Run Rake Task…** (Tools) asks for a task, e.g. `release[origin]`.
+
+## Run configurations
+
+- **Ruby** runs a script with interpreter options and arguments (`bundle exec ruby -w
+  bin/report.rb --month 2026-10`). A ▶ in the gutter of scripts (a `ruby` shebang or `if
+  __FILE__ == $0`) runs or debugs them.
+- **Rake** runs a task with arguments (`rake release[origin]`) and Rake options.
+- **RSpec** and **Minitest** run tests (below).
+
+## RSpec and Minitest
+
+Spec files (`*_spec.rb`) get ▶ icons on `describe` / `context` / `feature` groups and on
+`it` / `specify` / `example` / `scenario`; test files (`*_test.rb`, `test_*.rb`) on test
+classes, `def test_*` methods, ActiveSupport `test "…" do` blocks and Minitest::Spec
+`describe` / `it` blocks. After a run the icons show the results.
+
+- **RSpec** runs `rspec <file>:<line>` for a group or example, a file, a folder, everything,
+  or the examples whose description matches (`--example`), with `--format progress --format
+  json --out <report>`. Forge reads the JSON report into the test tree: files, example groups,
+  examples, pending examples, the failure message with its backtrace, `expected: … got: …`
+  values for **Click to see difference**, and errors outside of examples (a spec that does
+  not load).
+- **Minitest** runs `ruby -Ilib -Itest <file> -v [-n <filter>]` (a class: `-n
+  "/^Shop::CartTest#/"`, a method: `-n Shop::CartTest#test_total`), or loads every test file
+  of a folder. Forge reads Minitest's verbose output: one suite per test class, failures,
+  errors and skips with their messages, `Expected:` / `Actual:` values, the location and the
+  test's own output.
+- **Rerun Failed Tests** runs the failed examples (`--example`) or methods (`-n
+  "/^(test_a|test_b)$/"`) of the files that failed.
+
+![RSpec results in the test tree](docs/screenshots/ruby-rspec.png)
+
+![Minitest results](docs/screenshots/ruby-minitest.png)
+
+## Debugging
+
+Debug (`Shift+F9`) on a Ruby, Rake, RSpec or Minitest configuration runs it under **rdbg**,
+the debugger of the `debug` gem (BSD-2-Clause, Ruby's default debugger): the command starts
+in the Run tool window as `rdbg --open --host 127.0.0.1 --port <port> --command -- <command>`,
+waits for the debugger, and Forge attaches to it. Breakpoints (also conditional), stepping,
+the stack, local and global variables and the debug console work as in the other
+[debuggers](docs/guide/user/debugging.md); the program's output stays in the Run console and test runs still
+fill the test tree.
+
+![rdbg stopped in Inventory#total_cents](docs/screenshots/ruby-debug.png)
+
+- rdbg comes from `bundle exec rdbg` when the bundle has the `debug` gem, else from the
+  interpreter (or **rdbg executable**). Without it, Forge offers to install the gem with the
+  interpreter's `gem` (with `--user-install` for system Rubies).
+- **Run | Attach to DAP Server…** with the adapter *Ruby (rdbg)* connects to any `rdbg --open
+  --port <port>` you started yourself, e.g. in a container.
+
+## RuboCop
+
+RuboCop checks open Ruby files after opening them, after a pause in typing and after saving
+(**Check files with RuboCop**). Its offenses appear in the editor and the **Problems** tool
+window with the cop name; conventions and refactorings are weak warnings, warnings and errors
+keep their level, and the inspection profile can change the severity (inspection
+*Ruby | External tools | RuboCop*).
+
+![RuboCop offenses with Alt+Enter autocorrect](docs/screenshots/ruby-rubocop.png)
+
+- `Alt+Enter` on a correctable offense: **RuboCop: autocorrect** (safe corrections, `-a`) or
+  **autocorrect all offenses in the file** (also unsafe ones, `-A`).
+- **Reformat Code** (`Ctrl+Alt+L`) uses RuboCop's autocorrect (**Reformat Code with**: safe,
+  all, Ruby LSP's formatter or nothing). The editor text goes to RuboCop on stdin with the
+  file's path, so the project's `.rubocop.yml` and its exclusions apply; nothing is written.
+- **Code | Inspect Code with RuboCop** checks the current file and shows the Problems tool
+  window. RuboCop runs through `bundle exec` when the bundle has it.
+- RuboCop loads the project's configuration and plugins, so it runs only in trusted projects.
+
+## Ruby LSP
+
+Ruby LSP runs with the project's Ruby and its bundle; its formatter follows **Ruby LSP
+formatter**. Forge uses `ruby-lsp` of the interpreter's gems, the **ruby-lsp executable**
+setting or the `PATH`. When it is missing, Forge offers **Install Ruby LSP**: it runs `gem
+install ruby-lsp --install-dir <Forge's data folder>/langservers/ruby/<version>` with the
+project interpreter's RubyGems (rubygems.org or your gem sources) — nothing is bundled with
+Forge and your Ruby's gems stay untouched — and starts the server with that folder on
+`GEM_PATH`. Ruby LSP sets up its own bundle in `.ruby-lsp/` of the project, so it does not
+start in Safe Mode.
+
+## ERB
+
+`.erb` files (`*.html.erb`, `*.text.erb`, `*.js.erb`, `.rhtml`) are a template language with
+a [template data language](docs/guide/user/file-types.md#template-data-languages): HTML by default, or the language of the inner
+extension (`welcome.text.erb` is plain text, `config.js.erb` JavaScript). `<%= %>`, `<%== %>`,
+`<% %>` (with `-%>`), and `<%# %>` comments are highlighted over it, with Ruby's keywords and
+common view helpers.
+
+## IRB console
+
+**Tools | Run IRB Console** opens a Terminal tab with `bundle exec irb -I lib` (or the
+interpreter's `irb`). IRB reads the project's `.irbrc` and Bundler its Gemfile, so the console
+is refused in Safe Mode.
+
+## New projects
+
+**File | New Project** has two Ruby generators: **Ruby Gem** runs `bundle gem` (Minitest,
+RSpec or test-unit, RuboCop, an executable), with **Ruby Project** — a Gemfile, Rakefile,
+`lib/`, `bin/`, Minitest tests and `.rubocop.yml` — as the offline fallback.
+
+## Settings
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Ruby interpreter | automatic | the project's Ruby (path or name) |
+| Environment | — | `KEY=VALUE` variables of Ruby commands |
+| Run commands with bundle exec | on | Bundler projects run gems through `bundle exec` |
+| bundle executable | — | another `bundle` |
+| Load tasks with rake --tasks | on | ask Rake (trusted projects) or read the Rakefile |
+| Reformat Code with | RuboCop (safe) | RuboCop `-a`, RuboCop `-A`, Ruby LSP or nothing |
+| Check files with RuboCop | on | on-the-fly and on-save RuboCop checks |
+| rubocop executable, Additional options | — | another RuboCop, extra options (`--only Style`) |
+| ruby-lsp executable, Ruby LSP formatter | —, automatic | Ruby LSP's executable and formatter |
+| rdbg executable | — | another rdbg |
+
+All keys are in the [settings reference](docs/guide/reference/settings.md#languages--frameworks--ruby).
+
+
+---
+
 Source: docs/guide/user/rust.md
 
 # RustForge (Rust)
@@ -13342,6 +13572,217 @@ tests, CMake presets and a `.clang-format`. `&build=broken` makes its build fail
 compiler errors. Toolchains, the CMake model and all output are canned; the parsing and the
 command lines run the Rust crates through WebAssembly. `?project=pio` opens the PlatformIO
 demo `blinky` ([Embedded development](docs/guide/user/embedded.md#browser-mode)).
+
+
+---
+
+Source: docs/guide/user/dotnet.md
+
+# DotNetForge (.NET)
+
+**DotNetForge** brings Rider's .NET support to Forge, inside Forge's PHPStorm-style layout.
+Its plugin **.NET** (`forge.dotnet`) is active in [.NET projects](docs/guide/getting-started/project-detection.md):
+a solution (`.sln`, `.slnx`), a project file (`.csproj`, `.fsproj`, `.vbproj`) in the root or
+one level below, `global.json`, a C# or F# file in the root, or two or more in a folder.
+
+- C#, F# and Visual Basic files are highlighted out of the box. MSBuild files (`.csproj`,
+  `.fsproj`, `.vbproj`, `.props`, `.targets`, `.slnx`, `.nuspec`, `.runsettings`, `.resx`)
+  are XML, Razor (`.razor`, `.cshtml`) is HTML, and `.sln` solutions have their own
+  highlighting (sections, GUIDs, configurations).
+- Completion, navigation, hover, rename, code actions and diagnostics for C# come from the
+  **Roslyn language server** (see [below](#roslyn-language-server)), F# from FsAutoComplete
+  when it is installed (`dotnet tool install --global fsautocomplete`).
+- Everything else is computed in Rust (`packs/dotnetforge/*`): solutions and project files,
+  launch profiles, SDK selection, build output, test discovery, TRX reports, command lines
+  and NuGet answers.
+
+![CartTests.cs with run icons on the xUnit test class and its facts and theories](docs/screenshots/dotnet-editor.png)
+
+## .NET SDK
+
+**Settings | Languages & Frameworks | .NET** shows the `dotnet` host, its SDKs and runtimes,
+and the SDK the solution builds with.
+
+![Settings | Languages & Frameworks | .NET](docs/screenshots/dotnet-settings.png)
+
+- The host is the **dotnet executable** of the page, else `DOTNET_ROOT`, the `PATH`, the
+  default install folders (`/usr/share/dotnet`, `/usr/lib/dotnet`, `/usr/local/share/dotnet`,
+  Homebrew, `C:\Program Files\dotnet`) or `~/.dotnet`.
+- SDKs and runtimes come from `dotnet --list-sdks` and `dotnet --list-runtimes`, run outside
+  the project, or from the host's `sdk/` and `shared/` folders.
+- **SDK in use** follows the dotnet host's rules: `global.json`'s `version`,
+  `rollForward` (`patch`, `feature`, `minor`, `major`, `latestPatch`, `latestFeature`,
+  `latestMinor`, `latestMajor`, `disable`) and `allowPrerelease`. When `global.json` asks
+  for an SDK that is not installed, the page says so.
+- Without an SDK, a balloon offers **Install .NET SDK…**: the platform's package manager
+  (`apt`, `dnf`, `pacman`, Homebrew, winget) in the Terminal, or the download page. Forge
+  never installs an SDK on its own.
+
+## Solutions and projects
+
+Forge reads the solution and its projects from the files, the way Rider shows them before a
+design-time build:
+
+- `.sln` (Visual Studio 2005+) and `.slnx` solutions: projects, solution folders and
+  configurations (`Debug|Any CPU`). With several solutions, the Build tool window picks the
+  active one (stored per project, `dotnet.solution`).
+- Project files with the nearest `Directory.Build.props` and `Directory.Packages.props`:
+  the SDK (`Microsoft.NET.Sdk.Web` makes a web project), `OutputType`, `TargetFramework(s)`,
+  `AssemblyName`, `RootNamespace`, project, framework and package references, F# compile
+  order, and properties such as `Nullable`, `LangVersion` and `Version`.
+- `$(Property)` references are expanded, and simple conditions
+  (`'$(Configuration)' == 'Release'`) are evaluated with the active configuration;
+  conditions that depend on the target framework keep their references listed.
+- **Central package management**: versions from `PackageVersion` items,
+  `VersionOverride`, and implicit references (`FSharp.Core`).
+- Launch profiles from `Properties/launchSettings.json` (comments and trailing commas are
+  fine).
+- A test project is one with `IsTestProject`, the `MSTest.Sdk`, or `Microsoft.NET.Test.Sdk`
+  with xUnit, NUnit or MSTest.
+
+The solution reloads when you save a solution, project, `Directory.*.props`,
+`launchSettings.json` or `global.json` file, and with **Reload Solution**.
+
+## Build tool window
+
+The **Build** tool window (bottom) shows the solution on the left and the last build on the
+right, like Rider's.
+
+![The Build tool window with the solution and the problems of a failed build](docs/screenshots/dotnet-build.png)
+
+- **Solution tree**: solution folders, projects with their language and target frameworks,
+  launch profiles and package references. Double-click runs a project or a launch profile.
+- Toolbar: **Build**, **Rebuild**, **Clean** and **Restore NuGet Packages** of the solution
+  (or the selected project), **Run** and **Debug** of the selected project or profile,
+  **Reload Solution**, **Show Build Output**, the active solution and the build
+  configuration (**Debug** / **Release**).
+- Builds run `dotnet build` in the Run tool window. Their output is parsed in Rust: the
+  compiler (C#, F#, VB), NuGet and MSBuild problems, each once, grouped by file, with the
+  summary (errors, warnings, time). Click a problem to open its location; the editor shows
+  the same problems (inspection *Build errors and warnings*, source `dotnet-build`).
+- **Build | Build Project** (`Ctrl+F9`) builds the solution in .NET projects; the Build menu
+  also has **Build Solution**, **Rebuild Solution**, **Clean Solution**, **Restore NuGet
+  Packages** and **Reload Solution**.
+
+## Run configurations
+
+The **.NET Project** configuration type runs a project with `dotnet run`:
+
+![Run/Debug Configurations with a .NET Project configuration and its launch profile](docs/screenshots/dotnet-run-config.png)
+
+- **Project**: the runnable projects (`Exe`, `WinExe` and web projects).
+- **Launch profile**: a profile of `launchSettings.json` (`--launch-profile`), the default
+  (the first one) or **None** (`--no-launch-profile`). Profiles of other kinds (IIS
+  Express, Docker) are listed in the Build tool window but `dotnet run` cannot start them.
+- **Run with**: `dotnet run`, or `dotnet watch` with hot reload (rude edits restart the
+  program).
+- **Target framework**, **Configuration** (else Settings | .NET), **Do not build** and more
+  `dotnet run` options; program arguments go after `--`.
+- **Build before running tests and debugging** (Settings | .NET) builds the solution through
+  the Build tool window first, so its problems show up there.
+
+## Testing
+
+The **.NET Tests** configuration type runs xUnit, NUnit and MSTest tests with `dotnet test`
+on the [shared test runner](docs/guide/user/testing.md):
+
+![A dotnet test run with a failed FluentAssertions comparison](docs/screenshots/dotnet-tests.png)
+
+- Gutter icons on test classes and methods: xUnit `[Fact]` / `[Theory]`, NUnit `[Test]` /
+  `[TestCase]` / `[TestCaseSource]`, MSTest `[TestMethod]` / `[DataTestMethod]` in C#, and
+  `[<Fact>]` / `[<Test>]` functions and members in F#. Nested classes count (`Outer+Inner`);
+  skipped tests (`Skip =`, `[Ignore]`) are marked.
+- Scopes: the solution, a test project, a class, a method or a `--filter` expression. Class
+  and method runs use `FullyQualifiedName` filters (data rows included).
+- Results come from the **TRX report** (`--logger trx`) that `dotnet test` writes into
+  Forge's report folder: suites per class, tests per data row, durations, output, failure
+  messages with stack traces, and **Click to see difference** for xUnit, NUnit, MSTest and
+  FluentAssertions comparisons. The gutter icons show the results.
+- **Rerun Failed Tests** runs only the failed methods.
+- `global.json` with `"test": { "runner": "Microsoft.Testing.Platform" }` switches to the new
+  platform's options (`--report-trx`).
+- **Debug** runs the tests with `VSTEST_HOST_DEBUG=1` and attaches netcoredbg to the test
+  host when it waits for a debugger.
+
+## Debugging
+
+Debugging uses **netcoredbg** (MIT, Samsung), a Debug Adapter Protocol server for .NET:
+
+- **Debug** on a .NET Project configuration builds the project, finds the built assembly in
+  the build output and starts `dotnet <assembly>` under netcoredbg with the launch profile's
+  arguments, working folder and environment (including `ASPNETCORE_URLS` from
+  `applicationUrl`). **Step through my code only** (Just My Code) is on by default.
+- netcoredbg comes from Settings | .NET's path, Forge's download, or the `PATH`. **Download…**
+  fetches the pinned release from GitHub after you agree and checks the SHA-256 GitHub
+  publishes for it; without one, the download is refused.
+
+## NuGet
+
+The **NuGet** tool window (bottom) searches the feed and manages the solution's packages.
+
+![The NuGet tool window with a search and a package's projects](docs/screenshots/dotnet-nuget.png)
+
+- Without a search term, the list shows the packages installed in the solution, with their
+  upgrades. A search asks the feed (nuget.org by default, Settings | .NET | NuGet feed)
+  through Forge's Rust client; **Prerelease** includes prerelease versions.
+- The details of a package show its versions and every project with the version it uses:
+  **Install**, **Upgrade** and **Remove** run `dotnet add <project> package <id> --version
+  <v>` / `dotnet remove <project> package <id>` in the Run tool window. With central package
+  management, `dotnet` updates `Directory.Packages.props`.
+- **Updates** lists the installed packages with a newer version (`Upgrade All`).
+- Versions are cached in the user cache folder for six hours and used when the feed cannot
+  be reached.
+
+![NuGet upgrades of the solution's packages](docs/screenshots/dotnet-nuget-updates.png)
+
+## Templates
+
+- **File | New Project | .NET Project** creates a solution with a project from a `dotnet
+  new` template (console, class library, ASP.NET Core, Blazor, worker, xUnit, NUnit, MSTest,
+  or any other template's short name), in C#, F# or Visual Basic, for a chosen framework.
+- **Tools | Add Project from Template…** lists the templates `dotnet new list` reports
+  (including those added with `dotnet new install`), creates the project in `src/` or
+  `tests/` and adds it to the solution (`dotnet sln add`).
+
+![Add Project from Template](docs/screenshots/dotnet-add-project.png)
+
+## Code Cleanup and formatting
+
+- **Code | Code Cleanup…** in a .NET project runs `dotnet format` on the current file, its
+  folder or the whole solution. Every rule comes from the project's `.editorconfig` files:
+  whitespace, code style (`IDE*`) and analyzers (`CA*`). Settings | .NET chooses what it fixes
+  (all, whitespace, style, analyzers) and the minimum severity; a balloon reports how many
+  fixes `dotnet format` made.
+- **Code | Reformat Code** (`Ctrl+Alt+L`) uses the Roslyn server by default. With *Reformat
+  Code with: dotnet format*, Forge formats the editor text with `dotnet format whitespace`
+  in a temporary copy that has the same `.editorconfig` files, so the project is not touched.
+
+## Roslyn language server
+
+C# code insight comes from **Microsoft.CodeAnalysis.LanguageServer** (MIT), the server of
+VS Code's C# extension. It is never bundled:
+
+- When it is missing, a balloon offers **Download…**. Forge downloads the pinned version for
+  your platform from Microsoft's public `vs-impl` NuGet feed, checks it against the SHA-256
+  recorded for that version, and keeps it in Forge's data folder. It runs on your .NET
+  runtime (9 or newer); **Download the Roslyn Language Server…** is also in Find Action.
+- Forge starts it for local projects and opens the active solution (`solution/open`), or the
+  project files without one. It replaces csharp-ls while it runs.
+- Settings: **Analyze** open files, the whole solution or nothing; parameter and type hints.
+
+## Project trust
+
+Building, running, testing, restoring, formatting and debugging run project code (MSBuild
+targets, source generators, analyzers), so [Safe Mode](docs/guide/user/project-trust.md) refuses them, and
+the Roslyn server and FsAutoComplete do not start. Reading the solution, project files and
+launch profiles and searching NuGet stay available.
+
+## Browser mode
+
+`?project=dotnet` opens the `Bookstore` demo solution (an ASP.NET Core API, a class library
+with two target frameworks, xUnit tests and an F# tool, with central package management);
+`&build=broken` makes its build fail with compiler errors, `&roslyn=missing` starts without
+the Roslyn server.
 
 
 ---
@@ -15547,7 +15988,7 @@ blocked even if a plugin or the UI tries to start them:
 | --- | --- |
 | Run/Debug configurations, Before launch tasks, Run Anything, External Tools | not started (every run goes through one place in the backend) |
 | Composer and npm scripts, Artisan, Symfony console, Command Line Tool Support | not started; the Run Command popup lists only the built-in Artisan and Symfony commands |
-| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest) | not started |
+| Test runners (PHPUnit, Pest, Codeception, Behat, PHPSpec, Vitest, Jest, RSpec, Minitest) | not started |
 | Xdebug: Start Listening, PHP Web Page | refused |
 | Composer: Show Outdated, Audit | refused (Composer loads the project's plugins) |
 | [Vulnerable dependency check](docs/guide/user/vulnerable-dependencies.md) (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) | refused, also on project open (the tools load the project's plugins or run its Python environment) |
@@ -15562,6 +16003,7 @@ blocked even if a plugin or the UI tries to start them:
 | Web code quality tools (ESLint, Prettier, Stylelint, Biome): checks, fixes, Reformat with Prettier, Inspect Code, Validate | refused (Reformat Code uses the usual formatter) |
 | PHP quality tools (PHPStan, Psalm, phpcs, PHP Mess Detector, PHP CS Fixer, Pint, Rector): checks, Reformat with …, Inspect Code, Validate | refused |
 | StyLua installed in the project | not run |
+| Ruby: Rake task loading, RuboCop checks and autocorrect, the IRB console | Rake tasks are read from the Rakefile instead of `rake --tasks`; RuboCop is not run (Reformat Code does nothing); IRB is refused |
 | AI agents (Claude Code, Gemini CLI) | not started (they run the project's hooks and MCP servers) |
 | Deployment: automatic upload on save | off (the servers and the option come from the project's own files) |
 | SSH session to a deployment server (Tools \| Start SSH Session…) | asks first: the server comes from the project's files; your own SSH configurations connect without asking |
@@ -16053,10 +16495,13 @@ format into the same test events:
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
 | Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
+| RSpec JSON | `rspec --format progress --format json --out <file>` | a report file |
+| Minitest verbose output | `ruby -Itest test/x_test.rb -v`, `rake test TESTOPTS=-v` | streamed on stdout; failures, errors and skips are read from the summary |
 
 Failures keep their message, the failure location (a stack frame) and, where the tool reports
 them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`
-(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted).
+(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted),
+`expected: … got: …` (RSpec), `Expected:` / `Actual:` (Minitest).
 
 ## Safe Mode
 
@@ -21850,6 +22295,30 @@ Page id `lang.cpp` (plugin `forge.cpp`; the page also shows clangd, the compilat
 | `cpp.clangFormat.path` | path | `""` | user | Code Style | clang-format executable — Empty: clang-format of the active toolchain or on the PATH. |
 | `cpp.clangFormat.fallbackStyle` | enum: `LLVM`, `Google`, `Chromium`, `Mozilla`, `WebKit`, `Microsoft`, `GNU`, `none` | `LLVM` | user, project | Code Style | Style without a .clang-format file. |
 | `cpp.debugger.stlRenderers` | bool | `true` | user | Debugger | Show STL containers with their elements — GDB loads libstdc++'s pretty printers of the toolchain; LLDB uses its built-in C++ formatters. |
+### Languages & Frameworks | .NET
+
+Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet host, its SDKs and runtimes, the SDK `global.json` selects, the Roslyn server and netcoredbg with their downloads). See [DotNetForge](docs/guide/user/dotnet.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `dotnet.path` | path | `""` | user | .NET CLI | dotnet executable — The .NET host (dotnet) of builds, runs, tests and the Roslyn server. Empty: DOTNET_ROOT, the PATH or the default install folder. |
+| `dotnet.environment` | list | `[]` | user, project | .NET CLI | Environment — Variables for dotnet commands of the project, one KEY=VALUE per entry (DOTNET_ENVIRONMENT, NUGET_PACKAGES). |
+| `dotnet.solution` | string | `""` | user, project | Solution | Solution — The solution the Build and NuGet tool windows, the tests and the Roslyn server use. Empty: the solution in the project root. (hidden: edited in the Build tool window) |
+| `dotnet.configuration` | enum: `Debug`, `Release` | `"Debug"` | user, project | Build | Build configuration |
+| `dotnet.build.verbosity` | enum: `quiet`, `minimal`, `normal`, `detailed` | `"minimal"` | user | Build | MSBuild verbosity |
+| `dotnet.build.beforeRun` | bool | `false` | user | Build | Build before running tests and debugging — dotnet run and dotnet test build by themselves; this builds the solution through the Build tool window first, so problems show up there. |
+| `dotnet.formatter` | enum: `lsp`, `dotnetFormat`, `none` | `"lsp"` | user, project | Code Cleanup | Reformat Code with — Ctrl+Alt+L for C# and F# files: the Roslyn language server, or dotnet format (whitespace rules of the project's .editorconfig files). |
+| `dotnet.cleanup.scope` | enum: `all`, `whitespace`, `style`, `analyzers` | `"all"` | user, project | Code Cleanup | Code Cleanup fixes — Code | Code Cleanup runs dotnet format on the file, folder or solution: every rule of .editorconfig, or only some of them. |
+| `dotnet.cleanup.severity` | enum: `info`, `warn`, `error` | `"warn"` | user, project | Code Cleanup | Minimum severity of fixed diagnostics |
+| `dotnet.roslyn.path` | path | `""` | user | Roslyn | Roslyn language server — The folder of Microsoft.CodeAnalysis.LanguageServer.dll. Empty: Forge's download. |
+| `dotnet.roslyn.autoInstall` | enum: `ask`, `never` | `"ask"` | user | Roslyn | Offer to download the Roslyn language server |
+| `dotnet.roslyn.analysisScope` | enum: `openFiles`, `fullSolution`, `none` | `"openFiles"` | user, project | Roslyn | Analyze — Where the server reports compiler and analyzer problems. |
+| `dotnet.roslyn.inlayHints` | bool | `true` | user | Roslyn | Show parameter and type hints |
+| `dotnet.debugger.path` | path | `""` | user | Debugger | netcoredbg executable — Empty: Forge's download or netcoredbg on the PATH. |
+| `dotnet.debugger.justMyCode` | bool | `true` | user | Debugger | Step through my code only (Just My Code) |
+| `dotnet.nuget.source` | string | `"https://api.nuget.org/v3/index.json"` | user | NuGet | NuGet feed — The service index the NuGet tool window searches. |
+| `dotnet.nuget.prerelease` | bool | `false` | user, project | NuGet | Include prerelease versions |
+
 ### Languages & Frameworks | Jupyter
 
 Page id `lang.jupyter`. See [Jupyter notebooks](docs/guide/user/jupyter.md). The server token is stored in the OS keychain, not in settings.
@@ -21883,6 +22352,25 @@ Page id `lang.go` (`go.goroot` is set by the GOROOT list of the page).
 | `go.delve.path` | path | `""` | user | Debugger | Delve (dlv) executable — Empty: Forge's tools folder, GOPATH/bin or PATH. Forge can install Delve with your Go toolchain. |
 | `go.test.fuzztime` | string | `10s` | user, project | Tests | Default fuzz time — How long fuzzing runs when a Go Test configuration does not set it (-fuzztime). |
 | `go.modules.proxyLookups` | bool | `true` | user | Go Modules | Look up module versions on the module proxy — Version completion in go.mod and Add Dependency ask GOPROXY (proxy.golang.org by default), cached for 12 hours in Forge's cache folder. |
+### Languages & Frameworks | Ruby
+
+Page id `lang.ruby` (`ruby.interpreter` and `ruby.interpreters` are set by the Ruby SDK list of the page).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `ruby.interpreter` | string | `""` | user, project | Ruby SDK | Ruby interpreter — The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest. |
+| `ruby.interpreters` | list | `[]` | user | Ruby SDK | Added interpreters — Ruby executables added by hand (Add Interpreter…); detected ones are listed without this. |
+| `ruby.environment` | list | `[]` | user, project | Ruby SDK | Environment — Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV). |
+| `ruby.bundler.useBundleExec` | bool | `true` | user, project | Bundler | Run commands with bundle exec — In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle. |
+| `ruby.bundler.path` | path | `""` | user | Bundler | bundle executable — Empty: the interpreter's bundle, then PATH. |
+| `ruby.rake.runRake` | bool | `true` | user, project | Rake | Load tasks with rake --tasks — The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake. |
+| `ruby.formatter` | enum: `rubocop`, `rubocopAll`, `lsp`, `none` | `rubocop` | user, project | RuboCop | Reformat Code with — Ctrl+Alt+L and "Reformat code" on save use this tool for Ruby files. |
+| `ruby.rubocop.onTheFly` | bool | `true` | user, project | RuboCop | Check files with RuboCop — RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins). |
+| `ruby.rubocop.path` | path | `""` | user | RuboCop | rubocop executable — Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH. |
+| `ruby.rubocop.options` | string | `""` | user, project | RuboCop | Additional options — Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml. |
+| `ruby.lsp.path` | path | `""` | user | Ruby LSP | ruby-lsp executable — Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder. |
+| `ruby.lsp.formatter` | enum: `auto`, `rubocop_internal`, `syntax_tree`, `none` | `auto` | user, project | Ruby LSP | Ruby LSP formatter — The formatter Ruby LSP uses for formatting and diagnostics. |
+| `ruby.debugger.rdbgPath` | path | `""` | user | Debugger | rdbg executable — The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem. |
 ### Languages & Frameworks | Rust
 
 Page id `lang.rust` (`rust.toolchain` is set by the Toolchain list of the page).
@@ -22437,6 +22925,7 @@ otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.m
 | `jinja` | Jinja2 | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` |  | yes |
 | `django` | Django Template | `.djhtml` |  | yes |
 | `handlebars` | Handlebars | `.hbs`, `.handlebars`, `.mustache` |  | yes |
+| `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
 | `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
@@ -22520,6 +23009,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `eml` | E-Mail | `forge.eml` | `.eml` |  |  | 4 |
 | `ini` | INI | `forge.ini` | `.ini`, `.cfg`, `.inf`, `.desktop`, `.service`, `.socket`, `.timer`, `.mount`, `.target` | `php.ini`, `php.ini-*`, `.editorconfig`, `.gitconfig`, `.gitmodules`, `.npmrc`, `.pylintrc`, `.flake8`, `tox.ini`, `setup.cfg`, `pytest.ini`, `my.cnf`, `*.cnf`, `supervisord.conf`, `*.ini.*`, `pip.conf` |  | 4 |
 | `conf` | Config | `forge.conf` | `.conf`, `.config`, `.cnf` | `*.conf.*` |  | 4 |
+| `ruby` | Ruby | `forge.ruby` | `.rb`, `.rake`, `.gemspec`, `.ru`, `.rbw`, `.jbuilder`, `.builder` | `Gemfile`, `gems.rb`, `Rakefile`, `rakefile`, `Guardfile`, `Capfile`, `Vagrantfile`, `Brewfile`, `Podfile`, `Fastfile`, `Appfile`, `Steepfile`, `.irbrc`, `.pryrc` | `ruby`, `jruby`, `truffleruby` | 2 |
+| `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
 
@@ -22546,9 +23037,10 @@ compound file name, then HTML. Compound inner extensions:
 | `ini`, `env`, `conf` | INI / Properties |
 | `sh` | Shell Script |
 | `go` | Go |
-| `txt`, `md`, `csv`, `eml` | Plain text |
+| `txt`, `text`, `md`, `csv`, `eml` | Plain text |
 
-Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS.
+Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS,
+`welcome.text.erb` → plain text.
 
 ## Soft wraps
 
@@ -22750,7 +23242,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT |  |
+| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT | RubyForge configures it with the project's Ruby and can install it into Forge's data folder with your gem ([RubyForge](docs/guide/user/ruby.md#ruby-lsp)) |
 
 ### PHP
 
@@ -23123,7 +23615,7 @@ them (a language, framework, pack or tool id from
 [project detection](docs/guide/getting-started/project-detection.md)). Disabling a plugin also disables
 the plugins that depend on it.
 
-Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `kotlinforge`, `cforge`, and `scriptforge` / `configforge` for the
+Pack ids: `core`, `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`, `goforge`, `rustforge`, `rubyforge`, `kotlinforge`, `cforge`, `dotnetforge`, and `scriptforge` / `configforge` for the
 script and config language plugins.
 
 | Plugin | Id | Pack | Depends on | Active for (project types) | Contributes |
@@ -23149,6 +23641,7 @@ script and config language plugins.
 | Python | `forge.python` | pyforge |  | always | 1 commands; 4 settings; file types: Python, pip Requirements |
 | Python Interpreters and Packages | `forge.python-env` | pyforge | `forge.python` | `pyforge` | tool windows: Python Packages; 4 commands; 8 settings; run types: Python |
 | Go | `forge.go` | goforge |  | `goforge` | tool windows: Profiler; 9 commands; 14 settings; file types: Go Module, Go Workspace, Go Checksums; run types: Go Build, Go Remote; test frameworks: Go Test |
+| Ruby | `forge.ruby` | rubyforge |  | `rubyforge` | tool windows (UI): Rake; 9 commands; 13 settings; file types: Ruby, Gemfile.lock; run types: Ruby, Rake; test frameworks: RSpec, Minitest; 1 debug adapter (rdbg, in Rust); inspections: RuboCop |
 | Rust | `forge.rust` | rustforge |  | `rustforge` | tool windows (UI): Cargo; 8 commands; 18 settings; file types: TOML (Cargo.lock, rust-toolchain); run types: Cargo; test frameworks: Cargo Test; 1 debug adapter (rust-gdb, in Rust) |
 | Python Tests, Debugger, Console and Profiler | `forge.python-tools` | pyforge | `forge.python-env` | `pyforge` | tool windows: Python Console, Profiler; 5 commands; 9 settings; run types: pytest, Unittests, tox; 1 debug adapters |
 | Python Web Frameworks | `forge.python-web` | pyforge | `forge.python-env` | `django`, `flask`, `fastapi` | tool windows: Endpoints; 1 commands |
@@ -23159,6 +23652,7 @@ script and config language plugins.
 | Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
+| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet; 10 commands; 18 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
@@ -23947,7 +24441,7 @@ testFiles = ["*_spec.lua"]          # gutter icons in these files
 program = "busted"
 programSetting = "lua.busted.path"  # setting with the executable
 args = ["--output=TAP"]
-report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox | minitestText
 junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
 nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
 escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
@@ -25140,7 +25634,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
-| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest) and test trees (pure, also built to WebAssembly) |
+| [forge-output](docs/guide/developer/crates/forge-output.md) | Forge process output: ANSI styling, console lines, file links, the test event protocol with its parsers (TeamCity, JUnit, TAP, Go, libtest JSON and text, Jest/Vitest, pytest, RSpec, Minitest) and test trees (pure, also built to WebAssembly) |
 | [forge-plugin-api](docs/guide/developer/crates/forge-plugin-api.md) | Stable plugin API for Forge language packs and feature plugins |
 | [forge-ports](docs/guide/developer/crates/forge-ports.md) | Free local ports for servers Forge starts (debug adapters, JDWP, debugpy, Jupyter kernels), probed without listening and outside the ephemeral range |
 | [forge-process](docs/guide/developer/crates/forge-process.md) | Forge IDE processes: PTY terminal sessions, run configurations and the process runner |
@@ -25184,6 +25678,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-packages](docs/guide/developer/crates/pyforge-packages.md) | PyForge: Python packages (installed packages of an environment, pip/uv/Poetry/Pipenv commands, PyPI metadata and search cached in the user cache dir) |
 | [rustforge-lang-rust](docs/guide/developer/crates/rustforge-lang-rust.md) | RustForge: Rust and Cargo support (cargo metadata, toolchain files, run / test / doctest discovery, the Cargo Test provider, Cargo command lines, Clippy messages with fixes, rustfmt, rust-analyzer settings, debugger pretty printers; pure, also built to WebAssembly) |
 | [rustforge-toolchain](docs/guide/developer/crates/rustforge-toolchain.md) | RustForge: rustup toolchains and tools on the user's machine, consented rustup installs, the pinned rust-analyzer download (SHA-256) and GDB with rustc's pretty printers as a debug adapter |
+| [rubyforge-lang-ruby](docs/guide/developer/crates/rubyforge-lang-ruby.md) | RubyForge: Ruby language support (version files, Gemfile and Gemfile.lock, Rake tasks, RSpec and Minitest discovery and the test provider, Ruby / Rake / Bundler / IRB / rdbg command lines, RuboCop reports; pure, also built to WebAssembly) |
+| [rubyforge-sdk](docs/guide/developer/crates/rubyforge-sdk.md) | RubyForge: Ruby interpreters of version managers and the system, gem executables, consented ruby-lsp installs with the user's gem, and rdbg as the `rdbg` debug adapter |
 | [goforge-lang-go](docs/guide/developer/crates/goforge-lang-go.md) | GoForge: Go language support (go.mod / go.work, module versions, test / benchmark / fuzz / example discovery with subtests, the Go Test provider, Go Build command lines, go:generate, go vet and golangci-lint reports; pure, also built to WebAssembly) |
 | [goforge-sdk](docs/guide/developer/crates/goforge-sdk.md) | GoForge: Go SDK detection and consented downloads from go.dev/dl (SHA-256), gopls / Delve / goimports locations and pinned go install commands, module proxy lookups cached in the user cache dir |
 | [goforge-delve](docs/guide/developer/crates/goforge-delve.md) | GoForge: Delve (dlv dap) as the `go` debug adapter: launch, test, attach to a process, remote dlv --headless, core dumps |
@@ -25193,6 +25689,8 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [cforge-lang-cpp](docs/guide/developer/crates/cforge-lang-cpp.md) | CForge: C/C++ build problems (GCC, Clang, MSVC, linkers), compilation databases, GoogleTest and Catch2 discovery, the GoogleTest / Catch2 / CTest providers with gcov and llvm-cov coverage, clangd / clang-format command lines and debugger setup (pure, also built to WebAssembly) |
 | [cforge-analyzers](docs/guide/developer/crates/cforge-analyzers.md) | CForge: sanitizer reports (ASan, LSan, TSan, MSan, UBSan), Valgrind Memcheck XML and perf script output as Profiler views (pure, also built to WebAssembly) |
 | [cforge-embedded](docs/guide/developer/crates/cforge-embedded.md) | CForge: platformio.ini and PlatformIO tasks, ESP-IDF (idf.py) and Zephyr (west) commands, OpenOCD flashing and GDB server, CMSIS-SVD files with register decoding (pure, also built to WebAssembly) |
+| [dotnetforge-lang-dotnet](docs/guide/developer/crates/dotnetforge-lang-dotnet.md) | DotNetForge: .sln / .slnx solutions, MSBuild projects with Directory.Build.props and central package management, launch profiles, global.json and SDK selection, build output as problems, xUnit / NUnit / MSTest discovery and the .NET test provider with TRX reports, dotnet command lines, dotnet new list, NuGet answers, dotnet format reports, the Roslyn server setup (pure, also built to WebAssembly) |
+| [dotnetforge-sdk](docs/guide/developer/crates/dotnetforge-sdk.md) | DotNetForge: the dotnet host, SDKs and runtimes on the user's machine, netcoredbg and Roslyn server locations, the NuGet v3 feed client with a version cache |
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
@@ -26363,6 +26861,9 @@ pub use views::{Instruction, MemoryBlock, MemoryRow};
 pub trait DebugAdapterDescriptor: Send + Sync {
     fn info(&self) -> AdapterInfo;
     fn resolve(&self, request: &LaunchRequest) -> DapResult<ResolvedLaunch>;
+    /// Breakpoints follow `launch` / `attach` even when `initialized` comes right after
+    /// `initialize` (rdbg maps breakpoint paths only after `attach`). Default: false.
+    fn breakpoints_after_request(&self) -> bool { false }
 }
 ```
 
@@ -27871,6 +28372,8 @@ these rows.
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
 | `managed/clangd.rs` | CForge's clangd download from the official GitHub releases at a pinned version (`CLANGD_VERSION`, `clangd_release` per platform): the SHA-256 recorded in `CLANGD_BUILDS`, else the asset `digest` of the GitHub REST API for the pinned release (`asset_digest`); without one the install is refused. Unpacked into `<data dir>/forge/langservers/clangd/<version>` (`installed_clangd`). clangd is a pack server (plugin `forge.cpp`). |
 | `managed/kotlin.rs` | KotlinForge's downloads, pinned with their SHA-256: JetBrains' kotlin-lsp standalone build for the platform from download.jetbrains.com (`kotlin_lsp_release`, unpacked into `<data dir>/forge/langservers/kotlin-lsp/<version>`, `inspect_kotlin_lsp` / `installed_kotlin_lsp` find `bin/intellij-server`) and the ktlint / detekt `*-all.jar`s from Maven Central (`KTLINT`, `DETEKT`, `install_jar` into `<data dir>/forge/langservers/jars`). kotlin-lsp and kotlin-language-server are pack servers (plugin `forge.kotlin`); so is Metals (plugin `forge.scala`, installed with the user's Coursier by `commands/scala.rs`). |
+| `managed/roslyn.rs` | DotNetForge's Roslyn language server (`Microsoft.CodeAnalysis.LanguageServer.<rid>`, MIT) from Microsoft's public `vs-impl` NuGet feed at a pinned version (`ROSLYN_VERSION`, `roslyn_release` per platform) with the SHA-256 recorded per platform in `ROSLYN_BUILDS` (a platform without one is refused); only `content/LanguageServer/<rid>/` of the package is unpacked (`archive::extract_zip_prefix`) into `<data dir>/forge/langservers/roslyn/<version>` (`installed_roslyn`, `inspect_roslyn`). `roslyn` is a pack server (plugin `forge.dotnet`). |
+| `managed/netcoredbg.rs` | DotNetForge's netcoredbg (MIT, Samsung) from its GitHub releases at a pinned version (`NETCOREDBG_VERSION`): the SHA-256 recorded in `NETCOREDBG_BUILDS`, else the GitHub API's asset digest; without one the install is refused. Unpacked into `<data dir>/forge/debuggers/netcoredbg/<version>`. |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
 | `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
@@ -28105,7 +28608,7 @@ them.
 
 | Module | Summary |
 | --- | --- |
-| `client.rs` | An LSP client talking to one language server process over stdio. Servers with `LspServerConfig::pull_diagnostics` (kotlin-lsp) get the `textDocument.diagnostic` capability and are asked `textDocument/diagnostic` after `didOpen` / `didChange`; the answers become `LspEvent::Diagnostics`. `LspServerConfig::env` adds environment variables to local server processes (`spawn_local_with_env`). `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
+| `client.rs` | An LSP client talking to one language server process over stdio. Servers with `LspServerConfig::pull_diagnostics` (kotlin-lsp) get the `textDocument.diagnostic` capability and are asked `textDocument/diagnostic` after `didOpen` / `didChange`; the answers become `LspEvent::Diagnostics`. `LspServerConfig::env` adds environment variables to local server processes (`spawn_local_with_env`); `LspServerConfig::after_initialized` notifications (`LspNotification`) are sent right after `initialized` (the Roslyn server's `solution/open`). `$/progress` and Eclipse JDT LS's `language/status` (`57% Starting Java Language Server - Importing Gradle project(s)`) become the server's busy state. |
 | `config.rs` | Language server configuration as contributed by language packs. |
 | `framing.rs` | JSON-RPC message framing used by LSP over stdio: a `Content-Length` header block, an empty line, then exactly that many bytes of UTF-8 JSON. |
 | `hierarchy.rs` | Type and Call Hierarchy from the servers as `forge_codeintel::hierarchy`'s model: `LspManager::type_graph` (prepare, then supertypes and subtypes breadth-first, at most 300 types), `call_root` and `call_nodes` (incoming / outgoing calls of an item); items keep the server id and the server's own item as their `handle`. The manager's `prepare_type_hierarchy`, `type_hierarchy`, `prepare_call_hierarchy`, `incoming_calls` and `outgoing_calls` ask only servers announcing `typeHierarchyProvider` / `callHierarchyProvider` (`Feature::TypeHierarchy`, `Feature::CallHierarchy`). |
@@ -28422,8 +28925,10 @@ renders it.
 - `testevents`: the test event protocol (`TestEvent`: count, suite started / finished, test
   started / failed with expected, actual and a failure location / ignored / output /
   finished with a duration) every format is turned into, and the `LineParser` trait.
-- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON and pytest
-  report logs, and `document_events` (JUnit XML, JSON, JSON lines sniffed).
+- `formats`: parsers for TAP, Go `test2json`, libtest JSON and plain text, Jest / Vitest JSON, Playwright JSON, pytest
+  report logs, RSpec JSON reports (`rspec`: files, example groups from the full
+  descriptions, `expected: … got: …`, errors outside of examples) and Minitest's verbose
+  output (`minitest`: one suite per class, failures / errors / skips from the summary), and `document_events` (JUnit XML, JSON, JSON lines sniffed).
 - `run`: everything above combined for one run.
 - `osc`: terminal OSC sequences (progress, notifications, working directory) and OSC 8
   link targets.
@@ -28448,6 +28953,7 @@ The crate is pure (no I/O) so `forge-wasm` can run it in browser mode.
 | `formats/playwright.rs` | Playwright JSON reports: a suite per file, `test.describe` blocks as nested suites, one test per spec and project (`title [project]` with several projects), expected / unexpected / flaky / skipped, `Expected…` / `Received…` values, errors outside tests. |
 | `formats/jest.rs` | Jest / Vitest JSON reports: a suite per file, `describe` blocks from `ancestorTitles`, statuses, `Expected:` / `Received:` values, the failing stack frame, files that failed to run. |
 | `formats/tox.rs` | tox runs: every environment is a test (tox 4 and tox 3 action lines, results `OK` / `FAIL` / `SKIP` and the summary), its lines the test's output. |
+| `formats/trx.rs` | Visual Studio test results (`dotnet test --logger trx`, xUnit / NUnit / MSTest): `TestDefinitions` give each test's class and method, `UnitTestResult`s their outcome, duration, output and error (MSTest data rows in `InnerResults`); a suite per class located by its full name (DotNetForge's location rules map it to the file), tests located by their method, comparisons of xUnit, NUnit, MSTest and FluentAssertions messages, the first `in <file>:line <n>` frame as the failure location. `document_events` sniffs TRX among XML reports. |
 | `formats/pytest.rs` | pytest report logs (`--report-log`, JSON lines per phase) and the helpers of the `Pytest` JUnit flavor (`module_file`, `assert_values`). |
 | `formats/mod.rs` | `line_parser(TestReport)` and `document_events(text, flavor)` (sniffs JUnit XML, Jest JSON and JSON lines). |
 | `junit.rs` | JUnit XML reports turned into TeamCity service messages: suites, a suite per class for Codeception's flat suites, failures and errors (with expected/actual from PHPUnit diffs), skipped and the `status` of Behat and PHPSpec (`pending`, `undefined`, `broken`), GoogleTest's and CTest's `status="notrun"` / `result="suppressed"` as ignored, durations, and locations by `JUnitFlavor` (`file`/`line`; Behat features; PHPSpec spec files and example methods derived from the class; Java: `classname` binary names to `java://com/acme/CartTest.java::method`, see `java_class_file` / `java_method`; Kotlin: `kotlin://com/acme/CartSpec.kt::adds items`, keeping spaces of backtick and Kotest names, see `kotlin_class_file` / `kotlin_test_name`). |
@@ -28768,8 +29274,8 @@ matching packs activate, and create new projects from generators (File | New Pro
 | Module | Summary |
 | --- | --- |
 | `create.rs` | Running a `Plan`: official CLIs with their output streamed line by line, built-in templates and `git init`. Programs run without a shell and with stdin closed, so interactive prompts cannot hang the creation. |
-| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. |
-| `generators.rs` | New Project generators (File \| New Project). |
+| `detect.rs` | Project type detection: which languages, frameworks and tools a project uses, read from marker files in the project root and one directory level below it (monorepos with a `backend/` and `frontend/` folder). Java: `pom.xml` (tool `maven`), Gradle builds (tool `gradle`), `*.java` or `src/main/java` / `src/test/java` → language `java`, pack `javaforge`. Kotlin: `*.kt`, Kotlin scripts (not `*.gradle.kts`), `src/{main,test}/kotlin` or the Kotlin plugin in a build → language `kotlin`, pack `kotlinforge`; `io.kotest` in a build → framework `kotest`. Groovy: `*.groovy` / `*.gvy` / `*.gy`, `src/{main,test}/groovy` or the `groovy` plugin → language `groovy` (pack `javaforge`), `org.spockframework` → framework `spock`. Scala: `build.sbt` / `project/build.properties` (tool `sbt`), `*.scala`, `src/{main,test}/scala` or Gradle's `scala` plugin → language `scala` (pack `javaforge`), ScalaTest / MUnit in `build.sbt` → frameworks `scalatest` / `munit`. Android: the Android Gradle Plugin in a build (also catalog aliases) or `src/main/AndroidManifest.xml` → framework `android` (language `java`, the AGP version of `gradle/libs.versions.toml`, tool `android`). C/C++: `CMakeLists.txt` (tool `cmake`), `compile_commands.json` in the root or `build/` (tool `compile-commands`), `meson.build` (tool `meson`), a `Makefile` next to C/C++ sources or with them in `src/` (tool `make`), C/C++ files in the root or two in a folder → language `cpp`, pack `cforge`; `platformio.ini` (tool `platformio`, language `cpp`), `west.yml` or `prj.conf` with a `CMakeLists.txt` (tool `zephyr`), ESP-IDF's `sdkconfig` / `idf_component.yml` with a `CMakeLists.txt` (tool `esp-idf`), `vcpkg.json` with a `CMakeLists.txt` (tool `vcpkg`), `conanfile.txt` / `conanfile.py` (tool `conan`). Spring Boot (Gradle plugin, Maven parent / BOM, starters; `spring_boot_version`) → framework `spring-boot`; Jakarta EE / Java EE APIs, JAX-RS, CDI or MicroProfile in a build → framework `jakarta-ee`. .NET: `.sln` / `.slnx` (the languages of their projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# files in the root or two in a folder, or `global.json` → languages `csharp`, `fsharp`, `vbnet`, pack `dotnetforge`; a `Microsoft.NET.Sdk.Web` project → framework `aspnetcore`. |
+| `generators.rs` | New Project generators (File \| New Project); the `.NET Project` generator (group `.NET`, pack `dotnetforge`) runs `dotnet new sln`, `dotnet new <template>` (`-lang`, `--framework`, any template short name) and `dotnet sln add`. |
 | `templates.rs` | Built-in offline project templates. Files are embedded with `include_str!` and use `{{placeholder}}` variables in both contents and paths (see `TemplateVars`). |
 
 ## Main public items
@@ -29674,7 +30180,7 @@ The logic behind [Project trust and Safe Mode](docs/guide/user/project-trust.md)
 - `runs_project_program(root, program, args)` tells whether a command starts a program from
   the project (the program or a path argument lies inside `root`), lexically so it works for
   remote roots; `server_runs_project_code(id)` lists catalog language servers that execute
-  project files (`SERVERS_RUNNING_PROJECT_CODE`).
+  project files (`SERVERS_RUNNING_PROJECT_CODE`; DotNetForge adds `roslyn` and `fsautocomplete`, which load MSBuild projects).
 - `ssh_session_needs_confirmation(safe_mode, SshTarget)`: an SSH terminal session to a
   deployment server (`SshTarget::ProjectServer`, defined in the project's files) needs the
   user's confirmation in Safe Mode; the user's own SSH configurations
@@ -30027,6 +30533,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
+| `dotnet.rs` | DotNetForge (`dotnetforge-lang-dotnet`), mirroring the `dotnet_*` and `nuget_*` commands for the `Bookstore` demo: the workspace from the demo files, build output as problems, test discovery and source scans, run / build / NuGet / `dotnet new` / `dotnet format` command lines, `dotnet new list`, NuGet search answers and upgrades. |
 | `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
 | `hierarchy.rs` | The Hierarchy tool window's views (`forge_codeintel::hierarchy`), called synchronously in the desktop app and in browser mode alike: `hierarchy_type_view`, `hierarchy_method_view` and `hierarchy_call_view` recompute a tree from the data the `code_*_hierarchy` commands answered when the view, scope or sorting changes. |
@@ -31146,6 +31653,139 @@ cargo test -p rustforge-toolchain -- --ignored   # this machine's rustup
 
 ---
 
+Source: docs/guide/developer/crates/rubyforge-lang-ruby.md
+
+# rubyforge-lang-ruby
+
+`packs/rubyforge/lang-ruby` — RubyForge's Ruby language support, in the style of RubyMine.
+Pure Rust (no I/O), shared by the desktop backend and the WebAssembly build of browser mode.
+
+## Purpose
+
+- `version`: the Ruby a project asks for — `.ruby-version`, `.tool-versions`,
+  `mise.toml` / `.mise.toml`, the Gemfile's `ruby "3.3.6"` or `ruby file: ".ruby-version"`, in
+  that order — version parts, engines (`jruby-9.4`) and matching (`3.3` matches `3.3.6`).
+- `gemfile`: a tolerant Gemfile scanner (sources, `ruby`, `gemspec`, `gem` with requirements,
+  groups from blocks and options, platforms, `require: false`, `path:` / `git:` / `github:`)
+  and the Gemfile.lock sections (`GEM`, `GIT`, `PATH` specs with dependencies, `PLATFORMS`,
+  `DEPENDENCIES`, `RUBY VERSION`, `BUNDLED WITH`); `bundle` merges both into `Bundle` (direct
+  and transitive gems with groups, missing gems).
+- `rake`: `rake --tasks --all` output (tasks, arguments, descriptions), `rake --where`
+  locations, and `scan_rakefile` for `desc` / `task` / `namespace` and the tasks of
+  Bundler's gem tasks, `RSpec::Core::RakeTask`, `Rake::TestTask`, `Minitest::TestTask` and
+  `RuboCop::RakeTask` without running Rake.
+- `discovery`: RSpec groups and examples with their full descriptions, Minitest test classes,
+  `def test_*` methods, ActiveSupport `test "…"` blocks and Minitest::Spec blocks
+  (`test_0001_<description>`), nested by indentation.
+- `provider`: `RubyTests`, the `forge-testing` provider of the `rspec` and `minitest`
+  manifest frameworks — gutter targets keyed like the test tree's results, `rspec
+  file:line … --format json --out <report dir>/rspec.json` and `ruby -Ilib -Itest <file> -v
+  -n <filter>` (or a loader for folders) through `bundle exec`, Rerun Failed Tests.
+- `command`: Ruby script and Rake configurations, `rake --tasks`, Bundler actions, `gem
+  install`, the IRB console and `rdbg --open --host 127.0.0.1 --port ${port} --command -- …`.
+- `rubocop`: `rubocop --format json --stdin <path>` arguments, the JSON report as
+  `RubyProblem`s (0-based positions, RuboCop's levels as Forge's), autocorrect arguments
+  (`-a` / `-A` with `--stderr`) and the corrected source.
+- `context`: `RubyContext` (interpreter, `bundle`, `use_bundler`, gem executables,
+  environment, the bundle's gems), handed to the provider as `CommandContext.settings["ruby.context"]`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `version.rs` | `requested_version`, `parse_ruby_version`, `parse_tool_versions`, `parse_mise_toml`, `parse_gemfile_ruby`, `matches`, `compare`, `engine`. |
+| `gemfile.rs` | `parse_gemfile`, `parse_lockfile`, `bundle`, `Gemfile`, `Lockfile`, `Bundle`, `BundleGem`. |
+| `rake.rs` | `parse_tasks`, `merge_locations`, `scan_rakefile`, `RakeTask`. |
+| `discovery.rs` | `discover_rspec`, `discover_minitest`, `is_spec_file`, `is_test_file`, `RubyTest`. |
+| `provider.rs` | `RubyTests`, `register`, `rspec_command`, `minitest_command`, `RSPEC`, `MINITEST`. |
+| `command.rs` | `script_command`, `rake_command`, `rake_tasks_command`, `bundler_action`, `gem_install`, `irb_command`, `rdbg_command`, `RUBY`, `RAKE`. |
+| `rubocop.rs` | `check_args`, `autocorrect_args`, `parse_report`, `corrected_source`, `RubyProblem`. |
+| `context.rs` | `RubyContext`, `RubyCommand`, `CONTEXT_KEY`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/ruby.rs` and `run.rs` (`RubyTests` in `RunState::new`).
+- WebAssembly: `crates/forge-wasm/src/ruby.rs` (`ruby_bundle`, `ruby_rake_tasks`,
+  `ruby_command_line`, `ruby_action_command`, `ruby_script_entry`, `ruby_rubocop_report`,
+  `ruby_requested_version`) and the test registry of `testing.rs`.
+- [`rubyforge-sdk`](docs/guide/developer/crates/rubyforge-sdk.md).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`
+
+## Tests
+
+Unit tests on fixtures (`tests/fixtures`: a Gemfile and Gemfile.lock, a real `rake --tasks
+--all` output, a RuboCop JSON report). An ignored smoke test runs Minitest through the
+provider's command lines with a real Ruby and parses the output with `forge-output`.
+
+```sh
+cargo test -p rubyforge-lang-ruby
+cargo test -p rubyforge-lang-ruby -- --ignored   # needs ruby with minitest
+```
+
+
+---
+
+Source: docs/guide/developer/crates/rubyforge-sdk.md
+
+# rubyforge-sdk
+
+`packs/rubyforge/sdk` — RubyForge on the user's machine.
+
+## Purpose
+
+- `detect`: `RubyStatus` of a project — the interpreters of version managers (rbenv with
+  `RBENV_ROOT`, rvm with its gem sets, chruby, asdf with `ASDF_DATA_DIR`, mise with
+  `MISE_DATA_DIR`, frum, rv) read from their folders, and of Homebrew, RubyInstaller and the
+  `PATH` (shims skipped, symlinks resolved) asked for their version with the interpreter only
+  (`ruby -e …`, through a `Runner`); `choose` (the setting, the requested version, the
+  manager's global version, the newest); gem executables (`gem`, `bundle`, `rake`, `rspec`,
+  `rubocop`, `rdbg`, `irb`, `ruby-lsp`) in the interpreter's `bin`, the user gem folder, rvm's
+  gem sets, `GEM_HOME`, Forge's ruby-lsp install and the `PATH`; `command_env` (the
+  interpreter first on `PATH`, rvm's `GEM_HOME` / `GEM_PATH`).
+- `lsp`: Ruby LSP installs — `gem install ruby-lsp --install-dir <data dir>/forge/langservers/ruby/<version>`
+  with the user's own RubyGems (nothing bundled or downloaded by Forge itself), the installed
+  executable and its launch environment (`GEM_PATH`).
+- `rdbg`: `RdbgAdapter`, the `rdbg` debug adapter: attaches to a `rdbg --open` DAP server
+  (`localfs`, `nonstop` unless Stop on entry) and asks `forge-dap` to send breakpoints after
+  `attach` (`breakpoints_after_request`), because rdbg maps breakpoint paths only then.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `interpreters`, `choose`, `global_version`, `find_tool`, `command_env`, `parse_probe`, `RubyEnv`, `RubyStatus`, `Interpreter`, `system_runner`. |
+| `lsp.rs` | `install_command`, `install_dir`, `installed`, `launch_env`, `is_managed`, `default_dir`. |
+| `rdbg.rs` | `RdbgAdapter`, `attach_arguments`, `ADAPTER`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/ruby.rs` (`ruby_status`, `ruby_lsp_install_command`,
+  `configure_lsp`, `sync_debug`, `wrap_rdbg`).
+
+## Dependencies
+
+- Workspace crates: [`rubyforge-lang-ruby`](docs/guide/developer/crates/rubyforge-lang-ruby.md), [`forge-dap`](docs/guide/developer/crates/forge-dap.md)
+- External: `serde`, `serde_json`, `dirs`
+
+## Tests
+
+Detection runs against fake manager folders in temporary directories with a recorded probe;
+ignored smoke tests detect this machine's Rubies and debug a script with a real rdbg through
+`forge-dap` (breakpoint, stack, variables).
+
+```sh
+cargo test -p rubyforge-sdk
+cargo test -p rubyforge-sdk -- --ignored   # this machine's Ruby and rdbg
+```
+
+
+---
+
 Source: docs/guide/developer/crates/goforge-lang-go.md
 
 # goforge-lang-go
@@ -31718,6 +32358,135 @@ through the debugger. The WebAssembly build of browser mode shares it.
 Unit tests per module; fixtures `tests/fixtures/platformio.ini` (defaults, `extends`,
 interpolation, multi-line values) and `tests/fixtures/stm32f4-mini.svd` (a trimmed STM32F401
 description with `derivedFrom`, register and field arrays, a cluster and enumerated values).
+
+
+---
+
+Source: docs/guide/developer/crates/dotnetforge-lang-dotnet.md
+
+# dotnetforge-lang-dotnet
+
+`packs/dotnetforge/lang-dotnet` — DotNetForge's .NET logic. Pure Rust (no I/O), shared by the
+desktop backend and the WebAssembly build of browser mode.
+
+## Purpose
+
+- Read solutions and projects the way Rider shows them before a design-time build: `.sln`
+  and `.slnx` (projects, solution folders, configurations), MSBuild project files with the
+  nearest `Directory.Build.props` / `Directory.Packages.props` (properties with `$(…)`
+  references, simple conditions, target frameworks, output type, references, package
+  references with central versions and `VersionOverride`, F# compile order), and
+  `launchSettings.json` profiles.
+- `global.json` and the SDK the dotnet host picks (`rollForward` policies), `dotnet
+  --list-sdks` / `--list-runtimes`, install hints per platform.
+- MSBuild / compiler output as problems (C#, F#, VB, NuGet, MSBuild, `[project]` suffixes,
+  each problem once) with the built outputs and the summary.
+- A tolerant C# / F# scanner for xUnit, NUnit and MSTest tests and `Main` methods, and the
+  `dotnet-test` provider of the shared test runner (`DotnetTests`): discovery, `dotnet test`
+  with `FullyQualifiedName` filters and a TRX logger, Rerun Failed Tests, location rules from
+  test classes to files.
+- Command lines: build / rebuild / clean / restore / test / pack / publish / watch,
+  ".NET Project" runs (`dotnet run` / `dotnet watch` with launch profiles), the debug build,
+  `dotnet add|remove package`, `dotnet new` with `dotnet sln add`, `dotnet format`.
+- `dotnet new list` tables, NuGet v3 service index / search / versions, NuGet SemVer
+  comparison and upgrades, `dotnet format` JSON reports and EditorConfig lookup, the Roslyn
+  server's arguments, `solution/open` and settings.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `solution.rs` | `parse_sln`, `parse_slnx`, `Solution`, `SolutionProject`, `ProjectLanguage`. |
+| `msbuild.rs` | `parse_msbuild`, `evaluate_project`, `eval_condition`, `DotnetProject`, `PackageReference`, `TestFramework`. |
+| `workspace.rs` | `load_workspace`, `DotnetWorkspace`, `choose_solution`, `affects_workspace`. |
+| `launch.rs` | `parse_launch_settings`, `LaunchProfile`, `strip_jsonc`. |
+| `sdk.rs` | `parse_list_sdks`, `parse_list_runtimes`, `parse_global_json`, `select_sdk`, `install_options`. |
+| `build.rs` | `parse_build_output`, `BuildReport`, `BuildProblem`, `output_of`. |
+| `scan.rs` | `scan_csharp`, `scan_fsharp`, `SourceScan`, `TestClass`, `TestMethod`. |
+| `context.rs` | `DotnetContext` (`dotnet.context` of test runs), location rules. |
+| `provider.rs` | `DotnetTests`, `discover_file`, `test_args`, filters, `DOTNET_TEST`. |
+| `command.rs` | `action_command`, `run_command`, `debug_build_command`, `package_command`, `new_project_commands`, `format_command`. |
+| `templates.rs` | `parse_template_list`, `common_templates`. |
+| `nuget.rs`, `version.rs` | `parse_service_index`, `parse_search`, `parse_versions`, URLs; `NuGetVersion`, `compare`, `upgrade`. |
+| `format.rs` | `parse_format_report`, `editorconfig_candidates`. |
+| `roslyn.rs` | `RoslynSetup`, `file_uri`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/dotnet.rs`; `run.rs` registers `DotnetTests` and builds
+  ".NET Project" runs, `testing.rs` hands C# / F# files to `discover_file`.
+- WebAssembly: `crates/forge-wasm/src/dotnet.rs` and the test registry (browser mode).
+
+## Dependencies
+
+- Workspace crates: [`forge-output`](docs/guide/developer/crates/forge-output.md), [`forge-runtools`](docs/guide/developer/crates/forge-runtools.md),
+  [`forge-testing`](docs/guide/developer/crates/forge-testing.md)
+- External: `serde`, `serde_json`, `quick-xml`, `regex-lite`
+
+## Tests
+
+Unit tests on the `Bookstore` fixture solution (`tests/fixtures/bookstore`: `.sln` with CRLF
+and BOM, `.slnx`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`
+with comments, a web project with launch profiles, a multi-target library, an xUnit
+project, an F# tool) and recorded `dotnet build`, `dotnet --list-sdks`, `dotnet new list`
+and NuGet search output. No SDK or network is needed.
+
+```sh
+cargo test -p dotnetforge-lang-dotnet
+```
+
+
+---
+
+Source: docs/guide/developer/crates/dotnetforge-sdk.md
+
+# dotnetforge-sdk
+
+`packs/dotnetforge/sdk` — DotNetForge on the user's machine.
+
+## Purpose
+
+- `detect`: `DotnetStatus` — the `dotnet` hosts (the setting, `DOTNET_ROOT`, the `PATH`,
+  `/usr/share/dotnet`, `/usr/lib/dotnet`, Homebrew, `C:\Program Files\dotnet`, `~/.dotnet`),
+  SDKs and runtimes from `dotnet --list-sdks` / `--list-runtimes` (run in the temp folder
+  through a `Runner`, so tests use recorded output) or the host's `sdk/` and `shared/`
+  folders, the SDK `global.json` selects, problems and install hints.
+- `tools`: netcoredbg (setting, Forge's download through
+  `forge_langservers::managed::netcoredbg`, `PATH`) and the Roslyn server (setting, Forge's
+  download through `forge_langservers::managed::roslyn`).
+- `nuget`: `NuGetClient` — the service index of a feed (`SearchQueryService`,
+  `PackageBaseAddress`), search, versions and the upgrades of installed packages; versions
+  are cached in `<cache dir>/forge/nuget/<feed>/<id>.json` for six hours and used when the
+  feed is unreachable.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `detect.rs` | `detect`, `find_hosts`, `sdks_in`, `runtimes_in`, `DetectEnv`, `DotnetStatus`, `system_runner`. |
+| `tools.rs` | `find_netcoredbg`, `find_roslyn`, `ToolLocation`. |
+| `nuget.rs` | `NuGetClient`, `PackageUpdate`, `default_cache_dir`. |
+
+## Used by
+
+- IPC: `app/src-tauri/src/commands/dotnet.rs` (`dotnet_status`, `nuget_search`,
+  `nuget_versions`, `nuget_updates`, `dotnet_debug_request`, the Roslyn server).
+
+## Dependencies
+
+- Workspace crates: [`dotnetforge-lang-dotnet`](docs/guide/developer/crates/dotnetforge-lang-dotnet.md),
+  [`forge-langservers`](docs/guide/developer/crates/forge-langservers.md)
+- External: `serde`, `serde_json`, `dirs`, `tokio`
+
+## Tests
+
+Detection runs against fake hosts in temporary folders and a fake runner; the NuGet client
+against a local HTTP server (`forge_langservers::managed::testserver`) with recorded
+answers, including the offline cache fallback. Nothing needs a .NET SDK or the network.
+
+```sh
+cargo test -p dotnetforge-sdk
+```
 
 
 ---

@@ -15,6 +15,7 @@
 //!
 //! Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`).
 
+mod dotnet;
 mod parsers;
 mod remote;
 
@@ -58,6 +59,7 @@ mod project_structure;
 mod python;
 mod python_testing;
 mod python_web;
+mod ruby;
 mod runtools;
 mod rust;
 mod save_actions;

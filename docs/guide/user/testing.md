@@ -1,8 +1,8 @@
 ---
 title: Testing
-description: The shared test runner of every pack — test frameworks of PHP and the language packs, gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, and the result formats Forge reads (TeamCity, JUnit XML, TAP, Go test2json, libtest JSON and plain text, pytest, Jest and Vitest JSON, Playwright JSON).
+description: The shared test runner of every pack — test frameworks of PHP and the language packs, gutter run icons, the test tree, Click to see difference, Rerun Failed Tests, Test History, auto-test, and the result formats Forge reads (TeamCity, JUnit XML, TAP, Go test2json, libtest JSON and plain text, pytest, Jest and Vitest JSON, Playwright JSON, RSpec JSON, Minitest).
 order: 141
-tags: [tests, test runner, test tree, gutter, rerun failed tests, test history, auto-test, busted, tap, junit, jest, vitest, mocha, playwright, cypress, pytest, go test, cargo test]
+tags: [tests, test runner, test tree, gutter, rerun failed tests, test history, auto-test, busted, tap, junit, jest, vitest, mocha, playwright, cypress, pytest, go test, cargo test, rspec, minitest]
 ---
 
 # Testing
@@ -89,10 +89,13 @@ format into the same test events:
 | pytest report log | `pytest --report-log=…` | streamed on stdout or a report file |
 | Jest / Vitest JSON | `jest --json`, `vitest run --reporter=json` | a document on stdout or a report file |
 | Playwright JSON | `playwright test --reporter=json` (`PLAYWRIGHT_JSON_OUTPUT_NAME`) | a report file |
+| RSpec JSON | `rspec --format progress --format json --out <file>` | a report file |
+| Minitest verbose output | `ruby -Itest test/x_test.rb -v`, `rake test TESTOPTS=-v` | streamed on stdout; failures, errors and skips are read from the summary |
 
 Failures keep their message, the failure location (a stack frame) and, where the tool reports
 them, the expected and actual values: `Expected` / `Received` (Jest, Vitest), `got … want …`
-(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted).
+(Go), `left` / `right` (Rust), `assert a == b` (pytest), `Passed in` / `Expected` (busted),
+`expected: … got: …` (RSpec), `Expected:` / `Actual:` (Minitest).
 
 ## Safe Mode
 
