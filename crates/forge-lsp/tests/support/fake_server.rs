@@ -194,6 +194,8 @@ fn main() {
                 continue;
             }
             "exit" => std::process::exit(0),
+            // Simulates a crash (or the process being killed).
+            "fake/crash" => std::process::exit(3),
             // Roslyn-style loading after `initialized`.
             "solution/open" => {
                 notify(
