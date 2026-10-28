@@ -25,9 +25,9 @@ pub const FLAG: &str = "--php-lsp";
 /// php-lsp's version.
 pub const VERSION: &str = php_lsp::VERSION;
 /// The pinned php-lsp commit (`rev` in Cargo.toml), checked against Cargo.lock by a test.
-pub const REVISION: &str = "6e00c57c0d8e1949038cc2ddb83572c4092e46ab";
+pub const REVISION: &str = "7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09";
 
-/// `0.1.0 (6e00c57)`, as shown in Settings.
+/// `0.1.0 (7011d4c)`, as shown in Settings.
 pub fn version_label() -> String {
     format!("{VERSION} ({})", &REVISION[..7])
 }
@@ -90,7 +90,7 @@ mod tests {
         assert!(!is_server_mode(&args(&["forge"])));
         assert!(!is_server_mode(&args(&["forge", "inspect", "--php-lsp"])));
         assert_eq!(server_args(), vec!["--php-lsp", "--stdio"]);
-        assert_eq!(version_label(), "0.1.0 (6e00c57)");
+        assert_eq!(version_label(), "0.1.0 (7011d4c)");
     }
 
     #[test]

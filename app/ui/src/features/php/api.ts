@@ -176,7 +176,7 @@ export interface PhpLspSettings {
 export interface BuiltinServer {
   command: string;
   args: string[];
-  /** "0.1.0 (6e00c57)" */
+  /** "0.1.0 (7011d4c)" */
   version: string;
 }
 
