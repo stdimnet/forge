@@ -5339,6 +5339,11 @@ Servers start **lazily**: when you open the first file of a language. Several se
 the same file and their results are merged, for example TypeScript + ESLint + Tailwind CSS on
 a `.tsx` file.
 
+A server that crashes or is killed starts again with the next edit or request in one of its
+files, and gets the open documents again. After five exits within three minutes Forge stops
+restarting it and shows it as failed; turning it off and on again on the Language Servers page
+(or reopening the project) resets the count.
+
 ## Settings | Languages & Frameworks | Language Servers
 
 ![Language Servers settings](docs/screenshots/language-servers-settings.png)
@@ -5486,7 +5491,7 @@ same `intelephense.*` settings, with Intelephense's premium features included an
 code actions and refactorings, Go to Implementation and Type Definition, type and call
 hierarchy, inlay hints. It is linked into Forge itself, so there is **nothing to install and no
 licence key**. Forge runs it in its own process (`forge --php-lsp --stdio`), so a crash of the
-server never takes the IDE down; the status bar and the Language Servers page show it as
+server never takes the IDE down (it starts again with the next edit); the status bar and the Language Servers page show it as
 **php-lsp (built-in)** with its version.
 
 ![php-lsp on the Language Servers page](docs/screenshots/php-lsp-language-servers.png)
