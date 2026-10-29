@@ -951,8 +951,8 @@ screenshots.
 - Session log: `forge_collab::audit::SessionLog` (JSON Lines in `<data dir>/forge/code-with-me`,
   pruned after 30 days, setting `codeWithMe.auditLog`), recorded by the host for knocks,
   admissions, permission changes, removals, Regenerate Link, guests' file changes and git
-  actions, and refused requests. Shown in a Session Log dialog from the popup until the
-  Code With Me tool window exists (S4).
+  actions, and refused requests. Shown in a Session Log dialog from the popup and, since S4,
+  in the Session Log tab of the Code With Me tool window.
 
 ### S3 — Guest project backend (8 d)
 
@@ -1025,6 +1025,34 @@ Where the plan was unclear or wrong, this is what the code does:
   / Stop Following, the banner, Jump To, Make Everyone Follow You, follow on join.
 - **Accept**: following switches files and keeps the leader's viewport; typing stops
   following; forced follow reaches all guests; vitest covers the follow state machine.
+
+**S4 as built**
+
+- `forge_collab::presence::Presence` `{ file?, caret?, anchor?, viewport?, following? }`
+  (1-based lines, UTF-16 columns). Guests send `GuestMessage::Presence`; the host stores the
+  sanitized presence (`Presence::sanitized`: only plain project-relative files keep positions,
+  `following` must name another participant) and sends `HostMessage::Presence` to every other
+  guest **as that guest may see it** (`Presence::visible_to` with the receiver's `Policy`: an
+  excluded file, `.git/` or a path outside the project shows as "no file"). New guests get a
+  snapshot after `Welcome`; a permission change resends everyone's presence under the new
+  policy; leaving drops the presence. `PROTOCOL_VERSION` is 2.
+- Make Everyone Follow You: `HostSession::set_follow_everyone` sends `HostMessage::FollowHost
+  { on }` to every guest and to guests that join while it is on. Whom someone follows travels
+  in their presence, so the host sees who follows it ("following you", "1 of 2 following").
+- IPC: `collab_presence({ presence })` (both), `collab_follow_everyone({ on })` (host);
+  events `collab://presence` and `collab://follow-host`; `SessionView` carries `presence` and
+  `followEveryone`. The plan's `collab_follow` command is not needed: following is local to
+  the follower's window, and the host learns it from the presence.
+- UI: `presence.ts` sends the active editor's file, caret, selection and lines in view
+  (throttled to 10 Hz, repeats skipped); `followState.ts` is the state machine (vitest);
+  `follow.ts` drives the editor (opens the leader's file, scrolls its top line to the top),
+  stops on typing, caret moves, clicks into the editor and switching files, and shows the
+  banner (a CodeMirror panel in the leader's color). Participants list (popup and the new
+  Code With Me tool window with the Session Log tab), toolbar avatars (click follows), Jump
+  To, Follow Participant… / Jump To Participant… choosers, setting
+  `codeWithMe.followHostOnJoin` (default on; guests follow the host after the shared files
+  opened).
+- Not done: the scrollbar markers of remote carets, and the name label fading after 2 s.
 
 ### S5 — Shared terminal and Run (5 d)
 

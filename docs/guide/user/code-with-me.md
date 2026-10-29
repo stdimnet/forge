@@ -1,8 +1,8 @@
 ---
 title: Code With Me
-description: Invite guests into the open project and edit it together - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, the session log, files guests never see, joining and leaving.
+description: Invite guests into the open project and edit it together - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, following participants, Jump To, Make Everyone Follow You, the session log, files guests never see, joining and leaving.
 order: 200
-tags: [code with me, collaboration, pair programming, session, guest, host, permissions]
+tags: [code with me, collaboration, pair programming, session, guest, host, permissions, follow]
 ---
 
 # Code With Me
@@ -56,13 +56,16 @@ The popup lists the participants with their permission and offers:
   guests who are already in the session stay.
 - **Permissions ▸** changes the permission of the whole session: guests who join later get it,
   and every guest in the session gets it at once.
+- **Make Everyone Follow You** asks every guest to follow you (see [Following](#following-participants)).
 - **End Session** ends the session for everybody.
 
-The **⋮** button next to a guest (or a right click on the guest) opens the guest's menu:
+The **⋮** button next to a participant (or a right click on the participant) opens the
+participant's menu:
 
-- **Permissions ▸** changes only this guest's permission (Read-only, Edit files, Full access or
+- **Follow** / **Stop Following** and **Jump To** (see [Following](#following-participants)).
+- **Permissions ▸** (host) changes only this guest's permission (Read-only, Edit files, Full access or
   Custom…).
-- **Remove Guest** disconnects the guest at once. The guest is told that the host removed them.
+- **Remove Guest** (host) disconnects the guest at once. The guest is told that the host removed them.
   Removing does not ban: with the same link the guest can ask to join again, so use
   **Regenerate Link** if they should not.
 
@@ -72,9 +75,44 @@ refused by your Forge.
 
 ![A guest's menu in the session popup](../../screenshots/code-with-me-guest-menu.png)
 
+## Following participants
+
+Every participant sees where the others are: the participant list shows the file and line each
+one is in (`OrderController.php:27`) and whom they follow ("following you"), and the others'
+avatars appear next to the Code With Me icon in the toolbar.
+
+- **Follow**: click a participant in the list or their avatar in the toolbar. Forge opens their
+  file and keeps their part of the file in view as they move and switch files. A banner above
+  the editor says **Following Alex** in their color. Typing, clicking into the editor or opening
+  another file stops following, as does **Stop** in the banner (or **Stop Following**).
+- **Jump To**: in the participant's menu, opens their file at their caret once, without
+  following.
+- **Make Everyone Follow You** (host): every guest follows you, including guests who join later.
+  The guests' banner says **Robert asked everyone to follow**; they can still press **Stop**.
+  The popup shows how many guests follow you. Choose it again to stop asking.
+- Guests follow the host when they join (Settings | Tools | Code With Me | **Follow the host
+  when joining**).
+
+A guest is never told the name of a file it may not see: while the host is in `.env` or another
+hidden file, guests see the host without a location and following guests stay where they are.
+
+The **Code With Me** tool window (right, while a session runs) lists the participants with the
+same actions, **Stop Following** and, for the host, **Make Everyone Follow You** and the
+**Session Log** tab.
+
+All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me:
+**Follow Participant…** and **Jump To Participant…** (a chooser of the participants), **Stop
+Following**, **Make Everyone Follow You** and **Code With Me** (the tool window). PHPStorm binds
+no shortcuts to them; you can add your own.
+
+![Following Alex](../../screenshots/code-with-me-following.png)
+
+![A guest follows the host after Make Everyone Follow You](../../screenshots/cwm-guest-follow.png)
+
 ## Session log
 
-**Session Log…** in the popup (also in Find Action) shows what happened in the session you
+**Session Log…** in the popup (also in Find Action and the **Session Log** tab of the Code With
+Me tool window) shows what happened in the session you
 host, with the time: who joined, declined and unanswered requests, connections without a
 valid link, permission changes, Regenerate Link, removed and leaving guests, files guests
 saved, created, renamed or deleted, their git actions, and every request your Forge refused
@@ -120,8 +158,8 @@ If you close the balloon without answering, the request stays open until it time
 1. Click the link (`forge://cwm/join?…`), or choose **Tools | Code With Me | Join Session…**
    and paste it.
 2. Forge shows **Waiting for <host> to accept…** with the verification code and **Cancel**.
-3. When the host accepts, the host's project opens in your window. The title shows
-   `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
+3. When the host accepts, the host's project opens in your window and you follow the host. The
+   title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you.
 
 Guests see the Project tree, Structure, Find, Problems and Git (read-only unless the host gave
@@ -140,5 +178,6 @@ with Full access.
 ## Settings
 
 Settings | Tools | Code With Me: your name in sessions, the default permission level,
-whether ending a session asks for confirmation, whether a session log is kept, the files guests never see and the connection
-settings of the [relay page](code-with-me-relay.md).
+whether ending a session asks for confirmation, whether guests follow the host when joining,
+whether a session log is kept, the files guests never see and the connection settings of the
+[relay page](code-with-me-relay.md).
