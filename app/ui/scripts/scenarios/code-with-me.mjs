@@ -209,8 +209,55 @@ const approvalLight = async (page) => {
 };
 approvalLight.clip = approval.clip;
 
+/** The host's menu for Alex in the participant list, with the Permissions submenu open. */
+async function guestMenu(page) {
+  await sessionWithAlex(page);
+  await openPopup(page);
+  await page.click('.cwm-participant:has-text("Alex") .cwm-participant-menu');
+  await page.waitForSelector('.context-menu .context-menu-item:has-text("Remove Guest")');
+  await page.hover('.context-menu .context-menu-item:has-text("Permissions")');
+  await page.waitForTimeout(500);
+  await page.waitForTimeout(200);
+}
+const guestMenuDark = async (page) => guestMenu(page);
+guestMenuDark.clip = { x: 700, y: 0, width: 740, height: 420 };
+const guestMenuLight = async (page) => {
+  await light(page);
+  await guestMenu(page);
+};
+guestMenuLight.clip = guestMenuDark.clip;
+
+/** Start Session with Custom…: the Custom Permissions dialog. */
+async function customDialog(page) {
+  await openPopup(page);
+  await page.click('.cwm-level[data-level="custom"] input');
+  await page.waitForSelector(".cwm-custom-dialog");
+  await page.selectOption('.cwm-custom-dialog select[data-area="files"]', "edit");
+  await page.selectOption('.cwm-custom-dialog select[data-area="vcs"]', "full");
+}
+const custom = async (page) => customDialog(page);
+custom.clip = { x: 420, y: 200, width: 600, height: 420 };
+const customLight = async (page) => {
+  await light(page);
+  await customDialog(page);
+};
+customLight.clip = custom.clip;
+
+/** The values chosen, back in the Start Session popup. */
+const customChosen = async (page) => {
+  await customDialog(page);
+  await page.click('.cwm-custom-dialog button:has-text("OK")');
+  await page.waitForSelector('.cwm-level[data-level="custom"].selected');
+};
+customChosen.clip = popupClip;
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "code-with-me-guest-menu": guestMenuDark,
+  "code-with-me-guest-menu-light": guestMenuLight,
+  "code-with-me-custom-permissions": custom,
+  "code-with-me-custom-permissions-light": customLight,
+  "code-with-me-custom-chosen": customChosen,
   "code-with-me-start-popup": startPopup,
   "code-with-me-start-popup-light": startPopupLight,
   "code-with-me-carets": carets,

@@ -5,13 +5,22 @@
  */
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
-import { levelOf, type Participant, type PermissionLevel } from "@/ipc/collab";
+import { EllipsisVertical, ChevronRight } from "lucide-solid";
+import { levelOf, PRESETS, type Participant, type PermissionLevel, type Permissions } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
 import { runCommand } from "@/state/commands";
 import { FileIcon } from "@/shell/FileIcon";
 import { inSession, session, setPopupOpen } from "./store";
 import { openSharedFile } from "./session";
 import { SessionConnections } from "./ConnectionStatus";
+import { askCustomPermissions, AREAS } from "./CustomPermissions";
+import { LEVEL_TITLES, sessionPermissions, showGuestMenu, showSessionPermissionsMenu } from "./hostActions";
+
+export type StartHandler = (level: PermissionLevel, custom?: Permissions) => void;
+
+/** "Files: Edit · Terminal: No access · …" for custom permissions. */
+export const describePermissions = (p: Permissions) =>
+  AREAS.map((a) => `${a.label}: ${a.values.find((v) => v.value === p[a.area])?.label.replace(/ \(.*\)$/, "") ?? p[a.area]}`).join(" · ");
 
 export const LEVELS: { level: PermissionLevel; title: string; hint: string }[] = [
   { level: "readOnly", title: "Read-only", hint: "Guests can view files, the terminal and run output." },
@@ -22,8 +31,19 @@ export const LEVELS: { level: PermissionLevel; title: string; hint: string }[] =
 const excludeCount = () =>
   getSetting<string[]>("codeWithMe.excludedFiles", []).filter((p) => p.trim() && !p.trim().startsWith("#") && !p.trim().startsWith("!")).length;
 
-function StartView(props: { onStart: (level: PermissionLevel) => void }) {
-  const [level, setLevel] = createSignal<PermissionLevel>(getSetting<PermissionLevel>("codeWithMe.defaultPermission", "readOnly"));
+function StartView(props: { onStart: StartHandler }) {
+  const initial = getSetting<PermissionLevel>("codeWithMe.defaultPermission", "readOnly");
+  const [level, setLevel] = createSignal<PermissionLevel>(initial === "custom" ? "readOnly" : initial);
+  const [custom, setCustom] = createSignal<Permissions | null>(null);
+  const chooseCustom = async () => {
+    const base = custom() ?? (level() === "custom" ? PRESETS.readOnly : PRESETS[level() as Exclude<PermissionLevel, "custom">]);
+    const p = await askCustomPermissions("Custom Permissions", base);
+    if (!p) return;
+    // Values that match a preset are that preset.
+    const l = levelOf(p);
+    setCustom(l === "custom" ? p : null);
+    setLevel(l);
+  };
   return (
     <>
       <div class="cwm-popup-title">Start Session</div>
@@ -40,10 +60,19 @@ function StartView(props: { onStart: (level: PermissionLevel) => void }) {
             </label>
           )}
         </For>
-        <label class="cwm-level disabled" title="Custom permissions are not available yet">
-          <input type="radio" name="cwm-level" disabled />
+        <label class="cwm-level" classList={{ selected: level() === "custom" }} data-level="custom">
+          <input
+            type="radio"
+            name="cwm-level"
+            checked={level() === "custom"}
+            onClick={(e) => {
+              e.preventDefault();
+              void chooseCustom();
+            }}
+          />
           <span class="cwm-level-text">
             <span class="cwm-level-title">Custom…</span>
+            <Show when={custom()}>{(c) => <span class="cwm-level-hint muted">{describePermissions(c())}</span>}</Show>
           </span>
         </label>
       </div>
@@ -52,7 +81,7 @@ function StartView(props: { onStart: (level: PermissionLevel) => void }) {
         <div class="cwm-popup-warning">{session().hostUnavailable}</div>
       </Show>
       <div class="cwm-popup-actions">
-        <button class="btn-primary" disabled={!session().canHost} onClick={() => props.onStart(level())}>
+        <button class="btn-primary" disabled={!session().canHost} onClick={() => props.onStart(level(), custom() ?? undefined)}>
           Start Session
         </button>
       </div>
@@ -76,13 +105,6 @@ function MenuItem(props: { label: string; action: string; danger?: boolean }) {
     </div>
   );
 }
-
-const LEVEL_TITLES: Record<PermissionLevel, string> = {
-  readOnly: "Read-only",
-  editFiles: "Edit files",
-  fullAccess: "Full access",
-  custom: "Custom",
-};
 
 const initials = (name: string) =>
   name
@@ -112,14 +134,38 @@ function Participants() {
     <div class="cwm-participants" role="list" aria-label="Participants">
       <For each={s().participants}>
         {(p) => (
-          <div class="cwm-participant" role="listitem" data-participant={p.id}>
+          <div
+            class="cwm-participant"
+            role="listitem"
+            data-participant={p.id}
+            onContextMenu={(e) => {
+              if (s().role !== "host" || p.role !== "guest") return;
+              e.preventDefault();
+              showGuestMenu(p, e.clientX, e.clientY);
+            }}
+          >
             <Avatar participant={p} />
             <span class="cwm-participant-name">
               {p.name}
               <span class="muted">{p.role === "host" ? " (host)" : ""}{p.id === s().me ? " (you)" : ""}</span>
             </span>
             <Show when={p.role === "guest"}>
-              <span class="cwm-participant-perm muted">{LEVEL_TITLES[levelOf(p.permissions)]}</span>
+              <span class="cwm-participant-perm muted" title={describePermissions(p.permissions)}>
+                {LEVEL_TITLES[levelOf(p.permissions)]}
+              </span>
+            </Show>
+            <Show when={s().role === "host" && p.role === "guest"}>
+              <button
+                class="icon-btn cwm-participant-menu"
+                title={`Actions for ${p.name}`}
+                aria-label={`Actions for ${p.name}`}
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  showGuestMenu(p, r.left, r.bottom + 2);
+                }}
+              >
+                <EllipsisVertical size={14} />
+              </button>
             </Show>
           </div>
         )}
@@ -135,15 +181,29 @@ function HostView() {
       <Show when={session().notice}>
         <div class="cwm-popup-warning cwm-notice">{session().notice}</div>
       </Show>
-      <div class="cwm-popup-label muted">
-        Participants · guests: {LEVEL_TITLES[levelOf(session().permissions ?? { files: "readOnly", terminal: "readOnly", run: "readOnly", vcs: "readOnly" })]}
-      </div>
+      <div class="cwm-popup-label muted">Participants</div>
       <Participants />
       <Show when={session().participants.length < 2}>
         <div class="cwm-popup-note muted">Send the session link to invite guests. The files open in your editor are shared.</div>
       </Show>
       <div class="cwm-sep" />
       <MenuItem label="Copy Session Link" action="CodeWithMe.CopySessionLink" />
+      <MenuItem label="Regenerate Link" action="CodeWithMe.RegenerateLink" />
+      <div
+        class="cwm-menu-item cwm-submenu-item"
+        role="menuitem"
+        aria-haspopup="menu"
+        data-action="CodeWithMe.Permissions"
+        title={describePermissions(sessionPermissions())}
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          showSessionPermissionsMenu(r.right, r.top);
+        }}
+      >
+        <span>Permissions</span>
+        <span class="cwm-submenu-value muted">{LEVEL_TITLES[levelOf(sessionPermissions())]}</span>
+        <ChevronRight size={14} />
+      </div>
       <MenuItem label="Settings…" action="CodeWithMe.Settings" />
       <div class="cwm-sep" />
       <MenuItem label="End Session" action="CodeWithMe.EndSession" danger />
@@ -186,12 +246,13 @@ function GuestView() {
   );
 }
 
-export function SessionPopup(props: { anchor: HTMLElement; onStart: (level: PermissionLevel) => void }) {
+export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler }) {
   let el!: HTMLDivElement;
   const rect = props.anchor.getBoundingClientRect();
   const onDoc = (e: MouseEvent) => {
     const t = e.target as Element;
-    if (!t.closest(".cwm-popup") && !t.closest(".cwm-toolbar-btn")) setPopupOpen(false);
+    // The participant and permission menus, and the Custom Permissions dialog, belong to the popup.
+    if (!t.closest(".cwm-popup") && !t.closest(".cwm-toolbar-btn") && !t.closest(".context-menu") && !t.closest(".cwm-custom-dialog")) setPopupOpen(false);
   };
   onMount(() => {
     document.addEventListener("mousedown", onDoc, true);

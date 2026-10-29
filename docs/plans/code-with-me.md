@@ -944,8 +944,11 @@ screenshots.
   and can cancel with `collab_cancel_join`.
 - `DevAutoAccept` and the `FORGE_CWM_DEV` flag are gone from the app; `DevAutoAccept` stays
   for tests. Hosting is available in every build.
-- Still to do from the list above: Custom permissions, per-guest permissions, Remove Guest,
-  Regenerate Link and the session log.
+- Custom permissions (Start Session and the session's Permissions), per-guest permissions
+  (the participant's menu), Remove Guest and Regenerate Link: `HostSession::set_permissions`,
+  `set_guest_permissions`, `remove` and `regenerate_link`; a guest's new policy counts from
+  its next request, and its open editors follow the new Files access (`guest.ts`).
+- Still to do from the list above: the session log and the Session Log tab.
 
 ### S3 — Guest project backend (8 d)
 

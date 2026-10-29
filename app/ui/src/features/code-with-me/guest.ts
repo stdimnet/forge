@@ -8,7 +8,8 @@ import { createEffect, createRoot, on } from "solid-js";
 import { closeWorkspace, adoptWorkspace, isCollabGuest } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { levelOf, type PermissionLevel, type Permissions, collabApi } from "@/ipc/collab";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
+import { ViewPlugin, type EditorView } from "@codemirror/view";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerToolWindowFilter } from "@/features/registry";
 import { session } from "./store";
@@ -47,8 +48,26 @@ export function hiddenForGuest(id: string): boolean {
 registerToolWindowFilter((tw) => !hiddenForGuest(tw.id));
 
 // A guest without Files: Edit reads the host's files in read-only editors (the host drops
-// their changes anyway; this is for usability).
-registerEditorExtension(() => (isCollabGuest() && !guestCanEdit() ? EditorState.readOnly.of(true) : null));
+// their changes anyway; this is for usability). The host can change the permission during
+// the session, so open editors are reconfigured. Only ever `true`: `EditorState.readOnly`
+// takes the first value, and a shared read-only document says `true` itself.
+const access = new Compartment();
+const guestViews = new Set<EditorView>();
+const accessExtension = (): Extension => (isCollabGuest() && !guestCanEdit() ? EditorState.readOnly.of(true) : []);
+
+registerEditorExtension(() => [
+  access.of(accessExtension()),
+  ViewPlugin.define((view) => {
+    guestViews.add(view);
+    return { destroy: () => void guestViews.delete(view) };
+  }),
+]);
+
+/** Reconfigure every open editor after this guest's permission changed. */
+function applyAccess(): void {
+  const ext = accessExtension();
+  for (const view of guestViews) view.dispatch({ effects: access.reconfigure(ext) });
+}
 
 /** The window title: `<project> — <host name> (Code With Me)`. */
 export function guestTitle(): string | undefined {
@@ -74,6 +93,21 @@ export function trackGuestProject(): void {
     createEffect(() => {
       document.title = guestTitle() ?? "Forge";
     });
+    createEffect(
+      on(
+        () => (isCollabGuest() ? guestCanEdit() : undefined),
+        (canEdit, before) => {
+          applyAccess();
+          // Told only when the host changes it during the session, not on joining.
+          if (canEdit === undefined || before === undefined) return;
+          showBalloon(
+            "Code With Me",
+            canEdit ? "The host lets you edit files now." : "The host changed your permission: files are read-only now.",
+            5000,
+          );
+        },
+      ),
+    );
   });
   void collabApi.onEnded(({ reason }) => {
     if (!isCollabGuest()) return;

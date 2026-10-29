@@ -22,12 +22,55 @@ itself. Connections go straight from guest to host; no account and no Forge serv
    | **Read-only** (default) | view files |
    | **Edit files** | edit files, but not use the terminal or run code |
    | **Full access** | edit files, use the terminal and run code on your machine |
+   | **Custom…** | what you choose per area (see below) |
 
 3. **Start Session** starts listening and copies the invitation link to the clipboard. Send the
    link to your guest. **Copy Session Link** in the popup copies it again.
 4. **End Session** ends the session for everybody and the link stops working.
 
 Nothing listens on your machine before you start a session.
+
+### Custom permissions
+
+**Custom…** opens the **Custom Permissions** dialog with one value per area:
+
+| Area | Values |
+| --- | --- |
+| Files | Read-only · Edit |
+| Terminal | No access · Read-only · Full access |
+| Run | No access · Read-only (see output) · Full access (start, stop, rerun) |
+| Version control | Read-only (status, diff, blame, log) · Full access (commit, push, checkout, …) |
+
+Files that control what runs on your machine (run configurations, `composer.json`,
+`package.json`, `Makefile`, …) can only be changed by guests with Files **Edit** and Run
+**Full access**.
+
+![Custom Permissions dialog](../../screenshots/code-with-me-custom-permissions.png)
+
+## During a session
+
+The popup lists the participants with their permission and offers:
+
+- **Copy Session Link** copies the invitation link again.
+- **Regenerate Link** creates a new link and copies it. The old link stops working at once;
+  guests who are already in the session stay.
+- **Permissions ▸** changes the permission of the whole session: guests who join later get it,
+  and every guest in the session gets it at once.
+- **End Session** ends the session for everybody.
+
+The **⋮** button next to a guest (or a right click on the guest) opens the guest's menu:
+
+- **Permissions ▸** changes only this guest's permission (Read-only, Edit files, Full access or
+  Custom…).
+- **Remove Guest** disconnects the guest at once. The guest is told that the host removed them.
+  Removing does not ban: with the same link the guest can ask to join again, so use
+  **Regenerate Link** if they should not.
+
+A new permission counts from the guest's next request. When files become read-only for a
+guest, their open editors turn read-only and they are told so; changes they send afterwards are
+refused by your Forge.
+
+![A guest's menu in the session popup](../../screenshots/code-with-me-guest-menu.png)
 
 ## Accepting guests
 

@@ -45,7 +45,8 @@ function bind(view: EditorView, doc: SharedDoc): void {
       collab.reconfigure([
         Prec.high(keymap.of(yUndoManagerKeymap)),
         yCollab(doc.ytext, doc.awareness, { undoManager: doc.undo }),
-        EditorState.readOnly.of(doc.readOnly),
+        // Only `true`: the guest's own permission (`guest.ts`) decides otherwise.
+        doc.readOnly ? EditorState.readOnly.of(true) : [],
         collabTheme,
       ]),
     ],

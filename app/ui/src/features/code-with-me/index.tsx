@@ -16,7 +16,7 @@ import { registerKeymapActions } from "@/keymap/store";
 import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { isCollabGuest } from "@/state/workspace";
-import { collabApi, type PermissionLevel } from "@/ipc/collab";
+import { collabApi, type PermissionLevel, type Permissions } from "@/ipc/collab";
 import { applySession, inSession, isGuest, isHost, refreshSession, setPopupOpen, trackSession } from "./store";
 import { trackEditorSharing } from "./session";
 import { ToolbarButton } from "./ToolbarButton";
@@ -25,6 +25,7 @@ import { RelayServerTools } from "./RelaySettings";
 import { GuestStatusItem } from "./GuestStatusItem";
 import { trackGuestProject } from "./guest";
 import { hideWaiting, trackApprovals } from "./approval";
+import { editSessionPermissions, regenerateLink } from "./hostActions";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -40,10 +41,10 @@ async function copyLink(link: string): Promise<boolean> {
   }
 }
 
-async function startSession(level: PermissionLevel): Promise<void> {
+async function startSession(level: PermissionLevel, custom?: Permissions): Promise<void> {
   setPopupOpen(false);
   try {
-    const s = await collabApi.start(level);
+    const s = await collabApi.start(level, custom);
     applySession(s);
     const copied = s.link ? await copyLink(s.link) : false;
     showBalloon(
@@ -104,7 +105,7 @@ async function leaveSession(): Promise<void> {
   await refreshSession();
 }
 
-registerToolbarItem({ id: "codeWithMe", order: 30, component: () => <ToolbarButton onStart={(l) => void startSession(l)} /> });
+registerToolbarItem({ id: "codeWithMe", order: 30, component: () => <ToolbarButton onStart={(l, c) => void startSession(l, c)} /> });
 
 registerSettingsPage({
   id: "tools.code-with-me",
@@ -123,6 +124,8 @@ registerKeymapActions(
   [
     ["CodeWithMe.StartSession", "Start Session…"],
     ["CodeWithMe.CopySessionLink", "Copy Session Link"],
+    ["CodeWithMe.RegenerateLink", "Regenerate Link"],
+    ["CodeWithMe.Permissions", "Permissions…"],
     ["CodeWithMe.EndSession", "End Session"],
     ["CodeWithMe.JoinSession", "Join Session…"],
     ["CodeWithMe.OpenSharedFile", "Open Shared File…"],
@@ -133,6 +136,8 @@ registerKeymapActions(
 const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.StartSession", "Start Session…", () => void setPopupOpen(true)],
   ["CodeWithMe.CopySessionLink", "Copy Session Link", copySessionLink],
+  ["CodeWithMe.RegenerateLink", "Regenerate Link", regenerateLink],
+  ["CodeWithMe.Permissions", "Permissions…", editSessionPermissions],
   ["CodeWithMe.EndSession", "End Session", endSession],
   ["CodeWithMe.JoinSession", "Join Session…", joinSession],
   ["CodeWithMe.OpenSharedFile", "Open Shared File…", () => void setPopupOpen(true)],

@@ -316,3 +316,40 @@
 .cwm-remove {
   color: var(--danger);
 }
+
+/* Participant actions (host) and the session's Permissions submenu. */
+.cwm-participant-menu {
+  margin-left: 4px;
+  opacity: 0.6;
+}
+.cwm-participant:hover .cwm-participant-menu,
+.cwm-participant-menu:focus-visible {
+  opacity: 1;
+}
+.cwm-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cwm-submenu-item > span:first-child {
+  flex: 1;
+}
+.cwm-submenu-value {
+  font-size: var(--fs-small);
+}
+
+/* Custom Permissions dialog. */
+.cwm-custom-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 8px 12px;
+}
+.cwm-custom-grid .form-label {
+  margin: 0;
+}
+.cwm-custom-note {
+  grid-column: 1 / -1;
+  font-size: var(--fs-small);
+  margin-top: 4px;
+}

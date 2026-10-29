@@ -5,8 +5,9 @@ import { toolWindowsFor, registerToolWindow } from "@/features/registry";
 import { fileMenuEntries } from "@/features/project/fileMenu";
 import { Folder } from "lucide-solid";
 import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { applySession } from "./store";
-import { guestCanEdit, guestLevel, guestTitle, hiddenForGuest } from "./guest";
+import { guestCanEdit, guestLevel, guestTitle, hiddenForGuest, trackGuestProject } from "./guest";
 import { latencyClass } from "./GuestStatusItem";
 import { extensionsFor } from "@/editor/extensions";
 
@@ -88,16 +89,30 @@ describe("a guest's permissions", () => {
 });
 
 describe("a guest's editors", () => {
+  const readOnly = () => EditorState.create({ doc: "x", extensions: extensionsFor("app/User.php") }).readOnly;
+
   it("are read-only without Files: Edit", () => {
-    expect(extensionsFor("app/User.php").length).toBe(0);
+    expect(readOnly()).toBe(false);
     join(PRESETS.readOnly);
-    const exts = extensionsFor("app/User.php");
-    expect(exts.length).toBe(1);
-    const state = EditorState.create({ doc: "x", extensions: exts });
-    expect(state.readOnly).toBe(true);
+    expect(readOnly()).toBe(true);
     closeWorkspace();
     join(PRESETS.editFiles);
-    expect(extensionsFor("app/User.php").length).toBe(0);
+    expect(readOnly()).toBe(false);
+    closeWorkspace();
+  });
+
+  it("follow a permission change of the host while they are open", () => {
+    trackGuestProject();
+    join(PRESETS.editFiles);
+    const parent = document.createElement("div");
+    const view = new EditorView({ state: EditorState.create({ doc: "x", extensions: extensionsFor("app/User.php") }), parent });
+    expect(view.state.readOnly).toBe(false);
+    join(PRESETS.readOnly);
+    expect(view.state.readOnly).toBe(true);
+    join(PRESETS.fullAccess);
+    expect(view.state.readOnly).toBe(false);
+    view.destroy();
+    closeWorkspace();
   });
 });
 
