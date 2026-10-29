@@ -17,6 +17,7 @@
 //!
 //! With `runtime` (the default):
 //! - [`docs`]: the host's authoritative `yrs` copy of each shared file.
+//! - [`audit`]: the host's session log (JSON Lines in the user data directory).
 //! - [`approval`]: host approval, the admission that asks the host before a guest joins.
 //! - [`host`]: the host's session: admission, shared documents, saving, disk changes.
 //! - [`guest`]: a guest's session, forwarding between its editor and the host.
@@ -24,6 +25,7 @@
 //!   language servers, PHP), with the host's enforcement.
 //! - [`transport`]: the [`transport::Transport`] trait and the in-memory transport for tests.
 
+pub mod audit;
 pub mod excludes;
 pub mod link;
 pub mod permissions;

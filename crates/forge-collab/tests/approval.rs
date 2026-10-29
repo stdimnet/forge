@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use forge_backend::{Backend, LocalBackend};
 use forge_collab::approval::{ApprovalEvent, Approvals};
+use forge_collab::audit::SessionLog;
 use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::host::{HostConfig, HostSession};
@@ -234,4 +235,40 @@ async fn a_regenerated_link_locks_out_the_old_one() {
     let (third, _) = s.admitted(4, "Kim").await;
     assert_eq!(third.permissions(), Permissions::READ_ONLY);
     assert_eq!(s.host.participants().len(), 3);
+}
+
+#[tokio::test]
+async fn the_session_log_records_admission_changes_and_refusals() {
+    let s = setup(Duration::from_secs(30));
+    let log = SessionLog::memory();
+    s.host.set_audit(log.clone());
+    let (guest, _) = s.admitted(2, "Alex").await;
+    let doc = guest.open_doc("README.md").await.unwrap();
+    // Read-only: the save is refused and logged.
+    assert!(guest.save(doc.doc).await.is_err());
+    s.host
+        .set_guest_permissions(guest.me(), Permissions::EDIT_FILES);
+    until("Edit files", || {
+        guest.permissions() == Permissions::EDIT_FILES
+    })
+    .await;
+    guest.save(doc.doc).await.unwrap();
+    s.host.regenerate_link();
+    s.host.remove(guest.me());
+    s.host.end("The host ended the session.").await;
+
+    let lines: Vec<String> = log.lines().into_iter().map(|l| l.message).collect();
+    assert_eq!(
+        lines,
+        [
+            "Robert started the session (guests: Read-only)",
+            "Alex joined (Read-only)",
+            "Refused save of Alex: Your permission is Read-only",
+            "Permission of Alex: Edit files",
+            "Alex saved README.md",
+            "Regenerated the session link",
+            "Removed Alex",
+            "Session ended: The host ended the session.",
+        ]
+    );
 }

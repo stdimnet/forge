@@ -30,6 +30,7 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 
 use super::*;
+use crate::audit::{AuditEvent, FileAction};
 use crate::guest_backend::calls::{GitAction, GitQuery, HostCall, LspQuery, OpenedProject};
 use crate::guest_backend::git::Visible;
 use crate::permissions::is_plain_relative;
@@ -207,15 +208,54 @@ impl HostSession {
                 "Code With Me: denied {} from {from:?}: {denied}",
                 call.name()
             );
+            self.audit(AuditEvent::Denied {
+                participant: from,
+                name: self.guest_name(from),
+                request: call.name().to_string(),
+                reason: denied.to_string(),
+            });
             return Err(denied.to_string());
         }
         let timeout = match &call {
             HostCall::GitAction(a) if a.non_interactive() => GIT_NETWORK_TIMEOUT,
             _ => CALL_TIMEOUT,
         };
-        match tokio::time::timeout(timeout, self.dispatch(from, policy, call)).await {
+        let logged = self.change_of(from, &call);
+        let result = match tokio::time::timeout(timeout, self.dispatch(from, policy, call)).await {
             Ok(result) => result,
             Err(_) => Err("The host took too long to answer.".into()),
+        };
+        if let (Some(event), Ok(_)) = (logged, &result) {
+            self.audit(event);
+        }
+        result
+    }
+
+    /// The session log entry of a call that changes the project, written once it succeeded.
+    fn change_of(&self, from: ParticipantId, call: &HostCall) -> Option<AuditEvent> {
+        let file = |action, path: &str, to: Option<&str>| {
+            Some(AuditEvent::File {
+                participant: from,
+                name: self.guest_name(from),
+                action,
+                path: path.to_string(),
+                to: to.map(str::to_string),
+            })
+        };
+        match call {
+            HostCall::WriteFile { path, .. } | HostCall::WriteBytes { path, .. } => {
+                file(FileAction::Written, path, None)
+            }
+            HostCall::CreateFile { path } => file(FileAction::Created, path, None),
+            HostCall::CreateDir { path } => file(FileAction::CreatedFolder, path, None),
+            HostCall::Rename { from: a, to: b } => file(FileAction::Renamed, a, Some(b)),
+            HostCall::Delete { path } => file(FileAction::Deleted, path, None),
+            HostCall::GitAction(a) => Some(AuditEvent::Git {
+                participant: from,
+                name: self.guest_name(from),
+                action: a.label(),
+            }),
+            _ => None,
         }
     }
 

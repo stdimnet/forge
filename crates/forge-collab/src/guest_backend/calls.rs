@@ -282,3 +282,32 @@ impl HostCall {
         rmp_serde::from_slice(bytes).map_err(|e| Error::Protocol(e.to_string()))
     }
 }
+
+impl GitAction {
+    /// What the action does, for the session log (no commit messages or file lists).
+    pub fn label(&self) -> String {
+        match self {
+            Self::Stage { paths } | Self::AddNew { paths } => {
+                format!("add ({} paths)", paths.len())
+            }
+            Self::Unstage { paths } | Self::UnstageInitial { paths } => {
+                format!("unstage ({} paths)", paths.len())
+            }
+            Self::RestoreFromHead { paths } => format!("rollback ({} paths)", paths.len()),
+            Self::ForgetAdded { paths } => format!("forget ({} paths)", paths.len()),
+            Self::Commit { .. } => "commit".into(),
+            Self::Checkout { rev } => format!("checkout {rev}"),
+            Self::CheckoutTracking { name, .. } | Self::CheckoutNew { name, .. } => {
+                format!("checkout {name}")
+            }
+            Self::BranchNew { name, .. } => format!("branch {name}"),
+            Self::BranchDelete { name, .. } => format!("branch -d {name}"),
+            Self::BranchRename { old, new } => format!("branch -m {old} {new}"),
+            Self::Merge { rev } => format!("merge {rev}"),
+            Self::Rebase { onto } => format!("rebase {onto}"),
+            Self::Push { .. } => "push".into(),
+            Self::Pull { .. } => "pull".into(),
+            Self::Fetch | Self::FetchRefspec { .. } => "fetch".into(),
+        }
+    }
+}

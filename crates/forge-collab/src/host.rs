@@ -24,6 +24,7 @@ use forge_core::FsChanges;
 use serde_bytes::ByteBuf;
 use tokio::sync::mpsc;
 
+use crate::audit::{short_peer, AuditEvent, FileAction, KnockOutcome, SharedAudit};
 use crate::docs::{with_eol, DiskChange, SharedDoc};
 use crate::excludes::Excludes;
 use crate::link::{SessionLink, JOIN_SECRET_LEN, SESSION_ID_LEN};
@@ -181,6 +182,7 @@ pub struct HostSession {
     state: Mutex<State>,
     calls: CallState,
     ended: AtomicBool,
+    audit: Mutex<Option<SharedAudit>>,
 }
 
 fn random<const N: usize>() -> [u8; N] {
@@ -225,6 +227,7 @@ impl HostSession {
             }),
             calls: CallState::default(),
             ended: AtomicBool::new(false),
+            audit: Mutex::new(None),
         });
         let accepting = session.clone();
         tokio::spawn(async move {
@@ -259,6 +262,36 @@ impl HostSession {
         }
     }
 
+    /// Write the session log to `log` from now on; records the start of the session.
+    pub fn set_audit(&self, log: SharedAudit) {
+        log.record(AuditEvent::SessionStarted {
+            host: self.host.name.clone(),
+            permissions: self.permissions(),
+        });
+        *self.audit.lock().expect("audit lock poisoned") = Some(log);
+    }
+
+    /// The session id as hex (names the session log).
+    pub fn session_hex(&self) -> String {
+        data_encoding::HEXLOWER.encode(&self.session_id)
+    }
+
+    pub(crate) fn audit(&self, event: AuditEvent) {
+        let log = self.audit.lock().expect("audit lock poisoned").clone();
+        if let Some(log) = log {
+            log.record(event);
+        }
+    }
+
+    /// A guest's name for the log.
+    pub(crate) fn guest_name(&self, id: ParticipantId) -> String {
+        self.state()
+            .guests
+            .get(&id)
+            .map(|g| g.participant.name.clone())
+            .unwrap_or_default()
+    }
+
     fn join_secret(&self) -> [u8; JOIN_SECRET_LEN] {
         *self.join_secret.lock().expect("join secret lock poisoned")
     }
@@ -267,6 +300,7 @@ impl HostSession {
     /// working. Guests in the session stay; requests that are waiting were checked already.
     pub fn regenerate_link(&self) -> SessionLink {
         *self.join_secret.lock().expect("join secret lock poisoned") = random();
+        self.audit(AuditEvent::LinkRegenerated);
         self.link()
     }
 
@@ -274,6 +308,11 @@ impl HostSession {
     /// session gets them at once (a guest's own permissions are replaced as well).
     pub fn set_permissions(&self, permissions: Permissions) {
         *self.permissions.lock().expect("permissions lock poisoned") = permissions;
+        self.audit(AuditEvent::PermissionsChanged {
+            participant: None,
+            name: None,
+            permissions,
+        });
         let ids: Vec<ParticipantId> = self.state().guests.keys().copied().collect();
         self.apply_permissions(&ids, permissions);
         (self.sink)(HostEvent::Changed);
@@ -285,6 +324,11 @@ impl HostSession {
         if !self.state().guests.contains_key(&id) {
             return false;
         }
+        self.audit(AuditEvent::PermissionsChanged {
+            participant: Some(id),
+            name: Some(self.guest_name(id)),
+            permissions,
+        });
         self.apply_permissions(&[id], permissions);
         true
     }
@@ -326,7 +370,7 @@ impl HostSession {
         let _ = tx.try_send(HostMessage::Ended {
             reason: "The host removed you from the session.".into(),
         });
-        self.remove_guest(id);
+        self.remove_guest(id, true);
         true
     }
 
@@ -649,6 +693,9 @@ impl HostSession {
         if self.ended.swap(true, Ordering::SeqCst) {
             return;
         }
+        self.audit(AuditEvent::SessionEnded {
+            reason: reason.to_string(),
+        });
         let guests = std::mem::take(&mut self.state().guests);
         for g in guests.values() {
             let _ = g.tx.try_send(HostMessage::Ended {
@@ -697,6 +744,12 @@ impl HostSession {
             )
         {
             tracing::info!("Code With Me: dropped a connection with a wrong join proof");
+            self.audit(AuditEvent::Knock {
+                name: String::new(),
+                peer: short_peer(&remote),
+                outcome: KnockOutcome::WrongProof,
+                permissions: None,
+            });
             return;
         }
         if protocol != PROTOCOL_VERSION {
@@ -717,6 +770,16 @@ impl HostSession {
         let permissions = match decision {
             Decision::Accept(p) => p.unwrap_or_else(|| self.permissions()),
             Decision::Decline | Decision::Unanswered => {
+                self.audit(AuditEvent::Knock {
+                    name: name.clone(),
+                    peer: short_peer(&remote),
+                    outcome: if decision == Decision::Unanswered {
+                        KnockOutcome::Unanswered
+                    } else {
+                        KnockOutcome::Declined
+                    },
+                    permissions: None,
+                });
                 let reason = match decision {
                     Decision::Unanswered => "The host did not answer.",
                     _ => "The host declined your request.",
@@ -735,6 +798,12 @@ impl HostSession {
         if self.is_ended() {
             return;
         }
+        self.audit(AuditEvent::Knock {
+            name: name.clone(),
+            peer: short_peer(&remote),
+            outcome: KnockOutcome::Accepted,
+            permissions: Some(permissions),
+        });
 
         let (tx, mut rx) = mpsc::channel(GUEST_QUEUE);
         let mut out = Outbox::default();
@@ -800,7 +869,7 @@ impl HostSession {
                 break;
             }
         }
-        self.remove_guest(id);
+        self.remove_guest(id, false);
         let _ = writer.await;
     }
 
@@ -829,6 +898,12 @@ impl HostSession {
             .or_else(|| self.document_write_denied(&policy, &msg));
         if let Some(denied) = denied {
             let reason = denied.to_string();
+            self.audit(AuditEvent::Denied {
+                participant: from,
+                name: participant.name.clone(),
+                request: msg.name().to_string(),
+                reason: reason.clone(),
+            });
             let answer = match msg {
                 GuestMessage::DocOpen { request, .. } => HostMessage::DocError {
                     request,
@@ -890,6 +965,18 @@ impl HostSession {
                 } else {
                     Some("The file is not open.".into())
                 };
+                if error.is_none() {
+                    let path = self.state().docs.get(&doc).map(|d| d.path.clone());
+                    if let Some(path) = path {
+                        self.audit(AuditEvent::File {
+                            participant: from,
+                            name: participant.name.clone(),
+                            action: FileAction::Saved,
+                            path,
+                            to: None,
+                        });
+                    }
+                }
                 self.reply(from, HostMessage::SaveResult { request, error });
             }
             GuestMessage::DocClose { doc } => self.close_doc(from, doc),
@@ -988,7 +1075,7 @@ impl HostSession {
         self.deliver(out);
     }
 
-    fn remove_guest(&self, id: ParticipantId) {
+    fn remove_guest(&self, id: ParticipantId, removed: bool) {
         let mut out = Outbox::default();
         let name = {
             let mut st = self.state();
@@ -1003,8 +1090,23 @@ impl HostSession {
             guest.participant.name
         };
         if !self.is_ended() {
-            out.events
-                .push(HostEvent::Notice(format!("{name} left the session.")));
+            self.audit(if removed {
+                AuditEvent::Removed {
+                    participant: id,
+                    name: name.clone(),
+                }
+            } else {
+                AuditEvent::Left {
+                    participant: id,
+                    name: name.clone(),
+                }
+            });
+            let text = if removed {
+                format!("{name} was removed from the session.")
+            } else {
+                format!("{name} left the session.")
+            };
+            out.events.push(HostEvent::Notice(text));
         }
         self.deliver(out);
     }

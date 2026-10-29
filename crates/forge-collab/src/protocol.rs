@@ -114,6 +114,22 @@ pub enum GuestMessage {
     Leave,
 }
 
+impl GuestMessage {
+    /// The request's name for the session log.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Knock { .. } => "knock",
+            Self::DocOpen { .. } => "open",
+            Self::DocUpdate { .. } => "edit",
+            Self::Awareness { .. } => "caret",
+            Self::DocSave { .. } => "save",
+            Self::DocClose { .. } => "close",
+            Self::Call { .. } => "call",
+            Self::Leave => "leave",
+        }
+    }
+}
+
 /// Host → guest.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HostMessage {
