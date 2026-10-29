@@ -6,8 +6,28 @@
 
 const light = (page) => page.evaluate(() => (document.documentElement.dataset.theme = "light"));
 
-/** Center of the first occurrence of `text` inside the active editor. */
+/**
+ * Center of the first occurrence of `text` inside the active editor, scrolled into view first
+ * (rendered doc comments can push it below the editor's bottom edge).
+ */
 async function textPoint(page, text) {
+  await page.evaluate((text) => {
+    const root = document.querySelector(".editor-slot:not(.hidden) .cm-content");
+    const line = [...root.querySelectorAll(".cm-line")].find((l) => l.textContent.includes(text));
+    line?.scrollIntoView({ block: "center" });
+  }, text);
+  // Inlays and rendered doc comments settle after scrolling: wait until the text stops moving.
+  let last = null;
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(150);
+    const p = await locate(page, text);
+    if (p && last && p.x === last.x && p.y === last.y) return p;
+    last = p;
+  }
+  return last;
+}
+
+function locate(page, text) {
   return page.evaluate((text) => {
     const root = document.querySelector(".editor-slot:not(.hidden) .cm-content");
     for (const line of root.querySelectorAll(".cm-line")) {
