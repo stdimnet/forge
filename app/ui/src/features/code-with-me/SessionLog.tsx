@@ -19,7 +19,8 @@ export const clock = (ms: number) => {
   return [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
 };
 
-function Dialog() {
+/** The log lines and where they are saved; refreshes every two seconds while shown. */
+export function SessionLogList() {
   const [log, setLog] = createSignal<SessionLogView>({ lines: [] });
   let list: HTMLDivElement | undefined;
   const load = async () => {
@@ -29,11 +30,32 @@ function Dialog() {
   };
   void load();
   const timer = setInterval(() => void load(), 2000);
+  onCleanup(() => clearInterval(timer));
+  return (
+    <>
+      <div class="cwm-log" ref={list} role="log">
+        <For each={log().lines} fallback={<div class="muted">No session has been hosted yet.</div>}>
+          {(l) => (
+            <div class="cwm-log-line" classList={{ warning: l.warning }}>
+              <span class="cwm-log-time muted">{clock(l.time)}</span>
+              <Show when={l.warning}>
+                <TriangleAlert size={13} class="cwm-log-icon" />
+              </Show>
+              <span class="cwm-log-text">{l.message}</span>
+            </div>
+          )}
+        </For>
+      </div>
+      <div class="cwm-log-file muted">
+        {log().file ? `Saved to ${log().file}` : "Not saved to a file (Settings | Tools | Code With Me | Keep a session log)."}
+      </div>
+    </>
+  );
+}
+
+function Dialog() {
   const release = suspendKeymap();
-  onCleanup(() => {
-    clearInterval(timer);
-    release();
-  });
+  onCleanup(release);
   return (
     <div class="popup-backdrop modal">
       <div
@@ -52,22 +74,7 @@ function Dialog() {
       >
         <div class="dialog-title">Session Log</div>
         <div class="dialog-body">
-          <div class="cwm-log" ref={list} role="log">
-            <For each={log().lines} fallback={<div class="muted">No session has been hosted yet.</div>}>
-              {(l) => (
-                <div class="cwm-log-line" classList={{ warning: l.warning }}>
-                  <span class="cwm-log-time muted">{clock(l.time)}</span>
-                  <Show when={l.warning}>
-                    <TriangleAlert size={13} class="cwm-log-icon" />
-                  </Show>
-                  <span class="cwm-log-text">{l.message}</span>
-                </div>
-              )}
-            </For>
-          </div>
-          <div class="cwm-log-file muted">
-            {log().file ? `Saved to ${log().file}` : "Not saved to a file (Settings | Tools | Code With Me | Keep a session log)."}
-          </div>
+          <SessionLogList />
         </div>
         <div class="dialog-buttons">
           <button class="btn-primary" onClick={() => setOpen(false)}>

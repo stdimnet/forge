@@ -17,7 +17,7 @@ import { showBalloon } from "@/keymap";
 import { isDialogWindow } from "@/shell/window/mode";
 import { isCollabGuest } from "@/state/workspace";
 import { collabApi, type PermissionLevel, type Permissions } from "@/ipc/collab";
-import { applySession, inSession, isGuest, isHost, refreshSession, setPopupOpen, trackSession } from "./store";
+import { applySession, inSession, isGuest, isHost, refreshSession, session, setPopupOpen, trackSession } from "./store";
 import { trackEditorSharing } from "./session";
 import { ToolbarButton } from "./ToolbarButton";
 import { ConnectionStatusItem } from "./ConnectionStatus";
@@ -27,6 +27,15 @@ import { trackGuestProject } from "./guest";
 import { hideWaiting, trackApprovals } from "./approval";
 import { editSessionPermissions, regenerateLink } from "./hostActions";
 import { showSessionLog } from "./SessionLog";
+import { registerToolWindow } from "@/features/registry";
+import { showToolWindow } from "@/state/layout";
+import { Users } from "lucide-solid";
+import { follow, followState, jumpTo, setFollowEveryone, stopFollowing, trackFollow } from "./follow";
+import { locationLabel } from "./followState";
+import { presence, trackPresence } from "./presence";
+import { CodeWithMeTabs, CodeWithMeToolWindow } from "./ToolWindow";
+import { showResolvedMenu } from "@/features/contextMenu/state";
+import type { Participant } from "@/ipc/collab";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -132,8 +141,39 @@ registerKeymapActions(
     ["CodeWithMe.JoinSession", "Join Session…"],
     ["CodeWithMe.OpenSharedFile", "Open Shared File…"],
     ["CodeWithMe.LeaveSession", "Leave Session"],
+    ["CodeWithMe.FollowParticipant", "Follow Participant…"],
+    ["CodeWithMe.StopFollowing", "Stop Following"],
+    ["CodeWithMe.MakeEveryoneFollow", "Make Everyone Follow You"],
+    ["CodeWithMe.JumpToParticipant", "Jump To Participant…"],
+    ["CodeWithMe.ShowToolWindow", "Code With Me"],
   ].map(([id, title]) => ({ id, title, group: "Plugins/Code With Me" })),
 );
+
+/** A chooser of the other participants under the toolbar icon (Follow Participant…, Jump To Participant…). */
+function chooseParticipant(title: string, pick: (p: Participant) => void): void {
+  if (!inSession()) return void showBalloon("Code With Me", "No session is running.");
+  const others = session().participants.filter((p) => p.id !== session().me);
+  if (!others.length) return void showBalloon("Code With Me", "Nobody else is in the session.");
+  const anchor = document.querySelector(".cwm-toolbar-btn")?.getBoundingClientRect();
+  showResolvedMenu(
+    others.map((p) => ({
+      kind: "action" as const,
+      label: p.name + (p.role === "host" ? " (host)" : ""),
+      detail: locationLabel(presence().get(p.id)),
+      checkable: true,
+      checked: followState().leader === p.id,
+      hint: title,
+      run: () => pick(p),
+    })),
+    anchor ? anchor.left : window.innerWidth / 2 - 120,
+    anchor ? anchor.bottom + 4 : 80,
+  );
+}
+
+function makeEveryoneFollow(): void {
+  if (!isHost()) return void showBalloon("Code With Me", "Only the host can ask everyone to follow.");
+  void setFollowEveryone(!session().followEveryone);
+}
 
 const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.StartSession", "Start Session…", () => void setPopupOpen(true)],
@@ -146,8 +186,25 @@ const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.OpenSharedFile", "Open Shared File…", () => void setPopupOpen(true)],
   ["CodeWithMe.LeaveSession", "Leave Session", leaveSession],
   ["CodeWithMe.Settings", "Code With Me Settings…", () => openSettings("tools.code-with-me")],
+  ["CodeWithMe.FollowParticipant", "Follow Participant…", () => chooseParticipant("Follow", (p) => follow(p.id))],
+  ["CodeWithMe.JumpToParticipant", "Jump To Participant…", () => chooseParticipant("Jump To", (p) => void jumpTo(p))],
+  ["CodeWithMe.StopFollowing", "Stop Following", stopFollowing],
+  ["CodeWithMe.MakeEveryoneFollow", "Make Everyone Follow You", makeEveryoneFollow],
+  ["CodeWithMe.ShowToolWindow", "Code With Me", () => (inSession() ? showToolWindow("code-with-me") : setPopupOpen(true))],
 ];
 for (const [id, title, run] of commands) registerCommand({ id, title, category: "Code With Me", run });
+
+// Participants (Follow, Jump To) and the host's Session Log, while a session runs.
+registerToolWindow({
+  id: "code-with-me",
+  title: "Code With Me",
+  icon: Users,
+  anchor: "right",
+  order: 60,
+  component: CodeWithMeToolWindow,
+  headerContent: CodeWithMeTabs,
+  when: inSession,
+});
 
 // A guest's window: "Code With Me: <host>" in the status bar, the host's project as the project.
 registerStatusItem({ id: "codeWithMe.guest", align: "right", order: -40, component: GuestStatusItem, when: isCollabGuest });
@@ -155,6 +212,8 @@ registerCommand({ id: "CodeWithMe.LeaveSession", title: "Leave Session", categor
 
 if (!isDialogWindow()) {
   trackSession();
+  trackPresence();
+  trackFollow();
   trackEditorSharing();
   trackGuestProject();
   trackApprovals();

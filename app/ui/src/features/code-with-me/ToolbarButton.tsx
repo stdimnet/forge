@@ -5,6 +5,7 @@ import { inSession, popupOpen, session, setPopupOpen } from "./store";
 import { SessionPopup, type StartHandler } from "./SessionPopup";
 import { CustomPermissionsHost } from "./CustomPermissions";
 import { SessionLogHost } from "./SessionLog";
+import { ToolbarAvatars } from "./Participants";
 
 export function ToolbarButton(props: { onStart: StartHandler }) {
   let btn!: HTMLButtonElement;
@@ -31,6 +32,7 @@ export function ToolbarButton(props: { onStart: StartHandler }) {
           <span class="cwm-toolbar-count">{session().participants.length}</span>
         </Show>
       </button>
+      <ToolbarAvatars />
       <Show when={popupOpen()}>
         <SessionPopup anchor={btn} onStart={props.onStart} />
       </Show>

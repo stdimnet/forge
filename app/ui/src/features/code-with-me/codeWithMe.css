@@ -387,3 +387,118 @@
   font-size: var(--fs-small);
   overflow-wrap: anywhere;
 }
+
+/* Follow (S4): participants' locations, toolbar avatars, the banner above the editor. */
+.cwm-participant.clickable {
+  cursor: pointer;
+}
+.cwm-participant.followed {
+  background: var(--accent-soft);
+}
+.cwm-participant-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 3px 0;
+}
+.cwm-participant-text .cwm-participant-name {
+  flex: none;
+}
+.cwm-participant-where {
+  overflow: hidden;
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwm-participant-following {
+  flex: none;
+  color: var(--accent);
+}
+.cwm-toolbar-avatars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 4px 0 2px;
+}
+.cwm-toolbar-avatar {
+  display: inline-flex;
+  padding: 1px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.cwm-toolbar-avatar:hover {
+  border-color: var(--border-strong);
+}
+.cwm-toolbar-avatar.followed {
+  border-color: var(--accent);
+}
+.cwm-toolbar-more {
+  font-size: var(--fs-small);
+}
+.cwm-check-item .cwm-check {
+  display: inline-flex;
+  width: 14px;
+  flex: none;
+}
+.cwm-check-item > span:first-child {
+  flex: 1;
+}
+.cwm-check-item .cwm-check {
+  color: var(--accent);
+}
+.cwm-follow-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--cwm-follow-color, var(--collab-1)) 14%, var(--bg-panel));
+  border-bottom: 2px solid var(--cwm-follow-color, var(--collab-1));
+}
+.cwm-follow-banner[hidden] {
+  display: none;
+}
+.cwm-follow-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--cwm-follow-color, var(--collab-1));
+}
+.cwm-follow-text {
+  flex: 1;
+  min-width: 0;
+}
+.cwm-tool-window {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 6px;
+  overflow: auto;
+}
+.cwm-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 8px;
+}
+.cwm-tool-actions .btn-secondary.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cwm-tool-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.cwm-tool-log .cwm-log {
+  flex: 1;
+  height: auto;
+}

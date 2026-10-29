@@ -257,7 +257,8 @@ async function sessionLog(page) {
   await openPopup(page);
   await page.click('.cwm-participant:has-text("Alex") .cwm-participant-menu');
   await page.waitForSelector('.context-menu .context-menu-item:has-text("Remove Guest")');
-  for (const key of ["ArrowDown", "ArrowRight", "ArrowDown", "ArrowDown", "Enter"]) await page.keyboard.press(key);
+  // Follow, Jump To, then Permissions ▸ Full access.
+  for (const key of ["ArrowDown", "ArrowDown", "ArrowDown", "ArrowRight", "ArrowDown", "ArrowDown", "Enter"]) await page.keyboard.press(key);
   // The popup stays open around its menus.
   await page.waitForSelector('.cwm-participant:has-text("Alex") .cwm-participant-perm:has-text("Full access")');
   await page.click('.cwm-menu-item:has-text("Session Log…")');
@@ -272,8 +273,74 @@ const logLight = async (page) => {
 };
 logLight.clip = log.clip;
 
+/** The host follows Alex (toolbar avatar): the banner above the editor and Alex's position. */
+async function followAlex(page) {
+  await sessionWithAlex(page);
+  await page.click('.cwm-toolbar-avatar[data-participant="1"]');
+  await page.waitForSelector(".editor-slot:not(.hidden) .cwm-follow-banner:not([hidden])");
+  await page.waitForTimeout(400);
+}
+const following = async (page) => followAlex(page);
+const followingLight = async (page) => {
+  await light(page);
+  await followAlex(page);
+};
+
+/** The Code With Me tool window: Alex's file and line, Make Everyone Follow You on. */
+async function toolWindow(page) {
+  await sessionWithAlex(page);
+  await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.MakeEveryoneFollow"));
+  await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.ShowToolWindow"));
+  await page.waitForSelector('.cwm-tool-window .cwm-participant:has-text("Alex") .cwm-participant-where');
+  await page.waitForTimeout(300);
+}
+const tool = async (page) => toolWindow(page);
+const toolLight = async (page) => {
+  await light(page);
+  await toolWindow(page);
+};
+
+/** Alex's menu: Follow, Jump To and the host's guest actions. */
+async function followMenu(page) {
+  await sessionWithAlex(page);
+  await openPopup(page);
+  await page.click('.cwm-participant:has-text("Alex") .cwm-participant-menu');
+  await page.waitForSelector('.context-menu .context-menu-item:has-text("Jump To")');
+  await page.waitForTimeout(200);
+}
+const followMenuDark = async (page) => followMenu(page);
+followMenuDark.clip = guestMenuDark.clip;
+const followMenuLight = async (page) => {
+  await light(page);
+  await followMenu(page);
+};
+followMenuLight.clip = guestMenuDark.clip;
+
+/** The host's popup with Make Everyone Follow You on. */
+async function everyone(page) {
+  await sessionWithAlex(page);
+  await page.evaluate(() => window.__forgeRunCommand("CodeWithMe.MakeEveryoneFollow"));
+  await openPopup(page);
+  await page.waitForSelector('.cwm-check-item[aria-checked="true"]');
+}
+const everyoneDark = async (page) => everyone(page);
+everyoneDark.clip = popupClip;
+const everyoneLight = async (page) => {
+  await light(page);
+  await everyone(page);
+};
+everyoneLight.clip = popupClip;
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "code-with-me-follow-everyone": everyoneDark,
+  "code-with-me-follow-everyone-light": everyoneLight,
+  "code-with-me-following": following,
+  "code-with-me-following-light": followingLight,
+  "code-with-me-tool-window": tool,
+  "code-with-me-tool-window-light": toolLight,
+  "code-with-me-follow-menu": followMenuDark,
+  "code-with-me-follow-menu-light": followMenuLight,
   "code-with-me-session-log": log,
   "code-with-me-session-log-light": logLight,
   "code-with-me-guest-menu": guestMenuDark,

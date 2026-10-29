@@ -5,22 +5,23 @@
  */
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
-import { EllipsisVertical, ChevronRight } from "lucide-solid";
-import { levelOf, PRESETS, type Participant, type PermissionLevel, type Permissions } from "@/ipc/collab";
+import { Check, ChevronRight } from "lucide-solid";
+import { levelOf, PRESETS, type PermissionLevel, type Permissions } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
 import { runCommand } from "@/state/commands";
 import { FileIcon } from "@/shell/FileIcon";
 import { inSession, session, setPopupOpen } from "./store";
 import { openSharedFile } from "./session";
 import { SessionConnections } from "./ConnectionStatus";
-import { askCustomPermissions, AREAS } from "./CustomPermissions";
-import { LEVEL_TITLES, sessionPermissions, showGuestMenu, showSessionPermissionsMenu } from "./hostActions";
+import { askCustomPermissions } from "./CustomPermissions";
+import { LEVEL_TITLES, sessionPermissions, showSessionPermissionsMenu } from "./hostActions";
+import { describePermissions } from "./permissionText";
+import { hostFollowers, Participants } from "./Participants";
+import { followState } from "./follow";
 
 export type StartHandler = (level: PermissionLevel, custom?: Permissions) => void;
 
-/** "Files: Edit · Terminal: No access · …" for custom permissions. */
-export const describePermissions = (p: Permissions) =>
-  AREAS.map((a) => `${a.label}: ${a.values.find((v) => v.value === p[a.area])?.label.replace(/ \(.*\)$/, "") ?? p[a.area]}`).join(" · ");
+export { describePermissions };
 
 export const LEVELS: { level: PermissionLevel; title: string; hint: string }[] = [
   { level: "readOnly", title: "Read-only", hint: "Guests can view files, the terminal and run output." },
@@ -106,74 +107,6 @@ function MenuItem(props: { label: string; action: string; danger?: boolean }) {
   );
 }
 
-const initials = (name: string) =>
-  name
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "?";
-
-/** A participant's colored circle with initials (also used for carets' colors). */
-export function Avatar(props: { participant: Participant; size?: number }) {
-  return (
-    <span
-      class="cwm-avatar"
-      style={{ background: `var(--collab-${props.participant.color})`, width: `${props.size ?? 20}px`, height: `${props.size ?? 20}px` }}
-      aria-hidden="true"
-    >
-      {initials(props.participant.name)}
-    </span>
-  );
-}
-
-function Participants() {
-  const s = () => session();
-  return (
-    <div class="cwm-participants" role="list" aria-label="Participants">
-      <For each={s().participants}>
-        {(p) => (
-          <div
-            class="cwm-participant"
-            role="listitem"
-            data-participant={p.id}
-            onContextMenu={(e) => {
-              if (s().role !== "host" || p.role !== "guest") return;
-              e.preventDefault();
-              showGuestMenu(p, e.clientX, e.clientY);
-            }}
-          >
-            <Avatar participant={p} />
-            <span class="cwm-participant-name">
-              {p.name}
-              <span class="muted">{p.role === "host" ? " (host)" : ""}{p.id === s().me ? " (you)" : ""}</span>
-            </span>
-            <Show when={p.role === "guest"}>
-              <span class="cwm-participant-perm muted" title={describePermissions(p.permissions)}>
-                {LEVEL_TITLES[levelOf(p.permissions)]}
-              </span>
-            </Show>
-            <Show when={s().role === "host" && p.role === "guest"}>
-              <button
-                class="icon-btn cwm-participant-menu"
-                title={`Actions for ${p.name}`}
-                aria-label={`Actions for ${p.name}`}
-                onClick={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  showGuestMenu(p, r.left, r.bottom + 2);
-                }}
-              >
-                <EllipsisVertical size={14} />
-              </button>
-            </Show>
-          </div>
-        )}
-      </For>
-    </div>
-  );
-}
-
 function HostView() {
   return (
     <>
@@ -187,6 +120,9 @@ function HostView() {
         <div class="cwm-popup-note muted">Send the session link to invite guests. The files open in your editor are shared.</div>
       </Show>
       <div class="cwm-sep" />
+      <Show when={followState().leader !== null}>
+        <MenuItem label="Stop Following" action="CodeWithMe.StopFollowing" />
+      </Show>
       <MenuItem label="Copy Session Link" action="CodeWithMe.CopySessionLink" />
       <MenuItem label="Regenerate Link" action="CodeWithMe.RegenerateLink" />
       <div
@@ -203,6 +139,24 @@ function HostView() {
         <span>Permissions</span>
         <span class="cwm-submenu-value muted">{LEVEL_TITLES[levelOf(sessionPermissions())]}</span>
         <ChevronRight size={14} />
+      </div>
+      <div
+        class="cwm-menu-item cwm-check-item"
+        role="menuitemcheckbox"
+        aria-checked={!!session().followEveryone}
+        data-action="CodeWithMe.MakeEveryoneFollow"
+        onClick={() => {
+          setPopupOpen(false);
+          void runCommand("CodeWithMe.MakeEveryoneFollow");
+        }}
+      >
+        <span>Make Everyone Follow You</span>
+        <Show when={session().followEveryone && session().participants.length > 1}>
+          <span class="cwm-submenu-value muted">
+            {hostFollowers()} of {session().participants.length - 1} following
+          </span>
+        </Show>
+        <span class="cwm-check">{session().followEveryone ? <Check size={14} /> : null}</span>
       </div>
       <MenuItem label="Session Log…" action="CodeWithMe.ShowSessionLog" />
       <MenuItem label="Settings…" action="CodeWithMe.Settings" />
@@ -241,6 +195,10 @@ function GuestView() {
           )}
         </For>
       </div>
+      <Show when={followState().leader !== null}>
+        <div class="cwm-sep" />
+        <MenuItem label="Stop Following" action="CodeWithMe.StopFollowing" />
+      </Show>
       <div class="cwm-sep" />
       <MenuItem label="Leave Session" action="CodeWithMe.LeaveSession" danger />
     </>

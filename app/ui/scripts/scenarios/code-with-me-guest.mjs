@@ -70,6 +70,21 @@ const contextMenu = (theme) => async (page) => {
   await page.waitForSelector(".context-menu");
 };
 
+/** The host asked everyone to follow: the guest shows the host's file with the banner. */
+const followHost = (theme) => async (page) => {
+  await page.waitForSelector("[data-testid=cwm-status]");
+  if (theme === "light") await light(page);
+  await page.waitForSelector(".editor-slot:not(.hidden) .cwm-follow-banner:not([hidden])");
+  await page.waitForFunction(() => document.querySelector(".editor-slot:not(.hidden) .cm-content")?.textContent.includes("OrderController"));
+  await page.waitForTimeout(400);
+};
+const following = (theme) => {
+  const fn = followHost(theme);
+  fn.query = "?project=cwm-guest&permission=readOnly&follow=all";
+  fn.waitFor = "[data-testid=cwm-status]";
+  return fn;
+};
+
 const withQuery = (fn, permission) => {
   fn.query = `?project=cwm-guest&permission=${permission}`;
   return fn;
@@ -77,6 +92,8 @@ const withQuery = (fn, permission) => {
 
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "cwm-guest-follow": following("dark"),
+  "cwm-guest-follow-light": following("light"),
   "cwm-guest-project": withQuery(project("dark"), "edit"),
   "cwm-guest-project-light": withQuery(project("light"), "edit"),
   "cwm-guest-readonly-menu": withQuery(contextMenu("dark"), "readOnly"),

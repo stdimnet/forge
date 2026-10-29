@@ -121,18 +121,19 @@ export function showSessionPermissionsMenu(x: number, y: number): void {
   );
 }
 
+/** The host's entries of a guest's menu in the participant list. */
+export function guestEntries(guest: Participant): MenuEntry[] {
+  return [
+    submenu(
+      "Permissions",
+      permissionEntries(guest.permissions, `Permissions of ${guest.name}`, (p) => void setGuestPermissions(guest, p)),
+    ),
+    separator,
+    item("Remove Guest", () => void removeGuest(guest)),
+  ];
+}
+
 /** A guest's context menu in the participant list (host). */
 export function showGuestMenu(guest: Participant, x: number, y: number): void {
-  showContextMenu(
-    [
-      submenu(
-        "Permissions",
-        permissionEntries(guest.permissions, `Permissions of ${guest.name}`, (p) => void setGuestPermissions(guest, p)),
-      ),
-      separator,
-      item("Remove Guest", () => void removeGuest(guest)),
-    ],
-    x,
-    y,
-  );
+  showContextMenu(guestEntries(guest), x, y);
 }
