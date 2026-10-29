@@ -4,6 +4,7 @@ import { Users } from "lucide-solid";
 import { inSession, popupOpen, session, setPopupOpen } from "./store";
 import { SessionPopup, type StartHandler } from "./SessionPopup";
 import { CustomPermissionsHost } from "./CustomPermissions";
+import { SessionLogHost } from "./SessionLog";
 
 export function ToolbarButton(props: { onStart: StartHandler }) {
   let btn!: HTMLButtonElement;
@@ -34,6 +35,7 @@ export function ToolbarButton(props: { onStart: StartHandler }) {
         <SessionPopup anchor={btn} onStart={props.onStart} />
       </Show>
       <CustomPermissionsHost />
+      <SessionLogHost />
     </>
   );
 }

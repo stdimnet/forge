@@ -26,6 +26,7 @@ import { GuestStatusItem } from "./GuestStatusItem";
 import { trackGuestProject } from "./guest";
 import { hideWaiting, trackApprovals } from "./approval";
 import { editSessionPermissions, regenerateLink } from "./hostActions";
+import { showSessionLog } from "./SessionLog";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -126,6 +127,7 @@ registerKeymapActions(
     ["CodeWithMe.CopySessionLink", "Copy Session Link"],
     ["CodeWithMe.RegenerateLink", "Regenerate Link"],
     ["CodeWithMe.Permissions", "Permissions…"],
+    ["CodeWithMe.ShowSessionLog", "Session Log…"],
     ["CodeWithMe.EndSession", "End Session"],
     ["CodeWithMe.JoinSession", "Join Session…"],
     ["CodeWithMe.OpenSharedFile", "Open Shared File…"],
@@ -138,6 +140,7 @@ const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.CopySessionLink", "Copy Session Link", copySessionLink],
   ["CodeWithMe.RegenerateLink", "Regenerate Link", regenerateLink],
   ["CodeWithMe.Permissions", "Permissions…", editSessionPermissions],
+  ["CodeWithMe.ShowSessionLog", "Session Log…", showSessionLog],
   ["CodeWithMe.EndSession", "End Session", endSession],
   ["CodeWithMe.JoinSession", "Join Session…", joinSession],
   ["CodeWithMe.OpenSharedFile", "Open Shared File…", () => void setPopupOpen(true)],

@@ -23,6 +23,7 @@ use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use forge_backend::Backend;
 use forge_collab::approval::{ApprovalEvent, Approvals};
+use forge_collab::audit::{LogLine, SessionLog};
 use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::guest_backend::lsp_host::{LspServices, ManagerSource};
@@ -72,6 +73,8 @@ pub struct CollabState {
     approvals: Mutex<Option<Arc<Approvals>>>,
     /// A guest waiting for the host to accept; notified to cancel.
     joining: Mutex<Option<Arc<Notify>>>,
+    /// The host's session log (kept after the session ends, until the next one starts).
+    log: Mutex<Option<Arc<SessionLog>>>,
 }
 
 /// Clears the joining state however the join ends.
@@ -490,14 +493,15 @@ pub async fn collab_start(
     let permissions = Permissions::preset(level)
         .or(custom)
         .ok_or_else(|| other("Choose the custom permissions first."))?;
-    let (excludes, max_kb, address, port) = {
+    let (excludes, max_kb, address, port, keep_log) = {
         let state = app.state::<AppState>();
         let s = state.read_settings();
         let patterns: Vec<String> = s.get_as("codeWithMe.excludedFiles").unwrap_or_default();
         let max_kb: u64 = s.get_as("codeWithMe.maxSharedFileSize").unwrap_or(5120);
         let address: String = s.get_as("codeWithMe.listenAddress").unwrap_or_default();
         let port: u16 = s.get_as("codeWithMe.listenPort").unwrap_or(0);
-        (patterns, max_kb, address, port)
+        let keep_log: bool = s.get_as("codeWithMe.auditLog").unwrap_or(true);
+        (patterns, max_kb, address, port, keep_log)
     };
     let excludes = Excludes::new(&excludes).map_err(other)?;
     let address = match address.trim() {
@@ -543,6 +547,9 @@ pub async fn collab_start(
     host.set_services(Arc::new(LspServices(Arc::new(ShellServers {
         app: app.clone(),
     }))));
+    let log = session_log(keep_log, &host.session_hex());
+    host.set_audit(log.clone());
+    *collab.log.lock().expect("collab lock poisoned") = Some(log);
     *collab.approvals.lock().expect("collab lock poisoned") = Some(approvals);
     collab.set(Active::Host(host.clone()));
     watch_connections(&app, Active::Host(host));
@@ -574,6 +581,51 @@ pub fn collab_link(state: State<'_, CollabState>) -> Result<String> {
         .host()
         .map(|h| h.link().to_url())
         .ok_or_else(|| other("No session is running."))
+}
+
+/// Where the session logs go: `<data dir>/forge/code-with-me`, never the project.
+fn log_dir() -> Option<std::path::PathBuf> {
+    dirs::data_dir().map(|d| d.join("forge").join("code-with-me"))
+}
+
+/// The session log: a file when the setting is on (and the directory can be written),
+/// otherwise only in memory for the Session Log.
+fn session_log(keep: bool, session: &str) -> Arc<SessionLog> {
+    if !keep {
+        return SessionLog::memory();
+    }
+    match log_dir().map(|dir| SessionLog::create(&dir, session)) {
+        Some(Ok(log)) => log,
+        Some(Err(e)) => {
+            tracing::warn!("Code With Me: cannot write the session log: {e}");
+            SessionLog::memory()
+        }
+        None => SessionLog::memory(),
+    }
+}
+
+/// The Session Log of the current (or last) hosted session.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionLogView {
+    pub lines: Vec<LogLine>,
+    /// The log file, when the session log is kept.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+}
+
+#[tauri::command]
+pub fn collab_session_log(state: State<'_, CollabState>) -> SessionLogView {
+    match &*state.log.lock().expect("collab lock poisoned") {
+        Some(log) => SessionLogView {
+            lines: log.lines(),
+            file: log.path().map(|p| p.to_string_lossy().into_owned()),
+        },
+        None => SessionLogView {
+            lines: Vec::new(),
+            file: None,
+        },
+    }
 }
 
 fn running_host(state: &CollabState) -> Result<Arc<HostSession>> {

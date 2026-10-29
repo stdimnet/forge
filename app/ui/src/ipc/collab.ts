@@ -99,6 +99,21 @@ export interface SessionView {
   workspace?: WorkspaceInfo;
 }
 
+/** One entry of the host's session log. */
+export interface LogLine {
+  /** Unix time in milliseconds. */
+  time: number;
+  message: string;
+  /** A refused request or a connection without a valid link. */
+  warning: boolean;
+}
+
+export interface SessionLogView {
+  lines: LogLine[];
+  /** The log file in Forge's data directory, when the session log is kept. */
+  file?: string;
+}
+
 /** What the Join Session dialog shows about a pasted link. */
 export interface LinkSummary {
   hostName: string;
@@ -199,6 +214,8 @@ export const collabApi = {
   removeGuest: (participant: number) => invoke<void>("collab_remove_guest", { participant }),
   /** Regenerate Link: the old link stops working; returns the new one (host). */
   regenerateLink: () => invoke<string>("collab_regenerate_link"),
+  /** The session log of the current or last hosted session (host). */
+  sessionLog: () => invoke<SessionLogView>("collab_session_log"),
   end: () => invoke<void>("collab_end"),
   link: () => invoke<string>("collab_link"),
   join: (link: string) => invoke<SessionView>("collab_join", { link }),

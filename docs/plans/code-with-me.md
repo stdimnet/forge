@@ -948,7 +948,11 @@ screenshots.
   (the participant's menu), Remove Guest and Regenerate Link: `HostSession::set_permissions`,
   `set_guest_permissions`, `remove` and `regenerate_link`; a guest's new policy counts from
   its next request, and its open editors follow the new Files access (`guest.ts`).
-- Still to do from the list above: the session log and the Session Log tab.
+- Session log: `forge_collab::audit::SessionLog` (JSON Lines in `<data dir>/forge/code-with-me`,
+  pruned after 30 days, setting `codeWithMe.auditLog`), recorded by the host for knocks,
+  admissions, permission changes, removals, Regenerate Link, guests' file changes and git
+  actions, and refused requests. Shown in a Session Log dialog from the popup until the
+  Code With Me tool window exists (S4).
 
 ### S3 — Guest project backend (8 d)
 

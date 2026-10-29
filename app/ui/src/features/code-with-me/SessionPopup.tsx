@@ -204,6 +204,7 @@ function HostView() {
         <span class="cwm-submenu-value muted">{LEVEL_TITLES[levelOf(sessionPermissions())]}</span>
         <ChevronRight size={14} />
       </div>
+      <MenuItem label="Session Log…" action="CodeWithMe.ShowSessionLog" />
       <MenuItem label="Settings…" action="CodeWithMe.Settings" />
       <div class="cwm-sep" />
       <MenuItem label="End Session" action="CodeWithMe.EndSession" danger />

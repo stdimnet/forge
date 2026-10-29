@@ -353,3 +353,37 @@
   font-size: var(--fs-small);
   margin-top: 4px;
 }
+
+/* Session Log dialog. */
+.cwm-log {
+  height: min(360px, 50vh);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  padding: 4px 0;
+  font-size: var(--fs-small);
+}
+.cwm-log-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+}
+.cwm-log-line.warning .cwm-log-text,
+.cwm-log-icon {
+  color: var(--warning);
+}
+.cwm-log-time {
+  font-family: var(--font-mono);
+  flex: none;
+}
+.cwm-log-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cwm-log-file {
+  margin-top: 8px;
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}

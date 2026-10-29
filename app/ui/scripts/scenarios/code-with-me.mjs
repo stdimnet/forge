@@ -251,8 +251,31 @@ const customChosen = async (page) => {
 };
 customChosen.clip = popupClip;
 
+/** The Session Log after Alex joined and got Full access (menus driven by the keyboard). */
+async function sessionLog(page) {
+  await sessionWithAlex(page);
+  await openPopup(page);
+  await page.click('.cwm-participant:has-text("Alex") .cwm-participant-menu');
+  await page.waitForSelector('.context-menu .context-menu-item:has-text("Remove Guest")');
+  for (const key of ["ArrowDown", "ArrowRight", "ArrowDown", "ArrowDown", "Enter"]) await page.keyboard.press(key);
+  // The popup stays open around its menus.
+  await page.waitForSelector('.cwm-participant:has-text("Alex") .cwm-participant-perm:has-text("Full access")');
+  await page.click('.cwm-menu-item:has-text("Session Log…")');
+  await page.waitForSelector(".cwm-log-line");
+  await page.waitForTimeout(300);
+}
+const log = async (page) => sessionLog(page);
+log.clip = { x: 380, y: 160, width: 680, height: 560 };
+const logLight = async (page) => {
+  await light(page);
+  await sessionLog(page);
+};
+logLight.clip = log.clip;
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "code-with-me-session-log": log,
+  "code-with-me-session-log-light": logLight,
   "code-with-me-guest-menu": guestMenuDark,
   "code-with-me-guest-menu-light": guestMenuLight,
   "code-with-me-custom-permissions": custom,

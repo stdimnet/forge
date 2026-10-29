@@ -77,5 +77,15 @@ describe("Code With Me mock: during a session", () => {
     expect((await status()).participants.map((p) => p.name)).toEqual(["Robert"]);
     await expect(invoke("collab_remove_guest", { participant: alex.id })).rejects.toThrow(/no longer in the session/);
     await invoke("collab_end");
+    const log = await invoke<{ lines: { message: string }[] }>("collab_session_log");
+    expect(log.lines.map((l) => l.message)).toEqual([
+      "Robert started the session (guests: Custom)",
+      "Alex joined (Custom)",
+      "Permission of Alex: Full access",
+      "Permission of all guests: Read-only",
+      "Regenerated the session link",
+      "Removed Alex",
+      "Session ended: The host ended the session.",
+    ]);
   });
 });

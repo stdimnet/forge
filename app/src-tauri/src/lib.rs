@@ -142,6 +142,7 @@ pub fn run() {
             commands::collab::collab_set_guest_permissions,
             commands::collab::collab_remove_guest,
             commands::collab::collab_regenerate_link,
+            commands::collab::collab_session_log,
             commands::collab::collab_cancel_join,
             commands::collab::collab_leave,
             commands::collab::collab_ping,

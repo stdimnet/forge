@@ -16136,6 +16136,17 @@
           "order": 20
         },
         {
+          "key": "codeWithMe.auditLog",
+          "title": "Keep a session log",
+          "description": "Who joined, permission changes, what guests changed and what was refused, as one file per session in Forge's data directory (never in the project). Logs older than 30 days are deleted.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.code-with-me",
+          "section": "Session",
+          "project": false,
+          "order": 30
+        },
+        {
           "key": "codeWithMe.listenPort",
           "title": "Port",
           "description": "UDP port for direct connections. 0: any free port. Set a fixed port for a port forward.",

@@ -74,6 +74,11 @@ let participants: Participant[] = [];
 let files: { path: string }[] = [];
 let me = 0;
 
+/** The host's session log (in memory; the app writes it to its data directory). */
+const logLines: { time: number; message: string; warning: boolean }[] = [];
+const log = (message: string, warning = false) => logLines.push({ time: Date.now(), message, warning });
+const levelTitle = (p: Permissions) => ({ readOnly: "Read-only", editFiles: "Edit files", fullAccess: "Full access", custom: "Custom" })[levelOf(p)];
+
 function view(): SessionView {
   if (role === "none") return { role, canHost: true, participants: [], files: [] };
   return {
@@ -218,6 +223,7 @@ function askHost(name: string): Promise<boolean> {
 function admit(key: string, name: string): MockGuest {
   const participant: Participant = { id: nextParticipant, name, role: "guest", color: 2 + ((nextParticipant - 1) % 7), permissions };
   nextParticipant++;
+  log(`${name} joined (${levelTitle(permissions)})`);
   const g = { key, participant };
   guests.set(key, g);
   hostChanged();
@@ -225,9 +231,10 @@ function admit(key: string, name: string): MockGuest {
   return g;
 }
 
-function dropGuest(key: string): void {
+function dropGuest(key: string, removed = false): void {
   const g = guests.get(key);
   if (!g) return;
+  if (!removed) log(`${g.participant.name} left`);
   guests.delete(key);
   for (const d of [...docs.values()]) if (d.openBy.has(key)) hostClose(key, d.id);
   hostChanged();
@@ -265,7 +272,10 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
       hostAwareness(from, docId, fromBase64(String(m.update)));
       break;
     case "save":
-      if (guests.get(from)!.participant.permissions.files !== "edit") toGuest(from, { kind: "saved", req: m.req, error: "Your permission is Read-only" });
+      if (guests.get(from)!.participant.permissions.files !== "edit") {
+        log(`Refused save of ${guests.get(from)!.participant.name}: Your permission is Read-only`, true);
+        toGuest(from, { kind: "saved", req: m.req, error: "Your permission is Read-only" });
+      }
       else await hostSave(docId).then(() => toGuest(from, { kind: "saved", req: m.req }));
       break;
     case "close":
@@ -282,11 +292,14 @@ function startHost(level: PermissionLevel, custom?: Permissions): SessionView {
   me = 0;
   link = demoLink("demo");
   permissions = level === "custom" ? (custom ?? PRESETS.readOnly) : PRESETS[level];
+  logLines.length = 0;
+  log(`${HOST_NAME} started the session (guests: ${levelTitle(permissions)})`);
   hostChanged();
   return view();
 }
 
 function endHost(reason: string): void {
+  log(`Session ended: ${reason}`);
   for (const answer of [...requests.values()]) answer(false);
   for (const key of guests.keys()) toGuest(key, { kind: "ended", reason });
   guests.clear();
@@ -491,9 +504,11 @@ registerMock("collab_cancel_join", () => {
   joinReject?.(new Error("Cancelled."));
 });
 registerMock("collab_link", () => link);
+registerMock("collab_session_log", () => ({ lines: [...logLines] }));
 registerMock("collab_regenerate_link", () => {
   if (role !== "host") throw new Error("No session is running.");
   link = demoLink(Math.random().toString(36).slice(2, 10));
+  log("Regenerated the session link");
   emitStatus();
   return link;
 });
@@ -512,23 +527,26 @@ const guestKey = (participant: unknown) => [...guests.values()].find((g) => g.pa
 registerMock("collab_set_permissions", ({ permissions: p }) => {
   if (role !== "host") throw new Error("No session is running.");
   permissions = p as Permissions;
+  log(`Permission of all guests: ${levelTitle(permissions)}`);
   setGuestPermissions([...guests.keys()], permissions);
   return view();
 });
 registerMock("collab_set_guest_permissions", ({ participant, permissions: p }) => {
   const key = guestKey(participant);
   if (role !== "host" || !key) throw new Error("The guest is no longer in the session.");
+  log(`Permission of ${guests.get(key)!.participant.name}: ${levelTitle(p as Permissions)}`);
   setGuestPermissions([key], p as Permissions);
 });
 registerMock("collab_remove_guest", ({ participant }) => {
   const key = guestKey(participant);
   if (role !== "host" || !key) throw new Error("The guest is no longer in the session.");
+  log(`Removed ${guests.get(key)!.participant.name}`);
   toGuest(key, { kind: "ended", reason: "The host removed you from the session." });
   if (key === "alex") {
     alex?.stop();
     alex = null;
   }
-  dropGuest(key);
+  dropGuest(key, true);
 });
 
 registerMock("collab_join", async ({ link }) => {

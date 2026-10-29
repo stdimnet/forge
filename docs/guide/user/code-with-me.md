@@ -1,6 +1,6 @@
 ---
 title: Code With Me
-description: Invite guests into the open project and edit it together - starting a session, the host's approval with the verification code, permission levels, files guests never see, joining and leaving.
+description: Invite guests into the open project and edit it together - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, the session log, files guests never see, joining and leaving.
 order: 200
 tags: [code with me, collaboration, pair programming, session, guest, host, permissions]
 ---
@@ -72,6 +72,28 @@ refused by your Forge.
 
 ![A guest's menu in the session popup](../../screenshots/code-with-me-guest-menu.png)
 
+## Session log
+
+**Session Log…** in the popup (also in Find Action) shows what happened in the session you
+host, with the time: who joined, declined and unanswered requests, connections without a
+valid link, permission changes, Regenerate Link, removed and leaving guests, files guests
+saved, created, renamed or deleted, their git actions, and every request your Forge refused
+(shown as warnings). Terminal keystrokes and file contents are never logged.
+
+With **Keep a session log** on (the default, Settings | Tools | Code With Me), each session is
+also written to a file in Forge's data directory, never into the project:
+
+| OS | Folder |
+| --- | --- |
+| Linux | `~/.local/share/forge/code-with-me/` |
+| macOS | `~/Library/Application Support/forge/code-with-me/` |
+| Windows | `%APPDATA%\forge\code-with-me\` |
+
+The file is `<date>-<session>.jsonl`, one JSON object per line. Logs older than 30 days are
+deleted when you start a session.
+
+![Session Log](../../screenshots/code-with-me-session-log.png)
+
 ## Accepting guests
 
 Having the link is not enough. When a guest opens it, a balloon appears and stays until you
@@ -118,5 +140,5 @@ with Full access.
 ## Settings
 
 Settings | Tools | Code With Me: your name in sessions, the default permission level,
-whether ending a session asks for confirmation, the files guests never see and the connection
+whether ending a session asks for confirmation, whether a session log is kept, the files guests never see and the connection
 settings of the [relay page](code-with-me-relay.md).
