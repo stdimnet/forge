@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { registerMock } from "@/ipc";
 import { registerToolWindow } from "@/features/registry";
 import type { ProjectLayout } from "@/ipc/projectState";
@@ -17,7 +17,8 @@ import {
   slotOfToolWindow,
   stripeToolWindows,
 } from "./layout";
-import { applyLayout, currentLayout, restoreDefaultLayout, storeLayoutAsDefault } from "./layoutPersistence";
+import { applyLayout, currentLayout, keepsLayout, restoreDefaultLayout, storeLayoutAsDefault } from "./layoutPersistence";
+import { adoptWorkspace, closeWorkspace } from "./workspace";
 
 const Empty = () => null;
 const Icon = () => null;
@@ -139,5 +140,31 @@ describe("project layout", () => {
     expect(dockedIn(slot)).toBe("terminal");
     await applyLayout(saved);
     expect(viewModeOf("terminal")).toBe("float");
+  });
+
+  it("is neither restored nor saved in a Code With Me guest's window", async () => {
+    closeAllTabs();
+    let loads = 0;
+    let saves = 0;
+    registerMock("layout_load", () => {
+      loads++;
+      return empty({ openFiles: ["app/Saved.php"], activeFile: "app/Saved.php" });
+    });
+    registerMock("layout_save", () => void saves++);
+    // The guest follows the host into the host's file; a restored layout must not switch away.
+    adoptWorkspace({ name: "shop", root: "/shop", collab: { host: "Robert", label: "Robert (workstation)" } });
+    expect(keepsLayout()).toBe(false);
+    await openFile("cwm://app/Http/Controllers/OrderController.php").catch(() => undefined);
+    await new Promise((r) => setTimeout(r, 600));
+    expect(loads).toBe(0);
+    expect(saves).toBe(0);
+    expect(editor.tabs.map((t) => t.path)).not.toContain("app/Saved.php");
+    closeWorkspace();
+    // A normal project restores its layout.
+    adoptWorkspace({ name: "shop", root: "/home/robert/shop" });
+    expect(keepsLayout()).toBe(true);
+    await vi.waitFor(() => expect(editor.tabs.map((t) => t.path)).toContain("app/Saved.php"));
+    expect(loads).toBe(1);
+    closeWorkspace();
   });
 });
