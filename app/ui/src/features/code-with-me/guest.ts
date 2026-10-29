@@ -99,7 +99,7 @@ export function trackGuestProject(): void {
         (canEdit, before) => {
           applyAccess();
           // Told only when the host changes it during the session, not on joining.
-          if (canEdit === undefined || before === undefined) return;
+          if (canEdit === undefined || before === undefined || canEdit === before) return;
           showBalloon(
             "Code With Me",
             canEdit ? "The host lets you edit files now." : "The host changed your permission: files are read-only now.",

@@ -10,6 +10,7 @@ import { applySession } from "./store";
 import { guestCanEdit, guestLevel, guestTitle, hiddenForGuest, trackGuestProject } from "./guest";
 import { latencyClass } from "./GuestStatusItem";
 import { extensionsFor } from "@/editor/extensions";
+import { balloons } from "@/keymap";
 
 const info = { name: "shop", root: "cwm://Robert/shop", collab: { host: "Robert", label: "Robert (workstation)" } };
 
@@ -112,6 +113,20 @@ describe("a guest's editors", () => {
     join(PRESETS.fullAccess);
     expect(view.state.readOnly).toBe(false);
     view.destroy();
+    closeWorkspace();
+  });
+
+  it("are announced only when the permission really changed", () => {
+    trackGuestProject();
+    const seen = new Set(balloons().map((b) => b.id));
+    const told = () => balloons().filter((b) => !seen.has(b.id) && b.text === "Code With Me").map((b) => b.detail);
+    join(PRESETS.readOnly);
+    // Status updates (presence, connection paths) repeat the same permission.
+    join(PRESETS.readOnly);
+    join(PRESETS.readOnly);
+    expect(told()).toEqual([]);
+    join(PRESETS.editFiles);
+    expect(told()).toEqual(["The host lets you edit files now."]);
     closeWorkspace();
   });
 });
