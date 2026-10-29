@@ -170,7 +170,8 @@ pub struct HostSession {
     admission: Arc<dyn Admission>,
     sink: HostSink,
     session_id: [u8; SESSION_ID_LEN],
-    join_secret: [u8; JOIN_SECRET_LEN],
+    /// Replaced by Regenerate Link, which makes the old link stop working.
+    join_secret: Mutex<[u8; JOIN_SECRET_LEN]>,
     host: Participant,
     permissions: Mutex<Permissions>,
     excludes: Excludes,
@@ -204,7 +205,7 @@ impl HostSession {
             admission,
             sink,
             session_id: random(),
-            join_secret: random(),
+            join_secret: Mutex::new(random()),
             host: Participant {
                 id: ParticipantId::HOST,
                 name: clean_name(&config.host_name),
@@ -252,10 +253,81 @@ impl HostSession {
             machine: self.machine.clone(),
             session_id: self.session_id,
             host_id: self.transport.local_key(),
-            join_secret: self.join_secret,
+            join_secret: self.join_secret(),
             relay: self.transport.relay_url(),
             addrs: self.transport.addresses(),
         }
+    }
+
+    fn join_secret(&self) -> [u8; JOIN_SECRET_LEN] {
+        *self.join_secret.lock().expect("join secret lock poisoned")
+    }
+
+    /// Regenerate Link: a new join secret, so the old link (and every copy of it) stops
+    /// working. Guests in the session stay; requests that are waiting were checked already.
+    pub fn regenerate_link(&self) -> SessionLink {
+        *self.join_secret.lock().expect("join secret lock poisoned") = random();
+        self.link()
+    }
+
+    /// Permissions for the whole session: new guests get them, and every guest in the
+    /// session gets them at once (a guest's own permissions are replaced as well).
+    pub fn set_permissions(&self, permissions: Permissions) {
+        *self.permissions.lock().expect("permissions lock poisoned") = permissions;
+        let ids: Vec<ParticipantId> = self.state().guests.keys().copied().collect();
+        self.apply_permissions(&ids, permissions);
+        (self.sink)(HostEvent::Changed);
+    }
+
+    /// Permissions of one guest (the participant's Permissions menu). `false` when the
+    /// guest is no longer in the session.
+    pub fn set_guest_permissions(&self, id: ParticipantId, permissions: Permissions) -> bool {
+        if !self.state().guests.contains_key(&id) {
+            return false;
+        }
+        self.apply_permissions(&[id], permissions);
+        true
+    }
+
+    /// The new permissions count from the next request on: the guest's policy is replaced,
+    /// the guest is told, and everyone sees the new participant list.
+    fn apply_permissions(&self, ids: &[ParticipantId], permissions: Permissions) {
+        let mut out = Outbox::default();
+        {
+            let mut st = self.state();
+            let mut changed = false;
+            for id in ids {
+                let Some(g) = st.guests.get_mut(id) else {
+                    continue;
+                };
+                if g.participant.permissions == permissions {
+                    continue;
+                }
+                g.participant.permissions = permissions;
+                g.policy = Policy::new(permissions, self.excludes.clone());
+                out.guests
+                    .push((g.tx.clone(), HostMessage::Permissions { permissions }));
+                changed = true;
+            }
+            if changed {
+                participants_changed(&self.host, &st, &mut out);
+            }
+        }
+        self.deliver(out);
+    }
+
+    /// Remove Guest: the guest is disconnected at once and told why. Removing does not ban;
+    /// with the same link the guest can ask again ([`Self::regenerate_link`] prevents it).
+    pub fn remove(&self, id: ParticipantId) -> bool {
+        let tx = self.state().guests.get(&id).map(|g| g.tx.clone());
+        let Some(tx) = tx else {
+            return false;
+        };
+        let _ = tx.try_send(HostMessage::Ended {
+            reason: "The host removed you from the session.".into(),
+        });
+        self.remove_guest(id);
+        true
     }
 
     pub fn notice(&self) -> Option<String> {
@@ -617,7 +689,7 @@ impl HostSession {
         // Without the link there is no prompt and no answer.
         if session.as_slice() != self.session_id
             || !check_proof(
-                &self.join_secret,
+                &self.join_secret(),
                 &host_key,
                 &remote,
                 &self.session_id,

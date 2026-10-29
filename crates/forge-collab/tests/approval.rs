@@ -8,9 +8,10 @@ use std::time::Duration;
 use forge_backend::{Backend, LocalBackend};
 use forge_collab::approval::{ApprovalEvent, Approvals};
 use forge_collab::excludes::Excludes;
-use forge_collab::guest::GuestSession;
+use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::host::{HostConfig, HostSession};
 use forge_collab::permissions::Permissions;
+use forge_collab::presence::ParticipantId;
 use forge_collab::transport::memory::MemoryNetwork;
 
 struct Setup {
@@ -119,4 +120,118 @@ async fn ending_the_session_refuses_a_waiting_guest() {
     s.request().await;
     s.approvals.refuse_all();
     assert!(guest.await.unwrap().is_err());
+}
+
+// ---- during the session: permissions, Remove Guest, Regenerate Link ------------------------
+
+type Events = Arc<Mutex<Vec<GuestEvent>>>;
+
+impl Setup {
+    /// A guest the host accepted, with the events it receives.
+    async fn admitted(&self, key: u8, name: &str) -> (Arc<GuestSession>, Events) {
+        let events: Events = Arc::default();
+        let seen = events.clone();
+        let link = self.host.link();
+        let transport = Arc::new(self.net.endpoint([key; 32]));
+        let name = name.to_string();
+        let guest = tokio::spawn(async move {
+            GuestSession::join(
+                transport,
+                &link,
+                &name,
+                Arc::new(move |e| seen.lock().unwrap().push(e)),
+            )
+            .await
+        });
+        let (id, _, _) = self.request().await;
+        self.events.lock().unwrap().clear();
+        assert!(self.approvals.answer(id, true));
+        (guest.await.unwrap().unwrap(), events)
+    }
+}
+
+async fn until(what: &str, check: impl Fn() -> bool) {
+    for _ in 0..300 {
+        if check() {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    panic!("timed out waiting for {what}");
+}
+
+#[tokio::test]
+async fn permission_changes_reach_the_guest_and_count_at_once() {
+    let s = setup(Duration::from_secs(30));
+    let (guest, _) = s.admitted(2, "Alex").await;
+    assert_eq!(guest.permissions(), Permissions::READ_ONLY);
+    let me = guest.me();
+
+    assert!(s.host.set_guest_permissions(me, Permissions::EDIT_FILES));
+    until("Edit files", || {
+        guest.permissions() == Permissions::EDIT_FILES
+    })
+    .await;
+    let host_view = s.host.participants();
+    assert_eq!(host_view[1].permissions, Permissions::EDIT_FILES);
+    let doc = guest.open_doc("README.md").await.unwrap();
+    assert!(!doc.read_only);
+    guest.save(doc.doc).await.unwrap();
+
+    // The session's permission replaces the guest's own, and new guests get it too.
+    s.host.set_permissions(Permissions::READ_ONLY);
+    assert_eq!(s.host.permissions(), Permissions::READ_ONLY);
+    until("Read-only", || {
+        guest.permissions() == Permissions::READ_ONLY
+    })
+    .await;
+    let err = guest.save(doc.doc).await.expect_err("read-only now");
+    assert_eq!(err, "Your permission is Read-only");
+    assert!(!s
+        .host
+        .set_guest_permissions(ParticipantId(99), Permissions::FULL_ACCESS));
+}
+
+#[tokio::test]
+async fn a_removed_guest_is_disconnected_and_told_why() {
+    let s = setup(Duration::from_secs(30));
+    let (guest, events) = s.admitted(2, "Alex").await;
+    assert_eq!(s.host.participants().len(), 2);
+    assert!(s.host.remove(guest.me()));
+    assert_eq!(s.host.participants().len(), 1);
+    until("the guest to hear it", || {
+        events.lock().unwrap().contains(&GuestEvent::Ended(
+            "The host removed you from the session.".into(),
+        ))
+    })
+    .await;
+    assert!(!s.host.remove(guest.me()));
+}
+
+#[tokio::test]
+async fn a_regenerated_link_locks_out_the_old_one() {
+    let s = setup(Duration::from_secs(30));
+    let (guest, _) = s.admitted(2, "Alex").await;
+    let old = s.host.link();
+    let new = s.host.regenerate_link();
+    assert_ne!(old.to_url(), new.to_url());
+    assert_eq!(new.to_url(), s.host.link().to_url());
+    // The guest in the session stays.
+    assert_eq!(s.host.participants().len(), 2);
+    assert!(!guest.is_ended());
+
+    // The old link is dropped before the host is asked.
+    let transport = Arc::new(s.net.endpoint([3; 32]));
+    let stale = tokio::time::timeout(
+        Duration::from_secs(5),
+        GuestSession::join(transport, &old, "Sam", Arc::new(|_| {})),
+    )
+    .await;
+    assert!(!matches!(stale, Ok(Ok(_))), "the old link still works");
+    assert!(s.events.lock().unwrap().is_empty(), "the host was asked");
+
+    // The new one asks the host as before.
+    let (third, _) = s.admitted(4, "Kim").await;
+    assert_eq!(third.permissions(), Permissions::READ_ONLY);
+    assert_eq!(s.host.participants().len(), 3);
 }
