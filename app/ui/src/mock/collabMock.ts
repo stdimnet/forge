@@ -24,6 +24,7 @@ import {
   type Participant,
   type PermissionLevel,
   type Permissions,
+  type Presence,
   type RelayStatus,
   type RelayTokenStatus,
   type SessionView,
@@ -42,7 +43,24 @@ const mode = typeof location !== "undefined" ? new URLSearchParams(location.sear
 interface WireMsg {
   from: string;
   to: string;
-  kind: "knock" | "welcome" | "open" | "opened" | "error" | "update" | "awareness" | "save" | "saved" | "close" | "leave" | "status" | "ended" | "waiting" | "refused";
+  kind:
+    | "knock"
+    | "welcome"
+    | "open"
+    | "opened"
+    | "error"
+    | "update"
+    | "awareness"
+    | "save"
+    | "saved"
+    | "close"
+    | "leave"
+    | "status"
+    | "ended"
+    | "waiting"
+    | "refused"
+    | "presence"
+    | "follow-host";
   [key: string]: unknown;
 }
 
@@ -73,6 +91,9 @@ let permissions: Permissions = PRESETS.readOnly;
 let participants: Participant[] = [];
 let files: { path: string }[] = [];
 let me = 0;
+/** Where everyone is, by participant id (the host's view: every file). */
+const presences = new Map<number, Presence>();
+let followEveryone = false;
 
 /** The host's session log (in memory; the app writes it to its data directory). */
 const logLines: { time: number; message: string; warning: boolean }[] = [];
@@ -91,7 +112,24 @@ function view(): SessionView {
     permissions: role === "host" ? permissions : participants.find((p) => p.id === me)?.permissions,
     hostLabel: role === "guest" ? `${HOST_NAME} (demo)` : undefined,
     notice: NOTICE,
+    presence: [...presences].filter(([id]) => id !== me).map(([participant, p]) => ({ participant, ...p })),
+    followEveryone,
   };
+}
+
+/** Secret files the mock host never names to guests (like `hostOpen` refuses them). */
+const hiddenFile = (path: string) => /(^|\/)\.env($|\.)/.test(path) && !/\.env\.(example|dist)$/.test(path);
+
+/** A presence as a guest may see it. */
+const visible = (p: Presence): Presence => (p.file && hiddenFile(p.file) ? (p.following === undefined ? {} : { following: p.following }) : p);
+
+/** Store a participant's presence and pass it on (host). */
+function hostPresence(participant: number, p: Presence): void {
+  presences.set(participant, p);
+  for (const g of guests.values()) {
+    if (g.participant.id !== participant) toGuest(g.key, { kind: "presence", participant, presence: visible(p) });
+  }
+  if (participant !== 0) emitMock("collab://presence", { participant, ...p });
 }
 
 const emitStatus = () => emitMock("collab://status", view());
@@ -236,6 +274,7 @@ function dropGuest(key: string, removed = false): void {
   if (!g) return;
   if (!removed) log(`${g.participant.name} left`);
   guests.delete(key);
+  presences.delete(g.participant.id);
   for (const d of [...docs.values()]) if (d.openBy.has(key)) hostClose(key, d.id);
   hostChanged();
   emitMock("collab://notice", { text: `${g.participant.name} left the session.` });
@@ -249,7 +288,8 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
       if (!(await askHost(String(m.name ?? "Guest")))) return void toGuest(from, { kind: "refused", reason: "The host declined your request." });
       g = admit(from, String(m.name ?? "Guest"));
     }
-    toGuest(from, { kind: "welcome", you: g.participant.id, participants, files });
+    const snapshot = [...presences].filter(([id]) => id !== g!.participant.id).map(([participant, p]) => ({ participant, ...visible(p) }));
+    toGuest(from, { kind: "welcome", you: g.participant.id, participants, files, presence: snapshot, followEveryone });
     return;
   }
   if (!guests.has(from)) return;
@@ -284,6 +324,9 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
     case "leave":
       dropGuest(from);
       break;
+    case "presence":
+      hostPresence(guests.get(from)!.participant.id, m.presence as Presence);
+      break;
   }
 }
 
@@ -304,6 +347,8 @@ function endHost(reason: string): void {
   for (const key of guests.keys()) toGuest(key, { kind: "ended", reason });
   guests.clear();
   docs.clear();
+  presences.clear();
+  followEveryone = false;
   alex?.stop();
   alex = null;
   role = "none";
@@ -358,11 +403,22 @@ class ScriptedGuest {
         head: Y.relativePositionToJSON(Y.createRelativePositionFromTypeIndex(text, head)),
       });
     const find = (needle: string) => text.toString().indexOf(needle);
+    // Alex's presence: the file, the caret's line and column, and the lines in view.
+    const where = (offset: number) => {
+      const before = text.toString().slice(0, offset).split("\n");
+      const line = before.length;
+      hostPresence(g.participant.id, {
+        file: target.path,
+        caret: { line, column: before[before.length - 1].length + 1 },
+        viewport: { topLine: Math.max(1, line - 8), bottomLine: line + 22 },
+      });
+    };
     // Alex goes to the discount line and adds a comment, then selects the payable block.
     const at = find("0.1 : 0.0;");
     if (at < 0) return;
     let pos = at + "0.1 : 0.0;".length;
     caret(pos);
+    where(pos);
     await sleep(500);
     for (const ch of " // VIP customers") {
       if (this.stopped) return;
@@ -374,7 +430,10 @@ class ScriptedGuest {
     await sleep(400);
     const from = find("        if ($order->isPayable())");
     const to = find("        return response()");
-    if (from >= 0 && to > from) caret(from, to - 1);
+    if (from >= 0 && to > from) {
+      caret(from, to - 1);
+      where(from);
+    }
   }
 }
 
@@ -426,6 +485,15 @@ function guestReceive(m: WireMsg): void {
     case "saved":
       emitDoc({ docId: m.docId, saved: m.saved });
       break;
+    case "presence":
+      presences.set(Number(m.participant), m.presence as Presence);
+      emitMock("collab://presence", { participant: Number(m.participant), ...(m.presence as Presence) });
+      break;
+    case "follow-host":
+      followEveryone = !!m.on;
+      emitMock("collab://follow-host", { on: followEveryone });
+      emitStatus();
+      break;
     case "error":
       emitMock("collab://notice", { text: String(m.text) });
       break;
@@ -433,6 +501,8 @@ function guestReceive(m: WireMsg): void {
       role = "none";
       participants = [];
       files = [];
+      presences.clear();
+      followEveryone = false;
       emitMock("collab://ended", { reason: String(m.reason) });
       emitStatus();
       break;
@@ -462,6 +532,9 @@ async function join(name: string): Promise<SessionView> {
     me = Number(welcome.you);
     participants = welcome.participants as Participant[];
     files = welcome.files as { path: string }[];
+    presences.clear();
+    for (const { participant, ...p } of (welcome.presence as ({ participant: number } & Presence)[]) ?? []) presences.set(participant, p);
+    followEveryone = !!welcome.followEveryone;
     emitStatus();
     return view();
   } finally {
@@ -561,6 +634,8 @@ registerMock("collab_leave", () => {
   role = "none";
   participants = [];
   files = [];
+  presences.clear();
+  followEveryone = false;
   emitStatus();
 });
 
@@ -580,6 +655,20 @@ registerMock("collab_doc_update", ({ docId, update }) => {
 registerMock("collab_awareness", ({ docId, update }) => {
   if (role === "host") hostAwareness("host", Number(docId), fromBase64(String(update)));
   else if (role === "guest") send({ kind: "awareness", to: hostKey, docId, update });
+});
+
+registerMock("collab_presence", ({ presence }) => {
+  if (role === "host") hostPresence(0, presence as Presence);
+  else if (role === "guest") send({ kind: "presence", to: hostKey, presence });
+});
+
+registerMock("collab_follow_everyone", ({ on }) => {
+  if (role !== "host") throw new Error("No session is running.");
+  followEveryone = !!on;
+  for (const g of guests.values()) toGuest(g.key, { kind: "follow-host", on: followEveryone });
+  log(followEveryone ? "Asked everyone to follow" : "Stopped asking everyone to follow");
+  emitStatus();
+  return view();
 });
 
 registerMock("collab_doc_close", ({ docId }) => {

@@ -1,11 +1,15 @@
 /**
  * Browser-mode Code With Me guest: `?project=cwm-guest` opens the demo project as the host
  * "Robert" shares it with the guest "Alex" (`&permission=edit` for Edit files, Read-only
- * otherwise). The project, search and language features are the demo's own mocks, as if the
- * host answered them. Nothing leaves the page.
+ * otherwise). With `&follow` the host is in `OrderController.php` and the guest follows it
+ * (`&follow=all`: the host asked everyone to follow); without it the guest does not follow on
+ * joining, so the window starts on the demo's `User.php`. The project, search and language
+ * features are the demo's own mocks, as if the host answered them. Nothing leaves the page.
  */
-import { emitMock, registerMock } from "@/ipc";
-import { PRESETS, type Permissions, type SessionView } from "@/ipc/collab";
+import * as Y from "yjs";
+import { emitMock, invoke, registerMock } from "@/ipc";
+import { encodeOpened, PRESETS, type Permissions, type Presence, type SessionView } from "@/ipc/collab";
+import { contentHash } from "@/state/editor";
 import type { WorkspaceInfo } from "@/ipc/workspace";
 import { demoProjectName } from "./demoProject";
 import { setSetting } from "./settingsMock";
@@ -34,6 +38,13 @@ export function collabGuestWorkspace(): WorkspaceInfo {
 
 const permissions = (): Permissions => (params().get("permission") === "edit" ? PRESETS.editFiles : PRESETS.readOnly);
 
+/** Where the host is with `&follow`. */
+const HOST_PRESENCE: Presence = {
+  file: "app/Http/Controllers/OrderController.php",
+  caret: { line: 24, column: 9 },
+  viewport: { topLine: 14, bottomLine: 46 },
+};
+
 const idle: SessionView = { role: "none", canHost: false, participants: [], files: [] };
 
 function view(): SessionView {
@@ -50,6 +61,8 @@ function view(): SessionView {
     permissions: p,
     hostLabel: HOST_LABEL,
     workspace: collabGuestWorkspace(),
+    presence: params().has("follow") ? [{ participant: 1, ...HOST_PRESENCE }] : [],
+    followEveryone: params().get("follow") === "all",
   };
 }
 
@@ -59,6 +72,16 @@ if (isCollabGuestDemo()) {
   let joined = true;
   registerMock("collab_status", () => (joined ? view() : idle));
   registerMock("collab_ping", () => 23);
+  if (!params().has("follow")) setSetting("codeWithMe.followHostOnJoin", false, "user");
+  // The host's files as shared documents (following the host opens them), read-only here.
+  let nextDoc = 1;
+  registerMock("collab_doc_open", async ({ path }) => {
+    const text = String(await invoke<string>("fs_read_file", { path }));
+    const doc = new Y.Doc();
+    doc.getText("content").insert(0, text);
+    return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: permissions().files !== "edit" });
+  });
+  registerMock("collab_doc_save", () => undefined);
   registerMock("collab_leave", () => {
     joined = false;
     emitMock("collab://ended", { reason: "You left the session." });

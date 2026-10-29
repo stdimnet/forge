@@ -89,3 +89,18 @@ describe("Code With Me mock: during a session", () => {
     ]);
   });
 });
+
+describe("Code With Me mock: follow", () => {
+  it("toggles Make Everyone Follow You and keeps the host's presence", async () => {
+    await expect(invoke("collab_follow_everyone", { on: true })).rejects.toThrow(/No session/);
+    await invoke("collab_start", { level: "readOnly" });
+    const on = await invoke<SessionView>("collab_follow_everyone", { on: true });
+    expect(on.followEveryone).toBe(true);
+    await invoke("collab_presence", { presence: { file: "app/Order.php", caret: { line: 3, column: 1 } } });
+    // The host's own presence is not listed for the host.
+    expect((await invoke<SessionView>("collab_status")).presence).toEqual([]);
+    expect((await invoke<SessionView>("collab_follow_everyone", { on: false })).followEveryone).toBe(false);
+    await invoke("collab_end");
+    expect((await invoke<SessionView>("collab_status")).followEveryone).toBeUndefined();
+  });
+});

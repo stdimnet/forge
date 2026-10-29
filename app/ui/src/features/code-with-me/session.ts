@@ -27,6 +27,7 @@ import { workspace } from "@/state/workspace";
 import { adoptDoc, GUEST_PREFIX, handleDocEvent, onSharedDocEvent, releaseAll, releaseDoc, retabDoc, sharedDoc } from "./docs";
 import { syncBinding } from "./binding";
 import { session } from "./store";
+import { followHostOnJoin, withoutStopping } from "./follow";
 
 /** Project files (not scratches, consoles or other pseudo paths). */
 const isProjectFile = (path: string) => !path.includes("://") && !path.startsWith("forge:");
@@ -147,11 +148,11 @@ export function trackEditorSharing(): void {
           if (role === "host") void shareOpenTabs(s);
           if (role === "guest" && prev !== "guest") {
             const files = s.files.slice(0, 10);
-            void (async () => {
+            void withoutStopping(async () => {
               for (const f of files) await openSharedFile(f.path).catch((e) => console.warn(`cannot open shared file ${f.path}`, e));
-              // The host's first file is the one to look at.
+              // The host's first file is the one to look at, unless the guest follows the host.
               if (files[0] && sharedDoc(guestPath(files[0].path))) await openSharedFile(files[0].path).catch(() => undefined);
-            })();
+            }).then(followHostOnJoin);
           }
           if (role !== "host" && prev === "host") void unshareTabs();
           if (role !== "guest" && prev === "guest") closeGuestTabs();

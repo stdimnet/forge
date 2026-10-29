@@ -40,6 +40,30 @@ export interface Participant {
   permissions: Permissions;
 }
 
+/** A 1-based caret position (column in UTF-16 units). */
+export interface Caret {
+  line: number;
+  column: number;
+}
+
+/** Where a participant is (`forge_collab::presence::Presence`). */
+export interface Presence {
+  /** Workspace-relative path of the active editor's file; absent when hidden from this window. */
+  file?: string;
+  caret?: Caret;
+  /** The other end of the selection, when text is selected. */
+  anchor?: Caret;
+  /** First and last line in view. */
+  viewport?: { topLine: number; bottomLine: number };
+  /** The participant this one follows. */
+  following?: number;
+}
+
+/** One participant's presence (`collab://presence`, `SessionView.presence`). */
+export interface ParticipantPresence extends Presence {
+  participant: number;
+}
+
 export interface SharedFile {
   path: string;
 }
@@ -97,6 +121,10 @@ export interface SessionView {
   relay?: RelayStatus;
   /** The host's project, open in this window (guest). */
   workspace?: WorkspaceInfo;
+  /** Where the other participants are (a guest only learns files it may open). */
+  presence?: ParticipantPresence[];
+  /** Make Everyone Follow You is on. */
+  followEveryone?: boolean;
 }
 
 /** One entry of the host's session log. */
@@ -169,6 +197,8 @@ export const WAITING_EVENT = "collab://waiting";
 export const DOC_EVENT = "collab://doc";
 export const NOTICE_EVENT = "collab://notice";
 export const ENDED_EVENT = "collab://ended";
+export const PRESENCE_EVENT = "collab://presence";
+export const FOLLOW_HOST_EVENT = "collab://follow-host";
 
 export function toBase64(bytes: Uint8Array): string {
   let bin = "";
@@ -230,6 +260,10 @@ export const collabApi = {
   docUpdate: (docId: number, update: Uint8Array) => invoke<void>("collab_doc_update", { docId, update: toBase64(update) }),
   awareness: (docId: number, update: Uint8Array) => invoke<void>("collab_awareness", { docId, update: toBase64(update) }),
   docClose: (docId: number) => invoke<void>("collab_doc_close", { docId }),
+  /** Where this participant is: file, caret, viewport and whom it follows (throttled by the caller). */
+  presence: (presence: Presence) => invoke<void>("collab_presence", { presence }),
+  /** Make Everyone Follow You on or off (host). */
+  followEveryone: (on: boolean) => invoke<SessionView>("collab_follow_everyone", { on }),
   docSave: (docId: number) => invoke<void>("collab_doc_save", { docId }),
   /** Whether a relay token is stored in the keychain (the token itself never reaches the UI). */
   relayTokenStatus: () => invoke<RelayTokenStatus>("collab_relay_token_status"),
@@ -245,6 +279,10 @@ export const collabApi = {
   onWaiting: (cb: (w: JoiningInfo) => void) => listen<JoiningInfo>(WAITING_EVENT, cb),
   onNotice: (cb: (e: { text: string }) => void) => listen<{ text: string }>(NOTICE_EVENT, cb),
   onEnded: (cb: (e: { reason: string }) => void) => listen<{ reason: string }>(ENDED_EVENT, cb),
+  /** Another participant moved. */
+  onPresence: (cb: (p: ParticipantPresence) => void) => listen<ParticipantPresence>(PRESENCE_EVENT, cb),
+  /** The host turned Make Everyone Follow You on or off (guest). */
+  onFollowHost: (cb: (e: { on: boolean }) => void) => listen<{ on: boolean }>(FOLLOW_HOST_EVENT, cb),
   /** Round trip to the host in milliseconds (guest). */
   ping: () => invoke<number>("collab_ping"),
 };
