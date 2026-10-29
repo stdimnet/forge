@@ -32,7 +32,8 @@ import { contentHash } from "@/state/editor";
 
 const NOTICE = "Browser mode: the session runs inside this browser; nothing goes over the network.";
 const HOST_NAME = "Robert";
-const DEMO_LINK = "forge://cwm/join?v=1&name=Robert&m=demo&s=browsermodedemo0000000000#h=demo&k=demo&a=127.0.0.1:41641";
+const demoLink = (secret: string) => `forge://cwm/join?v=1&name=Robert&m=demo&s=browsermodedemo0000000000#h=demo&k=${secret}&a=127.0.0.1:41641`;
+let link = demoLink("demo");
 const mode = typeof location !== "undefined" ? new URLSearchParams(location.search).get("collab") : null;
 
 // ---- the wire between pages ---------------------------------------------------------------
@@ -78,7 +79,7 @@ function view(): SessionView {
   return {
     role,
     canHost: role === "host",
-    link: role === "host" ? DEMO_LINK : undefined,
+    link: role === "host" ? link : undefined,
     me,
     participants,
     files,
@@ -276,10 +277,11 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
   }
 }
 
-function startHost(level: PermissionLevel): SessionView {
+function startHost(level: PermissionLevel, custom?: Permissions): SessionView {
   role = "host";
   me = 0;
-  permissions = level === "custom" ? PRESETS.readOnly : PRESETS[level];
+  link = demoLink("demo");
+  permissions = level === "custom" ? (custom ?? PRESETS.readOnly) : PRESETS[level];
   hostChanged();
   return view();
 }
@@ -469,9 +471,9 @@ registerMock("collab_parse_link", ({ link }) => {
   return { hostName: name, hostLabel: name, sessionId: /[?&]s=([^&#]*)/.exec(text)?.[1] ?? "" };
 });
 
-registerMock("collab_start", ({ level }) => {
+registerMock("collab_start", ({ level, custom }) => {
   if (role !== "none") throw new Error("A Code With Me session is already running.");
-  const v = startHost((level as PermissionLevel) ?? "readOnly");
+  const v = startHost((level as PermissionLevel) ?? "readOnly", (custom as Permissions | null) ?? undefined);
   if (mode !== "host") {
     alex = new ScriptedGuest();
     setTimeout(() => void alex?.run(), 1000);
@@ -488,7 +490,46 @@ registerMock("collab_answer_join", ({ id, accept }) => {
 registerMock("collab_cancel_join", () => {
   joinReject?.(new Error("Cancelled."));
 });
-registerMock("collab_link", () => DEMO_LINK);
+registerMock("collab_link", () => link);
+registerMock("collab_regenerate_link", () => {
+  if (role !== "host") throw new Error("No session is running.");
+  link = demoLink(Math.random().toString(36).slice(2, 10));
+  emitStatus();
+  return link;
+});
+
+/** New permissions for some guests; they are told through the participant list. */
+function setGuestPermissions(keys: string[], p: Permissions): void {
+  for (const key of keys) {
+    const g = guests.get(key);
+    if (g) g.participant = { ...g.participant, permissions: p };
+  }
+  hostChanged();
+}
+
+const guestKey = (participant: unknown) => [...guests.values()].find((g) => g.participant.id === Number(participant))?.key;
+
+registerMock("collab_set_permissions", ({ permissions: p }) => {
+  if (role !== "host") throw new Error("No session is running.");
+  permissions = p as Permissions;
+  setGuestPermissions([...guests.keys()], permissions);
+  return view();
+});
+registerMock("collab_set_guest_permissions", ({ participant, permissions: p }) => {
+  const key = guestKey(participant);
+  if (role !== "host" || !key) throw new Error("The guest is no longer in the session.");
+  setGuestPermissions([key], p as Permissions);
+});
+registerMock("collab_remove_guest", ({ participant }) => {
+  const key = guestKey(participant);
+  if (role !== "host" || !key) throw new Error("The guest is no longer in the session.");
+  toGuest(key, { kind: "ended", reason: "The host removed you from the session." });
+  if (key === "alex") {
+    alex?.stop();
+    alex = null;
+  }
+  dropGuest(key);
+});
 
 registerMock("collab_join", async ({ link }) => {
   if (role !== "none") throw new Error("A Code With Me session is already running.");

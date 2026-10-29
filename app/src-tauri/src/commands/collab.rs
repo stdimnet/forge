@@ -478,13 +478,18 @@ pub fn collab_parse_link(link: String) -> Result<LinkSummary> {
 
 /// Start Session: open the listening socket and share the files open in the editor.
 #[tauri::command]
-pub async fn collab_start(level: PermissionLevel, app: AppHandle) -> Result<SessionView> {
+pub async fn collab_start(
+    level: PermissionLevel,
+    custom: Option<Permissions>,
+    app: AppHandle,
+) -> Result<SessionView> {
     let collab = app.state::<CollabState>();
     if collab.busy() {
         return Err(other("A Code With Me session is already running."));
     }
     let permissions = Permissions::preset(level)
-        .ok_or_else(|| other("Custom permissions are not available yet."))?;
+        .or(custom)
+        .ok_or_else(|| other("Choose the custom permissions first."))?;
     let (excludes, max_kb, address, port) = {
         let state = app.state::<AppState>();
         let s = state.read_settings();
@@ -569,6 +574,51 @@ pub fn collab_link(state: State<'_, CollabState>) -> Result<String> {
         .host()
         .map(|h| h.link().to_url())
         .ok_or_else(|| other("No session is running."))
+}
+
+fn running_host(state: &CollabState) -> Result<Arc<HostSession>> {
+    state.host().ok_or_else(|| other("No session is running."))
+}
+
+/// Permissions for the whole session (host): new guests and everyone in the session.
+#[tauri::command]
+pub fn collab_set_permissions(permissions: Permissions, app: AppHandle) -> Result<SessionView> {
+    running_host(&app.state())?.set_permissions(permissions);
+    let v = view(&app.state());
+    emit(&app, STATUS_EVENT, v.clone());
+    Ok(v)
+}
+
+/// Permissions of one guest (the participant's Permissions menu).
+#[tauri::command]
+pub fn collab_set_guest_permissions(
+    participant: u32,
+    permissions: Permissions,
+    state: State<'_, CollabState>,
+) -> Result<()> {
+    if running_host(&state)?.set_guest_permissions(ParticipantId(participant), permissions) {
+        Ok(())
+    } else {
+        Err(other("The guest is no longer in the session."))
+    }
+}
+
+/// Remove Guest: disconnect a guest at once.
+#[tauri::command]
+pub fn collab_remove_guest(participant: u32, state: State<'_, CollabState>) -> Result<()> {
+    if running_host(&state)?.remove(ParticipantId(participant)) {
+        Ok(())
+    } else {
+        Err(other("The guest is no longer in the session."))
+    }
+}
+
+/// Regenerate Link: the old link stops working; returns the new one.
+#[tauri::command]
+pub fn collab_regenerate_link(app: AppHandle) -> Result<String> {
+    let link = running_host(&app.state())?.regenerate_link().to_url();
+    emit_status(&app);
+    Ok(link)
 }
 
 /// Accept or decline a guest's join request (host).

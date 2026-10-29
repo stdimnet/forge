@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { invoke, listen } from "@/ipc";
-import { STATUS_EVENT, type RelayStatus, type RelayTokenStatus, type SessionView } from "@/ipc/collab";
+import { PRESETS, STATUS_EVENT, type RelayStatus, type RelayTokenStatus, type SessionView } from "@/ipc/collab";
 import "./collabMock";
 
 describe("Code With Me mock: relay", () => {
@@ -42,6 +42,40 @@ describe("Code With Me mock: host approval", () => {
     expect(status.participants.map((p) => p.name)).not.toContain("Alex");
     await invoke("collab_answer_join", { id: requests[0].id, accept: true });
     await vi.waitFor(async () => expect((await invoke<{ participants: { name: string }[] }>("collab_status")).participants.map((p) => p.name)).toContain("Alex"));
+    await invoke("collab_end");
+  });
+});
+
+describe("Code With Me mock: during a session", () => {
+  type Status = SessionView & { participants: { id: number; name: string; permissions: { files: string } }[] };
+  const status = () => invoke<Status>("collab_status");
+
+  it("changes permissions, removes a guest and regenerates the link", async () => {
+    const requests: { id: number }[] = [];
+    await listen<{ id: number }>("collab://join-request", (r) => requests.push(r));
+    const custom = { files: "edit", terminal: "none", run: "none", vcs: "full" } as const;
+    const started = await invoke<SessionView>("collab_start", { level: "custom", custom });
+    expect(started.permissions).toEqual(custom);
+    await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0), { timeout: 3000 });
+    await invoke("collab_answer_join", { id: requests[requests.length - 1].id, accept: true });
+    await vi.waitFor(async () => expect((await status()).participants.length).toBe(2));
+    const alex = (await status()).participants[1];
+    expect(alex.permissions).toEqual(custom);
+
+    await invoke("collab_set_guest_permissions", { participant: alex.id, permissions: PRESETS.fullAccess });
+    expect((await status()).participants[1].permissions).toEqual(PRESETS.fullAccess);
+    const v = await invoke<SessionView>("collab_set_permissions", { permissions: PRESETS.readOnly });
+    expect(v.permissions).toEqual(PRESETS.readOnly);
+    expect((await status()).participants[1].permissions).toEqual(PRESETS.readOnly);
+
+    const old = (await status()).link;
+    const fresh = await invoke<string>("collab_regenerate_link");
+    expect(fresh).not.toBe(old);
+    expect((await status()).link).toBe(fresh);
+
+    await invoke("collab_remove_guest", { participant: alex.id });
+    expect((await status()).participants.map((p) => p.name)).toEqual(["Robert"]);
+    await expect(invoke("collab_remove_guest", { participant: alex.id })).rejects.toThrow(/no longer in the session/);
     await invoke("collab_end");
   });
 });

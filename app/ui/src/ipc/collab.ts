@@ -189,7 +189,16 @@ export const collabApi = {
   status: () => invoke<SessionView>("collab_status"),
   parseLink: (link: string) => invoke<LinkSummary>("collab_parse_link", { link }),
   /** Start Session: listen for guests and share the files open in the editor. */
-  start: (level: PermissionLevel) => invoke<SessionView>("collab_start", { level }),
+  start: (level: PermissionLevel, custom?: Permissions) => invoke<SessionView>("collab_start", { level, custom: custom ?? null }),
+  /** Permissions for the whole session: new guests and every guest in it (host). */
+  setPermissions: (permissions: Permissions) => invoke<SessionView>("collab_set_permissions", { permissions }),
+  /** Permissions of one guest (host). */
+  setGuestPermissions: (participant: number, permissions: Permissions) =>
+    invoke<void>("collab_set_guest_permissions", { participant, permissions }),
+  /** Remove Guest: disconnect a guest at once (host). */
+  removeGuest: (participant: number) => invoke<void>("collab_remove_guest", { participant }),
+  /** Regenerate Link: the old link stops working; returns the new one (host). */
+  regenerateLink: () => invoke<string>("collab_regenerate_link"),
   end: () => invoke<void>("collab_end"),
   link: () => invoke<string>("collab_link"),
   join: (link: string) => invoke<SessionView>("collab_join", { link }),
