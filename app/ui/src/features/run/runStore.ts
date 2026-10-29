@@ -3,17 +3,21 @@
  * test tree (both computed by the backend and streamed as `console` / `tests` run events),
  * and Run / Debug / Stop / Rerun.
  */
-import { batch, createSignal } from "solid-js";
+import { batch, createSignal, type Component } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { runApi, type ConsoleLine, type RunConfiguration, type RunEvent, type RunRequest } from "@/ipc/run";
+import { runToolsApi, type LaunchPlan, type PlannedTask } from "@/ipc/runTools";
 import { balloonsFor } from "@/keymap";
-import { saveAll } from "@/state/editor";
+import { onFileSaved, saveAll } from "@/state/editor";
 import { showToolWindow } from "@/state/layout";
+import { getSetting } from "@/state/settings";
+import { testFrameworksApi, type FailedTest, type StoredRun } from "@/ipc/testFrameworks";
+import { testingApi, type CoverageSuite } from "@/ipc/testing";
 import { applyConsoleDelta, applyTestUpdates, emptyTestTree, type TestNode, type TestTreeState } from "./tests";
-import { debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
-import { findConfiguration, selectedConfiguration } from "./configStore";
+import { COMPOUND, compoundMembers, debugLauncherFor, findType, validateConfiguration, type RunHandle } from "./types";
+import { allConfigurations, findConfiguration, selectedConfiguration } from "./configStore";
 import { openRunConfigurations } from "./dialogState";
-import { publishTestResults } from "./testResults";
+import { fileOf, publishTestResults } from "./testResults";
 
 const showBalloon = balloonsFor("Run");
 
@@ -41,6 +45,10 @@ export interface RunSession {
   pinned: boolean;
   /** Output without a process (Analyze Stack Trace); Rerun runs `SessionData.rerun`. */
   staticOutput?: boolean;
+  /** Toggle Auto-Test: rerun after files are saved. */
+  autoTest?: boolean;
+  /** The shown result panel (`registerRunPanel`); the console when unset. */
+  panel?: string;
 }
 
 interface SessionData {
@@ -48,7 +56,9 @@ interface SessionData {
   tests?: TestTreeState;
   exited?: (code: number | null) => void;
   unlisten?: () => void;
-  extra?: Pick<RunRequest, "env" | "interpreterArgs">;
+  extra?: Pick<RunRequest, "env" | "interpreterArgs" | "coverage" | "debugPort" | "profile" | "nativeTool" | "profiler">;
+  /** Data of result panels (`registerRunPanel`), by panel id. */
+  panels?: Record<string, unknown>;
   /** Rerun of a tab without a process. */
   rerun?: () => void;
 }
@@ -65,6 +75,61 @@ export const activeSessionId = () => state.active;
 export const activeSession = () => state.sessions.find((s) => s.id === state.active);
 export const sessionData = (id: string) => data.get(id);
 export const setActiveSession = (id: string) => setState("active", id);
+
+type CoverageListener = (suite: CoverageSuite) => void;
+const coverageListeners: CoverageListener[] = [];
+
+/** Coverage suites of finished Run with Coverage runs (the Coverage feature listens). */
+export function onCoverageSuite(l: CoverageListener): void {
+  coverageListeners.push(l);
+}
+
+type ProfileListener = (profile: import("@/ipc/pythonTools").ProfileInfo) => void;
+const profileListeners: ProfileListener[] = [];
+
+/** Snapshots of finished Profile runs (the Profiler tool window listens). */
+export function onProfileSnapshot(l: ProfileListener): void {
+  profileListeners.push(l);
+}
+
+/**
+ * A result tab of Run sessions next to the console (CForge's Sanitizers and Valgrind): it
+ * takes the run events it `accepts` and shows their data.
+ */
+export interface RunPanelDef {
+  id: string;
+  title: string;
+  icon?: Component<{ size?: number }>;
+  /** The panel's new data for a run event (given the current data), or undefined. */
+  accepts: (e: RunEvent, current: unknown) => unknown;
+  /** The number next to the title. */
+  count?: (data: unknown) => number;
+  /** Show the panel when data arrives. */
+  reveal?: (data: unknown) => boolean;
+  component: Component<{ data: unknown; session: RunSession }>;
+}
+
+const [panelDefs, setPanelDefs] = createSignal<RunPanelDef[]>([]);
+export { panelDefs as runPanels };
+
+export function registerRunPanel(def: RunPanelDef): void {
+  setPanelDefs((prev) => [...prev.filter((p) => p.id !== def.id), def]);
+}
+
+/** The panels with data of a session. */
+export const sessionPanels = (id: string): Record<string, unknown> => data.get(id)?.panels ?? {};
+
+export function setSessionPanel(id: string, panel: string | undefined): void {
+  setState("sessions", (s) => s.id === id, "panel", panel);
+}
+
+type RunEventListener = (session: RunSession, e: RunEvent) => void;
+const eventListeners: RunEventListener[] = [];
+
+/** Run events the run feature does not handle itself (CForge's perf profiles). */
+export function onRunEvent(l: RunEventListener): void {
+  eventListeners.push(l);
+}
 
 const [softWrap, setSoftWrap] = createSignal(false);
 export { softWrap, setSoftWrap };
@@ -120,6 +185,31 @@ function onEvent(id: string, runId: string, e: RunEvent) {
       if (d.tests) applyTestUpdates(d.tests, e.nodes, e.summary);
       scheduleBump(id);
       break;
+    case "coverage":
+      if (e.suite) coverageListeners.forEach((l) => l(e.suite!));
+      else if (e.error) writeError(id, `Coverage: ${e.error}`);
+      break;
+    case "profile":
+      if (e.profile) profileListeners.forEach((l) => l(e.profile!));
+      else if (e.error) writeError(id, `Profiler: ${e.error}`);
+      break;
+    case "sanitizer":
+    case "valgrind":
+    case "perf":
+      for (const p of panelDefs()) {
+        const next = p.accepts(e, d.panels?.[p.id]);
+        if (next === undefined) continue;
+        d.panels = { ...d.panels, [p.id]: next };
+        if (p.reveal?.(next)) setSessionPanel(id, p.id);
+        scheduleBump(id);
+      }
+      if ("error" in e && e.error) writeError(id, `${e.type === "perf" ? "perf" : "Valgrind"}: ${e.error}`);
+      eventListeners.forEach((l) => l(s, e));
+      break;
+    case "profiler":
+      if (e.error) writeError(id, `Profiler: ${e.error}`);
+      eventListeners.forEach((l) => l(s, e));
+      break;
     case "exited": {
       if (d.tests) publishTestResults(d.tests.root);
       setState("sessions", (x) => x.id === id, { status: "finished", exitCode: e.code ?? (e.signal ? 128 + e.signal : null), endedAt: Date.now() });
@@ -134,7 +224,19 @@ function onEvent(id: string, runId: string, e: RunEvent) {
 /** Build the backend request for a configuration. */
 function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["extra"]): RunRequest {
   const type = findType(cfg.type);
-  const req: RunRequest = { runId, env: extra?.env, interpreterArgs: extra?.interpreterArgs, testRunner: !!type?.testRunner };
+  const req: RunRequest = {
+    runId,
+    env: extra?.env,
+    interpreterArgs: extra?.interpreterArgs,
+    testRunner: !!type?.testRunner,
+    outputFilters: type?.outputFilters?.(cfg),
+    coverage: extra?.coverage || undefined,
+    debugPort: extra?.debugPort,
+    profile: extra?.profile || undefined,
+    nativeTool: extra?.nativeTool,
+    profiler: extra?.profiler,
+    runOn: cfg.runOn?.kind && cfg.runOn.kind !== "local" ? cfg.runOn : undefined,
+  };
   if (type?.buildCommand) {
     const cmd = type.buildCommand(cfg);
     req.command = { ...cmd, cwd: cmd.cwd || cfg.workingDirectory || "", env: { ...(cmd.env ?? {}), ...(cfg.env ?? {}) } };
@@ -173,7 +275,7 @@ function resetSession(id: string, cfg: RunConfiguration, debug: boolean) {
     tests: type?.testRunner ? emptyTestTree() : undefined,
     extra: old?.extra,
   });
-  setState("sessions", (x) => x.id === id, { config: cfg, name: cfg.name, debug, version: 0 });
+  setState("sessions", (x) => x.id === id, { config: cfg, name: cfg.name, debug, version: 0, panel: undefined });
 }
 
 /** Tab for a new run: reuses the finished, unpinned tab of the same configuration. */
@@ -195,34 +297,110 @@ function sessionFor(cfg: RunConfiguration, debug: boolean): string {
   return id;
 }
 
-async function runBeforeLaunch(cfg: RunConfiguration, depth: number): Promise<boolean> {
-  for (const task of cfg.beforeLaunch ?? []) {
-    let target: RunConfiguration | undefined;
-    if (task.type === "runConfiguration") target = findConfiguration(task.value);
-    else if (task.type === "shell")
-      target = { name: task.value, type: "shell", options: { mode: "text", scriptText: task.value }, workingDirectory: cfg.workingDirectory };
-    if (!target) {
-      showBalloon(`Before launch task failed`, `Configuration "${task.value}" not found`);
-      return false;
-    }
-    if (depth > 5) return false;
-    const handle = await launch(target, { depth: depth + 1 });
-    const code = handle ? await handle.exited : null;
-    if (code !== 0) {
-      showBalloon(`Before launch task "${target.name}" failed`, code === null ? undefined : `Exit code ${code}`);
-      return false;
-    }
+// ---- Launch plans: compound configurations and Before launch tasks ---------------------
+
+/**
+ * Runs a Before launch task kind the run feature does not know itself (`externalTool`);
+ * resolves `true` when the task succeeded.
+ */
+export type BeforeLaunchHandler = (task: PlannedTask, owner: RunConfiguration) => Promise<boolean>;
+const taskHandlers = new Map<string, BeforeLaunchHandler>();
+
+/** Handle a Before launch task kind, e.g. "Run External tool" from the External Tools feature. */
+export function registerBeforeLaunchHandler(kind: string, handler: BeforeLaunchHandler): void {
+  taskHandlers.set(kind, handler);
+}
+
+/** Open a URL in the browser ("Launch Web Browser"). */
+export function openInBrowser(url: string): void {
+  window.open(url, "_blank", "noopener");
+}
+
+/** What starting `cfg` runs, computed in Rust (`forge-runtools::launch`). */
+async function planFor(cfg: RunConfiguration): Promise<LaunchPlan | null> {
+  if (cfg.type !== COMPOUND && !cfg.beforeLaunch?.length) {
+    return { runs: [{ configuration: cfg.name, tasks: [] }], compound: false, allowMultipleInstances: false };
   }
-  return true;
+  const known = allConfigurations();
+  const list = known.some((c) => c.name === cfg.name) ? known.map((c) => (c.name === cfg.name ? cfg : c)) : [...known, cfg];
+  try {
+    return await runToolsApi.plan(list, cfg.name);
+  } catch (err) {
+    showBalloon(`Error running '${cfg.name}'`, String(err), 5000, [
+      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    ]);
+    return null;
+  }
+}
+
+const succeeded = async (handle: RunHandle | null) => !!handle && (await handle.exited) === 0;
+
+/** Run one Before launch task and wait for it; `false` aborts the launch. */
+async function runTask(task: PlannedTask, owner: RunConfiguration): Promise<boolean> {
+  let ok: boolean;
+  if (task.configuration) {
+    const target = findConfiguration(task.configuration);
+    ok = !!target && (await succeeded(await startConfiguration(target)));
+  } else if (task.run) {
+    ok = await succeeded(await startConfiguration(task.run));
+  } else if (task.type === "browser") {
+    openInBrowser(task.value);
+    ok = true;
+  } else {
+    const handler = taskHandlers.get(task.type);
+    if (!handler) {
+      showBalloon("Before launch task failed", `${task.label}: this task is not available`);
+      return false;
+    }
+    ok = await handler(task, owner).catch(() => false);
+  }
+  if (!ok) showBalloon(`Before launch task failed`, `${task.label} did not finish successfully, '${owner.name}' was not started.`);
+  return ok;
 }
 
 interface LaunchOptions {
   debug?: boolean;
   extra?: SessionData["extra"];
-  depth?: number;
+  /** Do not bring up the Run tool window (External Tools without "Open console"). */
+  background?: boolean;
 }
 
-/** Run a configuration in the Run tool window. Returns null when it could not start. */
+/** Start one (non-compound) configuration in its Run tab, without Before launch tasks. */
+async function startConfiguration(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
+  const problem = validateConfiguration(cfg);
+  if (problem) {
+    showBalloon(`Error running '${cfg.name}'`, problem, 5000, [
+      { label: "Edit Configuration…", run: () => openRunConfigurations(cfg.name) },
+    ]);
+    return null;
+  }
+  const id = sessionFor(cfg, !!opts.debug);
+  data.get(id)!.extra = opts.extra;
+  // A debug launcher may switch to its own tool window once the session starts.
+  if (!opts.background) showToolWindow("run");
+  const handle = await startProcess(id, opts.extra);
+  if (handle) findType(cfg.type)?.afterStart?.(cfg, handle, !!opts.debug);
+  return handle;
+}
+
+/** Stop a running session and wait until it exited. */
+async function stopAndWait(s: RunSession): Promise<void> {
+  if (!s.runId || !isRunning(s)) return;
+  const d = data.get(s.id);
+  const done = new Promise<void>((r) => {
+    const prev = d?.exited;
+    if (!d || !prev) return r();
+    d.exited = (c) => (prev(c), r());
+  });
+  await runApi.stop(s.runId).catch(() => undefined);
+  await done;
+}
+
+/**
+ * Run a configuration in the Run tool window: its Before launch tasks one after another
+ * (aborting on the first failure), then the configuration; a compound starts each member in
+ * its own tab. Returns the (first) started run, null when nothing started.
+ */
 export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
   const problem = validateConfiguration(cfg);
   if (problem) {
@@ -232,17 +410,41 @@ export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): P
     return null;
   }
   await saveAll().catch(() => undefined);
-  if (!(await runBeforeLaunch(cfg, opts.depth ?? 0))) return null;
-  const id = sessionFor(cfg, !!opts.debug);
-  data.get(id)!.extra = opts.extra;
-  // A debug launcher may switch to its own tool window once the session starts.
-  showToolWindow("run");
-  return startProcess(id, opts.extra);
+  const plan = await planFor(cfg);
+  if (!plan) return null;
+  let first: RunHandle | null = null;
+  for (const run of plan.runs) {
+    const target = run.configuration === cfg.name ? cfg : findConfiguration(run.configuration);
+    if (!target) continue;
+    // A compound without "Allow multiple instances" restarts members that still run.
+    if (plan.compound && !plan.allowMultipleInstances) {
+      const running = runningFor(target);
+      if (running) await stopAndWait(running);
+    }
+    let ok = true;
+    for (const task of run.tasks) {
+      if (!(await runTask(task, target))) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) {
+      if (plan.compound) continue;
+      return null;
+    }
+    const handle = await startConfiguration(target, plan.compound ? {} : opts);
+    first ??= handle;
+  }
+  return first;
 }
 
 export async function runConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
   if (!cfg) {
     openRunConfigurations();
+    return;
+  }
+  if (cfg.type === COMPOUND) {
+    await launch(cfg);
     return;
   }
   // Like PHPStorm's single-instance default: Run on a running configuration reruns it.
@@ -251,9 +453,30 @@ export async function runConfiguration(cfg: RunConfiguration | undefined = selec
   await launch(cfg);
 }
 
+/** Run with Coverage: the configuration's tests write a coverage report the IDE shows. */
+export async function runWithCoverage(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
+  if (!cfg) {
+    openRunConfigurations();
+    return;
+  }
+  if (!findType(cfg.type)?.coverage) {
+    showBalloon(`Cannot run '${cfg.name}' with coverage`, `${findType(cfg.type)?.name ?? cfg.type} configurations cannot measure coverage.`);
+    return;
+  }
+  await launch(cfg, { extra: { coverage: true } });
+}
+
 export async function debugConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
   if (!cfg) {
     openRunConfigurations();
+    return;
+  }
+  // A compound debugs each member that can be debugged.
+  if (cfg.type === COMPOUND) {
+    for (const name of compoundMembers(cfg)) {
+      const member = findConfiguration(name);
+      if (member) await debugConfiguration(member);
+    }
     return;
   }
   const launcher = debugLauncherFor(cfg);
@@ -266,15 +489,41 @@ export async function debugConfiguration(cfg: RunConfiguration | undefined = sel
     );
     return;
   }
-  await launcher.launch(cfg, { run: (extra) => launch(cfg, { debug: true, extra }) });
+  await launcher.launch(cfg, {
+    run: (extra) => launch(cfg, { debug: true, extra }),
+    target: () => (cfg.runOn && cfg.runOn.kind !== "local" ? testingApi.runTargetInfo(cfg).catch(() => null) : Promise.resolve(null)),
+  });
 }
 
 export const isRunning = (s: RunSession | undefined) => !!s && (s.status === "running" || s.status === "starting");
 
 export const runningSessions = () => state.sessions.filter(isRunning);
 
-export const runningFor = (cfg: RunConfiguration | undefined) =>
-  cfg ? state.sessions.find((s) => s.name === cfg.name && isRunning(s)) : undefined;
+/** Names of the configurations a compound starts (nested compounds expanded). */
+export function memberNames(cfg: RunConfiguration, seen = new Set<string>()): string[] {
+  if (cfg.type !== COMPOUND) return [cfg.name];
+  if (seen.has(cfg.name)) return [];
+  seen.add(cfg.name);
+  return compoundMembers(cfg).flatMap((n) => {
+    const member = findConfiguration(n);
+    return member ? memberNames(member, seen) : [];
+  });
+}
+
+/** The running session of a configuration (a compound: of one of its members). */
+export const runningFor = (cfg: RunConfiguration | undefined) => {
+  if (!cfg) return undefined;
+  const names = memberNames(cfg);
+  return state.sessions.find((s) => names.includes(s.name) && isRunning(s));
+};
+
+/** Stop a configuration; a compound stops all its running members. */
+export async function stopConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
+  if (!cfg) return stopSession();
+  const names = memberNames(cfg);
+  const running = state.sessions.filter((s) => names.includes(s.name) && isRunning(s));
+  await Promise.all(running.map((s) => stopSession(s.id)));
+}
 
 export async function stopSession(id: string | undefined = state.active ?? undefined): Promise<void> {
   const s = state.sessions.find((x) => x.id === id) ?? runningSessions()[0];
@@ -316,23 +565,93 @@ export async function rerunSession(id: string | undefined = state.active ?? unde
   await startProcess(s.id, extra);
 }
 
-/** Rerun only the failed tests of a test run. */
+/** The failed tests of a run's tree. */
+export function failedTests(root: TestNode): FailedTest[] {
+  const out: FailedTest[] = [];
+  const walk = (n: TestNode) => {
+    if (n.kind === "test" && n.status === "failed") out.push({ name: n.name, member: n.location?.member, path: fileOf(n) });
+    n.children.forEach(walk);
+  };
+  walk(root);
+  return out;
+}
+
+/**
+ * Rerun only the failed tests of a test run, with the configuration Rust derives for the
+ * framework (PHPUnit / Pest `--filter`, Codeception `-g failed`, Behat `--rerun`, PHPSpec
+ * the failed spec).
+ */
 export async function rerunFailedTests(id: string | undefined = state.active ?? undefined): Promise<void> {
   const s = state.sessions.find((x) => x.id === id);
   const tree = s && data.get(s.id)?.tests;
   if (!s || !tree) return;
-  const failed: string[] = [];
-  const walk = (n: TestNode) => {
-    if (n.kind === "test" && n.status === "failed") failed.push(n.location?.member ?? n.name);
-    n.children.forEach(walk);
-  };
-  walk(tree.root);
+  const failed = failedTests(tree.root);
   if (!failed.length) return;
-  const filter = `/::(${failed.map((f) => f.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&")).join("|")})( .*)?$/`;
-  const options = { ...(s.config.options ?? {}) };
-  options.testRunnerOptions = `${options.testRunnerOptions ?? ""} --filter '${filter}'`.trim();
-  await launch({ ...s.config, options });
+  const base = findConfiguration(s.name) ?? s.config;
+  const cfg = await testFrameworksApi.rerunFailed(base, failed).catch((err) => {
+    showBalloon("Cannot rerun the failed tests", String(err));
+    return null;
+  });
+  if (cfg) await launch(cfg);
 }
+
+/** Open a run of the Test History in a Run tab; Rerun runs its configuration again. */
+export function openHistoryRun(run: StoredRun): void {
+  const id = sessionFor(run.configuration, false);
+  const d = data.get(id)!;
+  const tree = emptyTestTree();
+  applyTestUpdates(tree, run.nodes, run.summary);
+  d.tests = tree;
+  d.lines = [
+    {
+      segments: [{ text: `Test results of ${new Date(run.entry.at).toLocaleString()} from the Test History`, style: { fg: "var(--fg-muted)" } }],
+    },
+  ];
+  setState("sessions", (x) => x.id === id, {
+    runId: null,
+    status: "finished",
+    startedAt: run.entry.at,
+    endedAt: run.entry.at + (tree.root.duration ?? 0),
+    exitCode: run.entry.counts.failed ? 1 : 0,
+  });
+  bump(id);
+  showToolWindow("run");
+}
+
+// ---- Auto-test -----------------------------------------------------------------------
+
+const autoTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Toggle Auto-Test: the session reruns `run.autoTest.delay` seconds after files are saved. */
+export function toggleAutoTest(id: string | undefined = state.active ?? undefined): void {
+  const s = state.sessions.find((x) => x.id === id);
+  if (!s) return;
+  setState("sessions", (x) => x.id === s.id, "autoTest", (v) => !v);
+  if (!state.sessions.find((x) => x.id === s.id)?.autoTest) {
+    clearTimeout(autoTimers.get(s.id));
+    autoTimers.delete(s.id);
+  }
+}
+
+function scheduleAutoTest(id: string): void {
+  clearTimeout(autoTimers.get(id));
+  const delay = Math.max(0, Number(getSetting<number>("run.autoTest.delay", 3)) || 0) * 1000;
+  autoTimers.set(
+    id,
+    setTimeout(() => {
+      autoTimers.delete(id);
+      const s = state.sessions.find((x) => x.id === id);
+      if (!s?.autoTest) return;
+      // A run in progress finishes first; the saved changes rerun afterwards.
+      if (isRunning(s)) return scheduleAutoTest(id);
+      void rerunSession(id);
+    }, delay),
+  );
+}
+
+onFileSaved(() => {
+  for (const s of state.sessions) if (s.autoTest) scheduleAutoTest(s.id);
+});
 
 /**
  * A tab of console lines without a process, e.g. an analyzed stack trace: replaces the
@@ -386,6 +705,8 @@ export async function closeSession(id: string): Promise<void> {
   if (s.runId) await runApi.dispose(s.runId).catch(() => undefined);
   data.get(id)?.unlisten?.();
   data.delete(id);
+  clearTimeout(autoTimers.get(id));
+  autoTimers.delete(id);
   const idx = state.sessions.findIndex((x) => x.id === id);
   batch(() => {
     setState("sessions", (list) => list.filter((x) => x.id !== id));

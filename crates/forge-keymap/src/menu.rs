@@ -97,6 +97,9 @@ pub struct MainMenuRequest {
     pub dynamic: BTreeMap<String, Vec<DynamicItem>>,
     /// Checkable actions that are currently on.
     pub checked: Vec<String>,
+    /// Labels of actions whose text follows their state ("Exit Presentation Mode" instead of
+    /// "Enter Presentation Mode"); `_` marks the mnemonic.
+    pub labels: BTreeMap<String, String>,
     /// The project is under Git: the VCS menu becomes the Git menu.
     pub git: bool,
 }
@@ -295,6 +298,7 @@ struct Resolver<'a> {
     lookup: &'a dyn ActionLookup,
     checked: HashSet<&'a str>,
     dynamic: &'a BTreeMap<String, Vec<DynamicItem>>,
+    labels: &'a BTreeMap<String, String>,
 }
 
 impl Resolver<'_> {
@@ -359,6 +363,7 @@ impl Resolver<'_> {
         mnemonic: Option<char>,
         checkable: bool,
     ) -> MenuItem {
+        let label = self.labels.get(id).map(String::as_str).or(label);
         let (label, index) = match label {
             Some(l) => parse_mnemonic(&menu_text(l)),
             None => {
@@ -388,6 +393,7 @@ pub fn resolve_main_menu(request: &MainMenuRequest, lookup: &dyn ActionLookup) -
         lookup,
         checked: request.checked.iter().map(String::as_str).collect(),
         dynamic: &request.dynamic,
+        labels: &request.labels,
     };
     MainMenu {
         menus: resolver
@@ -532,6 +538,7 @@ fn file_menu() -> MenuEntry {
             l("SaveAll", "Save _All"),
             l("Synchronize", "Reloa_d All from Disk"),
             l("InvalidateCaches", "In_validate Caches..."),
+            l("CallSaul", "Repair I_DE"),
             SEP,
             g(
                 "_Manage IDE Settings",
@@ -666,6 +673,15 @@ fn view_menu() -> MenuEntry {
                     l("ToggleFullScreen", "Enter F_ull Screen"),
                     l("ToggleZenMode", "Enter _Zen Mode"),
                     SEP,
+                    g(
+                        "Zoom _IDE",
+                        vec![
+                            l("ZoomInIdeAction", "Zoom _In"),
+                            l("ZoomOutIdeAction", "Zoom _Out"),
+                            l("ResetIdeScaleAction", "_Reset"),
+                        ],
+                    ),
+                    SEP,
                     check("ToggleCompactMode", "Co_mpact Mode"),
                     SEP,
                     check(
@@ -698,6 +714,7 @@ fn view_menu() -> MenuEntry {
             SEP,
             l("RecentFiles", "Recent F_iles"),
             l("RecentChangedFiles", "Recently Changed Fi_les"),
+            l("RecentChanges", "Recent C_hanges"),
             l("RecentLocations", "Recent L_ocations"),
             SEP,
             l("CompareTwoFiles", "Compare _With..."),
@@ -836,8 +853,15 @@ fn code_menu() -> MenuEntry {
             a("MoveLineUp"),
             SEP,
             l("InspectCode", "In_spect Code..."),
-            l("CodeInspection.OnEditor", "Code Cleanup..."),
+            l("CodeCleanup", "Code Clea_nup..."),
             l("RunInspection", "Run Inspection by _Name..."),
+            g(
+                "Analy_ze Code",
+                vec![
+                    l("CodeInspection.OnEditor", "Inspect Current _File"),
+                    l("LocateDuplicates", "Locate _Duplicates..."),
+                ],
+            ),
             SEP,
             l(
                 "AnalyzeStacktraceOnError",
@@ -868,6 +892,7 @@ fn refactor_menu() -> MenuEntry {
                     l("ExtractMethod", "_Method..."),
                     l("ExtractInterface", "_Interface..."),
                     l("ExtractSuperclass", "_Superclass..."),
+                    l("WebForge.ExtractComponent", "C_omponent..."),
                 ],
             ),
             l("Inline", "_Inline..."),
@@ -978,6 +1003,19 @@ fn git_menu() -> MenuEntry {
                     l("Git.Unstash", "_Unstash Changes..."),
                     l("ChangesView.Rollback", "_Rollback..."),
                     l("Vcs.Show.Local.Changes", "Show _Local Changes"),
+                    SEP,
+                    l("ChangesView.NewChangeList", "_New Changelist..."),
+                ],
+            ),
+            g(
+                "P_atch",
+                vec![
+                    l("ChangesView.CreatePatch", "_Create Patch..."),
+                    l("ChangesView.ApplyPatch", "_Apply Patch..."),
+                    l(
+                        "ChangesView.ApplyPatchFromClipboard",
+                        "Apply Patch from Clip_board...",
+                    ),
                 ],
             ),
             g(
@@ -1032,8 +1070,13 @@ fn window_menu() -> MenuEntry {
             g(
                 "La_youts",
                 vec![
+                    l("StoreNewLayout", "Save Current Layout as _New..."),
+                    SEP,
+                    dynamic("layouts"),
+                    SEP,
                     l("StoreDefaultLayout", "_Store Current Layout as Default"),
                     l("RestoreDefaultLayout", "_Restore Default Layout"),
+                    g("_Delete Layout", vec![dynamic("layoutsDelete")]),
                 ],
             ),
             SEP,
@@ -1076,6 +1119,8 @@ fn window_menu() -> MenuEntry {
             SEP,
             l("NextProjectWindow", "Ne_xt Project Window"),
             l("PreviousProjectWindow", "Pre_vious Project Window"),
+            SEP,
+            dynamic("projectWindows"),
         ],
     )
 }
@@ -1218,6 +1263,7 @@ mod tests {
                 "Save All",
                 "Reload All from Disk",
                 "Invalidate Caches...",
+                "Repair IDE",
                 "-",
                 "Manage IDE Settings",
                 "New Projects Setup",
@@ -1305,6 +1351,74 @@ mod tests {
     }
 
     #[test]
+    fn labels_follow_the_state_of_their_action() {
+        let request = MainMenuRequest {
+            labels: BTreeMap::from([(
+                "TogglePresentationMode".to_string(),
+                "Exit _Presentation Mode".to_string(),
+            )]),
+            ..Default::default()
+        };
+        let menu = resolve_main_menu(&request, &fake(&["TogglePresentationMode"]));
+        let appearance = find(&menu.menus, "View/Appearance");
+        let item = find(&appearance.items, "Exit Presentation Mode");
+        assert_eq!(item.mnemonic, Some(5));
+        assert_eq!(item.action.as_deref(), Some("TogglePresentationMode"));
+        find(&appearance.items, "Enter Zen Mode");
+        find(&menu.menus, "View/Appearance/Zoom IDE/Zoom In");
+    }
+
+    #[test]
+    fn window_menu_lists_layouts_and_project_windows() {
+        let item = |key: &str, label: &str, checked: Option<bool>| DynamicItem {
+            key: key.into(),
+            label: label.into(),
+            action: None,
+            detail: None,
+            enabled: true,
+            checked,
+        };
+        let request = MainMenuRequest {
+            dynamic: BTreeMap::from([
+                ("layouts".to_string(), vec![item("review", "Review", None)]),
+                (
+                    "layoutsDelete".to_string(),
+                    vec![item("review", "Review", None)],
+                ),
+                (
+                    "projectWindows".to_string(),
+                    vec![
+                        item("a", "shop", Some(true)),
+                        item("b", "blog", Some(false)),
+                    ],
+                ),
+            ]),
+            ..Default::default()
+        };
+        let menu = resolve_main_menu(&request, &fake(&[]));
+        let layouts = find(&menu.menus, "Window/Layouts");
+        assert_eq!(
+            labels(&layouts.items),
+            [
+                "Save Current Layout as New...",
+                "-",
+                "Review",
+                "-",
+                "Store Current Layout as Default",
+                "Restore Default Layout",
+                "Delete Layout"
+            ]
+        );
+        let window = find(&menu.menus, "Window");
+        let shop = find(&window.items, "shop");
+        assert!(shop.checkable && shop.checked);
+        // Without saved layouts there is nothing to delete.
+        let empty = resolve_main_menu(&MainMenuRequest::default(), &fake(&[]));
+        let layouts = find(&empty.menus, "Window/Layouts");
+        assert!(!labels(&layouts.items).contains(&"Delete Layout".to_string()));
+    }
+
+    #[test]
     fn contributions_create_merge_and_anchor_entries() {
         let laravel = MenuContribution {
             path: "Tools".into(),
@@ -1347,6 +1461,7 @@ mod tests {
             lookup: &fake(&["PhpListenDebugAction"]),
             checked: HashSet::new(),
             dynamic: &BTreeMap::new(),
+            labels: &BTreeMap::new(),
         };
         let menus = resolver.list(&entries);
         let tools = find(&menus, "Tools");
@@ -1425,6 +1540,7 @@ mod tests {
             lookup: &fake(&[]),
             checked: HashSet::new(),
             dynamic: &BTreeMap::new(),
+            labels: &BTreeMap::new(),
         };
         let out = resolver.list(&[
             SEP,

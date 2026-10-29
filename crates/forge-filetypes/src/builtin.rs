@@ -52,13 +52,12 @@ const ROWS: &[Row] = &[
     ("sass", "Sass", &["sass"], &[]),
     ("less", "Less", &["less"], &[]),
     ("stylus", "Stylus", &["styl", "stylus"], &[]),
-    (
-        "html",
-        "HTML",
-        &["html", "htm", "xhtml", "svelte", "astro"],
-        &[],
-    ),
+    ("html", "HTML", &["html", "htm", "xhtml"], &[]),
     ("vue", "Vue", &["vue"], &[]),
+    ("svelte", "Svelte", &["svelte"], &[]),
+    ("astro", "Astro", &["astro"], &[]),
+    ("graphql", "GraphQL", &["graphql", "gql", "graphqls"], &[]),
+    ("prisma", "Prisma", &["prisma"], &[]),
     ("twig", "Twig", &["twig", "html.twig"], &[]),
     ("smarty", "Smarty", &["tpl", "smarty"], &[]),
     ("latte", "Latte", &["latte"], &[]),
@@ -74,12 +73,16 @@ const ROWS: &[Row] = &[
         &["j2", "jinja", "jinja2", "njk", "nunjucks"],
         &[],
     ),
+    // Django templates; the Django plugin also claims `.html` files in `templates/` folders.
+    ("django", "Django Template", &["djhtml"], &[]),
     (
         "handlebars",
         "Handlebars",
         &["hbs", "handlebars", "mustache"],
         &[],
     ),
+    // Embedded Ruby (Rails views, `*.html.erb`, `*.text.erb`); RubyForge's ERB support.
+    ("erb", "ERB", &["erb", "rhtml"], &[]),
     ("velocity", "Velocity", &["vm", "vtl"], &[]),
     ("pug", "Pug", &["pug", "jade"], &[]),
     (
@@ -124,7 +127,7 @@ const ROWS: &[Row] = &[
     ("c", "C", &["c", "h"], &[]),
     ("csharp", "C#", &["cs", "csx"], &[]),
     ("kotlin", "Kotlin", &["kt", "kts"], &[]),
-    ("scala", "Scala", &["scala", "sc"], &[]),
+    ("scala", "Scala", &["scala", "sc", "sbt"], &[]),
     ("dart", "Dart", &["dart"], &[]),
     ("objc", "Objective-C", &["m", "mm"], &[]),
     ("swift", "Swift", &["swift"], &[]),
@@ -140,7 +143,7 @@ const ROWS: &[Row] = &[
     (
         "groovy",
         "Groovy",
-        &["groovy", "gradle", "gvy"],
+        &["groovy", "gradle", "gvy", "gy"],
         &["jenkinsfile"],
     ),
     ("haskell", "Haskell", &["hs", "lhs"], &[]),
@@ -199,7 +202,9 @@ const TEMPLATES: &[&str] = &[
     "latte",
     "gotemplate",
     "jinja",
+    "django",
     "handlebars",
+    "erb",
 ];
 
 /// The bundled file types, in registration order.

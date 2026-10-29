@@ -22,6 +22,11 @@ pub struct AppState {
     pub find_cancel: std::sync::Mutex<Option<Arc<std::sync::atomic::AtomicBool>>>,
     pub find_results: std::sync::Mutex<Option<(u64, Arc<forge_backend::Found>)>>,
     pub plugins: RwLock<PluginRegistry>,
+    /// Safe Mode of the open project: on while it is not trusted. Commands that start
+    /// project programs check it (`require_trusted`).
+    pub safe_mode: forge_trust::SafeMode,
+    /// Where trusted projects and locations are stored (`None`: nowhere, e.g. no config dir).
+    pub trust_path: Option<PathBuf>,
 }
 
 impl AppState {
@@ -43,6 +48,11 @@ impl AppState {
                 tracing::warn!("user settings not loaded: {e}");
             }
         }
+        if let Some(path) = Settings::default_new_projects_path() {
+            if let Err(e) = settings.load_new_projects(path) {
+                tracing::warn!("settings for new projects not loaded: {e}");
+            }
+        }
         let state = Self {
             workspace: RwLock::default(),
             backend: RwLock::default(),
@@ -51,6 +61,8 @@ impl AppState {
             find_cancel: std::sync::Mutex::default(),
             find_results: std::sync::Mutex::default(),
             plugins: RwLock::new(registry),
+            safe_mode: forge_trust::SafeMode::default(),
+            trust_path: forge_trust::TrustStore::default_path(),
         };
         let disabled: Vec<String> = state
             .read_settings()
@@ -116,6 +128,7 @@ impl AppState {
         }
         *self.workspace.write().expect("workspace lock poisoned") = Some(ws);
         *self.backend.write().expect("backend lock poisoned") = backend;
+        self.refresh_safe_mode();
     }
 
     /// Open a project on a remote host. Its `.forge/settings.toml` is read and written on the
@@ -131,6 +144,7 @@ impl AppState {
         }
         *self.workspace.write().expect("workspace lock poisoned") = None;
         *self.backend.write().expect("backend lock poisoned") = Some(backend);
+        self.refresh_safe_mode();
     }
     /// Open the host's project of a Code With Me session as a guest. Project settings are
     /// read from the host (read-only for the guest). Blocks while the host answers (call off
@@ -183,5 +197,61 @@ impl AppState {
     /// Me session.
     pub fn is_remote(&self) -> bool {
         self.project_info().is_some_and(|i| !i.is_local())
+    }
+
+    /// The trusted projects and locations (empty when the store cannot be read).
+    pub fn trust_store(&self) -> forge_trust::TrustStore {
+        let Some(path) = &self.trust_path else {
+            return Default::default();
+        };
+        forge_trust::TrustStore::load(path).unwrap_or_else(|e| {
+            tracing::warn!("trusted projects not loaded: {e}");
+            Default::default()
+        })
+    }
+
+    pub fn save_trust_store(&self, store: &forge_trust::TrustStore) -> forge_core::Result<()> {
+        match &self.trust_path {
+            Some(path) => store.save(path),
+            None => Err(ForgeError::Other(
+                "no config folder to store trusted projects in".into(),
+            )),
+        }
+    }
+
+    /// The open project's trust key (`None` without a project).
+    pub fn project_trust_key(&self) -> Option<String> {
+        self.project_info().map(|info| trust_key(&info))
+    }
+
+    /// Turn Safe Mode on when the open project is not trusted, off otherwise. Returns
+    /// whether it is on.
+    pub fn refresh_safe_mode(&self) -> bool {
+        let on = self
+            .project_trust_key()
+            .is_some_and(|key| !self.trust_store().is_trusted(&key));
+        self.safe_mode.set(on);
+        on
+    }
+
+    /// `Err` when the open project is in Safe Mode; `what` names the refused action.
+    pub fn require_trusted(&self, what: &str) -> forge_core::Result<()> {
+        self.safe_mode.check(what)
+    }
+}
+
+/// A project's trust key: the canonical local path, or `ssh://user@host:port/path`.
+pub fn trust_key(info: &BackendInfo) -> String {
+    let root = info.root.to_string_lossy();
+    if let Some(key) = info
+        .remote
+        .as_ref()
+        .and_then(|r| crate::commands::devenv::trust_key(r, &root))
+    {
+        return key;
+    }
+    match &info.remote {
+        Some(r) => forge_trust::remote_key(&r.user, &r.host, r.port, &info.root.to_string_lossy()),
+        None => forge_trust::local_key(&info.root),
     }
 }

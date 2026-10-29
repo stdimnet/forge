@@ -16,17 +16,25 @@ const balloon = balloonsFor("Actions on Save");
 
 /** The settings page that configures a tool ("Configure…"). */
 export const TOOL_PAGES: Record<SaveTool, string> = {
-  eslint: "lang.eslint",
-  prettier: "lang.prettier",
+  eslint: "lang.web.quality-tools",
+  prettier: "lang.web.quality-tools",
+  stylelint: "lang.web.quality-tools",
+  biome: "lang.web.quality-tools",
   phpCsFixer: "lang.php.quality-tools",
   pint: "lang.php.quality-tools",
+  phpcbf: "lang.php.quality-tools",
+  rector: "lang.php.quality-tools",
 };
 
 const TOOL_PLUGINS: Record<SaveTool, string> = {
   eslint: "forge.web",
   prettier: "forge.web",
+  stylelint: "forge.web",
+  biome: "forge.web",
   phpCsFixer: "forge.php",
   pint: "forge.php",
+  phpcbf: "forge.php",
+  rector: "forge.php",
 };
 
 /** Missing tools are reported once per session, not on every save. */

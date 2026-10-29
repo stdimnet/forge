@@ -94,7 +94,12 @@ impl LspState {
         if let Some(old) = current.take() {
             tauri::async_runtime::spawn(async move { old.shutdown_all().await });
         }
-        let manager = Arc::new(LspManager::with_launcher(root, backend.lsp_launcher()));
+        let launcher = Arc::new(SafeModeLauncher {
+            inner: backend.lsp_launcher(),
+            safe_mode: ws.safe_mode.clone(),
+            local: backend.info().remote.is_none(),
+        });
+        let manager = Arc::new(LspManager::with_launcher(root, launcher));
         // Language packs register their servers (PHP: `commands::php::sync_lsp_server`).
         for config in self.registered.lock().expect("lsp lock").iter().cloned() {
             manager.register_server(config);
@@ -114,6 +119,50 @@ impl LspState {
         forward_events(app.clone(), &manager);
         *current = Some(manager.clone());
         Ok(manager)
+    }
+}
+
+/// Refuses, in Safe Mode, language servers that would run project code: binaries inside
+/// the project (`node_modules/.bin`, `vendor/bin`) and servers that execute project files
+/// (`forge_trust::SERVERS_RUNNING_PROJECT_CODE`). Other servers start as usual.
+struct SafeModeLauncher {
+    inner: Arc<dyn forge_lsp::ServerLauncher>,
+    safe_mode: forge_trust::SafeMode,
+    /// Bare commands are looked up on this machine's `PATH` (local projects only).
+    local: bool,
+}
+
+impl SafeModeLauncher {
+    fn refused(&self, config: &LspServerConfig, root: &Path) -> bool {
+        if !self.safe_mode.is_on() {
+            return false;
+        }
+        let resolved = self
+            .local
+            .then(|| forge_lsp::find_on_path(&config.command))
+            .flatten();
+        forge_trust::server_runs_project_code(&config.id)
+            || forge_trust::runs_project_program(root, &config.command, &config.args)
+            || resolved
+                .is_some_and(|p| forge_trust::runs_project_program(root, &p.to_string_lossy(), &[]))
+    }
+}
+
+impl forge_lsp::ServerLauncher for SafeModeLauncher {
+    fn launch<'a>(
+        &'a self,
+        config: &'a LspServerConfig,
+        root: &'a Path,
+    ) -> futures_util::future::BoxFuture<'a, Result<forge_lsp::ServerIo>> {
+        if self.refused(config, root) {
+            let name = config.name.clone().unwrap_or_else(|| config.id.clone());
+            return Box::pin(async move {
+                Err(ForgeError::Other(forge_trust::refusal(&format!(
+                    "The language server {name}"
+                ))))
+            });
+        }
+        self.inner.launch(config, root)
     }
 }
 
@@ -585,6 +634,7 @@ mod tests {
             args: vec![],
             initialization_options: Value::Null,
             settings: Value::Null,
+            ..Default::default()
         };
         state.register_server(cfg("a"));
         state.register_server(cfg("b"));

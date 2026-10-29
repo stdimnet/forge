@@ -1,0 +1,189 @@
+# Deployment (Tools | Deployment): SFTP, FTP/FTPS and local servers, path mappings,
+# upload on save and comparing with the deployed files. Servers are project data in
+# .forge/deployment.toml; these are Deployment | Options.
+id = "forge.deployment"
+name = "Deployment"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Deployment to SFTP, FTP/FTPS and local or mounted folders: path mappings, excluded paths, upload, download, sync and compare with the deployed version, automatic upload on save, the Remote Host and File Transfer tool windows."
+
+[[contributions.commands]]
+id = "PublishGroup.Upload"
+title = "Upload to Default Server"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.UploadTo"
+title = "Upload to…"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.Download"
+title = "Download from Default Server"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.DownloadFrom"
+title = "Download from…"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.CompareLocalVsRemote"
+title = "Compare with Deployed Version"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.SyncLocalVsRemote"
+title = "Sync with Deployed to Default Server"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.SyncLocalVsRemoteWith"
+title = "Sync with Deployed to…"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.BrowseServers"
+title = "Browse Remote Host"
+category = "Deployment"
+
+[[contributions.commands]]
+id = "PublishGroup.ToggleAutoUpload"
+title = "Automatic Upload (Always)"
+category = "Deployment"
+
+[[contributions.mainMenu]]
+path = "Tools/_Deployment"
+items = [
+  { type = "action", id = "PublishGroup.Upload", label = "_Upload to Default Server" },
+  { type = "action", id = "PublishGroup.UploadTo", label = "Upload _to..." },
+  { type = "action", id = "PublishGroup.Download", label = "_Download from Default Server" },
+  { type = "action", id = "PublishGroup.DownloadFrom", label = "Download _from..." },
+  { type = "separator" },
+  { type = "action", id = "PublishGroup.CompareLocalVsRemote", label = "_Compare with Deployed Version" },
+  { type = "action", id = "PublishGroup.CompareLocalVsRemoteWith", label = "Compare with Deployed Version _on..." },
+  { type = "action", id = "PublishGroup.SyncLocalVsRemote", label = "_Sync with Deployed to Default Server" },
+  { type = "action", id = "PublishGroup.SyncLocalVsRemoteWith", label = "S_ync with Deployed to..." },
+  { type = "separator" },
+  { type = "action", id = "PublishGroup.DeleteOnServer", label = "D_elete on Default Server" },
+  { type = "action", id = "PublishGroup.Configuration", label = "Co_nfiguration..." },
+  { type = "action", id = "PublishGroup.Options", label = "O_ptions..." },
+  { type = "action", id = "PublishGroup.ToggleAutoUpload", label = "_Automatic Upload (Always)", checkable = true },
+  { type = "action", id = "PublishGroup.BrowseServers", label = "_Browse Remote Host" },
+]
+
+[[contributions.toolWindows]]
+id = "remoteHost"
+title = "Remote Host"
+anchor = "right"
+icon = "server"
+order = 40
+
+[[contributions.toolWindows]]
+id = "fileTransfer"
+title = "File Transfer"
+anchor = "bottom"
+icon = "arrow-up-down"
+order = 60
+
+# ---- Build, Execution, Deployment > Deployment > Options -------------------------------
+
+[[contributions.settings]]
+key = "deployment.excludeNames"
+title = "Exclude items by name"
+description = "Names separated by semicolons; * and ? are wildcards. These files and folders are never uploaded, downloaded or compared."
+type = "string"
+default = ".svn;.cvs;.idea;.DS_Store;.git;.hg;.forge"
+group = "build.deployment.options"
+project = true
+order = 0
+
+[[contributions.settings]]
+key = "deployment.overwriteUpToDate"
+title = "Overwrite up-to-date files"
+description = "Off: files whose deployed copy has the same size and is not older are skipped."
+type = "bool"
+default = false
+group = "build.deployment.options"
+project = true
+section = "Transfer"
+order = 10
+
+[[contributions.settings]]
+key = "deployment.preserveTimestamps"
+title = "Preserve files timestamps"
+description = "The copy gets the modification time of the source (FTP servers need MFMT)."
+type = "bool"
+default = true
+group = "build.deployment.options"
+project = true
+section = "Transfer"
+order = 20
+
+[[contributions.settings]]
+key = "deployment.deleteTargetItems"
+title = "Delete target items when source ones do not exist"
+description = "When a folder is uploaded or downloaded, files that exist only on the target are deleted."
+type = "bool"
+default = false
+group = "build.deployment.options"
+project = true
+section = "Transfer"
+order = 30
+
+[[contributions.settings]]
+key = "deployment.createEmptyDirs"
+title = "Create empty directories"
+type = "bool"
+default = false
+group = "build.deployment.options"
+project = true
+section = "Transfer"
+order = 40
+
+[[contributions.settings]]
+key = "deployment.warnOverNewer"
+title = "Warn when uploading over newer file"
+type = "enum"
+options = [
+  { value = "timestampAndSize", label = "Compare timestamp & size" },
+  { value = "content", label = "Compare content" },
+  { value = "no", label = "No" },
+]
+default = "timestampAndSize"
+group = "build.deployment.options"
+project = true
+section = "Transfer"
+order = 50
+
+[[contributions.settings]]
+key = "deployment.compareBy"
+title = "Sync with Deployed compares by"
+type = "enum"
+options = [
+  { value = "content", label = "Contents and size" },
+  { value = "size", label = "Size" },
+  { value = "timestamp", label = "Size and timestamp" },
+]
+default = "content"
+group = "build.deployment.options"
+project = true
+section = "Transfer"
+order = 60
+
+[[contributions.settings]]
+key = "deployment.autoUpload"
+title = "Upload changed files automatically to the default server"
+description = "Off in Safe Mode: an untrusted project never uploads on its own."
+type = "enum"
+options = [
+  { value = "always", label = "Always" },
+  { value = "explicit", label = "On explicit save action (Ctrl+S)" },
+  { value = "never", label = "Never" },
+]
+default = "never"
+group = "build.deployment.options"
+project = true
+section = "Automatic upload"
+order = 70

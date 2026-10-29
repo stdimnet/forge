@@ -198,12 +198,38 @@ impl PluginRegistry {
         self.plugins.iter().flat_map(|p| &p.contributions.settings)
     }
 
+    /// Inspections of the enabled plugins.
+    pub fn inspections(&self) -> impl Iterator<Item = &InspectionContribution> {
+        self.collect(|c| &c.inspections)
+    }
+
+    /// Tool problem mappings of the enabled plugins.
+    pub fn inspection_mappings(&self) -> impl Iterator<Item = &InspectionMappingContribution> {
+        self.collect(|c| &c.inspection_mappings)
+    }
+
+    /// The inspection registry of the enabled plugins.
+    pub fn inspection_registry(&self) -> forge_inspections::Registry {
+        forge_inspections::Registry::new(
+            self.inspections().cloned(),
+            self.inspection_mappings().cloned(),
+        )
+    }
+
     pub fn lsp_servers(&self) -> impl Iterator<Item = &LspServerSpec> {
         self.collect(|c| &c.lsp_servers)
     }
 
     pub fn run_configuration_types(&self) -> impl Iterator<Item = &RunConfigurationType> {
         self.collect(|c| &c.run_configuration_types)
+    }
+
+    pub fn debug_adapters(&self) -> impl Iterator<Item = &DebugAdapterContribution> {
+        self.collect(|c| &c.debug_adapters)
+    }
+
+    pub fn test_frameworks(&self) -> impl Iterator<Item = &TestFrameworkContribution> {
+        self.collect(|c| &c.test_frameworks)
     }
 
     pub fn ai_providers(&self) -> impl Iterator<Item = &AiProviderContribution> {
@@ -272,9 +298,9 @@ mod tests {
             "forge.php",
             &[],
             r#"[[contributions.lspServers]]
-               id = "intelephense"
+               id = "php-lsp"
                languageId = "php"
-               command = "intelephense"
+               command = "forge"
                fileExtensions = ["php", "phtml"]
                [[contributions.commands]]
                id = "php.run"
@@ -295,6 +321,37 @@ mod tests {
     }
 
     #[test]
+    fn parses_debug_adapters() {
+        let d = descriptor(
+            "forge.native",
+            &[],
+            r#"[[contributions.debugAdapters]]
+               type = "lldb"
+               label = "LLDB"
+               command = "lldb-dap"
+               commandSetting = "debugger.lldb.path"
+               languages = ["c", "cpp"]
+               launch = { program = "${program}", args = "${args}" }
+               attach = { pid = "${pid}" }
+               [[contributions.debugAdapters]]
+               type = "go"
+               label = "Delve"
+               command = "dlv"
+               args = ["dap", "--listen", "127.0.0.1:${port}"]
+               transport = "connect""#,
+        );
+        let mut r = PluginRegistry::new();
+        r.register_descriptor(d).unwrap();
+        let adapters: Vec<_> = r.debug_adapters().collect();
+        assert_eq!(adapters.len(), 2);
+        assert_eq!(adapters[0].r#type, "lldb");
+        assert_eq!(adapters[0].transport, DebugAdapterTransport::Stdio);
+        assert_eq!(adapters[0].launch["program"], "${program}");
+        assert!(adapters[0].core_dump.is_null());
+        assert_eq!(adapters[1].transport, DebugAdapterTransport::Connect);
+    }
+
+    #[test]
     fn rejects_duplicate_ids() {
         let mut r = registry();
         assert!(r
@@ -308,7 +365,7 @@ mod tests {
         let mut r = registry();
         assert_eq!(
             r.lsp_server_for_extension("PHTML").map(|s| s.id.as_str()),
-            Some("intelephense")
+            Some("php-lsp")
         );
         assert!(r.find_command("php.run").is_some());
         assert!(r.find_setting("php.languageLevel").is_some());

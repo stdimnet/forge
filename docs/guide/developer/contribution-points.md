@@ -48,6 +48,13 @@ On the Rust side, plugins contribute **data** through their manifest (see
 | `registerBinaryFileView` | `state/editor.ts` | binary files that open as a view tab (images) |
 | `registerRunConfigurationType` | `features/run/types.ts` | a Run/Debug configuration type |
 | `registerDebugLauncher` | `features/run/types.ts` | a debugger for Debug (`Shift+F9`) |
+| `registerDebugAdapter` | `features/debug/adapters.ts` | a Debug Adapter Protocol debugger: the run configuration types it debugs and how they become launch requests (with `[[contributions.debugAdapters]]` or a Rust `DebugAdapterDescriptor`) |
+| `[[contributions.testFrameworks]]` / `TestFrameworkProvider` | manifest / `forge-testing` | a test framework of the shared test runner (gutter, test tree, rerun, coverage) |
+| `[[contributions.inspections]]` / `[[contributions.inspectionMappings]]` / `InspectionProvider` / `ProblemSource` | manifest / `forge-inspections` | an inspection (profiles, severities, suppressions, Inspect Code) and which published problems belong to it |
+| `registerBeforeLaunchHandler` | `features/run/runStore.ts` | a Before launch task kind the run feature does not run itself (`externalTool`) |
+| `registerEndpointsView` | `features/endpoints/registry.ts` | a view of the shared Endpoints tool window (one tab per pack when several apply: Python web frameworks, Spring and JAX-RS) |
+| `registerServicesProvider` | `features/services/providers.ts` | nodes, details and actions of the Services tool window next to Docker and Kubernetes (the Spring Boot run dashboard) |
+| `registerRunAnythingProvider` | `features/runAnything/providers.ts` | commands offered in Run Anything (Artisan, Symfony console, command line tools) |
 | `registerDialog` / `openDialogWindow` | `shell/window/dialogs.ts` | a large dialog in its own window |
 | `registerChatAgent` | `features/ai-chat/agents.ts` | an agent in the AI Chat picker |
 | `claimFrameworkStatus` | `features/project-type` | hide the generic framework status widget |
@@ -218,6 +225,188 @@ registerDebugLauncher({
 
 Without `buildCommand`, the backend's kind registry (`forge_process::config`) builds the command
 line. A manifest type with `fields` and a `command` template (see `lua-script`) needs no UI code.
+A type may also bring its own `form` (Compound), a `validate` check and `outputFilters` (External
+Tools' `$FILE_PATH$:$LINE$` links).
+
+Launching goes through a plan computed in Rust (`run_launch_plan`, `forge-runtools::launch`):
+compound members and the ordered Before launch tasks. Kinds the run feature does not handle
+itself are registered by their feature:
+
+```ts
+registerBeforeLaunchHandler("externalTool", (task) => runToolAndWait(task.value));
+```
+
+## Debug adapters
+
+Every language except PHP debugs through a [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/)
+adapter ([forge-dap](crates/forge-dap.md)). The shared Debug tool window, breakpoints dialog,
+Attach to Process (`Ctrl+Alt+F5`), Attach to DAP Server and Debug Core Dump then work for the
+pack without further UI code. A pack contributes an adapter in three layers; most need only
+the first two.
+
+1. **Manifest** (how to start the adapter and the request templates):
+
+   ```toml
+   [[contributions.debugAdapters]]
+   type = "debugpy"
+   label = "Python (debugpy)"
+   command = "python3"
+   args = ["-m", "debugpy.adapter"]
+   commandSetting = "python.debugger.path"   # optional: user-chosen executable
+   transport = "stdio"                       # stdio | connect (${port} in args) | listen (adapter connects back)
+   languages = ["py"]                        # files with line breakpoints
+   launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}", console = "internalConsole" }
+   attach = { processId = "${pid}" }         # omit: no Attach to Process
+   # coreDump = { program = "${program}", coreFile = "${core}" }, coreDumpRequest = "attach"
+   ```
+
+   A string that is exactly `"${args}"`, `"${env}"`, `"${pid}"` or `"${stopOnEntry}"` becomes
+   an array, object, number or bool; other placeholders (`${program}`, `${cwd}`, `${core}`,
+   `${name}`) are replaced inside strings; keys whose placeholder has no value are dropped.
+   The run configuration's "launch options" JSON is merged over the result.
+
+2. **UI** (which run configuration types the adapter debugs, and how):
+
+   ```ts
+   import { registerDebugAdapter, defaultLaunchRequest } from "@/features/debug/adapters";
+
+   registerDebugAdapter({
+     type: "debugpy",
+     runConfigurationTypes: ["python-script"],
+     resolve: (cfg) => ({ ...defaultLaunchRequest("debugpy", cfg), program: cfg.options?.script }),
+   });
+   ```
+
+   `resolve` returns a `LaunchRequest` (`mode: "launch" | "attachProcess" | "attachServer" |
+   "coreDump"`); without it, `defaultLaunchRequest` reads the common fields (`program`,
+   arguments, working directory, environment, `stopOnEntry`, `launchOptions`).
+
+3. **Rust** (adapters that need code to start, e.g. a managed download or a virtualenv):
+   implement `forge_dap::DebugAdapterDescriptor` (`info()` and `resolve(&LaunchRequest) ->
+   ResolvedLaunch { transport, request, arguments }`) and register it with
+   `DapManager::register_adapter`.
+
+Line breakpoints in the adapter's `languages` work automatically; function breakpoints,
+watchpoints, exception filters, logpoints, threads, memory, disassembly and registers appear
+when the adapter's capabilities say so. Starting a program is refused in Safe Mode; attaching
+is not. Tests use the fake adapter (`forge_dap::fake`, binary `forge-dap-fake`) instead of a
+real debugger.
+## Test frameworks
+
+A pack's test framework plugs into the shared test runner (`crates/forge-testing`): the gutter
+▶ icons, a run configuration type, the test tree, Rerun Failed Tests, the Test History,
+auto-test, Run with Coverage and Run on (run targets) then work without UI code. Declare it in
+the plugin manifest:
+
+```toml
+[[contributions.testFrameworks]]
+id = "busted"                       # also the run configuration type
+name = "busted"
+detect = { files = [".busted", "spec/**/*_spec.lua"], dependencies = [{ file = "*.rockspec", contains = "busted" }] }
+testFiles = ["*_spec.lua"]          # gutter icons in these files
+program = "busted"
+programSetting = "lua.busted.path"  # setting with the executable
+args = ["--output=TAP"]
+report = "tap"                      # teamCity | jUnitStdout | jUnitFile | tap | goTestJson | libtestJson | libtestText | pytestReportLog | jestJson | tox | minitestText
+junitFlavor = "generic"             # generic | behat | phpSpec | pytest (JUnit locations)
+nameSeparator = " "                 # tests are named by their full name ("Cart totals rounds")
+escape = "lua"                      # how ${testPattern} escapes a name: regex | lua | none
+discovery = [
+  { kind = "describe", pattern = '''^\s*describe\(\s*["'](?P<name>[^"']+)''' },
+  { kind = "test", pattern = '''^\s*it\(\s*["'](?P<name>[^"']+)''' },
+]
+locationRules = [{ pattern = '^example\.com/shop/', replacement = "" }]  # reported paths → project paths
+rerun = { join = "\n" }             # Rerun Failed Tests: the `pattern` scope with the failed names
+coverage = { args = ["--coverage"], file = "luacov.report.out", format = "lcov" }
+
+[contributions.testFrameworks.scopes]   # arguments per Test scope
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "--filter=${testPattern}"]
+pattern = ["--filter=${pattern}"]
+```
+
+Placeholders: `${file}`, `${directory}`, `${test}` (full name), `${testName}`, `${testPattern}`,
+`${pattern}`, `${reportDir}` (report files of `jUnitFile` frameworks), `${coverageFile}`. An
+argument whose placeholders are all empty is dropped; a multi-line `${pattern}` repeats its
+argument per line. Discovery nests by indentation; `kind` is `class`, `describe`, `suite` or
+`file` for groups and `test`, `method` or `example` for tests. Coverage formats: `lcov`,
+`cobertura`, `clover`, `jacoco`, `goCover`. `fields` adds form fields to the framework's run
+configuration type (`{ key, label, kind, placeholder, default, options }`, stored in the
+configuration's options) for a provider that wraps the spec. Discovery asks the frameworks the
+project uses first (`TestFrameworks::discover_in_project` with the detected ids), so frameworks
+that share file globs (Jest and Vitest on `*.test.ts`) do not collide.
+
+Frameworks that need code implement `forge_testing::TestFrameworkProvider` (types, `accepts`,
+`discover`, `rerun_failed`, optionally `command` and `supports_coverage`) and register it in
+the backend's `TestFrameworks` registry (`RunState::new`) and in `forge-wasm`'s `registry()`,
+as the PHP frameworks do (`phpforge_test_frameworks::PhpTestFrameworks`). A provider can also
+wrap a manifest spec and register under its id after `register_specs`, as WebForge's Node.js
+runners do (`webforge_js_testing::register`). New output formats
+go into `forge-output` (`formats/`): a `LineParser` for streamed lines or a document parser,
+both producing `TestEvent`s.
+
+
+Frameworks that need code (discovery from parsed source, commands through an interpreter)
+implement `forge_testing::TestFrameworkProvider` in Rust instead, like PyForge's
+`PythonTestFrameworks` (pytest, unittest, tox in `packs/pyforge/testing`), and register their
+run configuration types in the UI. `registerTestFileMatcher(path => bool)` from
+`@/features/run` attaches the test gutter to their files, and
+`registerContextConfiguration(path => cfg | null)` answers Run Context Configuration in files
+without tests.
+
+## Inspections
+
+Every problem Forge shows belongs to an inspection of `crates/forge-inspections`. Declare a
+pack's inspections in its manifest:
+
+```toml
+[[contributions.inspections]]
+id = "PhpUnusedAssignment"          # the id profiles and suppression comments use
+name = "Unused assignment"
+group = "PHP/Data flow"             # the Settings tree: language / group
+language = "php"
+severity = "WEAK WARNING"           # ERROR, WARNING, WEAK WARNING, SERVER PROBLEM, TYPO, INFO
+cleanup = true                      # its safe fixes run in Code Cleanup
+description = "Reports assignments whose value is never read."
+
+[[contributions.inspectionMappings]]   # problems published by an external tool
+source = "clippy"                      # the third argument of publishDiagnostics
+code = "clippy::*"                     # optional; a trailing * matches a prefix
+inspection = "RsClippy"
+```
+
+`external = true` keeps the level a tool reports until the profile sets one, `batch = false`
+keeps an inspection out of Inspect Code (problems that need a running language server or
+tool), `options` adds typed options to the Settings page.
+
+- **Editor problems** need no code: whatever a feature publishes with
+  `publishDiagnostics(path, diagnostics, source)` goes through the selected profile (the
+  diagnostic's `code` when it is an inspection id, else the mapping of the published source,
+  else the mapping of the diagnostic's own `source`, e.g. `PHPStan`): disabled
+  inspections drop out, severities follow the profile and suppression comments hide
+  problems. Alt+Enter offers the Suppress actions for every problem with an inspection.
+- **Inspect Code / the command-line inspector** run Rust providers: implement
+  `forge_inspections::InspectionProvider` (`inspect_file` per file, `inspect_project` across
+  files) and add it in `app/src-tauri/src/inspections.rs`. An external tool that reports
+  problems by file, position and code (PHPStan, Psalm, a linter) implements
+  `forge_inspections::ProblemSource`; its problems are mapped with the manifest mappings.
+
+## Run Anything providers
+
+```ts
+registerRunAnythingProvider({
+  id: "symfony-index",
+  title: "Symfony console commands",
+  when: () => usesFramework("symfony"),
+  commands: async () => (await symfonyApi.consoleCommands()).map((c) => ({ command: `php bin/console ${c.name}`, description: c.description })),
+});
+```
+
+The popup asks active providers once when it opens; Rust ranks their commands with the other
+suggestions, and picking one runs the command line (resolved to a configuration type by
+`run_anything_resolve`).
 
 ## Dialog windows
 

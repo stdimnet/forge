@@ -15,43 +15,78 @@
 //!
 //! Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`).
 
+mod dotnet;
 mod parsers;
 mod remote;
 
 use wasm_bindgen::prelude::*;
 
 mod agents;
+mod ai_editor;
+mod cli_tools;
 mod codeintel;
 mod codestyle;
+mod colorscheme;
 mod compare;
 mod composer;
 mod containers;
+mod cpp;
+mod cpp_tools;
+mod dataedit;
+mod dbobjects;
+mod deploy;
+mod devenv;
 mod editing;
 mod emmet;
 mod filetypes;
+mod go;
 mod hierarchy;
 mod injections;
+mod inspections;
+mod java;
 mod json_schema;
+mod jupyter;
+mod jvm_extras;
 mod keymap;
+mod kotlin;
 mod livetemplates;
+mod localhistory;
 mod lua;
+mod maintenance;
+mod php_interpreters;
+mod profiler;
+mod project_structure;
+mod python;
+mod python_testing;
+mod python_web;
+mod rails;
+mod ruby;
+mod runtools;
+mod rust;
 mod save_actions;
 mod scopes;
 mod scratches;
 mod search;
 mod settings;
 mod spell;
+mod spring;
+mod sqlcode;
 mod ssr;
 mod stacktrace;
 mod structure;
 mod templates;
 mod terminal;
+mod test_frameworks;
+mod testing;
 mod text;
 mod vcs;
 mod viewers;
 mod vim;
+mod vulnerabilities;
 mod web;
+mod web_tooling;
 mod window;
+mod wordpress;
 mod workbench;
 
 /// Version of the bridge, used by the UI to check that the bundle is current.

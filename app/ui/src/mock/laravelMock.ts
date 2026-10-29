@@ -2,13 +2,11 @@
  * Browser-mode Laravel backend over the demo project. A small line-based version of the
  * Rust analysis (`packs/phpforge/fw-laravel`): routes with groups and resources, views,
  * components, config/env keys, translations, models from migrations, completion, Go to
- * Declaration, gutter markers and a simulated artisan. It never writes files.
+ * Declaration, gutter markers and the artisan commands and simulated output the Command
+ * Line Tools Console mock uses. It never writes files.
  */
-import { emitMock, registerMock } from "@/ipc";
+import { registerMock } from "@/ipc";
 import {
-  artisanEvent,
-  type ArtisanCommand,
-  type ArtisanEvent,
   type GutterMark,
   type LaravelCompletionItem,
   type LaravelCompletions,
@@ -399,6 +397,24 @@ function receiverModel(receiver: string, text: string): MockModel | undefined {
   return v ? variableModel(v, text) : undefined;
 }
 
+/** Values of `ide.json` completions for a call's first argument (simplified conditions). */
+function ideJsonValues(func: string, method: boolean): LaravelCompletionItem[] {
+  let json: { completions?: { complete: string; options?: { strings?: string[] }; condition?: { functionNames?: string[]; methodNames?: string[] }[] }[] };
+  try {
+    json = JSON.parse(files()["ide.json"] ?? "{}");
+  } catch {
+    return [];
+  }
+  const out: LaravelCompletionItem[] = [];
+  for (const c of json.completions ?? []) {
+    const applies = (c.condition ?? []).some((k) => (method ? k.methodNames : k.functionNames)?.includes(func));
+    if (!applies) continue;
+    if (c.complete === "staticStrings") out.push(...(c.options?.strings ?? []).map((v) => item(v, "value", "ide.json")));
+    if (c.complete === "routeName") out.push(...mockRoutes().filter((r) => r.name).map((r) => item(r.name!, "value", "ide.json", r.uri)));
+  }
+  return out;
+}
+
 export function mockComplete(path: string, text: string, offset: number): LaravelCompletions | null {
   const ctx = contextAt(text, offset);
   if (!ctx) return null;
@@ -424,7 +440,10 @@ export function mockComplete(path: string, text: string, offset: number): Larave
     } else if (RELATION_FUNCS.includes(f) && ctx.receiver) {
       const m = receiverModel(ctx.receiver, text);
       items = m?.relations.map((r) => item(r.name, "relation", `${r.kind} → ${r.related?.split("\\").pop()}`)) ?? [];
-    } else return null;
+    } else {
+      items = ideJsonValues(f, !!ctx.receiver);
+      if (!items.length) return null;
+    }
   } else if (ctx.kind === "property") {
     const m = variableModel(ctx.variable, text);
     if (!m) return null;
@@ -532,6 +551,15 @@ export function mockGutter(path: string, text: string): GutterMark[] {
 
 // ---- Artisan -------------------------------------------------------------------------
 
+/** A demo artisan command (`cliToolsMock` turns the list into `artisan list --format=json`). */
+export interface ArtisanCommand {
+  name: string;
+  description: string;
+  usage: string;
+  arguments: string[];
+  options: string[];
+}
+
 const cmd = (name: string, description: string, args: string[] = [], options: string[] = []): ArtisanCommand => ({
   name,
   description,
@@ -578,7 +606,8 @@ export const mockArtisanCommands: ArtisanCommand[] = [
   cmd("view:clear", "Clear all compiled view files"),
 ];
 
-function simulatedOutput(line: string): { lines: [string, boolean][]; code: number } {
+/** Output of `php artisan <line>` in the demo project: `[text, stderr]` lines. */
+export function simulatedArtisanOutput(line: string): { lines: [string, boolean][]; code: number } {
   const [name, ...args] = line.replace(/^(php\s+)?artisan\s+/, "").trim().split(/\s+/);
   const ok = (text: string): [string, boolean] => [text, false];
   switch (name) {
@@ -619,7 +648,17 @@ function simulatedOutput(line: string): { lines: [string, boolean][]; code: numb
       return { lines: [ok(""), ok("  “ Simplicity is the ultimate sophistication. ”"), ok("  — Leonardo da Vinci"), ok("")], code: 0 };
     default:
       if (name?.startsWith("make:") && args[0]) {
-        return { lines: [ok(""), ok(`   INFO  ${name.slice(5)} [${args[0]}] created successfully (simulated, no files written).`), ok("")], code: 0 };
+        const kind = name.slice(5);
+        const target =
+          kind === "model"
+            ? `app/Models/${args[0]}.php`
+            : kind === "controller"
+              ? `app/Http/Controllers/${args[0]}.php`
+              : kind === "migration"
+                ? `database/migrations/2026_10_23_091402_${args[0]}.php`
+                : args[0];
+        const label = kind.charAt(0).toUpperCase() + kind.slice(1);
+        return { lines: [ok(""), ok(`   \x1b[44;37m INFO \x1b[0m ${label} [${target}] created successfully.`), ok("")], code: 0 };
       }
       if (!mockArtisanCommands.some((c) => c.name === name)) {
         return { lines: [["", true], [`   ERROR  Command "${name ?? ""}" is not defined.`, true], ["", true]], code: 1 };
@@ -627,8 +666,6 @@ function simulatedOutput(line: string): { lines: [string, boolean][]; code: numb
       return { lines: [ok(""), ok(`   INFO  ${name} finished (simulated).`), ok("")], code: 0 };
   }
 }
-
-const runs = new Map<string, boolean>();
 
 registerMock("laravel_detect", (): LaravelInfo => ({
   detected: true,
@@ -649,26 +686,3 @@ registerMock("laravel_goto", ({ path, offset, content }) =>
   mockGoto(String(path), String(content ?? files()[String(path)] ?? ""), Number(offset)),
 );
 registerMock("laravel_gutter", ({ path, content }) => mockGutter(String(path), String(content ?? files()[String(path)] ?? "")));
-registerMock("laravel_artisan_commands", () => ({ commands: mockArtisanCommands, fromProject: true }));
-registerMock("laravel_artisan_cancel", ({ runId }) => {
-  runs.set(String(runId), true);
-});
-registerMock("laravel_artisan_run", async ({ commandLine, runId }) => {
-  const id = String(runId);
-  const emit = (e: ArtisanEvent) => emitMock(artisanEvent(id), e);
-  const line = String(commandLine).trim();
-  runs.set(id, false);
-  emit({ type: "started", commandLine: `php artisan ${line.replace(/^(php\s+)?artisan\s+/, "")}` });
-  const { lines, code } = simulatedOutput(line);
-  for (const [text, stderr] of lines) {
-    await new Promise((r) => setTimeout(r, 12));
-    if (runs.get(id)) {
-      emit({ type: "exit", code: -1 });
-      return -1;
-    }
-    emit({ type: "output", text, stderr });
-  }
-  emit({ type: "exit", code });
-  runs.delete(id);
-  return code;
-});

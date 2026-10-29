@@ -10,7 +10,10 @@ use std::time::{Instant, UNIX_EPOCH};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use forge_scopes::structure::{ExcludeSet, StructureConfig};
+
 use crate::fuzzy::exact_match;
+use crate::meta::{self, PhpMeta};
 use crate::model::{short_name, ClassLike, FileIndex, Member, SymbolKind};
 use crate::parser;
 use crate::structure::{self, FileStructure};
@@ -41,6 +44,14 @@ pub struct IndexConfig {
     /// Cache file; `None` uses a per-project file in the user's cache directory, so the
     /// index never ends up inside the project (like PHPStorm's system caches).
     pub cache_file: Option<PathBuf>,
+    /// Folders outside the project indexed as libraries (Settings | PHP | Include Path).
+    /// Their files are keyed by absolute path.
+    #[serde(default)]
+    pub include_paths: Vec<PathBuf>,
+    /// Excluded folders and "Exclude files" patterns of the project (Settings |
+    /// Directories); they are not indexed.
+    #[serde(default)]
+    pub structure: StructureConfig,
 }
 
 impl Default for IndexConfig {
@@ -54,6 +65,8 @@ impl Default for IndexConfig {
             max_file_size: 2 * 1024 * 1024,
             extensions: vec!["php".into(), "phtml".into(), "inc".into()],
             cache_file: None,
+            include_paths: Vec::new(),
+            structure: StructureConfig::default(),
         }
     }
 }
@@ -112,9 +125,12 @@ struct Entry {
 struct CacheFile {
     version: u32,
     files: HashMap<String, Entry>,
+    /// `.phpstorm.meta.php` files (project, vendor and include paths) by path.
+    #[serde(default)]
+    meta: HashMap<String, PhpMeta>,
 }
 
-const CACHE_VERSION: u32 = 1;
+const CACHE_VERSION: u32 = 2;
 
 pub struct ProjectIndex {
     root: PathBuf,
@@ -125,6 +141,15 @@ pub struct ProjectIndex {
     psr4: Vec<(String, PathBuf)>,
     /// lowercase FQNs already looked up in vendor (hit or miss).
     vendor_tried: HashSet<String>,
+    /// Lowercase short name -> FQNs of the classes vendor packages can autoload (PSR-4 /
+    /// PSR-0 file names and Composer's class map), built on the first import lookup.
+    vendor_names: Option<HashMap<String, Vec<String>>>,
+    /// Metadata per `.phpstorm.meta.php` file and all of it merged.
+    meta_files: HashMap<String, PhpMeta>,
+    meta: PhpMeta,
+    /// PSR-4 source roots (composer.json with the user's Mark Directory as changes), for
+    /// the namespace inspection.
+    source_roots: Vec<forge_file_templates::psr4::Psr4Root>,
 }
 
 fn to_rel(root: &Path, p: &Path) -> String {
@@ -151,7 +176,68 @@ impl ProjectIndex {
             class_map: HashMap::new(),
             psr4: Vec::new(),
             vendor_tried: HashSet::new(),
+            vendor_names: None,
+            meta_files: HashMap::new(),
+            meta: PhpMeta::default(),
+            source_roots: Vec::new(),
         }
+    }
+
+    /// The PSR-4 source roots (see [`ProjectIndex::set_source_roots`]).
+    pub fn source_roots(&self) -> &[forge_file_templates::psr4::Psr4Root] {
+        &self.source_roots
+    }
+
+    pub fn set_source_roots(&mut self, roots: Vec<forge_file_templates::psr4::Psr4Root>) {
+        self.source_roots = roots;
+    }
+
+    /// The project's excluded folders and patterns; the next [`ProjectIndex::index_workspace`]
+    /// drops the files they cover.
+    pub fn set_structure(&mut self, structure: StructureConfig) {
+        self.config.structure = structure;
+    }
+
+    /// The advanced metadata of all `.phpstorm.meta.php` files.
+    pub fn meta(&self) -> &PhpMeta {
+        &self.meta
+    }
+
+    /// Paths of the metadata files that were read.
+    pub fn meta_paths(&self) -> Vec<&str> {
+        let mut out: Vec<&str> = self.meta_files.keys().map(String::as_str).collect();
+        out.sort();
+        out
+    }
+
+    fn rebuild_meta(&mut self) {
+        let mut paths: Vec<&String> = self.meta_files.keys().collect();
+        // Project files first, so their entries win over vendor ones.
+        paths.sort_by_key(|p| (Self::is_library(p), p.to_string()));
+        let mut merged = PhpMeta::default();
+        for p in paths {
+            merged.merge(&self.meta_files[p]);
+        }
+        self.meta = merged;
+    }
+
+    /// Read (or forget) the metadata of `rel` when it is a metadata file. Returns whether
+    /// it was one.
+    fn update_meta(&mut self, rel: &str, source: Option<&str>) -> bool {
+        if !meta::is_meta_path(rel) {
+            return false;
+        }
+        match source {
+            Some(src) => {
+                self.meta_files
+                    .insert(rel.to_string(), meta::parse(rel, src));
+            }
+            None => {
+                self.meta_files.remove(rel);
+            }
+        }
+        self.rebuild_meta();
+        true
     }
 
     pub fn root(&self) -> &Path {
@@ -186,7 +272,17 @@ impl ProjectIndex {
     }
 
     fn is_vendor(rel: &str) -> bool {
-        rel.starts_with("vendor/") || rel.contains("/vendor/")
+        rel.starts_with("vendor/") || rel.contains("/vendor/") || Self::is_external(rel)
+    }
+
+    /// A file of an include path (outside the project, keyed by absolute path).
+    pub fn is_external(rel: &str) -> bool {
+        rel.starts_with('/') || Path::new(rel).is_absolute()
+    }
+
+    /// Vendor packages and include paths: libraries rather than project files.
+    pub fn is_library(rel: &str) -> bool {
+        Self::is_vendor(rel)
     }
 
     /// Load a previously saved cache. Returns false if there is none or it is stale/corrupt.
@@ -197,7 +293,9 @@ impl ProjectIndex {
         match serde_json::from_slice::<CacheFile>(&bytes) {
             Ok(c) if c.version == CACHE_VERSION => {
                 self.files = c.files;
+                self.meta_files = c.meta;
                 self.rebuild_maps();
+                self.rebuild_meta();
                 true
             }
             _ => false,
@@ -215,6 +313,7 @@ impl ProjectIndex {
         let cache = CacheFile {
             version: CACHE_VERSION,
             files: self.files.clone(),
+            meta: self.meta_files.clone(),
         };
         let json = serde_json::to_vec(&cache).map_err(|e| PhpError::Cache(e.to_string()))?;
         std::fs::write(&path, json).map_err(|e| PhpError::Io {
@@ -250,31 +349,87 @@ impl ProjectIndex {
             .collect();
         let vendor = self.config.vendor;
         let root = self.root.clone();
-        walkdir::WalkDir::new(&self.root)
+        let excluded = ExcludeSet::new(&self.config.structure);
+        let mut out: Vec<(String, u64, u64)> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        let external = self
+            .config
+            .include_paths
+            .iter()
+            .filter(|p| p.is_dir() && !p.starts_with(&self.root));
+        for (base, is_root) in
+            std::iter::once((&self.root, true)).chain(external.map(|p| (p, false)))
+        {
+            let found = walkdir::WalkDir::new(base)
+                .into_iter()
+                .filter_entry(|e| {
+                    if e.depth() == 0 {
+                        return true;
+                    }
+                    let name = e.file_name().to_string_lossy();
+                    if is_root {
+                        let rel = to_rel(&root, e.path());
+                        if excluded.skips(&rel, &name, e.file_type().is_dir()) {
+                            return false;
+                        }
+                    }
+                    if !e.file_type().is_dir() {
+                        return true;
+                    }
+                    if exclude.contains(name.as_ref()) {
+                        return false;
+                    }
+                    !(is_root && name == "vendor" && e.depth() == 1 && vendor != VendorMode::Eager)
+                })
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().is_file())
+                .filter(|e| {
+                    e.path()
+                        .extension()
+                        .and_then(|x| x.to_str())
+                        .is_some_and(|x| self.config.extensions.iter().any(|ext| ext == x))
+                })
+                .filter_map(|e| {
+                    let meta = e.metadata().ok()?;
+                    (meta.len() <= self.config.max_file_size)
+                        .then(|| (to_rel(&root, e.path()), meta.len(), mtime_ms(&meta)))
+                });
+            for f in found {
+                if seen.insert(f.0.clone()) {
+                    out.push(f);
+                }
+            }
+        }
+        out
+    }
+
+    /// `.phpstorm.meta.php` files of vendor packages (`vendor/<vendor>/<package>/…`, a few
+    /// levels deep), which the project scan leaves out unless vendor is indexed.
+    fn vendor_meta_files(&self) -> Vec<String> {
+        if self.config.vendor == VendorMode::Skip || self.config.vendor == VendorMode::Eager {
+            return Vec::new();
+        }
+        let vendor = self.root.join("vendor");
+        if !vendor.is_dir() {
+            return Vec::new();
+        }
+        let root = self.root.clone();
+        walkdir::WalkDir::new(&vendor)
+            .max_depth(6)
             .into_iter()
             .filter_entry(|e| {
-                if e.depth() == 0 || !e.file_type().is_dir() {
-                    return true;
-                }
                 let name = e.file_name().to_string_lossy();
-                if exclude.contains(name.as_ref()) {
-                    return false;
-                }
-                !(name == "vendor" && e.depth() == 1 && vendor != VendorMode::Eager)
+                // Below a package only look into its metadata folder and `src`.
+                e.depth() <= 3
+                    || name == meta::META_NAME
+                    || e.path()
+                        .components()
+                        .any(|c| c.as_os_str() == meta::META_NAME)
             })
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
-            .filter(|e| {
-                e.path()
-                    .extension()
-                    .and_then(|x| x.to_str())
-                    .is_some_and(|x| self.config.extensions.iter().any(|ext| ext == x))
-            })
-            .filter_map(|e| {
-                let meta = e.metadata().ok()?;
-                (meta.len() <= self.config.max_file_size)
-                    .then(|| (to_rel(&root, e.path()), meta.len(), mtime_ms(&meta)))
-            })
+            .map(|e| to_rel(&root, e.path()))
+            .filter(|rel| meta::is_meta_path(rel))
             .collect()
     }
 
@@ -331,6 +486,25 @@ impl ProjectIndex {
         keep.extend(parsed);
         self.files = keep;
         self.rebuild_maps();
+        // Metadata: every `.phpstorm.meta.php` of the project, include paths and vendor.
+        let mut meta_paths: Vec<String> = self
+            .files
+            .keys()
+            .filter(|k| meta::is_meta_path(k))
+            .cloned()
+            .collect();
+        meta_paths.extend(self.vendor_meta_files());
+        meta_paths.sort();
+        meta_paths.dedup();
+        self.meta_files = meta_paths
+            .into_iter()
+            .filter_map(|rel| {
+                let src = std::fs::read_to_string(root.join(&rel)).ok()?;
+                let parsed = meta::parse(&rel, &src);
+                Some((rel, parsed))
+            })
+            .collect();
+        self.rebuild_meta();
         self.psr4 = load_psr4(&self.root);
         self.vendor_tried.clear();
         progress(total, total);
@@ -346,6 +520,7 @@ impl ProjectIndex {
 
     /// Re-index a single file from (possibly unsaved) content.
     pub fn update_file(&mut self, rel: &str, source: &str) -> &FileIndex {
+        self.update_meta(rel, Some(source));
         let index = parser::index_source(rel, source);
         let (mtime, size) = std::fs::metadata(self.root.join(rel))
             .map(|m| (mtime_ms(&m), m.len()))
@@ -369,6 +544,7 @@ impl ProjectIndex {
     }
 
     pub fn remove_file(&mut self, rel: &str) {
+        self.update_meta(rel, None);
         if self.files.remove(rel).is_some() {
             self.rebuild_maps();
         }
@@ -385,6 +561,7 @@ impl ProjectIndex {
             .is_some_and(|(_, ext)| self.config.extensions.iter().any(|e| e == ext));
         let dirs = &parts[..parts.len() - 1];
         ext_ok
+            && !ExcludeSet::new(&self.config.structure).excludes(rel, false)
             && !dirs
                 .iter()
                 .any(|d| self.config.exclude_dirs.iter().any(|x| x == d))
@@ -397,6 +574,16 @@ impl ProjectIndex {
         let mut touched = 0;
         for dir_or_file in removed {
             let prefix = format!("{dir_or_file}/");
+            let gone_meta: Vec<String> = self
+                .meta_files
+                .keys()
+                .filter(|k| *k == dir_or_file || k.starts_with(&prefix))
+                .cloned()
+                .collect();
+            for rel in gone_meta {
+                self.update_meta(&rel, None);
+                touched += 1;
+            }
             let gone: Vec<String> = self
                 .files
                 .keys()
@@ -413,6 +600,12 @@ impl ProjectIndex {
         }
         for rel in changed {
             if !self.is_indexable(rel) {
+                // Vendor packages' metadata is read even though vendor is not indexed.
+                if meta::is_meta_path(rel) && rel.ends_with(".php") {
+                    let source = std::fs::read_to_string(self.root.join(rel)).ok();
+                    self.update_meta(rel, source.as_deref());
+                    touched += 1;
+                }
                 continue;
             }
             let path = self.root.join(rel);
@@ -465,6 +658,46 @@ impl ProjectIndex {
         let rel = to_rel(&self.root, &path);
         self.update_file(&rel, &source);
         self.find_class(fqn).cloned()
+    }
+
+    /// Classes named `short` (case-insensitive) that a `use` statement could import: the
+    /// indexed ones and, unless vendor is skipped, the ones vendor packages autoload (found
+    /// by file name, without parsing the files). Sorted, project classes first.
+    pub fn class_candidates(&mut self, short: &str) -> Vec<String> {
+        let key = short.trim_start_matches('\\').to_ascii_lowercase();
+        let mut project: Vec<String> = Vec::new();
+        let mut vendor: Vec<String> = Vec::new();
+        for f in self.files.iter() {
+            for c in &f.1.index.classes {
+                if c.name.eq_ignore_ascii_case(&key) {
+                    if Self::is_vendor(f.0) {
+                        vendor.push(c.fqn.clone());
+                    } else {
+                        project.push(c.fqn.clone());
+                    }
+                }
+            }
+        }
+        if self.config.vendor != VendorMode::Skip {
+            if self.vendor_names.is_none() {
+                if self.psr4.is_empty() {
+                    self.psr4 = load_psr4(&self.root);
+                }
+                self.vendor_names = Some(vendor_class_names(&self.root, &self.psr4));
+            }
+            if let Some(names) = self.vendor_names.as_ref().and_then(|m| m.get(&key)) {
+                vendor.extend(names.iter().cloned());
+            }
+        }
+        let mut seen = HashSet::new();
+        let sort = |v: &mut Vec<String>| v.sort_by_key(|f| f.to_ascii_lowercase());
+        sort(&mut project);
+        sort(&mut vendor);
+        project
+            .into_iter()
+            .chain(vendor)
+            .filter(|f| seen.insert(f.to_ascii_lowercase()))
+            .collect()
     }
 
     /// All ancestors (parents, interfaces, traits; transitively), nearest first.
@@ -741,6 +974,80 @@ fn load_psr4(root: &Path) -> Vec<(String, PathBuf)> {
     out
 }
 
+/// Upper bound of the vendor files [`vendor_class_names`] looks at.
+const VENDOR_NAME_LIMIT: usize = 200_000;
+
+/// Short name -> FQNs of vendor classes: every `.php` file below a vendor PSR-4 / PSR-0
+/// folder whose name starts with an upper-case letter, and the entries of Composer's
+/// `autoload_classmap.php`.
+fn vendor_class_names(root: &Path, psr4: &[(String, PathBuf)]) -> HashMap<String, Vec<String>> {
+    let mut out: HashMap<String, Vec<String>> = HashMap::new();
+    let mut add = |fqn: String| {
+        let short = short_name(&fqn).to_ascii_lowercase();
+        let list = out.entry(short).or_default();
+        if !list.iter().any(|f| f.eq_ignore_ascii_case(&fqn)) {
+            list.push(fqn);
+        }
+    };
+    let vendor = root.join("vendor");
+    let mut seen = 0usize;
+    for (prefix, dir) in psr4 {
+        if !dir.starts_with(&vendor) {
+            continue;
+        }
+        for entry in walkdir::WalkDir::new(dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+        {
+            seen += 1;
+            if seen > VENDOR_NAME_LIMIT {
+                break;
+            }
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("php") {
+                continue;
+            }
+            let Ok(rel) = path.strip_prefix(dir) else {
+                continue;
+            };
+            let rel = rel.with_extension("");
+            let parts: Vec<String> = rel
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect();
+            let valid = |p: &str| {
+                p.chars()
+                    .next()
+                    .is_some_and(|c| c.is_alphabetic() || c == '_')
+                    && p.chars().all(|c| c.is_alphanumeric() || c == '_')
+            };
+            let Some(last) = parts.last() else { continue };
+            if !last.chars().next().is_some_and(char::is_uppercase)
+                || !parts.iter().all(|p| valid(p))
+            {
+                continue;
+            }
+            add(format!("{prefix}{}", parts.join("\\"))
+                .trim_start_matches('\\')
+                .to_string());
+        }
+    }
+    if let Ok(map) = std::fs::read_to_string(vendor.join("composer/autoload_classmap.php")) {
+        for line in map.lines() {
+            let line = line.trim_start();
+            let Some(rest) = line.strip_prefix('\'') else {
+                continue;
+            };
+            let Some((fqn, _)) = rest.split_once("' =>") else {
+                continue;
+            };
+            add(fqn.replace("\\\\", "\\"));
+        }
+    }
+    out
+}
+
 fn psr4_candidates(psr4: &[(String, PathBuf)], fqn: &str) -> Vec<PathBuf> {
     psr4.iter()
         .filter(|(prefix, _)| {
@@ -845,6 +1152,16 @@ mod tests {
         idx.index_workspace(|_, _| {});
         assert!(idx.is_indexable("app/Models/Order.php"));
         assert!(!idx.is_indexable("node_modules/x/evil.php"));
+        assert!(idx.is_indexable("app/Generated/Proxy.php"));
+        idx.set_structure(StructureConfig {
+            folders: vec![forge_scopes::structure::FolderMark {
+                path: "app/Generated".into(),
+                kind: forge_scopes::structure::FolderKind::Excluded,
+            }],
+            exclude_patterns: "*.stub.php".into(),
+        });
+        assert!(!idx.is_indexable("app/Generated/Proxy.php"));
+        assert!(!idx.is_indexable("app/Models/Order.stub.php"));
         assert!(!idx.is_indexable("vendor/a/B.php"));
         assert!(!idx.is_indexable("composer.json"));
 
@@ -915,6 +1232,36 @@ mod tests {
             inherited,
             vec!["save", "table", "attributes", "getAttribute"]
         );
+    }
+
+    #[test]
+    fn import_candidates_include_vendor_classes_by_file_name() {
+        let dir = project();
+        write(
+            dir.path(),
+            "vendor/composer/autoload_classmap.php",
+            "<?php\n\nreturn array(\n    'Legacy\\\\Order' => $vendorDir . '/legacy/Order.php',\n);\n",
+        );
+        let mut idx = ProjectIndex::new(dir.path(), IndexConfig::default());
+        idx.index_workspace(|_, _| {});
+        assert_eq!(
+            idx.class_candidates("controller"),
+            vec!["Illuminate\\Routing\\Controller"]
+        );
+        assert_eq!(
+            idx.class_candidates("Order"),
+            vec!["App\\Models\\Order", "Legacy\\Order"]
+        );
+        assert!(idx.class_candidates("Nothing").is_empty());
+        let mut skip = ProjectIndex::new(
+            dir.path(),
+            IndexConfig {
+                vendor: VendorMode::Skip,
+                ..Default::default()
+            },
+        );
+        skip.index_workspace(|_, _| {});
+        assert!(skip.class_candidates("Controller").is_empty());
     }
 
     #[test]

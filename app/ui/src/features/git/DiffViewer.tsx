@@ -1,5 +1,6 @@
 /** Side-by-side diff viewer (Show Diff, Ctrl+D) built on @codemirror/merge. */
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, FoldVertical, SquareArrowOutUpRight, X } from "lucide-solid";
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, lineNumbers, highlightSpecialChars, drawSelection, keymap } from "@codemirror/view";
@@ -15,6 +16,8 @@ import { reloadOpenFiles, repositoryChanged } from "./store";
 import { showDiff } from "./actions";
 import type { DiffRequest } from "./overlays";
 import { lineDiffConfig } from "./lineDiff";
+import { partialCommitGutter } from "./partialGutter";
+import { diffRendererFor } from "./diffRenderers";
 
 const diffTheme = EditorView.theme({
   "&": { height: "auto" },
@@ -35,6 +38,9 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
   const [count, setCount] = createSignal(0);
   const [collapse, setCollapse] = createSignal(true);
   const req = props.request;
+  // File types with their own diff (notebooks cell by cell) switch between it and the text.
+  const renderer = diffRendererFor(req.path);
+  const [special, setSpecial] = createSignal(!!renderer && renderer.preferred?.() !== false);
 
   const base = (editable: boolean): Extension[] => [
     lineNumbers(),
@@ -58,6 +64,7 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
         doc: right,
         extensions: [
           ...base(req.editable),
+          ...(req.partial ? [partialCommitGutter(req.path)] : []),
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
           EditorView.updateListener.of(() => queueMicrotask(() => setCount(mv?.chunks.length ?? 0))),
@@ -166,34 +173,51 @@ export function DiffViewer(props: { request: DiffRequest; onClose: () => void })
             <SquareArrowOutUpRight size={15} />
           </button>
           <div class="toolbar-sep" />
-          <button class="pill-btn diff-select" title="Viewer">
-            Side-by-side viewer
-          </button>
-          <button class="pill-btn diff-select" title="Whitespace">
-            Do not ignore
-          </button>
-          <button class="pill-btn diff-select" title="Highlighting">
-            Highlight words
-          </button>
-          <button
-            class="icon-btn"
-            classList={{ active: collapse() }}
-            title="Collapse Unchanged Fragments"
-            onClick={() => {
-              setCollapse(!collapse());
-              build();
-            }}
-          >
-            <FoldVertical size={15} />
-          </button>
+          <Show when={renderer}>
+            {(r) => (
+              <div class="diff-mode" role="tablist" aria-label="Diff view">
+                <button class="pill-btn diff-select" classList={{ active: special() }} role="tab" aria-selected={special()} onClick={() => setSpecial(true)}>
+                  {r().title}
+                </button>
+                <button class="pill-btn diff-select" classList={{ active: !special() }} role="tab" aria-selected={!special()} onClick={() => setSpecial(false)}>
+                  Text
+                </button>
+              </div>
+            )}
+          </Show>
+          <Show when={!special()}>
+            <button class="pill-btn diff-select" title="Viewer">
+              Side-by-side viewer
+            </button>
+            <button class="pill-btn diff-select" title="Whitespace">
+              Do not ignore
+            </button>
+            <button class="pill-btn diff-select" title="Highlighting">
+              Highlight words
+            </button>
+            <button
+              class="icon-btn"
+              classList={{ active: collapse() }}
+              title="Collapse Unchanged Fragments"
+              onClick={() => {
+                setCollapse(!collapse());
+                build();
+              }}
+            >
+              <FoldVertical size={15} />
+            </button>
+          </Show>
           <span class="spacer" />
-          <span class="diff-count">{count() === 0 ? "No differences" : `${count()} difference${count() === 1 ? "" : "s"}`}</span>
+          <Show when={!special()}>
+            <span class="diff-count">{count() === 0 ? "No differences" : `${count()} difference${count() === 1 ? "" : "s"}`}</span>
+          </Show>
         </div>
         <div class="diff-headers">
           <div class="diff-header">{req.left.title}</div>
           <div class="diff-header">{req.right.title}</div>
         </div>
-        <div class="diff-body" ref={host} />
+        <Show when={special() && renderer}>{(r) => <Dynamic component={r().component} request={req} />}</Show>
+        <div class="diff-body" classList={{ hidden: special() }} ref={host} />
       </div>
     </div>
   );

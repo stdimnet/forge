@@ -28,7 +28,7 @@ import {
 import { VISIBILITIES } from "./extract";
 
 /** Escape cancels, Enter confirms (not on buttons or in the parameter table). */
-function keys(cancel: () => void, ok: () => void): JSX.EventHandler<HTMLDivElement, KeyboardEvent> {
+export function keys(cancel: () => void, ok: () => void): JSX.EventHandler<HTMLDivElement, KeyboardEvent> {
   return (e) => {
     const target = e.target as HTMLElement;
     if (e.key === "Escape") cancel();
@@ -39,13 +39,13 @@ function keys(cancel: () => void, ok: () => void): JSX.EventHandler<HTMLDivEleme
   };
 }
 
-const focusSelect = (el: HTMLInputElement) =>
+export const focusSelect = (el: HTMLInputElement) =>
   queueMicrotask(() => {
     el.focus();
     el.select();
   });
 
-function Frame(props: { title: string; class: string; onKeyDown: JSX.EventHandler<HTMLDivElement, KeyboardEvent>; children: JSX.Element; focus?: boolean }) {
+export function Frame(props: { title: string; class: string; onKeyDown: JSX.EventHandler<HTMLDivElement, KeyboardEvent>; children: JSX.Element; focus?: boolean }) {
   return (
     <div class="popup-backdrop modal refactoring-backdrop">
       <div
@@ -63,7 +63,7 @@ function Frame(props: { title: string; class: string; onKeyDown: JSX.EventHandle
   );
 }
 
-function Buttons(props: { ok: string; disabled?: boolean; preview?: () => void; cancel: () => void; run: () => void }) {
+export function Buttons(props: { ok: string; disabled?: boolean; preview?: () => void; cancel: () => void; run: () => void }) {
   return (
     <div class="dialog-buttons">
       <Show when={props.preview}>
@@ -82,7 +82,7 @@ function Buttons(props: { ok: string; disabled?: boolean; preview?: () => void; 
   );
 }
 
-function Check(props: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function Check(props: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <label class="form-label check">
       <input type="checkbox" checked={props.checked} disabled={props.disabled} onChange={(e) => props.onChange(e.currentTarget.checked)} />
@@ -92,11 +92,11 @@ function Check(props: { label: string; checked: boolean; onChange: (v: boolean) 
 }
 
 const NAMESPACE = /^(\\?[A-Za-z_\u0080-￿][\w\u0080-￿]*)(\\[A-Za-z_\u0080-￿][\w\u0080-￿]*)*$/;
-const validNamespace = (ns: string) => ns.trim() === "" || NAMESPACE.test(ns.trim());
-const IDENT = /^[A-Za-z_\u0080-￿][\w\u0080-￿]*$/;
+export const validNamespace = (ns: string) => ns.trim() === "" || NAMESPACE.test(ns.trim());
+export const IDENT = /^[A-Za-z_\u0080-￿][\w\u0080-￿]*$/;
 
 /** Namespace and directory fields: the directory follows the namespace (PSR-4) until edited. */
-function NamespaceFields(props: {
+export function NamespaceFields(props: {
   namespace: string;
   setNamespace: (v: string) => void;
   directory: string;

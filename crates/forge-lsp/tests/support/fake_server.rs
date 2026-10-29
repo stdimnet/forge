@@ -54,13 +54,13 @@ fn range(line: u32, start: u32, end: u32) -> Value {
     json!({"start": {"line": line, "character": start}, "end": {"line": line, "character": end}})
 }
 
-fn publish(uri: &str, text: &str, secondary: bool) {
+fn todo_diagnostics(text: &str, secondary: bool) -> Vec<Value> {
     let (marker, source) = if secondary {
         ("FIXME", "lint")
     } else {
         ("TODO", "fake")
     };
-    let diagnostics: Vec<Value> = text
+    text
         .lines()
         .enumerate()
         .filter_map(|(i, l)| {
@@ -69,10 +69,17 @@ fn publish(uri: &str, text: &str, secondary: bool) {
                        "source": source, "message": "Unfinished work"})
             })
         })
-        .collect();
+        .collect()
+}
+
+fn publish(uri: &str, text: &str, secondary: bool, pull: bool) {
+    // Pull servers (kotlin-lsp) answer `textDocument/diagnostic` instead.
+    if pull {
+        return;
+    }
     notify(
         "textDocument/publishDiagnostics",
-        json!({"uri": uri, "diagnostics": diagnostics}),
+        json!({"uri": uri, "diagnostics": todo_diagnostics(text, secondary)}),
     );
 }
 
@@ -80,6 +87,7 @@ fn main() {
     let mut stdin = io::stdin().lock();
     let mut docs: HashMap<String, String> = HashMap::new();
     let secondary = std::env::args().nth(1).as_deref() == Some("secondary");
+    let pull = std::env::args().nth(1).as_deref() == Some("pull");
     while let Some(msg) = read(&mut stdin) {
         let method = msg["method"].as_str().unwrap_or_default().to_string();
         let id = msg.get("id").cloned();
@@ -106,6 +114,14 @@ fn main() {
                 "window/logMessage",
                 json!({"type": 3, "message": format!("processId: {}", params["processId"])}),
             );
+            notify(
+                "window/logMessage",
+                json!({"type": 3, "message": format!(
+                    "env: {} pull: {}",
+                    std::env::var("FAKE_LS_ENV").unwrap_or_default(),
+                    params["capabilities"]["textDocument"]["diagnostic"].is_object()
+                )}),
+            );
         }
         let result = match method.as_str() {
             "initialize" => json!({
@@ -124,7 +140,8 @@ fn main() {
                     "codeActionProvider": if secondary { Value::Null } else { json!({"resolveProvider": true}) },
                     "typeHierarchyProvider": !secondary,
                     "callHierarchyProvider": !secondary,
-                    "executeCommandProvider": {"commands": ["fake.apply"]}
+                    "executeCommandProvider": {"commands": ["fake.apply"]},
+                    "diagnosticProvider": if pull { json!({"interFileDependencies": false, "workspaceDiagnostics": false}) } else { Value::Null }
                 },
                 "serverInfo": {"name": "fake", "version": "1"}
             }),
@@ -152,7 +169,7 @@ fn main() {
                     .as_str()
                     .unwrap_or_default()
                     .to_string();
-                publish(&uri, &text, secondary);
+                publish(&uri, &text, secondary, pull);
                 docs.insert(uri, text);
                 continue;
             }
@@ -161,7 +178,7 @@ fn main() {
                     .as_str()
                     .unwrap_or_default()
                     .to_string();
-                publish(&uri, &text, secondary);
+                publish(&uri, &text, secondary, pull);
                 docs.insert(uri, text);
                 continue;
             }
@@ -177,6 +194,16 @@ fn main() {
                 continue;
             }
             "exit" => std::process::exit(0),
+            // Simulates a crash (or the process being killed).
+            "fake/crash" => std::process::exit(3),
+            // Roslyn-style loading after `initialized`.
+            "solution/open" => {
+                notify(
+                    "window/logMessage",
+                    json!({"type": 4, "message": format!("opened: {}", params["solution"].as_str().unwrap_or(""))}),
+                );
+                continue;
+            }
             "workspace/didChangeConfiguration" => {
                 // Ask again, like servers that pull their settings.
                 write(
@@ -186,6 +213,10 @@ fn main() {
                 continue;
             }
             "$/cancelRequest" => continue,
+            "textDocument/diagnostic" => json!({
+                "kind": "full",
+                "items": todo_diagnostics(docs.get(&uri).map(String::as_str).unwrap_or_default(), false)
+            }),
             "shutdown" => Value::Null,
             "textDocument/hover" if secondary => Value::Null,
             "textDocument/completion" if secondary => json!([{"label": "lint-ignore", "kind": 15}]),

@@ -7,7 +7,7 @@ tags: [plugins, packs, manifest, walkthrough]
 
 # Writing a plugin or pack
 
-A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`; AI plugins live in
+A **pack** groups plugins (`core`, `phpforge`, `webforge`, `luaforge`, `javaforge`; AI plugins live in
 `core`). A **plugin** is a manifest, plus an optional Rust crate, plus an optional UI feature.
 Recipe: [`add-plugin-or-pack`](../../../.claude/skills/add-plugin-or-pack/SKILL.md).
 
@@ -51,6 +51,7 @@ order = 0
 
 Contribution types (`crates/forge-plugin-api/src/contributions.rs`): `languages`, `fileTypes`,
 `commands`, `keybindings`, `toolWindows`, `settings`, `lspServers`, `runConfigurationTypes`,
+`debugAdapters` (see [Contribution points](contribution-points.md#debug-adapters)),
 `aiProviders`, `chatAgents`, `codeGenerators`, `mainMenu` (see [Contribution points](contribution-points.md#main-menu)). A run configuration type with `fields` and a
 `command` template works without UI code (see `lua-script` in `luaforge.toml`).
 

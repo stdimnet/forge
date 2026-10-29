@@ -1,0 +1,101 @@
+/* ---------- Project view: excluded folders, resource roots, members ---------- */
+.tree-row.excluded .tree-label,
+.tree-row.excluded .tree-label[class*="vcs-"],
+.tree-row.excluded .file-icon {
+  color: var(--tree-excluded) !important;
+}
+.tree-row.resource-root .file-icon {
+  color: var(--tree-resource-root) !important;
+}
+.tree-row.test-resource-root .file-icon {
+  color: var(--tree-test-resource-root) !important;
+}
+.project-member-row .tree-label {
+  flex-shrink: 0;
+}
+.project-member-row .tree-hint {
+  min-width: 0;
+  white-space: nowrap;
+}
+.project-member-row.deprecated .tree-label {
+  text-decoration: line-through;
+}
+
+/* ---------- Settings | Directories ---------- */
+.php-dirs-title.structure-dirs-resource {
+  color: var(--tree-resource-root);
+}
+.php-dirs-title.structure-dirs-testResource {
+  color: var(--tree-test-resource-root);
+}
+.php-dirs-title.structure-dirs-excluded {
+  color: var(--tree-excluded);
+}
+.structure-exclude-files input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---------- File Nesting dialog ---------- */
+.file-nesting-dialog {
+  width: 560px;
+}
+.nesting-enable {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nesting-hint {
+  margin: 6px 0 10px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.nesting-table {
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-input);
+}
+.nesting-table.disabled {
+  opacity: 0.6;
+}
+.nesting-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.nesting-head,
+.nesting-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+}
+.nesting-head span {
+  padding: 4px 8px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+}
+.nesting-rows {
+  max-height: 300px;
+  overflow: auto;
+}
+.nesting-row input {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg);
+  min-width: 0;
+}
+.nesting-row:hover {
+  background: var(--bg-hover);
+}
+.nesting-row.selected {
+  background: var(--bg-selection);
+}
+.nesting-empty {
+  padding: 8px;
+  color: var(--fg-muted);
+}

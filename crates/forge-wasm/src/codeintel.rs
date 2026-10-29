@@ -7,9 +7,9 @@ use std::collections::{BTreeMap, HashMap};
 
 use forge_codeintel::{
     apply_workspace_edit, bulb_for, edit_conflicts, edit_from_locations, group_usages,
-    order_actions, plan_edit, preview_workspace_edit, suggest_file_rename, validate_identifier,
-    ContextAction, DocumentChange, GroupRequest, MemoryStore, Position, UsageLocation,
-    WorkspaceEdit,
+    order_actions, plan_edit, preview_workspace_edit, refactor_this_actions, suggest_file_rename,
+    validate_identifier, ContextAction, DocumentChange, GroupRequest, MemoryStore, Position,
+    UsageLocation, WorkspaceEdit,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -652,4 +652,82 @@ mod doc_tests {
         assert!(src.contains("\"path\":\"tests/CheckoutTest.php\""), "{src}");
         assert!(codeintel_test_source(r#"{"fileName":"x.php"}"#).contains("error"));
     }
+}
+
+/// Refactor This in JS/TS: the language server's refactorings worded like PHPStorm
+/// (`ContextAction[]` -> `ContextAction[]`).
+#[wasm_bindgen]
+pub fn codeintel_refactor_this_actions(request_json: &str) -> String {
+    match parse::<Vec<ContextAction>>(request_json) {
+        Ok(actions) => to_json(&refactor_this_actions(actions)),
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OptimizeInput {
+    old: String,
+    new: Option<String>,
+    #[serde(default)]
+    removed: usize,
+    #[serde(default)]
+    rearranged: bool,
+}
+
+/// `{ old, new, removed, rearranged }` → `OptimizeAnswer` (like `imports_optimize`): the
+/// editor change and the notification.
+#[wasm_bindgen]
+pub fn imports_optimize_answer(request_json: &str) -> String {
+    match parse::<OptimizeInput>(request_json) {
+        Ok(i) => {
+            let message = forge_codeintel::imports::summary(i.removed, i.rearranged, 0);
+            to_json(&forge_codeintel::imports::OptimizeAnswer::new(
+                &i.old,
+                i.new.as_deref(),
+                message,
+            ))
+        }
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FolderInput {
+    /// Every file below the chosen folders.
+    files: Vec<String>,
+    /// VCS-changed files ("Only VCS changed files").
+    changed: Option<std::collections::BTreeSet<String>>,
+}
+
+/// `{ files, changed? }` → the files Optimize Imports processes.
+#[wasm_bindgen]
+pub fn imports_targets(request_json: &str) -> String {
+    match parse::<FolderInput>(request_json) {
+        Ok(i) => to_json(&forge_codeintel::imports::optimize_targets(
+            &i.files,
+            i.changed.as_ref(),
+        )),
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+/// `{ old, new }` → the one LSP edit turning `old` into `new` (or null).
+#[wasm_bindgen]
+pub fn imports_minimal_edit(request_json: &str) -> String {
+    match parse::<OptimizeInput>(request_json) {
+        Ok(i) => to_json(
+            &i.new
+                .as_deref()
+                .and_then(|n| forge_codeintel::imports::minimal_edit(&i.old, n)),
+        ),
+        Err(e) => to_json(&json!({ "error": e })),
+    }
+}
+
+/// `{ files, changed, removed }` → the folder notification.
+#[wasm_bindgen]
+pub fn imports_folder_summary(files: usize, changed: usize, removed: usize) -> String {
+    forge_codeintel::imports::folder_summary(files, changed, removed)
 }

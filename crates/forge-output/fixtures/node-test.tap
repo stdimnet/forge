@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: cart
+    # Subtest: adds items
+    ok 1 - adds items
+      ---
+      duration_ms: 0.512
+      ...
+    # Subtest: rounds to cents
+    not ok 2 - rounds to cents
+      ---
+      duration_ms: 2.81
+      location: '/p/test/cart.test.mjs:10:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        1.1781 !== 1.18
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 1.18
+      actual: 1.1781
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///p/test/cart.test.mjs:12:12)
+      ...
+    1..2
+not ok 1 - cart
+  ---
+  duration_ms: 4.1
+  type: 'suite'
+  location: '/p/test/cart.test.mjs:5:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: is empty at first
+ok 2 - is empty at first
+  ---
+  duration_ms: 0.3
+  ...
+1..2
+# tests 3
+# suites 1
+# pass 2
+# fail 1

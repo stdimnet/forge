@@ -13,7 +13,7 @@ import { runAction } from "@/keymap";
 import { registerCommand } from "@/state/commands";
 import { toggleToolWindow } from "@/state/layout";
 import { getSetting, saveSetting } from "@/state/settings";
-import { openWorkspace, workspace } from "@/state/workspace";
+import { openProject, workspace } from "@/state/workspace";
 import { toolWindows } from "@/features/registry";
 import { activeView } from "@/features/navigation/editorCommands";
 import { TOOL_WINDOW_ACTIONS } from "@/features/navigation";
@@ -24,7 +24,7 @@ import { mainMenuMode, showMainMenu } from "./controller";
 import { registerMainMenuDynamic, registerMainMenuToggle } from "./model";
 import "./mainMenu.css";
 
-export { registerMainMenuDynamic, registerMainMenuEntries, registerMainMenuToggle } from "./model";
+export { registerMainMenuDynamic, registerMainMenuEntries, registerMainMenuLabel, registerMainMenuToggle } from "./model";
 
 registerCommand({ id: "MainMenuButton.ShowMenu", title: "Main Menu", run: showMainMenu });
 registerCommand({ id: "About", title: "About", run: () => void openAbout() });
@@ -105,7 +105,7 @@ registerMainMenuDynamic("recentProjects", async () => {
       key: p.root,
       label: p.name,
       detail: p.remote ? `${p.remote.label}:${p.remote.path}` : p.root,
-      run: () => void (p.remote ? openRecentRemote(p) : openWorkspace(p.root)),
+      run: () => void (p.remote ? openRecentRemote(p) : openProject(p.root)),
     }));
 });
 

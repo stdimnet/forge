@@ -32,6 +32,17 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).
 
+### `forge inspect`
+
+```text
+forge inspect <project> <profile.xml|profile name> <output dir> [-format xml|json|html] [-d <directory>] [-fail-on <severity>] [-v0|-v1|-v2]
+```
+
+The command-line inspector: runs the profile's inspections over the project without a window
+and writes the results (one XML file per inspection plus `.descriptions.xml`, `inspections.json`
+or `index.html`). Exit code 0, 1 with `-fail-on` when a problem of that severity or worse was
+found, 2 for wrong arguments. See [Inspections](../user/inspections.md#command-line-inspector).
+
 The deb and rpm packages put `forge` on the `PATH`. For the AppImage, create a link yourself,
 e.g. `ln -s ~/Applications/Forge_0.1.0_amd64.AppImage ~/.local/bin/forge`.
 

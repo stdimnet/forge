@@ -19,6 +19,7 @@ fn config() -> LspServerConfig {
         args: vec![],
         initialization_options: json!({"licenceKey": null}),
         settings: json!({"fake": {"answer": 42}}),
+        ..Default::default()
     }
 }
 
@@ -189,6 +190,74 @@ async fn changed_settings_are_pushed_and_answered() {
         .unwrap());
     assert!(!client.update_settings(&json!(null)).unwrap());
     client.shutdown().await;
+}
+
+#[tokio::test]
+async fn a_server_that_exits_is_started_again_on_next_use() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut rx = manager.subscribe();
+    let php = dir.path().join("a.php");
+    let diagnostics_for_php = |e: LspEvent| match e {
+        LspEvent::Diagnostics { uri, .. }
+            if uri.to_file_path().ok().as_deref() == Some(php.as_path()) =>
+        {
+            Some(())
+        }
+        _ => None,
+    };
+    manager.did_open(&php, "<?php // TODO").await.unwrap();
+    next_matching(&mut rx, diagnostics_for_php).await;
+
+    let crash = |manager: &LspManager| {
+        let client = manager.running_client_for(&php).expect("server running");
+        client
+            .notify_raw("fake/crash", serde_json::Value::Null)
+            .unwrap();
+        client
+    };
+    async fn until_exited(client: &LspClient) {
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while !client.has_exited() {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("server did not exit");
+    }
+
+    // Up to five times within three minutes, the next change starts it again.
+    for i in 0..5 {
+        let client = crash(&manager);
+        until_exited(&client).await;
+        assert_eq!(manager.statuses()[0].state, ServerState::Stopped);
+        assert!(manager.running_client_for(&php).is_none());
+        manager
+            .did_change(&php, &format!("<?php // TODO {i}"))
+            .await
+            .unwrap();
+        next_matching(&mut rx, diagnostics_for_php).await;
+        assert!(matches!(
+            manager.statuses()[0].state,
+            ServerState::Ready | ServerState::Busy { .. }
+        ));
+    }
+
+    // The sixth exit is final until the server is registered again.
+    let client = crash(&manager);
+    until_exited(&client).await;
+    manager.did_change(&php, "<?php // TODO 6").await.unwrap();
+    assert!(manager.running_client_for(&php).is_none());
+    assert!(matches!(
+        manager.statuses()[0].state,
+        ServerState::Failed { .. }
+    ));
+    manager.register_server(config());
+    manager.did_change(&php, "<?php // TODO 7").await.unwrap();
+    assert!(manager.running_client_for(&php).is_some());
+
+    manager.shutdown_all().await;
 }
 
 #[tokio::test]
@@ -530,4 +599,75 @@ async fn type_and_call_hierarchy() {
         .unwrap();
     assert_eq!(callees[0].item.name, "save()");
     assert_eq!(callees[0].calls[0].path, base.path);
+}
+
+/// Notifications of `after_initialized` reach the server once it is initialized (Roslyn's
+/// `solution/open`).
+#[tokio::test]
+async fn sends_notifications_after_initialized() {
+    let dir = tempfile::tempdir().unwrap();
+    let (tx, mut rx) = broadcast::channel(256);
+    let mut cfg = config();
+    cfg.after_initialized = vec![forge_lsp::LspNotification {
+        method: "solution/open".into(),
+        params: json!({"solution": "file:///p/Bookstore.sln"}),
+    }];
+    let _client = LspClient::start_with_events(cfg, dir.path(), tx)
+        .await
+        .unwrap();
+    let opened = next_matching(&mut rx, |e| match e {
+        LspEvent::Log { message, .. } if message.starts_with("opened:") => Some(message),
+        _ => None,
+    })
+    .await;
+    assert_eq!(opened, "opened: file:///p/Bookstore.sln");
+}
+
+/// kotlin-lsp only answers `textDocument/diagnostic`: the client pulls after opening and
+/// changing documents and starts the server with the configured environment.
+#[tokio::test]
+async fn pulls_diagnostics_from_servers_that_do_not_publish() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("Main.kt");
+    let (tx, mut rx) = broadcast::channel(256);
+    let mut cfg = config();
+    cfg.args = vec!["pull".into()];
+    cfg.env.insert("FAKE_LS_ENV".into(), "/jdk-21".into());
+    cfg.pull_diagnostics = true;
+    let client = LspClient::start_with_events(cfg, dir.path(), tx)
+        .await
+        .unwrap();
+    let env = next_matching(&mut rx, |e| match e {
+        LspEvent::Log { message, .. } if message.starts_with("env:") => Some(message),
+        _ => None,
+    })
+    .await;
+    assert_eq!(env, "env: /jdk-21 pull: true");
+    client
+        .did_open(&file, "fun main() {}\n// TODO one\n")
+        .unwrap();
+    let (version, diags) = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics {
+            diagnostics,
+            version,
+            ..
+        } => Some((version, diagnostics)),
+        _ => None,
+    })
+    .await;
+    assert_eq!(version, Some(1));
+    assert_eq!(diags.len(), 1);
+    assert_eq!(diags[0].range.start.line, 1);
+    client.did_change(&file, "fun main() {}\n").unwrap();
+    let diags = next_matching(&mut rx, |e| match e {
+        LspEvent::Diagnostics {
+            diagnostics,
+            version: Some(2),
+            ..
+        } => Some(diagnostics),
+        _ => None,
+    })
+    .await;
+    assert!(diags.is_empty());
+    client.shutdown().await;
 }

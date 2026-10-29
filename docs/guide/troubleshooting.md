@@ -90,17 +90,13 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
    ESLint, Tailwind and Angular the project must use them.
 
-### Intelephense starts but premium features are missing
-
-Enter your licence key (Settings | Languages & Frameworks | Language Servers or PHP →
-**Enter Licence Key…**). The status must read "Premium (key …1234)". If the keychain is not
-available, the key cannot be stored (see below).
-
 ### No completion in PHP at all
 
-Check Settings | Languages & Frameworks | PHP | **Language server**: with "None (built-in index
-only)" no server runs. With "Auto", install Intelephense (**Install Intelephense** on the PHP page) or
-Phpactor.
+PHP's language server, php-lsp, is built into Forge and starts when a PHP project opens. Check
+that the PHP plugin is enabled (Settings | Plugins) and that Settings | Languages & Frameworks |
+PHP shows **php-lsp (built-in)** with a version, and look at the language server widget in the
+status bar. Earlier versions could run Intelephense or Phpactor instead; that choice
+(`php.lsp.server`) is ignored now.
 
 ## Keychain on Linux
 
@@ -147,9 +143,10 @@ fingerprints. Confirm only if you know why it changed (reinstalled server).
 
 ### Language server missing in a remote project
 
-Catalog servers and Intelephense run **on the host**. Install them from Settings | Languages &
-Frameworks | Language Servers (Forge installs npm servers on the host) or on the host yourself,
-e.g. `npm install -g intelephense`, then reopen the project.
+Catalog servers run **on the host** (PHP's php-lsp runs inside the Forge agent there). Install
+them from Settings | Languages & Frameworks | Language Servers (Forge installs npm servers on the
+host) or on the host yourself, e.g. `npm install -g yaml-language-server`, then reopen the
+project.
 
 ### HTTP request in a remote project cannot connect
 
@@ -198,5 +195,10 @@ forwarding (`AllowStreamLocalForwarding`).
 
 ## Resetting Forge
 
-Quit Forge and delete its folders (see [File locations](reference/file-locations.md#clean-slate)).
+Search, completion or the Project view out of date? Try File | **Repair IDE** first, then File |
+**Invalidate Caches…**; see [Invalidate Caches and Repair IDE](user/repair-ide.md). File | Manage
+IDE Settings | **Restore Default Settings…** backs up your settings and starts with the defaults
+([more](user/settings-and-themes.md#restore-default-settings)).
+
+For a completely clean slate, quit Forge and delete its folders (see [File locations](reference/file-locations.md#clean-slate)).
 Project files in `.forge/` are not touched by this.

@@ -1,6 +1,6 @@
 /**
  * Status bar progress of Forge-managed installs, like PHPStorm's background tasks:
- * "Installing Intelephense: Downloading Node.js v22.11.0 · 45%" with a small bar and a stop
+ * "Installing typescript-language-server: Downloading Node.js v22.11.0 · 45%" with a small bar and a stop
  * button.
  */
 import { createMemo, Show } from "solid-js";

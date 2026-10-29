@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1761472800">
+  <project timestamp="1761472800">
+    <package name="App\Services">
+      <file name="/p/app/Services/Cart.php">
+        <class name="App\Services\Cart" namespace="App\Services">
+          <metrics complexity="3" methods="2" coveredmethods="1" conditionals="0" coveredconditionals="0" statements="4" coveredstatements="3" elements="6" coveredelements="4"/>
+        </class>
+        <line num="12" type="method" name="add" visibility="public" complexity="1" crap="1" count="3"/>
+        <line num="14" type="stmt" count="3"/>
+        <line num="15" type="cond" truecount="1" falsecount="0"/>
+        <line num="16" type="stmt" count="0"/>
+        <line num="20" type="method" name="clear" visibility="public" complexity="1" crap="2" count="0"/>
+        <metrics loc="24" ncloc="20" classes="1" methods="2" coveredmethods="1" conditionals="0" coveredconditionals="0" statements="4" coveredstatements="3" elements="6" coveredelements="4"/>
+      </file>
+    </package>
+    <file name="/p/app/Models/User.php">
+      <line num="9" type="stmt" count="1"/>
+    </file>
+    <metrics files="2" loc="40" ncloc="34" classes="2" methods="2" coveredmethods="1" conditionals="0" coveredconditionals="0" statements="5" coveredstatements="4" elements="7" coveredelements="5"/>
+  </project>
+</coverage>

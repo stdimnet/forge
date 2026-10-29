@@ -265,13 +265,14 @@ pub async fn lua_format(
     let style =
         forge_codestyle::lsp::stylua_args(&crate::commands::code_style::code_style_values(&state));
     let backend = state.backend()?;
+    let safe_mode = state.safe_mode.is_on();
     blocking(move || {
         let args = if has_stylua_config(backend.as_ref(), &path) {
             Vec::new()
         } else {
             style
         };
-        format_with_stylua(backend.as_ref(), &exe, &path, &content, &args)
+        format_with_stylua(backend.as_ref(), &exe, &path, &content, &args, safe_mode)
     })
     .await
 }
@@ -310,6 +311,7 @@ fn format_with_stylua(
     path: &str,
     content: &str,
     style: &[String],
+    safe_mode: bool,
 ) -> Result<Option<String>> {
     let file = backend.resolve(path)?;
     // A bare name is looked up like other tools (PATH, cargo, ...); a path must exist.
@@ -321,6 +323,13 @@ fn format_with_stylua(
     let Some(program) = found else {
         return Ok(None);
     };
+    if safe_mode
+        && forge_trust::runs_project_program(&backend.info().root, &program.to_string_lossy(), &[])
+    {
+        return Err(ForgeError::Other(forge_trust::refusal(
+            "Running the project's StyLua",
+        )));
+    }
     let mut cmd = CommandLine::new(program.to_string_lossy())
         .args(style.iter().cloned())
         .arg("--stdin-filepath")
@@ -351,10 +360,11 @@ mod tests {
     fn missing_stylua_is_not_an_error() {
         let dir = tempfile::tempdir().unwrap();
         let backend = LocalBackend::open(dir.path()).unwrap();
-        let out =
-            format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1", &[]).unwrap();
+        let out = format_with_stylua(&backend, "forge-no-such-stylua", "a.lua", "x=1", &[], false)
+            .unwrap();
         assert_eq!(out, None);
-        let out = format_with_stylua(&backend, "/no/such/stylua", "a.lua", "x=1", &[]).unwrap();
+        let out =
+            format_with_stylua(&backend, "/no/such/stylua", "a.lua", "x=1", &[], false).unwrap();
         assert_eq!(out, None);
     }
 
@@ -372,7 +382,7 @@ mod tests {
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
         let backend = LocalBackend::open(dir.path()).unwrap();
         let exe = fake.to_string_lossy().into_owned();
-        let out = format_with_stylua(&backend, &exe, "a.lua", "x=1\n", &[]).unwrap();
+        let out = format_with_stylua(&backend, &exe, "a.lua", "x=1\n", &[], false).unwrap();
         assert_eq!(out.as_deref(), Some("x = 1\n"));
     }
 
@@ -390,7 +400,7 @@ mod tests {
         // A freshly written script can be "busy" while other tests spawn processes.
         let mut attempt = 0;
         let out = loop {
-            match format_with_stylua(&backend, &exe, "lua/a.lua", "x", &style) {
+            match format_with_stylua(&backend, &exe, "lua/a.lua", "x", &style, false) {
                 Ok(out) => break out,
                 Err(_) if attempt < 20 => {
                     attempt += 1;

@@ -1,5 +1,7 @@
+pub mod cli;
 mod commands;
 mod companion;
+mod inspections;
 mod plugins;
 mod recent;
 mod startup;
@@ -14,6 +16,11 @@ pub fn run() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
+    // Invalidate Caches / Restore Default Settings of the previous session, before the
+    // settings and caches are opened.
+    commands::maintenance::startup();
+    // An additional project window (Open Project › New Window) is an instance of its own.
+    commands::project_windows::init_from_env();
     let app_state = AppState::new();
     let run_state = commands::run::RunState::new(&app_state);
 
@@ -21,7 +28,7 @@ pub fn run() {
     // A second `forge …` launch is forwarded to this instance. forge:// links among its
     // arguments arrive through the deep-link plugin's event instead, so they are skipped.
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
-    {
+    if !commands::project_windows::is_secondary() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             let args = argv
                 .into_iter()
@@ -46,19 +53,27 @@ pub fn run() {
         .manage(commands::updates::UpdatesState::default())
         .manage(companion::CompanionState::load())
         .manage(commands::ai::AiState::load())
+        .manage(commands::ai_editor::AiEditorState::default())
         .manage(commands::agent::AgentState::default())
+        .manage(commands::agent_tasks::AgentTasksState::default())
         .manage(commands::db::DbState::load())
+        .manage(commands::db_objects::DbObjectsState::default())
         .manage(commands::forges::ForgesState::load())
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
+        .manage(commands::inspections::InspectionsState::default())
         .manage(commands::json_schema::JsonSchemaState::default())
         .manage(commands::composer::ComposerState::default())
+        .manage(commands::vulnerabilities::VulnerabilitiesState::default())
         .manage(commands::window::DialogWindowsState::default())
         .on_window_event(|window, event| {
             startup::on_splash_event(window, event);
             commands::window::on_window_event(window, event);
         })
         .manage(commands::scratches::HttpClientState::default())
+        .manage(std::sync::Arc::new(
+            commands::web_tooling::GraphqlState::default(),
+        ))
         .setup(|app| {
             app.manage(commands::debug::DebugState::new(app.handle().clone()));
 
@@ -66,7 +81,9 @@ pub fn run() {
             // register it at runtime. Links that arrive while Forge starts are queued until
             // the workbench is ready (see `companion::dispatch`).
             #[cfg(any(windows, target_os = "linux"))]
-            if cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some() {
+            if (cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some())
+                && !commands::project_windows::is_secondary()
+            {
                 if let Err(e) = app.deep_link().register_all() {
                     tracing::warn!("cannot register the forge:// scheme: {e}");
                 }
@@ -83,6 +100,7 @@ pub fn run() {
 
             // The splash window and the loading steps (settings, plugins, the project from
             // the command line or the last session, services, updates), then the workbench.
+            commands::project_windows::start(app.handle());
             startup::begin(app.handle());
             Ok(())
         })
@@ -91,15 +109,26 @@ pub fn run() {
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
         .manage(commands::collab::CollabState::default())
-        .manage(commands::laravel::LaravelState::default())
+        .manage(commands::devenv::DevEnvState::default())
+        .manage(commands::deployment::DeploymentState::default())
+        .manage(commands::remote_host::RemoteHostState::default())
+        .manage(commands::command_line_tools::CliToolsState::default())
         .manage(commands::lua::LuaState::default())
+        .manage(commands::python::PythonState::default())
+        .manage(commands::python_tools::PythonToolsState::default())
+        .manage(commands::python_tools::PythonConsoleState::default())
+        .manage(commands::jupyter::JupyterState::default())
         .manage(commands::project::CreateState::default())
         .manage(commands::langservers::LangServersState::default())
         .manage(commands::terminal::TerminalState::default())
         .manage(run_state)
+        .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
+        .manage(commands::spring::SpringState::default())
         .manage(commands::workbench::BookmarksState::default())
+        .manage(commands::local_history::LocalHistoryState::default())
         .manage(commands::clipboard::ClipboardState::default())
+        .manage(commands::git_clone::CloneState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
             commands::collab::collab_status,
@@ -120,6 +149,27 @@ pub fn run() {
             commands::collab::collab_relay_token_status,
             commands::collab::collab_set_relay_token,
             commands::collab::collab_test_relay,
+            commands::trust::trust_check,
+            commands::trust::trust_status,
+            commands::trust::trust_project,
+            commands::trust::trust_locations,
+            commands::trust::trust_location_add,
+            commands::trust::trust_location_remove,
+            commands::git_clone::forges_repositories,
+            commands::git_clone::git_clone_directory_name,
+            commands::git_clone::git_clone_home,
+            commands::git_clone::git_clone_test,
+            commands::git_clone::git_clone,
+            commands::git_clone::git_clone_cancel,
+            commands::git_extras::git_worktrees,
+            commands::git_extras::git_worktree_add,
+            commands::git_extras::git_worktree_remove,
+            commands::git_extras::git_worktree_prune,
+            commands::git_extras::git_worktree_lock,
+            commands::git_extras::git_worktree_unlock,
+            commands::git_extras::git_message_history,
+            commands::git_extras::git_signing_info,
+            commands::remote::remote_project_connection,
             commands::workspace::workspace_current,
             commands::workspace::workspace_recent,
             commands::workspace::fs_list_dir,
@@ -147,6 +197,13 @@ pub fn run() {
             commands::project_state::layout_save,
             commands::project_state::layout_default_load,
             commands::project_state::layout_default_save,
+            commands::project_state::layouts_list,
+            commands::project_state::layouts_save,
+            commands::project_state::layouts_delete,
+            commands::project_windows::project_windows_list,
+            commands::project_windows::project_window_focus,
+            commands::project_windows::project_window_cycle,
+            commands::project_windows::project_window_open,
             commands::project_state::agent_history_list,
             commands::project_state::agent_history_load,
             commands::project_state::agent_history_save,
@@ -165,6 +222,20 @@ pub fn run() {
             commands::ai::ai_provider_test,
             commands::ai::ai_models,
             commands::ai::ai_set_default,
+            commands::agent_tasks::agent_tasks_list,
+            commands::agent_tasks::agent_task_create,
+            commands::agent_tasks::agent_task_cancel,
+            commands::agent_tasks::agent_task_approve,
+            commands::agent_tasks::agent_task_changes,
+            commands::agent_tasks::agent_task_file_diff,
+            commands::agent_tasks::agent_task_apply,
+            commands::agent_tasks::agent_task_discard,
+            commands::agent_tasks::agent_task_remove,
+            commands::ai_editor::ai_inline_complete,
+            commands::ai_editor::ai_inline_cancel,
+            commands::ai_editor::ai_editor_status,
+            commands::ai_editor::ai_action,
+            commands::ai_editor::ai_explain,
             commands::agent::agent_list,
             commands::agent::agent_start,
             commands::agent::agent_send,
@@ -183,10 +254,23 @@ pub fn run() {
             commands::keymap::keymap_resolve,
             commands::keymap::keymap_main_menu,
             commands::keymap::keymap_import_legacy,
+            commands::color_scheme::color_scheme_state,
+            commands::color_scheme::color_scheme_change,
+            commands::color_scheme::color_scheme_import,
+            commands::color_scheme::color_scheme_export,
             commands::vim::vim_read_rc,
             commands::settings::plugin_set_enabled,
             commands::settings::settings_search,
             commands::settings::settings_validate,
+            commands::maintenance::maintenance_invalidate_model,
+            commands::maintenance::maintenance_invalidate_caches,
+            commands::maintenance::maintenance_restart,
+            commands::maintenance::maintenance_rescan_indexes,
+            commands::maintenance::settings_export_info,
+            commands::maintenance::settings_export,
+            commands::maintenance::settings_import_preview,
+            commands::maintenance::settings_import,
+            commands::maintenance::settings_restore_defaults,
             commands::lsp::lsp_did_open,
             commands::lsp::lsp_did_change,
             commands::lsp::lsp_did_save,
@@ -225,6 +309,7 @@ pub fn run() {
             commands::codeintel::code_prepare_rename,
             commands::codeintel::code_rename,
             commands::codeintel::code_refactor_actions,
+            commands::codeintel::code_refactor_this,
             commands::refactor::refactor_introduce_prepare,
             commands::refactor::refactor_introduce,
             commands::refactor::refactor_extract_method_prepare,
@@ -243,11 +328,24 @@ pub fn run() {
             commands::refactor_move::refactor_make_static,
             commands::refactor_move::refactor_move_members,
             commands::refactor_move::refactor_move_function,
+            commands::refactor_hierarchy::refactor_hierarchy_prepare,
+            commands::refactor_hierarchy::refactor_extract_interface,
+            commands::refactor_hierarchy::refactor_extract_superclass,
+            commands::refactor_hierarchy::refactor_pull_up,
+            commands::refactor_hierarchy::refactor_push_down,
+            commands::extract_component::refactor_extract_component_prepare,
+            commands::extract_component::refactor_extract_component,
             commands::codeintel::code_plan_edit,
             commands::codeintel::code_apply_edit,
             commands::codeintel::code_revert_edit,
             commands::codeintel::code_context_actions,
             commands::codeintel::php_import_class,
+            commands::imports::imports_optimize,
+            commands::imports::imports_optimize_paths,
+            commands::imports::php_imports_on_the_fly,
+            commands::imports::php_import_hint,
+            commands::imports::php_import_reference,
+            commands::imports::code_imports_on_the_fly,
             commands::codeintel::code_resolve_action,
             commands::codeintel::code_execute_command,
             commands::langservers::langservers_list,
@@ -257,8 +355,6 @@ pub fn run() {
             commands::langservers::langservers_check_updates,
             commands::langservers::langservers_update,
             commands::langservers::lsp_workspace_symbols,
-            commands::langservers::intelephense_licence_status,
-            commands::langservers::intelephense_set_licence,
             commands::workspace::fs_find_files,
             commands::workspace::find_in_files,
             commands::workspace::find_in_files_paged,
@@ -267,7 +363,19 @@ pub fn run() {
             commands::workspace::replace_in_files,
             commands::workspace::undo_replace,
             commands::workbench::todo_scan,
+            commands::project_structure::project_tree_list,
             commands::scopes::scopes_files,
+            commands::inspections::inspections_registry,
+            commands::inspections::inspections_profiles,
+            commands::inspections::inspections_save,
+            commands::inspections::inspections_export_profile,
+            commands::inspections::inspections_import_profile,
+            commands::inspections::inspections_run,
+            commands::inspections::inspections_cancel,
+            commands::inspections::inspections_cleanup_plan,
+            commands::inspections::inspections_cleanup_apply,
+            commands::inspections::inspections_apply_fix,
+            commands::inspections::inspections_export_report,
             commands::scopes::scopes_test_roots,
             commands::ssr::ssr_templates,
             commands::ssr::ssr_check,
@@ -279,6 +387,7 @@ pub fn run() {
             commands::search::fuzzy_filter,
             commands::search::search_rank,
             commands::search::filetypes_detect,
+            commands::search::filetypes_list,
             commands::search::filetypes_template_delimiters,
             commands::search::search_find_symbols,
             commands::search::search_status,
@@ -336,6 +445,31 @@ pub fn run() {
             commands::git_ops::git_shelf_delete,
             commands::git_ops::git_shelf_rename,
             commands::git_ops::git_shelf_file,
+            commands::git_log::git_log_actions,
+            commands::git_log::git_cherry_pick,
+            commands::git_log::git_revert_commits,
+            commands::git_log::git_undo_commit,
+            commands::git_log::git_undo_rewrite,
+            commands::git_log::git_reword,
+            commands::git_log::git_squash_commits,
+            commands::git_log::git_drop_commits,
+            commands::git_log::git_rebase_plan,
+            commands::git_log::git_interactive_rebase,
+            commands::git_log::git_commits_patch,
+            commands::git_changes::git_changelists,
+            commands::git_changes::git_changelist_create,
+            commands::git_changes::git_changelist_edit,
+            commands::git_changes::git_changelist_set_active,
+            commands::git_changes::git_changelist_delete,
+            commands::git_changes::git_changelist_move,
+            commands::git_changes::git_file_hunks,
+            commands::git_changes::git_commit_files,
+            commands::git_changes::git_create_patch,
+            commands::git_changes::git_read_patch,
+            commands::git_changes::git_write_patch,
+            commands::git_changes::git_patch_preview,
+            commands::git_changes::git_apply_patch,
+            commands::git_log::git_tree_files,
             commands::git_history::git_file_history,
             commands::git_history::git_block_history,
             commands::git_history::git_blame_revision,
@@ -381,6 +515,12 @@ pub fn run() {
             commands::code_style::code_style_import,
             commands::code_style::code_style_post_format,
             commands::php::php_language_level,
+            commands::php_interpreters::php_interpreters_detect,
+            commands::php_interpreters::php_interpreter_info,
+            commands::php_interpreters::php_interpreter_phpinfo,
+            commands::php_interpreters::php_interpreter_mappings,
+            commands::php_interpreters::php_interpreter_compose_services,
+            commands::php_interpreters::php_interpreter_wsl_distributions,
             commands::php::php_composer_outdated,
             commands::composer::composer_project,
             commands::composer::composer_markers,
@@ -388,10 +528,121 @@ pub fn run() {
             commands::composer::composer_hover,
             commands::composer::composer_search,
             commands::composer::composer_package,
-            commands::composer::composer_audit,
             commands::composer::composer_download_phar,
+            commands::vulnerabilities::vulnerabilities_check,
+            commands::vulnerabilities::vulnerabilities_problems,
+            commands::vulnerabilities::vulnerabilities_upgrade,
+            commands::vulnerabilities::vulnerabilities_install_command,
             commands::php::php_detect_servers,
-            commands::php::php_lsp_config,
+            commands::php_meta::php_inspect,
+            commands::php_meta::php_complete,
+            commands::php_meta::php_language_places,
+            commands::php_meta::php_libraries,
+            commands::php_meta::php_library_list,
+            commands::php_meta::php_source_roots,
+            commands::python::python_interpreter_current,
+            commands::python::python_interpreters_detect,
+            commands::python::python_interpreter_info,
+            commands::python::python_environment_plan,
+            commands::python::python_packages_list,
+            commands::python::python_packages_command,
+            commands::python::python_packages_latest,
+            commands::python::python_packages_search,
+            commands::python::python_package_info,
+            commands::python::python_inspect,
+            commands::python::python_add_requirement,
+            commands::python::python_complete,
+            commands::python::python_run_markers,
+            commands::python::python_format,
+            commands::python_tools::python_testing_detect,
+            commands::python_web::python_web_project,
+            commands::python_web::python_web_goto,
+            commands::python_web::python_web_complete,
+            commands::python_web::python_web_marks,
+            commands::python_web::python_manage_commands,
+            commands::python_web::python_web_run_info,
+            commands::python_tools::python_tox_environments,
+            commands::python_tools::python_debugpy_status,
+            commands::python_tools::python_debug_plan,
+            commands::jupyter::jupyter_open,
+            commands::jupyter::jupyter_serialize,
+            commands::jupyter::jupyter_render,
+            commands::jupyter::jupyter_diff,
+            commands::jupyter::jupyter_dataframe_query,
+            commands::jupyter::jupyter_kernel_status,
+            commands::jupyter::jupyter_kernel_start,
+            commands::jupyter::jupyter_execute,
+            commands::jupyter::jupyter_interrupt,
+            commands::jupyter::jupyter_restart,
+            commands::jupyter::jupyter_shutdown,
+            commands::jupyter::jupyter_variables,
+            commands::jupyter::jupyter_variable_children,
+            commands::jupyter::jupyter_variable_frame,
+            commands::jupyter::jupyter_server_test,
+            commands::jupyter::jupyter_server_has_token,
+            commands::jupyter::jupyter_server_forget_token,
+            commands::python_tools::python_console_start,
+            commands::python_tools::python_console_send,
+            commands::python_tools::python_console_stop,
+            commands::python_tools::python_console_history,
+            commands::python_tools::python_console_history_add,
+            commands::python_tools::python_profiles,
+            commands::python_tools::python_profile_view,
+            commands::python_tools::python_profile_open,
+            commands::python_tools::python_profile_delete,
+            commands::python::python_dependencies,
+            commands::java::java_jdks,
+            commands::java::java_jdk_inspect,
+            commands::java::java_jdk_releases,
+            commands::java::java_jdk_download,
+            commands::java::java_status,
+            commands::java::java_jdtls_install,
+            commands::java::java_build_info,
+            commands::java::java_reload_project,
+            commands::java::java_main_methods,
+            commands::java::java_debug_prepare,
+            commands::java_build::java_build_model,
+            commands::java_build::java_sync_project,
+            commands::java_build::java_sync_cancel,
+            commands::java_build::java_wrapper_info,
+            commands::java_build::java_wrapper_verify,
+            commands::java_build::java_wrapper_update,
+            commands::java_build::java_build_complete,
+            commands::java_build::java_build_outdated,
+            commands::java_build::java_build_workspace,
+            commands::spring::spring_model,
+            commands::spring::spring_gutter,
+            commands::spring::spring_config_complete,
+            commands::spring::spring_config_inspect,
+            commands::spring::spring_config_hover,
+            commands::spring::spring_config_goto,
+            commands::spring::spring_http_request,
+            commands::spring::spring_dashboard,
+            commands::spring::spring_dashboard_details,
+            commands::kotlin::kotlin_status,
+            commands::kotlin::kotlin_lsp_install,
+            commands::kotlin::kotlin_linters_install,
+            commands::kotlin::kotlin_main_functions,
+            commands::kotlin::kotlin_lint,
+            commands::kotlin::kotlin_format,
+            commands::kotlin::kotlin_detekt,
+            commands::kotlin::kotlin_debug_prepare,
+            commands::kotlin::kotlin_coroutines,
+            commands::groovy::groovy_status,
+            commands::groovy::groovy_runnable,
+            commands::scala::scala_status,
+            commands::scala::scala_metals_install,
+            commands::scala::scala_main_objects,
+            commands::scala::scala_sbt_model,
+            commands::scala::scala_sbt_import,
+            commands::scala::scala_sbt_cancel,
+            commands::android::android_status,
+            commands::android::android_devices,
+            commands::android::android_emulator_start,
+            commands::android::android_logcat_start,
+            commands::android::android_logcat_stop,
+            commands::android::android_logcat_view,
+            commands::android::android_logcat_clear,
             commands::lua::lua_index_workspace,
             commands::lua::lua_files_changed,
             commands::lua::lua_search_symbols,
@@ -405,14 +656,29 @@ pub fn run() {
             commands::save_actions::save_actions_php,
             commands::save_actions::save_actions_run_tools,
             commands::save_actions::save_actions_info,
+            commands::php_quality_tools::quality_tools_info,
+            commands::php_quality_tools::quality_tools_validate,
+            commands::php_quality_tools::quality_tools_check,
+            commands::php_quality_tools::quality_tools_inspect,
+            commands::php_quality_tools::quality_tools_fix,
+            commands::web_quality_tools::web_quality_tools_info,
+            commands::web_quality_tools::web_quality_tools_validate,
+            commands::web_quality_tools::web_quality_tools_check,
+            commands::web_quality_tools::web_quality_tools_inspect,
+            commands::web_quality_tools::web_quality_tools_fix,
+            commands::web_quality_tools::web_quality_tools_format,
             commands::laravel::laravel_detect,
             commands::laravel::laravel_routes,
             commands::laravel::laravel_complete,
             commands::laravel::laravel_goto,
             commands::laravel::laravel_gutter,
-            commands::laravel::laravel_artisan_commands,
-            commands::laravel::laravel_artisan_run,
-            commands::laravel::laravel_artisan_cancel,
+            commands::laravel::laravel_overview,
+            commands::laravel::laravel_logs,
+            commands::laravel::laravel_generate,
+            commands::command_line_tools::cli_tools_list,
+            commands::command_line_tools::cli_tools_commands,
+            commands::command_line_tools::cli_tools_complete,
+            commands::command_line_tools::cli_tools_run,
             commands::project::project_detect,
             commands::project::project_generators_list,
             commands::project::project_plan,
@@ -434,9 +700,32 @@ pub fn run() {
             commands::run::run_configurations_save,
             commands::run::run_command_line,
             commands::run::run_start,
+            commands::test_frameworks::test_frameworks_list,
+            commands::testing::test_discover,
+            commands::testing::test_rerun_failed,
+            commands::testing::test_frameworks_detect,
+            commands::testing::coverage_suites,
+            commands::testing::coverage_view,
+            commands::testing::coverage_file,
+            commands::testing::coverage_remove,
+            commands::testing::coverage_import,
+            commands::testing::coverage_merge,
+            commands::testing::coverage_export_html,
+            commands::testing::run_target_info,
+            commands::test_frameworks::behat_step_definitions,
+            commands::test_frameworks::test_history_list,
+            commands::test_frameworks::test_history_open,
             commands::run::run_stop,
             commands::run::run_write,
             commands::run::run_dispose,
+            commands::runtools::run_anything_suggest,
+            commands::runtools::run_anything_resolve,
+            commands::runtools::run_anything_history,
+            commands::runtools::run_anything_history_add,
+            commands::runtools::run_launch_plan,
+            commands::runtools::external_tool_macros,
+            commands::runtools::external_tool_command,
+            commands::runtools::external_tool_validate,
             commands::scratches::scratches_list,
             commands::scratches::scratches_languages,
             commands::scratches::scratches_create,
@@ -449,6 +738,24 @@ pub fn run() {
             commands::scratches::scratches_markers,
             commands::scratches::scratches_http_run,
             commands::scratches::scratches_http_environments,
+            commands::scratches::scratches_http_curl,
+            commands::scratches::scratches_http_from_curl,
+            commands::scratches::scratches_http_clear_tokens,
+            commands::web_tooling::file_watchers_templates,
+            commands::web_tooling::file_watchers_validate,
+            commands::web_tooling::file_watchers_plan,
+            commands::web_tooling::file_watchers_problems,
+            commands::web_tooling::openapi_endpoints,
+            commands::web_tooling::openapi_preview,
+            commands::web_tooling::openapi_http_request,
+            commands::web_tooling::graphql_info,
+            commands::web_tooling::graphql_validate,
+            commands::web_tooling::graphql_complete,
+            commands::web_tooling::graphql_introspect,
+            commands::web_tooling::nx_workspace,
+            commands::web_tooling::nuxt_project,
+            commands::web_tooling::deno_tasks,
+            commands::companion::companion_live_edit,
             commands::output::output_file_links,
             commands::markdown::markdown_parse,
             commands::injections::injections_find,
@@ -458,6 +765,19 @@ pub fn run() {
             commands::injections::injections_inject,
             commands::injections::injections_rules,
             commands::injections::injections_languages,
+            commands::local_history::local_history_record,
+            commands::local_history::local_history_begin,
+            commands::local_history::local_history_end,
+            commands::local_history::local_history_snapshot,
+            commands::local_history::local_history_list,
+            commands::local_history::local_history_content,
+            commands::local_history::local_history_folder_changes,
+            commands::local_history::local_history_selection,
+            commands::local_history::local_history_recent,
+            commands::local_history::local_history_change_files,
+            commands::local_history::local_history_put_label,
+            commands::local_history::local_history_patch,
+            commands::local_history::local_history_revert,
             commands::live_templates::live_templates_catalog,
             commands::live_templates::live_templates_applicable,
             commands::live_templates::live_templates_expand,
@@ -507,6 +827,11 @@ pub fn run() {
             commands::debug::debug_property,
             commands::debug::debug_eval,
             commands::debug::debug_set_value,
+            commands::debug::debug_complete,
+            commands::debug::debug_web_page_start,
+            commands::debug::debug_page_url,
+            commands::debug::debug_validate_cli,
+            commands::debug::debug_validate_web,
             commands::debug::debug_breakpoints,
             commands::debug::debug_breakpoint_add,
             commands::debug::debug_breakpoint_update,
@@ -518,6 +843,117 @@ pub fn run() {
             commands::debug::debug_servers,
             commands::debug::debug_servers_save,
             commands::debug::debug_launch_env,
+            commands::dap::dap_adapters,
+            commands::js_debug::js_debug_status,
+            commands::js_debug::js_debug_install,
+            commands::js_debug::js_debug_browsers,
+            commands::js_debug::js_debug_request,
+            commands::go::go_status,
+            commands::go::go_sdk_releases,
+            commands::go::go_sdk_download,
+            commands::go::go_tool_install_command,
+            commands::go::go_mod_parse,
+            commands::go::go_mod_complete,
+            commands::go::go_module_versions,
+            commands::go::go_module_command,
+            commands::go::go_generate_directives,
+            commands::go::go_generate_command,
+            commands::go::go_format,
+            commands::go::go_lint,
+            commands::go::go_delve_status,
+            commands::go::go_debug_request,
+            commands::go::go_profile_path,
+            commands::go::pprof_open,
+            commands::profiler::profiler_open,
+            commands::profiler::profiler_recent,
+            commands::cpp::cpp_toolchains,
+            commands::cpp::cpp_toolchain_inspect,
+            commands::cpp::cmake_profiles,
+            commands::cpp::cmake_state,
+            commands::cpp::cmake_reload,
+            commands::cpp::cmake_cancel,
+            commands::cpp::cmake_build_command,
+            commands::cpp::cpp_build_problems,
+            commands::cpp::cpp_target_of,
+            commands::cpp::cpp_debug_request,
+            commands::cpp::cpp_status,
+            commands::cpp::cpp_clangd_install,
+            commands::cpp::cpp_format,
+            commands::cpp::cmake_complete,
+            commands::dotnet::dotnet_status,
+            commands::dotnet::dotnet_roslyn_install,
+            commands::dotnet::dotnet_netcoredbg_install,
+            commands::dotnet::dotnet_workspace,
+            commands::dotnet::dotnet_command,
+            commands::dotnet::dotnet_build_problems,
+            commands::dotnet::dotnet_templates,
+            commands::dotnet::dotnet_new_project,
+            commands::dotnet::nuget_search,
+            commands::dotnet::nuget_versions,
+            commands::dotnet::nuget_updates,
+            commands::dotnet::nuget_command,
+            commands::dotnet::dotnet_format,
+            commands::dotnet::dotnet_cleanup_command,
+            commands::dotnet::dotnet_format_report,
+            commands::dotnet::dotnet_debug_request,
+            commands::dotnet::dotnet_attach_request,
+            commands::cpp_tools::cpp_sanitizer_reports,
+            commands::cpp_tools::cpp_native_tools,
+            commands::cpp_tools::cpp_valgrind_open,
+            commands::cpp_tools::cpp_packages,
+            commands::cpp_tools::cpp_vcpkg_complete,
+            commands::cpp_tools::cpp_conan_install_command,
+            commands::cpp_tools::cpp_clangd_restart,
+            commands::embedded::embedded_info,
+            commands::embedded::pio_command,
+            commands::embedded::idf_command,
+            commands::embedded::west_command,
+            commands::embedded::cpp_embedded_launch,
+            commands::embedded::cpp_svd_peripherals,
+            commands::embedded::cpp_svd_read,
+            commands::rust::rust_status,
+            commands::rust::rust_install_command,
+            commands::rust::rust_analyzer_download,
+            commands::rust::cargo_workspace,
+            commands::rust::cargo_command,
+            commands::rust::rust_file_targets,
+            commands::rust::rust_format,
+            commands::rust::rust_clippy,
+            commands::rust::rust_debug_request,
+            commands::ruby::ruby_status,
+            commands::ruby::ruby_interpreter_probe,
+            commands::ruby::ruby_bundle,
+            commands::ruby::ruby_bundle_command,
+            commands::ruby::ruby_gem_install_command,
+            commands::ruby::ruby_lsp_install_command,
+            commands::ruby::ruby_lsp_refresh,
+            commands::ruby::ruby_rake_tasks,
+            commands::ruby::ruby_rake_command,
+            commands::ruby::ruby_file_targets,
+            commands::ruby::ruby_irb_command,
+            commands::ruby::ruby_rubocop,
+            commands::ruby::ruby_format,
+            commands::ruby::ruby_debug_plan,
+            commands::rails::rails_project,
+            commands::rails::rails_goto,
+            commands::rails::rails_complete,
+            commands::rails::rails_marks,
+            commands::rails::rails_generators,
+            commands::rails::rails_generate_command,
+            commands::rails::rails_console_command,
+            commands::rails::rails_add_data_sources,
+            commands::dap::dap_start,
+            commands::dap::dap_restart,
+            commands::dap::dap_threads,
+            commands::dap::dap_goto,
+            commands::dap::dap_registers,
+            commands::dap::dap_read_memory,
+            commands::dap::dap_write_memory,
+            commands::dap::dap_disassemble,
+            commands::dap::dap_modules,
+            commands::dap::dap_loaded_sources,
+            commands::dap::dap_data_breakpoint,
+            commands::dap::dap_processes,
             commands::db::db_data_sources_list,
             commands::db::db_data_source_save,
             commands::db::db_data_source_delete,
@@ -529,8 +965,24 @@ pub fn run() {
             commands::db::db_table_ddl,
             commands::db::db_table_data,
             commands::db::db_apply_changes,
+            commands::db::db_preview_changes,
+            commands::dataedit::db_data_view,
+            commands::dataedit::db_data_aggregate,
+            commands::dataedit::db_data_compare,
+            commands::dataedit::db_data_chart,
+            commands::dataedit::db_fk_navigate,
+            commands::dataedit::db_fk_incoming,
+            commands::dataedit::db_value_editor,
+            commands::dataedit::db_value_format,
+            commands::dataedit::db_value_binary,
+            commands::dataedit::db_value_temporal,
             commands::db::db_session_open,
             commands::db::db_session_close,
+            commands::db::db_sessions_list,
+            commands::db::db_session_terminate,
+            commands::db::db_guard,
+            commands::db::db_redis_keys,
+            commands::db::db_redis_value,
             commands::db::db_execute,
             commands::db::db_fetch,
             commands::db::db_set_auto_commit,
@@ -541,6 +993,60 @@ pub fn run() {
             commands::db::db_add_from_env,
             commands::db::db_export,
             commands::db::db_statement_at,
+            commands::sql::sql_dialects,
+            commands::sql::sql_file_info,
+            commands::sql::sql_analyze,
+            commands::sql::sql_declaration,
+            commands::sql::sql_usages,
+            commands::sql::sql_rename,
+            commands::sql::sql_format,
+            commands::sql::sql_params,
+            commands::sql::sql_substitute,
+            commands::sql::sql_history_list,
+            commands::sql::sql_history_add,
+            commands::sql::sql_history_clear,
+            commands::sql::sql_run_file,
+            commands::sql::sql_run_file_cancel,
+            commands::db::db_model,
+            commands::db::db_object_doc,
+            commands::db::db_virtual_objects,
+            commands::db::db_virtual_objects_save,
+            commands::db::db_match_schemas,
+            commands::db::db_search,
+            commands::db::db_search_cancel,
+            commands::db::db_diagram,
+            commands::db::db_schema_compare,
+            commands::db::db_explain,
+            commands::db::db_save_export,
+            commands::db_objects::db_design_info,
+            commands::db_objects::db_design_load,
+            commands::db_objects::db_design_preview,
+            commands::db_objects::db_drop_sql,
+            commands::db_objects::db_rename_sql,
+            commands::db_objects::db_objects_guard,
+            commands::db_objects::db_run_script,
+            commands::db_objects::db_generate_ddl,
+            commands::db_objects::db_import_preview,
+            commands::db_objects::db_import_run,
+            commands::db_objects::db_import_cancel,
+            commands::db_objects::db_export_xlsx,
+            commands::db_objects::db_dump_tools,
+            commands::db_objects::db_dump_command,
+            commands::db_objects::db_restore_guard,
+            commands::db_objects::db_dump_start,
+            commands::wordpress::wordpress_detect,
+            commands::wordpress::wordpress_refresh,
+            commands::wordpress::wordpress_hooks,
+            commands::wordpress::wordpress_complete,
+            commands::wordpress::wordpress_goto,
+            commands::wordpress::wordpress_gutter,
+            commands::wordpress::wordpress_usages,
+            commands::wordpress::wordpress_inspect,
+            commands::cms::cms_detect,
+            commands::cms::cms_refresh,
+            commands::cms::cms_complete,
+            commands::cms::cms_goto,
+            commands::cms::cms_gutter,
             commands::symfony::symfony_detect,
             commands::symfony::symfony_refresh,
             commands::symfony::symfony_routes,
@@ -551,6 +1057,10 @@ pub fn run() {
             commands::symfony::symfony_complete,
             commands::symfony::symfony_goto,
             commands::symfony::symfony_gutter,
+            commands::symfony::symfony_translations,
+            commands::symfony::symfony_events,
+            commands::symfony::symfony_translation_analysis,
+            commands::symfony::symfony_create_translation,
             commands::symfony::symfony_console_run,
             commands::symfony::symfony_console_cancel,
             commands::web::npm_packages,
@@ -558,6 +1068,9 @@ pub fn run() {
             commands::web::web_components,
             commands::web::web_goto,
             commands::web::web_gutter,
+            commands::web::web_import_goto,
+            commands::web::web_import_complete,
+            commands::web::web_aliases,
             commands::doctrine::doctrine_entities,
             commands::doctrine::doctrine_complete,
             commands::doctrine::doctrine_goto,
@@ -579,6 +1092,9 @@ pub fn run() {
             commands::services::services_compose_up,
             commands::services::services_dockerfile_run,
             commands::services::services_gutter,
+            commands::services::services_kube_selection,
+            commands::services::services_kube_select,
+            commands::services::services_kube_apply,
             commands::services::services_status,
             commands::services::services_port_forward_start,
             commands::services::services_port_forward_stop,
@@ -588,6 +1104,26 @@ pub fn run() {
             commands::services::docker_registry_login,
             commands::services::docker_registry_logout,
             commands::services::docker_registry_status,
+            commands::deployment::deploy_config,
+            commands::deployment::deploy_server_save,
+            commands::deployment::deploy_server_delete,
+            commands::deployment::deploy_set_default,
+            commands::deployment::deploy_validate,
+            commands::deployment::deploy_test,
+            commands::deployment::deploy_transfer,
+            commands::deployment::deploy_delete,
+            commands::deployment::deploy_cancel,
+            commands::deployment::deploy_auto_upload,
+            commands::deployment::deploy_sync_compare,
+            commands::deployment::deploy_read_remote,
+            commands::remote_host::remote_host_list,
+            commands::remote_host::remote_host_create,
+            commands::remote_host::remote_host_rename,
+            commands::remote_host::remote_host_delete,
+            commands::remote_host::remote_host_edit,
+            commands::remote_host::remote_host_save_edit,
+            commands::remote_host::remote_host_close_edit,
+            commands::remote_host::remote_host_disconnect,
             commands::remote::remote_ssh_configs,
             commands::remote::remote_ssh_config_save,
             commands::remote::remote_ssh_config_delete,
@@ -599,6 +1135,20 @@ pub fn run() {
             commands::remote::remote_open_project,
             commands::remote::remote_disconnect,
             commands::remote::remote_status,
+            commands::devenv::devcontainer_configs,
+            commands::devenv::devcontainer_gutter,
+            commands::devenv::devcontainer_list,
+            commands::devenv::devcontainer_up,
+            commands::devenv::devcontainer_cancel,
+            commands::devenv::devcontainer_action,
+            commands::devenv::devcontainer_open,
+            commands::devenv::wsl_distributions,
+            commands::devenv::wsl_map_path,
+            commands::devenv::wsl_windows_path,
+            commands::devenv::wsl_connect,
+            commands::devenv::wsl_browse,
+            commands::devenv::wsl_open_project,
+            commands::devenv::wsl_disconnect,
             commands::remote::remote_reconnect,
             commands::window::window_chrome,
             commands::window::reveal_in_file_manager,
@@ -611,6 +1161,9 @@ pub fn run() {
             commands::window::dialog_window_open,
             commands::window::dialog_window_close,
             commands::window::dialog_window_message,
+            commands::window::window_set_fullscreen,
+            commands::window::window_is_fullscreen,
+            commands::window::window_set_zoom,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Forge");
@@ -641,16 +1194,21 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
             }
         });
 
-    // Browser Companion server, restarted when its settings change.
+    // Browser Companion server, restarted when its settings change. Only the first project
+    // window runs it (the others would find its port taken).
     let handle = app.clone();
     app.state::<AppState>()
         .write_settings()
         .subscribe(move |change| {
-            if change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT {
+            if (change.key == companion::KEY_ENABLED || change.key == companion::KEY_PORT)
+                && !commands::project_windows::is_secondary()
+            {
                 companion::apply_server_settings(&handle);
             }
         });
-    companion::apply_server_settings(app);
+    if !commands::project_windows::is_secondary() {
+        companion::apply_server_settings(app);
+    }
 
     // Docker / Kubernetes reconnect when their settings change (they connect in the
     // "background services" step).
@@ -665,6 +1223,32 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
             }
         });
 
+    // The PHP import style (code style Imports tab, Auto Import) of the refactorings.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if commands::imports::affects_import_style(&change.key) {
+                let h = handle.clone();
+                // Listeners run under the settings lock; read them on another thread.
+                std::thread::spawn(move || {
+                    commands::imports::import_style(&h.state::<AppState>());
+                });
+            }
+        });
+
+    // Excluded folders (Settings | Directories, "Mark Directory as") reach the backend.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if commands::project_structure::affects(&change.key) {
+                let h = handle.clone();
+                // Listeners run under the settings lock; read them on another thread.
+                std::thread::spawn(move || commands::project_structure::apply(&h));
+            }
+        });
+
     // Reconfigure (restart) the PHP language server when its settings or the enabled
     // plugins change. Listeners run under the settings lock, so the work happens on
     // another thread.
@@ -676,6 +1260,51 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::php::spawn_sync_lsp_server(&handle);
+            }
+            // rust-analyzer: Settings | Rust (features, check, proc macros, toolchain).
+            if commands::rust::affects_analyzer(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::rust::spawn_sync_analyzer(&handle);
+            }
+            // Ruby LSP: Settings | Ruby (interpreter, environment, ruby-lsp, formatter).
+            if commands::ruby::affects_lsp(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::ruby::spawn_sync_lsp(&handle);
+            }
+            // Eclipse JDT LS: JDKs, its installation and options, the Java plugin.
+            if commands::java::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::java::spawn_sync_lsp_server(&handle);
+            }
+            // KotlinForge: kotlin-lsp / kotlin-language-server and their options.
+            if commands::kotlin::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::kotlin::spawn_sync_lsp_server(&handle);
+            }
+            // CForge: profiles and toolchains change the CMake model; clangd follows them.
+            if commands::cpp::affects_model(&change.key) {
+                commands::cpp::invalidate();
+            }
+            if commands::cpp::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::cpp::spawn_sync_lsp_server(&handle);
+            }
+            // Scala: Metals and its options.
+            if commands::scala::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::scala::spawn_sync_lsp_server(&handle);
+            }
+            // DotNetForge: the Roslyn server, the solution and the dotnet host.
+            if commands::dotnet::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::dotnet::spawn_sync_lsp_server(&handle);
             }
         });
 }

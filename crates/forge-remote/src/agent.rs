@@ -76,7 +76,7 @@ impl AgentBinaries {
 }
 
 /// The agent binary at `path`, decompressed when it is a `.gz` file.
-fn read_agent(path: &Path) -> std::io::Result<Vec<u8>> {
+pub fn read_agent(path: &Path) -> std::io::Result<Vec<u8>> {
     let bytes = std::fs::read(path)?;
     if path.extension().is_some_and(|e| e == "gz") {
         let mut out = Vec::new();
@@ -90,7 +90,8 @@ fn read_agent(path: &Path) -> std::io::Result<Vec<u8>> {
     }
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
+/// SHA-256 of `bytes` as lowercase hex (what the probe reports for the installed agent).
+pub fn sha256_hex(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()
         .map(|b| format!("{b:02x}"))
@@ -111,8 +112,11 @@ pub struct StartedAgent {
     pub uploaded: bool,
 }
 
-/// Skip everything up to the ready marker; returns the bytes read after it.
-async fn read_until_ready<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Vec<u8>, ConnectError> {
+/// Skip everything up to the ready marker; returns the bytes read after it. Also used by
+/// agents started over a process's stdio (`forge-devenv`: `docker exec`, `wsl.exe`).
+pub async fn read_until_ready<R: AsyncRead + Unpin>(
+    reader: &mut R,
+) -> Result<Vec<u8>, ConnectError> {
     let mut buf = Vec::new();
     let mut chunk = [0u8; 4096];
     loop {

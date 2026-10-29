@@ -1,0 +1,123 @@
+{
+  "config": {
+    "rootDir": "/p/tests",
+    "projects": [{ "id": "chromium", "name": "chromium", "testDir": "/p/tests" }]
+  },
+  "suites": [
+    {
+      "title": "checkout.spec.ts",
+      "file": "checkout.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "shows the home page",
+          "ok": true,
+          "tags": [],
+          "id": "a1",
+          "file": "checkout.spec.ts",
+          "line": 3,
+          "column": 5,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [{ "workerIndex": 0, "status": "passed", "duration": 812, "errors": [], "retry": 0 }]
+            }
+          ]
+        }
+      ],
+      "suites": [
+        {
+          "title": "Checkout",
+          "file": "checkout.spec.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "adds the voucher",
+              "ok": false,
+              "tags": [],
+              "id": "a2",
+              "file": "checkout.spec.ts",
+              "line": 8,
+              "column": 7,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "status": "failed",
+                      "duration": 1534,
+                      "retry": 0,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected string: \"Total: 9.00\"\nReceived string: \"Total: 10.00\"",
+                        "stack": "Error: expect(locator).toHaveText(expected)\n    at /p/tests/checkout.spec.ts:12:42",
+                        "location": { "file": "/p/tests/checkout.spec.ts", "line": 12, "column": 42 }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "keeps the cart",
+              "ok": true,
+              "tags": [],
+              "id": "a3",
+              "file": "checkout.spec.ts",
+              "line": 15,
+              "column": 7,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [{ "type": "skip" }],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "status": "skipped",
+                  "results": [{ "workerIndex": -1, "status": "skipped", "duration": 0, "retry": 0 }]
+                }
+              ]
+            },
+            {
+              "title": "retries the payment",
+              "ok": true,
+              "tags": [],
+              "id": "a4",
+              "file": "checkout.spec.ts",
+              "line": 19,
+              "column": 7,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "status": "flaky",
+                  "results": [
+                    { "workerIndex": 0, "status": "failed", "duration": 200, "retry": 0, "error": { "message": "Timeout" } },
+                    { "workerIndex": 1, "status": "passed", "duration": 300, "retry": 1 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": { "startTime": "2026-10-26T08:00:00.000Z", "duration": 2900, "expected": 1, "skipped": 1, "unexpected": 1, "flaky": 1 }
+}

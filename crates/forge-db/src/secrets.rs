@@ -1,4 +1,6 @@
-//! Data source passwords: the OS keychain (service `forge-db`, account = data source id).
+//! Data source secrets in the OS keychain (service `forge-db`): the password (account = data
+//! source id), the SSH tunnel's password or key passphrase (`<id>#ssh`) and the SSL client
+//! key's passphrase (`<id>#ssl-key`).
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -6,6 +8,16 @@ use std::sync::Mutex;
 use crate::error::{DbError, DbResult};
 
 pub const KEYCHAIN_SERVICE: &str = "forge-db";
+
+/// Keychain account of the SSH tunnel secret of a data source.
+pub fn ssh_account(id: &str) -> String {
+    format!("{id}#ssh")
+}
+
+/// Keychain account of the SSL client key passphrase of a data source.
+pub fn ssl_key_account(id: &str) -> String {
+    format!("{id}#ssl-key")
+}
 
 pub trait SecretStore: Send + Sync {
     fn get(&self, id: &str) -> DbResult<Option<String>>;

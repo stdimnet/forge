@@ -3,18 +3,21 @@
 //! changed lines (`save_actions_changed_lines`), applies the PHP actions to the text
 //! (`save_actions_php`), writes the file and runs the external tools on it where the project
 //! lives (`save_actions_run_tools`). The logic is in `forge-save-actions` and
-//! `phpforge-lang-php`.
+//! `phpforge-lang-php`; the web tools' packages come from `webforge-quality-tools`.
 
 use forge_core::Result;
 use forge_save_actions::tools::{self, ToolLocation, ToolsReport};
 use forge_save_actions::{ActionsOnSave, FileTypeChoice, SavePlan, Tool, Trigger};
 use phpforge_lang_php::{cleanup, imports, rearrange};
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use crate::commands::git::with_repo;
+use crate::commands::php_quality_tools;
+use crate::commands::web_quality_tools::{web_tool, WebSave};
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
+use phpforge_quality_tools::QualityTool;
 
 fn settings_of(state: &AppState) -> ActionsOnSave {
     let settings = state.read_settings();
@@ -108,8 +111,19 @@ pub fn apply_php_actions(text: &str, actions: &PhpActions) -> PhpActionsResult {
 }
 
 #[tauri::command]
-pub async fn save_actions_php(text: String, actions: PhpActions) -> Result<PhpActionsResult> {
-    blocking(move || Ok(apply_php_actions(&text, &actions))).await
+pub async fn save_actions_php(
+    text: String,
+    actions: PhpActions,
+    state: State<'_, AppState>,
+) -> Result<PhpActionsResult> {
+    // Optimize imports arranges them as the code style's Imports tab says.
+    let style = crate::commands::imports::import_style(&state);
+    blocking(move || {
+        Ok(imports::with_style(style, || {
+            apply_php_actions(&text, &actions)
+        }))
+    })
+    .await
 }
 
 /// Run the external tools on the saved file `path`.
@@ -117,20 +131,55 @@ pub async fn save_actions_php(text: String, actions: PhpActions) -> Result<PhpAc
 pub async fn save_actions_run_tools(
     path: String,
     tools: Vec<Tool>,
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<ToolsReport> {
+    // The tools are the project's own installations (node_modules, vendor/bin).
+    state.require_trusted("Running external tools on save")?;
     let custom = custom_paths(&state);
     let backend = state.backend()?;
     blocking(move || {
-        tools::run_tools(
+        let state = app.state::<AppState>();
+        // The web tools run where they apply to the file (Biome before ESLint and
+        // Prettier), from the package found for it, with the Node.js interpreter.
+        let web = WebSave::new(&state, backend.as_ref(), &path, &tools);
+        let custom = |tool: Tool| match web_tool(tool) {
+            Some(_) => web.program(tool),
+            None => custom(tool),
+        };
+        // The PHP tools take their Quality Tools configuration (configuration file,
+        // ruleset, options) and run with its PHP interpreter.
+        let prepare =
+            |tool: Tool, cmd: forge_process::CommandLine| match (php_tool(tool), web_tool(tool)) {
+                (Some(q), _) => {
+                    php_quality_tools::save_action_command(&state, backend.as_ref(), q, cmd)
+                }
+                (_, Some(_)) => {
+                    web.command(tool, cmd.args.last().map(String::as_str).unwrap_or(""))
+                }
+                _ => Ok(cmd),
+            };
+        tools::run_tools_with(
             backend.as_ref(),
             &path,
-            &tools,
+            &web.tools,
             &custom,
+            &prepare,
             tools::TOOL_TIMEOUT,
         )
     })
     .await
+}
+
+/// The quality tool behind a PHP tool of Actions on Save.
+fn php_tool(tool: Tool) -> Option<QualityTool> {
+    match tool {
+        Tool::PhpCsFixer => Some(QualityTool::PhpCsFixer),
+        Tool::Pint => Some(QualityTool::Pint),
+        Tool::Phpcbf => Some(QualityTool::Phpcs),
+        Tool::Rector => Some(QualityTool::Rector),
+        Tool::Eslint | Tool::Prettier | Tool::Stylelint | Tool::Biome => None,
+    }
 }
 
 #[derive(Debug, Serialize)]

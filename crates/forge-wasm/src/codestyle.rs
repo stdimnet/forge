@@ -187,3 +187,13 @@ mod tests {
         assert!(codestyle_import(r#"{"text": "nope"}"#).contains("error"));
     }
 }
+
+/// `{ user, project }` → the selected scheme's values (`sql.case.keywords`, …), for passes
+/// that take them directly (the SQL formatter).
+#[wasm_bindgen]
+pub fn codestyle_selected_values(request_json: &str) -> String {
+    match serde_json::from_str::<LayersJson>(request_json) {
+        Ok(r) => to_json(&forge_codestyle::selected_values(r.layers())),
+        Err(e) => error(e),
+    }
+}

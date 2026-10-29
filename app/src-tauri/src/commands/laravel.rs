@@ -1,40 +1,26 @@
 //! Laravel IPC (`phpforge-fw-laravel`): project analysis, routes, completion, Go to
-//! Declaration, gutter markers and artisan. The analysis runs where the project's files are
-//! (`forge_backend::frameworks`: here for local projects, in the agent for remote ones);
-//! artisan runs through the project backend's process API. Offsets crossing the boundary
-//! are UTF-16.
+//! Declaration, gutter markers, the Laravel tool window (overview, logs) and `ide.json`
+//! code generations. The analysis runs where the project's files are
+//! (`forge_backend::frameworks`: here for local projects, in the agent for remote ones).
+//! Artisan commands run in the Command Line Tools Console (`command_line_tools`). Offsets
+//! crossing the boundary are UTF-16.
 
-use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex};
-
-use forge_backend::frameworks::{artisan_command, ArtisanCommands, LaravelRoutes};
-use forge_backend::process_io::run_lines;
-use forge_backend::{framework_call, Backend, FrameworkCall};
-use forge_core::{ForgeError, Result};
-use phpforge_fw_laravel::artisan::{split_command_line, ArtisanEvent};
+use forge_backend::frameworks::LaravelRoutes;
+use forge_backend::{framework_call, FrameworkCall};
+use forge_core::Result;
+use phpforge_fw_laravel::dashboard::LaravelOverview;
+use phpforge_fw_laravel::ide_json::GeneratedFile;
+use phpforge_fw_laravel::logs::{LogPage, DEFAULT_MAX_BYTES};
 use phpforge_fw_laravel::{Completions, GutterMark, LaravelInfo, Location};
 use serde::de::DeserializeOwned;
-use tauri::{AppHandle, Emitter, State};
+use tauri::State;
 
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
-/// Running artisan commands (cancel flags by run id).
-#[derive(Default)]
-pub struct LaravelState {
-    runs: Mutex<HashMap<String, Arc<AtomicBool>>>,
-}
-
-fn err(e: impl std::fmt::Display) -> ForgeError {
-    ForgeError::Other(e.to_string())
-}
-
+/// The project's PHP for framework helpers (a local executable).
 fn php(app: &AppState) -> String {
-    app.read_settings()
-        .get_as::<String>("php.interpreter")
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| "php".into())
+    crate::commands::php_interpreters::local_php(app)
 }
 
 fn setting(app: &AppState, key: &str, default: &str) -> String {
@@ -62,7 +48,11 @@ pub async fn laravel_detect(state: State<'_, AppState>) -> Result<LaravelInfo> {
 /// `php artisan route:list --json` is used and static parsing is the fallback.
 #[tauri::command]
 pub async fn laravel_routes(state: State<'_, AppState>) -> Result<LaravelRoutes> {
-    let source = setting(&state, "laravel.routes.source", "auto");
+    let mut source = setting(&state, "laravel.routes.source", "auto");
+    // `php artisan route:list` boots the application: Safe Mode parses the route files.
+    if state.safe_mode.is_on() {
+        source = "static".into();
+    }
     let php = php(&state);
     call(&state, FrameworkCall::LaravelRoutes { source, php }).await
 }
@@ -116,80 +106,36 @@ pub async fn laravel_gutter(
     call(&state, FrameworkCall::LaravelGutter { path, content }).await
 }
 
+/// Version, environment, models, commands, log files and `ide.json` of the application.
 #[tauri::command]
-pub async fn laravel_artisan_commands(state: State<'_, AppState>) -> Result<ArtisanCommands> {
-    let php = php(&state);
-    call(&state, FrameworkCall::LaravelArtisanCommands { php }).await
+pub async fn laravel_overview(state: State<'_, AppState>) -> Result<LaravelOverview> {
+    call(&state, FrameworkCall::LaravelOverview).await
 }
 
-fn run_artisan(
-    backend: &dyn Backend,
-    php: &str,
-    command_line: &str,
-    cancel: &AtomicBool,
-    emit: &mut dyn FnMut(ArtisanEvent),
-) -> i32 {
-    let cmd = artisan_command(&backend.info().root, php, command_line);
-    emit(ArtisanEvent::Started {
-        command_line: format!("php artisan {}", split_command_line(command_line).join(" ")),
-    });
-    let code = run_lines(backend, &cmd, cancel, &mut |text, stderr| {
-        emit(ArtisanEvent::Output { text, stderr })
-    });
-    let code = match code {
-        Ok(code) => code.unwrap_or(-1),
-        Err(e) => {
-            emit(ArtisanEvent::Error {
-                message: format!("Cannot run {php}: {e}"),
-            });
-            -1
-        }
-    };
-    emit(ArtisanEvent::Exit { code });
-    code
-}
-
-/// Run `php artisan <commandLine>` where the project lives, streaming [`ArtisanEvent`]s on
-/// `laravel://artisan/<runId>`. Returns the exit code.
+/// Entries of a log in `storage/logs` (empty `path`: the newest), read from its end.
 #[tauri::command]
-pub async fn laravel_artisan_run(
-    command_line: String,
-    run_id: String,
-    app: AppHandle,
+pub async fn laravel_logs(
+    path: Option<String>,
+    max_bytes: Option<u64>,
     state: State<'_, AppState>,
-    laravel: State<'_, LaravelState>,
-) -> Result<i32> {
-    let backend = state.backend()?;
-    let php = php(&state);
-    let cancel = Arc::new(AtomicBool::new(false));
-    laravel
-        .runs
-        .lock()
-        .map_err(err)?
-        .insert(run_id.clone(), cancel.clone());
-    let event = format!("laravel://artisan/{run_id}");
-    let code = blocking(move || {
-        Ok(run_artisan(
-            backend.as_ref(),
-            &php,
-            &command_line,
-            &cancel,
-            &mut |e: ArtisanEvent| {
-                if let Err(err) = app.emit(&event, e) {
-                    tracing::warn!("could not emit {event}: {err}");
-                }
-            },
-        ))
-    })
-    .await?;
-    laravel.runs.lock().map_err(err)?.remove(&run_id);
-    Ok(code)
+) -> Result<LogPage> {
+    call(
+        &state,
+        FrameworkCall::LaravelLogs {
+            path: path.unwrap_or_default(),
+            max_bytes: max_bytes.unwrap_or(DEFAULT_MAX_BYTES),
+        },
+    )
+    .await
 }
 
+/// Preview (`write: false`) or create the files of an `ide.json` code generation.
 #[tauri::command]
-pub fn laravel_artisan_cancel(run_id: String, laravel: State<'_, LaravelState>) -> Result<()> {
-    if let Some(flag) = laravel.runs.lock().map_err(err)?.get(&run_id) {
-        flag.store(true, std::sync::atomic::Ordering::Relaxed);
-    }
-    Ok(())
+pub async fn laravel_generate(
+    id: String,
+    input: String,
+    write: bool,
+    state: State<'_, AppState>,
+) -> Result<Vec<GeneratedFile>> {
+    call(&state, FrameworkCall::LaravelGenerate { id, input, write }).await
 }

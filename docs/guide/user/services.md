@@ -21,7 +21,10 @@ The tree has three roots:
 | --- | --- |
 | **Docker** | Containers, Images, Networks, Volumes |
 | **Docker Compose** | compose projects found in the project root and one folder below, with their services and containers |
-| **Kubernetes** | contexts → namespaces → Pods, Deployments, Services |
+| **Kubernetes** | contexts → namespaces → Pods, Deployments, Services; the node says where the contexts come from (`~/.kube/config`, or `from host deploy@shop.example.com` in a remote project) |
+
+Spring Boot run configurations add a **Spring Boot** root with their running and not started
+applications, see [Spring Boot and Jakarta EE](spring.md#run-dashboard).
 
 The status bar shows the Docker connection ("Docker 27.3.1", "Docker: connecting…",
 "Docker: not connected"). Forge follows Docker's event stream, so the tree updates by itself,
@@ -66,6 +69,35 @@ TTY also offer an attached console (`docker attach`).
 ![Compose](../../screenshots/services-compose.png)
 
 ![Kubernetes pod log](../../screenshots/services-kubernetes-pod-log.png)
+
+## Kubernetes contexts and namespaces
+
+Above the tree, the **Context** and **Namespace** selectors pick the context to work with:
+it becomes the current context in the tree (`current · <server>`), its namespace is loaded
+and expanded, and manifests are applied there. The namespace list shows the context's
+namespaces once they are listed. Next to the selectors Forge shows where the contexts come
+from. The pick lasts for the session; the defaults are the settings below.
+
+![Context selector](../../screenshots/services-kube-host-contexts.png)
+
+## Applying manifests
+
+A YAML file with Kubernetes objects (`apiVersion` and `kind`, several documents separated by
+`---`) gets a ▶ in the gutter on its first object:
+
+| Menu item | Runs |
+| --- | --- |
+| Apply to '<context>' | `kubectl --context <context> [-n <namespace>] apply -f <file>` |
+| Delete from '<context>' | `kubectl --context <context> [-n <namespace>] delete -f <file>` |
+
+`-n` is the selected namespace and is only passed when no object of the file names its own
+namespace. The output appears in the **Log** tab of the Kubernetes node. Applying and
+deleting manifests runs the project's files against a cluster, so it is refused in Safe Mode
+(see [Project trust and Safe Mode](project-trust.md)); so are Exec terminals and the Attached
+Console of pods. Reading the cluster (the tree, logs, Inspection, port forwards) works in
+Safe Mode.
+
+![Apply a manifest](../../screenshots/services-kube-apply.png)
 
 ## Kubernetes pods and deployments
 
@@ -168,10 +200,19 @@ CLI, which reaches `ssh://` hosts itself.
 | Kubeconfig file (empty: `$KUBECONFIG` or `~/.kube/config`) | `kubernetes.kubeconfig` | empty |
 | Default context (empty: the kubeconfig's current-context) | `kubernetes.defaultContext` | empty |
 | Default namespace (empty: the context's namespace, else `default`) | `kubernetes.defaultNamespace` | empty |
-| kubectl executable | `kubernetes.kubectlPath` | `kubectl` |
+| kubectl executable (this machine: exec terminals, applying manifests) | `kubernetes.kubectlPath` | `kubectl` |
+| In remote projects, use Kubernetes of the project host | `kubernetes.remoteProjectHost` | on |
+| kubectl from the project host: `user@host` and the kubectl path there | `kubernetes.hostKubectlPaths` | empty (kubectl from the host's `PATH`) |
 
 Kubernetes authentication supports CA certificates, bearer tokens, client certificates, basic
 auth and exec credential plugins (as used by EKS, GKE and AKS).
+
+**kubectl from the Project Host** lists a kubectl per remote host, e.g.
+`deploy@shop.example.com` → `/usr/local/bin/kubectl` or `k3s kubectl`. The host of the open
+remote project is filled in when you add an entry. Hosts without an entry run `kubectl` from
+their `PATH`.
+
+![Kubernetes settings with kubectl per host](../../screenshots/settings-kubernetes-hosts.png)
 
 > **Note:** port forwarding is available for Kubernetes pods, not for Docker containers.
 
@@ -187,6 +228,29 @@ on) the Docker node shows the host's daemon (`ssh://user@host/var/run/docker.soc
 through the project's own SSH connection: no second login and nothing to set up. Exec terminals
 and Attached Console then run `docker` on the host. Turn it off to use the connection configured
 above; compose still runs on the host then (against the host's own daemon), while exec terminals
-run on this machine. Kubernetes always uses this machine's kubeconfig.
+run on this machine.
+
+### Kubernetes in remote projects
+
+With **In remote projects, use Kubernetes of the project host**
+(`kubernetes.remoteProjectHost`, on) Kubernetes runs where the project is, like PHPStorm's
+remote development: clusters next to the host (a k3s on `127.0.0.1:6443`, a private network,
+credential plugins installed there) work without copying anything to this machine.
+
+| | In a remote project |
+| --- | --- |
+| Contexts | from the host's kubeconfig (`$KUBECONFIG` or `~/.kube/config` on the host), read with `kubectl config view`; the Kubernetes node says `from host deploy@shop.example.com` |
+| Namespaces, pods, deployments, services, Inspection | `kubectl get … -o json` on the host |
+| Logs | `kubectl logs -f` on the host |
+| Exec, Attached Console | a terminal on the host running its kubectl |
+| Delete pod, Restart Rollout | `kubectl delete pod`, `kubectl rollout restart` on the host |
+| Forward Ports | `kubectl port-forward` on the host (on its `127.0.0.1`); every connection to `127.0.0.1:<local port>` here is tunnelled to it through the project's SSH connection. The forward shows "Forwarding via deploy@shop.example.com". |
+| Apply / Delete manifests | `kubectl apply -f` / `delete -f` on the host, in the project folder |
+
+kubectl must be installed on the host; its path is set per host under **kubectl from the
+Project Host**. Turn the option off to use this machine's kubeconfig and API access in remote
+projects too. Local projects always use this machine's kubeconfig.
+
+![Kubernetes contexts from the project host](../../screenshots/services-kube-host-contexts.png)
 
 ![Compose on the remote host](../../screenshots/remote-finish-compose.png)

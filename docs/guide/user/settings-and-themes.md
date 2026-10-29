@@ -1,8 +1,8 @@
 ---
 title: Settings and themes
-description: The Settings dialog, user and project settings, settings files, themes (Forge Ember, Forge Anvil, Solarized), fonts and the window title bar styles.
+description: The Settings dialog, user and project settings, Settings for New Projects, Restore Defaults, Export / Import Settings, settings files, themes (Forge Ember, Forge Anvil, Solarized), fonts and the window title bar styles.
 order: 230
-tags: [settings, themes, appearance, window controls, fonts]
+tags: [settings, themes, appearance, window controls, fonts, settings for new projects, export settings, import settings, restore defaults]
 ---
 
 # Settings and themes
@@ -14,7 +14,7 @@ dialog, with the same tree as PHPStorm:
 
 - **Appearance & Behavior**: Appearance, System Settings
 - **Keymap**
-- **Editor**: General, Font, Code Style (schemes, General and one page per language), Inlay Hints
+- **Editor**: General, Font, Color Scheme, Code Style (schemes, General and one page per language), Inlay Hints
 - **Plugins**
 - **Version Control**: Git, GitLab, Forgejo / Gitea, GitHub
 - **Languages & Frameworks**: Language Servers, PHP (Composer, Debug, Servers, Laravel,
@@ -28,6 +28,8 @@ dialog, with the same tree as PHPStorm:
   page, also by keywords ("theme", "autosave", "interpreter").
 - **OK** applies and closes, **Apply** applies and keeps the dialog open, **Cancel** discards.
 - Invalid values (out of range, wrong type) are flagged right away and not saved.
+- **Reset** (top right) throws away the unapplied changes of the page; **Restore Defaults**
+  sets every option of the page to its default (Apply or OK stores it).
 - In the desktop app the dialog is its own window; its size and position are remembered.
 
 ![Search in settings](../../screenshots/settings-search.png)
@@ -37,15 +39,53 @@ Every option, its key, type and default is listed in the
 
 ## User and project settings
 
-Settings come in three layers; a later one wins:
+Settings come in four layers; a later one wins:
 
 1. built-in defaults (declared by the plugins),
 2. **user** settings: `<config dir>/forge/settings.toml`,
-3. **project** settings: `<project>/.forge/settings.toml`.
+3. **Settings for New Projects** (project-level options only):
+   `<config dir>/forge/new-project-settings.toml`,
+4. **project** settings: `<project>/.forge/settings.toml`.
 
 Pages with options that can be stored per project show **For current project** in the header;
 those options are saved to the project's file, which you can commit to share them with your
-team (for example the PHP language level or the Symfony environment).
+team (for example the PHP language level or the Symfony environment). A value that equals
+what the layers below give is not stored again, so the project keeps following them.
+
+### Settings for New Projects
+
+File | New Projects Setup | **Settings for New Projects…** opens the Settings dialog for the
+defaults of project-level options. The pages with such options show **For new projects**;
+their values apply to every project that has no value of its own: the projects you create or
+open next, and open projects that never changed the option. Application options (theme, fonts,
+keymap, …) are the same everywhere and are edited as usual. On the Welcome screen, without an
+open project, the Settings dialog edits these defaults as well.
+
+![Settings for New Projects](../../screenshots/settings-for-new-projects.png)
+
+## Export and Import Settings
+
+File | Manage IDE Settings | **Export Settings…** writes your settings to a settings archive
+(a `.zip` file). Choose the groups to export: Appearance & Behavior, Keymap, Editor, Code Style,
+File Types, File and Code Templates, Live Templates, Version Control, Languages & Frameworks,
+Tools, Plugins, Other settings, and the files Settings for New Projects, AI Providers, Data
+Sources and SSH Configurations. Only groups with changed settings are listed.
+
+![Export Settings](../../screenshots/export-settings.png)
+
+**Import Settings…** reads such an archive, lists the groups it holds and imports the chosen
+ones: each imported group replaces your settings of that group. Forge then restarts.
+
+> **Note:** API keys, tokens and passwords live in the system keychain and are never part of a
+> settings archive.
+
+## Restore Default Settings
+
+File | Manage IDE Settings | **Restore Default Settings…** copies your configuration folder to
+`<config dir>/forge-backup-<date>-<time>` and restarts Forge with the default settings (the
+user settings, the Settings for New Projects and the dialog window sizes are reset).
+Connections and accounts (AI providers, code hosts, data sources, SSH configurations), recent
+projects and scratches are kept. To go back, copy the files from the backup folder.
 
 ### Settings files
 
@@ -85,6 +125,9 @@ Settings | Appearance & Behavior | Appearance | **Theme** (`appearance.theme`):
 
 The sun/moon button in the main toolbar, **Theme: Toggle Dark/Light** and **Quick Switch
 Scheme…** (`` Ctrl+` ``) toggle between dark and light.
+
+The editor's colors follow the theme unless you choose a color scheme in Settings | Editor |
+Color Scheme; see [Color schemes](color-schemes.md).
 
 | | |
 | --- | --- |

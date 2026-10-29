@@ -3,7 +3,7 @@
 //! and installed builds find them at once.
 //!
 //! ```text
-//! forge-langservers install [--accept-intelephense-licence] [package…]   (default: intelephense)
+//! forge-langservers install <package…>
 //! forge-langservers updates
 //! forge-langservers where
 //! ```
@@ -13,13 +13,7 @@ use std::sync::Arc;
 use forge_langservers::install::InstallOutcome;
 use forge_langservers::managed::{updates, Event, Installer, Sources};
 
-const USAGE: &str =
-    "usage: forge-langservers install [--accept-intelephense-licence] [package…] | updates | where";
-
-const INTELEPHENSE_NOTICE: &str = "Intelephense is proprietary software (free core, premium features with your own licence key).
-Its licence does not allow redistribution, so Forge downloads it from the npm registry onto this machine.
-By installing it you agree to the Intelephense licence: https://intelephense.com (LICENSE.txt in the package).
-Run again with --accept-intelephense-licence to install it.";
+const USAGE: &str = "usage: forge-langservers install <package…> | updates | where";
 
 #[tokio::main]
 async fn main() {
@@ -44,13 +38,6 @@ async fn main() {
                 d.node()
                     .map_or("(none yet)".into(), |p| p.display().to_string())
             );
-            if let Some((node, script)) = d.managed_launch("intelephense") {
-                println!(
-                    "intelephense: {} {} --stdio",
-                    node.display(),
-                    script.display()
-                );
-            }
             0
         }
         _ => {
@@ -69,22 +56,14 @@ fn installer() -> Result<Installer, String> {
 }
 
 async fn install(args: &[String]) -> i32 {
-    let accepted = args.iter().any(|a| a == "--accept-intelephense-licence");
-    let mut packages: Vec<String> = args
+    let packages: Vec<String> = args
         .iter()
         .filter(|a| !a.starts_with("--"))
         .cloned()
         .collect();
     if packages.is_empty() {
-        packages.push("intelephense".into());
-    }
-    if packages
-        .iter()
-        .any(|p| p.split('@').next() == Some("intelephense"))
-        && !accepted
-    {
-        eprintln!("{INTELEPHENSE_NOTICE}");
-        return 1;
+        eprintln!("{USAGE}");
+        return 2;
     }
     let installer = match installer() {
         Ok(i) => i,

@@ -30,6 +30,7 @@ fn host() -> RemoteHost {
         port: 22,
         user: "deploy".into(),
         config_id: None,
+        kind: Default::default(),
     }
 }
 
@@ -165,6 +166,18 @@ async fn files_search_git_and_detection() {
                 ("composer.json".to_string(), false),
             ]
         );
+        // Excluded folders (Settings | Directories) apply on the host.
+        let excluded = forge_core::excludes::StructureConfig {
+            folders: vec![forge_core::excludes::FolderMark {
+                path: "app".into(),
+                kind: forge_core::excludes::FolderKind::Excluded,
+            }],
+            ..Default::default()
+        };
+        assert!(b.set_structure(excluded).unwrap());
+        assert!(b.list_dir("").unwrap()[0].excluded);
+        assert!(b.find_files("Order", 10, false).unwrap().is_empty());
+        assert!(b.set_structure(Default::default()).unwrap());
         b.write_file("app/Http/Kernel.php", "<?php\n// ü\n")
             .unwrap();
         assert_eq!(b.read_file("app/Http/Kernel.php").unwrap(), "<?php\n// ü\n");
@@ -284,6 +297,16 @@ async fn php_index_runs_on_the_agent() {
         let hits = php.search("Order", Default::default(), 10, false).unwrap();
         assert_eq!(hits[0].name, "Order");
 
+        // Auto Import: unresolved class names with candidates from the agent's index.
+        let unresolved = php
+            .unresolved_classes(
+                "app/Http/Show.php",
+                Some("<?php\nnamespace App\\Http;\n\nnew Order();\n".into()),
+            )
+            .unwrap();
+        assert_eq!(unresolved[0].name, "Order");
+        assert_eq!(unresolved[0].candidates, vec!["App\\Models\\Order"]);
+
         let text = backend.read_file("app/Models/Order.php").unwrap();
         let offset = text.find("Order\n{").unwrap() + 1;
         let hover = php
@@ -351,6 +374,83 @@ async fn php_index_runs_on_the_agent() {
             .unwrap();
         assert_eq!(highlights.title, "total");
         assert_eq!(highlights.highlights.len(), 1, "{highlights:?}");
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn php_metadata_inspections_and_libraries_on_the_agent() {
+    let dir = project();
+    let p = dir.path();
+    std::fs::write(
+        p.join("composer.json"),
+        r#"{"autoload":{"psr-4":{"App\\":"app/"}}}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        p.join(".phpstorm.meta.php"),
+        "<?php\nnamespace PHPSTORM_META {\n    expectedArguments(\\App\\Models\\Order::setStatus(), 0, 'draft', 'paid');\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        p.join("app/Models/Order.php"),
+        "<?php\nnamespace App\\Models;\n\nclass Order\n{\n    #[\\JetBrains\\PhpStorm\\Deprecated('Use pay()')]\n    public function settle(): void {}\n    public function setStatus(string $s): void {}\n    public function check(#[\\JetBrains\\PhpStorm\\Language('SQL')] string $where): void {}\n}\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(p.join("app/Misc")).unwrap();
+    std::fs::write(
+        p.join("app/Misc/Thing.php"),
+        "<?php\nnamespace App\\Wrong;\n\nclass Thing {}\n",
+    )
+    .unwrap();
+    let lib = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(lib.path().join("Legacy")).unwrap();
+    std::fs::write(
+        lib.path().join("Legacy/Helper.php"),
+        "<?php\nnamespace Legacy;\nclass Helper {}\n",
+    )
+    .unwrap();
+    let lib_dir = lib.path().to_string_lossy().into_owned();
+    let root = p.to_string_lossy().into_owned();
+    let client = connect();
+    let backend =
+        blocking(move || RemoteBackend::open(Arc::new(client), host(), &root).unwrap()).await;
+    blocking(move || {
+        let php = backend.php();
+        php.configure(phpforge_lang_php::project::PhpProjectSettings {
+            include_paths: vec![lib_dir.clone()],
+            ..Default::default()
+        })
+        .unwrap();
+        php.index_workspace(Arc::new(|_, _| {})).unwrap();
+        // The include path is indexed on the agent and browsable as a library.
+        let hits = php.search("Helper", Default::default(), 10, false).unwrap();
+        assert_eq!(hits[0].fqn, "Legacy\\Helper");
+        let roots = php.libraries().unwrap();
+        assert_eq!(roots.len(), 1);
+        let entries = php.library_list(&roots[0].path).unwrap();
+        assert_eq!(entries[0].name, "Legacy");
+        let helper = format!("{}/Legacy/Helper.php", roots[0].path);
+        assert!(php.library_read(&helper).unwrap().contains("class Helper"));
+        assert!(php.library_read("/etc/hostname").is_err());
+
+        // Inspections: deprecation, PSR-4 namespace.
+        let src = "<?php\nnamespace App\\Http;\nuse App\\Models\\Order;\nfunction f(Order $o) { $o->settle(); $o->setStatus(''); }\n";
+        let problems = php.inspect("app/Http/F.php", Some(src.into())).unwrap();
+        assert_eq!(problems[0].code, "PhpDeprecation", "{problems:?}");
+        let thing = php.inspect("app/Misc/Thing.php", None).unwrap();
+        assert_eq!(thing[0].code, "PhpIllegalPsrClassPath", "{thing:?}");
+        // Completion from the metadata.
+        let at = src.find("('')").unwrap() + 2;
+        let c = php
+            .complete("app/Http/F.php", at, Some(src.into()))
+            .unwrap()
+            .unwrap();
+        let values: Vec<&str> = c.items.iter().map(|i| i.insert.as_str()).collect();
+        assert_eq!(values, vec!["draft", "paid"]);
+        let places = php.language_places().unwrap();
+        assert_eq!(places[0].name, "check");
+        assert_eq!(places[0].language, "SQL");
     })
     .await;
 }
@@ -461,6 +561,7 @@ async fn language_server_stdio_is_proxied() {
         args: vec![],
         initialization_options: serde_json::Value::Null,
         settings: serde_json::Value::Null,
+        ..Default::default()
     };
     let launcher = backend.lsp_launcher();
     let mut io = launcher
@@ -504,6 +605,7 @@ async fn language_servers_run_on_the_agent() {
         args: vec![],
         initialization_options: serde_json::json!({}),
         settings: serde_json::json!({}),
+        ..Default::default()
     });
     let file = backend.resolve("app/Models/Order.php").unwrap();
     let mut events = manager.subscribe();
@@ -633,7 +735,7 @@ async fn frameworks_are_analysed_on_the_agent() {
 
     let dir = laravel_project();
     let b = open_remote(&dir).await;
-    let (info, routes, gutter, symfony, entities, related) = blocking(move || {
+    let (info, routes, gutter, symfony, entities, related, overview) = blocking(move || {
         let info: phpforge_fw_laravel::LaravelInfo =
             framework_call(b.as_ref(), FrameworkCall::LaravelDetect).unwrap();
         let routes: LaravelRoutes = framework_call(
@@ -678,9 +780,13 @@ async fn frameworks_are_analysed_on_the_agent() {
             },
         )
         .unwrap();
-        (info, routes, gutter, symfony, entities, related)
+        // The Laravel tool window's overview is computed on the host.
+        let overview: phpforge_fw_laravel::dashboard::LaravelOverview =
+            framework_call(b.as_ref(), FrameworkCall::LaravelOverview).unwrap();
+        (info, routes, gutter, symfony, entities, related, overview)
     })
     .await;
+    assert_eq!(overview.routes, 1);
     assert_eq!(related.len(), 1, "{related:?}");
     assert_eq!(
         (related[0].path.as_str(), related[0].line),

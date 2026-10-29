@@ -25,6 +25,20 @@ use tokio::sync::Notify;
 /// Prefix of the settings the planner reads.
 pub const SETTINGS_PREFIX: &str = "langservers.";
 
+/// The other settings server configurations depend on (Auto Import of JavaScript and
+/// TypeScript: the TypeScript server's import preferences).
+pub const EXTRA_SETTINGS_PREFIXES: &[&str] = &[
+    "javascript.autoImport.",
+    // The project's Python interpreter: its environment's tools and `python.pythonPath`.
+    "python.interpreter",
+    "python.lsp.",
+];
+
+/// Whether the planner reads the setting `key`.
+pub fn is_planner_setting(key: &str) -> bool {
+    key.starts_with(SETTINGS_PREFIX) || EXTRA_SETTINGS_PREFIXES.iter().any(|p| key.starts_with(p))
+}
+
 /// What the app knows that the planner needs.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -99,7 +113,7 @@ impl LocalLangServers {
         let ids = Catalog::builtin().servers.iter().map(|s| s.id.as_str());
         let prefs = Prefs::load(|k| req.settings.get(k).cloned(), ids);
         let scan = self.scan(root, prefs.scan_limit, req.rescan);
-        let detector = Detector::for_project(root);
+        let detector = Detector::for_project_with(root, prefs.python_tool_dirs());
         let ctx = ConfigContext {
             root,
             cache_dir: cache_dir(),
@@ -175,15 +189,31 @@ pub fn system_rows(req: &LangServersRequest) -> Vec<ServerRow> {
 }
 
 /// A row of a server the PHP pack starts itself: listed for status and install hints only.
+/// php-lsp is built into this binary (Forge or the remote agent): always there, with its
+/// version instead of a detected executable.
 fn pack_row(mut r: ServerRow) -> ServerRow {
     r.source = "php".into();
     r.enabled = true;
+    if r.id == BUILTIN_PHP_ROW {
+        let builtin = phpforge_lang_php::lsp::builtin_server();
+        r.path = builtin.map(|b| b.command.display().to_string());
+        r.builtin_version = builtin.map(|b| b.version.clone());
+        r.install.clear();
+        if builtin.is_some() && r.status != RowStatus::Running {
+            r.status = RowStatus::Installed;
+        } else if builtin.is_none() {
+            r.status = RowStatus::NotInstalled;
+        }
+    }
     r.status = match r.status {
         RowStatus::Disabled => RowStatus::Installed,
         s => s,
     };
     r
 }
+
+/// The Language Servers row of the built-in PHP language server.
+pub const BUILTIN_PHP_ROW: &str = "php-lsp";
 
 /// What to install on the project's machine.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -212,7 +242,7 @@ pub struct InstallRequest {
 /// Receives the steps, download progress and output of an install.
 pub type InstallSink = Arc<dyn Fn(Event) + Send + Sync>;
 
-/// The name an install reports when it is done ("Intelephense installed.").
+/// The name an install reports when it is done ("Pyright installed.").
 pub fn install_name(target: &InstallTarget) -> String {
     match target {
         InstallTarget::Server { id, .. } => Catalog::builtin()
@@ -260,6 +290,18 @@ pub async fn install(
         };
     }
     let option = option.ok_or("nothing to install")?;
+    // Binary wheels from PyPI (ruff, ty), SHA-256 checked, into Forge's directory.
+    if let (Some(name), Some(managed_dir)) = (
+        managed::pypi_package(&option),
+        detector.managed_dir().map(Path::to_path_buf),
+    ) {
+        let http = managed::Http::new()?;
+        let platform = managed::pypi::current_platform();
+        return tokio::select! {
+            r = managed::pypi::install(&http, managed::pypi::DEFAULT_INDEX, &name, &managed_dir, platform, on) => r.map(|_| InstallOutcome::Succeeded),
+            _ = cancel.notified() => Ok(InstallOutcome::Cancelled),
+        };
+    }
     let (program, args) = forge_langservers::install::resolve_command(&option, &detector)?;
     on(Event::step(format!(
         "$ {}",

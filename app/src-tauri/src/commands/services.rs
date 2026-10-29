@@ -6,7 +6,8 @@
 //! The open project is handed to the hub as a [`ProjectHost`]: a local folder, or for a
 //! remote project [`BackendProject`] (compose files read and `docker compose` run on the
 //! host through the project backend; with `docker.remoteProjectHost` the host's Docker
-//! daemon through the project's SSH connection).
+//! daemon through the project's SSH connection; with `kubernetes.remoteProjectHost` the
+//! host's kubeconfig and kubectl).
 
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
@@ -17,10 +18,11 @@ use forge_containers::exec::TerminalCommand;
 use forge_containers::gutter::{self, GutterMarker};
 use forge_containers::http::BoxIo;
 use forge_containers::hub::{Hub, HubEvent, HubSettings};
+use forge_containers::kubectl::ManifestAction;
 use forge_containers::logs::LogStream;
 use forge_containers::portforward::PortForward;
 use forge_containers::project::{BoxFuture, LocalProject, OutputSink, ProjectHost};
-use forge_containers::tree::{Action, Details, Node};
+use forge_containers::tree::{Action, Details, KubeSelection, Node, Target};
 use forge_core::{FileKind, ForgeError, Result, Settings};
 use forge_process::output::ConsoleLine;
 use forge_process::{CommandLine, OutputStream, RunEvent, RunSink};
@@ -83,6 +85,12 @@ pub fn hub_settings(s: &Settings) -> HubSettings {
             })
             .collect(),
         project_docker: s.get_as::<bool>("docker.remoteProjectHost").unwrap_or(true),
+        project_kube: s
+            .get_as::<bool>("kubernetes.remoteProjectHost")
+            .unwrap_or(true),
+        host_kubectl: s
+            .get_as::<Vec<String>>("kubernetes.hostKubectlPaths")
+            .unwrap_or_default(),
     }
 }
 
@@ -197,6 +205,20 @@ impl ProjectHost for BackendProject {
             Ok(Box::new(stream) as BoxIo)
         })
     }
+
+    fn open_tcp(&self, port: u16) -> BoxFuture<'static, forge_containers::Result<BoxIo>> {
+        let tunnels = self.backend.tunnels();
+        Box::pin(async move {
+            let tunnels = tunnels.ok_or_else(|| {
+                forge_containers::Error("the project has no SSH connection".into())
+            })?;
+            let stream = tunnels
+                .open_tcp("127.0.0.1".into(), port)
+                .await
+                .map_err(|e| forge_containers::Error(e.to_string()))?;
+            Ok(Box::new(stream) as BoxIo)
+        })
+    }
 }
 
 /// The open project for the hub: a local folder, or a remote project through its backend.
@@ -281,8 +303,14 @@ pub fn services_details(
 pub async fn services_action(
     node_id: String,
     action: Action,
+    app: AppHandle,
     state: State<'_, ServicesState>,
 ) -> Result<()> {
+    // `docker compose up` builds the project's images.
+    if action == Action::Up {
+        app.state::<AppState>()
+            .require_trusted("Running Docker Compose")?;
+    }
     let hub = state.hub()?.clone();
     hub.action(&node_id, action).await.map_err(e)
 }
@@ -331,8 +359,14 @@ pub fn services_terminal(
     node_id: String,
     attach: bool,
     container: Option<String>,
+    app: AppHandle,
     state: State<'_, ServicesState>,
 ) -> Result<TerminalCommand> {
+    // A shell in a pod runs commands against the cluster of the project's kubeconfig.
+    if matches!(Target::parse(&node_id), Some(Target::Pod { .. })) {
+        app.state::<AppState>()
+            .require_trusted("Opening a terminal in a pod")?;
+    }
     state
         .hub()?
         .terminal_command(&node_id, attach, container.as_deref())
@@ -372,17 +406,58 @@ pub async fn services_pull(image: String, state: State<'_, ServicesState>) -> Re
 pub async fn services_compose_up(
     path: String,
     service: Option<String>,
+    app: AppHandle,
     state: State<'_, ServicesState>,
 ) -> Result<()> {
+    app.state::<AppState>()
+        .require_trusted("Running Docker Compose")?;
     let hub = state.hub()?.clone();
     hub.compose_up_file(&path, service).await.map_err(e)
 }
 
 /// Gutter ▶ in a Dockerfile: build the image and run a container.
 #[tauri::command]
-pub async fn services_dockerfile_run(path: String, state: State<'_, ServicesState>) -> Result<()> {
+pub async fn services_dockerfile_run(
+    path: String,
+    app: AppHandle,
+    state: State<'_, ServicesState>,
+) -> Result<()> {
+    app.state::<AppState>()
+        .require_trusted("Building Dockerfiles")?;
     let hub = state.hub()?.clone();
     hub.dockerfile_run(&path).await.map_err(e)
+}
+
+/// The context and namespace selector of the Services tool window (`None`: no kubeconfig).
+#[tauri::command]
+pub fn services_kube_selection(state: State<'_, ServicesState>) -> Result<Option<KubeSelection>> {
+    Ok(state.hub()?.kube_selection())
+}
+
+/// Pick the Kubernetes context and namespace (`None`: the context's own namespace).
+#[tauri::command]
+pub async fn services_kube_select(
+    context: String,
+    namespace: Option<String>,
+    state: State<'_, ServicesState>,
+) -> Result<Option<KubeSelection>> {
+    let hub = state.hub()?.clone();
+    hub.select_kube(&context, namespace).await.map_err(e)
+}
+
+/// Gutter ▶ of a Kubernetes manifest: `kubectl apply -f` / `kubectl delete -f` in the
+/// selected context (on a remote project's host). Refused in Safe Mode.
+#[tauri::command]
+pub async fn services_kube_apply(
+    path: String,
+    action: ManifestAction,
+    app: AppHandle,
+    state: State<'_, ServicesState>,
+) -> Result<()> {
+    app.state::<AppState>()
+        .require_trusted("Applying Kubernetes manifests")?;
+    let hub = state.hub()?.clone();
+    hub.apply_manifest(&path, action).await.map_err(e)
 }
 
 #[tauri::command]

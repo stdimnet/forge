@@ -115,6 +115,15 @@ pub fn services_tree(input_json: &str) -> String {
     }
 }
 
+/// `KubeInput` → `KubeSelection | null`, mirroring `services_kube_selection`.
+#[wasm_bindgen]
+pub fn services_kube_selection(kube_json: &str) -> String {
+    match parse::<tree::KubeInput>(kube_json) {
+        Ok(k) => to_json(&tree::kube_selection(&k)),
+        Err(e) => e,
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DetailsRequest {
@@ -372,6 +381,14 @@ mod tests {
         assert!(compose.contains("\"project\":\"acmeshop\""), "{compose}");
         let g = services_gutter(r#"{"path":"Dockerfile","content":"FROM php\n"}"#);
         assert!(g.contains("dockerfile"));
+        let sel = services_kube_selection(
+            r#"{"host":"deploy@shop.example.com","config":{"currentContext":"k3s","contexts":[{"name":"k3s","cluster":"c","user":"u","namespace":"shop"}],"clusters":[],"users":[]}}"#,
+        );
+        assert!(
+            sel.contains("\"source\":\"from host deploy@shop.example.com\""),
+            "{sel}"
+        );
+        assert!(sel.contains("\"namespace\":\"shop\""), "{sel}");
         let t = containers_terminal_command(r#"{"kind":"exec","container":"a","name":"web"}"#);
         assert!(t.contains("\"exec\""));
         let t = containers_terminal_command(

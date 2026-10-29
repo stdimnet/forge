@@ -84,6 +84,23 @@ pub fn extract_tar_gz(bytes: &[u8], dest: &Path, strip: usize) -> Result<(), Str
 
 /// Unpack a zip archive (Node.js for Windows) into `dest`, dropping `strip` components.
 pub fn extract_zip(bytes: &[u8], dest: &Path, strip: usize) -> Result<(), String> {
+    extract_zip_filtered(bytes, dest, strip, "")
+}
+
+/// Unpack the entries of a zip archive below `prefix` (`content/LanguageServer/linux-x64/`
+/// of a NuGet package) into `dest`, without the prefix.
+pub fn extract_zip_prefix(bytes: &[u8], dest: &Path, prefix: &str) -> Result<(), String> {
+    let prefix = prefix.trim_matches('/');
+    let strip = prefix.split('/').filter(|p| !p.is_empty()).count();
+    extract_zip_filtered(bytes, dest, strip, prefix)
+}
+
+fn extract_zip_filtered(
+    bytes: &[u8],
+    dest: &Path,
+    strip: usize,
+    prefix: &str,
+) -> Result<(), String> {
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes))
         .map_err(|e| format!("not a zip archive: {e}"))?;
     std::fs::create_dir_all(dest).map_err(|e| format!("cannot create {}: {e}", dest.display()))?;
@@ -91,6 +108,12 @@ pub fn extract_zip(bytes: &[u8], dest: &Path, strip: usize) -> Result<(), String
         let mut file = zip
             .by_index(i)
             .map_err(|e| format!("broken archive: {e}"))?;
+        if !prefix.is_empty() {
+            let n = file.name().replace('\\', "/");
+            if !n.starts_with(&format!("{prefix}/")) {
+                continue;
+            }
+        }
         let name = file
             .enclosed_name()
             .ok_or_else(|| format!("unsafe path in archive: {}", file.name()))?;
@@ -184,11 +207,11 @@ pub(crate) mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let tgz = tar_gz(&[
             ("package/package.json", b"{}", 0o644),
-            ("package/lib/intelephense.js", b"// js", 0o755),
+            ("package/lib/server.js", b"// js", 0o755),
         ]);
         extract_tar_gz(&tgz, tmp.path(), 1).unwrap();
         assert_eq!(
-            std::fs::read_to_string(tmp.path().join("lib/intelephense.js")).unwrap(),
+            std::fs::read_to_string(tmp.path().join("lib/server.js")).unwrap(),
             "// js"
         );
         assert!(tmp.path().join("package.json").is_file());

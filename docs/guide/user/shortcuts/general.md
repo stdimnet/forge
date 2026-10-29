@@ -29,6 +29,15 @@ Actions that work everywhere: Find Action, Settings, the main menu, projects, th
 | [Compact Mode](#compact-mode) | — | — |
 | [Show Main Menu in Separate Toolbar](#show-main-menu-in-separate-toolbar) | — | — |
 | [Tool Window Bars](#tool-window-bars) | — | — |
+| [Enter Presentation Mode](#enter-presentation-mode) | — | — |
+| [Enter Distraction-Free Mode](#enter-distraction-free-mode) | — | — |
+| [Enter Zen Mode](#enter-zen-mode) | — | — |
+| [Enter Full Screen](#enter-full-screen) | — | `Ctrl+Cmd+F` |
+| [Zoom IDE In](#zoom-ide-in) | `Ctrl+Alt+Shift+=` | `Ctrl+Alt+Shift+=` |
+| [Zoom IDE Out](#zoom-ide-out) | `Ctrl+Alt+Shift+-` | `Ctrl+Alt+Shift+-` |
+| [Reset IDE Zoom](#reset-ide-zoom) | `Ctrl+Alt+Shift+0` | `Ctrl+Alt+Shift+0` |
+| [Next Project Window](#next-project-window) | `Ctrl+Alt+]` | `` Cmd+` `` |
+| [Previous Project Window](#previous-project-window) | `Ctrl+Alt+[` | `` Cmd+Shift+` `` |
 | [Keymap Reference](#keymap-reference) | — | — |
 | [About](#about) | — | — |
 | [Exit](#exit) | — | `Cmd+Q` |
@@ -216,6 +225,96 @@ Shows or hides the tool window stripes along the window edges.
 **Menu:** View | Appearance | Tool Window Bars
 
 More: [Workbench and tool windows](../../user/workbench.md#managing-tool-windows)
+
+## Enter Presentation Mode
+
+**Shortcut:** — · macOS — · action id `TogglePresentationMode`
+
+Full screen without tool windows and bars, with a large editor font; run again to leave it.
+
+**Menu:** View | Appearance | Enter Presentation Mode
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Enter Distraction-Free Mode
+
+**Shortcut:** — · macOS — · action id `ToggleDistractionFreeMode`
+
+Only the centered text; leaving it restores the tool windows.
+
+**Menu:** View | Appearance | Enter Distraction-Free Mode
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Enter Zen Mode
+
+**Shortcut:** — · macOS — · action id `ToggleZenMode`
+
+Distraction-Free Mode in full screen.
+
+**Menu:** View | Appearance | Enter Zen Mode
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Enter Full Screen
+
+**Shortcut:** — · macOS `Ctrl+Cmd+F` · action id `ToggleFullScreen`
+
+The window covers the screen; run again to leave full screen.
+
+**Menu:** View | Appearance | Enter Full Screen
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#presentation-distraction-free-zen-and-full-screen)
+
+## Zoom IDE In
+
+**Shortcut:** `Ctrl+Alt+Shift+=` · macOS `Ctrl+Alt+Shift+=` · action id `ZoomInIdeAction`
+
+Scales the whole IDE up one step.
+
+**Menu:** View | Appearance | Zoom IDE | Zoom In
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#zoom-ide)
+
+## Zoom IDE Out
+
+**Shortcut:** `Ctrl+Alt+Shift+-` · macOS `Ctrl+Alt+Shift+-` · action id `ZoomOutIdeAction`
+
+Scales the whole IDE down one step.
+
+**Menu:** View | Appearance | Zoom IDE | Zoom Out
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#zoom-ide)
+
+## Reset IDE Zoom
+
+**Shortcut:** `Ctrl+Alt+Shift+0` · macOS `Ctrl+Alt+Shift+0` · action id `ResetIdeScaleAction`
+
+Back to 100 %.
+
+**Menu:** View | Appearance | Zoom IDE | Reset
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#zoom-ide)
+
+## Next Project Window
+
+**Shortcut:** `Ctrl+Alt+]` · macOS `` Cmd+` `` · action id `NextProjectWindow`
+
+Brings the next project window to the front.
+
+**Menu:** Window | Next Project Window
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#several-project-windows)
+
+## Previous Project Window
+
+**Shortcut:** `Ctrl+Alt+[` · macOS `` Cmd+Shift+` `` · action id `PreviousProjectWindow`
+
+Brings the previous project window to the front.
+
+**Menu:** Window | Previous Project Window
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#several-project-windows)
 
 ## Keymap Reference
 

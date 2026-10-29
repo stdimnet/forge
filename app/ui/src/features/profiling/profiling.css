@@ -1,0 +1,122 @@
+.profiling-view .prof-title {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profiling-stats {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profiling-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profiling-filter .input {
+  width: 260px;
+}
+
+.profiling-main {
+  flex: 1;
+}
+
+.profiling-scroll {
+  min-height: 0;
+  overflow: auto;
+}
+
+.profiling-table th {
+  cursor: default;
+  user-select: none;
+}
+
+.profiling-table th.profiling-sorted {
+  color: var(--fg-strong);
+}
+
+.profiling-table thead th:not(:last-child) {
+  cursor: pointer;
+}
+
+.profiling-table tbody tr {
+  cursor: default;
+}
+
+.profiling-table tr.profiling-selected td {
+  background: var(--bg-selection);
+}
+
+.profiling-callable {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.profiling-callable.prof-own {
+  color: var(--accent);
+}
+
+.profiling-where {
+  margin-left: 8px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+}
+
+.profiling-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.profiling-split {
+  display: flex;
+  height: 38%;
+  min-height: 120px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.profiling-edges {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profiling-edges + .profiling-edges {
+  border-left: 1px solid var(--border);
+}
+
+.profiling-edges-title {
+  padding: 3px 10px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
+}
+
+.profiling-edges .profiling-scroll {
+  flex: 1;
+}
+
+.profiling-toggle {
+  display: inline-flex;
+  width: 14px;
+  color: var(--fg-muted);
+  vertical-align: middle;
+}
+
+.profiling-object td:first-child {
+  padding-left: 34px;
+}
+
+.profiling-table td.profiling-left {
+  text-align: left;
+}

@@ -3,7 +3,7 @@
 //! the values come from in `forge-codestyle`, which also runs the other PHP options (spaces,
 //! code conversion) after Reformat Code.
 //!
-//! - Brace placement is passed to Intelephense's formatter (`intelephense.format.braces`) and
+//! - Brace placement is passed to php-lsp's formatter (`intelephense.format.braces`) and
 //!   used by the "Generate" actions.
 //! - Blank lines are applied by [`tidy_blank_lines`] after Reformat Code (Ctrl+Alt+L): runs of
 //!   blank lines are cut to "Keep maximum blank lines", and the blank lines after the
@@ -93,6 +93,8 @@ pub struct PhpCodeStyle {
     pub blank_lines_after_imports: usize,
     pub blank_lines_around_methods: usize,
     pub blank_lines_before_return: usize,
+    /// The Imports tab and the PHP Auto Import options.
+    pub imports: crate::imports::ImportStyle,
 }
 
 impl Default for PhpCodeStyle {
@@ -104,6 +106,7 @@ impl Default for PhpCodeStyle {
             blank_lines_after_imports: 1,
             blank_lines_around_methods: 1,
             blank_lines_before_return: 0,
+            imports: crate::imports::ImportStyle::default(),
         }
     }
 }
@@ -124,6 +127,7 @@ impl PhpCodeStyle {
             blank_lines_after_imports: num(AFTER_IMPORTS_KEY, d.blank_lines_after_imports),
             blank_lines_around_methods: num(AROUND_METHODS_KEY, d.blank_lines_around_methods),
             blank_lines_before_return: num(BEFORE_RETURN_KEY, d.blank_lines_before_return),
+            imports: crate::imports::ImportStyle::from_settings(&get),
         }
     }
 }

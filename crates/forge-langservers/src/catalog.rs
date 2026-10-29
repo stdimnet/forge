@@ -81,6 +81,10 @@ pub struct When {
     /// `package.json` dependencies (any section).
     #[serde(default)]
     pub packages: Vec<String>,
+    /// Root-level files that keep the server from starting (TypeScript in a Deno project
+    /// with `deno.json`).
+    #[serde(default)]
+    pub absent: Vec<String>,
 }
 
 impl When {
@@ -167,6 +171,9 @@ pub struct ServerSpec {
     pub enabled: bool,
     #[serde(default)]
     pub install: Vec<InstallOption>,
+    /// Built into Forge (php-lsp): nothing to install.
+    #[serde(default)]
+    pub builtin: bool,
     #[serde(default, alias = "initialization_options")]
     pub initialization_options: Value,
     #[serde(default)]
@@ -205,7 +212,7 @@ impl Catalog {
         CATALOG.get_or_init(|| Catalog::parse(CATALOG_TOML).expect("built-in catalog.toml"))
     }
 
-    /// Servers that packs start themselves (Intelephense, phpactor): listed, never planned.
+    /// Servers that packs start themselves (php-lsp, jdtls, clangd, …): listed, never planned.
     pub fn pack_servers() -> &'static Catalog {
         static PACKS: OnceLock<Catalog> = OnceLock::new();
         PACKS.get_or_init(|| Catalog::parse(PACK_SERVERS_TOML).expect("built-in pack_servers.toml"))
@@ -292,7 +299,7 @@ impl Catalog {
                     out.push(format!("server {} uses unknown language {l}", s.id));
                 }
             }
-            if s.install.is_empty() {
+            if s.install.is_empty() && !s.builtin {
                 out.push(format!("server {} has no install hint", s.id));
             }
             for i in &s.install {
@@ -324,6 +331,7 @@ mod tests {
         for s in &packs.servers {
             assert!(c.server(&s.id).is_none(), "{} is listed twice", s.id);
         }
+        assert!(packs.server("clangd").is_some(), "CForge starts clangd");
         for id in [
             "typescript-language-server",
             "vtsls",
@@ -351,11 +359,8 @@ mod tests {
             "pyright",
             "gopls",
             "rust-analyzer",
-            "clangd",
-            "jdtls",
             "csharp-ls",
             "ruby-lsp",
-            "kotlin-language-server",
             "zls",
         ] {
             assert!(c.server(id).is_some(), "missing {id}");

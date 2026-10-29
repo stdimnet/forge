@@ -13,8 +13,22 @@ export interface TerminalOpenOptions {
   env?: Record<string, string>;
   /** Start on this machine (in its home directory) even when the project is remote. */
   local?: boolean;
+  /** An SSH session to another host instead of a shell (Tools | Start SSH Session…). */
+  ssh?: SshTarget;
   cols: number;
   rows: number;
+}
+
+/** What an SSH terminal session connects to. */
+export interface SshTarget {
+  /** A saved SSH configuration. */
+  configId?: string;
+  /** An SFTP deployment server (its SSH configuration). */
+  serverId?: string;
+  /** Password or passphrase typed for this session. */
+  secret?: string;
+  /** The user confirmed a session to a server of an untrusted project (Safe Mode). */
+  confirmed?: boolean;
 }
 
 export interface TerminalOpened {

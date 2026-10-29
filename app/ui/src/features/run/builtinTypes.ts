@@ -1,7 +1,12 @@
-/** Built-in run configuration types: PHP Script, PHPUnit, Artisan, Composer, Shell, npm. */
-import { FileCode, FlaskConical, Hexagon, Package, SquareTerminal, Feather } from "lucide-solid";
+/**
+ * Built-in run configuration types: PHP Script, PHP Built-in Web Server, PHPUnit, Artisan,
+ * Composer, Shell, npm and Compound.
+ */
+import { FileCode, FlaskConical, Globe, Hexagon, Layers, Package, SquareTerminal, Feather } from "lucide-solid";
 import type { RunConfiguration } from "@/ipc/run";
-import { baseName, registerRunConfigurationType } from "./types";
+import { CompoundForm } from "./CompoundForm";
+import { baseName, COMPOUND, compoundMembers, registerRunConfigurationType } from "./types";
+import { phpCoverageFields } from "./phpCoverage";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const shortClass = (fqcn: string) => fqcn.split("\\").pop() ?? fqcn;
@@ -20,6 +25,48 @@ registerRunConfigurationType({
   suggestName: (cfg) => baseName(opt(cfg, "file")),
 });
 
+/** The URL a built-in web server configuration serves. */
+export function builtinServerUrl(cfg: RunConfiguration): string {
+  const host = opt(cfg, "host").trim() || "localhost";
+  const shown = host === "0.0.0.0" || host === "[::]" ? "localhost" : host;
+  return `http://${shown}:${opt(cfg, "port").trim() || "8080"}/`;
+}
+
+registerRunConfigurationType({
+  id: "php-builtin-server",
+  name: "PHP Built-in Web Server",
+  description: "Serve a document root with php -S; Debug debugs every request.",
+  icon: Globe,
+  color: "var(--info)",
+  pluginId: "forge.php",
+  interpreter: "php",
+  argumentsLabel: false,
+  debuggable: true,
+  fields: [
+    { key: "host", label: "Host", default: "localhost", placeholder: "localhost" },
+    { key: "port", label: "Port", default: "8080", placeholder: "8080" },
+    { key: "documentRoot", label: "Document root", kind: "path", directory: true, placeholder: "public (empty: the project root)" },
+    { key: "useRouter", label: "Use router script", kind: "bool" },
+    {
+      key: "routerScript",
+      label: "Router script",
+      kind: "path",
+      required: true,
+      placeholder: "public/router.php",
+      visible: (c) => opt(c, "useRouter") === "true",
+    },
+    { key: "openBrowser", label: "Open in browser after launch", kind: "bool", default: "true" },
+  ],
+  suggestName: (cfg) => `${opt(cfg, "host") || "localhost"}:${opt(cfg, "port") || "8080"}`,
+  afterStart: (cfg, handle) => {
+    if ((cfg.options?.openBrowser ?? "true") !== "true") return;
+    let exited = false;
+    void handle.exited.then(() => (exited = true));
+    // Give `php -S` a moment to bind its port; a server that failed to start opens nothing.
+    setTimeout(() => !exited && window.open(builtinServerUrl(cfg), "_blank", "noopener"), 800);
+  },
+});
+
 const scope = (cfg: RunConfiguration) => opt(cfg, "scope") || "config";
 
 registerRunConfigurationType({
@@ -33,6 +80,8 @@ registerRunConfigurationType({
   argumentsLabel: false,
   debuggable: true,
   testRunner: true,
+  coverage: true,
+  coverageFields: phpCoverageFields("phpunit"),
   fields: [
     {
       key: "scope",
@@ -197,4 +246,17 @@ registerRunConfigurationType({
     },
   ],
   suggestName: (cfg) => opt(cfg, "script") || opt(cfg, "command") || undefined,
+});
+
+registerRunConfigurationType({
+  id: COMPOUND,
+  name: "Compound",
+  description: "Start several configurations together, each in its own Run tab.",
+  icon: Layers,
+  color: "var(--accent)",
+  argumentsLabel: false,
+  debuggable: true,
+  fields: [],
+  form: CompoundForm,
+  validate: (cfg) => (compoundMembers(cfg).length ? null : "No configurations to run"),
 });

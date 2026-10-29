@@ -1,0 +1,22 @@
+[package]
+name = "forge-localhistory"
+description = "Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["disk"]
+# The on-disk store (compressed contents, append-only change log). Without it only the
+# in-memory store is built (WebAssembly, tests).
+disk = ["dep:flate2"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"
+similar = "2"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

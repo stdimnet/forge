@@ -1,0 +1,8 @@
+src/shapes.cpp:39:18: runtime error: signed integer overflow: 2147483647 + 2 cannot be represented in type 'int'
+    #0 0x556f0f4ed803 in overflow(int) src/shapes.cpp:39
+    #1 0x556f0f4edaec in main src/shapes.cpp:55
+    #2 0x7fe0cc42a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x7fe0cc42a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #4 0x556f0f4ed2c4 in _start (/home/anna/Projects/shapes/cmake-build-debug/ubsan+0x32c4) (BuildId: 1b9c03dcbfa6844fe57c121ce0c9c8afc2a0a80a)
+
+-2147483647

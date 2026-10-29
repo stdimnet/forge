@@ -1,4 +1,4 @@
-/* Laravel plugin: Routes tool window, artisan popup, gutter icons, declaration chooser.
+/* Laravel plugin: Routes tool window, gutter icons, declaration chooser.
    Colors come from theme.css variables only. */
 
 /* ---------- Routes tool window ---------- */
@@ -207,127 +207,6 @@
   }
 }
 
-/* ---------- Run Artisan Command popup ---------- */
-.artisan-popup {
-  width: min(760px, calc(100vw - 32px));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.artisan-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 6px 0 12px;
-}
-.artisan-header-icon {
-  color: var(--accent);
-}
-.artisan-title {
-  font-weight: 600;
-  color: var(--fg-strong);
-}
-.artisan-note {
-  font-size: var(--fs-small);
-  color: var(--warning);
-}
-.artisan-shortcut {
-  margin-left: auto;
-}
-.artisan-search {
-  gap: 6px;
-}
-.artisan-prompt {
-  font-family: var(--font-mono);
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-.artisan-search .se-input {
-  font-family: var(--font-mono);
-}
-.artisan-results {
-  max-height: 360px;
-}
-.artisan-row {
-  font-size: var(--fs-ui);
-}
-.artisan-name {
-  font-family: var(--font-mono);
-  color: var(--fg-strong);
-  flex-shrink: 0;
-}
-.artisan-args {
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-  color: var(--syn-variable);
-  flex-shrink: 0;
-}
-.artisan-desc {
-  margin-left: auto;
-  padding-left: 16px;
-  text-align: right;
-}
-.artisan-footer {
-  display: flex;
-  gap: 16px;
-  padding: 6px 12px;
-  border-top: 1px solid var(--border);
-  font-size: var(--fs-small);
-}
-.artisan-run-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 10px 6px;
-  padding: 0 4px 0 10px;
-  height: 32px;
-  border-radius: var(--radius);
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-}
-.artisan-cmdline {
-  font-family: var(--font-mono);
-  color: var(--fg-strong);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.artisan-status {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-small);
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-.artisan-status.ok {
-  color: var(--success);
-}
-.artisan-status.failed {
-  color: var(--danger);
-}
-.artisan-output {
-  height: 340px;
-  overflow: auto;
-  margin: 0 10px 8px;
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  background: var(--bg-editor);
-  border: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-  line-height: 1.5;
-  outline: none;
-}
-.artisan-line {
-  white-space: pre;
-  color: var(--fg);
-}
-.artisan-line.stderr {
-  color: var(--danger);
-}
-
 /* ---------- Editor: gutter icons, chooser, completion docs ---------- */
 .cm-laravel-gutter .cm-gutterElement {
   display: flex;
@@ -368,4 +247,273 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 12px;
+}
+
+/* ---------- Laravel tool window ---------- */
+.lv-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.lv-overview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  align-content: start;
+}
+.lv-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  padding: 8px 10px;
+  min-width: 0;
+}
+.lv-card.lv-wide {
+  grid-column: span 2;
+}
+.lv-card h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lv-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+.lv-fact-label {
+  color: var(--fg-muted);
+}
+.lv-fact-value {
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lv-overview .mono,
+.lv-logs .mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.lv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.lv-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--fg-faint);
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.lv-table td {
+  padding: 3px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+.lv-table tbody tr {
+  cursor: pointer;
+}
+.lv-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.lv-strong {
+  color: var(--fg-strong);
+}
+.lv-icon {
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--accent);
+}
+.lv-actions {
+  width: 1%;
+  text-align: right;
+}
+.lv-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0 6px;
+}
+.lv-error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+
+/* Logs */
+.lv-logs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.lv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.lv-select {
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+.lv-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  width: min(320px, 40%);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+}
+.lv-search input,
+.lv-search input:focus {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  color: var(--fg-strong);
+}
+.lv-toolbar .icon-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.lv-count {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.lv-entries {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-size: 12.5px;
+}
+.lv-entry {
+  border-bottom: 1px solid var(--border);
+}
+.lv-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  cursor: default;
+  white-space: nowrap;
+}
+.lv-entry-head:hover {
+  background: var(--bg-hover);
+}
+.lv-chevron {
+  width: 12px;
+  display: inline-flex;
+  color: var(--fg-faint);
+}
+.lv-level {
+  min-width: 64px;
+  text-align: center;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font: 600 10.5px/16px var(--font-mono);
+  color: var(--fg-muted);
+  background: var(--bg-active);
+}
+.lv-level-info,
+.lv-level-notice {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+}
+.lv-level-warning {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+}
+.lv-level-error,
+.lv-level-critical,
+.lv-level-alert,
+.lv-level-emergency {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+.lv-time {
+  color: var(--fg-muted);
+}
+.lv-channel {
+  min-width: 70px;
+}
+.lv-message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-strong);
+}
+.lv-exception-class {
+  color: var(--danger);
+}
+.lv-frame-file {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.lv-frame-file.vendor {
+  color: var(--fg-muted);
+}
+.lv-entry-body {
+  padding: 2px 8px 8px 32px;
+  background: var(--bg-panel);
+}
+.lv-exception {
+  padding: 4px 0;
+  color: var(--fg-strong);
+  white-space: pre-wrap;
+}
+.lv-context {
+  margin: 2px 0 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--syn-string);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.lv-frame {
+  display: flex;
+  gap: 8px;
+  padding: 1px 0;
+  white-space: nowrap;
+}
+.lv-frame.vendor {
+  opacity: 0.7;
+}
+.lv-frame-index {
+  min-width: 26px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.lv-frame-call {
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

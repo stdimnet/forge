@@ -33,6 +33,22 @@ describe("toOption", () => {
     expect(option.displayLabel).toBe("count()");
   });
 
+  it("puts the caret between the parentheses a server inserts with a method name", () => {
+    const view = new EditorView({ doc: "$this->calc", selection: { anchor: 11 } });
+    const item: EditorCompletionItem = {
+      label: "calculateTotal",
+      kind: "method",
+      insertText: "calculateTotal()",
+      replaceRange: { start: { line: 0, character: 11 }, end: { line: 0, character: 11 } },
+    };
+    const option = toOption("a.php", item, 0);
+    expect(option.displayLabel).toBe("calculateTotal()");
+    (option.apply as (v: EditorView, c: unknown, from: number, to: number) => void)(view, option, 7, 11);
+    expect(view.state.doc.toString()).toBe("$this->calculateTotal()");
+    expect(view.state.selection.main.head).toBe(22);
+    view.destroy();
+  });
+
   it("replaces the quoted key including the auto-closed quote and starts the snippet", () => {
     const doc = '{\n  "ex"\n}';
     const view = new EditorView({ doc, selection: { anchor: 7 } }); // between `ex` and the closing quote

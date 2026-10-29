@@ -112,4 +112,18 @@ describe("services mock (Rust tree through WebAssembly)", () => {
     ]);
     expect((await servicesApi.gutter("Dockerfile", "FROM php\n"))[0].kind).toBe("dockerfile");
   });
+
+  it("selects Kubernetes contexts and applies manifests", async () => {
+    const sel = await servicesApi.kubeSelection();
+    expect(sel?.contexts).toEqual(["kind-acme", "prod-eu"]);
+    expect(sel?.source).toBe("~/.kube/config");
+    expect(sel?.host).toBeUndefined();
+    const picked = await servicesApi.kubeSelect("kind-acme", "default");
+    expect([picked?.context, picked?.namespace]).toEqual(["kind-acme", "default"]);
+    const marks = await servicesApi.gutter("k8s/deployment.yaml", "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n");
+    expect(marks[0].kind).toBe("kubeManifest");
+    await servicesApi.kubeApply("k8s/deployment.yaml", "apply");
+    const lines = (await servicesApi.console("run:kube")).map((l) => l.segments.map((s) => s.text).join(""));
+    expect(lines.some((l) => l.includes("deployment.apps/web configured"))).toBe(true);
+  });
 });

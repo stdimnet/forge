@@ -53,12 +53,7 @@ async fn a_host_on_an_ssh_project_shares_it_with_guests() {
     let remote = tokio::task::spawn_blocking(move || {
         RemoteBackend::open(
             Arc::new(client),
-            RemoteHost {
-                host: "shop.example.com".into(),
-                port: 22,
-                user: "deploy".into(),
-                config_id: None,
-            },
+            RemoteHost::ssh("shop.example.com", 22, "deploy"),
             &root_str,
         )
     })

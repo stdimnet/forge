@@ -1,0 +1,336 @@
+# RustForge: Rust in the style of RustRover. The logic lives in packs/rustforge (lang-rust:
+# cargo metadata, toolchain files, test discovery, the Cargo Test provider, Cargo command
+# lines, Clippy messages, rustfmt, rust-analyzer settings and debugger pretty printers;
+# toolchain: rustup and toolchain detection, the rust-analyzer download and the rust-gdb
+# adapter). rust-analyzer comes from the language server catalog (crates/forge-langservers)
+# and is configured from these settings (app/src-tauri/src/commands/rust.rs).
+
+[[plugin]]
+id = "forge.rust"
+name = "Rust"
+version = "0.1.0"
+pack = "rustforge"
+vendor = "Forge"
+projectTypes = ["rustforge"]
+description = "rustup toolchains and rust-toolchain.toml, the Cargo tool window (workspace members, targets, features, dependencies), Cargo run configurations, cargo test / nextest / doctests with coverage (cargo-llvm-cov), Clippy with quick fixes, rustfmt, rust-analyzer and LLDB / GDB debugging with Rust type renderers."
+
+[plugin.contributions]
+languages = ["rust"]
+
+[[plugin.contributions.fileTypes]]
+id = "toml"
+name = "TOML"
+extensions = ["toml"]
+fileNames = ["Cargo.lock", "rust-toolchain"]
+indentSize = 4
+
+[[plugin.contributions.commands]]
+id = "rust.refreshCargo"
+title = "Reload Cargo Project"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.cargoBuild"
+title = "Build (cargo build)"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.cargoCheck"
+title = "Check (cargo check)"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.cargoClean"
+title = "Clean (cargo clean)"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.cargoUpdate"
+title = "Update Dependencies (cargo update)"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.clippy"
+title = "Run Clippy"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.installToolchain"
+title = "Install Rust Toolchain…"
+category = "Rust"
+
+[[plugin.contributions.commands]]
+id = "rust.downloadAnalyzer"
+title = "Download rust-analyzer…"
+category = "Rust"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "cargo"
+name = "Cargo"
+description = "Run a cargo command (run, test, bench, build or any other) with a toolchain, package, target, features, profile and target triple."
+icon = "package"
+debuggable = true
+
+# The Cargo Test provider (rustforge_lang_rust::provider) wraps this spec: discovery of
+# tests, benchmarks, test modules and doctests, `cargo test` / `cargo nextest` command
+# lines, coverage with cargo-llvm-cov and Rerun Failed Tests are built in Rust.
+[[plugin.contributions.testFrameworks]]
+id = "cargo-test"
+name = "Cargo Test"
+description = "Run cargo test or cargo nextest: the workspace, a package, a target, a module, a test or a doctest; benchmarks; coverage with cargo-llvm-cov."
+icon = "flask-conical"
+language = "rust"
+detect = { files = ["Cargo.toml", "*/Cargo.toml", "**/Cargo.toml"] }
+testFiles = ["*.rs"]
+program = "cargo"
+report = "libtestJson"
+debuggable = true
+coverage = { args = [], file = "${coverageFile}", format = "lcov" }
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+test = ["${test}"]
+pattern = ["${pattern}"]
+
+# ---- Settings | Rust --------------------------------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "rust.toolchain"
+title = "Toolchain"
+description = "The toolchain of the project's cargo, rustc, rustfmt and Clippy commands (cargo +<toolchain>). Empty: rustup's choice, which follows rust-toolchain.toml."
+type = "string"
+default = ""
+group = "lang.rust"
+section = "Toolchain"
+project = true
+hidden = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "rust.environment"
+title = "Environment"
+description = "Variables for cargo commands of the project, one KEY=VALUE per entry (RUSTFLAGS, CARGO_TARGET_DIR, RUST_LOG)."
+type = "list"
+default = []
+group = "lang.rust"
+section = "Cargo"
+project = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "rust.cargo.features"
+title = "Features"
+description = "Cargo features every build, run, test and rust-analyzer use; the Cargo tool window's checkboxes edit them."
+type = "list"
+default = []
+group = "lang.rust"
+section = "Cargo"
+project = true
+order = 11
+
+[[plugin.contributions.settings]]
+key = "rust.cargo.allFeatures"
+title = "Use all features"
+type = "bool"
+default = false
+group = "lang.rust"
+section = "Cargo"
+project = true
+order = 12
+
+[[plugin.contributions.settings]]
+key = "rust.cargo.noDefaultFeatures"
+title = "Do not use the default features"
+type = "bool"
+default = false
+group = "lang.rust"
+section = "Cargo"
+project = true
+order = 13
+
+[[plugin.contributions.settings]]
+key = "rust.test.runner"
+title = "Test runner"
+description = "cargo-nextest runs tests in parallel processes; doctests and benchmarks always run with cargo test."
+type = "enum"
+options = [
+  { value = "cargo", label = "cargo test" },
+  { value = "nextest", label = "cargo nextest" },
+]
+default = "cargo"
+group = "lang.rust"
+section = "Tests"
+project = true
+order = 20
+
+[[plugin.contributions.settings]]
+key = "rust.test.format"
+title = "Test results"
+description = "libtest's JSON output needs a nightly toolchain (-Z unstable-options); on stable Forge reads the plain output."
+type = "enum"
+options = [
+  { value = "auto", label = "JSON on nightly toolchains, plain output otherwise" },
+  { value = "json", label = "Always JSON (nightly)" },
+  { value = "text", label = "Always plain output" },
+]
+default = "auto"
+group = "lang.rust"
+section = "Tests"
+project = true
+order = 21
+
+[[plugin.contributions.settings]]
+key = "rust.formatter"
+title = "Reformat Code with"
+description = "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Rust files; rustfmt reads the project's rustfmt.toml."
+type = "enum"
+options = [
+  { value = "rustfmt", label = "rustfmt" },
+  { value = "lsp", label = "rust-analyzer" },
+  { value = "none", label = "Do not format" },
+]
+default = "rustfmt"
+group = "lang.rust"
+section = "Rustfmt"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "rust.rustfmt.extraArgs"
+title = "Additional rustfmt arguments"
+description = "For example --config imports_granularity=Crate."
+type = "string"
+default = ""
+group = "lang.rust"
+section = "Rustfmt"
+project = true
+order = 31
+
+[[plugin.contributions.settings]]
+key = "rust.clippy.onSave"
+title = "Run Clippy on save"
+description = "Clippy's problems of the saved file's package appear in the editor and the Problems tool window, with its suggestions as quick fixes (Alt+Enter). Clippy builds the code, so it runs only in trusted projects."
+type = "bool"
+default = false
+group = "lang.rust"
+section = "External Linter"
+project = true
+order = 40
+
+[[plugin.contributions.settings]]
+key = "rust.clippy.extraArgs"
+title = "Additional Clippy arguments"
+description = "Lint options after --, for example -W clippy::pedantic."
+type = "string"
+default = ""
+group = "lang.rust"
+section = "External Linter"
+project = true
+order = 41
+
+[[plugin.contributions.settings]]
+key = "rust.analyzer.checkOnSave"
+title = "Check on save"
+description = "rust-analyzer runs cargo check (or Clippy) when a file is saved."
+type = "bool"
+default = true
+group = "lang.rust"
+section = "rust-analyzer"
+project = true
+order = 50
+
+[[plugin.contributions.settings]]
+key = "rust.analyzer.checkCommand"
+title = "Check command"
+type = "enum"
+options = [
+  { value = "clippy", label = "Clippy" },
+  { value = "check", label = "cargo check" },
+]
+default = "clippy"
+group = "lang.rust"
+section = "rust-analyzer"
+project = true
+order = 51
+
+[[plugin.contributions.settings]]
+key = "rust.analyzer.target"
+title = "Target triple"
+description = "Analyze for another target, e.g. wasm32-unknown-unknown. Empty: the host."
+type = "string"
+default = ""
+group = "lang.rust"
+section = "rust-analyzer"
+project = true
+order = 52
+
+[[plugin.contributions.settings]]
+key = "rust.analyzer.procMacros"
+title = "Expand procedural macros"
+description = "Runs the project's proc macros (trusted projects only; Safe Mode does not start rust-analyzer)."
+type = "bool"
+default = true
+group = "lang.rust"
+section = "rust-analyzer"
+project = true
+order = 53
+
+[[plugin.contributions.settings]]
+key = "rust.analyzer.buildScripts"
+title = "Run build scripts"
+description = "Runs build.rs for generated code and cfgs (trusted projects only)."
+type = "bool"
+default = true
+group = "lang.rust"
+section = "rust-analyzer"
+project = true
+order = 54
+
+[[plugin.contributions.settings]]
+key = "rust.analyzer.path"
+title = "rust-analyzer executable"
+description = "Empty: the toolchain's rust-analyzer component, Forge's download or the PATH."
+type = "path"
+default = ""
+group = "lang.rust"
+section = "rust-analyzer"
+order = 55
+
+[[plugin.contributions.settings]]
+key = "rust.debugger"
+title = "Debugger"
+description = "LLDB needs lldb-dap (Settings | Build | Debugger); GDB needs GDB 14 or newer."
+type = "enum"
+options = [
+  { value = "auto", label = "LLDB when lldb-dap is installed, else GDB" },
+  { value = "lldb", label = "LLDB" },
+  { value = "gdb", label = "GDB" },
+]
+default = "auto"
+group = "lang.rust"
+section = "Debugger"
+order = 60
+
+[[plugin.contributions.settings]]
+key = "rust.debugger.prettyPrinters"
+title = "Show Rust types with rustc's pretty printers"
+description = "Vec, String, Option, HashMap and friends as values (the scripts of rust-lldb and rust-gdb from the toolchain's sysroot)."
+type = "bool"
+default = true
+group = "lang.rust"
+section = "Debugger"
+order = 61
+
+[[plugin.contributions.inspections]]
+id = "RsClippy"
+name = "Clippy and rustc problems"
+group = "Rust/External tools"
+language = "rust"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by cargo clippy (Run Clippy); they keep Clippy's level until the profile sets a severity."
+
+[[plugin.contributions.inspectionMappings]]
+source = "clippy"
+inspection = "RsClippy"

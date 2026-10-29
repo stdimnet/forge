@@ -1,14 +1,14 @@
 /**
  * PHPForge Laravel plugin (`forge.laravel`): Blade highlighting and completion, Laravel
- * completion and Go to Declaration in PHP and Blade, gutter icons, the Routes tool window,
- * Run Artisan Command… (Ctrl+Shift+X), the "Laravel 12" status item and
+ * completion and Go to Declaration in PHP and Blade (plus ide.json completions), gutter
+ * icons, the Routes tool window, the Laravel tool window (overview, logs, ide.json code
+ * generations), Run Artisan Command… (the Command Line Tools Console with the artisan alias), the
+ * "Laravel 12" status item and
  * Settings | Languages & Frameworks | PHP | Laravel. Everything but the Blade syntax mode
  * is active only when the project uses Laravel and the plugin is enabled.
  */
-import { createComponent } from "solid-js";
-import { render } from "solid-js/web";
 import { StreamLanguage } from "@codemirror/language";
-import { Route } from "lucide-solid";
+import { LayoutDashboard, Route } from "lucide-solid";
 import { registerLanguage } from "@/editor/languages";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerToolWindow } from "@/features/registry";
@@ -22,7 +22,9 @@ import { laravelCompletion } from "./completion";
 import { laravelGotoExtension, wrapGotoDeclaration } from "./goto";
 import { laravelGutter } from "./gutter";
 import { RoutesActions, RoutesView } from "./RoutesView";
-import { ArtisanPopup, openArtisanPopup } from "./ArtisanPopup";
+import { LaravelActions, LaravelView, loadOverview, setLaravelTab } from "./LaravelView";
+import { openRunCommand } from "@/features/cliTools/CommandPopup";
+import { tools as cliTools } from "@/features/cliTools/store";
 import { LaravelSettingsPage, LaravelStatus, showLaravelStatus } from "./status";
 import { laravelActive, laravelInfo, laravelSetting, loadRoutes } from "./state";
 import "./laravel.css";
@@ -59,6 +61,17 @@ registerToolWindow({
   when: laravelActive,
 });
 
+registerToolWindow({
+  id: "laravel",
+  title: "Laravel",
+  icon: LayoutDashboard,
+  anchor: "bottom",
+  order: 36,
+  component: LaravelView,
+  actions: LaravelActions,
+  when: laravelActive,
+});
+
 registerStatusItem({ id: "framework.laravel", align: "right", order: 80, component: LaravelStatus, when: showLaravelStatus });
 
 registerSettingsPage({
@@ -72,21 +85,21 @@ registerSettingsPage({
 });
 
 registerKeymapActions([
-  {
-    id: "Laravel.RunArtisan",
-    title: "Run Artisan Command…",
-    group: "Laravel",
-    shortcuts: { $default: ["Ctrl+Shift+X"], macOS: ["Cmd+Shift+X"] },
-  },
+  { id: "Laravel.RunArtisan", title: "Run Artisan Command…", group: "Laravel" },
   { id: "Laravel.ShowRoutes", title: "Routes", group: "Laravel" },
+  { id: "Laravel.ShowDashboard", title: "Laravel Tool Window", group: "Laravel" },
+  { id: "Laravel.ShowLogs", title: "Laravel Logs", group: "Laravel" },
 ]);
 
 registerCommand({
   id: "Laravel.RunArtisan",
   title: "Run Artisan Command…",
   category: "Laravel",
+  // Tools | Run Command… (Ctrl+Shift+X) with the artisan tool's alias typed in.
   run: () => {
-    if (laravelActive()) openArtisanPopup();
+    if (!laravelActive()) return;
+    const alias = cliTools().find((t) => t.kind === "artisan" && t.enabled)?.alias ?? "a";
+    openRunCommand(`${alias} `);
   },
 });
 registerCommand({
@@ -99,10 +112,24 @@ registerCommand({
     void loadRoutes();
   },
 });
-
-if (typeof document !== "undefined") {
-  const host = document.createElement("div");
-  host.id = "laravel-overlay";
-  document.body.appendChild(host);
-  render(() => createComponent(ArtisanPopup, {}), host);
-}
+registerCommand({
+  id: "Laravel.ShowDashboard",
+  title: "Laravel Tool Window",
+  category: "Laravel",
+  run: () => {
+    if (!laravelActive()) return;
+    setLaravelTab("overview");
+    showToolWindow("laravel");
+    void loadOverview();
+  },
+});
+registerCommand({
+  id: "Laravel.ShowLogs",
+  title: "Laravel Logs",
+  category: "Laravel",
+  run: () => {
+    if (!laravelActive()) return;
+    setLaravelTab("logs");
+    showToolWindow("laravel");
+  },
+});

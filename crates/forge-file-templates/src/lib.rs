@@ -576,7 +576,7 @@ pub fn new_file(req: &NewFileRequest, custom: &[CustomTemplate]) -> Result<NewFi
     vars.insert(
         "PACKAGE_NAME".into(),
         if namespace.is_empty() {
-            dir.replace('/', ".")
+            package_of_dir(&dir)
         } else {
             namespace.clone()
         },
@@ -623,6 +623,20 @@ pub fn code_overrides(custom: &[CustomTemplate]) -> BTreeMap<String, String> {
         .filter(|c| c.kind == TemplateKind::Code)
         .map(|c| (c.name.clone(), c.text.clone()))
         .collect()
+}
+
+/// The JVM package of a folder: the path below its source root (`app/src/main/kotlin/com/acme`,
+/// `src/test/groovy/com/acme`, `src/main/scala/com/acme`
+/// → `com.acme`), else the folder path with dots.
+pub fn package_of_dir(dir: &str) -> String {
+    let d = dir.trim_matches('/');
+    let parts: Vec<&str> = d.split('/').collect();
+    for i in 0..parts.len().saturating_sub(2) {
+        if parts[i] == "src" && matches!(parts[i + 2], "kotlin" | "java" | "groovy" | "scala") {
+            return parts[i + 3..].join(".");
+        }
+    }
+    d.replace('/', ".")
 }
 
 /// Render the code template `name` (the user's version from `overrides` when there is one).
@@ -794,6 +808,33 @@ mod tests {
     }
 
     #[test]
+    fn wordpress_plugin_and_theme_headers() {
+        let mut r = req("WordPress Plugin", "", "acme-events");
+        r.context.user = "marlon".into();
+        let f = new_file(&r, &[]).unwrap();
+        assert_eq!(f.path, "acme-events.php");
+        assert!(
+            f.text.contains(" * Plugin Name:       acme-events\n"),
+            "{}",
+            f.text
+        );
+        assert!(f.text.contains(" * Text Domain:       acme-events\n"));
+        assert!(f.text.contains(" * Author:            marlon\n"));
+        assert!(
+            f.text.contains("function acme_events_init() {"),
+            "{}",
+            f.text
+        );
+        assert!(f.text.contains("add_action( 'init', 'acme_events_init' );"));
+        let mut r = req("WordPress Theme Stylesheet", "", "style");
+        r.context.project_name = "Anvil".into();
+        let f = new_file(&r, &[]).unwrap();
+        assert_eq!(f.path, "style.css");
+        assert!(f.text.starts_with("/*\nTheme Name: Anvil\n"), "{}", f.text);
+        assert!(f.text.contains("Text Domain: anvil\n"));
+    }
+
+    #[test]
     fn web_and_lua_files() {
         let f = new_file(&req("HTML File", "public", "about"), &[]).unwrap();
         assert_eq!(f.path, "public/about.html");
@@ -857,6 +898,28 @@ mod tests {
         let f = new_file(&r, &custom).unwrap();
         assert_eq!(f.path, "docs/guide/intro.md");
         assert_eq!(f.text, "# Intro\ndocs.guide docs/guide 07");
+    }
+
+    #[test]
+    fn kotlin_templates_take_the_package_from_the_source_root() {
+        assert_eq!(
+            package_of_dir("app/src/main/kotlin/com/acme/orders"),
+            "com.acme.orders"
+        );
+        assert_eq!(package_of_dir("src/test/java/com/acme"), "com.acme");
+        assert_eq!(package_of_dir("src/main/kotlin"), "");
+        assert_eq!(package_of_dir("docs/guide"), "docs.guide");
+        let f = new_file(
+            &req("Kotlin Class", "src/main/kotlin/com/acme/orders", "Invoice"),
+            &[],
+        )
+        .unwrap();
+        assert_eq!(f.path, "src/main/kotlin/com/acme/orders/Invoice.kt");
+        assert_eq!(f.text, "package com.acme.orders\n\nclass Invoice {\n}\n");
+        let f = new_file(&req("Kotlin Object", "src/main/kotlin", "Registry"), &[]).unwrap();
+        assert_eq!(f.text, "object Registry {\n}\n");
+        let f = new_file(&req("Kotlin Script", "scripts", "release"), &[]).unwrap();
+        assert_eq!(f.path, "scripts/release.main.kts");
     }
 
     #[test]

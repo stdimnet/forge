@@ -192,6 +192,9 @@ pub fn scratches_http_request(request_json: &str) -> String {
         base: String,
         #[serde(default)]
         files: BTreeMap<String, String>,
+        /// Add the Xdebug session cookie (Debug).
+        #[serde(default)]
+        debug: bool,
     }
     match parse::<Req>(request_json) {
         Ok(r) => {
@@ -211,7 +214,10 @@ pub fn scratches_http_request(request_json: &str) -> String {
                 Dynamic::new(r.timestamp, r.seed),
             )
             .with_loader(&load);
-            let resolved = resolver.resolve(req);
+            let mut resolved = resolver.resolve(req);
+            if r.debug {
+                resolved.request.add_debug_cookie("FORGE");
+            }
             let (handler, mut problems) = match resolver.handler(req) {
                 Ok(h) => (h, resolved.problems),
                 Err(e) => (None, [resolved.problems, vec![e]].concat()),

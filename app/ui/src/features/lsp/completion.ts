@@ -142,8 +142,68 @@ function applyEdit(item: EditorCompletionItem) {
   };
 }
 
+/** What happened when a completion was applied: `from..to` is the inserted text now. */
+export interface AppliedCompletion {
+  path: string;
+  view: EditorView;
+  item: EditorCompletionItem;
+  from: number;
+  to: number;
+}
+
+/**
+ * Runs after a completion was applied, e.g. Auto Import adding the `use` statement of a
+ * completed class. Return true when the hook handled the server's `additionalTextEdits`
+ * itself, so they are not applied as well.
+ */
+export type CompletionApplyHook = (applied: AppliedCompletion) => boolean | void;
+const applyHooks: CompletionApplyHook[] = [];
+
+export function registerCompletionApplyHook(hook: CompletionApplyHook): void {
+  applyHooks.push(hook);
+}
+
+type ApplyFn = (view: EditorView, completion: Completion, from: number, to: number) => void;
+
+/**
+ * Run `apply`, then the hooks, then the server's additional edits (imports of a completed
+ * name) when no hook took care of them. Edits are fetched with `completionItem/resolve`
+ * when the list did not carry them.
+ */
+function withAdditionalEdits(path: string, item: EditorCompletionItem, apply: ApplyFn | string): ApplyFn {
+  return (view, completion, from, to) => {
+    const before = view.state.doc.length;
+    if (typeof apply === "string") {
+      view.dispatch({ changes: { from, to, insert: apply }, selection: { anchor: from + apply.length }, userEvent: "input.complete" });
+    } else apply(view, completion, from, to);
+    const end = Math.max(from, to + view.state.doc.length - before);
+    const applied = { path, view, item, from, to: end };
+    if (applyHooks.some((hook) => hook(applied) === true)) return;
+    void applyAdditionalEdits(applied);
+  };
+}
+
+async function applyAdditionalEdits({ path, view, item, from }: AppliedCompletion): Promise<void> {
+  let edits = item.additionalTextEdits ?? [];
+  if (!edits.length && item.raw) {
+    const doc = view.state.doc;
+    const resolved = await lspApi.completionResolve(path, item.raw).catch(() => null);
+    if (view.state.doc !== doc) return;
+    edits = resolved?.additionalTextEdits ?? [];
+  }
+  const doc = view.state.doc;
+  // They refer to the text before the completion: only edits before it still fit.
+  const changes = edits
+    .map((e) => ({ from: fromLsp(doc, e.range.start), to: fromLsp(doc, e.range.end), insert: e.newText }))
+    .filter((c) => c.to <= from);
+  if (changes.length) view.dispatch({ changes, userEvent: "input.complete" });
+}
+
 export function toOption(path: string, item: EditorCompletionItem, rank: number): Completion {
-  const callable = CALLABLE.has(item.kind) && (item.insertText ?? item.label) === item.label;
+  // Methods and functions put the caret between the parentheses, also when the server
+  // inserts them itself (php-lsp sends `name()` to clients without snippets).
+  const insert = item.insertText ?? item.label;
+  const callable = CALLABLE.has(item.kind) && (insert === item.label || insert === `${item.label}()`);
   // Options are matched on `label`; servers whose edit replaces more than the word (JSON keys
   // include the quotes) send the text to match as `filterText`.
   const filter = item.filterText && item.filterText !== item.label ? item.filterText : undefined;
@@ -153,7 +213,7 @@ export function toOption(path: string, item: EditorCompletionItem, rank: number)
     displayLabel: callable ? `${item.label}()` : filter ? item.label : undefined,
     type: item.kind,
     detail: item.detail ?? undefined,
-    apply: callable ? applyCall(item.label) : needsEdit ? applyEdit(item) : (item.insertText ?? item.label),
+    apply: withAdditionalEdits(path, item, callable ? applyCall(item.label) : needsEdit ? applyEdit(item) : (item.insertText ?? item.label)),
     boost: Math.max(-99, 99 - rank),
     info: async () => {
       let doc = item.documentation;

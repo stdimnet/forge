@@ -15,11 +15,15 @@ Forge's PHPStorm-compatible keymap engine.
 
 - `shortcut`: parsing ("Ctrl+K Ctrl+C", "Shift Shift", "Cmd+,"), canonical ids, display
   strings ("Ctrl+Shift+A" / "⇧⌘A") and key names of DOM keyboard events.
-- `catalog`: PHPStorm's default keymaps (Windows/Linux and macOS) and action aliases.
+- `catalog`: PHPStorm's default keymaps (Windows/Linux and macOS), the derived bundled
+  keymaps (VS Code, Eclipse, Sublime Text, Emacs, `data/keymaps.json`) and action aliases.
 - `engine`: bindings, conflict detection and the `Resolver` state machine that turns
   key events into actions (chords, double taps, focus contexts).
 - `keymap`: the `KeymapService` combining the catalog, plugin actions, registered
-  commands and user overrides from the settings.
+  commands, user overrides and user keymaps (Duplicate / Derive / Rename / Delete) from the
+  settings.
+- `shortcut` also models mouse shortcuts ("Ctrl+Button1 Click", "Button2 Double Click",
+  "Alt+Wheel Up"), which the resolver handles as single strokes.
 - `menu`: the main menu (PHPStorm's structure, plugin contributions, resolution).
 
 The crate is pure (no file system or async runtime): the desktop app wraps it in IPC
@@ -47,6 +51,8 @@ pub use shortcut::{KeyEvent, Platform, Shortcut};
 
 ## Used by
 
+- UI: `app/ui/src/features/lsp/goto.ts` and `features/laravel/goto.ts` ask for the mouse
+  shortcut of a click (`keymap_mouse_action` in `forge-wasm`).
 - IPC: `keymap_actions`, `keymap_register_actions`, `keymap_set_override`, `keymap_conflicts`, `keymap_find_by_shortcut`, `keymap_main_menu`, `keymap_resolve`, `keymap_import_legacy` (`app/src-tauri/src/commands/keymap.rs`)
 - UI: `app/ui/src/keymap/`, `app/ui/src/features/keymapSettings`
 - Browser mode: built into `forge-wasm`

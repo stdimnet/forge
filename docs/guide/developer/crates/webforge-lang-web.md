@@ -22,6 +22,8 @@ WebAssembly (`crates/forge-wasm/src/web.rs`).
 
 | Module | Summary |
 | --- | --- |
+| `aliases.rs` | `resolve.alias` of `vite.config.*` / `webpack.config.*` read statically: object and array forms, `path.resolve`/`path.join`, `fileURLToPath(new URL(…))`, template strings, root-relative strings, Webpack's exact `name$`. |
+| `import_paths.rs` | The import specifier under the caret: Go to Declaration and path completion through relative paths, `tsconfig` paths and bundler aliases. |
 | `component.rs` | The component model shared by the React, Vue and Angular plugins, and the gutter marks and navigation answers they return to the UI. |
 | `fs.rs` | Loading `Sources` from disk (desktop app only; the browser mock passes its demo files). |
 | `imports.rs` | ES module imports and re-exports, read lexically from JavaScript/TypeScript source. |

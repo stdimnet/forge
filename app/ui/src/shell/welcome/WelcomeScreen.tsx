@@ -1,5 +1,6 @@
 import { createResource, createSignal, For, Match, Show, Switch } from "solid-js";
 import {
+  Box,
   FolderOpen,
   FolderPlus,
   GitBranch,
@@ -9,6 +10,7 @@ import {
   Server,
   Settings,
   SlidersHorizontal,
+  SquareTerminal,
 } from "lucide-solid";
 import { workspaceApi, type RecentProject } from "@/ipc/workspace";
 import { openWorkspace, pickAndOpenWorkspace } from "@/state/workspace";
@@ -16,7 +18,10 @@ import { runCommand } from "@/state/commands";
 import { frameworkLabel } from "@/state/project";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import { RemoteDevelopmentPage, SshBadge } from "@/features/remote/RemoteDevelopmentPage";
+import { action, separator, showContextMenu } from "@/features/contextMenu/state";
 import { openRecentRemote } from "@/features/remote/store";
+import { DevContainersPage } from "@/features/devenv/DevContainersPage";
+import { WslPage } from "@/features/devenv/WslPage";
 import "./welcome.css";
 
 /** Badge color derived from the project name so each project keeps its color. */
@@ -56,7 +61,7 @@ function ProjectRow(props: { project: RecentProject; onError: (message: string) 
         <span class="welcome-project-name">
           {props.project.name}
           <Show when={props.project.remote}>
-            <SshBadge />
+            <SshBadge kind={props.project.remote?.kind} />
           </Show>
         </span>
         <span class="welcome-project-path">{props.project.root}</span>
@@ -73,20 +78,29 @@ function ProjectRow(props: { project: RecentProject; onError: (message: string) 
   );
 }
 
+type WelcomePage = "projects" | "remote" | "devcontainers" | "wsl";
+
+/** `?welcome=remote|devcontainers|wsl` opens a Remote Development page (screenshots). */
+function initialPage(): WelcomePage {
+  const p = new URLSearchParams(location.search).get("welcome");
+  return p === "remote" || p === "devcontainers" || p === "wsl" ? p : "projects";
+}
+
+const isRemotePage = (p: WelcomePage) => p !== "projects";
+
 /** PHPStorm-style Welcome screen, shown when no project is open. */
 export function WelcomeScreen() {
   const [recent] = createResource(() => workspaceApi.recent().catch(() => [] as RecentProject[]));
   const [query, setQuery] = createSignal("");
   const [error, setError] = createSignal<string | null>(null);
-  const [page, setPage] = createSignal<"projects" | "remote">(
-    new URLSearchParams(location.search).get("welcome") === "remote" ? "remote" : "projects",
-  );
+  const [page, setPage] = createSignal<WelcomePage>(initialPage());
   const row = (p: RecentProject) => <ProjectRow project={p} onError={setError} />;
   const filtered = () =>
     (recent() ?? []).filter((p) => `${p.name} ${p.root}`.toLowerCase().includes(query().toLowerCase()));
 
   const open = () => pickAndOpenWorkspace().catch((e) => setError(String(e)));
   const newProject = () => void runCommand("NewProject");
+  const getFromVcs = () => void runCommand("Vcs.Checkout");
 
   return (
     <div class="welcome">
@@ -103,12 +117,37 @@ export function WelcomeScreen() {
         </button>
         <button
           class="welcome-nav-item"
-          classList={{ active: page() === "remote" }}
+          classList={{ open: isRemotePage(page()) }}
           onClick={() => setPage("remote")}
           data-testid="welcome-nav-remote"
         >
           <Server size={15} /> Remote Development
         </button>
+        <Show when={isRemotePage(page())}>
+          <button
+            class="welcome-nav-item welcome-nav-sub"
+            classList={{ active: page() === "remote" }}
+            onClick={() => setPage("remote")}
+          >
+            <Server size={14} /> SSH
+          </button>
+          <button
+            class="welcome-nav-item welcome-nav-sub"
+            classList={{ active: page() === "devcontainers" }}
+            onClick={() => setPage("devcontainers")}
+            data-testid="welcome-nav-devcontainers"
+          >
+            <Box size={14} /> Dev Containers
+          </button>
+          <button
+            class="welcome-nav-item welcome-nav-sub"
+            classList={{ active: page() === "wsl" }}
+            onClick={() => setPage("wsl")}
+            data-testid="welcome-nav-wsl"
+          >
+            <SquareTerminal size={14} /> WSL
+          </button>
+        </Show>
         <button class="welcome-nav-item" onClick={() => runCommand("settings.open")}>
           <SlidersHorizontal size={15} /> Customize
         </button>
@@ -116,7 +155,28 @@ export function WelcomeScreen() {
           <Puzzle size={15} /> Plugins
         </button>
         <div class="welcome-nav-foot">
-          <button class="icon-btn" title="Settings" onClick={() => runCommand("settings.open")}>
+          <button
+            class="icon-btn"
+            title="Manage IDE Settings"
+            data-testid="welcome-manage"
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              showContextMenu(
+                [
+                  action("ShowSettings", "Settings..."),
+                  action("TemplateProjectProperties", "Settings for New Projects..."),
+                  separator,
+                  action("ImportSettings", "Import Settings..."),
+                  action("ExportSettings", "Export Settings..."),
+                  action("RestoreDefaultSettings", "Restore Default Settings..."),
+                  separator,
+                  action("InvalidateCaches", "Invalidate Caches..."),
+                ],
+                r.left,
+                r.top - 8,
+              );
+            }}
+          >
             <Settings size={16} />
           </button>
         </div>
@@ -125,6 +185,12 @@ export function WelcomeScreen() {
         <Switch>
           <Match when={page() === "remote"}>
             <RemoteDevelopmentPage recent={recent() ?? []} row={row} />
+          </Match>
+          <Match when={page() === "devcontainers"}>
+            <DevContainersPage onError={setError} />
+          </Match>
+          <Match when={page() === "wsl"}>
+            <WslPage recent={recent() ?? []} row={row} onError={setError} />
           </Match>
           <Match when={page() === "projects"}>
             <Show
@@ -143,7 +209,7 @@ export function WelcomeScreen() {
                       <FolderOpen size={22} />
                       <span>Open</span>
                     </button>
-                    <button class="welcome-big" disabled title="Coming soon">
+                    <button class="welcome-big" onClick={getFromVcs} data-testid="welcome-vcs">
                       <GitBranch size={22} />
                       <span>Get from VCS</span>
                     </button>
@@ -164,7 +230,9 @@ export function WelcomeScreen() {
                   New Project
                 </button>
                 <button class="btn-primary" onClick={open}>Open</button>
-                <button class="btn-secondary" disabled title="Coming soon">Get from VCS</button>
+                <button class="btn-secondary" onClick={getFromVcs} data-testid="welcome-vcs">
+                  Get from VCS
+                </button>
               </div>
               <div class="welcome-list">
                 <For each={filtered()}>{(p) => row(p)}</For>

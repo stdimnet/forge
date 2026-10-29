@@ -6,10 +6,11 @@ use crate::breakpoints::BreakpointsSnapshot;
 use crate::protocol::EngineStatus;
 
 /// Lifecycle of a debug session as the UI sees it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SessionStatus {
     /// Connected, identifying the server and negotiating features.
+    #[default]
     Initializing,
     /// Unknown server: waiting for the user to accept or ignore it.
     AwaitingAcceptance,
@@ -58,7 +59,7 @@ pub enum BreakReason {
     Pause,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
     pub id: String,
@@ -83,6 +84,60 @@ pub struct SessionInfo {
     pub location: Option<Location>,
     pub reason: Option<BreakReason>,
     pub exception: Option<ExceptionInfo>,
+    /// Debug adapter type of a DAP session (`lldb`, `debugpy`); `None` for Xdebug.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter: Option<String>,
+    /// What the session can do beyond the PHP basics (DAP capabilities).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub features: Option<SessionFeatures>,
+    /// The thread that stopped (DAP sessions).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thread_id: Option<i64>,
+    /// The session that started this one (DAP `startDebugging` child sessions).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+}
+
+/// An exception filter a debug adapter offers ("C++ throw", "Uncaught exceptions").
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExceptionFilter {
+    pub filter: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// On unless the user turned it off.
+    #[serde(default)]
+    pub default: bool,
+    #[serde(default)]
+    pub supports_condition: bool,
+}
+
+/// Optional debugger features of a session. The Debug tool window shows the matching views
+/// and actions only when a session supports them.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SessionFeatures {
+    pub threads: bool,
+    pub read_memory: bool,
+    pub write_memory: bool,
+    pub disassemble: bool,
+    pub registers: bool,
+    pub data_breakpoints: bool,
+    pub function_breakpoints: bool,
+    pub conditional_breakpoints: bool,
+    pub hit_conditional_breakpoints: bool,
+    pub log_points: bool,
+    pub instruction_stepping: bool,
+    pub goto: bool,
+    pub restart: bool,
+    pub completions: bool,
+    pub set_variable: bool,
+    pub modules: bool,
+    pub loaded_sources: bool,
+    /// The debuggee was attached to (Stop detaches instead of killing it).
+    pub attached: bool,
+    pub exception_filters: Vec<ExceptionFilter>,
 }
 
 /// Everything the debugger reports to the UI. The IPC layer emits each on
@@ -120,6 +175,12 @@ pub enum DebugEvent {
     Breakpoints {
         snapshot: BreakpointsSnapshot,
     },
+    /// Cached data of a session is stale (`memory`, `threads`, `modules`, `variables`);
+    /// views showing it reload.
+    Invalidated {
+        session_id: String,
+        areas: Vec<String>,
+    },
     /// A failure worth a notification.
     Error {
         session_id: Option<String>,
@@ -136,6 +197,7 @@ impl DebugEvent {
             Self::Ended { .. } => "debug://ended",
             Self::Output { .. } => "debug://output",
             Self::Breakpoints { .. } => "debug://breakpoints",
+            Self::Invalidated { .. } => "debug://invalidated",
             Self::Error { .. } => "debug://error",
         }
     }

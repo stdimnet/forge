@@ -41,12 +41,8 @@ icon = "folder"
 [[contributions.settings]]
 key = "keymap.active"
 title = "Keymap"
-type = "enum"
-options = [
-  { value = "auto", label = "Platform default" },
-  { value = "$default", label = "Windows / Linux" },
-  { value = "macOS", label = "macOS" },
-]
+description = "auto (the PHPStorm keymap of the platform), $default, macOS, a bundled keymap (VSCode, VSCode OSX, Eclipse, Eclipse (Mac OS X), Sublime Text, Sublime Text (Mac OS X), Emacs) or the name of a user keymap."
+type = "string"
 default = "auto"
 group = "keymap"
 order = 0
@@ -69,6 +65,25 @@ default = []
 group = "keymap"
 order = 2
 
+[[contributions.settings]]
+key = "keymap.overrides.bundled"
+title = "Changed shortcuts (other bundled keymaps)"
+description = "One entry per action: the keymap id, the action id, then its shortcuts, separated by tabs."
+type = "list"
+default = []
+group = "keymap"
+order = 3
+
+[[contributions.settings]]
+key = "keymap.custom"
+title = "User keymaps"
+description = "Keymaps made with Duplicate or Derive: name, parent keymap and the changed shortcuts (one action per line: the action id, then its shortcuts, separated by tabs)."
+type = "objects"
+unique = ["name"]
+default = []
+group = "keymap"
+order = 4
+
 # ---- Appearance & Behavior > Appearance ----------------------------------------------
 
 [[contributions.settings]]
@@ -84,6 +99,53 @@ options = [
 default = "dark"
 group = "appearance"
 order = 0
+
+[[contributions.settings]]
+key = "appearance.zoom"
+title = "Zoom"
+description = "Scales the whole IDE: menus, tool windows, dialogs and the editor (View | Appearance | Zoom IDE)."
+type = "enum"
+options = [
+  { value = "50", label = "50%" },
+  { value = "67", label = "67%" },
+  { value = "75", label = "75%" },
+  { value = "80", label = "80%" },
+  { value = "90", label = "90%" },
+  { value = "100", label = "100%" },
+  { value = "110", label = "110%" },
+  { value = "125", label = "125%" },
+  { value = "150", label = "150%" },
+  { value = "175", label = "175%" },
+  { value = "200", label = "200%" },
+  { value = "250", label = "250%" },
+  { value = "300", label = "300%" },
+]
+default = "100"
+group = "appearance"
+order = 1
+
+[[contributions.settings]]
+key = "appearance.presentationFontSize"
+title = "Font size"
+description = "Editor font size in Presentation Mode (View | Appearance | Enter Presentation Mode)."
+type = "int"
+min = 8
+max = 96
+default = 24
+group = "appearance"
+section = "Presentation Mode"
+order = 40
+
+[[contributions.settings]]
+key = "workbench.layouts"
+title = "Layouts"
+description = "Tool window layouts saved with Window | Layouts | Save Current Layout as New…; each entry has a name and the layout as JSON."
+type = "objects"
+unique = ["name"]
+default = []
+group = "appearance"
+hidden = true
+order = 90
 
 [[contributions.settings]]
 key = "appearance.uiFont.family"
@@ -214,6 +276,100 @@ default = false
 group = "appearance"
 section = "Project View"
 order = 41
+
+[[contributions.settings]]
+key = "projectView.showExcludedFiles"
+title = "Show excluded files"
+description = "The Project tool window lists excluded folders and files (orange) instead of hiding them. Options menu (⋮) › Show Excluded Files."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 42
+
+[[contributions.settings]]
+key = "projectView.showMembers"
+title = "Show members"
+description = "PHP, JavaScript, TypeScript and Lua files expand to their classes, functions, methods and properties; a click on a member opens it. Options menu (⋮) › Show Members."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 43
+
+[[contributions.settings]]
+key = "projectView.compactMiddlePackages"
+title = "Compact middle packages"
+description = "Folders that contain only one folder are shown as one row (`src/Acme/Shop`). Options menu (⋮) › Compact Middle Packages."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 44
+
+[[contributions.settings]]
+key = "projectView.foldersAlwaysOnTop"
+title = "Folders always on top"
+description = "Folders come before files; turn it off to sort folders and files together. Options menu (⋮) › Folders Always on Top."
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 45
+
+[[contributions.settings]]
+key = "projectView.sortByType"
+title = "Sort by type"
+description = "Files are sorted by their extension, then by name. Options menu (⋮) › Sort by Type."
+type = "bool"
+default = false
+group = "appearance"
+section = "Project View"
+order = 46
+
+[[contributions.settings]]
+key = "projectView.fileNesting.enabled"
+title = "File nesting"
+description = "Files with the same name as another file and a child suffix of a nesting rule are shown below it (`app.js` below `app.ts`). Options menu (⋮) › File Nesting…"
+type = "bool"
+default = true
+group = "appearance"
+section = "Project View"
+order = 47
+
+[[contributions.settings]]
+key = "projectView.fileNesting.rules"
+title = "File nesting rules"
+description = "Parent file suffix and child file suffixes (separated by `;`) of File Nesting. Empty uses PHPStorm's predefined rules. Edit them in the Project tool window: Options menu (⋮) › File Nesting…"
+type = "objects"
+unique = ["parent"]
+default = []
+group = "appearance"
+section = "Project View"
+order = 48
+
+# ---- Directories ----------------------------------------------------------------------
+
+[[contributions.settings]]
+key = "projectStructure.folders"
+title = "Excluded and resource folders"
+description = "Folders marked as Excluded, Resource Root or Test Resources Root (Settings | Directories, Project view: Mark Directory as), stored in the project. Kind `included` cancels the default exclusion of a folder like `node_modules`. Excluded folders are left out of the indexes, Find in Files, Search Everywhere, inspections and local history."
+type = "objects"
+unique = ["path"]
+default = []
+group = "directories"
+project = true
+order = 10
+
+[[contributions.settings]]
+key = "projectStructure.excludePatterns"
+title = "Exclude files"
+description = "File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`)."
+type = "string"
+default = ""
+group = "directories"
+project = true
+order = 11
 
 # ---- Appearance & Behavior > Scopes and File Colors ------------------------------------
 
@@ -371,6 +527,40 @@ default = []
 group = "editor.file-templates"
 order = 0
 
+# ---- Editor > File Types -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "fileTypes.associations"
+title = "File name patterns"
+description = "Patterns added to a file type (`{ fileType = \"php\", pattern = \"*.module\" }`) or removed from it (`action = \"remove\"`). A pattern added to one type is taken away from the others."
+type = "objects"
+unique = ["fileType", "pattern"]
+default = []
+group = "editor.file-types"
+hidden = true
+order = 0
+
+[[contributions.settings]]
+key = "fileTypes.custom"
+title = "Custom file types"
+description = "File types created in Settings | Editor | File Types with their syntax highlighting: name, description, comments, number formats, keyword lists 1-4 and options."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.file-types"
+hidden = true
+order = 10
+
+[[contributions.settings]]
+key = "fileTypes.ignoredFiles"
+title = "Ignored Files and Folders"
+description = "Files and folders with these names are hidden from the Project view, separated by ';' (`*` and `?` wildcards)."
+type = "string"
+default = "*.hprof;*.pyc;*.pyo;*.rbc;*.yarb;*~;.DS_Store;.git;.hg;.svn;CVS;__pycache__;_svn;vssver.scc;vssver2.scc"
+group = "editor.file-types"
+hidden = true
+order = 20
+
 # ---- Appearance & Behavior > System Settings ----------------------------------------
 
 [[contributions.settings]]
@@ -390,6 +580,21 @@ default = true
 group = "system"
 section = "Project"
 order = 1
+
+[[contributions.settings]]
+key = "system.openProjectIn"
+title = "Open project in"
+description = "Where File | Open and the recent projects open a project while another one is open in this window."
+type = "enum"
+options = [
+  { value = "newWindow", label = "New window" },
+  { value = "thisWindow", label = "Current window" },
+  { value = "ask", label = "Ask" },
+]
+default = "ask"
+group = "system"
+section = "Project"
+order = 2
 
 [[contributions.settings]]
 key = "system.defaultProjectDirectory"
@@ -983,6 +1188,27 @@ default = []
 group = "notifications"
 order = 1
 
+# ---- Editor > Color Scheme -----------------------------------------------------------
+
+[[contributions.settings]]
+key = "editor.colorScheme.active"
+title = "Scheme"
+description = "Color scheme of the editor: Ember, Anvil or the name of a user scheme. Empty follows the theme (Ember for dark themes, Anvil for light ones)."
+type = "string"
+default = ""
+group = "editor.color-scheme"
+order = 0
+
+[[contributions.settings]]
+key = "editor.colorScheme.schemes"
+title = "User schemes"
+description = "Schemes made with Duplicate or Import: name, parent (Ember or Anvil) and the changed attributes, one per line: the attribute key, then fg=#rrggbb, bg=#rrggbb, bold, italic, effect=<type> and effectColor=#rrggbb."
+type = "objects"
+unique = ["name"]
+default = []
+group = "editor.color-scheme"
+order = 1
+
 # ---- Editor > Font -------------------------------------------------------------------
 
 [[contributions.settings]]
@@ -1139,6 +1365,18 @@ group = "editor.inlay-hints"
 section = "Code Vision"
 order = 20
 
+# ---- Tools > External Tools ------------------------------------------------------------
+
+[[contributions.settings]]
+key = "tools.externalTools"
+title = "External Tools"
+description = "Programs run from Tools | External Tools, the editor and Project view context menus, the keymap and Before launch tasks: name, group, description, program, arguments and working directory with macros such as $FilePath$, plus the options and output filters ($FILE_PATH$:$LINE$, one per line)."
+type = "objects"
+unique = ["group", "name"]
+default = []
+group = "tools.external-tools"
+order = 0
+
 # ---- Tools > HTTP Client ---------------------------------------------------------------
 
 [[contributions.settings]]
@@ -1198,6 +1436,30 @@ default = "remote"
 group = "tools.http-client"
 project = true
 order = 1
+
+[[contributions.settings]]
+key = "httpClient.grpc.protoFiles"
+title = ".proto files for gRPC requests"
+description = "Project .proto files or folders (import roots) used by GRPC requests when the server has no reflection service."
+type = "list"
+default = []
+group = "tools.http-client"
+section = "gRPC"
+project = true
+order = 10
+
+# ---- Tools > File Watchers -------------------------------------------------------------
+
+[[contributions.settings]]
+key = "tools.fileWatchers"
+title = "File Watchers"
+description = "Programs that run when files of a type change: name, file type, scope, program, arguments, output paths and working directory with macros such as $FileName$, environment, trigger options, \"Track only root files\", console and output filters."
+type = "objects"
+unique = ["name"]
+default = []
+group = "tools.file-watchers"
+project = true
+order = 0
 
 # ---- Tools > Actions on Save -----------------------------------------------------------
 
@@ -1570,3 +1832,47 @@ type = "bool"
 default = true
 group = "findUsages"
 order = 30
+
+# ---- Version Control > Local History ------------------------------------------------------
+
+[[contributions.settings]]
+key = "localHistory.keepDays"
+title = "Keep local history for (working days)"
+description = "Only days with changes count. Older revisions and labels are removed when a project opens and every few hours."
+type = "int"
+min = 1
+max = 365
+default = 5
+group = "vcs.local-history"
+order = 0
+
+[[contributions.settings]]
+key = "localHistory.maxStorageMb"
+title = "Maximum history size per project (MB)"
+description = "When the stored contents grow larger, the oldest revisions are removed first."
+type = "int"
+min = 16
+max = 10240
+default = 512
+group = "vcs.local-history"
+order = 1
+
+[[contributions.settings]]
+key = "localHistory.maxFileSizeKb"
+title = "Do not record files larger than (KB)"
+description = "Larger files and binary files are left out of Local History."
+type = "int"
+min = 16
+max = 102400
+default = 1024
+group = "vcs.local-history"
+order = 2
+
+[[contributions.settings]]
+key = "localHistory.excludedFolders"
+title = "Excluded folders"
+description = "Files in folders with these names (or project-relative paths like `storage/logs`) are never recorded."
+type = "list"
+default = [".git", ".hg", ".svn", "node_modules", "vendor", ".idea"]
+group = "vcs.local-history"
+order = 3

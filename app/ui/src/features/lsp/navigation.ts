@@ -6,7 +6,7 @@ import { ViewPlugin, EditorView } from "@codemirror/view";
 import { activeTab, openFile } from "@/state/editor";
 import type { LspPosition } from "@/ipc/lsp";
 import { fromLsp } from "./util";
-import { viewFor as sharedViewFor } from "@/editor/views";
+import { centerOnPos, viewFor as sharedViewFor } from "@/editor/views";
 
 const views = new Map<string, EditorView>();
 
@@ -40,10 +40,8 @@ export async function revealLocation(path: string, pos: LspPosition, end?: LspPo
     if (view && view.dom.isConnected && view.dom.offsetParent !== null) {
       const anchor = fromLsp(view.state.doc, pos);
       const head = end ? fromLsp(view.state.doc, end) : anchor;
-      view.dispatch({
-        selection: { anchor, head },
-        effects: EditorView.scrollIntoView(anchor, { y: "center" }),
-      });
+      view.dispatch({ selection: { anchor, head } });
+      centerOnPos(view, anchor);
       view.focus();
       return true;
     }

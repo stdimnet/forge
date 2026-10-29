@@ -6,14 +6,19 @@ use std::sync::{Arc, Mutex};
 
 use forge_codeintel::{HighlightAnswer, UsageOptions};
 use forge_core::{ForgeError, FsChanges, Result, Workspace};
+use phpforge_lang_php::complete::PhpCompletion;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::imports::auto::{self, UnresolvedClass};
 use phpforge_lang_php::index::VendorMode;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::injections::LanguagePlace;
+use phpforge_lang_php::inspections::PhpProblem;
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{self, DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
+use phpforge_lang_php::project::{self, LibraryEntry, LibraryRoot, PhpProjectSettings};
 use phpforge_lang_php::service;
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::{IndexConfig, IndexStats, ProjectIndex};
@@ -105,25 +110,39 @@ pub trait PhpBackend: Send + Sync {
         options: GenerateOptions,
         content: Option<String>,
     ) -> Result<Vec<Intention>>;
-    /// The language server to start for the project (Intelephense or phpactor found on the
-    /// project's machine), according to `settings`.
+    /// Class names of a file that resolve to no known class, with the classes of the index
+    /// (project and vendor) an import could bring in (Auto Import, "Import class").
+    fn unresolved_classes(
+        &self,
+        path: &str,
+        content: Option<String>,
+    ) -> Result<Vec<UnresolvedClass>>;
+    /// The language server to start for the project: php-lsp, built into the binary on the
+    /// project's machine (Forge or the remote agent), configured from `settings`.
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>>;
-    /// Language servers installed on the project's machine.
+    /// The PHP language server of the project's machine (`settings` is not used any more;
+    /// kept for the remote protocol).
     fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers>;
-}
-
-/// Use Forge's managed Intelephense (`node …/intelephense.js`) of this machine unless a path
-/// is set. On a remote agent "this machine" is the project's host, where Forge installs it.
-pub fn with_managed_intelephense(mut settings: PhpLspSettings) -> PhpLspSettings {
-    if settings.intelephense_path.is_none() {
-        if let Some((node, script)) =
-            forge_langservers::Detector::system().managed_launch("intelephense")
-        {
-            settings.intelephense_path = Some(script);
-            settings.intelephense_node = Some(node);
-        }
-    }
-    settings
+    /// Include paths and source roots; a change of the include paths indexes again on the
+    /// next [`PhpBackend::index_workspace`].
+    fn configure(&self, settings: PhpProjectSettings) -> Result<()>;
+    /// Forge's PHP inspections of a file (metadata, JetBrains attributes, PSR-4 namespace).
+    fn inspect(&self, path: &str, content: Option<String>) -> Result<Vec<PhpProblem>>;
+    /// Completion of expected arguments / return values and array shape keys.
+    fn complete(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpCompletion>>;
+    /// Parameters marked `#[Language]` (for the language injections).
+    fn language_places(&self) -> Result<Vec<LanguagePlace>>;
+    /// The include paths ("External Libraries").
+    fn libraries(&self) -> Result<Vec<LibraryRoot>>;
+    /// The entries of a folder inside an include path.
+    fn library_list(&self, path: &str) -> Result<Vec<LibraryEntry>>;
+    /// A file inside an include path.
+    fn library_read(&self, path: &str) -> Result<String>;
 }
 
 fn err(e: impl std::fmt::Display) -> ForgeError {
@@ -137,6 +156,8 @@ pub struct LocalPhp {
     /// Vendor packages as libraries ("Add packages as libraries" of the Composer settings,
     /// which reach the backend with [`PhpBackend::lsp_config`]).
     vendor: Mutex<VendorMode>,
+    /// Include paths and source roots ([`PhpBackend::configure`]).
+    project: Mutex<PhpProjectSettings>,
 }
 
 impl LocalPhp {
@@ -145,6 +166,31 @@ impl LocalPhp {
             workspace,
             index: Mutex::new(None),
             vendor: Mutex::new(VendorMode::default()),
+            project: Mutex::new(PhpProjectSettings::default()),
+        }
+    }
+
+    fn project_settings(&self) -> PhpProjectSettings {
+        self.project
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    fn include_dirs(&self) -> Vec<PathBuf> {
+        self.project_settings()
+            .include_dirs(self.root(), home_dir().as_deref())
+    }
+
+    /// An absolute path inside an include path.
+    fn library_path(&self, path: &str) -> Result<PathBuf> {
+        let p = PathBuf::from(path);
+        if p.is_absolute() && project::inside_library(&self.include_dirs(), &p) {
+            Ok(p)
+        } else {
+            Err(ForgeError::Other(format!(
+                "not inside an include path: {path}"
+            )))
         }
     }
 
@@ -153,12 +199,16 @@ impl LocalPhp {
     }
 
     fn fresh_index(&self) -> ProjectIndex {
+        let settings = self.project_settings();
         let config = IndexConfig {
             vendor: *self.vendor.lock().unwrap_or_else(|e| e.into_inner()),
+            include_paths: settings.include_dirs(self.root(), home_dir().as_deref()),
             ..IndexConfig::default()
         };
         let mut idx = ProjectIndex::new(self.root(), config);
+        idx.set_structure(self.workspace.excludes().config());
         idx.load_cache();
+        idx.set_source_roots(settings.effective_roots(self.root()));
         idx
     }
 
@@ -204,6 +254,10 @@ impl PhpBackend for LocalPhp {
         // Take the index out so queries are not blocked while indexing.
         let previous = self.index.lock().map_err(err)?.take();
         let mut idx = previous.unwrap_or_else(|| self.fresh_index());
+        // composer.json may have changed since.
+        idx.set_source_roots(self.project_settings().effective_roots(self.root()));
+        // Excluded folders may have changed since (Settings | Directories).
+        idx.set_structure(self.workspace.excludes().config());
         let stats = idx.index_workspace(|done, total| progress(done, total));
         if let Err(e) = idx.save_cache() {
             tracing::warn!("could not save PHP index cache: {e}");
@@ -329,6 +383,15 @@ impl PhpBackend for LocalPhp {
         self.with_index(|idx| service::intentions(idx, path, &text, offset, &options))
     }
 
+    fn unresolved_classes(
+        &self,
+        path: &str,
+        content: Option<String>,
+    ) -> Result<Vec<UnresolvedClass>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| auto::unresolved_classes(idx, path, &text))
+    }
+
     fn lsp_config(&self, settings: PhpLspSettings) -> Result<Option<LspServerConfig>> {
         let mode = if settings.vendor_libraries {
             VendorMode::Lazy
@@ -343,19 +406,56 @@ impl PhpBackend for LocalPhp {
             // Built again with the new mode on the next use.
             *self.index.lock().map_err(err)? = None;
         }
-        Ok(lsp::resolve_for_workspace(
-            &with_managed_intelephense(settings),
-            self.root(),
-        ))
+        Ok(lsp::resolve_for_workspace(&settings, self.root()))
     }
 
-    fn detect_servers(&self, settings: PhpLspSettings) -> Result<DetectedServers> {
-        let path_env = std::env::var("PATH").ok();
-        let dirs = lsp::search_dirs(path_env.as_deref(), home_dir().as_deref());
-        Ok(lsp::detect(
-            &with_managed_intelephense(settings),
-            &dirs,
-            &lsp::FsProbe,
-        ))
+    fn detect_servers(&self, _settings: PhpLspSettings) -> Result<DetectedServers> {
+        Ok(lsp::detect())
+    }
+
+    fn configure(&self, settings: PhpProjectSettings) -> Result<()> {
+        let previous = std::mem::replace(&mut *self.project.lock().map_err(err)?, settings.clone());
+        if previous.include_paths != settings.include_paths {
+            // Built again with the new include paths on the next use.
+            *self.index.lock().map_err(err)? = None;
+        } else if let Some(idx) = self.index.lock().map_err(err)?.as_mut() {
+            idx.set_source_roots(settings.effective_roots(self.root()));
+        }
+        Ok(())
+    }
+
+    fn inspect(&self, path: &str, content: Option<String>) -> Result<Vec<PhpProblem>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::inspect(idx, path, &text))
+    }
+
+    fn complete(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpCompletion>> {
+        let text = self.source(path, content)?;
+        self.with_index(|idx| service::complete(idx, path, &text, offset))
+    }
+
+    fn language_places(&self) -> Result<Vec<LanguagePlace>> {
+        self.with_index(|idx| service::language_places(idx))
+    }
+
+    fn libraries(&self) -> Result<Vec<LibraryRoot>> {
+        Ok(project::library_roots(&self.include_dirs()))
+    }
+
+    fn library_list(&self, path: &str) -> Result<Vec<LibraryEntry>> {
+        let p = self.library_path(path)?;
+        project::list_library(&self.include_dirs(), &p)
+            .ok_or_else(|| ForgeError::Other(format!("cannot list {path}")))
+    }
+
+    fn library_read(&self, path: &str) -> Result<String> {
+        let p = self.library_path(path)?;
+        project::read_library(&self.include_dirs(), &p)
+            .ok_or_else(|| ForgeError::Other(format!("cannot read {path}")))
     }
 }

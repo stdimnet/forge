@@ -4,7 +4,9 @@
  * dirs). Two older chats are seeded so the history popup has entries in the demo project.
  */
 import { registerMock } from "@/ipc";
-import type { ChatRecord, ChatSummary, ProjectLayout } from "@/ipc/projectState";
+import type { ChatRecord, ChatSummary, NamedLayout, ProjectLayout } from "@/ipc/projectState";
+import type { SettingValue } from "@/ipc/settings";
+import { mockSettingValue, setSetting } from "./settingsMock";
 
 let layout: ProjectLayout | null = null;
 let defaultLayout: ProjectLayout | null = null;
@@ -92,4 +94,50 @@ registerMock("agent_history_save", ({ record }) => {
 });
 registerMock("agent_history_delete", ({ id }) => {
   chats.delete(String(id));
+});
+
+// ---- Window | Layouts: stored in the user setting `workbench.layouts` like the desktop app
+// (`forge_core::project_state::named_layouts`): tables of `{ name, layout: <JSON text> }`.
+const LAYOUTS = "workbench.layouts";
+const windowPart = (l: ProjectLayout): ProjectLayout => ({ ...structuredClone(l), tabs: {}, openFiles: [], activeFile: null });
+
+function namedLayouts(): NamedLayout[] {
+  const raw = mockSettingValue(LAYOUTS);
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    const { name, layout } = (entry ?? {}) as { name?: string; layout?: string };
+    try {
+      return name?.trim() && layout ? [{ name: name.trim(), layout: windowPart(JSON.parse(layout)) }] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function storeLayouts(layouts: NamedLayout[]): void {
+  setSetting(LAYOUTS, layouts.map((l) => ({ name: l.name, layout: JSON.stringify(l.layout) })) as unknown as SettingValue, "user");
+}
+
+const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+registerMock("layouts_list", () => namedLayouts());
+registerMock("layouts_save", ({ name, layout, replace }) => {
+  const n = String(name ?? "").trim();
+  if (!n) throw new Error("the layout name is empty");
+  if (n.length > 64) throw new Error("the layout name is longer than 64 characters");
+  const layouts = namedLayouts();
+  const entry = { name: n, layout: windowPart(layout as ProjectLayout) };
+  const at = layouts.findIndex((l) => same(l.name, n));
+  if (at >= 0 && !replace) throw new Error(`a layout named "${n}" already exists`);
+  if (at >= 0) layouts[at] = entry;
+  else layouts.push(entry);
+  storeLayouts(layouts);
+  return entry;
+});
+registerMock("layouts_delete", ({ name }) => {
+  const layouts = namedLayouts();
+  const rest = layouts.filter((l) => !same(l.name, String(name)));
+  if (rest.length === layouts.length) return false;
+  storeLayouts(rest);
+  return true;
 });

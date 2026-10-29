@@ -1,0 +1,36 @@
+/* GoForge: Settings | Go. */
+/* Settings | Go */
+.go-settings .go-sdk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+
+.go-settings select {
+  min-width: 320px;
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+}
+
+.go-tools {
+  border-collapse: collapse;
+  margin: 4px 0 16px;
+}
+
+.go-tools td {
+  padding: 3px 12px 3px 0;
+  vertical-align: middle;
+}
+
+.go-tools .go-tool-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.go-tools .go-missing {
+  color: var(--warning);
+}

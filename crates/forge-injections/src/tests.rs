@@ -284,7 +284,7 @@ fn rules_can_be_disabled_and_places_un_injected() {
         path: "a.php".into(),
         settings: InjectionSettings {
             disabled: vec!["php-sql-keywords".into()],
-            uninjected: vec![],
+            ..Default::default()
         },
     });
     assert!(off.is_empty());
@@ -294,6 +294,7 @@ fn rules_can_be_disabled_and_places_un_injected() {
         settings: InjectionSettings {
             disabled: vec![],
             uninjected: vec![format!("a.php#{}", all[0].key), "b.php#x".into()],
+            ..Default::default()
         },
     });
     assert_eq!(one.len(), 1);
@@ -501,4 +502,60 @@ fn every_rule_is_listed_once() {
     assert_eq!(languages().len(), LANGUAGES.len());
     assert_eq!(languages::language("MySQL").unwrap().id, "sql");
     assert_eq!(languages::language("regex").unwrap().label, "RegExp");
+}
+
+#[test]
+fn language_attribute_places_inject_their_language() {
+    let text = "<?php\n$repo->filter('id > 3 AND paid = 1');\nmatches('[a-z]+');\n$other->matches('[a-z]+');\n";
+    let settings = InjectionSettings {
+        places: vec![
+            rules::InjectionPlace {
+                name: "filter".into(),
+                argument: 0,
+                method: true,
+                language: "SQL".into(),
+            },
+            rules::InjectionPlace {
+                name: "App\\matches".into(),
+                argument: 0,
+                method: false,
+                language: "RegExp".into(),
+            },
+        ],
+        ..Default::default()
+    };
+    let found = find(&FindRequest {
+        text: text.into(),
+        path: "a.php".into(),
+        settings: settings.clone(),
+    });
+    let got: Vec<(String, Option<String>)> = found
+        .iter()
+        .map(|i| (i.language.clone(), i.rule.clone()))
+        .collect();
+    assert_eq!(
+        got,
+        vec![
+            (
+                "sql".to_string(),
+                Some("php-language-attribute".to_string())
+            ),
+            (
+                "regexp".to_string(),
+                Some("php-language-attribute".to_string())
+            ),
+        ]
+    );
+    // The rule can be turned off like the built-in ones.
+    let off = find(&FindRequest {
+        text: text.into(),
+        path: "a.php".into(),
+        settings: InjectionSettings {
+            disabled: vec!["php-language-attribute".into()],
+            ..settings
+        },
+    });
+    assert!(off
+        .iter()
+        .all(|i| i.rule.as_deref() != Some("php-language-attribute")));
 }

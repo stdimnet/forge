@@ -4,6 +4,7 @@ use std::path::Path;
 use std::sync::mpsc;
 use std::time::UNIX_EPOCH;
 
+use forge_core::excludes::ExcludeSet;
 use forge_search_core::{Analysis, Loaded, Scanned, Scope, MAX_CONTENT_BYTES};
 use ignore::{WalkBuilder, WalkState};
 use rayon::prelude::*;
@@ -11,44 +12,32 @@ use rayon::prelude::*;
 const BINARY_SNIFF_BYTES: u64 = 8192;
 const LOAD_CHUNK_FILES: usize = 2048;
 const LOAD_CHUNK_BYTES: u64 = 32 * 1024 * 1024;
-pub(crate) const EXCLUDED_DIRS: &[&str] = &[
-    ".git",
-    "node_modules",
-    "target",
-    ".idea",
-    ".forge",
-    ".venv",
-    "venv",
-    "__pycache__",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".tox",
-    ".next",
-];
 
-pub(crate) fn scan(root: &Path, scope: &Scope) -> Vec<Scanned> {
+/// The files under `scope`, without excluded and hidden paths ([`ExcludeSet`]).
+pub(crate) fn scan(root: &Path, scope: &Scope, excludes: &ExcludeSet) -> Vec<Scanned> {
     if !root.join(&scope.dir).is_dir() {
         return Vec::new();
     }
     // Always walk from the root so ignore files of every ancestor apply; prune everything off the scope's path.
     let (walk_root, walk_scope) = (root.to_path_buf(), scope.clone());
+    let walk_excludes = excludes.clone();
     let walker = WalkBuilder::new(root)
         .hidden(false)
         .require_git(false)
         .follow_links(false)
         .filter_entry(move |e| {
-            if e.depth() == 0 || !e.file_type().is_some_and(|t| t.is_dir()) {
+            if e.depth() == 0 {
                 return true;
             }
-            if e.file_name()
-                .to_str()
-                .is_some_and(|n| EXCLUDED_DIRS.contains(&n))
-            {
+            let Ok(rel) = e.path().strip_prefix(&walk_root) else {
+                return false;
+            };
+            let rel = rel.to_string_lossy().replace('\\', "/");
+            let is_dir = e.file_type().is_some_and(|t| t.is_dir());
+            if walk_excludes.skips(&rel, &e.file_name().to_string_lossy(), is_dir) {
                 return false;
             }
-            e.path()
-                .strip_prefix(&walk_root)
-                .is_ok_and(|rel| walk_scope.walks_into(&rel.to_string_lossy().replace('\\', "/")))
+            !is_dir || walk_scope.walks_into(&rel)
         })
         .build_parallel();
 

@@ -25,5 +25,5 @@ pub use secrets::{KeySource, KeyringStore, MemoryStore, SecretStore};
 pub use service::{AiService, ProviderInfo, ProvidersState, TestResult};
 pub use tokio_util::sync::CancellationToken;
 pub use types::{
-    Completion, CompletionRequest, ContentPart, Delta, Message, ModelInfo, Role, Usage,
+    Completion, CompletionRequest, ContentPart, Delta, FimRequest, Message, ModelInfo, Role, Usage,
 };

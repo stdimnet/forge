@@ -15,7 +15,7 @@ use forge_vcs::{GitRequest, LOG_FORMAT, REF_FORMAT};
 use super::calls::{GitAction, GitQuery};
 
 /// `git show -s --format=...` of [`forge_vcs::Repo::commit_details`].
-pub const COMMIT_META_FORMAT: &str = "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ct%x1f%B";
+pub use forge_vcs::COMMIT_META_FORMAT;
 
 /// A guest's git command as typed values.
 #[derive(Debug, Clone, PartialEq, Eq)]

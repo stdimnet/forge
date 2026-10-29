@@ -15,8 +15,13 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("terminal.toml", include_str!("../plugins/terminal.toml")),
     ("vim.toml", include_str!("../plugins/vim.toml")),
     ("run.toml", include_str!("../plugins/run.toml")),
+    ("debugger.toml", include_str!("../plugins/debugger.toml")),
     ("database.toml", include_str!("../plugins/database.toml")),
     ("services.toml", include_str!("../plugins/services.toml")),
+    (
+        "deployment.toml",
+        include_str!("../plugins/deployment.toml"),
+    ),
     ("php.toml", include_str!("../plugins/php.toml")),
     (
         "langservers.toml",
@@ -25,6 +30,33 @@ const MANIFESTS: &[(&str, &str)] = &[
     ("phpforge.toml", include_str!("../plugins/phpforge.toml")),
     ("webforge.toml", include_str!("../plugins/webforge.toml")),
     ("luaforge.toml", include_str!("../plugins/luaforge.toml")),
+    ("pyforge.toml", include_str!("../plugins/pyforge.toml")),
+    ("goforge.toml", include_str!("../plugins/goforge.toml")),
+    ("rustforge.toml", include_str!("../plugins/rustforge.toml")),
+    ("rubyforge.toml", include_str!("../plugins/rubyforge.toml")),
+    ("javaforge.toml", include_str!("../plugins/javaforge.toml")),
+    (
+        "kotlinforge.toml",
+        include_str!("../plugins/kotlinforge.toml"),
+    ),
+    ("spring.toml", include_str!("../plugins/spring.toml")),
+    (
+        "javaforge-groovy.toml",
+        include_str!("../plugins/javaforge-groovy.toml"),
+    ),
+    (
+        "javaforge-scala.toml",
+        include_str!("../plugins/javaforge-scala.toml"),
+    ),
+    (
+        "javaforge-android.toml",
+        include_str!("../plugins/javaforge-android.toml"),
+    ),
+    ("cforge.toml", include_str!("../plugins/cforge.toml")),
+    (
+        "dotnetforge.toml",
+        include_str!("../plugins/dotnetforge.toml"),
+    ),
     ("packs.toml", include_str!("../plugins/packs.toml")),
     ("langs.toml", include_str!("../plugins/langs.toml")),
     (
@@ -42,6 +74,10 @@ const MANIFESTS: &[(&str, &str)] = &[
     (
         "json-schema.toml",
         include_str!("../plugins/json-schema.toml"),
+    ),
+    (
+        "vulnerabilities.toml",
+        include_str!("../plugins/vulnerabilities.toml"),
     ),
 ];
 
@@ -94,8 +130,23 @@ mod tests {
             registry
                 .lsp_server_for_extension("php")
                 .map(|s| s.id.as_str()),
-            Some("intelephense")
+            Some("php-lsp")
         );
+        let mut adapters = HashSet::new();
+        for a in registry.debug_adapters() {
+            assert!(
+                adapters.insert(&a.r#type),
+                "duplicate debug adapter {}",
+                a.r#type
+            );
+            if let Some(key) = &a.command_setting {
+                assert!(
+                    registry.find_setting(key).is_some(),
+                    "{key} is not a setting"
+                );
+            }
+        }
+        assert!(adapters.contains(&"lldb".to_string()));
     }
 
     #[test]
@@ -182,6 +233,29 @@ mod tests {
             ("src/game/world.lua", "lua"),
             ("penlight-1.14.0-1.rockspec", "lua"),
             (".luacheckrc", "lua"),
+            ("cmd/ledger/main.go", "go"),
+            ("go.mod", "go-mod"),
+            ("services/api/go.mod", "go-mod"),
+            ("go.work", "go-work"),
+            ("go.sum", "go-sum"),
+            ("go.work.sum", "go-sum"),
+            ("crates/shop-core/src/cart.rs", "rust"),
+            ("Cargo.toml", "toml"),
+            ("Cargo.lock", "toml"),
+            ("rust-toolchain", "toml"),
+            ("Gemfile", "ruby"),
+            ("Gemfile.lock", "gemfile-lock"),
+            ("lib/tasks/db.rake", "ruby"),
+            ("shop.gemspec", "ruby"),
+            ("config.ru", "ruby"),
+            (".irbrc", "ruby"),
+            ("app/views/carts/show.html.erb", "erb"),
+            ("src/Bookstore.Api/Bookstore.Api.csproj", "msbuild"),
+            ("Directory.Build.props", "msbuild"),
+            ("Bookstore.slnx", "msbuild"),
+            ("Bookstore.sln", "sln"),
+            ("src/Bookstore.Api/Program.cs", "csharp"),
+            ("Pages/Index.cshtml", "razor"),
         ] {
             assert_eq!(id(path, None), Some(expected), "{path}");
         }
@@ -208,6 +282,16 @@ mod tests {
 
     /// The UI's browser mode serves the same plugins from a JSON copy. Run with
     /// `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app` after editing a manifest.
+    #[test]
+    fn ignored_files_default_matches_forge_filetypes() {
+        let registry = builtin_registry().unwrap();
+        let spec = registry
+            .all_settings()
+            .find(|s| s.key == crate::commands::workspace::IGNORED_FILES_KEY)
+            .unwrap();
+        assert_eq!(spec.default, forge_filetypes::DEFAULT_IGNORED_FILES);
+    }
+
     #[test]
     fn browser_mock_snapshot_is_current() {
         let registry = builtin_registry().unwrap();

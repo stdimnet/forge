@@ -32,12 +32,18 @@ pub struct Framework {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectInfo {
-    /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `rust`, `go`, `python`.
+    /// Language ids: `php`, `javascript`, `typescript`, `html`, `css`, `lua`, `java`, `kotlin`,
+    /// `groovy`, `scala`, `rust`, `go`, `python`, `cpp` (C and C++), `csharp`, `fsharp`,
+    /// `vbnet`.
     pub languages: Vec<String>,
     pub frameworks: Vec<Framework>,
-    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`.
+    /// Packs whose plugins apply: `phpforge`, `webforge`, `luaforge`, `pyforge`, `javaforge`,
+    /// `goforge`, `rustforge`, `kotlinforge`, `cforge`, `dotnetforge`.
     pub packs: Vec<String>,
-    /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `docker`, `git`.
+    /// Tooling: `composer`, `npm`, `pnpm`, `yarn`, `bun`, `luarocks`, `uv`, `poetry`, `pipenv`,
+    /// `conda`, `maven`, `gradle`, `sbt`, `docker`, `git`, `cmake`, `compile-commands`, `meson`,
+    /// `platformio`, `esp-idf`, `zephyr`, `vcpkg`, `conan`,
+    /// `make`.
     pub tools: Vec<String>,
     /// The framework (or, without one, the language) that best describes the project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -73,8 +79,17 @@ pub fn language_name(id: &str) -> &str {
         "css" => "CSS",
         "lua" => "Lua",
         "rust" => "Rust",
+        "ruby" => "Ruby",
         "go" => "Go",
         "python" => "Python",
+        "java" => "Java",
+        "kotlin" => "Kotlin",
+        "scala" => "Scala",
+        "groovy" => "Groovy",
+        "cpp" => "C/C++",
+        "csharp" => "C#",
+        "fsharp" => "F#",
+        "vbnet" => "Visual Basic",
         other => other,
     }
 }
@@ -85,6 +100,15 @@ fn pack_for_language(lang: &str) -> Option<&'static str> {
         "php" => Some("phpforge"),
         "javascript" | "typescript" | "html" | "css" => Some("webforge"),
         "lua" => Some("luaforge"),
+        "python" => Some("pyforge"),
+        "go" => Some("goforge"),
+        "rust" => Some("rustforge"),
+        "ruby" => Some("rubyforge"),
+        // Groovy, Scala and Android (a framework) are JavaForge's JVM extras.
+        "java" | "groovy" | "scala" => Some("javaforge"),
+        "kotlin" => Some("kotlinforge"),
+        "cpp" => Some("cforge"),
+        "csharp" | "fsharp" | "vbnet" => Some("dotnetforge"),
         _ => None,
     }
 }
@@ -100,9 +124,17 @@ const COMPOSER_FRAMEWORKS: &[(&str, &str, &str)] = &[
     ("magento/product-community-edition", "magento", "Magento"),
     ("johnpbloch/wordpress", "wordpress", "WordPress"),
     ("roots/wordpress", "wordpress", "WordPress"),
+    ("roots/bedrock-autoloader", "wordpress", "WordPress"),
+    ("johnpbloch/wordpress-core", "wordpress", "WordPress"),
+    ("shopware/core", "shopware", "Shopware"),
+    ("shopware/platform", "shopware", "Shopware"),
+    ("shopware/storefront", "shopware", "Shopware"),
     ("livewire/livewire", "livewire", "Livewire"),
     ("phpunit/phpunit", "phpunit", "PHPUnit"),
     ("pestphp/pest", "pest", "Pest"),
+    ("codeception/codeception", "codeception", "Codeception"),
+    ("behat/behat", "behat", "Behat"),
+    ("phpspec/phpspec", "phpspec", "PHPSpec"),
 ];
 
 /// npm packages that identify a framework: (package, id, name).
@@ -114,35 +146,62 @@ const NPM_FRAMEWORKS: &[(&str, &str, &str)] = &[
     ("vue", "vue", "Vue.js"),
     ("svelte", "svelte", "Svelte"),
     ("solid-js", "solid", "Solid"),
+    ("astro", "astro", "Astro"),
+    ("nx", "nx", "Nx"),
+    ("prisma", "prisma", "Prisma"),
+    ("@prisma/client", "prisma", "Prisma"),
     ("vite", "vite", "Vite"),
 ];
 
 /// Most specific first: decides [`ProjectInfo::primary`].
 const PRIMARY_PRIORITY: &[&str] = &[
+    "spring-boot",
+    "jakarta-ee",
     "laravel",
     "symfony",
     "drupal",
     "wordpress",
+    "shopware",
     "magento",
+    "joomla",
+    "android",
+    "aspnetcore",
     "next",
     "nuxt",
     "angular",
+    "astro",
     "svelte",
     "vue",
     "react",
     "solid",
+    "rails",
+    "django",
+    "fastapi",
+    "flask",
     "love",
     "neovim",
+    "deno",
+    "nx",
     "vite",
 ];
 
 const LANGUAGE_PRIORITY: &[&str] = &[
     "php",
+    "kotlin",
+    "scala",
+    "groovy",
+    "java",
+    // A Gemfile wins over the JavaScript of a Ruby app's assets.
+    "ruby",
+    "csharp",
+    "fsharp",
+    "vbnet",
     "typescript",
     "javascript",
     "lua",
     "rust",
     "go",
+    "cpp",
     "python",
     "html",
     "css",
@@ -274,6 +333,26 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
     if has("wp-config.php") || has("wp-config-sample.php") || dir.join("wp-includes").is_dir() {
         c.framework("wordpress", "WordPress", "php", wordpress_version(dir), rel);
+    } else if dir.join("wp-content").is_dir()
+        || wordpress_header(dir, &files)
+        || composer_requires_prefix(dir, "roots/")
+    {
+        c.framework("wordpress", "WordPress", "php", None, rel);
+    }
+    if dir.join("core/lib/Drupal.php").is_file() || drupal_extension(dir, &files) {
+        c.framework("drupal", "Drupal", "php", drupal_version(dir), rel);
+    }
+    if dir
+        .join("administrator/manifests/files/joomla.xml")
+        .is_file()
+        || joomla_manifest(dir, &files)
+    {
+        c.framework("joomla", "Joomla", "php", joomla_version(dir), rel);
+    }
+    if dir.join("engine/Shopware/Kernel.php").is_file()
+        || composer_type(dir) == Some("shopware-platform-plugin".to_string())
+    {
+        c.framework("shopware", "Shopware", "php", None, rel);
     }
     if dir.join("app/etc/env.php").is_file() && dir.join("bin/magento").is_file() {
         c.framework("magento", "Magento", "php", None, rel);
@@ -291,6 +370,32 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     }
     if files.iter().any(|f| f.starts_with("vite.config.")) {
         c.framework("vite", "Vite", "javascript", None, rel);
+    }
+    let config = |prefix: &str| files.iter().any(|f| f.starts_with(prefix));
+    if config("nuxt.config.") {
+        c.framework("nuxt", "Nuxt", "javascript", None, rel);
+    }
+    if config("astro.config.") {
+        c.framework("astro", "Astro", "javascript", None, rel);
+    }
+    if config("svelte.config.") {
+        c.framework("svelte", "Svelte", "javascript", None, rel);
+    }
+    if has("nx.json") {
+        c.framework("nx", "Nx", "javascript", None, rel);
+    }
+    if has("deno.json") || has("deno.jsonc") {
+        c.framework("deno", "Deno", "typescript", None, rel);
+        c.tool("deno");
+    }
+    if has("bunfig.toml") || has("bun.lockb") || has("bun.lock") {
+        c.tool("bun");
+    }
+    if has("schema.prisma") || dir.join("prisma/schema.prisma").is_file() {
+        c.framework("prisma", "Prisma", "javascript", None, rel);
+    }
+    if config("graphql.config.") || config(".graphqlrc") {
+        c.tool("graphql");
     }
     if has("tsconfig.json") || has_ext(".ts") || has_ext(".tsx") {
         c.language("typescript");
@@ -346,15 +451,96 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
         c.framework("neovim", "Neovim", "lua", None, rel);
     }
 
+    // ---- Java (JavaForge): Maven and Gradle builds, Java sources
+    scan_java(dir, rel, c, &files);
+    scan_kotlin(dir, rel, c, &files);
+    scan_groovy(dir, rel, c, &files);
+    scan_scala(dir, rel, c, &files);
+    scan_android(dir, rel, c, &files);
+
     // ---- Other languages and tools
-    if has("Cargo.toml") {
+    // ---- Rust
+    // A Cargo manifest, Rust files in the root, or several in a folder.
+    let rs_files = files.iter().filter(|f| f.ends_with(".rs")).count();
+    if has("Cargo.toml") || rs_files >= 2 || (rel.is_empty() && rs_files > 0) {
         c.language("rust");
     }
-    if has("go.mod") {
+    if has("Cargo.toml") {
+        c.tool("cargo");
+    }
+    // ---- Go
+    // A module or workspace file, Go files in the root, or several in a folder.
+    let go_files = files.iter().filter(|f| f.ends_with(".go")).count();
+    if has("go.mod") || has("go.work") || go_files >= 2 || (rel.is_empty() && go_files > 0) {
         c.language("go");
     }
-    if has("pyproject.toml") || has("requirements.txt") || has("setup.py") {
+    if has("go.work") {
+        c.tool("go-workspace");
+    }
+    // ---- Ruby (RubyForge)
+    // Bundler, Rake or version files, a gemspec, Ruby files in the root, or several in a
+    // folder.
+    let rb_files = files
+        .iter()
+        .filter(|f| f.ends_with(".rb") || f.ends_with(".rake"))
+        .count();
+    let gemspec = files.iter().any(|f| f.ends_with(".gemspec"));
+    if has("Gemfile")
+        || has("Rakefile")
+        || has(".ruby-version")
+        || gemspec
+        || rb_files >= 2
+        || (rel.is_empty() && rb_files > 0)
+    {
+        c.language("ruby");
+    }
+    if has("Gemfile") || has("gems.rb") {
+        c.tool("bundler");
+    }
+    if has("Rakefile") || has("rakefile") || has("Rakefile.rb") {
+        c.tool("rake");
+    }
+    if has("Gemfile") {
+        scan_rails(dir, rel, c);
+    }
+    // ---- C and C++ (CForge)
+    scan_cpp(dir, rel, c, &files);
+    // ---- .NET (DotNetForge)
+    scan_dotnet(dir, rel, c, &files);
+    // ---- Python
+    // Like Lua: Python files in the root, several of them in a folder, or a packaging /
+    // environment file make it a Python project.
+    let py_files = files
+        .iter()
+        .filter(|f| f.ends_with(".py") || f.ends_with(".pyw"))
+        .count();
+    let requirements = files.iter().any(|f| {
+        (f.starts_with("requirements") || f.starts_with("constraints")) && f.ends_with(".txt")
+    });
+    if has("pyproject.toml")
+        || has("setup.py")
+        || has("setup.cfg")
+        || has("Pipfile")
+        || has("environment.yml")
+        || has("environment.yaml")
+        || requirements
+        || py_files >= 2
+        || (rel.is_empty() && py_files > 0)
+    {
         c.language("python");
+    }
+    scan_python_frameworks(dir, rel, c, &files);
+    if has("uv.lock") {
+        c.tool("uv");
+    }
+    if has("poetry.lock") {
+        c.tool("poetry");
+    }
+    if has("Pipfile") || has("Pipfile.lock") {
+        c.tool("pipenv");
+    }
+    if has("environment.yml") || has("environment.yaml") {
+        c.tool("conda");
     }
     if has("Dockerfile")
         || has("compose.yaml")
@@ -364,6 +550,583 @@ fn scan_dir(dir: &Path, rel: &str, c: &mut Collector) {
     {
         c.tool("docker");
     }
+}
+
+/// C and C++ sources and headers.
+const CPP_EXTENSIONS: &[&str] = &[
+    ".c", ".cc", ".cpp", ".cxx", ".c++", ".h", ".hh", ".hpp", ".hxx", ".ixx", ".cppm",
+];
+
+fn is_cpp_file(name: &str) -> bool {
+    CPP_EXTENSIONS.iter().any(|e| name.ends_with(e))
+}
+
+/// .NET: a solution (`.sln`, `.slnx`; its projects decide C#, F# or Visual Basic), a
+/// project file (`.csproj`, `.fsproj`, `.vbproj`), `global.json`, or C# / F# sources in
+/// the root (or several in a folder). A web SDK project is ASP.NET Core.
+fn scan_dotnet(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let ext = |e: &str| {
+        files
+            .iter()
+            .filter(|f| f.to_ascii_lowercase().ends_with(e))
+            .count()
+    };
+    let solutions: Vec<&String> = files
+        .iter()
+        .filter(|f| {
+            let l = f.to_ascii_lowercase();
+            l.ends_with(".sln") || l.ends_with(".slnx")
+        })
+        .collect();
+    let (cs, fs, vb) = (ext(".csproj"), ext(".fsproj"), ext(".vbproj"));
+    let mut langs: Vec<&str> = Vec::new();
+    for s in &solutions {
+        let text = fs::read_to_string(dir.join(s))
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        if text.contains(".csproj") {
+            langs.push("csharp");
+        }
+        if text.contains(".fsproj") {
+            langs.push("fsharp");
+        }
+        if text.contains(".vbproj") {
+            langs.push("vbnet");
+        }
+        if !text.contains("proj") {
+            langs.push("csharp");
+        }
+    }
+    if cs > 0 {
+        langs.push("csharp");
+    }
+    if fs > 0 {
+        langs.push("fsharp");
+    }
+    if vb > 0 {
+        langs.push("vbnet");
+    }
+    let cs_sources = ext(".cs");
+    let fs_sources = ext(".fs") + ext(".fsx");
+    if cs_sources >= 2 || (rel.is_empty() && cs_sources > 0) {
+        langs.push("csharp");
+    }
+    if fs_sources >= 2 || (rel.is_empty() && fs_sources > 0) {
+        langs.push("fsharp");
+    }
+    if langs.is_empty() && files.iter().any(|f| f == "global.json") {
+        langs.push("csharp");
+    }
+    for l in langs {
+        c.language(l);
+    }
+    if !solutions.is_empty() || cs + fs + vb > 0 {
+        c.tool("dotnet");
+    }
+    let web = files
+        .iter()
+        .filter(|f| {
+            let l = f.to_ascii_lowercase();
+            l.ends_with(".csproj") || l.ends_with(".fsproj")
+        })
+        .any(|f| {
+            fs::read_to_string(dir.join(f))
+                .map(|t| {
+                    t.contains("Microsoft.NET.Sdk.Web")
+                        || t.contains("Microsoft.NET.Sdk.BlazorWebAssembly")
+                })
+                .unwrap_or(false)
+        });
+    if web {
+        let lang = if fs > 0 && cs == 0 {
+            "fsharp"
+        } else {
+            "csharp"
+        };
+        c.framework("aspnetcore", "ASP.NET Core", lang, None, rel);
+    }
+}
+
+/// A CMake project, a compilation database (also in `build/`), a Meson build, a Makefile
+/// next to C/C++ sources (or with them in `src/`), or C/C++ sources themselves (in the root,
+/// or several in a folder) make it a C/C++ project.
+fn scan_cpp(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let has = |name: &str| files.iter().any(|f| f == name);
+    let sources = files.iter().filter(|f| is_cpp_file(f)).count();
+    let cmake = has("CMakeLists.txt");
+    let compdb = has("compile_commands.json")
+        || (rel.is_empty() && dir.join("build/compile_commands.json").is_file());
+    let meson = has("meson.build");
+    let makefile = has("Makefile") || has("makefile") || has("GNUmakefile");
+    let make_sources =
+        makefile && (sources > 0 || file_names(&dir.join("src")).iter().any(|f| is_cpp_file(f)));
+    let platformio = has("platformio.ini");
+    let zephyr = has("west.yml") || (cmake && has("prj.conf"));
+    let esp_idf = cmake
+        && (has("sdkconfig")
+            || has("sdkconfig.defaults")
+            || has("idf_component.yml")
+            || dir.join("main/idf_component.yml").is_file());
+    if cmake
+        || compdb
+        || meson
+        || make_sources
+        || platformio
+        || zephyr
+        || sources >= 2
+        || (rel.is_empty() && sources > 0)
+    {
+        c.language("cpp");
+    }
+    if platformio {
+        c.tool("platformio");
+    }
+    if esp_idf {
+        c.tool("esp-idf");
+    }
+    if zephyr {
+        c.tool("zephyr");
+    }
+    if cmake && has("vcpkg.json") {
+        c.tool("vcpkg");
+    }
+    if has("conanfile.txt") || has("conanfile.py") {
+        c.tool("conan");
+    }
+    if cmake {
+        c.tool("cmake");
+    }
+    if compdb {
+        c.tool("compile-commands");
+    }
+    if meson {
+        c.tool("meson");
+    }
+    if makefile {
+        c.tool("make");
+    }
+}
+
+/// Ruby on Rails: `rails` (or `railties`) in the Gemfile and a `config/application.rb`;
+/// the version from Gemfile.lock, else the Gemfile's requirement.
+fn scan_rails(dir: &Path, rel: &str, c: &mut Collector) {
+    if !dir.join("config/application.rb").is_file() {
+        return;
+    }
+    let Ok(gemfile) = fs::read_to_string(dir.join("Gemfile")) else {
+        return;
+    };
+    let mut requirement = None;
+    let declared = gemfile.lines().any(|l| {
+        let t = l.trim();
+        let Some(rest) = t.strip_prefix("gem ").or_else(|| t.strip_prefix("gem(")) else {
+            return false;
+        };
+        let rest = rest.trim_start();
+        let found = ["\"rails\"", "'rails'", "\"railties\"", "'railties'"]
+            .iter()
+            .find_map(|g| rest.strip_prefix(g));
+        if let Some(after) = found {
+            requirement = after
+                .split(['"', '\''])
+                .nth(1)
+                .map(|r| {
+                    r.trim_start_matches(|ch: char| !ch.is_ascii_digit())
+                        .to_string()
+                })
+                .filter(|v| !v.is_empty());
+        }
+        found.is_some()
+    });
+    if !declared {
+        return;
+    }
+    let locked = fs::read_to_string(dir.join("Gemfile.lock"))
+        .ok()
+        .and_then(|l| {
+            l.lines().find_map(|line| {
+                line.strip_prefix("    rails (")
+                    .and_then(|v| v.strip_suffix(')'))
+                    .map(str::to_string)
+            })
+        });
+    c.framework("rails", "Rails", "ruby", locked.or(requirement), rel);
+}
+
+/// Python packages that identify a framework: (package, id, name).
+const PYTHON_FRAMEWORKS: &[(&str, &str, &str)] = &[
+    ("django", "django", "Django"),
+    ("flask", "flask", "Flask"),
+    ("fastapi", "fastapi", "FastAPI"),
+    ("celery", "celery", "Celery"),
+];
+
+/// Django (a `manage.py` plus the `django` requirement), Flask, FastAPI and Celery from
+/// `requirements*.txt`, `pyproject.toml` and `Pipfile`; versions from `uv.lock` /
+/// `poetry.lock`, else from the constraint.
+fn scan_python_frameworks(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let mut texts: Vec<(bool, String)> = Vec::new();
+    for f in files {
+        let requirements =
+            f.starts_with("requirements") && (f.ends_with(".txt") || f.ends_with(".in"));
+        if requirements || f == "pyproject.toml" || f == "Pipfile" {
+            if let Ok(t) = fs::read_to_string(dir.join(f)) {
+                texts.push((requirements, t));
+            }
+        }
+    }
+    if let Ok(entries) = fs::read_dir(dir.join("requirements")) {
+        for e in entries.flatten() {
+            if e.file_name().to_string_lossy().ends_with(".txt") {
+                if let Ok(t) = fs::read_to_string(e.path()) {
+                    texts.push((true, t));
+                }
+            }
+        }
+    }
+    if texts.is_empty() {
+        return;
+    }
+    let locks: Vec<String> = ["uv.lock", "poetry.lock"]
+        .iter()
+        .filter_map(|l| fs::read_to_string(dir.join(l)).ok())
+        .collect();
+    for (package, id, name) in PYTHON_FRAMEWORKS {
+        let Some(constraint) = texts
+            .iter()
+            .find_map(|(req, t)| python_requirement(t, package, *req))
+        else {
+            continue;
+        };
+        if *id == "django" && !files.iter().any(|f| f == "manage.py") {
+            continue;
+        }
+        let version = locks
+            .iter()
+            .find_map(|l| locked_python_version(l, package))
+            .or_else(|| version_from_constraint(&constraint));
+        c.framework(id, name, "python", version, rel);
+    }
+}
+
+/// The constraint of `package` (`>=5.1`, `""` without one) in a requirements file
+/// (`req`) or a pyproject.toml / Pipfile, compared case-insensitively.
+fn python_requirement(text: &str, package: &str, req: bool) -> Option<String> {
+    let is_name_char = |ch: char| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.';
+    // What follows the name in a requirement: `[extras]`, then the version constraint.
+    let constraint = |spec: &str| -> Option<String> {
+        let lower = spec.trim().to_ascii_lowercase();
+        let rest = lower.strip_prefix(package)?;
+        if rest.starts_with(is_name_char) {
+            return None;
+        }
+        let rest = match rest.trim_start().strip_prefix('[') {
+            Some(r) => r.split_once(']').map(|x| x.1).unwrap_or(""),
+            None => rest,
+        };
+        Some(rest.split(';').next().unwrap_or("").trim().to_string())
+    };
+    for line in text.lines() {
+        let line = line.split('#').next().unwrap_or("").trim();
+        if req {
+            if let Some(c) = constraint(line) {
+                return Some(c);
+            }
+            continue;
+        }
+        // `"django>=5"` in a list, or a `django = "^5.0"` table key (Poetry, Pipfile).
+        for quoted in line.split(['"', '\'']).skip(1).step_by(2) {
+            if let Some(c) = constraint(quoted) {
+                return Some(c);
+            }
+        }
+        if let Some((key, value)) = line.split_once('=') {
+            if key.trim().eq_ignore_ascii_case(package) {
+                return Some(value.trim().trim_matches(['"', '\'']).to_string());
+            }
+        }
+    }
+    None
+}
+
+/// `name = "<package>"` followed by `version = "x"` in uv.lock / poetry.lock.
+fn locked_python_version(lock: &str, package: &str) -> Option<String> {
+    let mut lines = lock.lines();
+    while let Some(l) = lines.next() {
+        let l = l.trim();
+        if l.eq_ignore_ascii_case(&format!("name = \"{package}\"")) {
+            let next = lines.next()?.trim();
+            return next
+                .strip_prefix("version = \"")
+                .and_then(|v| v.strip_suffix('"'))
+                .map(str::to_string);
+        }
+    }
+    None
+}
+
+/// Maven (`pom.xml`, `mvnw`) and Gradle (`build.gradle(.kts)`, `settings.gradle(.kts)`,
+/// `gradlew`) builds, and Java sources (`*.java` in the folder or a `src/main/java` tree).
+/// A Kotlin-only Gradle build (no Java sources, `kotlin("jvm")`) still counts: JavaForge
+/// runs its Gradle tasks. Spring Boot and Jakarta EE are frameworks of the build.
+fn scan_java(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let has = |name: &str| files.iter().any(|f| f == name);
+    let maven = has("pom.xml");
+    let gradle = [
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+    ]
+    .iter()
+    .any(|f| has(f));
+    let sources = files.iter().any(|f| f.ends_with(".java"))
+        || dir.join("src/main/java").is_dir()
+        || dir.join("src/test/java").is_dir();
+    if maven {
+        c.tool("maven");
+    }
+    if gradle {
+        c.tool("gradle");
+    }
+    if maven || gradle || sources {
+        c.language("java");
+    }
+    // Spring Boot (the Gradle plugin, the Maven parent / BOM or a starter) and Jakarta EE /
+    // Java EE APIs (the platform APIs, JAX-RS, CDI, MicroProfile).
+    let builds: Vec<String> = ["build.gradle.kts", "build.gradle", "pom.xml"]
+        .iter()
+        .filter(|f| has(f))
+        .filter_map(|f| fs::read_to_string(dir.join(f)).ok())
+        .collect();
+    if builds
+        .iter()
+        .any(|b| b.contains("org.springframework.boot") || b.contains("spring-boot-starter"))
+    {
+        let version = builds.iter().find_map(|b| spring_boot_version(b));
+        c.framework("spring-boot", "Spring Boot", "java", version, rel);
+    }
+    const JAKARTA: &[&str] = &[
+        "jakarta.platform",
+        "jakarta.jakartaee",
+        "javaee-api",
+        "javaee-web-api",
+        "jakarta.ws.rs",
+        "javax.ws.rs",
+        "jakarta.enterprise",
+        "cdi-api",
+        "org.eclipse.microprofile",
+    ];
+    if let Some(b) = builds
+        .iter()
+        .find(|b| JAKARTA.iter().any(|m| b.contains(m)))
+    {
+        c.framework("jakarta-ee", "Jakarta EE", "java", jakarta_version(b), rel);
+    }
+}
+
+/// The Spring Boot version of a build: the Gradle plugin, the Maven parent or BOM.
+pub fn spring_boot_version(build: &str) -> Option<String> {
+    let after = |marker: &str| -> Option<String> {
+        let i = build.find(marker)? + marker.len();
+        let rest = &build[i..];
+        let v: String = rest
+            .trim_start_matches(['"', '\'', ')', ' ', ':'])
+            .trim_start_matches("version")
+            .trim_start_matches([' ', '"', '\'', '('])
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '-')
+            .collect();
+        (!v.is_empty() && v.chars().next().is_some_and(|c| c.is_ascii_digit())).then_some(v)
+    };
+    for marker in [
+        "id(\"org.springframework.boot\")",
+        "id 'org.springframework.boot'",
+        "id \"org.springframework.boot\"",
+        "spring-boot-gradle-plugin",
+        "spring-boot-dependencies",
+    ] {
+        if let Some(v) = after(marker) {
+            return Some(v);
+        }
+    }
+    // Maven: `<artifactId>spring-boot-starter-parent</artifactId>` then `<version>`.
+    for artifact in ["spring-boot-starter-parent", "spring-boot-dependencies"] {
+        let Some(i) = build.find(&format!("<artifactId>{artifact}</artifactId>")) else {
+            continue;
+        };
+        let v = build[i..]
+            .split("<version>")
+            .nth(1)
+            .and_then(|r| r.split("</version>").next())
+            .map(str::trim);
+        if let Some(v) = v.filter(|v| v.chars().next().is_some_and(|c| c.is_ascii_digit())) {
+            return Some(v.to_string());
+        }
+    }
+    None
+}
+
+/// The Jakarta EE / Java EE API version (`jakarta.jakartaee-api:10.0.0`).
+fn jakarta_version(build: &str) -> Option<String> {
+    for marker in [
+        "jakartaee-api:",
+        "jakartaee-web-api:",
+        "jakartaee-core-api:",
+        "javaee-api:",
+        "javaee-web-api:",
+    ] {
+        if let Some(i) = build.find(marker) {
+            let v: String = build[i + marker.len()..]
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '.')
+                .collect();
+            if v.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+                return Some(v);
+            }
+        }
+    }
+    for artifact in [
+        "jakarta.jakartaee-api",
+        "jakarta.jakartaee-web-api",
+        "javaee-api",
+        "javaee-web-api",
+    ] {
+        if let Some(i) = build.find(&format!("<artifactId>{artifact}</artifactId>")) {
+            let v = build[i..]
+                .split("<version>")
+                .nth(1)
+                .and_then(|r| r.split("</version>").next())
+                .map(str::trim);
+            if let Some(v) = v.filter(|v| v.chars().next().is_some_and(|c| c.is_ascii_digit())) {
+                return Some(v.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Kotlin (KotlinForge): Kotlin sources (`*.kt` in the folder, `src/main/kotlin`,
+/// `src/test/kotlin`) or a build that applies the Kotlin plugin (`kotlin("jvm")`,
+/// `org.jetbrains.kotlin.*`, `kotlin-maven-plugin`). Kotest is a framework of its own.
+fn scan_kotlin(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let sources = files
+        .iter()
+        .any(|f| f.ends_with(".kt") || (f.ends_with(".kts") && !f.ends_with(".gradle.kts")))
+        || dir.join("src/main/kotlin").is_dir()
+        || dir.join("src/test/kotlin").is_dir();
+    let builds: Vec<String> = ["build.gradle.kts", "build.gradle", "pom.xml"]
+        .iter()
+        .filter(|f| files.iter().any(|x| x == *f))
+        .filter_map(|f| fs::read_to_string(dir.join(f)).ok())
+        .collect();
+    let plugin = builds.iter().any(|b| {
+        b.contains("kotlin(\"jvm\")")
+            || b.contains("kotlin(\"multiplatform\")")
+            || b.contains("org.jetbrains.kotlin")
+            || b.contains("kotlin-maven-plugin")
+    });
+    if sources || plugin {
+        c.language("kotlin");
+    }
+    if builds.iter().any(|b| b.contains("io.kotest")) {
+        c.framework("kotest", "Kotest", "kotlin", None, rel);
+    }
+}
+
+/// The texts of a folder's build files that exist (`build.gradle(.kts)`, `pom.xml`, …).
+fn build_texts(dir: &Path, files: &[String], names: &[&str]) -> Vec<String> {
+    names
+        .iter()
+        .filter(|f| files.iter().any(|x| x == *f))
+        .filter_map(|f| fs::read_to_string(dir.join(f)).ok())
+        .collect()
+}
+
+/// Groovy (JavaForge): Groovy sources (`*.groovy`, `*.gvy`, `*.gy` in the folder,
+/// `src/main/groovy`, `src/test/groovy`) or a Gradle build applying the `groovy` plugin.
+/// Gradle build scripts themselves are not Groovy sources. Spock is a framework of its own.
+fn scan_groovy(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let sources = files
+        .iter()
+        .any(|f| f.ends_with(".groovy") || f.ends_with(".gvy") || f.ends_with(".gy"))
+        || dir.join("src/main/groovy").is_dir()
+        || dir.join("src/test/groovy").is_dir();
+    let builds = build_texts(dir, files, &["build.gradle", "build.gradle.kts", "pom.xml"]);
+    let plugin = builds.iter().any(|b| {
+        b.contains("id 'groovy'")
+            || b.contains("id \"groovy\"")
+            || b.contains("id(\"groovy\")")
+            || b.contains("apply plugin: 'groovy'")
+            || b.contains("gmavenplus-plugin")
+            || b.lines().any(|l| l.trim() == "groovy")
+            || b.contains("{ groovy }")
+    });
+    if sources || plugin {
+        c.language("groovy");
+    }
+    if builds.iter().any(|b| b.contains("org.spockframework")) {
+        c.framework("spock", "Spock", "groovy", None, rel);
+    }
+}
+
+/// Scala (JavaForge): an sbt build (`build.sbt`, `project/build.properties`), Scala sources
+/// (`*.scala`, `src/main/scala`) or Gradle's `scala` plugin. ScalaTest and MUnit are
+/// frameworks; the Scala version of the build is the language's.
+fn scan_scala(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let has = |name: &str| files.iter().any(|f| f == name);
+    let sbt_props = fs::read_to_string(dir.join("project/build.properties"))
+        .map(|t| t.contains("sbt.version"))
+        .unwrap_or(false);
+    let sbt = has("build.sbt") || sbt_props;
+    let sources = files.iter().any(|f| f.ends_with(".scala"))
+        || dir.join("src/main/scala").is_dir()
+        || dir.join("src/test/scala").is_dir();
+    let gradle = build_texts(dir, files, &["build.gradle", "build.gradle.kts"])
+        .iter()
+        .any(|b| {
+            b.contains("id 'scala'")
+                || b.contains("id(\"scala\")")
+                || b.contains("apply plugin: 'scala'")
+        });
+    if sbt {
+        c.tool("sbt");
+    }
+    if !(sbt || sources || gradle) {
+        return;
+    }
+    c.language("scala");
+    let build = fs::read_to_string(dir.join("build.sbt")).unwrap_or_default();
+    if build.contains("\"org.scalatest\"") {
+        c.framework("scalatest", "ScalaTest", "scala", None, rel);
+    }
+    if build.contains("\"munit\"") {
+        c.framework("munit", "MUnit", "scala", None, rel);
+    }
+}
+
+/// Android (JavaForge): a Gradle module applying the Android Gradle Plugin
+/// (`com.android.application` / `library`, also as a version catalog alias) or a
+/// `src/main/AndroidManifest.xml`. The version is AGP's (`gradle/libs.versions.toml`).
+fn scan_android(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
+    let builds = build_texts(dir, files, &["build.gradle.kts", "build.gradle"]);
+    let plugin = builds.iter().any(|b| {
+        b.contains("com.android.application")
+            || b.contains("com.android.library")
+            || b.contains("android.application)")
+            || b.contains("android.library)")
+    });
+    let manifest = dir.join("src/main/AndroidManifest.xml").is_file();
+    if !(plugin || manifest) {
+        return;
+    }
+    let catalog = fs::read_to_string(dir.join("gradle/libs.versions.toml")).unwrap_or_default();
+    let version = catalog.lines().find_map(|l| {
+        let (k, v) = l.split_once('=')?;
+        (k.trim() == "agp").then(|| v.trim().trim_matches('"').to_string())
+    });
+    c.tool("android");
+    c.framework("android", "Android", "java", version, rel);
 }
 
 fn scan_composer(dir: &Path, rel: &str, c: &mut Collector) {
@@ -428,6 +1191,85 @@ fn composer_lock_versions(path: &Path) -> HashMap<String, String> {
         }
     }
     out
+}
+
+/// The first 8 KiB of a file (plugin and theme headers are at the top).
+fn head(path: &Path) -> Option<String> {
+    use std::io::Read;
+    let mut buf = vec![0; 8192];
+    let n = fs::File::open(path).ok()?.read(&mut buf).ok()?;
+    Some(String::from_utf8_lossy(&buf[..n]).into_owned())
+}
+
+/// A WordPress plugin (`Plugin Name:` in a PHP file) or theme (`Theme Name:` in style.css).
+fn wordpress_header(dir: &Path, files: &[String]) -> bool {
+    let has_field = |src: &str, key: &str| {
+        src.lines().take(60).any(|l| {
+            l.trim_start()
+                .trim_start_matches(['*', '#', '/'])
+                .trim_start()
+                .strip_prefix(key)
+                .is_some_and(|r| r.trim_start().starts_with(':'))
+        })
+    };
+    files.iter().any(|f| {
+        (f.ends_with(".php") && head(&dir.join(f)).is_some_and(|s| has_field(&s, "Plugin Name")))
+            || (f == "style.css" && head(&dir.join(f)).is_some_and(|s| has_field(&s, "Theme Name")))
+    })
+}
+
+fn composer_requires_prefix(dir: &Path, prefix: &str) -> bool {
+    read_json(&dir.join("composer.json")).is_some_and(|m| {
+        ["require", "require-dev"].iter().any(|s| {
+            m.get(*s)
+                .and_then(Value::as_object)
+                .is_some_and(|o| o.keys().any(|k| k.starts_with(prefix)))
+        })
+    })
+}
+
+fn composer_type(dir: &Path) -> Option<String> {
+    read_json(&dir.join("composer.json"))?
+        .get("type")?
+        .as_str()
+        .map(str::to_string)
+}
+
+/// A Drupal module, theme or profile: `<name>.info.yml` with `core_version_requirement`.
+fn drupal_extension(dir: &Path, files: &[String]) -> bool {
+    files.iter().any(|f| {
+        f.ends_with(".info.yml")
+            && head(&dir.join(f)).is_some_and(|s| s.contains("core_version_requirement"))
+    })
+}
+
+fn drupal_version(dir: &Path) -> Option<String> {
+    let src = head(&dir.join("core/lib/Drupal.php"))?;
+    let at = src.find("const VERSION")?;
+    let rest = &src[at..];
+    let start = rest.find(['\'', '"'])? + 1;
+    let end = start + rest[start..].find(['\'', '"'])?;
+    Some(rest[start..end].to_string())
+}
+
+/// A Joomla extension: a root XML manifest `<extension type="component" …>`.
+fn joomla_manifest(dir: &Path, files: &[String]) -> bool {
+    files.iter().any(|f| {
+        f.ends_with(".xml")
+            && head(&dir.join(f)).is_some_and(|s| {
+                s.contains("<extension")
+                    && ["component", "module", "plugin", "template", "package"]
+                        .iter()
+                        .any(|t| s.contains(&format!("type=\"{t}\"")))
+            })
+    })
+}
+
+fn joomla_version(dir: &Path) -> Option<String> {
+    let src = head(&dir.join("administrator/manifests/files/joomla.xml"))?;
+    let start = src.find("<version>")? + "<version>".len();
+    let end = start + src[start..].find("</version>")?;
+    Some(src[start..end].trim().to_string())
 }
 
 fn wordpress_version(dir: &Path) -> Option<String> {
@@ -671,6 +1513,70 @@ mod tests {
     }
 
     #[test]
+    fn wordpress_plugins_themes_and_content_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "acme-events.php",
+            "<?php\n/**\n * Plugin Name: Acme Events\n */\n",
+        );
+        assert_eq!(detect(dir.path()).primary.unwrap().id, "wordpress");
+        let theme = tempfile::tempdir().unwrap();
+        write(theme.path(), "style.css", "/*\nTheme Name: Anvil\n*/");
+        write(theme.path(), "functions.php", "<?php");
+        assert_eq!(detect(theme.path()).primary.unwrap().id, "wordpress");
+        let content = tempfile::tempdir().unwrap();
+        write(content.path(), "wp-content/plugins/a/a.php", "<?php");
+        assert_eq!(detect(content.path()).primary.unwrap().id, "wordpress");
+        let bedrock = tempfile::tempdir().unwrap();
+        write(
+            bedrock.path(),
+            "composer.json",
+            r#"{"require": {"roots/acorn": "^4"}}"#,
+        );
+        assert_eq!(detect(bedrock.path()).primary.unwrap().id, "wordpress");
+    }
+
+    #[test]
+    fn drupal_modules_joomla_and_shopware() {
+        let module = tempfile::tempdir().unwrap();
+        write(
+            module.path(),
+            "acme.info.yml",
+            "name: Acme\ntype: module\ncore_version_requirement: ^10 || ^11\n",
+        );
+        assert_eq!(detect(module.path()).primary.unwrap().id, "drupal");
+        let joomla = tempfile::tempdir().unwrap();
+        write(
+            joomla.path(),
+            "administrator/manifests/files/joomla.xml",
+            "<extension type=\"file\"><version>5.1.2</version></extension>",
+        );
+        let j = detect(joomla.path()).primary.unwrap();
+        assert_eq!(
+            (j.id.as_str(), j.version.as_deref()),
+            ("joomla", Some("5.1.2"))
+        );
+        let ext = tempfile::tempdir().unwrap();
+        write(
+            ext.path(),
+            "com_acme.xml",
+            "<?xml version=\"1.0\"?>\n<extension type=\"component\"></extension>",
+        );
+        assert_eq!(detect(ext.path()).primary.unwrap().id, "joomla");
+        let sw = tempfile::tempdir().unwrap();
+        write(
+            sw.path(),
+            "composer.json",
+            r#"{"require": {"shopware/core": "~6.6.0"}}"#,
+        );
+        assert_eq!(detect(sw.path()).primary.unwrap().name, "Shopware");
+        let sw5 = tempfile::tempdir().unwrap();
+        write(sw5.path(), "engine/Shopware/Kernel.php", "<?php");
+        assert_eq!(detect(sw5.path()).primary.unwrap().id, "shopware");
+    }
+
+    #[test]
     fn drupal_and_magento_from_composer() {
         let dir = tempfile::tempdir().unwrap();
         write(
@@ -711,6 +1617,35 @@ mod tests {
         assert_eq!(info.languages, vec!["typescript", "javascript"]);
         assert_eq!(info.tools, vec!["pnpm"]);
         assert_eq!(info.packs, vec!["webforge"]);
+    }
+
+    #[test]
+    fn web_tooling_markers() {
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "nx.json", "{}");
+        write(dir.path(), "deno.jsonc", "{}");
+        write(dir.path(), "bunfig.toml", "");
+        write(dir.path(), "prisma/schema.prisma", "datasource db {}");
+        write(dir.path(), ".graphqlrc.yml", "schema: s.graphql");
+        write(dir.path(), "site/astro.config.mjs", "");
+        write(
+            dir.path(),
+            "site/package.json",
+            r#"{"dependencies": {"astro": "^5.1.0"}}"#,
+        );
+        write(dir.path(), "web/nuxt.config.ts", "");
+        let info = detect(dir.path());
+        let ids: Vec<&str> = info.frameworks.iter().map(|f| f.id.as_str()).collect();
+        for id in ["nx", "deno", "prisma", "astro", "nuxt"] {
+            assert!(ids.contains(&id), "{id} in {ids:?}");
+        }
+        for tool in ["deno", "bun", "graphql"] {
+            assert!(info.tools.iter().any(|t| t == tool), "{tool}");
+        }
+        assert_eq!(
+            info.framework("astro").unwrap().version.as_deref(),
+            Some("5.1.0")
+        );
     }
 
     #[test]
@@ -764,6 +1699,137 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), "init.lua", "vim.opt.number = true");
         assert_eq!(detect(dir.path()).primary.unwrap().id, "neovim");
+    }
+
+    #[test]
+    fn java_builds_and_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "settings.gradle.kts",
+            "rootProject.name = \"inventory\"",
+        );
+        write(
+            dir.path(),
+            "app/build.gradle.kts",
+            "plugins { application }",
+        );
+        write(
+            dir.path(),
+            "app/src/main/java/com/acme/App.java",
+            "class App {}",
+        );
+        let info = detect(dir.path());
+        assert_eq!(info.languages, vec!["java"]);
+        assert_eq!(info.packs, vec!["javaforge"]);
+        assert_eq!(info.tools, vec!["gradle"]);
+        assert_eq!(info.primary.as_ref().map(|p| p.name.as_str()), Some("Java"));
+
+        let maven = tempfile::tempdir().unwrap();
+        write(maven.path(), "pom.xml", "<project/>");
+        assert!(detect(maven.path()).uses("maven"));
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "Hello.java", "void main() {}");
+        assert!(detect(plain.path()).uses("javaforge"));
+    }
+
+    #[test]
+    fn spring_boot_and_jakarta_ee() {
+        let gradle = tempfile::tempdir().unwrap();
+        write(
+            gradle.path(),
+            "build.gradle.kts",
+            "plugins {\n    java\n    id(\"org.springframework.boot\") version \"3.3.2\"\n}\ndependencies { implementation(\"org.springframework.boot:spring-boot-starter-web\") }",
+        );
+        let info = detect(gradle.path());
+        let boot = info.framework("spring-boot").unwrap();
+        assert_eq!(
+            (boot.name.as_str(), boot.version.as_deref()),
+            ("Spring Boot", Some("3.3.2"))
+        );
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.id.as_str()),
+            Some("spring-boot")
+        );
+        assert!(info.uses("javaforge"));
+
+        let maven = tempfile::tempdir().unwrap();
+        write(
+            maven.path(),
+            "pom.xml",
+            "<project><parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId>\n<version>3.4.0</version></parent></project>",
+        );
+        assert_eq!(
+            detect(maven.path())
+                .framework("spring-boot")
+                .unwrap()
+                .version
+                .as_deref(),
+            Some("3.4.0")
+        );
+        let groovy = tempfile::tempdir().unwrap();
+        write(
+            groovy.path(),
+            "build.gradle",
+            "plugins { id 'org.springframework.boot' version '2.7.18' }",
+        );
+        assert_eq!(
+            detect(groovy.path())
+                .framework("spring-boot")
+                .unwrap()
+                .version
+                .as_deref(),
+            Some("2.7.18")
+        );
+
+        let ee = tempfile::tempdir().unwrap();
+        write(
+            ee.path(),
+            "build.gradle",
+            "dependencies { compileOnly 'jakarta.platform:jakarta.jakartaee-api:10.0.0' }",
+        );
+        let info = detect(ee.path());
+        assert_eq!(
+            info.framework("jakarta-ee").unwrap().version.as_deref(),
+            Some("10.0.0")
+        );
+        assert!(info.framework("spring-boot").is_none());
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "pom.xml", "<project/>");
+        assert!(detect(plain.path()).frameworks.is_empty());
+    }
+
+    #[test]
+    fn kotlin_sources_builds_and_kotest() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "settings.gradle.kts",
+            "rootProject.name = \"orders\"",
+        );
+        write(
+            dir.path(),
+            "build.gradle.kts",
+            "plugins { kotlin(\"jvm\") version \"2.2.0\" }\ndependencies { testImplementation(\"io.kotest:kotest-runner-junit5:5.9.1\") }",
+        );
+        let info = detect(dir.path());
+        assert!(info.uses("kotlin") && info.uses("kotlinforge"));
+        assert!(
+            info.uses("javaforge"),
+            "Gradle builds belong to JavaForge too"
+        );
+        assert!(info.framework("kotest").is_some());
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.name.as_str()),
+            Some("Kotlin")
+        );
+
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "hello.main.kts", "println(\"Hi\")");
+        assert!(detect(plain.path()).uses("kotlinforge"));
+        let gradle_only = tempfile::tempdir().unwrap();
+        write(gradle_only.path(), "build.gradle.kts", "plugins { java }");
+        assert!(!detect(gradle_only.path()).uses("kotlin"));
     }
 
     #[test]
@@ -838,8 +1904,294 @@ mod tests {
         write(dir.path(), "pyproject.toml", "");
         let info = detect(dir.path());
         assert_eq!(info.languages, vec!["rust", "go", "python"]);
-        assert!(info.packs.is_empty());
+        assert_eq!(info.packs, vec!["rustforge", "goforge", "pyforge"]);
         assert_eq!(info.primary.unwrap().name, "Rust");
+    }
+
+    #[test]
+    fn cpp_projects() {
+        for (marker, tool) in [
+            ("CMakeLists.txt", Some("cmake")),
+            ("compile_commands.json", Some("compile-commands")),
+            ("build/compile_commands.json", Some("compile-commands")),
+            ("meson.build", Some("meson")),
+            ("main.cpp", None),
+            ("hello.c", None),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["cforge"], "{marker}");
+            assert_eq!(info.languages, vec!["cpp"], "{marker}");
+            assert_eq!(info.primary.unwrap().name, "C/C++", "{marker}");
+            if let Some(t) = tool {
+                assert!(info.tools.contains(&t.to_string()), "{marker}");
+            }
+        }
+        // Embedded frameworks and package managers.
+        for (files, tool) in [
+            (&["platformio.ini"][..], "platformio"),
+            (&["west.yml"][..], "zephyr"),
+            (&["CMakeLists.txt", "prj.conf"][..], "zephyr"),
+            (&["CMakeLists.txt", "sdkconfig"][..], "esp-idf"),
+            (&["CMakeLists.txt", "main/idf_component.yml"][..], "esp-idf"),
+            (&["CMakeLists.txt", "vcpkg.json"][..], "vcpkg"),
+            (&["CMakeLists.txt", "conanfile.py"][..], "conan"),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            for f in files {
+                write(dir.path(), f, "");
+            }
+            let info = detect(dir.path());
+            assert!(info.uses("cforge"), "{files:?}");
+            assert!(info.tools.contains(&tool.to_string()), "{files:?} → {tool}");
+        }
+        // A Makefile alone is no C/C++ project; with sources in src/ it is.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Makefile", "all:");
+        write(dir.path(), "composer.json", "{}");
+        let info = detect(dir.path());
+        assert!(!info.uses("cpp"));
+        assert!(info.tools.contains(&"make".to_string()));
+        write(dir.path(), "src/main.c", "");
+        assert!(detect(dir.path()).uses("cforge"));
+        // One header in a sub folder of a web project is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "native/addon.h", "");
+        assert!(!detect(dir.path()).uses("cpp"));
+    }
+
+    #[test]
+    fn dotnet_projects() {
+        for (marker, content, lang) in [
+            (
+                "Shop.sln",
+                "Project(\"{9A19103F}\") = \"Api\", \"Api\\\\Api.csproj\", \"{1}\"",
+                "csharp",
+            ),
+            (
+                "Shop.slnx",
+                "<Solution><Project Path=\"Reports/Reports.fsproj\" /></Solution>",
+                "fsharp",
+            ),
+            (
+                "App.csproj",
+                "<Project Sdk=\"Microsoft.NET.Sdk\" />",
+                "csharp",
+            ),
+            ("Lib.vbproj", "<Project />", "vbnet"),
+            ("Program.cs", "Console.WriteLine();", "csharp"),
+            ("script.fsx", "printfn \"hi\"", "fsharp"),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, content);
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["dotnetforge"], "{marker}");
+            assert_eq!(info.languages, vec![lang], "{marker}");
+        }
+        // A solution with projects one level below, ASP.NET Core.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Bookstore.sln", "Microsoft Visual Studio Solution File\nProject(\"x\") = \"Api\", \"Api\\\\Api.csproj\", \"y\"");
+        write(
+            dir.path(),
+            "Api/Api.csproj",
+            "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />",
+        );
+        let info = detect(dir.path());
+        assert!(info.uses("dotnet") && info.uses("aspnetcore"));
+        assert_eq!(info.primary.as_ref().unwrap().id, "aspnetcore");
+        assert_eq!(language_name("csharp"), "C#");
+        // One stray C# file in a subfolder of another project is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "tools/gen.cs", "");
+        assert!(!detect(dir.path()).uses("dotnetforge"));
+    }
+
+    #[test]
+    fn rust_projects() {
+        for marker in ["Cargo.toml", "main.rs"] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "[package]");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["rustforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().id, "rust", "{marker}");
+        }
+        // A workspace member in a sub folder; a single build helper is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "scripts/gen.rs", "");
+        assert!(!detect(dir.path()).uses("rust"));
+        write(dir.path(), "native/Cargo.toml", "[package]");
+        let info = detect(dir.path());
+        assert!(info.uses("rustforge"));
+        assert!(info.tools.contains(&"cargo".to_string()));
+    }
+
+    #[test]
+    fn rails_applications() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "Gemfile",
+            "source \"https://rubygems.org\"\ngem \"rails\", \"~> 7.2.1\"\n",
+        );
+        write(dir.path(), "config/application.rb", "module Blog\nend\n");
+        write(dir.path(), "app/javascript/application.js", "");
+        write(dir.path(), "package.json", "{}");
+        let info = detect(dir.path());
+        assert_eq!(
+            info.framework("rails").unwrap().version.as_deref(),
+            Some("7.2.1")
+        );
+        assert_eq!(info.primary.unwrap().id, "rails");
+        assert!(info.packs.contains(&"rubyforge".to_string()));
+        write(
+            dir.path(),
+            "Gemfile.lock",
+            "GEM\n  specs:\n    rails (7.2.2)\n",
+        );
+        assert_eq!(
+            detect(dir.path())
+                .framework("rails")
+                .unwrap()
+                .version
+                .as_deref(),
+            Some("7.2.2")
+        );
+        // A gem that only uses Rails parts is not a Rails application.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Gemfile", "gem \"rails\"\n");
+        assert!(detect(dir.path()).framework("rails").is_none());
+    }
+
+    #[test]
+    fn ruby_projects() {
+        for marker in [
+            "Gemfile",
+            "Rakefile",
+            "shop.gemspec",
+            ".ruby-version",
+            "app.rb",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["rubyforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().name, "Ruby", "{marker}");
+        }
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Gemfile", "source 'https://rubygems.org'");
+        write(dir.path(), "Rakefile", "");
+        let info = detect(dir.path());
+        assert!(info.tools.contains(&"bundler".to_string()));
+        assert!(info.tools.contains(&"rake".to_string()));
+        // A single helper script in a sub folder of another project is not enough.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "scripts/release.rb", "");
+        assert!(!detect(dir.path()).uses("ruby"));
+    }
+
+    #[test]
+    fn go_projects() {
+        for marker in ["go.mod", "go.work", "main.go"] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "module x");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["goforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().id, "go", "{marker}");
+        }
+        // A module in a sub folder, and go.work workspaces.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "package.json", "{}");
+        write(dir.path(), "tools/gen.go", "");
+        assert!(!detect(dir.path()).uses("go"));
+        write(dir.path(), "api/go.mod", "module x");
+        assert!(detect(dir.path()).uses("goforge"));
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "go.work", "go 1.23");
+        assert!(detect(dir.path())
+            .tools
+            .contains(&"go-workspace".to_string()));
+    }
+
+    #[test]
+    fn python_web_frameworks() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "requirements.txt",
+            "Django>=5.1,<6\ncelery[redis]==5.4.0\ndjango-extensions\n",
+        );
+        write(dir.path(), "manage.py", "");
+        let info = detect(dir.path());
+        assert_eq!(ids(&info), vec!["django", "celery"]);
+        assert_eq!(
+            info.framework("django").unwrap().version.as_deref(),
+            Some("5.1")
+        );
+        assert_eq!(
+            info.framework("celery").unwrap().version.as_deref(),
+            Some("5.4.0")
+        );
+        assert_eq!(info.primary.unwrap().id, "django");
+        // Django needs manage.py; FastAPI from pyproject.toml with the version from uv.lock.
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "pyproject.toml",
+            "[project]\ndependencies = [\n  \"fastapi>=0.115\",\n  \"django-ninja\",\n]\n",
+        );
+        write(
+            dir.path(),
+            "uv.lock",
+            "[[package]]\nname = \"fastapi\"\nversion = \"0.115.0\"\n",
+        );
+        let info = detect(dir.path());
+        assert_eq!(ids(&info), vec!["fastapi"]);
+        assert_eq!(
+            info.framework("fastapi").unwrap().version.as_deref(),
+            Some("0.115.0")
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "Pipfile", "[packages]\nflask = \"*\"\n");
+        assert_eq!(ids(&detect(dir.path())), vec!["flask"]);
+    }
+
+    #[test]
+    fn python_projects() {
+        // Each marker alone makes a Python project.
+        for marker in [
+            "pyproject.toml",
+            "setup.py",
+            "setup.cfg",
+            "requirements-dev.txt",
+            "Pipfile",
+            "environment.yml",
+            "main.py",
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            write(dir.path(), marker, "");
+            let info = detect(dir.path());
+            assert_eq!(info.packs, vec!["pyforge"], "{marker}");
+            assert_eq!(info.primary.unwrap().id, "python", "{marker}");
+        }
+        // One helper script in a subfolder of another project does not count; two do.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "composer.json", "{}");
+        write(dir.path(), "scripts/gen.py", "");
+        assert!(!detect(dir.path()).uses("python"));
+        write(dir.path(), "scripts/other.py", "");
+        assert!(detect(dir.path()).uses("pyforge"));
+        // Tools.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "pyproject.toml", "");
+        write(dir.path(), "uv.lock", "");
+        write(dir.path(), "poetry.lock", "");
+        let info = detect(dir.path());
+        assert!(info.uses("uv") && info.uses("poetry") && !info.uses("pipenv"));
     }
 
     #[test]
@@ -898,5 +2250,72 @@ mod tests {
         assert!(info.matches_any(&[]));
         assert!(info.matches_any(&["laravel".into()]));
         assert!(!info.matches_any(&["symfony".into(), "lua".into()]));
+    }
+
+    #[test]
+    fn groovy_scala_and_android() {
+        let groovy = tempfile::tempdir().unwrap();
+        write(groovy.path(), "build.gradle", "plugins {\n    id 'groovy'\n}\ndependencies {\n    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'\n}\n");
+        let info = detect(groovy.path());
+        assert!(info.uses("groovy") && info.uses("javaforge") && info.uses("spock"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.name.as_str()),
+            Some("Groovy")
+        );
+        // Gradle build scripts are not Groovy sources.
+        let plain = tempfile::tempdir().unwrap();
+        write(plain.path(), "build.gradle", "plugins { id 'java' }");
+        assert!(!detect(plain.path()).uses("groovy"));
+        let script = tempfile::tempdir().unwrap();
+        write(script.path(), "release.groovy", "println 'x'");
+        assert!(detect(script.path()).uses("groovy"));
+
+        let sbt = tempfile::tempdir().unwrap();
+        write(sbt.path(), "build.sbt", "scalaVersion := \"3.3.4\"\nlibraryDependencies += \"org.scalameta\" %% \"munit\" % \"1.0.2\" % Test\n");
+        write(
+            sbt.path(),
+            "project/build.properties",
+            "sbt.version=1.10.5\n",
+        );
+        let info = detect(sbt.path());
+        assert_eq!(info.languages, ["scala"]);
+        assert_eq!(info.packs, ["javaforge"]);
+        assert!(info.uses("sbt") && info.uses("munit") && !info.uses("java"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.name.as_str()),
+            Some("Scala")
+        );
+
+        let android = tempfile::tempdir().unwrap();
+        write(android.path(), "settings.gradle.kts", "include(\":app\")");
+        write(
+            android.path(),
+            "build.gradle.kts",
+            "plugins {\n    alias(libs.plugins.android.application) apply false\n}\n",
+        );
+        write(
+            android.path(),
+            "gradle/libs.versions.toml",
+            "[versions]\nagp = \"8.7.3\"\n",
+        );
+        write(android.path(), "app/build.gradle.kts", "plugins {\n    alias(libs.plugins.android.application)\n    alias(libs.plugins.kotlin.android)\n}\nandroid { namespace = \"com.acme.notes\" }\n");
+        write(
+            android.path(),
+            "app/src/main/AndroidManifest.xml",
+            "<manifest/>",
+        );
+        write(
+            android.path(),
+            "app/src/main/java/com/acme/notes/MainActivity.kt",
+            "class MainActivity",
+        );
+        let info = detect(android.path());
+        let fw = info.framework("android").unwrap();
+        assert_eq!(fw.version.as_deref(), Some("8.7.3"));
+        assert_eq!(
+            info.primary.as_ref().map(|p| p.id.as_str()),
+            Some("android")
+        );
+        assert!(info.uses("javaforge") && info.uses("gradle"));
     }
 }

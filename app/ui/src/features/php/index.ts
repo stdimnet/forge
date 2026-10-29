@@ -19,13 +19,16 @@ import { lspClaimsHover } from "@/features/lsp/hover";
 import { registerFormatPostProcessor } from "@/features/lsp/format";
 import { phpApi } from "./api";
 import { activeView, viewFor, viewTracker } from "./editorViews";
-import { GenerateOverlay, openGeneratePopup, startGenerate } from "./GenerateOverlay";
+import { GenerateOverlay, openGenerateItemsPopup, openGeneratePopup, startGenerate } from "./GenerateOverlay";
 import { indexHover, setOtherHoverProvider } from "./indexHover";
 import { registerPhpSearchProviders } from "./search";
 import { migrateLegacyPhpSettings } from "./settings";
 import { StructureActions, StructureView } from "./StructureView";
 import { IndexingStatus, PhpVersionStatus, indexWorkspace } from "./status";
 import { PhpSettingsPage } from "./PhpSettingsPage";
+import { phpMetaEditor } from "./meta";
+import "./libraries";
+import "./sourceRoots";
 import "./php.css";
 
 const isPhp = (path: string) =>
@@ -38,6 +41,8 @@ registerEditorExtension(({ path }) =>
         // (Generate / OverrideMethods / ImplementMethods aliases in forge-keymap).
         viewTracker(path),
         indexHover(path),
+        // `.phpstorm.meta.php` and JetBrains attributes: inspections and completion.
+        phpMetaEditor(path),
       ]
     : null,
 );
@@ -57,7 +62,18 @@ const withActive = (fn: (path: string, view: NonNullable<ReturnType<typeof activ
   if (a && isPhp(a.path)) fn(a.path, a.view);
 };
 
-registerCommand({ id: "php.generate", title: "Generate…", category: "Code", run: withActive((p, v) => void openGeneratePopup(p, v)) });
+registerCommand({
+  id: "php.generate",
+  title: "Generate…",
+  category: "Code",
+  run: () => {
+    const a = activeView();
+    if (!a) return;
+    // Other languages get the entries other features add (Generate Documentation with AI...).
+    if (isPhp(a.path)) void openGeneratePopup(a.path, a.view);
+    else openGenerateItemsPopup(a.path, a.view);
+  },
+});
 registerCommand({ id: "php.overrideMethods", title: "Override Methods…", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "overrideMethods")) });
 registerCommand({ id: "php.implementMethods", title: "Implement Methods…", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "implementMethods")) });
 registerCommand({ id: "php.generatePhpDoc", title: "Generate PHPDoc Comment", category: "Code", run: withActive((p, v) => void startGenerate(p, v, "phpDoc")) });
@@ -83,7 +99,7 @@ registerSettingsPage({
   title: "PHP",
   group: "Languages & Frameworks",
   order: 10,
-  keywords: ["php", "interpreter", "language level", "intelephense", "phpactor", "licence", "license", "include path"],
+  keywords: ["php", "interpreter", "language level", "php-lsp", "language server", "include path"],
   component: PhpSettingsPage,
 });
 

@@ -5,6 +5,7 @@
 import { createRoot, createSignal } from "solid-js";
 import {
   remoteApi,
+  type BrowseResult,
   type ConnectError,
   type HostKeyInfo,
   type RemoteStatus,
@@ -22,6 +23,7 @@ export const blankConfig = (): SshConfiguration => ({
   auth: "password",
   keyFile: "",
   dontSaveSecret: false,
+  parseConfig: true,
 });
 
 export interface SshDialogRequest {
@@ -70,18 +72,26 @@ export interface FolderChooserRequest {
   connectionId: string;
   label: string;
   start: string;
+  /** Lists a folder (default: `remote_browse` of the SSH connection; WSL passes its own). */
+  browse?: (path: string) => Promise<BrowseResult>;
   pick: (path: string | null) => void;
 }
 
 export const [folderChooser, setFolderChooser] = createSignal<FolderChooserRequest | null>(null);
 
 /** Let the user pick a folder on the connected host. */
-export function chooseRemoteFolder(connectionId: string, label: string, start: string): Promise<string | null> {
+export function chooseRemoteFolder(
+  connectionId: string,
+  label: string,
+  start: string,
+  browse?: (path: string) => Promise<BrowseResult>,
+): Promise<string | null> {
   return new Promise((resolve) => {
     setFolderChooser({
       connectionId,
       label,
       start,
+      browse,
       pick: (path) => {
         setFolderChooser(null);
         resolve(path);
@@ -141,10 +151,19 @@ export async function connectWithConfirmation(
   }
 }
 
+type RecentOpener = (project: RecentProject) => Promise<boolean>;
+let devEnvOpener: RecentOpener | null = null;
+
+/** Dev container and WSL projects open through their feature (`features/devenv`). */
+export function setRecentDevEnvOpener(opener: RecentOpener): void {
+  devEnvOpener = opener;
+}
+
 /** Open a recent remote project: reconnect with its saved configuration, else ask. */
 export async function openRecentRemote(project: RecentProject): Promise<void> {
   const r = project.remote;
   if (!r) return;
+  if (r.kind && devEnvOpener && (await devEnvOpener(project))) return;
   const saved = (await remoteApi.configs().catch(() => [])).find((c) => c.id === r.configId);
   const config: SshConfiguration = saved ?? { ...blankConfig(), host: r.host, port: r.port, user: r.user };
   // Without a stored password the dialog asks for it.

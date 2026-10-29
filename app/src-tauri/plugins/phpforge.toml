@@ -92,7 +92,7 @@ order = 2
 [[plugin.contributions.settings]]
 key = "php.composer.addPackagesAsLibraries"
 title = "Add packages as libraries"
-description = "Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out."
+description = "Classes in vendor/ are resolved for navigation, completion and the language server (php-lsp). Off: vendor/ is left out."
 type = "bool"
 default = true
 group = "lang.php.composer"
@@ -117,6 +117,74 @@ default = true
 group = "lang.php.composer"
 order = 5
 
+[[plugin.contributions.inspections]]
+id = "ComposerOutdatedPackages"
+name = "Outdated Composer packages"
+group = "PHP/Composer"
+language = "json"
+severity = "WEAK WARNING"
+external = true
+batch = false
+description = "Dependencies of composer.json with a newer version available."
+
+[[plugin.contributions.inspectionMappings]]
+source = "composer-outdated"
+inspection = "ComposerOutdatedPackages"
+
+[[plugin]]
+id = "forge.command-line-tools"
+name = "Command Line Tool Support"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run Composer, Laravel Artisan, Symfony Console, WP-CLI, Drush and custom tools in a console with command, option and argument completion (Tools | Run Command…, Ctrl+Shift+X)."
+projectTypes = ["php", "composer"]
+
+[[plugin.contributions.commands]]
+id = "CommandLineToolsAction"
+title = "Run Command…"
+category = "Tools"
+
+[[plugin.contributions.keybindings]]
+command = "CommandLineToolsAction"
+key = "Ctrl+Shift+X"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "RunAnything"
+items = [
+  { type = "action", id = "CommandLineToolsAction", label = "Run _Command..." },
+]
+
+[[plugin.contributions.toolWindows]]
+id = "commandLineTools"
+title = "Command Line Tools Console"
+anchor = "bottom"
+icon = "square-terminal"
+order = 45
+
+[[plugin.contributions.settings]]
+key = "commandLineTools.tools"
+title = "Command line tools"
+description = "Tools that Tools | Run Command… (Ctrl+Shift+X) runs. The alias starts the command line, e.g. c install or a make:model Order. Tools run with the PHP interpreter of the project unless they name another one."
+type = "objects"
+unique = ["alias"]
+default = []
+group = "tools.command-line-tools"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "commandLineTools.autoDetect"
+title = "Add the tools the project uses automatically"
+description = "Composer (composer.json), Laravel Artisan (artisan), Symfony Console (bin/console), WP-CLI (wp-cli.phar, vendor/bin/wp or a WordPress site) and Drush (vendor/bin/drush), unless a tool of that kind or alias is configured."
+type = "bool"
+default = true
+group = "tools.command-line-tools"
+project = true
+order = 1
+
 [[plugin]]
 id = "forge.phpunit"
 name = "PHPUnit"
@@ -138,6 +206,64 @@ debuggable = true
 id = "phpunit.testMethod"
 title = "Test Method"
 languages = ["php"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "pest"
+name = "Pest"
+description = "Run Pest tests: a directory, a file, a test or describe block, or phpunit.xml."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.codeception"
+name = "Codeception Framework"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run and debug Codeception suites, Cest/Cept files and tests, with groups and environments."
+projectTypes = ["codeception"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "codeception"
+name = "Codeception"
+description = "Run a Codeception suite, directory, file or test."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.behat"
+name = "Behat"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run Behat features and scenarios, navigate from steps to their definitions."
+projectTypes = ["behat"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "behat"
+name = "Behat"
+description = "Run Behat features, a feature file or a scenario."
+icon = "flask-conical"
+debuggable = true
+
+[[plugin]]
+id = "forge.phpspec"
+name = "PHPSpec"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php"]
+description = "Run PHPSpec specs and examples."
+projectTypes = ["phpspec"]
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "phpspec"
+name = "PHPSpec"
+description = "Run PHPSpec specs: a directory, a spec file or an example."
+icon = "flask-conical"
+debuggable = true
 
 [[plugin]]
 id = "forge.xdebug"
@@ -174,7 +300,27 @@ after = "XDebugger.MuteBreakpoints"
 items = [
   { type = "separator" },
   { type = "action", id = "PhpListenDebugAction", label = "Start _Listening for PHP Debug Connections", checkable = true },
+  { type = "action", id = "WebServerDebugValidation", label = "_Web Server Debug Validation..." },
 ]
+
+[[plugin.contributions.commands]]
+id = "WebServerDebugValidation"
+title = "Web Server Debug Validation"
+category = "Run"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-web-page"
+name = "PHP Web Page"
+description = "Open a page of a server in the browser; Debug adds the Xdebug trigger."
+icon = "globe"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "php-http-request"
+name = "PHP HTTP Request"
+description = "Send an HTTP request to a server; Debug adds the Xdebug session cookie."
+icon = "send"
+debuggable = true
 
 # ---- Languages & Frameworks > PHP > Debug ----------------------------------------------
 
@@ -229,6 +375,28 @@ section = "Settings"
 order = 12
 
 [[plugin.contributions.settings]]
+key = "php.debug.validation.documentRoot"
+title = "Path to create validation script"
+description = "Project folder served by the web server (its document root), e.g. public. Run | Web Server Debug Validation places a temporary script there and deletes it after the check."
+type = "string"
+default = "public"
+group = "lang.php.debug"
+section = "Web Server Debug Validation"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "php.debug.validation.url"
+title = "URL to validation script"
+description = "The URL of that folder, e.g. http://localhost:8080."
+type = "string"
+default = "http://localhost:8080"
+group = "lang.php.debug"
+section = "Web Server Debug Validation"
+project = true
+order = 31
+
+[[plugin.contributions.settings]]
 key = "php.debug.maxChildren"
 title = "Max. children"
 description = "Array elements and object properties loaded per page."
@@ -251,6 +419,16 @@ default = 1
 group = "lang.php.debug"
 section = "Evaluation"
 order = 21
+
+[[plugin.contributions.settings]]
+key = "php.profiler.spxDataDir"
+title = "SPX data directory"
+description = "spx.data_dir of your php.ini, where Run | Profile with SPX reads the reports of local runs. Empty: Forge passes a temporary folder of its own (-dspx.data_dir) to each run."
+type = "path"
+default = ""
+group = "lang.php.debug"
+section = "Profiler"
+order = 40
 
 [[plugin.contributions.settings]]
 key = "php.debug.maxData"
@@ -284,6 +462,8 @@ path = "Tools/_Laravel"
 items = [
   { type = "action", id = "Laravel.RunArtisan", label = "Run _Artisan Command..." },
   { type = "action", id = "Laravel.ShowRoutes", label = "Show _Routes" },
+  { type = "action", id = "Laravel.ShowLogs", label = "Show _Logs" },
+  { type = "action", id = "Laravel.ShowDashboard", label = "Show Laravel _Tool Window" },
 ]
 
 [[plugin.contributions.runConfigurationTypes]]
@@ -305,9 +485,12 @@ anchor = "bottom"
 icon = "route"
 order = 35
 
-[[plugin.contributions.keybindings]]
-command = "Laravel.RunArtisan"
-key = "Ctrl+Shift+X"
+[[plugin.contributions.toolWindows]]
+id = "laravel"
+title = "Laravel"
+anchor = "bottom"
+icon = "layout-dashboard"
+order = 36
 
 [[plugin.contributions.settings]]
 key = "laravel.routes.source"
@@ -361,6 +544,26 @@ default = true
 group = "lang.php.laravel"
 section = "Gutter Icons"
 order = 21
+
+[[plugin.contributions.settings]]
+key = "laravel.completion.ideJson"
+title = "Complete values from ide.json files"
+description = "Completions of the project's ide.json and of the ide.json files of installed packages."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Code Completion"
+order = 12
+
+[[plugin.contributions.settings]]
+key = "laravel.logs.follow"
+title = "Follow log files"
+description = "Reload the Logs tab while it is open and scroll to new entries."
+type = "bool"
+default = true
+group = "lang.php.laravel"
+section = "Logs"
+order = 25
 
 [[plugin.contributions.settings]]
 key = "laravel.blade.customDirectives"
@@ -486,6 +689,25 @@ group = "lang.php.symfony"
 section = "Editor"
 order = 21
 
+[[plugin.contributions.settings]]
+key = "symfony.translations.folding"
+title = "Show translated text in place of translation keys"
+description = "Folds 'key'|trans and ->trans('key') to the text of the default locale; the key shows while the caret is on it."
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Translations"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "symfony.translations.inspection"
+title = "Report missing translation keys and locales"
+type = "bool"
+default = true
+group = "lang.php.symfony"
+section = "Translations"
+order = 31
+
 [[plugin]]
 id = "forge.symfony-services"
 name = "Symfony Services"
@@ -582,3 +804,151 @@ default = true
 group = "lang.php.doctrine"
 section = "DQL"
 order = 12
+
+[[plugin]]
+id = "forge.wordpress"
+name = "WordPress"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.command-line-tools"]
+description = "Hooks (completion, navigation between add_action and do_action, gutter icons, Find Usages), WP-CLI, the WordPress code style with Yoda condition hints, plugin and theme file templates."
+projectTypes = ["wordpress"]
+
+[[plugin.contributions.commands]]
+id = "WordPress.RunWpCli"
+title = "WP-CLI…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "WordPress.ShowHooks"
+title = "WordPress Hooks"
+category = "View"
+
+[[plugin.contributions.commands]]
+id = "WordPress.InstallStubs"
+title = "Install WordPress Stubs…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "wordpress.refresh"
+title = "Refresh WordPress Hook Index"
+category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "CommandLineToolsAction"
+items = [
+  { type = "action", id = "WordPress.RunWpCli", label = "_WP-CLI..." },
+]
+
+[[plugin.contributions.mainMenu]]
+path = "Tools/WordPress"
+items = [
+  { type = "action", id = "WordPress.RunWpCli", label = "Run _WP-CLI Command..." },
+  { type = "action", id = "WordPress.ShowHooks", label = "Show _Hooks" },
+  { type = "separator" },
+  { type = "action", id = "WordPress.InstallStubs", label = "Install WordPress _Stubs..." },
+  { type = "action", id = "wordpress.refresh", label = "Re_fresh Hook Index" },
+]
+
+[[plugin.contributions.toolWindows]]
+id = "wordpress"
+title = "WordPress"
+anchor = "bottom"
+icon = "webhook"
+order = 36
+
+[[plugin.contributions.settings]]
+key = "wordpress.hookCompletion"
+title = "Complete hook names"
+description = "Inside add_action, add_filter, do_action, apply_filters and their variants: the project's hooks first, then frequently used WordPress core hooks."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Hooks"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "wordpress.gutterIcons"
+title = "Show gutter icons for hooks"
+description = "A registration links to where its hook fires, an invocation to the registered callbacks."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Hooks"
+order = 1
+
+[[plugin.contributions.settings]]
+key = "wordpress.yodaConditions"
+title = "Suggest Yoda conditions"
+description = "A weak warning on comparisons like `$status === 'publish'` with the quick-fix 'Flip to Yoda condition' (WordPress Coding Standards)."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Code Style"
+order = 2
+
+[[plugin.contributions.settings]]
+key = "wordpress.offerStubs"
+title = "Offer to install the WordPress stubs"
+description = "When php-stubs/wordpress-stubs is not in vendor/, a notification offers `composer require --dev php-stubs/wordpress-stubs`. Forge never ships the stubs."
+type = "bool"
+default = true
+group = "lang.php.wordpress"
+section = "Stubs"
+project = true
+order = 3
+
+[[plugin]]
+id = "forge.cms"
+name = "Drupal, Joomla and Shopware"
+version = "0.1.0"
+pack = "phpforge"
+vendor = "Forge"
+depends = ["forge.php", "forge.command-line-tools"]
+description = "CMS basics: detection, Drupal's .module/.install/.theme/.inc files as PHP, Drupal hook completion with Go to the hook docs, Shopware's Twig tags and Smarty templates, Joomla manifests, Drush and Shopware console runners."
+projectTypes = ["drupal", "joomla", "shopware"]
+
+[[plugin.contributions.fileTypes]]
+id = "php"
+name = "PHP"
+extensions = ["php", "phtml", "inc", "module", "install", "theme", "profile", "engine"]
+
+[[plugin.contributions.commands]]
+id = "Cms.RunDrush"
+title = "Drush…"
+category = "Tools"
+
+[[plugin.contributions.commands]]
+id = "Cms.RunShopwareConsole"
+title = "Shopware Console…"
+category = "Tools"
+
+[[plugin.contributions.mainMenu]]
+path = "Tools"
+after = "CommandLineToolsAction"
+items = [
+  { type = "action", id = "Cms.RunDrush", label = "_Drush..." },
+  { type = "action", id = "Cms.RunShopwareConsole", label = "Shopware _Console..." },
+]
+
+[[plugin.contributions.settings]]
+key = "cms.drupal.hookCompletion"
+title = "Complete Drupal hook implementations"
+description = "After `function` in .module, .install, .theme, .profile and .inc files: `<module>_<hook>` with the hook's parameters."
+type = "bool"
+default = true
+group = "lang.php.cms"
+section = "Drupal"
+order = 0
+
+[[plugin.contributions.settings]]
+key = "cms.drupal.gutterIcons"
+title = "Show gutter icons for hook implementations"
+description = "Clicking one opens the hook's documentation: its `hook_…` function in the project's *.api.php files, else api.drupal.org."
+type = "bool"
+default = true
+group = "lang.php.cms"
+section = "Drupal"
+order = 1

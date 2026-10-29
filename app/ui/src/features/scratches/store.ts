@@ -10,7 +10,7 @@ import { getSetting, scopeFor } from "@/state/settings";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
 import { activeView } from "@/editor/views";
-import { launch } from "@/features/run/runStore";
+import { debugConfiguration, launch } from "@/features/run/runStore";
 import { openFileConsole } from "@/features/database/store";
 import { confirmDialog } from "@/features/browserCompanion/ConfirmDialog";
 
@@ -74,6 +74,17 @@ export async function createScratch(language: string): Promise<void> {
   }
 }
 
+/** A new `.http` scratch with `content`, opened in the editor (Open in HTTP Client). */
+export async function openHttpRequest(content: string): Promise<void> {
+  try {
+    const file = await scratchesApi.create("http", content);
+    await refreshScratches();
+    await openScratch(file);
+  } catch (err) {
+    showBalloon("Cannot open the HTTP Client", String(err));
+  }
+}
+
 export async function createBuffer(): Promise<void> {
   try {
     const file = await scratchesApi.createBuffer();
@@ -97,28 +108,30 @@ export async function fileContent(path: string): Promise<string> {
 }
 
 /** Send the request of an `.http` file at `line` (default: the caret's) in the Run tool window. */
-async function runHttp(path: string, content: string, line: number | undefined, options: Record<string, string>): Promise<void> {
+async function runHttp(path: string, content: string, line: number | undefined, options: Record<string, string>, debug = false): Promise<void> {
   const name = path.split("/").pop() ?? path;
   const at = line ?? caretLine(path);
   const markers = (await scratchesApi.markers(name, content)).filter((m) => m.kind === "http");
   let marker = markers[0];
   for (const m of markers) if (m.line <= at) marker = m;
   if (!marker) return void showBalloon(`No request in '${name}'`, "Add a request such as GET https://example.com");
-  await launch({ name: marker.runName, type: "http-request", options: { ...options, line: String(marker.line) } });
+  const cfg = { name: marker.runName, type: "http-request", options: { ...options, line: String(marker.line) } };
+  // Debug goes through the debug launcher: it starts listening and adds the Xdebug cookie.
+  await (debug ? debugConfiguration(cfg) : launch(cfg));
 }
 
 /** Run a request of a project `.http` file (gutter ▶, Ctrl+Shift+F10). */
-export async function runHttpFile(path: string, line?: number): Promise<void> {
-  await runHttp(path, await fileContent(path), line, { file: path });
+export async function runHttpFile(path: string, line?: number, debug = false): Promise<void> {
+  await runHttp(path, await fileContent(path), line, { file: path }, debug);
 }
 
 /** Run a scratch in the Run tool window (`line` picks the request of an `.http` file). */
-export async function runScratch(name: string, line?: number): Promise<void> {
+export async function runScratch(name: string, line?: number, debug = false): Promise<void> {
   const file = scratchByName(name) ?? (await scratchesApi.list().then((l) => l.find((s) => s.name === name)));
   const runner = file?.runner;
   if (!runner) return void showBalloon(`'${name}' cannot be run`, "Scratches of this language have no runner.");
   if (runner === "sql") return attachOrOpenConsole(name);
-  if (runner === "http") return runHttp(scratchPath(name), await scratchContent(name), line, { scratch: name });
+  if (runner === "http") return runHttp(scratchPath(name), await scratchContent(name), line, { scratch: name }, debug);
   await launch({ name, type: "scratch", options: { scratch: name } });
 }
 

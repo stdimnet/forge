@@ -1,8 +1,10 @@
-//! Layered settings: built-in defaults < user < project.
+//! Layered settings: built-in defaults < user < settings for new projects < project.
 //!
 //! Keys are dotted (`editor.font.size`) and map to nested TOML tables on disk:
 //! the user layer lives in `<config dir>/forge/settings.toml`, the project layer in
-//! `<project>/.forge/settings.toml`. Values are JSON values so they cross the IPC boundary
+//! `<project>/.forge/settings.toml`. PHPStorm's "Settings for New Projects" (the defaults of
+//! project-level settings) live in `<config dir>/forge/new-project-settings.toml`; they apply
+//! to every project that has no value of its own. Values are JSON values so they cross the IPC boundary
 //! unchanged; typed accessors deserialize on read. Writing a value persists its layer and
 //! notifies subscribers with the new effective value.
 
@@ -19,12 +21,18 @@ use crate::{ForgeError, Result};
 
 /// The project layer's file, relative to the project root.
 pub const PROJECT_SETTINGS_FILE: &str = ".forge/settings.toml";
+/// The file of the Settings for New Projects, next to the user settings.
+pub const NEW_PROJECT_SETTINGS_FILE: &str = "new-project-settings.toml";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SettingsScope {
     Default,
     User,
+    /// Defaults of project-level settings for projects without their own value
+    /// (File | New Projects Setup | Settings for New Projects).
+    #[serde(rename = "newProjects")]
+    NewProjects,
     Project,
 }
 
@@ -94,16 +102,28 @@ impl Layer {
         !matches!(self.store, Store::None)
     }
 
+    /// Read a local layer's file again (another Forge process may have written it). A file
+    /// that cannot be read or parsed keeps the values in memory.
+    fn reread(&mut self) {
+        let Store::Path(path) = &self.store else {
+            return;
+        };
+        let values = match fs::read_to_string(path) {
+            Ok(src) => match parse_layer(&src, || path.display().to_string()) {
+                Ok(values) => values,
+                Err(_) => return,
+            },
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => BTreeMap::new(),
+            Err(_) => return,
+        };
+        self.values = values;
+    }
+
     fn save(&self) -> Result<()> {
         if !self.is_persisted() {
             return Ok(());
         }
-        let mut root = toml::Table::new();
-        for (key, value) in &self.values {
-            insert_dotted(&mut root, key, json_to_toml(value)?);
-        }
-        let src = toml::to_string_pretty(&root)
-            .map_err(|e| ForgeError::Other(format!("cannot serialize settings: {e}")))?;
+        let src = settings_to_toml(&self.values)?;
         match &self.store {
             Store::None => Ok(()),
             Store::Path(path) => {
@@ -115,6 +135,21 @@ impl Layer {
             Store::Files(files, rel) => files.write(rel, &src),
         }
     }
+}
+
+/// Parse a settings file into flat dotted keys (as the layers hold them).
+pub fn parse_settings_toml(src: &str) -> Result<BTreeMap<String, Value>> {
+    parse_layer(src, || "settings".to_string())
+}
+
+/// Write flat dotted keys as a nested settings file (as the layers save them).
+pub fn settings_to_toml(values: &BTreeMap<String, Value>) -> Result<String> {
+    let mut root = toml::Table::new();
+    for (key, value) in values {
+        insert_dotted(&mut root, key, json_to_toml(value)?);
+    }
+    toml::to_string_pretty(&root)
+        .map_err(|e| ForgeError::Other(format!("cannot serialize settings: {e}")))
 }
 
 /// Flatten nested TOML tables into dotted keys. Arrays and scalars are leaves.
@@ -170,6 +205,7 @@ fn same_kind(a: &Value, b: &Value) -> bool {
 pub struct Settings {
     defaults: BTreeMap<String, Value>,
     user: Layer,
+    new_projects: Layer,
     project: Layer,
     listeners: Vec<Listener>,
 }
@@ -185,6 +221,11 @@ impl Settings {
         dirs::config_dir().map(|d| d.join("forge").join("settings.toml"))
     }
 
+    /// `<config dir>/forge/new-project-settings.toml`: Settings for New Projects.
+    pub fn default_new_projects_path() -> Option<PathBuf> {
+        dirs::config_dir().map(|d| d.join("forge").join(NEW_PROJECT_SETTINGS_FILE))
+    }
+
     /// `<root>/.forge/settings.toml`.
     pub fn project_path(root: &Path) -> PathBuf {
         root.join(".forge").join("settings.toml")
@@ -198,6 +239,12 @@ impl Settings {
     /// Load (or create on first write) the user settings file.
     pub fn load_user(&mut self, path: impl Into<PathBuf>) -> Result<()> {
         self.user = Layer::load(path.into())?;
+        Ok(())
+    }
+
+    /// Load (or create on first write) the Settings for New Projects.
+    pub fn load_new_projects(&mut self, path: impl Into<PathBuf>) -> Result<()> {
+        self.new_projects = Layer::load(path.into())?;
         Ok(())
     }
 
@@ -223,6 +270,57 @@ impl Settings {
         self.project.is_persisted()
     }
 
+    /// Read the user settings and the Settings for New Projects from disk again: every
+    /// project window is a Forge process of its own, and another one may have changed them.
+    /// Listeners hear about each effective value that changed.
+    pub fn reload_shared(&mut self) {
+        self.reload_layers(true, true);
+    }
+
+    fn reload_layers(&mut self, user: bool, new_projects: bool) {
+        let keys: std::collections::BTreeSet<String> = self
+            .user
+            .values
+            .keys()
+            .chain(self.new_projects.values.keys())
+            .cloned()
+            .collect();
+        let before: BTreeMap<String, Option<Value>> = keys
+            .iter()
+            .map(|k| (k.clone(), self.get(k).cloned()))
+            .collect();
+        if user {
+            self.user.reread();
+        }
+        if new_projects {
+            self.new_projects.reread();
+        }
+        let mut changed: std::collections::BTreeSet<String> = self
+            .user
+            .values
+            .keys()
+            .chain(self.new_projects.values.keys())
+            .filter(|k| !before.contains_key(*k))
+            .cloned()
+            .collect();
+        for (key, old) in &before {
+            if self.get(key) != old.as_ref() {
+                changed.insert(key.clone());
+            }
+        }
+        for key in changed {
+            let after = self.resolve(&key);
+            let change = SettingsChange {
+                value: after.map(|(v, _)| v.clone()).unwrap_or(Value::Null),
+                scope: after.map_or(SettingsScope::Default, |(_, s)| s),
+                key,
+            };
+            for l in &self.listeners {
+                l(&change);
+            }
+        }
+    }
+
     /// Call `f` after every change of an effective value.
     pub fn subscribe(&mut self, f: impl Fn(&SettingsChange) + Send + Sync + 'static) {
         self.listeners.push(Box::new(f));
@@ -232,16 +330,21 @@ impl Settings {
         match scope {
             SettingsScope::Default => None,
             SettingsScope::User => Some(&self.user),
+            SettingsScope::NewProjects => Some(&self.new_projects),
             SettingsScope::Project => Some(&self.project),
         }
     }
 
     /// The effective value of `key` and the layer it comes from.
     pub fn resolve(&self, key: &str) -> Option<(&Value, SettingsScope)> {
-        [SettingsScope::Project, SettingsScope::User]
-            .into_iter()
-            .find_map(|s| self.layer(s)?.values.get(key).map(|v| (v, s)))
-            .or_else(|| self.defaults.get(key).map(|v| (v, SettingsScope::Default)))
+        [
+            SettingsScope::Project,
+            SettingsScope::NewProjects,
+            SettingsScope::User,
+        ]
+        .into_iter()
+        .find_map(|s| self.layer(s)?.values.get(key).map(|v| (v, s)))
+        .or_else(|| self.defaults.get(key).map(|v| (v, SettingsScope::Default)))
     }
 
     pub fn get(&self, key: &str) -> Option<&Value> {
@@ -251,6 +354,16 @@ impl Settings {
     /// Typed read, e.g. `settings.get_as::<u32>("editor.font.size")`.
     pub fn get_as<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
         self.get(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    /// Typed read that ignores the project's own `.forge/settings.toml` (Safe Mode: an
+    /// untrusted project must not choose the programs Forge starts, such as the shell).
+    pub fn get_without_project_as<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        [SettingsScope::NewProjects, SettingsScope::User]
+            .into_iter()
+            .find_map(|s| self.layer(s)?.values.get(key))
+            .or_else(|| self.defaults.get(key))
             .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
 
@@ -278,6 +391,7 @@ impl Settings {
     pub fn effective(&self) -> BTreeMap<String, Value> {
         let mut out = self.defaults.clone();
         out.extend(self.user.values.clone());
+        out.extend(self.new_projects.values.clone());
         out.extend(self.project.values.clone());
         out
     }
@@ -316,16 +430,30 @@ impl Settings {
                 json_to_toml(value)?;
             }
         }
+        // Another project window may have written the shared layers since they were read:
+        // start from the file, so its changes are not overwritten.
+        let writes = |s: SettingsScope| changes.iter().any(|(_, _, scope)| *scope == s);
+        let (shared_user, shared_new) = (
+            writes(SettingsScope::User),
+            writes(SettingsScope::NewProjects),
+        );
+        if shared_user || shared_new {
+            self.reload_layers(shared_user, shared_new);
+        }
         let before: Vec<Option<Value>> = changes
             .iter()
             .map(|(key, _, _)| self.get(key).cloned())
             .collect();
-        let (mut user, mut project) = (false, false);
+        let (mut user, mut new_projects, mut project) = (false, false, false);
         for (key, value, scope) in &changes {
             let layer = match scope {
                 SettingsScope::Project => {
                     project = true;
                     &mut self.project
+                }
+                SettingsScope::NewProjects => {
+                    new_projects = true;
+                    &mut self.new_projects
                 }
                 _ => {
                     user = true;
@@ -340,6 +468,9 @@ impl Settings {
         }
         if user {
             self.user.save()?;
+        }
+        if new_projects {
+            self.new_projects.save()?;
         }
         if project {
             self.project.save()?;
@@ -371,6 +502,41 @@ mod tests {
     use serde_json::json;
     use std::sync::{Arc, Mutex};
 
+    #[test]
+    fn two_processes_do_not_overwrite_each_others_user_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.toml");
+        let open = || {
+            let mut s = Settings::new();
+            s.load_user(&path).unwrap();
+            s
+        };
+        let mut a = open();
+        let mut b = open();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = seen.clone();
+        b.subscribe(move |c| log.lock().unwrap().push((c.key.clone(), c.value.clone())));
+        a.set("appearance.theme", json!("light"), SettingsScope::User)
+            .unwrap();
+        // B writes another key: A's change stays in the file, and B learns about it.
+        b.set("editor.font.size", json!(16), SettingsScope::User)
+            .unwrap();
+        assert_eq!(b.get("appearance.theme"), Some(&json!("light")));
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.contains("light") && text.contains("16"), "{text}");
+        assert!(seen
+            .lock()
+            .unwrap()
+            .contains(&("appearance.theme".to_string(), json!("light"))));
+        // A picks B's change up when it reloads (the window got the focus).
+        a.reload_shared();
+        assert_eq!(a.get("editor.font.size"), Some(&json!(16)));
+        // A removed key is reported too.
+        std::fs::write(&path, "[editor.font]\nsize = 16\n").unwrap();
+        a.reload_shared();
+        assert_eq!(a.get("appearance.theme"), None);
+    }
+
     fn settings(dir: &Path) -> Settings {
         let mut s = Settings::new();
         s.set_defaults([
@@ -380,6 +546,37 @@ mod tests {
         ]);
         s.load_user(dir.join("user/settings.toml")).unwrap();
         s
+    }
+
+    #[test]
+    fn reads_without_the_project_layer() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        let project = tmp.path().join("project");
+        fs::create_dir_all(&project).unwrap();
+        s.load_project(&project).unwrap();
+        s.set(
+            "terminal.shellPath",
+            json!("./evil.sh"),
+            SettingsScope::Project,
+        )
+        .unwrap();
+        assert_eq!(s.get_str("terminal.shellPath"), Some("./evil.sh"));
+        assert_eq!(
+            s.get_without_project_as::<String>("terminal.shellPath"),
+            None
+        );
+        s.set("terminal.shellPath", json!("/bin/zsh"), SettingsScope::User)
+            .unwrap();
+        assert_eq!(
+            s.get_without_project_as::<String>("terminal.shellPath")
+                .as_deref(),
+            Some("/bin/zsh")
+        );
+        assert_eq!(
+            s.get_without_project_as::<i64>("editor.font.size"),
+            Some(14)
+        );
     }
 
     #[test]
@@ -447,6 +644,60 @@ mod tests {
             .unwrap();
         assert_eq!(s.get_i64("editor.font.size"), Some(16));
         assert_eq!(s.effective()["appearance.theme"], json!("dark"));
+    }
+
+    #[test]
+    fn settings_for_new_projects_apply_to_projects_without_own_values() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut s = settings(tmp.path());
+        let defaults_file = tmp.path().join("user").join(NEW_PROJECT_SETTINGS_FILE);
+        s.load_new_projects(&defaults_file).unwrap();
+        s.set("editor.font.size", json!(16), SettingsScope::User)
+            .unwrap();
+        s.set("editor.font.size", json!(20), SettingsScope::NewProjects)
+            .unwrap();
+        // The defaults for projects win over the user value of a project-level setting.
+        assert_eq!(
+            s.resolve("editor.font.size"),
+            Some((&json!(20), SettingsScope::NewProjects))
+        );
+        assert!(fs::read_to_string(&defaults_file)
+            .unwrap()
+            .contains("size = 20"));
+
+        // A newly opened project without its own value gets the default ...
+        let fresh = tmp.path().join("fresh");
+        fs::create_dir_all(&fresh).unwrap();
+        s.load_project(&fresh).unwrap();
+        assert_eq!(s.get_i64("editor.font.size"), Some(20));
+        assert_eq!(s.effective()["editor.font.size"], json!(20));
+
+        // ... a project with its own value keeps it.
+        let own = tmp.path().join("own");
+        fs::create_dir_all(own.join(".forge")).unwrap();
+        fs::write(
+            own.join(PROJECT_SETTINGS_FILE),
+            "[editor.font]\nsize = 11\n",
+        )
+        .unwrap();
+        s.load_project(&own).unwrap();
+        assert_eq!(
+            s.resolve("editor.font.size"),
+            Some((&json!(11), SettingsScope::Project))
+        );
+
+        // Reloaded from disk, and removable again.
+        let mut again = settings(tmp.path());
+        again.load_new_projects(&defaults_file).unwrap();
+        assert_eq!(again.get_i64("editor.font.size"), Some(20));
+        again
+            .set("editor.font.size", Value::Null, SettingsScope::NewProjects)
+            .unwrap();
+        assert_eq!(again.get_i64("editor.font.size"), Some(16));
+        assert_eq!(
+            serde_json::to_value(SettingsScope::NewProjects).unwrap(),
+            json!("newProjects")
+        );
     }
 
     #[test]

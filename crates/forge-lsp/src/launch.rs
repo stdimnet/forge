@@ -2,6 +2,7 @@
 //! launchers start them elsewhere (on a remote development host) and hand back their stdio
 //! as streams, so [`LspClient`](crate::LspClient) works the same either way.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::pin::Pin;
 use std::process::Stdio;
@@ -26,7 +27,7 @@ pub struct ServerIo {
     pub process: Box<dyn ServerProcess>,
     /// `processId` sent in `initialize`: a process on the server's machine whose exit tells
     /// the server to exit too. `None` for a server on another machine, where Forge's own pid
-    /// means nothing (Intelephense exits when that process does not exist).
+    /// means nothing (some servers exit when that process does not exist).
     pub parent_pid: Option<u32>,
 }
 
@@ -75,15 +76,28 @@ impl ServerLauncher for LocalLauncher {
         config: &'a LspServerConfig,
         root: &'a Path,
     ) -> BoxFuture<'a, Result<ServerIo>> {
-        Box::pin(async move { spawn_local(&config.command, &config.args, root) })
+        Box::pin(
+            async move { spawn_local_with_env(&config.command, &config.args, root, &config.env) },
+        )
     }
 }
 
 /// Spawn `command` with piped stdio in `cwd` (looked up on `PATH` like a shell would).
 pub fn spawn_local(command: &str, args: &[String], cwd: &Path) -> Result<ServerIo> {
+    spawn_local_with_env(command, args, cwd, &BTreeMap::new())
+}
+
+/// [`spawn_local`] with extra environment variables.
+pub fn spawn_local_with_env(
+    command: &str,
+    args: &[String],
+    cwd: &Path,
+    env: &BTreeMap<String, String>,
+) -> Result<ServerIo> {
     let program = find_on_path(command).unwrap_or_else(|| command.into());
     let mut child = Command::new(&program)
         .args(args)
+        .envs(env)
         .current_dir(cwd)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

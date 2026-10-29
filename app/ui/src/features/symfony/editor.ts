@@ -1,13 +1,14 @@
 /**
  * Symfony editor support: completion and Ctrl+B for route names, service ids, templates and
- * parameters in PHP, Twig and YAML; Twig tag/filter/function/test completion; line markers
- * for routes, rendered templates and console commands.
+ * parameters in PHP, Twig and YAML; translation keys and domains, form type options and
+ * field names, event names; Twig tag/filter/function/test completion; line markers for
+ * routes, rendered templates, console commands, event listeners and events.
  */
 import type { Extension } from "@codemirror/state";
 import { EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { FileCode2, Globe, Play, Route as RouteIcon } from "lucide-solid";
+import { FileCode2, Globe, Play, Radio, Route as RouteIcon, Zap } from "lucide-solid";
 import { symfonyApi, type SymfonyCompletionItem, type SymfonyCompletionKind } from "@/ipc/symfony";
 import { registerEditorExtension } from "@/editor/extensions";
 import { registerLineMarkerProvider, type LineMarker } from "@/editor/lineMarkers";
@@ -33,6 +34,11 @@ const TYPE: Record<SymfonyCompletionKind, string> = {
   function: "function",
   test: "keyword",
   variable: "variable",
+  translation: "translation",
+  domain: "module",
+  formOption: "property",
+  formField: "field",
+  event: "event",
 };
 
 /** Insert `name()` with the caret inside, unless a `(` follows. */
@@ -54,6 +60,9 @@ const INFO_LABEL: Partial<Record<SymfonyCompletionKind, string>> = {
   filter: "Provided by",
   function: "Provided by",
   variable: "Provided by",
+  translation: "Domain",
+  formField: "Data class",
+  event: "Constant",
 };
 
 /** Small documentation popup next to the list (controller of a route, provider of a filter). */
@@ -149,6 +158,20 @@ registerLineMarkerProvider({
           };
         case "command":
           return { line: m.line, icon: Play, title: m.title, className: "marker-run", onClick: () => m.command && void runConsoleCommand(m.command) };
+        case "listener":
+          return { line: m.line, icon: Radio, title: m.title, className: "marker-sf-listener", onClick: () => target && void revealSymbol(target.path, { line: target.line }) };
+        case "event":
+          return {
+            line: m.line,
+            icon: Zap,
+            title: m.title,
+            className: "marker-sf-event",
+            onClick: (view) => {
+              if (m.targets && m.targets.length > 1) {
+                chooseDeclarationAt(view, view.state.doc.line(m.line + 1).from, m.targets, { open: (t) => void revealSymbol(t.path, { line: t.line }) });
+              } else if (target) void revealSymbol(target.path, { line: target.line });
+            },
+          };
         case "controller":
           return { line: m.line, icon: RouteIcon, title: m.title, className: "marker-controller", onClick: () => target && void revealSymbol(target.path, { line: target.line }) };
         default:

@@ -48,41 +48,13 @@ pub struct Intention {
     pub unresolved: Option<ExternalSymbol>,
 }
 
-/// The edit adding `use <fqn>;` to the imports: in alphabetical order among the existing
-/// class imports, else after the namespace declaration, else after `<?php`.
-pub fn add_import(file: &FileIndex, src: &str, fqn: &str) -> TextEdit {
-    let line = format!("use {fqn};");
-    let insert = |at: usize, text: String| TextEdit {
-        start: at,
-        end: at,
-        new_text: text,
-    };
-    let mut imports: Vec<_> = file
-        .uses
-        .iter()
-        .filter(|u| u.kind == UseKind::Class)
-        .collect();
-    imports.sort_by_key(|u| u.range.start);
-    if let Some(next) = imports
-        .iter()
-        .find(|u| u.fqn.to_ascii_lowercase() > fqn.to_ascii_lowercase())
-    {
-        let line_start = src[..next.range.start].rfind('\n').map_or(0, |i| i + 1);
-        return insert(line_start, format!("{line}\n"));
-    }
-    if let Some(last) = imports.last() {
-        let line_end = src[last.range.start..]
-            .find('\n')
-            .map_or(src.len(), |i| last.range.start + i);
-        return insert(line_end, format!("\n{line}"));
-    }
-    if let Some(ns) = file.namespaces.first() {
-        if let Some(semi) = src[ns.range.start..].find(';') {
-            return insert(ns.range.start + semi + 1, format!("\n\n{line}"));
-        }
-    }
-    let after_open_tag = src.find('\n').unwrap_or(src.len());
-    insert(after_open_tag, format!("\n\n{line}"))
+/// The edit adding `use <fqn>;` to the imports where the import style of the running call
+/// puts it ([`crate::imports::insert_imports`]); empty when the file imports it already.
+pub fn add_import(file: &FileIndex, src: &str, fqn: &str) -> Option<TextEdit> {
+    let style = crate::imports::style::current();
+    crate::imports::insert_imports(file, src, &[crate::imports::NewImport::class(fqn)], &style)
+        .into_iter()
+        .next()
 }
 
 fn is_declaration(file: &FileIndex, start: usize, end: usize) -> bool {
@@ -93,12 +65,7 @@ fn is_declaration(file: &FileIndex, start: usize, end: usize) -> bool {
         || file.functions.iter().any(|f| inside(&f.name_range))
 }
 
-fn import_intentions(
-    index: &ProjectIndex,
-    file: &FileIndex,
-    src: &str,
-    offset: usize,
-) -> Vec<Intention> {
+fn import_intentions(file: &FileIndex, src: &str, offset: usize) -> Vec<Intention> {
     let Some((start, end)) = word_at(src, offset) else {
         return vec![];
     };
@@ -138,7 +105,7 @@ fn import_intentions(
         match imported(short) {
             Some(u) if !u.fqn.eq_ignore_ascii_case(fqn) => return vec![],
             Some(_) => {}
-            None => edits.push(add_import(file, src, fqn)),
+            None => edits.extend(add_import(file, src, fqn)),
         }
         return vec![Intention {
             title: "Replace qualifier with an import".into(),
@@ -147,35 +114,9 @@ fn import_intentions(
             ..Default::default()
         }];
     }
-    if word.contains('\\') {
-        return vec![];
-    }
-    // An unknown class with candidates in the index: "Import class".
-    let fqn = file.resolve_class(word, start);
-    let known = index.find_class(&fqn).is_some()
-        || file
-            .classes
-            .iter()
-            .any(|c| c.fqn.eq_ignore_ascii_case(&fqn));
-    if known || imported(word).is_some() {
-        return vec![];
-    }
-    let mut candidates: Vec<String> = index
-        .classes()
-        .filter(|c| c.name.eq_ignore_ascii_case(word))
-        .map(|c| c.fqn.clone())
-        .collect();
-    candidates.sort();
-    candidates.dedup();
-    candidates
-        .into_iter()
-        .map(|fqn| Intention {
-            title: format!("Import class '{fqn}'"),
-            kind: IntentionKind::QuickFix,
-            edits: vec![add_import(file, src, &fqn)],
-            ..Default::default()
-        })
-        .collect()
+    // "Import class" for unknown classes is built by the app from
+    // `imports::auto::unresolved_classes`, which also knows PHP's own classes.
+    vec![]
 }
 
 fn generate_intention(
@@ -233,6 +174,27 @@ fn readonly_intention(src: &str, p: &crate::model::Member) -> Option<Intention> 
     })
 }
 
+/// Whether the language server's code action `lsp_title` does what Forge's own intention
+/// `own_title` does. Alt+Enter then lists Forge's (PHPStorm wording, Forge's code style and
+/// templates, the class chooser of "Import class") and drops the server's twin, e.g. php-lsp's
+/// "Generate getter for $name", "Implement 2 missing methods", "Change namespace to 'X'" and
+/// "Import 'App\\Models\\User'".
+pub fn is_lsp_twin(own_title: &str, lsp_title: &str) -> bool {
+    match own_title {
+        "Generate getter and setter" => lsp_title.starts_with("Generate getter and setter for "),
+        "Generate getter" => lsp_title.starts_with("Generate getter for "),
+        "Generate setter" => lsp_title.starts_with("Generate setter for "),
+        "Add method stubs" => {
+            lsp_title.starts_with("Implement ") && lsp_title.contains(" missing method")
+        }
+        "Import class" => lsp_title.starts_with("Import '"),
+        own => match own.strip_prefix("Set namespace to ") {
+            Some(ns) => lsp_title.strip_prefix("Change namespace to ") == Some(ns),
+            None => false,
+        },
+    }
+}
+
 /// Intentions at `offset` (bytes) of `src`, the content of `rel`. `options` carries the code
 /// style and the user's code templates for generated code.
 pub fn intentions(
@@ -243,7 +205,17 @@ pub fn intentions(
     options: &GenerateOptions,
 ) -> Vec<Intention> {
     let file = parser::index_source(rel, src);
-    let mut out = import_intentions(index, &file, src, offset);
+    // Quick-fixes of Forge's inspections ("Replace with …", "Set namespace to …").
+    let mut out: Vec<Intention> = crate::inspections::fixes_at(index, rel, src, offset)
+        .into_iter()
+        .map(|f| Intention {
+            title: f.title,
+            kind: IntentionKind::QuickFix,
+            edits: f.edits,
+            ..Default::default()
+        })
+        .collect();
+    out.extend(import_intentions(&file, src, offset));
     out.extend(crate::create::create_from_usage(
         index, &file, rel, src, offset, options,
     ));
@@ -363,50 +335,9 @@ mod tests {
     }
 
     const ORDER: &str = "<?php\nnamespace App\\Models;\n\nclass Order {}\n";
-    const LEGACY: &str = "<?php\nnamespace Legacy;\n\nclass Order {}\n";
 
     fn titles(i: &[Intention]) -> Vec<&str> {
         i.iter().map(|i| i.title.as_str()).collect()
-    }
-
-    #[test]
-    fn imports_unknown_classes_in_order() {
-        let (_d, mut idx) = index_with(&[
-            ("app/Models/Order.php", ORDER),
-            ("legacy/Order.php", LEGACY),
-        ]);
-        let src = "<?php\n\nnamespace App\\Http;\n\nuse App\\Models\\Address;\nuse Illuminate\\Http\\Request;\n\nfunction show(Order $o) {}\n";
-        let at = src.find("Order $o").unwrap() + 2;
-        let found = intentions(
-            &mut idx,
-            "app/Http/show.php",
-            src,
-            at,
-            &GenerateOptions::default(),
-        );
-        assert_eq!(
-            titles(&found)[..2],
-            [
-                "Import class 'App\\Models\\Order'",
-                "Import class 'Legacy\\Order'"
-            ]
-        );
-        assert_eq!(found[0].kind, IntentionKind::QuickFix);
-        let fixed = apply_edits(src, &found[0].edits);
-        assert!(fixed.contains(
-            "use App\\Models\\Address;\nuse App\\Models\\Order;\nuse Illuminate\\Http\\Request;\n"
-        ));
-
-        // Known classes get no import.
-        let at = fixed.find("Order $o").unwrap() + 2;
-        let again = intentions(
-            &mut idx,
-            "app/Http/show.php",
-            &fixed,
-            at,
-            &GenerateOptions::default(),
-        );
-        assert!(!titles(&again).iter().any(|t| t.starts_with("Import class")));
     }
 
     #[test]
@@ -493,5 +424,34 @@ mod tests {
         assert!(apply_edits(src, &i.edits).contains("(private readonly int $amount)"));
         assert!(readonly("$count", &mut idx).is_none(), "static");
         assert!(readonly("$cents", &mut idx).is_none(), "default value");
+    }
+
+    #[test]
+    fn language_server_twins_of_own_intentions() {
+        assert!(is_lsp_twin("Generate getter", "Generate getter for $name"));
+        assert!(is_lsp_twin(
+            "Generate getter and setter",
+            "Generate getter and setter for $name"
+        ));
+        assert!(!is_lsp_twin(
+            "Generate getter",
+            "Generate getter and setter for $name"
+        ));
+        assert!(is_lsp_twin("Generate setter", "Generate setter for $name"));
+        assert!(is_lsp_twin(
+            "Add method stubs",
+            "Implement 2 missing methods"
+        ));
+        assert!(is_lsp_twin("Import class", "Import 'App\\Models\\User'"));
+        assert!(is_lsp_twin(
+            "Set namespace to 'App\\Models'",
+            "Change namespace to 'App\\Models'"
+        ));
+        assert!(!is_lsp_twin(
+            "Set namespace to 'App\\Models'",
+            "Change namespace to 'App'"
+        ));
+        assert!(!is_lsp_twin("Add PHPDoc", "Add PHPDoc"));
+        assert!(!is_lsp_twin("Generate getter", "Extract variable"));
     }
 }

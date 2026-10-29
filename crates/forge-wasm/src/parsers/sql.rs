@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use forge_sql::{change_sql, export, leading_keyword, split_statements, statement_at};
-use forge_sql::{Dialect, ExportFormat, RowChange};
+use forge_sql::{guard, Dialect, ExportFormat, GuardPolicy, RowChange};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
@@ -106,6 +106,23 @@ pub fn sql_leading_keywords(request_json: &str) -> String {
     }
 }
 
+#[derive(Deserialize)]
+struct GuardRequest {
+    sql: String,
+    dialect: Dialect,
+    #[serde(flatten)]
+    policy: GuardPolicy,
+}
+
+/// Mirrors `db_guard`: `{ sql, dialect, readOnly, production, name }` → `{ blocked?, confirm? }`.
+#[wasm_bindgen]
+pub fn sql_guard(request_json: &str) -> String {
+    match parse::<GuardRequest>(request_json) {
+        Ok(r) => to_json(&guard(&r.sql, r.dialect, &r.policy)),
+        Err(e) => e,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,5 +144,11 @@ mod tests {
             sql_leading_keywords(r#"{"statements":["-- x\n select 1"]}"#),
             r#"["SELECT"]"#
         );
+        let g = sql_guard(
+            r#"{"sql":"delete from users","dialect":"mysql","production":true,"name":"prod"}"#,
+        );
+        assert!(g.contains("confirm") && g.contains("prod"), "{g}");
+        let g = sql_guard(r#"{"sql":"DEL a","dialect":"redis","readOnly":true}"#);
+        assert!(g.contains("blocked"), "{g}");
     }
 }

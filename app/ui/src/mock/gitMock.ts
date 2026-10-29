@@ -24,6 +24,17 @@ import { lineDiff, unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
 import { isLuaDemo } from "./demoLuaProject";
+import { isPythonDemo, pythonDemoFiles } from "./demoPythonProject";
+import { salesNotebookHead } from "./demoNotebooks";
+import { goDemoFiles, isGoDemo } from "./demoGoProject";
+import { cppDemoFiles, isCppDemo } from "./demoCppProject";
+import { dotnetDemoFiles, isDotnetDemo } from "./demoDotnetProject";
+import { isRustDemo, rustDemoFiles } from "./demoRustProject";
+import { isRubyDemo, rubyDemoFiles } from "./demoRubyProject";
+import { isJavaDemo, JAVA_PKG, javaDemoFiles } from "./demoJavaProject";
+import { isKotlinDemo, KT_PKG, kotlinDemoFiles } from "./demoKotlinProject";
+import { isScalaDemo, scalaDemoFiles } from "./demoScalaProject";
+import { androidDemoFiles, isAndroidDemo } from "./demoAndroidProject";
 import { demoStatus } from "./demoStatus";
 import { CONFLICT_BRANCH, demoConflicts, type DemoConflict } from "./demoConflicts";
 import { callWasm, forgeWasm } from "@/wasm";
@@ -145,7 +156,35 @@ const state = {
     { branch: "main", message: "Half-done invoice PDF layout", time: now - 3 * DAY, files: {} as Record<string, string> },
   ],
   remotes: [{ name: "origin", fetchUrl: "git@github.com:acme/shop.git", pushUrl: null as string | null }],
+  /** Worktrees (`git worktree list`); the first is the main one, where the demo project is. */
+  worktrees: [
+    { path: "/home/marlon/src/acme-shop", branch: demo.branch as string | null, locked: false, lockReason: null as string | null, prunable: false },
+    ...(laravelBranches
+      ? [
+          { path: "/home/marlon/src/acme-shop-checkout-flow", branch: "feature/checkout-flow" as string | null, locked: false, lockReason: null as string | null, prunable: false },
+          { path: "/media/usb/acme-shop-hotfix", branch: null as string | null, locked: true, lockReason: "on a USB drive" as string | null, prunable: false },
+        ]
+      : []),
+  ],
 };
+
+/** Signatures of the demo history (`%G?`, signer). */
+const signatures: Record<string, [Commit["signature"], string]> = {
+  c1: ["good", "Marlon <marlon@acme.dev>"],
+  c2: ["good", "Marlon <marlon@acme.dev>"],
+  c4: ["unverified", "Marlon <marlon@acme.dev>"],
+  c10: ["good", "GitHub <noreply@github.com>"],
+  c13: ["good", "Marlon <marlon@acme.dev>"],
+};
+const signatureOf = (sha: string) => {
+  const id = history.find(([hid]) => shaOf(hid) === sha)?.[0];
+  return id ? signatures[id] : undefined;
+};
+/** Mark a commit made from Forge with signing on as signed. */
+const signedCommits = new Set<string>();
+export function signMockCommit(sha: string): void {
+  signedCommits.add(sha);
+}
 
 /** Paths added with "Add to .gitignore"; the cached demo ignore rules do not know them. */
 const ignoredFromMenu: string[] = [];
@@ -220,16 +259,52 @@ index["app/Http/Controllers/OrderController.php"] = controllerWorking;
 
 // The WebForge demos (`?project=react|vue|angular`) are committed as they are.
 const web = webDemo();
-if (web) {
+if (web || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isCppDemo() || isDotnetDemo()) {
   for (const snapshot of [head, index]) {
     for (const k of Object.keys(snapshot)) delete snapshot[k];
-    Object.assign(snapshot, web.files);
+    Object.assign(snapshot, web ? web.files : isGoDemo() ? goDemoFiles : isRustDemo() ? rustDemoFiles : isRubyDemo() ? rubyDemoFiles : isCppDemo() ? cppDemoFiles : isDotnetDemo() ? dotnetDemoFiles : pythonDemoFiles);
   }
+  // The FastAPI demo has one change: the new import in main.py.
+  if (!web && isPythonDemo() && pythonDemoFiles["src/shop_api/main.py"]) {
+    const main = "src/shop_api/main.py";
+    for (const snapshot of [head, index]) snapshot[main] = pythonDemoFiles[main].replace("from rich.console import Console\n", "").replace("console = Console()\n\n\n", "");
+    // The notebook changed too (a newer data file, the error cell): its diff compares cells.
+    for (const snapshot of [head, index]) snapshot["notebooks/sales.ipynb"] = salesNotebookHead;
+  }
+}
+// The Java demo (`?project=java`) is committed except for the low-stock report in progress.
+if (isJavaDemo()) {
+  for (const snapshot of [head, index]) {
+    for (const k of Object.keys(snapshot)) delete snapshot[k];
+    Object.assign(snapshot, javaDemoFiles);
+  }
+  head[`${JAVA_PKG}/Inventory.java`] = javaDemoFiles[`${JAVA_PKG}/Inventory.java`].replace(/\n    public List<StockItem> lowStock[\s\S]*?\n    }\n/, "\n");
+}
+
+// The Kotlin demo (`?project=kotlin`) is committed except for the discount in progress.
+if (isKotlinDemo()) {
+  for (const snapshot of [head, index]) {
+    for (const k of Object.keys(snapshot)) delete snapshot[k];
+    Object.assign(snapshot, kotlinDemoFiles);
+  }
+  head[`${KT_PKG}/OrderService.kt`] = kotlinDemoFiles[`${KT_PKG}/OrderService.kt`].replace("        val discount = if (order.items.size > 3) 10 else 0\n        return cart.total(discount)", "        return cart.total()");
+}
+
+// The Scala and Android demos (`?project=scala`, `?project=android`) are committed except
+// for the change in progress (the MUnit suite, the title check).
+if (isScalaDemo() || isAndroidDemo()) {
+  const files = isScalaDemo() ? scalaDemoFiles : androidDemoFiles;
+  for (const snapshot of [head, index]) {
+    for (const k of Object.keys(snapshot)) delete snapshot[k];
+    Object.assign(snapshot, files);
+  }
+  if (isScalaDemo()) delete head["core/src/test/scala/com/acme/shop/PriceSuite.scala"];
+  else head["app/src/main/java/com/acme/notes/NoteRepository.kt"] = androidDemoFiles["app/src/main/java/com/acme/notes/NoteRepository.kt"].replace(/\n        \/\/ A note needs a title[^\n]*\n[^\n]*\n/, "\n");
 }
 
 // Extra untracked file, written into the workspace mock (absent in tests that load only
 // the git mock). The web demos and the Lua demo game have no PHP tests.
-if (!web && !isLuaDemo()) void Promise.resolve().then(() =>
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isCppDemo() && !isDotnetDemo()) void Promise.resolve().then(() =>
   invoke("fs_write_file", {
     path: UNTRACKED_EXTRA,
     contents: `<?php\n\nnamespace Tests\\Unit;\n\nuse App\\Services\\Checkout;\nuse PHPUnit\\Framework\\TestCase;\n\nclass CheckoutTest extends TestCase\n{\n    public function test_default_currency_is_euro(): void\n    {\n        $this->assertInstanceOf(Checkout::class, new Checkout());\n    }\n}\n`,
@@ -339,10 +414,16 @@ function resolveRev(rev: string): string | undefined {
 
 function log(q: LogQuery): Commit[] {
   let list = commits.slice().sort((a, b) => b.time - a.time);
-  const tips = q.rev ? [resolveRev(q.rev)] : q.all ? [state.head, ...state.local.values(), ...state.remote.values(), ...state.tags.values()] : [state.head];
+  // `a..b`: the commits of b that are not in a (Compare with Current).
+  const range = q.rev?.includes("..") ? q.rev.split("..") : null;
+  const tips = range ? [resolveRev(range[1] || "HEAD")] : q.rev ? [resolveRev(q.rev)] : q.all ? [state.head, ...state.local.values(), ...state.remote.values(), ...state.tags.values()] : [state.head];
   const reachable = new Set<string>();
   for (const t of tips) if (t) ancestors(t).forEach((s) => reachable.add(s));
   list = list.filter((c) => reachable.has(c.sha));
+  if (range) {
+    const excluded = ancestors(resolveRev(range[0] || "HEAD") ?? "");
+    list = list.filter((c) => !excluded.has(c.sha));
+  }
   if (q.text) {
     const t = q.text.toLowerCase();
     list = list.filter((c) => c.subject.toLowerCase().includes(t) || (c.body ?? "").toLowerCase().includes(t));
@@ -350,14 +431,18 @@ function log(q: LogQuery): Commit[] {
   if (q.author) list = list.filter((c) => c.author.toLowerCase().includes(q.author!.toLowerCase()));
   if (q.path) list = list.filter((c) => c.files.some((file) => file.path === q.path || file.path.startsWith(`${q.path}/`)));
   const skip = q.skip ?? 0;
-  return list.slice(skip, skip + (q.limit || 200)).map(({ body: _b, files: _f, ...c }) => ({ ...c, refs: refsFor(c.sha) }));
+  return list.slice(skip, skip + (q.limit || 200)).map(({ body: _b, files: _f, ...c }) => {
+    const sig = signedCommits.has(c.sha) ? (["good", ""] as const) : signatureOf(c.sha);
+    return { ...c, refs: refsFor(c.sha), ...(sig ? { signature: sig[0] } : {}) };
+  });
 }
 
 function branches(): Branches {
   const info = (name: string, sha: string, upstream?: string): BranchInfo => {
     const c = bySha.get(sha);
     const ab = upstream && state.remote.get(upstream) ? aheadBehind(sha, state.remote.get(upstream)!) : { ahead: 0, behind: 0 };
-    return { name, sha, upstream: upstream ?? null, ...ab, time: c?.time ?? now, subject: c?.subject ?? "", current: name === state.current };
+    const worktree = name !== state.current ? (state.worktrees.find((w, i) => i > 0 && w.branch === name)?.path ?? null) : null;
+    return { name, sha, upstream: upstream ?? null, ...ab, time: c?.time ?? now, subject: c?.subject ?? "", current: name === state.current, worktree };
   };
   return {
     current: state.current,
@@ -505,6 +590,10 @@ registerMock("git_commit_details", ({ sha }): CommitDetails => {
     commitTime: c.time,
     message: c.body ? `${c.subject}\n\n${c.body}` : c.subject,
     files: c.files,
+    ...(() => {
+      const sig = signedCommits.has(c.sha) ? (["good", "Marlon <marlon@acme.dev>"] as const) : signatureOf(c.sha);
+      return sig ? { signature: sig[0], signer: sig[1], signingKey: sig[0] === "good" ? "3AA5C34371567BD2" : null } : { signature: "none" as const, signer: null, signingKey: null };
+    })(),
   };
 });
 registerMock("git_branches", () => branches());
@@ -753,7 +842,7 @@ async function startConflictMerge(rev: string): Promise<void> {
 }
 
 // `?conflicts` opens the demo in the middle of that merge (screenshots).
-if (!web && !isLuaDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
+if (!web && !isLuaDemo() && !isPythonDemo() && !isGoDemo() && !isRustDemo() && !isRubyDemo() && !isJavaDemo() && !isKotlinDemo() && !isScalaDemo() && !isAndroidDemo() && !isCppDemo() && !isDotnetDemo() && typeof location !== "undefined" && new URLSearchParams(location.search).has("conflicts")) {
   void Promise.resolve()
     .then(() => startConflictMerge(CONFLICT_BRANCH))
     .then(changed)
@@ -857,4 +946,4 @@ export function revisionLines(path: string, time: number): { text: string; line:
 export const mockRepo = { commits, bySha, head, state, log, ancestors, resolveRev, computeStatus };
 
 /** Working-tree and ref helpers for the dialog and shelf mocks (`gitOpsMock.ts`). */
-export const mockRepoOps = { index, changed, readWorking, newCommit, checkout, merging, startConflictMerge, CONFLICT_BRANCH };
+export const mockRepoOps = { index, changed, readWorking, working, newCommit, checkout, merging, startConflictMerge, CONFLICT_BRANCH };

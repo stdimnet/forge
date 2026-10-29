@@ -14,8 +14,16 @@ export const PACKS: Record<string, { label: string; order: number }> = {
   phpforge: { label: "PHPForge", order: 1 },
   webforge: { label: "WebForge", order: 2 },
   luaforge: { label: "LuaForge", order: 3 },
-  scriptforge: { label: "ScriptForge", order: 4 },
-  configforge: { label: "ConfigForge", order: 5 },
+  pyforge: { label: "PyForge", order: 4 },
+  goforge: { label: "GoForge", order: 5 },
+  rustforge: { label: "RustForge", order: 6 },
+  rubyforge: { label: "RubyForge", order: 7 },
+  javaforge: { label: "JavaForge", order: 8 },
+  kotlinforge: { label: "KotlinForge", order: 9 },
+  cforge: { label: "CForge", order: 10 },
+  dotnetforge: { label: "DotNetForge", order: 11 },
+  scriptforge: { label: "ScriptForge", order: 11 },
+  configforge: { label: "ConfigForge", order: 12 },
 };
 
 const packLabel = (pack: string) => PACKS[pack]?.label ?? pack;
@@ -41,7 +49,7 @@ function summary(p: PluginInfo): string[] {
   const out: string[] = [];
   if (c.languages.length) out.push(`Languages: ${c.languages.join(", ")}`);
   if (c.fileTypes.length) out.push(`File types: ${c.fileTypes.map((f) => f.name).join(", ")}`);
-  if (c.lspServers.length) out.push(`Language servers: ${c.lspServers.map((s) => s.command).join(", ")}`);
+  if (c.lspServers.length) out.push(`Language servers: ${c.lspServers.map((s) => s.id).join(", ")}`);
   if (c.runConfigurationTypes.length)
     out.push(`Run configurations: ${c.runConfigurationTypes.map((r) => r.name).join(", ")}`);
   if (c.aiProviders.length) out.push(`AI providers: ${c.aiProviders.map((a) => a.name).join(", ")}`);

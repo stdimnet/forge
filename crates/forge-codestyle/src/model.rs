@@ -236,6 +236,7 @@ fn tab(id: &str) -> TabSpec {
         WRAPPING => "Wrapping and Braces",
         BLANK_LINES => "Blank Lines",
         "codeConversion" => "Code Conversion",
+        "imports" => "Imports",
         "punctuation" => "Punctuation",
         "case" => "Case",
         "other" => "Other",
@@ -651,6 +652,45 @@ fn php() -> LanguageSpec {
             "LOWER_CASE_BOOLEAN_CONST",
             XmlConv::Map(&[("lower", "true"), ("upper", "false")]),
         );
+    // Optimize Imports (Ctrl+Alt+O), Auto Import and every refactoring that adds a `use`
+    // statement arrange imports with these options (`phpforge_lang_php::imports`).
+    b.tab("imports")
+        .section("'use' statements")
+        .choice(
+            "imports.sort",
+            "Sort 'use' statements",
+            &[
+                ("alphabetic", "Alphabetically"),
+                ("byLength", "By length"),
+                ("none", "Don't sort"),
+            ],
+            "alphabetic",
+        )
+        .choice(
+            "imports.groupBy",
+            "Group 'use' statements",
+            &[
+                ("kind", "By kind"),
+                ("namespace", "By kind and namespace"),
+                ("none", "Don't group"),
+            ],
+            "kind",
+        )
+        .describe("Kinds are classes, functions and constants; the namespace is the top-level one (App, Illuminate).")
+        .int(
+            "imports.blankLinesBetweenGroups",
+            "Blank lines between groups",
+            0,
+            3,
+            0,
+        )
+        .section("Inserting classes")
+        .bool(
+            "imports.preferFqn",
+            "Prefer fully qualified names (FQN) over imports",
+            false,
+        )
+        .describe("Completion and Import class insert '\\App\\Models\\User' instead of adding a 'use' statement.");
 
     let psr12 = json!({
         "useTabs": false, "tabSize": 4, "indent": 4, "continuationIndent": 4,
@@ -695,7 +735,7 @@ fn php() -> LanguageSpec {
         "php",
         "PHP",
         &["php"],
-        &["codeConversion"],
+        &["codeConversion", "imports"],
         b,
         vec![
             preset("psr12", "PSR-12", psr12),
@@ -1259,6 +1299,36 @@ fn sql() -> LanguageSpec {
         .common("SPACE_AROUND_RELATIONAL_OPERATORS")
         .bool("spaces.withinParentheses", "Within parentheses", false)
         .common("SPACE_WITHIN_PARENTHESES");
+    b.tab(WRAPPING)
+        .section("Clauses")
+        .bool(
+            "wrapping.clauseNewline",
+            "Start clauses (FROM, WHERE, JOIN, …) on a new line",
+            true,
+        )
+        .choice(
+            "wrapping.align",
+            "Align clause keywords",
+            &[("left", "Left"), ("right", "Right (river)")],
+            "left",
+        )
+        .bool(
+            "wrapping.andOrNewline",
+            "Place AND / OR on a new line",
+            true,
+        )
+        .section("Lists")
+        .bool(
+            "wrapping.itemsNewline",
+            "Place select, SET and ORDER BY items on separate lines",
+            false,
+        )
+        .choice(
+            "wrapping.commaPosition",
+            "Comma position",
+            &[("end", "End of line"), ("start", "Start of line")],
+            "end",
+        );
     b.keep_max(2);
     b.tab("case")
         .choice(
@@ -1270,6 +1340,17 @@ fn sql() -> LanguageSpec {
         .xml(
             XmlSection::Custom,
             "KEYWORD_CASE",
+            XmlConv::Map(&[("asIs", "0"), ("upper", "1"), ("lower", "2")]),
+        )
+        .choice(
+            "case.identifiers",
+            "Identifiers",
+            &[AS_IS, ("upper", "Upper case"), ("lower", "Lower case")],
+            "asIs",
+        )
+        .xml(
+            XmlSection::Custom,
+            "IDENTIFIER_CASE",
             XmlConv::Map(&[("asIs", "0"), ("upper", "1"), ("lower", "2")]),
         );
     language(
@@ -1406,7 +1487,8 @@ mod tests {
                 "Spaces",
                 "Wrapping and Braces",
                 "Blank Lines",
-                "Code Conversion"
+                "Code Conversion",
+                "Imports"
             ]
         );
     }

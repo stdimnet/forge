@@ -6,6 +6,7 @@ import { gitApi, type StatusEntry } from "./api";
 import { notify, reloadOpenFiles, repositoryChanged, runGit, status } from "./store";
 import { setBranchesOpen, setDiffRequest, setInputDialog } from "./overlays";
 import { runMerging } from "./conflicts";
+import { withLocalHistory } from "@/ipc/localHistory";
 
 const shortSha = (sha?: string | null) => (sha ? sha.slice(0, 8) : "HEAD");
 
@@ -32,6 +33,7 @@ export async function showDiff(path: string, files?: string[]): Promise<void> {
     right: { title: deleted ? "Deleted" : "Your version", content: right },
     editable: !deleted,
     files,
+    partial: !!entry && !isNew && !deleted && !entry.conflict,
   });
 }
 
@@ -75,25 +77,11 @@ export function confirmRollback(paths: string[]): void {
     noInput: true,
     okLabel: "Rollback",
     onOk: async () => {
-      await runGit("Rollback failed", () => gitApi.rollback(paths));
+      await runGit("Rollback failed", () => withLocalHistory("vcs", "Rollback", () => gitApi.rollback(paths), paths));
       await reloadOpenFiles(paths);
       notify("success", "Rollback", `${paths.length} file${paths.length > 1 ? "s" : ""} rolled back`);
     },
   });
-}
-
-export async function commitChanges(opts: {
-  message: string;
-  amend: boolean;
-  paths: string[];
-  push: boolean;
-}): Promise<boolean> {
-  const sha = await runGit("Commit failed", () => gitApi.commit(opts.message, opts.amend, opts.paths));
-  if (!sha) return false;
-  const n = opts.paths.length;
-  notify("success", `${n} file${n === 1 ? "" : "s"} committed: ${opts.message.split("\n")[0]}`);
-  if (opts.push) await push();
-  return true;
 }
 
 export async function push(): Promise<void> {
@@ -104,7 +92,7 @@ export async function push(): Promise<void> {
 
 /** "Update Project" (Ctrl+T): pull with the update method of the Git settings (merge, rebase or the branch default). */
 export async function updateProject(): Promise<void> {
-  const res = await runMerging("Update failed", () => gitApi.pull());
+  const res = await runMerging("Update failed", () => withLocalHistory("vcs", "Update from VCS", () => gitApi.pull()));
   if (res) {
     await reloadOpenFiles();
     notify("success", "Project updated", res.output.split("\n")[0] || "All files are up to date");
@@ -118,7 +106,9 @@ export async function fetchAll(): Promise<void> {
 
 export async function checkout(name: string, remote = false): Promise<void> {
   setBranchesOpen(false);
-  const ok = await runGit(`Checkout of ${name} failed`, () => gitApi.checkout(name, remote).then(() => true));
+  const ok = await runGit(`Checkout of ${name} failed`, () =>
+    withLocalHistory("vcs", `Checkout ${name}`, () => gitApi.checkout(name, remote).then(() => true)),
+  );
   if (ok) {
     await reloadOpenFiles();
     notify("info", `Checked out ${remote ? name.split("/").slice(1).join("/") : name}`);
@@ -128,7 +118,7 @@ export async function checkout(name: string, remote = false): Promise<void> {
 export function newBranchDialog(start: string | null = null): void {
   setBranchesOpen(false);
   setInputDialog({
-    title: start ? `Create Branch from ${start}` : "Create New Branch",
+    title: start ? `Create Branch from ${/^[0-9a-f]{40,64}$/.test(start) ? start.slice(0, 8) : start}` : "Create New Branch",
     label: "New branch name:",
     value: "",
     okLabel: "Create",
@@ -155,7 +145,7 @@ export function checkoutRevisionDialog(): void {
 
 export async function mergeIntoCurrent(name: string): Promise<void> {
   setBranchesOpen(false);
-  const out = await runMerging(`Merge of ${name} failed`, () => gitApi.merge(name));
+  const out = await runMerging(`Merge of ${name} failed`, () => withLocalHistory("vcs", `Merge ${name}`, () => gitApi.merge(name)));
   if (out !== undefined) {
     await reloadOpenFiles();
     notify("success", `Merged ${name} into ${status()?.branch ?? "HEAD"}`, out.split("\n")[0]);
@@ -164,7 +154,7 @@ export async function mergeIntoCurrent(name: string): Promise<void> {
 
 export async function rebaseOnto(name: string): Promise<void> {
   setBranchesOpen(false);
-  const out = await runMerging(`Rebase onto ${name} failed`, () => gitApi.rebase(name));
+  const out = await runMerging(`Rebase onto ${name} failed`, () => withLocalHistory("vcs", `Rebase onto ${name}`, () => gitApi.rebase(name)));
   if (out !== undefined) {
     await reloadOpenFiles();
     notify("success", `Rebased ${status()?.branch ?? "HEAD"} onto ${name}`);

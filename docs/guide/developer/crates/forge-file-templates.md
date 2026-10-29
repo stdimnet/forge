@@ -20,7 +20,8 @@ shared by the desktop backend and the browser-mode WebAssembly build.
   mode); syntax errors carry their line. `referenced_variables` lists what a template uses.
 - `builtin`: the shipped templates (PHP File/Class/Interface/Trait/Enum, PHPUnit Test,
   Laravel Controller/Model, Symfony Controller, HTML, CSS, JavaScript, TypeScript, Vue SFC,
-  React (JSX/TSX), Lua; the PHP File Header include; the PHP code templates), each with the
+  React (JSX/TSX), Lua, Kotlin (Class, File, Interface, Object, Enum Class, Script; the
+  package from the folder below its source root, `package_of_dir`); the PHP File Header include; the PHP code templates), each with the
   project type it needs (`when`) and its menu group.
 - `psr4`: PSR-4 rules from composer.json (`autoload` and `autoload-dev`, relative to the
   composer.json folder) and the mapping folder → namespace (deepest folder wins) and

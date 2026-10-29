@@ -16,8 +16,11 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Entry | Windows / Linux | macOS | Available | What it does |
 | --- | --- | --- | --- | --- |
 | **Layouts** | | | | submenu |
+| Layouts › Save Current Layout as New… | — | — | yes | Saves the open tool windows, their places, view modes and sizes under a name. [More](../../user/windows-and-layouts.md#layouts) ([screenshot](../../../screenshots/save-layout-dialog.png)) |
+| Layouts › *saved layouts* | — | — | dynamic | Restores that layout. [More](../../user/windows-and-layouts.md#layouts) ([screenshot](../../../screenshots/layouts-menu.png)) |
 | Layouts › Store Current Layout as Default | — | — | yes | Stores where the tool windows sit, which are open and their sizes as the default for all projects. [More](../../user/workbench.md#moving-and-hiding-tool-windows) |
 | Layouts › Restore Default Layout | `Shift+F12` | `Shift+F12` | yes | Goes back to the stored default layout, or Forge's own. [More](../../user/workbench.md#moving-and-hiding-tool-windows) |
+| Layouts › **Delete Layout** › *saved layouts* | — | — | dynamic | Deletes a saved layout. [More](../../user/windows-and-layouts.md#layouts) |
 | **Active Tool Window** | | | | submenu |
 | Active Tool Window › Hide Active Tool Window | `Shift+Escape` | `Shift+Escape` | yes | Hides the tool window that has the focus and returns to the editor. [More](../../user/workbench.md#managing-tool-windows) |
 | Active Tool Window › Hide Side Tool Windows | — | — | yes | Hides the left and right tool windows. [More](../../user/workbench.md#managing-tool-windows) |
@@ -38,6 +41,7 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Editor Tabs › Split and Move Right | — | — | yes | Moves the current tab into a new editor group on the right. [More](../../user/workbench.md#split-editors) |
 | Editor Tabs › Split and Move Down | — | — | yes | Moves the current tab into a new editor group below. [More](../../user/workbench.md#split-editors) |
 | Editor Tabs › Move to Opposite Group | — | — | yes | Moves the current tab to the neighbouring editor group. [More](../../user/workbench.md#split-editors) |
+| Editor Tabs › Open in New Window | `Shift+F4` | `Shift+F4` | yes | Moves the current tab into a window of its own; closing that window docks the tab back. [More](../../user/windows-and-layouts.md#editor-tabs-in-their-own-window) |
 | Editor Tabs › Change Splitter Orientation | — | — | yes | Switches split editors between side by side and stacked. [More](../../user/workbench.md#split-editors) |
 | Editor Tabs › Unsplit | — | — | yes | Merges the current editor group into its neighbour. [More](../../user/workbench.md#split-editors) |
 | Editor Tabs › Unsplit All | — | — | yes | Merges all editor groups into one. [More](../../user/workbench.md#split-editors) |
@@ -50,5 +54,6 @@ Layouts, the active tool window, editor tabs and project windows. Open it with �
 | Editor Tabs › Close Tabs to the Right | — | — | yes | Closes the unpinned tabs right of the current one. [More](../../user/workbench.md#tab-context-menu) |
 | Editor Tabs › Close Unmodified Tabs | — | — | yes | Closes the editor tabs without unsaved changes. [More](../../user/workbench.md#editor-tabs) |
 | Editor Tabs › Reopen Closed Tab | — | — | yes | Reopens the editor tab closed last. [More](../../user/workbench.md#editor-tabs) |
-| Next Project Window | `Ctrl+Alt+]` | `` Cmd+` `` | not yet | Not available yet; the entry is disabled. |
-| Previous Project Window | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | not yet | Not available yet; the entry is disabled. |
+| Next Project Window | `Ctrl+Alt+]` | `` Cmd+` `` | yes | Brings the next project window to the front. [More](../../user/windows-and-layouts.md#several-project-windows) |
+| Previous Project Window | `Ctrl+Alt+[` | `` Cmd+Shift+` `` | yes | Brings the previous project window to the front. [More](../../user/windows-and-layouts.md#several-project-windows) |
+| *project windows* | — | — | dynamic | One entry per open project window; the current one is checked. [More](../../user/windows-and-layouts.md#several-project-windows) |

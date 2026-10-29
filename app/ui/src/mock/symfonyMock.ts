@@ -19,6 +19,7 @@ import {
 } from "@/ipc/symfony";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoInfo, symfonyDemoName } from "./demoSymfonyProject";
 import { setSetting } from "./settingsMock";
+import { eventGutter, eventListeners, extrasComplete, extrasGoto, translationTable } from "./symfonyExtrasMock";
 
 const files = symfonyDemoFiles;
 
@@ -213,6 +214,9 @@ const info = (): SymfonyInfo => ({
   services: services.length,
   templates: templates.length,
   commands: commands.filter((c) => !c.builtin).length,
+  translations: translationTable().rows.length,
+  listeners: eventListeners().length,
+  forms: 1,
 });
 
 // ---------------------------------------------------------------- reference at cursor
@@ -280,6 +284,8 @@ function fuzzy(name: string, prefix: string): boolean {
 }
 
 function complete(path: string, text: string, offset: number) {
+  const extra = extrasComplete(path, text, offset);
+  if (extra) return extra;
   const r = referenceAt(path, text, offset);
   if (!r) return null;
   const items: SymfonyCompletionItem[] = [];
@@ -314,6 +320,8 @@ function complete(path: string, text: string, offset: number) {
 }
 
 function gotoTargets(path: string, text: string, offset: number): SourceLocation[] {
+  const extra = extrasGoto(path, text, offset);
+  if (extra) return extra;
   const r = referenceAt(path, text, offset);
   if (!r) return [];
   let loc: SourceLocation | undefined;
@@ -379,6 +387,7 @@ function gutter(path: string, content: string): SymfonyGutterMark[] {
       });
     }
   }
+  if (path.endsWith(".php")) out.push(...eventGutter(path, content));
   return out.sort((a, b) => a.line - b.line);
 }
 

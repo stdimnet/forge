@@ -9,7 +9,8 @@ import type { MainMenuContribution } from "./keymap";
 export type SettingObject = Record<string, string>;
 
 export type SettingValue = boolean | number | string | string[] | SettingObject[];
-export type SettingsScope = "user" | "project";
+/** `newProjects`: Settings for New Projects (defaults of project-level settings). */
+export type SettingsScope = "user" | "newProjects" | "project";
 
 export interface EnumOption {
   value: string;
@@ -37,6 +38,8 @@ export type SettingSpec = SettingType & {
   section?: string;
   /** Stored in `.forge/settings.toml` of the open project. */
   project: boolean;
+  /** Edited by a dialog of its page instead of a row. */
+  hidden?: boolean;
   order: number;
 };
 
@@ -137,6 +140,8 @@ export interface Contributions {
   settings: SettingSpec[];
   lspServers: LspServerSpec[];
   runConfigurationTypes: RunConfigurationType[];
+  /** Test frameworks for the shared test runner (each is also a run configuration type). */
+  testFrameworks?: import("./testing").TestFrameworkSpec[];
   aiProviders: AiProviderContribution[];
   chatAgents: ChatAgentContribution[];
   codeGenerators: CodeGeneratorContribution[];
@@ -144,7 +149,7 @@ export interface Contributions {
   mainMenu?: MainMenuContribution[];
 }
 
-export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "scriptforge" | "configforge";
+export type PackId = "core" | "phpforge" | "webforge" | "luaforge" | "pyforge" | "javaforge" | "goforge" | "rustforge" | "rubyforge" | "kotlinforge" | "cforge" | "dotnetforge" | "scriptforge" | "configforge";
 
 export interface PluginInfo {
   id: string;
@@ -162,10 +167,12 @@ export interface PluginInfo {
 }
 
 export interface SettingsSnapshot {
-  /** Effective values (defaults < user < project). */
+  /** Effective values (defaults < user < settings for new projects < project). */
   values: Record<string, SettingValue>;
   user: Record<string, SettingValue>;
   project: Record<string, SettingValue>;
+  /** Settings for New Projects. */
+  newProjects?: Record<string, SettingValue>;
   hasProject: boolean;
 }
 

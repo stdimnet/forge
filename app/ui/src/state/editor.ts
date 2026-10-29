@@ -335,11 +335,22 @@ export function registerBinaryFileView(v: BinaryFileView): void {
   binaryViews.push(v);
 }
 
+let forwardOpen: ((path: string) => boolean) | null = null;
+
+/**
+ * A window without an editor area (a tool window in its own window) hands the files it
+ * opens to its project window; `fn` returns `true` when it took the file.
+ */
+export function setOpenFileForwarder(fn: ((path: string) => boolean) | null): void {
+  forwardOpen = fn;
+}
+
 /**
  * Open a file (or activate its tab) in an editor group; default: the active group. With
  * `activate: false` the tab opens in the background (restoring a project's layout).
  */
 export async function openFile(path: string, opts: { group?: number; activate?: boolean } = {}): Promise<void> {
+  if (forwardOpen?.(path)) return;
   const activate = opts.activate ?? true;
   if (isCustomTab(path)) {
     if (activate && customTabs().some((t) => t.id === path)) showTab(path, opts.group ?? groups.groupOf(editor.layout, path)?.id);
@@ -442,10 +453,10 @@ export function updateCursor(path: string, line: number, col: number, carets = 1
   setEditor("tabs", (t) => t.path === path, "cursor", { line, col, carets });
 }
 
-type SaveListener = (path: string, content: string) => void;
+type SaveListener = (path: string, content: string, trigger: SaveTrigger) => void;
 const saveListeners = new Set<SaveListener>();
 
-/** Notified after a file was written (e.g. to send `didSave` to language servers). */
+/** Notified after a file was written (e.g. to send `didSave` to language servers, automatic upload). */
 export function onFileSaved(cb: SaveListener): () => void {
   saveListeners.add(cb);
   return () => saveListeners.delete(cb);
@@ -527,7 +538,7 @@ async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
     // The host writes the shared document; its save state arrives through the session.
     const content = tab.content;
     await sharedTabs.save(path);
-    saveListeners.forEach((l) => l(path, content));
+    saveListeners.forEach((l) => l(path, content, trigger));
     return;
   }
   const original = tab.content;
@@ -582,7 +593,7 @@ async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
     if (!bridge?.applyText(path, final)) updateContent(path, final);
   }
   setEditor("tabs", (t) => t.path === path, "saved", final);
-  saveListeners.forEach((l) => l(path, final));
+  saveListeners.forEach((l) => l(path, final, trigger));
 }
 
 export async function saveAll(trigger: SaveTrigger = "autosave"): Promise<void> {

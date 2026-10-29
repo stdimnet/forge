@@ -30,6 +30,14 @@ pub struct Contributions {
     pub lsp_servers: Vec<LspServerSpec>,
     #[serde(default)]
     pub run_configuration_types: Vec<RunConfigurationType>,
+    /// Debug adapters (Debug Adapter Protocol) the shared debugger can start or attach with.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub debug_adapters: Vec<DebugAdapterContribution>,
+    /// Test frameworks for the shared test runner (detection, command lines, gutter
+    /// discovery, result format, Rerun Failed Tests, coverage); each is also a run
+    /// configuration type.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub test_frameworks: Vec<TestFrameworkContribution>,
     #[serde(default)]
     pub ai_providers: Vec<AiProviderContribution>,
     #[serde(default)]
@@ -40,7 +48,21 @@ pub struct Contributions {
     /// active plugins when the menu opens.
     #[serde(default)]
     pub main_menu: Vec<MainMenuContribution>,
+    /// Inspections (Settings | Editor | Inspections, Inspect Code); see `forge-inspections`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inspections: Vec<InspectionContribution>,
+    /// Map problems of external tools (a diagnostics source and code) onto inspections.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inspection_mappings: Vec<InspectionMappingContribution>,
 }
+
+/// An inspection declared as data (`[[contributions.inspections]]`). Defined by the pure
+/// `forge-inspections` crate, which also holds profiles and runs them.
+pub use forge_inspections::InspectionSpec as InspectionContribution;
+
+/// `[[contributions.inspectionMappings]]`: problems published with `source` (and `code`)
+/// belong to `inspection`.
+pub use forge_inspections::ToolMapping as InspectionMappingContribution;
 
 /// Entries a plugin adds to a main menu path:
 ///
@@ -58,6 +80,10 @@ pub use forge_keymap::MenuContribution as MainMenuContribution;
 /// UI under the same `id`. Defined by the pure `forge-filetypes` crate, which also matches
 /// files against these contributions.
 pub use forge_filetypes::FileTypeSpec as FileTypeContribution;
+
+/// A test framework declared as data (`[[contributions.testFrameworks]]`). Defined by the
+/// pure `forge-testing` crate, which also builds its commands and discovers its tests.
+pub use forge_testing::TestFrameworkSpec as TestFrameworkContribution;
 
 /// An action with a PHPStorm-style id (e.g. `settings.open`), invokable from Find Action.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -249,6 +275,10 @@ pub struct SettingSpec {
     /// Stored per project (`.forge/settings.toml`) rather than per user when a project is open.
     #[serde(default)]
     pub project: bool,
+    /// Not shown as a row of its page: a dialog of the page edits it (e.g. the signing key
+    /// chosen in "Configure GPG Key…").
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hidden: bool,
     #[serde(default)]
     pub order: i32,
 }
@@ -267,6 +297,79 @@ pub struct LspServerSpec {
     pub file_extensions: Vec<String>,
     #[serde(default, skip_serializing_if = "Value::is_null")]
     pub initialization_options: Value,
+}
+
+/// How the debugger talks to a debug adapter.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DebugAdapterTransport {
+    /// Start `command` and speak DAP over its stdin/stdout (`lldb-dap`, `debugpy-adapter`).
+    #[default]
+    Stdio,
+    /// Start `command` with `${port}` in its arguments, then connect to that port
+    /// (`dlv dap --listen 127.0.0.1:${port}`).
+    Connect,
+    /// Listen on a free local port and start `command` with `${port}`; the adapter
+    /// connects back (`js-debug` style).
+    Listen,
+}
+
+/// A debug adapter (Debug Adapter Protocol), declared in a manifest:
+///
+/// ```toml
+/// [[contributions.debugAdapters]]
+/// type = "lldb"
+/// label = "LLDB"
+/// command = "lldb-dap"
+/// commandSetting = "debugger.lldb.path"
+/// languages = ["c", "cpp", "rs"]
+/// launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}" }
+/// attach = { pid = "${pid}" }
+/// coreDump = { program = "${program}", coreFile = "${core}" }
+/// ```
+///
+/// The `launch`, `attach` and `coreDump` tables are templates of the request arguments.
+/// A string that is exactly `"${args}"`, `"${env}"`, `"${pid}"` or `"${stopOnEntry}"`
+/// becomes an array, object, number or bool; other `${name}` placeholders are replaced in
+/// strings; keys whose placeholder has no value are dropped. Without `attach` the adapter
+/// cannot attach to processes, without `coreDump` it cannot open core dumps.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugAdapterContribution {
+    /// Adapter type, also the `type` of launch configurations (`lldb`, `debugpy`, `go`).
+    pub r#type: String,
+    pub label: String,
+    /// Executable of the adapter; empty for adapters that are only attached to over TCP.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub command: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub args: Vec<String>,
+    /// Setting that overrides `command` with a user-chosen path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command_setting: Option<String>,
+    #[serde(default)]
+    pub transport: DebugAdapterTransport,
+    /// File extensions (without dot) whose line breakpoints the adapter handles.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub languages: Vec<String>,
+    /// `launch` request template; without it the adapter cannot launch programs.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub launch: Value,
+    /// `attach` request template for attaching to a local process (`${pid}`).
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub attach: Value,
+    /// Template for debugging a core dump (`${program}`, `${core}`).
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub core_dump: Value,
+    /// Request the core dump template is sent with (`attach` or `launch`, default `launch`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub core_dump_request: Option<String>,
+    /// JSON schema of extra `launch` options, for forms and validation in the UI.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub launch_schema: Value,
+    /// JSON schema of extra `attach` options.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub attach_schema: Value,
 }
 
 /// A kind of Run/Debug configuration, e.g. "PHP Script" or "PHPUnit".
@@ -494,10 +597,10 @@ mod tests {
             group = "lang.php"
             project = true
             [[lspServers]]
-            id = "intelephense"
+            id = "php-lsp"
             languageId = "php"
-            command = "intelephense"
-            args = ["--stdio"]
+            command = "forge"
+            args = ["--php-lsp", "--stdio"]
             fileExtensions = ["php"]
             "#,
         )
@@ -505,7 +608,30 @@ mod tests {
         assert_eq!(c.commands[0].id, "php.run");
         assert!(c.run_configuration_types.is_empty());
         assert!(c.settings[0].project);
-        assert_eq!(c.lsp_servers[0].args, vec!["--stdio"]);
+        assert_eq!(c.lsp_servers[0].args, vec!["--php-lsp", "--stdio"]);
+    }
+
+    #[test]
+    fn test_frameworks_are_declared_as_data() {
+        let c: Contributions = toml::from_str(
+            r#"
+            [[testFrameworks]]
+            id = "busted"
+            name = "busted"
+            testFiles = ["*_spec.lua"]
+            program = "busted"
+            args = ["--output=TAP"]
+            report = "tap"
+            [testFrameworks.scopes]
+            all = []
+            file = ["${file}"]
+            "#,
+        )
+        .unwrap();
+        let f = &c.test_frameworks[0];
+        assert_eq!(f.report, forge_output::TestReport::Tap);
+        assert_eq!(f.scopes["file"], ["${file}"]);
+        assert!(f.is_test_file("spec/cart_spec.lua"));
     }
 
     #[test]

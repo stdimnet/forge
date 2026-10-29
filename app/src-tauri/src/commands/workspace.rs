@@ -11,8 +11,10 @@ use forge_core::search::{FileMatches, FindPaged, FindRequest, FindResult};
 
 use forge_core::{FileEntry, FileMatch, ForgeError, FsChanges, Result, Workspace};
 
+use crate::commands::local_history::{self, LocalHistoryState};
 use crate::recent::{RecentProject, RecentRemote};
 use crate::state::AppState;
+use forge_localhistory::Content;
 
 /// Emitted with [`FsChanges`] when files change outside the editor.
 pub const FS_CHANGED_EVENT: &str = "fs://changed";
@@ -33,6 +35,8 @@ pub fn start_watching(app: &AppHandle) {
     tauri::async_runtime::spawn_blocking(move || {
         let handle = app.clone();
         let watcher = backend.watch(Arc::new(move |changes: FsChanges| {
+            crate::commands::local_history::fs_changed(&handle, &changes);
+            crate::commands::db::fs_changed(&handle, &changes);
             // Shared Code With Me documents follow the disk on the host's side.
             crate::commands::collab::on_fs_changed(&handle, &changes);
             if let Err(e) = handle.emit(FS_CHANGED_EVENT, &changes) {
@@ -59,6 +63,9 @@ pub struct RemoteInfo {
     pub config_id: Option<String>,
     /// The project folder on the host.
     pub path: String,
+    /// Dev container or WSL distribution (absent for SSH).
+    #[serde(skip_serializing_if = "forge_backend::RemoteKind::is_ssh")]
+    pub kind: forge_backend::RemoteKind,
 }
 
 /// The host of the Code With Me session whose project this is (this window is a guest).
@@ -96,6 +103,7 @@ impl From<&BackendInfo> for WorkspaceInfo {
                 label: r.label(),
                 config_id: r.config_id.clone(),
                 path: info.root.to_string_lossy().into_owned(),
+                kind: r.kind.clone(),
             }),
             collab: info.collab.as_ref().map(|c| CollabInfo {
                 host: c.name.clone(),
@@ -113,6 +121,11 @@ pub fn project_opened(app: &AppHandle) {
         return;
     };
     crate::commands::project::emit_detection(app);
+    // The project's import style is the refactorings' default.
+    crate::commands::imports::import_style(&state);
+    crate::commands::local_history::project_opened(app);
+    // Excluded folders before the watcher and the indexes look at the project.
+    crate::commands::project_structure::apply(app);
     start_watching(app);
     let display = info.display_root();
     // A guest's view of the host's project is not the guest's project: no recent entry, no
@@ -186,6 +199,7 @@ pub async fn workspace_recent() -> Vec<RecentProjectInfo> {
                 Some(r) => Some(RecentProjectInfo {
                     remote: Some(RemoteInfo {
                         label: r.host.label(),
+                        kind: r.host.kind.clone(),
                         host: r.host.host,
                         port: r.host.port,
                         user: r.host.user,
@@ -223,8 +237,18 @@ pub async fn blocking<T: Send + 'static>(
 #[tauri::command]
 pub async fn fs_list_dir(path: String, state: State<'_, AppState>) -> Result<Vec<FileEntry>> {
     let backend = state.backend()?;
-    blocking(move || backend.list_dir(&path)).await
+    // Settings | Editor | File Types | Ignored Files and Folders.
+    let ignored: String = state
+        .read_settings()
+        .get_as(IGNORED_FILES_KEY)
+        .unwrap_or_else(|| forge_filetypes::DEFAULT_IGNORED_FILES.to_string());
+    let mut entries = blocking(move || backend.list_dir(&path)).await?;
+    entries.retain(|e| !forge_filetypes::matches_glob_list(&e.name, &ignored));
+    Ok(entries)
 }
+
+/// The `;`-separated name patterns the Project view hides.
+pub const IGNORED_FILES_KEY: &str = "fileTypes.ignoredFiles";
 
 #[tauri::command]
 pub async fn fs_read_file(path: String, state: State<'_, AppState>) -> Result<String> {
@@ -233,25 +257,40 @@ pub async fn fs_read_file(path: String, state: State<'_, AppState>) -> Result<St
 }
 
 #[tauri::command]
-pub async fn fs_write_file(
+pub async fn fs_write_file(path: String, contents: String, app: AppHandle) -> Result<()> {
+    let backend = app.state::<AppState>().backend()?;
+    blocking(move || {
+        let state = app.state::<AppState>();
+        let before = local_history::before_write(&state, &*backend, &path);
+        backend.write_file(&path, &contents)?;
+        local_history::saved(&app.state(), &path, before, contents.into_bytes());
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn fs_create_file(
     path: String,
-    contents: String,
     state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
 ) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.write_file(&path, &contents)).await
+    blocking(move || backend.create_file(&path).map(|_| path))
+        .await
+        .map(|path| local_history::created(&lh, &path, Content::Bytes(Vec::new())))
 }
 
 #[tauri::command]
-pub async fn fs_create_file(path: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_create_dir(
+    path: String,
+    state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
+) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || backend.create_file(&path)).await
-}
-
-#[tauri::command]
-pub async fn fs_create_dir(path: String, state: State<'_, AppState>) -> Result<()> {
-    let backend = state.backend()?;
-    blocking(move || backend.create_dir(&path)).await
+    blocking(move || backend.create_dir(&path).map(|_| path))
+        .await
+        .map(|path| local_history::created(&lh, &path, Content::Dir))
 }
 
 #[tauri::command]
@@ -259,32 +298,47 @@ pub async fn fs_rename(
     from: String,
     to: String,
     state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
     app: AppHandle,
 ) -> Result<()> {
     let backend = state.backend()?;
     let (f, t) = (from.clone(), to.clone());
     blocking(move || backend.rename(&f, &t)).await?;
+    local_history::moved(&lh, &from, &to);
     // Guests' tabs of shared files follow the rename.
     crate::commands::collab::on_renamed(&app, &from, &to);
     Ok(())
 }
 
-/// Delete a file or a folder with its content (the UI asks for confirmation first).
+/// Delete a file or a folder with its content (the UI asks for confirmation first). Its
+/// content goes into Local History first.
 #[tauri::command]
-pub async fn fs_delete(path: String, state: State<'_, AppState>, app: AppHandle) -> Result<()> {
-    let backend = state.backend()?;
-    let p = path.clone();
-    blocking(move || backend.delete(&p)).await?;
-    // Shared documents of deleted files close for every guest.
-    crate::commands::collab::on_deleted(&app, &path);
-    Ok(())
+pub async fn fs_delete(path: String, app: AppHandle) -> Result<()> {
+    let backend = app.state::<AppState>().backend()?;
+    blocking(move || {
+        let contents = local_history::before_delete(&app.state(), &*backend, &path);
+        backend.delete(&path)?;
+        local_history::deleted(&app.state(), &path, contents);
+        // Shared documents of deleted files close for every guest.
+        crate::commands::collab::on_deleted(&app, &path);
+        Ok(())
+    })
+    .await
 }
 
 /// Copy a file or a folder with its content (Project view Copy, F5); never replaces.
 #[tauri::command]
-pub async fn fs_copy(from: String, to: String, state: State<'_, AppState>) -> Result<()> {
+pub async fn fs_copy(
+    from: String,
+    to: String,
+    state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
+) -> Result<()> {
     let backend = state.backend()?;
-    blocking(move || crate::commands::refactor_move::copy_path(&backend, &from, &to)).await
+    let (f, t) = (from.clone(), to.clone());
+    blocking(move || crate::commands::refactor_move::copy_path(&backend, &f, &t)).await?;
+    local_history::copied(&lh, &from, &to);
+    Ok(())
 }
 
 /// "Go to File" backend: fuzzy file-name search over the project, honoring `.gitignore`.
@@ -376,11 +430,13 @@ pub async fn replace_in_files(
     request: FindRequest,
     with: String,
     state: State<'_, AppState>,
+    lh: State<'_, LocalHistoryState>,
 ) -> Result<forge_backend::replace::ReplaceDone> {
     let backend = state.backend()?;
     let done =
         blocking(move || forge_backend::replace::replace_all(&*backend, &request, &with)).await?;
     *state.last_replace.lock().expect("last replace lock") = done.undo.clone();
+    local_history::replaced(&lh, "Replace in Files", &done.undo);
     Ok(done)
 }
 

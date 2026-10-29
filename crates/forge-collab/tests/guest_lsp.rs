@@ -196,6 +196,7 @@ async fn setup() -> Setup {
         args: vec![],
         initialization_options: Value::Null,
         settings: Value::Null,
+        ..Default::default()
     });
     let net = MemoryNetwork::new();
     let host = HostSession::start(

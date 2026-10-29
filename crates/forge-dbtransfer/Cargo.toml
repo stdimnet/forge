@@ -1,0 +1,21 @@
+[package]
+name = "forge-dbtransfer"
+description = "Forge database import, export and dump (pure, also built to WebAssembly): CSV/TSV, Excel and JSON sources with type detection, batched INSERTs per dialect, Excel and Markdown export, and the command lines of mysqldump, pg_dump, pg_restore, psql, sqlite3 and sqlcmd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["xlsx"]
+# Read Excel workbooks with calamine (MIT).
+xlsx = ["dep:calamine", "dep:chrono"]
+
+[dependencies]
+forge-sql.workspace = true
+forge-dbmodel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Legacy encodings of CSV files (Apache-2.0 OR MIT).
+encoding_rs = "0.8"
+calamine = { version = "0.37", default-features = false, features = ["dates"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["alloc"], optional = true }

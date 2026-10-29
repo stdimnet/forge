@@ -1,16 +1,24 @@
-//! Database tools IPC (`forge_db`): data sources, introspection, consoles, table editing
-//! and export. Events: `db://dataSources` (the full list after a change) and `db://session`
-//! (a console's [`SessionInfo`] when it starts/stops running or its transaction changes).
+//! Database tools IPC (`forge_db`): data sources (SSH tunnels, SSL), introspection,
+//! consoles and their sessions, the read-only / production guard, table editing, the Redis
+//! keys tree and export, and the Database Explorer (cached models, schema filter, virtual
+//! foreign keys, DDL data sources, Quick Documentation, full-text search). Events:
+//! `db://dataSources` (the full list after a change), `db://session` (a console's
+//! [`SessionInfo`] when it starts/stops running or its transaction changes),
+//! `db://sessions` (all open sessions, for the Sessions view), `db://modelChanged` (ids of
+//! data sources whose model must be reloaded: DDL files or virtual objects changed) and
+//! `db://search` (progress and results of a full-text search).
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use forge_core::FsChanges;
 use forge_core::{ForgeError, Result};
 use forge_db::{
-    ApplyResult, DataSource, DataSourceInfo, DbError, DbResult, DbService, DbTunnel,
-    DetectedDataSource, Dialect, ExportFormat, KeyringStore, ProjectContext, QueryPage, RowChange,
-    SchemaInfo, SchemaName, SessionInfo, StatementResult, TableDataRequest, TableInfo, TestResult,
-    TunnelEndpoint,
+    ApplyResult, ChangePreview, DataSource, DataSourceInfo, DbError, DbModel, DbResult, DbService,
+    DbTunnel, DetectedDataSource, Dialect, ExportFormat, Guard, KeyringStore, ObjectDoc, ObjectRef,
+    ProjectContext, QueryPage, RedisKeys, RedisValue, RowChange, SchemaInfo, SchemaName,
+    SearchProgress, SearchRequest, SearchSummary, SecretUpdate, SessionInfo, SessionMode,
+    StatementResult, TableDataRequest, TableInfo, TestResult, TunnelEndpoint, VirtualObjects,
 };
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -19,6 +27,9 @@ use crate::state::AppState;
 
 pub const DATA_SOURCES_EVENT: &str = "db://dataSources";
 pub const SESSION_EVENT: &str = "db://session";
+pub const SESSIONS_EVENT: &str = "db://sessions";
+pub const MODEL_EVENT: &str = "db://modelChanged";
+pub const SEARCH_EVENT: &str = "db://search";
 
 /// Managed state: one [`DbService`] for the app.
 pub struct DbState {
@@ -28,10 +39,14 @@ pub struct DbState {
 impl DbState {
     pub fn load() -> Self {
         Self {
-            service: Arc::new(DbService::new(
-                forge_db::config::global_file(),
-                Arc::new(KeyringStore),
-            )),
+            service: Arc::new({
+                let svc = DbService::new(forge_db::config::global_file(), Arc::new(KeyringStore));
+                // Explorer models are cached per data source in the user cache dir.
+                match dirs::cache_dir() {
+                    Some(d) => svc.with_cache_dir(d.join("forge").join("db-models")),
+                    None => svc,
+                }
+            }),
         }
     }
 }
@@ -114,7 +129,7 @@ pub fn remote_project_opened(app: &AppHandle) {
     });
 }
 
-fn emit_sources(app: &AppHandle, svc: &DbService) {
+pub(crate) fn emit_sources(app: &AppHandle, svc: &DbService) {
     if let Err(e) = app.emit(DATA_SOURCES_EVENT, svc.list()) {
         tracing::warn!("cannot emit {DATA_SOURCES_EVENT}: {e}");
     }
@@ -124,6 +139,14 @@ fn emit_session(app: &AppHandle, info: &SessionInfo) {
     if let Err(e) = app.emit(SESSION_EVENT, info) {
         tracing::warn!("cannot emit {SESSION_EVENT}: {e}");
     }
+    emit_sessions(app);
+}
+
+fn emit_sessions(app: &AppHandle) {
+    let list = app.state::<DbState>().service.sessions();
+    if let Err(e) = app.emit(SESSIONS_EVENT, list) {
+        tracing::warn!("cannot emit {SESSIONS_EVENT}: {e}");
+    }
 }
 
 #[tauri::command]
@@ -131,15 +154,20 @@ pub fn db_data_sources_list(state: State<'_, DbState>) -> Vec<DataSourceInfo> {
     state.service.list()
 }
 
-/// Create or update a data source. `password`: omitted keeps the stored one, `""` clears it.
+/// Create or update a data source. `password` and the SSH/SSL `secrets`: omitted keeps the
+/// stored one, `""` clears it.
 #[tauri::command]
 pub async fn db_data_source_save(
     source: DataSource,
     password: Option<String>,
+    secrets: Option<SecretUpdate>,
     app: AppHandle,
     state: State<'_, DbState>,
 ) -> Result<DataSourceInfo> {
-    let info = state.service.save(source, password).await?;
+    let info = state
+        .service
+        .save_with(source, password, secrets.unwrap_or_default())
+        .await?;
     emit_sources(&app, &state.service);
     Ok(info)
 }
@@ -155,19 +183,31 @@ pub async fn db_data_source_delete(
     Ok(())
 }
 
-/// "Test Connection" with the dialog's unsaved settings.
+/// "Test Connection" with the dialog's unsaved settings; `accept_host_key` is the SSH host
+/// key fingerprint the user chose to trust.
 #[tauri::command]
 pub async fn db_test_connection(
     source: DataSource,
     password: Option<String>,
+    secrets: Option<SecretUpdate>,
+    accept_host_key: Option<String>,
     state: State<'_, DbState>,
 ) -> Result<TestResult> {
-    Ok(state.service.test(&source, password).await)
+    Ok(state
+        .service
+        .test_with(
+            &source,
+            password,
+            secrets.unwrap_or_default(),
+            accept_host_key,
+        )
+        .await)
 }
 
 #[tauri::command]
-pub async fn db_disconnect(id: String, state: State<'_, DbState>) -> Result<()> {
+pub async fn db_disconnect(id: String, app: AppHandle, state: State<'_, DbState>) -> Result<()> {
     state.service.disconnect(&id).await;
+    emit_sessions(&app);
     Ok(())
 }
 
@@ -215,37 +255,102 @@ pub async fn db_table_data(
     Ok(state.service.table_data(&id, &request).await?)
 }
 
-/// Submit the data editor's pending changes (one transaction; refused without a PK).
+/// Submit the data editor's pending changes (one transaction; refused without a primary or
+/// unique key, on read-only data sources, and on production ones unless `confirmed`).
 #[tauri::command]
 pub async fn db_apply_changes(
     id: String,
     schema: String,
     table: String,
     changes: Vec<RowChange>,
+    confirmed: Option<bool>,
     state: State<'_, DbState>,
 ) -> Result<ApplyResult> {
     Ok(state
         .service
-        .apply_changes(&id, &schema, &table, &changes)
+        .apply_changes(&id, &schema, &table, &changes, confirmed.unwrap_or(false))
         .await?)
 }
 
+/// The DML of the data editor's pending changes, the key it uses, and whether the data
+/// source refuses (read-only) or asks first (production).
 #[tauri::command]
-pub async fn db_session_open(id: String, state: State<'_, DbState>) -> Result<SessionInfo> {
-    Ok(state.service.open_session(&id).await?)
+pub async fn db_preview_changes(
+    id: String,
+    schema: String,
+    table: String,
+    changes: Vec<RowChange>,
+    state: State<'_, DbState>,
+) -> Result<ChangePreview> {
+    Ok(state
+        .service
+        .preview_changes(&id, &schema, &table, &changes)
+        .await?)
+}
+
+/// Open a console session: its own connection, or with `shared` the data source's shared
+/// session.
+#[tauri::command]
+pub async fn db_session_open(
+    id: String,
+    shared: Option<bool>,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<SessionInfo> {
+    let mode = if shared.unwrap_or(false) {
+        SessionMode::Shared
+    } else {
+        SessionMode::Own
+    };
+    let info = state.service.open_session_with(&id, mode).await?;
+    emit_sessions(&app);
+    Ok(info)
 }
 
 #[tauri::command]
-pub async fn db_session_close(session_id: String, state: State<'_, DbState>) -> Result<()> {
-    Ok(state.service.close_session(&session_id).await?)
+pub async fn db_session_close(
+    session_id: String,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    state.service.close_session(&session_id).await?;
+    emit_sessions(&app);
+    Ok(())
+}
+
+/// Open sessions for the Sessions view.
+#[tauri::command]
+pub fn db_sessions_list(state: State<'_, DbState>) -> Vec<SessionInfo> {
+    state.service.sessions()
+}
+
+/// The Sessions view's "Close Session": closes the connection whatever console uses it.
+#[tauri::command]
+pub async fn db_session_terminate(
+    session_id: String,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    state.service.terminate_session(&session_id).await?;
+    emit_sessions(&app);
+    Ok(())
+}
+
+/// What the console must do before running `sql`: refuse it (read-only data source) or ask
+/// (UPDATE/DELETE without WHERE on a production data source).
+#[tauri::command]
+pub fn db_guard(id: String, sql: String, state: State<'_, DbState>) -> Result<Guard> {
+    Ok(state.service.guard(&id, &sql)?)
 }
 
 /// Run a script in a console; returns one result per statement (stops at an error).
+/// `confirmed`: the user agreed to the production warning of `db_guard`.
 #[tauri::command]
 pub async fn db_execute(
     session_id: String,
     sql: String,
     page_size: Option<u32>,
+    confirmed: Option<bool>,
     app: AppHandle,
     state: State<'_, DbState>,
 ) -> Result<Vec<StatementResult>> {
@@ -254,9 +359,37 @@ pub async fn db_execute(
     let mut running = session.info();
     running.running = true;
     emit_session(&app, &running);
-    let res = svc.execute(&session_id, &sql, page_size).await;
+    let res = svc
+        .execute_with(&session_id, &sql, page_size, confirmed.unwrap_or(false))
+        .await;
     emit_session(&app, &session.info());
     Ok(res?)
+}
+
+/// Keys of a Redis database (`db0`) matching a pattern, with type and TTL.
+#[tauri::command]
+pub async fn db_redis_keys(
+    id: String,
+    schema: String,
+    pattern: String,
+    limit: Option<u32>,
+    state: State<'_, DbState>,
+) -> Result<RedisKeys> {
+    Ok(state
+        .service
+        .redis_keys(&id, &schema, &pattern, limit)
+        .await?)
+}
+
+/// A Redis key's value for the value viewer.
+#[tauri::command]
+pub async fn db_redis_value(
+    id: String,
+    schema: String,
+    key: String,
+    state: State<'_, DbState>,
+) -> Result<RedisValue> {
+    Ok(state.service.redis_value(&id, &schema, &key).await?)
 }
 
 #[tauri::command]
@@ -362,4 +495,160 @@ pub fn db_statement_at(
     dialect: Dialect,
 ) -> Option<forge_db::split::Statement> {
     forge_db::split::statement_at(&sql, from, to, dialect)
+}
+
+// ---- Database Explorer -------------------------------------------------------------------
+
+fn emit_model_changed(app: &AppHandle, ids: Vec<String>) {
+    if ids.is_empty() {
+        return;
+    }
+    if let Err(e) = app.emit(MODEL_EVENT, ids) {
+        tracing::warn!("cannot emit {MODEL_EVENT}: {e}");
+    }
+}
+
+/// Project files changed: DDL data sources over them are parsed again.
+pub fn fs_changed(app: &AppHandle, changes: &FsChanges) {
+    let svc = app.state::<DbState>().service.clone();
+    let mut paths = changes.changed.clone();
+    paths.extend(changes.removed.iter().cloned());
+    // `.forge/` (and so `virtual.toml`) is not watched; virtual objects are read per request.
+    emit_model_changed(app, svc.ddl_sources_touched(&paths));
+}
+
+/// The explorer model of a data source: the cached one (no connection needed) unless
+/// `refresh`, which reloads schemas and server objects and re-introspects loaded schemas.
+#[tauri::command]
+pub async fn db_model(
+    id: String,
+    refresh: Option<bool>,
+    state: State<'_, DbState>,
+) -> Result<DbModel> {
+    Ok(state.service.model(&id, refresh.unwrap_or(false)).await?)
+}
+
+/// Quick Documentation (Ctrl+Q) of a tree node.
+#[tauri::command]
+pub async fn db_object_doc(
+    id: String,
+    schema: String,
+    object: ObjectRef,
+    state: State<'_, DbState>,
+) -> Result<ObjectDoc> {
+    Ok(state.service.object_doc(&id, &schema, &object).await?)
+}
+
+/// Virtual foreign keys and columns of a data source (`.forge/database/virtual.toml`).
+#[tauri::command]
+pub async fn db_virtual_objects(id: String, state: State<'_, DbState>) -> Result<VirtualObjects> {
+    let svc = state.service.clone();
+    crate::commands::workspace::blocking(move || Ok(svc.virtual_objects(&id)?)).await
+}
+
+/// Replace the virtual foreign keys and columns of a data source.
+#[tauri::command]
+pub async fn db_virtual_objects_save(
+    id: String,
+    objects: VirtualObjects,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<()> {
+    let svc = state.service.clone();
+    let ds = id.clone();
+    crate::commands::workspace::blocking(move || Ok(svc.save_virtual_objects(&ds, objects)?))
+        .await?;
+    emit_model_changed(&app, vec![id]);
+    Ok(())
+}
+
+/// The schema filter of the Schemas tab applied to `schemas` (preview while editing).
+#[tauri::command]
+pub fn db_match_schemas(
+    patterns: Vec<String>,
+    mut schemas: Vec<forge_db::SchemaName>,
+) -> Result<Vec<forge_db::SchemaName>> {
+    forge_db::model::apply_patterns(&patterns, &mut schemas).map_err(ForgeError::Other)?;
+    Ok(schemas)
+}
+
+/// Full-text search across data; progress and per-table results arrive as `db://search`.
+#[tauri::command]
+pub async fn db_search(
+    search_id: String,
+    request: SearchRequest,
+    app: AppHandle,
+    state: State<'_, DbState>,
+) -> Result<SearchSummary> {
+    let emitter = app.clone();
+    Ok(state
+        .service
+        .full_text_search(&search_id, request, move |p: SearchProgress| {
+            if let Err(e) = emitter.emit(SEARCH_EVENT, p) {
+                tracing::warn!("cannot emit {SEARCH_EVENT}: {e}");
+            }
+        })
+        .await?)
+}
+
+#[tauri::command]
+pub fn db_search_cancel(search_id: String, state: State<'_, DbState>) {
+    state.service.cancel_search(&search_id);
+}
+
+// ---- Schema tools ------------------------------------------------------------------------
+
+/// ER diagram (Diagrams | Show Diagram) of a schema or of selected tables.
+#[tauri::command]
+pub fn db_diagram(request: forge_db::schema::DiagramRequest) -> forge_db::schema::Diagram {
+    forge_db::schema::layout(&request)
+}
+
+/// Compare Structure: the diff tree, the migration script of the target and optionally a
+/// Laravel / Doctrine migration file. Nothing runs; the UI previews the script.
+#[tauri::command]
+pub fn db_schema_compare(
+    request: forge_db::schema::CompareRequest,
+) -> Result<forge_db::schema::CompareResult> {
+    forge_db::schema::compare_schemas(&request).map_err(ForgeError::Other)
+}
+
+/// Explain Plan / Explain Plan (Raw) of one statement in a console session.
+#[tauri::command]
+pub async fn db_explain(
+    session_id: String,
+    sql: String,
+    raw: Option<bool>,
+    confirmed: Option<bool>,
+    state: State<'_, DbState>,
+) -> Result<forge_db::ExplainResult> {
+    Ok(state
+        .service
+        .explain(
+            &session_id,
+            &sql,
+            raw.unwrap_or(false),
+            confirmed.unwrap_or(false),
+        )
+        .await?)
+}
+
+/// Save an exported diagram (SVG text or PNG bytes as base64) to the file the user chose.
+#[tauri::command]
+pub async fn db_save_export(
+    path: String,
+    text: Option<String>,
+    base64: Option<String>,
+) -> Result<()> {
+    use base64::Engine as _;
+    let bytes = match (text, base64) {
+        (Some(t), _) => t.into_bytes(),
+        (None, Some(b)) => base64::engine::general_purpose::STANDARD
+            .decode(b.trim())
+            .map_err(|e| ForgeError::Other(format!("invalid image data: {e}")))?,
+        (None, None) => return Err(ForgeError::Other("nothing to save".into())),
+    };
+    tokio::fs::write(&path, bytes)
+        .await
+        .map_err(|e| ForgeError::io(path.clone(), e))
 }

@@ -1,6 +1,6 @@
 //! Turning a catalog entry into a [`LspServerConfig`] for one project: file routing,
 //! user overrides and the project specific bits some servers need (TypeScript SDK, the
-//! Vue TypeScript plugin, ESLint's workspace folder, jdtls' data directory, Lua runtime).
+//! Vue TypeScript plugin, ESLint's workspace folder, Lua runtime).
 
 use std::path::{Path, PathBuf};
 
@@ -75,16 +75,6 @@ fn vue_plugin(ctx: &ConfigContext, catalog: &Catalog) -> Option<PathBuf> {
         .or_else(|| find_package(&dirs, "@vue/language-server"))
 }
 
-fn short_hash(s: &str) -> String {
-    // FNV-1a: stable across runs and platforms, enough to keep project dirs apart.
-    let mut h: u64 = 0xcbf29ce484222325;
-    for b in s.bytes() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x100000001b3);
-    }
-    format!("{:08x}", h as u32)
-}
-
 /// Build the config for `spec`, started from `executable`.
 /// The Lua environment to configure: `Auto` looks at the project root (LÖVE: `conf.lua` or a
 /// `main.lua` using `love.`; Neovim: `init.lua` next to `lua/`, or a `lua/` + `plugin/` plugin).
@@ -156,7 +146,21 @@ pub fn build_config(
                 &mut init,
                 &json!({ "preferences": TS_INLAY_PREFERENCES.clone() }),
             );
+            // Auto Import (Settings | Editor | General | Auto Import).
+            let imports = json!({
+                "includeCompletionsForModuleExports": true,
+                "importModuleSpecifierPreference": ctx.prefs.js_import_paths,
+                "preferTypeOnlyAutoImports": ctx.prefs.ts_type_imports,
+            });
+            merge_json(&mut init, &json!({ "preferences": imports }));
             for language in ["typescript", "javascript"] {
+                merge_json(
+                    &mut settings,
+                    &json!({ language: { "preferences": {
+                        "importModuleSpecifier": ctx.prefs.js_import_paths,
+                        "preferTypeOnlyAutoImports": ctx.prefs.ts_type_imports,
+                    } } }),
+                );
                 merge_json(
                     &mut settings,
                     &json!({ language: { "inlayHints": TS_INLAY_PREFERENCES.clone() } }),
@@ -189,6 +193,16 @@ pub fn build_config(
                 }
                 file_extensions.push("vue".into());
                 language_ids.push("vue".into());
+            }
+        }
+        "basedpyright" | "pyright" => {
+            // The project's interpreter (Settings | Python Interpreter): imports resolve
+            // against its site-packages.
+            if let Some(python) = &ctx.prefs.python_path {
+                merge_json(
+                    &mut settings,
+                    &json!({"python": {"pythonPath": python.display().to_string()}}),
+                );
             }
         }
         "vue-language-server" | "astro-ls" => {
@@ -284,18 +298,6 @@ pub fn build_config(
                 }
             }
         }
-        "jdtls" => {
-            let name = ctx
-                .root
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "project".into());
-            let data = ctx.cache_dir.join("jdtls").join(format!(
-                "{name}-{}",
-                short_hash(&ctx.root.display().to_string())
-            ));
-            args.extend(["-data".into(), data.display().to_string()]);
-        }
         _ => {}
     }
 
@@ -327,6 +329,7 @@ pub fn build_config(
         } else {
             settings
         },
+        ..Default::default()
     }
 }
 
@@ -381,6 +384,27 @@ mod tests {
         assert_eq!(cfg.initialization_options["hostInfo"], "forge");
         let ts_prefs = &cfg.initialization_options["preferences"];
         assert_eq!(ts_prefs["includeInlayParameterNameHints"], "literals");
+        assert_eq!(ts_prefs["importModuleSpecifierPreference"], "shortest");
+        assert_eq!(ts_prefs["preferTypeOnlyAutoImports"], false);
+        let relative = Prefs {
+            js_import_paths: "relative".into(),
+            ts_type_imports: true,
+            ..Prefs::default()
+        };
+        let cfg2 = build_config(
+            c,
+            ts,
+            Path::new("/bin/tls"),
+            &ctx(tmp.path(), &d, &relative, &scan),
+        );
+        assert_eq!(
+            cfg2.initialization_options["preferences"]["importModuleSpecifierPreference"],
+            "relative"
+        );
+        assert_eq!(
+            cfg2.settings["typescript"]["preferences"]["preferTypeOnlyAutoImports"],
+            true
+        );
         assert_eq!(
             cfg.settings["typescript"]["inlayHints"]["variableTypes"]["enabled"],
             true
@@ -515,15 +539,6 @@ mod tests {
         let mut prefs = Prefs::default();
         let scan = ProjectScan::default();
         let c = Catalog::builtin();
-
-        let jdtls = build_config(
-            c,
-            c.server("jdtls").unwrap(),
-            Path::new("j"),
-            &ctx(&root, &d, &prefs, &scan),
-        );
-        assert_eq!(jdtls.args[0], "-data");
-        assert!(jdtls.args[1].starts_with(&root.join(".cache/jdtls/shop-").display().to_string()));
 
         let ng = build_config(
             c,

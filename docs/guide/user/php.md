@@ -14,9 +14,12 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
   powers the Structure tool window, Go to Class/Symbol, index-based hover, the Generate
   actions and [navigation](#navigation) when no language server answers, and works without
   any language server.
-- **A PHP language server**, Intelephense or Phpactor, for completion, diagnostics,
-  Go to Declaration, hover and formatting. See
-  [Language servers](language-servers.md#php-intelephense-and-phpactor).
+- **A PHP language server** for completion, diagnostics, Go to Declaration, hover, rename,
+  quick fixes and formatting: [php-lsp](https://github.com/stdimnet/php-lsp), which is
+  **built into Forge**: nothing to install, no licence key, and Intelephense's premium features
+  (rename, code actions, type hierarchy, implementations) included. It is Forge's only PHP
+  language server; Intelephense and Phpactor are no longer supported. See
+  [Language servers](language-servers.md#php-php-lsp).
 
 The pack activates in projects with a `composer.json` or `.php` files.
 
@@ -31,7 +34,11 @@ progress bar; afterwards the index follows file changes on its own.
   next start only re-reads changed files. Nothing is written into the project.
 - **Reindex PHP Files** (Find Action) rebuilds it.
 - Extra library folders can be added under Settings | Languages & Frameworks | PHP |
-  **Include Path** (`php.includePaths`); they are also passed to the language server.
+  **Include Path** (`php.includePaths`). Forge indexes them as libraries and passes them to
+  the language server; see [Include paths and External
+  Libraries](#include-paths-and-external-libraries).
+- `.phpstorm.meta.php` files are read with the index, in the project and in vendor packages;
+  see [PHPStorm metadata](#phpstorm-metadata-phpstormmetaphp).
 
 ## Structure
 
@@ -64,7 +71,7 @@ entry to jump to it.
 
 Navigation works like in PHPStorm on every PHP symbol. The language server answers first;
 when none runs (or it has no answer) Forge's PHP index does, so navigation also works without
-Intelephense. Everything runs through the project's backend, so it works the same in
+a language server. Everything runs through the project's backend, so it works the same in
 [remote projects](#remote-projects).
 
 ### Go to Declaration
@@ -113,14 +120,13 @@ Where the stubs come from:
 2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
    `<cache dir>/forge/php-stubs/<version>`, checks the unpacked files against a pinned digest
    and keeps its licence file. The status bar shows the download.
-3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
-When Intelephense runs, its definition (which points into the stubs inside its package) is
-opened read-only directly.
+php-lsp carries phpstorm-stubs inside Forge: its definition of a built-in symbol points into
+`<cache dir>/forge/php-lsp/php-lsp-stubs-<version>/` and opens read-only, without any download.
 
 > **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
-> path** or install Intelephense; otherwise Go to Declaration on a built-in symbol explains how
-> to get the stubs.
+> path**; otherwise Go to Declaration on a built-in symbol explains how to get the stubs
+> (php-lsp still answers it from its own copy).
 
 ### Show Usages and Find Usages
 
@@ -163,15 +169,15 @@ override the parents' methods (see [Highlight usages](editor.md#highlight-usages
 | Super Method | `Ctrl+U` | `Cmd+U` | the method this method overrides or implements; on a class, its parent and interfaces |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
 
-Several targets open the Choose Declaration popup with names and namespaces. Go to
-Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
-the index, and says so when the index finds nothing either.
+Several targets open the Choose Declaration popup with names and namespaces. php-lsp answers
+Go to Implementation; when it does not run, Forge answers from the index, and says so when the
+index finds nothing either.
 
 ### Hierarchies
 
 Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
 (`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
-merged with Intelephense Premium's type and call hierarchy when it runs. See
+merged with php-lsp's type and call hierarchy when it runs. See
 [Type, Method and Call Hierarchy](hierarchies.md).
 
 ### Gutter icons
@@ -194,27 +200,22 @@ Click an icon to go to the target, or to choose one of several.
 constants, functions and variables; see [Editor](editor.md#rename) for the in-place editing,
 the dialog and undo.
 
-- With **Intelephense Premium** (licence key in Settings | Languages & Frameworks | PHP) or
-  Phpactor, the language server renames.
-- **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
-  declaration and every usage the index finds in the project (imports, `new`, static calls,
-  type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
-  classes). Members used on expressions the index cannot type (dynamic usages) are not renamed;
-  Forge says how many it skipped. The first time this happens in a session, a balloon explains
-  that the full rename needs Intelephense Premium and links to the licence key setting.
+- php-lsp, the built-in language server, renames.
+- Without a running language server (the PHP plugin's server did not start), Forge renames
+  with its PHP index: the declaration and every usage the index finds in the project (imports,
+  `new`, static calls, type hints, PHPDoc types, `$this->` and typed receivers, members through
+  parent and child classes). Members used on expressions the index cannot type (dynamic usages)
+  are not renamed; Forge says how many it skipped.
 - Renaming a class also renames its file when the file is named after it (`Order.php` →
   `Purchase.php`).
 - Conflicts: a class with the new name in the same namespace, or a method, property or constant
   with the new name in the same class, are listed in **Problems Detected** before anything
   changes.
 
-![Premium hint after a rename with the index](../../screenshots/rename-premium-hint.png)
-
 ## Extract, introduce and inline
 
 The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
-computes them itself from the PHP syntax tree, so they need no language server (and no
-Intelephense licence); call sites and usages in other files come from the PHP index. Every
+computes them itself from the PHP syntax tree, so they need no language server; call sites and usages in other files come from the PHP index. Every
 refactoring is one undo step, also when it changes several files, and works in remote projects.
 Problems (a name that is taken, a call that cannot be updated, an initializer with side
 effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
@@ -275,7 +276,7 @@ enclosing scope", "Inline variable"…) in a popup.
 ## Move, copy, safe delete, change signature and make static
 
 The other refactorings of the Refactor menu work like PHPStorm's too. Forge finds the usages
-with its PHP index and computes every edit itself (no language server or licence needed); the
+with its PHP index and computes every edit itself (no language server needed); the
 whole refactoring, file moves included, is one undo step (`Ctrl+Z` in any changed editor) and
 works in remote projects. **Preview** lists every change first, **Problems Detected** the
 conflicts (a class that already exists, a call that cannot be updated).
@@ -333,14 +334,61 @@ conflicts (a class that already exists, a call that cannot be updated).
 
 ![Change Signature dialog](../../screenshots/change-signature-dialog.png)
 
+## Extract interface and superclass, pull members up and push members down
+
+The class hierarchy refactorings work like PHPStorm's and, like the others, are computed by
+Forge from its PHP index: one undo step, a **Preview**, conflicts in **Problems Detected**, and
+remote projects work. Members a chosen member uses are highlighted in the member table, and
+class names in moved code are imported in the target file. New files come from your
+**PHP Interface** / **PHP Class** file templates (Settings | Editor | File and Code Templates).
+
+- **Extract Interface** (Refactor | Extract/Introduce | Interface…) in a class or enum: name,
+  namespace and directory (the directory follows the namespace through the PSR-4 rules), and the
+  **Members to Form Interface**: public methods (declared in the interface with their PHPDoc)
+  and constants (moved there). The class gets `implements NewInterface` (and the import).
+  **Replace class references with interface where possible** changes parameter types to the
+  interface where the function only calls the interface's methods on the parameter.
+- **Extract Superclass** (Refactor | Extract/Introduce | Superclass…) in a class: the chosen
+  members move into a new class; **Make abstract** keeps a method in the class and declares it
+  `abstract` in the superclass (which then becomes abstract). The class extends the new
+  superclass, which extends the class's old parent. Private members the class still uses become
+  protected; a moved member that uses a member that stays is a problem.
+- **Pull Members Up** (Refactor | Pull Members Up…): choose a superclass or interface of the
+  class (the whole hierarchy in the project) and the members. Into a class, members move
+  (**Make abstract** declares them abstract there instead); into an interface, public methods
+  are declared and constants move (properties cannot). Problems: the target already has the
+  member, a moved member uses a member that is not pulled up (or a private one).
+- **Push Members Down** (Refactor | Push Members Down…): the chosen members are copied into
+  every direct subclass that does not declare them itself (implementing classes of an
+  interface get its constants) and leave the class; **Keep abstract** leaves an abstract
+  declaration behind. Members of the class that still use a pushed member, and usages outside
+  the subclasses, are problems.
+- **Refactor This** (`Ctrl+Alt+Shift+T`) lists only what applies: on a class Rename, Move,
+  Copy, Safe Delete, Extract Interface / Superclass and Pull Members Up / Push Members Down; on a
+  method Rename, Change Signature, Move (static), Safe Delete, Inline, Pull Up / Push Down and
+  Make Static; on an expression or a selection the Introduce refactorings and Extract Method.
+
+![Extract Interface dialog](../../screenshots/extract-interface-dialog.png)
+
+![Extract Superclass dialog](../../screenshots/extract-superclass-dialog.png)
+
+![Pull Members Up dialog](../../screenshots/pull-members-up-dialog.png)
+
+![Refactor This on a class](../../screenshots/refactor-this-class.png)
+
 ## Context actions and intentions
 
-**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
-Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-actions):
+**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes and refactorings
+(php-lsp: remove unused import, add PHPDoc, generate constructor, promote constructor
+properties, extract variable / method / constant, inline variable, add return type, ...) and
+Forge's own PHP intentions, see
+[Editor](editor.md#show-context-actions). When the server offers what an intention below does
+(php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import 'App\Models\User'",
+"Change namespace to '…'"), the popup lists Forge's intention once, in PHPStorm's wording:
 
 | Intention | Where |
 | --- | --- |
-| Import class 'App\Models\Order' | on a class name that is neither imported nor declared in the namespace (one entry per candidate) |
+| Import class | on a class name that is neither imported nor declared in the namespace: candidates from the index (project and vendor) and PHP's own classes, the "Class to Import" chooser when there are several, see [Auto Import](imports.md#import-class-and-the-import-popup) |
 | Replace qualifier with an import | on a fully qualified name (`\App\Models\Order`) |
 | Generate getter and setter / getter / setter | on a property without accessors |
 | Add 'readonly' modifier | on a typed, non-static property without a default value (also promoted constructor properties) |
@@ -349,9 +397,6 @@ Premium) and Forge's own PHP intentions, see [Editor](editor.md#show-context-act
 | Generate… | anywhere in a class: opens the Generate popup (`Alt+Insert`) |
 
 ![PHP intentions](../../screenshots/context-actions-intentions.png)
-
-Without Intelephense Premium the popup shows only Forge's intentions and says that the language
-server's quick fixes need Premium.
 
 ### Create from usage
 
@@ -448,27 +493,187 @@ New ▸ PHP Class in the Project view ([New PHP Class dialog](file-templates.md#
 `Ctrl+O` and `Ctrl+I` work directly in PHP editors as shortcuts for Override/Implement
 Methods.
 
+## PHPStorm metadata (`.phpstorm.meta.php`)
+
+Like PHPStorm, Forge reads advanced metadata from `.phpstorm.meta.php` files — or the PHP files
+in a `.phpstorm.meta.php/` folder — anywhere in the project and in vendor packages (Laravel IDE
+Helper, Symfony and Doctrine plugins ship them). Everything inside
+`namespace PHPSTORM_META { … }` is used:
+
+```php
+<?php
+
+namespace PHPSTORM_META {
+    // The return type from the argument: `$container->get(Mailer::class)` is a Mailer,
+    // `app('cache')` the mapped class, `factory('User')` a UserFactory.
+    override(\Psr\Container\ContainerInterface::get(0), map([
+        '' => '@',
+        'cache' => \Illuminate\Cache\Repository::class,
+    ]));
+    override(\factory(0), map(['' => '@Factory']));
+    override(\tap(0), type(0));          // returns the argument's type
+    override(\head(0), elementType(0));  // returns the array argument's element type
+
+    registerArgumentsSet('statuses', 'draft', 'paid');
+    expectedArguments(\App\Models\Order::setStatus(), 0, argumentsSet('statuses'));
+    expectedArguments(\json_encode(), 1, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    expectedReturnValues(\App\Models\Order::status(), argumentsSet('statuses'));
+    exitPoint(\abort());
+}
+```
+
+- **Types**: overridden calls give their result a type for Go to Declaration, hover and the
+  inspections below. A method override also applies to the subclasses and implementations of
+  the class or interface it names. The type of a variable assigned from such a call follows
+  (`$mailer = $container->get('mailer');`).
+- **Go to Declaration** (`Ctrl+B`) on a mapped key such as `app('cache')` opens the class it
+  maps to (or the map entry).
+- **Completion**: the arguments of `expectedArguments()` and the keys of `override()` maps
+  (service ids) are offered in the argument, inside a string without quotes; flags written
+  `A | B` again after `|`. `expectedReturnValues()` completes comparisons such as
+  `$order->status() === '…'`.
+- **Exit points**: statements after an `exitPoint()` call are reported as unreachable.
+
+Changed metadata files are read again at once. Forge reads PHPStorm's current syntax; the old
+`$STATIC_METHOD_TYPES` array is not supported.
+
+## JetBrains attributes
+
+The attributes of the `jetbrains/phpstorm-attributes` package (and PHP 8.4's own
+`#[\Deprecated]`) work as in PHPStorm:
+
+| Attribute | What Forge does |
+| --- | --- |
+| `#[Deprecated(reason: …, replacement: …, since: …)]` | Usages are struck through with the reason; with a `replacement` (`%class%->pay(%parametersList%)`, `%parameter0%`, `%name%`) Alt+Enter offers **Replace with '…'**. `@deprecated` in PHPDoc counts too. |
+| `#[ExpectedValues(['asc', 'desc'])]`, `flags:`, `valuesFromClass:`, `flagsFromClass:` | Completion of the values (or the constants of the class) in the argument, and the warning **Value should be one of: …** for other literals. On a function or method it lists its return values. |
+| `#[ArrayShape(['id' => 'int', 'user' => User::class])]` | Completion of the keys in `$data['…']` and the type of `$data['user']->…`, for calls, parameters, variables and properties. |
+| `#[Immutable]` (also `PRIVATE_WRITE_SCOPE`, `PROTECTED_WRITE_SCOPE`) | Writing the property (or a property of an immutable class) outside its write scope: **Immutable property '$x' cannot be written outside of the constructor**. |
+| `#[Pure]` | **The result of the pure function call is not used** when the call is a statement of its own. |
+| `#[NoReturn]` | Statements after the call are unreachable (greyed out). |
+| `#[Language('SQL')]` | String arguments of the parameter are a [language injection](language-injections.md) (rule "#[Language] parameters"). |
+
+![Deprecated method with its quick-fix](../../screenshots/php-meta-quickfix.png)
+
+![Expected values in completion](../../screenshots/php-meta-completion.png)
+
+The inspections are Forge's own (from the PHP index, next to the language server's problems)
+and appear in the editor and the Problems tool window. When the language server reports the
+same deprecated call or unreachable statement, it is shown once (the server's problem); the
+**Replace with '…'** fix stays in Alt+Enter. php-lsp does not know the `JetBrains\PhpStorm`
+attribute classes yet and reports them as undefined types unless the package is installed in
+`vendor/`. Turn them off with **Inspections from
+PHPStorm metadata and attributes** (`php.inspections.enabled`) on Settings | Languages &
+Frameworks | PHP.
+
+## Source roots and the PSR-4 namespace check
+
+PHPStorm derives the source roots of a PHP project from composer.json's PSR-4 rules
+(`autoload`, `autoload-dev`) and lets you change them. Forge does the same:
+
+- **Settings | Directories** lists the **Source Folders** and **Test Source Folders** with
+  their **package prefix** (the namespace of the folder). Change a prefix, unmark a
+  composer.json root (it stays listed and can be marked again), reset it, or add a folder.
+- In the Project view, right-click a folder › **Mark Directory as** › **Sources Root**, **Test
+  Sources Root** or **Unmark as Sources Root** (the same menu marks resource roots and excluded
+  folders, see [Project structure](workbench.md#project-structure-mark-directory-as)). A new root gets the namespace the folder maps
+  to now as its prefix. Source roots get blue folders, test roots green ones, with the prefix
+  next to the name.
+- The changes are stored in the project setting `php.sourceRoots` (shared through
+  `.forge/settings.toml`). **New ▸ PHP Class** fills its namespace from them, **Move** of
+  classes and files updates namespaces with them, and the inspection **Namespace name doesn't
+  match PSR-0/PSR-4 project structure** checks every file below a root, with the quick-fix
+  **Set namespace to '…'**.
+
+![Settings | Directories](../../screenshots/php-directories-settings.png)
+
+![Set namespace to](../../screenshots/php-meta-namespace.png)
+
+## Include paths and External Libraries
+
+Folders outside the project — a global PEAR folder, framework stubs, a shared library — are
+added under Settings | Languages & Frameworks | PHP | **Include Path**. Forge indexes them as
+libraries: their classes appear in Go to Class (after the project's), resolve as types and
+open read-only on Go to Declaration. They are listed under **External Libraries** at the end
+of the Project view, where folders can be browsed and files opened read-only; right-click ›
+**Configure PHP Include Paths…** opens the settings page. A path may start with `~/` or be
+relative to the project. Changing the include paths indexes the project again.
+
+![External Libraries](../../screenshots/php-external-libraries.png)
+
 ## Settings | Languages & Frameworks | PHP
 
 ![PHP settings](../../screenshots/settings-php.png)
 
 | Option | Setting | Default |
 | --- | --- | --- |
-| PHP language level (7.4 – 8.4) | `php.languageLevel` | 8.3 |
-| CLI Interpreter (path to `php`) | `php.interpreter` | `php` |
-| Language server (Auto, Intelephense, phpactor, None) | `php.lsp.server` | Auto |
+| PHP language level (7.4 – 8.4, or "From the CLI interpreter") | `php.languageLevel` | 8.3 |
+| CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
+| CLI Interpreters (available in every project) | `php.interpreters` | empty |
+| CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
+| Language server: php-lsp (built-in) with its version; there is no other choice | — | — |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
-| When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
+| Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
-says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](language-servers.md#intelephense-licence-key-premium).
+says when it comes from composer.json); click it to open this page.
 
-Sub-pages: **Composer**, **Debug**, **Servers** (see [Xdebug debugging](debugging.md)),
+Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
+
+### CLI interpreters
+
+**CLI Interpreter** picks the PHP that runs scripts, tests, Artisan and Composer commands of
+the project. The **…** button next to it opens the **CLI Interpreters** dialog:
+
+![CLI Interpreters dialog](../../screenshots/php-interpreters-dialog.png)
+
+- The list on the left has **+** (add), **−** (remove) and copy. **+** offers **Local Path to
+  Interpreter…**, **From Docker, Vagrant, VM, WSL, Remote…** and the PHP executables Forge
+  detected on this machine (with their versions): `PATH`, `/usr/bin/php8.x`, Homebrew
+  (`/opt/homebrew`, `/usr/local/opt/php@8.x`), phpenv, phpbrew, asdf, mise, Laravel Herd, and
+  Laragon, XAMPP or `C:\php` on Windows.
+- **Name** and **Visible only for this project**: interpreters are stored in your user
+  settings and offered in every project, unless they are visible only for this project
+  (then they are stored in the project's `.forge/settings.toml`).
+- **General**: the **PHP executable** (with a file chooser for local interpreters) and what
+  Reload (↻) detected: **PHP version**, **Configuration file** (the loaded php.ini) and
+  additional .ini files, **Debugger** (Xdebug and its version) and the **Debugger
+  extension** — a path to `xdebug.so` that Forge loads with `-dzend_extension=` when you debug
+  and Xdebug is not loaded by php.ini. Reload runs `php -v`, `php --ini` and `php -m` through
+  the interpreter (a Docker image may be pulled the first time).
+- **Additional**: configuration options, passed as `-d name=value` to every run.
+- **Show phpinfo** shows the output of `php -i`.
+
+![Adding a remote interpreter](../../screenshots/php-interpreters-remote.png)
+
+**From Docker, Vagrant, VM, WSL, Remote…** opens **Configure Remote PHP Interpreter**:
+
+| Kind | Fields | Runs as |
+| --- | --- | --- |
+| Docker | Server (the default Docker or a Docker context), Image name | `docker run --rm -i -v <project>:/opt/project -w <dir> <image> php …` |
+| Docker Compose | Server, Configuration files, Service, Lifecycle: **Always start a new container** (`docker compose run --rm`) or **Connect to existing container** (`docker compose exec`) | `docker compose -f <file> run --rm -T -w <dir> <service> php …` |
+| SSH | An SSH configuration of [Settings &#124; Tools &#124; SSH Configurations](remote-development.md#saved-configurations) | `ssh -o BatchMode=yes user@host "cd <dir> && php …"` |
+| WSL (Windows only) | Linux distribution | `wsl.exe -d <distribution> --cd <dir> --exec php …` |
+
+All kinds take the **PHP interpreter path** inside the container or on the host (default
+`php`). SSH interpreters use your SSH agent or the configuration's key file (password
+authentication is not available for interpreters).
+
+**Path mappings** say where the project's files are where PHP runs. Forge derives them
+("auto" rows): Docker mounts the project at `/opt/project`, Docker Compose services use the
+bind mounts of their `volumes` (`.:/var/www/html`), WSL sees `C:\work\shop` as
+`/mnt/c/work/shop`. Your own rows win over the automatic ones; SSH interpreters need at least
+one (for example the project root ↔ `/srv/shop`). Runs map paths in arguments and the working
+directory, the Run console maps paths in the output back so they stay clickable, and the
+debugger uses the same mappings.
+
+**PHP language level** can follow the interpreter: choose **From the CLI interpreter** and
+Forge uses the version Reload detected (8.2.27 → 8.2). "Synchronize IDE settings with
+composer.json" still wins when composer.json requires a PHP version; the status bar tooltip
+says where the level comes from.
 
 ### Composer
 
@@ -479,7 +684,7 @@ Settings | Languages & Frameworks | PHP | Composer:
 | Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
 | Path to composer | `php.composer.executable` | `composer` | a composer executable or a composer.phar (run with the PHP interpreter); "Download composer.phar from getcomposer.org" fetches one with your consent |
 | Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
-| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by php-lsp; off leaves `vendor/` out |
 | Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
 | Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | package names, versions and outdated markers from packagist.org (cached); off: installed packages only |
 
@@ -507,7 +712,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Wrapping and Braces**: brace placement in class declarations, function declarations and
   other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
   PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
-  Intelephense formats with the closest of its brace styles; the Generate actions write
+  The language server (php-lsp, in Intelephense's style) formats with the
+  closest of its brace styles; the Generate actions write
   methods with the function brace placement.
 - **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
   sets the blank lines **After namespace**, **After imports**, **Around method** (at least)
@@ -516,32 +722,44 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Code Conversion**: array declaration style (keep, short `[]` or long `array()`), a comma
   after the last element of multi-line arrays, and `true`/`false`/`null` in lower or upper
   case.
+- **Imports**: sorting (alphabetically, by length), grouping (by kind, by kind and
+  namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
+  the refactorings follow them, see [Optimize Imports and Auto Import](imports.md#php-code-style-imports).
 
-Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
+Reformat Code (`Ctrl+Alt+L`) lets the language server (php-lsp by default) format the file and
+then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
 comments and inline HTML are never changed.
 
 ### Quality Tools
 
-Settings | Languages & Frameworks | PHP | Quality Tools sets the PHP CS Fixer and Laravel Pint
-executables (`php.tools.phpCsFixer.path`, `php.tools.pint.path`); empty means
-`vendor/bin/php-cs-fixer` and `vendor/bin/pint` of the project. They run on save with
-**Run PHP CS Fixer** / **Run Laravel Pint**, and Optimize imports, Rearrange code and code
-cleanup of PHP files run there too, see [Actions on Save](actions-on-save.md).
+Settings | Languages & Frameworks | PHP | Quality Tools configures PHPStan, Psalm, PHP CS
+Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint and Rector: their problems show on the
+fly and on save, the fixers reformat files and run on save, also through Docker, Docker Compose,
+SSH and WSL interpreters. See [PHP Quality Tools](php-quality-tools.md) and
+[Actions on Save](actions-on-save.md).
 
 ## Running and testing PHP
 
-- **PHP Script** run configurations run a file with the CLI interpreter.
-- **PHPUnit** configurations run a class, method, directory or `phpunit.xml`; test classes
-  and methods get ▶ icons in the gutter and results appear as a test tree.
+- **PHP Script** run configurations run a file with the CLI interpreter — the project's, or
+  the one the configuration picks ([CLI interpreters](#cli-interpreters): local, Docker,
+  Docker Compose, SSH, WSL).
+- **PHPUnit**, **Pest**, **Codeception**, **Behat** and **PHPSpec** configurations run tests;
+  tests get ▶ icons in the gutter and results appear as a test tree with Rerun Failed Tests,
+  Test History and auto-test. Where each framework comes from is set in **Settings | PHP |
+  Test Frameworks**, see [PHP test frameworks](test-frameworks.md).
 - **PHP scratch files** run with the project's autoloader.
+- **Run | Profile with Xdebug** and **Profile with SPX** run a PHP configuration under a
+  profiler and open the snapshot in the Profiler tool window, see
+  [Profiling PHP and Node.js](profiling.md).
 
-See [Run/Debug configurations](run-debug.md), [Xdebug debugging](debugging.md) and
+See [Run/Debug configurations](run-debug.md), [Debugging](debugging.md) and
 [Scratches](scratches-and-http.md).
 
 ## Remote projects
 
 In a [remote project](remote-development.md) the PHP index and the language server run on the
 remote host through the Forge agent; Structure, search, hover, Generate, navigation, usages,
-gutter icons, Rename and context actions work as locally; renamed and fixed files are written on
+gutter icons, Rename, context actions, metadata and attribute inspections and completion,
+include paths (folders on the remote host) and source roots work as locally; renamed and fixed files are written on
 the remote host. The PHP stubs are read on this machine.

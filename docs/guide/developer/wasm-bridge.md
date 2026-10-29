@@ -16,7 +16,7 @@ re-implementing logic in TypeScript mocks, Forge compiles its **pure** crates to
 - `crates/forge-wasm` depends on the pure crates (`forge-fuzzy`, `forge-filetypes`,
   `forge-keymap`, `forge-markdown`, `forge-output`, `forge-sql`, `forge-window`,
   `forge-plugin-api`, `forge-scratches` without `client`, `forge-remote` without `client`,
-  `forge-containers` without `runtime`, `forge-agent-cli` without `runtime`, `luaforge-lang-lua`,
+  `forge-containers` without `runtime`, `forge-agent-cli` without `runtime`, `luaforge-lang-lua`, `javaforge-build`, `javaforge-lang-java`,
   `phpforge-dql`, the WebForge crates).
 - Each area is a module `crates/forge-wasm/src/<area>.rs` with `#[wasm_bindgen]` functions that
   take and return **JSON strings**, mirroring the matching IPC command:

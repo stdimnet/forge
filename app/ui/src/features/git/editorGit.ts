@@ -3,7 +3,9 @@
  * - change markers in the gutter comparing the buffer with HEAD (added / modified / deleted),
  *   clickable for Rollback and Show Diff;
  * - "Annotate with Git Blame" gutter left of the line numbers, colored by commit age;
- * - inline blame hint at the end of the caret line ("Marlon, 2 days ago • message").
+ * - inline blame hint at the end of the caret line ("Marlon, 2 days ago • message");
+ * - while the Commit tool window is open, checkboxes that include single change hunks in the
+ *   next commit (partial commits, `partialGutter.ts`).
  */
 import { createEffect, createRoot, on } from "solid-js";
 import { Chunk } from "@codemirror/merge";
@@ -27,6 +29,9 @@ import { annotated, setBlameCard, setDiffRequest, toggleAnnotate } from "./overl
 import { ageBucket, shortDate, timeAgo } from "./format";
 import { replaceDocument } from "@/editor/reload";
 import { lineDiffConfig, rollbackEdit } from "./lineDiff";
+import { isToolWindowVisible } from "@/state/layout";
+import { partialCommitGutter, viewHunks } from "./partialGutter";
+import { moveToChangelistDialog } from "./changesDialogs";
 
 // ---- shared per-view git data ---------------------------------------------------------
 
@@ -303,6 +308,15 @@ function showChangePopup(view: EditorView, path: string, chunk: Chunk, head: Tex
   action("Rollback", "Rollback Lines (Ctrl+Alt+Z)", () => {
     view.dispatch({ changes: rollbackEdit(chunk, head, view.state.doc) });
   });
+  // The Rust hunk (partial commits, changelists) under this chunk.
+  const doc = view.state.doc;
+  const first = doc.lineAt(Math.min(chunk.fromB, doc.length)).number - 1;
+  const last = chunk.fromB === chunk.toB ? first : doc.lineAt(Math.min(Math.max(chunk.endB - 1, chunk.fromB), doc.length)).number - 1;
+  const hunk = viewHunks(view).find((h) => h.newStart <= last && first <= h.newStart + Math.max(h.newLen, 1) - 1);
+  if (hunk)
+    action("Move to Another Changelist…", "Move this change to another changelist (F6)", () =>
+      moveToChangelistDialog([path], { hunks: [hunk.id] }),
+    );
   action("Show Diff", "Show Diff (Ctrl+D)", () => {
     setDiffRequest({
       path,
@@ -374,7 +388,7 @@ export function showChangeMarker(
   return true;
 }
 
-function controller(path: string, blameCompartment: Compartment) {
+function controller(path: string, blameCompartment: Compartment, partialCompartment: Compartment) {
   return ViewPlugin.define((view) => {
     let disposed = false;
     let dispose = () => {};
@@ -417,6 +431,16 @@ function controller(path: string, blameCompartment: Compartment) {
             void fetchBlame();
           });
         }),
+      );
+      // Partial commit checkboxes while the Commit tool window is open, for tracked changes.
+      createEffect(
+        on(
+          () => {
+            const entry = status()?.entries.find((e) => e.path === path);
+            return !atRevision && isToolWindowVisible("commit") && !!entry && entry.worktree !== "untracked" && !entry.conflict;
+          },
+          (show) => setTimeout(() => disposed || view.dispatch({ effects: partialCompartment.reconfigure(show ? partialCommitGutter(path) : []) })),
+        ),
       );
       createEffect(
         on(
@@ -534,7 +558,9 @@ const gitEditorTheme = EditorView.baseTheme({
 /** All git editor extensions for one file. */
 export function gitEditorExtensions(path: string): Extension {
   const blameCompartment = new Compartment();
+  const partialCompartment = new Compartment();
   return [
+    partialCompartment.of([]),
     changeField,
     blameField,
     blameCompartment.of(annotated().has(path) ? blameGutter(path) : []),
@@ -542,6 +568,6 @@ export function gitEditorExtensions(path: string): Extension {
     inlineBlame,
     gutterContextMenu(path),
     gitEditorTheme,
-    controller(path, blameCompartment),
+    controller(path, blameCompartment, partialCompartment),
   ];
 }

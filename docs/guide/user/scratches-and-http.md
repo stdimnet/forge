@@ -65,9 +65,15 @@ query console of that data source with execution, results and transactions. See
 
 `.http` files hold one or more requests in PHPStorm's HTTP Client format. They work as
 scratches (New Scratch File → HTTP Request) and as files in your project. Each request gets a ▶
-icon in the gutter; click it to send the request. The response (status, headers, body) appears
+icon in the gutter; click it and choose **Run** to send the request (`Ctrl+Shift+F10` sends
+the request at the caret). The response (status, headers, body) appears
 in the Run tool window, followed by the report of its response handler. Project `.http` files
 run as an `http-request` run configuration.
+
+The ▶ menu also offers **Debug '…' with Xdebug**: it starts
+listening for Xdebug and sends the request with the cookie `XDEBUG_SESSION=FORGE`, so the PHP
+application stops at your breakpoints (see
+[Debugging](debugging.md#debugging-web-pages-and-http-requests)).
 
 ![HTTP request](../../screenshots/scratches-http-request.png)
 
@@ -197,3 +203,10 @@ Settings | Tools | HTTP Client | **Send requests from** (`httpClient.sendFrom`, 
 **Remote host** (default) or **This machine**.
 
 ![HTTP request sent from the remote host](../../screenshots/remote-finish-http.png)
+
+## OAuth 2.0, cURL, GraphQL, WebSocket and gRPC
+
+The HTTP client also acquires OAuth 2.0 tokens (`{{$auth.token("id")}}` with `Security.Auth`
+in the environment file), imports and copies cURL commands, and runs `GRAPHQL`, `WEBSOCKET`
+(with a live message log) and `GRPC` requests. See
+[Web tooling](web-tooling.md#http-client-extras).

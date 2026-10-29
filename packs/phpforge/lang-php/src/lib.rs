@@ -14,14 +14,18 @@
 //!   Inline.
 //! - [`create`] Create symbols from usage (methods, fields, constants, functions, classes).
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
-//! - [`lsp`] describes how to launch Intelephense / phpactor.
+//! - [`lsp`] describes how to launch the built-in php-lsp.
 //! - [`style`] brace placement and blank lines of the PHP code style.
 //! - [`imports`], [`rearrange`] and [`cleanup`]: Optimize Imports, Rearrange Code and Code
 //!   Cleanup (also run as Actions on Save).
 
+pub mod attributes;
+pub mod callsite;
 pub mod cleanup;
+pub mod complete;
 pub mod composer;
 pub mod create;
+pub mod dataflow;
 pub mod docblock;
 pub mod fuzzy;
 pub mod generate;
@@ -30,12 +34,16 @@ pub mod highlight;
 pub mod hover;
 pub mod imports;
 pub mod index;
+pub mod injections;
+pub mod inspections;
 pub mod intentions;
 pub mod lsp;
+pub mod meta;
 pub mod model;
 pub mod navigate;
 pub mod offsets;
 pub mod parser;
+pub mod project;
 pub mod rearrange;
 pub mod refactor;
 pub mod rename;

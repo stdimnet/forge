@@ -17,15 +17,23 @@
 //!
 //! Everything except [`store`] and [`client`] is pure, so browser mode runs it as WebAssembly.
 
+pub mod curl;
 pub mod handler;
 pub mod http;
 pub mod languages;
 pub mod naming;
+pub mod oauth;
 pub mod run;
 pub mod store;
 
 #[cfg(feature = "client")]
 pub mod client;
+#[cfg(feature = "client")]
+pub mod grpc;
+#[cfg(feature = "client")]
+pub mod oauth_client;
+#[cfg(feature = "client")]
+pub mod ws;
 
 pub use languages::{LanguageItem, LanguageRequest, ScratchLanguage};
 pub use run::{Marker, MarkerKind, RunCommand, RunContext, Runner};

@@ -3,7 +3,8 @@
 //!
 //! Handles single keystrokes, two-stroke chords ("Ctrl+K Ctrl+C"), modifier double-taps
 //! ("Shift Shift"), keys pressed while a double-tapped modifier is held ("Double Ctrl+Up")
-//! and focus contexts (editor / text input / terminal / everything else).
+//! mouse shortcuts ("Ctrl+Button1 Click", "Alt+Wheel Up") and focus contexts (editor / text
+//! input / terminal / everything else).
 
 use std::collections::HashMap;
 
@@ -11,8 +12,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::catalog::ActionContext;
 use crate::shortcut::{
-    modifier_of_event, stroke_from_event, try_parse_shortcut, KeyEvent, KeyStroke, Modifier,
-    Platform, Shortcut,
+    modifier_of_event, mouse_stroke, stroke_from_event, try_parse_shortcut, KeyEvent, KeyStroke,
+    Modifier, MouseInput, Platform, Shortcut,
 };
 
 /// Where keyboard focus currently is.
@@ -23,8 +24,18 @@ pub enum FocusContext {
     Input,
     Terminal,
     Toolwindow,
+    /// A text field of a tool window that also takes the tool window's actions, like
+    /// PHPStorm's commit message editor (`Ctrl+M`, `Ctrl+D`). Keys a text field needs stay
+    /// with it, as in [`FocusContext::Input`].
+    #[serde(rename = "toolwindow-input")]
+    ToolwindowInput,
     /// A diff or merge window (its editors included).
     Diff,
+    /// A Jupyter notebook in command mode (a cell is selected, no cell editor has focus).
+    Notebook,
+    /// The code editor of a notebook cell (edit mode); editor actions apply too.
+    #[serde(rename = "notebook-editor")]
+    NotebookEditor,
     #[default]
     Global,
 }
@@ -120,11 +131,18 @@ pub fn allowed_in_terminal(s: &KeyStroke) -> bool {
 pub fn context_matches(context: ActionContext, focus: FocusContext) -> bool {
     match context {
         ActionContext::Any => true,
-        ActionContext::Editor => focus == FocusContext::Editor,
-        ActionContext::Toolwindow => {
-            matches!(focus, FocusContext::Toolwindow | FocusContext::Terminal)
+        ActionContext::Editor => {
+            matches!(focus, FocusContext::Editor | FocusContext::NotebookEditor)
         }
+        ActionContext::Toolwindow => matches!(
+            focus,
+            FocusContext::Toolwindow | FocusContext::Terminal | FocusContext::ToolwindowInput
+        ),
         ActionContext::Diff => focus == FocusContext::Diff,
+        ActionContext::Notebook => {
+            matches!(focus, FocusContext::Notebook | FocusContext::NotebookEditor)
+        }
+        ActionContext::NotebookCommand => focus == FocusContext::Notebook,
     }
 }
 
@@ -288,6 +306,8 @@ pub enum KeyInputKind {
     Interrupt,
     /// Window blur: forget chords and taps.
     Reset,
+    /// A click or wheel turn (`button`, `clickCount`, `deltaY` plus the modifier keys).
+    Mouse,
 }
 
 /// A key event as the UI forwards it.
@@ -301,6 +321,28 @@ pub struct KeyInput {
     pub focus: FocusContext,
     /// Event time in milliseconds (`KeyboardEvent.timeStamp`).
     pub time: f64,
+    /// Mouse events: `MouseEvent.button`.
+    pub button: u8,
+    /// Mouse events: `MouseEvent.detail` (2 for the second click of a double click).
+    pub click_count: u32,
+    /// Wheel events: `WheelEvent.deltaY`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_y: Option<f64>,
+}
+
+impl KeyInput {
+    /// The mouse part of a `mouse` input.
+    pub fn mouse(&self) -> MouseInput {
+        MouseInput {
+            button: self.button,
+            click_count: self.click_count,
+            delta_y: self.delta_y,
+            ctrl_key: self.event.ctrl_key,
+            alt_key: self.event.alt_key,
+            shift_key: self.event.shift_key,
+            meta_key: self.event.meta_key,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -424,20 +466,47 @@ impl Resolver {
                 self.reset();
                 Resolution::ignored()
             }
+            KeyInputKind::Mouse => self.mouse(&input.mouse(), input.focus),
         }
     }
 
+    /// A click or wheel turn: mouse shortcuts are single strokes. Text fields and the
+    /// terminal keep their clicks; a pending chord or double tap is cancelled.
+    pub fn mouse(&mut self, e: &MouseInput, focus: FocusContext) -> Resolution {
+        self.interrupt();
+        self.pending_chord = None;
+        let Some(stroke) = mouse_stroke(e) else {
+            return Resolution::ignored();
+        };
+        if matches!(
+            focus,
+            FocusContext::Input | FocusContext::ToolwindowInput | FocusContext::Terminal
+        ) {
+            return Resolution::ignored();
+        }
+        match Self::pick(self.index.get(&stroke.id()).map(|e| &e.single), focus) {
+            Some(action) => Resolution::action(action),
+            None => Resolution::ignored(),
+        }
+    }
+
+    /// The action a mouse stroke is bound to under `focus`, without changing any state
+    /// (editor extensions that handle a click themselves ask this first).
+    pub fn mouse_action(&self, e: &MouseInput, focus: FocusContext) -> Option<String> {
+        let stroke = mouse_stroke(e)?;
+        Self::pick(self.index.get(&stroke.id()).map(|e| &e.single), focus)
+    }
+
     fn pick(list: Option<&Vec<Binding>>, focus: FocusContext) -> Option<String> {
-        // Context-specific bindings win over global ones (e.g. Generate vs. New… on Alt+Insert).
-        let matching: Vec<&Binding> = list?
-            .iter()
-            .filter(|b| context_matches(b.context, focus))
-            .collect();
-        matching
-            .iter()
-            .find(|b| b.context != ActionContext::Any)
-            .or_else(|| matching.first())
-            .map(|b| b.action_id.clone())
+        // Context-specific bindings win over global ones (e.g. Generate vs. New… on Alt+Insert),
+        // the most specific first (Run Cell vs. Start New Line on Shift+Enter in a cell).
+        let mut best: Option<&Binding> = None;
+        for b in list?.iter().filter(|b| context_matches(b.context, focus)) {
+            if best.is_none_or(|x| x.context.specificity() < b.context.specificity()) {
+                best = Some(b);
+            }
+        }
+        best.map(|b| b.action_id.clone())
     }
 
     pub fn key_down(&mut self, e: &KeyEvent, focus: FocusContext) -> Resolution {
@@ -495,7 +564,8 @@ impl Resolver {
             };
         }
 
-        if focus == FocusContext::Input && !allowed_in_input(&stroke) {
+        let text_field = matches!(focus, FocusContext::Input | FocusContext::ToolwindowInput);
+        if text_field && !allowed_in_input(&stroke) {
             return Resolution::ignored();
         }
         if focus == FocusContext::Terminal && !allowed_in_terminal(&stroke) {
@@ -575,6 +645,9 @@ mod tests {
             "Generate" | "EditorDuplicate" => ActionContext::Editor,
             "Rerun" => ActionContext::Toolwindow,
             "NextDiff" => ActionContext::Diff,
+            "EditorStartNewLine" => ActionContext::Editor,
+            "Jupyter.RunCellSelectBelow" => ActionContext::Notebook,
+            "Jupyter.DeleteCell" | "Jupyter.InsertCellAbove" => ActionContext::NotebookCommand,
             _ => ActionContext::Any,
         }
     }
@@ -632,6 +705,46 @@ mod tests {
 
     fn action(r: &mut Resolver, text: &str, focus: FocusContext) -> Option<String> {
         r.key_down(&key(text), focus).action
+    }
+
+    #[test]
+    fn notebook_bindings_win_in_notebooks_only() {
+        let mut r = resolver(&[
+            ("EditorStartNewLine", &["Shift+Enter"]),
+            ("Jupyter.RunCellSelectBelow", &["Shift+Enter"]),
+            ("Jupyter.DeleteCell", &["D D"]),
+            ("Jupyter.InsertCellAbove", &["A"]),
+            ("EditorDuplicate", &["Ctrl+D"]),
+        ]);
+        use FocusContext::{Notebook, NotebookEditor};
+        assert_eq!(
+            action(&mut r, "Shift+Enter", Editor).as_deref(),
+            Some("EditorStartNewLine")
+        );
+        assert_eq!(
+            action(&mut r, "Shift+Enter", NotebookEditor).as_deref(),
+            Some("Jupyter.RunCellSelectBelow")
+        );
+        assert_eq!(
+            action(&mut r, "Shift+Enter", Notebook).as_deref(),
+            Some("Jupyter.RunCellSelectBelow")
+        );
+        // Editor actions still work in cell editors; command keys do not type there.
+        assert_eq!(
+            action(&mut r, "Ctrl+D", NotebookEditor).as_deref(),
+            Some("EditorDuplicate")
+        );
+        assert_eq!(action(&mut r, "A", NotebookEditor), None);
+        assert_eq!(
+            action(&mut r, "A", Notebook).as_deref(),
+            Some("Jupyter.InsertCellAbove")
+        );
+        assert_eq!(action(&mut r, "D", Notebook), None);
+        assert_eq!(
+            action(&mut r, "D", Notebook).as_deref(),
+            Some("Jupyter.DeleteCell")
+        );
+        assert_eq!(action(&mut r, "D", Global), None);
     }
 
     fn single_stroke_resolver() -> Resolver {
@@ -705,6 +818,23 @@ mod tests {
         assert_eq!(
             action(&mut r, "Ctrl+F5", Toolwindow).as_deref(),
             Some("Rerun")
+        );
+        // A tool window's text field (the commit message) takes them too …
+        assert_eq!(
+            action(&mut r, "Ctrl+F5", FocusContext::ToolwindowInput).as_deref(),
+            Some("Rerun")
+        );
+        // … but keeps its own editing keys.
+        let mut plain = resolver(&[("Z", &["Ctrl+A"]), ("Y", &["F"])]);
+        assert!(
+            !plain
+                .key_down(&key("Ctrl+A"), FocusContext::ToolwindowInput)
+                .consumed
+        );
+        assert!(
+            !plain
+                .key_down(&key("F"), FocusContext::ToolwindowInput)
+                .consumed
         );
     }
 
@@ -840,6 +970,7 @@ mod tests {
             event,
             focus: Editor,
             time,
+            ..Default::default()
         }
     }
 
@@ -1019,9 +1150,47 @@ mod tests {
         assert!(!context_matches(ActionContext::Toolwindow, Global));
         assert!(context_matches(ActionContext::Toolwindow, Terminal));
         assert!(context_matches(ActionContext::Diff, FocusContext::Diff));
+        assert!(context_matches(
+            ActionContext::Editor,
+            FocusContext::NotebookEditor
+        ));
+        assert!(context_matches(
+            ActionContext::Notebook,
+            FocusContext::NotebookEditor
+        ));
+        assert!(context_matches(
+            ActionContext::Notebook,
+            FocusContext::Notebook
+        ));
+        assert!(context_matches(
+            ActionContext::NotebookCommand,
+            FocusContext::Notebook
+        ));
+        assert!(!context_matches(
+            ActionContext::NotebookCommand,
+            FocusContext::NotebookEditor
+        ));
+        assert!(!context_matches(
+            ActionContext::Notebook,
+            FocusContext::Editor
+        ));
         assert!(context_matches(ActionContext::Any, FocusContext::Diff));
         assert!(!context_matches(ActionContext::Diff, Editor));
         assert!(!context_matches(ActionContext::Editor, FocusContext::Diff));
+        // The commit message takes tool window actions, but not editor ones.
+        assert!(context_matches(
+            ActionContext::Toolwindow,
+            FocusContext::ToolwindowInput
+        ));
+        assert!(!context_matches(ActionContext::Toolwindow, Input));
+        assert!(!context_matches(
+            ActionContext::Editor,
+            FocusContext::ToolwindowInput
+        ));
+        assert_eq!(
+            serde_json::to_string(&FocusContext::ToolwindowInput).unwrap(),
+            "\"toolwindow-input\""
+        );
     }
 
     #[test]
@@ -1073,6 +1242,74 @@ mod tests {
             action(&mut r, "Shift+F10", Terminal).as_deref(),
             Some("Run")
         );
+    }
+
+    #[test]
+    fn resolves_mouse_shortcuts_by_focus() {
+        let mut r = resolver(&[
+            (
+                "GotoDeclaration",
+                &["Ctrl+B", "Ctrl+Button1 Click", "Button2 Click"],
+            ),
+            ("Generate", &["Alt+Wheel Down"]),
+            ("NextTab", &["Ctrl+Wheel Down"]),
+        ]);
+        let click = |button: u8, ctrl: bool| KeyInput {
+            kind: KeyInputKind::Mouse,
+            event: KeyEvent {
+                ctrl_key: ctrl,
+                ..Default::default()
+            },
+            button,
+            click_count: 1,
+            focus: Editor,
+            ..Default::default()
+        };
+        assert_eq!(
+            r.handle(&click(0, true)).action.as_deref(),
+            Some("GotoDeclaration")
+        );
+        assert_eq!(
+            r.handle(&click(1, false)).action.as_deref(),
+            Some("GotoDeclaration")
+        );
+        assert_eq!(r.handle(&click(0, false)), Resolution::ignored());
+        // Generate is an editor action: not in a tool window.
+        let wheel = MouseInput {
+            delta_y: Some(40.0),
+            alt_key: true,
+            ..Default::default()
+        };
+        assert_eq!(r.mouse_action(&wheel, Editor).as_deref(), Some("Generate"));
+        assert_eq!(r.mouse_action(&wheel, Toolwindow), None);
+        let ctrl_wheel = MouseInput {
+            delta_y: Some(40.0),
+            ctrl_key: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            r.mouse(&ctrl_wheel, Global).action.as_deref(),
+            Some("NextTab")
+        );
+        // Clicks in text fields stay with them.
+        let mut input = click(0, true);
+        input.focus = Input;
+        assert_eq!(r.handle(&input), Resolution::ignored());
+    }
+
+    #[test]
+    fn a_click_cancels_a_pending_chord() {
+        let mut r = resolver(&[("CommentByLineComment", &["Ctrl+K Ctrl+C"])]);
+        assert!(r.key_down(&key("Ctrl+K"), Editor).consumed);
+        assert!(r.chord_pending());
+        r.mouse(
+            &MouseInput {
+                click_count: 1,
+                ..Default::default()
+            },
+            Editor,
+        );
+        assert!(!r.chord_pending());
     }
 
     #[test]

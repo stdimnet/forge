@@ -1,0 +1,201 @@
+/* CForge: Sanitizers / Valgrind results in the Run tool window and their editor highlights. */
+
+.native-results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-ui);
+  color: var(--fg);
+}
+
+.native-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-toolbar);
+}
+
+.native-spacer {
+  flex: 1;
+}
+
+.native-leaks {
+  display: flex;
+  gap: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-leaks span + span {
+  color: var(--fg-muted);
+}
+
+.native-empty {
+  padding: 16px;
+}
+
+.native-split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.native-tree {
+  flex: 1.3;
+  min-width: 0;
+  overflow: auto;
+  padding: 2px 0;
+  border-right: 1px solid var(--border);
+}
+
+.native-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding-right: 8px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.native-row.selected {
+  background: var(--bg-selection);
+}
+
+.native-group {
+  font-weight: 600;
+  padding-left: 6px;
+}
+
+.native-icon {
+  display: inline-flex;
+}
+
+.native-title {
+  font-weight: 500;
+}
+
+.native-location {
+  color: var(--accent);
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-location.muted {
+  color: var(--fg-muted);
+}
+
+.native-badge {
+  margin-left: auto;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--bg-active);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+
+.native-stack {
+  color: var(--fg-muted);
+}
+
+.native-frame {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+}
+
+.native-frame.native-own {
+  color: var(--fg);
+}
+
+.native-index {
+  min-width: 22px;
+}
+
+.native-function {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-details {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.native-message {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.native-detail,
+.native-summary {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.native-preview {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+
+.native-preview-title {
+  padding: 3px 8px;
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.native-preview pre {
+  margin: 0;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--editor-fg, var(--fg));
+}
+
+.native-preview-line {
+  padding: 0 8px 0 0;
+  white-space: pre;
+}
+
+.native-preview-line.current {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.native-preview-n {
+  display: inline-block;
+  width: 36px;
+  padding-right: 10px;
+  text-align: right;
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+/* Editor highlights of the selected problem. */
+.cm-native-issue {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+}
+
+.cm-native-frame {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+}

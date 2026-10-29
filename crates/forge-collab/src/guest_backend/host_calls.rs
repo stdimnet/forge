@@ -644,8 +644,29 @@ impl<'a> Gate<'a> {
                 self.verify(&path)?;
                 self.scrubbed(&php.intentions(&path, offset, options, content).map_err(e)?)
             }
+            PhpCall::UnresolvedClasses { path, content } => {
+                self.verify(&path)?;
+                enc(&php.unresolved_classes(&path, content).map_err(e)?)
+            }
+            PhpCall::Inspect { path, content } => {
+                self.verify(&path)?;
+                enc(&php.inspect(&path, content).map_err(e)?)
+            }
+            PhpCall::Complete {
+                path,
+                offset,
+                content,
+            } => {
+                self.verify(&path)?;
+                enc(&php.complete(&path, offset, content).map_err(e)?)
+            }
+            PhpCall::LanguagePlaces => enc(&php.language_places().map_err(e)?),
             PhpCall::LspConfig { .. } | PhpCall::DetectServers { .. } => {
                 Err("Language servers run on the host.".into())
+            }
+            PhpCall::Configure { .. } => Err("The PHP include paths are set on the host.".into()),
+            PhpCall::Libraries | PhpCall::LibraryList { .. } | PhpCall::LibraryRead { .. } => {
+                Err("External libraries are not shared with guests.".into())
             }
         }
     }
@@ -718,6 +739,34 @@ impl<'a> Gate<'a> {
                     if !dir.is_empty() {
                         self.verify(dir)?;
                     }
+                }
+                call
+            }
+            FrameworkCall::LaravelLogs { ref path, .. } => {
+                if !path.is_empty() {
+                    self.verify(&format!("storage/logs/{path}"))?;
+                }
+                call
+            }
+            FrameworkCall::WordPress { ref query } => {
+                use phpforge_fw_wordpress::api::Query as Wp;
+                if let Wp::Complete { path, .. }
+                | Wp::Goto { path, .. }
+                | Wp::Gutter { path, .. }
+                | Wp::Usages { path, .. }
+                | Wp::Inspect { path, .. } = query
+                {
+                    self.verify(path)?;
+                }
+                call
+            }
+            FrameworkCall::Cms { ref query } => {
+                use phpforge_fw_cms::api::Query as Cms;
+                if let Cms::Complete { path, .. }
+                | Cms::Goto { path, .. }
+                | Cms::Gutter { path, .. } = query
+                {
+                    self.verify(path)?;
                 }
                 call
             }

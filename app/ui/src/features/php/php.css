@@ -400,15 +400,6 @@
   outline: none;
   border-color: var(--accent);
 }
-.php-radio {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 26px;
-}
-.php-radio input {
-  accent-color: var(--accent);
-}
 .php-hint {
   color: var(--fg-muted);
   font-size: var(--fs-small);
@@ -431,6 +422,344 @@
   justify-content: space-between;
   height: 26px;
 }
-.php-licence {
-  margin: 10px 0 6px;
+
+/* ---------- CLI Interpreter picker and the CLI Interpreters dialog ---------- */
+.php-interp-picker {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+.php-interp-picker select {
+  flex: 1;
+  min-width: 0;
+}
+.php-interp-more {
+  min-width: 30px;
+  justify-content: center;
+}
+.php-interp-dialog {
+  max-height: calc(100vh - 48px);
+}
+.php-interp-dialog input[type="text"],
+.php-interp-dialog select {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.php-interp-dialog input:focus,
+.php-interp-dialog select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.php-interp-dialog input[type="radio"],
+.php-interp-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.php-interp-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 460px;
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
+}
+.php-interp-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-editor);
+  min-height: 0;
+}
+.php-interp-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.php-interp-add {
+  position: relative;
+}
+.php-interp-menu {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 5;
+  min-width: 300px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+.php-interp-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  font: inherit;
+}
+.php-interp-menu button:hover {
+  background: var(--accent-soft);
+}
+.php-interp-menu-sep {
+  margin: 4px 8px 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-faint);
+  font-size: var(--fs-small);
+}
+.php-interp-items {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+.php-interp-empty {
+  padding: 12px;
+}
+.php-interp-row {
+  gap: 6px;
+  padding: 0 10px;
+}
+.php-interp-icon {
+  display: inline-flex;
+  color: var(--fg-muted);
+}
+.php-interp-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.php-interp-form {
+  overflow: auto;
+  padding: 12px 16px;
+  min-height: 0;
+}
+.php-interp-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.php-interp-field {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.php-interp-field > label {
+  color: var(--fg);
+}
+.php-interp-value {
+  min-width: 0;
+}
+.php-interp-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 160px;
+}
+.php-interp-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 2px;
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+.php-interp-section::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+.php-interp-path {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.php-interp-info {
+  color: var(--fg);
+}
+.php-interp-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+.php-interp-wrap {
+  overflow-wrap: anywhere;
+}
+.php-interp-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.php-interp-radios label,
+.php-interp-kinds label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.php-interp-kinds {
+  display: flex;
+  gap: 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.php-interp-kinds label.disabled {
+  color: var(--fg-faint);
+}
+.php-interp-table {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.php-interp-thead,
+.php-interp-trow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 28px;
+  gap: 4px;
+  align-items: center;
+}
+.php-interp-thead {
+  padding: 2px 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.php-interp-trow.auto {
+  padding: 3px 4px;
+  color: var(--fg-muted);
+}
+.php-interp-none {
+  padding: 4px;
+}
+.php-interp-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+.php-interp-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.php-phpinfo {
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font: var(--fs-small) / 1.45 var(--font-mono);
+  white-space: pre;
+}
+.php-spin {
+  animation: php-spin 0.9s linear infinite;
+}
+@keyframes php-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Source roots (Mark Directory as) and External Libraries ---------- */
+.tree-row.php-source-root .file-icon {
+  color: var(--info) !important;
+}
+.tree-row.php-test-root .file-icon {
+  color: var(--success) !important;
+}
+.library-icon {
+  display: inline-flex;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+
+/* ---------- Settings | Directories ---------- */
+.php-dirs-root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+.php-dirs-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: 1px;
+  background: var(--fg-faint);
+}
+.php-dirs-title.php-dirs-source::before {
+  background: var(--info);
+}
+.php-dirs-title.php-dirs-test::before {
+  background: var(--success);
+}
+.php-dirs-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.2fr) 150px 52px;
+  gap: 8px;
+  height: 30px;
+}
+.php-dirs-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.php-dirs-list[data-kind="source"] .php-dirs-path {
+  color: var(--info);
+}
+.php-dirs-list[data-kind="test"] .php-dirs-path {
+  color: var(--success);
+}
+.php-dirs-list[data-kind="none"] .php-dirs-path {
+  color: var(--fg-muted);
+}
+.php-settings .php-dirs-prefix {
+  height: 24px;
+}
+.php-dirs-origin {
+  white-space: nowrap;
+}
+.php-dirs-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.php-dirs-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr 110px auto;
+  gap: 6px;
+  align-items: center;
 }

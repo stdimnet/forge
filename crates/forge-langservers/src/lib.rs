@@ -9,17 +9,15 @@
 //! - [`plan`]: which servers start, and the rows of the settings page,
 //! - [`install`]: running an install command with streamed output,
 //! - [`managed`]: installs of npm servers without prerequisites (Node.js and packages
-//!   downloaded and verified into Forge's data directory) and their update check,
-//! - [`licence`]: the Intelephense licence key in the OS keychain.
+//!   downloaded and verified into Forge's data directory) and their update check.
 //!
-//! PHP servers (Intelephense, phpactor) stay in the PHP pack; the app lists them next to
-//! these rows.
+//! PHP's server, the built-in php-lsp, stays in the PHP pack; the app lists it next to these
+//! rows.
 
 pub mod catalog;
 pub mod config;
 pub mod detect;
 pub mod install;
-pub mod licence;
 pub mod managed;
 pub mod plan;
 pub mod prefs;

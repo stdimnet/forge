@@ -16,10 +16,15 @@ machine.
 
 | Side | Needs |
 | --- | --- |
-| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, Intelephense etc. installed on the host as you would need them locally. |
+| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, language servers etc. installed on the host as you would need them locally (PHP's php-lsp is built into the agent). |
 | Forge | a build that bundles the agents (`pnpm release`), or agent binaries in `FORGE_REMOTE_AGENT_DIR` / an `agents/` folder next to the `forge` binary. See [Release builds](../developer/release-builds.md). |
 
 Nothing needs to be installed on the host in advance: Forge uploads the agent itself.
+
+The same agent also runs **in a dev container** (over `docker exec`) and **in a WSL
+distribution** (over `wsl.exe`); see [Dev Containers and WSL](dev-containers-and-wsl.md). The
+Welcome screen's Remote Development section has a page for each: **SSH**, **Dev Containers** and
+**WSL**.
 
 ## Connecting
 
@@ -88,7 +93,12 @@ Set `FORGE_AGENT_LOG=debug` in the host's environment for verbose agent logs (st
 ![Remote project](../../screenshots/remote-workbench.png)
 
 The project's root is shown as `user@host:/path`. Recent Projects keeps remote projects with an
-**SSH** badge; clicking one reconnects.
+**SSH** badge (**Container** and **WSL** for [dev container and WSL projects](dev-containers-and-wsl.md));
+clicking one reconnects.
+
+A remote project you have not trusted yet opens in Safe Mode and Forge asks "Trust and Open
+Project?" right after connecting; trust is kept per host, user, port and folder, see
+[Project trust and Safe Mode](project-trust.md#remote-projects).
 
 ![Recent remote projects](../../screenshots/remote-open-recent.png)
 
@@ -101,9 +111,9 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
 | Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
 | Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
-| PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
+| PHP index, Structure, Generate, php-lsp | yes; the agent's built-in php-lsp indexes the remote files itself |
 | Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
-| Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
+| Installing language servers (Settings) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here |
 | Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
 | WebForge: npm tool window, React / Vue / Angular navigation and gutter icons | yes: `package.json` files, scripts, package managers and components are read in the agent; scripts run on the host |
 | LuaForge index | yes, all Lua files are read on the host in one batch |
@@ -111,6 +121,7 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 | Code hosts (GitLab, Forgejo, GitHub) | yes: the repository is detected with git on the host; API calls go from your machine with your tokens |
 | HTTP client (`.http` files) | environment and body files are read on the host; requests are sent **from the host** through an SSH tunnel, so `localhost` URLs reach its services (Settings \| Tools \| HTTP Client \| **Send requests from**) |
 | Services: compose files and Dockerfile ▶ | compose files are read on the host and `docker compose` / `docker build` run there; by default Docker of the host is used through the project's SSH connection |
+| Services: Kubernetes | contexts come from the host's kubeconfig and `kubectl` runs on the host (tree, logs, exec, apply/delete manifests); port forwards are tunnelled back through the SSH connection, see [Services](services.md#kubernetes-in-remote-projects) |
 | Browser Companion | files the browser reports (host paths, container paths like `/app/src/…`) open in the remote project |
 | Project settings (`.forge/settings.toml`) and other `.forge/` files | yes, read and written on the host |
 | Terminal | yes, a shell on the host |
@@ -122,9 +133,11 @@ The project's root is shown as `user@host:/path`. Recent Projects keeps remote p
 ![Remote terminal](../../screenshots/remote-terminal.png)
 
 Every feature works in remote projects. Things that are about your machine stay local on
-purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
+purpose: code host API calls (your tokens), the keychain and,
 when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
 of this machine (see [Services](services.md#remote-projects)).
+
+![Kubernetes contexts from the project host](../../screenshots/services-kube-host-contexts.png)
 
 ![npm tool window of a remote project](../../screenshots/remote-finish-npm.png)
 
@@ -150,7 +163,10 @@ authentication errors stop the retries. **Reconnect to Remote Host** (Find Actio
 ## Saved configurations
 
 Settings | Tools | **SSH Configurations** lists, adds, edits and removes saved configurations.
-They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain.
+They are stored in `ssh.toml` in Forge's config folder; secrets stay in the keychain. **Parse
+config file `~/.ssh/config`** (on by default) resolves `Host` aliases, jump hosts and proxy
+commands from your OpenSSH config. The same configurations connect SFTP deployment servers and
+SSH terminal sessions, see [Remote Host and SSH sessions](remote-host-and-ssh.md).
 
 ![SSH Configurations](../../screenshots/remote-ssh-settings.png)
 

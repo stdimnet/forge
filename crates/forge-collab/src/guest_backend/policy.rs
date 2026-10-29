@@ -262,7 +262,7 @@ impl Policy {
 
     fn check_php(&self, p: &PhpCall) -> Result<(), Denied> {
         match p {
-            PhpCall::Index | PhpCall::Search { .. } => Ok(()),
+            PhpCall::Index | PhpCall::Search { .. } | PhpCall::LanguagePlaces => Ok(()),
             PhpCall::Structure { path, .. }
             | PhpCall::Hover { path, .. }
             | PhpCall::GenerateTargets { path, .. }
@@ -273,7 +273,10 @@ impl Policy {
             | PhpCall::LineMarkers { path, .. }
             | PhpCall::Hierarchy { path, .. }
             // Intentions are proposals; applying one is an edit the host checks again.
-            | PhpCall::Intentions { path, .. } => self.check_path(path),
+            | PhpCall::Intentions { path, .. }
+            | PhpCall::UnresolvedClasses { path, .. }
+            | PhpCall::Inspect { path, .. }
+            | PhpCall::Complete { path, .. } => self.check_path(path),
             PhpCall::Generate { path, .. } => {
                 self.check_path(path)?;
                 self.need_edit()
@@ -282,6 +285,14 @@ impl Policy {
             PhpCall::LspConfig { .. } | PhpCall::DetectServers { .. } => Err(denied(
                 "Language servers run on the host and are not configured by guests",
             )),
+            // The include paths are the host's settings.
+            PhpCall::Configure { .. } => Err(denied(
+                "The PHP include paths are configured on the host",
+            )),
+            // External libraries live outside the project, which is all a guest sees.
+            PhpCall::Libraries | PhpCall::LibraryList { .. } | PhpCall::LibraryRead { .. } => {
+                Err(denied("External libraries are not shared with guests"))
+            }
         }
     }
 
@@ -289,7 +300,45 @@ impl Policy {
         match f {
             FrameworkCall::LaravelDetect
             | FrameworkCall::LaravelRoutes { .. }
-            | FrameworkCall::LaravelArtisanCommands { .. } => Ok(()),
+            | FrameworkCall::LaravelArtisanCommands { .. }
+            | FrameworkCall::LaravelOverview => Ok(()),
+            FrameworkCall::LaravelLogs { path, .. } => {
+                // `storage/logs/<path>`; empty is the newest log.
+                self.check_path("storage/logs")?;
+                if path.is_empty() {
+                    Ok(())
+                } else {
+                    self.check_path(&format!("storage/logs/{path}"))
+                }
+            }
+            FrameworkCall::LaravelGenerate { id, write, .. } => {
+                identifier(id)?;
+                if *write {
+                    self.need_edit()
+                } else {
+                    Ok(())
+                }
+            }
+            FrameworkCall::WordPress { query } => {
+                use phpforge_fw_wordpress::api::Query as Wp;
+                match query {
+                    Wp::Complete { path, .. }
+                    | Wp::Goto { path, .. }
+                    | Wp::Gutter { path, .. }
+                    | Wp::Usages { path, .. }
+                    | Wp::Inspect { path, .. } => self.check_path(path),
+                    Wp::Detect | Wp::Refresh | Wp::Hooks => Ok(()),
+                }
+            }
+            FrameworkCall::Cms { query } => {
+                use phpforge_fw_cms::api::Query as Cms;
+                match query {
+                    Cms::Complete { path, .. }
+                    | Cms::Goto { path, .. }
+                    | Cms::Gutter { path, .. } => self.check_path(path),
+                    Cms::Detect | Cms::Refresh => Ok(()),
+                }
+            }
             FrameworkCall::LaravelComplete { path, .. }
             | FrameworkCall::LaravelGoto { path, .. }
             | FrameworkCall::LaravelGutter { path, .. }

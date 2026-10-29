@@ -1,0 +1,14 @@
+[package]
+name = "pyforge-frameworks"
+description = "PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes and routers, models, tasks, template folders and references, manage.py commands, run configuration command lines); pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+regex-lite = "0.1"
+forge-runtools.workspace = true
+pyforge-lang-python.workspace = true

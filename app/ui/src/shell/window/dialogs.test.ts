@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { emitMock, registerMock } from "@/ipc";
 import {
   closeDialog,
+  closeOwnedDialog,
+  dialogDef,
+  instanceId,
   inPageDialogs,
   isDialogOpen,
   notifyDialogOpener,
@@ -70,12 +73,33 @@ describe("in-page dialogs (browser mode)", () => {
     const { onMessage } = dialog("t-msg");
     void openDialogWindow("t-msg");
     notifyDialogOpener("t-msg", { saved: ["a"] });
-    expect(onMessage).toHaveBeenCalledWith({ saved: ["a"] });
+    expect(onMessage).toHaveBeenCalledWith({ saved: ["a"] }, {});
     closeDialog("t-msg");
   });
 
   it("rejects unknown dialogs", async () => {
     await expect(openDialogWindow("t-nope")).rejects.toThrow(/unknown dialog/);
+  });
+
+  it("opens several windows of one definition, not modal ones without a backdrop", async () => {
+    const { onClosed } = dialog("t-multi", { modal: false });
+    const a = instanceId("t-multi", "a.php");
+    const b = instanceId("t-multi", "b");
+    expect(a).toBe("t-multi--a_php");
+    expect(dialogDef(a)?.id).toBe("t-multi");
+    void openDialogWindow(a, { n: 1 });
+    void openDialogWindow(b, { n: 2 });
+    const open = inPageDialogs().filter((d) => d.id.startsWith("t-multi--"));
+    expect(open.map((d) => [d.id, d.modeless])).toEqual([
+      [a, true],
+      [b, true],
+    ]);
+    closeDialog(b, "done");
+    expect(onClosed).toHaveBeenCalledWith("done", { n: 2 });
+    expect(isDialogOpen(a)).toBe(true);
+    await closeOwnedDialog(a);
+    expect(isDialogOpen(a)).toBe(false);
+    expect(onClosed).toHaveBeenLastCalledWith(null, { n: 1 });
   });
 });
 
@@ -96,6 +120,7 @@ describe("dialog windows (desktop)", () => {
       minWidth: 500,
       minHeight: undefined,
       props: { name: "x" },
+      modal: true,
     });
     expect(inPageDialogs().some((d) => d.id === "t-window")).toBe(false);
     expect(isDialogOpen("t-window")).toBe(true);
@@ -105,7 +130,7 @@ describe("dialog windows (desktop)", () => {
     expect(isDialogOpen("t-window")).toBe(true);
 
     emitMock("dialog://message", { window: "main", id: "t-window", message: "applied" });
-    expect(onMessage).toHaveBeenCalledWith("applied");
+    expect(onMessage).toHaveBeenCalledWith("applied", { name: "x" });
     // Events for other windows are ignored.
     emitMock("dialog://closed", { window: "dialog-other", id: "t-window", result: 1 });
     expect(isDialogOpen("t-window")).toBe(true);

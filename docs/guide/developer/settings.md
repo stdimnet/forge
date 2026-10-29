@@ -13,14 +13,24 @@ Recipe: [`add-setting`](../../../.claude/skills/add-setting/SKILL.md). User docu
 
 ## Model
 
-`forge_core::Settings` merges three layers: schema defaults < user
-(`<config dir>/forge/settings.toml`) < project (`<project>/.forge/settings.toml`). Keys are
+`forge_core::Settings` merges four layers: schema defaults < user
+(`<config dir>/forge/settings.toml`) < Settings for New Projects
+(`<config dir>/forge/new-project-settings.toml`, scope `newProjects`, only settings declared
+with `project = true`) < project (`<project>/.forge/settings.toml`). Keys are
 dotted (`editor.font.size`) and stored as nested TOML tables. Values are JSON so they cross IPC
 unchanged. Writing a value persists its layer and notifies subscribers with the new effective
 value (`SettingsChange { key, value, scope }`), which the shell forwards as `settings://changed`.
 
-IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
-`settings_search`, `settings_validate`, `plugins_list`, `plugin_set_enabled`.
+IPC: `settings_get_all` (effective values and the `user`, `newProjects` and `project` layers),
+`settings_set(key, value, scope)`, `settings_schema`, `settings_search`, `settings_validate`,
+`plugins_list`, `plugin_set_enabled`.
+
+In the UI, `scopeFor(key, forNewProjects?)` picks the layer: project-level settings go to the
+open project, or to `newProjects` when no project is open or the dialog edits the Settings for
+New Projects (`openSettingsForNewProjects()`, `forNewProjects()` in `dialogState.ts`).
+`saveSettings` removes an override instead of storing a value equal to what the layers below
+give (`inheritedValue`). Every schema page gets **Restore Defaults** (`restorePageDefaults`)
+next to **Reset** (discard the page's draft).
 
 ## Declaring a setting
 

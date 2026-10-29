@@ -3,7 +3,11 @@
 mod conflicts;
 mod history;
 mod ops;
+mod partial;
+mod patches;
+mod rewrite;
 mod shelve;
+mod worktrees;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -18,6 +22,7 @@ use crate::manage::{
     append_ignore_patterns, ignore_patterns_for, parse_remotes, parse_stash_list, Remote,
     StashEntry, STASH_FORMAT,
 };
+use crate::signing::SignatureStatus;
 use crate::status::{parse_status, RepoStatus};
 use crate::{parse_blame, parse_diff, Blame, FileDiff};
 
@@ -26,6 +31,9 @@ pub use conflicts::{
     MergeOperation, SideChange,
 };
 pub use ops::{OngoingOperation, OperationState, StashFileContents};
+pub use partial::{CommitFile, CommitOptions};
+pub use patches::ApplyPatchResult;
+pub use rewrite::{RewriteResult, UndoneCommit};
 pub use shelve::ShelfFileContents;
 
 /// Summary of the repository a workspace belongs to.
@@ -342,14 +350,9 @@ impl Repo {
 
     pub fn commit_details(&self, sha: &str) -> Result<CommitDetails> {
         check_rev(sha)?;
-        let meta = self.git(&[
-            "show",
-            "-s",
-            "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ct%x1f%B",
-            sha,
-        ])?;
-        let f: Vec<&str> = meta.splitn(8, '\x1f').collect();
-        if f.len() < 8 {
+        let meta = self.git(&["show", "-s", log::COMMIT_META_FORMAT, sha])?;
+        let f: Vec<&str> = meta.splitn(11, '\x1f').collect();
+        if f.len() < 11 {
             return Err(ForgeError::Other(format!(
                 "unexpected git show output for {sha}"
             )));
@@ -375,7 +378,14 @@ impl Repo {
             time: f[4].parse().unwrap_or(0),
             committer: f[5].to_string(),
             commit_time: f[6].parse().unwrap_or(0),
-            message: f[7].trim_end().to_string(),
+            signature: SignatureStatus::from_code(f[7]),
+            signer: Some(f[8].trim())
+                .filter(|s| !s.is_empty())
+                .map(str::to_string),
+            signing_key: Some(f[9].trim())
+                .filter(|s| !s.is_empty())
+                .map(str::to_string),
+            message: f[10].trim_end().to_string(),
             files,
         })
     }
@@ -540,44 +550,15 @@ impl Repo {
         paths: Option<&[String]>,
         sign_off: bool,
     ) -> Result<String> {
-        if message.trim().is_empty() && !amend {
-            return Err(ForgeError::Other("commit message is empty".into()));
-        }
-        let specs = paths.map(|p| self.pathspecs(p)).unwrap_or_default();
-        if !specs.is_empty() {
-            // Make new files known so `--only` can commit them; deletions are fine as is.
-            let untracked: Vec<String> = self
-                .status()?
-                .entries
-                .into_iter()
-                .filter(|e| e.is_untracked())
-                .map(|e| self.ws_to_repo(&e.path))
-                .filter(|p| specs.contains(p))
-                .collect();
-            if !untracked.is_empty() {
-                let mut args = vec!["add", "--"];
-                args.extend(untracked.iter().map(String::as_str));
-                self.git(&args)?;
-            }
-        }
-        let mut args = vec!["commit", "-q", "--cleanup=strip"];
-        if amend {
-            args.push("--amend");
-        }
-        if sign_off {
-            args.push("--signoff");
-        }
-        if message.trim().is_empty() {
-            args.push("--no-edit");
-        } else {
-            args.extend(["-F", "-"]);
-        }
-        if !specs.is_empty() {
-            args.extend(["--only", "--"]);
-            args.extend(specs.iter().map(String::as_str));
-        }
-        self.git_stdin(&args, message)?;
-        Ok(self.git(&["rev-parse", "HEAD"])?.trim().to_string())
+        self.commit_opts(
+            message,
+            paths,
+            &CommitOptions {
+                amend,
+                sign_off,
+                ..CommitOptions::default()
+            },
+        )
     }
 
     // ---- ignore rules, tags and stashes -------------------------------------------------

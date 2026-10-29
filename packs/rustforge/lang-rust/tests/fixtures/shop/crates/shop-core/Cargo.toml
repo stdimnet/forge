@@ -1,0 +1,15 @@
+[package]
+name = "shop-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Carts, money and discounts of the shop"
+
+[features]
+default = ["json"]
+json = ["dep:serde", "dep:serde_json"]
+discounts = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }

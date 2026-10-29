@@ -10,17 +10,34 @@ import { registerEditorExtension } from "@/editor/extensions";
 import { registerCommand } from "@/state/commands";
 import { activeView } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
-import { RunTabs, RunToolWindow } from "./RunToolWindow";
+import { RunTabs, RunToolWindow, showTestHistory } from "./RunToolWindow";
 import { RunConfigurationsDialog } from "./ConfigurationsDialog";
 import { ChooserPopup } from "./ChooserPopup";
 import { PopupMenuHost } from "./PopupMenu";
 import { openChooser, openRunConfigurations, RUN_CONFIGURATIONS_DIALOG, type DialogRequest } from "./dialogState";
 import { loadConfigurations, reloadConfigurations, selectedConfiguration, useTemporary } from "./configStore";
 import { registerDialog, usesDialogWindows } from "@/shell/window/dialogs";
-import { activeSession, closeSession, debugConfiguration, launch, rerunSession, runConfiguration, stopSession } from "./runStore";
-import { testGutter } from "./gutter";
-import { findTests, scriptConfiguration, testAt, testConfiguration } from "./phpTests";
+import {
+  activeSession,
+  closeSession,
+  debugConfiguration,
+  launch,
+  rerunSession,
+  runConfiguration,
+  toggleAutoTest,
+  runningFor,
+  runWithCoverage,
+  stopConfiguration,
+  stopSession,
+} from "./runStore";
+import { testGutter, testsOf } from "./gutter";
+import { testAt } from "./tests";
+import { COMPOUND } from "./types";
+import { scriptConfiguration } from "./phpTests";
+import { isFrameworkTestFile } from "./frameworkFiles";
+import type { RunConfiguration } from "@/ipc/run";
 import "./builtinTypes";
+import "./testFrameworkTypes";
 import "./run.css";
 
 export {
@@ -31,7 +48,20 @@ export {
   type DebugLaunchContext,
   type RunHandle,
 } from "./types";
-export { launch, runConfiguration, debugConfiguration } from "./runStore";
+export {
+  launch,
+  runConfiguration,
+  runWithCoverage,
+  onCoverageSuite,
+  onProfileSnapshot,
+  debugConfiguration,
+  stopConfiguration,
+  registerBeforeLaunchHandler,
+  openInBrowser,
+  type BeforeLaunchHandler,
+} from "./runStore";
+export { COMPOUND } from "./types";
+export { registerTestFileMatcher } from "./frameworkFiles";
 
 registerToolWindow({
   id: "run",
@@ -45,17 +75,53 @@ registerToolWindow({
 });
 
 const isPhp = (path: string) => /\.php$/i.test(path) && !path.endsWith(".blade.php");
+/**
+ * Files that may hold tests: PHP test, spec and feature folders, `*Test`, `*Cest`, `*Cept`,
+ * `*Spec`, and the `testFiles` globs of manifest test frameworks.
+ */
+const mayHoldTests = (path: string) =>
+  /\.feature$/i.test(path) ||
+  (isPhp(path) && /(^|\/)(tests?|spec|features)\/|(Test|Cest|Cept|Spec)\.php$/i.test(path)) ||
+  isFrameworkTestFile(path);
 
-registerEditorExtension(({ path }) => (isPhp(path) && /(^|\/)tests?\/|Test\.php$/i.test(path) ? testGutter(path) : null));
+registerEditorExtension(({ path }) => (mayHoldTests(path) ? testGutter(path) : null));
 
-/** Temporary configuration for the caret position: test method/class, else the PHP file. */
+const contextFallbacks: ((path: string) => RunConfiguration | null)[] = [];
+
+/**
+ * Run Context Configuration outside a test: a pack's configuration for the file (a Python
+ * script), tried after the tests of the file.
+ */
+export function registerContextConfiguration(fallback: (path: string) => RunConfiguration | null): void {
+  contextFallbacks.push(fallback);
+}
+
+/**
+ * Temporary configuration for the caret position: the test at or above it, else the whole
+ * test file, else the PHP file as a script (or a pack's configuration for the file).
+ */
 function contextConfiguration() {
   const a = activeView();
-  if (!a || !isPhp(a.path)) return null;
-  const doc = a.view.state.doc;
-  const line = doc.lineAt(a.view.state.selection.main.head).number - 1;
-  const target = testAt(findTests(doc.toString()), line);
-  return target ? testConfiguration(target, a.path) : scriptConfiguration(a.path);
+  if (!a) return null;
+  if (!(isPhp(a.path) || /\.feature$/i.test(a.path) || isFrameworkTestFile(a.path))) {
+    for (const f of contextFallbacks) {
+      const cfg = f(a.path);
+      if (cfg) return cfg;
+    }
+    return null;
+  }
+  const state = a.view.state;
+  const line = state.doc.lineAt(state.selection.main.head).number - 1;
+  const tests = testsOf(state);
+  const target = testAt(tests.targets, line) ?? tests.targets[0];
+  if (target) return target.configuration;
+  if (tests.file) return tests.file;
+  if (isPhp(a.path)) return scriptConfiguration(a.path);
+  for (const f of contextFallbacks) {
+    const cfg = f(a.path);
+    if (cfg) return cfg;
+  }
+  return null;
 }
 
 registerDialog<DialogRequest>({
@@ -81,12 +147,25 @@ cmd("run.debug", "Debug", () => debugConfiguration());
 cmd("run.editConfigurations", "Edit Configurations…", () => openRunConfigurations(selectedConfiguration()?.name));
 cmd("ChooseRunConfiguration", "Run…", () => openChooser("run"));
 cmd("ChooseDebugConfiguration", "Debug…", () => openChooser("debug"));
-cmd("Stop", "Stop", () => stopSession());
+cmd("Stop", "Stop", () => {
+  // A running compound stops all its members.
+  const selected = selectedConfiguration();
+  if (selected?.type === COMPOUND && runningFor(selected)) return stopConfiguration(selected);
+  return stopSession();
+});
 cmd("Rerun", "Rerun", () => rerunSession());
+cmd("ToggleAutoTestAction", "Toggle Auto-Test", () => toggleAutoTest());
+cmd("ShowTestHistory", "Test History…", () => showTestHistory(window.innerWidth / 2 - 160, window.innerHeight / 3));
 cmd("RunClass", "Run Context Configuration", () => {
   const cfg = contextConfiguration();
   if (!cfg) return void showBalloon("Nothing to run here", "Open a PHP file or a test.");
   void launch(useTemporary(cfg));
+});
+cmd("Coverage", "Run with Coverage", () => runWithCoverage());
+cmd("RunCoverage", "Run Context Configuration with Coverage", () => {
+  const cfg = contextConfiguration();
+  if (!cfg) return void showBalloon("Nothing to run here", "Open a test file.");
+  void runWithCoverage(useTemporary(cfg));
 });
 cmd("DebugClass", "Debug Context Configuration", () => {
   const cfg = contextConfiguration();

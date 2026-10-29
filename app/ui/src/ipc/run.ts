@@ -6,7 +6,11 @@
 import { invoke, listen } from "./index";
 
 export interface BeforeLaunchTask {
-  /** `runConfiguration` (by name) or `shell` (a command line). */
+  /**
+   * `runConfiguration` (by name), `externalTool` (`Group/Name`), `browser` (a URL), `npm`
+   * (a script), `composer` (a script or command), `artisan` (a command) or `shell` (a
+   * command line).
+   */
   type: string;
   value: string;
 }
@@ -25,6 +29,42 @@ export interface RunConfiguration {
   /** Type-specific fields. */
   options?: Record<string, string>;
   beforeLaunch?: BeforeLaunchTask[];
+  /** "Run on": where runs, tests and debug runs execute (none: this machine). */
+  runOn?: RunTarget;
+}
+
+export type RunTargetKind = "local" | "dockerImage" | "composeService" | "ssh" | "wsl" | "devContainer";
+
+/** A run target (Rust: `forge_runtargets::RunTarget`); fields a kind does not use stay empty. */
+export interface RunTarget {
+  kind: RunTargetKind;
+  image?: string;
+  /** Extra `docker run` options. */
+  runOptions?: string;
+  dockerContext?: string;
+  composeFiles?: string[];
+  service?: string;
+  lifecycle?: "run" | "exec";
+  host?: string;
+  port?: number;
+  user?: string;
+  keyFile?: string;
+  distribution?: string;
+  container?: string;
+  /** Where the project is on the target (Docker default `/opt/project`). */
+  projectPath?: string;
+  mappings?: { local: string; remote: string }[];
+  env?: Record<string, string>;
+}
+
+/** What a debugger needs for a run on a target (`run_target_info`). */
+export interface DebugTarget {
+  target: string;
+  /** How the program reaches the IDE (`host.docker.internal`, `127.0.0.1` over SSH). */
+  ideHost: string;
+  /** How the IDE reaches a port the program listens on. */
+  targetHost: string;
+  mappings: { local: string; remote: string }[];
 }
 
 export interface RunConfigurations {
@@ -55,6 +95,20 @@ export interface RunRequest {
   interpreterArgs?: string[];
   /** Build a test tree from TeamCity service messages (`tests` events). */
   testRunner?: boolean;
+  /** External Tools output filters (`$FILE_PATH$:$LINE$`) that link file references. */
+  outputFilters?: string[];
+  /** Run with Coverage: the run ends with a `coverage` event. */
+  coverage?: boolean;
+  /** A debug port the run target must make reachable (DAP adapters). */
+  debugPort?: { port: number; direction: "connectsToIde" | "ideConnects" };
+  /** "Run on" for command lines built in the UI. */
+  runOn?: RunTarget;
+  /** Profile (Python): run under cProfile; the run ends with a `profile` event. */
+  profile?: boolean;
+  /** C/C++: run under Valgrind Memcheck or perf; the run ends with a `valgrind` / `perf` event. */
+  nativeTool?: import("./cppTools").NativeTool;
+  /** Profile with Xdebug / SPX (PHP) or V8 (Node.js); the run ends with a `profiler` event. */
+  profiler?: import("./profiler").RunProfiler;
 }
 
 export interface RunStarted {
@@ -149,7 +203,13 @@ export type RunEvent =
   | { type: "output"; stream: OutputStream; text: string }
   | { type: "exited"; code: number | null; signal: number | null }
   | ({ type: "console" } & ConsoleDelta)
-  | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary };
+  | { type: "tests"; nodes: TestNodeData[]; summary: TestSummary }
+  | { type: "coverage"; suite?: import("./testing").CoverageSuite; error?: string }
+  | { type: "profile"; profile?: import("./pythonTools").ProfileInfo; error?: string }
+  | { type: "sanitizer"; reports: import("./cppTools").SanitizerReport[] }
+  | { type: "valgrind"; report?: import("./cppTools").ValgrindReport; error?: string }
+  | { type: "perf"; profile?: import("./cppTools").PerfProfile; error?: string }
+  | { type: "profiler"; snapshot?: import("./profiler").Snapshot; path?: string; profiler?: import("./profiler").RunProfiler; error?: string };
 
 /** A file reference in terminal output; offsets are string indices. */
 export interface FileLink {

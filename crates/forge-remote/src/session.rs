@@ -66,6 +66,13 @@ impl ConnectParams {
         local_user: &str,
     ) -> Self {
         let home_str = home.to_string_lossy();
+        // "Parse config file ~/.ssh/config" off: the host is taken literally.
+        let empty = crate::ssh_config::SshConfig::default();
+        let ssh_config = if config.parse_config {
+            ssh_config
+        } else {
+            &empty
+        };
         let resolved = ssh_config.resolve(config.host.trim(), &home_str, local_user);
         let port = match (config.port, resolved.port) {
             (22, Some(p)) => p,
@@ -679,6 +686,53 @@ impl SshSession {
         Ok(channel.into_stream())
     }
 
+    /// A stream to a subsystem of the server (`sftp` for deployment servers).
+    pub async fn open_subsystem(
+        &self,
+        name: &str,
+    ) -> std::result::Result<ChannelStream<client::Msg>, ConnectError> {
+        let channel = self.handle.channel_open_session().await.map_err(other)?;
+        channel
+            .request_subsystem(true, name)
+            .await
+            .map_err(|e| ConnectError::Other {
+                message: format!("The server refused the {name} subsystem: {e}"),
+            })?;
+        Ok(channel.into_stream())
+    }
+
+    /// An interactive shell on a pseudo terminal (`ssh -t`): a session channel with a
+    /// `pty-req` for `term` at `cols` x `rows` and a `shell` request.
+    pub async fn open_shell(
+        &self,
+        term: &str,
+        cols: u16,
+        rows: u16,
+    ) -> std::result::Result<russh::Channel<client::Msg>, ConnectError> {
+        let channel = self.handle.channel_open_session().await.map_err(other)?;
+        channel
+            .request_pty(
+                false,
+                term,
+                cols.max(1).into(),
+                rows.max(1).into(),
+                0,
+                0,
+                &[],
+            )
+            .await
+            .map_err(|e| ConnectError::Other {
+                message: format!("The server refused a pseudo terminal: {e}"),
+            })?;
+        channel
+            .request_shell(false)
+            .await
+            .map_err(|e| ConnectError::Other {
+                message: format!("The server refused a shell: {e}"),
+            })?;
+        Ok(channel)
+    }
+
     /// A stream to a Unix socket on the host (`direct-streamlocal@openssh.com`, like
     /// `ssh -L local:/var/run/docker.sock`).
     pub async fn open_streamlocal(
@@ -908,6 +962,7 @@ mod tests {
             key_file: Some("~/.ssh/deploy_key".into()),
             dont_save_secret: false,
             name: None,
+            parse_config: true,
         };
         let home = Path::new("/home/me");
         let p = ConnectParams::for_configuration(&config, &ssh, home, "me");
@@ -920,6 +975,15 @@ mod tests {
             .identity_files
             .contains(&PathBuf::from("/home/me/.ssh/id_ed25519")));
         assert_eq!(p.known_hosts, PathBuf::from("/home/me/.ssh/known_hosts"));
+
+        // "Parse config file" off: the alias is the host name.
+        let literal = crate::config::SshConfiguration {
+            parse_config: false,
+            ..config.clone()
+        };
+        let p = ConnectParams::for_configuration(&literal, &ssh, home, "me");
+        assert_eq!((p.host.as_str(), p.port), ("shop", 22));
+        assert_eq!(p.user, "me");
 
         // Explicit values win over the ssh config.
         let explicit = crate::config::SshConfiguration {
@@ -945,6 +1009,7 @@ mod tests {
             key_file: None,
             dont_save_secret: false,
             name: None,
+            parse_config: true,
         };
         let home = Path::new("/home/me");
         let p = ConnectParams::for_configuration(&config("db.internal"), &ssh, home, "me");

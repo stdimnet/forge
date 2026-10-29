@@ -1,12 +1,18 @@
 /** Browser-mode backend. Features add their own `*Mock.ts` imports here. */
 import "./settingsMock";
+import "./maintenanceMock";
 import "./keymapMock";
+import "./colorSchemeMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";
 import "./collabMock";
 import "./collabGuestMock";
+import "./devenvMock";
+import "./deploymentMock";
+import "./remoteHostMock";
 import "./workspaceMock";
+import "./projectStructureMock";
 import "./textMock";
 import "./codeStyleMock";
 import "./editingMock";
@@ -14,7 +20,9 @@ import "./clipboardMock";
 import "./vimMock";
 import "./projectStateMock";
 import "./aiMock";
+import "./aiEditorMock";
 import "./agentMock";
+import "./agentTasksMock";
 import "./lspMock";
 import "./inlayHintsMock";
 import "./langserversMock";
@@ -22,6 +30,7 @@ import "./fuzzyMock";
 import "./searchMock";
 import "./findMock";
 import "./scopesMock";
+import "./inspectionsMock";
 import "./replaceMock";
 import "./ssrMock";
 import "./stacktraceMock";
@@ -29,12 +38,23 @@ import "./workbenchMock";
 import "./gitMock";
 import "./gitHistoryMock";
 import "./gitOpsMock";
+import "./gitChangesMock";
+import "./gitLogMock";
+import "./gitExtrasMock";
 import "./compareMock";
 import "./phpMock";
+import "./phpMetaMock";
+import "./phpInterpretersMock";
 import "./composerMock";
+import "./vulnerabilitiesMock";
+import "./qualityToolsMock";
+import "./webQualityToolsMock";
 import "./codeintelMock";
+import "./importsMock";
 import "./refactorMock";
 import "./moveMock";
+import "./refactorHierarchyMock";
+import "./extractComponentMock";
 import "./hierarchyMock";
 import "./documentationMock";
 import "./relatedMock";
@@ -42,12 +62,47 @@ import "./goToTestMock";
 import "./companionMock";
 import "./terminalMock";
 import "./runMock";
+import "./coverageMock";
+import "./runToolsMock";
 import "./scratchesMock";
 import "./debugMock";
+// Wraps the debug_* mocks for debug adapter sessions.
+import "./dapMock";
+import "./jsDebugMock";
 import "./dbMock";
+import "./dbSchemaMock";
+import "./dbObjectsMock";
+import "./dataeditMock";
+import "./sqlMock";
 import "./laravelMock";
+import "./laravelDashboardMock";
+import "./cliToolsMock";
 import "./symfonyMock";
+import "./wordpressMock";
 import "./luaMock";
+import "./pythonMock";
+import "./goMock";
+import "./rustMock";
+import "./rubyMock";
+import "./railsMock";
+import "./dotnetMock";
+// pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
+import "./pythonToolsMock";
+import "./pythonDebugMock";
+// Django, Flask, FastAPI and Celery (pyforge-frameworks through WebAssembly).
+import "./pythonWebMock";
+import "./jupyterMock";
+// JavaForge: wraps run_start / run_command_line and the DAP mocks for Java sessions.
+import "./javaMock";
+import "./javaDebugMock";
+import "./kotlinMock";
+// Spring Boot (`?project=spring`): wraps run_start for Spring Boot configurations.
+import "./springMock";
+import "./jvmExtrasMock";
+import "./androidMock";
+import "./cppMock";
+// Xdebug, SPX and V8 profiler snapshots (forge-profiler through WebAssembly).
+import "./profilerMock";
 import "./doctrineMock";
 import "./forgesMock";
 import "./markdownMock";
@@ -59,10 +114,16 @@ import "./spellMock";
 import "./jsonSchemaMock";
 import "./servicesMock";
 import "./webMock";
+import "./webToolingMock";
 import "./saveActionsMock";
 import "./windowMock";
+import "./projectWindowsMock";
 import "./updatesMock";
 import "./templatesMock";
+// Wraps workspace_open and the run mocks (Safe Mode).
+import "./trustMock";
+// Wraps the file mocks above, so it comes last.
+import "./localHistoryMock";
 
 // File types answer synchronously once the WebAssembly build is loaded; wait for it so the
 // first editors do not start as plain text.

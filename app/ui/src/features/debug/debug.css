@@ -772,3 +772,435 @@ textarea.dbg-input {
   font-size: var(--fs-small);
   color: var(--fg);
 }
+
+/* Logpoints (non-suspending) and temporary breakpoints */
+.dbg-bp-dot.log:not(.off) {
+  background: var(--warning);
+}
+.dbg-bp-dot.log.off {
+  border-color: var(--warning);
+}
+.dbg-bp-dot.temp:not(.off) {
+  box-shadow: 0 0 0 1.5px var(--bg-panel), 0 0 0 3px var(--fg-muted);
+}
+.dbg-bp-props {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dbg-bp-group-title {
+  margin-top: 4px;
+  color: var(--fg-muted);
+}
+.dbg-bp-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+}
+.dbg-pass {
+  grid-template-columns: auto 90px 1fr;
+}
+
+/* Expression field: completion and history */
+.dbg-expr {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.dbg-expr-input {
+  flex: 1;
+  min-width: 0;
+}
+.dbg-completions {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 2px);
+  z-index: 120;
+  min-width: 260px;
+  max-width: 480px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 3px 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.dbg-completions.dbg-history {
+  left: auto;
+  right: 0;
+}
+.dbg-completion {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  cursor: default;
+  white-space: nowrap;
+}
+.dbg-completion.selected,
+.dbg-completion:hover {
+  background: var(--bg-selection);
+}
+.dbg-completion-detail {
+  margin-left: auto;
+  padding-left: 16px;
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Console input and results */
+.dbg-console-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--border);
+}
+.dbg-console-prompt {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.dbg-out-log {
+  color: var(--warning);
+}
+.dbg-out-input {
+  color: var(--fg-muted);
+}
+.dbg-out-input::before {
+  content: "> ";
+  color: var(--accent);
+}
+.dbg-console-value {
+  display: block;
+  font-family: var(--font-ui);
+  white-space: normal;
+}
+
+/* Set Value */
+.dbg-value-edit {
+  flex: 1;
+  min-width: 120px;
+  height: 20px;
+  padding: 0 4px;
+}
+
+/* Web Server Debug Validation */
+.dbg-validate {
+  width: 820px;
+  max-width: calc(100vw - 40px);
+}
+.dbg-validate .dbg-dialog-body {
+  gap: 10px;
+  overflow: auto;
+}
+.dbg-validate-mode {
+  display: flex;
+  gap: 16px;
+}
+.dbg-validate-form {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 10px;
+}
+.dbg-checks {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  max-height: 420px;
+  overflow: auto;
+}
+.dbg-check-row {
+  display: grid;
+  grid-template-columns: 18px minmax(150px, auto) 1fr;
+  gap: 4px 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.dbg-check-row:last-child {
+  border-bottom: none;
+}
+.dbg-check-hint {
+  grid-column: 2 / 4;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.dbg-status-ok {
+  color: var(--success);
+}
+.dbg-status-warning {
+  color: var(--warning);
+}
+.dbg-status-error {
+  color: var(--danger);
+}
+.dbg-status-info {
+  color: var(--info);
+}
+.dbg-console-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.dbg-console-main .dbg-console {
+  flex: 1;
+}
+.dbg-console-value .dbg-row {
+  padding-left: 0 !important;
+}
+/* The console's field is at the bottom: its popups open upwards. */
+.dbg-console-input .dbg-completions {
+  top: auto;
+  bottom: calc(100% + 2px);
+}
+
+/* Path mappings tree (Settings | PHP | Servers) */
+.dbg-mappings-head {
+  grid-template-columns: 1fr 1fr;
+}
+.dbg-mappings-body {
+  max-height: 320px;
+  overflow: auto;
+}
+.dbg-mappings-body .dbg-mapping-row {
+  grid-template-columns: 1fr 1fr;
+  min-height: 28px;
+  padding: 2px 8px;
+}
+.dbg-mapping-file {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.dbg-mapping-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbg-mapping-row.mapped .dbg-mapping-name {
+  color: var(--fg-strong);
+  font-weight: 500;
+}
+.dbg-mappings-body .dbg-input {
+  height: 22px;
+}
+/* Empty cells read like table cells until edited. */
+.dbg-mappings-body .dbg-input:not(:focus):placeholder-shown {
+  background: transparent;
+  border-color: transparent;
+}
+.dbg-mappings-body .dbg-mapping-row:hover .dbg-input:not(:focus):placeholder-shown {
+  border-color: var(--border);
+}
+
+/* ---- debug adapter sessions: threads, native views, attach dialogs ---- */
+
+.dbg-threads {
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.dbg-thread-select {
+  width: 100%;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: var(--fs-small);
+}
+.dbg-icon-scope {
+  color: var(--fg-muted);
+}
+.dbg-native {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.dbg-native-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dbg-native-note {
+  margin-left: 8px;
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dbg-mem-addr {
+  width: 220px;
+}
+.dbg-memory,
+.dbg-asm,
+.dbg-registers {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0;
+}
+.dbg-mem-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 22px;
+  padding: 0 12px;
+  white-space: pre;
+}
+.dbg-mem-row:hover {
+  background: var(--bg-hover);
+}
+.dbg-mem-address {
+  color: var(--fg-muted);
+  min-width: 130px;
+}
+.dbg-mem-hex {
+  display: flex;
+  gap: 6px;
+}
+.dbg-mem-byte {
+  color: var(--syn-number);
+  min-width: 2ch;
+  cursor: default;
+}
+.dbg-mem-byte.zero {
+  color: var(--fg-faint);
+}
+.dbg-mem-byte.gap {
+  margin-left: 8px;
+}
+.dbg-mem-byte.unreadable {
+  color: var(--fg-faint);
+}
+.dbg-mem-edit {
+  width: 3ch;
+  height: 18px;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--fg-strong);
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+}
+.dbg-mem-ascii {
+  color: var(--syn-string, var(--fg));
+}
+.dbg-asm-row {
+  display: grid;
+  grid-template-columns: 16px 150px 120px minmax(240px, 1fr) minmax(120px, auto) 90px;
+  align-items: center;
+  gap: 10px;
+  height: 22px;
+  padding: 0 12px 0 6px;
+  white-space: pre;
+}
+.dbg-asm-row:hover {
+  background: var(--bg-hover);
+}
+.dbg-asm-row.current {
+  background: color-mix(in srgb, var(--info) 22%, transparent);
+}
+.dbg-asm-marker {
+  color: var(--info);
+}
+.dbg-asm-address {
+  color: var(--fg-muted);
+}
+.dbg-asm-bytes {
+  color: var(--fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dbg-asm-text {
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dbg-asm-symbol {
+  color: var(--syn-function);
+}
+.dbg-asm-source {
+  color: var(--fg-muted);
+  text-align: right;
+}
+.dbg-attach {
+  width: 760px;
+}
+.dbg-attach .dbg-dialog-body {
+  height: 480px;
+}
+.dbg-attach-server,
+.dbg-core-dump {
+  width: 520px;
+}
+.dbg-attach-filter {
+  flex: 1;
+}
+.dbg-adapter-select {
+  min-width: 140px;
+}
+.dbg-process-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-editor);
+}
+.dbg-process-row {
+  display: grid;
+  grid-template-columns: 70px 160px 90px 1fr;
+  gap: 10px;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  white-space: nowrap;
+  cursor: default;
+}
+.dbg-process-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dbg-process-row:hover:not(.dbg-process-head) {
+  background: var(--bg-hover);
+}
+.dbg-process-row.selected {
+  background: var(--accent-soft);
+}
+.dbg-process-head {
+  position: sticky;
+  top: 0;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.dbg-form-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+.dbg-form-grid > label {
+  color: var(--fg-muted);
+}
+.dbg-json {
+  min-height: 72px;
+}

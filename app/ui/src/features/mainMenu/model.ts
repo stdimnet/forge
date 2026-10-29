@@ -60,6 +60,16 @@ export function registerMainMenuToggle(actionId: string, isOn: () => boolean): v
   toggles.set(actionId, isOn);
 }
 
+const labels = new Map<string, () => string | undefined>();
+
+/**
+ * Give an action a label that follows its state ("Exit _Presentation Mode"); `undefined`
+ * keeps the built-in label.
+ */
+export function registerMainMenuLabel(actionId: string, label: () => string | undefined): void {
+  labels.set(actionId, label);
+}
+
 /** Main menu contributions of the given plugins' manifests (`[[contributions.mainMenu]]`). */
 export function manifestContributions(plugins: PluginInfo[]): MainMenuContribution[] {
   return plugins.flatMap((p) => p.contributions?.mainMenu ?? []);
@@ -91,11 +101,20 @@ export async function buildRequest(opts: { git: boolean; plugins: PluginInfo[] }
     }),
   );
   const checked = [...toggles].filter(([, on]) => safely(on)).map(([id]) => id);
+  const stateLabels: Record<string, string> = {};
+  for (const [id, label] of labels) {
+    try {
+      const text = label();
+      if (text) stateLabels[id] = text;
+    } catch {
+      /* keep the built-in label */
+    }
+  }
   const ui = contributions
     .filter((c) => !c.when || safely(c.when))
     .map(({ when: _when, ...c }) => c);
   return {
-    request: { contributions: [...manifestContributions(opts.plugins), ...ui], dynamic, checked, git: opts.git },
+    request: { contributions: [...manifestContributions(opts.plugins), ...ui], dynamic, checked, labels: stateLabels, git: opts.git },
     handlers,
   };
 }

@@ -1,0 +1,479 @@
+# RubyForge: Ruby in the style of RubyMine. The logic lives in packs/rubyforge (lang-ruby:
+# version files, Gemfile / Gemfile.lock, Rake tasks, RSpec / Minitest discovery and the
+# test provider, Ruby / Rake / Bundler / IRB / rdbg command lines, RuboCop reports; sdk:
+# interpreters and version managers, gem executables, ruby-lsp installs, the rdbg debug
+# adapter). Ruby LSP comes from the language server catalog (crates/forge-langservers) and
+# is configured from these settings (app/src-tauri/src/commands/ruby.rs).
+
+[[plugin]]
+id = "forge.ruby"
+name = "Ruby"
+version = "0.1.0"
+pack = "rubyforge"
+vendor = "Forge"
+projectTypes = ["rubyforge"]
+description = "Ruby interpreters of rbenv, rvm, chruby, asdf and mise, Bundler (Gemfile, gems in External Libraries), Rake tasks, Ruby and Rake run configurations, RSpec and Minitest, rdbg debugging, RuboCop inspections and autocorrect, Ruby LSP, ERB and the IRB console."
+
+[plugin.contributions]
+languages = ["ruby", "erb"]
+
+[[plugin.contributions.fileTypes]]
+id = "ruby"
+name = "Ruby"
+extensions = ["rb", "rake", "gemspec", "ru", "rbw", "jbuilder", "builder"]
+fileNames = ["Gemfile", "gems.rb", "Rakefile", "rakefile", "Guardfile", "Capfile", "Vagrantfile", "Brewfile", "Podfile", "Fastfile", "Appfile", "Steepfile", ".irbrc", ".pryrc"]
+interpreters = ["ruby", "jruby", "truffleruby"]
+indentSize = 2
+
+[[plugin.contributions.fileTypes]]
+id = "gemfile-lock"
+name = "Gemfile.lock"
+fileNames = ["Gemfile.lock", "gems.locked"]
+indentSize = 2
+
+[[plugin.contributions.commands]]
+id = "ruby.bundleInstall"
+title = "Bundle Install"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.bundleUpdate"
+title = "Bundle Update"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.bundleOutdated"
+title = "Show Outdated Gems (bundle outdated)"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.reloadRake"
+title = "Reload Rake Tasks"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.runRakeTask"
+title = "Run Rake Task…"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.rubocop"
+title = "Inspect Code with RuboCop"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.rubocopAutocorrect"
+title = "RuboCop: Autocorrect File"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.irbConsole"
+title = "Run IRB Console"
+category = "Ruby"
+
+[[plugin.contributions.commands]]
+id = "ruby.installRubyLsp"
+title = "Install Ruby LSP…"
+category = "Ruby"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "ruby"
+name = "Ruby"
+description = "Run a Ruby script with the project's interpreter, through bundle exec in Bundler projects."
+icon = "gem"
+debuggable = true
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "rake"
+name = "Rake"
+description = "Run a Rake task with its arguments."
+icon = "hammer"
+debuggable = true
+
+# The RSpec and Minitest provider (rubyforge_lang_ruby::provider) wraps these specs:
+# discovery of example groups, examples, test classes and methods, `rspec` / `ruby -Itest`
+# command lines through bundle exec, the results (RSpec's JSON report, Minitest's verbose
+# output) and Rerun Failed Tests are built in Rust.
+[[plugin.contributions.testFrameworks]]
+id = "rspec"
+name = "RSpec"
+description = "Run RSpec: all specs, a folder, a file, an example group or example (file:line), or examples whose description matches."
+icon = "flask-conical"
+language = "ruby"
+detect = { files = [".rspec", "spec/spec_helper.rb"], dependencies = [{ file = "Gemfile.lock", contains = "rspec-core" }, { file = "Gemfile", contains = "rspec" }] }
+testFiles = ["*_spec.rb"]
+program = "rspec"
+report = "jUnitFile"
+debuggable = true
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}"]
+pattern = ["${pattern}"]
+
+[[plugin.contributions.testFrameworks]]
+id = "minitest"
+name = "Minitest"
+description = "Run Minitest (and test-unit style) tests: a folder, a file, a test class or method, or tests whose name matches."
+icon = "flask-conical"
+language = "ruby"
+detect = { files = ["test/test_helper.rb", "test/**/*_test.rb", "test/**/test_*.rb"], dependencies = [{ file = "Gemfile.lock", contains = "    minitest (" }, { file = "Gemfile", contains = "minitest" }] }
+testFiles = ["*_test.rb", "test_*.rb"]
+program = "ruby"
+report = "minitestText"
+debuggable = true
+fields = [
+  { key = "class", label = "Test class", placeholder = "Shop::CartTest (with Scope: Test)" },
+]
+
+[plugin.contributions.testFrameworks.scopes]
+all = []
+directory = ["${directory}"]
+file = ["${file}"]
+test = ["${file}", "${test}"]
+pattern = ["${pattern}"]
+
+# ---- Settings | Languages & Frameworks | Ruby ---------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "ruby.interpreter"
+title = "Ruby interpreter"
+description = "The project's Ruby: an interpreter's path or name (rbenv: 3.3.6). Empty: the version .ruby-version, .tool-versions, mise.toml or the Gemfile asks for, else the version manager's global version, else the newest."
+type = "string"
+default = ""
+group = "lang.ruby"
+section = "Ruby SDK"
+project = true
+hidden = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "ruby.interpreters"
+title = "Added interpreters"
+description = "Ruby executables added by hand (Add Interpreter…); detected ones are listed without this."
+type = "list"
+default = []
+group = "lang.ruby"
+section = "Ruby SDK"
+hidden = true
+order = 1
+
+[[plugin.contributions.settings]]
+key = "ruby.environment"
+title = "Environment"
+description = "Variables for Ruby, Bundler, Rake and test commands of the project, one KEY=VALUE per entry (RUBYOPT, BUNDLE_GEMFILE, RAILS_ENV)."
+type = "list"
+default = []
+group = "lang.ruby"
+section = "Ruby SDK"
+project = true
+order = 2
+
+[[plugin.contributions.settings]]
+key = "ruby.bundler.useBundleExec"
+title = "Run commands with bundle exec"
+description = "In projects with a Gemfile, Ruby scripts, Rake, RSpec, Minitest, RuboCop and IRB run through bundle exec, with the gems of the bundle."
+type = "bool"
+default = true
+group = "lang.ruby"
+section = "Bundler"
+project = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "ruby.bundler.path"
+title = "bundle executable"
+description = "Empty: the interpreter's bundle, then PATH."
+type = "path"
+default = ""
+group = "lang.ruby"
+section = "Bundler"
+order = 11
+
+[[plugin.contributions.settings]]
+key = "ruby.rake.runRake"
+title = "Load tasks with rake --tasks"
+description = "The Rake tool window asks Rake for every task (rake --tasks --all), which loads the Rakefile and runs project code (trusted projects only). Off: tasks are read from the Rakefile and lib/tasks/*.rake without running Rake."
+type = "bool"
+default = true
+group = "lang.ruby"
+section = "Rake"
+project = true
+order = 20
+
+[[plugin.contributions.settings]]
+key = "ruby.formatter"
+title = "Reformat Code with"
+description = "Ctrl+Alt+L and \"Reformat code\" on save use this tool for Ruby files."
+type = "enum"
+options = [
+  { value = "rubocop", label = "RuboCop (safe autocorrect, -a)" },
+  { value = "rubocopAll", label = "RuboCop (all autocorrect, -A)" },
+  { value = "lsp", label = "Ruby LSP" },
+  { value = "none", label = "Do not format" },
+]
+default = "rubocop"
+group = "lang.ruby"
+section = "RuboCop"
+project = true
+order = 30
+
+[[plugin.contributions.settings]]
+key = "ruby.rubocop.onTheFly"
+title = "Check files with RuboCop"
+description = "RuboCop checks open Ruby files after a pause in typing and after saves; offenses appear in the editor and the Problems tool window (trusted projects only: RuboCop loads the project's configuration and plugins)."
+type = "bool"
+default = true
+group = "lang.ruby"
+section = "RuboCop"
+project = true
+order = 31
+
+[[plugin.contributions.settings]]
+key = "ruby.rubocop.path"
+title = "rubocop executable"
+description = "Empty: bundle exec rubocop in Bundler projects that have RuboCop in their bundle, else the interpreter's rubocop, then PATH."
+type = "path"
+default = ""
+group = "lang.ruby"
+section = "RuboCop"
+order = 32
+
+[[plugin.contributions.settings]]
+key = "ruby.rubocop.options"
+title = "Additional options"
+description = "Passed to every RuboCop run, e.g. --only Style,Lint or --config .rubocop.local.yml."
+type = "string"
+default = ""
+group = "lang.ruby"
+section = "RuboCop"
+project = true
+order = 33
+
+[[plugin.contributions.settings]]
+key = "ruby.lsp.path"
+title = "ruby-lsp executable"
+description = "Empty: the project interpreter's ruby-lsp, Forge's install for this Ruby, then PATH. Forge installs Ruby LSP (MIT) only when you ask, with your gem into Forge's data folder."
+type = "path"
+default = ""
+group = "lang.ruby"
+section = "Ruby LSP"
+order = 40
+
+[[plugin.contributions.settings]]
+key = "ruby.lsp.formatter"
+title = "Ruby LSP formatter"
+description = "The formatter Ruby LSP uses for formatting and diagnostics."
+type = "enum"
+options = [
+  { value = "auto", label = "Automatic (RuboCop when in the bundle)" },
+  { value = "rubocop_internal", label = "RuboCop" },
+  { value = "syntax_tree", label = "Syntax Tree" },
+  { value = "none", label = "None" },
+]
+default = "auto"
+group = "lang.ruby"
+section = "Ruby LSP"
+project = true
+order = 41
+
+[[plugin.contributions.settings]]
+key = "ruby.debugger.rdbgPath"
+title = "rdbg executable"
+description = "The debug gem's rdbg. Empty: bundle exec rdbg in Bundler projects with debug in their bundle, else the interpreter's rdbg, then PATH. Forge can install the debug gem with your gem."
+type = "path"
+default = ""
+group = "lang.ruby"
+section = "Debugger"
+order = 50
+
+[[plugin.contributions.inspections]]
+id = "RuboCop"
+name = "RuboCop"
+group = "Ruby/External tools"
+language = "ruby"
+severity = "WEAK WARNING"
+external = true
+batch = false
+description = "Offenses reported by RuboCop with the project's .rubocop.yml; they keep RuboCop's level (convention, warning, error) until the profile sets a severity."
+
+[[plugin.contributions.inspectionMappings]]
+source = "rubocop"
+inspection = "RuboCop"
+
+# ---- Rails ------------------------------------------------------------------------------------
+# RubyMine's Ruby on Rails support. The analysis lives in packs/rubyforge/fw-rails (routes,
+# controllers, views, models with schema.rb / migration columns, database.yml, locales,
+# Stimulus and Turbo; Go to Declaration, completion, gutter marks, inspections, folds) and is
+# served by app/src-tauri/src/commands/rails.rs. Go to Related lives in
+# forge_codeintel::related.
+
+[[plugin]]
+id = "forge.rails"
+name = "Ruby on Rails"
+version = "0.1.0"
+pack = "rubyforge"
+vendor = "Forge"
+depends = ["forge.ruby"]
+projectTypes = ["rails"]
+description = "Rails applications: routes in the Endpoints tool window (config/routes.rb or bin/rails routes) with HTTP requests, navigation between models, controllers, views, helpers, tests and migrations, route helpers, partials and translations, the Run Rails Generator dialog, the Rails console and Rails server configurations, data sources from config/database.yml, model attribute completion from schema.rb and migrations, I18n keys with folding and inspections, Stimulus and Turbo in views."
+
+[[plugin.contributions.commands]]
+id = "rails.generate"
+title = "Run Rails Generator…"
+category = "Rails"
+
+[[plugin.contributions.commands]]
+id = "rails.destroy"
+title = "Destroy Generated Code…"
+category = "Rails"
+
+[[plugin.contributions.commands]]
+id = "rails.console"
+title = "Run Rails Console"
+category = "Rails"
+
+[[plugin.contributions.commands]]
+id = "rails.dbconsole"
+title = "Run Rails Database Console"
+category = "Rails"
+
+[[plugin.contributions.commands]]
+id = "rails.addDataSources"
+title = "Add Data Sources from database.yml"
+category = "Rails"
+
+[[plugin.contributions.commands]]
+id = "rails.reload"
+title = "Reload Rails Project"
+category = "Rails"
+
+[[plugin.contributions.runConfigurationTypes]]
+id = "rails"
+name = "Rails"
+description = "Run bin/rails server on a host and port in an environment; debug with rdbg."
+icon = "train-front"
+debuggable = true
+
+# ---- Settings | Languages & Frameworks | Ruby | Rails ------------------------------------------
+
+[[plugin.contributions.settings]]
+key = "rails.routesFromRails"
+title = "Read routes with bin/rails routes"
+description = "The Endpoints tool window asks Rails for the routes, with those of engines and gems (trusted projects only: it boots the application). Off: config/routes.rb is read without running anything."
+type = "bool"
+default = false
+group = "lang.rails"
+section = "Routes"
+project = true
+order = 0
+
+[[plugin.contributions.settings]]
+key = "rails.generatorsFromRails"
+title = "List generators with bin/rails generate"
+description = "The Run Rails Generator dialog lists the generators of the application and its gems (trusted projects only). Off: Rails' own generators and lib/generators."
+type = "bool"
+default = true
+group = "lang.rails"
+section = "Generators"
+project = true
+order = 10
+
+[[plugin.contributions.settings]]
+key = "rails.console.environment"
+title = "Console environment"
+description = "The environment of the Rails console and database console (empty: development)."
+type = "string"
+default = ""
+group = "lang.rails"
+section = "Console"
+project = true
+order = 20
+
+[[plugin.contributions.settings]]
+key = "rails.console.sandbox"
+title = "Run the console in a sandbox"
+description = "bin/rails console --sandbox: changes to the database are rolled back on exit."
+type = "bool"
+default = false
+group = "lang.rails"
+section = "Console"
+project = true
+order = 21
+
+[[plugin.contributions.settings]]
+key = "rails.i18n.folding"
+title = "Fold translation calls"
+description = "t(\".title\") shows the text of the default locale; the key shows while the caret is on it."
+type = "bool"
+default = true
+group = "lang.rails"
+section = "I18n"
+order = 30
+
+[[plugin.contributions.settings]]
+key = "rails.i18n.inspection"
+title = "Report missing translations"
+description = "Keys missing in config/locales are warnings; keys missing in some locales are weak warnings."
+type = "bool"
+default = true
+group = "lang.rails"
+section = "I18n"
+order = 31
+
+[[plugin.contributions.settings]]
+key = "rails.database.suggest"
+title = "Offer data sources from database.yml"
+description = "When a Rails project opens, a balloon offers the databases of config/database.yml that the Database tool window does not have yet."
+type = "bool"
+default = true
+group = "lang.rails"
+section = "Database"
+order = 40
+
+[[plugin.contributions.inspections]]
+id = "RailsI18nMissing"
+name = "Missing translation"
+group = "Ruby/Rails"
+language = "ruby"
+severity = "WARNING"
+external = true
+batch = false
+description = "A t(…) key that config/locales does not define (or that some locales miss)."
+
+[[plugin.contributions.inspections]]
+id = "RailsMissingView"
+name = "Unresolved partial or template"
+group = "Ruby/Rails"
+language = "ruby"
+severity = "WARNING"
+external = true
+batch = false
+description = "render or layout names a partial, template or layout that app/views does not have."
+
+[[plugin.contributions.inspections]]
+id = "RailsStimulus"
+name = "Unknown Stimulus controller, action or target"
+group = "Ruby/Rails"
+language = "ruby"
+severity = "WARNING"
+external = true
+batch = false
+description = "data-controller, data-action and data-*-target name controllers, methods or targets that app/javascript/controllers does not define."
+
+[[plugin.contributions.inspectionMappings]]
+source = "rails"
+code = "RailsI18nMissing"
+inspection = "RailsI18nMissing"
+
+[[plugin.contributions.inspectionMappings]]
+source = "rails"
+code = "RailsMissingView"
+inspection = "RailsMissingView"
+
+[[plugin.contributions.inspectionMappings]]
+source = "rails"
+code = "RailsStimulus"
+inspection = "RailsStimulus"

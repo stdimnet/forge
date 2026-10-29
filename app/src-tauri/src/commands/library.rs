@@ -5,8 +5,8 @@
 //!   Runtime"; see `forge_langservers::managed::stubs`), indexed once with
 //!   `phpforge_lang_php::stubs::StubIndex`.
 //! - `library://file/<absolute path>`: a file outside the project that a language server
-//!   pointed to (e.g. Intelephense's own stubs). Only paths handed out by a navigation
-//!   answer can be read.
+//!   pointed to (e.g. php-lsp's own stubs). Only paths handed out by a navigation answer can
+//!   be read.
 //!
 //! IPC: `library_read({ path }) -> LibraryFile`. Stub downloads report
 //! `langservers://install-progress` `{ id: "php-stubs", label, done, total }`.
@@ -35,7 +35,6 @@ pub const FILE_PREFIX: &str = "library://file/";
 enum StubsSource {
     Setting(PathBuf),
     Downloaded(String),
-    Intelephense(PathBuf),
 }
 
 impl StubsSource {
@@ -43,7 +42,6 @@ impl StubsSource {
         match self {
             StubsSource::Setting(p) => format!("Stubs from {}", p.display()),
             StubsSource::Downloaded(v) => format!("JetBrains phpstorm-stubs {v} (Apache-2.0)"),
-            StubsSource::Intelephense(_) => "Intelephense's PHP stubs".into(),
         }
     }
 }
@@ -70,26 +68,6 @@ fn stubs_setting(ws: &AppState) -> String {
         .and_then(Value::as_str)
         .map(|s| s.trim().to_string())
         .unwrap_or_default()
-}
-
-/// Intelephense installations on this machine: Forge's own, then one on `PATH`.
-fn intelephense_candidates() -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    if let Some((_, script)) = forge_langservers::Detector::system().managed_launch("intelephense")
-    {
-        out.push(script);
-    }
-    if let Some(path) = std::env::var_os("PATH") {
-        for dir in std::env::split_paths(&path) {
-            for name in ["intelephense", "intelephense.cmd"] {
-                let p = dir.join(name);
-                if p.is_file() {
-                    out.push(p.canonicalize().unwrap_or(p));
-                }
-            }
-        }
-    }
-    out
 }
 
 /// Turn a workspace-relative-free path into its parts, refusing `..` and absolute parts.
@@ -130,8 +108,6 @@ impl LibraryState {
             .is_some()
         {
             StubsSource::Downloaded(release.version.clone())
-        } else if let Some(dir) = stubs::intelephense_stubs(&intelephense_candidates()) {
-            StubsSource::Intelephense(dir)
         } else if download {
             let base = base.clone().ok_or("no cache folder for the PHP stubs")?;
             match self.download(app, &base, &release).await {
@@ -145,7 +121,7 @@ impl LibraryState {
             return Err("PHP stubs are not available yet".into());
         };
         let dir = match &source {
-            StubsSource::Setting(p) | StubsSource::Intelephense(p) => p.clone(),
+            StubsSource::Setting(p) => p.clone(),
             StubsSource::Downloaded(v) => base
                 .map(|b| b.join(v))
                 .ok_or("no cache folder for the PHP stubs")?,
@@ -201,6 +177,17 @@ impl LibraryState {
             }
         };
         stubs::ensure(&http, base, release, &mut on).await
+    }
+
+    /// A path of the PHP index as the UI opens it: workspace-relative paths stay, absolute
+    /// ones (include paths) become granted `library://file/…` paths.
+    pub fn ui_path(&self, path: &str) -> String {
+        let p = Path::new(path);
+        if path.starts_with('/') || p.is_absolute() {
+            self.grant(p)
+        } else {
+            path.to_string()
+        }
     }
 
     /// The UI path of a file outside the project a navigation answer points to; it may be
@@ -277,8 +264,11 @@ pub async fn read_library(
             ));
         }
         let detail = abs.display().to_string();
-        let text = blocking(move || {
-            std::fs::read_to_string(&abs).map_err(|e| ForgeError::Other(e.to_string()))
+        // A remote project's include paths live on its host.
+        let remote = ws.is_remote().then(|| ws.backend()).transpose()?;
+        let text = blocking(move || match remote {
+            Some(backend) => backend.php().library_read(&abs.to_string_lossy()),
+            None => std::fs::read_to_string(&abs).map_err(|e| ForgeError::Other(e.to_string())),
         })
         .await?;
         return Ok(LibraryFile {
@@ -311,15 +301,12 @@ mod tests {
     #[test]
     fn granted_files_get_library_paths() {
         let lib = LibraryState::default();
-        let p = lib.grant(Path::new("/opt/intelephense/lib/stub/Core/Core_c.php"));
-        assert_eq!(
-            p,
-            "library://file//opt/intelephense/lib/stub/Core/Core_c.php"
-        );
+        let p = lib.grant(Path::new("/opt/stubs/Core/Core_c.php"));
+        assert_eq!(p, "library://file//opt/stubs/Core/Core_c.php");
         assert!(lib
             .granted
             .lock()
             .unwrap()
-            .contains(Path::new("/opt/intelephense/lib/stub/Core/Core_c.php")));
+            .contains(Path::new("/opt/stubs/Core/Core_c.php")));
     }
 }

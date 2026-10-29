@@ -19,15 +19,57 @@ pub enum Driver {
     Mariadb,
     Postgres,
     Sqlite,
+    /// Microsoft SQL Server and Azure SQL (TDS, `tiberius`).
+    Sqlserver,
+    /// ClickHouse over its HTTP interface.
+    Clickhouse,
+    Redis,
+    Mongodb,
+    /// Oracle through SQL*Plus or SQLcl installed by the user.
+    Oracle,
+    /// A DDL data source: SQL DDL files of the project (`CREATE TABLE …` scripts or SQL
+    /// migrations) parsed into the model, without a database.
+    Ddl,
+}
+
+/// How a driver's data is organised, which decides the tree and the console.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DataModel {
+    /// Schemas, tables, columns; SQL consoles.
+    Relational,
+    /// Redis: databases with keys; a command console.
+    KeyValue,
+    /// MongoDB: databases with collections of documents; a shell console.
+    Document,
 }
 
 impl Driver {
+    pub const ALL: [Driver; 10] = [
+        Driver::Mysql,
+        Driver::Mariadb,
+        Driver::Postgres,
+        Driver::Sqlite,
+        Driver::Sqlserver,
+        Driver::Clickhouse,
+        Driver::Oracle,
+        Driver::Redis,
+        Driver::Mongodb,
+        Driver::Ddl,
+    ];
+
     pub fn label(self) -> &'static str {
         match self {
             Driver::Mysql => "MySQL",
             Driver::Mariadb => "MariaDB",
             Driver::Postgres => "PostgreSQL",
             Driver::Sqlite => "SQLite",
+            Driver::Sqlserver => "SQL Server",
+            Driver::Clickhouse => "ClickHouse",
+            Driver::Redis => "Redis",
+            Driver::Mongodb => "MongoDB",
+            Driver::Oracle => "Oracle",
+            Driver::Ddl => "DDL Data Source",
         }
     }
 
@@ -36,6 +78,12 @@ impl Driver {
             Driver::Mysql | Driver::Mariadb => Some(3306),
             Driver::Postgres => Some(5432),
             Driver::Sqlite => None,
+            Driver::Sqlserver => Some(1433),
+            Driver::Clickhouse => Some(8123),
+            Driver::Redis => Some(6379),
+            Driver::Mongodb => Some(27017),
+            Driver::Oracle => Some(1521),
+            Driver::Ddl => None,
         }
     }
 
@@ -44,7 +92,35 @@ impl Driver {
             Driver::Mysql | Driver::Mariadb => Dialect::MySql,
             Driver::Postgres => Dialect::Postgres,
             Driver::Sqlite => Dialect::Sqlite,
+            Driver::Sqlserver => Dialect::SqlServer,
+            Driver::Clickhouse => Dialect::ClickHouse,
+            Driver::Redis => Dialect::Redis,
+            Driver::Mongodb => Dialect::Mongo,
+            Driver::Oracle => Dialect::Oracle,
+            // The files' dialect is an option of the data source.
+            Driver::Ddl => Dialect::Postgres,
         }
+    }
+
+    pub fn model(self) -> DataModel {
+        match self {
+            Driver::Redis => DataModel::KeyValue,
+            Driver::Mongodb => DataModel::Document,
+            _ => DataModel::Relational,
+        }
+    }
+
+    /// Whether consoles can switch to manual transactions (Commit/Rollback).
+    pub fn supports_transactions(self) -> bool {
+        matches!(
+            self,
+            Driver::Mysql | Driver::Mariadb | Driver::Postgres | Driver::Sqlite | Driver::Sqlserver
+        )
+    }
+
+    /// Whether the data source is a file (no host, port or credentials).
+    pub fn is_file(self) -> bool {
+        matches!(self, Driver::Sqlite | Driver::Ddl)
     }
 }
 
@@ -57,14 +133,113 @@ pub enum Scope {
     Global,
 }
 
+/// SSL/TLS of the connection, like libpq's `sslmode`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum SslMode {
     Disable,
+    /// TLS when the server offers it, without verifying the certificate.
     #[default]
     Prefer,
+    /// TLS without verifying the certificate.
     Require,
+    /// TLS with a certificate signed by the CA file (or the system roots).
+    VerifyCa,
+    /// Like `VerifyCa`, and the certificate must name the host.
+    VerifyFull,
 }
+
+impl SslMode {
+    pub fn verifies(self) -> bool {
+        matches!(self, SslMode::VerifyCa | SslMode::VerifyFull)
+    }
+
+    pub fn enabled(self) -> bool {
+        self != SslMode::Disable
+    }
+}
+
+/// Certificate files of the SSL/TLS tab. The client key's passphrase is kept in the
+/// keychain (account `<id>#ssl-key`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SslFiles {
+    /// CA certificate (PEM) the server certificate must chain to.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub ca_file: String,
+    /// Client certificate (PEM).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub cert_file: String,
+    /// Client private key (PEM, PKCS#8 may be encrypted).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub key_file: String,
+}
+
+impl SslFiles {
+    pub fn is_empty(&self) -> bool {
+        self.ca_file.is_empty() && self.cert_file.is_empty() && self.key_file.is_empty()
+    }
+}
+
+/// The SSH tab: reach the database through an SSH tunnel opened by Forge. The password or
+/// key passphrase of an ad-hoc tunnel is kept in the keychain (account `<id>#ssh`); a saved
+/// SSH configuration uses its own secret.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshTunnel {
+    #[serde(default)]
+    pub enabled: bool,
+    /// A saved SSH configuration (Settings | Tools | SSH Configurations); the fields below
+    /// are used when this is not set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configuration_id: Option<String>,
+    #[serde(default)]
+    pub host: String,
+    #[serde(default = "ssh_port")]
+    pub port: u16,
+    #[serde(default)]
+    pub user: String,
+    #[serde(default)]
+    pub auth: forge_remote::AuthMethod,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_file: Option<String>,
+}
+
+fn ssh_port() -> u16 {
+    22
+}
+
+impl Default for SshTunnel {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            configuration_id: None,
+            host: String::new(),
+            port: ssh_port(),
+            user: String::new(),
+            auth: forge_remote::AuthMethod::default(),
+            key_file: None,
+        }
+    }
+}
+
+impl SshTunnel {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+
+    /// `user@host:port` of an ad-hoc tunnel.
+    pub fn label(&self) -> String {
+        match self.port {
+            22 => format!("{}@{}", self.user, self.host),
+            p => format!("{}@{}:{p}", self.user, self.host),
+        }
+    }
+}
+
+/// Colour tags of the data source (tree, console tabs and editor): `green` for development,
+/// `yellow` for staging and `red` for production.
+pub const PRODUCTION_COLOR: &str = "red";
 
 fn yes() -> bool {
     true
@@ -85,6 +260,10 @@ pub struct DataSourceOptions {
     pub auto_commit: bool,
     #[serde(default)]
     pub ssl_mode: SslMode,
+    #[serde(default, skip_serializing_if = "SslFiles::is_empty")]
+    pub ssl: SslFiles,
+    #[serde(default, skip_serializing_if = "SshTunnel::is_default")]
+    pub ssh: SshTunnel,
     /// Schemas shown in the Database tool window; empty means all.
     #[serde(default)]
     pub schemas: Vec<String>,
@@ -99,9 +278,19 @@ pub struct DataSourceOptions {
     /// Rows per page in result sets and table editors.
     #[serde(default)]
     pub page_size: Option<u32>,
-    /// Optional color tag, a theme color name like "blue".
+    /// Colour tag: `green` (development), `yellow` (staging), `red` (production) or another
+    /// theme colour name like `blue`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    /// "Single session mode": every console of the data source shares one connection.
+    #[serde(default)]
+    pub single_session: bool,
+    /// DDL data sources: project-relative SQL files and folders, parsed in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ddl_files: Vec<String>,
+    /// DDL data sources: the files' dialect (PostgreSQL when not set).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ddl_dialect: Option<Dialect>,
 }
 
 impl Default for DataSourceOptions {
@@ -110,12 +299,17 @@ impl Default for DataSourceOptions {
             read_only: false,
             auto_commit: true,
             ssl_mode: SslMode::default(),
+            ssl: SslFiles::default(),
+            ssh: SshTunnel::default(),
             schemas: Vec::new(),
             connect_timeout_secs: default_timeout(),
             init_sql: String::new(),
             save_password: true,
             page_size: None,
             color: None,
+            single_session: false,
+            ddl_files: Vec::new(),
+            ddl_dialect: None,
         }
     }
 }
@@ -149,7 +343,15 @@ pub struct DataSource {
 
 impl DataSource {
     pub fn dialect(&self) -> Dialect {
-        self.driver.dialect()
+        match self.driver {
+            Driver::Ddl => self.options.ddl_dialect.unwrap_or(Dialect::Postgres),
+            d => d.dialect(),
+        }
+    }
+
+    /// Production data sources ask before unfiltered changes.
+    pub fn is_production(&self) -> bool {
+        self.options.color.as_deref() == Some(PRODUCTION_COLOR)
     }
 
     pub fn port_or_default(&self) -> u16 {
@@ -169,6 +371,25 @@ impl DataSource {
     pub fn summary(&self) -> String {
         match self.driver {
             Driver::Sqlite => self.file.clone(),
+            Driver::Ddl => match self.options.ddl_files.as_slice() {
+                [] => "no DDL files".into(),
+                [one] => one.clone(),
+                [first, rest @ ..] => format!("{first} +{}", rest.len()),
+            },
+            Driver::Redis => format!(
+                "{}:{}/{}",
+                if self.host.is_empty() {
+                    "localhost"
+                } else {
+                    &self.host
+                },
+                self.port_or_default(),
+                if self.database.is_empty() {
+                    "0"
+                } else {
+                    &self.database
+                }
+            ),
             _ => {
                 let host = if self.host.is_empty() {
                     "localhost"
@@ -187,11 +408,14 @@ impl DataSource {
     /// Whether `other` points at the same database (used to skip `.env` suggestions that
     /// are already configured).
     pub fn same_target(&self, other: &DataSource) -> bool {
-        if self.driver.dialect() != other.driver.dialect() {
+        if self.driver.dialect() != other.driver.dialect()
+            || (self.driver == Driver::Ddl) != (other.driver == Driver::Ddl)
+        {
             return false;
         }
         match self.driver {
             Driver::Sqlite => self.file == other.file,
+            Driver::Ddl => self.options.ddl_files == other.options.ddl_files,
             _ => {
                 let norm = |h: &str| match h {
                     "" | "localhost" | "127.0.0.1" | "::1" => "localhost".to_string(),
@@ -338,6 +562,8 @@ pub fn parse_url(url: &str) -> Option<ParsedUrl> {
         "mariadb" => Driver::Mariadb,
         "postgres" | "postgresql" | "pgsql" | "pdo-pgsql" => Driver::Postgres,
         "sqlite" | "sqlite3" | "pdo-sqlite" => Driver::Sqlite,
+        "sqlsrv" | "pdo-sqlsrv" | "mssql" | "sqlserver" => Driver::Sqlserver,
+        "oci8" | "pdo-oci" | "oracle" => Driver::Oracle,
         _ => return None,
     };
     let rest = rest.split(['?', '#']).next().unwrap_or("");
@@ -430,6 +656,9 @@ mod tests {
         assert_eq!(p.source.file, "var/app.db");
 
         assert!(parse_url("redis://localhost").is_none());
+        let p = parse_url("sqlsrv://sa:pw@db:1433/shop").unwrap();
+        assert_eq!(p.source.driver, Driver::Sqlserver);
+        assert_eq!(p.source.port_or_default(), 1433);
     }
 
     #[test]
@@ -486,6 +715,46 @@ mod tests {
             ..Default::default()
         };
         assert!(a.same_target(&b));
+    }
+
+    #[test]
+    fn ssl_and_ssh_options_round_trip() {
+        let text = r#"
+[[dataSource]]
+id = "prod"
+name = "prod"
+driver = "sqlserver"
+host = "db.internal"
+
+[dataSource.options]
+sslMode = "verify-full"
+color = "red"
+
+[dataSource.options.ssl]
+caFile = "/etc/ssl/ca.pem"
+
+[dataSource.options.ssh]
+enabled = true
+host = "bastion.example.com"
+user = "deploy"
+auth = "keyPair"
+keyFile = "~/.ssh/id_ed25519"
+"#;
+        let list = parse_text(text, Scope::Project, "test").unwrap();
+        let ds = &list[0];
+        assert_eq!(ds.options.ssl_mode, SslMode::VerifyFull);
+        assert_eq!(ds.options.ssl.ca_file, "/etc/ssl/ca.pem");
+        assert!(ds.options.ssh.enabled);
+        assert_eq!(ds.options.ssh.port, 22);
+        assert_eq!(ds.options.ssh.label(), "deploy@bastion.example.com");
+        assert!(ds.is_production());
+        let back = to_text(&list).unwrap();
+        assert!(back.contains("verify-full"));
+        assert!(back.contains("bastion.example.com"));
+        // Defaults stay out of the file.
+        let plain = to_text(&[DataSource::default()]).unwrap();
+        assert!(!plain.contains("ssh"));
+        assert!(!plain.contains("caFile"));
     }
 
     #[test]

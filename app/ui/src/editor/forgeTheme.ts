@@ -2,23 +2,32 @@ import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
-/** Editor chrome built on the theme CSS variables, so it follows dark/light switching. */
+/**
+ * Editor chrome built on the theme CSS variables, so it follows dark/light switching. A color
+ * scheme (Settings | Editor | Color Scheme, `features/colorScheme`) sets the `--editor-*` and
+ * `--syn-*` variables; without one the theme's values apply.
+ */
 export const forgeEditorTheme = EditorView.theme({
-  "&": { height: "100%", backgroundColor: "var(--bg-editor)", color: "var(--fg)", fontSize: "var(--fs-editor)" },
+  "&": {
+    height: "100%",
+    backgroundColor: "var(--bg-editor)",
+    color: "var(--editor-fg, var(--fg))",
+    fontSize: "var(--fs-editor)",
+  },
   ".cm-scroller": {
     fontFamily: "var(--font-mono)",
     lineHeight: "var(--editor-line-height, 1.6)",
     fontVariantLigatures: "var(--editor-ligatures, normal)",
   },
-  ".cm-content": { caretColor: "var(--accent)", padding: "6px 0" },
-  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)", borderLeftWidth: "2px" },
+  ".cm-content": { caretColor: "var(--editor-caret, var(--accent))", padding: "6px 0" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--editor-caret, var(--accent))", borderLeftWidth: "2px" },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection": {
-    backgroundColor: "var(--bg-selection) !important",
+    backgroundColor: "var(--editor-selection, var(--bg-selection)) !important",
   },
-  ".cm-activeLine": { backgroundColor: "color-mix(in srgb, var(--bg-hover) 55%, transparent)" },
+  ".cm-activeLine": { backgroundColor: "var(--editor-caret-row, color-mix(in srgb, var(--bg-hover) 55%, transparent))" },
   ".cm-gutters": {
     backgroundColor: "var(--bg-editor)",
-    color: "var(--fg-faint)",
+    color: "var(--editor-line-number, var(--fg-faint))",
     border: "none",
     paddingRight: "6px",
   },
@@ -26,7 +35,7 @@ export const forgeEditorTheme = EditorView.theme({
   ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px 0 14px", minWidth: "44px" },
   ".cm-foldGutter .cm-gutterElement": { color: "var(--fg-faint)" },
   ".cm-matchingBracket": { backgroundColor: "var(--accent-soft)", outline: "1px solid var(--accent)" },
-  ".cm-searchMatch": { backgroundColor: "rgba(229, 180, 73, 0.25)" },
+  ".cm-searchMatch": { backgroundColor: "var(--editor-search-match, rgba(229, 180, 73, 0.25))" },
   ".cm-tooltip": {
     backgroundColor: "var(--bg-elevated)",
     border: "1px solid var(--border-strong)",
@@ -38,19 +47,32 @@ export const forgeEditorTheme = EditorView.theme({
   ".cm-panels": { backgroundColor: "var(--bg-panel)", color: "var(--fg)", borderColor: "var(--border)" },
 });
 
+/**
+ * Style of a token category: color plus the color scheme's background, font and effect
+ * (`--syn-<name>-bg|-weight|-style|-deco|-box`), which only a color scheme sets.
+ */
+const token = (name: string, defaults: { fontStyle?: string } = {}) => ({
+  color: `var(--syn-${name})`,
+  backgroundColor: `var(--syn-${name}-bg, transparent)`,
+  fontWeight: `var(--syn-${name}-weight, inherit)`,
+  fontStyle: `var(--syn-${name}-style, ${defaults.fontStyle ?? "inherit"})`,
+  textDecoration: `var(--syn-${name}-deco, none)`,
+  boxShadow: `var(--syn-${name}-box, none)`,
+});
+
 /** Token colors; also used outside editors (e.g. code review diffs). */
 export const forgeHighlightStyle = HighlightStyle.define([
-  { tag: [t.keyword, t.modifier, t.controlKeyword, t.operatorKeyword, t.definitionKeyword], color: "var(--syn-keyword)" },
-  { tag: [t.string, t.special(t.string)], color: "var(--syn-string)" },
-  { tag: [t.number, t.bool, t.null, t.atom], color: "var(--syn-number)" },
-  { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: "var(--syn-comment)", fontStyle: "italic" },
-  { tag: [t.variableName, t.special(t.variableName)], color: "var(--syn-variable)" },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "var(--syn-function)" },
-  { tag: [t.className, t.typeName, t.namespace], color: "var(--syn-type)" },
-  { tag: [t.propertyName, t.attributeName], color: "var(--syn-attribute)" },
-  { tag: [t.meta, t.annotation], color: "var(--syn-attribute)" },
-  { tag: [t.tagName], color: "var(--syn-tag)" },
-  { tag: [t.operator, t.punctuation, t.bracket], color: "var(--syn-operator)" },
+  { tag: [t.keyword, t.modifier, t.controlKeyword, t.operatorKeyword, t.definitionKeyword], ...token("keyword") },
+  { tag: [t.string, t.special(t.string)], ...token("string") },
+  { tag: [t.number, t.bool, t.null, t.atom], ...token("number") },
+  { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], ...token("comment", { fontStyle: "italic" }) },
+  { tag: [t.variableName, t.special(t.variableName)], ...token("variable") },
+  { tag: [t.function(t.variableName), t.function(t.propertyName)], ...token("function") },
+  { tag: [t.className, t.typeName, t.namespace], ...token("type") },
+  { tag: [t.propertyName, t.attributeName], ...token("attribute") },
+  { tag: [t.meta, t.annotation], ...token("attribute") },
+  { tag: [t.tagName], ...token("tag") },
+  { tag: [t.operator, t.punctuation, t.bracket], ...token("operator") },
   { tag: t.standard(t.variableName), color: "var(--syn-function)" },
   { tag: t.escape, color: "var(--syn-attribute)" },
   { tag: t.regexp, color: "var(--syn-number)" },

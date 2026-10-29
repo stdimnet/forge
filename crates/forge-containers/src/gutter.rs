@@ -1,5 +1,6 @@
 //! ▶ gutter markers: on `services:` (up all) and every service of a compose file (up one),
-//! and on the first `FROM` of a Dockerfile (build the image and run a container), plus the
+//! on the first `FROM` of a Dockerfile (build the image and run a container) and on
+//! Kubernetes manifests (`kubectl apply -f` / `delete -f`), plus the
 //! command lines those markers run.
 
 use serde::Serialize;
@@ -12,6 +13,8 @@ pub enum MarkerKind {
     ComposeAll,
     ComposeService,
     Dockerfile,
+    /// A Kubernetes manifest (`kubectl apply -f` / `kubectl delete -f`).
+    KubeManifest,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -71,6 +74,23 @@ pub fn markers(path: &str, content: &str) -> Vec<GutterMarker> {
             })
             .into_iter()
             .collect();
+    }
+    let lower = path.to_ascii_lowercase();
+    if lower.ends_with(".yaml") || lower.ends_with(".yml") {
+        let objects = crate::kubectl::manifest_objects(content);
+        if let Some(first) = objects.first() {
+            let what = if objects.len() == 1 {
+                format!("{} {}", first.kind, first.name).trim().to_string()
+            } else {
+                format!("{} objects", objects.len())
+            };
+            return vec![GutterMarker {
+                line: first.line,
+                kind: MarkerKind::KubeManifest,
+                title: format!("Apply to Kubernetes ({what})"),
+                service: None,
+            }];
+        }
     }
     Vec::new()
 }
@@ -211,5 +231,22 @@ mod tests {
             "acme-worker"
         );
         assert!(markers("README.md", "FROM x").is_empty());
+    }
+
+    #[test]
+    fn kubernetes_manifest_markers() {
+        let m = markers(
+            "k8s/web.yaml",
+            "# web\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n",
+        );
+        assert_eq!(m.len(), 1);
+        assert_eq!((m[0].line, m[0].kind), (1, MarkerKind::KubeManifest));
+        assert_eq!(m[0].title, "Apply to Kubernetes (Deployment web)");
+        let two = markers(
+            "k8s/all.yml",
+            "kind: Service\napiVersion: v1\n---\napiVersion: v1\nkind: ConfigMap\n",
+        );
+        assert_eq!(two[0].title, "Apply to Kubernetes (2 objects)");
+        assert!(markers("config/app.yaml", "name: shop\n").is_empty());
     }
 }

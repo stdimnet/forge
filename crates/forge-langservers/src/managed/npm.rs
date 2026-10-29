@@ -175,7 +175,7 @@ fn packages(node_modules: &Path) -> Vec<PathBuf> {
 }
 
 /// The script behind `command` among the managed packages
-/// (`intelephense` → `<managed>/node_modules/intelephense/lib/intelephense.js`).
+/// (`vls` → `<managed>/node_modules/vls/lib/server.js`).
 pub fn find_bin(managed: &Path, command: &str) -> Option<PathBuf> {
     packages(&managed.join("node_modules"))
         .into_iter()
@@ -301,10 +301,13 @@ pub(crate) mod tests {
 
     #[test]
     fn specs_and_urls() {
-        assert_eq!(parse_spec("intelephense"), ("intelephense".into(), None));
         assert_eq!(
-            parse_spec("intelephense@1.12.6"),
-            ("intelephense".into(), Some("1.12.6".into()))
+            parse_spec("fake-language-server"),
+            ("fake-language-server".into(), None)
+        );
+        assert_eq!(
+            parse_spec("fake-language-server@1.12.6"),
+            ("fake-language-server".into(), Some("1.12.6".into()))
         );
         assert_eq!(
             parse_spec("@vue/language-server@2.1.0"),
@@ -319,8 +322,8 @@ pub(crate) mod tests {
             "https://registry.npmjs.org/@vue%2Flanguage-server/latest"
         );
         assert_eq!(
-            metadata_url("http://r", "intelephense", Some("1.0.0")),
-            "http://r/intelephense/1.0.0"
+            metadata_url("http://r", "fake-language-server", Some("1.0.0")),
+            "http://r/fake-language-server/1.0.0"
         );
     }
 
@@ -345,38 +348,35 @@ pub(crate) mod tests {
         assert!(bins(&json!({"name": "lib"})).is_empty());
     }
 
-    pub const PACKAGE_JSON: &str = r#"{"name":"intelephense","version":"1.12.6","bin":{"intelephense":"lib/intelephense.js"}}"#;
+    pub const PACKAGE_JSON: &str = r#"{"name":"fake-language-server","version":"1.12.6","bin":{"fake-language-server":"lib/server.js"}}"#;
 
-    /// A fake intelephense tarball and its registry metadata served under `/intelephense/…`.
-    pub fn fake_intelephense(server: &testserver::TestServer, version: &str, tamper: bool) {
+    /// A fake standalone server tarball and its registry metadata served under `/fake-language-server/…`.
+    pub fn fake_package(server: &testserver::TestServer, version: &str, tamper: bool) {
         let package_json = PACKAGE_JSON.replace("1.12.6", version);
         let tgz = tar_gz(&[
             ("package/package.json", package_json.as_bytes(), 0o644),
             ("package/LICENSE.txt", b"licence", 0o644),
-            (
-                "package/lib/intelephense.js",
-                b"#!/usr/bin/env node\n",
-                0o644,
-            ),
+            ("package/lib/server.js", b"#!/usr/bin/env node\n", 0o644),
         ]);
         let integrity = sri(&tgz);
         let mut served = tgz;
         if tamper {
             served.push(0);
         }
-        let tarball = format!("/intelephense/-/intelephense-{version}.tgz");
+        let tarball = format!("/fake-language-server/-/fake-language-server-{version}.tgz");
         let meta = json!({
-            "name": "intelephense",
+            "name": "fake-language-server",
             "version": version,
             "dependencies": {},
             "dist": { "tarball": format!("{}{tarball}", server.url), "integrity": integrity },
         });
         server.routes.set(&tarball, served);
-        server
-            .routes
-            .set("/intelephense/latest", meta.to_string().into_bytes());
         server.routes.set(
-            &format!("/intelephense/{version}"),
+            "/fake-language-server/latest",
+            meta.to_string().into_bytes(),
+        );
+        server.routes.set(
+            &format!("/fake-language-server/{version}"),
             meta.to_string().into_bytes(),
         );
     }
@@ -384,52 +384,59 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn installs_a_standalone_package_with_bins_and_records_it() {
         let server = testserver::start().await;
-        fake_intelephense(&server, "1.12.6", false);
+        fake_package(&server, "1.12.6", false);
         let tmp = tempfile::tempdir().unwrap();
         let managed = tmp.path().join("langservers");
         let http = Http::direct().unwrap();
-        let meta = metadata(&http, &server.url, "intelephense").await.unwrap();
+        let meta = metadata(&http, &server.url, "fake-language-server")
+            .await
+            .unwrap();
         assert!(meta.standalone());
         install_standalone(&http, &meta, &managed, &mut |_| {})
             .await
             .unwrap();
 
-        let script = managed.join("node_modules/intelephense/lib/intelephense.js");
+        let script = managed.join("node_modules/fake-language-server/lib/server.js");
         assert!(script.is_file());
         assert_eq!(
-            installed_version(&managed, "intelephense").as_deref(),
+            installed_version(&managed, "fake-language-server").as_deref(),
             Some("1.12.6")
         );
-        assert_eq!(find_bin(&managed, "intelephense"), Some(script.clone()));
-        assert_eq!(recorded_packages(&managed), vec!["intelephense"]);
+        assert_eq!(
+            find_bin(&managed, "fake-language-server"),
+            Some(script.clone())
+        );
+        assert_eq!(recorded_packages(&managed), vec!["fake-language-server"]);
         #[cfg(unix)]
         {
-            let link = managed.join("node_modules/.bin/intelephense");
+            let link = managed.join("node_modules/.bin/fake-language-server");
             assert_eq!(
                 std::fs::canonicalize(&link).unwrap(),
                 std::fs::canonicalize(&script).unwrap()
             );
         }
         // The pinned version is fetched by its own URL.
-        metadata(&http, &server.url, "intelephense@1.12.6")
+        metadata(&http, &server.url, "fake-language-server@1.12.6")
             .await
             .unwrap();
-        assert_eq!(server.routes.hits("/intelephense/1.12.6"), 1);
+        assert_eq!(server.routes.hits("/fake-language-server/1.12.6"), 1);
     }
 
     #[tokio::test]
     async fn a_tampered_tarball_is_rejected_and_nothing_is_installed() {
         let server = testserver::start().await;
-        fake_intelephense(&server, "1.12.6", true);
+        fake_package(&server, "1.12.6", true);
         let tmp = tempfile::tempdir().unwrap();
         let managed = tmp.path().join("langservers");
         let http = Http::direct().unwrap();
-        let meta = metadata(&http, &server.url, "intelephense").await.unwrap();
+        let meta = metadata(&http, &server.url, "fake-language-server")
+            .await
+            .unwrap();
         let err = install_standalone(&http, &meta, &managed, &mut |_| {})
             .await
             .unwrap_err();
         assert!(err.contains("integrity check failed"), "{err}");
-        assert!(!managed.join("node_modules/intelephense").exists());
-        assert!(find_bin(&managed, "intelephense").is_none());
+        assert!(!managed.join("node_modules/fake-language-server").exists());
+        assert!(find_bin(&managed, "fake-language-server").is_none());
     }
 }

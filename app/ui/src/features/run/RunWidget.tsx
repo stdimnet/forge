@@ -9,7 +9,7 @@ import type { RunConfiguration } from "@/ipc/run";
 import { shortcutLabel } from "@/keymap";
 import { workspace } from "@/state/workspace";
 import { configurations, isTemporary, selectConfiguration, selectedConfiguration, temporary } from "./configStore";
-import { debugConfiguration, isRunning, runConfiguration, runningFor, stopSession } from "./runStore";
+import { debugConfiguration, isRunning, runConfiguration, runningFor, stopConfiguration } from "./runStore";
 import { openRunConfigurations } from "./dialogState";
 import { findType } from "./types";
 
@@ -161,7 +161,11 @@ export function RunWidget() {
       </button>
       <Show when={running()}>
         {(s) => (
-          <button class="icon-btn stop-btn" title={keyHint(`Stop '${s().name}'`, "Stop")} onClick={() => void stopSession(s().id)}>
+          <button
+            class="icon-btn stop-btn"
+            title={keyHint(`Stop '${cfg()?.name ?? s().name}'`, "Stop")}
+            onClick={() => void stopConfiguration(cfg())}
+          >
             <Square size={13} fill="currentColor" />
           </button>
         )}

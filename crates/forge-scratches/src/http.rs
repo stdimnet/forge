@@ -30,7 +30,20 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 const METHODS: &[&str] = &[
-    "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT",
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "HEAD",
+    "OPTIONS",
+    "TRACE",
+    "CONNECT",
+    // PHPStorm's request kinds beyond HTTP: a GraphQL query sent as a POST, a WebSocket
+    // connection with messages, a unary gRPC call.
+    "GRAPHQL",
+    "WEBSOCKET",
+    "GRPC",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,6 +95,29 @@ impl HttpRequest {
             .iter()
             .find(|h| h.name.eq_ignore_ascii_case(name))
             .map(|h| h.value.as_str())
+    }
+
+    /// Add the Xdebug session cookie (`XDEBUG_SESSION=<ide key>`), so the request is
+    /// debugged ("Debug" in `.http` files, PHP HTTP Request debug runs). An existing
+    /// `XDEBUG_SESSION` cookie is kept.
+    pub fn add_debug_cookie(&mut self, ide_key: &str) {
+        let cookie = format!("XDEBUG_SESSION={ide_key}");
+        match self
+            .headers
+            .iter_mut()
+            .find(|h| h.name.eq_ignore_ascii_case("Cookie"))
+        {
+            Some(h) if h.value.contains("XDEBUG_SESSION=") => {}
+            Some(h) if h.value.trim().is_empty() => h.value = cookie,
+            Some(h) => {
+                let v = h.value.trim_end().trim_end_matches(';').to_string();
+                h.value = format!("{v}; {cookie}");
+            }
+            None => self.headers.push(Header {
+                name: "Cookie".into(),
+                value: cookie,
+            }),
+        }
     }
 }
 
@@ -473,6 +509,8 @@ pub struct Resolved {
 /// dynamic variables and body files.
 pub struct Resolver<'a> {
     vars: BTreeMap<String, String>,
+    /// Values of `$` expressions computed outside (`$auth.token("id")`).
+    values: BTreeMap<String, String>,
     dynamic: Dynamic,
     load: Option<FileLoader<'a>>,
 }
@@ -489,9 +527,17 @@ impl<'a> Resolver<'a> {
         vars.extend(file_vars.iter().map(|(k, v)| (k.clone(), v.clone())));
         Resolver {
             vars,
+            values: BTreeMap::new(),
             dynamic,
             load: None,
         }
+    }
+
+    /// Values for `$` expressions the resolver cannot compute itself, by their text
+    /// inside `{{ }}` (OAuth tokens: `$auth.token("shop")`).
+    pub fn with_values(mut self, values: BTreeMap<String, String>) -> Self {
+        self.values = values;
+        self
     }
 
     /// Read `< file` bodies and `> file` handlers with `load`.
@@ -501,9 +547,11 @@ impl<'a> Resolver<'a> {
     }
 
     fn subst(&mut self, text: &str) -> String {
-        let (vars, dynamic) = (&self.vars, &mut self.dynamic);
+        let (vars, values, dynamic) = (&self.vars, &self.values, &mut self.dynamic);
         substitute_with(text, &mut |key| {
-            if key.starts_with('$') {
+            if let Some(v) = values.get(key) {
+                Some(v.clone())
+            } else if key.starts_with('$') {
                 dynamic.value(key)
             } else {
                 vars.get(key).cloned()
@@ -523,7 +571,12 @@ impl<'a> Resolver<'a> {
         let mut problems = Vec::new();
         out.url = self.subst(&req.url);
         if !out.url.contains("://") {
-            out.url = format!("http://{}", out.url);
+            let scheme = if req.method == "WEBSOCKET" {
+                "ws"
+            } else {
+                "http"
+            };
+            out.url = format!("{scheme}://{}", out.url);
         }
         for h in &mut out.headers {
             h.value = self.subst(&h.value);
@@ -565,6 +618,102 @@ impl<'a> Resolver<'a> {
             None => Ok(None),
         }
     }
+}
+
+/// A `GRAPHQL` request's body: the operation, then optionally a JSON object with its
+/// variables (`(query, variables)`).
+pub fn graphql_parts(body: &str) -> (String, Option<String>) {
+    let lines: Vec<&str> = body.lines().collect();
+    for i in (1..lines.len()).rev() {
+        if !lines[i].trim_start().starts_with('{') {
+            continue;
+        }
+        let candidate = lines[i..].join("\n");
+        let is_object =
+            serde_json::from_str::<serde_json::Value>(&candidate).is_ok_and(|v| v.is_object());
+        let query = lines[..i].join("\n");
+        if is_object && !query.trim().is_empty() {
+            return (query.trim().to_string(), Some(candidate.trim().to_string()));
+        }
+    }
+    (body.trim().to_string(), None)
+}
+
+/// A resolved `GRAPHQL` request as the HTTP request that carries it: a `POST` with the
+/// JSON body `{ "query", "variables" }` (GraphQL over HTTP); a `ws://` / `wss://` URL stays
+/// for a subscription.
+pub fn graphql_as_http(req: &HttpRequest) -> Result<HttpRequest, String> {
+    let (query, variables) = graphql_parts(req.body.as_deref().unwrap_or(""));
+    if query.is_empty() {
+        return Err("The GraphQL request has no query".into());
+    }
+    let mut body = serde_json::Map::new();
+    body.insert("query".into(), serde_json::Value::String(query));
+    if let Some(v) = variables {
+        let parsed: serde_json::Value =
+            serde_json::from_str(&v).map_err(|e| format!("Variables are not valid JSON: {e}"))?;
+        body.insert("variables".into(), parsed);
+    }
+    let mut out = req.clone();
+    out.method = "POST".into();
+    out.body = Some(serde_json::Value::Object(body).to_string());
+    if out.header("Content-Type").is_none() {
+        out.headers.push(Header {
+            name: "Content-Type".into(),
+            value: "application/json".into(),
+        });
+    }
+    if out.header("Accept").is_none() {
+        out.headers.push(Header {
+            name: "Accept".into(),
+            value: "application/graphql-response+json, application/json".into(),
+        });
+    }
+    Ok(out)
+}
+
+/// A `WEBSOCKET` request's messages: the body split at `===` lines; a
+/// `=== wait-for-server` line makes the next message wait for a server message.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WsMessage {
+    pub text: String,
+    /// Wait for one message from the server before sending this one.
+    pub wait_for_server: bool,
+}
+
+pub fn websocket_messages(body: Option<&str>) -> Vec<WsMessage> {
+    let Some(body) = body else { return Vec::new() };
+    let mut out = Vec::new();
+    let mut current: Vec<&str> = Vec::new();
+    let mut wait = false;
+    let flush = |current: &mut Vec<&str>, wait: bool, out: &mut Vec<WsMessage>| {
+        let text = current.join("\n").trim().to_string();
+        if !text.is_empty() {
+            out.push(WsMessage {
+                text,
+                wait_for_server: wait,
+            });
+        }
+        current.clear();
+    };
+    for line in body.lines() {
+        let t = line.trim();
+        if let Some(rest) = t.strip_prefix("===") {
+            let had = !current.join("").trim().is_empty();
+            flush(&mut current, wait, &mut out);
+            if had {
+                wait = false;
+            }
+            if rest.trim() == "wait-for-server" {
+                wait = true;
+            }
+            continue;
+        }
+        current.push(line);
+    }
+    flush(&mut current, wait, &mut out);
+    out
 }
 
 /// The relative path of a referenced file joined to the `.http` file's directory, without
@@ -695,7 +844,18 @@ const RESET: &str = "\x1b[0m";
 
 /// Console text (with ANSI styles) shown before a request is sent.
 pub fn render_request(req: &HttpRequest) -> String {
-    format!("\x1b[1m{} {}{RESET}\n\n", req.method, req.url)
+    let mut out = format!("\x1b[1m{} {}{RESET}\n", req.method, req.url);
+    // A debugged request says so: the Xdebug cookie starts the debug session.
+    if let Some(cookie) = req
+        .header("Cookie")
+        .filter(|c| c.contains("XDEBUG_SESSION="))
+    {
+        out.push_str(&format!(
+            "\x1b[90mCookie: {cookie} (debugging with Xdebug){RESET}\n"
+        ));
+    }
+    out.push('\n');
+    out
 }
 
 /// Console text of a response, laid out like PHPStorm's HTTP Client: status line, headers,
@@ -827,6 +987,27 @@ pub fn pretty_json(text: &str) -> Option<String> {
         }
     }
     Some(out)
+}
+
+#[cfg(test)]
+mod debug_cookie_tests {
+    use super::*;
+
+    #[test]
+    fn debug_cookie_is_added_or_merged() {
+        let file =
+            parse("GET http://shop.test/\n\n###\nPOST http://shop.test/a\nCookie: lang=de;\n");
+        let mut a = file.requests[0].clone();
+        a.add_debug_cookie("FORGE");
+        assert_eq!(a.header("cookie"), Some("XDEBUG_SESSION=FORGE"));
+        let mut b = file.requests[1].clone();
+        b.add_debug_cookie("FORGE");
+        assert_eq!(b.header("Cookie"), Some("lang=de; XDEBUG_SESSION=FORGE"));
+        b.add_debug_cookie("OTHER");
+        assert_eq!(b.header("Cookie"), Some("lang=de; XDEBUG_SESSION=FORGE"));
+        assert!(render_request(&b).contains("XDEBUG_SESSION=FORGE (debugging with Xdebug)"));
+        assert!(!render_request(&file.requests[0]).contains("Cookie"));
+    }
 }
 
 #[cfg(test)]
@@ -1095,5 +1276,58 @@ https://example.com/health
             }
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod extras_tests {
+    use super::*;
+
+    #[test]
+    fn parses_graphql_websocket_and_grpc_requests() {
+        let file = parse(
+            "### Query\nGRAPHQL http://localhost:4000/graphql\nAuthorization: Bearer x\n\nquery User($id: ID!) {\n  user(id: $id) { name }\n}\n\n{\n  \"id\": 7\n}\n\n### Socket\nWEBSOCKET ws://localhost:8080/ws\n\n{\"op\": \"hello\"}\n=== wait-for-server\n{\"op\": \"next\"}\n===\nbye\n\n### gRPC\nGRPC localhost:50051/shop.Users/Get\n\n{\"id\": 1}\n",
+        );
+        let methods: Vec<_> = file.requests.iter().map(|r| r.method.as_str()).collect();
+        assert_eq!(methods, vec!["GRAPHQL", "WEBSOCKET", "GRPC"]);
+
+        let http = graphql_as_http(&file.requests[0]).unwrap();
+        assert_eq!(http.method, "POST");
+        let body: serde_json::Value = serde_json::from_str(http.body.as_deref().unwrap()).unwrap();
+        assert_eq!(body["variables"]["id"], 7);
+        assert!(body["query"]
+            .as_str()
+            .unwrap()
+            .starts_with("query User($id: ID!)"));
+        assert_eq!(http.header("Content-Type"), Some("application/json"));
+        assert_eq!(http.header("Authorization"), Some("Bearer x"));
+        let (q, v) = graphql_parts("{ me { id } }");
+        assert_eq!((q.as_str(), v), ("{ me { id } }", None));
+
+        let msgs = websocket_messages(file.requests[1].body.as_deref());
+        assert_eq!(
+            msgs,
+            vec![
+                WsMessage {
+                    text: "{\"op\": \"hello\"}".into(),
+                    wait_for_server: false
+                },
+                WsMessage {
+                    text: "{\"op\": \"next\"}".into(),
+                    wait_for_server: true
+                },
+                WsMessage {
+                    text: "bye".into(),
+                    wait_for_server: false
+                },
+            ]
+        );
+        // Schemes: ws:// for sockets without one.
+        let r = resolve(
+            &parse("WEBSOCKET localhost:8080/ws").requests[0],
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        assert_eq!(r.url, "ws://localhost:8080/ws");
     }
 }

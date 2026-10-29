@@ -793,3 +793,86 @@
 .rc-save-error {
   color: var(--danger);
 }
+.rc-bl-kind {
+  flex: none;
+  color: var(--fg-muted);
+}
+.rc-bl-item .rc-bl-input {
+  flex: 1;
+  min-width: 0;
+}
+.rc-bl-item.invalid > span:nth-child(2) {
+  color: var(--danger);
+}
+.rc-compound-missing {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.rc-compound .rc-bl-list {
+  min-height: 120px;
+}
+.rc-compound-multiple {
+  margin-top: 10px;
+}
+
+/* "Run on" (run targets) */
+.rc-run-on {
+  margin-bottom: 4px;
+}
+
+.rc-target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 2px 16px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.rc-target-note {
+  font-size: 12px;
+  line-height: 1.4;
+  padding-left: 2px;
+}
+
+/* ---------- Result panels (Sanitizers, Valgrind) ---------- */
+.run-panel-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.run-panel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.run-panel-tab:hover {
+  background: var(--bg-hover);
+}
+.run-panel-tab.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.run-panel-count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: var(--bg-editor);
+  font-size: var(--fs-small);
+  text-align: center;
+  line-height: 16px;
+}

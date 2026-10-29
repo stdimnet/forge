@@ -123,3 +123,153 @@ default = false
 group = "vcs.git"
 section = "Commit"
 order = 21
+
+[[contributions.settings]]
+key = "vcs.git.commit.gpgSign"
+title = "Sign commits with GPG/SSH key"
+description = "Commits from Forge are signed (`git commit -S`) with the key chosen in Configure GPG Key…, or the one in git config (`user.signingkey`). Forge never changes git config."
+type = "bool"
+default = false
+project = true
+group = "vcs.git"
+section = "Commit"
+order = 23
+
+[[contributions.settings]]
+key = "vcs.git.commit.signingKey"
+title = "Signing key"
+description = "`openpgp:<key id>` or `ssh:<public key file>`; empty uses `user.signingkey` from git config."
+type = "string"
+default = ""
+project = true
+hidden = true
+group = "vcs.git"
+section = "Commit"
+order = 24
+
+[[contributions.settings]]
+key = "vcs.git.cherryPickSuffix"
+title = "Add the 'cherry-picked from <hash>' suffix when picking commits pushed to protected branches"
+type = "bool"
+default = true
+group = "vcs.git"
+section = "Commit"
+order = 22
+
+[[contributions.settings]]
+key = "vcs.git.protectedBranches"
+title = "Protected branches"
+description = "Branch names or patterns (`*` wildcards) separated by `;`. Log actions never rewrite commits that are already pushed to them."
+type = "string"
+default = "master;main"
+group = "vcs.git"
+section = "Push"
+order = 30
+
+[[contributions.settings]]
+key = "vcs.changelists.createAutomatically"
+title = "Create changelists automatically"
+description = "Apply Patch and Unshelve put the changes into a new changelist named after the patch or the shelved changes."
+type = "bool"
+default = true
+group = "vcs.changelists"
+order = 0
+
+[[contributions.settings]]
+key = "vcs.commit.reformat"
+title = "Reformat code"
+description = "Reformat the committed files with the code style before committing."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 0
+
+[[contributions.settings]]
+key = "vcs.commit.rearrange"
+title = "Rearrange code"
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 1
+
+[[contributions.settings]]
+key = "vcs.commit.optimizeImports"
+title = "Optimize imports"
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 2
+
+[[contributions.settings]]
+key = "vcs.commit.analyze"
+title = "Analyze code"
+description = "Run the inspections on the committed files; errors and warnings ask Review or Commit Anyway."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 3
+
+[[contributions.settings]]
+key = "vcs.commit.checkTodo"
+title = "Check TODO"
+description = "Look for TODO items (Settings | Editor | TODO patterns) in the changed lines."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 4
+
+[[contributions.settings]]
+key = "vcs.commit.cleanup"
+title = "Cleanup"
+description = "Run code cleanup on the committed files."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Commit Checks"
+order = 5
+
+[[contributions.settings]]
+key = "vcs.commit.runTests"
+title = "Run Tests"
+description = "Run the chosen run configuration before committing; failing tests ask Review or Commit Anyway."
+type = "bool"
+default = false
+group = "vcs.commit"
+section = "Advanced Commit Checks"
+order = 10
+
+[[contributions.settings]]
+key = "vcs.commit.testConfiguration"
+title = "Run configuration for Run Tests"
+type = "string"
+default = ""
+group = "vcs.commit"
+section = "Advanced Commit Checks"
+order = 11
+
+[[contributions.settings]]
+key = "vcs.commit.runHooks"
+title = "Run Git hooks"
+description = "Unchecked commits with --no-verify (pre-commit and commit-msg hooks are skipped)."
+type = "bool"
+default = true
+group = "vcs.commit"
+section = "Git"
+order = 20
+
+[[contributions.settings]]
+key = "vcs.commit.messageHistorySize"
+title = "Commit message history size"
+description = "How many commit messages Commit Message History (Ctrl+M) keeps for each project."
+type = "int"
+min = 1
+max = 500
+default = 20
+group = "vcs.commit"
+section = "Commit Message"
+order = 30

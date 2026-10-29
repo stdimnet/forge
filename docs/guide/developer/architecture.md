@@ -20,7 +20,7 @@ changes.
 │  Tauri shell (app/src-tauri)   commands/<area>.rs  (thin: parse args, call crates, emit)      │
 │                                                      │                                        │
 │  Rust crates (crates/forge-*)  core, plugin-api, lsp, vcs, keymap, fuzzy, filetypes, ai, …    │
-│  Packs (packs/<pack>/<plugin>) phpforge, webforge, luaforge                                   │
+│  Packs (packs/<pack>/<plugin>) phpforge, webforge, luaforge, javaforge                        │
 │                                                      │                                        │
 │  forge-backend: Backend trait ── LocalBackend (this machine)                                  │
 │                              └─ RemoteBackend ──SSH── forge-remote-agent on a Linux host      │
@@ -41,11 +41,11 @@ client (`forge-lsp`) and server catalog (`forge-langservers`), git (`forge-vcs`)
 output (`forge-process`, `forge-output`), the debugger (`forge-debug`), databases (`forge-db`,
 `forge-sql`), containers (`forge-containers`), the keymap engine (`forge-keymap`), fuzzy search
 (`forge-fuzzy`), file types (`forge-filetypes`), remote development (`forge-backend`,
-`forge-remote`, `forge-remote-agent`) and more. Each crate has its own unit tests.
+`forge-remote`, `forge-remote-agent`), deployment (`forge-deploy`) and more. Each crate has its own unit tests.
 
 **Packs** (`packs/<pack>/<plugin>`) are language and framework crates: PHPForge (`lang-php`,
 `fw-laravel`, `fw-symfony`, `orm-doctrine`, `dql`), WebForge (`lang-web`, `fw-react`,
-`fw-vue`, `fw-angular`), LuaForge (`lang-lua`). They depend on core crates, never on the app.
+`fw-vue`, `fw-angular`), LuaForge (`lang-lua`), JavaForge (`build`, `lang-java`, `jdk`). They depend on core crates, never on the app.
 
 **The UI** (`app/ui`, SolidJS + TypeScript + CodeMirror 6, icons from `lucide-solid`) renders
 and forwards events. A feature is a folder `src/features/<name>/` whose `index.ts` registers its

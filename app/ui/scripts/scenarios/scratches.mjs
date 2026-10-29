@@ -83,6 +83,7 @@ export default {
     await openScratch(page, "rest-api.http");
     // The second request: "### Show order".
     await page.locator(".cm-line-marker.marker-run").nth(1).click();
+    await page.click('.run-popup-menu .run-menu-item:has-text("Run \'")');
     await waitForOutput(page, "Response code: 200");
     await bottomHeight(page, 470);
     await dismissBalloons(page);

@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34607.119
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bookstore.Api", "src\Bookstore.Api\Bookstore.Api.csproj", "{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0101}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bookstore.Core", "src\Bookstore.Core\Bookstore.Core.csproj", "{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0102}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0002}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bookstore.Tests", "tests\Bookstore.Tests\Bookstore.Tests.csproj", "{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0103}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Reports", "tools\Reports\Reports.fsproj", "{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0104}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0003}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0101}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0101}.Debug|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0101} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}
+		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0102} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}
+		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0103} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0002}
+		{8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0003} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}
+	EndGlobalSection
+EndGlobal

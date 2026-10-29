@@ -13,6 +13,7 @@ import { chooseDeclarationAt } from "@/features/navigation/declarationChooser";
 import { commands, registerCommand } from "@/state/commands";
 import { laravelActive, reveal } from "./state";
 import { isBlade } from "./completion";
+import { claimMouseGesture, editorMouseAction } from "@/keymap";
 
 /** Whether the caret may be on a Laravel symbol (checked before asking the backend). */
 export function mayGoto(lineText: string, column: number, blade: boolean): boolean {
@@ -95,10 +96,12 @@ export function laravelGotoExtension(path: string): Extension {
     Prec.high(
       EditorView.domEventHandlers({
         mousedown(e, view) {
-          if (e.button !== 0 || !(e.ctrlKey || e.metaKey)) return false;
+          // Ctrl+Click (or whatever the keymap binds to Declaration or Usages).
+          if (e.button !== 0 || editorMouseAction(e) !== "GotoDeclaration") return false;
           const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
           if (pos == null || !applies(path, view, pos)) return false;
           e.preventDefault();
+          claimMouseGesture();
           view.dispatch({ selection: { anchor: pos } });
           void gotoAt(path, view, pos);
           return true;

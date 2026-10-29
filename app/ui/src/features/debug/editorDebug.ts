@@ -9,8 +9,9 @@ import { RangeSet, StateEffect, StateField, type Extension, type Range } from "@
 import { Decoration, EditorView, GutterMarker, ViewPlugin, WidgetType, lineNumberMarkers, type DecorationSet } from "@codemirror/view";
 import { getSetting } from "@/state/settings";
 import type { Breakpoint } from "./api";
-import { inlineValues } from "./format";
-import { breakpoints, breakpointsMuted, frameIndex, frames, pausedSession, toggleLineBreakpoint, variables } from "./store";
+import { inlineValues, inlineValuesGeneric } from "./format";
+import { isDebuggableFile } from "./adapters";
+import { addLogpoint, breakpoints, breakpointsMuted, frameIndex, frames, pausedSession, toggleLineBreakpoint, variables } from "./store";
 import { openBreakpointPopup } from "./overlays";
 
 export interface EditorDebugState {
@@ -26,11 +27,12 @@ export interface EditorDebugState {
 const empty: EditorDebugState = { bps: [], muted: false, exec: null, frame: null, inline: new Map() };
 const setDebugState = StateEffect.define<EditorDebugState>();
 
-export type BreakpointLook = "enabled" | "disabled" | "conditional" | "muted";
+export type BreakpointLook = "enabled" | "disabled" | "conditional" | "muted" | "log";
 
 export function breakpointLook(bp: Breakpoint, muted: boolean): BreakpointLook {
   if (!bp.enabled) return "disabled";
   if (muted) return "muted";
+  if (bp.suspend === false) return "log";
   return bp.condition?.trim() ? "conditional" : "enabled";
 }
 
@@ -39,11 +41,12 @@ class BreakpointMarker extends GutterMarker {
     readonly look: BreakpointLook | null,
     readonly exec: boolean,
     readonly title: string,
+    readonly temporary = false,
   ) {
     super();
   }
   eq(o: BreakpointMarker) {
-    return o.look === this.look && o.exec === this.exec && o.title === this.title;
+    return o.look === this.look && o.exec === this.exec && o.title === this.title && o.temporary === this.temporary;
   }
   toDOM() {
     const el = document.createElement("div");
@@ -53,6 +56,7 @@ class BreakpointMarker extends GutterMarker {
       const dot = document.createElement("span");
       dot.className = `cm-bp-dot cm-bp-${this.look}`;
       if (this.exec) dot.classList.add("cm-bp-hit");
+      if (this.temporary) dot.classList.add("cm-bp-temp");
       el.append(dot);
     } else if (this.exec) {
       const arrow = document.createElement("span");
@@ -64,10 +68,15 @@ class BreakpointMarker extends GutterMarker {
 }
 
 function bpTitle(bp: Breakpoint, look: BreakpointLook): string {
-  const where = `Line ${bp.line}`;
+  const where = `Line ${bp.line}${bp.temporary ? " (temporary)" : ""}`;
   if (look === "disabled") return `${where} (disabled)`;
   if (look === "muted") return `${where} (breakpoints are muted)`;
-  return bp.condition?.trim() ? `${where}, condition: ${bp.condition}` : where;
+  const parts = [where];
+  if (look === "log") parts.push("does not suspend");
+  if (bp.condition?.trim()) parts.push(`condition: ${bp.condition}`);
+  if (bp.logExpression?.trim()) parts.push(`logs: ${bp.logExpression}`);
+  if (bp.passCount && bp.passCount > 1) parts.push(`from hit ${bp.passCount}`);
+  return parts.join(", ");
 }
 
 class InlineValues extends WidgetType {
@@ -108,9 +117,9 @@ function build(view: { doc: { lines: number; line: (n: number) => { from: number
     const exec = st.exec === l;
     const title = bp && look ? bpTitle(bp, look) : "Execution point";
     const from = doc.line(l).from;
-    markers.push(new BreakpointMarker(look, exec, title).range(from));
+    markers.push(new BreakpointMarker(look, exec, title, !!bp?.temporary).range(from));
     if (exec) decos.push(Decoration.line({ class: "cm-exec-line" }).range(from));
-    else if (look && look !== "disabled") decos.push(Decoration.line({ class: `cm-bp-line cm-bp-line-${look}` }).range(from));
+    else if (look && look !== "disabled" && look !== "log") decos.push(Decoration.line({ class: `cm-bp-line cm-bp-line-${look}` }).range(from));
   }
   if (st.frame && st.frame <= doc.lines && st.frame !== st.exec) {
     decos.push(Decoration.line({ class: "cm-frame-line" }).range(doc.line(st.frame).from));
@@ -153,9 +162,11 @@ export function stateFor(path: string, doc: string[]): EditorDebugState {
   const selected = fs[frameIndex()];
   const frame = session && selected && frameIndex() > 0 && selected.file === path ? selected.line : null;
   const valuesLine = frameIndex() > 0 ? frame : exec;
+  const dap = !!session?.adapter;
+  const showInline = dap ? getSetting<boolean>("debugger.showInlineValues", true) : getSetting<boolean>("php.debug.showInlineValues", true);
   const inline =
-    session && valuesLine && getSetting<boolean>("php.debug.showInlineValues", true)
-      ? inlineValues(doc, valuesLine, variables())
+    session && valuesLine && showInline
+      ? (dap ? inlineValuesGeneric : inlineValues)(doc, valuesLine, variables())
       : new Map<number, string>();
   return { bps, muted: breakpointsMuted(), exec, frame, inline };
 }
@@ -184,6 +195,12 @@ function controller(path: string) {
       const line = lineAtEvent(view, e);
       if (line == null) return;
       e.preventDefault();
+      if (e.shiftKey) {
+        // Shift+click: a breakpoint that logs instead of suspending, with its popup open.
+        const { clientX, clientY } = e;
+        void addLogpoint(path, line).then((bp) => bp && openBreakpointPopup(bp, clientX, clientY));
+        return;
+      }
       void toggleLineBreakpoint(path, line);
     };
     const onMenu = (e: MouseEvent) => {
@@ -247,6 +264,8 @@ const debugTheme = EditorView.baseTheme({
   },
   ".cm-bp-disabled": { background: "transparent", border: "2px solid var(--danger)" },
   ".cm-bp-muted": { background: "var(--fg-faint)" },
+  ".cm-bp-log": { background: "var(--warning)" },
+  ".cm-bp-temp": { boxShadow: "0 0 0 1.5px var(--bg-editor), 0 0 0 3px var(--fg-muted)" },
   ".cm-bp-hit": { boxShadow: "0 0 0 2px var(--bg-editor), 0 0 0 3.5px var(--info)" },
   ".cm-exec-arrow": {
     display: "inline-block",
@@ -269,10 +288,8 @@ const debugTheme = EditorView.baseTheme({
   },
 });
 
-const isPhp = (path: string) => /\.(php|phtml|inc)$/i.test(path);
-
-/** Editor extension for PHP files. */
+/** Editor extension for PHP files and files of the debug adapters' languages. */
 export function debugEditorExtensions(path: string): Extension | null {
-  if (!isPhp(path)) return null;
+  if (!isDebuggableFile(path)) return null;
   return [debugField, controller(path), debugTheme, EditorView.editorAttributes.of({ class: "cm-debuggable" })];
 }

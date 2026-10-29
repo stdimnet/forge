@@ -21,12 +21,12 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 let focusedDiff: (() => void) | null = null;
 registerCompareHandler(".branch-changes", () => focusedDiff?.());
 
-function BranchChangesView(props: { branch: string; path: string }) {
+function BranchChangesView(props: { branch: string; path: string; label: string }) {
   const [changes, { refetch }] = createResource(() => historyApi.changesSince(props.branch, props.path));
   const [selected, setSelected] = createSignal<string | null>(null);
   const current = () => changes()?.find((c) => c.path === selected());
   const open = (c: ChangedFile | undefined) => {
-    if (c) void showRevisionDiff(c.path, props.branch, props.branch, c.origPath ?? c.path);
+    if (c) void showRevisionDiff(c.path, props.branch, props.label, c.origPath ?? c.path);
   };
   return (
     <div class="dir-diff branch-changes" onFocusIn={() => (focusedDiff = () => open(current()))}>
@@ -45,7 +45,7 @@ function BranchChangesView(props: { branch: string; path: string }) {
       <div class="dir-diff-header branch-changes-header">
         <GitCompare size={14} class="muted" />
         <span>
-          Files that differ between <b>{props.branch}</b> and the working tree in <b>{props.path || "/"}</b>
+          Files that differ between <b>{props.label}</b> and the working tree in <b>{props.path || "/"}</b>
         </span>
       </div>
       <div class="dir-diff-list" tabIndex={0}>
@@ -82,13 +82,13 @@ function BranchChangesView(props: { branch: string; path: string }) {
   );
 }
 
-export function openBranchChanges(branch: string, path: string): void {
+export function openBranchChanges(branch: string, path: string, label = branch): void {
   const name = path.split("/").pop() || "Project";
   openCustomTab({
     id: `forge:branch-changes:${branch}\u0000${path}`,
-    title: `${name} vs ${branch}`,
-    tooltip: `${path || "/"} compared with ${branch}`,
+    title: `${name} vs ${label}`,
+    tooltip: `${path || "/"} compared with ${label}`,
     icon: GitCompare,
-    component: () => <BranchChangesView branch={branch} path={path} />,
+    component: () => <BranchChangesView branch={branch} path={path} label={label} />,
   });
 }

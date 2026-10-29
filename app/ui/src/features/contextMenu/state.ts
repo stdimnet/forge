@@ -13,7 +13,16 @@ export type MenuEntry =
    * A menu item that runs a closure instead of a registered action. `action` names the action
    * the closure stands for and supplies the shortcut, unless `shortcutAction` names another one.
    */
-  | { type: "item"; label: string; run: () => void; action?: string; disabled?: boolean; shortcutAction?: string }
+  | {
+      type: "item";
+      label: string;
+      run: () => void;
+      action?: string;
+      disabled?: boolean;
+      shortcutAction?: string;
+      hint?: string;
+      checked?: boolean;
+    }
   | { type: "submenu"; label: string; items: MenuEntry[] }
   | { type: "separator" };
 
@@ -33,6 +42,8 @@ export interface ResolvedItem {
   checked?: boolean;
   /** Secondary text after the label (e.g. the path of a recent project). */
   detail?: string;
+  /** Tooltip, e.g. why the item is disabled. */
+  hint?: string;
   /** Icon before the label (e.g. the tool windows of the ⋯ stripe button). */
   icon?: Component<{ size?: number; "stroke-width"?: number }>;
 }
@@ -44,6 +55,10 @@ export interface ItemOptions {
   disabled?: boolean;
   /** Show this action's shortcut instead of the item's own action's. */
   shortcutAction?: string;
+  /** Tooltip, e.g. why the item is disabled. */
+  hint?: string;
+  /** Show a check mark column; `true` draws the mark (radio-like choices such as View Mode). */
+  checked?: boolean;
 }
 export const item = (label: string, run: () => void, action?: string, opts: ItemOptions = {}): MenuEntry => ({
   type: "item",
@@ -63,7 +78,16 @@ export function resolveEntries(entries: MenuEntry[]): ResolvedEntry[] {
       if (out.length && out[out.length - 1] !== "separator") out.push("separator");
     } else if (e.type === "item") {
       const keys = e.shortcutAction ?? e.action;
-      out.push({ kind: "action", label: e.label, action: e.action, run: e.run, shortcut: keys ? shortcutLabel(keys) : "", disabled: e.disabled });
+      out.push({
+        kind: "action",
+        label: e.label,
+        action: e.action,
+        run: e.run,
+        shortcut: keys ? shortcutLabel(keys) : "",
+        disabled: e.disabled,
+        hint: e.hint,
+        ...(e.checked === undefined ? {} : { checkable: true, checked: e.checked }),
+      });
     } else if (e.type === "action") {
       if (!isActionAvailable(e.action)) continue;
       out.push({

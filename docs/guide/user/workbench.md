@@ -28,7 +28,7 @@ From left to right:
   project.
 - **Branch widget**: the current Git branch; click it for the [Branches popup](git.md#branches).
 - Toolbar items of plugins, for example Xdebug's **Start Listening for PHP Debug Connections**
-  button (see [Xdebug debugging](debugging.md)).
+  button (see [Debugging](debugging.md)).
 - **Run widget**: the selected run configuration with **Run** and **Debug** buttons, see
   [Run/Debug configurations](run-debug.md).
 - **AI Chat**, **Search Everywhere** (`Double Shift`), the **theme toggle** (dark/light) and
@@ -43,7 +43,7 @@ sit at the toolbar's ends, styled for your desktop (see
 The main menu has PHPStorm's menus: **File, Edit, View, Navigate, Code, Refactor, Run, Tools,
 Git** (**VCS** in projects without Git), **Window** and **Help**. Every entry shows its shortcut;
 actions Forge has not implemented yet stay visible but disabled. Plugins add their own entries,
-for example Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
+for example Tools | Run Command…, Tools | Laravel (Run Artisan Command…, Show Routes), Tools | Symfony and
 Run | Start Listening for PHP Debug Connections. File | Open Recent and View | Tool Windows are
 filled with your recent projects and the available tool windows.
 File | New | **File** and **Directory** create the entry in the folder selected in the Project
@@ -91,7 +91,7 @@ where each tool window sits by default; you can move every one of them (see
 | npm | left | — | [WebForge](webforge.md) |
 | Find | bottom | `Alt+3` (macOS `Cmd+3`) | [below](#find-tool-window) |
 | Run | bottom | `Alt+4` (macOS `Cmd+4`) | [Run/Debug configurations](run-debug.md) |
-| Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Xdebug debugging](debugging.md) |
+| Debug | bottom | `Alt+5` (macOS `Cmd+5`) | [Debugging](debugging.md) |
 | Services | bottom | `Alt+8` (macOS `Cmd+8`) | [Services](services.md) |
 | Routes (Laravel) | bottom | — | [Laravel](laravel.md) |
 | Symfony | bottom | — | [Symfony](symfony.md) |
@@ -142,9 +142,13 @@ side by side. Drag the line between them to change the split.
 - **Hide** (header ⋮ menu or the **−** button, `Shift+Escape` while the tool window has the
   focus) closes the tool window.
 - View | Appearance | **Tool Window Bars** shows or hides both stripes.
+- **View Mode** (same menus): Dock Pinned, Dock Unpinned, Undock, Float or Window, see
+  [Tool window view modes](windows-and-layouts.md#tool-window-view-modes).
 - Window | Layouts | **Store Current Layout as Default** keeps where every tool window sits,
   which are open and their sizes as the default for all projects; **Restore Default Layout**
-  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one.
+  (`Shift+F12`) goes back to it, or to Forge's own layout when you never stored one. Named
+  layouts (**Save Current Layout as New…**) are described in
+  [Layouts](windows-and-layouts.md#layouts).
 
 ![Move To on a stripe button](../../screenshots/tool-window-move-to.png)
 
@@ -199,19 +203,82 @@ The Project tool window (`Alt+1`) shows the project folder as a tree.
   file) are grayed out.
 - **Header buttons**: **Select Opened File** (the target icon) expands the tree to the
   active editor's file and selects it, **Collapse All** folds every folder, and **Options**
-  (⋮) holds **Always Select Opened File** (the tree follows the active editor, PHPStorm's
-  "Autoscroll from Source", setting `projectView.autoscrollFromSource`) and **Open Files with
-  Single Click**.
+  (⋮) holds the view options below.
+- **Excluded** folders and files are orange (or hidden, see **Show Excluded Files**); see
+  [Project structure](#project-structure-mark-directory-as). `.git` is never shown.
 - **Select In…** (`Alt+F1`) shows the current file in the Project view and other places, see
   [Select In](shortcuts/navigation.md#select-in).
 
 ![Project view options](../../screenshots/project-view-options.png)
+
+### Options (⋮)
+
+Like PHPStorm's New UI, the Options menu groups the view options. They are user settings, so
+they apply to every project.
+
+| Entry | What it does | Setting |
+| --- | --- | --- |
+| Behavior › Always Select Opened File | The tree follows the active editor (PHPStorm's "Autoscroll from Source"). With **Show Members** the member at the caret is selected as the caret moves. | `projectView.autoscrollFromSource` |
+| Behavior › Open Files with Single Click | A single click opens files and expands folders | `projectView.openFilesWithSingleClick` |
+| Appearance › Show Members | PHP, JavaScript, TypeScript and Lua files get an expand arrow and list their classes, functions, methods, properties and constants (from the same providers as the [Structure tool window](code-structure.md)). A click on a member opens the file at it. | `projectView.showMembers` |
+| Appearance › Show Excluded Files | Excluded folders and files stay in the tree (orange); off hides them | `projectView.showExcludedFiles` |
+| Appearance › Compact Middle Packages | A folder that only contains one folder is shown as one row, e.g. `src/Acme/Shop` | `projectView.compactMiddlePackages` |
+| Appearance › File Nesting… | Opens the **File Nesting** dialog (below) | `projectView.fileNesting.enabled`, `projectView.fileNesting.rules` |
+| Sort › By Name / By Type | Sort files by name, or by their extension first | `projectView.sortByType` |
+| Sort › Folders Always on Top | Folders before files; off sorts folders and files together | `projectView.foldersAlwaysOnTop` |
+
+**File Nesting** shows generated and companion files below the file they belong to: with the
+rule `.ts` → `.js; .js.map; .d.ts`, `app.js` and `app.js.map` appear below `app.ts`, which
+gets an expand arrow. The dialog has **Enable file nesting** and a table of rules (**Parent
+file suffix**, **Child file suffix**, child suffixes separated by `;`) with **Add**,
+**Remove** and **Restore Defaults**. The predefined rules are PHPStorm's, for example
+`composer.json` → `composer.lock`, `package.json` → `package-lock.json; yarn.lock;
+pnpm-lock.yaml`, `.scss` → `.css; .css.map` and `.ts` → `.js; .js.map; .d.ts`. A rule whose
+parent does not start with a dot matches the whole file name. Selecting a nested file (Select
+Opened File, Always Select Opened File) expands its parent file.
+
+![File Nesting](../../screenshots/project-view-file-nesting.png)
+
+![Show Members](../../screenshots/project-view-show-members.png)
 - **Scratches and Consoles** appear at the bottom of the tree, see
   [Scratches, consoles and HTTP client](scratches-and-http.md).
 - **File colors** tint rows by scope (test folders green, your own scopes in their colors), see
   [Scopes and file colors](scopes-and-file-colors.md#settings--appearance--behavior--file-colors).
 
 ![Project view](../../screenshots/project-tree-double-click.png)
+
+### Project structure (Mark Directory as)
+
+Right-click a folder › **Mark Directory as**, like PHPStorm:
+
+| Entry | What it does |
+| --- | --- |
+| Sources Root, Test Sources Root | PHP projects: PSR-4 source roots with their package prefix, see [PHP source roots](php.md) |
+| Resource Root, Test Resources Root | Marks folders with resources (purple and green folder icons) |
+| Excluded | Leaves the folder out of the project (orange) |
+| Unmark as …, Cancel Exclusion | Removes the folder's mark; for `node_modules` it keeps the folder in the project |
+
+Excluded folders and files are skipped by the PHP index, the search index, **Find in Files**,
+**Replace in Files**, **Search Everywhere** (Files, Classes, Symbols, Text), the TODO tool
+window, the inspections, the file watcher and **Local History**. Forge reindexes when the
+excluded folders change; this also works for [remote projects](remote-development.md), whose
+host skips them.
+
+- `node_modules` (and tool folders such as `.idea`, `.forge`, `target`, `.venv`,
+  `__pycache__` and `.next`) are excluded by default; **Cancel Exclusion** keeps one in the
+  project.
+- `vendor/` is **not** excluded: like in PHPStorm it is a library (indexed on demand, shown as
+  a library in scopes and file colors).
+- `.git` (and `.hg`, `.svn`, `.DS_Store`) is never shown.
+- **Settings | Directories** lists the **Resource Folders**, **Test Resource Folders** and
+  **Excluded Folders** (with the PHP source folders) and has the **Exclude files** field:
+  file and folder name patterns separated by `;`, with `*` and `?` (`*.min.js;tmp`). **Add
+  Folder** marks a folder of any kind.
+- Everything is stored in the project settings (`projectStructure.folders`,
+  `projectStructure.excludePatterns` in `.forge/settings.toml`), shared with the team like
+  PHPStorm's `.idea`.
+
+![Excluded folders](../../screenshots/project-view-excluded.png)
 
 ### Context menu
 
@@ -437,7 +504,7 @@ Left: the project name and the path of the current file. Right, depending on the
 | Widget | Shows | Click |
 | --- | --- | --- |
 | Remote connection | host and latency of a remote project | connection popup, see [Remote development](remote-development.md) |
-| Xdebug | listening state and port | [Xdebug debugging](debugging.md) |
+| Xdebug | listening state and port | [Debugging](debugging.md) |
 | PHP indexing | "Indexing… 45%" while the PHP index is built | — |
 | Language servers | "Indexing… TypeScript 45%" or the running servers | opens Settings | Languages & Frameworks | Language Servers |
 | Docker | connection to the Docker daemon | [Services](services.md) |

@@ -4,6 +4,8 @@
 //! registration, Nuxt auto-imports). Go to Declaration on a tag opens the component, on
 //! `:title` / `@select` the prop or emit.
 
+pub mod extract;
+
 use std::collections::HashMap;
 
 use webforge_lang_web::imports::{self, Import, Imported};

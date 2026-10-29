@@ -9,10 +9,6 @@ tags: [shortcuts, keymap, refactoring]
 
 Refactorings and code generation. Windows/Linux shortcuts first, macOS second; both are PHPStorm's defaults and can be changed in Settings | Keymap.
 
-> **Note:** Extract Interface / Superclass and Pull Members Up / Push Members Down are not
-> implemented yet. Their entries stay disabled; see the
-> [Refactor menu](../../reference/main-menu/refactor.md).
-
 | Action | Windows / Linux | macOS |
 | --- | --- | --- |
 | [Refactor This…](#refactor-this) | `Ctrl+Alt+Shift+T` | `Ctrl+T` |
@@ -27,6 +23,11 @@ Refactorings and code generation. Windows/Linux shortcuts first, macOS second; b
 | [Move…](#move) | `F6` | `F6` |
 | [Copy…](#copy) | `F5` | `F5` |
 | [Safe Delete…](#safe-delete) | `Alt+Delete` | `Cmd+Delete` |
+| [Extract Interface…](#extract-interface) | — | — |
+| [Extract Superclass…](#extract-superclass) | — | — |
+| [Extract Component…](#extract-component) | — | — |
+| [Pull Members Up…](#pull-members-up) | — | — |
+| [Push Members Down…](#push-members-down) | — | — |
 | [Make Static…](#make-static) | — | — |
 | [Show Context Actions](#show-context-actions) | `Alt+Enter` | `Alt+Enter` |
 | [Generate…](#generate) | `Alt+Insert` | `Cmd+N` |
@@ -50,10 +51,18 @@ More: [Editor](../../user/editor.md#rename), [PHP](../../user/php.md#rename)
 
 **Shortcut:** `Ctrl+Alt+Shift+T` · macOS `Ctrl+T` · action id `Refactorings.QuickListPopupAction`
 
-A popup with the refactorings Forge has (Rename, Change Signature, Move, Copy, Safe Delete,
-Make Static, Introduce Variable / Constant / Field / Parameter, Extract Method, Inline) and their
-shortcuts. Pick one with the arrow keys and
-`Enter`, a click or its number.
+A popup with only the refactorings that apply at the caret or to the selection, with their
+shortcuts: on a PHP class Rename, Move, Copy, Safe Delete, Extract Interface / Superclass and Pull
+Members Up / Push Members Down; on a method Rename, Change Signature, Move, Safe Delete, Inline,
+Pull Up / Push Down and Make Static; on an expression or a selection Introduce Variable /
+Constant / Field / Parameter and Extract Method. In JavaScript, TypeScript and Vue files it
+offers Rename, Extract Component (for whole elements), Move and Copy, and the language server's
+refactorings worded like PHPStorm (see [WebForge](../webforge.md#language-server-refactorings)). Pick one with its number (`1`-`9`, `0`), the arrow keys and
+`Enter`, or a click; typing filters the list (speed search), `Escape` clears the filter.
+
+![Refactor This on a class](../../../screenshots/refactor-this-class.png)
+
+![Refactor This filtered by typing](../../../screenshots/refactor-this-method.png)
 
 **Menu:** Refactor | Refactor This…
 
@@ -170,6 +179,64 @@ that nothing uses it; **Usages Detected** offers View Usages and Delete Anyway.
 **Menu:** Refactor | Safe Delete…
 
 ![Usages Detected](../../../screenshots/safe-delete-usages-detected.png)
+
+## Extract Interface
+
+**Shortcut:** none by default · action id `ExtractInterface`
+
+In a PHP class or enum: creates an interface (name, namespace, directory) from the PHP Interface
+file template that declares the chosen public methods with their PHPDoc and holds the chosen
+constants; the class implements it. **Replace class references with interface where possible**
+changes parameter types that only need the interface's methods.
+
+**Menu:** Refactor | Extract/Introduce | Interface…
+
+![Extract Interface](../../../screenshots/extract-interface-dialog.png)
+
+## Extract Superclass
+
+**Shortcut:** none by default · action id `ExtractSuperclass`
+
+Moves the chosen members of a PHP class into a new class that the class extends (between it
+and its old parent); **Make abstract** keeps a method in the class and declares it abstract in
+the superclass.
+
+**Menu:** Refactor | Extract/Introduce | Superclass…
+
+![Extract Superclass](../../../screenshots/extract-superclass-dialog.png)
+
+## Extract Component
+
+**Shortcut:** none by default · action id `WebForge.ExtractComponent`
+
+Moves the selected Vue template elements or React JSX into a new component file with props for
+the names they use; the parent renders and imports it. See
+[WebForge](../webforge.md#extract-component).
+
+**Menu:** Refactor | Extract/Introduce | Component…
+
+![Extract Component](../../../screenshots/extract-component-vue-dialog.png)
+
+## Pull Members Up
+
+**Shortcut:** none by default · action id `MembersPullUp`
+
+Moves members into a superclass or interface of the class (interfaces get declarations), with
+**Make abstract**; members a chosen one uses are highlighted, problems are listed before the
+change.
+
+**Menu:** Refactor | Pull Members Up…
+
+![Pull Members Up](../../../screenshots/pull-members-up-dialog.png)
+
+## Push Members Down
+
+**Shortcut:** none by default · action id `MemberPushDown`
+
+Copies members into every direct subclass and removes them from the class (**Keep abstract**
+leaves an abstract declaration).
+
+**Menu:** Refactor | Push Members Down…
 
 ## Make Static
 

@@ -1,6 +1,6 @@
 //! Remote development over SSH, like JetBrains Gateway: Forge connects to a host, installs
 //! its headless agent (`crates/forge-remote-agent`) there and opens the project through a
-//! [`forge_backend::RemoteBackend`], so indexing, Intelephense, git, terminals and runs all
+//! [`forge_backend::RemoteBackend`], so indexing, language servers, git, terminals and runs all
 //! happen next to the files.
 //!
 //! Pure modules (also built for WebAssembly without the `client` feature):
@@ -15,6 +15,7 @@
 //! - [`agent`]: installing and starting the agent.
 //! - [`connection`]: a live connection to an agent with reconnects and latency.
 //! - [`store`]: saved configurations on disk and their secrets in the keychain.
+//! - [`shell`]: interactive SSH terminal sessions (a pseudo terminal on an SSH channel).
 
 pub mod config;
 pub mod deploy;
@@ -27,6 +28,8 @@ pub mod agent;
 pub mod connection;
 #[cfg(feature = "client")]
 pub mod session;
+#[cfg(feature = "client")]
+pub mod shell;
 #[cfg(feature = "client")]
 pub mod store;
 

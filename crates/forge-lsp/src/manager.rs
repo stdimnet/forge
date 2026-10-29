@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use forge_core::{ForgeError, Result};
 use futures_util::future::join_all;
@@ -39,6 +39,12 @@ pub const COMPLETION_SERVER_KEY: &str = "forgeServer";
 /// How long a project-wide symbol search waits for each server.
 const WORKSPACE_SYMBOL_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// A server that exits on its own is started again on its next use, at most
+/// [`MAX_RESTARTS`] times within [`RESTART_WINDOW`] (like VS Code), so a server that
+/// crashes on start does not loop.
+const MAX_RESTARTS: usize = 5;
+const RESTART_WINDOW: Duration = Duration::from_secs(180);
+
 /// Status of one registered server, for the status bar.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +64,8 @@ pub struct LspManager {
     slots: Mutex<HashMap<String, Slot>>,
     /// Startup errors per server id (cleared when the config is registered again).
     failures: Mutex<HashMap<String, String>>,
+    /// When each server was restarted after exiting on its own (within [`RESTART_WINDOW`]).
+    restarts: Mutex<HashMap<String, Vec<Instant>>>,
     /// Latest diagnostics per document and server, merged for the editor.
     diagnostics: Mutex<HashMap<Url, BTreeMap<String, Vec<Diagnostic>>>>,
     events: broadcast::Sender<LspEvent>,
@@ -77,6 +85,7 @@ impl LspManager {
             configs: RwLock::new(Vec::new()),
             slots: Mutex::new(HashMap::new()),
             failures: Mutex::new(HashMap::new()),
+            restarts: Mutex::new(HashMap::new()),
             diagnostics: Mutex::new(HashMap::new()),
             events: broadcast::channel(1024).0,
         }
@@ -130,6 +139,7 @@ impl LspManager {
 
     fn stop_slot(&self, id: &str) {
         self.failures.lock().expect("failures lock").remove(id);
+        self.restarts.lock().expect("restarts lock").remove(id);
         for per_server in self
             .diagnostics
             .lock()
@@ -171,13 +181,58 @@ impl LspManager {
         self.configs_for(path).into_iter().next()
     }
 
+    /// The slot to start `id` in. A server that exited on its own gets a fresh slot, so it
+    /// starts again (within the restart limit); the documents are opened in it again with
+    /// their next change.
     fn slot(&self, id: &str) -> Slot {
-        self.slots
+        let current = self
+            .slots
             .lock()
             .expect("slots lock")
             .entry(id.to_string())
             .or_default()
-            .clone()
+            .clone();
+        let exited = matches!(current.get(), Some(Some(client)) if client.has_exited());
+        if !exited || !self.may_restart(id) {
+            return current;
+        }
+        tracing::warn!("language server {id} exited; starting it again");
+        let fresh = Slot::default();
+        let mut slots = self.slots.lock().expect("slots lock");
+        match slots.get(id) {
+            // Another caller restarted it meanwhile.
+            Some(slot) if !Arc::ptr_eq(slot, &current) => slot.clone(),
+            _ => {
+                slots.insert(id.to_string(), fresh.clone());
+                fresh
+            }
+        }
+    }
+
+    /// Count a restart of `id`; false (and a failure for the status bar) once it exited
+    /// [`MAX_RESTARTS`] times within [`RESTART_WINDOW`].
+    fn may_restart(&self, id: &str) -> bool {
+        let now = Instant::now();
+        let allowed = {
+            let mut restarts = self.restarts.lock().expect("restarts lock");
+            let times = restarts.entry(id.to_string()).or_default();
+            times.retain(|t| now.duration_since(*t) < RESTART_WINDOW);
+            let allowed = times.len() < MAX_RESTARTS;
+            if allowed {
+                times.push(now);
+            }
+            allowed
+        };
+        if !allowed {
+            self.failures.lock().expect("failures lock").insert(
+                id.to_string(),
+                format!(
+                    "exited {MAX_RESTARTS} times in {} minutes, not started again",
+                    RESTART_WINDOW.as_secs() / 60
+                ),
+            );
+        }
+        allowed
     }
 
     async fn start(&self, config: LspServerConfig) -> Option<LspClient> {
@@ -201,6 +256,8 @@ impl LspManager {
         })
         .await
         .clone()
+        // Exited and not started again (restart limit).
+        .filter(|c| !c.has_exited())
     }
 
     /// The primary client for `path`, starting its server if needed. `None` when no
@@ -222,7 +279,7 @@ impl LspManager {
 
     fn running(&self, id: &str) -> Option<LspClient> {
         let slot = self.slots.lock().expect("slots lock").get(id).cloned()?;
-        slot.get().cloned().flatten()
+        slot.get().cloned().flatten().filter(|c| !c.has_exited())
     }
 
     /// The primary client for `path` only if its server is already running.
@@ -626,7 +683,7 @@ impl LspManager {
     // ---- Navigation, rename and code actions (servers that announce the feature) ----
 
     /// Names of the servers attached to `path` when none of them announces `feature`, so
-    /// the UI can say why nothing happens (free Intelephense has no rename). `None` when a
+    /// the UI can say why nothing happens (a server without rename). `None` when a
     /// server supports it or no server serves the file.
     pub async fn missing_feature(&self, path: &Path, feature: Feature) -> Option<Vec<String>> {
         let clients = self.clients_for(path).await;
@@ -887,7 +944,7 @@ impl LspManager {
         let clients = self.supporting(path, Feature::CodeAction).await;
         let results = join_all(clients.iter().map(|c| {
             let diagnostics = self.diagnostics_in(c.id(), &uri, range);
-            async move { c.code_action(path, range, diagnostics).await }
+            async move { c.code_action(path, range, diagnostics, None).await }
         }))
         .await;
         let mut out = Vec::new();
@@ -911,6 +968,50 @@ impl LspManager {
             Some(e) if out.is_empty() && !clients.is_empty() => Err(e),
             _ => Ok(out),
         }
+    }
+
+    /// Source actions of one kind for `range` (the whole document): `source.organizeImports`
+    /// for Optimize Imports, `source.addMissingImports` / `source.removeUnusedImports` for
+    /// Auto Import on the fly. Servers without code actions or that fail answer nothing.
+    pub async fn source_actions(
+        &self,
+        path: &Path,
+        range: Range,
+        kind: &str,
+    ) -> Vec<EditorCodeAction> {
+        let clients = self.supporting(path, Feature::CodeAction).await;
+        let only = vec![lsp_types::CodeActionKind::from(kind.to_string())];
+        let results = join_all(
+            clients
+                .iter()
+                .map(|c| c.code_action(path, range, vec![], Some(only.clone()))),
+        )
+        .await;
+        let mut out = Vec::new();
+        for (client, r) in clients.iter().zip(results) {
+            match r {
+                Ok(actions) => out.extend(
+                    actions
+                        .unwrap_or_default()
+                        .iter()
+                        .map(|a| {
+                            EditorCodeAction::from_lsp(
+                                a,
+                                client.id(),
+                                client.supports_code_action_resolve(),
+                            )
+                        })
+                        // Servers may answer more than asked for.
+                        .filter(|a| {
+                            a.kind
+                                .as_deref()
+                                .is_some_and(|k| k == kind || k.starts_with(&format!("{kind}.")))
+                        }),
+                ),
+                Err(e) => tracing::debug!("{} {kind} failed: {e}", client.id()),
+            }
+        }
+        out
     }
 
     /// Inlay hints of every server of `path` that announces them, for `range`. Failing
@@ -1023,6 +1124,7 @@ mod tests {
             args: vec![],
             initialization_options: Value::Null,
             settings: Value::Null,
+            ..Default::default()
         }
     }
 

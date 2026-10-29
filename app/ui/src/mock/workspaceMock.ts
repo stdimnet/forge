@@ -1,9 +1,12 @@
 import { registerMock } from "@/ipc";
 import type { FileEntry } from "@/ipc/workspace";
+import { callWasmSync, forgeWasm } from "@/wasm";
+import { mockSettingValue } from "./settingsMock";
 import { demoFiles, demoProjectName } from "./demoProject";
 import { demoConfigFiles } from "./demoConfigFiles";
 import { demoLaravelFiles } from "./demoLaravel";
 import { createIgnoreMatcher } from "./gitignoreMatcher";
+import { excludedFlags } from "./projectStructureMock";
 import {
   adoptRemoteProject,
   closeRemoteProject,
@@ -17,14 +20,56 @@ import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
 import { webDemo } from "./demoWebProjects";
 import { isLuaDemo, luaDemoFiles, luaDemoName } from "./demoLuaProject";
+import { isPythonDemo, pythonDemoFiles, pythonDemoName } from "./demoPythonProject";
+import { goDemoFiles, goDemoName, isGoDemo } from "./demoGoProject";
+import { isRustDemo, rustDemoFiles, rustDemoName } from "./demoRustProject";
+import { isRubyDemo, rubyDemoFiles, rubyDemoName } from "./demoRubyProject";
+import { isJavaDemo, javaDemoFiles, javaDemoName } from "./demoJavaProject";
+import { isKotlinDemo, kotlinDemoFiles, kotlinDemoName } from "./demoKotlinProject";
+import { isScalaDemo, scalaDemoFiles, scalaDemoName } from "./demoScalaProject";
+import { androidDemoFiles, androidDemoName, isAndroidDemo } from "./demoAndroidProject";
+import { cppDemoFiles, cppDemoName, isCppDemo } from "./demoCppProject";
+import { dotnetDemoFiles, dotnetDemoName, isDotnetDemo } from "./demoDotnetProject";
+import { isWordPressDemo, wordpressDemoFiles, wordpressDemoName } from "./demoWordPressProject";
+import { drupalDemoFiles, drupalDemoName, isDrupalDemo } from "./demoDrupalProject";
 
 /** The in-memory project (demo files plus whatever the UI saved); read by other mocks. */
 // `?project=symfony` opens the Symfony demo project instead of the Laravel one,
-// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game.
+// `?project=react|vue|angular` a WebForge demo (demoWebProjects.ts), `?project=lua` the LÖVE game,
+// `?project=wordpress` a WordPress plugin, `?project=drupal` a Drupal module, `?project=python`
+// the FastAPI service of PyForge (`?project=django` its Django bookshop), `?project=go` the
+// `ledger` module of GoForge, `?project=rust` the `shop` Cargo workspace of RustForge, `?project=ruby` the `pantry` gem of RubyForge,
+// `?project=java` a Gradle Java service (`?project=spring` as a Spring Boot application), `?project=kotlin` a Gradle Kotlin service,
+// `?project=scala` an sbt build, `?project=android` a Gradle Android app.
+// `?project=cpp` the CMake project `shapes` of CForge.
 export const mockFiles: Record<string, string> = isSymfonyDemo()
   ? { ...symfonyDemoFiles }
-  : isLuaDemo()
+  : isWordPressDemo()
+    ? { ...wordpressDemoFiles }
+    : isDrupalDemo()
+      ? { ...drupalDemoFiles }
+      : isLuaDemo()
     ? { ...luaDemoFiles }
+    : isPythonDemo()
+    ? { ...pythonDemoFiles }
+    : isGoDemo()
+    ? { ...goDemoFiles }
+    : isRustDemo()
+    ? { ...rustDemoFiles }
+    : isRubyDemo()
+    ? { ...rubyDemoFiles }
+    : isJavaDemo()
+    ? { ...javaDemoFiles }
+    : isKotlinDemo()
+    ? { ...kotlinDemoFiles }
+    : isScalaDemo()
+    ? { ...scalaDemoFiles }
+    : isAndroidDemo()
+    ? { ...androidDemoFiles }
+    : isCppDemo()
+    ? { ...cppDemoFiles }
+    : isDotnetDemo()
+    ? { ...dotnetDemoFiles }
     : webDemo()
       ? { ...webDemo()!.files }
       : { ...demoFiles, ...demoLaravelFiles, ...demoConfigFiles };
@@ -32,8 +77,32 @@ const files = mockFiles;
 /** Name of the open demo project. */
 export const mockProjectName = isSymfonyDemo()
   ? symfonyDemoName
-  : isLuaDemo()
+  : isWordPressDemo()
+    ? wordpressDemoName
+    : isDrupalDemo()
+      ? drupalDemoName
+      : isLuaDemo()
     ? luaDemoName
+    : isPythonDemo()
+    ? pythonDemoName
+    : isGoDemo()
+    ? goDemoName
+    : isRustDemo()
+    ? rustDemoName
+    : isRubyDemo()
+    ? rubyDemoName
+    : isJavaDemo()
+    ? javaDemoName
+    : isKotlinDemo()
+    ? kotlinDemoName
+    : isScalaDemo()
+    ? scalaDemoName
+    : isAndroidDemo()
+    ? androidDemoName
+    : isCppDemo()
+    ? cppDemoName
+    : isDotnetDemo()
+    ? dotnetDemoName
     : (webDemo()?.name ?? demoProjectName);
 const openName = mockProjectName;
 // The remote demo host serves the same project as `/var/www/shop`.
@@ -68,7 +137,10 @@ function listDir(dir: string): FileEntry[] {
     const kind = tail.length ? "dir" : "file";
     seen.set(full, { name: head, path: full, kind, ignored: isIgnored(full, kind === "dir", tracked) });
   }
-  return [...seen.values()].filter((e) => !hiddenFromGuest(e.path)).sort(
+  const listed = [...seen.values()].filter((e) => !hiddenFromGuest(e.path));
+  const flags = excludedFlags(listed.map((e) => [e.path, e.kind === "dir"]));
+  listed.forEach((e, i) => flags[i] && (e.excluded = true));
+  return listed.sort(
     (a, b) =>
       Number(a.kind !== "dir") - Number(b.kind !== "dir") ||
       a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
@@ -83,6 +155,7 @@ registerMock("workspace_recent", () =>
     { name: "symfony-api", root: "~/Projects/symfony-api" },
     { name: "storefront-ui", root: "~/Projects/storefront-ui" },
     { name: "pixel-dungeon", root: "~/Games/pixel-dungeon" },
+    { name: "shop-api", root: "~/Projects/shop-api" },
     { name: "dotfiles.nvim", root: "~/.config/nvim" },
     { name: "legacy-crm", root: "~/Work/legacy-crm" },
   ].map(({ primaryOf, ...p }: { name: string; root: string; primaryOf?: string }) => ({
@@ -96,7 +169,15 @@ registerMock("workspace_open", () => {
   closeRemoteProject();
   return { name: openName, root: `~/Projects/${openName}` };
 });
-registerMock("fs_list_dir", ({ path }) => listDir(String(path ?? "")));
+/** Settings | Editor | File Types | Ignored Files and Folders, matched by Rust. */
+async function withoutIgnored(entries: FileEntry[]): Promise<FileEntry[]> {
+  const patterns = mockSettingValue("fileTypes.ignoredFiles");
+  if (typeof patterns !== "string" || !entries.length) return entries;
+  const hidden = callWasmSync<boolean[]>((await forgeWasm()).filetypes_ignored, { names: entries.map((e) => e.name), patterns });
+  return entries.filter((_, i) => !hidden[i]);
+}
+
+registerMock("fs_list_dir", ({ path }) => withoutIgnored(listDir(String(path ?? ""))));
 registerMock("fs_read_file", ({ path }) => {
   if (hiddenFromGuest(String(path))) throw new Error(`"${path}" is not shared with guests`);
   const content = files[String(path)];

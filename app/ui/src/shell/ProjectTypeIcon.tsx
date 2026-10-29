@@ -6,7 +6,7 @@
 import type { Component } from "solid-js";
 import { Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Atom, Code, Folder, Heart, Moon, Mountain, Package, Zap } from "lucide-solid";
+import { Atom, Code, Folder, Gem, Heart, Leaf, Moon, Mountain, Package, Zap } from "lucide-solid";
 import "./projectTypeIcon.css";
 
 type Glyph = { icon?: Component<{ size?: number; "stroke-width"?: number }>; text?: string };
@@ -18,6 +18,8 @@ const GLYPHS: Record<string, Glyph> = {
   composer: { icon: Package },
   wordpress: { text: "W" },
   drupal: { text: "Dr" },
+  joomla: { text: "J" },
+  shopware: { text: "Sw" },
   magento: { text: "M" },
   html: { icon: Code },
   css: { text: "#" },
@@ -35,8 +37,21 @@ const GLYPHS: Record<string, Glyph> = {
   love: { icon: Heart },
   neovim: { text: "nv" },
   rust: { text: "Rs" },
+  ruby: { icon: Gem },
+  rails: { text: "Rl" },
   go: { text: "Go" },
   python: { text: "Py" },
+  "spring-boot": { icon: Leaf },
+  "jakarta-ee": { text: "EE" },
+  django: { text: "dj" },
+  flask: { text: "Fl" },
+  fastapi: { icon: Zap },
+  celery: { text: "Ce" },
+  dotnet: { text: "NET" },
+  csharp: { text: "C#" },
+  fsharp: { text: "F#" },
+  vbnet: { text: "VB" },
+  aspnetcore: { text: "asp" },
   folder: { icon: Folder },
 };
 

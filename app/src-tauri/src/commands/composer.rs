@@ -1,6 +1,6 @@
 //! Composer (`phpforge-composer`): outdated markers, completion and hover in composer.json,
 //! the Manage Composer Dependencies dialog (Packagist search, versions, installed
-//! packages), `composer audit` and the composer.phar download.
+//! packages) and the composer.phar download.
 //!
 //! Project files are read through the backend and Composer runs on the project's machine,
 //! so remote projects work. Packagist is reached from here only (while
@@ -11,17 +11,15 @@
 //!
 //! IPC: `composer_project`, `composer_markers({ path, text })`,
 //! `composer_complete({ path, text, offset })`, `composer_hover({ path, text, offset })`,
-//! `composer_search({ query })`, `composer_package({ name })`, `composer_audit`,
-//! `composer_download_phar`.
+//! `composer_search({ query })`, `composer_package({ name })`, `composer_download_phar`.
+//! `composer audit` runs with the vulnerable dependency check (`commands/vulnerabilities.rs`).
 
 use std::collections::HashMap;
-use std::path::Path;
 use std::sync::Arc;
 
 use forge_backend::Backend;
 use forge_core::{ForgeError, Result};
 use forge_jsonschema::{CompletionOut, HoverOut};
-use phpforge_composer::audit::{self, AuditReport, FileProblem};
 use phpforge_composer::complete::{self, CompletionData, Request};
 use phpforge_composer::lock::{self, InstalledPackage};
 use phpforge_composer::manifest::{self, Requirement};
@@ -50,14 +48,17 @@ impl Default for ComposerState {
     }
 }
 
-struct Options {
-    json: String,
-    executable: String,
-    php: String,
+pub(crate) struct Options {
+    pub json: String,
+    pub executable: String,
+    pub php: String,
     packagist: bool,
 }
 
-fn options(state: &AppState) -> Options {
+/// Composer settings: composer.json, the executable and the PHP interpreter that runs a
+/// `.phar` (also used by the vulnerable dependency check).
+pub(crate) fn options(state: &AppState) -> Options {
+    let php = crate::commands::php_interpreters::local_php(state);
     let s = state.read_settings();
     Options {
         json: s
@@ -66,9 +67,7 @@ fn options(state: &AppState) -> Options {
             .filter(|p| !p.is_empty())
             .unwrap_or_else(|| "composer.json".into()),
         executable: s.get_as::<String>(EXECUTABLE_KEY).unwrap_or_default(),
-        php: s
-            .get_as::<String>("php.interpreter")
-            .unwrap_or_else(|| "php".into()),
+        php,
         packagist: s.get_as::<bool>(PACKAGIST_KEY).unwrap_or(true),
     }
 }
@@ -275,72 +274,6 @@ pub async fn composer_package(
         url: info.page_url(),
         info,
     })
-}
-
-/// The result of `composer audit` with its problems in composer.json and composer.lock.
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AuditResult {
-    #[serde(flatten)]
-    pub report: AuditReport,
-    pub composer_json: String,
-    pub composer_lock: String,
-    pub json_problems: Vec<FileProblem>,
-    pub lock_problems: Vec<FileProblem>,
-}
-
-/// `composer <args>` in the folder of composer.json, on the project's machine; stdout.
-fn run_composer(backend: &Arc<dyn Backend>, opts: &Options, args: &[&str]) -> Result<String> {
-    let (program, lead) = forge_process::composer_program(&opts.executable, &opts.php);
-    let mut cmd = forge_process::CommandLine::new(program)
-        .args(lead)
-        .args(args.iter().copied());
-    let dir = Path::new(&opts.json).parent().unwrap_or(Path::new(""));
-    cmd.cwd = Path::new(&backend.info().root).join(dir);
-    let mut out = String::new();
-    let mut err = String::new();
-    let cancel = std::sync::atomic::AtomicBool::new(false);
-    forge_backend::process_io::run_lines(backend.as_ref(), &cmd, &cancel, &mut |line, stderr| {
-        let buf = if stderr { &mut err } else { &mut out };
-        buf.push_str(&line);
-        buf.push('\n');
-    })
-    .map_err(|e| ForgeError::Other(format!("cannot run Composer: {e}")))?;
-    if out.trim().is_empty() && !err.trim().is_empty() {
-        return Err(ForgeError::Other(err.trim().to_string()));
-    }
-    Ok(out)
-}
-
-#[tauri::command]
-pub async fn composer_audit(state: State<'_, AppState>) -> Result<AuditResult> {
-    let opts = options(&state);
-    let backend = state.backend()?;
-    blocking(move || {
-        let json = backend.read_optional(&opts.json)?;
-        if json.is_none() {
-            return Err(ForgeError::Other(format!("{} not found", opts.json)));
-        }
-        let lock_file = lock_path(&opts.json);
-        let lock = backend.read_optional(&lock_file)?;
-        let mut args = vec!["audit", "--format=json", "--no-interaction"];
-        // The lock file when there is one, else what is installed in vendor/.
-        if lock.is_some() {
-            args.push("--locked");
-        }
-        let out = run_composer(&backend, &opts, &args)?;
-        let report = audit::parse(&out).map_err(ForgeError::Other)?;
-        let (json_problems, lock_problems) =
-            audit::problems(&report, json.as_deref(), lock.as_deref());
-        Ok(AuditResult {
-            report,
-            composer_json: opts.json,
-            composer_lock: lock_file,
-            json_problems,
-            lock_problems,
-        })
-    })
-    .await
 }
 
 /// "Download composer.phar from getcomposer.org" (Settings | PHP | Composer, after the

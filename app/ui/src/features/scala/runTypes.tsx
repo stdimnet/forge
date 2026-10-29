@@ -1,0 +1,112 @@
+/**
+ * Scala run configuration types, like IntelliJ IDEA's: sbt Task (tasks such as
+ * `~compile`, `test`, `runMain com.acme.Main`, or the sbt shell without tasks), ScalaTest
+ * and MUnit (through sbt `testOnly` with JUnit XML reports). Command lines are built in Rust
+ * (`commands/scala.rs`, `javaforge-lang-scala`).
+ */
+import { FlaskConical, SquareTerminal, TestTubes } from "lucide-solid";
+import type { RunConfiguration } from "@/ipc/run";
+import { registerRunConfigurationType, type RunConfigField } from "@/features/run/types";
+import { PLUGIN_ID } from "./store";
+
+export const SBT_TASK = "sbt-task";
+export const SCALATEST = "scalatest";
+export const MUNIT = "munit";
+
+const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
+const simple = (cls: string) => cls.split(/[.$]/).pop() || undefined;
+
+registerRunConfigurationType({
+  id: SBT_TASK,
+  name: "sbt Task",
+  description: "Run sbt tasks (one per line or separated by ';', e.g. ~compile, test, runMain com.acme.Main). Without tasks it opens the sbt shell in the Run tool window.",
+  icon: SquareTerminal,
+  color: "var(--accent)",
+  pluginId: PLUGIN_ID,
+  argumentsLabel: "sbt options",
+  noRunTarget: true,
+  fields: [
+    { key: "tasks", label: "Tasks", kind: "text", placeholder: "~compile (empty: the sbt shell)" },
+    { key: "project", label: "Project", placeholder: "core (empty: the root project)" },
+    { key: "interpreterOptions", label: "VM parameters", placeholder: "-Xmx2g" },
+    { key: "sbt", label: "sbt launcher", placeholder: "Empty: Settings | Scala, SDKMAN! or the PATH" },
+  ],
+  suggestName: (cfg) => {
+    const tasks = opt(cfg, "tasks").trim().split(/[\n;]/)[0]?.trim();
+    const project = opt(cfg, "project").trim();
+    if (!tasks) return "sbt shell";
+    return project ? `${project}/${tasks}` : tasks;
+  },
+});
+
+const inScope =
+  (...scopes: string[]) =>
+  (cfg: RunConfiguration) =>
+    scopes.includes(opt(cfg, "scope") || "class");
+
+function testFields(): RunConfigField[] {
+  return [
+    {
+      key: "scope",
+      label: "Test kind",
+      kind: "segmented",
+      default: "class",
+      options: [
+        { value: "all", label: "All in project" },
+        { value: "package", label: "Package" },
+        { value: "class", label: "Suite" },
+        { value: "test", label: "Test" },
+        { value: "pattern", label: "Suites" },
+      ],
+    },
+    { key: "package", label: "Package", required: true, placeholder: "com.acme.shop", visible: inScope("package") },
+    { key: "class", label: "Suite", required: true, placeholder: "com.acme.shop.CartSpec", visible: inScope("class", "test") },
+    { key: "test", label: "Test name", required: true, placeholder: "A Cart should add items", visible: inScope("test") },
+    { key: "tests", label: "Suites", kind: "text", required: true, placeholder: "com.acme.shop.CartSpec (one per line)", visible: inScope("pattern") },
+    { key: "project", label: "sbt project", placeholder: "core (empty: the root project)" },
+    { key: "sbtOptions", label: "sbt options", placeholder: "-J-Xmx2g" },
+  ];
+}
+
+const testName = (label: string) => (cfg: RunConfiguration) => {
+  switch (opt(cfg, "scope") || "class") {
+    case "all":
+      return `All ${label} suites`;
+    case "package":
+      return opt(cfg, "package") ? `Suites in '${opt(cfg, "package")}'` : undefined;
+    case "test":
+      return opt(cfg, "test") ? `${simple(opt(cfg, "class")) ?? ""}: ${opt(cfg, "test")}` : undefined;
+    case "pattern":
+      return `${label}: failed suites`;
+    default:
+      return simple(opt(cfg, "class"));
+  }
+};
+
+registerRunConfigurationType({
+  id: SCALATEST,
+  name: "ScalaTest",
+  description: "Run ScalaTest suites through sbt testOnly: all, a package, a suite or one test.",
+  icon: TestTubes,
+  color: "var(--success)",
+  pluginId: PLUGIN_ID,
+  argumentsLabel: false,
+  testRunner: true,
+  noRunTarget: true,
+  fields: testFields(),
+  suggestName: testName("ScalaTest"),
+});
+
+registerRunConfigurationType({
+  id: MUNIT,
+  name: "MUnit",
+  description: "Run MUnit suites through sbt testOnly: all, a package, a suite or one test.",
+  icon: FlaskConical,
+  color: "var(--success)",
+  pluginId: PLUGIN_ID,
+  argumentsLabel: false,
+  testRunner: true,
+  noRunTarget: true,
+  fields: testFields(),
+  suggestName: testName("MUnit"),
+});

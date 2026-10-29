@@ -31,13 +31,18 @@ use forge_process::{CommandLine, PtySink, RunSink};
 use forge_project::ProjectInfo;
 use forge_vcs::{GitExec, GitOutput, GitRequest};
 use futures_util::future::BoxFuture;
+use phpforge_lang_php::complete::PhpCompletion;
 use phpforge_lang_php::generate::{GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use phpforge_lang_php::hierarchy::{HierarchyQuery, PhpHierarchy};
 use phpforge_lang_php::hover::Hover;
+use phpforge_lang_php::imports::auto::UnresolvedClass;
 use phpforge_lang_php::index::{SearchKind, SymbolHit};
+use phpforge_lang_php::injections::LanguagePlace;
+use phpforge_lang_php::inspections::PhpProblem;
 use phpforge_lang_php::intentions::Intention;
 use phpforge_lang_php::lsp::{DetectedServers, LspServerConfig, PhpLspSettings};
 use phpforge_lang_php::navigate::{NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
+use phpforge_lang_php::project::{LibraryEntry, LibraryRoot, PhpProjectSettings};
 use phpforge_lang_php::structure::FileStructure;
 use phpforge_lang_php::IndexStats;
 use serde::de::DeserializeOwned;
@@ -519,5 +524,58 @@ impl PhpBackend for CollabBackend {
 
     fn detect_servers(&self, _settings: PhpLspSettings) -> Result<DetectedServers> {
         Ok(DetectedServers::default())
+    }
+
+    fn unresolved_classes(
+        &self,
+        path: &str,
+        content: Option<String>,
+    ) -> Result<Vec<UnresolvedClass>> {
+        self.php_call(PhpCall::UnresolvedClasses {
+            path: path.into(),
+            content,
+        })
+    }
+
+    /// The host's include paths and source roots apply; a guest's settings do not.
+    fn configure(&self, _settings: PhpProjectSettings) -> Result<()> {
+        Ok(())
+    }
+
+    fn inspect(&self, path: &str, content: Option<String>) -> Result<Vec<PhpProblem>> {
+        self.php_call(PhpCall::Inspect {
+            path: path.into(),
+            content,
+        })
+    }
+
+    fn complete(
+        &self,
+        path: &str,
+        offset: usize,
+        content: Option<String>,
+    ) -> Result<Option<PhpCompletion>> {
+        self.php_call(PhpCall::Complete {
+            path: path.into(),
+            offset,
+            content,
+        })
+    }
+
+    fn language_places(&self) -> Result<Vec<LanguagePlace>> {
+        self.php_call(PhpCall::LanguagePlaces)
+    }
+
+    /// External libraries live outside the project and are not shared.
+    fn libraries(&self) -> Result<Vec<LibraryRoot>> {
+        Ok(Vec::new())
+    }
+
+    fn library_list(&self, _path: &str) -> Result<Vec<LibraryEntry>> {
+        Err(unavailable("External Libraries"))
+    }
+
+    fn library_read(&self, _path: &str) -> Result<String> {
+        Err(unavailable("External Libraries"))
     }
 }

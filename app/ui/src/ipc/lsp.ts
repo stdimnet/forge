@@ -29,6 +29,11 @@ export interface EditorDiagnostic {
   fileLevel?: boolean;
   /** Data of the inspection that reported it (Alt+Enter fixes). */
   data?: unknown;
+  /** The inspection it belongs to (set by the inspection profile). */
+  inspection?: string;
+  inspectionName?: string;
+  /** The profile's severity name when it is not one of the editor's (`Server Problem`). */
+  severityName?: string;
 }
 
 export interface EditorHover {
@@ -48,6 +53,8 @@ export interface EditorCompletionItem {
   filterText?: string | null;
   sortText?: string | null;
   deprecated?: boolean;
+  /** Edits elsewhere in the file (the import of a completed name). */
+  additionalTextEdits?: TextEdit[];
   raw?: unknown;
 }
 

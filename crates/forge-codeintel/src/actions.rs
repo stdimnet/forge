@@ -216,6 +216,92 @@ pub fn refactor_actions(actions: Vec<ContextAction>, action: &str) -> Vec<Contex
         .collect()
 }
 
+/// PHPStorm's wording for a language server refactoring (typescript-language-server's
+/// "Extract to function in module scope" is PHPStorm's Extract Method), `None` when the
+/// server's title is fine as it is.
+pub fn phpstorm_title(kind: Option<&str>, title: &str) -> Option<String> {
+    let kind = kind.unwrap_or_default();
+    let with_scope = |name: &str, prefix: &str| {
+        let rest = title.strip_prefix(prefix).unwrap_or(title).trim();
+        if rest.is_empty() {
+            name.to_string()
+        } else {
+            format!("{name} ({rest})")
+        }
+    };
+    let starts = |k: &str| kind == k || kind.starts_with(&format!("{k}."));
+    Some(
+        if starts("refactor.extract.function") || starts("refactor.extract.method") {
+            with_scope("Extract Method", "Extract to")
+        } else if starts("refactor.extract.constant") {
+            with_scope("Introduce Constant", "Extract to constant")
+        } else if starts("refactor.extract.variable") {
+            with_scope("Introduce Variable", "Extract to variable")
+        } else if starts("refactor.extract.field") || starts("refactor.extract.property") {
+            with_scope("Introduce Field", "Extract to")
+        } else if starts("refactor.extract.type") {
+            if title.contains("typedef") {
+                "Extract Typedef".into()
+            } else {
+                "Extract Type Alias".into()
+            }
+        } else if starts("refactor.extract.interface") {
+            "Extract Interface".into()
+        } else if starts("refactor.inline.variable") {
+            "Inline Variable".into()
+        } else if starts("refactor.move.newFile") {
+            "Move to New File".into()
+        } else if starts("refactor.move.file") {
+            "Move to File".into()
+        } else if starts("refactor.rewrite.function.named") {
+            "Convert to function declaration".into()
+        } else if starts("refactor.rewrite.function.anonymous") {
+            "Convert to function expression".into()
+        } else {
+            return None;
+        },
+    )
+}
+
+/// The ordering group of a refactoring in Refactor This: extract, inline, move, then the
+/// conversions.
+fn refactor_rank(kind: &str) -> u8 {
+    if kind.starts_with("refactor.extract") {
+        0
+    } else if kind.starts_with("refactor.inline") {
+        1
+    } else if kind.starts_with("refactor.move") {
+        2
+    } else {
+        3
+    }
+}
+
+/// The language servers' refactorings for Refactor This in JS/TS: every enabled `refactor.*`
+/// action (extract to function / constant / type / interface, arrow and function
+/// conversions, destructured parameters, template strings, move to a new file, import
+/// styles) and "Convert to async function", worded like PHPStorm and grouped.
+pub fn refactor_this_actions(actions: Vec<ContextAction>) -> Vec<ContextAction> {
+    let mut seen = std::collections::HashSet::new();
+    let mut out: Vec<ContextAction> = actions
+        .into_iter()
+        .filter(|a| a.disabled.is_none())
+        .filter(|a| {
+            a.lsp_kind().is_some_and(|k| k.starts_with("refactor"))
+                || a.title.starts_with("Convert to async function")
+        })
+        .map(|mut a| {
+            if let Some(t) = phpstorm_title(a.lsp_kind(), &a.title) {
+                a.title = t;
+            }
+            a
+        })
+        .filter(|a| seen.insert(a.title.clone()))
+        .collect();
+    out.sort_by_key(|a| refactor_rank(a.lsp_kind().unwrap_or("refactor.rewrite")));
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -253,6 +339,76 @@ mod tests {
             vec!["Inline variable"]
         );
         assert!(refactor_actions(all, "Move").is_empty());
+    }
+
+    #[test]
+    fn words_and_groups_refactorings_like_phpstorm() {
+        let with_kind = |title: &str, kind: &str| ContextAction {
+            raw: Some(serde_json::json!({ "kind": kind })),
+            ..action(title, ActionKind::Refactor)
+        };
+        assert_eq!(
+            phpstorm_title(
+                Some("refactor.extract.function"),
+                "Extract to function in module scope"
+            )
+            .as_deref(),
+            Some("Extract Method (function in module scope)")
+        );
+        assert_eq!(
+            phpstorm_title(
+                Some("refactor.extract.constant"),
+                "Extract to constant in enclosing scope"
+            )
+            .as_deref(),
+            Some("Introduce Constant (in enclosing scope)")
+        );
+        assert_eq!(
+            phpstorm_title(
+                Some("refactor.rewrite.string"),
+                "Convert to template string"
+            ),
+            None
+        );
+        let disabled = ContextAction {
+            disabled: Some("Selection is not an expression".into()),
+            ..with_kind("Extract to type alias", "refactor.extract.type")
+        };
+        let async_fix = ContextAction {
+            raw: Some(serde_json::json!({ "kind": "quickfix" })),
+            ..action("Convert to async function", ActionKind::QuickFix)
+        };
+        let all = vec![
+            with_kind("Convert to template string", "refactor.rewrite.string"),
+            with_kind("Move to a new file", "refactor.move.newFile"),
+            with_kind("Extract to interface", "refactor.extract.interface"),
+            with_kind(
+                "Convert parameters to destructured object",
+                "refactor.rewrite.parameters.toDestructured",
+            ),
+            disabled,
+            async_fix,
+            action("Remove unused import", ActionKind::QuickFix),
+            with_kind(
+                "Convert to named function",
+                "refactor.rewrite.function.named",
+            ),
+        ];
+        let titles: Vec<String> = refactor_this_actions(all)
+            .into_iter()
+            .map(|a| a.title)
+            .collect();
+        assert_eq!(
+            titles,
+            [
+                "Extract Interface",
+                "Move to New File",
+                "Convert to template string",
+                "Convert parameters to destructured object",
+                "Convert to async function",
+                "Convert to function declaration"
+            ]
+        );
     }
 
     fn action(title: &str, kind: ActionKind) -> ContextAction {

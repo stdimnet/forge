@@ -14,6 +14,8 @@ settings work.
 
 - **Install**: npm commands (`npm install -g …`) become managed installs into Forge's server
   folder, never global ones; Forge downloads Node.js itself when none (>= 18) is installed.
+  "Download … from PyPI" fetches the official wheel of the platform (ruff, ty), checks its
+  SHA-256 against PyPI and copies the executable to `<data dir>/forge/langservers/bin`.
   Commands with `sudo` are only shown for you to run. Links are download pages.
 - **Alternative group**: only the first enabled and installed server of a group starts.
 - **Needs plugin**: the server starts only while that plugin is enabled and active.
@@ -53,6 +55,8 @@ settings work.
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | [Astro Language Server](https://github.com/withastro/language-tools) | `astro-ls` | Astro | `astro-ls --stdio` | `npm install -g @astrojs/language-server typescript` | MIT | needs plugin `forge.web` |
+| [Deno Language Server](https://docs.deno.com/runtime/reference/lsp_integration/) | `deno` | TypeScript, JavaScript | `deno lsp` | `npm install -g deno`, `brew install deno`, `cargo install deno --locked` | MIT | needs plugin `forge.deno`; only with a root `deno.json` / `deno.jsonc`, where it replaces the TypeScript language server |
+| [Prisma Language Server](https://github.com/prisma/language-tools) | `prisma-language-server` | Prisma | `prisma-language-server --stdio` | `npm install -g @prisma/language-server` | Apache-2.0 | needs plugin `forge.prisma` |
 
 ### HTML & CSS
 
@@ -133,8 +137,10 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [basedpyright](https://docs.basedpyright.com) | `basedpyright` | Python | `basedpyright-langserver --stdio` | `pipx install basedpyright`<br>`python3 -m pip install --user basedpyright`<br>`npm install -g basedpyright` | MIT | alternative group `python` |
+| [basedpyright](https://docs.basedpyright.com) | `basedpyright` | Python | `basedpyright-langserver --stdio` | `npm install -g basedpyright` (managed: Forge installs it)<br>`pipx install basedpyright`<br>`python3 -m pip install --user basedpyright` | MIT | needs plugin `forge.python`; alternative group `python`; gets the project's interpreter as `python.pythonPath` |
 | [Pyright](https://github.com/microsoft/pyright) | `pyright` | Python | `pyright-langserver --stdio` | `npm install -g pyright`<br>`pipx install pyright`<br>`sudo pacman -S pyright` (linux) | MIT | alternative group `python`; Starts only when basedpyright is missing or disabled. |
+| [ty (preview)](https://docs.astral.sh/ty/) | `ty` | Python | `ty server` | Download ty from PyPI (SHA-256 verified)<br>`uv tool install ty`<br>`pipx install ty` | MIT | needs plugin `forge.python`; off by default; alternative group `python`; Preview: Astral's type checker. Enable it and disable basedpyright and Pyright to use it. |
+| [Ruff](https://docs.astral.sh/ruff/) | `ruff` | Python | `ruff server` | Download ruff from PyPI (SHA-256 verified)<br>`uv tool install ruff`<br>`pipx install ruff`<br>`brew install ruff` (macos, linux) | MIT | needs plugin `forge.python`; Linting and quick fixes next to the type checker; ruff format is the default formatter. |
 
 ### Go
 
@@ -152,7 +158,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | `clangd --background-index --clang-tidy --header-insertion=iwyu` | `brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results. |
+| [clangd](https://clangd.llvm.org) | `clangd` | C, C++ | started by CForge (`forge.cpp`) | Download from Settings \| Languages & Frameworks \| C/C++ (GitHub releases, SHA-256 checked)<br>`brew install llvm` (macos)<br>`sudo pacman -S clang` (linux)<br>`sudo apt install clangd` (linux)<br>[download](https://github.com/clangd/clangd/releases) | Apache-2.0 WITH LLVM-exception | A pack server: CForge starts it with the compilation database of the active CMake profile, clang-tidy and the toolchain's compilers as query drivers. See [CForge](../user/cpp.md#clangd). |
 
 ### Zig
 
@@ -164,13 +170,20 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Eclipse JDT Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) | `jdtls` | Java | `jdtls` | `brew install jdtls` (macos, linux)<br>[download](https://download.eclipse.org/jdtls/snapshots/) | EPL-2.0 | Needs Java 21+. Forge keeps its workspace data in the user cache directory. |
+| [Eclipse JDT Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) | `jdtls` | Java | started by JavaForge (`forge.java`) | Install from Settings \| Languages & Frameworks \| Java (download.eclipse.org, SHA-256 checked)<br>[download](https://download.eclipse.org/jdtls/milestones/) | EPL-2.0 | A pack server: JavaForge starts it with a JDK 21+ (25 for newer builds) and keeps its data in the user cache directory. See [JavaForge](../user/java.md). |
 
 ### Kotlin
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | `kotlin-language-server` | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT |  |
+| [Kotlin LSP](https://github.com/Kotlin/kotlin-lsp) | `kotlin-lsp` | Kotlin | started by KotlinForge (`forge.kotlin`) | Install from Settings \| Languages & Frameworks \| Kotlin (download.jetbrains.com, pinned SHA-256)<br>`brew install JetBrains/utils/kotlin-lsp` | Apache-2.0 (the server build includes closed JetBrains components) | A pack server: KotlinForge starts `bin/intellij-server --stdio` with the project JDK as `JAVA_HOME` and pulls its diagnostics. See [KotlinForge](../user/kotlin.md). |
+| [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) | `kotlin-language-server` | Kotlin | started by KotlinForge when chosen | `brew install kotlin-language-server` (macos, linux)<br>[download](https://github.com/fwcd/kotlin-language-server/releases) | MIT | A pack server, the alternative to kotlin-lsp. |
+
+### Scala
+
+| Server | Id | Languages | Command | Install | Licence | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| [Metals](https://scalameta.org/metals/) | `metals` | Scala | started by JavaForge's Scala plugin (`forge.scala`) | Install from Settings \| Languages & Frameworks \| Scala (your Coursier: `cs bootstrap`, pinned 1.5.3)<br>`cs install metals` | Apache-2.0 | A pack server: started with the project JDK as `JAVA_HOME`; it imports sbt builds (Bloop), so it does not start in Safe Mode. See [Groovy and Scala](../user/groovy-scala.md#metals). |
 
 ### C#
 
@@ -182,14 +195,13 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT |  |
+| [Ruby LSP](https://shopify.github.io/ruby-lsp) | `ruby-lsp` | Ruby | `ruby-lsp` | `gem install --user-install ruby-lsp` | MIT | RubyForge configures it with the project's Ruby and can install it into Forge's data folder with your gem ([RubyForge](../user/ruby.md#ruby-lsp)) |
 
 ### PHP
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
-| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when Intelephense is not installed, or when chosen in the PHP settings. |
+| [php-lsp (built-in)](https://github.com/stdimnet/php-lsp) | `php-lsp` | PHP | `forge --php-lsp --stdio` | built into Forge | MIT OR Apache-2.0 | needs plugin `forge.php`; Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server. |
 
 
 ## Languages
@@ -229,6 +241,7 @@ Languages the catalog detects in a project (the project scan reads up to
 | `csharp` | C# | `.cs`, `.csx` |  |
 | `ruby` | Ruby | `.rb`, `.rake`, `.gemspec`, `.ru`, `.erb` | `Gemfile`, `Rakefile`, `Guardfile` |
 | `kotlin` | Kotlin | `.kt`, `.kts` |  |
+| `scala` | Scala | `.scala`, `.sc`, `.sbt` |  |
 | `zig` | Zig | `.zig`, `.zon` |  |
 | `php` | PHP | `.php`, `.phtml` |  |
 | `php` | PHP | `.php`, `.phtml` |  |

@@ -308,10 +308,7 @@ async fn forbidden_and_unreachable_servers() {
     let e = fj.merge_request(&repo(), 1).await.unwrap_err().to_string();
     assert_eq!(e, "Forgejo: access denied (user does not have permission)");
 
-    let dead = {
-        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        l.local_addr().unwrap()
-    };
+    let dead = format!("127.0.0.1:{}", forge_ports::free_port().unwrap());
     let fj = Forgejo::new(
         forge_forges::http::client(),
         &format!("http://{dead}/api/v1"),
@@ -319,4 +316,22 @@ async fn forbidden_and_unreachable_servers() {
     );
     let e = fj.current_user().await.unwrap_err().to_string();
     assert!(e.starts_with("Forgejo: cannot connect to"), "{e}");
+}
+
+#[tokio::test]
+async fn lists_the_users_repositories_newest_first() {
+    let (_server, fj) = host(vec![Route::json(
+        "GET",
+        "/api/v1/user/repos",
+        r#"[{"full_name":"marlon/old","name":"old","private":false,"fork":false,"clone_url":"https://codeberg.org/marlon/old.git",
+             "ssh_url":"","html_url":"https://codeberg.org/marlon/old","updated_at":"2025-01-01T00:00:00Z"},
+            {"full_name":"marlon/forge","name":"forge","description":"IDE","private":true,"fork":false,
+             "clone_url":"https://codeberg.org/marlon/forge.git","ssh_url":"git@codeberg.org:marlon/forge.git",
+             "html_url":"https://codeberg.org/marlon/forge","updated_at":"2026-10-01T00:00:00Z"}]"#,
+    )])
+    .await;
+    let repos = fj.repositories().await.unwrap();
+    assert_eq!(repos[0].path, "marlon/forge");
+    assert_eq!(repos[1].ssh_url, None);
+    assert!(repos[0].private);
 }

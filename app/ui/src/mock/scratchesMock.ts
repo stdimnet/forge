@@ -256,6 +256,8 @@ function cannedResponse(method: string, url: string): DemoResponse {
     return { status, reason, headers: headers(body.length, extra), body, ms };
   };
   const path = url.replace(/^\w+:\/\/[^/]+/, "");
+  if (method === "GET" && path.startsWith("/v2/products"))
+    return json(200, "OK", [{ id: 42, name: "Espresso Cup", price: 12.5, tags: ["kitchen"] }, { id: 43, name: "Milk Jug", price: 18.9, tags: [] }], 58);
   if (method === "POST" && path.startsWith("/api/login"))
     return json(200, "OK", { token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjd9.demo", expires_in: 3600 }, 71);
   if (method === "POST" && path.startsWith("/api/orders"))
@@ -303,8 +305,36 @@ interface Resolved {
   handler?: string | null;
 }
 
-registerMock("scratches_http_run", async ({ runId, content, line, env, source }) => {
+/** Canned answers of the request kinds beyond HTTP (browser mode never connects anywhere). */
+function extraKindText(method: string, url: string, body: string | undefined): string | null {
+  if (method === "WEBSOCKET") {
+    const msgs = (body ?? "")
+      .split(/^===.*$/m)
+      .map((m) => m.trim())
+      .filter(Boolean);
+    let out = "\x1b[32mConnected (101 Switching Protocols)\x1b[0m\n";
+    out += '◀ {"type":"welcome","server":"orders-live"}\n';
+    for (const m of msgs) out += `\x1b[36m▶ ${m}\x1b[0m\n◀ ${m.includes("subscribe") ? '{"subscribed":"orders","open":3}' : '{"pong":1}'}\n`;
+    out += '◀ {"order":1042,"status":"PAID"}\n';
+    return out;
+  }
+  if (method === "GRPC") {
+    return '\x1b[32m0 OK\x1b[0m\n\x1b[36mgrpc-accept-encoding\x1b[0m: identity\n\n{\n  "productId": "42",\n  "available": 17,\n  "warehouse": "BER-1"\n}\n\n\x1b[90mStatus: OK; Time: 38 ms; Types from server reflection\x1b[0m\n';
+  }
+  if (method === "GRAPHQL") {
+    return `\x1b[32mHTTP/1.1 200 OK\x1b[0m\n\x1b[36mContent-Type\x1b[0m: application/graphql-response+json\n\n{\n  "data": {\n    "product": {\n      "name": "Espresso Cup",\n      "price": 1250\n    }\n  }\n}\n\n\x1b[90mResponse code: 200 (OK); Time: 64ms (64 ms); Content length: 62 bytes (62 B)\x1b[0m\n`;
+  }
+  void url;
+  return null;
+}
+
+const AUTH_TOKEN = /\{\{\s*\$auth\.(?:token|idToken)\(\s*["']([^"']+)["']\s*\)\s*\}\}/g;
+
+registerMock("scratches_http_run", async ({ runId, content: rawContent, line, env, source, debug }) => {
   const w = await ready;
+  // OAuth 2.0 tokens: browser mode pretends the grant succeeded.
+  const authIds = [...String(rawContent).matchAll(AUTH_TOKEN)].map((m) => m[1]);
+  const content = String(rawContent).replace(AUTH_TOKEN, "mock-access-token");
   const { variables } = callWasmSync<{ variables: Record<string, string> }>(w.scratches_http_environments, {
     ...envFiles(),
     name: (env as string | undefined) || null,
@@ -321,6 +351,8 @@ registerMock("scratches_http_run", async ({ runId, content, line, env, source })
     // Body and handler files: next to a scratch, or relative to the project file.
     base: scratch ? "" : src.split("/").slice(0, -1).join("/"),
     files: scratch ? Object.fromEntries([...files].map(([n, f]) => [n, f.content])) : mockFiles,
+    // Debug: the Xdebug session cookie.
+    debug: !!debug,
   });
   if (!resolved) throw new Error("no request at the caret");
   const { request } = resolved;
@@ -339,13 +371,18 @@ registerMock("scratches_http_run", async ({ runId, content, line, env, source })
     elapsedMs: resp.ms,
   };
   let text: string;
-  if (resolved.problems.length) {
+  const extra = extraKindText(request.method, request.url, (request as { body?: string }).body);
+  const tokenLines = [...new Set(authIds)].map((id) => `\x1b[90mAcquired the OAuth token '${id}'\x1b[0m\n`).join("");
+  if (extra !== null) {
+    text = tokenLines + callWasmSync<string>(w.scratches_http_render, { request }) + extra;
+  } else if (resolved.problems.length) {
     text = callWasmSync<string>(w.scratches_http_render, { request, error: resolved.problems.join("\n") });
   } else {
     // A remote project sends from its host through an SSH tunnel (`httpClient.sendFrom`).
     const remote = currentRemote();
     const viaHost = remote && mockSettingValue("httpClient.sendFrom") !== "local";
     text =
+      tokenLines +
       callWasmSync<string>(w.scratches_http_render, { request }) +
       (viaHost ? `\x1b[90mSent from ${remote.label} through an SSH tunnel\x1b[0m\n\n` : "") +
       callWasmSync<string>(w.scratches_http_render, { response });

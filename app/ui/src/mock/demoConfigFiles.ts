@@ -1,5 +1,43 @@
 /** Non-PHP files of the demo project, so every syntax mode has something to show. */
 export const demoConfigFiles: Record<string, string> = {
+  "k8s/deployment.yaml": `# The shop on Kubernetes (k3s on the host, kind locally).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: php
+          image: ghcr.io/acme/shop:1.8.2
+          ports:
+            - containerPort: 9000
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+`,
   ".env": `# Application
 APP_NAME="Acme Shop"
 APP_ENV=local
@@ -77,6 +115,31 @@ RUN composer install --no-dev --optimize-autoloader
 EXPOSE 8000
 CMD ["php", "artisan", "serve", "--host=0.0.0.0"]
 `,
+  ".devcontainer/devcontainer.json": `// Dev container for the shop: PHP 8.3 with Composer and Node.
+{
+  "name": "Acme Shop",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": { "PHP_VERSION": "8.3" }
+  },
+  "workspaceFolder": "/workspaces/\${localWorkspaceFolderBasename}",
+  "forwardPorts": [8000, 5173],
+  "containerEnv": { "APP_ENV": "local" },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+  },
+  "postCreateCommand": "composer install && npm ci",
+  "postStartCommand": "php artisan migrate --force",
+  "remoteUser": "vscode",
+}
+`,
+  ".devcontainer/Dockerfile": `ARG PHP_VERSION=8.3
+FROM mcr.microsoft.com/devcontainers/php:\${PHP_VERSION}
+
+RUN apt-get update && apt-get install -y libicu-dev \\
+    && docker-php-ext-install intl pdo_mysql
+`,
   "database/schema.sql": `-- Reporting view for paid orders
 CREATE TABLE IF NOT EXISTS products (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -94,6 +157,64 @@ WHERE o.status = 'paid'
 GROUP BY u.id
 ORDER BY revenue DESC
 LIMIT 10;
+`,
+  "database/queries/reports.sql": `-- Shop reports (MySQL): resolved against the shop data source, run with Run SQL Script
+SELECT name, email FROM users WHERE role = 'admin' ORDER BY name ASC;
+
+SELECT id, emial FROM users WHERE id = 'abc';
+
+SELECT number, total FROM orders o WHERE status = 'paid';
+
+SELECT count(*) FROM order_items;
+
+UPDATE orders SET notes = 'checked';
+`,
+  "database/ddl/V1__catalog.sql": `-- Catalog service schema (PostgreSQL), a DDL data source in the Database tool window
+CREATE TYPE product_state AS ENUM ('draft', 'active', 'retired');
+CREATE SEQUENCE sku_seq START WITH 1000 INCREMENT BY 1;
+
+CREATE TABLE categories (
+    id bigserial PRIMARY KEY,
+    parent_id bigint REFERENCES categories (id),
+    name varchar(120) NOT NULL UNIQUE
+);
+
+CREATE TABLE catalog_products (
+    id bigserial PRIMARY KEY,
+    category_id bigint NOT NULL,
+    sku varchar(32) NOT NULL DEFAULT 'SKU-' || nextval('sku_seq'),
+    title text NOT NULL,
+    state product_state NOT NULL DEFAULT 'draft',
+    price numeric(10, 2) NOT NULL CHECK (price >= 0),
+    CONSTRAINT catalog_products_category_fk FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
+);
+COMMENT ON TABLE catalog_products IS 'Products of the public catalog';
+CREATE INDEX catalog_products_state_idx ON catalog_products (state);
+`,
+  "database/ddl/V2__reviews.sql": `CREATE TABLE reviews (
+    id bigserial PRIMARY KEY,
+    product_id bigint NOT NULL REFERENCES catalog_products (id) ON DELETE CASCADE,
+    rating smallint NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    body text,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE VIEW product_ratings AS
+SELECT r.product_id, avg(r.rating) AS rating, count(*) AS reviews
+FROM reviews r
+GROUP BY r.product_id;
+
+CREATE FUNCTION touch_created() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.created_at := now();
+    RETURN NEW;
+END $$;
+
+CREATE TRIGGER reviews_touch BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION touch_created();
+
+ALTER TABLE reviews ADD COLUMN verified boolean NOT NULL DEFAULT false;
+
+CREATE TABLE drafts (id int,, title text);
 `,
   "package.json": `{
   "private": true,

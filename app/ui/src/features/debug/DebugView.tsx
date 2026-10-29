@@ -1,5 +1,8 @@
-/** Debug tool window (Alt+5): toolbar, Frames, Variables with Watches, Console. */
-import { createEffect, createSignal, For, on, Show, type Component } from "solid-js";
+/**
+ * Debug tool window (Alt+5): toolbar, Frames, Variables with Watches, Console, and for
+ * debug adapter sessions the threads and the Memory, Disassembly and Registers views.
+ */
+import { createEffect, createSignal, For, Match, on, Show, Switch, type Component } from "solid-js";
 import {
   ArrowDownToLine,
   ArrowRightToLine,
@@ -14,6 +17,7 @@ import {
   PhoneOff,
   Play,
   RedoDot,
+  RotateCcw,
   Square,
   Trash2,
   X,
@@ -29,6 +33,7 @@ import {
   breakpointsMuted,
   clearConsole,
   consoleLines,
+  evaluateInConsole,
   frameIndex,
   frames,
   listening,
@@ -43,9 +48,13 @@ import {
   variablesLoading,
   watches,
   watchResults,
+  sessionFeatures,
 } from "./store";
+import { debugTab, DisassemblyPane, MemoryPane, RegistersPane, setDebugTab, ThreadSelector, type DebugTab } from "./nativeViews";
 import { VariableNode } from "./VariablesTree";
+import { debugTabs } from "./debugTabs";
 import { setEvaluateRequest } from "./overlays";
+import { ExpressionInput } from "./ExpressionInput";
 
 const tip = (title: string, action: string) => {
   const keys = shortcutLabel(action);
@@ -77,6 +86,7 @@ function ToolButton(props: {
 function sessionTitle(id: string): string {
   const s = sessions().find((x) => x.id === id);
   if (!s) return id;
+  if (s.adapter) return s.serverName;
   const file = s.file ?? s.fileUri.replace(/^file:\/\//, "");
   return s.serverName === "CLI" ? basename(file) : s.serverName;
 }
@@ -94,21 +104,39 @@ export function DebugActions() {
   );
 }
 
-function Toolbar(props: { tab: string; setTab: (t: string) => void }) {
+function Tab(props: { id: DebugTab; title: string }) {
+  return (
+    <button class="dbg-tab" classList={{ active: debugTab() === props.id }} data-tab={props.id} onClick={() => setDebugTab(props.id)}>
+      {props.title}
+    </button>
+  );
+}
+
+function Toolbar() {
   const paused = () => !!pausedSession();
   const running = () => activeSession()?.status === "running";
   const alive = () => !!activeSession();
+  const f = sessionFeatures;
   return (
     <div class="dbg-toolbar">
       <div class="dbg-tabs" role="tablist">
-        <button class="dbg-tab" classList={{ active: props.tab === "frames" }} onClick={() => props.setTab("frames")}>
-          Threads &amp; Variables
-        </button>
-        <button class="dbg-tab" classList={{ active: props.tab === "console" }} onClick={() => props.setTab("console")}>
-          Console
-        </button>
+        <Tab id="frames" title="Threads & Variables" />
+        <Tab id="console" title="Console" />
+        <Show when={f()?.readMemory}>
+          <Tab id="memory" title="Memory" />
+        </Show>
+        <Show when={f()?.disassemble}>
+          <Tab id="disassembly" title="Disassembly" />
+        </Show>
+        <Show when={f()?.registers}>
+          <Tab id="registers" title="Registers" />
+        </Show>
+        <For each={debugTabs().filter((t) => t.when(activeSession()))}>{(t) => <Tab id={t.id} title={t.title} />}</For>
       </div>
       <div class="dbg-sep" />
+      <Show when={f()?.restart}>
+        <ToolButton action="Forge.Debugger.Rerun" title="Rerun" icon={RotateCcw} enabled={alive()} tone="run" />
+      </Show>
       <ToolButton action="Resume" title="Resume Program" icon={Play} enabled={paused()} tone="run" />
       <ToolButton action="Pause" title="Pause Program" icon={Pause} enabled={running()} />
       <ToolButton action="Stop" title="Stop" icon={Square} enabled={alive()} tone="stop" />
@@ -162,6 +190,7 @@ function SessionTabs() {
 function FramesPane() {
   return (
     <div class="dbg-frames" role="listbox" aria-label="Frames">
+      <ThreadSelector />
       <Show
         when={pausedSession()}
         fallback={<div class="dbg-empty muted">{activeSession()?.status === "running" ? "The application is running" : "Frames are not available"}</div>}
@@ -190,7 +219,6 @@ function FramesPane() {
 
 function VariablesPane() {
   const [expr, setExpr] = createSignal("");
-  const [selected, setSelected] = createSignal<string | null>(null);
   const submit = (asWatch: boolean) => {
     const e = expr().trim();
     if (!e) return;
@@ -214,7 +242,7 @@ function VariablesPane() {
           }}
         />
       </div>
-      <div class="dbg-tree" role="tree">
+      <div class="dbg-tree" role="tree" tabIndex={0} aria-label="Variables">
         <Show when={pausedSession()} fallback={<div class="dbg-empty muted">{activeSession() ? "Variables are not available" : ""}</div>}>
           <For each={watches()}>
             {(w) => {
@@ -233,23 +261,20 @@ function VariablesPane() {
                       depth={0}
                       watch
                       onRemove={() => removeWatch(w)}
-                      selected={selected()}
-                      onSelect={setSelected}
+                      selectable
                     >
                       <span class="dbg-eq"> = </span>
                       <span class="dbg-error-text">{(() => { const x = r(); return x && "error" in x ? x.error : "Collecting data…"; })()}</span>
                     </VariableNode>
                   }
                 >
-                  {(p) => (
-                    <VariableNode p={p()} label={w} depth={0} watch onRemove={() => removeWatch(w)} selected={selected()} onSelect={setSelected} />
-                  )}
+                  {(p) => <VariableNode p={p()} label={w} depth={0} watch onRemove={() => removeWatch(w)} selectable />}
                 </Show>
               );
             }}
           </For>
           <For each={variables()} fallback={<Show when={!variablesLoading()}><div class="dbg-empty muted">No variables</div></Show>}>
-            {(v) => <VariableNode p={v} depth={0} selected={selected()} onSelect={setSelected} />}
+            {(v) => <VariableNode p={v} depth={0} selectable />}
           </For>
         </Show>
       </div>
@@ -259,6 +284,7 @@ function VariablesPane() {
 
 function ConsolePane() {
   let el!: HTMLDivElement;
+  const [expr, setExpr] = createSignal("");
   const lines = () => consoleLines().filter((l) => l.sessionId === activeId());
   createEffect(on(lines, () => queueMicrotask(() => el && (el.scrollTop = el.scrollHeight))));
   return (
@@ -268,10 +294,38 @@ function ConsolePane() {
           <Trash2 size={14} />
         </button>
       </div>
-      <div class="dbg-console" ref={el}>
-        <For each={lines()} fallback={<span class="muted">No output yet.</span>}>
-          {(l) => <span class={`dbg-out dbg-out-${l.stream}`}>{l.text}</span>}
-        </For>
+      <div class="dbg-console-main">
+        <div class="dbg-console" ref={el}>
+          <For each={lines()} fallback={<span class="muted">No output yet.</span>}>
+            {(l) => (
+              <Show when={l.value} fallback={<span class={`dbg-out dbg-out-${l.stream}`}>{l.text}</span>}>
+                {(v) => (
+                  <span class="dbg-console-value dbg-tree">
+                    <VariableNode p={v()} depth={0} initiallyOpen={false} />
+                  </span>
+                )}
+              </Show>
+            )}
+          </For>
+        </div>
+        <div class="dbg-console-input">
+          <span class="dbg-console-prompt">&gt;</span>
+          <ExpressionInput
+            value={expr()}
+            onInput={setExpr}
+            onSubmit={(e) => {
+              if (!e.trim()) return;
+              setExpr("");
+              void evaluateInConsole(e);
+            }}
+            disabled={!activeSession()}
+            placeholder={
+              pausedSession()
+                ? `Evaluate ${activeSession()?.adapter ? "an expression or debugger command" : "a PHP expression"} in the current frame`
+                : "Expressions can be evaluated while the program is suspended"
+            }
+          />
+        </div>
       </div>
     </div>
   );
@@ -290,6 +344,12 @@ function EmptyState() {
               Start Listening
             </button>
             <p class="muted dbg-hint">Xdebug 3 connects to port {port()} (xdebug.mode=debug, xdebug.start_with_request=yes).</p>
+            <p class="muted dbg-hint">
+              Other languages: Debug a run configuration, or use{" "}
+              <button class="dbg-link" onClick={() => void runAction("XDebugger.AttachToProcess")}>
+                Attach to Process…
+              </button>
+            </p>
           </>
         }
       >
@@ -302,18 +362,51 @@ function EmptyState() {
 }
 
 export function DebugView() {
-  const [tab, setTab] = createSignal("frames");
+  // A tab the new session does not offer falls back to the frames.
+  createEffect(() => {
+    const t = debugTab();
+    const f = sessionFeatures();
+    if ((t === "memory" && !f?.readMemory) || (t === "disassembly" && !f?.disassemble) || (t === "registers" && !f?.registers)) setDebugTab("frames");
+    const extra = debugTabs().find((x) => x.id === t);
+    if (extra && !extra.when(activeSession())) setDebugTab("frames");
+  });
   return (
     <div class="dbg-view">
       <Show when={sessions().length > 0} fallback={<EmptyState />}>
         <SessionTabs />
-        <Toolbar tab={tab()} setTab={setTab} />
-        <Show when={tab() === "frames"} fallback={<ConsolePane />}>
-          <div class="dbg-body">
-            <FramesPane />
-            <VariablesPane />
-          </div>
-        </Show>
+        <Toolbar />
+        <Switch>
+          <Match when={debugTab() === "console"}>
+            <ConsolePane />
+          </Match>
+          <Match when={debugTab() === "memory"}>
+            <MemoryPane />
+          </Match>
+          <Match when={debugTab() === "disassembly"}>
+            <div class="dbg-body">
+              <FramesPane />
+              <DisassemblyPane />
+            </div>
+          </Match>
+          <Match when={debugTab() === "registers"}>
+            <div class="dbg-body">
+              <FramesPane />
+              <RegistersPane />
+            </div>
+          </Match>
+          <Match when={debugTabs().find((t) => t.id === debugTab())}>
+            {(t) => {
+              const View = t().component;
+              return <View />;
+            }}
+          </Match>
+          <Match when={true}>
+            <div class="dbg-body">
+              <FramesPane />
+              <VariablesPane />
+            </div>
+          </Match>
+        </Switch>
       </Show>
     </div>
   );

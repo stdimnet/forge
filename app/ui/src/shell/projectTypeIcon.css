@@ -20,9 +20,14 @@
 .pt-icon[data-type="php"],
 .pt-icon[data-type="vite"] { --pt: var(--graph-3); }
 .pt-icon[data-type="laravel"],
+.pt-icon[data-type="ruby"],
+.pt-icon[data-type="rails"],
+.pt-icon[data-type="joomla"],
 .pt-icon[data-type="angular"] { --pt: var(--danger); }
 .pt-icon[data-type="symfony"],
+.pt-icon[data-type="flask"],
 .pt-icon[data-type="next"] { --pt: var(--fg-strong); }
+.pt-icon[data-type="spring-boot"] { --pt: var(--success); }
 .pt-icon[data-type="composer"],
 .pt-icon[data-type="javascript"],
 .pt-icon[data-type="python"] { --pt: var(--warning); }
@@ -32,6 +37,7 @@
 .pt-icon[data-type="typescript"],
 .pt-icon[data-type="solid"] { --pt: var(--info); }
 .pt-icon[data-type="magento"],
+.pt-icon[data-type="shopware"],
 .pt-icon[data-type="html"],
 .pt-icon[data-type="svelte"],
 .pt-icon[data-type="rust"] { --pt: var(--graph-0); }
@@ -39,6 +45,14 @@
 .pt-icon[data-type="go"] { --pt: var(--graph-5); }
 .pt-icon[data-type="vue"],
 .pt-icon[data-type="nuxt"],
+.pt-icon[data-type="django"],
+.pt-icon[data-type="fastapi"],
+.pt-icon[data-type="celery"],
 .pt-icon[data-type="neovim"] { --pt: var(--success); }
 .pt-icon[data-type="lua"] { --pt: var(--graph-1); }
 .pt-icon[data-type="love"] { --pt: var(--graph-6); }
+.pt-icon[data-type="dotnet"],
+.pt-icon[data-type="csharp"],
+.pt-icon[data-type="aspnetcore"] { --pt: var(--graph-3); }
+.pt-icon[data-type="fsharp"],
+.pt-icon[data-type="vbnet"] { --pt: var(--info); }

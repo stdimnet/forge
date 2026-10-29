@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
@@ -84,8 +84,8 @@ pub enum LspEvent {
     },
 }
 
-/// Language features a server may or may not announce in its capabilities. Free
-/// Intelephense, for example, leaves out rename, implementation and type definition.
+/// Language features a server may or may not announce in its capabilities; many leave out
+/// rename, implementation or type definition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Feature {
@@ -149,6 +149,8 @@ struct Inner {
     /// Settings changed after the start (code style options before Reformat Code), merged
     /// over `config.settings`.
     overrides: Mutex<Value>,
+    /// The server process ended (crashed, was killed or quit) without being shut down.
+    exited: AtomicBool,
 }
 
 /// Handle to a running language server. Cheap to clone.
@@ -219,6 +221,7 @@ impl LspClient {
                 process: tokio::sync::Mutex::new(Some(io.process)),
                 parent_pid: io.parent_pid,
                 overrides: Mutex::new(Value::Null),
+                exited: AtomicBool::new(false),
             }),
         };
         client.set_state(ServerState::Starting);
@@ -282,6 +285,12 @@ impl LspClient {
 
     pub fn config(&self) -> &LspServerConfig {
         &self.inner.config
+    }
+
+    /// Whether the server process ended on its own (crashed, killed or quit) instead of
+    /// being shut down by Forge.
+    pub fn has_exited(&self) -> bool {
+        self.inner.exited.load(Ordering::SeqCst)
     }
 
     pub fn state(&self) -> ServerState {
@@ -517,6 +526,7 @@ impl LspClient {
                 }
             }
             notif::Progress::METHOD => self.on_progress(&params),
+            "language/status" => self.on_language_status(&params),
             notif::LogMessage::METHOD | notif::ShowMessage::METHOD => {
                 let level = params.get("type").and_then(Value::as_i64).unwrap_or(4) as i32;
                 let message = params
@@ -590,6 +600,41 @@ impl LspClient {
         }
     }
 
+    /// Eclipse JDT LS reports its startup and the Maven / Gradle import as `language/status`
+    /// (`{ type: "Starting", message: "57% Starting Java Language Server - Importing Maven
+    /// project(s)" }`, then `Started` / `ServiceReady`): shown like work-done progress.
+    fn on_language_status(&self, params: &Value) {
+        let kind = params
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let message = params
+            .get("message")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        match kind {
+            "Starting" => {
+                let (percentage, message) = split_percentage(message);
+                self.set_state(ServerState::Busy {
+                    message: message.to_string(),
+                    percentage,
+                });
+            }
+            "Started" | "ServiceReady" => {
+                let idle = self
+                    .inner
+                    .progress
+                    .lock()
+                    .expect("progress lock")
+                    .is_empty();
+                if idle && matches!(self.state(), ServerState::Busy { .. }) {
+                    self.set_state(ServerState::Ready);
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn on_exit(&self, error: Option<String>) {
         let pending: Vec<_> = self
             .inner
@@ -599,7 +644,11 @@ impl LspClient {
             .drain()
             .collect();
         drop(pending); // dropping the senders fails every waiting request
-        let state = match (error, self.state()) {
+        let previous = self.state();
+        if previous != ServerState::Stopped {
+            self.inner.exited.store(true, Ordering::SeqCst);
+        }
+        let state = match (error, previous) {
             (_, ServerState::Stopped) => ServerState::Stopped,
             (Some(error), _) => ServerState::Failed { error },
             (None, ServerState::Starting) => ServerState::Failed {
@@ -624,8 +673,13 @@ impl LspClient {
 
     #[allow(deprecated)] // root_uri / root_path are still read by many servers
     async fn initialize(&self) -> Result<()> {
+        let mut capabilities = client_capabilities();
+        if self.inner.config.pull_diagnostics {
+            capabilities["textDocument"]["diagnostic"] =
+                json!({ "dynamicRegistration": false, "relatedDocumentSupport": false });
+        }
         let capabilities: ClientCapabilities =
-            serde_json::from_value(client_capabilities()).map_err(other)?;
+            serde_json::from_value(capabilities).map_err(other)?;
         let root_uri = path_to_uri(&self.inner.root).ok();
         let init_options = match &self.inner.config.initialization_options {
             Value::Null => None,
@@ -659,6 +713,9 @@ impl LspClient {
             self.notify::<notif::DidChangeConfiguration>(DidChangeConfigurationParams {
                 settings: self.inner.config.settings.clone(),
             })?;
+        }
+        for n in &self.inner.config.after_initialized {
+            self.notify_raw(&n.method, n.params.clone())?;
         }
         // Progress may already have moved us to Busy; only promote from Starting.
         let starting = matches!(self.state(), ServerState::Starting);
@@ -699,12 +756,14 @@ impl LspClient {
             .insert(uri.clone(), 1);
         self.notify::<notif::DidOpenTextDocument>(DidOpenTextDocumentParams {
             text_document: TextDocumentItem {
-                uri,
+                uri: uri.clone(),
                 language_id: self.inner.config.language_id_for(path),
                 version: 1,
                 text: text.to_string(),
             },
-        })
+        })?;
+        self.pull_diagnostics(uri, 1);
+        Ok(())
     }
 
     pub fn is_open(&self, path: &Path) -> bool {
@@ -728,13 +787,78 @@ impl LspClient {
             *v
         };
         self.notify::<notif::DidChangeTextDocument>(DidChangeTextDocumentParams {
-            text_document: VersionedTextDocumentIdentifier { uri, version },
+            text_document: VersionedTextDocumentIdentifier {
+                uri: uri.clone(),
+                version,
+            },
             content_changes: vec![TextDocumentContentChangeEvent {
                 range: None,
                 range_length: None,
                 text: text.to_string(),
             }],
-        })
+        })?;
+        self.pull_diagnostics(uri, version);
+        Ok(())
+    }
+
+    /// Whether the server answers `textDocument/diagnostic` (LSP 3.17 pull diagnostics).
+    pub fn supports_pull_diagnostics(&self) -> bool {
+        self.inner
+            .raw_capabilities
+            .get()
+            .and_then(|c| c.get("diagnosticProvider"))
+            .is_some_and(|v| !v.is_null() && v != &Value::Bool(false))
+    }
+
+    /// Ask a pull server for the diagnostics of `uri` at `version` (shortly after the
+    /// change, skipped when a newer one came in) and publish them like pushed ones.
+    fn pull_diagnostics(&self, uri: Url, version: i32) {
+        if !self.inner.config.pull_diagnostics || !self.supports_pull_diagnostics() {
+            return;
+        }
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        let client = self.clone();
+        handle.spawn(async move {
+            tokio::time::sleep(Duration::from_millis(250)).await;
+            let current = || {
+                client
+                    .inner
+                    .versions
+                    .lock()
+                    .expect("versions lock")
+                    .get(&uri)
+                    .copied()
+            };
+            if current() != Some(version) {
+                return;
+            }
+            let params = json!({ "textDocument": { "uri": uri } });
+            match client
+                .request_raw("textDocument/diagnostic", params, REQUEST_TIMEOUT)
+                .await
+            {
+                Ok(report) if report.get("kind").and_then(Value::as_str) == Some("full") => {
+                    if current() != Some(version) {
+                        return;
+                    }
+                    let diagnostics: Vec<Diagnostic> = report
+                        .get("items")
+                        .cloned()
+                        .and_then(|i| serde_json::from_value(i).ok())
+                        .unwrap_or_default();
+                    let _ = client.inner.events.send(LspEvent::Diagnostics {
+                        server_id: client.id().to_string(),
+                        uri,
+                        version: Some(version),
+                        diagnostics,
+                    });
+                }
+                Ok(_) => {}
+                Err(e) => tracing::debug!(server = %client.id(), "textDocument/diagnostic: {e}"),
+            }
+        });
     }
 
     pub fn did_save(&self, path: &Path, text: &str) -> Result<()> {
@@ -1178,6 +1302,7 @@ impl LspClient {
         path: &Path,
         range: Range,
         diagnostics: Vec<Diagnostic>,
+        only: Option<Vec<lsp_types::CodeActionKind>>,
     ) -> Result<Option<Vec<CodeActionOrCommand>>> {
         self.request::<req::CodeActionRequest>(CodeActionParams {
             text_document: TextDocumentIdentifier {
@@ -1186,7 +1311,7 @@ impl LspClient {
             range,
             context: CodeActionContext {
                 diagnostics,
-                only: None,
+                only,
                 trigger_kind: None,
             },
             work_done_progress_params: Default::default(),
@@ -1194,6 +1319,17 @@ impl LspClient {
         })
         .await
     }
+}
+
+/// `"57% Starting Java Language Server"` → `(Some(57), "Starting Java Language Server")`.
+pub(crate) fn split_percentage(message: &str) -> (Option<u32>, &str) {
+    let trimmed = message.trim();
+    if let Some((num, rest)) = trimmed.split_once('%') {
+        if let Ok(p) = num.trim().parse::<u32>() {
+            return (Some(p.min(100)), rest.trim());
+        }
+    }
+    (None, trimmed)
 }
 
 /// What Forge supports, announced in `initialize`.
@@ -1264,4 +1400,22 @@ fn client_capabilities() -> Value {
             }
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_percentage;
+
+    #[test]
+    fn language_status_percentages() {
+        assert_eq!(
+            split_percentage("57% Starting Java Language Server - Importing Maven project(s)"),
+            (
+                Some(57),
+                "Starting Java Language Server - Importing Maven project(s)"
+            )
+        );
+        assert_eq!(split_percentage("Init..."), (None, "Init..."));
+        assert_eq!(split_percentage("100 % done"), (Some(100), "done"));
+    }
 }

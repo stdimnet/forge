@@ -14,7 +14,7 @@ interface State {
   part: "start" | "url" | "value";
 }
 
-const METHOD = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)\b/i;
+const METHOD = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT|GRAPHQL|WEBSOCKET|GRPC)\b/i;
 
 function variable(stream: StringStream): boolean {
   return !!stream.match(/^\{\{[^}\n]*\}\}/);

@@ -20,6 +20,7 @@ import {
   type GenerateMenuItem,
 } from "./generateModel";
 import { SymbolIcon } from "./SymbolIcon";
+import { generateItems } from "@/editor/generateItems";
 
 interface Ctx {
   path: string;
@@ -52,12 +53,27 @@ export async function openGeneratePopup(path: string, view: EditorView): Promise
   const offset = view.state.selection.main.head;
   const content = view.state.doc.toString();
   const targets = await phpApi.generateTargets(path, offset, content);
-  const items = generateMenu(targets);
+  const items = [...generateMenu(targets), ...extraItems(path, view)];
   const { x, y } = caretCoords(view, offset);
   setState({
     chooser: null,
     popup: { path, offset, targets, x, y, items, active: Math.max(0, items.findIndex((i) => i.enabled)) },
   });
+}
+
+/** Entries of other features (`registerGenerateItems`), after a separator. */
+function extraItems(path: string, view: EditorView): GenerateMenuItem[] {
+  return generateItems(path, view).map((g, i) => ({ kind: "extra", label: g.label, mnemonic: g.mnemonic, enabled: g.enabled, shortcut: g.shortcut, run: g.run, separator: i === 0 }));
+}
+
+/** Files without a Generate implementation: a popup with only the other features' entries. */
+export function openGenerateItemsPopup(path: string, view: EditorView): boolean {
+  const items = extraItems(path, view).map((i) => ({ ...i, separator: false }));
+  if (!items.length) return false;
+  const offset = view.state.selection.main.head;
+  const { x, y } = caretCoords(view, offset);
+  setState({ chooser: null, popup: { path, offset, targets: {} as GenerateTargets, x, y, items, active: Math.max(0, items.findIndex((i) => i.enabled)) } });
+  return true;
 }
 
 /** Run an action directly (used by Ctrl+O / Ctrl+I style shortcuts and tests). */
@@ -129,6 +145,11 @@ function GeneratePopup() {
   };
   const choose = (item: GenerateMenuItem) => {
     if (!item.enabled) return;
+    if (item.kind === "extra") {
+      setState("popup", null);
+      item.run?.();
+      return;
+    }
     const { path, offset, targets } = p();
     pick({ path, offset, targets }, item.kind);
   };

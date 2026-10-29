@@ -1,0 +1,22 @@
+[package]
+name = "forge-maintenance"
+description = "Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["disk"]
+# Cleaning caches, backups and settings archives on disk. Without it only the pure models
+# are built (the dialogs' options and the settings groups, for WebAssembly).
+disk = ["dep:zip", "dep:dirs", "dep:forge-core"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-core = { workspace = true, optional = true }
+dirs = { workspace = true, optional = true }
+zip = { version = "2", default-features = false, features = ["deflate"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

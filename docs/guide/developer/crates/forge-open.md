@@ -26,6 +26,7 @@ Opening files in Forge from the outside world:
 | --- | --- |
 | `cli.rs` | Command-line launcher: `forge [project-dir]`, `forge path/to/file:12[:3]`, `forge --line 12 --column 3 file` (JetBrains style), `forge file 12 3` (launch-editor) and `forge forge://open?...`. |
 | `http.rs` | A deliberately tiny HTTP/1.1 subset for the local Browser Companion API: one request per connection, `Content-Length` bodies only, small hard limits. |
+| `live_edit.rs` | Live Edit: which files swap style sheets (`.css`) or reload pages, and the `LiveEditHub` of events paired browsers poll with `GET /api/forge/live-edit?since=<seq>`. |
 | `pairing.rs` | Pairing browsers with Forge. |
 | `project.rs` | What the Browser Companion settings page needs to know about the open project to show the relevant framework snippets first, and the one config change it may apply itself: setting a variable in a dotenv file. |
 | `request.rs` | Open requests as they arrive from the browser extension, `forge://` links and the CLI, plus their validation. |

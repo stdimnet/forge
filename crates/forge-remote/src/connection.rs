@@ -408,6 +408,25 @@ impl Tunnels for SshTunnels {
             Ok(Box::new(stream) as TunnelStream)
         })
     }
+
+    fn open_tcp(
+        &self,
+        host: String,
+        port: u16,
+    ) -> Pin<Box<dyn Future<Output = forge_core::Result<TunnelStream>> + Send>> {
+        let conn = self.conn.clone();
+        Box::pin(async move {
+            let session = conn
+                .upgrade()
+                .and_then(|c| c.session())
+                .ok_or_else(connection_lost)?;
+            let stream = session
+                .open_direct_tcpip(&host, port)
+                .await
+                .map_err(|e| forge_core::ForgeError::Other(e.to_string()))?;
+            Ok(Box::new(stream) as TunnelStream)
+        })
+    }
 }
 
 /// Watch the connection: measure latency, reconnect when it drops.

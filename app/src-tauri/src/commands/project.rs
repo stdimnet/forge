@@ -47,6 +47,12 @@ pub fn emit_detection(app: &AppHandle) {
             crate::recent::set_primary(&payload.root, payload.info.primary.clone());
         }
         crate::commands::php::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
+        crate::commands::java::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
+        crate::commands::kotlin::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
+        crate::commands::cpp::invalidate();
+        crate::commands::cpp::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
+        crate::commands::scala::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
+        crate::commands::dotnet::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
         if let Err(e) = app.emit(DETECTED_EVENT, payload) {
             tracing::warn!("could not emit {DETECTED_EVENT}: {e}");
         }
@@ -110,6 +116,7 @@ pub async fn project_create(
     options: Option<BTreeMap<String, Value>>,
     app: AppHandle,
     creating: State<'_, CreateState>,
+    state: State<'_, AppState>,
 ) -> Result<String> {
     let cancel = Arc::new(AtomicBool::new(false));
     {
@@ -132,7 +139,10 @@ pub async fn project_create(
     .await
     .map_err(|e| ForgeError::Other(e.to_string()));
     *creating.cancel.lock().expect("create lock poisoned") = None;
-    Ok(result??.display().to_string())
+    let root = result??;
+    // Projects Forge created are trusted (no "Trust and Open Project?" for them).
+    crate::commands::trust::trust_created(&state, &root);
+    Ok(root.display().to_string())
 }
 
 #[tauri::command]

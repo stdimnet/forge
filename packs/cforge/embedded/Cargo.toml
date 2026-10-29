@@ -1,0 +1,13 @@
+[package]
+name = "cforge-embedded"
+description = "CForge: embedded development — platformio.ini (environments, boards, frameworks, extends, interpolation) and the PlatformIO tasks, ESP-IDF (idf.py) and Zephyr (west) projects and their commands, OpenOCD GDB server and flashing command lines, and CMSIS-SVD device files (peripherals, clusters, register arrays, fields, enumerated values) with register decoding for the Peripherals view; pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+cforge-analyzers.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

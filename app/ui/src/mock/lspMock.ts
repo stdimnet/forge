@@ -1,5 +1,5 @@
 /**
- * Browser-mode language server: behaves like Intelephense on the demo project (hover
+ * Browser-mode language server: behaves like php-lsp on the demo project (hover
  * docs, completion, diagnostics, go to declaration, parameter info, formatting, status).
  */
 import { emitMock, registerMock } from "@/ipc";
@@ -17,6 +17,16 @@ import type {
 } from "@/ipc/lsp";
 import { demoFiles } from "./demoProject";
 import { isLuaDemo } from "./demoLuaProject";
+import { isPythonDemo } from "./demoPythonProject";
+import { isGoDemo } from "./demoGoProject";
+import { isRustDemo } from "./demoRustProject";
+import { isRubyDemo } from "./demoRubyProject";
+import { isCppDemo } from "./demoCppProject";
+import { isDotnetDemo } from "./demoDotnetProject";
+import { inventoryMembers, isJavaDemo, javaGlobals, stockItemMembers } from "./demoJavaProject";
+import { cartMembers, isKotlinDemo, kotlinGlobals, orderMembers as kotlinOrderMembers } from "./demoKotlinProject";
+import { isScalaDemo } from "./demoScalaProject";
+import { isAndroidDemo } from "./demoAndroidProject";
 import {
   collectionMembers,
   diagnosticRules,
@@ -78,7 +88,7 @@ export function diagnosticsFor(path: string, text: string): EditorDiagnostic[] {
           range: rangeOf(text, from, to),
           severity: r.severity,
           message: r.message,
-          source: "intelephense",
+          source: "php-lsp",
           code: null,
           unnecessary: !!r.unnecessary,
           deprecated: !!r.deprecated,
@@ -96,7 +106,28 @@ function publish(path: string) {
 // ---------- server status ----------
 
 // The Lua demo game (`?project=lua`) runs lua-language-server instead.
-const SERVER = isLuaDemo() ? { id: "lua-language-server", name: "Lua Language Server" } : { id: "intelephense", name: "Intelephense" };
+// The Java demo (`?project=java`) runs Eclipse JDT LS, which imports the Gradle build first.
+const SERVER = isLuaDemo()
+  ? { id: "lua-language-server", name: "Lua Language Server" }
+  : isPythonDemo()
+    ? { id: "basedpyright", name: "basedpyright" }
+    : isGoDemo()
+    ? { id: "gopls", name: "gopls" }
+    : isRustDemo()
+    ? { id: "rust-analyzer", name: "rust-analyzer" }
+    : isRubyDemo()
+    ? { id: "ruby-lsp", name: "Ruby LSP" }
+    : isCppDemo()
+    ? { id: "clangd", name: "clangd" }
+    : isDotnetDemo()
+    ? { id: "roslyn", name: "Roslyn" }
+    : isJavaDemo()
+      ? { id: "jdtls", name: "Eclipse JDT LS" }
+    : isKotlinDemo() || isAndroidDemo()
+      ? { id: "kotlin-lsp", name: "Kotlin LSP" }
+    : isScalaDemo()
+      ? { id: "metals", name: "Metals" }
+    : { id: "php-lsp", name: "php-lsp" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
 /** Other mock servers (e.g. the TypeScript server of the language servers mock). */
@@ -107,7 +138,7 @@ const setStatus = (s: ServerStatus) => {
   emitMock("lsp://status", allStatuses());
 };
 
-/** Publish the state of another mock server next to Intelephense. */
+/** Publish the state of another mock server next to the demo's main server. */
 export function setMockServerStatus(s: ServerStatus): void {
   otherServers.set(s.id, s);
   emitMock("lsp://status", allStatuses());
@@ -119,17 +150,15 @@ export function onMockDidOpen(cb: (path: string) => void): void {
   openHooks.push(cb);
 }
 
-/**
- * `?intelephense=missing`: the demo starts without Intelephense (and without Node.js), so
- * the install offer, licence consent and download progress can be tried. The server starts
- * once the mock install finished.
- */
-export const intelephenseMissingAtStart = () =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
-let serverInstalled = isLuaDemo() || !intelephenseMissingAtStart();
+/** `?project=java&jdtls=missing`: the Java demo starts without Eclipse JDT LS. */
+const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
+/** `?project=kotlin&kotlin-lsp=missing`: the Kotlin demo starts without kotlin-lsp. */
+const kotlinLspMissingAtStart = () => isKotlinDemo() && new URLSearchParams(location.search).get("kotlin-lsp") === "missing";
+let serverInstalled =
+  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isCppDemo() || isDotnetDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : true);
 
-/** The mock install of Intelephense finished: start it for the open files. */
-export function markMockIntelephenseInstalled(): void {
+/** The mock install of the demo's server (JDT LS, kotlin-lsp) finished: start it for the open files. */
+export function markMockServerInstalled(): void {
   serverInstalled = true;
   if (Object.keys(docs).length) startServer();
 }
@@ -140,13 +169,15 @@ function startServer() {
   const base = SERVER;
   setStatus({ ...base, state: "starting" });
   const steps = [0, 35, 70, 100];
+  // JDT LS reports its startup and the Gradle import (`language/status`).
+  const message = (p: number) => (isJavaDemo() || isKotlinDemo() ? (p < 70 ? "Importing Gradle project(s)" : isKotlinDemo() ? "Indexing" : "Building workspace") : "Indexing");
   steps.forEach((p, i) =>
-    setTimeout(() => setStatus({ ...base, state: "busy", message: "Indexing", percentage: p }), 120 + i * 150),
+    setTimeout(() => setStatus({ ...base, state: "busy", message: message(p), percentage: p }), 120 + i * 150),
   );
   setTimeout(
     () => {
       setStatus({ ...base, state: "ready" });
-      // Like Intelephense after indexing: diagnostics for the whole workspace.
+      // Like php-lsp after indexing: diagnostics for the whole workspace.
       Object.keys(docs).forEach(publish);
     },
     120 + steps.length * 150,
@@ -169,8 +200,38 @@ export function hoverAt(path: string, pos: LspPosition): { contents: string; ran
 
 // ---------- completion ----------
 
+/** JDT LS in the Java demo: members of `Inventory` and `StockItem`, else types and keywords. */
+function javaCompletionAt(text: string, offset: number): EditorCompletionList {
+  const line = text.slice(text.lastIndexOf("\n", offset - 1) + 1, offset);
+  const prefix = /\w*$/.exec(line)![0];
+  const before = line.slice(0, line.length - prefix.length);
+  const items = /\binventory\.$/.test(before) ? inventoryMembers : /\b(item|current|other)\.$/.test(before) ? stockItemMembers : /\.$/.test(before) ? [] : javaGlobals;
+  return {
+    isIncomplete: false,
+    items: items
+      .filter((i) => i.label.toLowerCase().startsWith(prefix.toLowerCase()))
+      .map((i, idx) => ({ ...i, sortText: String(idx).padStart(3, "0"), raw: { label: i.label } })),
+  };
+}
+
+/** What kotlin-lsp completes in the Kotlin demo: members of `cart` / `order`, else globals. */
+function kotlinCompletionAt(text: string, offset: number): EditorCompletionList {
+  const line = text.slice(text.lastIndexOf("\n", offset - 1) + 1, offset);
+  const prefix = /\w*$/.exec(line)![0];
+  const before = line.slice(0, line.length - prefix.length);
+  const items = /\bcart\.$/.test(before) ? cartMembers : /\border\.$/.test(before) ? kotlinOrderMembers : /\.$/.test(before) ? [] : kotlinGlobals;
+  return {
+    isIncomplete: false,
+    items: items
+      .filter((i) => i.label.toLowerCase().startsWith(prefix.toLowerCase()))
+      .map((i, idx) => ({ ...i, sortText: String(idx).padStart(3, "0"), raw: { label: i.label } })),
+  };
+}
+
 export function completionAt(path: string, pos: LspPosition): EditorCompletionList {
-  // The simulated server is Intelephense: it completes PHP files only.
+  if (isJavaDemo()) return path.endsWith(".java") ? javaCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
+  if (isKotlinDemo()) return path.endsWith(".kt") ? kotlinCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
+  // The simulated server is php-lsp: it completes PHP files only.
   if (!/\.php$/.test(path)) return { isIncomplete: false, items: [] };
   const text = docs[path] ?? "";
   const offset = offsetAt(text, pos);

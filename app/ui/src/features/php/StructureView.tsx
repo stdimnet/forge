@@ -97,10 +97,14 @@ const TO_SOURCE = "structureView.autoscrollToSource";
 const FROM_SOURCE = "structureView.autoscrollFromSource";
 const nodeKey = (parent: string, node: StructureNode) => `${parent}/${node.name}:${node.kind}`;
 
-/** The keys from the root to the node at the caret of the active editor, if any. */
-function caretPath(s: FileStructure): string[] {
+/**
+ * The index path (`"0/2"`: the third child of the first node) of the node at the caret of
+ * the active editor, if it shows `s`'s file. Picked in Rust like the File Structure popup's
+ * caret node; also used by the Project view's Show Members.
+ */
+export function caretNodeId(s: FileStructure, inherited = false): string | null {
   const a = activeView();
-  if (!a || a.path !== s.path) return [];
+  if (!a || a.path !== s.path) return null;
   const { state } = a.view;
   const head = state.selection.main.head;
   const line = state.doc.lineAt(head);
@@ -110,17 +114,23 @@ function caretPath(s: FileStructure): string[] {
     query: "",
     sortAlpha: false,
     showFields: true,
-    showInherited: showInherited(),
+    showInherited: inherited,
     showLambdas: true,
     caretLine: line.number - 1,
     enclosing: scopes.map((sc) => ({ line: sc.line, openLine: sc.openLine })),
   });
   const row = view.selected == null ? undefined : view.rows[view.selected];
-  if (!row) return [];
+  return row?.id ?? null;
+}
+
+/** The keys from the root to the node at the caret of the active editor, if any. */
+function caretPath(s: FileStructure): string[] {
+  const id = caretNodeId(s, showInherited());
+  if (id == null) return [];
   const keys: string[] = [];
   let nodes = s.nodes;
   let parent = "";
-  for (const i of row.id.split("/").map(Number)) {
+  for (const i of id.split("/").map(Number)) {
     const node = nodes[i];
     if (!node) break;
     parent = nodeKey(parent, node);

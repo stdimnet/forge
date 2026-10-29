@@ -23,14 +23,65 @@ export function onDiagnostics(cb: DiagnosticsListener): () => void {
 /** Diagnostics per file and source: language servers (`lsp`) and Forge's own inspections. */
 const bySource = new Map<string, Map<string, EditorDiagnostic[]>>();
 
+/**
+ * Decides which diagnostics of a source are shown and how severe they are: the inspection
+ * profile (`features/inspections`) maps every source's problems onto inspections, drops
+ * disabled and suppressed ones and applies the profile's severities.
+ */
+export type DiagnosticsFilter = (path: string, source: string, diags: EditorDiagnostic[]) => EditorDiagnostic[];
+let filter: DiagnosticsFilter | null = null;
+
+/** Source key of Forge's own PHP inspections (`features/php/meta.ts`). */
+export const PHP_INSPECTIONS_SOURCE = "php-inspections";
+
+const overlaps = (a: EditorDiagnostic["range"], b: EditorDiagnostic["range"]) => {
+  const before = (x: EditorDiagnostic["range"]["start"], y: EditorDiagnostic["range"]["start"]) =>
+    x.line < y.line || (x.line === y.line && x.character < y.character);
+  return !before(a.end, b.start) && !before(b.end, a.start);
+};
+
+/**
+ * Forge's PHP inspections and the PHP language server (php-lsp) both report
+ * deprecated symbol uses and unreachable code: show the server's problem once and drop the
+ * inspection's twin on the same range. Its quick fixes stay available through Alt+Enter.
+ */
+export function withoutInspectionTwins(source: string, list: EditorDiagnostic[], lsp: EditorDiagnostic[]): EditorDiagnostic[] {
+  if (source !== PHP_INSPECTIONS_SOURCE || !lsp.length) return list;
+  return list.filter(
+    (d) => !lsp.some((l) => overlaps(l.range, d.range) && ((d.deprecated && l.deprecated) || (d.unnecessary && l.unnecessary && d.code === "PhpUnreachableStatement"))),
+  );
+}
+
+function show(path: string): void {
+  const sources = bySource.get(path);
+  if (!sources) return;
+  const lsp = sources.get("lsp") ?? [];
+  const merged = [...sources.entries()].flatMap(([source, list]) => {
+    const shown = withoutInspectionTwins(source, list, lsp);
+    return filter && shown.length ? filter(path, source, shown) : shown;
+  });
+  setDiagnostics(path, reconcile(merged));
+  listeners.forEach((l) => l(path, merged));
+}
+
+/** Install the filter (or remove it with `null`) and apply it to everything published so far. */
+export function setDiagnosticsFilter(f: DiagnosticsFilter | null): void {
+  filter = f;
+  refilterDiagnostics();
+}
+
+/** Apply the filter again (the profile or a file's suppression comments changed). */
+export function refilterDiagnostics(path?: string): void {
+  if (path !== undefined) show(path);
+  else for (const p of bySource.keys()) show(p);
+}
+
 /** Replace the diagnostics `source` reported for `path`; the store keeps all sources merged. */
 export function publishDiagnostics(path: string, diags: EditorDiagnostic[], source = "lsp"): void {
   let sources = bySource.get(path);
   if (!sources) bySource.set(path, (sources = new Map()));
   sources.set(source, diags);
-  const merged = sources.size === 1 ? diags : [...sources.values()].flat();
-  setDiagnostics(path, reconcile(merged));
-  listeners.forEach((l) => l(path, merged));
+  show(path);
 }
 
 export function setServerStatuses(s: ServerStatus[]): void {

@@ -1,9 +1,11 @@
 //! Driver-neutral pools and connections. All SQL is sent as raw text (MySQL text protocol,
 //! PostgreSQL simple query protocol), so every statement type works and values arrive in
-//! a uniform text form that [`crate::value`] converts.
+//! a uniform text form that [`crate::value`] converts. The other engines (SQL Server,
+//! ClickHouse, Redis, MongoDB, Oracle) sit behind the traits of [`crate::engine`].
 
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -18,7 +20,9 @@ use sqlx::sqlite::{Sqlite, SqliteConnectOptions, SqlitePool, SqlitePoolOptions, 
 use sqlx::{Column, Decode, Either, Executor, Row, TypeInfo, ValueRef};
 
 use crate::config::{DataSource, Dialect, Driver, SslMode};
+use crate::engine::{self, ConnectSpec, EngineConn, EnginePool};
 use crate::error::{DbError, DbResult};
+use crate::tls::TlsMaterial;
 use crate::value;
 
 /// Name and driver type of a result column.
@@ -38,6 +42,9 @@ pub struct RawResult {
     pub rows_affected: u64,
     /// More rows exist after this page.
     pub has_more: bool,
+    /// MongoDB: the documents of the rows as relaxed extended JSON (the JSON view).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub documents: Vec<Value>,
 }
 
 /// A connection pool for one data source.
@@ -46,6 +53,7 @@ pub enum DbPool {
     MySql(MySqlPool),
     Postgres(PgPool),
     Sqlite(SqlitePool),
+    Engine(Arc<dyn EnginePool>),
 }
 
 /// A connection checked out of a [`DbPool`].
@@ -53,11 +61,16 @@ pub enum Conn {
     MySql(PoolConnection<MySql>),
     Postgres(PoolConnection<Postgres>),
     Sqlite(PoolConnection<Sqlite>),
+    Engine(Box<dyn EngineConn>),
 }
 
 const MAX_CONNECTIONS: u32 = 5;
 
-fn mysql_options(ds: &DataSource, password: Option<&str>) -> MySqlConnectOptions {
+fn mysql_options(
+    ds: &DataSource,
+    password: Option<&str>,
+    tls: &TlsMaterial,
+) -> MySqlConnectOptions {
     let host = if ds.host.is_empty() {
         "localhost"
     } else {
@@ -70,7 +83,17 @@ fn mysql_options(ds: &DataSource, password: Option<&str>) -> MySqlConnectOptions
             SslMode::Disable => MySqlSslMode::Disabled,
             SslMode::Prefer => MySqlSslMode::Preferred,
             SslMode::Require => MySqlSslMode::Required,
+            SslMode::VerifyCa => MySqlSslMode::VerifyCa,
+            SslMode::VerifyFull => MySqlSslMode::VerifyIdentity,
         });
+    if ds.options.ssl_mode.enabled() {
+        if let Some(ca) = &tls.ca {
+            o = o.ssl_ca_from_pem(ca.clone());
+        }
+        if let (Some(c), Some(k)) = (&tls.cert, &tls.key) {
+            o = o.ssl_client_cert_from_pem(c).ssl_client_key_from_pem(k);
+        }
+    }
     if !ds.user.is_empty() {
         o = o.username(&ds.user);
     }
@@ -83,7 +106,7 @@ fn mysql_options(ds: &DataSource, password: Option<&str>) -> MySqlConnectOptions
     o
 }
 
-fn pg_options(ds: &DataSource, password: Option<&str>) -> PgConnectOptions {
+fn pg_options(ds: &DataSource, password: Option<&str>, tls: &TlsMaterial) -> PgConnectOptions {
     let host = if ds.host.is_empty() {
         "localhost"
     } else {
@@ -97,7 +120,17 @@ fn pg_options(ds: &DataSource, password: Option<&str>) -> PgConnectOptions {
             SslMode::Disable => PgSslMode::Disable,
             SslMode::Prefer => PgSslMode::Prefer,
             SslMode::Require => PgSslMode::Require,
+            SslMode::VerifyCa => PgSslMode::VerifyCa,
+            SslMode::VerifyFull => PgSslMode::VerifyFull,
         });
+    if ds.options.ssl_mode.enabled() {
+        if let Some(ca) = &tls.ca {
+            o = o.ssl_root_cert_from_pem(ca.clone());
+        }
+        if let (Some(c), Some(k)) = (&tls.cert, &tls.key) {
+            o = o.ssl_client_cert_from_pem(c).ssl_client_key_from_pem(k);
+        }
+    }
     if !ds.user.is_empty() {
         o = o.username(&ds.user);
     }
@@ -133,7 +166,7 @@ fn init_statements(ds: &DataSource) -> Vec<String> {
             Dialect::Postgres => {
                 out.push("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY".into())
             }
-            Dialect::Sqlite => {}
+            _ => {}
         }
     }
     if !ds.options.init_sql.trim().is_empty() {
@@ -143,12 +176,33 @@ fn init_statements(ds: &DataSource) -> Vec<String> {
 }
 
 impl DbPool {
-    /// Open a pool and check that a connection can be made.
+    /// Open a pool (without certificates or SSL secrets) and check that a connection can
+    /// be made.
     pub async fn connect(
         ds: &DataSource,
         password: Option<&str>,
         root: Option<&Path>,
     ) -> DbResult<Self> {
+        Self::open(ConnectSpec {
+            ds,
+            password,
+            tls: TlsMaterial::default(),
+            tls_host: ds.host.clone(),
+            root,
+        })
+        .await
+    }
+
+    /// Open a pool for `spec` and check that a connection can be made.
+    pub async fn open(spec: ConnectSpec<'_>) -> DbResult<Self> {
+        let (ds, password, root) = (spec.ds, spec.password, spec.root);
+        if !matches!(
+            ds.driver,
+            Driver::Mysql | Driver::Mariadb | Driver::Postgres | Driver::Sqlite
+        ) {
+            return Ok(DbPool::Engine(engine::connect(spec).await?));
+        }
+        let tls = &spec.tls;
         let timeout = Duration::from_secs(ds.options.connect_timeout_secs.clamp(1, 300) as u64);
         let init = init_statements(ds);
         macro_rules! init_hook {
@@ -171,7 +225,7 @@ impl DbPool {
                     .max_connections(MAX_CONNECTIONS)
                     .acquire_timeout(timeout)
                     .after_connect(init_hook!())
-                    .connect_with(mysql_options(ds, password))
+                    .connect_with(mysql_options(ds, password, tls))
                     .await?,
             ),
             Driver::Postgres => DbPool::Postgres(
@@ -179,7 +233,7 @@ impl DbPool {
                     .max_connections(MAX_CONNECTIONS)
                     .acquire_timeout(timeout)
                     .after_connect(init_hook!())
-                    .connect_with(pg_options(ds, password))
+                    .connect_with(pg_options(ds, password, tls))
                     .await?,
             ),
             Driver::Sqlite => DbPool::Sqlite(
@@ -195,6 +249,7 @@ impl DbPool {
                     .connect_with(sqlite_options(ds, root)?)
                     .await?,
             ),
+            _ => unreachable!("engine drivers are handled above"),
         };
         Ok(pool)
     }
@@ -204,6 +259,7 @@ impl DbPool {
             DbPool::MySql(_) => Dialect::MySql,
             DbPool::Postgres(_) => Dialect::Postgres,
             DbPool::Sqlite(_) => Dialect::Sqlite,
+            DbPool::Engine(e) => e.dialect(),
         }
     }
 
@@ -212,6 +268,7 @@ impl DbPool {
             DbPool::MySql(p) => Conn::MySql(p.acquire().await?),
             DbPool::Postgres(p) => Conn::Postgres(p.acquire().await?),
             DbPool::Sqlite(p) => Conn::Sqlite(p.acquire().await?),
+            DbPool::Engine(e) => Conn::Engine(e.acquire().await?),
         })
     }
 
@@ -220,6 +277,15 @@ impl DbPool {
             DbPool::MySql(p) => p.close().await,
             DbPool::Postgres(p) => p.close().await,
             DbPool::Sqlite(p) => p.close().await,
+            DbPool::Engine(e) => e.close().await,
+        }
+    }
+
+    /// The engine pool behind a non-`sqlx` driver.
+    pub fn engine(&self) -> Option<&Arc<dyn EnginePool>> {
+        match self {
+            DbPool::Engine(e) => Some(e),
+            _ => None,
         }
     }
 }
@@ -340,6 +406,7 @@ impl Conn {
             Conn::MySql(_) => Dialect::MySql,
             Conn::Postgres(_) => Dialect::Postgres,
             Conn::Sqlite(_) => Dialect::Sqlite,
+            Conn::Engine(e) => e.dialect(),
         }
     }
 
@@ -349,6 +416,7 @@ impl Conn {
             Conn::MySql(c) => run_on!(&mut **c, sql, skip, max, mysql_cell),
             Conn::Postgres(c) => run_on!(&mut **c, sql, skip, max, pg_cell),
             Conn::Sqlite(c) => run_on!(&mut **c, sql, skip, max, sqlite_cell),
+            Conn::Engine(e) => e.run(sql, skip, max).await,
         }
     }
 
@@ -363,6 +431,7 @@ impl Conn {
             Conn::MySql(c) => describe_on!(&mut **c, sql),
             Conn::Postgres(c) => describe_on!(&mut **c, sql),
             Conn::Sqlite(c) => describe_on!(&mut **c, sql),
+            Conn::Engine(_) => Ok(Vec::new()),
         }
     }
 
@@ -393,7 +462,7 @@ impl Conn {
         let sql = match self {
             Conn::MySql(_) => "SELECT CONNECTION_ID()",
             Conn::Postgres(_) => "SELECT pg_backend_pid()",
-            Conn::Sqlite(_) => return None,
+            Conn::Sqlite(_) | Conn::Engine(_) => return None,
         };
         let rows = self.text_rows(sql).await.ok()?;
         rows.first()?.first()?.as_deref()?.parse().ok()
@@ -401,10 +470,14 @@ impl Conn {
 
     /// Server version string.
     pub async fn server_version(&mut self) -> DbResult<String> {
+        if let Conn::Engine(e) = self {
+            return e.server_version().await;
+        }
         let sql = match self {
             Conn::MySql(_) => "SELECT VERSION()",
             Conn::Postgres(_) => "SHOW server_version",
             Conn::Sqlite(_) => "SELECT sqlite_version()",
+            Conn::Engine(_) => unreachable!(),
         };
         let rows = self.text_rows(sql).await?;
         Ok(rows
@@ -419,6 +492,6 @@ pub fn cancel_statement(dialect: Dialect, id: i64) -> Option<String> {
     match dialect {
         Dialect::MySql => Some(format!("KILL QUERY {id}")),
         Dialect::Postgres => Some(format!("SELECT pg_cancel_backend({id})")),
-        Dialect::Sqlite => None,
+        _ => None,
     }
 }

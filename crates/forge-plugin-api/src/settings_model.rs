@@ -18,6 +18,9 @@ pub const GROUP_ORDER: &[&str] = &[
     "Editor",
     "Plugins",
     "Version Control",
+    // PyCharm's "Project: <name>" (Python Interpreter).
+    "Project",
+    "Directories",
     "Build, Execution, Deployment",
     "Languages & Frameworks",
     "Tools",
@@ -429,6 +432,7 @@ mod tests {
             group: group.into(),
             section: None,
             project: false,
+            hidden: false,
             order: 0,
         }
     }

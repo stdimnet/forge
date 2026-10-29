@@ -28,12 +28,13 @@ phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
+phpforge-fw-wordpress.workspace = true
+phpforge-fw-cms.workspace = true
 webforge-lang-web = { path = "../../packs/webforge/lang-web" }
 webforge-fw-react = { path = "../../packs/webforge/fw-react" }
 webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 webforge-fw-angular = { path = "../../packs/webforge/fw-angular" }
-# Without the keychain: the remote agent embeds this crate and is linked statically.
-forge-langservers = { path = "../forge-langservers", default-features = false }
+forge-langservers.workspace = true
 dirs.workspace = true
 serde.workspace = true
 serde_json.workspace = true

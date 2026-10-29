@@ -21,6 +21,7 @@ forge-process.workspace = true
 forge-vcs.workspace = true
 forge-lsp.workspace = true
 forge-project.workspace = true
+phpforge-builtin-lsp.workspace = true
 serde.workspace = true
 serde_bytes = "0.11"
 tokio = { workspace = true, features = ["full"] }
@@ -38,8 +39,8 @@ phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
-forge-langservers = { path = "../forge-langservers", default-features = false }
 forge-collab = { path = "../forge-collab", default-features = false, features = ["runtime"] }
+forge-langservers.workspace = true
 webforge-lang-web = { path = "../../packs/webforge/lang-web", default-features = false }
 
 # forge-lsp's fake language server, to test language servers started through the agent

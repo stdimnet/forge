@@ -11,7 +11,8 @@
 #                 installed one starts (e.g. basedpyright before pyright)
 #   plugin        Forge plugin that must be enabled (Settings > Plugins)
 #   when          start only if the project has one of these root `files` (a trailing `*`
-#                 is a prefix match) or `packages` (package.json dependencies)
+#                 is a prefix match) or `packages` (package.json dependencies), and none
+#                 of the `absent` root files
 #   enabled       default for the per-server toggle (true when omitted)
 #   install       ways to install it; `command` is run without a shell. apt / pacman need
 #                 root and are only shown. `platforms`: linux, macos, windows (all if empty)
@@ -46,6 +47,16 @@ name = "Astro"
 extensions = ["astro"]
 
 [[language]]
+id = "prisma"
+name = "Prisma"
+extensions = ["prisma"]
+
+[[language]]
+id = "graphql"
+name = "GraphQL"
+extensions = ["graphql", "gql"]
+
+[[language]]
 id = "html"
 name = "HTML"
 extensions = ["html", "htm", "xhtml"]
@@ -69,7 +80,7 @@ extensions = ["less"]
 id = "json"
 name = "JSON"
 extensions = ["json", "jsonc:jsonc", "json5:jsonc"]
-file_names = [".babelrc:jsonc", ".eslintrc:jsonc", ".prettierrc:json"]
+file_names = [".babelrc:jsonc", ".eslintrc:jsonc", ".prettierrc:json", "devcontainer.json:jsonc", ".devcontainer.json:jsonc"]
 
 [[language]]
 id = "yaml"
@@ -168,15 +179,15 @@ name = "C#"
 extensions = ["cs", "csx"]
 
 [[language]]
+id = "fsharp"
+name = "F#"
+extensions = ["fs", "fsi", "fsx"]
+
+[[language]]
 id = "ruby"
 name = "Ruby"
 extensions = ["rb", "rake", "gemspec", "ru", "erb:erb"]
 file_names = ["Gemfile", "Rakefile", "Guardfile"]
-
-[[language]]
-id = "kotlin"
-name = "Kotlin"
-extensions = ["kt", "kts"]
 
 [[language]]
 id = "zig"
@@ -199,6 +210,7 @@ command = "typescript-language-server"
 args = ["--stdio"]
 alternative = "typescript"
 plugin = "forge.web"
+when = { absent = ["deno.json", "deno.jsonc"] }
 homepage = "https://github.com/typescript-language-server/typescript-language-server"
 license = "MIT"
 note = "Uses the project's TypeScript (node_modules) or a global one. Serves .vue files too when the Vue language server is installed (hybrid mode)."
@@ -225,6 +237,7 @@ command = "vtsls"
 args = ["--stdio"]
 alternative = "typescript"
 plugin = "forge.web"
+when = { absent = ["deno.json", "deno.jsonc"] }
 homepage = "https://github.com/yioneko/vtsls"
 license = "MIT"
 note = "Alternative to typescript-language-server built on VS Code's TypeScript extension. Starts only when typescript-language-server is missing or disabled."
@@ -335,6 +348,43 @@ homepage = "https://github.com/withastro/language-tools"
 license = "MIT"
 install = [
   { tool = "npm", command = ["npm", "install", "-g", "@astrojs/language-server", "typescript"] },
+]
+
+[[server]]
+id = "deno"
+name = "Deno Language Server"
+group = "Deno"
+languages = ["typescript", "javascript"]
+command = "deno"
+args = ["lsp"]
+plugin = "forge.deno"
+homepage = "https://docs.deno.com/runtime/reference/lsp_integration/"
+license = "MIT"
+note = "Replaces the TypeScript language server in projects with a deno.json or deno.jsonc."
+when = { files = ["deno.json", "deno.jsonc"] }
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "deno"] },
+  { tool = "brew", command = ["brew", "install", "deno"], platforms = ["macos", "linux"] },
+  { tool = "cargo", command = ["cargo", "install", "deno", "--locked"] },
+]
+
+[server.initialization_options]
+enable = true
+lint = true
+unstable = false
+
+[[server]]
+id = "prisma-language-server"
+name = "Prisma Language Server"
+group = "Prisma"
+languages = ["prisma"]
+command = "prisma-language-server"
+args = ["--stdio"]
+plugin = "forge.prisma"
+homepage = "https://github.com/prisma/language-tools"
+license = "Apache-2.0"
+install = [
+  { tool = "npm", command = ["npm", "install", "-g", "@prisma/language-server"] },
 ]
 
 # ---- HTML & CSS --------------------------------------------------------------------------
@@ -663,10 +713,11 @@ args = ["--stdio"]
 alternative = "python"
 homepage = "https://docs.basedpyright.com"
 license = "MIT"
+plugin = "forge.python"
 install = [
+  { tool = "npm", command = ["npm", "install", "-g", "basedpyright"] },
   { tool = "pipx", command = ["pipx", "install", "basedpyright"] },
   { tool = "pip", command = ["python3", "-m", "pip", "install", "--user", "basedpyright"] },
-  { tool = "npm", command = ["npm", "install", "-g", "basedpyright"] },
 ]
 
 [server.settings]
@@ -691,6 +742,43 @@ install = [
 
 [server.settings]
 python = { analysis = { typeCheckingMode = "standard", autoSearchPaths = true, useLibraryCodeForTypes = true, diagnosticMode = "openFilesOnly" } }
+
+[[server]]
+id = "ty"
+name = "ty (preview)"
+group = "Python"
+languages = ["python"]
+command = "ty"
+args = ["server"]
+alternative = "python"
+plugin = "forge.python"
+enabled = false
+homepage = "https://docs.astral.sh/ty/"
+license = "MIT"
+note = "Preview: Astral's type checker. Enable it and disable basedpyright and Pyright to use it."
+install = [
+  { tool = "pypi", command = ["pypi", "install", "ty"] },
+  { tool = "uv", command = ["uv", "tool", "install", "ty"] },
+  { tool = "pipx", command = ["pipx", "install", "ty"] },
+]
+
+[[server]]
+id = "ruff"
+name = "Ruff"
+group = "Python"
+languages = ["python"]
+command = "ruff"
+args = ["server"]
+plugin = "forge.python"
+homepage = "https://docs.astral.sh/ruff/"
+license = "MIT"
+note = "Linting and quick fixes next to the type checker; ruff format is the default formatter."
+install = [
+  { tool = "pypi", command = ["pypi", "install", "ruff"] },
+  { tool = "uv", command = ["uv", "tool", "install", "ruff"] },
+  { tool = "pipx", command = ["pipx", "install", "ruff"] },
+  { tool = "brew", command = ["brew", "install", "ruff"], platforms = ["macos", "linux"] },
+]
 
 # ---- Systems languages -------------------------------------------------------------------
 
@@ -734,26 +822,6 @@ procMacro = { enable = true }
 rust-analyzer = { cargo = { buildScripts = { enable = true } }, check = { command = "clippy" }, procMacro = { enable = true } }
 
 [[server]]
-id = "clangd"
-name = "clangd"
-group = "C/C++"
-languages = ["c", "cpp"]
-command = "clangd"
-args = ["--background-index", "--clang-tidy", "--header-insertion=iwyu"]
-homepage = "https://clangd.llvm.org"
-license = "Apache-2.0 WITH LLVM-exception"
-note = "Needs compile_commands.json (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or bear) for accurate results."
-install = [
-  { tool = "brew", command = ["brew", "install", "llvm"], platforms = ["macos"] },
-  { tool = "pacman", command = ["sudo", "pacman", "-S", "clang"], platforms = ["linux"] },
-  { tool = "apt", command = ["sudo", "apt", "install", "clangd"], platforms = ["linux"] },
-  { tool = "download", url = "https://github.com/clangd/clangd/releases" },
-]
-
-[server.initialization_options]
-clangdFileStatus = true
-
-[[server]]
 id = "zls"
 name = "ZLS"
 group = "Zig"
@@ -770,36 +838,6 @@ install = [
 # ---- JVM & .NET --------------------------------------------------------------------------
 
 [[server]]
-id = "jdtls"
-name = "Eclipse JDT Language Server"
-group = "Java"
-languages = ["java"]
-command = "jdtls"
-homepage = "https://github.com/eclipse-jdtls/eclipse.jdt.ls"
-license = "EPL-2.0"
-note = "Needs Java 21+. Forge keeps its workspace data in the user cache directory."
-install = [
-  { tool = "brew", command = ["brew", "install", "jdtls"], platforms = ["macos", "linux"] },
-  { tool = "download", url = "https://download.eclipse.org/jdtls/snapshots/" },
-]
-
-[server.settings]
-java = { format = { enabled = true }, signatureHelp = { enabled = true }, contentProvider = { preferred = "fernflower" } }
-
-[[server]]
-id = "kotlin-language-server"
-name = "Kotlin Language Server"
-group = "Kotlin"
-languages = ["kotlin"]
-command = "kotlin-language-server"
-homepage = "https://github.com/fwcd/kotlin-language-server"
-license = "MIT"
-install = [
-  { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
-  { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
-]
-
-[[server]]
 id = "csharp-ls"
 name = "csharp-ls"
 group = "C#"
@@ -810,6 +848,19 @@ license = "MIT"
 note = "Needs the .NET SDK."
 install = [
   { tool = "dotnet", command = ["dotnet", "tool", "install", "--global", "csharp-ls"] },
+]
+
+[[server]]
+id = "fsautocomplete"
+name = "FsAutoComplete"
+group = "F#"
+languages = ["fsharp"]
+command = "fsautocomplete"
+homepage = "https://github.com/ionide/FsAutoComplete"
+license = "Apache-2.0"
+note = "Needs the .NET SDK."
+install = [
+  { tool = "dotnet", command = ["dotnet", "tool", "install", "--global", "fsautocomplete"] },
 ]
 
 [[server]]

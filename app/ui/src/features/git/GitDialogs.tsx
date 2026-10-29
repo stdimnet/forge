@@ -4,9 +4,8 @@
  * Unshelve Changes. Keys inside a dialog are handled on the dialog itself while the keymap is
  * suspended, like the other git modals.
  */
-import { createMemo, createResource, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show, type JSX } from "solid-js";
 import { ChevronDown, FileDiff, Pencil, Plus, Trash2, X } from "lucide-solid";
-import { suspendKeymap } from "@/keymap";
 import { FileIcon } from "@/shell/FileIcon";
 import { gitApi, type ChangedFile, type Remote, type StashEntry } from "./api";
 import { opsApi, type ResetMode } from "./opsApi";
@@ -31,68 +30,15 @@ import {
   unshelve,
   type GitDialog,
 } from "./gitDialogs";
+import { Check, Frame, Row } from "./DialogFrame";
+import { InteractiveRebaseDialog, RewordDialog, SquashCommitsDialog } from "./LogDialogs";
+import { ApplyPatchDialog, ChangelistDialog, CreatePatchDialog, MoveChangelistDialog } from "./ChangesDialogs";
+import { CloneDialog, NewWorktreeDialog } from "./ExtrasDialogs";
 import "./dialogs.css";
 
 const currentBranch = () => status()?.branch ?? "HEAD";
 const nameOf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
-
-/** Modal frame: title, body, footer; Escape cancels, Enter (outside text areas) confirms. */
-function Frame(props: {
-  title: string;
-  class?: string;
-  children: JSX.Element;
-  okLabel: string;
-  okDisabled?: boolean;
-  onOk: () => void | Promise<void>;
-  /** Buttons left of Cancel. */
-  extra?: JSX.Element;
-}) {
-  let root!: HTMLDivElement;
-  const release = suspendKeymap();
-  onCleanup(release);
-  onMount(() => root.querySelector<HTMLElement>("[data-autofocus], input:not([type=checkbox]):not([type=radio]), textarea, select")?.focus());
-  const ok = () => {
-    if (!props.okDisabled) void props.onOk();
-  };
-  const onKeyDown = (e: KeyboardEvent) => {
-    const t = e.target as HTMLElement;
-    if (e.key === "Escape") closeGitDialog();
-    else if (e.key === "Enter" && (t.tagName !== "TEXTAREA" || e.ctrlKey || e.metaKey) && t.tagName !== "BUTTON") ok();
-    else return;
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  return (
-    <div class="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeGitDialog()}>
-      <div ref={root} class={`git-dialog gd ${props.class ?? ""}`} role="dialog" aria-label={props.title} onKeyDown={onKeyDown}>
-        <header class="dialog-title">
-          <span>{props.title}</span>
-        </header>
-        <div class="git-dialog-body gd-body">{props.children}</div>
-        <footer class="git-dialog-actions">
-          {props.extra}
-          <span class="spacer" />
-          <button class="btn-secondary" onClick={closeGitDialog}>
-            Cancel
-          </button>
-          <button class="btn-primary" disabled={props.okDisabled} onClick={ok}>
-            {props.okLabel}
-          </button>
-        </footer>
-      </div>
-    </div>
-  );
-}
-
-function Row(props: { label: string; children: JSX.Element }) {
-  return (
-    <>
-      <span class="gd-label">{props.label}</span>
-      <div class="gd-value">{props.children}</div>
-    </>
-  );
-}
 
 function RootRows() {
   return (
@@ -106,15 +52,6 @@ function RootRows() {
         <span class="gd-static">{currentBranch()}</span>
       </Row>
     </>
-  );
-}
-
-function Check(props: { label: string; checked: boolean; onChange: (on: boolean) => void; disabled?: boolean; hint?: string }) {
-  return (
-    <label class="git-dialog-check" classList={{ disabled: props.disabled }} title={props.hint}>
-      <input type="checkbox" checked={props.checked} disabled={props.disabled} onChange={(e) => props.onChange(e.currentTarget.checked)} />
-      {props.label}
-    </label>
   );
 }
 
@@ -857,6 +794,24 @@ function render(d: GitDialog): JSX.Element {
       return <ShelveDialog paths={d.paths} />;
     case "unshelve":
       return <UnshelveDialog changelist={d.changelist} paths={d.paths} />;
+    case "reword":
+      return <RewordDialog sha={d.sha} message={d.message} />;
+    case "squashCommits":
+      return <SquashCommitsDialog shas={d.shas} message={d.message} />;
+    case "interactiveRebase":
+      return <InteractiveRebaseDialog sha={d.sha} plan={d.plan} />;
+    case "changelist":
+      return <ChangelistDialog edit={d.edit} movePaths={d.movePaths} />;
+    case "moveChangelist":
+      return <MoveChangelistDialog paths={d.paths} hunks={d.hunks} from={d.from} />;
+    case "createPatch":
+      return <CreatePatchDialog paths={d.paths} shas={d.shas} name={d.name} />;
+    case "applyPatch":
+      return <ApplyPatchDialog patch={d.patch} name={d.name} files={d.files} />;
+    case "clone":
+      return <CloneDialog request={d.request} />;
+    case "newWorktree":
+      return <NewWorktreeDialog branch={d.branch} />;
   }
 }
 

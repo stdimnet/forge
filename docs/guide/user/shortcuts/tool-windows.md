@@ -38,6 +38,7 @@ Opening, hiding, resizing and switching tool windows. Windows/Linux shortcuts fi
 | [Hide Side Tool Windows](#hide-side-tool-windows) | — | — |
 | [Restore Default Layout](#restore-default-layout) | `Shift+F12` | `Shift+F12` |
 | [Store Current Layout as Default](#store-current-layout-as-default) | — | — |
+| [Save Current Layout as New…](#save-current-layout-as-new) | — | — |
 | [Jump to Last Tool Window](#jump-to-last-tool-window) | `F12` | `F12` |
 | [Stretch to Left](#stretch-to-left) | `Ctrl+Shift+Left` | `Ctrl+Alt+Shift+Left` |
 | [Stretch to Right](#stretch-to-right) | `Ctrl+Shift+Right` | `Ctrl+Alt+Shift+Right` |
@@ -119,7 +120,7 @@ Shows or hides the Debug tool window.
 
 **Menu:** View | Tool Windows | Debug
 
-More: [Xdebug debugging](../../user/debugging.md#the-debug-tool-window)
+More: [Debugging](../../user/debugging.md#the-debug-tool-window)
 
 ## Problems tool window
 
@@ -254,6 +255,14 @@ Shows or hides the npm tool window.
 
 More: [WebForge](../../user/webforge.md#npm-tool-window)
 
+## Python Packages tool window
+
+**Shortcut:** — · macOS — · action id `ActivatePythonPackagesToolWindow`
+
+Shows or hides the Python Packages tool window.
+
+More: [PyForge](../../user/python.md#python-packages-tool-window)
+
 ## Doctrine tool window
 
 **Shortcut:** — · macOS — · action id `Doctrine.ShowEntities`
@@ -331,6 +340,16 @@ Stores where the tool windows sit, which are open and their sizes as the default
 **Menu:** Window | Layouts | Store Current Layout as Default
 
 More: [Workbench and tool windows](../../user/workbench.md#moving-and-hiding-tool-windows)
+
+## Save Current Layout as New…
+
+**Shortcut:** — · macOS — · action id `StoreNewLayout`
+
+Saves the open tool windows, where each sits, its view mode and the area sizes under a name; the layout then appears in Window | Layouts.
+
+**Menu:** Window | Layouts | Save Current Layout as New…
+
+More: [Windows, modes and layouts](../../user/windows-and-layouts.md#layouts)
 
 ## Jump to Last Tool Window
 

@@ -43,6 +43,9 @@ pub struct InjectionSettings {
     pub disabled: Vec<String>,
     /// `path#key` of places un-injected with "Un-inject Language".
     pub uninjected: Vec<String>,
+    /// Parameters marked `#[Language]` (from the PHP index).
+    #[serde(default)]
+    pub places: Vec<rules::InjectionPlace>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -205,7 +208,7 @@ impl<'a> Analysis<'a> {
     fn new(src: &'a str, path: &'a str, settings: &InjectionSettings) -> Option<Self> {
         let host = Host::of_path(path)?;
         let lexed = lexer::lex(src, host);
-        let mut found = rules::detect(src, host, &lexed, &settings.disabled);
+        let mut found = rules::detect(src, host, &lexed, &settings.disabled, &settings.places);
         let mut a = Analysis {
             src,
             path,

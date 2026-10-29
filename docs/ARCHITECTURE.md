@@ -2,7 +2,7 @@
 
 ```
 crates/            Rust core libraries (forge-*), language-agnostic
-packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge
+packs/<pack>/      Plugins grouped by pack: phpforge, webforge, luaforge, pyforge, javaforge (Java, Groovy, Scala, Android), kotlinforge, cforge, rubyforge
 plugins/           Generic plugins (git, database, docker, xdebug, ...)
 app/src-tauri/     Desktop shell: Tauri setup + IPC commands
 app/ui/            SolidJS UI
@@ -16,14 +16,17 @@ app/ui/            SolidJS UI
   and remote development").
 - `forge-plugin-api` — `Plugin` trait, `PluginManifest`, `Contributions`. Packs depend only on this.
 - `forge-project` — project type detection and the New Project generators/templates.
+- `forge-testing` / `forge-runtargets` — the shared test runner and coverage model of every
+  pack, and run targets ("Run on"); see "Shared test runner, coverage and run targets".
 - Plugins declare contributions (commands, keybindings, tool windows, typed settings, LSP
   servers, run configuration types, AI providers, chat agents, code generators) as serde data;
   `PluginRegistry` tracks enablement (cascading over `depends`) and answers lookups. Built-in
   manifests are TOML files in `app/src-tauri/plugins/`; `app/ui/src/mock/builtinPlugins.json`
   is their browser-mode snapshot (regenerate with `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`).
 - Settings (`forge_core::Settings`) are layered: schema defaults < user
-  (`<config dir>/forge/settings.toml`) < project (`<root>/.forge/settings.toml`), keyed by dotted
-  names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
+  (`<config dir>/forge/settings.toml`) < Settings for New Projects (`newProjects`,
+  `<config dir>/forge/new-project-settings.toml`, project-level settings only) < project
+  (`<root>/.forge/settings.toml`), keyed by dotted names. IPC: `settings_get_all`, `settings_set(key, value, scope)`, `settings_schema`,
   `plugins_list`, `plugin_set_enabled`; changes are emitted as `settings://changed`. In the UI read
   them with `getSetting(key)` from `src/state/settings.ts`.
 - Feature crates (`forge-lsp`, `forge-vcs`, `forge-forges`, `forge-ai`, `forge-agent-cli`, ...) are plain libraries
@@ -53,10 +56,38 @@ app/ui/            SolidJS UI
     "View/Tool Windows"); manifests do the same with `[[contributions.mainMenu]]`.
     `registerMainMenuDynamic(source, provider)` fills dynamic lists (`recentProjects`,
     `toolWindows`), `registerMainMenuToggle(actionId, isOn)` reports check marks.
-  - `registerRunConfigurationType` / `registerDebugLauncher` (`src/features/run`) — Run/Debug
-    configuration types and debuggers (see "Terminal and Run/Debug" below).
+  - `registerRunConfigurationType` / `registerDebugLauncher` / `registerBeforeLaunchHandler`
+    (`src/features/run`) — Run/Debug configuration types, debuggers and Before launch task
+    kinds (see "Terminal and Run/Debug" below).
+  - `registerRunPanel({ id, title, icon?, accepts(event, current), count?, reveal?, component })`
+    and `onRunEvent(listener)` (`src/features/run/runStore.ts`) — result tabs of a Run session
+    next to its console, filled from run events (CForge's Sanitizers and Valgrind), and run
+    events the run feature does not handle itself (perf profiles).
+  - `registerProfilerSource` (`src/features/profiler`) — a source of the shared Profiler tool
+    window; `features/profiler/callTree.tsx` draws a `goforge_pprof::ProfileView` (Flame
+    Graph, Call Tree, Method List) for pprof and perf.
+  - `registerDebugAdapter({ type, label?, runConfigurationTypes?, languages?, launchSchema?,
+    attachSchema?, resolve? })` (`src/features/debug/adapters.ts`) — a Debug Adapter Protocol
+    debugger for a pack, together with `[[contributions.debugAdapters]]` in its manifest or a
+    Rust `forge_dap::DebugAdapterDescriptor` (see "Shared debugging layer" below).
+  - Test frameworks: `[[contributions.testFrameworks]]` in a manifest (or a Rust
+    `forge_testing::TestFrameworkProvider`) — gutter icons, a run configuration type, the test
+    tree, Rerun Failed Tests and Run with Coverage for a pack's test framework.
+    Code-backed frameworks add `registerTestFileMatcher(path => bool)` (files that get the
+    test gutter) and `registerContextConfiguration(path => cfg | null)` (Run Context
+    Configuration outside tests) from `@/features/run` (PyForge).
+  - `registerRunAnythingProvider` (`src/features/runAnything`) — commands offered in Run
+    Anything (double Ctrl), e.g. Artisan and Symfony console commands.
+  - `registerEndpointsView({ id, title, order, when, component, actions? })`
+    (`src/features/endpoints/registry.ts`) — a view of the shared Endpoints tool window; with
+    several active views (a polyglot project) the window shows a tab per view
+    (`showEndpointsView(id)` opens one).
+  - `registerServicesProvider({ id, nodes, owns, details, action, refresh? })`
+    (`src/features/services/providers.ts`) — nodes of the Services tool window before
+    Docker / Compose / Kubernetes, with their own details (the `ServiceDetails` shape) and
+    toolbar actions (the Spring Boot run dashboard).
 - Tool windows may render tabs next to their title with `headerContent` (Terminal, Run).
-- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `global` and `terminal` (xterm.js has
+- Keymap focus contexts: `editor`, `input`, `toolwindow`, `diff` (diff and merge windows, `[data-focus-context="diff"]`; "diff" actions such as Next Difference only fire there), `notebook` (a Jupyter notebook in command mode, `[data-focus-context="notebook"]`) and `notebook-editor` (a cell's editor; editor actions apply too), `global` and `terminal` (xterm.js has
   focus). In the terminal plain Ctrl+letter, Alt+letter and Escape go to the shell; function
   keys, Alt+digit, Ctrl+Shift and Ctrl+Alt combinations still reach the IDE. With Vim
   emulation on, the focused editor's Vim takes the keys it needs first (see "Vim emulation").
@@ -70,7 +101,14 @@ app/ui/            SolidJS UI
     before the language servers and the PHP index (see "Code intelligence" below). Several targets (from a provider or the language server) open the shared
     "Choose Declaration" popup: `chooseDeclarationAt(view, pos, targets, { title?, open? })`
     (`src/features/navigation/chooseDeclaration.ts`; targets `{ path, line, column?, preview? }`,
-    0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine and the LSP use it.
+    0-based). WebForge, LuaForge, Laravel, Symfony, Doctrine, WordPress, Drupal and the LSP use it.
+  - `registerDiffRenderer({ id, title, accepts(path), preferred?, component })`
+    (`src/features/git/diffRenderers.ts`) — a view of a file type in the diff viewer instead
+    of the text diff, with a switch to Text (notebooks cell by cell).
+  - `registerUsagesProvider` (`src/features/codeintel/usages.ts`) — Find Usages / Show Usages for
+    framework elements a language server does not know (WordPress hooks): the provider returns a
+    `UsagesAnswer` (the shape of `code_find_usages`) or null; Rerun in the Find tool window asks
+    it again.
   - `claimFrameworkStatus` (`src/features/project-type`) — a framework plugin with its own status
     widget hides the generic "Laravel 12" / "Symfony 7" one.
   - `registerFileEditor({ id, accepts(path), component })` (`src/shell/editorViews.ts`) — an
@@ -92,7 +130,19 @@ app/ui/            SolidJS UI
   captures DOM key events, classifies the focus context, forwards the event to the resolver and
   runs the returned action. Key events are resolved synchronously by the same Rust code compiled
   to WebAssembly (desktop and browser), because the handler must decide on `preventDefault`
-  before it returns; the keymap data and all changes go through the `keymap_*` commands.
+  before it returns; the keymap data and all changes go through the `keymap_*` commands. The
+  other bundled keymaps (VS Code, Eclipse, Sublime Text, Emacs, `data/keymaps.json`) derive from
+  a PHPStorm keymap; user keymaps (`keymap.custom`) derive from any keymap. Mouse shortcuts
+  ("Ctrl+Button1 Click", "Alt+Wheel Up") go through the same resolver: `keymap/dispatch.ts`
+  forwards clicks and wheel turns as `{ type: "mouse", button, clickCount, deltaY }`. Editor
+  extensions that act on the clicked position (Ctrl+Click to the declaration) ask
+  `editorMouseAction(e)` which action the keymap binds and call `claimMouseGesture()` so the
+  dispatcher does not run it a second time.
+- Color schemes: `crates/forge-colorscheme` resolves the active scheme (Ember, Anvil, user
+  schemes from `editor.colorScheme.*`) into CSS variables (`--syn-<token>[-bg|-weight|-style|
+  -deco|-box]`, `--editor-fg`, `--editor-caret`, `--editor-selection`, …) that
+  `features/colorScheme/store.ts` sets on <html>; `editor/forgeTheme.ts` reads them with the
+  theme's variables as fallbacks, so following the theme sets nothing.
 - A feature is a folder `src/features/<name>/` with an `index.ts` that registers its
   contributions; add one import line to `src/features/index.ts`. Browser mocks go to
   `src/mock/<name>Mock.ts` and are imported from `src/mock/index.ts`.
@@ -117,12 +167,20 @@ app/ui/            SolidJS UI
   keymap, platform, every action with its shortcuts, display strings, `modified` and aliases);
   `keymap_register_actions({ actions?, commands? }) -> KeymapSnapshot`;
   `keymap_set_override({ change }) -> KeymapSnapshot` where `change` is `{ op: "selectKeymap" |
-  "set" | "add" | "remove" | "reset" | "resetAll", … }` and is stored in the user settings;
+  "set" | "add" | "remove" | "reset" | "resetAll" | "duplicate" | "derive" | "rename" |
+  "delete", … }` and is stored in the user settings;
   `keymap_conflicts({ shortcut, actionId? }) -> ShortcutCheck`;
   `keymap_find_by_shortcut({ shortcut }) -> string[]`; `keymap_resolve({ event }) -> Resolution`
   (`{ consumed, action?, pending?: "chord" | "doubleTap" }`, the IPC fallback of the in-process
   resolver); `keymap_import_legacy({ active, overrides })` moves a pre-settings keymap from
   localStorage into the settings.
+- Color schemes (`src/ipc/colorScheme.ts`, `forge-colorscheme`): `color_scheme_state({ dark })
+  -> SchemesSnapshot` (schemes, the active scheme's attributes with their CSS, the preview and
+  the document CSS variables; `dark` is the UI theme, for "follow the theme");
+  `color_scheme_change({ change, dark }) -> SchemesSnapshot` (`{ op: "select" | "duplicate" |
+  "rename" | "delete" | "setAttribute" | "resetAll", … }`, stored in the user settings);
+  `color_scheme_import({ text? | path?, dark }) -> SchemesSnapshot` reads an IntelliJ `.icls`
+  file into a new scheme; `color_scheme_export({ name, path? }) -> string`.
 - Main menu (`src/ipc/keymap.ts`, `forge-keymap::menu`): `keymap_main_menu({ request }) -> MainMenu`.
   The request carries `contributions` (manifest `mainMenu` of active plugins plus
   `registerMainMenuEntries`), `dynamic` lists (`{ key, label, action?, detail?, enabled?,
@@ -134,7 +192,8 @@ app/ui/            SolidJS UI
   renders it with the context menu renderer (`showResolvedMenu`) as the ☰ popup or a menu bar,
   depending on `appearance.mainMenu` (`hamburger` | `merged` | `toolbar`).
 
-- `fs_list_dir({ path }) -> { name, path, kind, ignored }[]` — `ignored` is set for entries matched by
+- `fs_list_dir({ path }) -> { name, path, kind, ignored, excluded? }[]` — `excluded` marks excluded
+  entries (see "Project structure"); `ignored` is set for entries matched by
   `.gitignore`, `.git/info/exclude` or the global excludes file (ignored folders ignore their
   content); the Project view grays them out. The browser mock mirrors this with
   `src/mock/gitignoreMatcher.ts`.
@@ -182,8 +241,28 @@ app/ui/            SolidJS UI
   with aliases.
 - `search_rank({ request: { tab, query, perGroup, includeDimmed?, sources } }) -> { groups }` —
   Search Everywhere ranking (`forge_fuzzy::everywhere`).
-- `filetypes_detect({ request: { files, inactivePlugins, dataLanguages, softWrapFiles } }) -> FileTypeInfo[]`
-  — file type id, status bar label, indent, template data language and soft wrapping.
+- `filetypes_detect({ request: { files, inactivePlugins, dataLanguages, softWrapFiles,
+  templateDelimiters, associations?, customTypes? } }) -> FileTypeInfo[]` — file type id,
+  status bar label, indent, template data language, soft wrapping and, for custom file types,
+  their `custom` syntax (comments, hex prefix, number postfixes, keyword lists 1–4, options)
+  that `editor/customFileType.ts` turns into a stream parser. `associations` and `customTypes`
+  are the `fileTypes.associations` / `fileTypes.custom` settings (`forge_filetypes::user`).
+  `filetypes_list({ request }) -> FileTypeRow[]` is Settings | Editor | File Types (`{ id,
+  name, description?, patterns, added, removed, plugin?, custom, syntax?, indent }`);
+  `fs_list_dir` hides the names of `fileTypes.ignoredFiles`.
+- Repair and reset (`forge-maintenance`, `commands/maintenance.rs`, UI `features/maintenance`):
+  `maintenance_invalidate_model() -> { title, message, warning, always, options: { id,
+  label, detail }[], invalidateLabel, justRestartLabel }`, `maintenance_invalidate_caches({
+  options: ("fileSystemAndLocalHistory" | "sharedIndexes" | "browserEngine" |
+  "languageServerData")[], invalidate })` (writes `<data dir>/forge/pending-maintenance.json`
+  and restarts; `forge_maintenance::pending::run_pending` deletes the caches at the next start,
+  before the settings load), `maintenance_restart()`, `maintenance_rescan_indexes() -> number`
+  (`Backend::rescan_search_index`), `settings_export_info() -> { groups: { id, label, count
+  }[], defaultPath }`, `settings_export({ path, groups }) -> path`,
+  `settings_import_preview({ path }) -> groups`, `settings_import({ path, groups }) -> number`
+  (replaces the chosen groups in the user settings and writes the chosen files),
+  `settings_restore_defaults() -> backup folder` (resets on the next start). Browser mode:
+  `mock/maintenanceMock.ts` (models from WebAssembly, nothing is deleted).
 - `settings_search({ request: { query, pages?, settings?, entries?, highlight? } })` and
   `settings_validate({ key, value }) -> string | null` — the Settings dialog model.
 - Git menu commands (`forge-vcs`, `commands/git.rs`): `git_add_to_gitignore({ paths }) -> string[]`
@@ -216,6 +295,70 @@ app/ui/            SolidJS UI
   else `--3way`), `git_shelf_delete({ id })`, `git_shelf_rename({ id, name })`,
   `git_shelf_file({ id, path }) -> { before, after, binary }`. Browser mode: `mock/gitOpsMock.ts`
   (`?rebasing` starts in a stopped rebase).
+- Changelists, partial commits and patches (`forge_vcs::{changelists, hunks, patch}`,
+  `repo/partial.rs`, `repo/patches.rs`, `commands/git_changes.rs`, UI `features/git/
+  changelists.ts`, `changesDialogs.ts`, `ChangesDialogs.tsx`, `partialGutter.ts`,
+  `commitChecks.ts`): changelists live in `<data dir>/forge/projects/<name>-<hash>/
+  changelists.json`; every changelist command answers the lists `{ id, name, comment, active,
+  files: { path, hunks: string[] | null }[] }[]`: `git_changelists()`,
+  `git_changelist_create({ name, comment, active })`, `git_changelist_edit({ id, name, comment,
+  active })`, `git_changelist_set_active({ id })`, `git_changelist_delete({ id })`,
+  `git_changelist_move({ paths, hunks?, target, create? })`. Hunks:
+  `git_file_hunks({ path, content? }) -> { id, oldStart, oldLen, newStart, newLen, removed,
+  added }[]` (0-based lines; ids stay stable while other parts change). Commit:
+  `git_commit_files({ message, files: { path, hunks }[], options: { amend, signOff, noVerify,
+  author } }) -> sha`. Patches: `git_create_patch({ paths, reverse })`,
+  `git_read_patch({ path })` / `git_write_patch({ path, patch })` (absolute = local file,
+  else project file), `git_patch_preview({ patch, base }) -> { path, oldPath, status, binary,
+  additions, deletions, before, after, applies, message }[]`, `git_apply_patch({ patch, base,
+  paths? }) -> { applied, conflicts, failed: [path, reason][] }`. Browser mode:
+  `mock/gitChangesMock.ts` with the Rust models as WebAssembly (`vcs_changelists`,
+  `vcs_change_hunks`, `vcs_patch_preview`).
+- Get from VCS, worktrees, Commit Message History and signing (`forge_vcs::{clone, worktree,
+  message_history, signing}`, `repo/worktrees.rs`, `forge_backend::vcs`, `commands/git_clone.rs`,
+  `commands/git_extras.rs`, UI `features/git/extras.ts`, `ExtrasDialogs.tsx`,
+  `SigningSettings.tsx`): `forges_repositories({ accountId }) -> HostRepository[]`
+  (`CodeHost::repositories`), `git_clone_directory_name({ url })`, `git_clone_home({
+  connectionId? })`, `git_clone_test({ url, accountId?, connectionId? }) -> { sha, name }[]`
+  (`git ls-remote --heads`), `git_clone({ url, directory, accountId?, connectionId? }) -> { path
+  }` with `git://clone-progress` `{ phase, percent, fraction, text }` and `git_clone_cancel()`.
+  Clones run through a `Backend` (`LocalBackend` at home, the project's backend or a
+  `RemoteBackend` of a browsing connection, `remote::clone_target`) with
+  `process_io::run_progress_lines` (lines also end at `\r`); HTTPS tokens of the matching
+  account (`ForgeService::credential_for_url`) reach git only through `-c credential.helper=`
+  plus an inline helper reading `FORGE_GIT_USERNAME` / `FORGE_GIT_PASSWORD`.
+  `remote_project_connection() -> string | null`. Worktrees: `git_worktrees() -> Worktree[]`,
+  `git_worktree_add({ options: { path, branch?, newBranch?, base?, detach? } })`,
+  `git_worktree_remove({ path, force })`, `git_worktree_prune()`, `git_worktree_lock({ path,
+  reason? })`, `git_worktree_unlock({ path })`; `BranchInfo.worktree` comes from
+  `%(worktreepath)`. `git_message_history() -> string[]` (Forge's history in `<data
+  dir>/forge/projects/<project>/commit-messages.json`, recorded after `git_commit` /
+  `git_commit_files`, plus `git log --author=<git var GIT_AUTHOR_IDENT email>`).
+  `git_signing_info() -> { config, gpgKeys, gpgError?, sshKeys, remote }`; commits read
+  `vcs.git.commit.gpgSign` / `vcs.git.commit.signingKey` (`SigningKey::from_setting`) into
+  `CommitOptions.signing` (`-c gpg.format=… -c user.signingkey=… commit -S`). `Commit.signature`
+  (`%G?`) and `CommitDetails.{signature, signer, signingKey}` (`%G? %GS %GK`). Settings with
+  `hidden = true` have no row; `registerObjectSettingEditor` can replace any row. The commit
+  message textarea opts into tool window shortcuts with `data-focus-context="toolwindow-input"`
+  (`FocusContext::ToolwindowInput`). Browser mode: `mock/gitExtrasMock.ts`.
+- Git Log actions (`forge_vcs::rebase`, `repo/rewrite.rs`, `commands/git_log.rs`, UI
+  `features/git/logActions.ts`, `logIndex.ts`, `LogDialogs.tsx`, `rebaseModel.ts`); commit lists
+  are in log order (newest first): `git_log_actions({ shas }) -> { cherryPick, revert,
+  undoCommit, editMessage, fixup, squashInto, squashCommits, dropCommits, interactiveRebase:
+  { enabled, reason?, warning? } }` (protected branches from `vcs.git.protectedBranches`),
+  `git_cherry_pick({ shas })` (`-x` per `vcs.git.cherryPickSuffix`), `git_revert_commits({ shas
+  })`, `git_undo_commit({ sha }) -> { message }`, `git_reword({ sha, message })`,
+  `git_squash_commits({ shas, message })`, `git_drop_commits({ shas })`,
+  `git_interactive_rebase({ sha, entries: { sha, action: "pick" | "edit" | "reword" | "squash" |
+  "fixup" | "drop", message? }[] /* oldest first */ })` -> `{ output, oldHead, newHead?,
+  stopped }`, `git_undo_rewrite({ oldHead, newHead })`, `git_rebase_plan({ sha }) -> { base?,
+  branch?, commits: { sha, subject, message, author, time }[], entries }` (autosquash applied),
+  `git_commits_patch({ shas }) -> string`, `git_tree_files({ rev }) -> string[]`. Rewrites run
+  `git rebase -i --autostash` with `-c sequence.editor="git cat-file blob <todo> >"` and `exec`
+  amend steps reading message blobs, so no editor opens and remote projects work; stops
+  (conflicts, `edit`) hand over to `git_operation_action` and the conflict resolver. Browser
+  mode: `mock/gitLogMock.ts` (states, autosquash and the todo via WebAssembly:
+  `vcs_log_action_states`, `vcs_rebase_autosquash`, `vcs_rebase_todo`).
 - Merge conflicts (`forge_vcs::merge`, `Repo::conflicts`, `features/git/conflicts.ts`):
   `git_conflicts() -> { operation: "merge" | "rebase" | "cherryPick" | "revert" | "unstash",
   description, yoursName, theirsName, yoursTitle, theirsTitle, reversed, files: { path, yours,
@@ -275,6 +418,39 @@ app/ui/            SolidJS UI
   `ai_models({ providerId })`, `ai_set_default({ providerId, model?, feature? })`. Config lives in
   `<config dir>/forge/ai.toml`; API keys in the OS keychain (service `forge-ai`) with
   `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` as fallback. Backend: `crates/forge-ai`.
+- AI in the editor (`forge-ai-editor`, `commands/ai_editor.rs`, UI `features/ai-editor`):
+  `ai_inline_complete({ request: { path, language?, text, offset (UTF-16), related?: { path, text }[] },
+  requestId, temperature? }) -> { text: string | null, reason? }` (ghost text; `reason` is
+  `disabled`, `cancelled` or a policy message, not an error; the context, prompt and clean-up
+  are in Rust, the provider is the `completion` feature's, fill-in-the-middle via
+  `Provider::fim` when `ai.completion.mode` allows), `ai_inline_cancel({ requestId })`,
+  `ai_editor_status({ path?, language? }) -> { projectEnabled, completionEnabled, completion?,
+  completionProblem?, actions?, actionsProblem?, language?, file?, fileActions? }` (providers as
+  `{ id, name, model?, local, fim }`, verdicts as `{ status: "allowed" | "projectDisabled" |
+  "languageDisabled" | "ignored", message? }`), `ai_action({ request: { kind: "fix" | "docs" |
+  "tests", path, language?, text, from, to, problems?: { message, line, endLine?, source? }[] } })
+  -> Proposal` (`{ kind, title, path, original, proposed, edit?: { from, to, text }, newFile,
+  diff: EditDiff }`; nothing is written) and `ai_explain({ request, streamId }) -> { title, prompt,
+  provider, model?, startLine, endLine }` (streams `ai://stream/<streamId>` like `ai_stream`;
+  the UI adds the answer to the AI Chat with `startProviderTurn`). Every command checks the
+  policy first: an enabled provider, `ai.enabled` (project), `.aiignore` / `.aiexclude` in the
+  project root, and for inline completion `ai.completion.enabled` and
+  `ai.completion.disabledLanguages`. Context actions can opt out of lighting the bulb with
+  `registerContextActionProvider(provider, { bulb: false })`; other features add Generate
+  (`Alt+Insert`) entries with `registerGenerateItems` (`editor/generateItems.ts`).
+- Agent Tasks (`forge-agent-tasks`, `commands/agent_tasks.rs`, UI `features/agent-tasks`):
+  `agent_tasks_list() -> AgentTask[]`, `agent_task_create({ request: { prompt, scope, backend:
+  { kind: "builtin", provider?, model? } | { kind: "cli", agentId, model? }, tests: { kind: "none" }
+  | { kind: "configuration", name } | { kind: "command", command }, maxSteps? } }) -> AgentTask`,
+  `agent_task_cancel({ id })`, `agent_task_approve({ id, step, allow })` (the index of a pending
+  `approval` step), `agent_task_changes({ id }) -> { path, kind, additions, deletions, binary }[]`,
+  `agent_task_file_diff({ id, path }) -> { before?, after? }`, `agent_task_apply({ id, mode: { mode:
+  "apply" } | { mode: "commit", message } | { mode: "branch", branch, message }, paths? }) ->
+  { applied, files, conflicts, message?, created? }`, `agent_task_discard({ id })`,
+  `agent_task_remove({ id })`; every change emits `agent-tasks://changed` with the whole task
+  (`{ id, title, request, status, steps: { index, at, kind, ... }[], outcome?, ... }`). Tasks run
+  one at a time per project in a git worktree under `<cache dir>/forge/agent-tasks/<project>`;
+  refused in Safe Mode, for remote projects and with `ai.enabled` off.
 - Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`
   (`{ id, name, models, installHint, permissionPrompts, permissionModes: { value, label, short, hint }[],
   supported, installed, path }`),
@@ -326,6 +502,60 @@ app/ui/            SolidJS UI
   in `<data dir>/forge/projects/<name>-<hash of the root>/bookmarks.json`, never in the
   project.
 
+- Local History (`src/ipc/localHistory.ts`, `forge-localhistory`, see the next section):
+  `local_history_list({ path, dir, filter? }) -> LhRevision[]`,
+  `local_history_content({ path, rev }) -> { state, text? }` (`state` `current` means
+  unchanged since the revision), `local_history_folder_changes({ path, rev })`,
+  `local_history_selection({ path, text, start, end })`, `local_history_recent({ limit })`,
+  `local_history_change_files({ from, to })`, `local_history_put_label({ name })`,
+  `local_history_patch({ path, dir, revPath, rev }) -> string`,
+  `local_history_revert({ target: { kind: "file" | "folder" | "change", … }, name })`,
+  `local_history_record({ kind, name, files })`, `local_history_begin({ kind, name }) -> token`,
+  `local_history_end({ token })`, `local_history_snapshot({ paths })`; event
+  `local-history://changed` after new change sets are written.
+
+## Local History (`forge-localhistory`)
+
+PHPStorm's Local History: Forge records the contents of project files and restores them, with
+or without Git, for local and remote projects.
+
+- **Store.** One per project in `<data dir>/forge/projects/<name>-<hash>/local-history/`
+  (never in the project): `changes.jsonl` (change sets: id, time, kind, name, entries with the
+  path's state before and after) and `content/` (zlib-compressed contents, stored once per
+  SHA-256 hash). A revision is the state *before* its change set; labels are change sets
+  without entries. Retention: the last `localHistory.keepDays` working days (days with
+  changes), then `localHistory.maxStorageMb`; run when a project opens and every six hours.
+  `localHistory.maxFileSizeKb`, binary detection and `localHistory.excludedFolders` decide what
+  is recorded.
+- **Recorder** (`app/src-tauri/src/commands/local_history.rs`). `project_opened` starts a
+  thread per project that receives `Msg`s over a channel, reads what it needs through the
+  project's `Backend` (outside the store lock) and batches the writes, so recording never
+  delays saving. Hooks: `fs_write_text` / `fs_write_file` (Saved; local projects read the old
+  bytes first, remote ones use the last recorded state), `fs_read_text` (baseline: the
+  content Forge saw, which also detects changes made while Forge was closed),
+  `fs_create_file` / `fs_create_dir`, `fs_delete` (contents read before deleting, folders
+  included), `fs_rename` (Rename / Move with `from`), `fs_copy`, `code_apply_edit`,
+  `replace_in_files`, `ssr_replace`, `templates_create`, `code_create_test` and the file
+  watcher (External change: a content that differs from the last recorded one; Forge's own
+  writes match and are skipped).
+- **Operations.** `local_history_begin(kind, name)` / `local_history_end(token)` bracket an
+  operation; everything recorded meanwhile, and watcher batches up to three seconds after the
+  end, becomes one change set with the operation's name. The UI uses `withLocalHistory`
+  (`src/ipc/localHistory.ts`) for refactorings (`applyWorkspaceEdit`, which also records the
+  open editors' before/after text with `local_history_record`) and VCS operations (Update /
+  Pull, Checkout, Merge, Rebase, Reset, Rollback, Stash, Unstash, Shelve, Unshelve);
+  Rollback, Shelve and Unshelve first call `local_history_snapshot` for the files they touch.
+- **Queries and revert** are computed in Rust (`LocalHistory`); `local_history_revert`
+  applies the plan through the backend and records it as a `Revert` change set.
+- **UI** (`src/features/localHistory`): history tabs (file, folder, selection, a Recent
+  Changes entry) as editor custom tabs reusing the Git history layout and `InlineDiff`; the
+  Recent Changes popup (`RecentChanges`, `Alt+Shift+C`); actions `LocalHistory.ShowHistory`,
+  `LocalHistory.ShowSelectionHistory`, `LocalHistory.PutLabel` in the File / VCS menus and the
+  Project view and editor context menus.
+- **Browser mode** runs the same crate as WebAssembly over an in-memory store
+  (`local_history_call`); `mock/localHistoryMock.ts` wraps the file mocks and records a few
+  days of demo history.
+
 ## Scopes, file colors, Structural Search and Analyze Stack Trace
 
 - **Scopes** (`crates/forge-scopes`, pure): PHPStorm's scope language (`file:`, `src:`,
@@ -342,6 +572,30 @@ app/ui/            SolidJS UI
   `scopes_edit`, `scopes_tree`, `scopes_contains`, `file_colors_resolve`). IPC:
   `scopes_files({ limit? }) -> string[]` (`Backend::list_files`, agent call `ListFiles`) and
   `scopes_test_roots() -> string[]` (`composer.json` `autoload-dev`).
+- **Project structure** (Settings | Directories, Project view "Mark Directory as"):
+  `forge_scopes::structure` computes the excluded paths from the project settings
+  `projectStructure.folders` (`{ path, kind: excluded | resource | testResource | included }`,
+  `included` cancels a default exclusion) and `projectStructure.excludePatterns` (`;`-separated
+  name globs). `node_modules` and tool folders are excluded by default, `vendor` is a library,
+  `.git` is hidden. `forge_core::Excludes` is the shared handle: `Workspace::list_dir` flags
+  `FileEntry.excluded`, every walk (Go to File, Find in Files, TODO, `collect_files`,
+  `list_files`), the watcher (`ProjectWatcher::start_with_excludes`), the search index
+  (`SearchService::with_excludes`) and the PHP index (`IndexConfig::structure`) skip excluded
+  paths. `Backend::set_structure(config) -> bool` (agent call `SetStructure`, protocol 11)
+  sets them; the app calls it when a project opens and when the settings change
+  (`commands/project_structure.rs`), and emits `project-structure://changed` when they changed
+  (the UI re-reads the tree and reindexes PHP; the search index refreshes itself).
+  `php_inspect` and local history skip excluded files too.
+- **Project view rows**: `project_tree_list({ path, options: ViewOptions }) -> TreeRow[]`
+  (`forge_scopes::view::arrange` over `Backend::list_dir`): `TreeRow { name, path, kind,
+  ignored?, excluded?, compacted?: string[], nested?: TreeRow[] }`, `ViewOptions {
+  showExcluded, foldersOnTop, sortByType, compactMiddlePackages, fileNesting, nestingRules }`
+  (app settings `projectView.*`). Show Members is UI-only and reuses the Structure view
+  providers (`loadFileStructure`, `caretNodeId`). The UI calls `project_structure_state`,
+  `project_structure_mark`, `project_structure_describe` and `project_view_nesting_defaults`
+  through WebAssembly in both modes; browser mode answers `project_tree_list` with
+  `project_view_arrange` and flags excluded demo files with `project_structure_excluded`
+  (`mock/projectStructureMock.ts`).
 - **File colors**: `fileColors.enabled`, `useInEditorTabs`, `useInProjectView`,
   `fileColors.local` (default Non-Project Files: Yellow, Tests: Green) and
   `fileColors.shared`; `forge_scopes::colors::resolve` picks the first row whose scope
@@ -368,6 +622,59 @@ app/ui/            SolidJS UI
   the backend's root, and checks candidates with `Backend::list_dir` (cached per folder); the
   UI opens the lines in a Run tool window tab without a process (`openOutputTab`, Rerun
   reopens the dialog). Browser mode runs the analyzer as WebAssembly over the demo files.
+
+## Inspections (`forge-inspections`)
+
+- **Registry** (`crates/forge-inspections`, pure): `InspectionSpec` (`[[contributions.inspections]]`:
+  `id`, `name`, `group` path, `language`, `severity`, `enabled`, `description`, `options`,
+  `cleanup`, `external`, `batch`) and `ToolMapping` (`[[contributions.inspectionMappings]]`:
+  `source`, optional `code` or `prefix*`, `inspection`), re-exported by `forge-plugin-api`;
+  `PluginRegistry::inspection_registry()` adds the framework's own `DuplicatedCode`.
+  `Registry::inspection_for(source, code)`: a code that is an inspection id wins, else the most
+  specific mapping of the diagnostics source (the editor filter then tries the diagnostic's
+  own `source`, so `php-quality-tools` problems map per tool: `PHPStan` → `PhpStanGlobal`).
+- **Profiles**: `Profile { name, level: ide | project, tools: { <id>: { enabled?, severity?,
+  scopes: [{ scope, enabled, severity? }], options } } }` storing only differences from the
+  defaults; `ProfilesState { profiles, selected, hasProject, severities }`; `ProfileOp`
+  (`copy`, `rename`, `delete`, `reset`, `select`, `add`, `edit` with a `ToolOp`,
+  `setSeverities`). Stored in the user settings (`inspections.profiles`,
+  `inspections.severities`), `.forge/inspectionProfiles/<Name>.xml` (PHPStorm XML; others listed
+  in `inspections.projectProfiles`) and `inspections.profile` (selection).
+  `ResolvedProfile::effective(id, path)`: the first scope containing the file wins.
+- **Editor problems**: `publishDiagnostics(path, diags, source)` (`features/lsp/store.ts`) runs
+  every source's diagnostics through `setDiagnosticsFilter`; `features/inspections/model.ts`
+  installs the WebAssembly filter `inspections_apply({ path, source, text?, diagnostics })`
+  (configured with `inspections_configure({ registry, profile, severities, scopes, context })`),
+  which drops disabled and suppressed problems and sets `severity`, `inspection`,
+  `inspectionName`, `severityName`.
+- **Suppressions** (`forge_inspections::suppress`): `/** @noinspection Id */`, `// noinspection`,
+  `# noinspection` and other line comments; statement, function, class, file and line regions
+  from a parser-free statement finder (`stmts`); `inspections_suppress_actions({ path, text,
+  line, character, id, bytes? })` gives the Alt+Enter actions' text changes.
+- **IPC**: `inspections_registry() -> { registry, severities }`, `inspections_profiles() ->
+  ProfilesState`, `inspections_save({ profiles }) -> ProfilesState` (emits
+  `inspections://changed`), `inspections_export_profile({ profile, format: xml | json, path? })`,
+  `inspections_import_profile({ text? | path? }) -> Profile`, `inspections_run({ request:
+  { runId, scope: InspectScope, profile?, only? } }) -> Report` with `inspections://progress
+  { runId, done, total, text }` and `inspections_cancel({ runId })`,
+  `inspections_cleanup_plan({ request }) -> CleanupPlan`, `inspections_cleanup_apply({ files:
+  [{ path, stamp, after }] }) -> { written, skipped }`, `inspections_apply_fix({ path, stamp,
+  fix })`, `inspections_export_report({ report, format: html | xml | json, path? })`.
+  `InspectScope { kind: project | module | directory | file | files | scope, path?, paths?,
+  filter?: ScopeFilter, includeTests?, label }`. Runs read files through `Backend` (remote
+  projects too) and run `forge_inspections::run` with the PHP provider (the backend's
+  `php().inspect`: index inspections and `phpforge_lang_php::dataflow`) and duplicated code;
+  `ReportProblem` offsets are bytes, `stamp` (53-bit FNV of the file) guards fixes.
+- **Providers**: `InspectionProvider` (`inspect_file`, `inspect_project`) and `ProblemSource`
+  (an external tool's `ExternalProblem { source, code?, path, line, column, … }` mapped through
+  the registry) are the plug-in points for further checks and quality tools.
+- **Command-line inspector**: `forge inspect <project> <profile.xml|name> <out> [-format
+  xml|json|html] [-d dir] [-fail-on level] [-v0|1|2]` (`app/src-tauri/src/cli.rs`, handled in
+  `main.rs` before the window starts) writes PHPStorm-style XML per inspection,
+  `inspections.json` or `index.html`.
+- UI: `features/inspections` (Settings | Editor | Inspections, Inspect Code / Code Cleanup /
+  Run Inspection by Name dialogs, the Inspection Results tool window, Alt+Enter options);
+  browser mode runs the same Rust through `forge-wasm` (`mock/inspectionsMock.ts`).
 
 ## Workbench: editor groups, Find, TODO and Notifications
 
@@ -455,6 +762,57 @@ app/ui/            SolidJS UI
   in-page (`DialogHost`) inside the same `WindowFrame`. Small popups stay in-page everywhere.
   Window labels `dialog-*` are listed in `capabilities/default.json`.
 
+- **Windows that are not modal.** `registerDialog({ …, modal: false, browserPopup? })` makes a
+  dialog definition for windows that do not block their owner: an editor tab in its own
+  window (`editor`) and a tool window in View Mode › Window (`toolwindow`,
+  `src/features/windows/detachedWindows.tsx`). Several can be open: their ids are
+  `<definition>--<key>` (`instanceId("editor", key)`), resolved by `dialogDef`.
+  `dialog_window_open` builds them without `.parent()`, with a taskbar entry and without
+  disabling the owner; they close when the owner's main window is destroyed.
+  `closeOwnedDialog(id)` closes one from the owner. In browser mode they render in-page
+  without a backdrop (`.wf-modeless`) or, with `browserPopup`, as a browser popup that posts
+  its result back to the opener. A tool window in its own window forwards the files it opens
+  (`setOpenFileForwarder`) to the owner as `{ type: "openFile", path }` messages.
+- **Full screen and zoom.** `window_set_fullscreen({ on })`, `window_is_fullscreen() -> bool`
+  and `window_set_zoom({ factor })` (webview zoom, 0.5–3) act on the calling window. The UI
+  keeps the View | Appearance modes in `src/state/appearanceModes.ts` (Presentation,
+  Distraction-Free, Zen: remember `layout.active` and the full screen state, restore both on
+  exit) and shows them as `data-appearance-mode` / `data-full-screen` on `<html>`. Zoom IDE
+  is the setting `appearance.zoom` (percent), applied by every window. Browser mocks use the
+  Fullscreen API and CSS `zoom` (with `--ide-zoom` for viewport-height layouts).
+- **Several project windows.** Each project window is its own Forge process with its own
+  `AppState` (`commands/project_windows.rs`). `project_window_open({ path })` starts
+  `current_exe` (or `$APPIMAGE`) with the folder and `FORGE_NEW_WINDOW=1`, which skips the
+  single-instance plugin, the splash, the update check, `forge://` registration and the
+  Browser Companion server; a window that already shows the folder is focused instead.
+  Instances register in `<cache dir>/forge/project-windows.json`
+  (`forge_window::ProjectWindows`) and answer `forge-window <token> info|focus` lines on a
+  `127.0.0.1` control port (`forge_window::parse_control_line`); entries that do not answer
+  are pruned. `project_windows_list() -> ProjectWindowInfo[]` (`{ id, name, root, current }`),
+  `project_window_focus({ id })` and `project_window_cycle({ delta }) -> ProjectWindowInfo |
+  null` back Window | Next / Previous Project Window and the window list. The UI asks "New
+  Window / This Window" through `openProject` (`src/features/windows/projectWindows.ts`,
+  installed with `setProjectOpener`), remembered in `system.openProjectIn`.
+
+## Tool window view modes and layouts
+
+- `forge_core::project_state::ToolWindowPlacement` has `mode` (`ViewMode`: `dockPinned`
+  (default, not written), `dockUnpinned`, `undock`, `float`, `window`) and `floating`
+  (`FloatingBounds { x, y, width, height }`, clamped by `sanitize`). The UI's
+  `state/toolWindowLayout.ts` (`setViewMode`, `isDockedMode`, `hidesOnFocusLoss`,
+  `clampFloating`) and `state/layout.ts` (`viewModeOf`, `dockedIn`, `undockedWindows`)
+  apply them: only docked windows take room in their area (`openInArea`), Undock and Float
+  render in `shell/UndockedToolWindows.tsx` over `.workbench-center`, Window opens a
+  `toolwindow` dialog window. Dock Unpinned and Undock windows hide on a pointer or focus
+  change outside them (`features/windows/appearance.ts`).
+- Named layouts (Window | Layouts) are `NamedLayout { name, layout }` in the user setting
+  `workbench.layouts` (`objects`, each `{ name, layout: <JSON text> }`, only the tool window
+  part). IPC: `layouts_list() -> NamedLayout[]`, `layouts_save({ name, layout, replace }) ->
+  NamedLayout` (names trimmed, compared without case, at most 64 characters and 50 layouts)
+  and `layouts_delete({ name }) -> bool`. The main menu fills the `layouts` and
+  `layoutsDelete` dynamic lists; `MainMenuRequest.labels` lets the UI rename an action by state
+  ("Exit Presentation Mode").
+
 ## Project backends and remote development (`forge-backend`, `forge-remote`, `forge-remote-agent`)
 
 - Every project command goes through the open project's `forge_backend::Backend`
@@ -462,8 +820,9 @@ app/ui/            SolidJS UI
   `forge_vcs::GitExec`; `Backend::repo()` = `Repo::open_with`), `detect_project`, `watch`,
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
   `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
-  Intelephense / phpactor lookup, `forge_backend::PhpBackend`), `read_optional` (a file or
-  `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine analysis,
+  PHP language server config: the built-in php-lsp;
+  `forge_backend::PhpBackend`), `read_optional` (a file or
+  `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine / WordPress / CMS analysis,
   see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
   (agent CLIs and tools on the project's machine) and `tunnels()` (SSH port forwarding,
   `None` for local projects). Methods block; commands call them on blocking threads
@@ -472,13 +831,16 @@ app/ui/            SolidJS UI
   `RemoteBackend` serves a folder on another machine through the **Forge agent**
   (`crates/forge-remote-agent`): a headless `LocalBackend` behind the agent protocol on
   stdin/stdout. Git output is parsed locally (`forge-vcs` only runs `git` remotely), language
-  servers run on the host with their stdio proxied over a byte channel (Intelephense indexes
-  the remote files itself; its config is resolved on the host), the PHP index, file watcher,
+  servers run on the host with their stdio proxied over a byte channel (the PHP server indexes
+  the remote files itself; its config is resolved on the host, where the agent runs its own
+  built-in php-lsp as `forge-remote-agent --php-lsp --stdio`), the PHP index, file watcher,
   terminals and processes live in the agent.
 - Remote projects have the features of local ones; whatever reads many project files runs
   next to them:
   - **Frameworks** (`forge_backend::frameworks`): `LocalFrameworks` scans and caches Laravel
-    (fingerprint recheck every 2 s), Symfony and Doctrine (10 s, keyed by their settings)
+    (fingerprint recheck every 2 s), Symfony and Doctrine (10 s, keyed by their settings),
+    WordPress and the CMS basics (10 s; `FrameworkCall::WordPress` / `::Cms` carry the crates'
+    own `api::Query` and reply with its JSON answer)
     where the files are: in the app for local projects, in the agent for remote ones
     (`Call::Framework`). Editor requests carry the buffer, so completion, Go to Declaration,
     gutter marks and DQL highlighting cost one round trip; `framework_call::<T>` decodes the
@@ -493,8 +855,7 @@ app/ui/            SolidJS UI
     npm packages with integrity checks into the host's Forge directories) is
     `Call::LangServerInstall { channel, request }` in the agent, whose steps, output and
     download progress stream back as `Event::Install { channel, event }`; closing the channel
-    cancels it. `Call::LangServerUpdates` checks the host's installed packages. The Intelephense
-    licence is still accepted in the UI before the call.
+    cancels it. `Call::LangServerUpdates` checks the host's installed packages.
   - **WebForge** (`forge_backend::web`): `LocalWeb` loads and caches (5 s) the project's script,
     template and manifest files next to them and answers `Call::Web(WebCall)`: npm packages
     with scripts and package manager detection, React / Vue / Angular components, Go to
@@ -605,6 +966,50 @@ app/ui/            SolidJS UI
   opens `deploy@shop.example.com:/var/www/shop` (the demo project), `?welcome=remote` shows
   Welcome > Remote Development.
 
+## Dev Containers and WSL (`forge-devenv`)
+
+- A project in a dev container or a WSL distribution is a `RemoteBackend` like an SSH project;
+  only the transport differs: the Forge agent runs over the stdio of `docker exec -i` /
+  `wsl.exe -d <distro> --exec` (`forge_devenv::agent::start_agent` with an `AgentTarget`;
+  probe, `cat` upload and start commands and the ready marker are `forge_remote::deploy` /
+  `forge_remote::agent::read_until_ready`, so the protocol is unchanged).
+  `forge_devenv::connection::StdioConnection` is the backend's `Connection` (no tunnels);
+  it restarts the agent with backoff when the process ends and runs the reattach hooks.
+  `RemoteHost.kind` is `RemoteKind::DevContainer { container, source, config }` or
+  `RemoteKind::Wsl { distro }` (`host` = the container's name / the distribution, `port` 0);
+  labels are `Dev Container: <name>` / `WSL: <distro>`, roots
+  `<name> [Dev Container]:/workspaces/x` / `\\wsl.localhost\<distro>\…`. Trust keys: the
+  container's local source folder (`forge_trust::local_key`), the WSL folder's normalized UNC
+  path (`commands::devenv::trust_key`).
+- Pure modules (also in `forge-wasm`): `devcontainer` (JSONC `devcontainer.json`, locations,
+  `resolve` with variables and defaults), `docker` (build / pull / run / compose / exec command
+  lines, the compose override file in the user cache dir, labels `forge.devcontainer.*` and
+  `devcontainer.local_folder` / `devcontainer.config_file`, the `docker ps` list), `wsl`
+  (UTF-16 `wsl.exe -l -v`, command lines, Windows ↔ Linux paths). `runner::Runner` hides the
+  processes so tests use fakes; `up::up` builds or starts a container and reports `LogLine`s.
+- **Trust:** `devcontainer_up` and `devcontainer_action` (`start`) refuse untrusted source
+  folders with `forge_trust::refusal` (the image build and the lifecycle commands run the
+  project's code); the UI asks "Trust and Open Project?" (`trustBeforeOpen`) first.
+- IPC (`src/ipc/devenv.ts`): `devcontainer_configs({ folder? }) -> { path, rel, config?,
+  source?, error? }[]`, `devcontainer_gutter({ path, content }) -> number | null`,
+  `devcontainer_list() -> { available, error?, containers: DevContainerInstance[] }`,
+  `devcontainer_up({ folder, configPath, rebuild? }) -> { containerId, created }` (log on
+  `devcontainer://log`: `{ kind: "step" | "command" | "warning", text } | { kind: "output",
+  stream, text }`), `devcontainer_cancel()`, `devcontainer_action({ containerId, action:
+  "start" | "stop" | "remove" })`, `devcontainer_open({ containerId }) -> WorkspaceInfo`,
+  `wsl_distributions() -> { available, error?, distros: { name, state, version, default }[] }`
+  (always unavailable off Windows), `wsl_map_path({ path }) -> { distro?, path } | null`,
+  `wsl_windows_path({ distro, path })`, `wsl_connect({ distro }) -> { connectionId, label,
+  home }`, `wsl_browse({ connectionId, path })`, `wsl_open_project({ connectionId, distro,
+  path }) -> WorkspaceInfo`, `wsl_disconnect({ connectionId })`. `remote_status` /
+  `remote_reconnect` and `remote://status` also cover these projects; `WorkspaceInfo.remote.kind`
+  carries the `RemoteKind`.
+- UI (`src/features/devenv`): Welcome > Remote Development > Dev Containers / WSL
+  (`?welcome=devcontainers|wsl`), the "Create Dev Container and Mount Sources" dialog with the
+  build log, the `devcontainer.json` line marker, `registerPathHandler` (`\\wsl$` folders open
+  in WSL), `setRecentDevEnvOpener` (recent projects) and `registerShellProfiles` (Terminal ›
+  WSL). `devcontainer.json` is JSON with comments in the editor.
+
 ## Opening files from outside (`forge-open`, Browser Companion)
 
 - Entry points: the browser extension (`browser-extension/`) via the local HTTP API, `forge://`
@@ -634,7 +1039,10 @@ app/ui/            SolidJS UI
 - Detection reads markers in the project root and one level below (`composer.json`/`composer.lock`,
   `artisan`, `bin/console`, `wp-config.php`, `package.json`/lock files/`node_modules`, `angular.json`,
   `tsconfig.json`, `*.lua`, `.luarc.json`, `*.rockspec`, `conf.lua`, `init.lua`, `Cargo.toml`, `go.mod`,
-  `pyproject.toml`, `Dockerfile`/`compose.yaml`, `.git`).
+  `*.py`, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile`, `environment.yml`,
+  `uv.lock`, `poetry.lock`, `pom.xml`, `build.gradle(.kts)`/`settings.gradle(.kts)`,
+  `*.java` / `src/main/java`, `CMakeLists.txt`, `compile_commands.json` (also in `build/`), `meson.build`,
+  a `Makefile` next to C/C++ sources, `*.c`/`*.cpp`/`*.h`, `Dockerfile`/`compose.yaml`, `.git`).
 - `project_detect() -> ProjectInfo { languages, frameworks: { id, name, version?, language, dir? }[],
   packs, tools, primary? }`; `workspace_open` also emits `project://detected` `{ root, info }`, and
   `workspace_recent` returns each project's `primary` for the Welcome screen badge.
@@ -685,22 +1093,256 @@ app/ui/            SolidJS UI
   terminal line.
   `run_stop({ runId })` (SIGTERM to the process group, SIGKILL after 2 s; `taskkill /T` on
   Windows), `run_write({ runId, data })` (stdin), `run_dispose({ runId })`,
-  `run_command_line({ request })` (preview).
-- Configuration types: the backend's `KindRegistry` builds command lines for `php-script`,
+  `run_command_line({ request })` (preview). `RunRequest.outputFilters` adds External Tools
+  output filters to the console's links.
+- Configuration types: the backend's `KindRegistry` builds command lines for `php-script`, `php-builtin-server`,
   `phpunit` (always `--teamcity`), `artisan`, `composer`, `shell` and `npm` (npm, pnpm, yarn or
   bun; `--` before script arguments only for npm); the PHP interpreter
-  defaults to the setting `php.interpreter`. A manifest `runConfigurationTypes` entry can declare
+  defaults to the setting `php.interpreter`. `run_start` / `run_command_line` then wrap PHP
+  kinds (and Composer kinds that name an interpreter) with the resolved CLI interpreter
+  (see "PHP CLI interpreters"); `RunOutputOptions.pathMappings` (remote → local) make
+  container paths in the output clickable. A manifest `runConfigurationTypes` entry can declare
   `fields` and a `command` template (`["${interpreter}", "${file}", "${arguments}"]`, see
   `lua-script`) and works without code; `interpreterSetting` names the setting with the project's
   default interpreter (`lua.interpreter`). In the UI, `registerRunConfigurationType({ id, name, icon,
-  fields, interpreter?, argumentsLabel?, testRunner?, buildCommand? })` adds the form to the
-  Run/Debug Configurations dialog; `buildCommand` builds the command in the UI instead.
+  fields, interpreter?, argumentsLabel?, testRunner?, buildCommand?, start?, afterStart? })` adds
+  the form to the Run/Debug Configurations dialog; `buildCommand` builds the command in the UI
+  instead, `start` starts runs through another command that streams `run://` events (HTTP
+  requests, PHP Web Page) and `afterStart(cfg, handle, debug)` runs once a run started (the
+  built-in web server opens the browser). `enum` field `options` may be a function (servers).
+- Launch plans, Run Anything and External Tools (`crates/forge-runtools`, pure, also in
+  `forge-wasm`; IPC in `commands/runtools.rs`): `run_launch_plan({ configurations, target })
+  -> { runs: { configuration, tasks }[], compound, allowMultipleInstances }` expands compound
+  configurations (type `compound`, members in `options.configurations`, one per line;
+  `options.allowMultipleInstances`) and flattens "Before launch" tasks (`runConfiguration`,
+  `externalTool` (`Group/Name`), `browser`, `npm`, `composer`, `artisan`, `shell`) in order;
+  missing configurations and cycles are errors. The UI (`features/run/runStore.ts`) runs the
+  tasks one after another, aborts on the first failure and starts each member in its own tab;
+  kinds it does not run itself come from `registerBeforeLaunchHandler`. Run Anything:
+  `run_anything_suggest({ request: { query, recent, configurations, providers, laravel } }) ->
+  { groups: { id, title, items: { label, detail?, icon, typeId?, matches, action }[], more }[],
+  help }` (the backend adds npm and Composer scripts and PHP files; `action` is `configuration`,
+  `command` or `insert`), `run_anything_resolve({ command, cwd? }) -> RunConfiguration` (a
+  temporary configuration of the matching type), `run_anything_history()` /
+  `run_anything_history_add({ entry })` (state dir, `forge_core::project_state::load_list`).
+  External Tools live in the user setting `tools.externalTools` (`objects`):
+  `external_tool_macros({ context }) -> { name, description, preview? }[]`,
+  `external_tool_command({ tool, context }) -> { program, args, cwd, outputFilters,
+  commandLine, missing? }` (context: project-relative `filePath`, caret, selection, clipboard,
+  `$Prompt$` answers) and `external_tool_validate({ tool, others }) -> string[]`. A run's
+  `RunRequest.outputFilters` (`$FILE_PATH$:$LINE$`, `forge_output::filters`) link file
+  references in the console.
 - Debugging: Debug (Shift+F9) calls the first `registerDebugLauncher({ id, canDebug(cfg, type),
   launch(cfg, ctx) })` that accepts the configuration; `ctx.run({ env, interpreterArgs })` starts it
   in the Run tool window (e.g. with `XDEBUG_SESSION` and `-dxdebug.mode=debug`) and returns
   `{ started, exited }`.
-- Test runners: the backend turns TeamCity service messages into the test tree (`forge-output`);
-  PHPUnit test classes and methods get gutter run icons that create temporary configurations.
+- Test runners: the backend turns test tool output into the test tree (`forge-output`; see
+  "Shared test runner, coverage and run targets" for every format: TeamCity, JUnit, TAP, Go,
+  libtest, pytest, Jest / Vitest; `RunOutputOptions.testReport`, `jUnitStdout` / `jestJson`
+  parsed at the exit, `jUnitFile` files handed in as `RunInput::Report { xml }` before the
+  exit, `junitFlavor` for locations). PHP test frameworks (`packs/phpforge/test-frameworks`, also in
+  `forge-wasm`; IPC in `commands/test_frameworks.rs`): the `pest`, `codeception`, `behat` and
+  `phpspec` types are built there (not by the `KindRegistry`) with the entry of the setting
+  `php.testFrameworks` for the run's interpreter (`phpunit` configurations get its executable,
+  configuration and bootstrap files); Codeception and Behat reports go to the system temp dir
+  (local project and interpreter) or `.forge/test-reports/<run>` and are read and deleted at the
+  exit. `test_frameworks_list() -> FrameworkConfig[]` (configured plus detected),
+  `test_discover({ path, text }) -> { framework?, targets: { line, kind, label, key,
+  configuration }[], file? }` (gutter icons, Run Context Configuration; `key` is `<path>` or
+  `<path>::<test>`, like the UI's result keys of a finished tree),
+  `test_rerun_failed({ configuration, failed: { name, member?, path? }[] }) ->
+  RunConfiguration | null`, `behat_step_definitions({ text, line }) -> { keyword, pattern, path,
+  line, column, method, class? }[]`. Test History: finished runs with tests of a configuration
+  are stored by `run_start` (`forge_process::test_history`, `<data dir>/forge/test-history`, last
+  10 per project); `test_history_list() -> { id, name, type, at, summary, counts }[]`,
+  `test_history_open({ id }) -> { entry, configuration, nodes, summary }`.
+
+## Shared test runner, coverage and run targets (`forge-testing`, `forge-runtargets`)
+
+- **Test events** (`forge-output`): every test tool's output becomes `TestEvent`s
+  (`testevents.rs`: count, suite started / finished, test started / failed {message,
+  details, expected, actual, location} / ignored / output / finished {duration}), which
+  `TestTree::apply_event` turns into the test tree (TeamCity messages go through
+  `TestEvent::from_service_message`). Parsers in `formats/`: streamed lines implement
+  `LineParser` (`line(&str) -> ParsedLine { events, console, attributed }`, `finish()`):
+  TeamCity, TAP (`tap.rs`), Go `test2json` (`gotest.rs`), libtest JSON (`libtest.rs`), pytest
+  report logs (`pytest.rs`); whole documents are read by `document_events` (TRX of
+  `dotnet test`, `trx.rs`; JUnit XML with a
+  `JUnitFlavor` — `generic`, `behat`, `phpSpec`, `pytest` —, Jest / Vitest JSON, JSON lines).
+  `RunOutputOptions.testReport` picks the format (`teamCity`, `jUnitStdout`, `jUnitFile`,
+  `tap`, `goTestJson`, `libtestJson`, `libtestText`, `pytestReportLog`, `jestJson`, `tox`,
+  `minitestText`; RSpec's JSON report is a `jUnitFile` report file sniffed by
+  `document_events`); `locationRules`
+  (`{ pattern, replacement }` regex rewrites) and `defaultTestFile` map reported locations to
+  project files.
+- **Test frameworks** (`forge-testing`): the contribution point is
+  `TestFrameworkProvider` (`id`, `types` (run configuration types), `accepts(path)`,
+  `discover(path, text) -> TestFile`, `rerun_failed(cfg, failed)`, `command(cfg, ctx) ->
+  TestCommand` (optional) and `supports_coverage`) in the `TestFrameworks` registry
+  (`RunState.tests`). The PHP frameworks register as `PhpTestFrameworks` (their commands keep
+  going through the PHP CLI interpreter) and PyForge's as `PythonTestFrameworks` (pytest,
+  unittest, tox through the Python interpreter, see "PyForge"); manifest frameworks (`[[contributions.testFrameworks]]`,
+  `TestFrameworkSpec`, re-exported as `forge_plugin_api::TestFrameworkContribution`) are
+  `SpecProvider`s: detection (globs, dependency files), `testFiles` globs, line-pattern
+  discovery nested by indentation (full names with `nameSeparator`), per-scope arguments
+  (`all`, `directory`, `file`, `test`, `pattern`) with `${file}`, `${test}`, `${testPattern}`,
+  `${pattern}`, `${reportDir}`, `${coverageFile}`, the `report` format, `locationRules`,
+  `rerun` and `coverage`. LuaForge declares busted. `TestCommand { program, args, env,
+  report, flavor, locationRules, defaultFile, coverage, reportDirs }` (`coverage.collect`: raw
+  data a pack's collector turns into the report after the run, CForge's gcov / llvm-cov):
+  `reportDirs` are project
+  folders a build tool writes its JUnit XML into (Gradle, Surefire), emptied before the run and
+  read recursively (`TEST-*.xml`) after it (`test_frameworks::ReportDir::Builds`); a
+  `coverage.locationRules` overrides the command's rules for the report (JaCoCo names main
+  sources). JavaForge registers `JavaTests` for `junit` / `testng` (`JUnitFlavor::Java`;
+  `JUnitFlavor::Kotlin` with `language = kotlin`), KotlinForge `KotlinTests` for `kotest`.
+- IPC (`commands/testing.rs`, `src/ipc/testing.ts`): `test_discover({ path, text }) ->
+  TestFile` and `test_rerun_failed({ configuration, failed }) -> RunConfiguration | null` ask
+  the registry; `test_frameworks_detect() -> string[]` (manifest frameworks the project
+  uses). `run_start` / `run_command_line` build manifest framework configurations through
+  the registry (report files in the temp dir or `.forge/test-reports/<run>` like the PHP
+  ones). The UI turns every manifest framework into a run configuration type
+  (`testFrameworkType`, `features/run/types.ts`) and attaches the test gutter to its
+  `testFiles` (`features/run/frameworkFiles.ts`).
+- **Coverage** (`forge_testing::coverage`): `CoverageReport` (files with `LineHits { line,
+  hits, branches: (covered, total)?, partial }`) from LCOV, Cobertura, Clover, JaCoCo and Go
+  profiles (`parse`, `sniff`, `parse_any`), `resolve` (reported paths → project paths:
+  location rules, the run's path mappings, the working directory), `summary` (the Coverage
+  tool window's rows: project, compacted directories, files with line and branch
+  `Counter`s) and `FileCoverage::marks` (gutter marks: `covered` / `partial` / `uncovered`
+  with a hover text). Run with Coverage: `RunRequest.coverage` → manifest frameworks add
+  their `coverage.args` (`${coverageFile}` in a report folder, or a file the tool writes
+  relative to the working dir), PHPUnit and Pest add `--coverage-clover <dir>/clover.xml`
+  and `XDEBUG_MODE=coverage`; when the run exits the backend reads the report
+  (`testing::record_coverage`) and emits `{ type: "coverage", suite } | { type: "coverage",
+  error }` on `run://<runId>` before `exited`. Suites live in `CoverageState` (session, newest
+  10): `coverage_suites() -> CoverageSuite[]`, `coverage_view({ id? }) -> { suite, nodes } |
+  null`, `coverage_file({ path, id? }) -> LineMark[]`, `coverage_remove({ id })`,
+  `coverage_import({ path }) -> CoverageSuite` (a report of the project). UI:
+  `features/coverage` (tool window, gutter extension, Project view hints through
+  `registerRowDecorator`, actions `Coverage`, `RunCoverage`, `SwitchCoverage` (`Ctrl+Alt+F6`),
+  `HideCoverageInfo`, `ImportCoverage`), `onCoverageSuite` (`features/run`).
+- **Run targets** (`forge-runtargets`): `RunConfiguration.runOn` (`RunTarget { kind: local |
+  dockerImage | composeService | ssh | wsl | devContainer, image, runOptions, dockerContext,
+  composeFiles, service, lifecycle, host, port, user, keyFile, distribution, container,
+  projectPath, mappings, env }`, stored in the run configuration files). `run.rs` builds the
+  command as if local, then `forge_runtargets::wrap(target, Invocation, TargetContext)` turns
+  it into the local command line (`docker run`, `docker compose run|exec`, `ssh`, `wsl.exe`,
+  `docker exec`), with paths in arguments and the working directory mapped; the mappings
+  (`automatic` + the user's) become the run's `pathMappings` for console links, test
+  locations and coverage. A remote PHP CLI interpreter wins over the target. Debugging:
+  `RunRequest.debugPort { port, direction: connectsToIde | ideConnects }` asks the target to
+  reach the debugger (`--add-host=host.docker.internal:host-gateway`, `ssh -R`) or the
+  program (`-p`, `ssh -L`); PHP debug runs get `PHP_IDE_CONFIG=serverName=<target>`, Xdebug's
+  `client_host` and a `forge_debug::ServerConfig` with the target's mappings.
+  `run_target_info({ configuration }) -> DebugTarget { target, ideHost, targetHost, mappings }
+  | null` gives debuggers (DAP launchers: `DebugLaunchContext.target()`) the same data;
+  `RunRequest.runOn` carries the target of UI-built command lines. The PHP interpreters'
+  `wrap` and mappings, and Dev Container projects' `docker exec`, are built on this crate.
+- Safe Mode: tests, coverage runs and runs on targets all start in `run::start_built`, which
+  requires a trusted project.
+
+## Project trust and Safe Mode (`forge-trust`)
+
+- Trusted projects and trusted locations live in `<config dir>/forge/trusted-projects.toml`
+  (`forge_trust::TrustStore`), never in settings (a project's `.forge/settings.toml` must not
+  trust itself) and never in the project. Keys are canonical local paths
+  (`forge_trust::local_key`) or `ssh://user@host:port/path` for remote projects
+  (`remote_key`); a location covers the projects below it on the same machine. Dev container
+  projects use their local source folder's key, WSL projects their `//wsl.localhost/…` path.
+- `AppState::safe_mode` (`forge_trust::SafeMode`) is set by `set_workspace` /
+  `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted.
+  **Every command that starts project programs calls `state.require_trusted("<action>")?`**
+  and fails with `forge_trust::refusal`: `run::start_built` (all runs: configurations, tests,
+  debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),
+  `symfony_console_run`, `cli_tools_run`, `composer_audit`, `php_composer_outdated`,
+  `agent_start`, `debug_listen_start`, `debug_web_page_start`, `save_actions_run_tools`,
+  the `quality_tools_*` commands (validate, check, inspect, fix),
+  `services_compose_up`, `services_dockerfile_run`, `services_action` (`up`), `cmake_reload`, and every Python
+  run (the `python` configuration type, package commands and new environments all start
+  through `run_start`). Degraded instead
+  of refused: `laravel_routes` (static parsing), `cli_tools_commands` (built-in commands),
+  `lua_format`, `python_format`, `cpp_format` and the interpreter probes (`python_interpreter_info`,
+  `python_packages_list`, `python_debugpy_status`; refused only for programs inside the
+  project, such as a project `.venv`, or Docker Compose services; `python_console_start` is
+  refused), `python_interpreters_detect` (asks `poetry` / `pipenv`
+  only outside Safe Mode), `terminal_open` (shell and environment from the user layer only,
+  `Settings::get_without_project_as`). Language servers: `commands::lsp::SafeModeLauncher`
+  wraps the backend's launcher and refuses project-local binaries and
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`. New commands that start project programs must
+  check it too.
+- IPC (`src/ipc/trust.ts`): `trust_check({ path }) -> TrustCheck` (before opening a local
+  folder), `trust_status() -> TrustStatus | null`, `trust_project({ path?, location? })`,
+  `trust_locations()`, `trust_location_add({ path })`, `trust_location_remove({ key })`;
+  `trust://changed` with the status. Leaving Safe Mode resets the LSP manager and re-runs the
+  detection. `project_create` trusts the new project.
+- UI (`src/features/trust`): `openWorkspace` asks through `setTrustPrompt` (`beforeOpen` for
+  local folders; `afterRemoteOpen` for remote ones, whose folder is known only after
+  connecting: Don't Open closes the project and the connection), the Safe Mode banner on top of
+  the editor area and the page `build.trusted-locations`. The browser mock trusts `~/Projects`
+  (the demo projects) and refuses runs in Safe Mode.
+
+## Deployment (`forge-deploy`)
+
+- Servers are project data in `.forge/deployment.toml` (`forge_deploy::DeploymentConfig {
+  default_server, servers }`, read and written through the backend). A `DeployServer` has a
+  `kind` (`sftp | ftp | ftps | local`), the SSH configuration id (SFTP: the saved
+  configurations of remote development, `forge_deploy::connect::ssh_params`), FTP host / port
+  / user / anonymous / passive, `root_path`, `web_url`, `mappings` (`{ local, deployment,
+  web }`, the longest local path wins, none = root to root) and `excluded` (`{ side: local |
+  deployment, path }`). FTP passwords are in the keychain (service `forge-deploy`, account
+  `ftp://user@host:port`); SFTP uses the SSH configuration's `forge-ssh` entry.
+- Deployment | Options are settings (`deployment.*`, project-level): exclude items by name,
+  overwrite up-to-date files, preserve timestamps, delete target items, create empty
+  directories, warn over newer files, compare by, automatic upload (`always | explicit |
+  never`).
+- `forge_deploy::fs::ServerFs` is the file API of every server type (paths relative to the
+  root path); the project side is a `LocalFolder` too, so `transfer::Deployer` uploads and
+  downloads with the same code and reports a `FileResult` per file. SFTP is russh-sftp on a
+  `forge_remote::session::SshSession` (`open_subsystem("sftp")`), FTP/FTPS suppaftp with
+  rustls, local folders `std::fs`. Comparisons reuse `forge_diff::compare_listings`.
+- IPC (`src/ipc/deployment.ts`, `commands/deployment.rs`): `deploy_config() -> { defaultServer,
+  servers: ServerView[], available }`, `deploy_server_save({ server, secret? })`,
+  `deploy_server_delete({ id })`, `deploy_set_default({ id })`, `deploy_validate({ server })`,
+  `deploy_test({ server, secret? }) -> { ok, message, root? }`, `deploy_transfer({ id,
+  serverId?, direction: "upload" | "download", paths, overwriteNewer? }) -> Summary`,
+  `deploy_delete({ id, serverId?, paths })`, `deploy_cancel({ id })`, `deploy_auto_upload({
+  id, paths, explicit }) -> Summary | null`, `deploy_sync_compare({ serverId?, path }) -> {
+  local, remote, compare: DirCompare }`, `deploy_read_remote({ serverId?, path }) -> { text,
+  binary, remote, server }`. `deploy://transfer` carries `{ kind: "started", id, server,
+  operation, paths, automatic } | { kind: "file", id, file } | { kind: "finished", id,
+  summary, error }` for the File Transfer tool window. `serverId` omitted = the default
+  server. Transfers need a project on this machine (`available`).
+- Safe Mode: transfers only copy files and never run project code, so they are allowed;
+  `deploy_auto_upload` does nothing while Safe Mode is on (the project configured the
+  servers itself).
+- UI (`src/features/deployment`): the settings pages `build.deployment` and
+  `build.deployment.options`, the `PublishGroup.*` actions (Tools | Deployment, the Project
+  view's Deployment submenu), the server chooser, the `fileTransfer` tool window, Sync with
+  Deployed as a `DirDiffView` with a `DirDiffSource` (Upload / Download per row) and automatic
+  upload from `onFileSaved` (the listener gets the `SaveTrigger`). Browser mode:
+  `mock/deploymentMock.ts` keeps the demo servers' files in memory and uses
+  `crates/forge-wasm/src/deploy.rs` for validation, mappings and the comparison.
+- Remote Host (`commands/remote_host.rs`, `forge_deploy::{browse, remote_host}`, UI
+  `src/features/remoteHost`): `remote_host_list({ serverId, path }) -> { root, rootNode, nodes:
+  RemoteNode[] }` (`{ path, name, dir, size, modified, local, mappingRoot, excluded }`),
+  `remote_host_create({ serverId, dir, name, folder })`, `remote_host_rename({ serverId,
+  path, newName })`, `remote_host_delete({ serverId, paths })`, `remote_host_edit({ serverId,
+  path }) -> { text, temp, remote }`, `remote_host_save_edit({ serverId, path, text, force? })
+  -> { status: "uploaded" } | { status: "conflict", deleted }`, `remote_host_close_edit`,
+  `remote_host_disconnect({ serverId? })`. Connections stay open between calls
+  (`remote_host::Connections`). Edit Remote File tabs are `remote-host://<server>/<path>`
+  (a `registerFileSystem` provider); the temporary copy lives in `<cache dir>/forge/remote-edit`.
+  Download from Here / Upload to Here / Compare with Local Version call `deploy_transfer` /
+  `deploy_read_remote` with the node's mapped `local` path. Browsing and editing are allowed in
+  Safe Mode. Browser mode: `mock/remoteHostMock.ts` over the deployment mock's in-memory files,
+  with `deploy_remote_nodes` / `deploy_entry_path` from WebAssembly.
+- SSH terminal sessions: `terminal_open({ options: { ssh: { configId? | serverId?, secret?,
+  confirmed? } } })` opens `forge_remote::shell::SshShell` (a `Terminal` on a pseudo terminal
+  of an SSH channel) instead of a shell; write / resize / close are the terminal commands. A
+  `serverId` target in Safe Mode needs `confirmed` (`forge_trust::ssh_session_needs_confirmation`),
+  the UI asks first. UI: `src/features/terminal/ssh.tsx` (the chooser of `RunSshConsole` and the
+  new-tab dropdown's "SSH Session…").
 
 ## Language servers (`forge-lsp`)
 
@@ -731,10 +1373,36 @@ app/ui/            SolidJS UI
 
 - `crates/forge-langservers/catalog.toml` lists languages (extensions, file names, LSP language
   ids) and ~32 servers (TypeScript, Vue, Angular, Svelte, Astro, HTML/CSS/JSON/ESLint, Tailwind,
-  YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, C/C++, Java,
+  YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, Java,
   Kotlin, C#, Ruby, Zig) with command, initialization options, settings, install options and
-  licence. `pack_servers.toml` lists servers that packs start themselves (Intelephense, phpactor)
-  so they show up on the same settings page.
+  licence. `pack_servers.toml` lists servers that packs start themselves (php-lsp, JDT LS,
+  kotlin-lsp, clangd)
+  so they show up on the same settings page (`builtin = true`: built into Forge, the row shows
+  `builtinVersion` instead of an install option).
+
+### Built-in PHP language server (php-lsp)
+
+- php-lsp (<https://github.com/stdimnet/php-lsp>, MIT OR Apache-2.0) is Forge's only PHP server
+  (Intelephense and phpactor support was removed; the old `php.lsp.server` and
+  `php.intelephense.*` settings are ignored). `packs/phpforge/builtin-lsp` depends on
+  it (cargo git dependency pinned to a `rev`) and is linked into `forge` and
+  `forge-remote-agent`. Their `main` calls `phpforge_builtin_lsp::main_hook` first: with
+  `--php-lsp` it runs `php_lsp::run_stdio()` and exits before Tauri / the agent start;
+  otherwise it registers `current_exe() --php-lsp --stdio` with
+  `phpforge_lang_php::lsp::register_builtin_server`. `lsp::server_config` then builds a normal
+  `LspServerConfig` (id `php`), so the server runs in its own process (crash isolation) through
+  forge-lsp, Safe Mode, restarts and the remote byte channel like any other server.
+- `lsp::php_lsp_config` sends Forge's PHP settings as the `intelephense` section (php-lsp reads
+  Intelephense's settings) and a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS
+  runners (Forge's Quality Tools run them) and keeps the built-in formatter; `storagePath` is
+  `<cache dir>/forge/php-lsp` (index cache, unpacked stubs).
+- Overlap with Forge's own PHP features: the index hover only answers where the server has
+  nothing (`setOtherHoverProvider`); `lsp/store.ts` `withoutInspectionTwins` drops a PHP
+  inspection problem (deprecated, unreachable) when the server reports the same range;
+  `code_context_actions` drops server actions that `intentions::is_lsp_twin` of Forge's
+  intentions (getters / setters, method stubs, Import class, Set namespace). Semantic tokens and
+  code lenses of the server are not requested.
+- Problems in php-lsp are reported upstream, never patched in Forge.
 - When a project's LSP manager is created, `commands::langservers::register_enabled` scans the
   project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
   and installed server whose languages occur (and whose `when` markers exist, e.g. an ESLint config).
@@ -753,7 +1421,7 @@ app/ui/            SolidJS UI
      `langservers.download.nodeMirror` (default `https://nodejs.org/dist`, `index.json`),
      checked against the release's `SHASUMS256.txt` and unpacked (`.tar.gz` on Linux/macOS,
      `.zip` on Windows) into a staging directory that is renamed into place (`managed::node`).
-  2. Packages without runtime dependencies (Intelephense) come straight from
+  2. Packages without runtime dependencies come straight from
      `langservers.download.npmRegistry` (`<registry>/<name>/latest` or a pinned version): the
      tarball is checked against `dist.integrity` (sha512), unpacked into
      `<dir>/node_modules/<name>`, `.bin` entries are created (symlink / `.cmd` shim) and the
@@ -762,27 +1430,27 @@ app/ui/            SolidJS UI
      yaml-language-server, ...) run `npm install --prefix <dir> <name>@<version>` with the npm
      next to the Node.js in use (Forge's Node.js ships its own `npm-cli.js`).
   3. Servers in Forge's directory are started as `<node> <package script> <args>`
-     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH. Intelephense
-     (PHP pack) gets the same through `PhpLspSettings::intelephense_node`
-     (`commands::php::for_host`, local projects only).
+     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH.
   4. Updates: `langservers_check_updates({ force }) -> PackageUpdate[] | null` asks the registry
      for newer versions of the recorded packages at most once a day
      (`<dir>/.forge-update-check.json`, setting `langservers.updates.check`);
      `langservers_update({ package })` installs the latest version and restarts the servers.
+  5. Binary wheels from PyPI (ruff, ty): a catalog option `{ tool = "pypi", command = ["pypi",
+     "install", "<name>"] }` (`managed::pypi_package`) downloads the latest release's wheel for
+     the platform (`manylinux` before `musllinux`, `macosx_*_arm64` / `x86_64` / `universal2`,
+     `win_amd64` / `win_arm64`) from `<index>/pypi/<name>/json`, checks it against the
+     `digests.sha256` of that answer, copies `<name>-<version>.data/scripts/<name>` to
+     `<managed dir>/bin` (searched by the detector after `node_modules/.bin`) and records the
+     version in `<managed dir>/pypi-tools.json` (`managed::pypi`).
   Downloads report `langservers://install-progress` `{ id, label, done, total }` (status bar
   `langservers.install`, `src/features/langservers/InstallStatus.tsx`) and their steps as
   `install-output` lines. `ServerRow.install[].managed` marks such options; the settings page
   shows a one-click "Install" for them and keeps "Install…" (dialog) for the others. Other tools
   (brew, pipx, go, cargo, dotnet, ...) run as listed in the catalog. Tests use a local HTTP
   server (`managed::testserver`) with fake tarballs, never the network.
-- Intelephense is never bundled or committed: its licence forbids redistribution. When a local
-  PHP project opens without it, `src/features/langservers/managed.ts` shows a balloon
-  "PHP language server Intelephense is not installed" with Install / Not now / Don't ask again
-  (`php.intelephense.autoInstall`: `ask` | `always` | `never`; decisions in `autoInstall.ts`).
-  The first install asks for the licence (`IntelephenseConsent.tsx`, stored as
-  `php.intelephense.licenceAccepted`); after the install `langservers_install` registers the
-  catalog servers and runs `php::sync_lsp_server`, so Intelephense starts without reopening the
-  project. Browser mode simulates all of it with `?intelephense=missing` (and `?updates=1`).
+- Nothing is bundled or committed: servers are downloaded by each user, with their consent, from
+  the official source. Browser mode simulates a managed install with `?node=missing` (Node.js
+  downloaded first) and the update offer with `?updates=1`.
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
@@ -799,13 +1467,6 @@ app/ui/            SolidJS UI
   `langservers://changed`. Install commands come from the catalog only and run without a shell.
   Managed installs add `langservers://install-progress`, `langservers_check_updates` and
   `langservers_update` (see above).
-- Intelephense licence: `intelephense_licence_status() -> { premium, maskedKey?, error?,
-  purchaseUrl }`, `intelephense_set_licence({ key | null })`. The key lives in the OS keychain
-  (service `forge-lsp`, account `intelephense`); free mode never sends `licenceKey`. A registered
-  `intelephense` config gets the key applied (and restarts) when the manager is created or the key
-  changes; pack code building Intelephense configs can call
-  `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
-  `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
 
 ## Code intelligence: navigation and usages (`forge-codeintel`)
@@ -832,8 +1493,8 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
 - PHP stubs (`forge_langservers::managed::stubs`, app state `commands::library::LibraryState`):
   `php.stubs.path`, else a pinned JetBrains phpstorm-stubs release downloaded on first use into
   `<cache dir>/forge/php-stubs/<version>` (the unpacked files are checked against a pinned
-  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept), else
-  Intelephense's own `lib/stub`. Progress is reported as
+  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept). Progress is
+  reported as
   `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
 - Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
   (a file outside the project a language server pointed to; only paths handed out by a
@@ -870,7 +1531,7 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     dialog's checkboxes for the element at the caret.
   - `code_navigate({ path, line, character, kind: "implementation" | "superMethod" |
     "typeDeclaration", content? }) -> { targets, missing? }` — `missing` explains a server
-    without the feature (Intelephense Premium) when the index found nothing either.
+    without the feature when the index found nothing either.
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
@@ -906,7 +1567,7 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
     sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
     file (a rename to the same name); PHP files fall back to the PHP index when the server
-    cannot rename (`missing`, Intelephense without a licence) or none runs. `$` is not part of
+    cannot rename (`missing`) or none runs. `$` is not part of
     the ranges (`sigil`).
   - `code_rename({ path, line, character, newName, buffers?, renameFile? }) -> { edit, preview,
     conflicts, source, missing?, fileRename?, skipped }` — the server's edit, else the index's
@@ -1028,6 +1689,81 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   applied with `applyWorkspaceEdit`, whose `fileOps` (`move` / `copy` of files and folders)
   run before the edit and are reversed on undo (and when the edit fails). Browser mode
   approximates the refactorings in `mock/moveMock.ts`.
+- Extract Interface / Superclass, Pull Members Up / Push Members Down and Refactor This
+  (`phpforge_lang_php::refactor::{hierarchy, available}`, `commands/refactor_hierarchy.rs`,
+  UI `features/codeintel/hierarchyRefactorings.ts`, `HierarchyDialogs.tsx`, `refactorThis.ts`):
+  `refactor_hierarchy_prepare({ path, position, content, refactoring })` answers the class,
+  its members (`id` like `orders()` / `$count` / `ROLE`, `uses`: the ids each member uses, for
+  the dependency highlighting) and the superclasses / direct subclasses;
+  `refactor_extract_interface`, `refactor_extract_superclass`, `refactor_pull_up` and
+  `refactor_push_down` answer a `RefactorAnswer` whose workspace edit creates the new file
+  (rendered from the user's PHP Class / Interface file templates) together with the edits.
+  `ExtractInterface`, `ExtractSuperclass`, `MembersPullUp` and `MemberPushDown` are registered
+  commands. `code_refactor_this({ path, line, character, endLine, endCharacter, content })`
+  answers `{ actions, lsp }`: the action ids that apply at the caret or selection (Rust decides;
+  `null` for files without an analysis of their own) and the language servers' refactorings;
+  the popup numbers the rows and filters by typing. Browser mode:
+  `mock/refactorHierarchyMock.ts`.
+- Extract Component and the JS/TS refactorings (`webforge_fw_vue::extract`,
+  `webforge_fw_react::extract`, shared pieces in `webforge_lang_web::{scope, extract}`,
+  `commands/extract_component.rs`, UI `features/codeintel/extractComponent.ts`):
+  `refactor_extract_component_prepare({ path, start, end, content })` answers the props and
+  imports of the selected elements, `refactor_extract_component({ ..., name, directory })` a
+  `RefactorAnswer` that creates the component and edits the parent. `WebForge.ExtractComponent`
+  is a keymap action (Refactor | Extract/Introduce | Component…, Refactor This, a link in
+  `Alt+Enter`). The language servers' code actions are worded like PHPStorm
+  (`forge_codeintel::phpstorm_title`, used for `Alt+Enter`) and filtered for Refactor This
+  (`refactor_this_actions`). Browser mode runs the same Rust code through
+  `web_extract_component*` and `codeintel_refactor_this_actions` (`mock/extractComponentMock.ts`).
+
+## PHPStorm metadata, JetBrains attributes, include paths and source roots
+
+Rust computes everything in `packs/phpforge/lang-php` next to the PHP index (so a remote
+project answers from the agent); the UI renders (`app/ui/src/features/php/{meta.ts,
+libraries.tsx, sourceRoots.tsx}`).
+
+- `meta` parses `.phpstorm.meta.php` files (and `.phpstorm.meta.php/` folders) of the project,
+  vendor packages (`vendor/<v>/<p>/…`, read even when vendor is lazy) and include paths into
+  `PhpMeta`; `ProjectIndex::meta()` is the merged view, cached with the index (cache version 2)
+  and updated by `update_file` / `apply_changes`. `navigate::receiver_types` applies
+  `override()` (`map`, `type`, `elementType`) to function and method calls (method targets
+  match the receiver's class chain), infers variables from their last assignment and
+  `$data['key']` from `#[ArrayShape]` (`callsite::subscript_classes`). `definition` goes from a
+  mapped key string to its class.
+- `attributes` reads the JetBrains attributes (parameters keep their attributes in
+  `Param::attributes`). `inspections::inspect` walks the tree-sitter tree, resolves calls and
+  names with `navigate::resolve_word` and reports deprecated, expected values, immutable
+  writes, pure results, unreachable code and the PSR-4 namespace (`ProjectIndex::
+  source_roots`); `fixes_at` feeds the PHP intentions (Alt+Enter). `complete::complete`
+  answers expected arguments / return values and shape keys; `injections::language_places`
+  lists `#[Language]` parameters for `forge-injections` (`InjectionSettings::places`, rule
+  `php-language-attribute`).
+- Include paths and source roots: `project::PhpProjectSettings` (`php.includePaths`,
+  `php.sourceRoots`, `php.composer.json`) reaches the backend through
+  `PhpBackend::configure` before every `php_index_workspace`; include path files are indexed
+  with absolute paths (`ProjectIndex::is_library`), the app maps them to granted
+  `library://file/…` paths (`LibraryState::ui_path`; a remote project's are read through
+  `PhpBackend::library_read`). Source roots are composer.json's PSR-4 rules with the user's
+  changes (`forge_file_templates::psr4::{SourceRootSetting, apply_overrides,
+  describe_roots}`), used by `templates::psr4_roots` (New PHP Class, Move) and the namespace
+  inspection; browser mode runs the same code through `templates_php_namespace` /
+  `php_source_roots` as WebAssembly.
+- Backend calls (`PhpCall`, protocol 10): `Configure`, `Inspect`, `Complete`,
+  `LanguagePlaces`, `Libraries`, `LibraryList`, `LibraryRead`.
+- IPC (`app/ui/src/ipc/phpMeta.ts`, `commands/php_meta.rs`; offsets UTF-16):
+  `php_inspect({ path, content? }) -> { start, end, severity, message, code, deprecated?,
+  unnecessary?, fix?: { title, edits } }[]`, `php_complete({ path, offset, content? }) -> {
+  from, to, items: { label, insert, kind: value | constant | key | class, detail? }[] } |
+  null`, `php_language_places() -> { name, argument, method, language }[]`,
+  `php_libraries() -> { name, path, exists }[]`, `php_library_list({ path }) -> { name, path,
+  dir, open? }[]` (`open`: the `library://file/…` path), `php_source_roots({ overrides? }) ->
+  { path, prefix, kind: source | test | none, origin: composer | user, overridden }[]`.
+- UI: the inspections publish as diagnostics source `php-inspections`; the completion source
+  sits next to the language server's; "External Libraries" is a Project view section
+  (`registerProjectViewSection`), source roots decorate tree rows (`registerRowDecorator`) and
+  add "Mark Directory as" to the Project view menu; Settings | Directories is a top-level page
+  (`GROUP_ORDER` in `forge-plugin-api`). Browser mode: `mock/phpMetaMock.ts` over the demo
+  project and `mock/demoLibraries.ts`.
 
 ## PHP debugger (`forge-debug`)
 
@@ -1044,17 +1780,261 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `debug_property({ sessionId, fullname, depth, context?, page? })`, `debug_eval({ sessionId, expression, depth? })`,
   `debug_set_value`, `debug_breakpoints`, `debug_breakpoint_add|update|remove|toggle`,
   `debug_breakpoints_mute`, `debug_watches|debug_watches_set`, `debug_servers|debug_servers_save`,
-  `debug_launch_env({ serverName? }) -> env`. Files are project relative, lines 1-based.
+  `debug_launch_env({ serverName? }) -> env`, `debug_complete({ sessionId, text, depth? }) ->
+  { label, insert, detail }[]` (console / Evaluate completion: variables after `$`, members after
+  `->`), `debug_page_url({ serverId?, startUrl, debug? }) -> url`,
+  `debug_web_page_start({ runId, serverId?, startUrl, debug }) -> { runId, commandLine, url }`
+  (PHP Web Page: reports on `run://<runId>`, the UI opens `url`), `debug_validate_cli({
+  interpreter? })` and `debug_validate_web({ documentRoot, url })` -> `ValidationReport { checks:
+  { title, value, status: ok|warning|error|info, hint? }[], ok, environment }` (Run | Web Server
+  Debug Validation; the web variant writes `forge_xdebug_validator_*.php` into the project folder
+  through the backend, requests it like the HTTP client and deletes it). Files are project
+  relative, lines 1-based.
+- Breakpoints have PHPStorm's properties: `condition`, `suspend` (false = logpoint),
+  `logMessage`, `logStack`, `logExpression`, `temporary` (remove once hit, DBGp `-r 1`) and
+  `passCount` (DBGp hit condition `>=`). The session acts on a hit in Rust: it logs
+  (`debug://output` with `stream: "log"`), removes temporary breakpoints (`debug://breakpoints`)
+  and resumes logpoints without reporting a pause.
 - Events (tagged `DebugEvent` JSON, `type` = last path segment): `debug://listening`, `debug://session`
   (`SessionInfo` with status and location), `debug://incoming`, `debug://ended`, `debug://output`,
   `debug://breakpoints`, `debug://error`. Typed client: `app/ui/src/features/debug/api.ts`.
+- Web debugging: the PHP Built-in Web Server kind (`forge_process::config::PhpBuiltinServer`,
+  `php -S host:port -t <docroot> [router]`; through Docker / Compose / SSH interpreters the
+  port is published with `Invocation::publish`) is debugged with
+  `-dxdebug.start_with_request=yes`; PHP Web Page and PHP HTTP Request
+  (`features/debug/runTypes.ts`) and `.http` requests add `XDEBUG_SESSION_START=FORGE` or the
+  `XDEBUG_SESSION` cookie (`scratches_http_run({ …, debug })`,
+  `forge_scratches::http::HttpRequest::add_debug_cookie`).
 - Run configurations start debugging through `debugLauncher` (`app/ui/src/features/debug/index.tsx`):
   `await debugLauncher.prepare(serverName?)` starts listening and returns the environment
   (`XDEBUG_MODE`, `XDEBUG_SESSION`, `XDEBUG_CONFIG`, `PHP_IDE_CONFIG`) for the PHP process;
   `debugLauncher.setStopFallback(fn)` lets "Stop" (Ctrl+F2) stop a run when no debug session is active.
 - Main toolbar widgets left of the run configuration selector: `registerToolbarItem`
   (`src/features/toolbarItems.ts`).
+## Shared debugging layer (`forge-dap`)
+
+Every language except PHP debugs through the Debug Adapter Protocol. `forge-dap` is the
+client; its sessions are mapped onto `forge_debug`'s model (`SessionInfo` with `adapter`,
+`features`, `threadId`, `parentId`; `Frame` with `id` and `address`; `Property` with
+`reference`, `container`, `memoryReference`; breakpoint kinds `function` and `data`;
+`StepKind::StepIntoInstruction|StepOverInstruction`; `DebugEvent::Invalidated`), so one Debug
+tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stream
+(`debug://*`) serve Xdebug and DAP sessions.
+
+- **Contribution point.** Adapters come from manifests:
+
+  ```toml
+  [[contributions.debugAdapters]]
+  type = "lldb"                       # adapter type, also the launch configuration's type
+  label = "LLDB"
+  command = "lldb-dap"                # empty: only reachable as a DAP server
+  args = []
+  commandSetting = "debugger.lldb.path"
+  transport = "stdio"                 # stdio | connect (${port}) | listen (adapter connects back)
+  languages = ["c", "cpp", "rs"]      # line breakpoints in these files
+  launch = { program = "${program}", args = "${args}", cwd = "${cwd}", env = "${env}", stopOnEntry = "${stopOnEntry}" }
+  attach = { pid = "${pid}" }         # Attach to Process
+  coreDump = { program = "${program}", coreFile = "${core}" }
+  coreDumpRequest = "attach"
+  launchSchema = { … }                # JSON schema of extra options
+  ```
+
+  or from Rust: `impl DebugAdapterDescriptor { fn info() -> AdapterInfo; fn resolve(&LaunchRequest)
+  -> ResolvedLaunch { transport, request, arguments } }`, registered with
+  `DapManager::register_adapter`. The UI adds `registerDebugAdapter` (run configuration types
+  and `resolve(cfg) -> LaunchRequest`). The built-in Debugger plugin (`forge.debugger`,
+  `plugins/debugger.toml`) declares LLDB (`lldb-dap`) and GDB (`gdb -i dap`), the "Native
+  Application" run configuration type and Settings | Build, Execution, Deployment | Debugger
+  (`debugger.*`).
+- **Sessions.** `DapManager::start(LaunchRequest { adapter, mode: launch | attachProcess{pid} |
+  attachServer{host,port} | attachPort{host,port} | coreDump{core}, program, args, arguments, cwd, env, stopOnEntry,
+  configuration })` resolves the descriptor, opens the transport, and runs initialize →
+  (breakpoints first when `initialized` comes right after `initialize`) → launch/attach →
+  breakpoints → configurationDone. Session ids are `dap-<n>`; the app's `debug_*` commands
+  route them to `DapSession` (`commands/debug.rs`), so stepping, frames, variables, evaluate,
+  completion, Set Value and Run to Cursor are shared. Breakpoint changes reach DAP sessions
+  through the event sink (`DebugEvent::Breakpoints` → `DapManager::breakpoints_changed`).
+  Logpoints use the adapter's `logMessage` (templates with `{expr}`) or are emulated; exception
+  filters are stored as exception breakpoints with `adapter`; watchpoints are data
+  breakpoints (`dataBreakpointInfo`). Reverse requests: `runInTerminal` (Forge starts the
+  program, output in the console) and `startDebugging` (child sessions with `parentId`; a child of an adapter that Forge
+  started as a TCP server connects to that same server, which js-debug requires).
+- **Trust.** `dap_start` / `dap_restart` refuse launching in Safe Mode
+  (`require_trusted`); attaching to a process or a DAP server and core dumps are allowed.
+  `LaunchRequest.adapterArgs` / `adapterCommand` change a manifest adapter's command line for
+  one session (CForge: GDB `-iex` commands for STL pretty printers, a cross toolchain's GDB);
+  such requests count as running code (`runs_code`) and are refused in Safe Mode too.
+- **IPC** (`commands/dap.rs`): `dap_adapters() -> AdapterInfo[]`, `dap_start({ request }) ->
+  SessionInfo`, `dap_restart({ sessionId })`, `dap_threads({ sessionId })`, `dap_goto({
+  sessionId, file, line })`, `dap_registers({ sessionId, depth })`, `dap_read_memory({
+  sessionId, memoryReference, offset?, count }) -> { address, rows: { address, hex[], ascii
+  }[], unreadable }`, `dap_write_memory({ sessionId, memoryReference, offset?, data })` (hex
+  bytes), `dap_disassemble({ sessionId, memoryReference, instructionOffset?, count, current? })
+  -> Instruction[]`, `dap_modules`, `dap_loaded_sources`, `dap_data_breakpoint({ sessionId,
+  container, name, accessType? }) -> Breakpoint`, `dap_processes({ filter? }) ->
+  ProcessInfo[]`. Shared commands gained optional arguments: `debug_stack({ threadId })`,
+  `debug_property({ reference })`, `debug_eval({ context: watch|repl|hover })`,
+  `debug_set_value({ container, name })`, `debug_watches({ scope })` /
+  `debug_watches_set({ watches, scope })` (`php` or an adapter type). Typed clients:
+  `features/debug/api.ts`, `features/debug/dapApi.ts`; browser mock: `mock/dapMock.ts`.
+- **UI.** The Debug tool window shows a thread selector and, when the session's `features`
+  allow, the Memory, Disassembly (instruction stepping) and Registers tabs
+  (`features/debug/nativeViews.tsx`); variables offer Add Watchpoint and View Memory; the
+  Breakpoints dialog lists line, function, watchpoint and adapter exception breakpoints;
+  `AttachDialogs.tsx` has Attach to Process (`XDebugger.AttachToProcess`, `Ctrl+Alt+F5`),
+  Attach to DAP Server and Debug Core Dump. Inline values use `inlineValuesGeneric`.
+- **Tests.** `crates/forge-dap/tests/fake_adapter.rs` drives the simulated adapter
+  (`forge_dap::fake`, binary `forge-dap-fake`) over every transport; no debugger downloads.
+- **JavaScript (js-debug).** `packs/webforge/js-debug` registers `pwa-node`, `pwa-chrome` and
+  `pwa-msedge` in Rust (`DapManager::register_adapter`, removed with `unregister_adapter` when
+  `forge.js-debugger` is disabled); each session runs js-debug's DAP server on Node.js
+  (`node dapDebugServer.js ${port} 127.0.0.1`). js-debug is downloaded after the user agreed
+  (pinned release, SHA-256). IPC (`commands/js_debug.rs`): `js_debug_status() ->
+  JsDebugStatus`, `js_debug_install() -> JsDebugStatus` (events `js-debug://install`:
+  `{ message }` or `{ label, done, total }`), `js_debug_browsers() -> Browser[]`,
+  `js_debug_request({ configuration }) -> LaunchRequest` (Node.js, npm, JavaScript Debug,
+  Attach to Node.js/Chrome, the Node.js test runners). The UI's `js-debug` debug launcher
+  (`features/webforge/jsDebug.ts`) asks for the download, then calls `dap_start`. Browser
+  mock: `mock/jsDebugMock.ts`. The Node.js test runners (`packs/webforge/js-testing`) wrap
+  their `[[contributions.testFrameworks]]` specs and replace them in the test registry.
+
+## PHP CLI interpreters (`packs/phpforge/interpreters`)
+
+- `phpforge-interpreters` (pure except `detect`; also in `forge-wasm`,
+  `crates/forge-wasm/src/php_interpreters.rs`): the model (`PhpInterpreter`: `local | docker |
+  compose | ssh | wsl`, PHP executable, image, compose files / service / lifecycle `run |
+  exec`, SSH configuration id, WSL distribution, user path mappings, `-d` configuration
+  options, debugger extension and the cached Reload results), `probe` (parsers for `php -v`,
+  `php --ini`, `php -m`, `wsl.exe -l -q`), `detect` (PATH, system folders, Homebrew, phpenv,
+  phpbrew, asdf, mise, Herd, Laragon, XAMPP; versions via `php -v` with a timeout),
+  `mapping` (automatic mappings: Docker `/opt/project`, compose bind mounts, WSL `/mnt/<drive>`;
+  `Mapper` both ways, `map_arg`) and `command::wrap` (the local, `docker run`, `docker compose
+  run/exec`, `ssh`, `wsl.exe` command lines; debug runs get `host.docker.internal`, `ssh -R`
+  and `PHP_IDE_CONFIG=serverName=<debug_server_name>`).
+- Settings: `php.interpreters` (user) and `php.projectInterpreters` (project) are `objects`
+  settings with string values (compose files one per line, mappings `local<TAB>remote`, options
+  `name=value`, extensions comma separated; the UI codec is `features/php/interpreters.ts`).
+  `php.interpreter` is an interpreter name or a local path (`InterpreterSet::resolve`).
+  `php.languageLevel = "interpreter"` takes the level from the interpreter's detected version
+  (`PhpLspSettings::from_settings`, `level_from_interpreter`).
+- IPC (`app/src-tauri/src/commands/php_interpreters.rs`): `php_interpreters_detect() ->
+  { path, version }[]`, `php_interpreter_info({ interpreter }) -> { version, configFile,
+  additionalIni, xdebug, extensions }`, `php_interpreter_phpinfo({ interpreter }) -> string`,
+  `php_interpreter_mappings({ interpreter }) -> { local, remote }[]` (automatic ones),
+  `php_interpreter_compose_services({ files }) -> string[]`,
+  `php_interpreter_wsl_distributions() -> string[]`. Probes run through the project backend.
+  Framework helpers (Laravel routes, Symfony console, Composer phar) use `local_php`, the
+  project interpreter's path when it is local.
+- Debugging: a debug run through a remote interpreter registers a server
+  (`DebugServer::set_interpreter_servers`, not stored) named like the interpreter, so
+  `PHP_IDE_CONFIG` picks its mappings.
+
+## PHP quality tools (`packs/phpforge/quality-tools`)
+
+- `phpforge-quality-tools` (pure): `model` (`QualityTool`: PHPStan, Psalm, PHP CS Fixer,
+  PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector; `ToolConfig` from
+  `php.tools.<id>.{inspection, interpreter, path, config, level, options, timeout, severity}`,
+  `php.tools.phpcs.phpcbfPath`, `php.tools.onTheFly`), `command` (check arguments for saved
+  files, stdin (`phpcs --stdin-path`, `php-cs-fixer fix -`) and PHPStan's temporary copy
+  (`--tmp-file … --instead-of …`); fix arguments: phpcbf stdin → stdout, PHP CS Fixer and
+  Rector dry-run diffs, Pint in place), `parse` (the JSON reports → `Problem { tool, file,
+  line, column, endLine?, endColumn?, severity, message, rule?, fixable, link? }`, fixers'
+  diffs → `FileFix` and one weak problem per hunk; JSON is found between other output),
+  `problem::PathContext` (reported paths → project paths: relative to the tool's working
+  directory, interpreter mappings back with `Mapper::to_local`, `-` / `STDIN` / temp copy
+  aliases) and `diff` (unified diff parsing and applying with moved hunks, CRLF kept).
+  `tools_to_run(configs, trigger, temp_copies)` picks the tools for unsaved text.
+- App (`commands/php_quality_tools.rs`): a `ToolSetup` is a configuration plus the prepared
+  interpreter (`php_interpreters::prepare`; `""` runs the executable directly, `project` the
+  project interpreter). Commands run through `Backend::start_process` (`process_io::capture`),
+  so remote projects run them on the host; through an interpreter the program becomes
+  `php <tool> …` wrapped by `phpforge_interpreters::wrap` (absolute paths mapped). Tools of one
+  check run in parallel (scoped threads). All commands call `require_trusted`.
+  `check_file` / `inspect` / `fix` take a `&dyn Backend` and setups, so they are tested with
+  fake tool scripts; `inspect(backend, setups, paths)` is the provider an Inspect Code
+  framework can call for a scope.
+- IPC (`app/ui/src/ipc/qualityTools.ts`): `quality_tools_info() -> { tools: { tool, label,
+  kind, fixer, configFiles, path, fixerPath, configFile, config }[], interpreters }`,
+  `quality_tools_validate({ config }) -> { ok, message, commandLine }` (`--version`),
+  `quality_tools_check({ path, text? }) -> CheckResult` (`{ files, tools, problems, outcomes:
+  { tool, label, status: "ok" | "missing" | "failed", message }[] }`; `text` = the editor text,
+  checked only by the tools that can read it), `quality_tools_inspect({ paths? }) ->
+  CheckResult`, `quality_tools_fix({ path, tool, text }) -> { tool, text, changed, diff, rules }`
+  (never writes the file; Pint's in-place run is restored).
+- UI (`features/phpQualityTools`): the settings page `lang.php.quality-tools`, an editor
+  extension (check on open, after a 1.2 s pause in typing with `php.tools.onTheFly`), checks
+  after saves, problems as diagnostics source `php-quality-tools` (a check replaces the earlier
+  problems of the tools that ran in the checked files), Alt+Enter fixes (`PhpQualityTools.Fix`),
+  `PhpQualityTools.ReformatWith{PhpCsFixer,Phpcbf,Pint}`, `PhpQualityTools.RunRector` (the
+  `rector-preview` dialog), `PhpQualityTools.InspectCode` (`inspectWithQualityTools(paths)`)
+  under Code. Changing the tools' settings re-checks the open PHP files. Browser mode
+  (`mock/qualityToolsMock.ts`): the Laravel demo "has" PHPStan, phpcs, Pint and Rector; demo
+  problems are found in the current text and the fixers change the in-memory files.
+
+## Web code quality tools (`packs/webforge/quality-tools`)
+
+- `webforge-quality-tools` (pure): `model` (`WebTool`: ESLint, Prettier, Stylelint, Biome;
+  `Mode` disabled / automatic / manual; `ToolConfig` from `web.<id>.{mode, path, config,
+  options, files, onReformat}`, `web.eslint.workingDirectories` and the tools'
+  `actionsOnSave.*` keys; `WebToolsSettings` with `web.tools.{onTheFly, timeout}`,
+  `web.biome.priority`, `web.node.interpreter`), `detect` (`ProjectFs` over project-relative
+  paths; automatic mode: the nearest `node_modules/<package>` and the nearest config file or
+  package.json key above the file, the tool runs in the config's folder; manual mode: the
+  configured package folder or executable, config file and working directories; Biome's
+  priority drops ESLint and Prettier where Biome applies; `formatter` for Reformat Code),
+  `command` (`Invocation { node, program, args, stdin, env, cwd }`: the editor text always on
+  stdin, `ESLINT_USE_FLAT_CONFIG` from the config found, `fix_in_place` for on save) and
+  `parse` (ESLint / Stylelint / Biome JSON → `Problem`, ESLint's `output`, Stylelint's report
+  on stdout or stderr, Biome byte spans → line/column).
+- ESLint runs through its CLI like the other linters; the ESLint language server stays an
+  optional, separate language server.
+- App (`commands/web_quality_tools.rs`): `BackendFs` implements `ProjectFs` on the project
+  backend; the Node.js interpreter is `web.node.interpreter`, else the detected `node`
+  (locally) or `node` on the host's PATH (remote). Commands run through
+  `Backend::start_process` (`process_io::capture`), linters of one check in parallel. All
+  commands call `require_trusted` (`web_quality_tools_format` answers `null` in Safe Mode so
+  the usual formatter runs). `WebSave` gives `save_actions_run_tools` the web tools that apply
+  to the saved file, their scripts and `node <script> --fix <file>` command lines.
+- IPC (`app/ui/src/ipc/webQualityTools.ts`): `web_quality_tools_info() -> { tools: { tool,
+  label, package, configFiles, path, version, configFile, config }[], node }`,
+  `web_quality_tools_validate({ config })`, `web_quality_tools_check({ path, text? }) ->
+  WebCheckResult` (`{ files, tools, problems, outcomes }`), `web_quality_tools_inspect({ paths?
+  })`, `web_quality_tools_fix({ path, tool, text }) -> { tool, text, changed }`,
+  `web_quality_tools_format({ path, text }) -> { tool, text, changed } | null`.
+- UI (`features/webQualityTools`): the settings page `lang.web.quality-tools` (replaces the
+  former `lang.eslint` and `lang.prettier` pages), an editor extension for web files (check on
+  open and after a 1 s pause with `web.tools.onTheFly`), checks after saves, diagnostics
+  source `web-quality-tools`, Alt+Enter `WebQualityTools.Fix`, Code menu
+  `ReformatWithPrettierAction` (`Ctrl+Alt+Shift+P`), `WebQualityTools.Fix{Eslint,Stylelint,Biome}`,
+  `WebQualityTools.InspectCode` (`inspectWithWebTools(paths)`), and a format provider for
+  Reformat Code. Browser mode (`mock/webQualityToolsMock.ts`): `?project=react` has ESLint and
+  Prettier, `?project=angular` Stylelint, `?project=node` Biome; demo problems follow the
+  text, fixers and on-save runs change the in-memory files.
+
 ## Database tools (`forge-db`)
+
+- Database objects (`commands/db_objects.rs`, `app/ui/src/ipc/dbObjects.ts`, UI in
+  `features/database/objects/`): the Create/Modify Table dialogs edit a `TableSpec`
+  (`forge_dbmodel::design`); `db_design_load({ id, schema, table })` gives the spec of an
+  existing table (columns remember their `original` name), `db_design_preview({ dialect, old?,
+  table, options? }) -> { sql, statements, warnings }` is `CREATE TABLE` or the rename-aware
+  `ALTER` diff with destructive-change warnings, `db_design_info({ dialect })` the types and
+  table options; `db_drop_sql({ dialect, requests })`, `db_rename_sql`. Scripts run with
+  `db_objects_guard({ id, sql })` (read-only refused, any change confirmed on production) and
+  `db_run_script({ id, sql, confirmed? }) -> { executed, total, failed?, error? }`.
+  `db_generate_ddl({ id, objects, options, path? })` orders the selection
+  (`forge_dbmodel::script`) and formats it with the SQL code style. Import
+  (`forge-dbtransfer`): `db_import_preview({ source: { path? | data (base64) }, options, rows?,
+  dialect? }) -> { table, guesses, names, types, totalRows }` and `db_import_run({ id,
+  importId, source, options, plan, confirmed? }) -> ImportSummary` with `db://import` progress,
+  `db_import_cancel({ importId })`. `db_export_xlsx({ sheet, columns, rows, path? })` writes or
+  returns (base64) an Excel workbook. Dumps: `db_dump_tools`, `db_dump_command` (preview),
+  `db_restore_guard` and `db_dump_start({ id, request, runId, confirmed? })`, which runs the
+  tool through `run::start_built` (Run tool window, `run://<runId>`; refused in Safe Mode) with
+  the password in the tool's environment and the data source's SSH tunnel kept open by a run
+  observer until the tool exits. The UI starts dumps as runs of the hidden run configuration
+  type `db-dump`. Browser mode: `mock/dbObjectsMock.ts` on the `dbobjects_*` WebAssembly
+  functions; scripts are checked and counted, not applied to the demo database.
 
 - Data sources live in `<root>/.forge/dataSources.toml` (project) and
   `<config dir>/forge/dataSources.toml` (global) as `[[dataSource]]` tables; passwords go to the
@@ -1064,19 +2044,96 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
 - IPC (`app/ui/src/ipc/db.ts`): `db_data_sources_list`, `db_data_source_save({ source, password? })`,
   `db_data_source_delete({ id })`, `db_test_connection({ source, password? })`, `db_disconnect`,
   `db_schemas`, `db_introspect({ id, schema })`, `db_table_info`, `db_table_ddl`,
-  `db_table_data({ id, request: { schema, table, filter?, order?, offset?, limit? } })`,
-  `db_apply_changes({ id, schema, table, changes })` (one transaction, refused without a primary key),
+  `db_table_data({ id, request: { schema, table, filter?, columnFilters?, order?, offset?, limit? } })`
+  (SQL per dialect from `forge-dataedit`; the typed filter must be one read-only condition),
+  `db_preview_changes({ id, schema, table, changes }) -> { statements, key?, blocked?, confirm? }`
+  and `db_apply_changes({ id, schema, table, changes, confirmed? })` (one transaction; rows by
+  primary key, else a NOT NULL unique key; refused on read-only data sources and on production
+  ones unless `confirmed`),
   consoles `db_session_open|close`, `db_execute({ sessionId, sql, pageSize? })`, `db_fetch`,
   `db_set_auto_commit`, `db_commit`, `db_rollback`, `db_cancel`, `.env` suggestions
   `db_detect_env` / `db_add_from_env`, `db_export({ format: "csv"|"json"|"sql", dialect, table?, columns, rows, path? })`
   and `db_statement_at({ sql, from, to, dialect }) -> { text, start, end } | null` (what Ctrl+Enter
   runs; editor offsets). SQL text handling (dialects, splitting, literals, row changes, export) is
   the pure crate `forge-sql`, re-exported by `forge-db`.
+- Data editor: the pure crate `forge-dataedit` (also in WebAssembly as `dataedit_*`), IPC in
+  `commands/dataedit.rs`: `db_data_view({ request: { columns, rows, view } }) -> number[]` (local
+  sort and filter of console results), `db_data_aggregate` (`{ total, columns }`),
+  `db_data_compare({ request: { left, right, key } }) -> DataDiff`, `db_data_chart`,
+  `db_fk_navigate` (`direction: "referenced" | "referencing"` → table and WHERE text),
+  `db_fk_incoming`, `db_value_editor`, `db_value_format`, `db_value_binary`, `db_value_temporal`.
+  UI: `TableEditor`, `ResultGrid`, `ValueEditor`, `ChartView` (plain SVG), `CompareView`
+  (`db-compare://` tabs); grids register a `GridController` (`data-grid-id`) for Ctrl+B
+  (`Console.TableResult.GotoReferencedData`), Alt+F7 and Shift+Enter.
+- Database Explorer: the model types are the pure crate `forge-dbmodel` (also in WebAssembly as
+  `dbmodel_*`). `db_model({ id, refresh? }) -> DbModel` (dialect, `catalog`/`catalogs`, every
+  schema with `visible` from the data source's schema filter `options.schemas`, introspected
+  schemas in `loaded`, `roles`, DDL `warnings`) is cached per data source in
+  `<cache dir>/forge/db-models/` and served without connecting unless `refresh`;
+  `db_introspect` loads one schema lazily (refused for hidden schemas) and `db_table_info`
+  refreshes one table, both merged into the cache. `db_object_doc({ id, schema, object: { kind,
+  table?, name } }) -> ObjectDoc` (Quick Documentation), `db_virtual_objects` /
+  `db_virtual_objects_save({ id, objects })` (`.forge/database/virtual.toml`, merged into every
+  served schema with `virtual: true`), `db_match_schemas({ patterns, schemas })` (Schemas tab
+  preview), `db_search({ searchId, request: { scopes, text, mode, caseSensitive, allColumns,
+  limit } }) -> SearchSummary` with `db://search` progress and per-table `TableMatches`, and
+  `db_search_cancel`. DDL data sources are `driver = "ddl"` with `options.ddlFiles` and
+  `options.ddlDialect`; the project watcher drops their model when a listed file changes and
+  emits `db://modelChanged` with their ids (and after `db_virtual_objects_save`). Catalog queries are tagged
+  `/* forge:<dialect>.<what> */`.
+- Schema tools: the pure crate `forge-dbschema` (re-exported as `forge_db::schema`, in
+  WebAssembly as `dbschema_*`). `db_diagram({ request: { schema, tables?, neighbours?,
+  columns?: "all"|"keys"|"none", hideViews? } }) -> Diagram` (positioned nodes with column rows,
+  foreign key polylines; the UI only draws), `db_schema_compare({ request: { dialect, source,
+  target, options?: { drops?, compare? }, framework?: "laravel"|"doctrine", now? } }) ->
+  { diff, migration, file?, warnings? }` where each side is `{ schema }` or a DDL snapshot
+  `{ ddl, name? }` (pure; the script is never run by the command), `db_explain({ sessionId, sql,
+  raw?, confirmed? }) -> { sql, columns, rows, plan?, error?, elapsedMs }` (the dialect's
+  `EXPLAIN` on the console's connection, never `ANALYZE`; a statement that already is an
+  `EXPLAIN` goes through the guard) and `db_save_export({ path, text? | base64? })` for diagram
+  exports.
 - Events: `db://dataSources` (full list after changes and after a project's sources were loaded),
-  `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes).
+  `db://session` (`SessionInfo` when a console starts/stops running or its transaction changes),
+  `db://modelChanged` (data source ids to reload) and `db://search` (`SearchProgress`).
 - UI: non-file editor tabs are registered with `registerEditorView` (`src/shell/editorViews.ts`) and
   opened with `openViewTab`; consoles and table editors use it. Editor-area panels can opt into the
   tool-window key context with `data-focus-context="toolwindow"`.
+## SQL editor (`forge-sqlcode`)
+
+- `crates/forge-sqlcode` (pure, also WebAssembly) is DataGrip's SQL editor: `SqlDialect`
+  (generic, MySQL, PostgreSQL, SQLite, SQL Server, Oracle, ClickHouse) with per-path
+  `DialectMapping`s (`sql.dialect.default` < `sql.dialect.project` < `sql.dialect.mappings`
+  `{ path, dialect?, dataSource? }`, the most specific path wins), an error-tolerant lexer,
+  `resolve::analyze` (scopes per query: FROM items, aliases, CTEs, subqueries, table functions;
+  references with `Target`s against `forge_dbmodel::DbModel`), the SQL inspections
+  (`[[contributions.inspections]]` of `database.toml`, language `sql`: `SqlResolve`,
+  `SqlAmbiguousColumn`, `SqlWithoutWhere`, `SqlUnusedAlias`, `SqlUnusedCte`, `SqlType`,
+  `SqlRedundant*`) with fixes as text edits, navigation (`symbol_at`, `occurrences`,
+  `rename_ranges`, `ddl_location`), the formatter (`SqlStyle::from_values` of the code style
+  `sql.*` keys; `forge-codestyle` uses it for the SQL preview), user parameters, the query
+  history model and `plan_run`.
+- IPC (`app/ui/src/ipc/sql.ts`, `commands/sql.rs`; offsets UTF-16): `sql_dialects()`,
+  `sql_file_info({ request: SqlTarget }) -> { dialect, source, dataSourceId? }`,
+  `sql_analyze({ request }) -> { dialect, problems, hasModel }`, `sql_declaration({ request:
+  { …SqlTarget, offset } }) -> { symbol, ddl? } | null`, `sql_usages`, `sql_rename`,
+  `sql_format({ request }) -> string`, `sql_params({ request: { text, dialect } }) -> { params,
+  names }`, `sql_substitute({ request: { text, dialect, values } })`, `sql_history_list({
+  dataSourceId, query })`, `sql_history_add({ entry })`, `sql_history_clear({ dataSourceId })`
+  (`<data dir>/forge/sql-history/<id>.json`), `sql_run_file({ request: { runId, path,
+  dataSourceId, stopOnError, confirmed? } }) -> RunFileSummary` (own session, guarded like
+  consoles, `needsConfirmation` for production) with `sql://runFile { runId, kind: started |
+  statement | finished, index, total, sql, line, ok, error?, rows?, elapsedMs }` and
+  `sql_run_file_cancel({ runId })`. `SqlTarget { text, path? | dataSourceId + dialect +
+  defaultSchema? }`: files resolve dialect and data source from the mappings, consoles from
+  their data source. Names resolve against `DbService::model_if_cached` (cached models and DDL
+  data sources only), so typing never connects.
+- UI (`features/sqlEditor`): `registerLanguage("sql")` with a dialect compartment per file,
+  the inspector (`registerEditorExtension`; consoles add `sqlConsoleExtensions`) publishing
+  source `SQL` diagnostics, declaration / usages / rename (`registerRenameProvider` in
+  `features/codeintel/rename.ts`) / context action / format providers, the status bar widget
+  `sql.dialect`, Settings | Languages & Frameworks | SQL Dialects, and the Parameters, Query
+  History and Run SQL Script dialogs. Browser mode: `mock/sqlMock.ts` over `forge-wasm`.
+
 ## Scratches and Consoles (`forge-scratches`)
 
 - Scratch files are global (like PHPStorm's): `<config dir>/forge/scratches/<name>`, per-scratch
@@ -1142,14 +2199,29 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `[Controller::class, 'method']`, `<x-component>` and custom directives. Offsets are UTF-16.
 - `laravel_gutter({ path, content }) -> { line, kind: "route" | "controller" | "view", tooltip,
   targets }[]`.
-- `laravel_artisan_commands() -> { commands, fromProject }` (`php artisan list --format=json`,
-  else a built-in list), `laravel_artisan_run({ commandLine, runId }) -> exitCode` streaming
-  `laravel://artisan/<runId>` events (`{ type: "started" | "output" | "error" | "exit", ... }`),
-  `laravel_artisan_cancel({ runId })`.
+- `ide.json` (`ide_json`): the project's and the packages' (`vendor/*/*/ide.json`) completions
+  (`staticStrings`, `directoryFiles`, `routeName`, `viewName`, `configKey`, `translationKey`,
+  `envKey`, `validationRule` under `functionNames` / `methodNames` + `classFqn` conditions with
+  1-based `parameters`) appear in `laravel_complete` as items of kind `value`; code generations
+  are listed in the overview and run with `laravel_generate({ id, input, write }) -> { path,
+  content, exists }[]` (stub placeholders `${INPUT_CLASS|modifier…}`, `${NAMESPACE}`, `${CLASS}`;
+  `write` creates the files that do not exist).
+- `laravel_overview() -> LaravelOverview { version?, php?, appName?, environment?, debug?, url?,
+  routes, views, components, translations, configKeys, models: { name, class, table, attributes,
+  relations, location }[], commands: { name, signature, description?, location }[], logFiles,
+  ideJson: { files, completions, codeGenerations, errors? } }` (`dashboard`).
+- `laravel_logs({ path?, maxBytes? }) -> LogPage { path, files: { path, size, modified }[],
+  entries: { time, channel, level, message, context?, exception?: { class, message, code?,
+  frame }, frames?: { file?, path?, line?, call, vendor? }[], line }[], size, truncated? }`
+  (`logs`): Monolog line format, the end of large files, frame paths mapped into the project
+  (also from container paths). Only files below `storage/logs/` are read.
+- Artisan commands run in the Command Line Tools Console (see "Command Line Tool Support");
+  `artisan::builtin_commands` is its fallback list when artisan cannot run.
 - UI (`app/ui/src/features/laravel`): the Blade language (`registerLanguage("blade")`), a
   completion source next to the LSP one, `GotoDeclaration` / Ctrl+Click that try Laravel first,
-  gutter icons, the Routes tool window, Run Artisan Command… (`Laravel.RunArtisan`,
-  Ctrl+Shift+X), the `framework.laravel` status item and Settings | Languages & Frameworks |
+  gutter icons, the Routes tool window, the Laravel tool window (`laravel`: Overview and Logs
+  tabs, `Laravel.ShowDashboard`, `Laravel.ShowLogs`), Run Artisan Command… (`Laravel.RunArtisan`: the
+  Run Command popup with the artisan alias), the `framework.laravel` status item and Settings | Languages & Frameworks |
   PHP | Laravel. Tool windows and status items can declare `when` to show only for matching
   projects.
 ## Symfony (`phpforge-fw-symfony`) and Doctrine (`phpforge-orm-doctrine`)
@@ -1158,7 +2230,8 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   Settings live under Languages & Frameworks | PHP | Symfony (`symfony.*`) and | Doctrine
   (`doctrine.*`). In browser mode `?project=symfony` opens the Symfony demo project.
 - `symfony_detect() -> SymfonyInfo | null` (`{ version, environment, consolePath, hasConsole,
-  containerXml?, kernelClass?, routes, services, templates, commands }`), `symfony_refresh()`.
+  containerXml?, kernelClass?, routes, services, templates, commands, translations, listeners,
+  forms }`), `symfony_refresh()`.
   The backend caches a project snapshot for 10 s; refresh rescans.
 - `symfony_routes() -> Route[]` (`{ name, path, methods?, controller?, host?, source:
   "attribute" | "annotation" | "yaml", location? }`), `symfony_services() -> Service[]` (`{ id,
@@ -1172,6 +2245,26 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   YAML files. `symfony_gutter({ path, content }) -> { line, kind: "route" | "template" | "controller"
   | "command", title, targets?, command? }[]`. Offsets are UTF-16, `Location` is `{ path, line,
   column }` (0-based).
+- Completion and Go to Declaration also cover translation keys and domains (`translations`:
+  catalogues `translations/<domain>.<locale>.{yaml,yml,xlf,xliff,php,json}` by domain and
+  locale; references `->trans()`, `t()`, `TranslatableMessage`, Twig `|trans`, `{% trans %}`,
+  `{% trans_default_domain %}`), form type options and `data_class` fields (`forms`: core type
+  table plus the project's `configureOptions()`), and event names (`events`: subscribers,
+  `#[AsEventListener]`, `kernel.event_listener` tags); kinds `translation`, `domain`,
+  `formOption`, `formField`, `event`. Gutter kinds `listener` (a listener method -> the event
+  class) and `event` (event classes, `*Events` constants and `dispatch(new X())` -> listeners).
+- `symfony_translations() -> TranslationTable { defaultLocale, locales, domains, files: { path,
+  domain, locale, format, icu? }[], rows: { domain, key, values: Record<locale, text>, locations,
+  missing? }[] }`, `symfony_events() -> { event, eventClass?, class, method, priority, source:
+  "subscriber" | "attribute" | "yaml", location?, declaredAt? }[]`.
+- `symfony_translation_analysis({ path, content }) -> { problems: { from, to, severity: "warning"
+  | "weak", message, domain, key, locales }[], folds: { from, to, text, key }[] }` (UTF-16; folds
+  cover the key literal with its quotes) and `symfony_create_translation({ domain, key, locales })
+  -> Location[]`, which writes the key into the catalogues (nested YAML, XLIFF 1.2/2.0, PHP,
+  JSON; new catalogues in the project's main format) and rescans. The editor publishes the
+  problems as diagnostics (source `symfony-translations`) with the Alt+Enter fix "Create
+  translation key" and renders the folds as replace decorations that open while the caret is
+  on the key.
 - `symfony_console_run({ command, args, runId })` streams `symfony://console` events `{ type:
   "started", runId, commandLine } | { type: "output", runId, text, stderr } | { type: "exit", runId,
   code }`; `symfony_console_cancel({ runId })`.
@@ -1266,7 +2359,11 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   PortForward[]` (`spec`: `8080:80, 9000, :5432`), `services_port_forward_stop({ id })`,
   `services_port_forwards()`, `docker_contexts() -> DockerContext[]`, `services_pull({ image })`,
   `services_compose_up({ path, service? })`, `services_dockerfile_run({ path })`,
-  `services_gutter({ path, content })`, `services_compose_changed()`, `services_status()`,
+  `services_gutter({ path, content })` (kinds `composeAll | composeService | dockerfile |
+  kubeManifest`), `services_kube_selection() -> KubeSelection | null` (`{ source, host?,
+  contexts, context?, namespaces, namespace? }`), `services_kube_select({ context, namespace? })`,
+  `services_kube_apply({ path, action: "apply" | "delete" })` (refused in Safe Mode, like
+  `services_terminal` for pods), `services_compose_changed()`, `services_status()`,
   `docker_test_connection({ settings? })`, `docker_registry_login|logout|status`.
 - Events on `services://event`: `{ type: "tree", nodes }`, `{ type: "console", key, delta, reset? }`
   (keys `log:<nodeId>` for followed logs, `run:<nodeId>` for compose, build and pull output;
@@ -1277,7 +2374,14 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `docker.ssh.socketPath`, `docker.context`, `docker.cliPath`, `docker.logs.tail`; the page
   lists the Docker contexts with Use), | Docker | Docker
   Registry (`docker.registries`: `server<TAB>user`), | Kubernetes (`kubernetes.kubeconfig`,
-  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`).
+  `kubernetes.defaultContext`, `kubernetes.defaultNamespace`, `kubernetes.kubectlPath`,
+  `kubernetes.remoteProjectHost`, `kubernetes.hostKubectlPaths`: `host<TAB>kubectl`).
+- Remote projects: the app hands the hub a `ProjectHost` (`commands/services.rs`
+  `BackendProject`): files and processes through the backend, the host's Unix sockets
+  (`Tunnels::open_socket`) and TCP ports (`Tunnels::open_tcp`, SSH `direct-tcpip`) through the
+  project's connection. With `kubernetes.remoteProjectHost`, `forge_containers::kubectl` runs
+  the host's kubectl (`config view`, `get -o json`, `logs -f`, `port-forward`, `apply -f`)
+  instead of calling the API server from this machine. No remote-agent protocol change.
 
 ## WebForge (`packs/webforge/*`)
 
@@ -1315,6 +2419,58 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   declaration provider per framework (several targets open a chooser), Angular line markers and
   the Node.js / TypeScript settings pages. Debug on an `npm` configuration sets `NODE_OPTIONS`
   (`--inspect` by default) for an external inspector client.
+
+## Web tooling (`packs/webforge/web-tooling`, File Watchers, Live Edit, HTTP client extras)
+
+- **File Watchers** (`forge_runtools::watchers`, pure, also WebAssembly): project setting
+  `tools.fileWatchers` (objects; `FileWatcher::from_object`), templates, `plan(watchers,
+  PlanInput { paths, trigger: save | change | external, root, in_scope, sources,
+  resolve_program })` (file type, scope via `forge-scopes`, "Track only root files" over the
+  `@use`/`@import`/`@forward` and relative-import graph, outputs never retrigger) and
+  `problems(output, filters, cwd, root)` (`forge_output::filters`). IPC
+  (`commands/web_tooling.rs`, `src/ipc/webTooling.ts`): `file_watchers_templates()`,
+  `file_watchers_validate({ watcher, others })`, `file_watchers_plan({ paths, trigger }) ->
+  WatcherRun[]` (**refused in Safe Mode**), `file_watchers_problems({ output, filters, cwd })`.
+  The UI (`features/webTooling/fileWatchers`) plans after `onFileSaved`, on `fs://changed` for
+  watchers with external changes, and saves typed-in files for auto-save watchers; runs are
+  hidden `file-watcher` configurations built in the UI (`launch`), problems go to the
+  Problems tab "File Watchers".
+- **Live Edit** (`forge_open::live_edit`): `LiveEditHub` events (`css` with optional text,
+  `reload`), served to paired browsers by `GET /api/forge/live-edit?since=<seq>`
+  (`OpenHost::live_edit`, settings `liveEdit.*`). IPC `companion_live_edit({ path, text? })`
+  is called by the UI after saves, while typing in CSS and for CSS changed on disk; the
+  extension (`browser-extension/src/lib/liveEdit.ts`) polls from the top frame through the
+  background worker and swaps `<link>` style sheets or reloads pages that loaded the file.
+- **Aliases** (`webforge_lang_web::aliases`, `import_paths`): `Sources` adds `resolve.alias` of
+  `vite.config.*` / `webpack.config.*` (root and one level down) to the `tsconfig` paths.
+  `WebCall::{ImportGoto, ImportComplete, Aliases}` and IPC `web_import_goto({ path, content,
+  offset }) -> Location | null`, `web_import_complete(...) -> { from, items } | null`,
+  `web_aliases()`. The UI adds a declaration provider and a completion source for import
+  strings.
+- **Models** (`webforge-web-tooling`, pure, WebAssembly): `openapi` (endpoints, preview,
+  `http_request`), `graphql` (apollo-compiler `SchemaSet`, validation, completion,
+  introspection to SDL, `graphql.config` / `.graphqlrc`), `nx`, `nuxt`, `deno`. IPC:
+  `openapi_endpoints() -> { path, title, spec, endpoints }[]`, `openapi_preview({ path,
+  content })`, `openapi_http_request({ path, content, method, opPath })`, `graphql_info()`,
+  `graphql_validate({ path, content })`, `graphql_complete({ content, offset })`,
+  `graphql_introspect({ url, headers?, target? }) -> path` (writes SDL through the backend),
+  `nx_workspace()`, `nuxt_project({ root? })`, `deno_tasks()`. OpenAPI validation is
+  `forge-jsonschema` with the bundled OpenAPI 3.0 / 3.1 schemas, selected by content
+  (`mapping::CONTENT_BUILTINS`).
+- **Frameworks**: `forge-project` detects `nx`, `deno`, `prisma`, `astro`, `nuxt` / `svelte`
+  configs and the `bun` / `graphql` tools; plugins `forge.graphql`, `forge.openapi`,
+  `forge.prisma`, `forge.nx`, `forge.deno`, `forge.bun` (`webforge.toml`); the catalog's
+  `deno` server needs a root `deno.json(c)` and `When.absent` keeps the TypeScript servers off
+  there; `prisma-language-server` serves `.prisma`.
+- **HTTP client extras** (`forge-scratches`): request methods `GRAPHQL` (`graphql_as_http`),
+  `WEBSOCKET` (`ws::run`, registered as a `Process` in `RunState::register` so Stop and
+  console input work) and `GRPC` (`grpc::call`: h2 + prost-reflect, server reflection or
+  `.proto` files from `httpClient.grpc.protoFiles` compiled with protox); OAuth 2.0
+  (`oauth`, `oauth_client`: `{{$auth.token("id")}}` / `$auth.idToken`, Client Credentials,
+  Password, Authorization Code with PKCE through the browser (`http-client://open-browser`)
+  and a loopback listener, refresh; tokens in memory in `HttpClientState`), resolved through
+  `Resolver::with_values`. IPC: `scratches_http_curl({ content, line, env?, source? }) ->
+  string`, `scratches_http_from_curl({ command }) -> string`, `scratches_http_clear_tokens()`.
 
 ## LuaForge (`packs/luaforge/lang-lua`)
 
@@ -1358,9 +2514,784 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
   `interpreterSetting`; LÖVE games run as `love <dir>`. Browser mode: `?project=lua` opens the
   LÖVE demo game `pixel-dungeon` (`mock/demoLuaProject.ts`).
 
+## PyForge (`packs/pyforge/*`)
+
+- Plugins (`app/src-tauri/plugins/pyforge.toml`): `forge.python-tools` (tests, debugpy,
+  Python Console, Profiler; see below), `forge.python` (file types `python` and
+  `pip-requirements`, Reformat Code, the language server settings; always active) and
+  `forge.python-env` (`projectTypes = ["pyforge"]`: interpreters, the `pythonPackages` tool
+  window, requirements inspections, the `python` run configuration type). `forge-project`
+  reports the `python` language (pack `pyforge`) for Python files in the root, two or more in a
+  folder, `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile` or
+  `environment.yml`, and the tools `uv`, `poetry`, `pipenv`, `conda`.
+- Crates: `pyforge-lang-python` (pure, also WebAssembly: PEP 440 / PEP 508, dependency files
+  with positions, imports, inspections, completion contexts, run arguments and markers),
+  `pyforge-interpreters` (model and settings, probes, detection, new environments; remote kinds
+  wrap through `phpforge_interpreters::command::wrap` with `Program::Other(python)` and the PHP
+  interpreters' compose / SSH / WSL mappings via `commands::php_interpreters::prepare`) and
+  `pyforge-packages` (installed packages via an `importlib.metadata` script, pip / uv / Poetry /
+  Pipenv commands, PyPI JSON and search; feature `net`: the cached client,
+  `<cache dir>/forge/pypi`).
+- Settings: `python.interpreter` (a local path or a configured interpreter's name; empty = the
+  project's own environment, found without running anything), `python.interpreters` (user) and
+  `python.projectInterpreters` (project) `objects`; `python.formatter` (`ruff` | `black` |
+  `lsp` | `none`), `python.ruff.path`, `python.black.path`, `python.lsp.useEnvironmentTools`,
+  `python.packages.pypi`, `python.packages.index`, `python.inspections.*`. The language server
+  planner reads `python.interpreter` (`EXTRA_SETTINGS_PREFIXES`): its folder is searched for
+  servers first (`DetectEnv::extra_dirs`, plus the project's `.venv/bin` and `venv/bin`) and
+  basedpyright / Pyright get it as `python.pythonPath`. The catalog has basedpyright (npm,
+  managed), Pyright, ty (preview, off) and Ruff (`ruff server`; ty and ruff from PyPI wheels).
+- IPC (`app/ui/src/ipc/python.ts`, `commands/python.rs`; offsets UTF-16, lines 0-based):
+  `python_interpreter_current() -> { interpreter, label, automatic } | null`,
+  `python_interpreters_detect() -> { path, kind, version, envDir, project }[]`,
+  `python_interpreter_info({ interpreter }) -> { version, implementation, prefix, basePrefix,
+  executable, platform }`, `python_environment_plan({ request: { kind, location,
+  baseInterpreter, pythonVersion, installDependencies } }) -> { steps: CommandLine[], python }`,
+  `python_packages_list({ interpreter? }) -> { interpreter, manager, packages: { name, version,
+  modules }[] } | null` (also remembered for the inspections),
+  `python_packages_command({ action: "install" | "uninstall" | "upgrade", packages,
+  interpreter? }) -> CommandLine`, `python_packages_latest({ names }) -> Record<name,
+  version>`, `python_packages_search({ query }) -> { name, version, summary }[]`,
+  `python_package_info({ name }) -> PypiPackage`, `python_inspect({ path, content }) ->
+  { line, start, end, severity, message, code, fixes }[]` (fixes `installRequirements` |
+  `addRequirement` | `ignore`), `python_add_requirement({ requirement, target, current? }) ->
+  { path, text }`, `python_complete({ path, content, offset }) -> { from, items } | null`,
+  `python_run_markers({ content })`, `python_format({ path, content }) -> string | null`,
+  `python_dependencies({ request: { path, content } }) -> DepFile`. Command lines (packages,
+  new environments) are started by the UI through `run_start` (hidden run configuration type
+  `python-command` with `buildCommand`), so they stream into the Run tool window and are
+  refused in Safe Mode.
+- Runs: `run::build` hands the `python`, `pytest`, `unittest` and `tox` types to
+  `commands::python_tools::build`: `python [options] [head] (<script> | -m <module>)
+  [parameters]` (`commands::python::run_command`, `PYTHONUNBUFFERED=1`) or the test runner's
+  arguments from `pyforge-testing`, through the configuration's or the project's interpreter
+  (`python::through_serving`, which publishes a debug port of container interpreters), or on
+  the configuration's run target (`run::on_target`, program `python3`), with output path
+  mappings for remote ones. `RunRequest.interpreterArgs` of these types go after the
+  interpreter options (`-m debugpy --listen …`), `RunRequest.profile` adds `-m cProfile -o
+  <snapshot>` and ends the run with `{ type: "profile", profile | error }` on `run://<runId>`
+  (`TestSetup.profile`, `python_tools::record_profile`).
+- Tests, debugger, console, profiler (`packs/pyforge/testing`, plugin `forge.python-tools`,
+  IPC `commands/python_tools.rs`, `src/ipc/pythonTools.ts`): `PythonTestFrameworks` registers
+  `pytest` / `unittest` / `tox` in the `forge-testing` registry; `test_discover` for `.py`
+  files scans the source (`discover::scan`) and picks the runner from `python.testing.runner`
+  and the project's files (`detect`, cached for 10 s), `test_rerun_failed` reads the failed
+  tests' files for their classes (node ids / unittest ids). pytest reports JUnit XML
+  (`--junitxml <dir>/pytest.xml -o junit_family=xunit1`, flavor `pytest`) or a report log
+  into the run's report folder, unittest runs `helpers/forge_unittest.py` inline (`-c`, base64)
+  with TeamCity messages, tox output is read by `forge_output::formats::tox`
+  (`TestReport::Tox`, environments as tests); Run with Coverage adds pytest-cov's Cobertura
+  report. `python_testing_detect() -> { pytest, tox, reasons }`,
+  `python_tox_environments() -> { name, default, description?, file, line? }[]`,
+  `python_debugpy_status({ interpreter? }) -> { installed, version?, interpreter }`,
+  `python_debug_plan({ configuration }) -> { listenHost, connectHost, port, pathMappings:
+  { localRoot, remoteRoot }[], justMyCode, subProcess }`; the UI's `debugpy` launcher
+  (`features/python/debug.ts`) installs debugpy with consent (`python_packages_command`),
+  starts the run with `-m debugpy --listen <listenHost>:<port> --wait-for-client` and
+  `debugPort { ideConnects }`, then `dap_start({ adapter: "python", mode: "attachServer" })`
+  (retried until it listens). The manifest's `python` adapter (`python -m debugpy.adapter`,
+  command = the project's local interpreter, `python_tools::adapter_python`) serves Attach to
+  Process / DAP Server. Python Console: `python_console_start({ id? }) -> { id, commandLine,
+  interpreter }` runs `helpers/forge_console.py` (IPython when `python.console.ipython`) and
+  streams `python-console://<id>`: `{ type: "console", …ConsoleDelta }` (rendered by
+  `RunOutput`), `{ type: "message", message: ready | more | done | vars | children | input }`
+  (`\x1e` + JSON lines separated by `console::Splitter`) and `{ type: "exited", code }`;
+  `python_console_send({ id, op, fields?, echo? })` writes a JSON request to stdin,
+  `python_console_stop`, `python_console_history()` / `python_console_history_add({ entry })`
+  (state dir). Profiler: `python_profiles() -> ProfileInfo[]`, `python_profile_view({ id })
+  -> { info, view: { totalMs, functions, calls, hotSpots, callTree } }` (`pstats::parse`,
+  files mapped back and made project-relative), `python_profile_open({ path })`,
+  `python_profile_delete({ id })`; snapshots in `<cache dir>/forge/profiles/<project>`.
+  UI: `features/python/testing.ts` (types, `registerTestFileMatcher`,
+  `registerContextConfiguration`, Run tox Environment…), `console/` (Python Console tool
+  window, `ExecuteInPyConsoleAction` `Alt+Shift+E`, `RunFileInPythonConsole`), `profiler/`
+  (Profiler tool window, `onProfileSnapshot`), settings pages
+  `tools.python-integrated-tools`, `build.python-debugger`, `build.python-console`. Browser
+  mode: `mock/pythonToolsMock.ts`, `mock/pythonDebugMock.ts`, WebAssembly
+  `crates/forge-wasm/src/python_testing.rs`.
+- UI (`app/ui/src/features/python`): the status item `python.interpreter` with the switch popup,
+  Settings | Project | Python Interpreter (`project.python-interpreter`, settings group
+  `Project`) and Languages & Frameworks | Python (`lang.python`, schema plus
+  `LanguageServersPage groups={["Python"]}`), the Add Python Interpreter dialog, the Python
+  Packages tool window (`ActivatePythonPackagesToolWindow`), inspections published as
+  diagnostics (source `pyforge`) from a line marker provider that also draws ▶ on `__main__`
+  guards, `Alt+Enter` fixes (`Python.ApplyFix`), completion in dependency files and a format
+  provider. `features/languages/requirements.ts` highlights requirements files. Browser mode:
+  `?project=python` opens the FastAPI demo `shop-api` (`mock/demoPythonProject.ts`,
+  `mock/pythonMock.ts`, WebAssembly `crates/forge-wasm/src/python.rs`).
+
+- Web frameworks (`packs/pyforge/frameworks`, plugins `forge.python-web`, `forge.django`,
+  `forge.flask`, `forge.fastapi`, `forge.celery`; IPC `commands/python_web.rs`,
+  `src/ipc/pythonWeb.ts`, UI `features/pythonWeb/`): `forge-project` reports the frameworks
+  `django` (with `manage.py`), `flask`, `fastapi`, `celery` from the dependency files. The
+  crate scans Python into tokens and logical lines (`source`), follows imports (`modules`) and
+  builds a `Project` from the files (`EXTENSIONS`, one `collect_files` round trip, cached 5 s
+  in the app): settings, URL patterns through `include()`, Flask / FastAPI routes with blueprint
+  and router prefixes, models, Celery tasks, template folders and names.
+  `python_web_project({ refresh }) -> WebProject { frameworks, django?, flask?, fastapi?,
+  celery?, routes: { framework, methods, path, name?, handler, location, handlerLocation?,
+  samplePath }[], models, tasks, templateRoots, templates }`,
+  `python_web_goto({ path, content, offset }) -> { path, line, character }[]`,
+  `python_web_complete({ path, content, offset }) -> { from, to, items: { label, kind:
+  template | url, detail }[] } | null`, `python_web_marks({ path, content }) -> { gutter:
+  { line, kind: template | route | view | task, tooltip, targets }[], problems }` (offsets
+  UTF-16), `python_manage_commands({ refresh }) -> { commands: { name, app, description,
+  location? }[], source: manage.py | static, message? }` (`manage.py help --commands` only
+  when trusted, else static), `python_web_run_info({ configuration }) -> PythonRun`.
+  `run::build` turns `django-server`, `django-manage`, `flask-server`, `fastapi`,
+  `celery-worker`, `celery-beat` into `python` configurations (`python_web::to_python`, the
+  server port is published for container interpreters); `django-tests` is a
+  `pyforge-testing` type (`helpers/forge_django_tests.py` on Django's `DiscoverRunner`, or
+  pytest-django). The browser mock (`mock/pythonWebMock.ts`) calls the same functions through
+  `crates/forge-wasm/src/python_web.rs`; `?project=django` opens the Django demo.
+
+- Jupyter notebooks (`packs/pyforge/jupyter`, plugin `forge.jupyter`, always active; IPC
+  `commands/jupyter.rs`, `src/ipc/jupyter.ts`, UI `features/jupyter/`): `.ipynb` files open in
+  the notebook editor (`registerFileEditor`); the tab's content stays the `.ipynb` text,
+  serialized in Rust after every change, so Save, the dirty marker and Local History work as
+  for text files. `jupyter_open({ text }) -> { notebook: Notebook, rendered: Rendered[][] }`
+  (cells with `origin`, the cell's index in the text it was read from),
+  `jupyter_serialize({ notebook, original }) -> string` (merged into the original JSON: ids,
+  metadata, key order, string-or-list texts, indent and final newline kept),
+  `jupyter_render({ outputs }) -> Rendered[]` (`text` console lines | `html` sanitized |
+  `image` data URL | `json` | `markdown` | `dataFrame`), `jupyter_diff({ left, right }) ->
+  NotebookDiff { cells: { status, left?, right?, source, outputs, typeChanged,
+  metadataChanged, executionCountChanged }[], metadataChanged, stats, language }`,
+  `jupyter_dataframe_query({ frame, query: { sort?, filter?, page?, pageSize? } }) -> { rows,
+  rowNumbers, matched, page, pages }`. Kernels: `jupyter_kernel_status({ interpreter? }) ->
+  { installed, version?, interpreter, needsServer }`, `jupyter_kernel_start({ request: {
+  path, interpreter?, server?, kernelName? } }) -> { id, label, server }` (refused in Safe
+  Mode; ipykernel with a connection file in `<cache dir>/forge/jupyter`, or a kernel of the
+  `jupyter.server.url` server), `jupyter_execute({ id, cellId, code }) -> msgId` (refused in
+  Safe Mode), `jupyter_interrupt`, `jupyter_restart` (same id), `jupyter_shutdown`,
+  `jupyter_variables({ id })`, `jupyter_variable_children({ id, expr })`,
+  `jupyter_variable_frame({ id, expr, limit? }) -> DataFrame`, `jupyter_server_test({ url,
+  token? })` (stores the token in the keychain), `jupyter_server_has_token`,
+  `jupyter_server_forget_token`. Events on `jupyter://<id>`: `{ type: status, state }`,
+  `executeInput { cellId, executionCount }`, `output { cellId, output, rendered, displayId? }`,
+  `updateDisplay`, `clearOutput { cellId, wait }`, `done { cellId, status, executionCount }`,
+  `disconnected`, `exited { code }`. Variables and View as DataFrame evaluate
+  `user_expressions` after the silent helper `forge_jupyter.py`. Keymap actions `Jupyter.*`
+  use the action contexts `notebook` (command and edit mode) and `notebook-command`; more
+  specific contexts win when several bindings match. The diff viewer shows `.ipynb` diffs
+  through `registerDiffRenderer`. Browser mode: `mock/jupyterMock.ts` (WebAssembly
+  `crates/forge-wasm/src/jupyter.rs`, a simulated kernel), the demo notebook
+  `notebooks/sales.ipynb` of `?project=python` (`mock/demoNotebooks.ts`).
+
+## GoForge (`packs/goforge/*`)
+
+- Plugin (`app/src-tauri/plugins/goforge.toml`): `forge.go` (`projectTypes = ["goforge"]`):
+  file types `go-mod`, `go-work`, `go-sum` (`.go` is bundled), the
+  run configuration types `go-build` and `go-remote`, the `go-test` test framework (wrapped in
+  Rust by `GoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
+  Settings | Languages & Frameworks | Go (`lang.go`, `go.*`). `forge-project` reports the
+  `go` language (pack `goforge`) for `go.mod`, `go.work`, Go files in the root or two or more
+  in a folder, and the tool `go-workspace`. gopls comes from the language server catalog.
+- Crates: `goforge-lang-go` (pure, also WebAssembly: go.mod / go.work, versions, test
+  discovery, the Go Test provider, Go Build and module command lines, go:generate, go vet /
+  golangci-lint reports, `GoContext`), `goforge-sdk` (SDK detection and go.dev/dl downloads,
+  tools and pinned `go install`, module proxy with cache), `goforge-delve` (the `go` debug
+  adapter, `dlv dap`), `goforge-pprof` (pure, also WebAssembly: profile.proto decoder and
+  views).
+- The Go context (`commands::go::context`: SDK from `go.goroot` or detection, `go.gopath`,
+  `go.goflags`, `go.buildTags`, `go.environment`, the project's modules from `go.mod` files
+  and `go.work`) reaches the Go Test provider through `CommandContext.settings["go.context"]`
+  (`run.rs::framework_command` calls `go::extend_test_context`); Go Build runs are built by
+  `go::build_run` in `run.rs::build`. Test keys are `<package folder>::<test>`; the UI's
+  `resultKeys` also keys `_test.go` failures by their folder.
+- IPC (`app/ui/src/ipc/go.ts`, `commands/go.rs`; lines 0-based, columns UTF-16 for go.mod):
+  `go_status({ refresh? }) -> { sdk?, custom, sdks, tools, modules, gopath }`,
+  `go_sdk_releases() -> { version, file }[]`, `go_sdk_download({ version }) -> GoSdk` (events
+  `go://install`: `{ message }` or `{ label, done, total }`),
+  `go_tool_install_command({ tool }) -> CommandLine`, `go_mod_parse({ path, content }) ->
+  { kind: "mod" | "work", … problems }`, `go_mod_complete({ path, content, offset }) -> { from,
+  items } | null`, `go_module_versions({ module })`, `go_module_command({ action, arg?, dir? })
+  -> CommandLine`, `go_generate_directives({ content })`, `go_generate_command({ path,
+  content, line? }) -> CommandLine`, `go_format({ path, content }) -> string | null`,
+  `go_lint({ tool: "vet" | "golangci", path? }) -> { path, line, column, severity, message,
+  source, code }[]` (trusted projects only), `go_delve_status()`, `go_debug_request({
+  configuration }) -> LaunchRequest`, `go_profile_path({ name })`, `pprof_open({ path,
+  sampleIndex? }) -> ProfileView { sampleTypes, sampleIndex, total, samples, durationNanos,
+  top, tree }`. Command lines are started by the UI through `run_start` (hidden type
+  `go-command`), so they are refused in Safe Mode.
+- Profiler: the `profiler` tool window and `ActivateProfilerToolWindow` belong to
+  `app/ui/src/features/profiler`; packs add a source with `registerProfilerSource({ id,
+  label, active, component, actions?, onActivate? })` (PyForge: cProfile snapshots, GoForge:
+  pprof) and show theirs with `showProfiler(id)`; with several active sources the window
+  shows tabs.
+- Debugging: `commands::go::sync_debug` (called from `dap.rs::sync`) registers
+  `DelveAdapter` while `forge.go` is enabled; the UI's `delve` debug launcher asks to install
+  Delve when it is missing, then `go_debug_request` + `dap_start`.
+- UI (`app/ui/src/features/go`): settings page, run configuration types (Go Test re-registered
+  from the manifest spec with profile support: `start` adds `profileFile`, `afterStart` opens
+  the Profiler), pprof profiles in the shared Profiler tool window, go.mod language,
+  problems and completion, go:generate line markers, the format provider and go vet /
+  golangci-lint on save (`editor.ts`). Browser mode: `?project=go` opens the `ledger` demo
+  (`mock/demoGoProject.ts`, `mock/goMock.ts`, `mock/goTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/go.rs`).
+## RustForge (`packs/rustforge/*`)
+
+- Plugin (`app/src-tauri/plugins/rustforge.toml`): `forge.rust` (`projectTypes =
+  ["rustforge"]`): the TOML file type also for `Cargo.lock` and `rust-toolchain` (`.rs` is
+  bundled), the run configuration type `cargo`, the `cargo-test` test framework (wrapped in
+  Rust by `CargoTestProvider`, registered in `RunState::new` and in `forge-wasm`'s registry),
+  Settings | Languages & Frameworks | Rust (`lang.rust`, `rust.*`). `forge-project` reports
+  the `rust` language (pack `rustforge`) for `Cargo.toml`, Rust files in the root or two or
+  more in a folder, and the tool `cargo`. rust-analyzer comes from the language server
+  catalog; `commands::rust::configure_analyzer` (called at the end of
+  `langservers::apply`) sets its command (toolchain component, Forge's download) and its
+  initialization options / settings from `rust.*` (`AnalyzerSettings`); setting changes call
+  `spawn_sync_analyzer`.
+- Crates: `rustforge-lang-rust` (pure, also WebAssembly: cargo metadata, toolchain files,
+  discovery, the Cargo Test provider, Cargo command lines, Clippy messages, rustfmt,
+  rust-analyzer settings, pretty printers) and `rustforge-toolchain` (rustup / toolchain
+  detection with `RUSTUP_AUTO_INSTALL=0`, rustup install command lines, the pinned
+  rust-analyzer download with SHA-256, the `rust-gdb` adapter).
+- The Cargo context (`commands::rust::context`: cargo and toolchain from the status, test
+  runner and format, `rust.environment`, features, the workspace from `cargo metadata` cached
+  in `<cache>/forge/rust/<project hash>.json` and keyed by the manifests, the project's `.rs`
+  files) reaches the provider through `CommandContext.settings["rust.context"]`
+  (`run.rs::framework_command` calls `rust::extend_test_context`); Cargo runs are built by
+  `rust::cargo_run` in `run.rs::build`; `testing.rs::test_discover` hands `.rs` files to
+  `rust::discover_file`. Test keys are `<file>::<libtest name>`; `CargoContext::location_rules`
+  maps libtest's `<crate>::<module>` locations (see `forge-output`'s libtest parsers) to the
+  module files.
+- IPC (`app/ui/src/ipc/rust.ts`, `commands/rust.rs`; lines 0-based, columns UTF-16):
+  `rust_status({ refresh? }) -> RustStatus & { chosen }`,
+  `rust_install_command({ kind: "toolchain" | "component" | "cargoPlugin", name, toolchain? })
+  -> CommandLine`, `rust_analyzer_download() -> string` (events `rust://install`),
+  `cargo_workspace({ refresh? }) -> CargoWorkspace { root, targetDirectory, members, trees }`
+  (event `rust://workspace`; trusted projects only when cargo has to run),
+  `cargo_command({ action, package?, target? }) -> CommandLine`,
+  `rust_file_targets({ path, content }) -> RunTarget[]`, `rust_format({ path, content }) ->
+  string | null`, `rust_clippy({ path? }) -> RustProblem[]` (with `fixes`: edits per file;
+  trusted projects only), `rust_debug_request({ configuration }) -> LaunchRequest` (builds
+  first; trusted projects only). Command lines are started by the UI through `run_start`
+  (hidden type `cargo-command`), so they are refused in Safe Mode.
+- Debugging: LLDB launch requests carry rustc's pretty printers as `initCommands`;
+  `commands::rust::sync_debug` (called from `dap.rs::sync`) registers the `rust-gdb` adapter
+  (GDB with the printers as `-iex` arguments) while `forge.rust` is enabled.
+- UI (`app/ui/src/features/rust`): settings page, the `cargo` tool window, run configuration
+  types `cargo` and `cargo-test`, the `rust` debug launcher, `fn main` line markers, the
+  format provider, Clippy problems with quick fixes (`registerContextActionProvider`) and
+  Clippy on save (`editor.ts`). Browser mode: `?project=rust` opens the `shop` demo
+  (`mock/demoRustProject.ts`, `mock/rustMock.ts`, `mock/rustTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/rust.rs`).
+
+## RubyForge (`packs/rubyforge/*`)
+
+- Plugin (`app/src-tauri/plugins/rubyforge.toml`): `forge.ruby` (`projectTypes =
+  ["rubyforge"]`): the `ruby` file type (replacing the bundled one: more extensions, file
+  names and shebangs, indent 2) and `gemfile-lock`; ERB (`erb`) is a bundled template type of
+  `forge-filetypes` (`erbSyntax` in `editor/templates.ts`); run configuration types `ruby` and
+  `rake`; the `rspec` and `minitest` test frameworks (wrapped in Rust by `RubyTests`,
+  registered in `RunState::new` and in `forge-wasm`'s registry); the `RuboCop` inspection
+  (source `rubocop`); Settings | Languages & Frameworks | Ruby (`lang.ruby`, `ruby.*`).
+  `forge-project` reports the `ruby` language (pack `rubyforge`) for a `Gemfile`, `Rakefile`,
+  `.ruby-version`, a gemspec, Ruby files in the root or two or more in a folder, and the tools
+  `bundler` and `rake`; New Project has `ruby-gem` (`bundle gem`) and the `ruby-script`
+  template. Ruby LSP comes from the language server catalog; `commands::ruby::configure_lsp`
+  (called at the end of `langservers::apply`) sets its command (setting, the interpreter's
+  gems, Forge's install), environment (the interpreter first on `PATH`, `GEM_PATH` for
+  Forge's install) and formatter; setting changes call `spawn_sync_lsp`.
+- Crates: `rubyforge-lang-ruby` (pure, also WebAssembly: version files, Gemfile /
+  Gemfile.lock, Rake tasks, RSpec / Minitest discovery, the provider, command lines, RuboCop
+  reports, `RubyContext`) and `rubyforge-sdk` (interpreters of version managers and the
+  system, gem executables, `command_env`, ruby-lsp installs with the user's `gem`, the `rdbg`
+  adapter). `forge-output` reads RSpec's JSON report (a `jUnitFile` report folder file,
+  sniffed by `document_events`) and Minitest's verbose output (`TestReport::MinitestText`).
+- The Ruby context (`commands::ruby::context`: the chosen interpreter, `bundle`, `bundle exec`
+  when the project has a Gemfile and `ruby.bundler.useBundleExec`, gem executables, the
+  environment, the bundle's gems) reaches the provider through
+  `CommandContext.settings["ruby.context"]` (`run.rs::framework_command` calls
+  `ruby::extend_test_context`); Ruby and Rake runs are built by `ruby::run_command` in
+  `run.rs::build`. Test keys are `<file>::<full description>` (RSpec) and
+  `<file>::<test method>` (Minitest).
+- IPC (`app/ui/src/ipc/ruby.ts`, `commands/ruby.rs`): `ruby_status({ refresh? }) ->
+  RubyStatus & { setting, bundler, lsp: { path, managed, installDir } }`,
+  `ruby_interpreter_probe({ path })`, `ruby_bundle() -> Bundle | null`,
+  `ruby_bundle_command({ action, gem? }) -> CommandLine`, `ruby_gem_install_command({ gem })`,
+  `ruby_lsp_install_command()`, `ruby_lsp_refresh()`, `ruby_rake_tasks({ refresh? }) -> {
+  tasks, source: "rake" | "files", error? }` (Rake only in trusted projects),
+  `ruby_rake_command({ task, args? })`, `ruby_file_targets({ path, content })`,
+  `ruby_irb_command()` (trusted projects only), `ruby_rubocop({ path, text? }) ->
+  RubyProblem[]` (trusted projects only), `ruby_format({ path, content, mode? }) -> string |
+  null` (`null` in Safe Mode), `ruby_debug_plan() -> { port, found, rdbg }`. Command lines are
+  started by the UI through `run_start` (hidden type `ruby-command`), so they are refused in
+  Safe Mode.
+- Debugging: a debug run passes `FORGE_RDBG_PORT` in `RunRequest.env`; `run.rs::build` takes
+  it out and `ruby::wrap_rdbg` runs the built command under `rdbg --open --host 127.0.0.1
+  --port <port> --command --` (output stays in the Run console, test runs keep their tree);
+  the UI then attaches (`attachServer`, adapter `rdbg`). `commands::ruby::sync_debug` (called
+  from `dap.rs::sync`) registers `RdbgAdapter` while `forge.ruby` is enabled. rdbg maps
+  breakpoint paths only after `attach`, so the adapter answers
+  `DebugAdapterDescriptor::breakpoints_after_request` and the session sends breakpoints after
+  the request.
+- UI (`app/ui/src/features/ruby`): Settings | Ruby (interpreters, tools with Install), the
+  interpreter status item, the `rake` tool window, External Libraries (the SDK and the
+  bundle's gems, a `registerProjectViewSection`), run configuration types `ruby`, `rake`,
+  `ruby-command`, the `rdbg` debug launcher, script ▶ markers, RuboCop diagnostics (source
+  `rubocop`) with Alt+Enter autocorrect, the format provider, the IRB console in a Terminal
+  tab (`openTerminalWith`). Browser mode: `?project=ruby` opens the `pantry` demo
+  (`mock/demoRubyProject.ts`, `mock/rubyMock.ts`, `mock/rubyTestsMock.ts`, WebAssembly
+  `crates/forge-wasm/src/ruby.rs`).
+- Rails (`forge.rails`, `depends = ["forge.ruby"]`, `projectTypes = ["rails"]`): `forge-project`
+  reports the `rails` framework (version from Gemfile.lock) for `gem "rails"` / `railties` in the
+  Gemfile plus `config/application.rb`. The crate `rubyforge-fw-rails` (pure, also WebAssembly)
+  reads routes (`routes.rb`, or `bin/rails routes` output), controllers, views, models with
+  columns from `db/schema.rb` and newer migrations, `config/database.yml` (ERB-lite), locale
+  files, Stimulus controllers and Turbo frames, and answers the editor (`editor::goto`,
+  `complete`, `marks` with gutter marks, problems and translation folds). Go to Related for
+  Rails files is part of `forge_codeintel::related` (`rails_file`).
+- Rails IPC (`app/ui/src/ipc/rails.ts`, `commands/rails.rs`; the analysed project is cached for
+  5 s): `rails_project({ refresh }) -> RailsProject` (with `routesError` when `bin/rails routes`
+  was refused or failed; it runs only with `rails.routesFromRails` in trusted projects),
+  `rails_goto({ path, content, offset }) -> Location[]`, `rails_complete({ path, content,
+  offset }) -> Completions | null` (UTF-16 offsets), `rails_marks({ path, content }) -> {
+  gutter, problems, folds }`, `rails_generators({ refresh }) -> { generators, source, message?
+  }` (`bin/rails generate` in trusted projects), `rails_generate_command({ generator,
+  arguments, options, destroy }) -> CommandLine` and `rails_console_command({ kind: "console" |
+  "dbconsole" }) -> CommandLine` (both trusted projects only; the UI runs them through the
+  hidden `ruby-command` type or a Terminal tab), `rails_add_data_sources({ environments }) ->
+  DataSourceInfo[]` (project data sources, passwords to the keychain, production colored).
+  The `rails` run configuration type is built by `rails::run_command` (`bin/rails server`) and
+  debugged like the other Ruby types (`ruby::is_ruby_type`, `wrap_rdbg`). Problems use the
+  diagnostics source `rails` with the inspections `RailsI18nMissing`, `RailsMissingView` and
+  `RailsStimulus`.
+- Rails UI (`app/ui/src/features/rails`): the `rails` view of the shared Endpoints tool window
+  (routes and models), the Run Rails Generator popup (`rails.generate`, `Ctrl+Alt+G`), the
+  consoles, the `rails` run configuration type, the database.yml balloon, Go to Declaration /
+  completion / gutter / problems / folds (`editor.ts`) and Settings | Ruby | Rails
+  (`lang.rails`). Browser mode: `?project=rails` opens the `blog` demo
+  (`mock/demoRailsProject.ts`, generated from the crate's fixture, served by the Ruby mocks and
+  `mock/railsMock.ts` through `crates/forge-wasm/src/rails.rs`).
+
+## JavaForge (`packs/javaforge/*`)
+
+- The plugin `forge.java` (`app/src-tauri/plugins/javaforge.toml`, `projectTypes = ["javaforge"]`)
+  is active for Java projects: `forge-project` reports the `java` language (and so the
+  `javaforge` pack) for a `pom.xml` (tool `maven`), a Gradle build (`build.gradle(.kts)`,
+  `settings.gradle(.kts)`, tool `gradle`), `*.java` files or a `src/main/java` / `src/test/java`
+  tree. Three crates, all with unit tests on fixtures and no network:
+  - `javaforge-build` (pure, also in `forge-wasm`; feature `net` for the desktop): the build read
+    from its files (tool, wrapper and its Gradle version, DSL, modules, JaCoCo, `application`
+    main class, test frameworks, Java release), goals and tasks, command lines (goals / tasks
+    with offline mode, Maven profiles and Skip Tests, Build Project, tests with report folders,
+    Application runs through Gradle's `forgeRun`, syncs), the tool window model (`model`:
+    static from the build files, merged with a sync: Gradle init script JSON, `mvn
+    dependency:tree`), the wrapper (`gradle-wrapper.properties`, `distributionSha256Sum`), Gradle
+    DSL and `pom.xml` completion (`dsl`), declared and outdated dependencies (`deps`, `version`)
+    and Maven Central / services.gradle.org (`central`; `net` caches in
+    `<cache>/forge/maven-central`);
+  - `javaforge-lang-java` (pure, also in `forge-wasm`): the tolerant Java scanner, `main`
+    methods, JUnit 5/4/3 and TestNG discovery, `JavaTests` (the `forge-testing` provider of the
+    `junit` / `testng` types), Application command lines and the JDT LS launch configuration
+    (`jdtls::JdtlsSetup`);
+  - `javaforge-jdk`: JDK detection from `release` files (JAVA_HOME, PATH, system folders,
+    registry, SDKMAN!, asdf, jabba, Gradle toolchains, `~/.jdks`, Forge's downloads) and Temurin
+    downloads from the Adoptium API (SHA-256), into `<data dir>/forge/jdks`.
+- Eclipse JDT LS is a pack server (`pack_servers.toml`, never started from the catalog):
+  `forge_langservers::managed::jdtls` installs the newest milestone from download.eclipse.org
+  (`latest.txt`, `.sha256`) and `managed::javadebug` Microsoft's java-debug jar from Maven Central
+  (`.sha256` or `.sha1`), with the user's consent, into `<data dir>/forge/langservers`.
+  `commands::java::sync_lsp_server` (after detection, like PHP's, and when a `java.*` setting or
+  the enabled plugins change) registers the `jdtls` server for local Java projects: `java` of a
+  JDK new enough for the installation (`required_java` from the bundle manifests: 21, or 25 for
+  newer builds), the installation read-only, OSGi configuration and `-data` in
+  `<cache dir>/forge/jdtls`, java-debug as a bundle, every JDK as a runtime. `jdtls` is in
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`. `forge-lsp` shows JDT LS's `language/status` as
+  progress. Completion, navigation, diagnostics, rename, code actions, organize imports and
+  formatting go through the shared LSP commands.
+- IPC (`commands/java.rs`, `src/ipc/java.ts`): `java_jdks({ refresh? }) -> Jdk[]`,
+  `java_jdk_inspect({ path }) -> Jdk | null`, `java_jdk_releases() -> AvailableReleases`,
+  `java_jdk_download({ feature }) -> Jdk`, `java_status() -> { jdtls?, jdtlsDir?, javaDebug?,
+  serverJdk?, projectJdk?, languageLevel?, build?, problems, remote }`, `java_jdtls_install() ->
+  version`, `java_build_info() -> { project, goals, program } | null`, `java_reload_project()`
+  (`java/projectConfigurationsUpdate` for the build files), `java_main_methods({ path, text }) ->
+  MainMethod[]`, `java_debug_prepare({ configuration }) -> { dapPort, hostName, jdwpPort, run }`.
+  Installs report `java://install` `{ id: "jdtls" | "jdk", event }` (`managed::Event`).
+  `commands/java_build.rs`: `java_build_model() -> BuildModel | null` (the static model with
+  the cached sync over it), `java_sync_project() -> BuildModel` (Gradle `-I
+  <cache>/forge/javaforge/forge-model.gradle forgeModel`, Maven `dependency:tree -DoutputFile`;
+  output on `java://sync` `{ line, stderr }`; refused in Safe Mode and on remote projects; the
+  result cached in `<cache>/forge/javaforge/sync/<hash>.json`; JDT LS re-imports afterwards),
+  `java_sync_cancel()`, `java_wrapper_info() -> { wrapper, path } | null`,
+  `java_wrapper_verify() -> "notSet" | "matches" | "mismatch" | "unknown"`,
+  `java_wrapper_update({ version? }) -> GradleWrapper` (rewrites the properties with the
+  published SHA-256), `java_build_complete({ path, text, offset }) -> SchemaCompletion | null`,
+  `java_build_outdated({ path, text }) -> OutdatedDependency[]`, `java_build_workspace({ full })
+  -> status` (Build Project with "Build and run using: IntelliJ IDEA").
+- Runs (`run.rs`): `java-application`, `maven`, `gradle` and `jvm-remote-debug` are built by
+  `commands::java::command_line` (the configuration's or project JDK, `JAVA_HOME` for the build
+  tools, wrapper or configured executable); `junit` / `testng` configurations are filled with
+  the build (`commands::java::prepare`: `buildTool`, `buildProgram`, `buildDir`, `gradlePath`,
+  …) and built by `JavaTests`. Application runs without a class path ask java-debug
+  (`vscode.java.resolveClasspath`, after `java/buildWorkspace`) in `run_start`. A debug run sets
+  `FORGE_JAVA_DEBUG_PORT` in its environment; the backend turns it into the JDWP agent
+  (`-agentlib:jdwp=…,suspend=y`), Gradle's `--debug-jvm` or Surefire's `-Dmaven.surefire.debug`.
+  With `java.gradle.buildAndRunUsing = gradle` (the default) Application configurations of
+  Gradle builds run `forgeRun` of the init script `forge-run.gradle` (cache dir) instead; with
+  `java.gradle.runTestsUsing = idea` JUnit runs on the JUnit Platform Console Launcher with the
+  class path java-debug resolves for the test class (`runner = junit`). Gradle runs get
+  `JAVA_HOME` from `java.gradle.jvm` (else the project JDK); `java.gradle.distribution` picks
+  the wrapper, a Gradle home or `gradle` on the PATH.
+  All of it starts in `run::start_built`, so Safe Mode refuses it.
+- Debugging: the manifest declares the `java` debug adapter without a command (a DAP server).
+  `java_debug_prepare` sends java-debug's settings (hot code replace) and
+  `vscode.java.startDebugSession` to JDT LS; the UI (`features/java/debug.ts`) starts the run,
+  waits for "Listening for transport dt_socket" and calls `dap_start` with `attachServer` (the
+  DAP port) and `{ hostName, port }` (JDWP). Remote JVM Debug only attaches.
+- UI (`app/ui/src/features/java`): settings pages `build.jdks` (custom), `build.tools`,
+  `build.tools.gradle`, `build.tools.maven`, `lang.java` (status and install), the run
+  configuration types, the Run gutter on `main` and `RunClass`, `CompileDirty` (Build Project),
+  `java.reloadProject` / `java.syncProject`, `java.executeTask`, `java.updateWrapper`,
+  `java.downloadJdk`, `java.installLanguageServer`, the `gradle` / `maven` tool windows
+  (`BuildToolWindow.tsx` on `BuildTree.tsx`: tasks, dependency trees, run configurations,
+  profiles, offline / Skip Tests toggles; `ExecuteDialog.tsx`), the Gradle page with the wrapper
+  (`GradlePage.tsx`), build script completion and the newer-version inspection with its quick
+  fix (`buildScripts.ts`), the install offer (`java.jdtls.autoInstall`) and its status bar
+  progress. Browser mode: `?project=java` opens the Gradle demo `inventory-service`
+  (`?build=maven` the Maven variant; `mock/demoJavaProject.ts`, `javaMock.ts`,
+  `javaDebugMock.ts`, recorded sync and Maven Central data).
+
+## KotlinForge (`packs/kotlinforge/lang-kotlin`)
+
+- The plugin `forge.kotlin` (`app/src-tauri/plugins/kotlinforge.toml`, `projectTypes =
+  ["kotlinforge"]`, depends on `forge.java`) is active for Kotlin projects: `forge-project`
+  reports the `kotlin` language for `*.kt` files, Kotlin scripts (not `*.gradle.kts`),
+  `src/{main,test}/kotlin` or a build applying the Kotlin plugin, and the `kotest` framework for
+  builds depending on `io.kotest`. JDKs, builds and the JUnit / TestNG machinery are JavaForge's.
+- `kotlinforge-lang-kotlin` (pure, also in `forge-wasm`): the tolerant Kotlin scanner
+  (`source`), `main` functions (file facades `MainKt`, `@file:JvmName`, `@JvmStatic` in objects
+  and companions) and JUnit / TestNG discovery (`discovery`), Kotest specs (`kotest`: FunSpec,
+  StringSpec, DescribeSpec, BehaviorSpec), `KotlinTests` (the `forge-testing` provider of
+  `kotest`, which also discovers JUnit tests in `.kt` files as `junit` / `testng` configurations
+  with `language = kotlin`), Kotlin/JVM and script command lines (`launch`: Gradle init script
+  with a `forgeRunKotlin` `JavaExec`, Maven `exec:java`, `kotlinc`; `kotlin` / `kotlinc
+  -script`), the server launch (`lsp`), ktlint / detekt reports (`lint`: ktlint JSON,
+  Checkstyle, SARIF) and coroutine dumps (`coroutines`).
+- Language servers (pack servers in `pack_servers.toml`): JetBrains' kotlin-lsp, installed by
+  `forge_langservers::managed::kotlin` with the user's consent from download.jetbrains.com
+  (pinned version and SHA-256 per platform, never bundled), or fwcd's kotlin-language-server from
+  the PATH. `commands::kotlin::sync_lsp_server` registers one of them for local Kotlin projects
+  (`kt` and `main.kts`; Gradle scripts are left to the Gradle DSL support) with `JAVA_HOME` =
+  the project JDK through `LspServerConfig::env`. kotlin-lsp only answers pull diagnostics, so
+  its config sets `LspServerConfig::pull_diagnostics`: the client announces the capability and
+  asks `textDocument/diagnostic` after `didOpen` / `didChange`, publishing the answers as
+  `LspEvent::Diagnostics`. Both ids are in `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- IPC (`commands/kotlin.rs`, `src/ipc/kotlin.ts`): `kotlin_status() -> { server, serverPath?,
+  serverVersion?, pinnedVersion, downloadSize?, ktlint?, detekt?, kotlinc?, problems, remote }`,
+  `kotlin_lsp_install() -> version`, `kotlin_linters_install() -> paths`,
+  `kotlin_main_functions({ path, text }) -> MainFunction[]`, `kotlin_lint({ path, content }) ->
+  LintProblem[]` (ktlint on stdin), `kotlin_format({ path, content }) -> string | null`,
+  `kotlin_detekt({ paths? }) -> LintProblem[]` (CLI with a SARIF report, else the project's
+  `detekt` Gradle task in trusted projects), `kotlin_debug_prepare({ configuration }) -> {
+  adapter, dapPort, hostName, jdwpPort, run }`, `kotlin_coroutines({ value }) -> CoroutineDump`.
+  Downloads report `kotlin://install` `{ id: "kotlin-lsp" | "ktlint" | "detekt", event }`.
+- Runs (`run.rs`): `commands::kotlin::command_line` builds `java-application` configurations
+  with `kotlin = true` and `kotlin-script` before JavaForge; `kotest` is one of JavaForge's test
+  types for `prepare` (build tool, program, folders, debug port) and built by `KotlinTests`
+  (Gradle `--tests` plus `kotest_filter_specs` / `kotest_filter_tests`). Everything starts in
+  `run::start_built`, so Safe Mode refuses it.
+- Debugging: the manifest declares the `kotlin` debug adapter (a DAP server, `kt` / `kts`).
+  `kotlin_debug_prepare` executes `start_debug_server` on kotlin-lsp (or delegates to
+  `java_debug_prepare` when `kotlin.debug.debugger` is `java-debug`); the UI starts the run with
+  `FORGE_JAVA_DEBUG_PORT` and attaches with `{ type: "intellij_jvm", request: "attach",
+  hostName, port }`. The Debug tool window's **Coroutines** tab is a pack tab
+  (`registerDebugTab` in `features/debug/debugTabs.ts`): it evaluates the `DebugProbes` dump in
+  the selected frame and renders `kotlin_coroutines`' answer.
+- UI (`app/ui/src/features/kotlin`): settings page `lang.kotlin`, the `kotlin-script` and
+  `kotest` run types, the Run gutter on `main` and scripts (`RunClass`), ktlint / detekt
+  diagnostics (`publishDiagnostics` sources `kotlin-ktlint` / `kotlin-detekt`), a ktlint format
+  provider and format on save, the download offer and its status bar progress. Kotlin file
+  templates are in `forge-file-templates` (group `kotlin`, `package_of_dir`). Browser mode:
+  `?project=kotlin` opens the Gradle demo `orders-service` (`mock/demoKotlinProject.ts`,
+  `kotlinMock.ts`, `kotlinDebugMock.ts`, WebAssembly `crates/forge-wasm/src/kotlin.rs`).
+
+## CForge (`packs/cforge/*`)
+
+- The plugin `forge.cpp` (`app/src-tauri/plugins/cforge.toml`, `projectTypes = ["cforge"]`,
+  depends on `forge.debugger`) is active for C/C++ projects: `forge-project` reports the `cpp`
+  language for a `CMakeLists.txt` (tool `cmake`), a `compile_commands.json` in the root or
+  `build/` (tool `compile-commands`), a `meson.build` (tool `meson`), a `Makefile` next to
+  C/C++ sources or with them in `src/` (tool `make`), or C/C++ sources. Highlighting is
+  bundled (`@codemirror/lang-cpp`, the CMake legacy mode); `.clang-format` / `.clang-tidy` /
+  `.clangd` are the file type `clang-config` (YAML). Three crates, unit-tested on recorded
+  fixtures without network:
+  - `cforge-toolchains`: `gcc -v` / `clang -v` / `cl` / `--version` parsing, `vswhere` JSON,
+    and toolchain detection (system GCC / Clang, versioned and cross compilers, MinGW-w64,
+    Visual Studio) through a `Probe` trait; the user's toolchains (`cpp.toolchains`).
+  - `cforge-cmake` (pure, also in `forge-wasm`): presets (includes, inheritance, conditions,
+    macros), profiles (`cmake.profiles`, preset profiles) and their configure / build /
+    clean command lines, the cmake-file-api query and codemodel-v2 reply, configure log
+    messages, CMakeLists completion.
+  - `cforge-lang-cpp` (pure, also in `forge-wasm`): build problems (GCC, Clang, MSVC, linkers),
+    compilation databases, GoogleTest / Catch2 discovery, `CppTests` (the `forge-testing`
+    providers of `gtest`, `catch2`, `ctest`, replacing the manifest's declarations; the
+    `CppContext` with the build folder and executable targets comes through
+    `CommandContext.settings["cpp.context"]`), gcov JSON → LCOV and the llvm-cov command
+    lines, clangd / clang-format arguments and the debugger setup with STL renderers.
+- clangd is a pack server (`pack_servers.toml`, plugin `forge.cpp`):
+  `commands::cpp::sync_lsp_server` (after detection, when `cpp.clangd.*`, `cmake.*` or the
+  toolchains change, and after a CMake reload) registers it for local C/C++ projects with
+  `--compile-commands-dir` = the active profile's build folder (or the compilation database),
+  `--clang-tidy`, `--query-driver` = the toolchain's compilers. clangd comes from
+  `cpp.clangd.path`, the toolchain's LLVM, the `PATH` or `forge_langservers::managed::clangd`
+  (the pinned GitHub release, SHA-256 from `CLANGD_BUILDS` or the GitHub API's asset digest,
+  refused without one).
+- IPC (`commands/cpp.rs`, `src/ipc/cpp.ts`): `cpp_toolchains({ refresh? }) -> Toolchain[]`,
+  `cpp_toolchain_inspect({ entry }) -> Toolchain`, `cmake_profiles() -> { profiles, active,
+  presetFiles, presetErrors }`, `cmake_state() -> CMakeState { root, profile, buildDir, status:
+  noCMake | notLoaded | loading | loaded | failed, model?, messages, log }` (reads an existing
+  reply without running CMake), `cmake_reload({ resetCache? }) -> CMakeState` (trusted projects
+  only; writes the file API query, runs the configure, streams `cmake://log` `{ line, stream }`
+  and emits `cmake://state`), `cmake_cancel()`, `cmake_build_command({ action: build |
+  rebuild | clean, targets? }) -> CommandLine` (started by the UI through `run_start`, hidden
+  type `cpp-build`), `cpp_build_problems({ output }) -> BuildProblem[]` (with project paths),
+  `cpp_target_of({ configuration }) -> string | null` (the target to build first),
+  `cpp_debug_request({ configuration }) -> LaunchRequest`, `cpp_status({ refresh? })`,
+  `cpp_clangd_install()` (events `cpp://install`), `cpp_format({ path, content })`
+  (clang-format on stdin), `cmake_complete({ text, offset })`.
+- Runs (`run.rs`): `cmake-app` configurations are built by `commands::cpp::app_run` (the
+  target's artifact from the model); test configurations get the C++ context
+  (`cpp::extend_test_context`, which also removes stale `.gcda` files for coverage runs).
+  Run with Coverage: `testing::record_coverage` calls `cpp::collect_coverage` for
+  `coverage.collect.kind = "cpp"`: Clang's `.profraw` (`llvm-profdata merge`, `llvm-cov
+  export -format=lcov`) or gcov's `.gcda` (`gcov --json-format --stdout`, converted in Rust).
+  Everything starts in `run::start_built`, so Safe Mode refuses it.
+- Debugging: `cpp_debug_request` launches the target's executable (tests with their filter)
+  under the toolchain's GDB or LLDB of `forge.debugger`, with `adapterArgs` (GDB: `set print
+  pretty on` and libstdc++'s printers from `<prefix>/share/gcc*/python`) or `initCommands`
+  (LLDB's C++ formatters); cross toolchains set `adapterCommand` (`gdb-multiarch`).
+- UI (`app/ui/src/features/cpp`): settings pages `build.toolchains` and `build.cmake`
+  (custom, editing `cpp.toolchains` / `cmake.profiles` in the Settings draft) and `lang.cpp`,
+  the `cmake` tool window (profiles, targets, configure log with links), the Problems tab
+  "Build", Build Project (`CompileDirty`, wrapping JavaForge's), Rebuild, Clean, Build
+  Target, Reload / Reset Cache, Download clangd, the `cmake-app`, `cpp-build` and the
+  manifest's test types (building their target first), the `cforge` debug launcher, CMake
+  completion, clang-format and reload on change. Browser mode: `?project=cpp` opens the
+  `shapes` demo (`mock/demoCppProject.ts`, `cppMock.ts`, `cppDebugMock.ts`; `&build=broken`
+  for a failing build; WebAssembly `crates/forge-wasm/src/cpp.rs`).
+- CForge v2: two more pure crates (also in `forge-wasm`, `crates/forge-wasm/src/cpp_tools.rs`):
+  - `cforge-analyzers`: sanitizer reports (ASan, LSan per leak, TSan, MSan, UBSan `runtime
+    error:` lines) with titled stacks, Valgrind Memcheck XML (errors, `auxwhat` stacks, leak
+    summary), `perf record` / `perf script` command lines and `perf script` output as a
+    `goforge_pprof::Profile` (the Profiler's views), frames mapped onto the project.
+  - `cforge-embedded`: `platformio.ini` and the PlatformIO task commands, ESP-IDF (`idf.py`)
+    and Zephyr (`west`) detection and commands, OpenOCD's GDB server / `program` command
+    lines, CMSIS-SVD parsing (`derivedFrom`, clusters, `dim`) with `read_ranges` / `decode`.
+  - `cforge-cmake` gained `sanitizers` (profile option `sanitizers`, `-fsanitize` flags
+    appended to the options' flags, `Profile.sanitizerError`, run environment) and `packages`
+    (vcpkg root and toolchain file, port completion, `conan install` and
+    `conan_toolchain.cmake`; `ConfigureContext.package_toolchain` becomes
+    `CMAKE_TOOLCHAIN_FILE` unless the profile sets one).
+- Runs (`commands/cpp_tools.rs`): `run_start` adds an observer to CMake Application, Google
+  Test, Catch2 and CTest runs that collects the output and emits `{ type: "sanitizer",
+  reports }` on `run://<runId>` before `exited`. `RunRequest.nativeTool: "valgrind" | "perf"`
+  wraps a CMake Application / Google Test / Catch2 command (`valgrind --tool=memcheck
+  --xml=yes --xml-file=<temp>` / `perf record -o <temp>`; local projects, perf on Linux only)
+  and emits `{ type: "valgrind", report | error }` / `{ type: "perf", profile: { title, view }
+  | error }` at the exit (`TestSetup.native`). IPC: `cpp_sanitizer_reports({ output })`,
+  `cpp_native_tools() -> { valgrind, perf, valgrindUnsupported, perfUnsupported, remote }`,
+  `cpp_valgrind_open({ path })`, `cpp_packages() -> PackageManagers`, `cpp_vcpkg_complete({
+  text, offset })`, `cpp_conan_install_command() -> CommandLine`, `cpp_clangd_restart()`.
+- Embedded (`commands/embedded.rs`): `embedded_info() -> { kinds, platformio, espIdf, zephyr
+  }`, `pio_command({ env, task })`, `idf_command({ action })` / `west_command({ action, board?
+  })` (interactive actions call `require_trusted`; the UI runs them in the terminal),
+  `cpp_embedded_launch({ configuration }) -> { server?, download?, request, svd?, elf }` for
+  the `openocd` and `embedded-gdb-server` types (GDB through `forge-dap` with `LaunchMode::
+  AttachPort` and `configuration.target` = `host:port`, i.e. `target remote`),
+  `cpp_svd_peripherals({ path }) -> DeviceSummary` and `cpp_svd_read({ path, peripheral,
+  sessionId }) -> RegisterValue[]` (reads through `DapSession::read_bytes`). Command lines
+  start through `run_start` (hidden type `cpp-tool`), so Safe Mode refuses them.
+- UI: `features/cpp/analysis.tsx` (the Sanitizers and Valgrind result panels, the editor
+  highlights of the selected problem, Run | Run with Valgrind Memcheck / Profile with perf,
+  Conan Install, the perf source of the Profiler, pages `build.analysis` and
+  `build.packages`), `features/cpp/embedded.tsx` (the `platformio` tool window, Tools |
+  ESP-IDF and Zephyr, the `openocd` / `embedded-gdb-server` types with the `cforge-embedded`
+  debug launcher, the Debug tool window's Peripherals tab, page `build.embedded`). Browser
+  mode: `cppToolsMock.ts`, `embeddedMock.ts`, `?project=pio` (`demoPioProject.ts`).
+## DotNetForge (`packs/dotnetforge/*`)
+
+- The plugin `forge.dotnet` (`app/src-tauri/plugins/dotnetforge.toml`, `projectTypes =
+  ["dotnetforge"]`, depends on `forge.debugger`) is active for .NET projects: `forge-project`
+  reports `csharp` / `fsharp` / `vbnet` for `.sln` / `.slnx` (the languages of their
+  projects), `.csproj` / `.fsproj` / `.vbproj` (tool `dotnet`), C# / F# sources or
+  `global.json`, and the framework `aspnetcore` for `Microsoft.NET.Sdk.Web` projects. C#, F#
+  and VB highlighting is bundled; the manifest adds the file types `msbuild` (XML), `sln`
+  (its own stream parser) and `razor` (HTML), the `.NET Project` run type, the `dotnet-test`
+  test framework (wrapped by `DotnetTests`, registered in `RunState::new` and `forge-wasm`'s
+  registry), the `coreclr` debug adapter (netcoredbg, `--interpreter=vscode`), Settings |
+  Languages & Frameworks | .NET (`lang.dotnet`, `dotnet.*`) and the inspection `DotnetBuild`
+  (source `dotnet-build`).
+- Crates: `dotnetforge-lang-dotnet` (pure, also WebAssembly: `.sln` / `.slnx`, MSBuild
+  evaluation with `Directory.Build.props` and central package management, launch profiles,
+  `global.json` and SDK selection, build output problems, the C# / F# test scanner, the
+  provider with filters and TRX, command lines, `dotnet new list`, NuGet answers and
+  versions, `dotnet format` reports, the Roslyn setup) and `dotnetforge-sdk` (host / SDK
+  detection with `dotnet --list-sdks`, netcoredbg and Roslyn locations, the NuGet feed client
+  with a cache in `<cache>/forge/nuget`). TRX reports are read by `forge-output`
+  (`formats/trx.rs`, sniffed by `document_events`; report folders also pick up `.trx`).
+- The .NET context (`commands::dotnet::context`: the dotnet host, configuration, verbosity,
+  `dotnet.environment`, the workspace's projects, test classes → files) reaches the provider
+  through `CommandContext.settings["dotnet.context"]` (`run.rs::framework_command` calls
+  `dotnet::extend_test_context`); `.NET Project` runs are built by
+  `dotnet::run_command_line`; `testing.rs::test_discover` hands `.cs` / `.fs` files to
+  `dotnet::discover_file`. Test keys are `<file>::<method>`; TRX suites are located by class
+  full name and `DotnetContext::location_rules` map them to files.
+- IPC (`app/ui/src/ipc/dotnet.ts`, `commands/dotnet.rs`; lines and columns 0-based):
+  `dotnet_status({ refresh? }) -> { host, hosts, sdks, runtimes, sdk, requestedSdk,
+  problems, install, roslyn?, roslynProblem?, roslynVersion, roslynSize?, netcoredbg?,
+  netcoredbgProblem?, netcoredbgVersion, remote }`, `dotnet_roslyn_install() -> version`,
+  `dotnet_netcoredbg_install() -> version` (events `dotnet://install` `{ id, event }`),
+  `dotnet_workspace({ refresh? }) -> DotnetWorkspace` (event `dotnet://workspace`),
+  `dotnet_command({ action, target? }) -> CommandLine`, `dotnet_build_problems({ output }) ->
+  BuildReport`, `dotnet_templates() -> { templates, fromSdk, error? }` (`dotnet new list` in
+  the temp folder), `dotnet_new_project({ request }) -> CommandLine[]`, `nuget_search({
+  query, prerelease?, skip?, take? }) -> SearchResult`, `nuget_versions({ id })`,
+  `nuget_updates({ prerelease? }) -> PackageUpdate[]`, `nuget_command({ action, project,
+  package, version?, prerelease? }) -> CommandLine`, `dotnet_format({ path, content }) ->
+  string | null` (`dotnet format whitespace --folder` on a temporary copy with the file's
+  `.editorconfig` chain; trusted projects only), `dotnet_cleanup_command({ paths? }) -> {
+  command, reportDir }`, `dotnet_format_report({ reportDir }) -> FormatChange[]`,
+  `dotnet_debug_request({ configuration }) -> LaunchRequest` (builds, finds the assembly in
+  the build output, `dotnet <assembly>` under netcoredbg with the launch profile's
+  environment; trusted projects only), `dotnet_attach_request({ pid, name? })`. Command
+  lines are started by the UI through `run_start` (hidden type `dotnet-command`), so Safe
+  Mode refuses them; builds' output becomes the Build tool window's problems.
+- Language server: the Roslyn server (`Microsoft.CodeAnalysis.LanguageServer`) is a pack server
+  (`pack_servers.toml`, id `roslyn`), downloaded by `forge_langservers::managed::roslyn` with
+  the user's consent from Microsoft's `vs-impl` feed (pinned version, SHA-256 per platform).
+  `commands::dotnet::sync_lsp_server` (after detection and when `dotnet.roslyn.*`,
+  `dotnet.path`, `dotnet.solution`, `dotnet.environment` or `dotnet.configuration` change)
+  registers it for local C# projects: `dotnet <dll> --logLevel Information
+  --extensionLogDirectory <cache>/forge/roslyn/logs --stdio`, pull diagnostics, settings
+  answered to `workspace/configuration` (`csharp|background_analysis.*`, inlay hints) and
+  `LspServerConfig::after_initialized` = `solution/open` (or `project/open`). It replaces
+  `csharp-ls` (`configure_servers` after `langservers::apply`). `roslyn` and
+  `fsautocomplete` are in `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- UI (`app/ui/src/features/dotnet`): settings page `lang.dotnet`, the `dotnet-build` (Build)
+  and `nuget` (NuGet) tool windows, the `dotnet`, `dotnet-test` and hidden `dotnet-command`
+  run types, the `dotnet` debug launcher (tests: `VSTEST_HOST_DEBUG=1`, attach to the test
+  host's process id), Build Project (`CompileDirty`) / Build / Rebuild / Clean Solution,
+  Restore, Reload Solution, Add Project from Template…, Manage NuGet Packages, Install .NET
+  SDK…, the downloads, Code Cleanup (`CodeCleanup` wraps the core cleanup with `dotnet
+  format`) and the `dotnet format` format provider (`editor.ts`). The New Project wizard's
+  `.NET Project` generator lives in `forge-project`. Browser mode: `?project=dotnet` opens
+  the `Bookstore` demo (`mock/demoDotnetProject.ts`, `dotnetMock.ts`, `dotnetTestsMock.ts`;
+  `&build=broken`, `&roslyn=missing`; WebAssembly `crates/forge-wasm/src/dotnet.rs`).
+
+## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
+
+- The plugin `forge.spring` (`app/src-tauri/plugins/spring.toml`, depends on `forge.java`,
+  `projectTypes = ["spring-boot", "jakarta-ee"]`) is active when `forge-project` reports the
+  `spring-boot` framework (the `org.springframework.boot` Gradle plugin, the
+  `spring-boot-starter-parent` / `spring-boot-dependencies` parent or BOM, starters; version from
+  `spring_boot_version`) or `jakarta-ee` (platform APIs, JAX-RS, CDI, MicroProfile in a build).
+- `javaforge-fw-spring` (pure, also in `forge-wasm`; features `jars` and `net` for the desktop):
+  the Java / Kotlin declaration scanner with annotation arguments (`scan`), the project model
+  (`model`: beans, injection points with their candidates, Spring MVC and JAX-RS endpoints, JPA
+  entities and repositories, `@ConfigurationProperties` classes as metadata, APIs, profiles,
+  configuration values, gutter markers; `Project` rescans one file), configuration files and
+  relaxed binding (`config`), metadata (`metadata`), completion / inspections / hover / goto
+  (`assist`), the jars of the sync or the local Maven / Gradle caches with enum constants from
+  class files (`jars`), the run configuration and console observation (`run`), the actuator
+  (`actuator`), the run dashboard (`dashboard`) and runtime-merged rows plus `.http` requests
+  (`views`).
+- IPC (`commands/spring.rs`, `src/ipc/spring.ts`): `spring_model({ refresh? }) ->
+  SpringOverview { spring, jakarta, beans: BeanRow[], endpoints: EndpointRow[], entities,
+  configClasses, applications, apis, profiles, configFiles, metadata: { properties, sources,
+  problems }, runtime? }` (the model is cached for 10 s and scanned through
+  `Backend::collect_files`; a running application's actuator adds `live` rows and `runtime`
+  beans and mappings), `spring_gutter({ path, content }) -> Marker[]` (`{ line, kind: "bean" |
+  "injection" | "endpoint" | "entity" | "repository" | "configProperties", title, targets: {
+  path, line, column, preview }[], endpoints? }`), `spring_config_complete({ path, content,
+  offset }) -> { from, replaceFrom, replaceTo, items, incomplete } | null` (the JSON Schema
+  completion item shape), `spring_config_inspect({ path, content }) -> { from, to, severity,
+  message, code: "unknownProperty" | "deprecatedProperty" | "invalidValue", replacement?, fix?
+  }[]`, `spring_config_hover`, `spring_config_goto -> Location[]`, `spring_http_request({
+  endpoint }) -> string`, `spring_dashboard() -> ServiceNode[]`, `spring_dashboard_details({
+  nodeId }) -> ServiceDetails | null`. Offsets are UTF-16. `spring://dashboard` is emitted when a
+  Spring Boot run changes. The jars' metadata is cached by jar path and modification time.
+- Runs: the `spring-boot` type (options `mainClass`, `activeProfiles`, `overrideProperties`,
+  `exposeActuator`, `jdk`, `module`, `kotlin`) becomes JavaForge's `java-application` in
+  `run_start` / `run::build` (`commands::spring::to_application`, `run::launch`), so Gradle's
+  `forgeRun`, JDT LS class paths, Kotlin applications and the Java debugger apply.
+  `run_start` registers a `RunObserver` (`RunState::observers`) that `start_built`'s sink
+  calls with every event; `commands::spring::track_run` feeds the output to `run::Observed`
+  per configuration. `spring_dashboard_details` asks `/actuator/health|beans|mappings` on
+  127.0.0.1 (management port and base path from the configuration) with a 1.5 s timeout,
+  cached for `spring.dashboard.refreshSeconds`.
+- UI (`app/ui/src/features/spring`): the "Spring and JAX-RS" view of the shared Endpoints tool
+  window (`registerEndpointsView`) and the Spring tool window (right: Beans, Persistence,
+  Configuration), gutter icons and the configuration file editor
+  support (`editor.ts`: completion with `toOption` of the JSON Schema feature, diagnostics
+  source `spring-config`, hover, `registerDeclarationProvider`, the deprecated-key quick fix),
+  the Spring Boot run type and ▶ on `@SpringBootApplication` (`runType.tsx`), the Services
+  provider (`dashboard.ts`), settings page `lang.java.spring-boot`. "Open in HTTP Client" creates
+  an `.http` scratch (`openHttpRequest` in `features/scratches/store.ts`). Browser mode:
+  `?project=spring` (`mock/demoSpringProject.ts` over the Java demo, `springMock.ts`,
+  WebAssembly `crates/forge-wasm/src/spring.rs`).
+
+## JavaForge JVM extras: Groovy, Scala and Android (`packs/javaforge/{lang-groovy,lang-scala,android}`)
+
+- Three plugins of the `javaforge` pack, each depending on `forge.java`:
+  `app/src-tauri/plugins/javaforge-groovy.toml` (`forge.groovy`, `projectTypes = ["groovy"]`),
+  `javaforge-scala.toml` (`forge.scala`, `["scala"]`) and `javaforge-android.toml`
+  (`forge.android`, `["android"]`). `forge-project` reports the `groovy` language (Groovy
+  sources or the `groovy` plugin; `spock` for `org.spockframework`), the `scala` language (sbt
+  builds with the tool `sbt`, Scala sources, Gradle's `scala` plugin; `scalatest` / `munit`) and
+  the `android` framework (the Android Gradle Plugin or `src/main/AndroidManifest.xml`, AGP
+  version from `gradle/libs.versions.toml`); `groovy` and `scala` map to the `javaforge` pack.
+  `*.gy` and `*.sbt` are bundled file type extensions (Groovy, Scala).
+- Crates (pure, also in `forge-wasm` as `jvm_extras.rs`, tests on fixtures, no network, sbt or
+  devices): `javaforge-lang-groovy` (scanner, Spock, `SpockTests`, Groovy Script command lines,
+  Groovy SDK lookup), `javaforge-lang-scala` (scanner, main objects, ScalaTest / MUnit suites,
+  `ScalaTests`, the sbt model from `build.sbt` and from sbt's output, sbt command lines, the
+  pinned Metals version and Coursier arguments) and `javaforge-android` (Android modules,
+  manifests, SDK lookup, adb / emulator / ps output, the Android App run chain, Logcat parsing,
+  process packages, stack trace links, the query language and the ring buffer).
+- Gradle source sets: `javaforge_build::model::ProjectModel::source_sets` (conventions of the
+  applied plugins, Gradle's `sourceSets` from the sync init script) show in the Gradle and Maven
+  tool windows; `JavaTests`' `build_command` takes `language = groovy` for Spock.
+- IPC: `commands/groovy.rs` (`groovy_status() -> { groovy?, source?, version?, gradleGroovy,
+  runner }`, `groovy_runnable({ text }) -> { script, mains }`); `commands/scala.rs`
+  (`scala_status() -> { metals?, metalsVersion?, pinnedVersion, coursier?, sbt?, problems,
+  remote }`, `scala_metals_install() -> version` (the user's `cs bootstrap` into `<data
+  dir>/forge/langservers/metals/<version>`, output on `scala://install`), `scala_main_objects({
+  text })`, `scala_sbt_model() -> SbtBuild | null`, `scala_sbt_import() -> SbtBuild` (sbt
+  `projects` and `show …` in batch mode, output on `scala://sbt`, cached in
+  `<cache>/forge/javaforge/sbt`; refused in Safe Mode and on remote projects),
+  `scala_sbt_cancel()`); `commands/android.rs` (`android_status() -> { sdk?, adb?, emulator?,
+  hint?, modules, remote }`, `android_devices() -> { devices, avds, adb?, emulator?, hint?,
+  error? }`, `android_emulator_start({ avd })`, `android_logcat_start({ serial, query? })`,
+  `android_logcat_view({ query, limit? }) -> LogcatView`, `android_logcat_stop()`,
+  `android_logcat_clear()`; new matching entries on `android://logcat` `{ serial, entries,
+  cleared?, ended? }`). adb and the emulator are the user's SDK tools and run locally (local
+  projects only); the SDK is never downloaded (`sdk::NO_SDK_HINT`).
+- Language server: Metals is a pack server (`pack_servers.toml`) registered by
+  `commands::scala::sync_lsp_server` for local Scala projects (setting, Forge's install, PATH;
+  `JAVA_HOME` = the project JDK, `metals.sbtScript`); `metals` is in
+  `forge_trust::SERVERS_RUNNING_PROJECT_CODE`.
+- Runs (`run.rs`): `jvm_extras_command_line` builds `groovy-script` (groovy, or Gradle's
+  `forgeRunGroovy` init script task), `sbt-task` (tasks or the sbt shell) and `android-app`
+  (`assemble<Variant>`, `adb install -r -t`, `am start`, chained in `sh -c` / `cmd /c`) before
+  KotlinForge and JavaForge; `spock` is one of JavaForge's test types for `prepare`, `scalatest`
+  / `munit` are filled by `commands::scala::prepare` (sbt, the project of the file) and built by
+  `ScalaTests` (`testOnly`, reports in `target/test-reports`). Everything starts in
+  `run::start_built`, so Safe Mode refuses it.
+- UI: `features/groovy` (settings page `lang.groovy`, Groovy Script and Spock run types, the Run
+  gutter on scripts and mains), `features/scala` (settings page `lang.scala`, the `sbt` tool
+  window `SbtToolWindow.tsx` on JavaForge's `BuildTree`, sbt Task / ScalaTest / MUnit run types,
+  the Run gutter on main objects, the Metals offer), `features/android` (settings page
+  `lang.android`, the `android-devices` (Device Manager) and `logcat` tool windows, the Android
+  App run type, the SDK hint). Browser mode: `?project=scala` (sbt demo `shop`,
+  `mock/demoScalaProject.ts`, `jvmExtrasMock.ts`) and `?project=android` (`notes-app` with a
+  Groovy script, `mock/demoAndroidProject.ts`, `androidMock.ts`; `&android-sdk=missing`).
+
 ## Scripting and config language packs
 
-- `app/ui/src/features/languages/` holds the packs for Bash, Python, YAML, JSON, INI, `.conf`,
+- `app/ui/src/features/languages/` holds the packs for Bash, Python (with pip requirements files; PyForge adds the rest, see above), YAML, JSON, INI, `.conf`,
   dotenv, ignore files, Dockerfile, Docker Compose, Postfix (`main.cf`, `master.cf`), E-Mail and
   Symfony services. Each file calls `registerLanguage` (the syntax mode for a file type id; same
   ids replace the built-in modes in `src/editor/languages.ts`) and `registerEditorExtension`; `shared.ts` has the stream parser token
@@ -1472,18 +3403,44 @@ plugin manifest entry, and the chat UI needs no changes:
   `code_style_post_format({ request: { fileType, original, text } }) -> string`. The pages
   keep the edited schemes as a draft of the Settings dialog (`registerDraftSource` in
   `features/settings/dialogState.ts`). `editor_file_format`, the PHP code style and
-  Intelephense's settings read the selected scheme (`forge_codestyle::effective_settings`);
+  the `intelephense.*` settings for php-lsp read the selected scheme (`forge_codestyle::effective_settings`);
   `lsp_format({ path, tabSize, insertSpaces, languageId })` pushes the language's options to the
   server (`forge_codestyle::lsp::settings_patch`, `LspClient::update_settings`, which also
   answers later `workspace/configuration` requests), and `lua_format` passes StyLua's options
   when the project has no `stylua.toml`.
-- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (Intelephense's
-  `format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
+- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (php-lsp's
+  `intelephense.format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
   line pass after Reformat Code. Format post-processors (`registerFormatPostProcessor(fn,
   order)` in `features/lsp/format.ts`) run after the language server or a format provider and
   get the text before formatting too; the code style pass runs last (order 100).
   Composer (`phpforge_lang_php::composer`): `php_language_level() -> { level, fromComposer }`,
   `php_composer_outdated() -> OutdatedPackage[]`.
+- Optimize Imports and Auto Import (`phpforge_lang_php::imports`, `forge_codeintel::imports`,
+  `app/src-tauri/src/commands/imports.rs`, UI `features/imports/`, client `src/ipc/imports.ts`):
+  `imports_optimize({ path, content }) -> { edit: TextEdit | null, message }` (PHP with the
+  import style; JS/TS/Vue through the TypeScript server's `source.organizeImports`);
+  `imports_optimize_paths({ paths, includeSubdirectories, onlyVcsChanged, buffers? }) -> { edit:
+  WorkspaceEdit, files, changed, message }` (Project view, applied as one undo step);
+  `php_import_hint({ path, content, offset }) -> UnresolvedClass | null` (the import popup);
+  `php_import_reference({ content, start, end, fqn, doc?, auto? }) -> { start, end, newText }[]`
+  (the chosen class of "Class to Import" and completed class names: import or FQN);
+  `php_imports_on_the_fly({ path, content, request: { caret, editedFrom?, editedTo?, add,
+  optimize } }) -> { edits, added, removed }`; `code_imports_on_the_fly({ path, content, add,
+  optimize, caret, edited? }) -> WorkspaceEdit | null` (TypeScript server's
+  `source.addMissingImports` / `source.removeUnusedImports`, only away from the edit). Offsets
+  UTF-16. The import style (`ImportStyle`: code style `php.codeStyle.imports.*` and
+  `php.autoImport.*`) reaches the refactorings through `imports::style::set_default` (kept
+  current from settings changes and project opening) and remote intentions through
+  `GenerateOptions.style.imports`; every `use` statement is inserted by
+  `imports::insert_imports`. Unresolved classes come from the backend's index
+  (`PhpBackend::unresolved_classes`, agent call `PhpCall::UnresolvedClasses`) plus PHP's own
+  classes from the stubs; "Import class" is built in `code_context_actions` (the ambiguous one
+  is the action `PhpImportClass` with `{ start, end, name, doc, candidates }`). Completion
+  items carry `additionalTextEdits`; `registerCompletionApplyHook` lets PHP replace the
+  server's `use` edit. The JavaScript settings `javascript.autoImport.pathStyle` /
+  `typeImports` become the TypeScript server's `importModuleSpecifierPreference` /
+  `preferTypeOnlyAutoImports` (`forge-langservers`). Browser mode: notifications, edits and
+  folder targets through WebAssembly, the PHP analysis approximated in `mock/importsMock.ts`.
 - Actions on Save (`crates/forge-save-actions`, `phpforge_lang_php::{imports, rearrange,
   cleanup}`, UI `features/actionsOnSave/`): `saveFile(path, trigger)` in `state/editor.ts` takes
   a `SaveTrigger` (`"explicit"` for `Ctrl+S`, `"autosave"`, `"plain"` for saves of other
@@ -1494,9 +3451,11 @@ plugin manifest entry, and the chat UI needs no changes:
   post-processors, without touching the document) and
   `save_actions_changed_lines({ path, original, formatted }) -> string` (HEAD through the
   backend's repo); `save_actions_php({ text, actions }) -> { text, applied }`; after the file is
-  written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs ESLint,
-  Prettier, PHP CS Fixer and Pint through `Backend::start_process` (rolling back a failing
-  tool); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
+  written `save_actions_run_tools({ path, tools }) -> { changed, outcomes }` runs Biome,
+  ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Pint through
+  `Backend::start_process` (rolling back a failing tool; `forge_save_actions::tools::run_tools_with`
+  lets the app give the PHP tools their Quality Tools arguments and PHP interpreter, see "PHP
+  quality tools", and the web tools their package and Node.js, see "Web code quality tools"); `save_actions_info() -> { fileTypes, tools }` feeds the settings page. The editor gets
   the combined result as one transaction (`applyLineChanges` with `isolateHistory`), only
   when nobody typed meanwhile. Browser mode: plan and changed lines through WebAssembly, the
   rest mocked (no tool runs, no writes).
@@ -1715,9 +3674,9 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
   composerJson, exists, hasLock, requirements, installed }`, `composer_markers({ path, text })
   -> OutdatedMarker[]`, `composer_complete({ path, text, offset })` (the JSON Schema completion
   shape), `composer_hover({ path, text, offset })`, `composer_search({ query })`,
-  `composer_package({ name }) -> { …PackageInfo, suggested, url }`, `composer_audit() -> {
-  advisories, abandoned, composerJson, composerLock, jsonProblems, lockProblems }`,
-  `composer_download_phar() -> path`. Packagist is reached from Rust only, while
+  `composer_package({ name }) -> { …PackageInfo, suggested, url }`,
+  `composer_download_phar() -> path`. `composer audit` runs with the vulnerable dependency
+  check (`vulnerabilities_check({ tools: ["composer"] })`, see below). Packagist is reached from Rust only, while
   `php.composer.packagist` is on, cached in `<cache dir>/forge/packagist`; project files and
   `composer audit` go through the backend (remote projects work).
 - Composer commands that change the project run as configurations of the hidden run type
@@ -1728,10 +3687,112 @@ comments and Reader mode (`app/ui/src/features/codeStructure`, user guide
 - UI (`features/composer`): the composer.json editor extension (toolbar panel, completion
   source, hover, outdated markers as a line marker provider plus weak warnings of source
   `composer-outdated`, the `Composer.UpdatePackage` context action), the Manage Composer
-  Dependencies dialog, the "Vulnerable Dependencies" Problems tab (`composer-audit` problems),
-  `Composer.*` keymap actions under Tools | Composer and the Settings page `lang.php.composer`.
+  Dependencies dialog, `Composer.*` keymap actions under Tools | Composer (Composer.Audit runs
+  the vulnerable dependency check for `composer` only) and the Settings page
+  `lang.php.composer`.
+
+## Vulnerable dependencies (`crates/forge-vulns`)
+
+- Plugin `forge.vulnerabilities` (core, `app/src-tauri/plugins/vulnerabilities.toml`):
+  the command `Vulnerabilities.Check` (Code | Analyze Code | Check for Vulnerable
+  Dependencies), the inspection `VulnerableDependencies` (external, mapped from the
+  diagnostics source `vulnerabilities`; the problem keeps the advisory's severity: critical /
+  high error, moderate / unrated warning, low weak warning) and the settings
+  `vulnerabilities.enabled`, `vulnerabilities.checkOnOpen`, `vulnerabilities.cacheHours`,
+  `vulnerabilities.dependencyCheckReport` (page `tools.vulnerabilities`, Tools | Package
+  Checker).
+- `forge-vulns` (pure, also WebAssembly): the shared model (`Vulnerability`: ecosystem,
+  package, installed, id + aliases, severity, title, affected, fixed, url, via, reachable;
+  `Notice`), parsers of each tool's JSON (`parse::parse(tool, stdout)`), `tool::detect(files,
+  read, options) -> Target[]` (one audit per ecosystem in the project root: tool, dir,
+  manifest, lockfile, files to annotate, cache inputs, `blocked`), declarations with positions
+  (`declare`), problems and the Upgrade edit (`problems`), results and cache entries
+  (`report`). It reuses the pack parsers (phpforge-composer, pyforge-lang-python,
+  goforge-lang-go, webforge-lang-web, forge-jsonschema) instead of duplicating them.
+- Tools: `composer audit --format=json [--locked]` (`forge_process::composer_program`),
+  `npm|pnpm audit --json`, `yarn audit --json` (Yarn 1) / `yarn npm audit --json --recursive`
+  (Yarn 2+), `python -m pip_audit -f json` through the project interpreter
+  (`python::python_command`), `cargo audit --json` (when `cargo-audit` is found),
+  `govulncheck -json ./...`; OWASP dependency-check is never run, its JSON report is read.
+  Executables are found with `Backend::find_executable` and run with
+  `process_io::capture` on the project's machine (remote projects work).
+- IPC (`app/ui/src/ipc/vulnerabilities.ts`, `commands/vulnerabilities.rs`; lines 0-based,
+  columns UTF-16): `vulnerabilities_check({ force, tools? }) -> { enabled, results:
+  TargetResult[] }` (refused in Safe Mode, nothing while `vulnerabilities.enabled` is off; a
+  result is reused from `<cache dir>/forge/vulnerabilities/<project>/<tool>-<dir>.json` while
+  the FNV hash of its inputs matches and it is younger than `vulnerabilities.cacheHours`,
+  unless `force`), `vulnerabilities_problems({ path, text, vulnerabilities, notices }) ->
+  FileProblem[]`, `vulnerabilities_upgrade({ path, text, package, fixed }) -> string | null`,
+  `vulnerabilities_install_command({ tool, dir, package?, fixed? }) -> CommandLine`
+  (`composer update <pkg> --with-dependencies`, `npm|pnpm|yarn install`, `pip install
+  <pkg>>=<fixed>` via `python::packages_command`, `cargo update -p`, `go mod tidy`; without
+  `package` for pip-audit: installs pip-audit itself).
+- UI (`features/vulnerabilities`): the store (results, `runCheck`, publishing the problems
+  of every annotated file as diagnostics source `vulnerabilities`), a line marker provider
+  that recomputes a manifest's problems while it is edited, the Alt+Enter actions
+  `Vulnerabilities.Upgrade` and `Vulnerabilities.OpenAdvisory`, the Problems tab
+  `vulnerabilities` ("Vulnerable Dependencies"), the hidden run configuration type
+  `vulnerabilities-command` for install steps, automatic checks on project open (after 4 s)
+  and on `fs://changed` of a manifest or lock file (debounced). Browser mode:
+  `mock/vulnerabilitiesMock.ts` with recorded `composer audit` (Laravel demo) and `pnpm
+  audit` (React demo) reports, WebAssembly `crates/forge-wasm/src/vulnerabilities.rs`.
   Browser mode runs the crate through `forge-wasm` with a demo catalog instead of Packagist
   (`mock/composerMock.ts`, `mock/demoComposer.ts`).
+
+## WordPress (`phpforge-fw-wordpress`) and CMS basics (`phpforge-fw-cms`)
+
+- Plugins `forge.wordpress` (project type `wordpress`) and `forge.cms` (`drupal`, `joomla`,
+  `shopware`); settings under Languages & Frameworks | PHP | WordPress (`wordpress.*`) and |
+  Drupal, Joomla and Shopware (`cms.*`). Both crates are pure Rust: the desktop backend and the
+  browser mode (`forge-wasm`: `wordpress_query`, `cms_query` with `{ files, query }`) answer the
+  same `api::Query`. `?project=wordpress` opens the demo plugin, `?project=drupal` the demo module.
+- `wordpress_detect()` / `wordpress_refresh() -> WordPressInfo | null` (`{ kind: "site" |
+  "composer" | "content" | "plugin" | "theme", version?, header?: { name, version?, textDomain?,
+  requiresWp?, requiresPhp? }, headerFile?, core, stubs?, wpCli?: { path, source: "project" |
+  "path" }, hooks, files }`), `wordpress_hooks() -> { name, kind: "action" | "filter", dynamic?,
+  registrations, invocations, location, summary? }[]`.
+- Editor requests carry the buffer (UTF-16 offsets): `wordpress_complete({ path, content,
+  offset }) -> { from, to, items: { label, kind, detail, info?, core? }[] } | null`,
+  `wordpress_goto(…) -> Location[]` (registration ↔ invocation, callback → function, WordPress
+  function → stubs), `wordpress_gutter({ path, content }) -> { line, kind: "registration" |
+  "invocation", hook, title, targets? }[]`, `wordpress_usages(…) -> UsagesAnswer | null` (usage
+  kinds `hookRegistration`, `hookInvocation`, `functionCall`), `wordpress_inspect({ path, content })
+  -> { from, to, message, code, fixTitle, replacement }[]` (Yoda conditions).
+- `cms_detect()` / `cms_refresh() -> { id, name, version?, kind: "site" | "extension", extension?,
+  console? }[]`, `cms_complete({ path, content, offset }) -> { from, items: { label, hook, params,
+  summary }[] } | null`, `cms_goto(…) -> { hook, location?, url } | null`, `cms_gutter({ path,
+  content }) -> { line, title, docs }[]`.
+- WP-CLI, Drush and the Shopware console run through the Command Line Tool Support
+  (`openToolConsole` in `src/features/cliTools/openTool.ts`, `cli_tools_run`, refused in Safe
+  Mode). The WordPress stubs are only used from `vendor/`; installing them is a Composer run the
+  user starts.
+
+## Command Line Tool Support (`phpforge-cli-tools`)
+
+- Plugin `forge.command-line-tools` (PHP and Composer projects): Tools | Run Command…
+  (`CommandLineToolsAction`, Ctrl+Shift+X), the "Command Line Tools Console" tool window
+  (`commandLineTools`) and Settings | Tools | Command Line Tool Support
+  (`tools.command-line-tools`; `commandLineTools.tools` is an `objects` setting with `kind`,
+  `name`, `alias`, `path`, `interpreter`, `showConsoleIn`, `enabled`;
+  `commandLineTools.autoDetect`).
+- The pure crate (also WebAssembly, `forge-wasm/src/cli_tools.rs`) holds the tool model and
+  detection, parsing of Symfony Console's `list --format=json` (Artisan, Symfony, Composer,
+  Drush, custom Symfony tools) and `wp cli cmd-dump`, console input tokenizing with UTF-16
+  offsets, completion with the command's help, the invocations and the cache fingerprint.
+- IPC (`app/ui/src/ipc/cliTools.ts`, `commands/command_line_tools.rs`): `cli_tools_list() ->
+  Tool[]` (configured, then detected), `cli_tools_commands({ alias, reload }) -> { alias,
+  commands, source: "cache" | "tool" | "builtin" | "none", error? }`, `cli_tools_complete({
+  input, offset }) -> { from, to, items, help?, hint? }` (loads the tool's commands on demand),
+  `cli_tools_run({ input, runId }) -> { runId, commandLine, alias, tool, showConsoleIn }`.
+  Lists run through the project backend (`process_io::capture`, 60 s timeout) and are cached
+  in `<cache dir>/forge/command-line-tools/<kind>-<hash>.json` until the tool's path,
+  interpreter or composer.lock changes. Scripts and `.phar` files run with the tool's PHP
+  interpreter (or the project's), programs (`composer`, `wp`) directly or inside the
+  interpreter's environment when the tool names one; runs start through
+  `commands::run::start_built`, so they stream `run://<runId>` (`console` lines with file links
+  mapped back from containers) and `run_stop` / `run_write` / `run_dispose` apply.
+- UI (`features/cliTools`): `ConsoleInput` (completion list, help panel, history, Ctrl+C),
+  the Run Command popup and the tool window with a tab per command.
 
 ## Vim emulation (`forge-vim`)
 

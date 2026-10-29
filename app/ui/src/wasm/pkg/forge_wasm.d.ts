@@ -13,6 +13,53 @@ export function agent_parse_lines(request_json: string): string;
 export function agent_profiles(): string;
 
 /**
+ * `ActionRequest` → `ActionPrompt` (or `{ error }` when the action does not apply).
+ */
+export function ai_action_prompt(request_json: string): string;
+
+/**
+ * `{ request, reply }` → `Proposal` (or `{ error }`).
+ */
+export function ai_action_proposal(request_json: string): string;
+
+/**
+ * `{ request, raw }` → `{ text, language, multiline }`: the ghost text the editor shows for
+ * a raw model answer.
+ */
+export function ai_inline_finish(request_json: string): string;
+
+/**
+ * `{ path, language?, inline, projectEnabled, disabledLanguages, ignore }` → `Verdict`.
+ */
+export function ai_policy_check(request_json: string): string;
+
+/**
+ * `{ devices, avds }` (outputs of `adb devices -l` and `emulator -list-avds`) →
+ * `{ devices: Device[], avds: string[] }`.
+ */
+export function android_adb(request_json: string): string;
+
+/**
+ * `{ run: AppRun, windows? }` → `{ program, args }` (an Android App run).
+ */
+export function android_app_command(request_json: string): string;
+
+/**
+ * `{ text, query, mine?, sources?, ps?, limit? }` → `LogcatView` (`android_logcat_view`).
+ */
+export function android_logcat_view(request_json: string): string;
+
+/**
+ * `{ build, manifest? }` → `{ module: AndroidModule | null, launcher: string | null }`.
+ */
+export function android_module(request_json: string): string;
+
+/**
+ * `{ text, line, files }` → `StepDefinition[]` (`behat_step_definitions`).
+ */
+export function behat_step_definitions(request_json: string): string;
+
+/**
  * `{ state, ops }` → the new `Bookmarks`.
  */
 export function bookmarks_apply(request_json: string): string;
@@ -45,6 +92,27 @@ export function chat_new(): string;
 export function chat_set_permission(request_json: string): string;
 
 /**
+ * `{ input, offset, tools, commands }` → `Completion` (`cli_tools_complete`).
+ */
+export function cli_tools_complete(request_json: string): string;
+
+/**
+ * `{ configured, autoDetect, files, composer }` → `Tool[]` (`cli_tools_list`).
+ */
+export function cli_tools_effective(request_json: string): string;
+
+/**
+ * `{ input, tools }` → `{ tool, args, invocation, commandLine }`: what `cli_tools_run`
+ * starts (before the interpreter wraps it).
+ */
+export function cli_tools_parse_input(request_json: string): string;
+
+/**
+ * `{ kind, text }` → `CommandDef[]`: a recorded `list --format=json` / `wp cli cmd-dump`.
+ */
+export function cli_tools_parse_list(request_json: string): string;
+
+/**
  * `{ entry, max? }` → `bool`.
  */
 export function clipboard_history_add(args_json: string): string;
@@ -63,6 +131,27 @@ export function clipboard_history_promote(args_json: string): string;
  * `{ index }` → `bool`.
  */
 export function clipboard_history_remove(args_json: string): string;
+
+/**
+ * `{ text, offset }` → completion or null (`cmake_complete`).
+ */
+export function cmake_complete(request_json: string): string;
+
+/**
+ * `{ text }` → configure messages (`cmake_reload`'s `messages`).
+ */
+export function cmake_parse_log(request_json: string): string;
+
+/**
+ * `{ entries, files, root }` → `{ profiles, presetFiles, presetErrors }` (`cmake_profiles`
+ * without the active one).
+ */
+export function cmake_profiles(request_json: string): string;
+
+/**
+ * `{ files, query }` → the answer of `phpforge_fw_cms::api::answer`.
+ */
+export function cms_query(request_json: string): string;
 
 /**
  * `{ edit, files }` → `{ applied: AppliedFile[], files }` (the files after the edit) or
@@ -134,6 +223,12 @@ export function codeintel_plan_edit(request_json: string): string;
  * `{ edit, files }` → `FilePreview[]` (Refactoring Preview rows).
  */
 export function codeintel_preview_edit(request_json: string): string;
+
+/**
+ * Refactor This in JS/TS: the language server's refactorings worded like PHPStorm
+ * (`ContextAction[]` -> `ContextAction[]`).
+ */
+export function codeintel_refactor_this_actions(request_json: string): string;
 
 /**
  * `{ path, text, files }` → `RelatedItem[]` (like `code_related`).
@@ -213,6 +308,12 @@ export function codestyle_preview(request_json: string): string;
 export function codestyle_schemes(request_json: string): string;
 
 /**
+ * `{ user, project }` → the selected scheme's values (`sql.case.keywords`, …), for passes
+ * that take them directly (the SQL formatter).
+ */
+export function codestyle_selected_values(request_json: string): string;
+
+/**
  * `FindRequest` → `ColorMatch[]`.
  */
 export function colors_find(request_json: string): string;
@@ -228,14 +329,29 @@ export function colors_format(request_json: string): string;
 export function colors_parse(request_json: string): string;
 
 /**
+ * `{settings, dark, change}` → `SettingWrite[]`.
+ */
+export function colorscheme_apply(json: string): string;
+
+/**
+ * `{settings, name}` → the scheme as .icls text.
+ */
+export function colorscheme_export(json: string): string;
+
+/**
+ * `{settings, text}` → `SettingWrite[]` that add the imported scheme and select it.
+ */
+export function colorscheme_import(json: string): string;
+
+/**
+ * `{settings, dark}` → `SchemesSnapshot`.
+ */
+export function colorscheme_state(json: string): string;
+
+/**
  * `{ left: {path, dir, text}[], right: … }` (paths relative to each folder) → `DirCompare`.
  */
 export function compare_dir_listings(request_json: string): string;
-
-/**
- * `{ report, text (composer.json), lock }` → `{ jsonProblems, lockProblems }`.
- */
-export function composer_audit_problems(request_json: string): string;
 
 /**
  * `{ text, offset, lock, catalog }` → `CompletionOut | null`.
@@ -256,6 +372,11 @@ export function composer_markers(request_json: string): string;
  * `{ text, lock?, installedJson? }` → `ComposerProject` without the path fields.
  */
 export function composer_project(request_json: string): string;
+
+/**
+ * Composer script names of a `composer.json` text.
+ */
+export function composer_scripts(composer_json: string): string;
 
 /**
  * `{ query, catalog }` → `SearchHit[]` (the demo search).
@@ -326,6 +447,64 @@ export function containers_terminal_command(request_json: string): string;
 export function containers_workloads_parse(raw_json: string): string;
 
 /**
+ * `{ report }` → `{ path: hint }`: the Project view's hints of files and folders.
+ */
+export function coverage_hints(request_json: string): string;
+
+/**
+ * `{ report, project, title, generated, sources }` → the HTML coverage report.
+ */
+export function coverage_html(request_json: string): string;
+
+/**
+ * `{ report, path }` → `LineMark[]` (the editor's coverage gutter).
+ */
+export function coverage_marks(request_json: string): string;
+
+/**
+ * `{ reports }` → the suite fields of their merged report (Show Coverage Data with several
+ * suites).
+ */
+export function coverage_merge(request_json: string): string;
+
+/**
+ * `{ text, root, cwd?, mappings, rules, testsXml? }` → `{ report, format, lines, branches,
+ * methods, … }`: a coverage report with project paths.
+ */
+export function coverage_parse(request_json: string): string;
+
+/**
+ * `{ report, project }` → `CoverageNode[]` (the Coverage tool window).
+ */
+export function coverage_summary(request_json: string): string;
+
+/**
+ * `{ output, root, buildDir, files }` → build problems with project paths
+ * (`cpp_build_problems`).
+ */
+export function cpp_build_problems(request_json: string): string;
+
+/**
+ * `{ text (perf script output), sampleIndex? }` → the Profiler's views.
+ */
+export function cpp_perf_view(request_json: string): string;
+
+/**
+ * `{ text, root, buildDir, files }` → sanitizer reports with project paths.
+ */
+export function cpp_sanitizer_reports(request_json: string): string;
+
+/**
+ * `{ text (Valgrind XML), root, files }` → the Valgrind report.
+ */
+export function cpp_valgrind_report(request_json: string): string;
+
+/**
+ * `{ text, offset, ports }` → completion or null (`cpp_vcpkg_complete`).
+ */
+export function cpp_vcpkg_complete(request_json: string): string;
+
+/**
  * `{ text, delimiter, edits }` → the new text.
  */
 export function csv_edit(request_json: string): string;
@@ -339,6 +518,269 @@ export function csv_parse(request_json: string): string;
  * `{ rows, column, descending, headerRows }` → row indices.
  */
 export function csv_sort_order(request_json: string): string;
+
+/**
+ * `db_data_aggregate`: `{ columns, rows }` → `{ total, columns }`.
+ */
+export function dataedit_aggregate(request_json: string): string;
+
+/**
+ * `db_data_chart`: `{ columns, rows, spec }` → `ChartData`.
+ */
+export function dataedit_chart(request_json: string): string;
+
+/**
+ * `db_data_compare`: `{ left, right, key }` → `DataDiff`.
+ */
+export function dataedit_compare(request_json: string): string;
+
+/**
+ * `db_fk_incoming` → `Incoming[]`.
+ */
+export function dataedit_incoming(request_json: string): string;
+
+/**
+ * `db_fk_navigate` → `Navigation`.
+ */
+export function dataedit_navigate(request_json: string): string;
+
+/**
+ * `{ dialect, schema, table, info, changes }` → `{ statements, key }` (the mock's
+ * `db_preview_changes` and `db_apply_changes`).
+ */
+export function dataedit_preview(request_json: string): string;
+
+/**
+ * `{ dialect, query }` → `TableSql` (the mock's `db_table_data`).
+ */
+export function dataedit_table_query(request_json: string): string;
+
+/**
+ * `db_value_binary` → `BinaryInfo | null`.
+ */
+export function dataedit_value_binary(request_json: string): string;
+
+/**
+ * `db_value_editor` → `EditorKind`.
+ */
+export function dataedit_value_editor(request_json: string): string;
+
+/**
+ * `db_value_format` → `{ text?, error? }`.
+ */
+export function dataedit_value_format(request_json: string): string;
+
+/**
+ * `db_value_temporal` → `string | null`.
+ */
+export function dataedit_value_temporal(request_json: string): string;
+
+/**
+ * `db_data_view`: `{ columns, rows, view }` → row indexes.
+ */
+export function dataedit_view(request_json: string): string;
+
+/**
+ * `{ dataSource, objects, schema? }` → the schema with the virtual objects merged in, or
+ * `{ ok: true }` when the objects are valid and no schema was given; `{ error }` otherwise.
+ */
+export function dbmodel_apply_virtual(request_json: string): string;
+
+/**
+ * Mirrors `db_match_schemas`: `{ patterns, schemas }` → schemas with `visible` set.
+ */
+export function dbmodel_match_schemas(request_json: string): string;
+
+/**
+ * Mirrors `db_object_doc`: `{ dialect, schema, object }` → `ObjectDoc | null`.
+ */
+export function dbmodel_object_doc(request_json: string): string;
+
+/**
+ * `{ dialect, defaultSchema, files: [{ path, text }] }` → `{ schemas, warnings }`.
+ */
+export function dbmodel_parse_ddl(request_json: string): string;
+
+/**
+ * The full-text search of one table over in-memory rows: the query the backend would run,
+ * the matching rows (searched columns only), their matching cells and whether the limit
+ * cut them.
+ */
+export function dbmodel_search_rows(request_json: string): string;
+
+/**
+ * Mirrors `db_design_info`: `{ dialect }` → `DesignDialect`.
+ */
+export function dbobjects_design_info(json: string): string;
+
+/**
+ * Mirrors `db_design_preview`: `{ dialect, old?, table, options? }` → `{ sql, statements, warnings }`.
+ */
+export function dbobjects_design_preview(json: string): string;
+
+/**
+ * Mirrors `db_design_load` with the mock's table: `{ schema, table }` → `TableSpec`.
+ */
+export function dbobjects_design_spec(json: string): string;
+
+/**
+ * Mirrors `db_drop_sql`.
+ */
+export function dbobjects_drop_sql(json: string): string;
+
+/**
+ * Mirrors `db_dump_command`: `{ request, target }` → `{ display, program, args }`.
+ */
+export function dbobjects_dump_command(json: string): string;
+
+/**
+ * Mirrors `db_dump_tools`: `{ driver }`.
+ */
+export function dbobjects_dump_tools(json: string): string;
+
+/**
+ * Mirrors `db_export_xlsx` without a path: the workbook as base64.
+ */
+export function dbobjects_export_xlsx(json: string): string;
+
+/**
+ * Mirrors `db_generate_ddl` with the mock's model: `{ model, objects, options?, values }`.
+ */
+export function dbobjects_generate_ddl(json: string): string;
+
+/**
+ * The statements of an import (the mock runs them on the demo database):
+ * `{ dialect, data, options, plan }` → `{ create: string[], batches: Batch[], rows }`.
+ */
+export function dbobjects_import_batches(json: string): string;
+
+/**
+ * Mirrors `db_import_preview` for file bytes: `{ data (base64), options, rows?, dialect? }`.
+ */
+export function dbobjects_import_preview(json: string): string;
+
+/**
+ * Mirrors `db_rename_sql`.
+ */
+export function dbobjects_rename_sql(json: string): string;
+
+/**
+ * Mirrors `db_schema_compare`: `CompareRequest` → `CompareResult` or `{ error }`.
+ */
+export function dbschema_compare(request_json: string): string;
+
+/**
+ * Mirrors `db_diagram`: `DiagramRequest` → `Diagram`.
+ */
+export function dbschema_diagram(request_json: string): string;
+
+/**
+ * `{ dialect, sql, raw }` → `ExplainScript` or `{ error }`.
+ */
+export function dbschema_explain_script(request_json: string): string;
+
+/**
+ * `{ columns, rows }` of an explain statement → `Plan` or `{ error }`.
+ */
+export function dbschema_parse_plan(request_json: string): string;
+
+/**
+ * `{ text }` -> `Task[]`.
+ */
+export function deno_tasks(request_json: string): string;
+
+/**
+ * `{ local: {path, dir, text, modified}[], remote: …, by }` → `DirCompare`.
+ */
+export function deploy_compare(request_json: string): string;
+
+/**
+ * Remote Host: `{ path, name, rename }` → `{ path }` of the new or renamed entry, or
+ * `{ error }` for an invalid name.
+ */
+export function deploy_entry_path(request_json: string): string;
+
+/**
+ * Remote Host: `{ server, entries }` → the tree nodes (mappings, exclusions, order).
+ */
+export function deploy_remote_nodes(request_json: string): string;
+
+/**
+ * `{ server, paths, excludeNames }` → where every project path is deployed.
+ */
+export function deploy_resolve(request_json: string): string;
+
+/**
+ * `DeployServer` → the problems shown under the form.
+ */
+export function deploy_validate(server_json: string): string;
+
+/**
+ * `{ path, content }` → `number | null`.
+ */
+export function devcontainer_gutter(request_json: string): string;
+
+/**
+ * `docker ps` output (the format of `docker::list_args`) → `DevContainerInstance[]`.
+ */
+export function devcontainer_parse_list(output: string): string;
+
+/**
+ * `{ text, folder, configPath }` → `{ config, source } | { error }` (the browser mock has no
+ * local environment, so `${localEnv:…}` is empty).
+ */
+export function devcontainer_resolve(request_json: string): string;
+
+/**
+ * `{ action, target?, context }` → `DotnetCommand` (`dotnet_command`).
+ */
+export function dotnet_action_command(request_json: string): string;
+
+/**
+ * `{ output, root }` → `BuildReport` (`dotnet_build_problems`).
+ */
+export function dotnet_build_report(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `TestFile` (`test_discover` for C# / F# files).
+ */
+export function dotnet_discover(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand` (`dotnet_cleanup_command`).
+ */
+export function dotnet_format_command(request_json: string): string;
+
+/**
+ * `{ files, solution?, configuration? }` → `DotnetWorkspace` (`dotnet_workspace`).
+ */
+export function dotnet_load_workspace(request_json: string): string;
+
+/**
+ * `{ request, context }` → `DotnetCommand[]` (`dotnet_new_project`).
+ */
+export function dotnet_new_project(request_json: string): string;
+
+/**
+ * `{ action, project, package, version?, prerelease?, context }` → `DotnetCommand`
+ * (`nuget_command`).
+ */
+export function dotnet_package_command(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `DotnetCommand` of a ".NET Project" configuration.
+ */
+export function dotnet_run_command(request_json: string): string;
+
+/**
+ * `{ path, text }` → `SourceScan` (test classes, entry points, declared classes).
+ */
+export function dotnet_scan(request_json: string): string;
+
+/**
+ * `{ text }` → `Template[]` of `dotnet new list` (Forge's common templates when empty).
+ */
+export function dotnet_templates(request_json: string): string;
 
 /**
  * Mirrors `doctrine_complete`: `{ path, content, offset, snapshot }` → `DqlCompletion | null`.
@@ -436,6 +878,21 @@ export function emmet_update_tag(request_json: string): string;
 export function emmet_wrap(request_json: string): string;
 
 /**
+ * `{ tool, context, root, name }` → `ToolCommand`.
+ */
+export function external_tool_command(request_json: string): string;
+
+/**
+ * `{ context, root, name }` → `MacroInfo[]`.
+ */
+export function external_tool_macros(request_json: string): string;
+
+/**
+ * `{ tool, others }` → problems.
+ */
+export function external_tool_validate(request_json: string): string;
+
+/**
  * `ColorsRequest` → `(string | null)[]`: the palette color of every target.
  */
 export function file_colors_resolve(request_json: string): string;
@@ -446,9 +903,41 @@ export function file_colors_resolve(request_json: string): string;
 export function file_structure_view(request_json: string): string;
 
 /**
+ * `{ watchers, paths, trigger, root, name, files }` -> `WatcherRun[]` (every scope
+ * matches in browser mode).
+ */
+export function file_watchers_plan(request_json: string): string;
+
+/**
+ * `{ output, filters, cwd, root }` -> `WatcherProblem[]`.
+ */
+export function file_watchers_problems(request_json: string): string;
+
+/**
+ * `{}` -> `WatcherTemplate[]`.
+ */
+export function file_watchers_templates(_request_json: string): string;
+
+/**
+ * `{ watcher, others }` -> `string[]`.
+ */
+export function file_watchers_validate(request_json: string): string;
+
+/**
  * `DetectRequest` → `FileTypeInfo[]`.
  */
 export function filetypes_detect(request_json: string): string;
+
+/**
+ * `{ names, patterns }` → for each name whether "Ignored Files and Folders" hides it (the
+ * filter of `fs_list_dir`).
+ */
+export function filetypes_ignored(request_json: string): string;
+
+/**
+ * Mirrors the `filetypes_list` IPC command: `DetectRequest` → `FileTypeRow[]`.
+ */
+export function filetypes_list(request_json: string): string;
 
 /**
  * Register the file types of plugins (`PluginInfo[]` JSON) on top of the bundled ones.
@@ -482,6 +971,76 @@ export function find_paged(request_json: string): string;
  */
 export function fuzzy_filter(request_json: string): string;
 
+/**
+ * `{ configuration, context }` → `GoCommand` of a Go Build configuration.
+ */
+export function go_build_command(request_json: string): string;
+
+/**
+ * `{ path, content, line? }` → `go generate` arguments.
+ */
+export function go_generate_args(request_json: string): string;
+
+/**
+ * `{ content }` → `GenerateDirective[]`.
+ */
+export function go_generate_directives(request_json: string): string;
+
+/**
+ * `{ tool: "vet" | "golangci", output, root }` → `GoProblem[]`.
+ */
+export function go_lint_parse(request_json: string): string;
+
+/**
+ * `{ path, content, offset }` → completion context or null.
+ */
+export function go_mod_completion_context(request_json: string): string;
+
+/**
+ * `{ path, content }` → `{ kind: "mod" | "work", … }` (`go_mod_parse`).
+ */
+export function go_mod_parse(request_json: string): string;
+
+/**
+ * `{ action, arg?, dir?, context }` → `GoCommand` (`go mod tidy`, `go get …`).
+ */
+export function go_module_command(request_json: string): string;
+
+/**
+ * `{ schema, content, offset }` -> `Completion`.
+ */
+export function graphql_complete(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `Config`.
+ */
+export function graphql_config(request_json: string): string;
+
+/**
+ * `{ content }` -> `boolean`.
+ */
+export function graphql_is_schema(request_json: string): string;
+
+/**
+ * `{ schema }` -> `string[]` (type names).
+ */
+export function graphql_types(request_json: string): string;
+
+/**
+ * `{ schema, path, content }` -> `Problem[]`.
+ */
+export function graphql_validate(request_json: string): string;
+
+/**
+ * `{ text }` (Groovy source) → `Runnable` (`groovy_runnable`).
+ */
+export function groovy_runnable(request_json: string): string;
+
+/**
+ * `{ run: ScriptRun, runner }` → `{ program, args, env }` (a Groovy Script run).
+ */
+export function groovy_script_command(request_json: string): string;
+
 export function hierarchy_call_view(request_json: string): string;
 
 export function hierarchy_method_view(request_json: string): string;
@@ -492,6 +1051,27 @@ export function hierarchy_type_view(request_json: string): string;
  * `{ path, base64 }` → `ImageData` (the mock reads demo images from base64).
  */
 export function image_describe(request_json: string): string;
+
+/**
+ * `{ files, changed, removed }` → the folder notification.
+ */
+export function imports_folder_summary(files: number, changed: number, removed: number): string;
+
+/**
+ * `{ old, new }` → the one LSP edit turning `old` into `new` (or null).
+ */
+export function imports_minimal_edit(request_json: string): string;
+
+/**
+ * `{ old, new, removed, rearranged }` → `OptimizeAnswer` (like `imports_optimize`): the
+ * editor change and the notification.
+ */
+export function imports_optimize_answer(request_json: string): string;
+
+/**
+ * `{ files, changed? }` → the files Optimize Imports processes.
+ */
+export function imports_targets(request_json: string): string;
 
 /**
  * `{ text, path, offset, disabled?, uninjected? }` → `Injection | null`.
@@ -534,6 +1114,132 @@ export function injections_languages(): string;
 export function injections_rules(): string;
 
 /**
+ * `{ path, source, text?, diagnostics }` → the diagnostics the profile keeps, with their
+ * severity and `inspection` / `inspectionName` / `severityName` set; suppression comments
+ * in `text` hide theirs. Without a configured profile everything is kept.
+ */
+export function inspections_apply(request_json: string): string;
+
+/**
+ * `{ text, edits }` → the text with the edits applied (browser mode's Apply Fix).
+ */
+export function inspections_apply_edits(request_json: string): string;
+
+/**
+ * `{ registry, problems, texts }` → `CleanupPlan` (browser mode's Code Cleanup).
+ */
+export function inspections_cleanup_plan(request_json: string): string;
+
+/**
+ * `{ registry, profile, severities, scopes, context }`: the profile the editor's
+ * diagnostics go through from now on → `true`.
+ */
+export function inspections_configure(request_json: string): string;
+
+/**
+ * `{ registry, profile, format }` → the profile as PHPStorm XML or JSON.
+ */
+export function inspections_export_profile(request_json: string): string;
+
+/**
+ * `{ report, format: "html" | "xml" | "json" }` → the exported text.
+ */
+export function inspections_export_report(request_json: string): string;
+
+/**
+ * `{ registry, query, limit }` → matching `InspectionSpec`s (Run Inspection by Name).
+ */
+export function inspections_find(request_json: string): string;
+
+/**
+ * `{ registry, text }` → `Profile` (XML or JSON).
+ */
+export function inspections_import_profile(request_json: string): string;
+
+/**
+ * `{ registry, state, op }` → the changed `ProfilesState` (or `{ error }`).
+ */
+export function inspections_profile_op(request_json: string): string;
+
+/**
+ * `{ inspections, mappings }` (contributions of the enabled plugins) → `Registry` with the
+ * framework's own inspections.
+ */
+export function inspections_registry(request_json: string): string;
+
+/**
+ * `{ report, levels }` → `ResultNode[]` (Inspection Results tree).
+ */
+export function inspections_report_tree(request_json: string): string;
+
+/**
+ * Browser mode's Inspect Code: `{ registry, profiles, profile?, files, problems, scopes,
+ * context, only?, scope }` → `Report` (duplicated code is found here; `problems` are the
+ * other providers' results).
+ */
+export function inspections_run(request_json: string): string;
+
+/**
+ * `{ custom }` → every severity (built-in, then custom).
+ */
+export function inspections_severities(request_json: string): string;
+
+/**
+ * `{ path, text, line, character, id, bytes? }` → `SuppressAction[]` (changes in UTF-16
+ * offsets for the editor, in bytes with `bytes: true` for the backend).
+ */
+export function inspections_suppress_actions(request_json: string): string;
+
+/**
+ * `{ registry, profile, query }` → `ViewGroup` (the Settings tree with the profile's state).
+ */
+export function inspections_view(request_json: string): string;
+
+/**
+ * `{ path, text, offset, data }` → `CompletionOut | null` (`java_build_complete`).
+ */
+export function java_build_complete(request_json: string): string;
+
+/**
+ * `{ folder, files, prefer?, exec }` → `{ project, goals, program } | null` (`java_build_info`).
+ */
+export function java_build_info(request_json: string): string;
+
+/**
+ * `{ folder, files, prefer?, gradleModel?, mavenTree? }` → `BuildModel | null`
+ * (`java_build_model`, `java_sync_project`).
+ */
+export function java_build_model(request_json: string): string;
+
+/**
+ * `{ path, text, versions }` → `OutdatedMarker[]` (`java_build_outdated`); `{ path, text }`
+ * alone → the `group:artifact`s to look up (`coordinates`).
+ */
+export function java_build_outdated(request_json: string): string;
+
+/**
+ * `{ path, text, offset }` → `Request | null`: what Maven Central must answer.
+ */
+export function java_build_request(request_json: string): string;
+
+/**
+ * `{ configuration, build, coverage?, java?, debugPort? }` → `{ program, args, test? }`: the
+ * command line of a Java configuration as the backend builds it (`run.rs`, `java.rs`);
+ * JUnit / TestNG add their `TestCommand` (`test`).
+ */
+export function java_command_line(request_json: string): string;
+
+/**
+ * `{ path, text }` → `MainMethod[]` (`java_main_methods`).
+ */
+export function java_main_methods(request_json: string): string;
+
+/**
+ * `{ text, update? }` → `{ wrapper, text }`: `gradle-wrapper.properties` read (and updated).
+ */
+export function java_wrapper(request_json: string): string;
+
+/**
  * Like `json_schema_builtins`.
  */
 export function json_schema_builtins(): string;
@@ -563,6 +1269,31 @@ export function json_schema_read(location: string): string;
  * `{ needs: [path] }`, like `json_schema_validate`.
  */
 export function json_schema_validate(request_json: string): string;
+
+/**
+ * `{ frame, query }` → `Page`.
+ */
+export function jupyter_dataframe_query(request_json: string): string;
+
+/**
+ * `{ left, right }` → `NotebookDiff`.
+ */
+export function jupyter_diff(request_json: string): string;
+
+/**
+ * `{ text, root? }` → `NotebookView`.
+ */
+export function jupyter_open(request_json: string): string;
+
+/**
+ * `{ outputs, root? }` → `Rendered[]`.
+ */
+export function jupyter_render(request_json: string): string;
+
+/**
+ * `{ notebook, original? }` → the `.ipynb` text.
+ */
+export function jupyter_serialize(request_json: string): string;
 
 /**
  * `{settings, hostPlatform}` → `KeymapSnapshot`.
@@ -606,6 +1337,19 @@ export function keymap_load_bindings(snapshot_json: string): string;
 export function keymap_main_menu(json: string): string;
 
 /**
+ * `{button, clickCount, deltaY?, …modifiers, focus}` → the action id the sync resolver binds
+ * to that mouse stroke (or null), without firing it: editor extensions that handle a click
+ * themselves (Ctrl+Click to the declaration) ask this.
+ */
+export function keymap_mouse_action(json: string): string;
+
+/**
+ * DOM mouse / wheel event (`button`, `clickCount`, `deltaY`, modifiers) → canonical mouse
+ * stroke ("Ctrl+Button1Click"), for "press a mouse shortcut" fields.
+ */
+export function keymap_mouse_stroke(event_json: string): string;
+
+/**
  * `{settings, hostPlatform, actions?, commands?}` → `KeymapSnapshot`.
  */
 export function keymap_register_actions(json: string): string;
@@ -624,6 +1368,28 @@ export function keymap_set_override(json: string): string;
  * DOM key event → canonical keystroke (for "press a shortcut" fields).
  */
 export function keymap_stroke_of_event(event_json: string): string;
+
+/**
+ * `{ configuration, build, coverage?, debugPort?, runner? }` → `{ program, args, env?, test? }`:
+ * a Kotlin application, script or Kotest configuration as the backend builds it.
+ */
+export function kotlin_command_line(request_json: string): string;
+
+/**
+ * The debugger's answer to the coroutine dump expression → `CoroutineDump`
+ * (`kotlin_coroutines`).
+ */
+export function kotlin_coroutines(value: string): string;
+
+/**
+ * `{ format, text, detekt? }` → `LintProblem[]` (canned reports of the mocks).
+ */
+export function kotlin_lint_report(request_json: string): string;
+
+/**
+ * `{ path, text }` → `MainFunction[]` (`kotlin_main_functions`).
+ */
+export function kotlin_main_functions(request_json: string): string;
 
 /**
  * `ApplicableRequest` → `ApplicableResult`.
@@ -661,6 +1427,11 @@ export function live_templates_unwrap(request_json: string): string;
 export function live_templates_variables(request_json: string): string;
 
 /**
+ * `{ op, … }` → the result of the operation (see [`Call`]).
+ */
+export function local_history_call(request_json: string): string;
+
+/**
  * `{ path, content? }` -> `FileStructure | null`.
  */
 export function lua_file_structure(request_json: string): string;
@@ -692,6 +1463,17 @@ export function lua_run_markers(request_json: string): string;
 export function lua_search_symbols(request_json: string): string;
 
 /**
+ * The Invalidate Caches dialog.
+ */
+export function maintenance_invalidate_model(): string;
+
+/**
+ * `{ keys, files }` (user setting keys, existing config files) → the settings groups with
+ * their counts.
+ */
+export function maintenance_settings_groups(request_json: string): string;
+
+/**
  * `{ text, anchor }` → 0-based line or `null`.
  */
 export function markdown_anchor_line(request_json: string): string;
@@ -717,9 +1499,264 @@ export function markdown_parse(request_json: string): string;
 export function nav_bar_segments(request_json: string): string;
 
 /**
+ * `{ configuration, node, dir, args }` → the arguments of a Node.js program under c8 or nyc
+ * (Run with Coverage of a Node.js configuration).
+ */
+export function node_coverage_wrap(request_json: string): string;
+
+/**
+ * `{ text }` → `SearchResult` of a NuGet search answer.
+ */
+export function nuget_parse_search(request_json: string): string;
+
+/**
+ * `{ installed, versions, prerelease }` → the upgrade version or `null`.
+ */
+export function nuget_upgrade(request_json: string): string;
+
+/**
+ * `{ root, paths }` -> `{ root, routes, components }`.
+ */
+export function nuxt_project(request_json: string): string;
+
+/**
+ * `{ files }` -> `Workspace`.
+ */
+export function nx_workspace(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `{ title, spec, endpoints } | null`.
+ */
+export function openapi_file(request_json: string): string;
+
+/**
+ * `{ path, content, method, opPath }` -> `string | null`.
+ */
+export function openapi_http_request(request_json: string): string;
+
+/**
+ * `{ path, content }` -> `Preview | null`.
+ */
+export function openapi_preview(request_json: string): string;
+
+/**
  * Mirrors the `output_file_links` command: `{ text, root }` → `FileLink[]`.
  */
 export function output_file_links(request_json: string): string;
+
+/**
+ * `{ configuration, dir, files }` → `{ interpreterArgs, args, env, file, inDir, testsDir }`:
+ * how a PHP test configuration runs with coverage.
+ */
+export function php_coverage_plan(request_json: string): string;
+
+/**
+ * `{ interpreter, root, composeDir?, volumes? }` → the automatic `PathMapping[]`.
+ */
+export function php_interpreter_automatic_mappings(request_json: string): string;
+
+/**
+ * `{ phpV, phpIni, phpM }` (outputs of `php -v`, `php --ini`, `php -m`) → `InterpreterInfo`.
+ */
+export function php_interpreter_parse_info(request_json: string): string;
+
+/**
+ * `WrapRequest` → `{ program, args, cwd, env, kind, pathMappings }`.
+ */
+export function php_interpreter_wrap(request_json: string): string;
+
+/**
+ * `{ composerJson, composerPath, sourceRoots }` → `SourceRootEntry[]` (Settings | Directories).
+ */
+export function php_source_roots(request_json: string): string;
+
+/**
+ * `{ pio, env, task, cwd }` → the task's command line.
+ */
+export function pio_command(request_json: string): string;
+
+/**
+ * `{ text }` → the parsed `platformio.ini`.
+ */
+export function pio_project(request_json: string): string;
+
+/**
+ * `{ base64?, sampleIndex? }` → `ProfileView` (`pprof_open`).
+ */
+export function pprof_view(request_json: string): string;
+
+/**
+ * `{ kind, root, metric? }` → `Snapshot` of the demo project at `root`.
+ */
+export function profiler_demo(request_json: string): string;
+
+/**
+ * `{ name, base64, companionBase64?, metric? }` → `Snapshot` (`profiler_open`).
+ */
+export function profiler_parse(request_json: string): string;
+
+/**
+ * `{ config }` → `FolderRow[]` (Settings | Directories).
+ */
+export function project_structure_describe(request_json: string): string;
+
+/**
+ * `{ config, paths: [path, isDir][] }` → `boolean[]` (excluded or hidden).
+ */
+export function project_structure_excluded(request_json: string): string;
+
+/**
+ * `{ config, path, action }` → the new `projectStructure.folders`.
+ */
+export function project_structure_mark(request_json: string): string;
+
+/**
+ * `{ config, path, isDir }` → `FolderState`.
+ */
+export function project_structure_state(request_json: string): string;
+
+/**
+ * `{ entries, listing, options }` → `TreeRow[]`.
+ */
+export function project_view_arrange(request_json: string): string;
+
+/**
+ * PHPStorm's predefined File Nesting rules.
+ */
+export function project_view_nesting_defaults(): string;
+
+/**
+ * `{ target, text, requirement }` -> the new text.
+ */
+export function python_add_requirement(request_json: string): string;
+
+/**
+ * `{ path, content, offset }` -> completion context or null.
+ */
+export function python_completion_context(request_json: string): string;
+
+/**
+ * `{ rows }` → `ProfileView`: a demo snapshot written as a real `.pstats` file and read
+ * back by the parser the desktop app uses.
+ */
+export function python_demo_profile(request_json: string): string;
+
+/**
+ * `{ path, content }` -> the file's declared dependencies.
+ */
+export function python_dependencies(request_json: string): string;
+
+/**
+ * `{ request, files }` -> the steps that create a new environment.
+ */
+export function python_environment_plan(request_json: string): string;
+
+/**
+ * `{ path, content, installed?, imports }` -> `Problem[]`.
+ */
+export function python_inspect(request_json: string): string;
+
+/**
+ * An interpreter -> its status bar label.
+ */
+export function python_interpreter_label(request_json: string): string;
+
+/**
+ * `{ kind, uvLock, action, packages, python }` -> `{ manager, program, args }`.
+ */
+export function python_packages_command(request_json: string): string;
+
+/**
+ * `{ configuration, failed, files }` → `Configuration | null`.
+ */
+export function python_rerun_failed(request_json: string): string;
+
+/**
+ * `{ content }` -> run markers.
+ */
+export function python_run_markers(request_json: string): string;
+
+/**
+ * `{ configuration, cwd, reportDir, coverageFile?, reporter, toxProgram, head }` →
+ * `PythonCommand`.
+ */
+export function python_test_command(request_json: string): string;
+
+/**
+ * `{ path, text, runner, files }` → `TestFile` (`test_discover` for Python files).
+ */
+export function python_test_discover(request_json: string): string;
+
+/**
+ * `{ files }` → `ProjectTesting`.
+ */
+export function python_testing_detect(request_json: string): string;
+
+/**
+ * `{ files }` → `ToxEnv[]`.
+ */
+export function python_tox_environments(request_json: string): string;
+
+/**
+ * `{ files, options, path, content, offset }` -> `Completions | null`.
+ */
+export function python_web_complete(request_json: string): string;
+
+/**
+ * `{ files, options, path, content, offset }` -> `Location[]`.
+ */
+export function python_web_goto(request_json: string): string;
+
+/**
+ * `{ files, options }` -> Django's commands plus the project's `management/commands`.
+ */
+export function python_web_manage_commands(request_json: string): string;
+
+/**
+ * `{ files, options, path, content }` -> `FileMarks`.
+ */
+export function python_web_marks(request_json: string): string;
+
+/**
+ * `{ files, options }` -> `WebProject`.
+ */
+export function python_web_project(request_json: string): string;
+
+/**
+ * `{ files, options, configuration }` -> `PythonRun`.
+ */
+export function python_web_run_info(request_json: string): string;
+
+/**
+ * A Rails command line → `RubyCommand`.
+ */
+export function rails_command(request_json: string): string;
+
+/**
+ * `{ files, path, content, offset }` → `Completions | null`.
+ */
+export function rails_complete(request_json: string): string;
+
+/**
+ * `{ files, output? }` → `Generator[]`: from `bin/rails generate` output, else Rails' own
+ * generators and the project's `lib/generators`.
+ */
+export function rails_generators(request_json: string): string;
+
+/**
+ * `{ files, path, content, offset }` → `Location[]`.
+ */
+export function rails_goto(request_json: string): string;
+
+/**
+ * `{ files, path, content }` → `FileMarks`.
+ */
+export function rails_marks(request_json: string): string;
+
+/**
+ * `{ files, options }` → `RailsInfo`.
+ */
+export function rails_project(request_json: string): string;
 
 /**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
@@ -748,7 +1785,69 @@ export function replace_in_files(request_json: string): string;
  */
 export function replace_preview(request_json: string): string;
 
+/**
+ * `{ action, arg?, context }` → `RubyCommand` of a Bundler action, Rake task, gem install
+ * or the IRB console.
+ */
+export function ruby_action_command(request_json: string): string;
+
+/**
+ * `{ gemfile, lock? }` → `Bundle` (`ruby_bundle`).
+ */
+export function ruby_bundle(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `RubyCommand` of a Ruby or Rake configuration.
+ */
+export function ruby_command_line(request_json: string): string;
+
+/**
+ * `{ output? , files? }` → `RakeTask[]` (`ruby_rake_tasks`).
+ */
+export function ruby_rake_tasks(request_json: string): string;
+
+/**
+ * `{ files }` → the requested Ruby version (`.ruby-version`, `.tool-versions`, Gemfile).
+ */
+export function ruby_requested_version(request_json: string): string;
+
+/**
+ * `{ json, root, path? }` → `RubyProblem[]` (`ruby_rubocop`).
+ */
+export function ruby_rubocop_report(request_json: string): string;
+
+/**
+ * `{ text }` → the script ▶ line (`ruby_file_targets`), or `null`.
+ */
+export function ruby_script_entry(request_json: string): string;
+
+/**
+ * `{ history, entry }` → the new history.
+ */
+export function run_anything_push_history(request_json: string): string;
+
+/**
+ * `{ command, cwd? }` → the temporary `RunConfiguration`.
+ */
+export function run_anything_resolve(request_json: string): string;
+
+/**
+ * `SuggestRequest` (with npm / Composer scripts and PHP files filled in) → `SuggestResponse`.
+ */
+export function run_anything_suggest(request_json: string): string;
+
+/**
+ * `{ configurations, target, packageManager? }` → `LaunchPlan`.
+ */
+export function run_launch_plan(request_json: string): string;
+
 export function run_output_drop(request_json: string): string;
+
+/**
+ * `{ handle }` → `{ tree, summary, counts }` of a test run (`null` without tests), for the
+ * browser-mode Test History.
+ */
+export function run_output_export(request_json: string): string;
 
 /**
  * `{ handle, input: RunInput }` → `OutputEvent[]`.
@@ -759,6 +1858,47 @@ export function run_output_handle(request_json: string): string;
  * `RunOutputOptions` → handle (a number) for [`run_output_handle`].
  */
 export function run_output_new(options_json: string): string;
+
+/**
+ * `{ target, invocation, root, compose?, docker }` → `{ program, args, cwd, pathMappings,
+ * debug }`: a command line on a run target.
+ */
+export function run_target_wrap(request_json: string): string;
+
+/**
+ * `{ action, package?, target?, context }` → `CargoCommand` (`cargo_command`).
+ */
+export function rust_action_command(request_json: string): string;
+
+/**
+ * `{ configuration, context }` → `CargoCommand` of a "Cargo" configuration.
+ */
+export function rust_command_line(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `TestFile` (`test_discover` for Rust files).
+ */
+export function rust_discover(request_json: string): string;
+
+/**
+ * `{ json, root }` → `CargoWorkspace` (`cargo_workspace`).
+ */
+export function rust_parse_metadata(request_json: string): string;
+
+/**
+ * `{ json, workspace }` → `RustProblem[]` (`rust_clippy`).
+ */
+export function rust_problems(request_json: string): string;
+
+/**
+ * `{ path, text, context? }` → `RunTarget[]` (`rust_file_targets`).
+ */
+export function rust_run_targets(request_json: string): string;
+
+/**
+ * `{ text }` → `ToolchainFile` of a `rust-toolchain.toml`.
+ */
+export function rust_toolchain_file(request_json: string): string;
 
 /**
  * `{ base, original, formatted }` → the text with only changed lines reformatted.
@@ -774,6 +1914,23 @@ export function save_actions_file_types(_request_json: string): string;
  * `{ path, trigger, settings }` → `SavePlan`.
  */
 export function save_actions_plan(request_json: string): string;
+
+/**
+ * `{ configuration, program }` → `{ program, args, test? }`: an sbt Task, ScalaTest or MUnit
+ * configuration as the backend builds it.
+ */
+export function scala_command_line(request_json: string): string;
+
+/**
+ * `{ text }` (Scala source) → `MainObject[]` (`scala_main_objects`).
+ */
+export function scala_main_objects(request_json: string): string;
+
+/**
+ * `{ buildSbt, buildProperties?, pluginsSbt?, folder, syncOutput?, root }` → `SbtBuild`
+ * (`scala_sbt_model`, `scala_sbt_import`).
+ */
+export function scala_sbt_build(request_json: string): string;
 
 /**
  * `{ pattern }` → `ParseError | null`.
@@ -813,6 +1970,11 @@ export function scopes_tree(request_json: string): string;
 export function scratches_http_environments(request_json: string): string;
 
 /**
+ * `{ command }` -> `{ text } | { error }` (Import from cURL).
+ */
+export function scratches_http_from_curl(request_json: string): string;
+
+/**
  * `{ script, response, globals }` → `{ report, globals, text }`: run a response handler.
  */
 export function scratches_http_handler(request_json: string): string;
@@ -829,6 +1991,11 @@ export function scratches_http_render(request_json: string): string;
  * resolved against `base`, the `.http` file's directory.
  */
 export function scratches_http_request(request_json: string): string;
+
+/**
+ * `{ request }` (a resolved request) -> `string` (Copy as cURL).
+ */
+export function scratches_http_to_curl(request_json: string): string;
 
 /**
  * `LanguageRequest` → `LanguageItem[]` (the New Scratch File popup).
@@ -898,6 +2065,11 @@ export function services_details(request_json: string): string;
 export function services_gutter(request_json: string): string;
 
 /**
+ * `KubeInput` → `KubeSelection | null`, mirroring `services_kube_selection`.
+ */
+export function services_kube_selection(kube_json: string): string;
+
+/**
  * `ServicesInput` → `Node[]`, mirroring `services_tree`.
  */
 export function services_tree(input_json: string): string;
@@ -928,9 +2100,60 @@ export function spell_dictionaries(): string;
 export function spell_inspect(request_json: string): string;
 
 /**
+ * `{ files, metadata, enums, path, content, offset }` plus `kind`: `complete` | `inspect`
+ * | `hover` | `goto` (the `spring_config_*` commands).
+ */
+export function spring_config(kind: string, request_json: string): string;
+
+/**
+ * `{ apps }` → nodes; `{ apps, nodeId, runtime? }` → details (`spring_dashboard*`).
+ */
+export function spring_dashboard(request_json: string): string;
+
+/**
+ * `{ files, path, content }` → `Marker[]` (`spring_gutter`).
+ */
+export function spring_gutter(request_json: string): string;
+
+/**
+ * `{ endpoint, baseUrl }` → `.http` text (`spring_http_request`).
+ */
+export function spring_http_request(request_json: string): string;
+
+/**
+ * `{ options, vmOptions, arguments }` → `{ vmOptions, arguments }` of the Application run.
+ */
+export function spring_launch(request_json: string): string;
+
+/**
+ * Console lines → what the dashboard reads from them (`Observed`).
+ */
+export function spring_observe(lines_json: string): string;
+
+/**
+ * `{ files, metadata, enums, runtime? }` → the `spring_model` answer.
+ */
+export function spring_overview(request_json: string): string;
+
+/**
+ * `SqlContext` → `AnalyzeAnswer`.
+ */
+export function sql_analyze(json: string): string;
+
+/**
  * `{ dialect, schema, table, pk, changes }` → the statements, or `{ error }`.
  */
 export function sql_change_statements(request_json: string): string;
+
+/**
+ * `{ …SqlContext, offset, ddlFiles? }` → `DeclarationAnswer | null`.
+ */
+export function sql_declaration(json: string): string;
+
+/**
+ * `{}` → every dialect with keywords and types.
+ */
+export function sql_dialects(_json: string): string;
 
 /**
  * Mirrors `db_export`: `{ format, dialect, table, columns, rows }` → the text.
@@ -938,9 +2161,50 @@ export function sql_change_statements(request_json: string): string;
 export function sql_export(request_json: string): string;
 
 /**
+ * Mirrors `sql_file_info` for a file: `{ path, project, global, mappings }` →
+ * `{ dialect, source, dataSourceId? }`.
+ */
+export function sql_file_info(json: string): string;
+
+/**
+ * `{ text, dialect, values }` → the formatted text.
+ */
+export function sql_format(json: string): string;
+
+/**
+ * Mirrors `db_guard`: `{ sql, dialect, readOnly, production, name }` → `{ blocked?, confirm? }`.
+ */
+export function sql_guard(request_json: string): string;
+
+/**
+ * `{ history, entry, limit }` → the history with the entry added.
+ */
+export function sql_history_add(json: string): string;
+
+/**
+ * `{ history, query }` → the matching entries.
+ */
+export function sql_history_search(json: string): string;
+
+/**
  * `{ statements: string[] }` → their leading keywords, upper-cased.
  */
 export function sql_leading_keywords(request_json: string): string;
+
+/**
+ * `{ text, dialect, patterns }` → `ParamsAnswer`.
+ */
+export function sql_params(json: string): string;
+
+/**
+ * `{ text, dialect }` → the statements Run SQL Script executes.
+ */
+export function sql_plan_run(json: string): string;
+
+/**
+ * `{ …SqlContext, offset }` → `RenameAnswer`.
+ */
+export function sql_rename(json: string): string;
 
 /**
  * `{ sql, dialect }` → `Statement[]` (byte offsets, like `db_execute`).
@@ -951,6 +2215,16 @@ export function sql_split(request_json: string): string;
  * Mirrors `db_statement_at`: `{ sql, from, to, dialect }` → `Statement | null`.
  */
 export function sql_statement_at(request_json: string): string;
+
+/**
+ * `{ text, dialect, patterns, values }` → the text with values, or `{ error }`.
+ */
+export function sql_substitute(json: string): string;
+
+/**
+ * `{ …SqlContext, offset }` → `UsagesAnswer | null`.
+ */
+export function sql_usages(json: string): string;
 
 /**
  * `{}` → `SavedTemplate[]` (the built-in templates).
@@ -971,6 +2245,17 @@ export function stacktrace_analyze(request_json: string): string;
  * `{ nodes, regions }` → the nodes with region nodes (`kind: "region"`) around members.
  */
 export function structure_group_by_regions(request_json: string): string;
+
+/**
+ * `{ text, peripheral, values }` → decoded registers, as if read from a target whose
+ * registers hold `values` (else their reset values).
+ */
+export function svd_peripheral_values(request_json: string): string;
+
+/**
+ * `{ text }` → the SVD file's peripherals.
+ */
+export function svd_summary(request_json: string): string;
 
 /**
  * `{ custom }` (the `fileTemplates.custom` value) → `{ templates, variables }`.
@@ -1008,6 +2293,53 @@ export function terminal_link_target(request_json: string): string;
 export function terminal_parse_osc(request_json: string): string;
 
 /**
+ * `{ configuration, framework, reportDir }` → `TestCommand` (the mock command lines).
+ */
+export function test_command(request_json: string): string;
+
+/**
+ * `{ path, text }` → `TestFile` (`test_discover`).
+ */
+export function test_discover(request_json: string): string;
+
+/**
+ * `{ configured, files, composerJson }` → `FrameworkConfig[]` (`test_frameworks_list`).
+ */
+export function test_frameworks_effective(request_json: string): string;
+
+/**
+ * `{ tree, root }` → `{ nodes, summary }` (`test_history_open`).
+ */
+export function test_history_import(request_json: string): string;
+
+/**
+ * `{ configuration, failed }` → `Configuration | null` (`test_rerun_failed`).
+ */
+export function test_rerun_failed(request_json: string): string;
+
+/**
+ * `{ configuration, spec, reportDir, coverageFile? }` → `TestCommand` of a manifest
+ * framework.
+ */
+export function testing_command(request_json: string): string;
+
+/**
+ * `{ specs, files, texts }` → ids of the frameworks the project uses.
+ */
+export function testing_detect(request_json: string): string;
+
+/**
+ * `{ path, text, specs, detected? }` → `TestFile` (`test_discover`, every framework,
+ * those the project uses first).
+ */
+export function testing_discover(request_json: string): string;
+
+/**
+ * `{ configuration, failed, specs }` → `Configuration | null` (`test_rerun_failed`).
+ */
+export function testing_rerun_failed(request_json: string): string;
+
+/**
  * `FormatRequest` (settings and `.editorconfig` files included) → `FileFormat`.
  */
 export function text_file_format(request_json: string): string;
@@ -1038,9 +2370,41 @@ export function text_write(request_json: string): string;
 export function todo_scan(request_json: string): string;
 
 /**
+ * `{ base, current }` → `ChangeHunk[]`; with `include` (hunk ids) → the text a partial
+ * commit stores (`string`).
+ */
+export function vcs_change_hunks(request_json: string): string;
+
+/**
+ * `{ state, changed, hunks, op }` → `{ state, view, error }`: the changelist model of
+ * `git_changelist_*` for the git mock (`forge_vcs::changelists`).
+ */
+export function vcs_changelists(request_json: string): string;
+
+/**
+ * `SelectionFacts` → `LogActionStates`: which Git Log actions the git mock's selection allows.
+ */
+export function vcs_log_action_states(facts_json: string): string;
+
+/**
  * `{ base, left, right }` → `MergeModel`.
  */
 export function vcs_merge(request_json: string): string;
+
+/**
+ * `{ patch, base, files }` → `PatchPreviewFile[]` (Apply Patch dialog in the git mock).
+ */
+export function vcs_patch_preview(request_json: string): string;
+
+/**
+ * `RebaseCommit[]` (oldest first) → the initial `RebaseEntry[]` of the rebase dialog.
+ */
+export function vcs_rebase_autosquash(commits_json: string): string;
+
+/**
+ * `RebaseEntry[]` (oldest first) → `{ steps, messages }`, the todo the git mock applies.
+ */
+export function vcs_rebase_todo(entries_json: string): string;
 
 /**
  * `{text}` → `{handle}`: start tracking an editor.
@@ -1094,9 +2458,45 @@ export function vim_state(json: string): string;
 export function vim_timeout(json: string): string;
 
 /**
+ * `{ files: [{ path, text }], options }` → `Target[]`.
+ */
+export function vulnerabilities_detect(request_json: string): string;
+
+/**
+ * `{ path, text, vulnerabilities, notices }` → `FileProblem[]`.
+ */
+export function vulnerabilities_problems(request_json: string): string;
+
+/**
+ * `{ target, stdout, stderr?, lock?, checkedAt }` → `TargetResult` (what the desktop app
+ * makes of a tool run; `lock` is the lock file's text for the installed versions).
+ */
+export function vulnerabilities_result(request_json: string): string;
+
+/**
+ * `{ path, text, package, fixed }` → the new text, or `null`.
+ */
+export function vulnerabilities_upgrade(request_json: string): string;
+
+/**
+ * `{ files, paths }` -> `Alias[]`.
+ */
+export function web_aliases(request_json: string): string;
+
+/**
  * `{ framework, files, paths }` -> `Component[]`.
  */
 export function web_components(request_json: string): string;
+
+/**
+ * Extract Component: `{ path, content, start, end, name, newPath }` -> `ExtractedComponent`.
+ */
+export function web_extract_component(request_json: string): string;
+
+/**
+ * Extract Component's analysis: `{ path, content, start, end }` -> `ExtractComponentInfo`.
+ */
+export function web_extract_component_prepare(request_json: string): string;
 
 /**
  * `{ framework, files, paths, path, content, offset }` -> `Location[]`.
@@ -1107,6 +2507,16 @@ export function web_goto(request_json: string): string;
  * `{ framework, files, paths, path, content }` -> `GutterMark[]`.
  */
 export function web_gutter(request_json: string): string;
+
+/**
+ * `{ files, paths, path, content, offset }` -> `ImportCompletion | null`.
+ */
+export function web_import_complete(request_json: string): string;
+
+/**
+ * `{ files, paths, path, content, offset }` -> `Location | null`.
+ */
+export function web_import_goto(request_json: string): string;
 
 /**
  * `{ path, content }` -> `GutterMark[]` (run icons of a package.json).
@@ -1123,12 +2533,41 @@ export function web_npm_packages(request_json: string): string;
  */
 export function window_chrome(request_json: string): string;
 
+/**
+ * `{ files, query }` → the answer of `phpforge_fw_wordpress::api::answer`.
+ */
+export function wordpress_query(request_json: string): string;
+
+/**
+ * A Windows path → `LinuxPath | null`.
+ */
+export function wsl_map_path(path: string): string;
+
+/**
+ * `wsl.exe -l -v` output bytes → `Distro[]` (without Docker Desktop's distributions).
+ */
+export function wsl_parse_list(bytes: Uint8Array): string;
+
+/**
+ * `{ distro, path }` → the Windows view of a Linux path.
+ */
+export function wsl_windows_path(request_json: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly agent_parse_lines: (a: number, b: number, c: number) => void;
     readonly agent_profiles: (a: number) => void;
+    readonly ai_action_prompt: (a: number, b: number, c: number) => void;
+    readonly ai_action_proposal: (a: number, b: number, c: number) => void;
+    readonly ai_inline_finish: (a: number, b: number, c: number) => void;
+    readonly ai_policy_check: (a: number, b: number, c: number) => void;
+    readonly android_adb: (a: number, b: number, c: number) => void;
+    readonly android_app_command: (a: number, b: number, c: number) => void;
+    readonly android_logcat_view: (a: number, b: number, c: number) => void;
+    readonly android_module: (a: number, b: number, c: number) => void;
+    readonly behat_step_definitions: (a: number, b: number, c: number) => void;
     readonly bookmarks_apply: (a: number, b: number, c: number) => void;
     readonly bridge_version: (a: number) => void;
     readonly chat_apply: (a: number, b: number, c: number) => void;
@@ -1136,10 +2575,18 @@ export interface InitOutput {
     readonly chat_drop: (a: number, b: number, c: number) => void;
     readonly chat_new: (a: number) => void;
     readonly chat_set_permission: (a: number, b: number, c: number) => void;
+    readonly cli_tools_complete: (a: number, b: number, c: number) => void;
+    readonly cli_tools_effective: (a: number, b: number, c: number) => void;
+    readonly cli_tools_parse_input: (a: number, b: number, c: number) => void;
+    readonly cli_tools_parse_list: (a: number, b: number, c: number) => void;
     readonly clipboard_history_add: (a: number, b: number, c: number) => void;
     readonly clipboard_history_list: (a: number, b: number, c: number) => void;
     readonly clipboard_history_promote: (a: number, b: number, c: number) => void;
     readonly clipboard_history_remove: (a: number, b: number, c: number) => void;
+    readonly cmake_complete: (a: number, b: number, c: number) => void;
+    readonly cmake_parse_log: (a: number, b: number, c: number) => void;
+    readonly cmake_profiles: (a: number, b: number, c: number) => void;
+    readonly cms_query: (a: number, b: number, c: number) => void;
     readonly codeintel_apply_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_context_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_context_headers: (a: number, b: number, c: number) => void;
@@ -1153,6 +2600,7 @@ export interface InitOutput {
     readonly codeintel_order_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_plan_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_preview_edit: (a: number, b: number, c: number) => void;
+    readonly codeintel_refactor_this_actions: (a: number, b: number, c: number) => void;
     readonly codeintel_related: (a: number, b: number, c: number) => void;
     readonly codeintel_rename_edit: (a: number, b: number, c: number) => void;
     readonly codeintel_test_source: (a: number, b: number, c: number) => void;
@@ -1168,15 +2616,20 @@ export interface InitOutput {
     readonly codestyle_post_format: (a: number, b: number, c: number) => void;
     readonly codestyle_preview: (a: number, b: number, c: number) => void;
     readonly codestyle_schemes: (a: number, b: number, c: number) => void;
+    readonly codestyle_selected_values: (a: number, b: number, c: number) => void;
     readonly colors_find: (a: number, b: number, c: number) => void;
     readonly colors_format: (a: number, b: number, c: number) => void;
     readonly colors_parse: (a: number, b: number, c: number) => void;
+    readonly colorscheme_apply: (a: number, b: number, c: number) => void;
+    readonly colorscheme_export: (a: number, b: number, c: number) => void;
+    readonly colorscheme_import: (a: number, b: number, c: number) => void;
+    readonly colorscheme_state: (a: number, b: number, c: number) => void;
     readonly compare_dir_listings: (a: number, b: number, c: number) => void;
-    readonly composer_audit_problems: (a: number, b: number, c: number) => void;
     readonly composer_complete: (a: number, b: number, c: number) => void;
     readonly composer_hover: (a: number, b: number, c: number) => void;
     readonly composer_markers: (a: number, b: number, c: number) => void;
     readonly composer_project: (a: number, b: number, c: number) => void;
+    readonly composer_scripts: (a: number, b: number, c: number) => void;
     readonly composer_search: (a: number, b: number, c: number) => void;
     readonly containers_compose_args: (a: number, b: number, c: number) => void;
     readonly containers_compose_parse: (a: number, b: number, c: number) => void;
@@ -1190,9 +2643,71 @@ export interface InitOutput {
     readonly containers_pull_push: (a: number, b: number, c: number) => void;
     readonly containers_terminal_command: (a: number, b: number, c: number) => void;
     readonly containers_workloads_parse: (a: number, b: number, c: number) => void;
+    readonly coverage_hints: (a: number, b: number, c: number) => void;
+    readonly coverage_html: (a: number, b: number, c: number) => void;
+    readonly coverage_marks: (a: number, b: number, c: number) => void;
+    readonly coverage_merge: (a: number, b: number, c: number) => void;
+    readonly coverage_parse: (a: number, b: number, c: number) => void;
+    readonly coverage_summary: (a: number, b: number, c: number) => void;
+    readonly cpp_build_problems: (a: number, b: number, c: number) => void;
+    readonly cpp_perf_view: (a: number, b: number, c: number) => void;
+    readonly cpp_sanitizer_reports: (a: number, b: number, c: number) => void;
+    readonly cpp_valgrind_report: (a: number, b: number, c: number) => void;
+    readonly cpp_vcpkg_complete: (a: number, b: number, c: number) => void;
     readonly csv_edit: (a: number, b: number, c: number) => void;
     readonly csv_parse: (a: number, b: number, c: number) => void;
     readonly csv_sort_order: (a: number, b: number, c: number) => void;
+    readonly dataedit_aggregate: (a: number, b: number, c: number) => void;
+    readonly dataedit_chart: (a: number, b: number, c: number) => void;
+    readonly dataedit_compare: (a: number, b: number, c: number) => void;
+    readonly dataedit_incoming: (a: number, b: number, c: number) => void;
+    readonly dataedit_navigate: (a: number, b: number, c: number) => void;
+    readonly dataedit_preview: (a: number, b: number, c: number) => void;
+    readonly dataedit_table_query: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_binary: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_editor: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_format: (a: number, b: number, c: number) => void;
+    readonly dataedit_value_temporal: (a: number, b: number, c: number) => void;
+    readonly dataedit_view: (a: number, b: number, c: number) => void;
+    readonly dbmodel_apply_virtual: (a: number, b: number, c: number) => void;
+    readonly dbmodel_match_schemas: (a: number, b: number, c: number) => void;
+    readonly dbmodel_object_doc: (a: number, b: number, c: number) => void;
+    readonly dbmodel_parse_ddl: (a: number, b: number, c: number) => void;
+    readonly dbmodel_search_rows: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_info: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_design_spec: (a: number, b: number, c: number) => void;
+    readonly dbobjects_drop_sql: (a: number, b: number, c: number) => void;
+    readonly dbobjects_dump_command: (a: number, b: number, c: number) => void;
+    readonly dbobjects_dump_tools: (a: number, b: number, c: number) => void;
+    readonly dbobjects_export_xlsx: (a: number, b: number, c: number) => void;
+    readonly dbobjects_generate_ddl: (a: number, b: number, c: number) => void;
+    readonly dbobjects_import_batches: (a: number, b: number, c: number) => void;
+    readonly dbobjects_import_preview: (a: number, b: number, c: number) => void;
+    readonly dbobjects_rename_sql: (a: number, b: number, c: number) => void;
+    readonly dbschema_compare: (a: number, b: number, c: number) => void;
+    readonly dbschema_diagram: (a: number, b: number, c: number) => void;
+    readonly dbschema_explain_script: (a: number, b: number, c: number) => void;
+    readonly dbschema_parse_plan: (a: number, b: number, c: number) => void;
+    readonly deno_tasks: (a: number, b: number, c: number) => void;
+    readonly deploy_compare: (a: number, b: number, c: number) => void;
+    readonly deploy_entry_path: (a: number, b: number, c: number) => void;
+    readonly deploy_remote_nodes: (a: number, b: number, c: number) => void;
+    readonly deploy_resolve: (a: number, b: number, c: number) => void;
+    readonly deploy_validate: (a: number, b: number, c: number) => void;
+    readonly devcontainer_gutter: (a: number, b: number, c: number) => void;
+    readonly devcontainer_parse_list: (a: number, b: number, c: number) => void;
+    readonly devcontainer_resolve: (a: number, b: number, c: number) => void;
+    readonly dotnet_action_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_build_report: (a: number, b: number, c: number) => void;
+    readonly dotnet_discover: (a: number, b: number, c: number) => void;
+    readonly dotnet_format_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_load_workspace: (a: number, b: number, c: number) => void;
+    readonly dotnet_new_project: (a: number, b: number, c: number) => void;
+    readonly dotnet_package_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_run_command: (a: number, b: number, c: number) => void;
+    readonly dotnet_scan: (a: number, b: number, c: number) => void;
+    readonly dotnet_templates: (a: number, b: number, c: number) => void;
     readonly dql_complete: (a: number, b: number, c: number) => void;
     readonly dql_diagnostics: (a: number, b: number, c: number) => void;
     readonly dql_goto: (a: number, b: number, c: number) => void;
@@ -1212,19 +2727,46 @@ export interface InitOutput {
     readonly emmet_remove_tag: (a: number, b: number, c: number) => void;
     readonly emmet_update_tag: (a: number, b: number, c: number) => void;
     readonly emmet_wrap: (a: number, b: number, c: number) => void;
+    readonly external_tool_command: (a: number, b: number, c: number) => void;
+    readonly external_tool_macros: (a: number, b: number, c: number) => void;
+    readonly external_tool_validate: (a: number, b: number, c: number) => void;
     readonly file_colors_resolve: (a: number, b: number, c: number) => void;
     readonly file_structure_view: (a: number, b: number, c: number) => void;
+    readonly file_watchers_plan: (a: number, b: number, c: number) => void;
+    readonly file_watchers_problems: (a: number, b: number, c: number) => void;
+    readonly file_watchers_templates: (a: number, b: number, c: number) => void;
+    readonly file_watchers_validate: (a: number, b: number, c: number) => void;
     readonly filetypes_detect: (a: number, b: number, c: number) => void;
+    readonly filetypes_ignored: (a: number, b: number, c: number) => void;
+    readonly filetypes_list: (a: number, b: number, c: number) => void;
     readonly filetypes_load: (a: number, b: number, c: number) => void;
     readonly filetypes_template_delimiters: (a: number) => void;
     readonly find_in_files: (a: number, b: number, c: number) => void;
     readonly find_page: (a: number, b: number, c: number) => void;
     readonly find_paged: (a: number, b: number, c: number) => void;
     readonly fuzzy_filter: (a: number, b: number, c: number) => void;
+    readonly go_build_command: (a: number, b: number, c: number) => void;
+    readonly go_generate_args: (a: number, b: number, c: number) => void;
+    readonly go_generate_directives: (a: number, b: number, c: number) => void;
+    readonly go_lint_parse: (a: number, b: number, c: number) => void;
+    readonly go_mod_completion_context: (a: number, b: number, c: number) => void;
+    readonly go_mod_parse: (a: number, b: number, c: number) => void;
+    readonly go_module_command: (a: number, b: number, c: number) => void;
+    readonly graphql_complete: (a: number, b: number, c: number) => void;
+    readonly graphql_config: (a: number, b: number, c: number) => void;
+    readonly graphql_is_schema: (a: number, b: number, c: number) => void;
+    readonly graphql_types: (a: number, b: number, c: number) => void;
+    readonly graphql_validate: (a: number, b: number, c: number) => void;
+    readonly groovy_runnable: (a: number, b: number, c: number) => void;
+    readonly groovy_script_command: (a: number, b: number, c: number) => void;
     readonly hierarchy_call_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_method_view: (a: number, b: number, c: number) => void;
     readonly hierarchy_type_view: (a: number, b: number, c: number) => void;
     readonly image_describe: (a: number, b: number, c: number) => void;
+    readonly imports_folder_summary: (a: number, b: number, c: number, d: number) => void;
+    readonly imports_minimal_edit: (a: number, b: number, c: number) => void;
+    readonly imports_optimize_answer: (a: number, b: number, c: number) => void;
+    readonly imports_targets: (a: number, b: number, c: number) => void;
     readonly injections_at: (a: number, b: number, c: number) => void;
     readonly injections_context_actions: (a: number, b: number, c: number) => void;
     readonly injections_escape: (a: number, b: number, c: number) => void;
@@ -1233,12 +2775,40 @@ export interface InitOutput {
     readonly injections_inject: (a: number, b: number, c: number) => void;
     readonly injections_languages: (a: number) => void;
     readonly injections_rules: (a: number) => void;
+    readonly inspections_apply: (a: number, b: number, c: number) => void;
+    readonly inspections_apply_edits: (a: number, b: number, c: number) => void;
+    readonly inspections_cleanup_plan: (a: number, b: number, c: number) => void;
+    readonly inspections_configure: (a: number, b: number, c: number) => void;
+    readonly inspections_export_profile: (a: number, b: number, c: number) => void;
+    readonly inspections_export_report: (a: number, b: number, c: number) => void;
+    readonly inspections_find: (a: number, b: number, c: number) => void;
+    readonly inspections_import_profile: (a: number, b: number, c: number) => void;
+    readonly inspections_profile_op: (a: number, b: number, c: number) => void;
+    readonly inspections_registry: (a: number, b: number, c: number) => void;
+    readonly inspections_report_tree: (a: number, b: number, c: number) => void;
+    readonly inspections_run: (a: number, b: number, c: number) => void;
+    readonly inspections_severities: (a: number, b: number, c: number) => void;
+    readonly inspections_suppress_actions: (a: number, b: number, c: number) => void;
+    readonly inspections_view: (a: number, b: number, c: number) => void;
+    readonly java_build_complete: (a: number, b: number, c: number) => void;
+    readonly java_build_info: (a: number, b: number, c: number) => void;
+    readonly java_build_model: (a: number, b: number, c: number) => void;
+    readonly java_build_outdated: (a: number, b: number, c: number) => void;
+    readonly java_build_request: (a: number, b: number, c: number) => void;
+    readonly java_command_line: (a: number, b: number, c: number) => void;
+    readonly java_main_methods: (a: number, b: number, c: number) => void;
+    readonly java_wrapper: (a: number, b: number, c: number) => void;
     readonly json_schema_builtins: (a: number) => void;
     readonly json_schema_complete: (a: number, b: number, c: number) => void;
     readonly json_schema_goto: (a: number, b: number, c: number) => void;
     readonly json_schema_hover: (a: number, b: number, c: number) => void;
     readonly json_schema_read: (a: number, b: number, c: number) => void;
     readonly json_schema_validate: (a: number, b: number, c: number) => void;
+    readonly jupyter_dataframe_query: (a: number, b: number, c: number) => void;
+    readonly jupyter_diff: (a: number, b: number, c: number) => void;
+    readonly jupyter_open: (a: number, b: number, c: number) => void;
+    readonly jupyter_render: (a: number, b: number, c: number) => void;
+    readonly jupyter_serialize: (a: number, b: number, c: number) => void;
     readonly keymap_actions: (a: number, b: number, c: number) => void;
     readonly keymap_conflicts: (a: number, b: number, c: number) => void;
     readonly keymap_find_by_shortcut: (a: number, b: number, c: number) => void;
@@ -1247,10 +2817,16 @@ export interface InitOutput {
     readonly keymap_legacy_changes: (a: number, b: number, c: number) => void;
     readonly keymap_load_bindings: (a: number, b: number, c: number) => void;
     readonly keymap_main_menu: (a: number, b: number, c: number) => void;
+    readonly keymap_mouse_action: (a: number, b: number, c: number) => void;
+    readonly keymap_mouse_stroke: (a: number, b: number, c: number) => void;
     readonly keymap_register_actions: (a: number, b: number, c: number) => void;
     readonly keymap_resolve: (a: number, b: number, c: number) => void;
     readonly keymap_set_override: (a: number, b: number, c: number) => void;
     readonly keymap_stroke_of_event: (a: number, b: number, c: number) => void;
+    readonly kotlin_command_line: (a: number, b: number, c: number) => void;
+    readonly kotlin_coroutines: (a: number, b: number, c: number) => void;
+    readonly kotlin_lint_report: (a: number, b: number, c: number) => void;
+    readonly kotlin_main_functions: (a: number, b: number, c: number) => void;
     readonly live_templates_applicable: (a: number, b: number, c: number) => void;
     readonly live_templates_catalog: (a: number, b: number, c: number) => void;
     readonly live_templates_expand: (a: number, b: number, c: number) => void;
@@ -1258,29 +2834,105 @@ export interface InitOutput {
     readonly live_templates_surround_items: (a: number, b: number, c: number) => void;
     readonly live_templates_unwrap: (a: number, b: number, c: number) => void;
     readonly live_templates_variables: (a: number, b: number, c: number) => void;
+    readonly local_history_call: (a: number, b: number, c: number) => void;
     readonly lua_file_structure: (a: number, b: number, c: number) => void;
     readonly lua_goto: (a: number, b: number, c: number) => void;
     readonly lua_hover: (a: number, b: number, c: number) => void;
     readonly lua_index_files: (a: number, b: number, c: number) => void;
     readonly lua_run_markers: (a: number, b: number, c: number) => void;
     readonly lua_search_symbols: (a: number, b: number, c: number) => void;
+    readonly maintenance_invalidate_model: (a: number) => void;
+    readonly maintenance_settings_groups: (a: number, b: number, c: number) => void;
     readonly markdown_anchor_line: (a: number, b: number, c: number) => void;
     readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
+    readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
+    readonly nuget_parse_search: (a: number, b: number, c: number) => void;
+    readonly nuget_upgrade: (a: number, b: number, c: number) => void;
+    readonly nuxt_project: (a: number, b: number, c: number) => void;
+    readonly nx_workspace: (a: number, b: number, c: number) => void;
+    readonly openapi_file: (a: number, b: number, c: number) => void;
+    readonly openapi_http_request: (a: number, b: number, c: number) => void;
+    readonly openapi_preview: (a: number, b: number, c: number) => void;
     readonly output_file_links: (a: number, b: number, c: number) => void;
+    readonly php_coverage_plan: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_automatic_mappings: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_parse_info: (a: number, b: number, c: number) => void;
+    readonly php_interpreter_wrap: (a: number, b: number, c: number) => void;
+    readonly php_source_roots: (a: number, b: number, c: number) => void;
+    readonly pio_command: (a: number, b: number, c: number) => void;
+    readonly pio_project: (a: number, b: number, c: number) => void;
+    readonly pprof_view: (a: number, b: number, c: number) => void;
+    readonly profiler_demo: (a: number, b: number, c: number) => void;
+    readonly profiler_parse: (a: number, b: number, c: number) => void;
+    readonly project_structure_describe: (a: number, b: number, c: number) => void;
+    readonly project_structure_excluded: (a: number, b: number, c: number) => void;
+    readonly project_structure_mark: (a: number, b: number, c: number) => void;
+    readonly project_structure_state: (a: number, b: number, c: number) => void;
+    readonly project_view_arrange: (a: number, b: number, c: number) => void;
+    readonly project_view_nesting_defaults: (a: number) => void;
+    readonly python_add_requirement: (a: number, b: number, c: number) => void;
+    readonly python_completion_context: (a: number, b: number, c: number) => void;
+    readonly python_demo_profile: (a: number, b: number, c: number) => void;
+    readonly python_dependencies: (a: number, b: number, c: number) => void;
+    readonly python_environment_plan: (a: number, b: number, c: number) => void;
+    readonly python_inspect: (a: number, b: number, c: number) => void;
+    readonly python_interpreter_label: (a: number, b: number, c: number) => void;
+    readonly python_packages_command: (a: number, b: number, c: number) => void;
+    readonly python_rerun_failed: (a: number, b: number, c: number) => void;
+    readonly python_run_markers: (a: number, b: number, c: number) => void;
+    readonly python_test_command: (a: number, b: number, c: number) => void;
+    readonly python_test_discover: (a: number, b: number, c: number) => void;
+    readonly python_testing_detect: (a: number, b: number, c: number) => void;
+    readonly python_tox_environments: (a: number, b: number, c: number) => void;
+    readonly python_web_complete: (a: number, b: number, c: number) => void;
+    readonly python_web_goto: (a: number, b: number, c: number) => void;
+    readonly python_web_manage_commands: (a: number, b: number, c: number) => void;
+    readonly python_web_marks: (a: number, b: number, c: number) => void;
+    readonly python_web_project: (a: number, b: number, c: number) => void;
+    readonly python_web_run_info: (a: number, b: number, c: number) => void;
+    readonly rails_command: (a: number, b: number, c: number) => void;
+    readonly rails_complete: (a: number, b: number, c: number) => void;
+    readonly rails_generators: (a: number, b: number, c: number) => void;
+    readonly rails_goto: (a: number, b: number, c: number) => void;
+    readonly rails_marks: (a: number, b: number, c: number) => void;
+    readonly rails_project: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;
     readonly replace_in_files: (a: number, b: number, c: number) => void;
     readonly replace_preview: (a: number, b: number, c: number) => void;
+    readonly ruby_action_command: (a: number, b: number, c: number) => void;
+    readonly ruby_bundle: (a: number, b: number, c: number) => void;
+    readonly ruby_command_line: (a: number, b: number, c: number) => void;
+    readonly ruby_rake_tasks: (a: number, b: number, c: number) => void;
+    readonly ruby_requested_version: (a: number, b: number, c: number) => void;
+    readonly ruby_rubocop_report: (a: number, b: number, c: number) => void;
+    readonly ruby_script_entry: (a: number, b: number, c: number) => void;
+    readonly run_anything_push_history: (a: number, b: number, c: number) => void;
+    readonly run_anything_resolve: (a: number, b: number, c: number) => void;
+    readonly run_anything_suggest: (a: number, b: number, c: number) => void;
+    readonly run_launch_plan: (a: number, b: number, c: number) => void;
     readonly run_output_drop: (a: number, b: number, c: number) => void;
+    readonly run_output_export: (a: number, b: number, c: number) => void;
     readonly run_output_handle: (a: number, b: number, c: number) => void;
     readonly run_output_new: (a: number, b: number, c: number) => void;
+    readonly run_target_wrap: (a: number, b: number, c: number) => void;
+    readonly rust_action_command: (a: number, b: number, c: number) => void;
+    readonly rust_command_line: (a: number, b: number, c: number) => void;
+    readonly rust_discover: (a: number, b: number, c: number) => void;
+    readonly rust_parse_metadata: (a: number, b: number, c: number) => void;
+    readonly rust_problems: (a: number, b: number, c: number) => void;
+    readonly rust_run_targets: (a: number, b: number, c: number) => void;
+    readonly rust_toolchain_file: (a: number, b: number, c: number) => void;
     readonly save_actions_changed_lines: (a: number, b: number, c: number) => void;
     readonly save_actions_file_types: (a: number, b: number, c: number) => void;
     readonly save_actions_plan: (a: number, b: number, c: number) => void;
+    readonly scala_command_line: (a: number, b: number, c: number) => void;
+    readonly scala_main_objects: (a: number, b: number, c: number) => void;
+    readonly scala_sbt_build: (a: number, b: number, c: number) => void;
     readonly scopes_check: (a: number, b: number, c: number) => void;
     readonly scopes_composer_test_roots: (a: number, b: number, c: number) => void;
     readonly scopes_contains: (a: number, b: number, c: number) => void;
@@ -1288,9 +2940,11 @@ export interface InitOutput {
     readonly scopes_entries: (a: number, b: number, c: number) => void;
     readonly scopes_tree: (a: number, b: number, c: number) => void;
     readonly scratches_http_environments: (a: number, b: number, c: number) => void;
+    readonly scratches_http_from_curl: (a: number, b: number, c: number) => void;
     readonly scratches_http_handler: (a: number, b: number, c: number) => void;
     readonly scratches_http_render: (a: number, b: number, c: number) => void;
     readonly scratches_http_request: (a: number, b: number, c: number) => void;
+    readonly scratches_http_to_curl: (a: number, b: number, c: number) => void;
     readonly scratches_languages: (a: number, b: number, c: number) => void;
     readonly scratches_load: (a: number, b: number, c: number) => void;
     readonly scratches_markers: (a: number, b: number, c: number) => void;
@@ -1304,21 +2958,44 @@ export interface InitOutput {
     readonly search_rank: (a: number, b: number, c: number) => void;
     readonly services_details: (a: number, b: number, c: number) => void;
     readonly services_gutter: (a: number, b: number, c: number) => void;
+    readonly services_kube_selection: (a: number, b: number, c: number) => void;
     readonly services_tree: (a: number, b: number, c: number) => void;
     readonly settings_search: (a: number, b: number, c: number) => void;
     readonly settings_validate: (a: number, b: number, c: number) => void;
     readonly spell_context_actions: (a: number, b: number, c: number) => void;
     readonly spell_dictionaries: (a: number) => void;
     readonly spell_inspect: (a: number, b: number, c: number) => void;
+    readonly spring_config: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly spring_dashboard: (a: number, b: number, c: number) => void;
+    readonly spring_gutter: (a: number, b: number, c: number) => void;
+    readonly spring_http_request: (a: number, b: number, c: number) => void;
+    readonly spring_launch: (a: number, b: number, c: number) => void;
+    readonly spring_observe: (a: number, b: number, c: number) => void;
+    readonly spring_overview: (a: number, b: number, c: number) => void;
+    readonly sql_analyze: (a: number, b: number, c: number) => void;
     readonly sql_change_statements: (a: number, b: number, c: number) => void;
+    readonly sql_declaration: (a: number, b: number, c: number) => void;
+    readonly sql_dialects: (a: number, b: number, c: number) => void;
     readonly sql_export: (a: number, b: number, c: number) => void;
+    readonly sql_file_info: (a: number, b: number, c: number) => void;
+    readonly sql_format: (a: number, b: number, c: number) => void;
+    readonly sql_guard: (a: number, b: number, c: number) => void;
+    readonly sql_history_add: (a: number, b: number, c: number) => void;
+    readonly sql_history_search: (a: number, b: number, c: number) => void;
     readonly sql_leading_keywords: (a: number, b: number, c: number) => void;
+    readonly sql_params: (a: number, b: number, c: number) => void;
+    readonly sql_plan_run: (a: number, b: number, c: number) => void;
+    readonly sql_rename: (a: number, b: number, c: number) => void;
     readonly sql_split: (a: number, b: number, c: number) => void;
     readonly sql_statement_at: (a: number, b: number, c: number) => void;
+    readonly sql_substitute: (a: number, b: number, c: number) => void;
+    readonly sql_usages: (a: number, b: number, c: number) => void;
     readonly ssr_templates: (a: number, b: number, c: number) => void;
     readonly ssr_variables: (a: number, b: number, c: number) => void;
     readonly stacktrace_analyze: (a: number, b: number, c: number) => void;
     readonly structure_group_by_regions: (a: number, b: number, c: number) => void;
+    readonly svd_peripheral_values: (a: number, b: number, c: number) => void;
+    readonly svd_summary: (a: number, b: number, c: number) => void;
     readonly templates_list: (a: number, b: number, c: number) => void;
     readonly templates_new_file: (a: number, b: number, c: number) => void;
     readonly templates_php_directory: (a: number, b: number, c: number) => void;
@@ -1326,13 +3003,28 @@ export interface InitOutput {
     readonly templates_validate: (a: number, b: number, c: number) => void;
     readonly terminal_link_target: (a: number, b: number, c: number) => void;
     readonly terminal_parse_osc: (a: number, b: number, c: number) => void;
+    readonly test_command: (a: number, b: number, c: number) => void;
+    readonly test_discover: (a: number, b: number, c: number) => void;
+    readonly test_frameworks_effective: (a: number, b: number, c: number) => void;
+    readonly test_history_import: (a: number, b: number, c: number) => void;
+    readonly test_rerun_failed: (a: number, b: number, c: number) => void;
+    readonly testing_command: (a: number, b: number, c: number) => void;
+    readonly testing_detect: (a: number, b: number, c: number) => void;
+    readonly testing_discover: (a: number, b: number, c: number) => void;
+    readonly testing_rerun_failed: (a: number, b: number, c: number) => void;
     readonly text_file_format: (a: number, b: number, c: number) => void;
     readonly text_inspect_commit_message: (a: number, b: number, c: number) => void;
     readonly text_prepare_save: (a: number, b: number, c: number) => void;
     readonly text_read: (a: number, b: number, c: number) => void;
     readonly text_write: (a: number, b: number, c: number) => void;
     readonly todo_scan: (a: number, b: number, c: number) => void;
+    readonly vcs_change_hunks: (a: number, b: number, c: number) => void;
+    readonly vcs_changelists: (a: number, b: number, c: number) => void;
+    readonly vcs_log_action_states: (a: number, b: number, c: number) => void;
     readonly vcs_merge: (a: number, b: number, c: number) => void;
+    readonly vcs_patch_preview: (a: number, b: number, c: number) => void;
+    readonly vcs_rebase_autosquash: (a: number, b: number, c: number) => void;
+    readonly vcs_rebase_todo: (a: number, b: number, c: number) => void;
     readonly vim_attach: (a: number, b: number, c: number) => void;
     readonly vim_configure: (a: number, b: number, c: number) => void;
     readonly vim_detach: (a: number, b: number, c: number) => void;
@@ -1343,16 +3035,30 @@ export interface InitOutput {
     readonly vim_set_clipboard: (a: number, b: number, c: number) => void;
     readonly vim_state: (a: number, b: number, c: number) => void;
     readonly vim_timeout: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_detect: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_problems: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_result: (a: number, b: number, c: number) => void;
+    readonly vulnerabilities_upgrade: (a: number, b: number, c: number) => void;
+    readonly web_aliases: (a: number, b: number, c: number) => void;
     readonly web_components: (a: number, b: number, c: number) => void;
+    readonly web_extract_component: (a: number, b: number, c: number) => void;
+    readonly web_extract_component_prepare: (a: number, b: number, c: number) => void;
     readonly web_goto: (a: number, b: number, c: number) => void;
     readonly web_gutter: (a: number, b: number, c: number) => void;
+    readonly web_import_complete: (a: number, b: number, c: number) => void;
+    readonly web_import_goto: (a: number, b: number, c: number) => void;
     readonly web_npm_gutter: (a: number, b: number, c: number) => void;
     readonly web_npm_packages: (a: number, b: number, c: number) => void;
     readonly window_chrome: (a: number, b: number, c: number) => void;
+    readonly wordpress_query: (a: number, b: number, c: number) => void;
+    readonly wsl_map_path: (a: number, b: number, c: number) => void;
+    readonly wsl_parse_list: (a: number, b: number, c: number) => void;
+    readonly wsl_windows_path: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export: (a: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-    readonly __wbindgen_export: (a: number, b: number) => number;
-    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export2: (a: number, b: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

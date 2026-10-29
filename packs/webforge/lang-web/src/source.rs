@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+use crate::aliases::{self, Alias};
 use crate::json;
 use crate::text::{join_path, parent_dir};
 
@@ -27,6 +28,10 @@ pub struct Sources {
     paths: BTreeSet<String>,
     /// `(prefix, targets)` from `compilerOptions.paths`: `("@/", ["src/"])`.
     aliases: Vec<(String, Vec<String>)>,
+    /// Exact-match aliases of bundler configurations (`'@'` itself, webpack's `name$`).
+    exact: Vec<(String, String)>,
+    /// Aliases of `vite.config.*` / `webpack.config.*` as read (for the UI).
+    bundler: Vec<Alias>,
     /// `(package name, package.json path)` of the project's own packages (monorepo
     /// workspaces), longest name first.
     packages: Vec<(String, String)>,
@@ -38,6 +43,8 @@ impl Sources {
             files: files.into_iter().map(|f| (f.path, f.content)).collect(),
             paths: other_paths.into_iter().collect(),
             aliases: Vec::new(),
+            exact: Vec::new(),
+            bundler: Vec::new(),
             packages: Vec::new(),
         };
         s.paths.extend(s.files.keys().cloned());
@@ -74,6 +81,8 @@ impl Sources {
     pub fn resolve_module(&self, from: &str, spec: &str) -> Option<String> {
         let bases: Vec<String> = if spec.starts_with('.') || spec.starts_with('/') {
             vec![join_path(parent_dir(from), spec)]
+        } else if let Some((_, target)) = self.exact.iter().find(|(f, _)| f == spec) {
+            vec![target.clone()]
         } else {
             self.aliases
                 .iter()
@@ -172,10 +181,47 @@ impl Sources {
             .find(|p| self.exists(p))
     }
 
+    /// The aliases of `vite.config.*` / `webpack.config.*` files (Vite/Webpack aliases).
+    pub fn bundler_aliases(&self) -> &[Alias] {
+        &self.bundler
+    }
+
+    /// The prefix aliases in resolution order: `(prefix, target folders)`.
+    pub fn aliases(&self) -> &[(String, Vec<String>)] {
+        &self.aliases
+    }
+
     /// Path aliases of the root `tsconfig.json` / `jsconfig.json` (following one `extends`
-    /// to a project file); without any, the `@/` and `~/` -> `src/` convention of Vite and Nuxt.
-    fn read_aliases(&self) -> Vec<(String, Vec<String>)> {
+    /// to a project file) and of bundler configurations (`resolve.alias` of
+    /// `vite.config.*` / `webpack.config.*` in the root or one folder below); without any,
+    /// the `@/` and `~/` -> `src/` convention of Vite and Nuxt.
+    fn read_aliases(&mut self) -> Vec<(String, Vec<String>)> {
+        let mut bundler = Vec::new();
+        for (path, content) in &self.files {
+            let name = path.rsplit('/').next().unwrap_or(path);
+            if path.matches('/').count() <= 1
+                && !is_vendored(path)
+                && aliases::CONFIG_FILES.contains(&name)
+            {
+                bundler.extend(aliases::parse(path, content));
+            }
+        }
         let mut out = Vec::new();
+        for a in &bundler {
+            if a.exact {
+                self.exact.push((a.find.clone(), a.target.clone()));
+                continue;
+            }
+            let find = a.find.trim_end_matches('/');
+            self.exact.push((find.to_string(), a.target.clone()));
+            let target = if a.target.is_empty() {
+                String::new()
+            } else {
+                format!("{}/", a.target.trim_end_matches('/'))
+            };
+            out.push((format!("{find}/"), vec![target]));
+        }
+        self.bundler = bundler;
         for config in ["tsconfig.json", "jsconfig.json", "tsconfig.app.json"] {
             let mut path = config.to_string();
             for _ in 0..3 {

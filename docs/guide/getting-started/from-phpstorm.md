@@ -43,12 +43,12 @@ what is not there yet.
 
 | Topic | PHPStorm | Forge |
 | --- | --- | --- |
-| PHP intelligence | built-in PHP engine | an external language server: Intelephense (free, or premium with your own licence key) or Phpactor, plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](../user/language-servers.md). |
+| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](../user/language-servers.md#php-php-lsp). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](../user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
 | AI | AI Assistant subscription | bring your own provider (Anthropic, OpenAI-compatible, OpenRouter, Ollama, LM Studio, llama.cpp) or your installed Claude Code / Gemini CLI |
-| Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge); no Marketplace yet |
+| Plugins | Marketplace | built-in plugins grouped in packs (PHPForge, WebForge, LuaForge, JavaForge); no Marketplace yet |
 | Remote development | Gateway | built in: SSH connection, Forge uploads a small agent to the host |
 | Theme | Darcula/Light/New UI themes | Forge Ember (dark), Forge Anvil (light), Solarized Dark and Light |
 
@@ -62,8 +62,6 @@ happening.
 - Find Usages in File (`Ctrl+F7`), Highlight Usages in File
 - Extract Interface / Superclass, Pull Members Up / Push Members Down
 - File Structure popup (`Ctrl+F12`)
-- Local History
-- Optimize Imports
 - Go to Test (`Ctrl+Shift+T`)
 - Distraction Free / Presentation / Zen modes
 - Marketplace, settings export/import
@@ -73,9 +71,8 @@ The [keymap reference](../reference/keymap.md) marks every action as implemented
 ## Moving a project over
 
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
-2. Install the language servers you need from Settings | Languages & Frameworks |
-   Language Servers. For PHP, accept the offer "Intelephense is not installed" (or click **Install
-   Intelephense**) and, if you own a licence, enter the key on the same page.
+2. PHP works right away with the built-in language server php-lsp. Install the language
+   servers of your other languages from Settings | Languages & Frameworks | Language Servers.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.

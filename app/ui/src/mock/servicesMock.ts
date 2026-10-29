@@ -1,6 +1,7 @@
 /**
  * Browser-mode Services backend: a fake Docker daemon (acme-shop compose with app, mysql and
- * redis, images, volumes, networks, two Docker contexts) and a kind cluster with pods. The
+ * redis, images, volumes, networks, two Docker contexts) and a kind cluster with pods; the
+ * remote demo project shows the contexts of its host (a k3s next to the shop). The
  * models, the tree, details, gutter markers, command lines, port specs, log prefixes, pull
  * progress and console lines all come from the Rust crates through WebAssembly; this file
  * only keeps the fake daemon's state (and fake port forwards) and replays output. It never
@@ -8,19 +9,20 @@
  */
 import { emitMock, registerMock } from "@/ipc";
 import type { ConsoleLine } from "@/ipc/run";
-import type { DockerContext, GutterMarker, PortForward, ServiceAction, ServiceDetails, ServiceNode, ServicesEvent, TerminalCommand } from "@/ipc/services";
+import type { DockerContext, GutterMarker, KubeSelection, PortForward, ServiceAction, ServiceDetails, ServiceNode, ServicesEvent, TerminalCommand } from "@/ipc/services";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import { demoProjectName } from "./demoProject";
 import { isSymfonyDemo, symfonyDemoName } from "./demoSymfonyProject";
 import { mockSettingValue } from "./settingsMock";
 import { mockFiles } from "./workspaceMock";
-import { currentRemote } from "./remoteMock";
+import { currentRemote, onRemoteProjectChanged } from "./remoteMock";
 import {
   ago,
   composeContainer,
   demoContainers,
   demoImages,
   demoKubeconfig,
+  hostKubeconfigView,
   demoNamespaces,
   demoNetworks,
   demoVersion,
@@ -118,15 +120,39 @@ function composeFiles() {
     });
 }
 
+/** The remote project host whose kubeconfig and kubectl are used, with that kubectl. */
+function kubeHost(): { label: string; kubectl: string } | null {
+  const remote = currentRemote();
+  if (!remote || mockSettingValue("kubernetes.remoteProjectHost") === false) return null;
+  const entry = ((mockSettingValue("kubernetes.hostKubectlPaths") as string[] | undefined) ?? [])
+    .map((l) => l.split("\t"))
+    .find(([h]) => h?.trim() === remote.label);
+  return { label: remote.label, kubectl: entry?.[1]?.trim() || "kubectl" };
+}
+
+/** Context and namespace picked in the selector (this session). */
+let kubeSelect: { context: string; namespace?: string; host: string | null } | null = null;
+/** Clusters that answer: kind on this machine, the host's k3s. */
+const REACHABLE = ["kind-acme", "k3s-shop"];
+/** The namespace with the demo workloads per context. */
+const SHOP_NS: Record<string, string> = { "kind-acme": "shop", "k3s-shop": "shop" };
+
 function kubeInput() {
-  const config = callWasmSync(w().containers_kubeconfig_parse, { content: demoKubeconfig, baseDir: "/home/dev/.kube" });
+  const host = kubeHost();
+  // A remote project: `kubectl config view -o json` on the host.
+  const config = host
+    ? callWasmSync(w().containers_kubeconfig_parse, { content: hostKubeconfigView, baseDir: "" })
+    : callWasmSync(w().containers_kubeconfig_parse, { content: demoKubeconfig, baseDir: "/home/dev/.kube" });
+  const selected = kubeSelect && kubeSelect.host === (host?.label ?? null) ? kubeSelect : null;
   return {
-    path: "~/.kube/config",
+    path: host ? "$KUBECONFIG or ~/.kube/config" : "~/.kube/config",
     config,
-    defaultContext: (mockSettingValue("kubernetes.defaultContext") as string) || undefined,
-    defaultNamespace: (mockSettingValue("kubernetes.defaultNamespace") as string) || undefined,
+    defaultContext: selected?.context ?? ((mockSettingValue("kubernetes.defaultContext") as string) || undefined),
+    defaultNamespace: selected ? selected.namespace : (mockSettingValue("kubernetes.defaultNamespace") as string) || undefined,
     namespaces,
     workloads,
+    host: host?.label,
+    kubectl: host?.kubectl,
   };
 }
 
@@ -370,10 +396,9 @@ async function loadNamespaces(context: string): Promise<void> {
   namespaces[context] = { state: "loading" };
   emitTree();
   await sleep(250);
-  namespaces[context] =
-    context === "kind-acme"
-      ? { state: "ready", value: demoNamespaces.items.map((n) => n.metadata.name) }
-      : { state: "failed", error: "Cannot run the credential plugin `kubelogin`: No such file or directory (os error 2)" };
+  namespaces[context] = REACHABLE.includes(context)
+    ? { state: "ready", value: demoNamespaces.items.map((n) => n.metadata.name) }
+    : { state: "failed", error: unreachable() };
 }
 
 async function loadWorkloads(context: string, ns: string): Promise<void> {
@@ -381,19 +406,29 @@ async function loadWorkloads(context: string, ns: string): Promise<void> {
   workloads[key] = { state: "loading" };
   emitTree();
   await sleep(200);
-  if (context !== "kind-acme") {
-    workloads[key] = { state: "failed", error: "Cannot run the credential plugin `kubelogin`: No such file or directory (os error 2)" };
+  if (!REACHABLE.includes(context)) {
+    workloads[key] = { state: "failed", error: unreachable() };
     return;
   }
-  const raw = ns === "shop" ? demoWorkloads() : { pods: { items: [] }, deployments: { items: [] }, services: { items: [] } };
+  const raw = ns === SHOP_NS[context] ? demoWorkloads() : { pods: { items: [] }, deployments: { items: [] }, services: { items: [] } };
   workloads[key] = { state: "ready", value: callWasmSync(w().containers_workloads_parse, raw) };
 }
+
+/** How the other contexts fail: the API server from here, kubectl on the host. */
+const unreachable = () =>
+  kubeHost()
+    ? "error: You must be logged in to the server (the server has asked for the client to provide credentials)"
+    : "Cannot run the credential plugin `kubelogin`: No such file or directory (os error 2)";
+
+const kubeSelection = () => callWasmSync<KubeSelection | null>(w().services_kube_selection, kubeInput());
 
 async function expand(nodeId: string): Promise<ServiceNode[]> {
   const t = target(nodeId);
   if (t?.kind === "kubeContext") {
     await loadNamespaces(t.context);
-    if (namespaces[t.context]?.state === "ready" || t.context === "kind-acme") await loadWorkloads(t.context, "shop");
+    const sel = kubeSelection();
+    const ns = sel?.context === t.context && sel.namespace ? sel.namespace : SHOP_NS[t.context] ?? "default";
+    await loadWorkloads(t.context, ns);
   } else if (t?.kind === "kubeNamespace") await loadWorkloads(t.context, t.namespace);
   const nodes = tree();
   emit({ type: "tree", nodes });
@@ -503,7 +538,10 @@ function terminalCommand(nodeId: string, attach: boolean, container?: string): T
   if (t?.kind === "pod") {
     const choices = details(nodeId)?.containers ?? [];
     const picked = choices.find((c) => c.name === container && !c.init) ?? choices.find((c) => c.default);
-    return callWasmSync(w().containers_terminal_command, { kind: "kubectl", context: t.context, namespace: t.namespace, pod: t.name, container: picked?.name, attach });
+    const host = kubeHost();
+    const cmd = callWasmSync<TerminalCommand>(w().containers_terminal_command, { kind: "kubectl", context: t.context, namespace: t.namespace, pod: t.name, container: picked?.name, attach });
+    // In a remote project the host's kubectl runs in a terminal on the host.
+    return host ? { ...cmd, program: host.kubectl, env: [], onHost: true } : cmd;
   }
   const c = t?.kind === "container" ? containerById(t.id) : t?.kind === "composeService" ? composeContainers(t.project, t.service)[0] : undefined;
   if (!c) throw new Error("No container to open a terminal in");
@@ -546,7 +584,7 @@ registerMock("services_port_forward_start", async ({ nodeId, spec }) => {
   for (const [local, remote] of pairs) {
     const localPort = local || 49152 + Math.floor(Math.random() * 16000);
     if (forwards.some((f) => f.localPort === localPort)) throw new Error(`Local port ${localPort} is already in use`);
-    const f: PortForward = { id: ++nextForward, nodeId: String(nodeId), context: t.context, namespace: t.namespace, pod: t.name, address: "127.0.0.1", localPort, remotePort: remote, connections: 0 };
+    const f: PortForward = { id: ++nextForward, nodeId: String(nodeId), context: t.context, namespace: t.namespace, pod: t.name, address: "127.0.0.1", localPort, remotePort: remote, connections: 0, via: kubeHost()?.label };
     started.push(f);
   }
   forwards = [...forwards, ...started];
@@ -590,6 +628,43 @@ registerMock("services_dockerfile_run", async ({ path }) => {
     docker.containers = docker.containers.filter((x) => x.Names[0] !== c.Names[0]);
     docker.containers.push(c);
     out(key, `${c.Id}\n`);
+    feed(key, { type: "exited", code: 0, signal: null });
+    emit({ type: "ended", key });
+  });
+});
+// Opening (or leaving) the remote project switches Docker and Kubernetes to its host.
+onRemoteProjectChanged(() => {
+  if (!wasm) return;
+  emitTree();
+  emit({ type: "status", state: "connected", endpoint: endpoint(), version: demoVersion.Version });
+});
+registerMock("services_kube_selection", () => kubeSelection());
+registerMock("services_kube_select", async ({ context, namespace }) => {
+  const sel = kubeSelection();
+  if (!sel?.contexts.includes(String(context))) throw new Error(`Context \`${String(context)}\` is not in the kubeconfig`);
+  kubeSelect = { context: String(context), namespace: namespace ? String(namespace) : undefined, host: kubeHost()?.label ?? null };
+  await expand(`kube/${encodeURIComponent(String(context))}`);
+  return kubeSelection();
+});
+/** `kubectl apply -f` / `delete -f` with plausible output; the cluster does not change. */
+registerMock("services_kube_apply", async ({ path, action }) => {
+  const content = mockFiles[String(path)];
+  if (content === undefined) throw new Error(`${String(path)} was not found`);
+  const objects = [...content.matchAll(/^kind:\s*(\S+)[\s\S]*?^\s{2}name:\s*(\S+)/gm)].map((m) => `${m[1].toLowerCase()}${m[1] === "Deployment" ? ".apps" : ""}/${m[2]}`);
+  if (!objects.length) throw new Error(`${String(path)} has no Kubernetes objects (apiVersion and kind)`);
+  const sel = kubeSelection();
+  if (!sel?.context) throw new Error("No Kubernetes context to apply the manifest to: check the kubeconfig");
+  const host = kubeHost();
+  const key = "run:kube";
+  const ns = /^\s{2}namespace:/m.test(content) ? "" : ` -n ${sel.namespace ?? "default"}`;
+  await withBusy(["kube"], async () => {
+    feed(key, { type: "started", commandLine: `${host?.kubectl ?? "kubectl"} --context ${sel.context}${ns} ${String(action)} -f ${String(path)}` });
+    const remote = currentRemote();
+    if (host && remote) out(key, `Running on ${remote.label} in ${remote.path}\n`);
+    for (const o of objects) {
+      await sleep(180);
+      out(key, `${o} ${action === "delete" ? "deleted" : o.startsWith("service/") ? "unchanged" : "configured"}\n`);
+    }
     feed(key, { type: "exited", code: 0, signal: null });
     emit({ type: "ended", key });
   });

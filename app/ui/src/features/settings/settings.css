@@ -630,6 +630,21 @@
 .pack-luaforge {
   --pack: var(--syn-type);
 }
+.pack-pyforge {
+  --pack: var(--syn-keyword);
+}
+.pack-goforge {
+  --pack: var(--info);
+}
+.pack-javaforge {
+  --pack: var(--danger);
+}
+.pack-kotlinforge {
+  --pack: var(--accent);
+}
+.pack-cforge {
+  --pack: var(--syn-function);
+}
 .pack-scriptforge {
   --pack: var(--success);
 }

@@ -21,6 +21,8 @@ export type NodeIcon =
   | "pod"
   | "deployment"
   | "kubeService"
+  | "springBoot"
+  | "springApp"
   | "error";
 
 export type NodeStatus = "running" | "stopped" | "paused" | "pending" | "error" | "busy";
@@ -105,7 +107,23 @@ export interface PortForward {
   remotePort: number;
   connections: number;
   error?: string;
+  /** The remote project host the forward is tunnelled through (kubectl runs there). */
+  via?: string;
 }
+
+/** The Kubernetes context and namespace selector of the Services tool window. */
+export interface KubeSelection {
+  /** `from host deploy@shop.example.com` or the local kubeconfig path. */
+  source: string;
+  /** The remote project host the contexts come from. */
+  host?: string;
+  contexts: string[];
+  context?: string;
+  namespaces: string[];
+  namespace?: string;
+}
+
+export type ManifestAction = "apply" | "delete";
 
 /** A Docker CLI context (`docker context ls`). */
 export interface DockerContext {
@@ -148,7 +166,7 @@ export interface TerminalCommand {
 export interface GutterMarker {
   /** 0-based. */
   line: number;
-  kind: "composeAll" | "composeService" | "dockerfile";
+  kind: "composeAll" | "composeService" | "dockerfile" | "kubeManifest";
   title: string;
   service?: string;
 }
@@ -197,6 +215,11 @@ export const servicesApi = {
   composeUp: (path: string, service?: string) => invoke<void>("services_compose_up", { path, service }),
   dockerfileRun: (path: string) => invoke<void>("services_dockerfile_run", { path }),
   gutter: (path: string, content: string) => invoke<GutterMarker[]>("services_gutter", { path, content }),
+  kubeSelection: () => invoke<KubeSelection | null>("services_kube_selection"),
+  /** `namespace` undefined: the context's own namespace. */
+  kubeSelect: (context: string, namespace?: string) => invoke<KubeSelection | null>("services_kube_select", { context, namespace }),
+  /** `kubectl apply -f` / `delete -f` of a project manifest in the selected context. */
+  kubeApply: (path: string, action: ManifestAction) => invoke<void>("services_kube_apply", { path, action }),
   status: () => invoke<Extract<ServicesEvent, { type: "status" }>>("services_status"),
   /** With the entered (unsaved) connection settings; without them the applied ones. */
   testConnection: (settings?: DockerConnectionSettings) => invoke<string>("docker_test_connection", { settings }),

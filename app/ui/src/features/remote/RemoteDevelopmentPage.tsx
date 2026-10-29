@@ -5,24 +5,28 @@
 import { createResource, For, Show } from "solid-js";
 import { LoaderCircle, Plus, Server, Settings } from "lucide-solid";
 import { remoteApi } from "@/ipc/remote";
-import type { RecentProject } from "@/ipc/workspace";
+import type { RecentProject, RemoteKind } from "@/ipc/workspace";
 import { openSettings } from "@/features/settings/dialogState";
 import { AUTH_LABELS } from "./SshForm";
 import { isDialogOpen } from "@/shell/window/dialogs";
 import { connecting, openNewSshConnection, openRecentRemote, SSH_CONNECTION_DIALOG } from "./store";
 
-/** The SSH badge shown on remote projects. */
-export function SshBadge() {
+/** The badge of a remote project: SSH, WSL or Container. */
+export function SshBadge(props: { kind?: RemoteKind }) {
+  const text = () => (props.kind?.type === "wsl" ? "WSL" : props.kind?.type === "devContainer" ? "Container" : "SSH");
+  const title = () =>
+    props.kind?.type === "wsl" ? "Project in WSL" : props.kind?.type === "devContainer" ? "Project in a dev container" : "Remote project (SSH)";
   return (
-    <span class="ssh-badge" title="Remote project (SSH)">
-      SSH
+    <span class="ssh-badge" title={title()}>
+      {text()}
     </span>
   );
 }
 
 export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p: RecentProject) => unknown }) {
   const [configs] = createResource(() => remoteApi.configs().catch(() => []));
-  const remoteProjects = () => props.recent.filter((p) => p.remote);
+  // Dev container and WSL projects are on their own pages.
+  const remoteProjects = () => props.recent.filter((p) => p.remote && !p.remote.kind);
 
   return (
     <div class="welcome-remote" data-testid="welcome-remote">
@@ -30,7 +34,7 @@ export function RemoteDevelopmentPage(props: { recent: RecentProject[]; row: (p:
         <div>
           <h2>Remote Development</h2>
           <p class="muted">
-            Open a project on another machine over SSH. Forge starts its agent there, so indexing, Intelephense and other
+            Open a project on another machine over SSH. Forge starts its agent there, so indexing, php-lsp and other
             language servers, git, terminals and run configurations work next to the files.
           </p>
         </div>

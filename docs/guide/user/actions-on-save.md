@@ -1,8 +1,8 @@
 ---
 title: Actions on Save
-description: Reformat code, optimize imports, rearrange code, run code cleanup, ESLint, Prettier, PHP CS Fixer and Laravel Pint automatically when files are saved (Settings | Tools | Actions on Save).
+description: Reformat code, optimize imports, rearrange code, run code cleanup, Biome, ESLint, Stylelint, Prettier, Rector, PHP CS Fixer, phpcbf and Laravel Pint automatically when files are saved (Settings | Tools | Actions on Save).
 order: 22
-tags: [save, reformat, optimize imports, rearrange, code cleanup, eslint, prettier, php cs fixer, pint, autosave]
+tags: [save, reformat, optimize imports, rearrange, code cleanup, biome, eslint, stylelint, prettier, php cs fixer, phpcbf, rector, pint, autosave]
 ---
 
 # Actions on Save
@@ -18,12 +18,16 @@ project ("For current project"), so a team can share them in `.forge/settings.to
 | Action | Files | What it does | Configure… |
 | --- | --- | --- | --- |
 | **Reformat code** | the chosen file types (default: all) | Reformat Code (`Ctrl+Alt+L`): the language server's formatter, StyLua for Lua, plus the options of the [code style](editor.md#code-style) the formatter does not know. **Whole file** or **Changed lines** (only lines changed since the last commit; files that are not committed yet are reformatted completely). | Editor \| Code Style |
-| **Optimize imports** | PHP | Removes unused `use` imports and sorts the rest: classes, then functions, then constants, each alphabetically. Group uses (`use A\{B, C};`) are split into single imports. | |
+| **Optimize imports** | PHP | Removes unused `use` imports and arranges the rest as Settings \| Editor \| Code Style \| PHP \| Imports says (by default classes, then functions, then constants, each alphabetically), see [Optimize Imports](imports.md). Group uses (`use A\{B, C};`) are split into single imports. | |
 | **Rearrange code** | PHP | Orders the members of classes, interfaces, traits and enums: trait `use`, enum cases, constants, properties, the constructor, the other methods. Members keep their order inside a group; docblocks, attributes and comments move with their member and blank lines stay where they were. | |
 | **Run code cleanup** | PHP | Applies the safe quick fixes: removes unused imports, unnecessary semicolons (`;;`, `};`) and the redundant closing tag `?>` at the end of a pure PHP file. | |
-| **Run eslint --fix** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`, `.vue`, `.html`, `.svelte`, `.astro` | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| ESLint |
-| **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Prettier |
+| **Run biome check --write** | Biome's **Run for files** (default JavaScript, TypeScript, JSON and CSS) | `biome check --write <file>`: Biome's safe fixes and formatting. Where Biome applies, ESLint and Prettier are skipped (setting "Prefer Biome over ESLint and Prettier"). | Languages & Frameworks \| Code Quality Tools |
+| **Run eslint --fix** | ESLint's **Run for files** (default `{**/*,*}.{js,ts,jsx,tsx,cjs,mjs,vue,html}`) | `eslint --fix <file>` with the project's ESLint configuration. | Languages & Frameworks \| Code Quality Tools |
+| **Run stylelint --fix** | Stylelint's **Run for files** (default `{**/*,*}.{css,scss,less,vue}`) | `stylelint --fix <file>` with the project's Stylelint configuration. | Languages & Frameworks \| Code Quality Tools |
+| **Run Prettier** | files matching **Run for files** (default `*.js; *.ts; *.jsx; *.tsx; *.cjs; *.cts; *.mjs; *.mts; *.vue; *.astro`) | `prettier --write <file>` with the project's Prettier configuration. | Languages & Frameworks \| Code Quality Tools |
+| **Run Rector** | PHP | `rector process <file>` with the project's `rector.php`. | Languages & Frameworks \| PHP \| Quality Tools |
 | **Run PHP CS Fixer** | PHP | `php-cs-fixer fix <file>` with the project's `.php-cs-fixer.dist.php`. | Languages & Frameworks \| PHP \| Quality Tools |
+| **Run phpcbf** | PHP | PHP_CodeSniffer's fixer `phpcbf <file>` with the project's `phpcs.xml`. | Languages & Frameworks \| PHP \| Quality Tools |
 | **Run Laravel Pint** | PHP | `pint <file>` with the project's `pint.json`. | Languages & Frameworks \| PHP \| Quality Tools |
 
 The PHP actions are skipped for Blade templates and files with syntax errors; an import is
@@ -38,12 +42,20 @@ The "Reformat code" file types are picked from the **All file types** drop-down:
 
 ## External tools
 
-ESLint, Prettier, PHP CS Fixer and Laravel Pint are the project's own installations:
-`node_modules/.bin/eslint`, `node_modules/.bin/prettier`, `vendor/bin/php-cs-fixer` and
-`vendor/bin/pint` (`.cmd` / `.bat` on Windows). The page shows where each one was found, or
-"Not installed in the project". A different executable can be set on the tool's settings
-page (`web.eslint.path`, `web.prettier.path`, `php.tools.phpCsFixer.path`,
-`php.tools.pint.path`); a relative path starts at the project root.
+The web tools are the project's own packages, found and configured as on
+[Web Code Quality Tools](web-quality-tools.md): the nearest `node_modules/eslint`,
+`node_modules/prettier`, `node_modules/stylelint` or `node_modules/@biomejs/biome`, run with
+the Node.js interpreter, and only for files below the tool's configuration file (automatic
+configuration) or with the manual package, configuration file and options. A disabled tool
+never runs on save. The PHP tools are the project's own installations: `vendor/bin/rector`,
+`vendor/bin/php-cs-fixer`, `vendor/bin/phpcbf` and `vendor/bin/pint` (`.cmd` / `.bat` on
+Windows). The page shows where each one was found, or "Not installed in the project". A
+different executable can be set on the tool's settings page (`web.eslint.path`,
+`web.prettier.path`, `web.stylelint.path`, `web.biome.path`, `php.tools.rector.path`, `php.tools.phpCsFixer.path`,
+`php.tools.phpcs.phpcbfPath`, `php.tools.pint.path`); a relative path starts at the project
+root. The PHP tools also take their configuration file, ruleset, other parameters and PHP
+interpreter (Docker, Docker Compose, SSH, WSL) from
+[PHP Quality Tools](php-quality-tools.md).
 
 ![PHP Quality Tools settings](../../screenshots/php-quality-tools-settings.png)
 
@@ -67,8 +79,8 @@ notification group.
 
 The actions run in this order: Reformat code, Run code cleanup, Optimize imports, Rearrange
 code, then the On Save cleanup of Settings | Editor | General (trailing spaces, final line
-break), then the file is written and the external tools run on it (ESLint, Prettier, PHP CS
-Fixer, Pint).
+break), then the file is written and the external tools run on it (ESLint, Prettier,
+Rector, PHP CS Fixer, phpcbf, Pint).
 
 Everything the actions changed reaches the editor as **one edit**: a single `Ctrl+Z` undoes
 all of it. If you keep typing while the actions run, your text wins: the actions' result is
@@ -88,6 +100,8 @@ dropped and what you typed is saved as it is.
 | `actionsOnSave.prettier.enabled` | `false` | Run Prettier |
 | `actionsOnSave.prettier.files` | `*.js; *.ts; …` | Prettier's "Run for files" patterns |
 | `actionsOnSave.phpCsFixer` | `false` | Run PHP CS Fixer |
+| `actionsOnSave.rector` | `false` | Run Rector |
+| `actionsOnSave.phpcbf` | `false` | Run phpcbf |
 | `actionsOnSave.pint` | `false` | Run Laravel Pint |
 | `actionsOnSave.runOnAutosave` | `false` | Also run on autosave |
 

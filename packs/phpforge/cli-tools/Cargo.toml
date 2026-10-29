@@ -1,0 +1,14 @@
+[package]
+name = "phpforge-cli-tools"
+description = "PHPForge: Command Line Tool Support (Composer, Artisan, Symfony Console, WP-CLI, Drush and custom tools): tool model and detection, list/help JSON parsing, command line parsing and completion"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+phpforge-interpreters.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,6 +1,13 @@
 # Servers that language packs configure and start themselves. They are listed on the
 # Language Servers settings page (status, path, install hints) but never started from
-# here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP).
+# here: PHPForge's `lang-php` builds the config of its built-in php-lsp (Settings > Languages &
+# Frameworks > PHP),
+# JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java),
+# KotlinForge kotlin-lsp or kotlin-language-server (Settings > Languages & Frameworks > Kotlin),
+# JavaForge's Scala support Metals (Settings > Languages & Frameworks > Scala),
+# CForge clangd with the active CMake profile's compilation database (Settings > Languages &
+# Frameworks > C/C++), DotNetForge the Roslyn language server with the active solution
+# (Settings > Languages & Frameworks > .NET).
 
 [[language]]
 id = "php"
@@ -8,32 +15,137 @@ name = "PHP"
 extensions = ["php", "phtml"]
 
 [[server]]
-id = "intelephense"
-name = "Intelephense"
+id = "php-lsp"
+name = "php-lsp (built-in)"
 group = "PHP"
 languages = ["php"]
-command = "intelephense"
-args = ["--stdio"]
+command = "forge"
+args = ["--php-lsp", "--stdio"]
 plugin = "forge.php"
-homepage = "https://intelephense.com"
-license = "Proprietary (free core, premium licence key optional)"
-note = "Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy."
+homepage = "https://github.com/stdimnet/php-lsp"
+license = "MIT OR Apache-2.0"
+builtin = true
+note = "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server."
+
+[[language]]
+id = "java"
+name = "Java"
+extensions = ["java"]
+
+[[server]]
+id = "jdtls"
+name = "Eclipse JDT Language Server"
+group = "Java"
+languages = ["java"]
+command = "jdtls"
+plugin = "forge.java"
+homepage = "https://github.com/eclipse-jdtls/eclipse.jdt.ls"
+license = "EPL-2.0"
+note = "JavaForge installs it from download.eclipse.org on request (SHA-256 checked) and starts it with a JDK 21+; its workspace data lives in the user cache directory."
 install = [
-  { tool = "npm", command = ["npm", "install", "-g", "intelephense"] },
+  { tool = "download", url = "https://download.eclipse.org/jdtls/milestones/" },
+]
+
+[[language]]
+id = "kotlin"
+name = "Kotlin"
+extensions = ["kt", "kts"]
+
+[[server]]
+id = "kotlin-lsp"
+name = "Kotlin LSP"
+group = "Kotlin"
+languages = ["kotlin"]
+command = "intellij-server"
+args = ["--stdio"]
+plugin = "forge.kotlin"
+homepage = "https://github.com/Kotlin/kotlin-lsp"
+license = "Apache-2.0 (the server build includes closed JetBrains components)"
+note = "KotlinForge downloads the standalone build from download.jetbrains.com on request (pinned version, SHA-256 checked) and starts it with the project JDK."
+install = [
+  { tool = "brew", command = ["brew", "install", "JetBrains/utils/kotlin-lsp"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://github.com/Kotlin/kotlin-lsp/blob/main/RELEASES.md" },
 ]
 
 [[server]]
-id = "phpactor"
-name = "Phpactor"
-group = "PHP"
-languages = ["php"]
-command = "phpactor"
-args = ["language-server"]
-plugin = "forge.php"
-homepage = "https://phpactor.readthedocs.io"
+id = "kotlin-language-server"
+name = "Kotlin Language Server"
+group = "Kotlin"
+languages = ["kotlin"]
+command = "kotlin-language-server"
+plugin = "forge.kotlin"
+homepage = "https://github.com/fwcd/kotlin-language-server"
 license = "MIT"
-note = "Used when Intelephense is not installed, or when chosen in the PHP settings."
+note = "Used when chosen in the Kotlin settings instead of kotlin-lsp."
 install = [
-  { tool = "composer", command = ["composer", "global", "require", "phpactor/phpactor"] },
-  { tool = "download", url = "https://github.com/phpactor/phpactor/releases" },
+  { tool = "brew", command = ["brew", "install", "kotlin-language-server"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://github.com/fwcd/kotlin-language-server/releases" },
+]
+
+[[language]]
+id = "c"
+name = "C"
+extensions = ["c", "h"]
+
+[[language]]
+id = "cpp"
+name = "C++"
+extensions = ["cpp", "cc", "cxx", "c++", "hpp", "hh", "hxx", "ipp", "inl"]
+
+[[server]]
+id = "clangd"
+name = "clangd"
+group = "C/C++"
+languages = ["c", "cpp"]
+command = "clangd"
+args = ["--background-index", "--clang-tidy", "--header-insertion=iwyu"]
+plugin = "forge.cpp"
+homepage = "https://clangd.llvm.org"
+license = "Apache-2.0 WITH LLVM-exception"
+note = "CForge starts it with the compilation database of the active CMake profile (or the project's compile_commands.json) and can download the official release from GitHub on request (pinned version, SHA-256 checked)."
+install = [
+  { tool = "brew", command = ["brew", "install", "llvm"], platforms = ["macos"] },
+  { tool = "pacman", command = ["sudo", "pacman", "-S", "clang"], platforms = ["linux"] },
+  { tool = "apt", command = ["sudo", "apt", "install", "clangd"], platforms = ["linux"] },
+  { tool = "download", url = "https://github.com/clangd/clangd/releases" },
+]
+
+[[language]]
+id = "scala"
+name = "Scala"
+extensions = ["scala", "sc", "sbt"]
+
+[[server]]
+id = "metals"
+name = "Metals"
+group = "Scala"
+languages = ["scala"]
+command = "metals"
+plugin = "forge.scala"
+homepage = "https://scalameta.org/metals/"
+license = "Apache-2.0"
+note = "JavaForge installs the pinned version with Coursier (cs bootstrap) on request into Forge's data directory and starts it with the project JDK; Metals imports sbt builds through Bloop or sbt's BSP server."
+install = [
+  { tool = "coursier", command = ["cs", "install", "metals"] },
+  { tool = "brew", command = ["brew", "install", "coursier/formulas/coursier"], platforms = ["macos", "linux"] },
+  { tool = "download", url = "https://get-coursier.io/docs/cli-installation" },
+]
+
+[[language]]
+id = "csharp"
+name = "C#"
+extensions = ["cs", "csx"]
+
+[[server]]
+id = "roslyn"
+name = "Roslyn Language Server"
+group = "C#"
+languages = ["csharp"]
+command = "Microsoft.CodeAnalysis.LanguageServer"
+plugin = "forge.dotnet"
+homepage = "https://github.com/dotnet/roslyn"
+license = "MIT"
+note = "DotNetForge downloads Microsoft.CodeAnalysis.LanguageServer on request from Microsoft's public vs-impl NuGet feed (pinned version, SHA-256 checked), starts it with the .NET runtime and opens the active solution. It replaces csharp-ls while it runs."
+install = [
+  { tool = "download", url = "https://github.com/dotnet/roslyn/tree/main/src/LanguageServer" },
 ]

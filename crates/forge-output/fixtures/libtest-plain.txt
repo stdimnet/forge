@@ -1,0 +1,51 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/main.rs (target/debug/deps/shop-3734347786b3fe60)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/shop_core-49a7891832f2bb85)
+
+running 5 tests
+test cart::tests::vouchers ... ignored, needs the voucher service
+test cart::tests::rounds_to_cents ... FAILED
+test money::tests::formats_negative_amounts ... ok
+test money::tests::discounts_round_half_up ... ok
+test cart::tests::adds_items ... ok
+
+failures:
+
+---- cart::tests::rounds_to_cents stdout ----
+
+thread 'cart::tests::rounds_to_cents' (3081) panicked at crates/shop-core/src/cart.rs:69:9:
+assertion `left == right` failed
+  left: 588
+ right: 589
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    cart::tests::rounds_to_cents
+
+test result: FAILED. 3 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p shop-core --lib`
+     Running tests/checkout.rs (target/debug/deps/checkout-aff14352b157d497)
+
+running 1 test
+test checkout_works ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shop_core
+
+running 3 tests
+test crates/shop-core/src/lib.rs - price (line 18) ... ok
+test crates/shop-core/src/cart.rs - cart::Cart::total (line 31) ... ok
+test crates/shop-core/src/lib.rs - (line 3) ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+error: 1 target failed:
+    `-p shop-core --lib`

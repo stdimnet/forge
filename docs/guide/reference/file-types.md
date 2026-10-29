@@ -31,14 +31,20 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `sass` | Sass | `.sass` |  |  |
 | `less` | Less | `.less` |  |  |
 | `stylus` | Stylus | `.styl`, `.stylus` |  |  |
-| `html` | HTML | `.html`, `.htm`, `.xhtml`, `.svelte`, `.astro` |  |  |
+| `html` | HTML | `.html`, `.htm`, `.xhtml` |  |  |
+| `svelte` | Svelte | `.svelte` |  |  |
+| `astro` | Astro | `.astro` |  |  |
+| `graphql` | GraphQL | `.graphql`, `.gql`, `.graphqls` |  |  |
+| `prisma` | Prisma | `.prisma` |  |  |
 | `vue` | Vue | `.vue` |  |  |
 | `twig` | Twig | `.twig`, `.html.twig` |  | yes |
 | `smarty` | Smarty | `.tpl`, `.smarty` |  | yes |
 | `latte` | Latte | `.latte` |  | yes |
 | `gotemplate` | Go Template | `.tmpl`, `.gotmpl`, `.gohtml` |  | yes |
 | `jinja` | Jinja2 | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` |  | yes |
+| `django` | Django Template | `.djhtml` |  | yes |
 | `handlebars` | Handlebars | `.hbs`, `.handlebars`, `.mustache` |  | yes |
+| `erb` | ERB | `.erb`, `.rhtml` |  | yes |
 | `velocity` | Velocity | `.vm`, `.vtl` |  |  |
 | `pug` | Pug | `.pug`, `.jade` |  |  |
 | `xml` | XML | `.xml`, `.xsd`, `.xsl`, `.svg`, `.dist`, `.xliff`, `.xlf` |  |  |
@@ -58,7 +64,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `c` | C | `.c`, `.h` |  |  |
 | `csharp` | C# | `.cs`, `.csx` |  |  |
 | `kotlin` | Kotlin | `.kt`, `.kts` |  |  |
-| `scala` | Scala | `.scala`, `.sc` |  |  |
+| `scala` | Scala | `.scala`, `.sc`, `.sbt` |  |  |
 | `dart` | Dart | `.dart` |  |  |
 | `objc` | Objective-C | `.m`, `.mm` |  |  |
 | `swift` | Swift | `.swift` |  |  |
@@ -66,7 +72,7 @@ otherwise. See [File types and syntax highlighting](../user/file-types.md).
 | `perl` | Perl | `.pl`, `.pm`, `.t` |  |  |
 | `powershell` | PowerShell | `.ps1`, `.psm1`, `.psd1` |  |  |
 | `batch` | Batch | `.bat`, `.cmd` |  |  |
-| `groovy` | Groovy | `.groovy`, `.gradle`, `.gvy` | `jenkinsfile` |  |
+| `groovy` | Groovy | `.groovy`, `.gradle`, `.gvy`, `.gy` | `jenkinsfile` |  |
 | `haskell` | Haskell | `.hs`, `.lhs` |  |  |
 | `erlang` | Erlang | `.erl`, `.hrl` |  |  |
 | `elixir` | Elixir | `.ex`, `.exs` |  |  |
@@ -107,7 +113,10 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | Id | Name | Plugin | Extensions | File names | Shebang interpreters | Indent |
 | --- | --- | --- | --- | --- | --- | --- |
 | `shell` | Shell Script | `forge.bash` | `.sh`, `.bash`, `.zsh`, `.ksh`, `.bats` | `.bashrc`, `.bash_profile`, `.bash_login`, `.bash_logout`, `.bash_aliases`, `.profile`, `.zshrc`, `.zprofile`, `.envrc`, `PKGBUILD`, `.xinitrc`, `.xprofile` | `sh`, `bash`, `zsh`, `ksh`, `dash`, `ash` | 2 |
-| `python` | Python | `forge.python` | `.py`, `.pyw`, `.pyi`, `.pyx`, `.pxd`, `.gyp` | `SConstruct`, `SConscript`, `wscript`, `.pythonstartup`, `.pythonrc` | `python` | 4 |
+| `python` | Python | `forge.python` | `.py`, `.pyw`, `.pyi`, `.pyx`, `.pxd`, `.gyp` | `SConstruct`, `SConscript`, `wscript`, `.pythonstartup`, `.pythonrc` | `python`, `python3`, `pypy`, `pypy3` | 4 |
+| `pip-requirements` | pip Requirements | `forge.python` |  | `requirements*.txt`, `constraints*.txt`, `requirements*.in`, `requirements/*.txt` |  | 4 |
+| `django` | Django Template | `forge.django` | `.djhtml` | `templates/*.html`, `templates/*.htm`, `templates/*.txt` |  | 4 |
+| `jinja` | Jinja2 | `forge.flask` | `.j2`, `.jinja`, `.jinja2`, `.njk`, `.nunjucks` | `templates/*.html`, `templates/*.htm` |  | 4 |
 | `yaml` | YAML | `forge.yaml` | `.yml`, `.yaml`, `.neon` | `.clang-format`, `.clang-tidy`, `.yamllint`, `.gemrc`, `CITATION.cff`, `.sops.yaml` |  | 2 |
 | `json` | JSON | `forge.json` | `.json`, `.jsonc`, `.json5`, `.lock`, `.webmanifest`, `.geojson`, `.har`, `.code-workspace`, `.ipynb`, `.avsc`, `.mcmeta` | `.babelrc`, `.eslintrc`, `.prettierrc`, `.stylelintrc`, `.jshintrc`, `.swcrc`, `.watchmanconfig`, `.lintstagedrc`, `.htmlhintrc`, `.remarkrc`, `composer.lock`, `.php-cs-fixer.cache`, `.php-cs-fixer.json`, `symfony.lock` |  | 2 |
 | `dotenv` | Dotenv | `forge.dotenv` | `.env` | `.env`, `.env.local`, `.env.*.local`, `.env.dist`, `.env.*.dist`, `.env.example`, `.env.sample`, `.env.template`, `.env.defaults`, `.env.dev`, `.env.development`, `.env.prod`, `.env.production`, `.env.stage`, `.env.staging`, `.env.test`, `.env.testing` |  | 2 |
@@ -119,6 +128,8 @@ Active only while their plugin is active; a plugin type with the id of a bundled
 | `eml` | E-Mail | `forge.eml` | `.eml` |  |  | 4 |
 | `ini` | INI | `forge.ini` | `.ini`, `.cfg`, `.inf`, `.desktop`, `.service`, `.socket`, `.timer`, `.mount`, `.target` | `php.ini`, `php.ini-*`, `.editorconfig`, `.gitconfig`, `.gitmodules`, `.npmrc`, `.pylintrc`, `.flake8`, `tox.ini`, `setup.cfg`, `pytest.ini`, `my.cnf`, `*.cnf`, `supervisord.conf`, `*.ini.*`, `pip.conf` |  | 4 |
 | `conf` | Config | `forge.conf` | `.conf`, `.config`, `.cnf` | `*.conf.*` |  | 4 |
+| `ruby` | Ruby | `forge.ruby` | `.rb`, `.rake`, `.gemspec`, `.ru`, `.rbw`, `.jbuilder`, `.builder` | `Gemfile`, `gems.rb`, `Rakefile`, `rakefile`, `Guardfile`, `Capfile`, `Vagrantfile`, `Brewfile`, `Podfile`, `Fastfile`, `Appfile`, `Steepfile`, `.irbrc`, `.pryrc` | `ruby`, `jruby`, `truffleruby` | 2 |
+| `gemfile-lock` | Gemfile.lock | `forge.ruby` |  | `Gemfile.lock`, `gems.locked` |  | 2 |
 | `lua` | Lua | `forge.lua` | `.lua`, `.rockspec` | `.luacheckrc`, `.busted` | `lua`, `luajit`, `lua5.1`, `lua5.2`, `lua5.3`, `lua5.4`, `tarantool` | 4 |
 | `symfony-services` | Symfony Services | `forge.symfony-services` |  | `config/services*.yaml`, `config/services*.yml`, `config/services/*.yaml`, `config/services/*.yml` |  | 4 |
 
@@ -145,9 +156,10 @@ compound file name, then HTML. Compound inner extensions:
 | `ini`, `env`, `conf` | INI / Properties |
 | `sh` | Shell Script |
 | `go` | Go |
-| `txt`, `md`, `csv`, `eml` | Plain text |
+| `txt`, `text`, `md`, `csv`, `eml` | Plain text |
 
-Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS.
+Example: `invoice.tex.twig` → LaTeX, `report.sql.twig` → SQL, `style.css.tpl` → CSS,
+`welcome.text.erb` → plain text.
 
 ## Soft wraps
 

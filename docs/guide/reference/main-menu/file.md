@@ -40,17 +40,18 @@ Projects, new files and scratches, settings and saving. Open it with ☰ (`Alt+\
 | File Properties › Make File Read-Only | — | — | not yet | Not available yet; the entry is disabled. |
 | File Properties › File Path | `Ctrl+Alt+F12` | `Cmd+Alt+F12` | not yet | Not available yet; the entry is disabled. |
 | **Local History** | | | | submenu |
-| Local History › Show History | — | — | not yet | Not available yet; the entry is disabled. |
-| Local History › Put Label… | — | — | not yet | Not available yet; the entry is disabled. |
+| Local History › Show History | — | — | yes | Revisions of the selected file or folder (or the editor's file) recorded on save, refactorings, VCS operations and external changes, with diff, Revert and Create Patch. [More](../../user/local-history.md#show-history) ([screenshot](../../../screenshots/local-history-file.png)) |
+| Local History › Put Label… | — | — | yes | Names the current moment for the whole project; revert files, folders or the project to it. [More](../../user/local-history.md#labels) ([screenshot](../../../screenshots/local-history-put-label.png)) |
 | Save All | `Ctrl+S` | `Cmd+S` | yes | Saves all modified files. [More](../../user/workbench.md#editor-tabs) |
-| Reload All from Disk | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | not yet | Not available yet; the entry is disabled. |
-| Invalidate Caches… | — | — | not yet | Not available yet; the entry is disabled. |
+| Reload All from Disk | `Ctrl+Alt+Y` | `Cmd+Alt+Y` | yes | Re-reads open files changed on disk and refreshes the Project view and Git status. [More](../../user/repair-ide.md#repair-ide) |
+| Invalidate Caches… | — | — | yes | Clears Forge's indexes and caches (optionally Local History, PHP stubs, the browser engine cache and language server data) on the next start and restarts. [More](../../user/repair-ide.md#invalidate-caches) ([screenshot](../../../screenshots/invalidate-caches.png)) |
+| Repair IDE | — | — | yes | Step by step: refresh project files, rescan project indexes, reopen the project, invalidate caches. [More](../../user/repair-ide.md#repair-ide) ([screenshot](../../../screenshots/repair-ide-balloon.png)) |
 | **Manage IDE Settings** | | | | submenu |
-| Manage IDE Settings › Import Settings… | — | — | not yet | Not available yet; the entry is disabled. |
-| Manage IDE Settings › Export Settings… | — | — | not yet | Not available yet; the entry is disabled. |
-| Manage IDE Settings › Restore Default Settings… | — | — | not yet | Not available yet; the entry is disabled. |
+| Manage IDE Settings › Import Settings… | — | — | yes | Imports chosen groups of a settings archive (`.zip`) and restarts. [More](../../user/settings-and-themes.md#export-and-import-settings) |
+| Manage IDE Settings › Export Settings… | — | — | yes | Writes chosen groups of your settings to a settings archive (`.zip`). [More](../../user/settings-and-themes.md#export-and-import-settings) ([screenshot](../../../screenshots/export-settings.png)) |
+| Manage IDE Settings › Restore Default Settings… | — | — | yes | Backs up your settings and restarts with the defaults. [More](../../user/settings-and-themes.md#restore-default-settings) |
 | **New Projects Setup** | | | | submenu |
-| New Projects Setup › Settings for New Projects… | — | — | not yet | Not available yet; the entry is disabled. |
+| New Projects Setup › Settings for New Projects… | — | — | yes | The Settings dialog for the defaults of project-level settings. [More](../../user/settings-and-themes.md#settings-for-new-projects) ([screenshot](../../../screenshots/settings-for-new-projects.png)) |
 | Save File as Template… | — | — | not yet | Not available yet; the entry is disabled. |
 | **Export** | | | | submenu |
 | Export › Export to HTML… | — | — | not yet | Not available yet; the entry is disabled. |

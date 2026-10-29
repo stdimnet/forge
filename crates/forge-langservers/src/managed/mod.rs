@@ -1,4 +1,4 @@
-//! Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server,
+//! Zero-prerequisite installs of npm language servers (typescript-language-server,
 //! vscode-langservers-extracted, yaml-language-server, …) on the user's machine:
 //!
 //! 1. a Node.js >= 18: the machine's, Forge's earlier download, or the official LTS build
@@ -13,18 +13,39 @@
 //! [`stubs`] downloads JetBrains' phpstorm-stubs (pinned, SHA-256 checked) for Go to
 //! Declaration on PHP's own symbols.
 //!
-//! Nothing is bundled with Forge: servers whose licence forbids redistribution
-//! (Intelephense) are downloaded by each user, with their consent, from the official source.
+//! [`jdtls`] installs Eclipse JDT LS from download.eclipse.org (SHA-256 checked) and
+//! [`javadebug`] Microsoft's java-debug plugin from Maven Central (checksum checked) for
+//! JavaForge.
+//!
+//! [`kotlin`] installs JetBrains' kotlin-lsp (download.jetbrains.com), ktlint and detekt
+//! (Maven Central), each pinned with its SHA-256, for KotlinForge.
+//!
+//! [`clangd`] installs clangd from its official GitHub releases (pinned version, SHA-256
+//! checked) for CForge.
+//!
+//! [`roslyn`] installs the Roslyn language server from Microsoft's public `vs-impl` feed
+//! and [`netcoredbg`] Samsung's netcoredbg from its GitHub releases (pinned versions,
+//! SHA-256 checked) for DotNetForge.
+//!
+//! Nothing is bundled with Forge: each user downloads the servers, with their consent, from
+//! the official source.
 
 pub mod archive;
+pub mod clangd;
 pub mod http;
+pub mod javadebug;
+pub mod jdtls;
+pub mod kotlin;
+pub mod netcoredbg;
 pub mod node;
 pub mod npm;
+pub mod pypi;
+pub mod roslyn;
 pub mod stubs;
 pub mod updates;
 
-#[cfg(test)]
-pub(crate) mod testserver;
+#[cfg(any(test, feature = "testserver"))]
+pub mod testserver;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -129,6 +150,17 @@ pub fn npm_packages(option: &InstallOption) -> Option<Vec<String>> {
         .cloned()
         .collect();
     (!packages.is_empty()).then_some(packages)
+}
+
+/// The project of a PyPI install option (`pypi install ruff` → `ruff`): its executable is
+/// downloaded from PyPI's wheels by [`pypi::install`].
+pub fn pypi_package(option: &InstallOption) -> Option<String> {
+    match (option.tool.as_str(), option.command.as_slice()) {
+        ("pypi", [program, verb, name]) if program == "pypi" && verb == "install" => {
+            Some(name.clone())
+        }
+        _ => None,
+    }
 }
 
 /// Installs npm packages into Forge's directory with a Node.js it finds or downloads.
@@ -309,7 +341,7 @@ mod tests {
     use super::*;
     use crate::detect::DetectEnv;
     use crate::managed::archive::tests::tar_gz;
-    use crate::managed::npm::tests::{fake_intelephense, sri};
+    use crate::managed::npm::tests::{fake_package, sri};
 
     fn installer(server: &testserver::TestServer, root: &Path, path: &[PathBuf]) -> Installer {
         let managed_dir = root.join("data/forge/langservers");
@@ -374,7 +406,7 @@ mod tests {
             ])
         );
         assert_eq!(
-            npm_packages(&opt(&["npm", "install", "intelephense"])),
+            npm_packages(&opt(&["npm", "install", "fake-language-server"])),
             None
         );
         assert_eq!(npm_packages(&opt(&["npm", "install", "-g"])), None);
@@ -387,14 +419,14 @@ mod tests {
         );
     }
 
-    /// No Node.js and no npm on the machine: Forge downloads Node.js, then Intelephense from
+    /// No Node.js and no npm on the machine: Forge downloads Node.js, then a server from
     /// the registry, and the server is detected and launched with that Node.js.
     #[cfg(unix)]
     #[tokio::test]
-    async fn zero_prerequisite_install_of_intelephense() {
+    async fn zero_prerequisite_install_of_an_npm_server() {
         let server = testserver::start().await;
         serve_node(&server);
-        fake_intelephense(&server, "1.12.6", false);
+        fake_package(&server, "1.12.6", false);
         let tmp = tempfile::tempdir().unwrap();
         let empty_path = tmp.path().join("empty-bin");
         std::fs::create_dir_all(&empty_path).unwrap();
@@ -402,7 +434,7 @@ mod tests {
         let mut steps = Vec::new();
         let outcome = inst
             .install(
-                &["intelephense".into()],
+                &["fake-language-server".into()],
                 Arc::new(tokio::sync::Notify::new()),
                 &mut |e| {
                     if let Event::Step { message } = e {
@@ -421,14 +453,18 @@ mod tests {
         let node = inst.runtimes_dir.join("node-v22.11.0/bin/node");
         let script = inst
             .managed_dir
-            .join("node_modules/intelephense/lib/intelephense.js");
+            .join("node_modules/fake-language-server/lib/server.js");
         // A fresh detector (as after the install) finds and launches it with Forge's Node.js.
         let d = Detector::new(inst.detector.env().clone());
-        let exe = d.find("intelephense").unwrap();
-        assert_eq!(exe, inst.managed_dir.join("node_modules/.bin/intelephense"));
+        let exe = d.find("fake-language-server").unwrap();
+        assert_eq!(
+            exe,
+            inst.managed_dir
+                .join("node_modules/.bin/fake-language-server")
+        );
         assert_eq!(d.node(), Some(node.clone()));
         assert_eq!(
-            d.managed_launch("intelephense"),
+            d.managed_launch("fake-language-server"),
             Some((node.clone(), script.clone()))
         );
         let (cmd, args) = d.launch(&exe, &["--stdio".to_string()]);
@@ -437,7 +473,7 @@ mod tests {
 
         // A second install reuses Node.js (no new download).
         inst.install(
-            &["intelephense".into()],
+            &["fake-language-server".into()],
             Arc::new(tokio::sync::Notify::new()),
             &mut |_| {},
         )
@@ -526,11 +562,11 @@ mod tests {
     async fn update_check_runs_at_most_once_a_day() {
         let server = testserver::start().await;
         serve_node(&server);
-        fake_intelephense(&server, "1.12.6", false);
+        fake_package(&server, "1.12.6", false);
         let tmp = tempfile::tempdir().unwrap();
         let inst = installer(&server, tmp.path(), &[]);
         inst.install(
-            &["intelephense".into()],
+            &["fake-language-server".into()],
             Arc::new(tokio::sync::Notify::new()),
             &mut |_| {},
         )
@@ -540,10 +576,10 @@ mod tests {
         let t0 = 1_800_000_000;
         assert_eq!(inst.check_updates(false, t0).await, Some(vec![]));
         // A new release appears; within the day nothing is asked.
-        fake_intelephense(&server, "1.14.4", false);
+        fake_package(&server, "1.14.4", false);
         assert_eq!(inst.check_updates(false, t0 + 3600).await, None);
         assert_eq!(
-            server.routes.hits("/intelephense/latest"),
+            server.routes.hits("/fake-language-server/latest"),
             2,
             "install + first check"
         );
@@ -551,7 +587,7 @@ mod tests {
         assert_eq!(
             updates,
             vec![PackageUpdate {
-                name: "intelephense".into(),
+                name: "fake-language-server".into(),
                 installed: "1.12.6".into(),
                 latest: "1.14.4".into()
             }]
@@ -560,14 +596,14 @@ mod tests {
         assert!(inst.check_updates(true, t0 + day + 2).await.is_some());
         // Updating installs the new version in place.
         inst.install(
-            &["intelephense".into()],
+            &["fake-language-server".into()],
             Arc::new(tokio::sync::Notify::new()),
             &mut |_| {},
         )
         .await
         .unwrap();
         assert_eq!(
-            npm::installed_version(&inst.managed_dir, "intelephense").as_deref(),
+            npm::installed_version(&inst.managed_dir, "fake-language-server").as_deref(),
             Some("1.14.4")
         );
         assert_eq!(inst.check_updates(true, t0 + day + 3).await, Some(vec![]));

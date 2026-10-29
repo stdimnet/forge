@@ -65,12 +65,18 @@ pub(crate) async fn psr4_roots(state: &AppState) -> Result<Vec<psr4::Psr4Root>> 
         .get_as::<String>("php.composer.json")
         .filter(|p| !p.trim().is_empty())
         .unwrap_or_else(|| "composer.json".into());
+    // Mark Directory as | Sources Root changes of Settings | Directories.
+    let overrides = state
+        .read_settings()
+        .get_as::<Vec<psr4::SourceRootSetting>>(phpforge_lang_php::project::SOURCE_ROOTS_KEY)
+        .unwrap_or_default();
     let backend = state.backend()?;
     let path = json_path.clone();
     let text = blocking(move || backend.read_optional(&path)).await?;
-    Ok(text
+    let base = text
         .map(|t| psr4::roots(&t, &psr4::composer_dir(&json_path)))
-        .unwrap_or_default())
+        .unwrap_or_default();
+    Ok(psr4::apply_overrides(&base, &overrides))
 }
 
 /// The namespace of new classes in `dir`, from the PSR-4 rules.
@@ -93,11 +99,28 @@ pub async fn templates_php_directory(
     Ok(psr4::dir_for_namespace(&roots, &namespace))
 }
 
+/// The user's file templates and the context of new files (refactorings render the PHP
+/// Class / Interface templates with them).
+pub(crate) fn render_context(
+    state: &AppState,
+) -> Result<(Vec<CustomTemplate>, templates::TemplateContext)> {
+    let backend = state.backend()?;
+    let context = templates::TemplateContext {
+        project_name: backend.info().name.clone(),
+        user: std::env::var("USER")
+            .or_else(|_| std::env::var("USERNAME"))
+            .unwrap_or_default(),
+        now: None,
+    };
+    Ok((custom_templates(state), context))
+}
+
 /// File | New ▸ <template>: render the template and create the file (never replaces one).
 #[tauri::command]
 pub async fn templates_create(
     mut request: NewFileRequest,
     state: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<NewFile> {
     let backend = state.backend()?;
     if request.context.project_name.is_empty() {
@@ -116,5 +139,10 @@ pub async fn templates_create(
         backend.write_file(&path, &text)
     })
     .await?;
+    crate::commands::local_history::created(
+        &lh,
+        &file.path,
+        forge_localhistory::Content::Bytes(file.text.clone().into_bytes()),
+    );
     Ok(file)
 }

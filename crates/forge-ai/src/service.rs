@@ -245,14 +245,15 @@ impl AiService {
         Ok(self.build(p))
     }
 
-    /// Pick provider + model for a request: explicit values win, then the feature's
-    /// selection, then the default provider and its default model.
-    pub fn resolve(
+    /// The provider config + model a request would use: explicit values win, then the
+    /// feature's selection, then the default provider (`None` model: its default model). Disabled
+    /// providers are refused, so no code goes to a provider the user turned off.
+    pub fn selection(
         &self,
         provider: Option<&str>,
         model: Option<&str>,
         feature: Option<AiFeature>,
-    ) -> AiResult<(Box<dyn Provider>, Option<String>)> {
+    ) -> AiResult<(ProviderConfig, Option<String>)> {
         let cfg = self.config();
         let feature_sel = feature.and_then(|f| cfg.features.get(f)).cloned();
         let provider_id = provider
@@ -260,12 +261,30 @@ impl AiService {
             .or_else(|| feature_sel.as_ref().map(|s| s.provider.clone()))
             .or_else(|| cfg.default_provider().map(|p| p.id.clone()))
             .ok_or(AiError::NoProvider)?;
+        let p = cfg
+            .provider(&provider_id)
+            .ok_or_else(|| AiError::UnknownProvider(provider_id.clone()))?
+            .clone();
+        if !p.enabled {
+            return Err(AiError::ProviderDisabled(p.name));
+        }
         let model = model.map(String::from).or_else(|| {
             feature_sel
                 .filter(|s| s.provider == provider_id)
                 .map(|s| s.model)
         });
-        Ok((self.provider(&provider_id)?, model))
+        Ok((p, model))
+    }
+
+    /// Pick provider + model for a request (see [`AiService::selection`]).
+    pub fn resolve(
+        &self,
+        provider: Option<&str>,
+        model: Option<&str>,
+        feature: Option<AiFeature>,
+    ) -> AiResult<(Box<dyn Provider>, Option<String>)> {
+        let (cfg, model) = self.selection(provider, model, feature)?;
+        Ok((self.build(&cfg), model))
     }
 
     pub async fn models(&self, id: &str) -> AiResult<Vec<ModelInfo>> {

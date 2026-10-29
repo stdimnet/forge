@@ -99,12 +99,17 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
 - Plugins activate only when the project uses them (`app/ui/src/state/project.ts`:
   `usesFramework`, `isPluginActive`).
-- Language servers are external programs installed on the user's machine, e.g. Intelephense
-  free, or premium with the user's own licence key entered in Forge. Never bundle or commit
-  Intelephense (its licence forbids redistribution), other paid tools or keys. Forge may
-  download a server for the user, with their consent, from its official source
-  (`forge_langservers::managed`: npm registry with integrity check, Node.js from nodejs.org
-  with SHA-256 check) into Forge's data directory.
+- Language servers other than the built-in php-lsp are external programs installed on the
+  user's machine (typescript-language-server, gopls, clangd, …). Never bundle or commit paid
+  tools (e.g. Intelephense, whose licence forbids redistribution; Forge no longer supports it)
+  or keys. Forge may download a server for the user, with their consent, from its official
+  source (`forge_langservers::managed`: npm registry with integrity check, Node.js from
+  nodejs.org with SHA-256 check) into Forge's data directory.
+  **Exception:** php-lsp (MIT OR Apache-2.0, pure Rust) is built into Forge as its only PHP
+  server (`packs/phpforge/builtin-lsp`, a cargo git dependency pinned to a `rev`; the binary
+  runs it in its hidden `--php-lsp --stdio` mode). Permissively licensed servers may be linked
+  in this way when their notices go into `THIRD_PARTY_NOTICES.md`; do not patch them in Forge,
+  report problems upstream.
 
 ### Quality
 - Before every commit, run the `quality-gates` skill:

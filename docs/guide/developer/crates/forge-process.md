@@ -26,11 +26,12 @@ Forge processes: everything the IDE starts on behalf of the user.
 
 | Module | Summary |
 | --- | --- |
-| `args.rs` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"). |
+| `args` | Splitting and quoting of argument strings as typed into run configuration fields ("Arguments", "Interpreter options", "Test runner options"); re-exported from `forge-runtools`. |
 | `config.rs` | Run/Debug configurations. |
 | `pty.rs` | Interactive shell sessions on a pseudo terminal, used by the Terminal tool window. |
 | `runner.rs` | Non-interactive processes for run configurations: piped stdout/stderr streamed as text, stdin for input typed into the Run console, the exit code, and kill of the whole process tree (so `composer run` or `npm run` children stop too). |
 | `shell.rs` | Picking the user's default shell. |
+| `test_history.rs` | The Test History of the Run tool window: `TestRunRecord` (configuration, start time, summary, counts and the stored tree), saved as compact JSON in `<data dir>/forge/test-history/<project key>/<id>.json`, listed newest first and pruned to the last `MAX_RUNS` (10) per project. |
 | `termenv.rs` | The environment a terminal session starts with: `TERM`, `COLORTERM`, `TERM_PROGRAM=Forge`, `TERM_PROGRAM_VERSION` and `FORGE_TERMINAL=1`, a UTF-8 `LANG` when the inherited locale is not UTF-8, and removal of variables that describe another terminal or multiplexer (kitty, tmux, iTerm2, WezTerm, Ghostty, …). |
 | `utf8.rs` |  |
 
@@ -49,7 +50,7 @@ pub use utf8::Utf8Decoder;
 
 ## Used by
 
-- IPC: `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`, `run_configurations_load`, `run_configurations_save`, `run_command_line`, `run_start`, `run_stop`, `run_write`, `run_dispose`
+- IPC: `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`, `run_configurations_load`, `run_configurations_save`, `run_command_line`, `run_start`, `run_stop`, `run_write`, `run_dispose`, `test_history_list`, `test_history_open`
 - UI: `app/ui/src/features/run`, `app/ui/src/features/terminal`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

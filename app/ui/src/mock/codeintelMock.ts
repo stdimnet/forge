@@ -6,7 +6,10 @@
  * regex parser of the PHP mocks; grouping usages, applying and previewing edits and ordering
  * context actions run the Rust code (`forge-codeintel`) as WebAssembly.
  */
+import type { PhpProblem } from "@/ipc/phpMeta";
+import { demoLibraryFiles } from "./demoLibraries";
 import { invoke, registerMock } from "@/ipc";
+import { extractComponentInfo } from "./extractComponentMock";
 import { injectionContextActions } from "./injectionsMock";
 import type {
   AppliedFile,
@@ -39,6 +42,7 @@ import type { EditorLocation, LspPosition } from "@/ipc/lsp";
 import { callWasm, forgeWasm } from "@/wasm";
 import { demoStubs, demoStubsDetail } from "./demoStubs";
 import { parsePhp, classAt, memberType, type MockClass, type MockFile, type MockMember } from "./phpMockParser";
+import { mockImportClassAction } from "./importsMock";
 import { mockFiles } from "./workspaceMock";
 import { createFromUsage } from "./createFromUsageMock";
 
@@ -852,6 +856,9 @@ registerMock("code_line_markers", (args): LineMarkerInfo[] => {
 
 registerMock("library_read", ({ path }): LibraryFile => {
   const p = String(path);
+  // Include path files ("External Libraries").
+  const lib = p.startsWith("library://file/") ? demoLibraryFiles[p.slice("library://file/".length)] : undefined;
+  if (lib !== undefined) return { text: lib, library: "External Libraries", detail: p.slice("library://file/".length) };
   const text = p.startsWith(STUBS) ? demoStubs[p.slice(STUBS.length)] : undefined;
   if (text === undefined) throw new Error(`not a library file: ${p}`);
   return { text, library: "PHP Runtime", detail: demoStubsDetail };
@@ -861,18 +868,7 @@ registerMock("library_read", ({ path }): LibraryFile => {
 
 // ---- Rename ----
 
-/** Intelephense renames only with a licence; without one the PHP index does it. */
-async function premium(): Promise<boolean> {
-  return invoke<{ premium: boolean }>("intelephense_licence_status")
-    .then((s) => s.premium)
-    .catch(() => false);
-}
-
-const missingPremium = (feature: string) => ({
-  feature,
-  message: `${feature} requires Intelephense Premium (licence key in Settings | PHP)`,
-  premium: true,
-});
+// The language server (the built-in php-lsp) renames and offers quick fixes.
 
 const NOT_RENAMEABLE = "Cannot perform refactoring. Caret should be positioned at the symbol to be renamed";
 
@@ -947,8 +943,8 @@ function clashes(sym: Sym, newName: string, buffers: Buffers): RenameConflict[] 
 registerMock("code_prepare_rename", async (args): Promise<PrepareRenameAnswer> => {
   const { a, text, offset, buffers } = at(args);
   const r = isPhp(a.path) ? resolveAt(a.path, text, offset, buffers) : null;
-  const source = (await premium()) ? "lsp" : "index";
-  const missing = source === "index" ? missingPremium("Rename") : null;
+  const source = "lsp";
+  const missing = null;
   if (!r || r.sym.kind === "constant" || (r.sym.kind === "class" && !findClass(r.sym.fqn, buffers)?.path.startsWith("app/"))) {
     return { invalid: true, message: NOT_RENAMEABLE, missing, source, occurrences: [], sigil: false };
   }
@@ -990,13 +986,12 @@ registerMock("code_rename", async (args): Promise<RenameAnswer> => {
   const files: Record<string, string> = projectFiles(buffers);
   const wasm = await forgeWasm();
   const preview = await callWasm<FilePreview[]>(wasm.codeintel_preview_edit, { edit: planned.edit, files });
-  const source = (await premium()) ? "lsp" : "index";
   return {
     edit: planned.edit,
     preview,
     conflicts: [...planned.conflicts, ...clashes(r.sym, String(newName), buffers)],
-    source,
-    missing: source === "index" ? missingPremium("Rename") : null,
+    source: "lsp",
+    missing: null,
     fileRename: planned.fileRename,
     skipped: planned.skipped,
   };
@@ -1058,7 +1053,7 @@ function addMethod(path: string, method: string): WorkspaceEdit | null {
   return { changes: [{ kind: "edit", path, edits: [{ range: { start: pos, end: pos }, newText: `\n${method}\n` }] }] };
 }
 
-/** Intelephense Premium's quick fixes for the demo's diagnostics (`lspDemoData.ts`). */
+/** php-lsp's quick fixes for the demo's diagnostics (`lspDemoData.ts`). */
 const LSP_FIXES: Record<string, LspFix[]> = {
   "app/Services/InvoiceService.php": [
     {
@@ -1142,6 +1137,13 @@ async function phpIntentions(path: string, text: string, offset: number): Promis
   const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
   const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
   const line = text.slice(lineStart, lineEnd);
+  // Quick-fixes of the metadata / attribute inspections ("Replace with …", "Set namespace to …").
+  const problems = await invoke<PhpProblem[]>("php_inspect", { path, content: text }).catch((): PhpProblem[] => []);
+  for (const p of problems) {
+    if (!p.fix || offset < p.start || offset > p.end) continue;
+    const edits = p.fix.edits.map((e) => ({ range: { start: positionOf(text, e.start), end: positionOf(text, e.end) }, newText: e.newText }));
+    out.push(action(p.fix.title, "quickFix", { edit: { changes: [{ kind: "edit", path, edits }] }, isPreferred: true }));
+  }
   out.push(...createFromUsage(path, text, offset));
   const file = parse(path, text);
   const cls = classAt(file, offset);
@@ -1186,27 +1188,32 @@ async function phpIntentions(path: string, text: string, offset: number): Promis
 registerMock("code_context_actions", async (args): Promise<ContextActionsAnswer> => {
   const { a, text, offset } = at(args);
   const actions: ContextAction[] = [];
-  const isPremium = await premium();
   if (isPhp(a.path)) {
-    if (isPremium) {
-      const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
-      const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
-      const line = text.slice(lineStart, lineEnd);
-      for (const fix of LSP_FIXES[a.path] ?? []) {
-        if (!line.includes(fix.line)) continue;
-        const edit = fix.edit(text);
-        if (!edit) continue;
-        const lsp = { source: "lsp", server: "intelephense" };
-        actions.push(action(fix.title, "quickFix", { ...lsp, edit, isPreferred: !!fix.preferred, raw: { kind: "quickfix" } }));
-        if (fix.fixAll) actions.push(action(fix.fixAll, "source", { ...lsp, edit, raw: { kind: "source.fixAll.intelephense" } }));
-      }
+    const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
+    const lineEnd = text.indexOf("\n", offset) < 0 ? text.length : text.indexOf("\n", offset);
+    const line = text.slice(lineStart, lineEnd);
+    for (const fix of LSP_FIXES[a.path] ?? []) {
+      if (!line.includes(fix.line)) continue;
+      const edit = fix.edit(text);
+      if (!edit) continue;
+      const lsp = { source: "lsp", server: "php-lsp" };
+      actions.push(action(fix.title, "quickFix", { ...lsp, edit, isPreferred: !!fix.preferred, raw: { kind: "quickfix" } }));
+      if (fix.fixAll) actions.push(action(fix.fixAll, "source", { ...lsp, edit, raw: { kind: "source.fixAll" } }));
     }
     actions.push(...(await phpIntentions(a.path, text, offset)));
+    const importClass = mockImportClassAction(a.path, text, offset);
+    if (importClass) actions.push(importClass);
   }
   actions.push(...(await injectionContextActions(a.path, text, offset)));
+  const sel = args as { endLine?: number; endCharacter?: number };
+  if (sel.endLine != null && sel.endCharacter != null) {
+    const range = { start: { line: a.line, character: a.character }, end: { line: sel.endLine, character: sel.endCharacter } };
+    if (await extractComponentInfo(a.path, text, range))
+      actions.push(action("Extract Component\u2026", "refactor", { source: "webforge", action: "WebForge.ExtractComponent" }));
+  }
   const wasm = await forgeWasm();
   const ordered = await callWasm<{ actions: ContextAction[]; bulb: ContextActionsAnswer["bulb"] }>(wasm.codeintel_context_actions, actions);
-  return { ...ordered, missing: isPhp(a.path) && !isPremium ? missingPremium("Show Context Actions") : null };
+  return { ...ordered, missing: null };
 });
 registerMock("code_resolve_action", ({ raw }) => raw as ContextAction);
 registerMock("code_execute_command", () => null);

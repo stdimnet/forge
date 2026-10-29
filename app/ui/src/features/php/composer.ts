@@ -45,7 +45,7 @@ createRoot(() => {
       () => [
         workspace()?.root,
         isPluginActive("forge.php"),
-        JSON.stringify(Object.entries(settingsState.values).filter(([k]) => k === "php.languageLevel" || k.startsWith("php.composer."))),
+        JSON.stringify(Object.entries(settingsState.values).filter(([k]) => k === "php.languageLevel" || k.startsWith("php.composer.") || k === "php.interpreter" || k.endsWith("nterpreters"))),
       ],
       () => void refreshLanguageLevel(),
     ),

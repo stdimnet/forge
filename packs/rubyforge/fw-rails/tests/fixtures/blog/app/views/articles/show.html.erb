@@ -1,0 +1,17 @@
+<%= render "header" %>
+
+<div data-controller="clipboard" data-clipboard-success-duration-value="2000">
+  <input data-clipboard-target="source" type="text" value="<%= article_url(@article) %>" readonly>
+  <button data-action="clipboard#copy" data-clipboard-target="button"><%= t(".copy_link") %></button>
+</div>
+
+<%= simple_format @article.body %>
+
+<h2><%= t(".comments") %></h2>
+<%= turbo_frame_tag "comments" do %>
+  <%= render partial: "comments/comment", collection: @article.comments %>
+<% end %>
+
+<%= link_to "Edit", edit_article_path(@article) %>
+<%= button_to "Publish", publish_article_path(@article), method: :patch %>
+<%= button_to "Delete", @article, method: :delete %>

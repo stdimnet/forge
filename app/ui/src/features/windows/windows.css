@@ -1,0 +1,61 @@
+/* View | Appearance modes (`data-appearance-mode` on <html>) and detached windows. */
+
+/* Presentation, Distraction-Free and Zen Mode: only the editor. */
+:root[data-appearance-mode] .main-toolbar,
+:root[data-appearance-mode] .tool-stripe,
+:root[data-appearance-mode] .status-bar,
+:root[data-appearance-mode] .main-menu-bar:not(.inline) {
+  display: none;
+}
+:root[data-appearance-mode] .editor-area {
+  background: var(--bg-editor);
+}
+
+/* Distraction-Free and Zen Mode: no tabs or line numbers, the text centered. */
+:root[data-appearance-mode="distractionFree"] .editor-tabs,
+:root[data-appearance-mode="zen"] .editor-tabs,
+:root[data-appearance-mode="distractionFree"] .navbar,
+:root[data-appearance-mode="zen"] .navbar {
+  display: none;
+}
+:root[data-appearance-mode="distractionFree"] .cm-gutters,
+:root[data-appearance-mode="zen"] .cm-gutters,
+:root[data-appearance-mode="distractionFree"] .cm-breadcrumbs-panel,
+:root[data-appearance-mode="zen"] .cm-breadcrumbs-panel {
+  display: none;
+}
+:root[data-appearance-mode="distractionFree"] .editor-area .cm-scroller,
+:root[data-appearance-mode="zen"] .editor-area .cm-scroller {
+  padding-inline: max(24px, calc((100% - 120ch) / 2));
+}
+
+/* Presentation Mode: the editor font grows (Settings | Appearance | Presentation Mode). */
+:root[data-appearance-mode="presentation"] .editor-area {
+  --fs-editor: var(--fs-presentation, 24px);
+}
+
+/* A tab dragged towards the window edge (dropping it outside opens a new window). */
+.editor-tab.dragging {
+  opacity: 0.6;
+  cursor: grabbing;
+}
+
+/* An editor tab in its own window. */
+.detached-editor {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+.detached-editor .editor-area {
+  flex: 1;
+}
+
+/* A tool window in its own window (View Mode › Window). */
+.detached-tool-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.wf-modeless .detached-tool-window {
+  background: var(--bg-panel);
+}

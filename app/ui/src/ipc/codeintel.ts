@@ -51,6 +51,8 @@ export type UsageKind =
   | "import"
   | "traitUse"
   | "extends"
+  | "hookRegistration"
+  | "hookInvocation"
   | "newInstance"
   | "methodCall"
   | "functionCall"
@@ -203,7 +205,6 @@ export type NavKind = "implementation" | "superMethod" | "typeDeclaration";
 export interface MissingFeature {
   feature: string;
   message: string;
-  premium: boolean;
 }
 
 export interface NavigateAnswer {
@@ -273,7 +274,7 @@ export interface PrepareRenameAnswer {
   invalid: boolean;
   /** Why nothing can be renamed here. */
   message?: string | null;
-  /** The language server cannot rename (Intelephense Premium); `source` says who does. */
+  /** The language server cannot rename; `source` says who does. */
   missing?: MissingFeature | null;
   source: "lsp" | "index";
   /** Occurrences in this file (including `range`), edited live by the in-place rename. */
@@ -474,6 +475,7 @@ export type RelatedKind =
   | "testSubject"
   | "controller"
   | "view"
+  | "helper"
   | "template"
   | "route"
   | "model"
@@ -481,6 +483,7 @@ export type RelatedKind =
   | "factory"
   | "policy"
   | "seeder"
+  | "fixture"
   | "component"
   | "story"
   | "style";

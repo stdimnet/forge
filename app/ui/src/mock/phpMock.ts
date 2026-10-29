@@ -1,5 +1,6 @@
 /** Browser-mode PHPForge backend over the demo project (see phpMockParser.ts). */
 import { emitMock, registerMock } from "@/ipc";
+import { decodeInterpreters, findInterpreter, levelForVersion } from "@/features/php/interpreters";
 import type {
   FieldTarget,
   FileStructure,
@@ -13,10 +14,8 @@ import type {
   TextEdit,
 } from "@/features/php/api";
 import { demoFiles } from "./demoProject";
-import { mockRows } from "./langserversMock";
 import { mockSettingValue } from "./settingsMock";
 import { mockFiles } from "./workspaceMock";
-import { intelephenseMissingAtStart } from "./lspMock";
 import { classAt, lineOf, memberType, parsePhp, type MockClass, type MockMember } from "./phpMockParser";
 import { callWasmSync, forgeWasm, type ForgeWasm } from "@/wasm";
 import type { FilterHit } from "@/ipc/search";
@@ -471,16 +470,20 @@ registerMock("php_language_level", () => {
   const sync = mockSettingValue("php.composer.syncWithComposerJson") !== false;
   const required = json?.match(/"php"\s*:\s*"[^"\d]*(\d+\.\d+)/)?.[1];
   if (sync && required) return { level: required, fromComposer: true };
-  return { level: String(mockSettingValue("php.languageLevel") ?? "8.3"), fromComposer: false };
+  const level = String(mockSettingValue("php.languageLevel") ?? "8.3");
+  if (level === "interpreter") {
+    const list = decodeInterpreters(mockSettingValue("php.interpreters") ?? [], mockSettingValue("php.projectInterpreters") ?? []);
+    const version = findInterpreter(list, String(mockSettingValue("php.interpreter") ?? "php"))?.version ?? "";
+    const fromInterpreter = levelForVersion(version, ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]);
+    return { level: fromInterpreter ?? "8.3", fromComposer: false, fromInterpreter: !!fromInterpreter };
+  }
+  return { level, fromComposer: false };
 });
 registerMock("php_composer_outdated", async () => [
   { name: "laravel/framework", version: "v12.1.0", latest: "v12.3.0", status: "semver-safe-update" },
   { name: "phpunit/phpunit", version: "11.4.0", latest: "12.0.2", status: "update-possible" },
 ]);
 
-// With `?intelephense=missing` it is found only after the (mock) install.
-registerMock("php_detect_servers", async () => {
-  if (!intelephenseMissingAtStart()) return { intelephense: "/usr/local/bin/intelephense", phpactor: null };
-  const row = (await mockRows()).find((r) => r.id === "intelephense");
-  return { intelephense: row?.path ?? null, phpactor: null };
-});
+// php-lsp is built in.
+const PHP_LSP = { command: "/usr/bin/forge", args: ["--php-lsp", "--stdio"], version: "0.1.0 (7011d4c)" };
+registerMock("php_detect_servers", () => ({ phpLsp: PHP_LSP }));

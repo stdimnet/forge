@@ -153,6 +153,9 @@ pub struct Param {
     pub promoted: Option<Visibility>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub readonly: bool,
+    /// Attributes of the parameter (`#[ExpectedValues([...])]`, `#[Language('SQL')]`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attributes: Vec<Attribute>,
 }
 
 impl Param {

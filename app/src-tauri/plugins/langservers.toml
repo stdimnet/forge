@@ -120,3 +120,16 @@ default = "https://nodejs.org/dist"
 group = "lang.servers"
 section = "Downloads"
 order = 22
+
+[[contributions.inspections]]
+id = "LanguageServerDiagnostics"
+name = "Language server problems"
+group = "General"
+severity = "WARNING"
+external = true
+batch = false
+description = "Problems reported by language servers (php-lsp, typescript-language-server, basedpyright, rust-analyzer, gopls, ...). They keep the server's level until the profile sets a severity."
+
+[[contributions.inspectionMappings]]
+source = "lsp"
+inspection = "LanguageServerDiagnostics"

@@ -1,14 +1,16 @@
 /**
- * PHP debugger (Xdebug): Debug tool window (Alt+5), listening toggle in the main toolbar,
- * breakpoints and execution point in the editor, Evaluate / Breakpoints / Incoming
- * Connection dialogs, and the PHP > Debug and PHP > Servers settings pages.
+ * The debugger: Debug tool window (Alt+5), breakpoints and execution point in the editor,
+ * Evaluate / Breakpoints / Attach dialogs. Xdebug (PHP) sessions and Debug Adapter Protocol
+ * sessions of every other language share all of it; PHP adds the listening toggle, the
+ * Incoming Connection dialog and the PHP > Debug and PHP > Servers settings pages.
  *
- * Run configurations can start a debug session through `debugLauncher` (see below).
+ * Run configurations start Xdebug sessions through `debugLauncher` and DAP sessions through
+ * the adapters registered with `registerDebugAdapter` (see `adapters.ts`).
  */
 import { createEffect, createRoot, on, Show } from "solid-js";
 import { isDialogWindow } from "@/shell/window/mode";
 import { render } from "solid-js/web";
-import { Bug, PhoneCall, PhoneOff } from "lucide-solid";
+import { Bug, Cpu, PhoneCall, PhoneOff } from "lucide-solid";
 import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerToolbarItem } from "@/features/toolbarItems";
@@ -25,11 +27,19 @@ import { DebugActions, DebugView } from "./DebugView";
 import { DebugOverlays } from "./DebugOverlays";
 import { debugEditorExtensions } from "./editorDebug";
 import { expressionAt } from "./format";
-import { setBreakpointsDialog, setEvaluateRequest } from "./overlays";
+import { setBreakpointsDialog, setEvaluateRequest, setValidationDialog } from "./overlays";
+import { copyValue, editSelectedValue } from "./VariablesTree";
+import { setAttachDialog } from "./AttachDialogs";
+import { adapterForRunType, debugAdapters, defaultLaunchRequest, isDebuggableFile, refreshDebugAdapters } from "./adapters";
+import { dapApi } from "./dapApi";
+import { registerDebugLauncher } from "@/features/run";
+import { registerRunConfigurationType } from "@/features/run/types";
+import { action, registerMainMenuEntries } from "@/features/mainMenu/model";
 import { ServersPage } from "./ServersPage";
 import {
   activeSession,
   addWatch,
+  addWatchpoint,
   breakpointsMuted,
   executionPoint,
   listening,
@@ -38,7 +48,9 @@ import {
   pausedSession,
   port,
   reloadDebugState,
+  restartSession,
   runToCursor,
+  selectedVariable,
   showLine,
   startDebugStore,
   step,
@@ -46,8 +58,16 @@ import {
   toggleListening,
   toggleLineBreakpoint,
   toggleMuted,
+  toggleTemporaryLineBreakpoint,
 } from "./store";
 import { registerMainMenuToggle } from "@/features/mainMenu/model";
+import { balloonsFor } from "@/keymap/dispatch";
+
+export { registerDebugAdapter, debugAdapters, isDebuggableFile, type DebugAdapterRegistration } from "./adapters";
+export { registerDebugTab, type DebugTabDef } from "./debugTabs";
+export { dapApi, type LaunchRequest } from "./dapApi";
+
+const showDebuggerBalloon = balloonsFor("Debugger");
 import "./debug.css";
 
 registerToolWindow({
@@ -127,6 +147,15 @@ registerSettingsPage({
 });
 
 registerSettingsPage({
+  id: "build.debugger",
+  title: "Debugger",
+  group: "Build, Execution, Deployment",
+  order: 5,
+  keywords: ["dap", "debug adapter", "lldb", "gdb", "lldb-dap", "memory", "inline values", "attach"],
+  component: () => <SchemaPage pageId="build.debugger" />,
+});
+
+registerSettingsPage({
   id: "lang.php.servers",
   title: "Servers",
   group: "Languages & Frameworks",
@@ -145,7 +174,23 @@ registerKeymapActions([
     group: "Main Menu/Run",
     shortcuts: { $default: [], macOS: [] },
   },
+  {
+    id: "WebServerDebugValidation",
+    title: "Web Server Debug Validation",
+    group: "Main Menu/Run",
+    shortcuts: { $default: [], macOS: [] },
+  },
+  { id: "Forge.AttachToDapServer", title: "Attach to DAP Server…", group: "Main Menu/Run", shortcuts: { $default: [], macOS: [] } },
+  { id: "Forge.DebugCoreDump", title: "Debug Core Dump…", group: "Main Menu/Run", shortcuts: { $default: [], macOS: [] } },
+  { id: "Forge.Debugger.Rerun", title: "Rerun Debug Session", group: "Debugger Actions", shortcuts: { $default: [], macOS: [] } },
+  { id: "Forge.Debugger.StepOverInstruction", title: "Step Over Instruction", group: "Debugger Actions", shortcuts: { $default: [], macOS: [] } },
+  { id: "Forge.Debugger.StepIntoInstruction", title: "Step Into Instruction", group: "Debugger Actions", shortcuts: { $default: [], macOS: [] } },
+  { id: "Forge.Debugger.AddWatchpoint", title: "Add Watchpoint", group: "Debugger Actions", shortcuts: { $default: [], macOS: [] } },
+  { id: "Forge.Debugger.JumpToLine", title: "Set Execution Point to Cursor", group: "Debugger Actions", shortcuts: { $default: [], macOS: [] } },
 ]);
+
+/** Focus is in the Debug tool window (its variables tree, watches or console). */
+const inDebugWindow = () => !!document.activeElement?.closest('[data-tool-window-panel="debug"], .dbg-view');
 
 /** File and 1-based caret line of the active editor. */
 function caret(): { path: string; line: number; text: string; col: number } | null {
@@ -209,10 +254,38 @@ const actions: { id: string; title: string; run: () => void | Promise<void> }[] 
     id: "Debugger.AddToWatch",
     title: "Add to Watches",
     run: () => {
+      const v = selectedVariable();
+      if (inDebugWindow() && v && !v.watch) return addWatch(v.property.fullname);
       const e = selectionOrWord();
       if (e) addWatch(e);
     },
   },
+  {
+    id: "XDebugger.SetValue",
+    title: "Set Value…",
+    run: () => {
+      if (!pausedSession() || !selectedVariable()) return;
+      showToolWindow("debug");
+      editSelectedValue();
+    },
+  },
+  {
+    id: "XDebugger.CopyValue",
+    title: "Copy Value",
+    run: () => {
+      const v = selectedVariable();
+      if (v) return copyValue(v);
+    },
+  },
+  {
+    id: "ToggleTemporaryLineBreakpoint",
+    title: "Toggle Temporary Line Breakpoint",
+    run: () => {
+      const c = caret();
+      if (c && isDebuggableFile(c.path)) return toggleTemporaryLineBreakpoint(c.path, c.line);
+    },
+  },
+  { id: "WebServerDebugValidation", title: "Web Server Debug Validation", run: () => setValidationDialog(true) },
   {
     id: "ShowExecutionPoint",
     title: "Show Execution Point",
@@ -226,13 +299,46 @@ const actions: { id: string; title: string; run: () => void | Promise<void> }[] 
     title: "Toggle Line Breakpoint",
     run: () => {
       const c = caret();
-      if (c && /\.(php|phtml|inc)$/i.test(c.path)) return toggleLineBreakpoint(c.path, c.line);
+      if (c && isDebuggableFile(c.path)) return toggleLineBreakpoint(c.path, c.line);
     },
   },
   { id: "ViewBreakpoints", title: "View Breakpoints…", run: () => setBreakpointsDialog({}) },
   { id: "XDebugger.MuteBreakpoints", title: "Mute Breakpoints", run: toggleMuted },
+  // Debug adapter sessions.
+  { id: "XDebugger.AttachToProcess", title: "Attach to Process…", run: () => openAttach("process") },
+  { id: "Forge.AttachToDapServer", title: "Attach to DAP Server…", run: () => openAttach("server") },
+  { id: "Forge.DebugCoreDump", title: "Debug Core Dump…", run: () => openAttach("coreDump") },
+  { id: "Forge.Debugger.Rerun", title: "Rerun Debug Session", run: restartSession },
+  { id: "Forge.Debugger.StepOverInstruction", title: "Step Over Instruction", run: () => step("stepOverInstruction") },
+  { id: "Forge.Debugger.StepIntoInstruction", title: "Step Into Instruction", run: () => step("stepIntoInstruction") },
+  {
+    id: "Forge.Debugger.AddWatchpoint",
+    title: "Add Watchpoint",
+    run: () => {
+      const v = selectedVariable();
+      if (v && !v.watch) return addWatchpoint(v.property);
+    },
+  },
+  {
+    id: "Forge.Debugger.JumpToLine",
+    title: "Set Execution Point to Cursor",
+    run: () => {
+      const c = caret();
+      const s = pausedSession();
+      if (c && s?.adapter) return dapApi.goto(s.id, c.path, c.line).catch((e) => console.warn("goto", e));
+    },
+  },
 ];
 for (const a of actions) registerCommand({ ...a, category: "Debug" });
+
+/** Open an Attach dialog with the current adapters. */
+function openAttach(kind: "process" | "server" | "coreDump"): void {
+  void refreshDebugAdapters().then(() => setAttachDialog(kind));
+}
+
+registerMainMenuEntries("Run", [action("Forge.AttachToDapServer", "Attach to DAP Ser_ver..."), action("Forge.DebugCoreDump", "Debug Core D_ump...")], {
+  after: "XDebugger.AttachToProcess",
+});
 registerMainMenuToggle("PhpListenDebugAction", listening);
 registerMainMenuToggle("XDebugger.MuteBreakpoints", breakpointsMuted);
 
@@ -267,6 +373,56 @@ export const debugLauncher = {
     stopFallback = fn;
   },
 };
+
+// ---- debug adapters for run configurations ----------------------------------------------------
+
+/** Run configurations whose type an adapter debugs (`registerDebugAdapter({ runConfigurationTypes })`). */
+registerDebugLauncher({
+  id: "dap",
+  canDebug: (cfg) => cfg.type === NATIVE_APP || !!adapterForRunType(cfg.type),
+  async launch(cfg) {
+    await refreshDebugAdapters();
+    const adapter = cfg.type === NATIVE_APP ? debugAdapters().find((a) => a.type === (cfg.options?.adapter || "lldb")) : adapterForRunType(cfg.type);
+    if (!adapter) {
+      showDebuggerBalloon(`Cannot debug '${cfg.name}'`, "No debug adapter is available. Choose a debugger in the run configuration.");
+      return;
+    }
+    try {
+      const request = adapter.resolve ? await adapter.resolve(cfg) : defaultLaunchRequest(adapter.type, cfg);
+      showToolWindow("debug");
+      await dapApi.start(request);
+    } catch (e) {
+      showDebuggerBalloon(`Cannot debug '${cfg.name}'`, String(e).replace(/^Error: /, ""), 8000);
+    }
+  },
+});
+
+/** "Native Application": run a program, or debug it with a debug adapter (LLDB, GDB, …). */
+const NATIVE_APP = "native-app";
+registerRunConfigurationType({
+  id: NATIVE_APP,
+  name: "Native Application",
+  description: "Run an executable; Debug starts it under a debug adapter such as LLDB or GDB.",
+  icon: Cpu,
+  color: "var(--syn-type)",
+  pluginId: "forge.debugger",
+  argumentsLabel: "Program arguments",
+  debuggable: true,
+  fields: [
+    { key: "program", label: "Executable", kind: "path", required: true, placeholder: "build/demo" },
+    {
+      key: "adapter",
+      label: "Debugger",
+      kind: "enum",
+      options: () => debugAdapters().filter((a) => a.launch).map((a) => ({ value: a.type, label: a.label })),
+      default: "lldb",
+    },
+    { key: "stopOnEntry", label: "Stop at the beginning of the program", kind: "bool" },
+    { key: "launchOptions", label: "Launch options (JSON)", kind: "text", placeholder: '{ "initCommands": ["settings set target.x86-disassembly-flavor intel"] }' },
+  ],
+  suggestName: (cfg) => cfg.options?.program?.split(/[\\/]/).pop() || undefined,
+  buildCommand: (cfg) => ({ program: cfg.options?.program ?? "", args: [], cwd: cfg.workingDirectory ?? "", env: cfg.env ?? {} }),
+});
 
 // ---- startup --------------------------------------------------------------------------
 

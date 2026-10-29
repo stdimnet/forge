@@ -7,6 +7,8 @@ use std::sync::OnceLock;
 use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 
+use crate::filters::OutputFilter;
+
 /// A link in a line of text. `start`/`end` are byte offsets (end exclusive) unless a function
 /// says otherwise.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -140,6 +142,33 @@ pub struct LinkContext {
     /// Working directory relative to the root (empty = the root).
     #[serde(default)]
     pub cwd_rel: String,
+    /// Remote → local path pairs, most specific first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mappings: Vec<OutputPathMapping>,
+    /// Output filters of an External Tool (`$FILE_PATH$:$LINE$`); their matches win over the
+    /// built-in file link patterns.
+    #[serde(skip)]
+    pub filters: Vec<OutputFilter>,
+}
+
+/// A path where a process runs (`/var/www/html` in a container) and the local path it
+/// stands for.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutputPathMapping {
+    pub remote: String,
+    pub local: String,
+}
+
+/// `path` inside `dir` (forward slashes): the rest after it.
+fn under<'a>(path: &'a str, dir: &str) -> Option<&'a str> {
+    let dir = dir.trim_end_matches('/');
+    let rest = path.strip_prefix(dir)?;
+    if rest.is_empty() {
+        Some("")
+    } else {
+        rest.strip_prefix('/')
+    }
 }
 
 impl LinkContext {
@@ -152,21 +181,90 @@ impl LinkContext {
         LinkContext {
             root: root.map(str::to_string),
             cwd_rel,
+            mappings: Vec::new(),
+            filters: Vec::new(),
         }
     }
 
+    /// Link what these output filters match (External Tools).
+    pub fn with_filters(mut self, filters: Vec<OutputFilter>) -> Self {
+        self.filters = filters;
+        self
+    }
+
+    /// Whether a line can contain links without a path separator or dot in it.
+    pub fn has_filters(&self) -> bool {
+        !self.filters.is_empty()
+    }
+
+    /// Map paths of a container or remote host back to local ones first.
+    pub fn with_mappings(mut self, mut mappings: Vec<OutputPathMapping>) -> Self {
+        mappings.retain(|m| !m.remote.trim().is_empty());
+        for m in &mut mappings {
+            m.remote = m.remote.replace('\\', "/");
+            m.local = m.local.replace('\\', "/");
+        }
+        mappings.sort_by_key(|m| std::cmp::Reverse(m.remote.len()));
+        self.mappings = mappings;
+        self
+    }
+
     pub fn resolve(&self, path: &str) -> Option<String> {
-        to_workspace_path(path, self.root.as_deref(), &self.cwd_rel)
+        let normalized = path.replace('\\', "/");
+        let mapped = self.mappings.iter().find_map(|m| {
+            let rest = under(&normalized, &m.remote)?;
+            let local = m.local.trim_end_matches('/');
+            Some(if rest.is_empty() {
+                local.to_string()
+            } else {
+                format!("{local}/{rest}")
+            })
+        });
+        to_workspace_path(
+            mapped.as_deref().unwrap_or(path),
+            self.root.as_deref(),
+            &self.cwd_rel,
+        )
     }
 }
 
 /// File links that resolve into the project (with `target` set) plus web links, sorted by
 /// position.
 pub fn find_links(text: &str, ctx: &LinkContext) -> Vec<FileLink> {
-    let mut links = find_urls(text);
-    let urls = links.len();
+    let mut links = Vec::new();
+    for filter in &ctx.filters {
+        for m in filter.find(text) {
+            if links
+                .iter()
+                .any(|l: &FileLink| m.start < l.end && l.start < m.end)
+            {
+                continue;
+            }
+            if let Some(target) = ctx.resolve(&m.path) {
+                links.push(FileLink {
+                    url: false,
+                    start: m.start,
+                    end: m.end,
+                    path: m.path,
+                    target: Some(target),
+                    line: m.line,
+                    column: m.column,
+                });
+            }
+        }
+    }
+    let filtered = links.len();
+    for u in find_urls(text) {
+        if !links[..filtered]
+            .iter()
+            .any(|l| u.start < l.end && l.start < u.end)
+        {
+            links.push(u);
+        }
+    }
+    let taken = links.len();
     for mut f in find_file_links(text) {
-        if links[..urls]
+        if links[..taken]
             .iter()
             .any(|u| f.start < u.end && u.start < f.end)
         {
@@ -301,6 +399,27 @@ mod tests {
     }
 
     #[test]
+    fn output_filters_link_their_matches_first() {
+        let filters = crate::filters::compile_filters(&["^$FILE_PATH$ \\[$LINE$\\]"]).0;
+        let ctx = LinkContext::new(Some("/p"), None).with_filters(filters);
+        assert!(ctx.has_filters());
+        // A bare file name without a line is no link for the built-in patterns.
+        let links = find_links("Makefile [12] see app/User.php:3", &ctx);
+        assert_eq!(
+            links
+                .iter()
+                .map(|l| (l.path.as_str(), l.target.as_deref(), l.line, l.start, l.end))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Makefile", Some("Makefile"), Some(12), 0, 12),
+                ("app/User.php", Some("app/User.php"), Some(3), 18, 32),
+            ]
+        );
+        // Paths outside the project stay plain text.
+        assert!(find_links("/etc/hosts [1]", &ctx).is_empty());
+    }
+
+    #[test]
     fn maps_paths_into_the_workspace() {
         let w = |p: &str, r: &str, c: &str| to_workspace_path(p, Some(r), c);
         assert_eq!(
@@ -316,5 +435,31 @@ mod tests {
         assert_eq!(w("/etc/passwd.txt", "/r", ""), None);
         assert_eq!(w("../../x.php", "/r", ""), None);
         assert_eq!(LinkContext::new(Some("/r"), Some("/r/sub")).cwd_rel, "sub");
+    }
+
+    #[test]
+    fn maps_container_paths_back_to_the_project() {
+        let ctx = LinkContext::new(Some("/home/u/shop"), None).with_mappings(vec![
+            OutputPathMapping {
+                remote: "/var/www/html".into(),
+                local: "/home/u/shop".into(),
+            },
+            OutputPathMapping {
+                remote: "/var/www/html/vendor".into(),
+                local: "/home/u/shop/lib".into(),
+            },
+        ]);
+        assert_eq!(
+            ctx.resolve("/var/www/html/app/User.php").as_deref(),
+            Some("app/User.php")
+        );
+        assert_eq!(
+            ctx.resolve("/var/www/html/vendor/a.php").as_deref(),
+            Some("lib/a.php")
+        );
+        assert_eq!(ctx.resolve("/var/www/htmlx/a.php"), None);
+        let links = find_links("Error in /var/www/html/app/User.php:12", &ctx);
+        assert_eq!(links[0].target.as_deref(), Some("app/User.php"));
+        assert_eq!(links[0].line, Some(12));
     }
 }

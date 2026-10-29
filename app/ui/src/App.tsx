@@ -29,9 +29,26 @@ export function App() {
     const INITIAL: Record<string, string> = {
       symfony: "src/Controller/OrderController.php",
       lua: "main.lua",
+      python: "src/shop_api/main.py",
+      django: "catalog/views.py",
+      go: "cmd/ledger/main.go",
+      rust: "crates/shop-cli/src/main.rs",
+      ruby: "lib/pantry/inventory.rb",
+      rails: "app/controllers/articles_controller.rb",
+      java: "src/main/java/com/acme/inventory/App.java",
+      kotlin: "src/main/kotlin/com/acme/orders/Main.kt",
+      spring: "src/main/java/com/acme/inventory/InventoryApplication.java",
+      scala: "core/src/main/scala/com/acme/shop/Cart.scala",
+      android: "app/src/main/java/com/acme/notes/NoteRepository.kt",
+      cpp: "src/geometry/polygon.cpp",
+      dotnet: "tests/Bookstore.Tests/CartTests.cs",
+      wordpress: "acme-events.php",
+      drupal: "acme_tools.module",
       react: "src/App.tsx",
       vue: "src/views/DashboardView.vue",
       angular: "src/app/users/user-card.component.ts",
+      node: "src/orders/pricing.ts",
+      webtools: "apps/api/openapi.yaml",
     };
     await openFile(INITIAL[new URLSearchParams(location.search).get("project") ?? ""] ?? "app/Models/User.php");
   });

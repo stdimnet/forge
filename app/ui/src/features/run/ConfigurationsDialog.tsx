@@ -4,7 +4,7 @@
  * right (Name, Store as project file, type fields, interpreter, working directory,
  * environment variables, Before launch), OK / Cancel / Apply at the bottom.
  */
-import { batch, createMemo, createSignal, For, Match, onMount, Show, Switch } from "solid-js";
+import { batch, createMemo, createSignal, For, Index, Match, onMount, Show, Switch } from "solid-js";
 import { createStore, produce, unwrap } from "solid-js/store";
 import { Dynamic } from "solid-js/web";
 import {
@@ -15,32 +15,44 @@ import {
   CircleAlert,
   CircleHelp,
   Copy,
+  Feather,
   FolderOpen,
+  Globe,
+  Hexagon,
   Minus,
+  Package,
   Pencil,
+  Play,
   Plus,
   Settings2,
+  SquareTerminal,
   Wrench,
   X,
 } from "lucide-solid";
 import { isTauri } from "@/ipc";
 import type { BeforeLaunchTask, RunConfiguration } from "@/ipc/run";
 import { getSetting } from "@/state/settings";
+import { decodeInterpreters, findInterpreter, GLOBAL_KEY as INTERPRETERS_GLOBAL_KEY, PROJECT_KEY as INTERPRETERS_PROJECT_KEY } from "@/features/php/interpreters";
 import { workspace } from "@/state/workspace";
+import { usesFramework } from "@/state/project";
+import { findTool, toolGroups, toolRef } from "@/features/externalTools/model";
 import { configurations, saveConfigurations, selectedName, templateFor, templates } from "./configStore";
 import { notifyDialogOpener } from "@/shell/window/dialogs";
 import { closeRunConfigurations, RUN_CONFIGURATIONS_DIALOG, type DialogRequest } from "./dialogState";
 import {
   fieldValue,
   findType,
+  fieldOptions,
   isCommonField,
   newConfiguration,
   runConfigurationTypes,
   validateConfiguration,
+  type IconComponent,
   type RunConfigField,
   type RunConfigurationTypeDef,
 } from "./types";
 import { openMenu } from "./PopupMenu";
+import { RunOnRow } from "./RunOn";
 
 interface Item {
   uid: number;
@@ -249,7 +261,7 @@ function Field(props: { field: RunConfigField; cfg: RunConfiguration }) {
           <div class="rc-row">
             <span class="rc-label">{props.field.label}:</span>
             <div class="rc-radios" role="radiogroup">
-              <For each={props.field.options}>
+              <For each={fieldOptions(props.field)}>
                 {(o) => (
                   <label class="rc-radio">
                     <input type="radio" name={`${props.field.key}`} checked={value() === o.value} onChange={() => set(o.value)} />
@@ -264,7 +276,7 @@ function Field(props: { field: RunConfigField; cfg: RunConfiguration }) {
           <label class="rc-row">
             <span class="rc-label">{props.field.label}:</span>
             <select class="rc-select" value={value()} onChange={(e) => set(e.currentTarget.value)}>
-              <For each={props.field.options}>{(o) => <option value={o.value}>{o.label}</option>}</For>
+              <For each={fieldOptions(props.field)}>{(o) => <option value={o.value}>{o.label}</option>}</For>
             </select>
           </label>
         </Match>
@@ -307,8 +319,17 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
         : props.type.interpreter === "node"
           ? "node"
           : (newConfiguration(props.type, "").interpreter ?? ""));
-  const custom = () => !!props.cfg.interpreter;
+  // PHP: the interpreters of Settings | PHP | CLI Interpreters, chosen by name.
+  const phpInterpreters = () =>
+    props.type.interpreter === "php" ? decodeInterpreters(getSetting(INTERPRETERS_GLOBAL_KEY, []), getSetting(INTERPRETERS_PROJECT_KEY, [])) : [];
+  const named = () => findInterpreter(phpInterpreters(), props.cfg.interpreter ?? "");
+  const custom = () => !!props.cfg.interpreter && !named();
   const label = () => (props.type.interpreter === "php" ? "Interpreter" : props.type.interpreter === "shell" ? "Interpreter path" : "Interpreter");
+  const defaultLabel = () => {
+    if (props.type.interpreter !== "php") return `Default (${projectDefault()})`;
+    const i = findInterpreter(phpInterpreters(), projectDefault());
+    return i ? `${i.name}${i.version ? ` (${i.version})` : ""} — project default` : `${projectDefault()} — project default`;
+  };
   return (
     <>
       <div class="rc-row">
@@ -316,12 +337,22 @@ function InterpreterRow(props: { cfg: RunConfiguration; type: RunConfigurationTy
         <div class="rc-interp">
           <select
             class="rc-select"
-            value={custom() ? "custom" : ""}
-            onChange={(e) => update((c) => (c.interpreter = e.currentTarget.value === "custom" ? projectDefault() || "php" : ""))}
+            data-testid="rc-interpreter"
+            value={custom() ? "custom" : named() ? `name:${named()!.name}` : ""}
+            onChange={(e) => {
+              const v = e.currentTarget.value;
+              update((c) => (c.interpreter = v === "custom" ? (findInterpreter(phpInterpreters(), projectDefault()) ? "php" : projectDefault() || "php") : v.startsWith("name:") ? v.slice(5) : ""));
+            }}
           >
-            <option value="">
-              {props.type.interpreter === "php" ? `PHP 8.3 (${projectDefault()}) — project default` : `Default (${projectDefault()})`}
-            </option>
+            <option value="">{defaultLabel()}</option>
+            <For each={phpInterpreters()}>
+              {(i) => (
+                <option value={`name:${i.name}`}>
+                  {i.name}
+                  {i.version ? ` (${i.version})` : ""}
+                </option>
+              )}
+            </For>
             <option value="custom">Custom…</option>
           </select>
           <Show when={custom()}>
@@ -433,36 +464,94 @@ function EnvEditor(props: { cfg: RunConfiguration }) {
   );
 }
 
+/** Kinds of Before launch tasks with their label and the placeholder of their value. */
+const TASK_KINDS: Record<string, { label: string; icon: IconComponent; placeholder?: string }> = {
+  runConfiguration: { label: "Run", icon: Settings2 },
+  externalTool: { label: "External tool", icon: Wrench },
+  browser: { label: "Launch Web Browser", icon: Globe, placeholder: "http://localhost:8000" },
+  npm: { label: "Run npm script", icon: Hexagon, placeholder: "build" },
+  composer: { label: "Run Composer script", icon: Package, placeholder: "dump-autoload" },
+  artisan: { label: "Run Artisan command", icon: Feather, placeholder: "migrate" },
+  shell: { label: "Run", icon: SquareTerminal, placeholder: "composer dump-autoload" },
+};
+
 function BeforeLaunch(props: { cfg: RunConfiguration }) {
   const [open, setOpen] = createSignal(true);
   const [sel, setSel] = createSignal<number | null>(null);
   const tasks = () => props.cfg.beforeLaunch ?? [];
   const setTasks = (next: BeforeLaunchTask[]) => update((c) => (c.beforeLaunch = next));
+  const add = (task: BeforeLaunchTask) => {
+    setTasks([...tasks(), task]);
+    setSel(tasks().length - 1);
+    if (task.value === "") queueMicrotask(() => document.querySelector<HTMLInputElement>(".rc-bl-item.selected input")?.focus());
+  };
+  const move = (delta: number) => {
+    const i = sel();
+    const to = i === null ? -1 : i + delta;
+    if (i === null || to < 0 || to >= tasks().length) return;
+    const next = [...tasks()];
+    [next[i], next[to]] = [next[to], next[i]];
+    setTasks(next);
+    setSel(to);
+  };
   const addMenu = (e: MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const at = { x: r.left, y: r.bottom + 4 };
     const others = state.items.filter((i) => i.cfg.name !== props.cfg.name);
+    const tools = toolGroups();
     openMenu({
-      x: r.left,
-      y: r.bottom + 4,
+      ...at,
       items: [
-        ...others.map((o) => ({
-          label: `Run '${o.cfg.name}'`,
-          icon: findType(o.cfg.type)?.icon,
-          iconColor: findType(o.cfg.type)?.color,
-          run: () => setTasks([...tasks(), { type: "runConfiguration", value: o.cfg.name }]),
-        })),
-        ...(others.length ? [{ separator: true }] : []),
         {
-          label: "Run Shell Command…",
+          label: "Run External tool",
           icon: Wrench,
-          run: () => {
-            setTasks([...tasks(), { type: "shell", value: "" }]);
-            setSel(tasks().length - 1);
-            queueMicrotask(() => document.querySelector<HTMLInputElement>(".rc-bl-item input:last-of-type")?.focus());
-          },
+          run: () =>
+            openMenu({
+              ...at,
+              items: tools.length
+                ? tools.flatMap((g, gi) => [
+                    ...(gi ? [{ separator: true }] : []),
+                    ...g.tools.map((t) => ({ label: `${g.name} › ${t.name}`, icon: Wrench, run: () => add({ type: "externalTool", value: toolRef(t) }) })),
+                  ])
+                : [
+                    {
+                      label: "Configure External Tools…",
+                      icon: Settings2,
+                      run: () => void import("@/features/settings/dialogState").then((m) => m.openSettings("tools.external-tools")),
+                    },
+                  ],
+            }),
         },
+        {
+          label: "Run Another Configuration",
+          icon: Play,
+          disabled: !others.length,
+          run: () =>
+            openMenu({
+              ...at,
+              items: others.map((o) => ({
+                label: o.cfg.name,
+                icon: findType(o.cfg.type)?.icon,
+                iconColor: findType(o.cfg.type)?.color,
+                run: () => add({ type: "runConfiguration", value: o.cfg.name }),
+              })),
+            }),
+        },
+        { label: "Launch Web Browser", icon: Globe, run: () => add({ type: "browser", value: "" }) },
+        { label: "Run npm script", icon: Hexagon, run: () => add({ type: "npm", value: "" }) },
+        { label: "Run Composer script", icon: Package, run: () => add({ type: "composer", value: "" }) },
+        ...(usesFramework("laravel") || tasks().some((t) => t.type === "artisan")
+          ? [{ label: "Run Artisan command", icon: Feather, run: () => add({ type: "artisan", value: "" }) }]
+          : []),
+        { separator: true },
+        { label: "Run Shell Command…", icon: SquareTerminal, run: () => add({ type: "shell", value: "" }) },
       ],
     });
+  };
+  const setValue = (i: number, value: string) => {
+    const next = tasks().map((x) => ({ ...x }));
+    next[i].value = value;
+    setTasks(next);
   };
   return (
     <div class="rc-section">
@@ -474,7 +563,7 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
         </Show>
       </button>
       <Show when={open()}>
-        <div class="rc-bl">
+        <div class="rc-bl" data-testid="rc-before-launch">
           <div class="rc-bl-tools">
             <button class="icon-btn" title="Add" onClick={addMenu}>
               <Plus size={14} />
@@ -482,41 +571,60 @@ function BeforeLaunch(props: { cfg: RunConfiguration }) {
             <button class="icon-btn" title="Remove" disabled={sel() === null} onClick={() => (setTasks(tasks().filter((_, i) => i !== sel())), setSel(null))}>
               <Minus size={14} />
             </button>
-            <button
-              class="icon-btn"
-              title="Move Up"
-              disabled={!sel()}
-              onClick={() => {
-                const i = sel()!;
-                const next = [...tasks()];
-                [next[i - 1], next[i]] = [next[i], next[i - 1]];
-                setTasks(next);
-                setSel(i - 1);
-              }}
-            >
+            <button class="icon-btn" title="Move Up" disabled={!sel()} onClick={() => move(-1)}>
               <ArrowUp size={14} />
+            </button>
+            <button class="icon-btn" title="Move Down" disabled={sel() === null || sel() === tasks().length - 1} onClick={() => move(1)}>
+              <ArrowDown size={14} />
             </button>
           </div>
           <div class="rc-bl-list">
-            <For each={tasks()} fallback={<div class="rc-bl-empty muted">There are no tasks to run before launch</div>}>
-              {(t, i) => (
-                <div class="rc-bl-item" classList={{ selected: sel() === i() }} onClick={() => setSel(i())}>
-                  <Dynamic component={t.type === "runConfiguration" ? (findType(findConfigType(t.value))?.icon ?? Settings2) : Wrench} size={13} />
-                  <Show when={t.type === "shell"} fallback={<span>Run '{t.value}'</span>}>
-                    <input
-                      class="rc-input rc-bl-input"
-                      value={t.value}
-                      placeholder="composer dump-autoload"
-                      onInput={(e) => {
-                        const next = tasks().map((x) => ({ ...x }));
-                        next[i()].value = e.currentTarget.value;
-                        setTasks(next);
-                      }}
+            {/* Index keeps rows (and the focused input) while values change. */}
+            <Index each={tasks()} fallback={<div class="rc-bl-empty muted">There are no tasks to run before launch</div>}>
+              {(t, i) => {
+                const kind = () => TASK_KINDS[t().type];
+                return (
+                  <div class="rc-bl-item" classList={{ selected: sel() === i }} onClick={() => setSel(i)}>
+                    <Dynamic
+                      component={t().type === "runConfiguration" ? (findType(findConfigType(t().value))?.icon ?? Settings2) : (kind()?.icon ?? Wrench)}
+                      size={13}
                     />
-                  </Show>
-                </div>
-              )}
-            </For>
+                    <Switch
+                      fallback={
+                        <>
+                          <span class="rc-bl-kind">{kind()?.label ?? t().type}</span>
+                          <input
+                            class="rc-input rc-bl-input"
+                            value={t().value}
+                            placeholder={kind()?.placeholder}
+                            onInput={(e) => setValue(i, e.currentTarget.value)}
+                          />
+                        </>
+                      }
+                    >
+                      <Match when={t().type === "runConfiguration"}>
+                        <span>Run '{t().value}'</span>
+                      </Match>
+                      <Match when={t().type === "externalTool"}>
+                        <span class="rc-bl-kind">{kind()!.label}</span>
+                        <select class="rc-select rc-bl-input" value={t().value} onChange={(e) => setValue(i, e.currentTarget.value)}>
+                          <Show when={!findTool(t().value)}>
+                            <option value={t().value}>{t().value || "Select a tool"} (not found)</option>
+                          </Show>
+                          <For each={toolGroups()}>
+                            {(g) => (
+                              <optgroup label={g.name}>
+                                <For each={g.tools}>{(tool) => <option value={toolRef(tool)}>{tool.name}</option>}</For>
+                              </optgroup>
+                            )}
+                          </For>
+                        </select>
+                      </Match>
+                    </Switch>
+                  </div>
+                );
+              }}
+            </Index>
           </div>
         </div>
       </Show>
@@ -555,7 +663,15 @@ function ConfigForm(props: { item: Item }) {
       </Show>
       <Show when={type()} fallback={<div class="rc-problem">Unknown configuration type "{cfg().type}". Is its plugin disabled?</div>}>
         {(t) => (
-          <>
+          <Show
+            when={!t().form}
+            fallback={<Dynamic component={t().form!} cfg={cfg()} update={update} configurations={state.items.map((i) => i.cfg)} />}
+          >
+            <Show when={!t().start && !t().noRunTarget}>
+              <div class="rc-group rc-run-on">
+                <RunOnRow cfg={cfg()} update={update} php={t().interpreter === "php"} />
+              </div>
+            </Show>
             <Show when={t().fields.length}>
               <div class="rc-group-title">{t().testRunner ? "Test Runner" : "Configuration"}</div>
               <div class="rc-group">
@@ -585,8 +701,14 @@ function ConfigForm(props: { item: Item }) {
               </div>
               <EnvEditor cfg={cfg()} />
             </div>
+            <Show when={t().coverageFields?.length}>
+              <div class="rc-group-title">Code Coverage</div>
+              <div class="rc-group" data-testid="rc-coverage">
+                <For each={t().coverageFields}>{(f) => <Field field={f} cfg={cfg()} />}</For>
+              </div>
+            </Show>
             <BeforeLaunch cfg={cfg()} />
-          </>
+          </Show>
         )}
       </Show>
       <Show when={problem()}>

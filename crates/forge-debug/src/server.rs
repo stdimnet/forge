@@ -30,6 +30,9 @@ pub(crate) struct Shared {
     /// The project's files (breakpoints and servers are stored there).
     files: RwLock<Option<SharedFiles>>,
     servers: RwLock<Vec<ServerConfig>>,
+    /// Servers of PHP interpreters (Docker, Compose, SSH, WSL) with their path mappings,
+    /// matched by the interpreter's name; not stored in the project.
+    interpreter_servers: RwLock<Vec<ServerConfig>>,
     breakpoints: Mutex<BreakpointStore>,
     sessions: Mutex<HashMap<String, Arc<Session>>>,
     sink: EventSink,
@@ -53,8 +56,40 @@ impl Shared {
         self.servers.read().expect("servers lock").clone()
     }
 
+    /// The configured servers, then the interpreters' (a configured server of the same
+    /// name wins).
+    pub(crate) fn known_servers(&self) -> Vec<ServerConfig> {
+        let mut all = self.servers();
+        all.extend(
+            self.interpreter_servers
+                .read()
+                .expect("servers lock")
+                .iter()
+                .cloned(),
+        );
+        all
+    }
+
     pub(crate) fn with_breakpoints<T>(&self, f: impl FnOnce(&mut BreakpointStore) -> T) -> T {
         f(&mut self.breakpoints.lock().expect("breakpoints lock"))
+    }
+
+    /// Remove a breakpoint that fired with "Remove once hit" and tell the UI and the other
+    /// sessions.
+    pub(crate) fn remove_hit_breakpoint(&self, id: u64) {
+        match self.with_breakpoints(|s| s.remove(id)) {
+            Ok(Some(_)) => {}
+            Ok(None) => return,
+            Err(e) => {
+                tracing::warn!("cannot remove temporary breakpoint {id}: {e}");
+                return;
+            }
+        }
+        for session in self.sessions() {
+            tokio::spawn(async move { session.sync_breakpoint(id, None, false).await });
+        }
+        let snapshot = self.with_breakpoints(|s| s.snapshot());
+        self.emit(DebugEvent::Breakpoints { snapshot });
     }
 
     pub(crate) fn remove_session(&self, id: &str) {
@@ -94,6 +129,7 @@ impl DebugServer {
                 root: RwLock::new(None),
                 files: RwLock::new(None),
                 servers: RwLock::new(Vec::new()),
+                interpreter_servers: RwLock::new(Vec::new()),
                 breakpoints: Mutex::new(BreakpointStore::memory()),
                 sessions: Mutex::new(HashMap::new()),
                 sink,
@@ -144,6 +180,16 @@ impl DebugServer {
 
     pub fn servers(&self) -> Vec<ServerConfig> {
         self.shared.servers()
+    }
+
+    /// The path mappings of PHP interpreters, as servers named like the interpreters (runs
+    /// through an interpreter set `PHP_IDE_CONFIG=serverName=<name>`).
+    pub fn set_interpreter_servers(&self, servers: Vec<ServerConfig>) {
+        *self
+            .shared
+            .interpreter_servers
+            .write()
+            .expect("servers lock") = servers;
     }
 
     /// Replace the server list and persist it in the project.

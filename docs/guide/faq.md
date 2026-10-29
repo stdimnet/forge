@@ -14,8 +14,9 @@ A PHPStorm-style IDE for Windows, Linux and macOS, written in Rust (Tauri 2) wit
 The layout, wording and keymap follow PHPStorm; the colors are Forge's own.
 
 **Is it free?**
-Forge is MIT-licensed. Third-party tools you connect keep their own terms: Intelephense premium
-needs your own licence, AI providers need your own API key or subscription.
+Forge is MIT-licensed. The built-in PHP language server php-lsp is free as well (MIT OR
+Apache-2.0) and needs no licence key. Third-party tools you connect keep their own terms:
+AI providers need your own API key or subscription.
 
 **Which version is this guide for?**
 Forge 0.1.0 as on the branch that contains this guide. Recent additions and what is not available
@@ -35,7 +36,8 @@ be imported yet; re-create changes in Settings | Keymap.
 No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 
 **Is PHP support as deep as PHPStorm's?**
-Not yet. Completion and diagnostics come from Intelephense (or Phpactor); Forge adds its own
+Not yet. Completion and diagnostics come from the built-in language server php-lsp
+(Intelephense-compatible, with rename and refactorings); Forge adds its own
 index with navigation (Go to Declaration including PHP's own stubs, Find/Show Usages,
 implementations, gutter icons) that also works without a server, Generate actions, Laravel,
 Symfony and Doctrine support. Refactorings, inspections with quick-fixes and Replace in Files
@@ -60,7 +62,7 @@ No. They are separate programs you install, from the Language Servers settings p
 click or with your package manager. Forge never bundles paid tools or keys.
 
 **Do I need Node.js?**
-Only for npm scripts and web project generators. npm-based language servers (Intelephense, TypeScript, Vue, …) do not need it: Forge
+Only for npm scripts and web project generators. npm-based language servers (TypeScript, Vue, YAML, …) do not need it: Forge
 downloads an official Node.js build for them when none (18 or newer) is installed.
 
 ## AI
@@ -88,8 +90,9 @@ Commit `settings.toml`, `runConfigurations.toml`, `php-servers.json` and `dataSo
 team should share them; ignore `runConfigurations.local.toml` and `cache/`.
 
 **Can I open several projects at once?**
-One project per window. Opening another project replaces the current one; multiple windows are not
-available yet.
+Yes, one project per window. Opening a project while another one is open asks **New Window** or
+**This Window**; Window | Next Project Window (`Ctrl+Alt+]`) switches between them. See
+[Windows, modes and layouts](user/windows-and-layouts.md#several-project-windows).
 
 **Can I work on a server over SSH?**
 Yes, see [Remote development](user/remote-development.md). Frameworks, language servers,

@@ -5,7 +5,13 @@
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    let arg = std::env::args().nth(1).unwrap_or_default();
+    // `forge-remote-agent --php-lsp --stdio`: the built-in PHP language server, started by
+    // the agent itself for remote PHP projects. Otherwise this registers it for the PHP pack.
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(code) = phpforge_builtin_lsp::main_hook(&args) {
+        return ExitCode::from(code.clamp(0, 255) as u8);
+    }
+    let arg = args.get(1).cloned().unwrap_or_default();
     match arg.as_str() {
         "--version" | "-V" | "version" => {
             println!("{}", forge_remote_agent::version_line());

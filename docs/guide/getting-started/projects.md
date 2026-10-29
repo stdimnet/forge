@@ -19,6 +19,11 @@ configurations, breakpoints, data sources); see [File locations](../reference/fi
 - In the workbench, the project widget at the left of the main toolbar (the badge with the
   project name) runs **Open…** as well.
 
+A folder you have not trusted yet asks first: **Trust Project**, **Preview in Safe Mode** or
+**Don't Open**, see [Project trust and Safe Mode](../user/project-trust.md). Projects in a
+trusted location (Settings | Build, Execution, Deployment | Trusted Locations) and projects
+created with New Project open without asking.
+
 Opening a project replaces the current one in the same window and closes its editor tabs.
 Each project's tool window layout and editor tabs come back when you open it again, see
 [Layout per project](../user/workbench.md#layout-per-project).
@@ -64,9 +69,11 @@ Click **New Project** on the Welcome screen, or run the **New Project…** actio
 | Lua | Lua Script | a script, a module and a LuaLS configuration | — (offline template) | Lua version, sample code, Git repository |
 | Lua | LÖVE Game | LÖVE 11 game with `main.lua`, `conf.lua` and API completion | — (offline template) | sample code, Git repository |
 | Lua | Neovim Plugin | plugin with `setup()`, a user command and a help file | — (offline template) | GitHub user, Git repository |
+| Ruby | Ruby Gem | `bundle gem` with tests, RuboCop and no CI, licence or changelog files | `bundle` | Test framework (Minitest, RSpec, test-unit), RuboCop, executable, Git repository |
+| Ruby | Ruby Project | Gemfile, Rakefile, `lib/`, `bin/`, Minitest tests and `.rubocop.yml` | — (offline template) | sample code, Git repository |
 | Other | Empty Project | an empty folder | — | Git repository |
 
-Generators that call an official CLI (composer, symfony, npm, npx) check that the tool is on
+Generators that call an official CLI (composer, symfony, npm, npx, bundle) check that the tool is on
 your `PATH` first. If it is missing, the dialog says so and offers an offline alternative, for
 example "Create Empty HTML/CSS/JS instead":
 

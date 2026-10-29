@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import "./settingsMock";
 import { listen } from "@/ipc";
 import { SETTINGS_CHANGED_EVENT, settingsApi, type SettingsChange } from "@/ipc/settings";
-import { getSetting, loadSettings, saveSetting, scopeFor, settingsState } from "@/state/settings";
+import { getSetting, inheritedValue, loadSettings, newProjectValue, saveSetting, saveSettings, scopeFor, settingsState } from "@/state/settings";
 
 describe("browser-mode settings backend", () => {
   it("serves the built-in plugins and their schema", async () => {
@@ -67,5 +67,29 @@ describe("settings state", () => {
     expect(settingsState.user["editor.font.size"]).toBe(16);
     await saveSetting("editor.font.size", null);
     expect(getSetting("editor.font.size")).toBe(13.5);
+  });
+});
+
+describe("settings for new projects", () => {
+  it("stores project-level defaults in their own layer below the project", async () => {
+    await loadSettings();
+    expect(scopeFor("php.languageLevel", true)).toBe("newProjects");
+    expect(scopeFor("editor.font.size", true)).toBe("user");
+    await expect(settingsApi.set("editor.font.size", 20, "newProjects")).rejects.toThrow(/not a project setting/);
+
+    await saveSettings({ "php.languageLevel": "8.1" }, true);
+    expect(settingsState.newProjects["php.languageLevel"]).toBe("8.1");
+    expect(newProjectValue("php.languageLevel")).toBe("8.1");
+    // The open project has no value of its own, so it gets the default for projects.
+    expect(getSetting("php.languageLevel")).toBe("8.1");
+    expect(inheritedValue("php.languageLevel", "project")).toBe("8.1");
+
+    // Its own value wins; storing the inherited value again removes the override.
+    await saveSettings({ "php.languageLevel": "8.3" });
+    expect(settingsState.project["php.languageLevel"]).toBe("8.3");
+    await saveSettings({ "php.languageLevel": "8.1" });
+    expect(settingsState.project["php.languageLevel"]).toBeUndefined();
+    await saveSettings({ "php.languageLevel": null }, true);
+    expect(settingsState.newProjects["php.languageLevel"]).toBeUndefined();
   });
 });

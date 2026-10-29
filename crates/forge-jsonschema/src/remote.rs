@@ -220,9 +220,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let cache = RemoteCache::direct(dir.path().to_path_buf(), Duration::ZERO).unwrap();
         // Nothing listens on this port any more.
-        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let url = format!("http://{}/s.json", listener.local_addr().unwrap());
-        drop(listener);
+        let port = forge_ports::free_port().unwrap();
+        let url = format!("http://127.0.0.1:{port}/s.json");
         assert!(cache.fetch(&url).await.is_err());
         std::fs::write(cache.path_for(&url), r#"{"title": "old"}"#).unwrap();
         assert_eq!(cache.fetch(&url).await.unwrap(), r#"{"title": "old"}"#);

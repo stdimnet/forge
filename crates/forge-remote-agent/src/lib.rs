@@ -4,7 +4,7 @@
 //! The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 //! `forge-remote-agent serve` and talks to it with [`forge_backend::rpc::RpcClient`]. Every
 //! service runs next to the project's files: file system, file search, git, terminals,
-//! processes, language servers (Intelephense indexes the remote project itself), language
+//! processes, language servers (php-lsp indexes the remote project itself), language
 //! server installs, the PHP index and the framework and WebForge analysis.
 
 mod browse;
@@ -219,6 +219,7 @@ impl Agent {
                 exact,
             )?),
             Call::SearchStatus => reply(self.backend()?.search_status()?),
+            Call::SetStructure(config) => reply(self.backend()?.set_structure(config)?),
             Call::FindTodos(req) => reply(self.backend()?.find_todos(&req)?),
             Call::CollectFiles(req) => reply(self.backend()?.collect_files(&req)?),
             Call::ListFiles { limit } => reply(self.backend()?.list_files(limit)?),
@@ -509,8 +510,22 @@ impl Agent {
                 options,
                 content,
             } => reply(php.intentions(&path, offset, options, content)?),
+            PhpCall::UnresolvedClasses { path, content } => {
+                reply(php.unresolved_classes(&path, content)?)
+            }
             PhpCall::LspConfig { settings } => reply(php.lsp_config(settings)?),
             PhpCall::DetectServers { settings } => reply(php.detect_servers(settings)?),
+            PhpCall::Configure { settings } => reply(php.configure(settings)?),
+            PhpCall::Inspect { path, content } => reply(php.inspect(&path, content)?),
+            PhpCall::Complete {
+                path,
+                offset,
+                content,
+            } => reply(php.complete(&path, offset, content)?),
+            PhpCall::LanguagePlaces => reply(php.language_places()?),
+            PhpCall::Libraries => reply(php.libraries()?),
+            PhpCall::LibraryList { path } => reply(php.library_list(&path)?),
+            PhpCall::LibraryRead { path } => reply(php.library_read(&path)?),
         }
     }
 

@@ -1,5 +1,5 @@
 /** Typed client for the Laravel commands (`app/src-tauri/src/commands/laravel.rs`). */
-import { invoke, listen } from "./index";
+import { invoke } from "./index";
 
 /** 0-based line, UTF-16 character, like LSP positions. */
 export interface LaravelLocation {
@@ -51,7 +51,8 @@ export type LaravelCompletionKind =
   | "property"
   | "method"
   | "component"
-  | "directive";
+  | "directive"
+  | "value";
 
 export interface LaravelCompletionItem {
   label: string;
@@ -75,27 +76,108 @@ export interface GutterMark {
   targets: LaravelLocation[];
 }
 
-export interface ArtisanCommand {
+export interface LaravelLogFile {
+  path: string;
+  size: number;
+  /** Seconds since the epoch. */
+  modified: number;
+}
+
+export interface LogStackFrame {
+  /** As written in the log. */
+  file?: string;
+  /** The file in the project. */
+  path?: string;
+  /** 1-based. */
+  line?: number;
+  call: string;
+  vendor?: boolean;
+}
+
+export interface LogException {
+  class: string;
+  message: string;
+  code?: string;
+  frame: LogStackFrame;
+}
+
+export type LogLevel = "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency";
+
+export interface LaravelLogEntry {
+  time: string;
+  channel: string;
+  level: LogLevel;
+  message: string;
+  context?: string;
+  exception?: LogException;
+  frames?: LogStackFrame[];
+  /** 0-based line in the file. */
+  line: number;
+}
+
+export interface LaravelLogPage {
+  path: string;
+  files: LaravelLogFile[];
+  entries: LaravelLogEntry[];
+  size: number;
+  truncated?: boolean;
+}
+
+export interface LaravelModelSummary {
   name: string;
-  description: string;
-  usage?: string;
-  arguments: string[];
-  options: string[];
+  class: string;
+  table: string;
+  attributes: number;
+  relations: number;
+  location: LaravelLocation;
 }
 
-export interface ArtisanCommands {
-  commands: ArtisanCommand[];
-  /** `false` when artisan could not run and the built-in list is shown. */
-  fromProject: boolean;
+export interface LaravelAppCommand {
+  name: string;
+  signature: string;
+  description?: string;
+  location: LaravelLocation;
 }
 
-export type ArtisanEvent =
-  | { type: "started"; commandLine: string }
-  | { type: "output"; text: string; stderr: boolean }
-  | { type: "exit"; code: number }
-  | { type: "error"; message: string };
+export interface CodeGenerationFile {
+  appNamespace: string;
+  name: string;
+  templateType: string;
+  templatePath: string;
+}
 
-export const artisanEvent = (runId: string) => `laravel://artisan/${runId}`;
+export interface CodeGeneration {
+  id: string;
+  name: string;
+  classSuffix?: string;
+  files: CodeGenerationFile[];
+  source: string;
+}
+
+export interface LaravelOverview {
+  version?: string;
+  php?: string;
+  appName?: string;
+  environment?: string;
+  debug?: boolean;
+  url?: string;
+  routes: number;
+  views: number;
+  components: number;
+  translations: number;
+  configKeys: number;
+  models: LaravelModelSummary[];
+  commands: LaravelAppCommand[];
+  logFiles: LaravelLogFile[];
+  ideJson: { files: string[]; completions: number; codeGenerations: CodeGeneration[]; errors?: string[] };
+}
+
+export interface GeneratedFile {
+  path: string;
+  content: string;
+  /** Already there; not overwritten. */
+  exists?: boolean;
+}
 
 export const laravelApi = {
   detect: () => invoke<LaravelInfo>("laravel_detect"),
@@ -105,9 +187,7 @@ export const laravelApi = {
   goto: (path: string, offset: number, content: string) =>
     invoke<LaravelLocation[]>("laravel_goto", { path, offset, content }),
   gutter: (path: string, content: string) => invoke<GutterMark[]>("laravel_gutter", { path, content }),
-  artisanCommands: () => invoke<ArtisanCommands>("laravel_artisan_commands"),
-  /** Subscribe with `onArtisan` first; resolves with the exit code. */
-  artisanRun: (commandLine: string, runId: string) => invoke<number>("laravel_artisan_run", { commandLine, runId }),
-  artisanCancel: (runId: string) => invoke<void>("laravel_artisan_cancel", { runId }),
-  onArtisan: (runId: string, cb: (e: ArtisanEvent) => void) => listen<ArtisanEvent>(artisanEvent(runId), cb),
+  overview: () => invoke<LaravelOverview>("laravel_overview"),
+  logs: (path?: string) => invoke<LaravelLogPage>("laravel_logs", { path }),
+  generate: (id: string, input: string, write: boolean) => invoke<GeneratedFile[]>("laravel_generate", { id, input, write }),
 };

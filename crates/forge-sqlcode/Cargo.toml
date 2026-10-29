@@ -1,0 +1,12 @@
+[package]
+name = "forge-sqlcode"
+description = "Forge SQL editor intelligence (pure, also built to WebAssembly): dialects per file, resolve against the data source model, SQL inspections and quick fixes, the formatter, user parameters, query history and Run SQL file planning"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-sql.workspace = true
+forge-dbmodel.workspace = true
+serde.workspace = true
+serde_json.workspace = true

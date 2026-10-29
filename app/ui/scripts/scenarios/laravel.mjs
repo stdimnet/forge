@@ -1,4 +1,4 @@
-/** Laravel plugin screenshots: route() completion, Routes window, Blade, artisan, gutter. */
+/** Laravel plugin screenshots: route() completion, Routes window, Blade, gutter. */
 
 /** @param {import("playwright-core").Page} page */
 async function openFile(page, path) {
@@ -84,18 +84,6 @@ export default {
     await page.waitForSelector(".laravel-gutter-icon");
     await page.locator('.laravel-gutter-icon[data-laravel-gutter="route"]').first().hover();
     await page.waitForTimeout(900);
-  },
-  "laravel-artisan": async (page) => {
-    await page.keyboard.press("Control+Shift+KeyX");
-    await page.waitForSelector(".artisan-row");
-    await page.keyboard.type("make", { delay: 30 });
-  },
-  "laravel-artisan-output": async (page) => {
-    await page.keyboard.press("Control+Shift+KeyX");
-    await page.waitForSelector(".artisan-row");
-    await page.keyboard.type("route:list", { delay: 20 });
-    await page.keyboard.press("Enter");
-    await page.waitForSelector(".artisan-status.ok");
   },
   "laravel-settings": async (page) => {
     // What clicking the "Laravel 12" status item does.

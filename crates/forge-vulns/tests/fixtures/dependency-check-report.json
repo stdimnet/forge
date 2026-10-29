@@ -1,0 +1,34 @@
+{
+  "reportSchema": "1.1",
+  "scanInfo": {"engineVersion": "12.1.0", "dataSource": []},
+  "projectInfo": {"name": "inventory-service", "reportDate": "2025-05-02T08:00:00Z", "credits": {}},
+  "dependencies": [
+    {
+      "isVirtual": false,
+      "fileName": "log4j-core-2.14.1.jar",
+      "filePath": "/home/dev/.m2/repository/org/apache/logging/log4j/log4j-core/2.14.1/log4j-core-2.14.1.jar",
+      "md5": "0", "sha1": "0", "sha256": "0",
+      "packages": [{"id": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1", "confidence": "HIGHEST", "url": "https://ossindex.sonatype.org/component/pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"}],
+      "vulnerabilities": [
+        {
+          "source": "NVD",
+          "name": "CVE-2021-44228",
+          "severity": "CRITICAL",
+          "cvssv3": {"baseScore": 10.0, "attackVector": "NETWORK", "baseSeverity": "CRITICAL"},
+          "cwes": ["CWE-502", "CWE-400", "CWE-20"],
+          "description": "Apache Log4j2 2.0-beta9 through 2.15.0 (excluding security releases 2.12.2, 2.12.3, and 2.3.1) JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages can execute arbitrary code.",
+          "references": [{"source": "MISC", "url": "https://logging.apache.org/log4j/2.x/security.html", "name": "Apache Log4j Security Vulnerabilities"}],
+          "vulnerableSoftware": [
+            {"software": {"id": "cpe:2.3:a:apache:log4j:*:*:*:*:*:*:*:*", "vulnerabilityIdMatched": "true", "versionStartIncluding": "2.13.0", "versionEndExcluding": "2.15.0"}}
+          ]
+        }
+      ]
+    },
+    {
+      "isVirtual": false,
+      "fileName": "commons-lang3-3.14.0.jar",
+      "filePath": "/home/dev/.m2/repository/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar",
+      "packages": [{"id": "pkg:maven/org.apache.commons/commons-lang3@3.14.0", "confidence": "HIGHEST"}]
+    }
+  ]
+}

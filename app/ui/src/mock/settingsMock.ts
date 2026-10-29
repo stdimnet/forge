@@ -33,6 +33,7 @@ const layers: Record<SettingsScope, Record<string, SettingValue>> = {
       return {};
     }
   })(),
+  newProjects: {},
   project: {},
 };
 
@@ -46,6 +47,7 @@ const persistUser = () => {
 
 function resolve(key: string): { value: SettingValue | null; scope: "default" | SettingsScope } {
   if (key in layers.project) return { value: layers.project[key], scope: "project" };
+  if (key in layers.newProjects) return { value: layers.newProjects[key], scope: "newProjects" };
   if (key in layers.user) return { value: layers.user[key], scope: "user" };
   return { value: defaults[key] ?? null, scope: "default" };
 }
@@ -54,11 +56,17 @@ function resolve(key: string): { value: SettingValue | null; scope: "default" | 
 export const mockSettingValue = (key: string): SettingValue | null => resolve(key).value;
 
 /** Every effective setting value (for mocks that pass the settings to Rust). */
-export const mockSettingValues = (): Record<string, SettingValue> => ({ ...defaults, ...layers.user, ...layers.project });
+export const mockSettingValues = (): Record<string, SettingValue> => ({
+  ...defaults,
+  ...layers.user,
+  ...layers.newProjects,
+  ...layers.project,
+});
 
 /** Copies of the user and project layers (the demo project is always open). */
 export const mockSettingLayers = (): Record<SettingsScope, Record<string, SettingValue>> => ({
   user: { ...layers.user },
+  newProjects: { ...layers.newProjects },
   project: { ...layers.project },
 });
 
@@ -73,6 +81,9 @@ function validate(key: string, value: SettingValue): string | null {
 
 export function setSetting(key: string, value: SettingValue | null, scope: SettingsScope): void {
   if (!key || key.split(".").some((p) => !p)) throw new Error(`invalid settings key \`${key}\``);
+  if (scope === "newProjects" && !allSpecs().find((s) => s.key === key)?.project) {
+    throw new Error(`\`${key}\` is not a project setting and has no value for new projects`);
+  }
   const problem = value === null ? null : validate(key, value);
   if (problem) throw new Error(problem);
   const before = JSON.stringify(resolve(key).value);
@@ -84,6 +95,15 @@ export function setSetting(key: string, value: SettingValue | null, scope: Setti
 }
 
 const byId = (id: string) => plugins.find((p) => p.id === id);
+
+/** Test frameworks the enabled plugins declare (`contributions.testFrameworks`). */
+export const mockTestFrameworkSpecs = () => plugins.filter((p) => p.enabled).flatMap((p) => p.contributions.testFrameworks ?? []);
+
+/** Inspections and tool mappings of the enabled plugins (`contributions.inspections`). */
+export function mockInspectionContributions(): { inspections: unknown[]; mappings: unknown[] } {
+  const enabled = plugins.filter((p) => p.enabled).map((p) => p.contributions as unknown as { inspections?: unknown[]; inspectionMappings?: unknown[] });
+  return { inspections: enabled.flatMap((c) => c.inspections ?? []), mappings: enabled.flatMap((c) => c.inspectionMappings ?? []) };
+}
 
 /** Same cascade as `PluginRegistry::set_enabled` in Rust. */
 export function setPluginEnabled(id: string, enabled: boolean): string[] {
@@ -115,9 +135,10 @@ for (const id of (layers.user[DISABLED_KEY] as string[] | undefined) ?? []) {
 }
 
 registerMock("settings_get_all", () => ({
-  values: { ...defaults, ...layers.user, ...layers.project },
+  values: mockSettingValues(),
   user: { ...layers.user },
   project: { ...layers.project },
+  newProjects: { ...layers.newProjects },
   hasProject: true,
 }));
 registerMock("settings_set", async ({ key, value, scope }) => {

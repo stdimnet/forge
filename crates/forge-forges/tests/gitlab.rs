@@ -367,3 +367,31 @@ async fn errors_are_friendly() {
         "{e}"
     );
 }
+
+#[tokio::test]
+async fn lists_member_projects() {
+    let (server, gl) = host(vec![Route::json(
+        "GET",
+        "/api/v4/projects",
+        r#"[{"path_with_namespace":"acme/backend/shop","name":"Shop","description":"","visibility":"internal",
+            "http_url_to_repo":"https://gitlab.com/acme/backend/shop.git","ssh_url_to_repo":"git@gitlab.com:acme/backend/shop.git",
+            "web_url":"https://gitlab.com/acme/backend/shop","last_activity_at":"2026-10-21T08:00:00Z",
+            "forked_from_project":{"id":1}}]"#,
+    )])
+    .await;
+    let repos = gl.repositories().await.unwrap();
+    assert_eq!(repos.len(), 1);
+    assert_eq!(repos[0].path, "acme/backend/shop");
+    assert_eq!(repos[0].description, None);
+    assert!(repos[0].private && repos[0].fork);
+    assert_eq!(
+        repos[0].clone_url,
+        "https://gitlab.com/acme/backend/shop.git"
+    );
+    let req = server.find("GET", "/api/v4/projects");
+    assert!(req.query.contains("membership=true"));
+    assert_eq!(
+        req.headers.get("private-token").map(String::as_str),
+        Some("glpat-secret")
+    );
+}

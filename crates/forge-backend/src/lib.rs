@@ -22,6 +22,7 @@ pub mod replace;
 pub mod rpc;
 pub mod ssr;
 pub mod tunnels;
+pub mod vcs;
 pub mod web;
 
 use std::path::{Path, PathBuf};
@@ -95,7 +96,36 @@ impl Found {
     }
 }
 
-/// The machine a remote project lives on.
+/// How Forge reaches the agent of a remote project.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum RemoteKind {
+    /// Over SSH (`forge-remote`).
+    #[default]
+    Ssh,
+    /// In a dev container on this machine, over `docker exec` (`forge-devenv`).
+    #[serde(rename_all = "camelCase")]
+    DevContainer {
+        /// Container id.
+        container: String,
+        /// The local folder whose sources are mounted into the container.
+        source: String,
+        /// Absolute path of its `devcontainer.json`.
+        #[serde(default)]
+        config: String,
+    },
+    /// In a WSL distribution, over `wsl.exe --exec` (`forge-devenv`).
+    Wsl { distro: String },
+}
+
+impl RemoteKind {
+    pub fn is_ssh(&self) -> bool {
+        matches!(self, RemoteKind::Ssh)
+    }
+}
+
+/// The machine a remote project lives on. For dev containers `host` is the container's
+/// display name and for WSL the distribution; `port` is 0 for both.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoteHost {
@@ -105,21 +135,45 @@ pub struct RemoteHost {
     /// Id of the saved SSH configuration, if the connection came from one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub config_id: Option<String>,
+    #[serde(default, skip_serializing_if = "RemoteKind::is_ssh")]
+    pub kind: RemoteKind,
 }
 
 impl RemoteHost {
-    /// `user@host` (`user@host:2222` for a non-default port), as shown in the UI.
-    pub fn label(&self) -> String {
-        if self.port == 22 {
-            format!("{}@{}", self.user, self.host)
-        } else {
-            format!("{}@{}:{}", self.user, self.host, self.port)
+    /// An SSH host.
+    pub fn ssh(host: impl Into<String>, port: u16, user: impl Into<String>) -> Self {
+        Self {
+            host: host.into(),
+            port,
+            user: user.into(),
+            config_id: None,
+            kind: RemoteKind::Ssh,
         }
     }
 
-    /// A project path on this host as the UI shows it: `user@host:/var/www/shop`.
+    /// `user@host` (`user@host:2222` for a non-default port), `Dev Container: shop` or
+    /// `WSL: Ubuntu`, as shown in the UI.
+    pub fn label(&self) -> String {
+        match &self.kind {
+            RemoteKind::DevContainer { .. } => format!("Dev Container: {}", self.host),
+            RemoteKind::Wsl { distro } => format!("WSL: {distro}"),
+            RemoteKind::Ssh if self.port == 22 => format!("{}@{}", self.user, self.host),
+            RemoteKind::Ssh => format!("{}@{}:{}", self.user, self.host, self.port),
+        }
+    }
+
+    /// A project path on this host as the UI shows it: `user@host:/var/www/shop`,
+    /// `\\wsl.localhost\Ubuntu\home\me\shop` (the Windows view of a WSL folder) or
+    /// `shop [Dev Container]:/workspaces/shop`.
     pub fn display_path(&self, path: &str) -> String {
-        format!("{}@{}:{}", self.user, self.host, path)
+        match &self.kind {
+            RemoteKind::Ssh => format!("{}@{}:{}", self.user, self.host, path),
+            RemoteKind::DevContainer { .. } => format!("{} [Dev Container]:{path}", self.host),
+            RemoteKind::Wsl { distro } => {
+                let rest: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+                format!("\\\\wsl.localhost\\{distro}\\{}", rest.join("\\"))
+            }
+        }
     }
 }
 
@@ -311,9 +365,24 @@ pub trait Backend: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// The project's excluded folders and "Exclude files" patterns (Settings | Directories,
+    /// "Mark Directory as" › Excluded). Listings flag excluded entries; walks, searches, the
+    /// watcher and the indexes skip them. Returns whether the excluded paths changed (the
+    /// search index refreshes itself; the PHP index needs `index_workspace`).
+    fn set_structure(&self, _config: forge_core::excludes::StructureConfig) -> Result<bool> {
+        Ok(false)
+    }
+
     /// Whether the search index is ready or still building.
     fn search_status(&self) -> Result<SearchStatus> {
         Ok(SearchStatus::default())
+    }
+
+    /// Bring the search index in line with the disk (Repair IDE's "Rescan project
+    /// indexes"); returns the number of files it re-read. A backend without an index of its
+    /// own has nothing to rescan.
+    fn rescan_search_index(&self) -> Result<usize> {
+        Ok(0)
     }
 
     /// Where git runs for this project.
@@ -420,12 +489,7 @@ mod tests {
 
     #[test]
     fn remote_paths_are_shown_with_user_and_host() {
-        let host = RemoteHost {
-            host: "shop.example.com".into(),
-            port: 22,
-            user: "deploy".into(),
-            config_id: None,
-        };
+        let host = RemoteHost::ssh("shop.example.com", 22, "deploy");
         let info = BackendInfo {
             name: "shop".into(),
             root: PathBuf::from("/var/www/shop"),
@@ -436,5 +500,36 @@ mod tests {
         assert_eq!(host.label(), "deploy@shop.example.com");
         let other = RemoteHost { port: 2222, ..host };
         assert_eq!(other.label(), "deploy@shop.example.com:2222");
+        // Older recent-project entries have no kind: SSH.
+        let old: RemoteHost = serde_json::from_str(r#"{"host":"h","port":22,"user":"u"}"#).unwrap();
+        assert!(old.kind.is_ssh());
+        assert!(!serde_json::to_string(&old).unwrap().contains("kind"));
+        let wsl = RemoteHost {
+            kind: RemoteKind::Wsl {
+                distro: "Ubuntu".into(),
+            },
+            ..RemoteHost::ssh("Ubuntu", 0, "me")
+        };
+        assert_eq!(wsl.label(), "WSL: Ubuntu");
+        assert_eq!(
+            wsl.display_path("/home/me/shop"),
+            r"\\wsl.localhost\Ubuntu\home\me\shop"
+        );
+        let dc = RemoteHost {
+            kind: RemoteKind::DevContainer {
+                container: "c0ffee".into(),
+                source: "/src/shop".into(),
+                config: "/src/shop/.devcontainer/devcontainer.json".into(),
+            },
+            ..RemoteHost::ssh("Shop", 0, "vscode")
+        };
+        assert_eq!(dc.label(), "Dev Container: Shop");
+        assert_eq!(
+            dc.display_path("/workspaces/shop"),
+            "Shop [Dev Container]:/workspaces/shop"
+        );
+        let json = serde_json::to_value(&dc).unwrap();
+        assert_eq!(json["kind"]["type"], "devContainer");
+        assert_eq!(serde_json::from_value::<RemoteHost>(json).unwrap(), dc);
     }
 }

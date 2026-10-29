@@ -1,0 +1,46 @@
+[package]
+name = "forge-deploy"
+description = "Forge IDE deployment: SFTP, FTP/FTPS and local servers, path mappings, upload, download, sync and compare with the deployed files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["client"]
+# Server connections (SFTP over forge-remote's SSH sessions, FTP/FTPS with suppaftp, local
+# folders), the transfer engine and passwords in the keychain. Without it only the pure
+# modules are built (configuration, path mappings, exclusions, options, comparison), e.g.
+# for WebAssembly.
+client = [
+    "dep:forge-remote",
+    "dep:russh-sftp",
+    "dep:suppaftp",
+    "dep:tokio",
+    "dep:keyring",
+    "dep:dirs",
+    "dep:filetime",
+    "dep:webpki-roots",
+]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+forge-diff.workspace = true
+forge-remote = { workspace = true, optional = true }
+# Apache-2.0
+russh-sftp = { version = "3", optional = true }
+# MIT OR Apache-2.0; rustls with ring for FTPS (explicit TLS, AUTH TLS)
+suppaftp = { version = "12", optional = true, default-features = false, features = ["rustls-ring"] }
+tokio = { workspace = true, optional = true, features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+dirs = { workspace = true, optional = true }
+filetime = { version = "0.2", optional = true }
+webpki-roots = { version = "1", optional = true }
+
+[dev-dependencies]
+forge-ports.workspace = true
+tempfile.workspace = true
+filetime = "0.2"
+tokio = { workspace = true, features = ["full"] }
+russh = { version = "0.64", default-features = false, features = ["ring", "rsa", "flate2"] }

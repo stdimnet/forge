@@ -9,6 +9,19 @@ use crate::dialect::Dialect;
 /// Largest integer a JavaScript number represents exactly.
 pub const MAX_SAFE_INTEGER: i64 = (1 << 53) - 1;
 
+/// The `DEFAULT` marker of the value editor (`{"$default": true}`): the column's default.
+pub fn default_marker() -> Value {
+    json!({ "$default": true })
+}
+
+/// Whether `v` is the `DEFAULT` marker.
+pub fn is_default(v: &Value) -> bool {
+    v.as_object()
+        .and_then(|o| o.get("$default"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
 /// Binary cell value.
 pub fn binary(bytes: &[u8]) -> Value {
     json!({ "$hex": hex::encode(bytes) })
@@ -118,16 +131,22 @@ pub fn sql_literal(dialect: Dialect, v: &Value) -> String {
     match v {
         Value::Null => "NULL".into(),
         Value::Bool(b) => match dialect {
-            Dialect::Sqlite => if *b { "1" } else { "0" }.into(),
+            Dialect::Sqlite | Dialect::SqlServer | Dialect::Oracle => {
+                if *b { "1" } else { "0" }.into()
+            }
             _ => if *b { "TRUE" } else { "FALSE" }.into(),
         },
         Value::Number(n) => n.to_string(),
         Value::String(s) => dialect.quote_str(s),
+        Value::Object(_) if is_default(v) => "DEFAULT".into(),
         Value::Object(_) if as_binary(v).is_some() => {
             let h = hex::encode(as_binary(v).unwrap_or_default());
             match dialect {
                 Dialect::Postgres => format!("'\\x{h}'::bytea"),
-                Dialect::MySql | Dialect::Sqlite => format!("X'{h}'"),
+                Dialect::SqlServer => format!("0x{h}"),
+                Dialect::Oracle => format!("HEXTORAW('{h}')"),
+                Dialect::ClickHouse => format!("unhex('{h}')"),
+                _ => format!("X'{h}'"),
             }
         }
         other => dialect.quote_str(&other.to_string()),
@@ -223,6 +242,7 @@ mod tests {
             "X'ff'"
         );
         assert_eq!(sql_literal(Dialect::MySql, &json!(1.25)), "1.25");
+        assert_eq!(sql_literal(Dialect::MySql, &default_marker()), "DEFAULT");
     }
 
     #[test]

@@ -11,6 +11,7 @@
 pub mod breakpoints;
 pub mod config;
 pub mod connection;
+pub mod console;
 pub mod error;
 pub mod events;
 pub mod mapping;
@@ -18,6 +19,8 @@ pub mod protocol;
 pub mod server;
 pub mod servers;
 pub mod session;
+pub mod validation;
+pub mod web;
 pub mod xml;
 
 pub use breakpoints::{
@@ -25,7 +28,10 @@ pub use breakpoints::{
 };
 pub use config::DebugConfig;
 pub use error::{DebugError, DebugResult};
-pub use events::{BreakReason, DebugEvent, EventSink, Location, SessionInfo, SessionStatus};
+pub use events::{
+    BreakReason, DebugEvent, EventSink, ExceptionFilter, ExceptionInfo, Location, SessionFeatures,
+    SessionInfo, SessionStatus,
+};
 pub use mapping::{PathMapper, PathMapping};
 pub use protocol::{ContextName, Property, RemoteBreakpoint};
 pub use server::DebugServer;

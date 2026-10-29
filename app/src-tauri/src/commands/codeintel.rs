@@ -46,36 +46,22 @@ use crate::state::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct MissingFeature {
     pub feature: String,
-    /// "Rename requires Intelephense Premium (licence key in Settings | PHP)"
+    /// "Rename is not supported by yaml-language-server"
     pub message: String,
-    /// The server is Intelephense without a licence.
-    pub premium: bool,
 }
 
 fn missing_feature(feature: Feature, servers: &[String]) -> MissingFeature {
-    let premium = servers
-        .iter()
-        .any(|s| s.to_ascii_lowercase().contains("intelephense"));
-    let message = if premium {
-        format!(
-            "{} requires Intelephense Premium (licence key in Settings | PHP)",
-            feature.title()
-        )
-    } else {
-        format!(
+    MissingFeature {
+        feature: feature.title().into(),
+        message: format!(
             "{} is not supported by {}",
             feature.title(),
             servers.join(", ")
-        )
-    };
-    MissingFeature {
-        feature: feature.title().into(),
-        message,
-        premium,
+        ),
     }
 }
 
-fn is_php(path: &str) -> bool {
+pub(crate) fn is_php(path: &str) -> bool {
     let p = path.to_ascii_lowercase();
     (p.ends_with(".php") || p.ends_with(".phtml") || p.ends_with(".inc"))
         && !p.ends_with(".blade.php")
@@ -115,14 +101,14 @@ impl Texts {
     }
 }
 
-struct Ctx {
-    manager: Arc<LspManager>,
-    backend: Arc<dyn Backend>,
-    abs: std::path::PathBuf,
+pub(crate) struct Ctx {
+    pub(crate) manager: Arc<LspManager>,
+    pub(crate) backend: Arc<dyn Backend>,
+    pub(crate) abs: std::path::PathBuf,
 }
 
 impl Ctx {
-    fn new(path: &str, app: &AppHandle, lsp: &LspState, ws: &AppState) -> Result<Self> {
+    pub(crate) fn new(path: &str, app: &AppHandle, lsp: &LspState, ws: &AppState) -> Result<Self> {
         let manager = lsp.manager(app, ws)?;
         let backend = ws.backend()?;
         let abs = backend.resolve(path)?;
@@ -137,7 +123,7 @@ impl Ctx {
         to_ui_path(self.manager.root(), Path::new(abs))
     }
 
-    fn relative_edit(&self, mut edit: WorkspaceEdit) -> WorkspaceEdit {
+    pub(crate) fn relative_edit(&self, mut edit: WorkspaceEdit) -> WorkspaceEdit {
         let root = self.manager.root().to_path_buf();
         edit.map_paths(|p| to_ui_path(&root, Path::new(p)));
         edit
@@ -196,7 +182,11 @@ fn lsp_range(r: lsp_types::Range) -> Range {
 }
 
 /// The caret's text: the editor buffer, else the file.
-fn current_text(backend: &Arc<dyn Backend>, path: &str, content: &Option<String>) -> String {
+pub(crate) fn current_text(
+    backend: &Arc<dyn Backend>,
+    path: &str,
+    content: &Option<String>,
+) -> String {
     content
         .clone()
         .or_else(|| backend.read_optional(path).ok().flatten())
@@ -678,6 +668,10 @@ async fn resolve_declaration(
         answer.message = None;
     } else if !def.targets.is_empty() {
         answer.targets = def.targets;
+        // Include path files open as read-only library files.
+        for t in &mut answer.targets {
+            t.path = lib.ui_path(&t.path);
+        }
         answer.source = "index".into();
         answer.message = None;
     } else if let Some(external) = def.external {
@@ -815,7 +809,7 @@ const NOT_RENAMEABLE: &str =
     "Cannot perform refactoring. Caret should be positioned at the symbol to be renamed";
 
 /// Whether the language servers rename this file: `Ok(None)` when they can, the missing
-/// feature when they cannot (Intelephense without a licence), `Err` when no server serves
+/// feature when they cannot, `Err` when no server serves
 /// the file at all.
 async fn lsp_rename_support(c: &Ctx) -> std::result::Result<Option<MissingFeature>, ()> {
     if let Some(servers) = c.manager.missing_feature(&c.abs, Feature::Rename).await {
@@ -846,8 +840,8 @@ pub struct PrepareRenameAnswer {
     pub invalid: bool,
     /// Why nothing can be renamed ("Cannot perform refactoring ...").
     pub message: Option<String>,
-    /// The language server cannot rename (Intelephense Premium); the PHP index renames
-    /// instead when `source` is `index`.
+    /// The language server cannot rename; the PHP index renames instead when `source` is
+    /// `index`.
     pub missing: Option<MissingFeature>,
     /// `lsp` or `index`: who computes the rename.
     pub source: String,
@@ -864,7 +858,7 @@ pub struct PrepareRenameAnswer {
 
 /// Start an in-place rename (Shift+F6): the range to edit, its occurrences in this file and
 /// who renames. The language servers rename when they can; PHP files fall back to the PHP
-/// index (Intelephense without a licence, or no server), with `missing` explaining why.
+/// index (a server without rename, or no server), with `missing` explaining why.
 #[tauri::command]
 pub async fn code_prepare_rename(
     path: String,
@@ -1200,14 +1194,25 @@ pub async fn code_apply_edit(
     edit: WorkspaceEdit,
     skip: Option<Vec<String>>,
     state: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<Vec<AppliedFile>> {
     let backend = state.backend()?;
-    blocking(move || {
+    let applied = blocking(move || {
         let edit = edit.without_text_edits_of(&skip.unwrap_or_default());
         codeintel::apply_workspace_edit(&edit, &mut BackendStore(backend))
             .map_err(|e| ForgeError::Other(e.to_string()))
     })
-    .await
+    .await?;
+    // Joins the refactoring's change set when the UI started one.
+    crate::commands::local_history::edited(
+        &lh,
+        forge_localhistory::ChangeKind::Refactoring,
+        "Refactoring",
+        applied
+            .iter()
+            .map(|f| (f.path.as_str(), f.before.as_deref(), f.after.as_deref())),
+    );
+    Ok(applied)
 }
 
 /// Undo [`code_apply_edit`]; refused when a file changed since.
@@ -1226,7 +1231,7 @@ pub async fn code_revert_edit(files: Vec<AppliedFile>, state: State<'_, AppState
 fn from_lsp_action(a: EditorCodeAction, c: &Ctx) -> ContextAction {
     ContextAction {
         kind: ActionKind::of_lsp(a.kind.as_deref()),
-        title: a.title,
+        title: codeintel::phpstorm_title(a.kind.as_deref(), &a.title).unwrap_or(a.title),
         source: "lsp".into(),
         is_preferred: a.is_preferred,
         disabled: a.disabled,
@@ -1249,7 +1254,7 @@ pub struct ContextActionsAnswer {
     /// The light bulb to show at the caret line (none when only links like "Generate..."
     /// are available).
     pub bulb: Option<Bulb>,
-    /// The language server offers no code actions (Intelephense without a licence).
+    /// The language server offers no code actions.
     pub missing: Option<MissingFeature>,
 }
 
@@ -1337,6 +1342,64 @@ pub async fn code_context_actions(
             }
             actions.push(php_action(&path, &text, i));
         }
+        // "Import class" on an unresolved class name: candidates from the index (project
+        // and vendor) and PHP's own classes, a chooser when there are several.
+        let style = crate::commands::imports::import_style(&ws);
+        let list = crate::commands::imports::unresolved_with_stubs(
+            &c.backend, &path, &text, &app, &ws, &lib,
+        )
+        .await;
+        let offset = codeintel::utf16_offset(&text, Position::new(line, character));
+        if let Some(fix) =
+            phpforge_lang_php::imports::auto::import_class_fix(&text, &list, offset, &style)
+        {
+            actions.push(php_action(&path, &text, fix));
+        }
+        // The server's twins of Forge's intentions (php-lsp's "Generate getter for $name",
+        // "Import 'App\Models\User'"): Forge's own are listed once, in PHPStorm's wording.
+        let own: Vec<String> = actions
+            .iter()
+            .filter(|a| a.source != "lsp")
+            .map(|a| a.title.clone())
+            .collect();
+        actions.retain(|a| {
+            a.source != "lsp"
+                || !own
+                    .iter()
+                    .any(|o| phpforge_lang_php::intentions::is_lsp_twin(o, &a.title))
+        });
+    }
+    // Extract Component on whole Vue template or JSX elements.
+    if is_web_script(&path) && end != start {
+        let backend = c.backend.clone();
+        let (p, content) = (path.clone(), content.clone());
+        let (s, e) = (
+            Position::new(start.line, start.character),
+            Position::new(end.line, end.character),
+        );
+        let applies = blocking(move || {
+            let text = current_text(&backend, &p, &content);
+            Ok(crate::commands::extract_component::applies(&p, &text, s, e))
+        })
+        .await?;
+        if applies {
+            actions.push(ContextAction {
+                title: "Extract Component\u{2026}".into(),
+                kind: ActionKind::Refactor,
+                source: "webforge".into(),
+                is_preferred: false,
+                disabled: None,
+                edit: None,
+                command: None,
+                needs_resolve: false,
+                server: None,
+                raw: None,
+                action: Some(EXTRACT_COMPONENT.into()),
+                children: vec![],
+                caret: None,
+                data: None,
+            });
+        }
     }
     // Language injections: Inject language, Un-inject, Edit Fragment.
     if forge_injections::Host::of_path(&path).is_some() {
@@ -1398,6 +1461,109 @@ pub async fn code_refactor_actions(
     Ok(codeintel::refactor_actions(actions, &refactoring))
 }
 
+/// Refactor This (Ctrl+Alt+Shift+T): the refactorings that apply at the caret or to the
+/// selection.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefactorThisAnswer {
+    /// Forge's refactorings (action ids, PHPStorm's order); `None` when Forge has no
+    /// analysis of its own for the file (the UI offers every enabled refactoring).
+    pub actions: Option<Vec<String>>,
+    /// The language servers' refactorings (JS/TS), worded like PHPStorm.
+    pub lsp: Vec<ContextAction>,
+}
+
+/// Refactor This: in PHP files Rust decides which refactorings apply (a class, a method, an
+/// expression or a selection each have their own).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn code_refactor_this(
+    path: String,
+    line: u32,
+    character: u32,
+    end_line: u32,
+    end_character: u32,
+    content: Option<String>,
+    app: AppHandle,
+    lsp: State<'_, LspState>,
+    ws: State<'_, AppState>,
+) -> Result<RefactorThisAnswer> {
+    let start = Position::new(line, character);
+    let end = Position::new(end_line, end_character);
+    if is_php(&path) {
+        let backend = ws.backend()?;
+        let actions = blocking(move || {
+            let text = current_text(&backend, &path, &content);
+            Ok(crate::commands::refactor_hierarchy::php_refactorings(
+                &text, start, end,
+            ))
+        })
+        .await?;
+        return Ok(RefactorThisAnswer {
+            actions: Some(actions),
+            lsp: vec![],
+        });
+    }
+    if !is_web_script(&path) {
+        return Ok(RefactorThisAnswer {
+            actions: None,
+            lsp: vec![],
+        });
+    }
+    // JS/TS/Vue: Rename and the file refactorings, Extract Component for whole elements, and
+    // the language servers' refactorings.
+    let backend = ws.backend()?;
+    let (p, c) = (path.clone(), content.clone());
+    let component = blocking(move || {
+        let text = current_text(&backend, &p, &c);
+        Ok(crate::commands::extract_component::applies(
+            &p, &text, start, end,
+        ))
+    })
+    .await?;
+    let mut actions = vec!["RenameElement".to_string()];
+    if component {
+        actions.push(EXTRACT_COMPONENT.to_string());
+    }
+    actions.extend(["Move".to_string(), "CopyElement".to_string()]);
+    let lsp_actions = match Ctx::new(&path, &app, &lsp, &ws) {
+        Ok(c) => {
+            let range = lsp_types::Range::new(
+                lsp_types::Position::new(line, character),
+                lsp_types::Position::new(end_line, end_character),
+            );
+            let found = c
+                .manager
+                .code_actions(&c.abs, range)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|a| from_lsp_action(a, &c))
+                .collect();
+            codeintel::refactor_this_actions(found)
+        }
+        Err(_) => vec![],
+    };
+    Ok(RefactorThisAnswer {
+        actions: Some(actions),
+        lsp: lsp_actions,
+    })
+}
+
+/// WebForge's Extract Component action.
+pub(crate) const EXTRACT_COMPONENT: &str = "WebForge.ExtractComponent";
+
+/// Files the TypeScript language server and Extract Component work on.
+pub(crate) fn is_web_script(path: &str) -> bool {
+    let p = path.to_ascii_lowercase();
+    [
+        ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts", ".vue",
+    ]
+    .iter()
+    .any(|e| p.ends_with(e))
+        && !p.ends_with(".d.ts")
+}
+
 /// A PHP intention as a context action: its edits of the current file (UTF-16 offsets) and
 /// of other files in one workspace edit.
 fn php_action(
@@ -1452,8 +1618,12 @@ pub fn php_import_class(
     path: String,
     content: String,
     fqn: String,
+    ws: State<'_, AppState>,
 ) -> Vec<phpforge_lang_php::generate::TextEdit> {
-    phpforge_lang_php::service::import_class(&path, &content, &fqn)
+    let style = crate::commands::imports::import_style(&ws);
+    phpforge_lang_php::imports::with_style(style, || {
+        phpforge_lang_php::service::import_class(&path, &content, &fqn)
+    })
 }
 
 /// Fill in a code action's edit (`codeAction/resolve`).
@@ -1783,6 +1953,7 @@ pub async fn code_new_test_plan(
 pub async fn code_create_test(
     request: codeintel::TestSourceRequest,
     ws: State<'_, AppState>,
+    lh: State<'_, crate::commands::local_history::LocalHistoryState>,
 ) -> Result<codeintel::TestSource> {
     let file = codeintel::test_source(&request).map_err(ForgeError::Other)?;
     let backend = ws.backend()?;
@@ -1792,6 +1963,11 @@ pub async fn code_create_test(
         backend.write_file(&path, &text)
     })
     .await?;
+    crate::commands::local_history::created(
+        &lh,
+        &file.path,
+        forge_localhistory::Content::Bytes(file.text.clone().into_bytes()),
+    );
     Ok(file)
 }
 
@@ -1800,18 +1976,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn missing_features_mention_intelephense_premium() {
-        let m = missing_feature(Feature::Rename, &["Intelephense".into()]);
-        assert!(m.premium);
+    fn missing_features_name_the_servers() {
+        let m = missing_feature(Feature::Implementation, &["yaml-language-server".into()]);
         assert_eq!(
             m.message,
-            "Rename requires Intelephense Premium (licence key in Settings | PHP)"
-        );
-        let m = missing_feature(Feature::Implementation, &["phpactor".into()]);
-        assert!(!m.premium);
-        assert_eq!(
-            m.message,
-            "Go to Implementation is not supported by phpactor"
+            "Go to Implementation is not supported by yaml-language-server"
         );
     }
 

@@ -43,7 +43,7 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Reformat Code | `Ctrl+Alt+L` | `Cmd+Alt+L` | yes | Formats the file with the language server's formatter (StyLua for Lua). [More](../../user/editor.md#reformat-code) |
 | Reformat File… | `Ctrl+Alt+Shift+L` | `Cmd+Alt+Shift+L` | not yet | Not available yet; the entry is disabled. |
 | Auto-Indent Lines | `Ctrl+Alt+I` | `Ctrl+Alt+I` | yes | Re-indents the current line or the selection. [More](../../user/editor.md#editing-actions) |
-| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | not yet | Not available yet; the entry is disabled. |
+| Optimize Imports | `Ctrl+Alt+O` | `Ctrl+Alt+O` | yes | Removes unused imports and sorts the rest in the current file (PHP, JavaScript, TypeScript, Vue); in the Project view in the selected folders and files. [More](../../user/imports.md#optimize-imports) |
 | Rearrange Code | — | — | not yet | Not available yet; the entry is disabled. |
 | Move Statement Down | `Ctrl+Shift+Down` | `Cmd+Shift+Down` | yes | Moves the current line or selection down. [More](../../user/editor.md#editing-actions) |
 | Move Statement Up | `Ctrl+Shift+Up` | `Cmd+Shift+Up` | yes | Moves the current line or selection up. [More](../../user/editor.md#editing-actions) |
@@ -51,7 +51,10 @@ Completion, Generate, folding, comments, formatting and moving lines. Open it wi
 | Move Element Right | `Ctrl+Alt+Shift+Right` | `Cmd+Alt+Shift+Right` | not yet | Not available yet; the entry is disabled. |
 | Move Line Down | `Alt+Shift+Down` | `Alt+Shift+Down` | yes | Moves the current line or selection down. [More](../../user/editor.md#editing-actions) |
 | Move Line Up | `Alt+Shift+Up` | `Alt+Shift+Up` | yes | Moves the current line or selection up. [More](../../user/editor.md#editing-actions) |
-| Inspect Code… | — | — | not yet | Not available yet; the entry is disabled. |
-| Code Cleanup… | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
-| Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | not yet | Not available yet; the entry is disabled. |
+| Inspect Code… | — | — | yes | Runs the inspection profile over the whole project, a module, file, directory or custom scope; results in the Inspection Results tool window. [More](../../user/inspections.md#inspect-code) ([screenshot](../../../screenshots/inspections-results.png)) |
+| Code Cleanup… | — | — | yes | Applies the safe quick fixes of the cleanup inspections over a scope, after a preview with a diff per file. [More](../../user/inspections.md#code-cleanup) |
+| Run Inspection by Name… | `Ctrl+Alt+Shift+I` | `Cmd+Alt+Shift+I` | yes | Runs one inspection, picked by name, over a scope. [More](../../user/inspections.md#run-inspection-by-name) |
+| Analyze Code ▸ Inspect Current File | `Alt+Shift+I` | `Ctrl+Alt+Shift+I` | yes | Inspects the file of the current editor. [More](../../user/inspections.md#inspect-code) |
+| Analyze Code ▸ Locate Duplicates… | — | — | yes | Runs the duplicated code inspection over a scope; the Duplicates view lists the groups. [More](../../user/inspections.md#duplicated-code) |
+| Analyze Code ▸ Check for Vulnerable Dependencies | — | — | yes | Runs the audit tools of every ecosystem in the project (composer audit, npm / pnpm / yarn audit, pip-audit, cargo audit, govulncheck) and opens the Vulnerable Dependencies tab of Problems. [More](../../user/vulnerable-dependencies.md) ([screenshot](../../../screenshots/vulnerabilities-view.png)) |
 | Analyze Stack Trace or Thread Dump… | — | — | yes | Opens a pasted stack trace in a Stack Trace tab of the Run tool window with frames linked to project files; server and container paths are mapped. [More](../../user/run-debug.md#analyze-stack-trace) ([screenshot](../../../screenshots/stack-trace-tab.png)) |

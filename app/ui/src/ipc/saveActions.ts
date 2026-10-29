@@ -10,7 +10,7 @@ export type SaveTrigger = "explicit" | "autosave";
 
 export type ReformatScope = "whole" | "changed";
 
-export type SaveTool = "eslint" | "prettier" | "phpCsFixer" | "pint";
+export type SaveTool = "eslint" | "prettier" | "stylelint" | "biome" | "phpCsFixer" | "pint" | "phpcbf" | "rector";
 
 export interface SavePlan {
   reformat: ReformatScope | null;

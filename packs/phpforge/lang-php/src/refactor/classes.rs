@@ -273,43 +273,16 @@ pub fn imports_fqn(file: &FileIndex, fqn: &str) -> bool {
     })
 }
 
-/// Edits adding `use <fqn>;` for every class in `fqns` (sorted, skipping ones the file
-/// already imports), inserted where Create class puts imports.
+/// Edits adding `use <fqn>;` for every class in `fqns` (skipping ones the file already
+/// imports), placed by the import style of the running call
+/// ([`crate::imports::insert_imports`]).
 pub fn add_imports(file: &FileIndex, src: &str, fqns: &[String]) -> Vec<TextEdit> {
-    let mut list: Vec<&String> = Vec::new();
-    for f in fqns {
-        let f_trim = f.trim_start_matches('\\');
-        if imports_fqn(file, f_trim)
-            || list
-                .iter()
-                .any(|l| l.trim_start_matches('\\').eq_ignore_ascii_case(f_trim))
-        {
-            continue;
-        }
-        list.push(f);
-    }
-    list.sort_by_key(|f| f.to_ascii_lowercase());
-    let mut edits: Vec<TextEdit> = Vec::new();
-    for f in list {
-        let e = crate::intentions::add_import(file, src, f.trim_start_matches('\\'));
-        match edits
-            .iter_mut()
-            .find(|x| x.start == e.start && x.end == e.end)
-        {
-            // Several imports at one place: one edit, in order.
-            Some(x) => {
-                if x.new_text.ends_with('\n') && !x.new_text.starts_with('\n') {
-                    x.new_text.push_str(&e.new_text);
-                } else {
-                    let line = e.new_text.trim_start_matches('\n');
-                    x.new_text.push('\n');
-                    x.new_text.push_str(line.trim_end_matches('\n'));
-                }
-            }
-            None => edits.push(e),
-        }
-    }
-    edits
+    let list: Vec<crate::imports::NewImport> = fqns
+        .iter()
+        .filter(|f| !imports_fqn(file, f))
+        .map(|f| crate::imports::NewImport::class(f))
+        .collect();
+    crate::imports::insert_imports(file, src, &list, &crate::imports::style::current())
 }
 
 /// Sort edits, drop ones that overlap an earlier one (two passes reached the same name) and

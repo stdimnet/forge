@@ -18,20 +18,26 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 forge-core.workspace = true
+forge-trust.workspace = true
 forge-bookmarks.workspace = true
+forge-localhistory = { workspace = true, features = ["disk"] }
 forge-scopes.workspace = true
+forge-inspections.workspace = true
 forge-ssr.workspace = true
 forge-plugin-api.workspace = true
 forge-fuzzy.workspace = true
 forge-filetypes.workspace = true
+forge-maintenance = { workspace = true, features = ["disk"] }
 forge-text.workspace = true
 forge-codestyle.workspace = true
 forge-save-actions = { workspace = true, features = ["backend"] }
 forge-editing.workspace = true
 forge-file-templates.workspace = true
 forge-ai.workspace = true
+forge-ai-editor.workspace = true
 futures-util = "0.3"
 forge-agent-cli.workspace = true
+forge-agent-tasks.workspace = true
 forge-lsp.workspace = true
 forge-langservers.workspace = true
 forge-vcs.workspace = true
@@ -40,10 +46,19 @@ forge-forges.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
+forge-runtools.workspace = true
+forge-testing.workspace = true
+regex-lite = "0.1"
+forge-runtargets.workspace = true
 forge-markdown.workspace = true
 forge-viewers.workspace = true
 forge-debug.workspace = true
+forge-dap.workspace = true
+forge-ports.workspace = true
 forge-db.workspace = true
+forge-dbtransfer.workspace = true
+base64 = "0.22"
+forge-sqlcode.workspace = true
 forge-containers.workspace = true
 forge-keymap.workspace = true
 forge-vim.workspace = true
@@ -51,28 +66,76 @@ forge-livetemplates.workspace = true
 forge-injections.workspace = true
 forge-emmet.workspace = true
 forge-colors.workspace = true
+forge-colorscheme.workspace = true
 forge-spell.workspace = true
 forge-jsonschema = { workspace = true, features = ["remote"] }
 forge-scratches = { workspace = true, features = ["client"] }
 forge-backend = { workspace = true, features = ["search"] }
 forge-remote.workspace = true
 forge-collab.workspace = true
-base64 = "0.22"
+forge-devenv.workspace = true
+forge-deploy.workspace = true
 forge-window.workspace = true
 forge-update.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
+phpforge-builtin-lsp.workspace = true
+phpforge-interpreters.workspace = true
+phpforge-cli-tools.workspace = true
+phpforge-quality-tools.workspace = true
+phpforge-test-frameworks.workspace = true
 phpforge-composer = { workspace = true, features = ["net"] }
+forge-vulns.workspace = true
 phpforge-fw-laravel = { path = "../../packs/phpforge/fw-laravel" }
 phpforge-fw-symfony = { path = "../../packs/phpforge/fw-symfony" }
+phpforge-fw-wordpress.workspace = true
+phpforge-fw-cms.workspace = true
+cforge-toolchains.workspace = true
+cforge-cmake.workspace = true
+cforge-lang-cpp.workspace = true
+cforge-analyzers.workspace = true
+cforge-embedded.workspace = true
+javaforge-build = { workspace = true, features = ["net"] }
+javaforge-lang-java.workspace = true
+javaforge-jdk.workspace = true
+javaforge-fw-spring = { workspace = true, features = ["jars", "net"] }
+kotlinforge-lang-kotlin.workspace = true
+javaforge-lang-groovy.workspace = true
+javaforge-lang-scala.workspace = true
+javaforge-android.workspace = true
 phpforge-orm-doctrine = { path = "../../packs/phpforge/orm-doctrine" }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 webforge-lang-web = { path = "../../packs/webforge/lang-web" }
+webforge-js-debug.workspace = true
+webforge-js-testing.workspace = true
+webforge-quality-tools.workspace = true
+webforge-web-tooling.workspace = true
+webforge-fw-react = { path = "../../packs/webforge/fw-react" }
+webforge-fw-vue = { path = "../../packs/webforge/fw-vue" }
 luaforge-lang-lua.workspace = true
+pyforge-lang-python.workspace = true
+pyforge-interpreters.workspace = true
+pyforge-packages = { workspace = true, features = ["net"] }
+goforge-lang-go.workspace = true
+goforge-sdk.workspace = true
+goforge-delve.workspace = true
+goforge-pprof.workspace = true
+forge-profiler.workspace = true
+rustforge-lang-rust.workspace = true
+rustforge-toolchain.workspace = true
+rubyforge-lang-ruby.workspace = true
+rubyforge-sdk.workspace = true
+rubyforge-fw-rails.workspace = true
+dotnetforge-lang-dotnet.workspace = true
+dotnetforge-sdk.workspace = true
+pyforge-testing.workspace = true
+pyforge-frameworks.workspace = true
+pyforge-jupyter = { workspace = true, features = ["runtime", "keychain"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-updater = "2"
 dirs.workspace = true
+async-trait = "0.1"
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

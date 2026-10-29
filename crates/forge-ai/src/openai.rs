@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use crate::error::{AiError, AiResult};
 use crate::provider::{error_message, DeltaStream, Endpoint, Provider};
 use crate::sse::sse_events;
-use crate::types::{Completion, CompletionRequest, Delta, ModelInfo, Usage};
+use crate::types::{Completion, CompletionRequest, Delta, FimRequest, ModelInfo, Usage};
 
 pub struct OpenAiCompatProvider {
     ep: Endpoint,
@@ -54,6 +54,31 @@ impl OpenAiCompatProvider {
         }
         if stream {
             body["stream"] = json!(true);
+        }
+        Ok(body)
+    }
+
+    fn fim_body(&self, req: &FimRequest) -> AiResult<Value> {
+        let model = req
+            .model
+            .clone()
+            .filter(|m| !m.is_empty())
+            .or_else(|| self.ep.default_model.clone())
+            .ok_or_else(|| AiError::NoModel(self.ep.name.clone()))?;
+        let mut body = json!({
+            "model": model,
+            "prompt": req.prompt,
+            "suffix": req.suffix,
+            "stream": false,
+        });
+        if let Some(n) = req.max_tokens {
+            body["max_tokens"] = json!(n);
+        }
+        if let Some(t) = req.temperature {
+            body["temperature"] = json!(t);
+        }
+        if !req.stop.is_empty() {
+            body["stop"] = json!(req.stop);
         }
         Ok(body)
     }
@@ -135,6 +160,50 @@ impl Provider for OpenAiCompatProvider {
         Ok(Completion {
             text: choice["message"]["content"]
                 .as_str()
+                .unwrap_or_default()
+                .into(),
+            model: v
+                .get("model")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .into(),
+            stop_reason: choice
+                .get("finish_reason")
+                .and_then(Value::as_str)
+                .map(Into::into),
+            usage: usage(&v),
+        })
+    }
+
+    fn supports_fim(&self) -> bool {
+        self.ep.kind.supports_fim()
+    }
+
+    /// `POST {base}/completions` with `prompt` + `suffix` (Ollama, LM Studio, llama.cpp
+    /// server and other OpenAI-compatible servers running code models).
+    async fn fim(&self, request: FimRequest) -> AiResult<Completion> {
+        let body = self.fim_body(&request)?;
+        let rb = self
+            .request(reqwest::Method::POST, "completions")?
+            .json(&body);
+        let v: Value = self
+            .ep
+            .send(rb)
+            .await?
+            .json()
+            .await
+            .map_err(|e| AiError::InvalidResponse(e.to_string()))?;
+        if v.get("error").is_some() {
+            return Err(self.api_error(&v));
+        }
+        let choice = v
+            .get("choices")
+            .and_then(|c| c.get(0))
+            .ok_or_else(|| AiError::InvalidResponse("missing `choices`".into()))?;
+        Ok(Completion {
+            text: choice
+                .get("text")
+                .and_then(Value::as_str)
                 .unwrap_or_default()
                 .into(),
             model: v

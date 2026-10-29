@@ -15,6 +15,8 @@ packs/<pack>/<plugin>      language and framework crates, package name <pack>-<p
   phpforge/                lang-php, fw-laravel, fw-symfony, orm-doctrine, dql
   webforge/                lang-web, fw-react, fw-vue, fw-angular
   luaforge/                lang-lua
+  javaforge/               build, lang-java, jdk
+  kotlinforge/             lang-kotlin
 app/
   src-tauri/               the Tauri shell (crate forge-app, binary forge)
     src/lib.rs             builder, state, event wiring, generate_handler![…]

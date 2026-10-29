@@ -314,6 +314,8 @@ const TWIG_KEYWORDS = [
   ...JINJA_KEYWORDS, "embed", "endembed", "use", "only", "ignore", "missing", "apply", "endapply",
   "verbatim", "endverbatim", "sandbox", "endsandbox", "spaceless", "endspaceless", "trans", "endtrans",
   "form_theme", "matches", "starts", "ends", "with", "defined", "empty", "same", "divisible", "by",
+  // Shopware 6 storefront tags.
+  "sw_extends", "sw_include", "sw_icon", "sw_thumbnails", "sw_silent_feature_call", "endsw_silent_feature_call",
 ];
 
 /** Twig's `tag_variable`, `tag_block` and `tag_comment` (Jinja's `*_start_string` / `*_end_string`). */
@@ -346,6 +348,26 @@ export function jinjaSyntaxWith(d: TwigDelimiters = {}): TemplateSyntax {
 }
 
 export const twigSyntax: TemplateSyntax = twigSyntaxWith();
+
+/** Django's built-in tags and their operators (`{% if a in b %}`, `{% for x in y %}`). */
+const DJANGO_KEYWORDS = [
+  "autoescape", "endautoescape", "block", "endblock", "comment", "endcomment", "csrf_token", "cycle", "debug",
+  "extends", "filter", "endfilter", "firstof", "for", "empty", "endfor", "if", "elif", "else", "endif",
+  "ifchanged", "endifchanged", "include", "load", "lorem", "now", "regroup", "resetcycle", "spaceless",
+  "endspaceless", "templatetag", "url", "verbatim", "endverbatim", "widthratio", "with", "endwith", "static",
+  "get_static_prefix", "get_media_prefix", "trans", "translate", "blocktrans", "blocktranslate", "endblocktrans",
+  "endblocktranslate", "plural", "language", "endlanguage", "get_current_language", "localize", "endlocalize",
+  "timezone", "endtimezone", "in", "not", "and", "or", "is", "as", "only", "from", "by", "on", "off", "silent",
+  "reversed", "noop", "context", "count", "asvar",
+];
+
+/** Django templates: `{{ }}`, `{% %}` and `{# #}` with Django's tags. */
+export const djangoSyntax: TemplateSyntax = {
+  name: "django",
+  delimiters: twigDelimiters({}),
+  keywords: DJANGO_KEYWORDS,
+  endPrefix: "end",
+};
 
 export const jinjaSyntax: TemplateSyntax = jinjaSyntaxWith();
 
@@ -428,3 +450,30 @@ export function goTemplateSyntaxWith(left = "{{", right = "}}"): TemplateSyntax 
 }
 
 export const goTemplateSyntax: TemplateSyntax = goTemplateSyntaxWith();
+
+/**
+ * ERB (Embedded Ruby, Rails views `*.html.erb`): `<%= expr %>` output tags (`<%==`
+ * unescaped), `<% code %>` statement tags with `-%>` trim markers, `<%# comments %>`, and
+ * Ruby's keywords and common view helpers inside the tags.
+ */
+export const erbSyntax: TemplateSyntax = {
+  name: "erb",
+  delimiters: [
+    ["<%#", "%>", "comment"],
+    ["<%==", "%>", "expr"],
+    ["<%=", "%>", "expr"],
+    ["<%-", "%>", "block"],
+    ["<%", "%>", "block"],
+  ],
+  keywords: [
+    "if", "elsif", "else", "unless", "end", "do", "case", "when", "while", "until", "for", "in", "begin", "rescue",
+    "ensure", "yield", "then", "and", "or", "not", "nil", "true", "false", "self", "return", "next", "break", "def",
+    "class", "module", "super", "defined?",
+  ],
+  builtins: [
+    "render", "link_to", "form_with", "form_for", "image_tag", "content_tag", "content_for", "t", "l", "raw", "puts",
+    "each", "map", "button_to", "javascript_include_tag", "stylesheet_link_tag", "csrf_meta_tags", "turbo_frame_tag",
+    "turbo_stream_from", "turbo_stream", "turbo_include_tags", "turbo_refreshes_with", "javascript_importmap_tags", "dom_id",
+    "tag", "simple_format", "truncate", "yield", "fields_for", "time_ago_in_words", "number_to_currency",
+  ],
+};

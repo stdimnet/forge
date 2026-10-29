@@ -1,6 +1,8 @@
 /**
- * Query console tab: SQL editor with schema completion, Execute (Ctrl+Enter) of the
- * statement at the caret or the selection, transaction mode, and the Output / result panes.
+ * Query console tab: SQL editor with schema completion (Redis commands, MongoDB shell),
+ * Execute (Ctrl+Enter) of the statement at the caret or the selection, own or shared
+ * session, transaction mode, the read-only / production guard, the data source colour, and
+ * the Output / result panes (MongoDB results also as JSON).
  */
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { Compartment, EditorState, StateEffect, StateField } from "@codemirror/state";
@@ -25,27 +27,37 @@ import {
   ChevronFirst,
   ChevronLeft,
   ChevronRight,
+  Braces,
   Database,
   Download,
+  Lock,
   Play,
   Square,
   Table2,
   Undo2,
   ScrollText,
+  History,
+  ListTree,
 } from "lucide-solid";
 import { forgeEditorTheme, forgeHighlight } from "@/editor/forgeTheme";
 import { registerView } from "@/editor/views";
 import { updateContent, type EditorTab } from "@/state/editor";
 import { getSetting } from "@/state/settings";
-import { shortcutLabel } from "@/keymap";
-import { dbApi, dialectOf, type Cell, type ColumnMeta, type SessionInfo, type SortKey, type StatementResult } from "@/ipc/db";
-import { DataGrid } from "./DataGrid";
+import { shortcutLabel, showBalloon } from "@/keymap";
+import { askConfirm } from "@/features/contextMenu/dialogs";
+import { dbApi, dialectOf, DS_COLORS, supportsTransactions, type Cell, type ColumnMeta, type SessionInfo, type StatementResult } from "@/ipc/db";
+import { ResultGrid, ResultTools, type ResultGridTools } from "./ResultGrid";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { gridColumns } from "./grid";
-import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, states, tableInfo } from "./store";
+import { connect, consoleSourceId, defaultSchema, openDataSources, sourceById, sourceColor, states, tableInfo, takeConsoleOptions } from "./store";
 import { consoles } from "./controllers";
 import { sqlWithSchema } from "./completion";
 import { exportMenu } from "./exporting";
+import { recordHistory, sqlConsoleExtensions, withParameters } from "@/features/sqlEditor/console";
+import { consoleDialect } from "@/features/sqlEditor/language";
+import { openHistory } from "@/features/sqlEditor/SqlDialogs";
+import { dbSchemaApi, type ExplainResult } from "@/ipc/dbSchema";
+import { PlanView } from "./schema/PlanView";
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -65,6 +77,10 @@ interface ResultTab {
   offset: number;
   elapsedMs: number;
   table?: string;
+  /** MongoDB documents (JSON view). */
+  documents?: unknown[];
+  /** Explain Plan: the plan view instead of the grid. */
+  explain?: ExplainResult;
 }
 
 const now = () => {
@@ -97,36 +113,14 @@ const flashField = StateField.define<DecorationSet>({
 });
 
 function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: number) => void; pageSize: number }) {
-  const [sort, setSort] = createSignal<SortKey[]>([]);
+  const [json, setJson] = createSignal(false);
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const ds = () => sourceById(props.dsId);
   const table = () => (props.result.table ? tableInfo(props.dsId, defaultSchema(props.dsId), props.result.table) : undefined);
   const columns = createMemo(() => gridColumns(props.result.columns, table()));
-  const rows = createMemo(() => {
-    const keys = sort();
-    if (!keys.length) return props.result.rows;
-    const idx = keys.map((k) => ({ i: props.result.columns.findIndex((c) => c.name === k.column), desc: k.desc }));
-    const cmp = (a: Cell, b: Cell) => {
-      if (a === b) return 0;
-      if (a === null) return -1;
-      if (b === null) return 1;
-      const x = Number(a);
-      const y = Number(b);
-      if (typeof a !== "object" && typeof b !== "object" && !Number.isNaN(x) && !Number.isNaN(y)) return x - y;
-      return String(a).localeCompare(String(b));
-    };
-    return [...props.result.rows].sort((a, b) => {
-      for (const k of idx) {
-        const c = cmp(a[k.i], b[k.i]);
-        if (c) return k.desc ? -c : c;
-      }
-      return 0;
-    });
-  });
-  const onSort = (column: string) => {
-    const cur = sort().find((k) => k.column === column);
-    setSort(!cur ? [{ column, desc: false }] : !cur.desc ? [{ column, desc: true }] : []);
-  };
+  // Rows in display order (local sort and filter of the result grid), for export.
+  const [rows, setRows] = createSignal<Cell[][]>(props.result.rows);
+  const [tools, setTools] = createSignal<ResultGridTools>();
   const first = () => (props.result.rows.length ? props.result.offset + 1 : 0);
   return (
     <div class="db-result">
@@ -156,7 +150,7 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
               x: r.left,
               y: r.bottom + 2,
               items: exportMenu(() => ({
-                dialect: dialectOf(ds()?.driver ?? "mysql"),
+                dialect: dialectOf(ds()?.driver ?? "mysql", ds()?.options.ddlDialect),
                 table: props.result.table,
                 columns: props.result.columns.map((c) => c.name),
                 rows: rows(),
@@ -166,21 +160,41 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
         >
           <Download size={14} />
         </button>
+        <Show when={props.result.documents?.length}>
+          <button class="db-chip-btn" classList={{ open: json() }} title="Show the documents as JSON" data-testid="db-json-toggle" onClick={() => setJson(!json())}>
+            <Braces size={12} /> {json() ? "Table" : "JSON"}
+          </button>
+        </Show>
+        <Show when={tools() && !json()}>
+          <span class="db-sep" />
+          <ResultTools tools={tools()!} />
+        </Show>
         <span class="db-spacer" />
         <span class="db-status muted">
           {rowsText(props.result.rows.length)}
           {props.result.hasMore ? "+" : ""} · {props.result.elapsedMs} ms
         </span>
       </div>
-      <DataGrid
-        columns={columns()}
-        rows={rows()}
-        rowOffset={props.result.offset}
-        sort={sort()}
-        onSort={onSort}
-        nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
-        emptyText="The query returned no rows"
-      />
+      <Show
+        when={json() && props.result.documents}
+        fallback={
+          <ResultGrid
+            columns={columns()}
+            rows={props.result.rows}
+            rowOffset={props.result.offset}
+            nullText={getSetting<string>("database.showNullAs", "<null>") ?? "<null>"}
+            label={`${ds()?.name ?? props.dsId} · ${props.result.title}`}
+            onShown={setRows}
+            tools={setTools}
+          />
+        }
+      >
+        {(docs) => (
+          <div class="db-json" data-testid="db-json">
+            <For each={docs()}>{(d, i) => <pre class="db-json-doc" data-index={i() + 1 + props.result.offset}>{JSON.stringify(d, null, 2)}</pre>}</For>
+          </div>
+        )}
+      </Show>
       <Show when={menu()}>{(m) => <ContextMenu {...m()} onClose={() => setMenu(null)} />}</Show>
     </div>
   );
@@ -188,8 +202,11 @@ function ResultView(props: { result: ResultTab; dsId: string; onPage: (offset: n
 
 export function ConsoleView(props: { tab: EditorTab }) {
   const loc = { id: consoleSourceId(props.tab.path) ?? "" };
+  const opened = takeConsoleOptions(props.tab.path);
   const ds = () => sourceById(loc.id);
-  const dialect = () => dialectOf(ds()?.driver ?? "mysql");
+  const color = () => sourceColor(loc.id);
+  const transactional = () => supportsTransactions(ds()?.driver ?? "mysql");
+  const dialect = () => dialectOf(ds()?.driver ?? "mysql", ds()?.options.ddlDialect);
   const pageSize = () => ds()?.options.pageSize ?? getSetting<number>("database.pageSize", 500) ?? 500;
 
   let host!: HTMLDivElement;
@@ -198,6 +215,8 @@ export function ConsoleView(props: { tab: EditorTab }) {
   const language = new Compartment();
 
   const [session, setSession] = createSignal<SessionInfo | null>(null);
+  /** Use the data source's shared session instead of an own connection. */
+  const [shared, setShared] = createSignal(!!ds()?.options.singleSession);
   const [running, setRunning] = createSignal(false);
   const [log, setLog] = createSignal<LogLine[]>([]);
   const [results, setResults] = createSignal<ResultTab[]>([]);
@@ -206,7 +225,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
   const [menu, setMenu] = createSignal<{ x: number; y: number; items: MenuItem[] } | null>(null);
   let resultSeq = 0;
 
-  const autoCommit = () => session()?.autoCommit ?? ds()?.options.autoCommit ?? true;
+  const autoCommit = () => !transactional() || (session()?.autoCommit ?? ds()?.options.autoCommit ?? true);
   const txOpen = () => !!session()?.txOpen;
   const schemaName = () => defaultSchema(loc.id);
   const prompt = () => schemaName() || ds()?.name || "db";
@@ -218,40 +237,91 @@ export function ConsoleView(props: { tab: EditorTab }) {
   });
   onCleanup(() => void unlisten.then((u) => u()));
 
-  async function ensureSession(): Promise<SessionInfo> {
+  let opening: Promise<SessionInfo> | null = null;
+
+  /** The console's session, opened once even when several actions ask at the same time. */
+  function ensureSession(): Promise<SessionInfo> {
     const cur = session();
-    if (cur) return cur;
+    if (cur) return Promise.resolve(cur);
+    opening ??= openSession().finally(() => (opening = null));
+    return opening;
+  }
+
+  async function openSession(): Promise<SessionInfo> {
     if (!(await connect(loc.id))) throw new Error(states[loc.id]?.error ?? `Cannot connect to ${ds()?.name ?? loc.id}`);
-    const s = await dbApi.openSession(loc.id);
+    const s = await dbApi.openSession(loc.id, shared());
     setSession(s);
-    append("info", `Connected to ${ds()?.name ?? loc.id}`);
+    append("info", `Connected to ${ds()?.name ?? loc.id}${s.shared ? " (shared session)" : ""}`);
+    if (opened.schema && dialect() === "mongo") {
+      await dbApi.execute(s.id, `use ${opened.schema}`).catch(() => undefined);
+      opened.schema = undefined;
+    }
     return s;
   }
 
-  async function run(sql: string): Promise<StatementResult[]> {
+  async function run(sql: string, confirmed: boolean): Promise<StatementResult[]> {
     const s = await ensureSession();
     try {
-      return await dbApi.execute(s.id, sql, pageSize());
+      return await dbApi.execute(s.id, sql, pageSize(), confirmed);
     } catch (e) {
       // The connection was closed (Disconnect, data source changed): reconnect once.
       if (!/unknown console session/i.test(errorText(e))) throw e;
       setSession(null);
       const again = await ensureSession();
-      return dbApi.execute(again.id, sql, pageSize());
+      return dbApi.execute(again.id, sql, pageSize(), confirmed);
     }
   }
 
-  async function execute(): Promise<void> {
+  /** Read-only and production checks; false when the statement must not run. */
+  async function allowed(sql: string): Promise<{ ok: boolean; confirmed: boolean }> {
+    const g = await dbApi.guard(loc.id, sql).catch(() => ({}) as { blocked?: string; confirm?: string });
+    if (g.blocked) {
+      append("error", g.blocked);
+      setActive("output");
+      showBalloon("Read-only data source", g.blocked);
+      return { ok: false, confirmed: false };
+    }
+    if (g.confirm) {
+      const ok = await askConfirm({ title: "Production Data Source", message: g.confirm, confirm: "Execute" });
+      if (!ok) {
+        append("info", "Execution cancelled");
+        return { ok: false, confirmed: false };
+      }
+      return { ok: true, confirmed: true };
+    }
+    return { ok: true, confirmed: false };
+  }
+
+  async function execute(all = false): Promise<void> {
     if (!view || running()) return;
     const text = view.state.doc.toString();
     const sel = view.state.selection.main;
-    const st = await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
-    if (!st || !view) return;
+    const st = all
+      ? { text, start: 0, end: text.length }
+      : await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
+    if (!st || !st.text.trim() || !view) return;
     view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
     setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
+    // User parameters (?, :name, $1, ${name}, #{name}): their values first.
+    const sqlDialect = consoleDialect(dialect());
+    let sql: string | null = st.text;
+    try {
+      sql = sqlDialect ? await withParameters(props.tab.path, st.text, sqlDialect) : st.text;
+    } catch (e) {
+      append("error", errorText(e));
+      setActive("output");
+      return;
+    }
+    if (sql == null) {
+      append("info", "Execution cancelled");
+      return;
+    }
+    const check = await allowed(sql);
+    if (!check.ok) return;
     setRunning(true);
     try {
-      const res = await run(st.text);
+      const res = await run(sql, check.confirmed);
+      recordHistory(loc.id, props.tab.name, res);
       const tabs: ResultTab[] = [];
       let failed = false;
       for (const r of res) {
@@ -272,6 +342,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
             offset: 0,
             elapsedMs: r.elapsedMs,
             table,
+            documents: r.documents,
           });
         } else {
           append("info", r.rowsAffected ? `${rowsText(r.rowsAffected)} affected in ${r.elapsedMs} ms` : `completed in ${r.elapsedMs} ms`);
@@ -293,9 +364,51 @@ export function ConsoleView(props: { tab: EditorTab }) {
     if (!r || !s) return;
     try {
       const p = await dbApi.fetch(s.id, r.sql, offset, pageSize());
-      setResults((list) => list.map((x, i) => (i === index ? { ...x, rows: p.rows, hasMore: p.hasMore, offset, elapsedMs: p.elapsedMs, columns: p.columns.length ? p.columns : x.columns } : x)));
+      setResults((list) =>
+        list.map((x, i) =>
+          i === index
+            ? { ...x, rows: p.rows, hasMore: p.hasMore, offset, elapsedMs: p.elapsedMs, columns: p.columns.length ? p.columns : x.columns, documents: p.documents }
+            : x,
+        ),
+      );
     } catch (e) {
       append("error", errorText(e));
+    }
+  }
+
+  /** Explain Plan (Raw) of the selection or the statement at the caret: a Plan tab. */
+  async function explain(raw: boolean): Promise<void> {
+    if (!view || running()) return;
+    const text = view.state.doc.toString();
+    const sel = view.state.selection.main;
+    const st = await dbApi.statementAt(text, sel.from, sel.to, dialect()).catch(() => null);
+    if (!st || !st.text.trim()) return;
+    view.dispatch({ effects: flashEffect.of({ from: st.start, to: st.end }) });
+    setTimeout(() => view?.dispatch({ effects: flashEffect.of(null) }), 900);
+    setRunning(true);
+    try {
+      const s = await ensureSession();
+      let r: ExplainResult;
+      try {
+        r = await dbSchemaApi.explain(s.id, st.text, raw);
+      } catch (e) {
+        // An EXPLAIN ANALYZE on a production data source: ask like Execute does.
+        const check = /production data source/i.test(errorText(e)) ? await allowed(st.text) : { ok: false, confirmed: false };
+        if (!check.confirmed) throw e;
+        r = await dbSchemaApi.explain(s.id, st.text, raw, true);
+      }
+      append("sql", r.sql);
+      append("info", raw ? `${rowsText(r.rows.length)} of the plan retrieved in ${r.elapsedMs} ms` : r.plan ? `Plan built in ${r.elapsedMs} ms` : (r.error ?? "No plan"));
+      const tab: ResultTab = raw
+        ? { key: ++resultSeq, title: "Plan (Raw)", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs }
+        : { key: ++resultSeq, title: "Plan", sql: r.sql, columns: r.columns, rows: r.rows, hasMore: false, offset: 0, elapsedMs: r.elapsedMs, explain: r };
+      setResults((list) => [...list.filter((x) => x.title !== tab.title), tab]);
+      setActive(results().length - 1);
+    } catch (e) {
+      append("error", errorText(e));
+      setActive("output");
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -325,7 +438,43 @@ export function ConsoleView(props: { tab: EditorTab }) {
     }
   }
 
-  consoles.set(props.tab.path, { execute, cancel, focus: () => view?.focus() });
+  /** Switch between an own connection and the shared session (takes effect right away). */
+  async function setSessionMode(share: boolean): Promise<void> {
+    if (share === shared()) return;
+    const old = session();
+    setShared(share);
+    setSession(null);
+    if (old) await dbApi.closeSession(old.id).catch(() => undefined);
+    try {
+      await ensureSession();
+    } catch (e) {
+      append("error", errorText(e));
+    }
+  }
+
+  /** Query History: insert a past statement at the end, or insert and run it. */
+  const showHistory = () =>
+    openHistory({
+      dataSourceId: loc.id,
+      console: props.tab.name,
+      onInsert: (sql) => insertStatement(sql),
+      onRun: (sql) => {
+        insertStatement(sql);
+        void execute();
+      },
+    });
+
+  function insertStatement(sql: string): void {
+    if (!view) return;
+    const doc = view.state.doc;
+    const sep = doc.length && !doc.toString().endsWith("\n") ? "\n" : "";
+    const text = /;\s*$/.test(sql) ? sql : `${sql};`;
+    const from = doc.length + sep.length;
+    view.dispatch({ changes: { from: doc.length, insert: `${sep}${text}` }, selection: { anchor: from, head: from + text.length }, scrollIntoView: true });
+    view.focus();
+  }
+
+  consoles.set(props.tab.path, { execute: () => execute(), cancel, focus: () => view?.focus(), history: showHistory, explain });
   onCleanup(() => {
     consoles.delete(props.tab.path);
     const s = session();
@@ -357,6 +506,7 @@ export function ConsoleView(props: { tab: EditorTab }) {
           forgeHighlight,
           flashField,
           language.of(languageExt()),
+          ...(consoleDialect(dialect()) ? sqlConsoleExtensions(props.tab.path) : []),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) updateContent(props.tab.path, u.state.doc.toString());
           }),
@@ -369,7 +519,9 @@ export function ConsoleView(props: { tab: EditorTab }) {
       view?.destroy();
     });
     // Connect right away so completion knows the schema.
-    void connect(loc.id);
+    void connect(loc.id).then((ok) => {
+      if (ok && opened.run) void execute(true);
+    });
     queueMicrotask(() => view?.focus());
   });
 
@@ -388,6 +540,18 @@ export function ConsoleView(props: { tab: EditorTab }) {
     window.addEventListener("mouseup", up);
   };
 
+  const sessionMenu = (e: MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenu({
+      x: r.left,
+      y: r.bottom + 2,
+      items: [
+        { label: "New session (own connection)", icon: !shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(false) },
+        { label: "Shared session", icon: shared() ? <Check size={13} /> : undefined, run: () => void setSessionMode(true) },
+      ],
+    });
+  };
+
   const txMenu = (e: MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setMenu({
@@ -401,7 +565,12 @@ export function ConsoleView(props: { tab: EditorTab }) {
   };
 
   return (
-    <div class="db-console" data-db-path={props.tab.path}>
+    <div
+      class="db-console"
+      classList={{ colored: !!color(), production: color()?.name === "red" }}
+      style={{ "--db-tint": color()?.tint, "--db-accent": color()?.accent }}
+      data-db-path={props.tab.path}
+    >
       <div class="db-toolbar">
         <button
           class="icon-btn db-tool db-run"
@@ -414,8 +583,42 @@ export function ConsoleView(props: { tab: EditorTab }) {
         <button class="icon-btn db-tool db-stop" title="Cancel Running Statements" disabled={!running()} onClick={cancel}>
           <Square size={13} />
         </button>
+        <button class="icon-btn db-tool" title={`Browse Query History (${shortcutLabel("Console.History.Browse")})`} data-testid="db-history" onClick={showHistory}>
+          <History size={14} />
+        </button>
+        <Show when={consoleDialect(dialect())}>
+          <button
+            class="icon-btn db-tool"
+            title="Explain Plan"
+            data-testid="db-explain"
+            disabled={running()}
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setMenu({
+                x: r.left,
+                y: r.bottom + 2,
+                items: [
+                  { label: "Explain Plan", hint: shortcutLabel("Console.Jdbc.ExplainPlan"), icon: <ListTree size={13} />, run: () => void explain(false) },
+                  { label: "Explain Plan (Raw)", hint: shortcutLabel("Console.Jdbc.ExplainPlan.Raw"), run: () => void explain(true) },
+                ],
+              });
+            }}
+          >
+            <ListTree size={14} />
+          </button>
+        </Show>
         <span class="db-sep" />
-        <button class="db-chip-btn" classList={{ manual: !autoCommit(), open: txOpen() }} title="Transaction Mode" onClick={txMenu}>
+        <button class="db-chip-btn" classList={{ open: shared() }} title="Session" data-testid="db-session-mode" onClick={sessionMenu}>
+          {shared() ? "Shared session" : "New session"}
+          <ChevronDown size={12} />
+        </button>
+        <button
+          class="db-chip-btn"
+          classList={{ manual: !autoCommit(), open: txOpen() }}
+          title={transactional() ? "Transaction Mode" : `${ds()?.driver ?? ""} consoles run every statement on its own`}
+          disabled={!transactional()}
+          onClick={txMenu}
+        >
           Tx: {autoCommit() ? "Auto" : "Manual"}
           <ChevronDown size={12} />
         </button>
@@ -431,6 +634,18 @@ export function ConsoleView(props: { tab: EditorTab }) {
           </span>
         </Show>
         <span class="db-spacer" />
+        <Show when={ds()?.options.readOnly}>
+          <span class="db-badge" title="Read-only data source: changes are refused">
+            <Lock size={11} /> read-only
+          </span>
+        </Show>
+        <Show when={color()}>
+          {(c) => (
+            <span class="db-badge colored" data-testid="db-color-badge" title={DS_COLORS[c().name]?.label ?? c().name}>
+              {c().name === "red" ? "production" : c().name === "yellow" ? "staging" : c().name === "green" ? "development" : c().name}
+            </span>
+          )}
+        </Show>
         <button class="db-target" title="Data source properties" onClick={() => openDataSources({ select: loc.id })}>
           <Database size={13} />
           <span>{ds()?.name ?? loc.id}</span>
@@ -455,7 +670,9 @@ export function ConsoleView(props: { tab: EditorTab }) {
               <For each={results()}>
                 {(r, i) => (
                   <button class="db-result-tab" classList={{ active: active() === i() }} onClick={() => setActive(i())} title={r.sql}>
-                    <Table2 size={13} />
+                    <Show when={r.explain || r.title === "Plan (Raw)"} fallback={<Table2 size={13} />}>
+                      <ListTree size={13} />
+                    </Show>
                     {r.title}
                   </button>
                 )}
@@ -478,7 +695,11 @@ export function ConsoleView(props: { tab: EditorTab }) {
                 </div>
               }
             >
-              {(r) => <ResultView result={r()} dsId={loc.id} pageSize={pageSize()} onPage={(o) => void page(active() as number, o)} />}
+              {(r) => (
+                <Show when={r().explain} fallback={<ResultView result={r()} dsId={loc.id} pageSize={pageSize()} onPage={(o) => void page(active() as number, o)} />}>
+                  {(x) => <PlanView result={x()} />}
+                </Show>
+              )}
             </Show>
           </div>
         </Show>

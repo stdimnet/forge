@@ -25,8 +25,12 @@ import {
   Bug,
   RefreshCcwDot,
   ScrollText,
+  History,
+  TimerReset,
+  CircleX,
 } from "lucide-solid";
-import { shortcutLabel } from "@/keymap";
+import { balloonsFor, shortcutLabel } from "@/keymap";
+import { testFrameworksApi } from "@/ipc/testFrameworks";
 import { getSetting } from "@/state/settings";
 import { openMenu } from "./PopupMenu";
 import { Console } from "./Console";
@@ -39,7 +43,12 @@ import {
   clearConsole,
   closeSession,
   isRunning,
+  openHistoryRun,
   rerunFailedTests,
+  runPanels,
+  sessionPanels,
+  setSessionPanel,
+  toggleAutoTest,
   rerunSession,
   sendInput,
   sessionData,
@@ -187,6 +196,38 @@ function showComparison(n: TestNode) {
   });
 }
 
+const historyBalloon = balloonsFor("Test History");
+
+/** "Oct 23, 14:02". */
+const when = (at: number) =>
+  new Date(at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** Test History: the last test runs of the project; picking one opens it in a Run tab. */
+export async function showTestHistory(x: number, y: number): Promise<void> {
+  const runs = await testFrameworksApi.history().catch((err) => {
+    historyBalloon("Cannot read the test history", String(err));
+    return null;
+  });
+  if (!runs) return;
+  openMenu({
+    x,
+    y,
+    items: runs.length
+      ? runs.map((r) => ({
+          label: `${r.name} – ${r.summary.replace(/ – .*$/, "")}`,
+          icon: r.counts.failed ? CircleX : CircleCheck,
+          iconColor: r.counts.failed ? "var(--danger)" : "var(--success)",
+          shortcut: when(r.at),
+          run: () =>
+            void testFrameworksApi
+              .openHistory(r.id)
+              .then(openHistoryRun)
+              .catch((err) => historyBalloon("Cannot open the test run", String(err))),
+        }))
+      : [{ label: "No test runs yet", disabled: true }],
+  });
+}
+
 function findNode(root: TestNode, id: number | null): TestNode | undefined {
   if (id === null) return undefined;
   if (root.id === id) return root;
@@ -248,6 +289,13 @@ function SessionView(props: { session: RunSession }) {
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
   };
+  /** Result panels with data (Sanitizers, Valgrind) and the shown one. */
+  const panels = createMemo(() => {
+    props.session.version;
+    const has = sessionPanels(id());
+    return runPanels().filter((p) => has[p.id] !== undefined);
+  });
+  const activePanel = () => panels().find((p) => p.id === props.session.panel);
   const footer = () => {
     const n = selectedNode();
     if (!n || n.kind !== "test" || n.status !== "failed" || (n.expected === undefined && n.actual === undefined)) return undefined;
@@ -282,6 +330,13 @@ function SessionView(props: { session: RunSession }) {
             disabled={running() || !tests() || tests()!.summary.counts.failed === 0}
             onClick={() => void rerunFailedTests(id())}
           />
+          <ToolButton
+            title="Toggle Auto-Test"
+            class="run-auto-test"
+            icon={<TimerReset size={15} />}
+            active={!!props.session.autoTest}
+            onClick={() => toggleAutoTest(id())}
+          />
         </Show>
         <div class="run-tool-sep" />
         <ToolButton
@@ -301,9 +356,34 @@ function SessionView(props: { session: RunSession }) {
         />
       </div>
       <div class="run-main">
+        <Show when={panels().length}>
+          <div class="run-panel-tabs" role="tablist">
+            <button class="run-panel-tab" classList={{ active: !activePanel() }} onClick={() => setSessionPanel(id(), undefined)}>
+              <ScrollText size={13} /> Console
+            </button>
+            <For each={panels()}>
+              {(p) => (
+                <button
+                  class="run-panel-tab"
+                  classList={{ active: activePanel()?.id === p.id }}
+                  data-run-panel={p.id}
+                  onClick={() => setSessionPanel(id(), p.id)}
+                >
+                  <Show when={p.icon}>{(icon) => <Dynamic component={icon()} size={13} />}</Show>
+                  {p.title}
+                  <Show when={p.count?.(sessionPanels(id())[p.id])}>{(n) => <span class="run-panel-count">{n()}</span>}</Show>
+                </button>
+              )}
+            </For>
+          </div>
+        </Show>
+        <Show when={activePanel()} keyed>
+          {(p) => <Dynamic component={p.component} data={sessionPanels(id())[p.id]} session={props.session} />}
+        </Show>
         <Show
-          when={tests()}
+          when={!activePanel() && tests()}
           fallback={
+            <Show when={!activePanel()}>
             <Console
               lines={consoleLines}
               version={() => props.session.version}
@@ -311,6 +391,7 @@ function SessionView(props: { session: RunSession }) {
               scrollToEnd={u().scrollToEnd}
               onInput={running() ? (t) => void sendInput(id(), t) : undefined}
             />
+            </Show>
           }
         >
           {(t) => {
@@ -356,6 +437,17 @@ function SessionView(props: { session: RunSession }) {
                     />
                     <ToolButton title="Previous Failed Test" icon={<ArrowUp size={15} />} onClick={() => stepFailed(-1)} />
                     <ToolButton title="Next Failed Test" icon={<ArrowDown size={15} />} onClick={() => stepFailed(1)} />
+                    <div class="run-tool-sep vertical" />
+                    <button
+                      class="icon-btn run-tool run-test-history"
+                      title="Test History"
+                      onClick={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        void showTestHistory(r.left, r.bottom + 2);
+                      }}
+                    >
+                      <History size={15} />
+                    </button>
                   </div>
                   <div class="run-tests-status" classList={{ failed: status().failed }}>
                     <StatusIcon status={running() ? "running" : t().root.status} />

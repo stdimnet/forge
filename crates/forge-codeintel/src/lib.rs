@@ -22,6 +22,8 @@
 //! - [`navbar`]: the Navigation Bar's segments.
 //! - [`related`]: Related Symbol: tests, views, templates, routes, migrations and more.
 //! - [`hierarchy`]: Type, Method and Call Hierarchy: the views, scopes and merging.
+//! - [`imports`]: Optimize Imports and Auto Import: notifications, the editor change and
+//!   when an on-the-fly import edit may be applied.
 //! - [`test_nav`]: Go to Test / Test Subject and the Create New Test dialog's plan and source.
 
 pub mod actions;
@@ -30,6 +32,7 @@ pub mod edit;
 pub mod file_structure;
 pub mod hierarchy;
 pub mod highlight;
+pub mod imports;
 pub mod inlay;
 pub mod navbar;
 pub mod related;
@@ -40,8 +43,8 @@ pub mod usage_options;
 pub mod usages;
 
 pub use actions::{
-    bulb_for, lsp_creates, nest_fix_all, order_actions, refactor_actions, refactor_kinds,
-    ActionKind, Bulb, ContextAction,
+    bulb_for, lsp_creates, nest_fix_all, order_actions, phpstorm_title, refactor_actions,
+    refactor_kinds, refactor_this_actions, ActionKind, Bulb, ContextAction,
 };
 
 pub use docs::{

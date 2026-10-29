@@ -17,8 +17,10 @@ The Forge agent: a headless `LocalBackend` behind the agent
 The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 `forge-remote-agent serve` and talks to it with `forge_backend::rpc::RpcClient`. Every
 service runs next to the project's files: file system, file search, git, terminals,
-processes, language servers (Intelephense indexes the remote project itself) and the
-PHP index.
+processes, language servers (the PHP server indexes the remote project itself) and the
+PHP index. The agent links the built-in PHP language server php-lsp
+([phpforge-builtin-lsp](phpforge-builtin-lsp.md)): `forge-remote-agent --php-lsp --stdio`
+runs it, and the PHP pack's config on the host starts the agent binary that way.
 
 ## Modules
 

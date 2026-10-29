@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<phpunit xmlns="https://schema.phpunit.de/coverage/1.0">
+  <file name="Cart.php" path="/Services">
+    <totals>
+      <lines total="24" comments="4" code="20" executable="5" executed="3" percent="60.00"/>
+      <methods count="2" tested="1" percent="50.00"/>
+    </totals>
+    <class name="App\Services\Cart" start="7" executable="5" executed="3" crap="3.14">
+      <namespace name="App\Services"/>
+      <method name="add" signature="add(Item $item): void" start="12" end="18" crap="1" executable="3" executed="3" coverage="100"/>
+    </class>
+    <coverage>
+      <line nr="12">
+        <covered by="Tests\Unit\CartTest::test_total with data set #0"/>
+        <covered by="Tests\Unit\CartTest::test_adds_items"/>
+      </line>
+      <line nr="13">
+        <covered by="Tests\Unit\CartTest::test_adds_items"/>
+      </line>
+      <line nr="14">
+        <covered by="Tests\Unit\CartTest::test_adds_items"/>
+        <covered by="Tests\Unit\CartTest::test_adds_items"/>
+      </line>
+      <line nr="16"/>
+    </coverage>
+    <source>
+      <line no="12"><token name="T_PUBLIC">public</token></line>
+    </source>
+  </file>
+</phpunit>

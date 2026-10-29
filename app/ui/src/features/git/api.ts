@@ -52,7 +52,12 @@ export interface Commit {
   /** Unix seconds. */
   time: number;
   subject: string;
+  /** GPG/SSH signature (`%G?`); absent when unsigned. */
+  signature?: SignatureStatus;
 }
+
+/** `%G?` of a commit: good, bad, untrusted (unknown validity), expired, expiredKey, revoked, unverified (cannot check), none. */
+export type SignatureStatus = "good" | "bad" | "untrusted" | "expired" | "expiredKey" | "revoked" | "unverified" | "none";
 
 export interface ChangedFile {
   path: string;
@@ -70,6 +75,11 @@ export interface CommitDetails {
   commitTime: number;
   message: string;
   files: ChangedFile[];
+  signature?: SignatureStatus;
+  /** The signer the signature names (`%GS`). */
+  signer?: string | null;
+  /** The key that made the signature (`%GK`). */
+  signingKey?: string | null;
 }
 
 export interface LogQuery {
@@ -106,6 +116,8 @@ export interface BranchInfo {
   time: number;
   subject: string;
   current: boolean;
+  /** Another worktree that has this branch checked out. */
+  worktree?: string | null;
 }
 
 export interface Branches {

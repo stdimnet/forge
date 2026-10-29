@@ -139,6 +139,7 @@ mod tests {
             key_file: None,
             dont_save_secret: false,
             name: Some("Shop".into()),
+            parse_config: true,
         });
         save_to(&path, &all).unwrap();
         let text = std::fs::read_to_string(&path).unwrap();

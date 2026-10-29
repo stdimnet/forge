@@ -234,8 +234,8 @@ to where you were.
 | Super Method | `Ctrl+U` | `Cmd+U` |
 
 They ask the language servers (`textDocument/implementation`, `typeDefinition`) and fall back
-to the PHP index in PHP files. When a server lacks the feature (Go to Implementation in
-Intelephense without a licence) and the index finds nothing, the hint says so.
+to the PHP index in PHP files. When a server lacks the feature and the index finds
+nothing, the hint says so.
 
 > **Note:** Go to Test (`Ctrl+Shift+T`) is not available yet. In React and Vue projects, Go to
 > Declaration on a component's own name lists its usages through the framework provider.
@@ -385,8 +385,8 @@ check also runs when a language server computes the rename.
 
 ![Rename dialog](../../screenshots/rename-dialog.png)
 
-- The language server computes the rename where it can (TypeScript, Vue, Lua, Intelephense
-  Premium, …); PHP files fall back to Forge's PHP index, see [PHP](php.md#rename).
+- The language server computes the rename where it can (TypeScript, Vue, Lua, php-lsp,
+  …); PHP files fall back to Forge's PHP index, see [PHP](php.md#rename).
 - Renaming a class whose file is named after it (`Order.php` declaring `class Order`) also
   renames the file, like PHPStorm; untick **Rename file** in the hint below the edit box or in
   the dialog to keep the name. Open tabs follow the file.
@@ -572,7 +572,7 @@ markers.
   files, `.http` requests, compose services and Dockerfiles.
 - **Breakpoints**: click a line number in a PHP file to toggle a breakpoint (drawn over the
   number, as in the New UI), or press `Ctrl+F8` (macOS `Cmd+F8`). Right-click it to edit its
-  condition. See [Xdebug debugging](debugging.md).
+  condition. See [Debugging](debugging.md).
 - **Bookmarks**: a bookmark icon, or the bookmark's mnemonic, on bookmarked lines (`F11`,
   `Ctrl+F11`). See [Bookmarks](workbench.md#bookmarks).
 - **Annotate with Git Blame**: right-click the gutter. See [Git](git.md#blame).
@@ -599,11 +599,12 @@ editor context menu:
 | Refactor > Refactor This… | works, see [Refactoring shortcuts](shortcuts/refactoring.md#refactor-this) |
 | Refactor > Extract/Introduce > Variable…, Constant…, Field…, Parameter…, Method… | works, see [PHP](php.md#extract-introduce-and-inline) |
 | Refactor > Inline… | works, see [PHP](php.md#extract-introduce-and-inline) |
+| Refactor > Extract/Introduce > Interface…, Superclass…, Pull Members Up…, Push Members Down… | works in PHP classes, see [PHP](php.md#extract-interface-and-superclass-pull-members-up-and-push-members-down) |
 | Go To > Declaration or Usages, Line/Column | works |
 | Go To > Implementation(s) | works |
 | Generate… | works in PHP files, see [PHP](php.md#generate) |
 | Reformat Code | works |
-| Optimize Imports | not available yet |
+| Optimize Imports | works, see [Optimize Imports and Auto Import](imports.md) |
 | Comment with Line Comment | works |
 | Git > Annotate with Git Blame | works |
 
@@ -740,7 +741,7 @@ SQL **Upper case keywords**.
 Indents come from the scheme unless EditorConfig or the detected indent of the file wins
 (see above). Then:
 
-- The language server gets the options in its settings before it formats: Intelephense the
+- The language server gets the options in its settings before it formats: php-lsp the
   brace placement, typescript-language-server the spaces, braces, semicolons and quote
   preference (`typescript.format` / `javascript.format`), the CSS, HTML, JSON, YAML and XML
   servers their `format` settings, lua-language-server its `Lua.format.defaultConfig`.
@@ -787,9 +788,8 @@ Language servers show parameter names at call sites (`precision: 2`) and inferre
 | Implementations and inheritors (Code Vision) | `editor.inlayHints.implementations` | on |
 | Per language: PHP, JavaScript and TypeScript, Lua, other languages | `editor.inlayHints.languages.<id>` | on |
 
-Hints need a server that reports them: Intelephense Premium, phpactor,
-typescript-language-server / vtsls and lua-language-server (Forge turns their hints on and
-filters them by these settings). Free Intelephense shows none.
+Hints need a server that reports them: php-lsp, typescript-language-server / vtsls and
+lua-language-server (Forge turns their hints on and filters them by these settings).
 
 **Code Vision**: above PHP classes and methods with subclasses, implementations or overrides
 Forge shows "4 inheritors", "2 implementations" or "1 override" (from the PHP index); click

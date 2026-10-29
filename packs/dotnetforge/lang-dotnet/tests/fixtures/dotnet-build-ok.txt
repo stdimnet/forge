@@ -1,0 +1,13 @@
+MSBuild version 17.11.9+a69bbaaf5 for .NET
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Bookstore.Core -> /home/anna/Projects/Bookstore/src/Bookstore.Core/bin/Debug/netstandard2.0/Acme.Bookstore.Core.dll
+  Bookstore.Core -> /home/anna/Projects/Bookstore/src/Bookstore.Core/bin/Debug/net8.0/Acme.Bookstore.Core.dll
+  Reports -> /home/anna/Projects/Bookstore/tools/Reports/bin/Debug/net8.0/Reports.dll
+  Bookstore.Api -> /home/anna/Projects/Bookstore/src/Bookstore.Api/bin/Debug/net8.0/Bookstore.Api.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.02

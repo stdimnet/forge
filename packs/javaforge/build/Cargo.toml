@@ -1,0 +1,26 @@
+[package]
+name = "javaforge-build"
+description = "JavaForge: Maven and Gradle builds (detection from the build files, wrappers, modules, lifecycle goals and tasks, JaCoCo, command lines, sync models, dependency trees, Gradle DSL and pom.xml completion, outdated dependencies; pure, also built to WebAssembly)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Maven Central and services.gradle.org lookups cached in the user cache dir. The pure part
+# builds to WebAssembly without it.
+net = ["dep:reqwest", "dep:sha2", "dep:tokio", "dep:dirs"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex-lite = "0.1"
+forge-jsonschema.workspace = true
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2"] }
+sha2 = { version = "0.10", optional = true }
+tokio = { workspace = true, optional = true }
+dirs = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

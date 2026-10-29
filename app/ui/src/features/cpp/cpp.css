@@ -1,0 +1,319 @@
+/* CForge: CMake tool window, build problems, Toolchains / CMake / C/C++ settings pages. */
+
+/* ---------- CMake tool window ---------- */
+.cmake-tw {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+.cmake-side-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 3px;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cmake-sep {
+  height: 1px;
+  margin: 3px 2px;
+  background: var(--border);
+}
+.cmake-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.cmake-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 6px;
+  height: 28px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cmake-tab {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.cmake-tab:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.cmake-tab.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.cmake-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  font-size: var(--fs-small);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  flex-shrink: 0;
+  min-height: 24px;
+}
+.cmake-ok {
+  color: var(--success);
+}
+.cmake-failed {
+  color: var(--danger);
+}
+.cmake-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.cmake-build-dir {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmake-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.cmake-targets {
+  width: 280px;
+  flex-shrink: 0;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+  padding: 4px 0;
+}
+.cmake-project {
+  padding-left: 8px;
+  font-weight: 600;
+}
+.cmake-project-icon {
+  color: var(--syn-function);
+}
+.cmake-group {
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+.cmake-target {
+  padding-left: 22px;
+  cursor: default;
+}
+.cmake-target.selected {
+  background: var(--accent-soft);
+}
+.cmake-target-icon {
+  flex-shrink: 0;
+  color: var(--syn-type);
+}
+.cmake-target-icon.cmake-executable {
+  color: var(--success);
+}
+.cmake-row-actions {
+  display: none;
+  margin-left: auto;
+  gap: 1px;
+}
+.cmake-target:hover .cmake-row-actions,
+.cmake-target.selected .cmake-row-actions {
+  display: inline-flex;
+}
+.cmake-row-actions .icon-btn {
+  width: 20px;
+  height: 20px;
+}
+.cmake-log {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg);
+  white-space: pre;
+  background: var(--bg-editor);
+}
+.cmake-log-line.cmake-cmd {
+  color: var(--fg-muted);
+}
+.cmake-log-line.error {
+  color: var(--danger);
+}
+.cmake-log-line.warning,
+.cmake-log-line.deprecation {
+  color: var(--warning);
+}
+.cmake-log-line.body {
+  opacity: 0.9;
+}
+.cmake-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.cmake-pad {
+  padding: 10px 12px;
+}
+
+/* ---------- Problems | Build ---------- */
+.cpp-build-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 6px;
+  color: var(--fg-muted);
+}
+.cpp-build-row .problem-message {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Settings: Toolchains, CMake, C/C++ ---------- */
+.cpp-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tc-page {
+  display: flex;
+  gap: 0;
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.tc-list {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+}
+.tc-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.tc-item {
+  padding-left: 8px;
+}
+.tc-item.selected {
+  background: var(--accent-soft);
+}
+.tc-item.tc-disabled .tree-label {
+  color: var(--fg-muted);
+}
+.tc-icon {
+  color: var(--syn-type);
+  flex-shrink: 0;
+}
+.tc-body {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  overflow: auto;
+}
+.tc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.tc-name {
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.tc-details,
+.tc-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.tc-editor .tc-details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.tc-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.tc-label {
+  color: var(--fg-muted);
+}
+.tc-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tc-missing {
+  color: var(--danger);
+}
+.tc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tc-good {
+  color: var(--success);
+}
+.tc-bad {
+  color: var(--danger);
+}
+.tc-problems {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.tc-problem {
+  color: var(--warning);
+}
+.tc-problem::before {
+  content: "⚠ ";
+}
+.tc-field {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+.tc-field > span {
+  color: var(--fg-muted);
+}
+.tc-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tc-note {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--fg-muted);
+}
+.cpp-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+}
+.cpp-status-row .tc-value {
+  max-width: 420px;
+}
+
+.tc-sanitizers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}

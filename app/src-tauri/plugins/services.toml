@@ -194,9 +194,30 @@ order = 20
 [[contributions.settings]]
 key = "kubernetes.kubectlPath"
 title = "kubectl executable"
-description = "Used for exec terminals in pods."
+description = "Used on this machine for exec terminals in pods and for applying manifests."
 type = "path"
 default = "kubectl"
 group = "build.kubernetes"
 section = "Tools"
 order = 30
+
+[[contributions.settings]]
+key = "kubernetes.remoteProjectHost"
+title = "In remote projects, use Kubernetes of the project host"
+description = "Contexts come from the host's kubeconfig ($KUBECONFIG or ~/.kube/config) and kubectl runs on the host: logs, exec terminals, port forwards (tunnelled back through the project's SSH connection) and applying manifests. Off: this machine's kubeconfig."
+type = "bool"
+default = true
+group = "build.kubernetes"
+section = "Remote projects"
+order = 40
+
+[[contributions.settings]]
+key = "kubernetes.hostKubectlPaths"
+title = "kubectl from the project host"
+description = "One entry per host: user@host, a tab, the kubectl path on that host (e.g. /usr/local/bin/kubectl or k3s kubectl). Hosts without an entry use kubectl from their PATH."
+type = "list"
+default = []
+group = "build.kubernetes"
+section = "Remote projects"
+hidden = true
+order = 50

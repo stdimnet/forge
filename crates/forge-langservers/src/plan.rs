@@ -104,6 +104,9 @@ fn decide(
     {
         return Err(Skip::NotUsed);
     }
+    if !spec.when.absent.is_empty() && ctx.scan.has_root_file(&spec.when.absent) {
+        return Err(Skip::NotUsed);
+    }
     if let Some(used) = spec.alternative.as_ref().and_then(|g| taken.get(g)) {
         return Err(Skip::Alternative { used: used.clone() });
     }
@@ -176,6 +179,9 @@ pub struct ServerRow {
     /// Who owns the row: `"catalog"`, or a pack (`"php"`) whose own settings page
     /// configures the server.
     pub source: String,
+    /// Version of a server built into Forge (php-lsp); `None` for installed servers.
+    #[serde(default)]
+    pub builtin_version: Option<String>,
 }
 
 /// Live state of a registered server as the LSP manager reports it.
@@ -233,7 +239,8 @@ pub fn rows(
                 .map(|(index, o)| {
                     let program = o.command.first().cloned().unwrap_or_default();
                     let managed = ctx.detector.managed_dir().is_some()
-                        && crate::managed::npm_packages(o).is_some();
+                        && (crate::managed::npm_packages(o).is_some()
+                            || crate::managed::pypi_package(o).is_some());
                     let available = managed
                         || (!program.is_empty()
                             && *tools
@@ -280,6 +287,7 @@ pub fn rows(
                 extra_settings: prefs.settings_json.clone(),
                 extra_settings_error: prefs.extra_settings().err(),
                 source: "catalog".into(),
+                builtin_version: None,
             }
         })
         .collect()
@@ -451,6 +459,33 @@ mod tests {
     }
 
     #[test]
+    fn deno_projects_use_deno_lsp_instead_of_typescript() {
+        let f = fixture(&["typescript-language-server", "deno"]);
+        let prefs = Prefs::default();
+        let s = scan(&["typescript"]);
+        let ctx = ConfigContext {
+            root: &f.root,
+            cache_dir: f.root.join("cache"),
+            detector: &f.detector,
+            prefs: &prefs,
+            scan: &s,
+        };
+        let d = plan(Catalog::builtin(), &ctx, |_| true);
+        assert!(outcome(&d, "typescript-language-server").is_ok());
+        assert_eq!(outcome(&d, "deno"), &Err(Skip::NotUsed));
+        let mut s2 = s.clone();
+        s2.root_files.insert("deno.jsonc".into());
+        let ctx = ConfigContext { scan: &s2, ..ctx };
+        let d = plan(Catalog::builtin(), &ctx, |_| true);
+        assert_eq!(
+            outcome(&d, "typescript-language-server"),
+            &Err(Skip::NotUsed)
+        );
+        let deno = outcome(&d, "deno").as_ref().unwrap();
+        assert_eq!(deno.args, vec!["lsp"]);
+    }
+
+    #[test]
     fn user_choices_change_the_plan() {
         let f = fixture(&[
             "typescript-language-server",
@@ -497,10 +532,10 @@ mod tests {
 
     #[test]
     fn rows_report_status_paths_and_install_options() {
-        let f = fixture(&["gopls", "npm", "clangd"]);
+        let f = fixture(&["gopls", "npm", "csharp-ls"]);
         let mut prefs = Prefs::default();
         prefs.servers.insert(
-            "clangd".into(),
+            "csharp-ls".into(),
             ServerPrefs {
                 enabled: Some(false),
                 ..Default::default()
@@ -540,7 +575,7 @@ mod tests {
         assert_eq!(row("gopls").detail.as_deref(), Some("Indexing 45%"));
         assert!(row("gopls").in_project);
         assert!(row("gopls").path.as_deref().unwrap().ends_with("bin/gopls"));
-        assert_eq!(row("clangd").status, RowStatus::Disabled);
+        assert_eq!(row("csharp-ls").status, RowStatus::Disabled);
         assert_eq!(row("taplo").status, RowStatus::NotInstalled);
         assert_eq!(row("zls").custom_path.as_deref(), Some("/nope/zls"));
         assert_eq!(

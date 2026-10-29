@@ -1,0 +1,14 @@
+<%= form_with(model: article) do |form| %>
+  <div data-controller="hello">
+    <%= form.label :title %>
+    <%= form.text_field :title, data: { hello_target: "name", action: "input->hello#greet" } %>
+    <span data-hello-target="output"></span>
+  </div>
+
+  <div>
+    <%= form.label :body %>
+    <%= form.textarea :body, rows: 8 %>
+  </div>
+
+  <%= form.submit t(".save") %>
+<% end %>

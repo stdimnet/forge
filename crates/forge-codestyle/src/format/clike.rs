@@ -4,7 +4,7 @@
 //!   placement, spaces, blank lines and conversions. It formats the previews.
 //! - [`Mode::Spacing`] keeps the lines and their indentation and only sets the spaces
 //!   between tokens on a line, the brace and `else`/`catch`/`finally` placement and the
-//!   conversions. It runs after Intelephense formatted a PHP file.
+//!   conversions. It runs after php-lsp formatted a PHP file.
 //! - [`Mode::Passes`] only applies the conversions (quotes, hex colors).
 
 use super::lexer::{join, lex, Kind, Lang, Tok};

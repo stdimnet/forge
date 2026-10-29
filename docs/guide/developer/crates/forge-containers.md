@@ -18,6 +18,7 @@ Pure parts (no I/O, built for WebAssembly too):
 - `compose`: `compose.yaml` / `docker-compose.yml` parsing, project names, command lines
   and the mapping of containers to services by their labels.
 - `kube`: kubeconfig parsing and Kubernetes API objects (pods, deployments, services).
+- `kubectl`: kubectl command lines and output for Kubernetes on a remote project's host.
 - `logs`: the multiplexed Docker log stream and Kubernetes log lines.
 - `pull`: image pull progress from the Engine's JSON messages.
 - `endpoint`: where the Docker daemon is (`DOCKER_HOST`, settings, platform defaults).
@@ -47,6 +48,7 @@ keychain (`secrets`), and the `hub` that holds the Services state for the app.
 | `http.rs` | A small HTTP/1.1 client for the Docker Engine API and the Kubernetes API server: one connection per request over a Unix socket, a Windows named pipe or TCP (optionally TLS), `Content-Length`, chunked and read-to-close bodies, and streaming bodies for logs, events and pulls. |
 | `hub.rs` | The Services backend: one `Hub` per app holds the Docker connection (with a watcher that follows the Engine's events and reconnects), the project's compose files, the kubeconfig with lazily loaded namespaces and workloads, running log streams and the consoles (Log tabs). |
 | `kube.rs` | Kubernetes: kubeconfig files (clusters, users, contexts) and the API objects the tree shows (namespaces, pods, deployments, services). |
+| `kubectl.rs` | Kubernetes through `kubectl` on a remote project's host: command lines (`config view`, `get -o json`, `logs -f`, `port-forward`, `apply -f` / `delete -f`), the kubectl per host (`kubernetes.hostKubectlPaths`), parsing its output (the port of `Forwarding from …`), Kubernetes manifests in YAML files, and (runtime) the `KubectlClient` that runs them through the project's backend. |
 | `kubeclient.rs` | Kubernetes API client for one kubeconfig context: TLS with the cluster's CA (rustls), bearer tokens, client certificates, basic auth and exec credential plugins (`gke-gcloud-auth-plugin`, `aws eks get-token`, …). |
 | `logs.rs` | Container log streams. |
 | `portforward.rs` | Kubernetes port forwarding (`kubectl port-forward`, PHPStorm's Forward Ports): the `portforward` subresource over a WebSocket with the `v4.channel.k8s.io` channel protocol, and the list of active forwards the Services tool window shows. |
@@ -65,7 +67,7 @@ pub struct Error(pub String);
 
 ## Used by
 
-- IPC: `services_tree`, `services_refresh`, `services_compose_changed`, `services_expand`, `services_details`, `services_action`, `services_inspect`, `services_console`, `services_logs_start`, `services_logs_stop`, `services_terminal`, `services_port_forward_start`, `services_port_forward_stop`, `services_port_forwards`, `services_pull`, `services_compose_up`, `services_dockerfile_run`, `services_gutter`, `services_status`, `docker_test_connection`, `docker_contexts`, `docker_registry_login`, `docker_registry_logout`, `docker_registry_status` (`app/src-tauri/src/commands/services.rs`)
+- IPC: `services_tree`, `services_refresh`, `services_compose_changed`, `services_expand`, `services_details`, `services_action`, `services_inspect`, `services_console`, `services_logs_start`, `services_logs_stop`, `services_terminal`, `services_port_forward_start`, `services_port_forward_stop`, `services_port_forwards`, `services_pull`, `services_compose_up`, `services_dockerfile_run`, `services_gutter`, `services_kube_selection`, `services_kube_select`, `services_kube_apply`, `services_status`, `docker_test_connection`, `docker_contexts`, `docker_registry_login`, `docker_registry_logout`, `docker_registry_status` (`app/src-tauri/src/commands/services.rs`)
 - UI: `app/ui/src/features/services`
 - Browser mode: built into `forge-wasm`
 

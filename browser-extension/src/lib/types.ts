@@ -80,6 +80,7 @@ export type BackgroundRequest =
   | { type: "setInspect"; tabId?: number; enabled: boolean }
   | { type: "getInspect"; tabId?: number }
   | { type: "contentConfig" }
+  | { type: "liveEditPoll"; since: number }
   | { type: "saveOptions"; altClick?: boolean; mappings?: PathMapping[]; port?: number | null };
 
 export interface Status {

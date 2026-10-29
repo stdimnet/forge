@@ -3,6 +3,7 @@ import { createSignal } from "solid-js";
 import { getSetting } from "@/state/settings";
 import { isToolWindowVisible, toggleToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
+import type { SshTarget } from "@/ipc/terminal";
 import type { Progress } from "./osc";
 
 export interface TerminalTab {
@@ -23,6 +24,8 @@ export interface TerminalTab {
   liveCwd?: string;
   /** Run this program instead of the shell (e.g. `docker exec -it …` from Services). */
   command?: TerminalProgram;
+  /** An SSH session to another host (Tools | Start SSH Session…). */
+  ssh?: SshTarget;
 }
 
 export interface TerminalProgram {
@@ -32,6 +35,24 @@ export interface TerminalProgram {
   /** Run on this machine even in a remote project (Docker or kubectl of this machine). */
   local?: boolean;
 }
+
+/** A shell the terminal's "+" menu offers besides the default one (e.g. "WSL: Ubuntu"). */
+export interface ShellProfile {
+  label: string;
+  command: TerminalProgram & { title?: string };
+  /** Start directory (absolute; default: the project root). */
+  cwd?: string;
+}
+
+const [profileSources, setProfileSources] = createSignal<(() => ShellProfile[])[]>([]);
+
+/** Add shells to the "+" menu; `profiles` is reactive. */
+export function registerShellProfiles(profiles: () => ShellProfile[]): void {
+  setProfileSources((s) => [...s, profiles]);
+}
+
+/** The extra shells of the "+" menu. */
+export const shellProfiles = (): ShellProfile[] => profileSources().flatMap((p) => p());
 
 const [tabs, setTabs] = createSignal<TerminalTab[]>([]);
 const [activeTab, setActiveTabSignal] = createSignal<string | null>(null);
@@ -73,6 +94,21 @@ export function newTab(cwd?: string, command?: TerminalProgram & { title?: strin
     ),
     cwd,
     command: command && { program: command.program, args: command.args, env: command.env, local: command.local },
+  };
+  setTabs((t) => [...t, tab]);
+  setActiveTab(tab.id);
+  return tab;
+}
+
+/** A tab with an SSH session, named after the host ("shop.example.com", "shop.example.com (2)"). */
+export function newSshTab(title: string, ssh: SshTarget): TerminalTab {
+  const tab: TerminalTab = {
+    id: `term-${Date.now().toString(36)}-${++seq}`,
+    title: nextTitle(
+      tabs().map((t) => t.title),
+      title,
+    ),
+    ssh,
   };
   setTabs((t) => [...t, tab]);
   setActiveTab(tab.id);

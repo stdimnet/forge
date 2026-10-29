@@ -47,6 +47,9 @@ export function GitTabs() {
       <span class="git-tab" role="tab" classList={{ active: activeGitTab() === "log" }} onClick={() => setActiveGitTab("log")}>
         Log
       </span>
+      <span class="git-tab" role="tab" classList={{ active: activeGitTab() === "worktrees" }} onClick={() => setActiveGitTab("worktrees")} data-git-tab="worktrees">
+        Worktrees
+      </span>
       <For each={historyTabs()}>
         {(tab) => (
           <span

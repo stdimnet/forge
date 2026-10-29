@@ -4,11 +4,14 @@
 
 use forge_codeintel::{HighlightAnswer, UsageOptions};
 
+use crate::complete::PhpCompletion;
 use crate::generate::{self, GenerateKind, GenerateOptions, GenerateTargets, TextEdit};
 use crate::hierarchy::{self, HierarchyQuery, PhpHierarchy};
 use crate::highlight;
 use crate::hover::{self, Hover};
 use crate::index::ProjectIndex;
+use crate::injections::LanguagePlace;
+use crate::inspections::PhpProblem;
 use crate::intentions::{self, Intention};
 use crate::navigate::{self, NavKind, NavTarget, PhpDefinition, PhpLineMarker, PhpUsages};
 use crate::offsets::{byte_to_utf16, utf16_to_byte};
@@ -148,13 +151,50 @@ pub fn intentions(
     offset: usize,
     options: &GenerateOptions,
 ) -> Vec<Intention> {
-    intentions::intentions(idx, path, text, utf16_to_byte(text, offset), options)
+    crate::imports::with_style(options.style.imports, || {
+        intentions::intentions(idx, path, text, utf16_to_byte(text, offset), options)
+    })
+    .into_iter()
+    .map(|mut i| {
+        i.edits = edits_to_utf16(text, std::mem::take(&mut i.edits));
+        i
+    })
+    .collect()
+}
+
+/// Forge's PHP inspections of `text` (the content of `path`), UTF-16 offsets.
+pub fn inspect(idx: &mut ProjectIndex, path: &str, text: &str) -> Vec<PhpProblem> {
+    crate::inspections::inspect(idx, path, text)
         .into_iter()
-        .map(|mut i| {
-            i.edits = edits_to_utf16(text, std::mem::take(&mut i.edits));
-            i
+        .map(|mut p| {
+            p.start = byte_to_utf16(text, p.start);
+            p.end = byte_to_utf16(text, p.end);
+            if let Some(f) = p.fix.as_mut() {
+                f.edits = edits_to_utf16(text, std::mem::take(&mut f.edits));
+            }
+            p
         })
         .collect()
+}
+
+/// Metadata / attribute completion at a UTF-16 `offset`, UTF-16 range.
+pub fn complete(
+    idx: &mut ProjectIndex,
+    path: &str,
+    text: &str,
+    offset: usize,
+) -> Option<PhpCompletion> {
+    let byte = utf16_to_byte(text, offset);
+    crate::complete::complete(idx, path, text, byte).map(|mut c| {
+        c.from = byte_to_utf16(text, c.from);
+        c.to = byte_to_utf16(text, c.to);
+        c
+    })
+}
+
+/// Parameters marked `#[Language]` in the index, for the language injections.
+pub fn language_places(idx: &ProjectIndex) -> Vec<LanguagePlace> {
+    crate::injections::language_places(idx)
 }
 
 /// The edit importing `fqn` into `text` (the content of `path`), UTF-16 offsets: nothing
@@ -176,7 +216,12 @@ pub fn import_class(path: &str, text: &str, fqn: &str) -> Vec<TextEdit> {
     if in_namespace || imported {
         return vec![];
     }
-    edits_to_utf16(text, vec![intentions::add_import(&file, text, fqn)])
+    edits_to_utf16(
+        text,
+        intentions::add_import(&file, text, fqn)
+            .into_iter()
+            .collect(),
+    )
 }
 
 #[cfg(test)]
