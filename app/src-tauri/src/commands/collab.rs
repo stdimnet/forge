@@ -6,6 +6,10 @@
 //! - `collab://status` [`SessionView`] whenever the session changes;
 //! - `collab://doc` [`DocEvent`] for remote edits, carets, saves, renames and closes;
 //! - `collab://notice` `{ text }` (someone joined or left, a disk conflict);
+//! - `collab://presence` [`ParticipantPresence`] when another participant moved (file,
+//!   caret, viewport, whom it follows);
+//! - `collab://follow-host` `{ on }` when the host turned Make Everyone Follow You on or off
+//!   (guest);
 //! - `collab://ended` `{ reason }` when the session is over for this window.
 //!
 //! Updates and awareness cross the IPC as base64 strings; the initial state of a document is
@@ -31,7 +35,7 @@ use forge_collab::guest_backend::{CollabBackend, LspQuery};
 use forge_collab::host::{HostConfig, HostEvent, HostSession};
 use forge_collab::link::{LinkSummary, SessionLink};
 use forge_collab::permissions::{PermissionLevel, Permissions};
-use forge_collab::presence::{Participant, ParticipantId};
+use forge_collab::presence::{Participant, ParticipantId, Presence};
 use forge_collab::protocol::{DocId, SaveState, SharedFile};
 use forge_collab::relay::{
     normalize_relay_token, normalize_relay_url, ConnectionPath, RelayOptions, RelayStatus,
@@ -57,6 +61,8 @@ pub const ENDED_EVENT: &str = "collab://ended";
 pub const JOIN_REQUEST_EVENT: &str = "collab://join-request";
 pub const JOIN_CLOSED_EVENT: &str = "collab://join-closed";
 pub const WAITING_EVENT: &str = "collab://waiting";
+pub const PRESENCE_EVENT: &str = "collab://presence";
+pub const FOLLOW_HOST_EVENT: &str = "collab://follow-host";
 
 enum Active {
     Host(Arc<HostSession>),
@@ -178,6 +184,32 @@ pub struct SessionView {
     /// The host's project, open in this window (guest).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace: Option<WorkspaceInfo>,
+    /// Where the other participants are (a guest only learns files it may open).
+    pub presence: Vec<ParticipantPresence>,
+    /// Make Everyone Follow You is on.
+    pub follow_everyone: bool,
+}
+
+/// One participant's presence (`collab://presence` and [`SessionView::presence`]).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParticipantPresence {
+    pub participant: ParticipantId,
+    #[serde(flatten)]
+    pub presence: Presence,
+}
+
+fn presence_list(
+    list: Vec<(ParticipantId, Presence)>,
+    me: ParticipantId,
+) -> Vec<ParticipantPresence> {
+    list.into_iter()
+        .filter(|(id, _)| *id != me)
+        .map(|(participant, presence)| ParticipantPresence {
+            participant,
+            presence,
+        })
+        .collect()
 }
 
 fn idle_view() -> SessionView {
@@ -195,6 +227,8 @@ fn idle_view() -> SessionView {
         connections: Vec::new(),
         relay: None,
         workspace: None,
+        presence: Vec::new(),
+        follow_everyone: false,
     }
 }
 
@@ -218,6 +252,8 @@ fn view(state: &CollabState) -> SessionView {
                 .collect(),
             relay: h.relay_status(),
             workspace: None,
+            presence: presence_list(h.presence(), ParticipantId::HOST),
+            follow_everyone: h.follow_everyone(),
         };
     }
     if let Some(g) = state.guest() {
@@ -246,6 +282,8 @@ fn view(state: &CollabState) -> SessionView {
                 .lock()
                 .expect("collab lock poisoned")
                 .clone(),
+            presence: presence_list(g.presence(), g.me()),
+            follow_everyone: g.follow_host(),
         };
     }
     idle_view()
@@ -300,6 +338,17 @@ fn on_host_event(app: &AppHandle, e: HostEvent) {
         HostEvent::DocRenamed { doc, path } => doc_event(app, doc, |e| e.renamed = Some(path)),
         HostEvent::DocClosed { doc, reason } => doc_event(app, doc, |e| e.closed = Some(reason)),
         HostEvent::Notice(text) => emit(app, NOTICE_EVENT, json!({ "text": text })),
+        HostEvent::Presence {
+            participant,
+            presence,
+        } => emit(
+            app,
+            PRESENCE_EVENT,
+            ParticipantPresence {
+                participant,
+                presence,
+            },
+        ),
     }
 }
 
@@ -316,6 +365,18 @@ fn on_guest_event(app: &AppHandle, e: GuestEvent) {
         GuestEvent::DocRenamed { doc, path } => doc_event(app, doc, |e| e.renamed = Some(path)),
         GuestEvent::DocClosed { doc, reason } => doc_event(app, doc, |e| e.closed = Some(reason)),
         GuestEvent::Denied(text) => emit(app, NOTICE_EVENT, json!({ "text": text })),
+        GuestEvent::Presence {
+            participant,
+            presence,
+        } => emit(
+            app,
+            PRESENCE_EVENT,
+            ParticipantPresence {
+                participant,
+                presence,
+            },
+        ),
+        GuestEvent::FollowHost(on) => emit(app, FOLLOW_HOST_EVENT, json!({ "on": on })),
         GuestEvent::Ended(reason) => {
             end_guest_project(app);
             emit(app, ENDED_EVENT, json!({ "reason": reason }));
@@ -863,6 +924,25 @@ pub fn collab_awareness(doc_id: u64, update: String, state: State<'_, CollabStat
         guest.awareness(DocId(doc_id), bytes);
     }
     Ok(())
+}
+
+/// Where this participant is: the active editor's file, caret, viewport and whom it follows.
+/// Sent by the UI on changes (throttled).
+#[tauri::command]
+pub fn collab_presence(presence: Presence, state: State<'_, CollabState>) {
+    if let Some(host) = state.host() {
+        host.host_presence(presence);
+    } else if let Some(guest) = state.guest() {
+        guest.set_presence(presence);
+    }
+}
+
+/// Make Everyone Follow You (host).
+#[tauri::command]
+pub fn collab_follow_everyone(on: bool, app: AppHandle) -> Result<SessionView> {
+    let host = running_host(&app.state::<CollabState>())?;
+    host.set_follow_everyone(on);
+    Ok(view(&app.state::<CollabState>()))
 }
 
 #[tauri::command]

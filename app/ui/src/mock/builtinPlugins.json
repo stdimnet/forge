@@ -16084,6 +16084,26 @@
           "id": "CodeWithMe.OpenSharedFile",
           "title": "Open Shared File…",
           "category": "Code With Me"
+        },
+        {
+          "id": "CodeWithMe.FollowParticipant",
+          "title": "Follow Participant…",
+          "category": "Code With Me"
+        },
+        {
+          "id": "CodeWithMe.JumpToParticipant",
+          "title": "Jump To Participant…",
+          "category": "Code With Me"
+        },
+        {
+          "id": "CodeWithMe.StopFollowing",
+          "title": "Stop Following",
+          "category": "Code With Me"
+        },
+        {
+          "id": "CodeWithMe.MakeEveryoneFollow",
+          "title": "Make Everyone Follow You",
+          "category": "Code With Me"
         }
       ],
       "keybindings": [],
@@ -16134,6 +16154,17 @@
           "section": "Session",
           "project": false,
           "order": 20
+        },
+        {
+          "key": "codeWithMe.followHostOnJoin",
+          "title": "Follow the host when joining",
+          "description": "As a guest, start by following the host: their file and caret stay in view until you type, click into the editor or open another file.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.code-with-me",
+          "section": "Session",
+          "project": false,
+          "order": 25
         },
         {
           "key": "codeWithMe.auditLog",
@@ -16269,6 +16300,29 @@
               "type": "action",
               "id": "CodeWithMe.EndSession",
               "label": "_End Session"
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "action",
+              "id": "CodeWithMe.FollowParticipant",
+              "label": "_Follow Participant..."
+            },
+            {
+              "type": "action",
+              "id": "CodeWithMe.JumpToParticipant",
+              "label": "Jump _To Participant..."
+            },
+            {
+              "type": "action",
+              "id": "CodeWithMe.StopFollowing",
+              "label": "Stop Follo_wing"
+            },
+            {
+              "type": "action",
+              "id": "CodeWithMe.MakeEveryoneFollow",
+              "label": "Make Everyone Follow _You"
             },
             {
               "type": "separator"

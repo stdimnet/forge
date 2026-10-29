@@ -38,12 +38,37 @@ id = "CodeWithMe.OpenSharedFile"
 title = "Open Shared File…"
 category = "Code With Me"
 
+[[contributions.commands]]
+id = "CodeWithMe.FollowParticipant"
+title = "Follow Participant…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.JumpToParticipant"
+title = "Jump To Participant…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.StopFollowing"
+title = "Stop Following"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.MakeEveryoneFollow"
+title = "Make Everyone Follow You"
+category = "Code With Me"
+
 [[contributions.mainMenu]]
 path = "Tools/Code With _Me"
 items = [
   { type = "action", id = "CodeWithMe.StartSession", label = "_Start Session..." },
   { type = "action", id = "CodeWithMe.CopySessionLink", label = "_Copy Session Link" },
   { type = "action", id = "CodeWithMe.EndSession", label = "_End Session" },
+  { type = "separator" },
+  { type = "action", id = "CodeWithMe.FollowParticipant", label = "_Follow Participant..." },
+  { type = "action", id = "CodeWithMe.JumpToParticipant", label = "Jump _To Participant..." },
+  { type = "action", id = "CodeWithMe.StopFollowing", label = "Stop Follo_wing" },
+  { type = "action", id = "CodeWithMe.MakeEveryoneFollow", label = "Make Everyone Follow _You" },
   { type = "separator" },
   { type = "action", id = "CodeWithMe.JoinSession", label = "_Join Session..." },
   { type = "action", id = "CodeWithMe.OpenSharedFile", label = "_Open Shared File..." },
@@ -85,6 +110,16 @@ default = true
 group = "tools.code-with-me"
 section = "Session"
 order = 20
+
+[[contributions.settings]]
+key = "codeWithMe.followHostOnJoin"
+title = "Follow the host when joining"
+description = "As a guest, start by following the host: their file and caret stay in view until you type, click into the editor or open another file."
+type = "bool"
+default = true
+group = "tools.code-with-me"
+section = "Session"
+order = 25
 
 [[contributions.settings]]
 key = "codeWithMe.auditLog"
