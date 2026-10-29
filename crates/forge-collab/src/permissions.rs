@@ -166,6 +166,8 @@ impl Policy {
             GuestMessage::Awareness { .. }
             | GuestMessage::DocClose { .. }
             | GuestMessage::Leave => Ok(()),
+            // The host sanitizes presence and passes on only what each receiver may see.
+            GuestMessage::Presence { .. } => Ok(()),
             // Project calls are decoded and checked by the host (`Policy::check_call`).
             GuestMessage::Call { .. } => Ok(()),
         }

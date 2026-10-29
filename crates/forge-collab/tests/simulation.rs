@@ -12,6 +12,7 @@ use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::host::{DevAutoAccept, HostConfig, HostEvent, HostSession, DEV_PREVIEW_NOTICE};
 use forge_collab::link::SessionLink;
 use forge_collab::permissions::Permissions;
+use forge_collab::presence::{Caret, ParticipantId, Presence, Viewport};
 use forge_collab::protocol::{text_hash, DocId, SaveState};
 use forge_collab::transport::memory::MemoryNetwork;
 use forge_core::FsChanges;
@@ -29,6 +30,9 @@ struct Editor {
     denied: Vec<String>,
     notices: Vec<String>,
     ended: Option<String>,
+    /// Where the others are, as this participant was told.
+    presence: HashMap<ParticipantId, Presence>,
+    follow_host: bool,
 }
 
 type Shared = Arc<Mutex<Editor>>;
@@ -145,6 +149,12 @@ impl Harness {
                     HostEvent::DocRenamed { doc, path } => ed.renamed.push((doc, path)),
                     HostEvent::DocClosed { doc, reason } => ed.closed.push((doc, reason)),
                     HostEvent::Notice(n) => ed.notices.push(n),
+                    HostEvent::Presence {
+                        participant,
+                        presence,
+                    } => {
+                        ed.presence.insert(participant, presence);
+                    }
                     HostEvent::Awareness { .. } | HostEvent::Changed => {}
                 }
             }),
@@ -201,6 +211,13 @@ impl Harness {
                     GuestEvent::DocClosed { doc, reason } => ed.closed.push((doc, reason)),
                     GuestEvent::Denied(r) => ed.denied.push(r),
                     GuestEvent::Ended(r) => ed.ended = Some(r),
+                    GuestEvent::Presence {
+                        participant,
+                        presence,
+                    } => {
+                        ed.presence.insert(participant, presence);
+                    }
+                    GuestEvent::FollowHost(on) => ed.follow_host = on,
                     GuestEvent::Awareness { .. } | GuestEvent::Changed => {}
                 }
             }),
@@ -576,4 +593,173 @@ async fn leaving_disconnecting_and_ending() {
     })
     .await;
     assert!(sam.guest.open_doc("app/Order.php").await.is_err());
+}
+
+fn presence_in(file: &str, line: u32) -> Presence {
+    Presence {
+        file: Some(file.into()),
+        caret: Some(Caret { line, column: 1 }),
+        anchor: None,
+        viewport: Some(Viewport {
+            top_line: line.saturating_sub(10).max(1),
+            bottom_line: line + 20,
+        }),
+        following: None,
+    }
+}
+
+fn seen(editor: &Shared, who: ParticipantId) -> Option<Presence> {
+    editor.lock().unwrap().presence.get(&who).cloned()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn presence_reaches_everyone_through_the_host() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    let alex = h.join("Alex").await;
+    let sam = h.join("Sam").await;
+    let (alex_id, sam_id) = (alex.guest.me(), sam.guest.me());
+
+    // The host's presence reaches both guests.
+    h.host.host_presence(presence_in("app/Order.php", 3));
+    for g in [&alex, &sam] {
+        let ed = g.editor.clone();
+        eventually("the host's presence arrived", || {
+            seen(&ed, ParticipantId::HOST) == Some(presence_in("app/Order.php", 3))
+        })
+        .await;
+    }
+
+    // A guest's presence reaches the host's UI and the other guest, and following the host
+    // shows up as well.
+    let mut follows = presence_in("app/Order.php", 3);
+    follows.following = Some(ParticipantId::HOST);
+    alex.guest.set_presence(follows.clone());
+    let host_ed = h.host_editor.clone();
+    eventually("the host sees Alex", || {
+        seen(&host_ed, alex_id) == Some(follows.clone())
+    })
+    .await;
+    let sam_ed = sam.editor.clone();
+    eventually("Sam sees Alex", || {
+        seen(&sam_ed, alex_id) == Some(follows.clone())
+    })
+    .await;
+    assert_eq!(h.host.presence().len(), 2);
+
+    // A guest that joins later gets everyone's presence at once.
+    let joe = h.join("Joe").await;
+    let joe_ed = joe.editor.clone();
+    eventually("Joe got the snapshot", || {
+        seen(&joe_ed, ParticipantId::HOST).is_some() && seen(&joe_ed, alex_id).is_some()
+    })
+    .await;
+    assert_eq!(seen(&joe_ed, sam_id), None, "Sam sent nothing yet");
+
+    // Following someone who is not in the session, or oneself, is dropped by the host.
+    let mut bogus = presence_in("README.md", 1);
+    bogus.following = Some(ParticipantId(99));
+    sam.guest.set_presence(bogus);
+    eventually("Sam's presence arrived", || {
+        seen(&host_ed, sam_id).is_some_and(|p| p.file.as_deref() == Some("README.md"))
+    })
+    .await;
+    assert_eq!(seen(&host_ed, sam_id).unwrap().following, None);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn guests_never_learn_files_they_cannot_see() {
+    let mut h = Harness::new(Permissions::READ_ONLY);
+    let alex = h.join("Alex").await;
+    let sam = h.join("Sam").await;
+    let alex_ed = alex.editor.clone();
+
+    // The host looks at .env: guests see that the host is somewhere, not where.
+    h.host.host_presence(presence_in(".env", 1));
+    eventually("the host's presence arrived", || {
+        seen(&alex_ed, ParticipantId::HOST).is_some()
+    })
+    .await;
+    assert_eq!(
+        seen(&alex_ed, ParticipantId::HOST),
+        Some(Presence::default())
+    );
+    // The host itself keeps the real presence.
+    assert_eq!(h.host.presence()[0].1.file.as_deref(), Some(".env"));
+
+    // A guest that names a hidden or absolute path passes nothing on.
+    sam.guest.set_presence(presence_in(".git/config", 2));
+    let sam_id = sam.guest.me();
+    eventually("Sam's presence arrived", || {
+        seen(&alex_ed, sam_id).is_some()
+    })
+    .await;
+    assert_eq!(seen(&alex_ed, sam_id), Some(Presence::default()));
+    sam.guest.set_presence(presence_in("/etc/passwd", 2));
+    let host_ed = h.host_editor.clone();
+    eventually("the host saw it", || {
+        seen(&host_ed, sam_id) == Some(Presence::default())
+    })
+    .await;
+
+    // A visible file comes through with the position.
+    h.host.host_presence(presence_in("app/Order.php", 4));
+    eventually("the host moved", || {
+        seen(&alex_ed, ParticipantId::HOST) == Some(presence_in("app/Order.php", 4))
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn make_everyone_follow_you_reaches_every_guest() {
+    let mut h = Harness::new(Permissions::READ_ONLY);
+    let alex = h.join("Alex").await;
+    assert!(!h.host.follow_everyone());
+    h.host.set_follow_everyone(true);
+    assert!(h.host.follow_everyone());
+    let alex_ed = alex.editor.clone();
+    eventually("Alex was asked", || alex_ed.lock().unwrap().follow_host).await;
+    assert!(alex.guest.follow_host());
+    // A guest that joins while it is on is asked at once.
+    let sam = h.join("Sam").await;
+    let sam_ed = sam.editor.clone();
+    eventually("Sam was asked", || sam_ed.lock().unwrap().follow_host).await;
+    h.host.set_follow_everyone(false);
+    eventually("Alex was released", || !alex_ed.lock().unwrap().follow_host).await;
+    eventually("Sam was released", || !sam_ed.lock().unwrap().follow_host).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn presence_follows_permission_changes_and_leaving() {
+    let mut h = Harness::new(Permissions::READ_ONLY);
+    let alex = h.join("Alex").await;
+    let sam = h.join("Sam").await;
+    let (alex_id, sam_id) = (alex.guest.me(), sam.guest.me());
+    sam.guest.set_presence(presence_in("README.md", 1));
+    let alex_ed = alex.editor.clone();
+    eventually("Alex sees Sam", || seen(&alex_ed, sam_id).is_some()).await;
+
+    // Leaving removes the presence everywhere.
+    sam.guest.leave().await;
+    let host = h.host.clone();
+    eventually("Sam left", || host.participants().len() == 2).await;
+    eventually("Alex forgot Sam", || {
+        alex.guest.presence().iter().all(|(id, _)| *id != sam_id)
+    })
+    .await;
+    assert!(h.host.presence().iter().all(|(id, _)| *id != sam_id));
+
+    // A permission change sends everyone's presence again under the new rules.
+    h.host.host_presence(presence_in("app/Order.php", 2));
+    eventually("Alex sees the host", || {
+        seen(&alex_ed, ParticipantId::HOST).is_some()
+    })
+    .await;
+    alex_ed.lock().unwrap().presence.clear();
+    assert!(h
+        .host
+        .set_guest_permissions(alex_id, Permissions::EDIT_FILES));
+    eventually("Alex got the presence again", || {
+        seen(&alex_ed, ParticipantId::HOST) == Some(presence_in("app/Order.php", 2))
+    })
+    .await;
 }

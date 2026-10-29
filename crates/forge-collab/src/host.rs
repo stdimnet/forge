@@ -29,7 +29,7 @@ use crate::docs::{with_eol, DiskChange, SharedDoc};
 use crate::excludes::Excludes;
 use crate::link::{SessionLink, JOIN_SECRET_LEN, SESSION_ID_LEN};
 use crate::permissions::{Permissions, Policy};
-use crate::presence::{clean_name, ColorAssigner, Participant, ParticipantId, Role};
+use crate::presence::{clean_name, ColorAssigner, Participant, ParticipantId, Presence, Role};
 use crate::protocol::{
     DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
     PROTOCOL_VERSION,
@@ -74,6 +74,11 @@ pub enum HostEvent {
     DocClosed {
         doc: DocId,
         reason: String,
+    },
+    /// Where a guest is now (the host sees every file).
+    Presence {
+        participant: ParticipantId,
+        presence: Presence,
     },
     /// A message for the host ("Alex joined the session.").
     Notice(String),
@@ -156,6 +161,10 @@ struct State {
     next_doc: u64,
     next_participant: u32,
     colors: ColorAssigner,
+    /// Where everyone is, the host included (as sent, sanitized).
+    presence: BTreeMap<ParticipantId, Presence>,
+    /// Make Everyone Follow You is on.
+    follow_host: bool,
 }
 
 /// Sends collected after the lock is released.
@@ -353,6 +362,12 @@ impl HostSession {
                     .push((g.tx.clone(), HostMessage::Permissions { permissions }));
                 changed = true;
             }
+            // What each guest may see of the others can change with its permissions.
+            for id in ids {
+                if let Some(g) = st.guests.get(id) {
+                    presence_snapshot(&st, *id, g, &mut out);
+                }
+            }
             if changed {
                 participants_changed(&self.host, &st, &mut out);
             }
@@ -404,6 +419,80 @@ impl HostSession {
     /// The state of the connection to the relay, when the session uses one.
     pub fn relay_status(&self) -> Option<RelayStatus> {
         self.transport.relay_status()
+    }
+
+    /// Where everyone is (the host sees all files), in participant order.
+    pub fn presence(&self) -> Vec<(ParticipantId, Presence)> {
+        self.state()
+            .presence
+            .iter()
+            .map(|(id, p)| (*id, p.clone()))
+            .collect()
+    }
+
+    /// Whether Make Everyone Follow You is on.
+    pub fn follow_everyone(&self) -> bool {
+        self.state().follow_host
+    }
+
+    /// Make Everyone Follow You: every guest (and every guest that joins later) is asked to
+    /// follow the host, or no longer asked. Guests can still stop following.
+    pub fn set_follow_everyone(&self, on: bool) {
+        let mut out = Outbox::default();
+        {
+            let mut st = self.state();
+            if st.follow_host == on {
+                return;
+            }
+            st.follow_host = on;
+            for g in st.guests.values() {
+                out.guests
+                    .push((g.tx.clone(), HostMessage::FollowHost { on }));
+            }
+            out.events.push(HostEvent::Changed);
+        }
+        self.deliver(out);
+    }
+
+    /// Where the host is (its active editor, caret, viewport, whom it follows).
+    pub fn host_presence(&self, presence: Presence) {
+        self.set_presence(ParticipantId::HOST, presence);
+    }
+
+    /// Store a participant's presence and pass it on: to every guest as far as the guest
+    /// may see it, and to the host's UI when it is a guest's.
+    fn set_presence(&self, from: ParticipantId, presence: Presence) {
+        let mut out = Outbox::default();
+        {
+            let mut st = self.state();
+            let known: Vec<ParticipantId> = std::iter::once(ParticipantId::HOST)
+                .chain(st.guests.keys().copied())
+                .collect();
+            let presence = presence.sanitized(from, &known);
+            if st.presence.get(&from) == Some(&presence) {
+                return;
+            }
+            st.presence.insert(from, presence.clone());
+            for (id, g) in &st.guests {
+                if *id == from {
+                    continue;
+                }
+                out.guests.push((
+                    g.tx.clone(),
+                    HostMessage::Presence {
+                        participant: from,
+                        presence: presence.visible_to(Some(&g.policy)),
+                    },
+                ));
+            }
+            if from != ParticipantId::HOST {
+                out.events.push(HostEvent::Presence {
+                    participant: from,
+                    presence,
+                });
+            }
+        }
+        self.deliver(out);
     }
 
     /// Files guests can open.
@@ -839,6 +928,12 @@ impl HostSession {
                 },
             );
             participants_changed(&self.host, &st, &mut out);
+            let guest = &st.guests[&id];
+            presence_snapshot(&st, id, guest, &mut out);
+            if st.follow_host {
+                out.guests
+                    .push((guest.tx.clone(), HostMessage::FollowHost { on: true }));
+            }
             id
         };
         out.events
@@ -980,6 +1075,7 @@ impl HostSession {
                 self.reply(from, HostMessage::SaveResult { request, error });
             }
             GuestMessage::DocClose { doc } => self.close_doc(from, doc),
+            GuestMessage::Presence { presence } => self.set_presence(from, presence),
             GuestMessage::Knock { .. } | GuestMessage::Leave | GuestMessage::Call { .. } => {}
         }
     }
@@ -1082,6 +1178,7 @@ impl HostSession {
             let Some(guest) = st.guests.remove(&id) else {
                 return;
             };
+            st.presence.remove(&id);
             let docs: Vec<DocId> = st.docs.keys().copied().collect();
             for doc in docs {
                 leave_doc(&mut st, id, doc, &mut out);
@@ -1165,6 +1262,22 @@ fn shared_files(st: &State) -> Vec<SharedFile> {
         .collect();
     files.sort_by(|a, b| a.path.cmp(&b.path));
     files
+}
+
+/// Everyone else's presence as guest `id` may see it (after joining or a permission change).
+fn presence_snapshot(st: &State, id: ParticipantId, guest: &Guest, out: &mut Outbox) {
+    for (participant, presence) in &st.presence {
+        if *participant == id {
+            continue;
+        }
+        out.guests.push((
+            guest.tx.clone(),
+            HostMessage::Presence {
+                participant: *participant,
+                presence: presence.visible_to(Some(&guest.policy)),
+            },
+        ));
+    }
 }
 
 fn files_changed(st: &State, out: &mut Outbox) {

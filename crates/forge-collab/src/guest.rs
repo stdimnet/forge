@@ -2,7 +2,7 @@
 //! updates between its editor and the host, which holds the authoritative copy and checks
 //! every request.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
@@ -13,7 +13,7 @@ use tokio::sync::{mpsc, oneshot};
 use crate::host::DocOpened;
 use crate::link::SessionLink;
 use crate::permissions::Permissions;
-use crate::presence::{Participant, ParticipantId};
+use crate::presence::{Participant, ParticipantId, Presence};
 use crate::protocol::{
     DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
     PROTOCOL_VERSION,
@@ -59,6 +59,13 @@ pub enum GuestEvent {
         doc: DocId,
         reason: String,
     },
+    /// Where another participant is (only files this guest may see are named).
+    Presence {
+        participant: ParticipantId,
+        presence: Presence,
+    },
+    /// Make Everyone Follow You was turned on or off by the host.
+    FollowHost(bool),
     /// The host refused a request.
     Denied(String),
     /// The session is over for this guest.
@@ -72,6 +79,8 @@ struct State {
     participants: Vec<Participant>,
     files: Vec<SharedFile>,
     notice: Option<String>,
+    presence: BTreeMap<ParticipantId, Presence>,
+    follow_host: bool,
     opens: HashMap<u64, oneshot::Sender<Result<DocOpened, String>>>,
     saves: HashMap<u64, oneshot::Sender<Result<(), String>>>,
     ended: bool,
@@ -141,6 +150,8 @@ impl GuestSession {
                 participants,
                 files,
                 notice,
+                presence: BTreeMap::new(),
+                follow_host: false,
                 opens: HashMap::new(),
                 saves: HashMap::new(),
                 ended: false,
@@ -194,7 +205,26 @@ impl GuestSession {
         }
         match msg {
             HostMessage::Participants { participants } => {
-                self.state().participants = participants;
+                let mut st = self.state();
+                st.presence
+                    .retain(|id, _| participants.iter().any(|p| p.id == *id));
+                st.participants = participants;
+                drop(st);
+                sink(GuestEvent::Changed);
+            }
+            HostMessage::Presence {
+                participant,
+                presence,
+            } => {
+                self.state().presence.insert(participant, presence.clone());
+                sink(GuestEvent::Presence {
+                    participant,
+                    presence,
+                });
+            }
+            HostMessage::FollowHost { on } => {
+                self.state().follow_host = on;
+                sink(GuestEvent::FollowHost(on));
                 sink(GuestEvent::Changed);
             }
             HostMessage::SharedFiles { files } => {
@@ -275,6 +305,25 @@ impl GuestSession {
 
     pub fn files(&self) -> Vec<SharedFile> {
         self.state().files.clone()
+    }
+
+    /// Where the other participants are, as far as this guest may see.
+    pub fn presence(&self) -> Vec<(ParticipantId, Presence)> {
+        self.state()
+            .presence
+            .iter()
+            .map(|(id, p)| (*id, p.clone()))
+            .collect()
+    }
+
+    /// Whether the host asked everyone to follow it.
+    pub fn follow_host(&self) -> bool {
+        self.state().follow_host
+    }
+
+    /// Tell the others where this guest is.
+    pub fn set_presence(&self, presence: Presence) {
+        self.send(GuestMessage::Presence { presence });
     }
 
     pub fn notice(&self) -> Option<String> {

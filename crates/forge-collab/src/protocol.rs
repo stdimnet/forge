@@ -15,11 +15,11 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
 use crate::permissions::Permissions;
-use crate::presence::{Participant, ParticipantId};
+use crate::presence::{Participant, ParticipantId, Presence};
 use crate::{Error, Result};
 
 /// Bumped on incompatible changes; the host refuses other versions in the knock.
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 /// QUIC application protocol of Code With Me connections.
 pub const ALPN: &[u8] = b"forge/cwm/1";
@@ -111,6 +111,11 @@ pub enum GuestMessage {
         id: u64,
         payload: ByteBuf,
     },
+    /// Where this guest is (file, caret, viewport, whom it follows). Sent on changes,
+    /// throttled by the UI; the host passes it on to the others.
+    Presence {
+        presence: Presence,
+    },
     Leave,
 }
 
@@ -125,6 +130,7 @@ impl GuestMessage {
             Self::DocSave { .. } => "save",
             Self::DocClose { .. } => "close",
             Self::Call { .. } => "call",
+            Self::Presence { .. } => "presence",
             Self::Leave => "leave",
         }
     }
@@ -216,6 +222,17 @@ pub enum HostMessage {
     Diagnostics {
         path: String,
         diagnostics: ByteBuf,
+    },
+    /// Where a participant is, as far as the receiver may see it
+    /// ([`Presence::visible_to`]). The participant left when it is no longer in the list.
+    Presence {
+        participant: ParticipantId,
+        presence: Presence,
+    },
+    /// Make Everyone Follow You: the host asks every guest to follow it (`on`), or stopped
+    /// asking.
+    FollowHost {
+        on: bool,
     },
     /// A request was refused by the host's policy.
     Denied {
@@ -325,6 +342,13 @@ mod tests {
             GuestMessage::Call {
                 id: 9,
                 payload: bytes(&[0x81, 0xa4]),
+            },
+            GuestMessage::Presence {
+                presence: Presence {
+                    file: Some("a.php".into()),
+                    following: Some(ParticipantId::HOST),
+                    ..Presence::default()
+                },
             },
             GuestMessage::Leave,
         ];
