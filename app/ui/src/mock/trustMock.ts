@@ -9,6 +9,7 @@ import type { TrustCheck, TrustedEntry, TrustStatus } from "@/ipc/trust";
 import { TRUST_CHANGED_EVENT } from "@/ipc/trust";
 import { isRemoteDemo, remoteWorkspace } from "./remoteMock";
 import { mockProjectName } from "./workspaceMock";
+import { collabGuestWorkspace, isCollabGuestDemo, isCollabJoinDemo, JOIN_DEMO_ROOT } from "./collabGuestMock";
 
 const demoRoot = `~/Projects/${mockProjectName}`;
 
@@ -36,16 +37,23 @@ function check(path: string): TrustCheck {
 /** The open project's folder as the trust store sees it. */
 function openRoot(): string {
   if (isRemoteDemo()) return remoteWorkspace().root;
+  if (isCollabJoinDemo()) return JOIN_DEMO_ROOT;
   return opened ?? demoRoot;
 }
 
 function status(): TrustStatus {
+  // A Code With Me guest is always in Safe Mode and has nothing to trust (like Rust).
+  if (isCollabGuestDemo()) {
+    const root = collabGuestWorkspace().root;
+    return { project: root, display: root, trusted: false, safeMode: true, remote: true, guest: true };
+  }
   const c = check(openRoot());
-  return { ...c, safeMode: !c.trusted, remote: isRemoteDemo() };
+  return { ...c, safeMode: !c.trusted, remote: isRemoteDemo(), guest: false };
 }
 
 /** The open demo project is in Safe Mode (read by the run mocks). */
-export const mockSafeMode = (): boolean => !check(openRoot()).trusted;
+// A guest's shared runs are the host's, which the demo runs here, so they are not refused.
+export const mockSafeMode = (): boolean => !isCollabGuestDemo() && !check(openRoot()).trusted;
 
 const changed = () => emitMock(TRUST_CHANGED_EVENT, status());
 
@@ -60,6 +68,7 @@ function entries(): TrustedEntry[] {
 registerMock("trust_check", ({ path }) => (String(path) === "demo" ? check(demoRoot) : check(String(path))));
 registerMock("trust_status", () => status());
 registerMock("trust_project", ({ path, location }) => {
+  if (!path && isCollabGuestDemo()) throw new Error("The host's project of a Code With Me session cannot be trusted: nothing of it runs on this machine.");
   const target = path ? clean(String(path)) : openRoot();
   if (location) locations.add(clean(String(location)));
   else projects.add(target);

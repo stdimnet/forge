@@ -1,7 +1,7 @@
 /** The open project's trust state (Safe Mode), kept in sync with Rust. */
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { trustApi, type TrustStatus } from "@/ipc/trust";
-import { workspace } from "@/state/workspace";
+import { onProjectSwitch, workspace } from "@/state/workspace";
 
 const [status, setStatus] = createSignal<TrustStatus | null>(null);
 
@@ -11,9 +11,31 @@ export const trustStatus = status;
 /** The open project is in Safe Mode: nothing of it runs. */
 export const safeMode = (): boolean => !!status()?.safeMode;
 
+/**
+ * The Safe Mode banner and Trust Project… apply: a local or remote project that is not
+ * trusted. A Code With Me guest's window is in Safe Mode too, but there is nothing to trust
+ * there (the host's project runs on the host).
+ */
+export const canTrustProject = (): boolean => {
+  const s = status();
+  return !!s && s.safeMode && !s.trusted && !s.guest;
+};
+
+let generation = 0;
+
 export async function refreshTrust(): Promise<void> {
-  setStatus(workspace() ? await trustApi.status().catch(() => null) : null);
+  // Only the latest answer counts: the previous project's may arrive after the next one's.
+  const mine = ++generation;
+  if (!workspace()) return void setStatus(null);
+  const next = await trustApi.status().catch(() => null);
+  if (mine === generation) setStatus(workspace() ? next : null);
 }
+
+// The previous project's state (its Safe Mode banner) goes with it, before the new one is asked.
+onProjectSwitch(() => {
+  generation++;
+  setStatus(null);
+});
 
 createRoot(() => {
   createEffect(() => {

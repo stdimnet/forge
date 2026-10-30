@@ -21,6 +21,11 @@ export interface TrustStatus extends TrustCheck {
   /** Nothing of the project runs. */
   safeMode: boolean;
   remote: boolean;
+  /**
+   * The host's project of a Code With Me session: always in Safe Mode on this machine and
+   * not trusted from here, so no banner and no Trust Project… (the host runs things).
+   */
+  guest: boolean;
 }
 
 /** An entry of Settings | Build, Execution, Deployment | Trusted Locations. */

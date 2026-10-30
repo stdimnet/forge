@@ -12,11 +12,11 @@ import { registerCommand } from "@/state/commands";
 import { setTrustPrompt, type TrustDecision } from "@/state/workspace";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { askTrust } from "./TrustDialog";
-import { refreshTrust, safeMode, trustStatus } from "./store";
+import { canTrustProject, refreshTrust, safeMode, trustStatus } from "./store";
 import { TrustedLocationsPage } from "./TrustedLocationsPage";
 import "./trust.css";
 
-export { safeMode, trustStatus };
+export { canTrustProject, safeMode, trustStatus };
 
 async function decide(check: Parameters<typeof askTrust>[0], path?: string): Promise<TrustDecision> {
   const answer = await askTrust(check, "open");
@@ -48,7 +48,7 @@ setTrustPrompt({
 /** "Trust Project…" in the banner: trust the open project (and maybe its folder). */
 export async function trustOpenProject(): Promise<void> {
   const status = trustStatus();
-  if (!status || status.trusted) return;
+  if (!status || !canTrustProject()) return;
   const answer = await askTrust(status, "trust");
   if (answer.decision !== "trust") return;
   try {
@@ -70,7 +70,7 @@ registerCommand({
 /** The banner above the editors while the project is in Safe Mode. */
 export function SafeModeBanner() {
   return (
-    <Show when={safeMode()}>
+    <Show when={canTrustProject()}>
       <div class="safe-mode-banner" role="status" data-testid="safe-mode-banner">
         <ShieldAlert size={14} class="safe-mode-banner-icon" />
         <span class="safe-mode-banner-text">
