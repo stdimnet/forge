@@ -3,12 +3,15 @@
  * the guest's backend tries again with backoff (`forge_collab::reconnect`). This module shows
  * it: a balloon "Connection to <host> lost" with **Leave Session** that stays while Forge is
  * "Reconnecting…", the status item's state, and, once the connection is back, the shared
- * documents brought up to date (edits made meanwhile are sent then). When reconnecting gives
- * up, the session ends with the backend's message (`collab://ended`).
+ * documents brought up to date (edits made meanwhile are sent then) and the views that follow
+ * file changes caught up (`catchUpAfterResume`). When reconnecting gives up, the session ends
+ * with the backend's message (`collab://ended`).
  */
 import { createEffect, createRoot, on } from "solid-js";
 import { collabApi, type ConnectionState } from "@/ipc/collab";
 import { dismissBalloon, showBalloon } from "@/keymap";
+import { dispatchFsChanges, type FsChanges } from "@/state/fsWatch";
+import { refreshTree } from "@/features/project/ProjectView";
 import { resyncAll } from "./docs";
 import { isGuest, session } from "./store";
 
@@ -19,6 +22,20 @@ export function connectionLabel(c: ConnectionState | undefined): string | null {
 }
 
 export const isReconnecting = (): boolean => isGuest() && session().connection?.state === "reconnecting";
+
+/**
+ * After a resume: the host sends the file changes it saw while the guest was away
+ * (`FsChanged`), but changes queued on the dead connection before the host noticed the drop are
+ * lost. So every folder the Project view has listed is read again (expansion and selection
+ * stay), and the views that follow file events (Git status, Find, bookmarks, …) refresh as
+ * after "Synchronize".
+ */
+export function catchUpAfterResume(
+  views: { refreshTree: () => void; dispatch: (c: FsChanges) => void } = { refreshTree, dispatch: dispatchFsChanges },
+): void {
+  views.refreshTree();
+  views.dispatch({ changed: [], removed: [], git: true });
+}
 
 let balloon: number | undefined;
 
@@ -33,7 +50,9 @@ export function trackReconnects(): void {
   if (tracking) return;
   tracking = true;
   void collabApi.onResumed(() => {
-    if (isGuest()) void resyncAll();
+    if (!isGuest()) return;
+    void resyncAll();
+    catchUpAfterResume();
   });
   createRoot(() => {
     createEffect(
