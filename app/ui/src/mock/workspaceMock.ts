@@ -14,7 +14,7 @@ import {
   remoteWorkspace,
   setRemoteProjectFiles,
 } from "./remoteMock";
-import { collabGuestWorkspace, hiddenFromGuest, isCollabGuestDemo } from "./collabGuestMock";
+import { collabGuestWorkspace, hiddenFromGuest, isCollabGuestDemo, isCollabJoinDemo, JOIN_DEMO_ROOT } from "./collabGuestMock";
 import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
@@ -165,6 +165,7 @@ registerMock("workspace_recent", () =>
 );
 registerMock("workspace_open", () => {
   if (isCollabGuestDemo()) return collabGuestWorkspace();
+  if (isCollabJoinDemo()) return { name: "legacy-crm", root: JOIN_DEMO_ROOT };
   if (isRemoteDemo()) return adoptRemoteProject(remoteWorkspace());
   closeRemoteProject();
   return { name: openName, root: `~/Projects/${openName}` };

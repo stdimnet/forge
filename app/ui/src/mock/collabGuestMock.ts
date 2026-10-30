@@ -24,8 +24,20 @@ import { setSetting } from "./settingsMock";
 
 const params = () => new URLSearchParams(typeof location === "undefined" ? "" : location.search);
 
-/** `?project=cwm-guest`: the window is a guest of a demo session. */
-export const isCollabGuestDemo = (): boolean => params().get("project") === "cwm-guest";
+/**
+ * `?project=cwm-join`: the window starts with its own project `~/Downloads/legacy-crm` open
+ * in Safe Mode; Tools | Code With Me | Join Session… (any link) joins the demo session, and
+ * the window gets the host's project. With `&welcome` it starts on the Welcome screen.
+ */
+export const isCollabJoinDemo = (): boolean => params().get("project") === "cwm-join";
+
+/** The `?project=cwm-join` window's own project. */
+export const JOIN_DEMO_ROOT = "~/Downloads/legacy-crm";
+
+let joined = params().get("project") === "cwm-guest";
+
+/** `?project=cwm-guest` (or `cwm-join` after joining): the window is a guest of a demo session. */
+export const isCollabGuestDemo = (): boolean => joined;
 
 /** Secret files the host does not share (a subset of `forge_collab::excludes::DEFAULT_PATTERNS`). */
 const HIDDEN = [/(^|\/)\.env(\.(?!example$|dist$)[^/]*)?$/, /\.(pem|key|p12|pfx|kdbx)$/, /(^|\/)(id_rsa|id_ed25519)[^/]*$/, /(^|\/)auth\.json$/, /(^|\/)\.(npmrc|pypirc|netrc)$/];
@@ -102,11 +114,17 @@ function view(): SessionView {
   };
 }
 
-if (isCollabGuestDemo()) {
+if (isCollabGuestDemo() || isCollabJoinDemo()) {
   // The framework balloon would cover screenshots; announce only when asked.
   if (!params().has("announce")) setSetting("project.announcedFrameworks", [`${collabGuestWorkspace().root}#laravel`], "user");
-  let joined = true;
   registerMock("collab_status", () => (joined ? view() : idle));
+  registerMock("collab_join", async ({ link }) => {
+    if (joined) throw new Error("A Code With Me session is already running.");
+    await invoke("collab_parse_link", { link });
+    joined = true;
+    emitMock("collab://status", view());
+    return view();
+  });
   registerMock("collab_ping", () => 23);
   if (!params().has("follow")) setSetting("codeWithMe.followHostOnJoin", false, "user");
   // The host's files as shared documents (following the host opens them), read-only here.

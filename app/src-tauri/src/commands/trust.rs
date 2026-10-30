@@ -14,6 +14,9 @@ use crate::state::AppState;
 /// changes.
 pub const TRUST_CHANGED_EVENT: &str = "trust://changed";
 
+const GUEST_CANNOT_TRUST: &str =
+    "The host's project of a Code With Me session cannot be trusted: nothing of it runs on this machine.";
+
 /// The open project's trust state.
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -23,6 +26,9 @@ pub struct TrustStatus {
     /// Nothing of the project runs (it is not trusted).
     pub safe_mode: bool,
     pub remote: bool,
+    /// The project is the host's in a Code With Me session: it is always in Safe Mode here
+    /// and cannot be trusted from this window (no banner, no Trust Project…).
+    pub guest: bool,
 }
 
 /// An entry of the Trusted Locations page.
@@ -36,11 +42,19 @@ pub struct TrustedEntry {
 }
 
 fn status(state: &AppState) -> Option<TrustStatus> {
-    let key = state.project_trust_key()?;
-    let check = state.trust_store().check(&key);
+    let info = state.project_info()?;
+    let guest = info.collab.is_some();
+    let mut check = state.trust_store().check(&crate::state::trust_key(&info));
+    if guest {
+        check.trusted = false;
+        check.reason = None;
+        check.parent = None;
+        check.parent_display = None;
+    }
     Some(TrustStatus {
         safe_mode: state.safe_mode.is_on(),
         remote: state.is_remote(),
+        guest,
         check,
     })
 }
@@ -105,9 +119,14 @@ pub fn trust_project(
 ) -> Result<TrustCheck> {
     let key = match path.filter(|p| !p.trim().is_empty()) {
         Some(p) => forge_trust::local_key(std::path::Path::new(&p)),
-        None => state
-            .project_trust_key()
-            .ok_or_else(|| ForgeError::Other("no project is open".into()))?,
+        None => {
+            if state.project_info().is_some_and(|i| i.collab.is_some()) {
+                return Err(ForgeError::Other(GUEST_CANNOT_TRUST.into()));
+            }
+            state
+                .project_trust_key()
+                .ok_or_else(|| ForgeError::Other("no project is open".into()))?
+        }
     };
     let mut store = state.trust_store();
     match location.filter(|l| !l.trim().is_empty()) {

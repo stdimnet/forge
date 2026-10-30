@@ -6,6 +6,7 @@ import { searchApi } from "@/ipc/search";
 import { getSetting } from "@/state/settings";
 import { showSearchTab } from "@/features/codeintel/usages";
 import { onFsChanged } from "@/state/fsWatch";
+import { onProjectSwitch } from "@/state/workspace";
 import type { ScopeFilter } from "@/ipc/scopes";
 
 /** Stands in for "no limit" in the request. */
@@ -74,6 +75,13 @@ export const [collapsedFiles, setCollapsedFiles] = createSignal<Set<string>>(new
 
 /** Project files changed after the shown result was searched; searching again refreshes it. */
 export const [resultsStale, setResultsStale] = createSignal(false);
+
+// Results of another project's search are not shown for this one.
+onProjectSwitch(() => {
+  setFindResults(empty);
+  setCollapsedFiles(new Set<string>());
+  setResultsStale(false);
+});
 
 onFsChanged((c) => {
   const r = findResults();

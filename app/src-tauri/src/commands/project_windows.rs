@@ -334,19 +334,34 @@ pub async fn project_window_open(app: AppHandle, path: String) -> Result<()> {
             }
             return focus_other(&open.id);
         }
-        let mut child = std::process::Command::new(own_program()?)
-            .arg(&canonical)
-            .env(NEW_WINDOW_ENV, "1")
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
-            .map_err(|e| ForgeError::Other(format!("cannot open a new window: {e}")))?;
-        // Reap the instance when it exits (it outlives this one if this window closes first).
-        std::thread::spawn(move || {
-            let _ = child.wait();
-        });
-        Ok(())
+        spawn_window(Some(&canonical))
     })
     .await
+}
+
+/// File | New Window: another Forge instance on the Welcome screen (no project, the last
+/// one is not reopened), e.g. to join a Code With Me session next to the open project.
+#[tauri::command]
+pub async fn project_window_new() -> Result<()> {
+    blocking(|| spawn_window(None)).await
+}
+
+/// Start another instance as an additional project window, with `project` or without one.
+fn spawn_window(project: Option<&std::path::Path>) -> Result<()> {
+    let mut command = std::process::Command::new(own_program()?);
+    if let Some(project) = project {
+        command.arg(project);
+    }
+    let mut child = command
+        .env(NEW_WINDOW_ENV, "1")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| ForgeError::Other(format!("cannot open a new window: {e}")))?;
+    // Reap the instance when it exits (it outlives this one if this window closes first).
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
 }

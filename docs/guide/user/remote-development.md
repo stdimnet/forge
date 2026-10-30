@@ -24,7 +24,7 @@ Nothing needs to be installed on the host in advance: Forge uploads the agent it
 The same agent also runs **in a dev container** (over `docker exec`) and **in a WSL
 distribution** (over `wsl.exe`); see [Dev Containers and WSL](dev-containers-and-wsl.md). The
 Welcome screen's Remote Development section has a page for each: **SSH**, **Dev Containers** and
-**WSL**.
+**WSL**. Its **Code With Me** page joins a [Code With Me](code-with-me.md#joining-a-session) session.
 
 ## Connecting
 

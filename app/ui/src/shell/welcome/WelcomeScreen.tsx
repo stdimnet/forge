@@ -11,17 +11,19 @@ import {
   Settings,
   SlidersHorizontal,
   SquareTerminal,
+  Users,
 } from "lucide-solid";
 import { workspaceApi, type RecentProject } from "@/ipc/workspace";
 import { openWorkspace, pickAndOpenWorkspace } from "@/state/workspace";
 import { runCommand } from "@/state/commands";
-import { frameworkLabel } from "@/state/project";
+import { frameworkLabel, isPluginActive } from "@/state/project";
 import { ProjectTypeIcon } from "@/shell/ProjectTypeIcon";
 import { RemoteDevelopmentPage, SshBadge } from "@/features/remote/RemoteDevelopmentPage";
 import { action, separator, showContextMenu } from "@/features/contextMenu/state";
 import { openRecentRemote } from "@/features/remote/store";
 import { DevContainersPage } from "@/features/devenv/DevContainersPage";
 import { WslPage } from "@/features/devenv/WslPage";
+import { CodeWithMeWelcomePage } from "@/features/code-with-me/WelcomePage";
 import "./welcome.css";
 
 /** Badge color derived from the project name so each project keeps its color. */
@@ -78,12 +80,12 @@ function ProjectRow(props: { project: RecentProject; onError: (message: string) 
   );
 }
 
-type WelcomePage = "projects" | "remote" | "devcontainers" | "wsl";
+type WelcomePage = "projects" | "remote" | "devcontainers" | "wsl" | "codewithme";
 
-/** `?welcome=remote|devcontainers|wsl` opens a Remote Development page (screenshots). */
+/** `?welcome=remote|devcontainers|wsl|codewithme` opens a Remote Development page (screenshots). */
 function initialPage(): WelcomePage {
   const p = new URLSearchParams(location.search).get("welcome");
-  return p === "remote" || p === "devcontainers" || p === "wsl" ? p : "projects";
+  return p === "remote" || p === "devcontainers" || p === "wsl" || p === "codewithme" ? p : "projects";
 }
 
 const isRemotePage = (p: WelcomePage) => p !== "projects";
@@ -147,6 +149,16 @@ export function WelcomeScreen() {
           >
             <SquareTerminal size={14} /> WSL
           </button>
+          <Show when={isPluginActive("forge.codewithme")}>
+            <button
+              class="welcome-nav-item welcome-nav-sub"
+              classList={{ active: page() === "codewithme" }}
+              onClick={() => setPage("codewithme")}
+              data-testid="welcome-nav-codewithme"
+            >
+              <Users size={14} /> Code With Me
+            </button>
+          </Show>
         </Show>
         <button class="welcome-nav-item" onClick={() => runCommand("settings.open")}>
           <SlidersHorizontal size={15} /> Customize
@@ -188,6 +200,9 @@ export function WelcomeScreen() {
           </Match>
           <Match when={page() === "devcontainers"}>
             <DevContainersPage onError={setError} />
+          </Match>
+          <Match when={page() === "codewithme"}>
+            <CodeWithMeWelcomePage />
           </Match>
           <Match when={page() === "wsl"}>
             <WslPage recent={recent() ?? []} row={row} onError={setError} />

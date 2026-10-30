@@ -1490,6 +1490,7 @@ cache directory (see [File locations](docs/guide/reference/file-locations.md)).
 
 | Action | Shortcut | What it does |
 | --- | --- | --- |
+| File \| New Window | — | opens another window on the Welcome screen, e.g. to open a project from there or to join a [Code With Me](docs/guide/user/code-with-me.md#joining-a-session) session next to the open project |
 | Window \| Next Project Window | `Ctrl+Alt+]` (macOS ``Cmd+` ``) | brings the next project window to the front |
 | Window \| Previous Project Window | `Ctrl+Alt+[` (macOS ``Cmd+Shift+` ``) | the previous one |
 | Window \| *project name* | — | the end of the Window menu lists every project window; the current one is checked |
@@ -16217,6 +16218,11 @@ both for an untrusted folder, and the project in the container is trusted with i
 WSL project is trusted by its `\\wsl.localhost\<distro>\…` path. See
 [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md).
 
+A [Code With Me](docs/guide/user/code-with-me.md#joining-a-session) guest's window is always in Safe Mode, but
+shows no banner and offers no **Trust Project…**: the host's project is not on this machine and
+nothing of it runs here. Its trust is the host's decision. Leaving the session ends Safe Mode
+with the project.
+
 ## Browser mode
 
 The demo projects of browser mode live in `~/Projects`, a trusted location, so they open
@@ -19277,7 +19283,7 @@ Nothing needs to be installed on the host in advance: Forge uploads the agent it
 The same agent also runs **in a dev container** (over `docker exec`) and **in a WSL
 distribution** (over `wsl.exe`); see [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md). The
 Welcome screen's Remote Development section has a page for each: **SSH**, **Dev Containers** and
-**WSL**.
+**WSL**. Its **Code With Me** page joins a [Code With Me](docs/guide/user/code-with-me.md#joining-a-session) session.
 
 ## Connecting
 
@@ -19640,7 +19646,8 @@ If you close the balloon without answering, the request stays open until it time
 ## Joining a session
 
 1. Click the link (`forge://cwm/join?…`), or choose **Tools | Code With Me | Join Session…**
-   and paste it into **Session link**.
+   and paste it into **Session link**. Without a project open, the Welcome screen has the same
+   action under **Remote Development | Code With Me | Join Session…**.
 2. The dialog shows where the link leads before anything connects: the **Host** and its
    **Machine** as the link names them, the **Connection** (direct, or through the host's relay
    server) and the name you **Join as** (**Change…** opens Settings | Tools | Code With Me). If a
@@ -19650,7 +19657,21 @@ If you close the balloon without answering, the request stays open until it time
    not answer, the dialog says so and offers **Try Again**.
 4. When the host accepts, the host's project opens in your window and you follow the host. The
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
-   ends it for you.
+   ends it for you, and the window returns to the Welcome screen.
+
+![Joining from the Welcome screen](docs/screenshots/code-with-me-welcome.png)
+
+The host's project replaces the project the window had open. Everything the window showed of
+that project goes with it: the Project tree shows the host's files right away, and the
+problems, Find and Inspection Results tabs and the Safe Mode banner of your own project are
+gone. To keep your project open, join from another window: **File | New Window** opens one on
+the Welcome screen.
+
+![The host's project after joining](docs/screenshots/code-with-me-join-joined.png)
+
+A guest's window is always in Safe Mode, without the banner and without **Trust Project…**:
+nothing of the host's project runs on your machine. Terminals and runs the host shares run on
+the host (see [Terminal and Run](#terminal-and-run)).
 
 ![Join Session dialog](docs/screenshots/code-with-me-join-dialog.png)
 
