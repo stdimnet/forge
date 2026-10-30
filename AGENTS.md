@@ -121,8 +121,9 @@ Use the matching skill in `.claude/skills/<name>/SKILL.md` before starting a tas
   `docs/llms.txt` when you add or rename an important page.
 - Tests must not need network access, installed language servers or real code-host accounts.
   Use fakes and local mock servers.
-- With several git worktrees, give each its own `CARGO_TARGET_DIR`. Set
-  `CARGO_PROFILE_DEV_DEBUG=0` to save disk space.
+- With several git worktrees, give each its own `CARGO_TARGET_DIR`. Don't override the dev
+  profile (`CARGO_PROFILE_DEV_*`): `Cargo.toml` already keeps debug info small, and a second
+  profile duplicates every artifact in `target/`.
 
 ### Git
 - Branch names describe the work: `feat/…`, `fix/…`, `docs/…`, `chore/…`.

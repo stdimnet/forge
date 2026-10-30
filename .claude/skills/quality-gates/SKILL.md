@@ -16,7 +16,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-- To save disk space and time: `export CARGO_PROFILE_DEV_DEBUG=0`.
+- Don't set `CARGO_PROFILE_DEV_DEBUG`: the dev profile already keeps debug info small, and a
+  second profile duplicates every artifact in `target/`.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`. A target dir shared
   between worktrees can return stale builds of workspace crates.
 - If you changed plugin manifests, run `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
