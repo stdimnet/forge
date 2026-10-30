@@ -219,6 +219,7 @@ pub fn run() {
             commands::project_windows::project_window_focus,
             commands::project_windows::project_window_cycle,
             commands::project_windows::project_window_open,
+            commands::project_windows::project_window_new,
             commands::project_state::agent_history_list,
             commands::project_state::agent_history_load,
             commands::project_state::agent_history_save,

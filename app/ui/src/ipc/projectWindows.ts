@@ -22,4 +22,6 @@ export const projectWindowsApi = {
   cycle: (delta: 1 | -1) => invoke<ProjectWindowInfo | null>("project_window_cycle", { delta }),
   /** Open a local project in a new window (or focus the window that has it open). */
   open: (path: string) => invoke<void>("project_window_open", { path }),
+  /** File | New Window: a new window on the Welcome screen. */
+  openEmpty: () => invoke<void>("project_window_new"),
 };
