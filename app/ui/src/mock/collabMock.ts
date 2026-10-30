@@ -557,6 +557,8 @@ async function join(name: string): Promise<SessionView> {
         clearTimeout(quiet);
         emitMock("collab://waiting", { host: HOST_NAME, code: MOCK_CODE });
       };
+      // `?cwmHostWaits`: act as if a host page asks its user and never answers (screenshots).
+      if (new URLSearchParams(location.search).has("cwmHostWaits")) waitingForUser();
     });
     role = "guest";
     me = Number(welcome.you);

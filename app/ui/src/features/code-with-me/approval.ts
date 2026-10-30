@@ -7,6 +7,7 @@
 import { showBalloon, dismissBalloon } from "@/keymap";
 import { collabApi, type JoinRequest, type PermissionLevel } from "@/ipc/collab";
 import { LEVEL_NAMES } from "./guest";
+import { joinDialogOpen, showJoinWaiting } from "./JoinSession";
 
 const message = (e: unknown) => String((e as Error)?.message ?? e);
 
@@ -78,5 +79,6 @@ export function trackApprovals(): void {
   tracking = true;
   void collabApi.onJoinRequest(showJoinRequest);
   void collabApi.onJoinClosed(({ id }) => close(id));
-  void collabApi.onWaiting((w) => showWaiting(w.host, w.code));
+  // The Join Session dialog shows the code itself; a join from a link elsewhere gets the balloon.
+  void collabApi.onWaiting((w) => (joinDialogOpen() ? showJoinWaiting(w.host, w.code) : showWaiting(w.host, w.code)));
 }

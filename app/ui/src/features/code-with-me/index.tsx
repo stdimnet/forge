@@ -9,7 +9,7 @@ import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { openSettings } from "@/features/settings/dialogState";
-import { askConfirm, askName } from "@/features/contextMenu/dialogs";
+import { askConfirm } from "@/features/contextMenu/dialogs";
 import { registerCommand } from "@/state/commands";
 import { getSetting } from "@/state/settings";
 import { registerKeymapActions } from "@/keymap/store";
@@ -39,6 +39,7 @@ import type { Participant } from "@/ipc/collab";
 import { activeTab as activeTerminalTab, tabs as terminalTabs } from "@/features/terminal/store";
 import { setTerminalShared, trackTerminalsAndRuns } from "./terminalsRuns";
 import { trackReconnects } from "./reconnect";
+import { openJoinDialog } from "./JoinSession";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -90,23 +91,13 @@ async function endSession(): Promise<void> {
   await refreshSession();
 }
 
-const LINK = /^(forge:\/\/cwm\/join\?|cwm1:)/;
-
+/** Join Session…: the dialog with the host's name, machine and the verification code. */
 async function joinSession(): Promise<void> {
   setPopupOpen(false);
   if (isHost() || isGuest()) return void showBalloon("Code With Me", "A session is already running.");
-  const link = await askName({
-    title: "Join Session",
-    label: "Session link",
-    initial: "",
-    confirm: "Join",
-    validate: (v) => (LINK.test(v) ? null : "Paste the link from the host (forge://cwm/join?… or cwm1:…)"),
-  });
-  if (!link) return;
   try {
-    applySession(await collabApi.join(link));
-  } catch (e) {
-    if (message(e) !== "Cancelled.") showBalloon("Cannot join the session", message(e), 8000);
+    const s = await openJoinDialog();
+    if (s) applySession(s);
   } finally {
     hideWaiting();
   }

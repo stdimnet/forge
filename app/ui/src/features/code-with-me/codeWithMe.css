@@ -511,3 +511,66 @@
 .cwm-participant-reconnecting {
   color: var(--warning);
 }
+
+/* Join Session dialog. */
+.cwm-join-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 12px 0 0;
+}
+.cwm-join-grid dt {
+  color: var(--fg-muted);
+}
+.cwm-join-grid dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.cwm-join-grid dd svg {
+  color: var(--collab-1);
+  flex: none;
+}
+.cwm-join-grid .link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+.cwm-join-grid .link-btn:hover {
+  text-decoration: underline;
+}
+.cwm-join-note {
+  margin-top: 10px;
+  font-size: var(--fs-small);
+}
+.cwm-join-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+.cwm-join-headline {
+  font-weight: 600;
+}
+.cwm-join-code-label {
+  margin-top: 6px;
+  font-size: var(--fs-small);
+}
+.cwm-join-code {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  letter-spacing: 0.12em;
+  color: var(--fg);
+}
+.cwm-join-hint {
+  max-width: 380px;
+  font-size: var(--fs-small);
+}
