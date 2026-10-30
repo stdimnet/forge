@@ -4,7 +4,8 @@
 //!
 //! Events:
 //! - `collab://status` [`SessionView`] whenever the session changes;
-//! - `collab://doc` [`DocEvent`] for remote edits, carets, saves, renames and closes;
+//! - `collab://doc` [`DocEvent`] for remote edits, carets, saves, renames, closes and File
+//!   Cache Conflicts (answered with `collab_doc_resolve_conflict`);
 //! - `collab://notice` `{ text }` (someone joined or left, a disk conflict);
 //! - `collab://presence` [`ParticipantPresence`] when another participant moved (file,
 //!   caret, viewport, whom it follows);
@@ -43,6 +44,7 @@ use base64::Engine;
 use forge_backend::Backend;
 use forge_collab::approval::{ApprovalEvent, Approvals};
 use forge_collab::audit::{LogLine, SessionLog};
+use forge_collab::docs::Resolution;
 use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::guest_backend::lsp_host::{LspServices, ManagerSource};
@@ -385,6 +387,24 @@ pub struct DocEvent {
     pub renamed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closed: Option<String>,
+    /// A File Cache Conflict opened or ended ([`DocConflict`]).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conflict: Option<DocConflict>,
+    /// Host: the guest whose edit `update` is (absent for changes from disk); the editor
+    /// marks the lines guests changed until the next save.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from: Option<ParticipantId>,
+}
+
+/// The shared file changed on the host's disk while it has unsaved changes. The host answers
+/// with `collab_doc_resolve_conflict`; guests cannot save until then.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocConflict {
+    /// Open (`true`) or over.
+    pub open: bool,
+    /// The file (project-relative); empty for guests, whose tab knows it.
+    pub path: String,
 }
 
 fn doc_event(app: &AppHandle, doc: DocId, fill: impl FnOnce(&mut DocEvent)) {
@@ -399,15 +419,26 @@ fn doc_event(app: &AppHandle, doc: DocId, fill: impl FnOnce(&mut DocEvent)) {
 fn on_host_event(app: &AppHandle, e: HostEvent) {
     match e {
         HostEvent::Changed => emit_status(app),
-        HostEvent::DocUpdate { doc, update } => {
-            doc_event(app, doc, |e| e.update = Some(B64.encode(update)))
-        }
+        HostEvent::DocUpdate { doc, update, from } => doc_event(app, doc, |e| {
+            e.update = Some(B64.encode(update));
+            e.from = from;
+        }),
         HostEvent::Awareness { doc, update } => {
             doc_event(app, doc, |e| e.awareness = Some(B64.encode(update)))
         }
         HostEvent::DocSaved { doc, saved } => doc_event(app, doc, |e| e.saved = Some(saved)),
         HostEvent::DocRenamed { doc, path } => doc_event(app, doc, |e| e.renamed = Some(path)),
         HostEvent::DocClosed { doc, reason } => doc_event(app, doc, |e| e.closed = Some(reason)),
+        HostEvent::DocConflict {
+            doc,
+            path,
+            conflict,
+        } => doc_event(app, doc, |e| {
+            e.conflict = Some(DocConflict {
+                open: conflict,
+                path,
+            })
+        }),
         HostEvent::Notice(text) => emit(app, NOTICE_EVENT, json!({ "text": text })),
         HostEvent::Presence {
             participant,
@@ -435,6 +466,12 @@ fn on_guest_event(app: &AppHandle, e: GuestEvent) {
         GuestEvent::DocSaved { doc, saved } => doc_event(app, doc, |e| e.saved = Some(saved)),
         GuestEvent::DocRenamed { doc, path } => doc_event(app, doc, |e| e.renamed = Some(path)),
         GuestEvent::DocClosed { doc, reason } => doc_event(app, doc, |e| e.closed = Some(reason)),
+        GuestEvent::DocConflict { doc, conflict } => doc_event(app, doc, |e| {
+            e.conflict = Some(DocConflict {
+                open: conflict,
+                path: String::new(),
+            })
+        }),
         GuestEvent::Denied(text) => emit(app, NOTICE_EVENT, json!({ "text": text })),
         GuestEvent::Presence {
             participant,
@@ -966,7 +1003,7 @@ pub async fn collab_leave(app: AppHandle) -> Result<()> {
 
 /// Open a shared document: `content` is the host's editor text for a tab that is already
 /// open. The reply is raw bytes: a big-endian `u32` length, a JSON header
-/// `{ docId, path, saved, readOnly }` and the document as one Yjs update.
+/// `{ docId, path, saved, readOnly, conflict }` and the document as one Yjs update.
 #[tauri::command]
 pub async fn collab_doc_open(
     path: String,
@@ -986,6 +1023,7 @@ pub async fn collab_doc_open(
         "path": opened.path,
         "saved": opened.saved,
         "readOnly": opened.read_only,
+        "conflict": opened.conflict,
     }))
     .map_err(other)?;
     let mut out = Vec::with_capacity(4 + header.len() + opened.update.len());
@@ -1046,7 +1084,8 @@ pub fn collab_follow_everyone(on: bool, app: AppHandle) -> Result<SessionView> {
 
 /// Bring a shared document up to date after the connection to the host was restored
 /// (guest). `state_vector` is the UI replica's (Yjs v1, base64). The reply is raw bytes like
-/// [`collab_doc_open`]'s: a JSON header `{ docId, path, saved, readOnly, stateVector }`
+/// [`collab_doc_open`]'s: a JSON header `{ docId, path, saved, readOnly, conflict,
+/// stateVector }`
 /// (the host's state vector, base64) and the update the replica is missing.
 #[tauri::command]
 pub async fn collab_doc_sync(
@@ -1064,6 +1103,7 @@ pub async fn collab_doc_sync(
         "path": synced.path,
         "saved": synced.saved,
         "readOnly": synced.read_only,
+        "conflict": synced.conflict,
         "stateVector": B64.encode(&synced.state_vector),
     }))
     .map_err(other)?;
@@ -1094,6 +1134,20 @@ pub async fn collab_doc_save(doc_id: u64, app: AppHandle) -> Result<()> {
     } else {
         Err(other("No session is running."))
     }
+}
+
+/// The host's answer to a File Cache Conflict (`collab://doc` with `conflict`): `load` takes
+/// the file system's text (Load File System Changes), otherwise the shared document keeps its
+/// text and stays unsaved (Keep Memory Changes).
+#[tauri::command]
+pub fn collab_doc_resolve_conflict(doc_id: u64, load: bool, app: AppHandle) -> Result<()> {
+    let host = running_host(&app.state::<CollabState>())?;
+    let how = if load {
+        Resolution::LoadFileSystem
+    } else {
+        Resolution::KeepMemory
+    };
+    host.resolve_conflict(DocId(doc_id), how).map_err(other)
 }
 
 // ---- language servers for guests -------------------------------------------------------

@@ -25,7 +25,7 @@ use serde_bytes::ByteBuf;
 use tokio::sync::mpsc;
 
 use crate::audit::{short_peer, AuditEvent, FileAction, KnockOutcome, SharedAudit};
-use crate::docs::{with_eol, DiskChange, SharedDoc};
+use crate::docs::{with_eol, DiskChange, Resolution, SharedDoc};
 use crate::excludes::Excludes;
 use crate::link::{SessionLink, JOIN_SECRET_LEN, SESSION_ID_LEN};
 use crate::permissions::{Permissions, Policy};
@@ -88,6 +88,9 @@ pub enum HostEvent {
     DocUpdate {
         doc: DocId,
         update: Vec<u8>,
+        /// The guest whose edit this is; `None` for changes from disk (the host's editor
+        /// marks the lines guests changed until the next save).
+        from: Option<ParticipantId>,
     },
     Awareness {
         doc: DocId,
@@ -104,6 +107,14 @@ pub enum HostEvent {
     DocClosed {
         doc: DocId,
         reason: String,
+    },
+    /// A File Cache Conflict opened (`conflict`) or is over: the file changed on disk while
+    /// the document has unsaved changes. The host's user answers it with
+    /// [`HostSession::resolve_conflict`]; until then guests cannot save it.
+    DocConflict {
+        doc: DocId,
+        path: String,
+        conflict: bool,
     },
     /// Where a guest is now (the host sees every file).
     Presence {
@@ -175,6 +186,8 @@ pub struct DocOpened {
     pub update: Vec<u8>,
     pub saved: SaveState,
     pub read_only: bool,
+    /// A File Cache Conflict is open.
+    pub conflict: bool,
 }
 
 struct Guest {
@@ -572,6 +585,19 @@ impl HostSession {
         self.deliver(out);
     }
 
+    /// Messages queued for the slowest connected guest (the backlog). A guest whose queue
+    /// fills up ([`GUEST_QUEUE`] messages) is cut off, so this never grows without bound; the
+    /// stress test asserts it stays far below that.
+    pub fn backlog(&self) -> usize {
+        self.state()
+            .guests
+            .values()
+            .filter(|g| !g.tx.is_closed())
+            .map(|g| g.tx.max_capacity() - g.tx.capacity())
+            .max()
+            .unwrap_or(0)
+    }
+
     /// Files guests can open.
     pub fn shared_files(&self) -> Vec<SharedFile> {
         shared_files(&self.state())
@@ -680,26 +706,13 @@ impl HostSession {
                 return Err("the file is no longer shared".into());
             };
             let recipients = recipients(guests, d, None);
-            let host_has_it = d.open_by.contains(&ParticipantId::HOST);
             let d = st.docs.get_mut(&doc).expect("checked");
+            // Saving during a File Cache Conflict keeps the memory changes (the host's Save;
+            // guests cannot save then).
+            let settled = d.has_conflict();
             d.mark_saved(text);
-            let saved = d.save_state();
-            for tx in recipients {
-                out.guests.push((
-                    tx,
-                    HostMessage::DocSaved {
-                        doc,
-                        saved: saved.clone(),
-                    },
-                ));
-            }
-            if host_has_it {
-                out.events.push(HostEvent::DocSaved {
-                    doc,
-                    saved: saved.clone(),
-                });
-            }
-            saved
+            announce(d, recipients, None, true, settled, &mut out);
+            d.save_state()
         };
         self.deliver(out);
         Ok(saved)
@@ -738,40 +751,39 @@ impl HostSession {
             let guests = &st.guests;
             let Some(d) = st.docs.get(&doc) else { return };
             let all = recipients(guests, d, None);
-            let host_has_it = d.open_by.contains(&ParticipantId::HOST);
-            let name = d.path.rsplit('/').next().unwrap_or(&d.path).to_string();
             let d = st.docs.get_mut(&doc).expect("checked");
-            match d.apply_disk(disk) {
-                DiskChange::Unchanged => return,
-                DiskChange::Conflict => out.events.push(HostEvent::Notice(format!(
-                    "{name} changed on disk. The unsaved shared changes are kept."
-                ))),
+            let had_conflict = d.has_conflict();
+            let change = d.apply_disk(disk);
+            let conflict = had_conflict != d.has_conflict();
+            match change {
                 DiskChange::Applied(update) => {
-                    let saved = d.save_state();
-                    for tx in all {
-                        out.guests.push((
-                            tx.clone(),
-                            HostMessage::DocUpdate {
-                                doc,
-                                update: ByteBuf::from(update.clone()),
-                            },
-                        ));
-                        out.guests.push((
-                            tx,
-                            HostMessage::DocSaved {
-                                doc,
-                                saved: saved.clone(),
-                            },
-                        ));
-                    }
-                    if host_has_it {
-                        out.events.push(HostEvent::DocUpdate { doc, update });
-                        out.events.push(HostEvent::DocSaved { doc, saved });
-                    }
+                    announce(d, all, Some(update), true, conflict, &mut out)
                 }
+                DiskChange::Matches => announce(d, all, None, true, conflict, &mut out),
+                DiskChange::Conflict | DiskChange::Unchanged if conflict => {
+                    announce(d, all, None, false, true, &mut out)
+                }
+                DiskChange::Conflict | DiskChange::Unchanged => return,
             }
         }
         self.deliver(out);
+    }
+
+    /// The host's user answered a File Cache Conflict ([`HostEvent::DocConflict`]): Load
+    /// File System Changes or Keep Memory Changes. Everyone gets the result.
+    pub fn resolve_conflict(&self, doc: DocId, how: Resolution) -> Result<(), String> {
+        let mut out = Outbox::default();
+        {
+            let mut st = self.state();
+            let guests = &st.guests;
+            let d = st.docs.get(&doc).ok_or("The file is no longer shared.")?;
+            let all = recipients(guests, d, None);
+            let d = st.docs.get_mut(&doc).expect("checked");
+            let update = d.resolve_conflict(how)?;
+            announce(d, all, update, true, true, &mut out);
+        }
+        self.deliver(out);
+        Ok(())
     }
 
     /// The host renamed or moved a file or folder.
@@ -1286,6 +1298,7 @@ impl HostSession {
                                 update: ByteBuf::from(o.update),
                                 saved: o.saved,
                                 read_only: o.read_only,
+                                conflict: o.conflict,
                             },
                             None => HostMessage::DocError {
                                 request,
@@ -1310,10 +1323,19 @@ impl HostSession {
                     .docs
                     .get(&doc)
                     .is_some_and(|d| d.open_by.contains(&from));
-                let error = if open {
-                    self.save(doc).await.err()
-                } else {
+                let conflict = self.state().docs.get(&doc).and_then(|d| {
+                    d.has_conflict()
+                        .then(|| d.path.rsplit('/').next().unwrap_or(&d.path).to_string())
+                });
+                let error = if !open {
                     Some("The file is not open.".into())
+                } else if let Some(name) = conflict {
+                    Some(format!(
+                        "{name} changed on disk. The host is resolving the conflict; \
+                         save again afterwards."
+                    ))
+                } else {
+                    self.save(doc).await.err()
                 };
                 if error.is_none() {
                     let path = self.state().docs.get(&doc).map(|d| d.path.clone());
@@ -1352,6 +1374,7 @@ impl HostSession {
                                 state_vector: ByteBuf::from(sv),
                                 saved: d.save_state(),
                                 read_only: policy.check_write_path(&d.path).is_err(),
+                                conflict: d.has_conflict(),
                             },
                         },
                     }
@@ -1389,10 +1412,8 @@ impl HostSession {
             }
             let others = recipients(guests, d, Some(from));
             let to_host = from != ParticipantId::HOST && d.open_by.contains(&ParticipantId::HOST);
-            st.docs
-                .get_mut(&doc)
-                .expect("checked")
-                .apply_update(update)?;
+            let d = st.docs.get_mut(&doc).expect("checked");
+            d.apply_update(update)?;
             for tx in others {
                 out.guests.push((
                     tx,
@@ -1406,7 +1427,21 @@ impl HostSession {
                 out.events.push(HostEvent::DocUpdate {
                     doc,
                     update: update.to_vec(),
+                    from: Some(from),
                 });
+            }
+            // Someone typed the disk's text: the File Cache Conflict is over, and the
+            // document is saved.
+            if d.settle_conflict() {
+                let d = &st.docs[&doc];
+                announce(
+                    d,
+                    recipients(&st.guests, d, None),
+                    None,
+                    true,
+                    true,
+                    &mut out,
+                );
             }
         }
         self.deliver(out);
@@ -1634,6 +1669,71 @@ fn recipients(
         .collect()
 }
 
+/// Tell everyone with `d` open what changed outside their editors: an `update` from disk
+/// (or a conflict answer), a new save state (`saved`), and whether a File Cache Conflict
+/// opened or closed (`conflict`; the host's user hears about it even without the tab open).
+fn announce(
+    d: &SharedDoc,
+    to: Vec<mpsc::Sender<HostMessage>>,
+    update: Option<Vec<u8>>,
+    saved: bool,
+    conflict: bool,
+    out: &mut Outbox,
+) {
+    let doc = d.id;
+    let host_has_it = d.open_by.contains(&ParticipantId::HOST);
+    let state = d.save_state();
+    let open = d.has_conflict();
+    for tx in to {
+        if let Some(update) = &update {
+            out.guests.push((
+                tx.clone(),
+                HostMessage::DocUpdate {
+                    doc,
+                    update: ByteBuf::from(update.clone()),
+                },
+            ));
+        }
+        if conflict {
+            out.guests.push((
+                tx.clone(),
+                HostMessage::DocConflict {
+                    doc,
+                    conflict: open,
+                },
+            ));
+        }
+        if saved {
+            out.guests.push((
+                tx,
+                HostMessage::DocSaved {
+                    doc,
+                    saved: state.clone(),
+                },
+            ));
+        }
+    }
+    if host_has_it {
+        if let Some(update) = update {
+            out.events.push(HostEvent::DocUpdate {
+                doc,
+                update,
+                from: None,
+            });
+        }
+    }
+    if conflict {
+        out.events.push(HostEvent::DocConflict {
+            doc,
+            path: d.path.clone(),
+            conflict: open,
+        });
+    }
+    if saved && host_has_it {
+        out.events.push(HostEvent::DocSaved { doc, saved: state });
+    }
+}
+
 fn open_in(st: &mut State, who: ParticipantId, path: &str, read_only: bool) -> Option<DocOpened> {
     let id = *st.by_path.get(path)?;
     let d = st.docs.get_mut(&id)?;
@@ -1644,6 +1744,7 @@ fn open_in(st: &mut State, who: ParticipantId, path: &str, read_only: bool) -> O
         update: d.full_update(),
         saved: d.save_state(),
         read_only,
+        conflict: d.has_conflict(),
     })
 }
 

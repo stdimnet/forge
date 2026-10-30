@@ -20,7 +20,7 @@ use crate::share::{RunId, SharedRun, SharedTerminal, TerminalId};
 use crate::{Error, Result};
 
 /// Bumped on incompatible changes; the host refuses other versions in the knock.
-pub const PROTOCOL_VERSION: u32 = 4;
+pub const PROTOCOL_VERSION: u32 = 5;
 
 /// QUIC application protocol of Code With Me connections.
 pub const ALPN: &[u8] = b"forge/cwm/1";
@@ -215,6 +215,10 @@ pub enum HostMessage {
         update: ByteBuf,
         saved: SaveState,
         read_only: bool,
+        /// A File Cache Conflict is open: the host is choosing between the disk and the
+        /// document ([`HostMessage::DocConflict`]).
+        #[serde(default)]
+        conflict: bool,
     },
     DocError {
         request: u64,
@@ -231,6 +235,8 @@ pub enum HostMessage {
         state_vector: ByteBuf,
         saved: SaveState,
         read_only: bool,
+        #[serde(default)]
+        conflict: bool,
     },
     DocUpdate {
         doc: DocId,
@@ -253,6 +259,13 @@ pub enum HostMessage {
     DocRenamed {
         doc: DocId,
         path: String,
+    },
+    /// The file changed on the host's disk while the document has unsaved changes
+    /// (`conflict`: the host is resolving a File Cache Conflict), or the conflict is over.
+    /// Saving is refused while it is open; the result arrives as `DocUpdate` / `DocSaved`.
+    DocConflict {
+        doc: DocId,
+        conflict: bool,
     },
     /// The document is gone for everyone (the file was deleted or is no longer shared).
     DocClosed {
@@ -481,6 +494,44 @@ mod tests {
                 assert_eq!(got, Some(msg.clone()));
             }
         }
+    }
+
+    #[test]
+    fn conflicts_round_trip_and_older_frames_have_none() {
+        let msg = HostMessage::DocConflict {
+            doc: DocId(3),
+            conflict: true,
+        };
+        let frame = encode(&msg, MAX_HOST_FRAME).unwrap();
+        assert_eq!(decode::<HostMessage>(&frame[4..]).unwrap(), msg);
+        // `DocOpened` without `conflict` (an older host) decodes as "no conflict".
+        #[derive(Serialize)]
+        enum Old {
+            DocOpened {
+                request: u64,
+                doc: DocId,
+                path: String,
+                update: ByteBuf,
+                saved: SaveState,
+                read_only: bool,
+            },
+        }
+        let old = encode(
+            &Old::DocOpened {
+                request: 1,
+                doc: DocId(2),
+                path: "a.php".into(),
+                update: bytes(&[0, 0]),
+                saved: SaveState::of(""),
+                read_only: false,
+            },
+            MAX_HOST_FRAME,
+        )
+        .unwrap();
+        let HostMessage::DocOpened { conflict, .. } = decode(&old[4..]).unwrap() else {
+            panic!("not DocOpened")
+        };
+        assert!(!conflict);
     }
 
     #[test]

@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use forge_backend::{Backend, LocalBackend};
+use forge_collab::docs::Resolution;
 use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::host::{DevAutoAccept, HostConfig, HostEvent, HostSession, DEV_PREVIEW_NOTICE};
@@ -33,6 +34,8 @@ struct Editor {
     closed: Vec<(DocId, String)>,
     denied: Vec<String>,
     notices: Vec<String>,
+    /// File Cache Conflicts opened (`true`) and closed (`false`), in order.
+    conflicts: Vec<(DocId, bool)>,
     ended: Option<String>,
     /// Where the others are, as this participant was told.
     presence: HashMap<ParticipantId, Presence>,
@@ -149,13 +152,16 @@ impl Harness {
             Arc::new(move |e| {
                 let mut ed = sink_editor.lock().unwrap();
                 match e {
-                    HostEvent::DocUpdate { doc, update } => ed.receive(doc, &update),
+                    HostEvent::DocUpdate { doc, update, .. } => ed.receive(doc, &update),
                     HostEvent::DocSaved { doc, saved } => {
                         ed.saved.insert(doc, saved);
                     }
                     HostEvent::DocRenamed { doc, path } => ed.renamed.push((doc, path)),
                     HostEvent::DocClosed { doc, reason } => ed.closed.push((doc, reason)),
                     HostEvent::Notice(n) => ed.notices.push(n),
+                    HostEvent::DocConflict { doc, conflict, .. } => {
+                        ed.conflicts.push((doc, conflict))
+                    }
                     HostEvent::Presence {
                         participant,
                         presence,
@@ -175,6 +181,18 @@ impl Harness {
             backend,
             next_key: 2,
         }
+    }
+
+    /// A tool outside Forge rewrites a file, and the project watcher reports it.
+    async fn disk_change(&self, path: &str, text: &str) {
+        std::fs::write(self.root.join(path), text).unwrap();
+        self.host
+            .on_fs_changed(&FsChanges {
+                changed: vec![path.into()],
+                removed: vec![],
+                git: false,
+            })
+            .await;
     }
 
     /// The host opens a file in its editor (which shares it).
@@ -236,6 +254,7 @@ impl Harness {
                     GuestEvent::DocRenamed { doc, path } => ed.renamed.push((doc, path)),
                     GuestEvent::DocClosed { doc, reason } => ed.closed.push((doc, reason)),
                     GuestEvent::Denied(r) => ed.denied.push(r),
+                    GuestEvent::DocConflict { doc, conflict } => ed.conflicts.push((doc, conflict)),
                     GuestEvent::Ended(r) => ed.ended = Some(r),
                     GuestEvent::Presence {
                         participant,
@@ -422,7 +441,7 @@ async fn disk_changes_reach_everyone_and_unsaved_edits_are_kept() {
     })
     .await;
 
-    // With unsaved shared edits the memory wins and the host is told.
+    // With unsaved shared edits the host gets a File Cache Conflict; nothing changes yet.
     alex.edit(doc, 0, 0, "// edited\n");
     eventually("the edit arrived", || {
         host_editor
@@ -432,22 +451,108 @@ async fn disk_changes_reach_everyone_and_unsaved_edits_are_kept() {
             .starts_with("// edited")
     })
     .await;
-    std::fs::write(h.root.join("app/Order.php"), "<?php\n").unwrap();
+    h.disk_change("app/Order.php", "<?php\n").await;
+    assert!(alex.text(doc).starts_with("// edited"));
+    assert_eq!(host_editor.lock().unwrap().conflicts, [(doc, true)]);
+    let ed = alex.editor.clone();
+    eventually("the guest hears about the conflict", || {
+        ed.lock().unwrap().conflicts == [(doc, true)]
+    })
+    .await;
+    // A guest cannot save meanwhile; a guest opening the file sees the conflict as well.
+    let error = alex.guest.save(doc).await.unwrap_err();
+    assert!(error.contains("changed on disk"), "{error}");
+    let sam = h.join("Sam").await;
+    let opened = sam.guest.open_doc("app/Order.php").await.unwrap();
+    assert!(opened.conflict);
+    sam.editor.lock().unwrap().open(opened.doc, &opened.update);
+
+    // Load File System Changes: everyone gets the disk's text, saved.
     h.host
-        .on_fs_changed(&FsChanges {
-            changed: vec!["app/Order.php".into()],
-            removed: vec![],
-            git: false,
+        .resolve_conflict(doc, Resolution::LoadFileSystem)
+        .unwrap();
+    for (name, ed) in [("Alex", alex.editor.clone()), ("Sam", sam.editor.clone())] {
+        eventually(&format!("{name} has the disk's text, saved"), || {
+            let ed = ed.lock().unwrap();
+            ed.text(doc) == "<?php\n"
+                && ed.saved.get(&doc) == Some(&SaveState::of("<?php\n"))
+                && ed.conflicts.last() == Some(&(doc, false))
         })
         .await;
-    assert!(alex.text(doc).starts_with("// edited"));
+    }
+    assert_eq!(host_editor.lock().unwrap().text(doc), "<?php\n");
+    assert_eq!(
+        host_editor.lock().unwrap().conflicts,
+        [(doc, true), (doc, false)]
+    );
     assert!(h
-        .host_editor
-        .lock()
+        .host
+        .resolve_conflict(doc, Resolution::KeepMemory)
+        .is_err());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn keeping_memory_changes_lets_a_guest_save_over_the_disk() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    let doc = h.host_open("app/Order.php").await;
+    let alex = h.join("Alex").await;
+    alex.open("app/Order.php").await.unwrap();
+    alex.edit(doc, 0, 0, "// mine\n");
+    let host_editor = h.host_editor.clone();
+    eventually("the edit arrived", || {
+        host_editor.lock().unwrap().text(doc).starts_with("// mine")
+    })
+    .await;
+    h.disk_change("app/Order.php", "<?php // formatter\n").await;
+    assert_eq!(host_editor.lock().unwrap().conflicts, [(doc, true)]);
+    h.host
+        .resolve_conflict(doc, Resolution::KeepMemory)
+        .unwrap();
+    let ed = alex.editor.clone();
+    eventually("the conflict is over for the guest", || {
+        let ed = ed.lock().unwrap();
+        ed.conflicts.last() == Some(&(doc, false))
+            && ed.saved.get(&doc) == Some(&SaveState::of("<?php // formatter\n"))
+    })
+    .await;
+    // Still unsaved everywhere (the saved text is the disk's); the guest's save wins now.
+    let text = alex.text(doc);
+    assert!(text.starts_with("// mine"));
+    alex.guest.save(doc).await.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(h.root.join("app/Order.php")).unwrap(),
+        text
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_conflict_ends_when_the_host_saves_or_the_disk_changes_back() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    let doc = h.host_open("app/Order.php").await;
+    let alex = h.join("Alex").await;
+    alex.open("app/Order.php").await.unwrap();
+    let original = std::fs::read_to_string(h.root.join("app/Order.php")).unwrap();
+    h.host_edit(doc, 0, 0, "// host\n");
+    h.disk_change("app/Order.php", "changed\n").await;
+    // A second change while it is open does not ask again.
+    h.disk_change("app/Order.php", "changed again\n").await;
+    // The disk changes back (`git stash pop`): the conflict is over, the edits stay unsaved.
+    h.disk_change("app/Order.php", &original).await;
+    assert_eq!(
+        h.host_editor.lock().unwrap().conflicts,
+        [(doc, true), (doc, false)]
+    );
+    // The host's own Save during a conflict keeps the memory changes.
+    h.disk_change("app/Order.php", "changed\n").await;
+    h.host.save(doc).await.unwrap();
+    let ed = alex.editor.clone();
+    eventually("the guest saw both conflicts end", || {
+        ed.lock().unwrap().conflicts == [(doc, true), (doc, false), (doc, true), (doc, false)]
+    })
+    .await;
+    assert!(std::fs::read_to_string(h.root.join("app/Order.php"))
         .unwrap()
-        .notices
-        .iter()
-        .any(|n| n.contains("changed on disk")));
+        .starts_with("// host"));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

@@ -51,12 +51,26 @@ pub fn with_eol(text: &str, eol: Eol) -> String {
 /// What [`SharedDoc::apply_disk`] did.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DiskChange {
-    /// The disk already has this text (e.g. the host's own save).
+    /// The disk already has this text (e.g. the host's own save), or it changed back to the
+    /// saved text while the document has unsaved changes (an open conflict is gone).
     Unchanged,
     /// Applied; the update to send to everyone.
     Applied(Vec<u8>),
-    /// The document has unsaved changes, which are kept.
+    /// The disk now holds the document's text: it is saved, there is nothing to apply.
+    Matches,
+    /// The document has unsaved changes and the file changed on disk: PHPStorm's File Cache
+    /// Conflict, open until [`SharedDoc::resolve_conflict`] (or a save, or the texts agree).
     Conflict,
+}
+
+/// The host's answer to a File Cache Conflict.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Resolution {
+    /// Load File System Changes: the document takes the disk's text (minimal edits).
+    LoadFileSystem,
+    /// Keep Memory Changes: the document keeps its text and stays unsaved; saving it
+    /// overwrites the file.
+    KeepMemory,
 }
 
 /// One shared file.
@@ -72,6 +86,8 @@ pub struct SharedDoc {
     pub open_by: BTreeSet<ParticipantId>,
     /// Awareness client ids and who owns them, with the last clock seen.
     clients: HashMap<u64, (ParticipantId, u32)>,
+    /// The file's text on disk (`\n` line endings) while a File Cache Conflict is open.
+    conflict: Option<(String, Eol)>,
 }
 
 impl SharedDoc {
@@ -99,6 +115,7 @@ impl SharedDoc {
             eol,
             open_by: BTreeSet::new(),
             clients: HashMap::new(),
+            conflict: None,
         }
     }
 
@@ -145,29 +162,86 @@ impl SharedDoc {
             .map_err(|e| format!("invalid update: {e}"))
     }
 
-    /// The text was written to disk.
+    /// The text was written to disk (this also settles an open conflict: memory won).
     pub fn mark_saved(&mut self, text: String) {
         self.saved = text;
+        self.conflict = None;
+    }
+
+    /// Whether a File Cache Conflict is open (the host has to choose).
+    pub fn has_conflict(&self) -> bool {
+        self.conflict.is_some()
     }
 
     /// The file changed on disk. Without unsaved changes the difference is applied as
-    /// minimal edits in one transaction (origin [`DISK_ORIGIN`]); unsaved changes are kept.
+    /// minimal edits in one transaction (origin [`DISK_ORIGIN`]); with unsaved changes the
+    /// document is kept and a conflict opens (a later disk change replaces its disk text).
     pub fn apply_disk(&mut self, disk_raw: &str) -> DiskChange {
         let (disk, eol) = normalize_eol(disk_raw);
+        let current = self.text();
+        if disk == current {
+            if disk == self.saved && self.conflict.is_none() {
+                return DiskChange::Unchanged;
+            }
+            self.eol = eol;
+            self.mark_saved(disk);
+            return DiskChange::Matches;
+        }
         if disk == self.saved {
+            // Changed back (e.g. `git stash` and `git stash pop`): the unsaved changes are
+            // based on the disk's text again.
+            self.conflict = None;
             return DiskChange::Unchanged;
         }
-        let current = self.text();
         if current != self.saved {
+            self.conflict = Some((disk, eol));
             return DiskChange::Conflict;
         }
         self.eol = eol;
         self.saved = disk.clone();
-        let edits = textdiff::edits(&current, &disk);
-        if edits.is_empty() {
-            return DiskChange::Unchanged;
+        DiskChange::Applied(self.replace_text(&current, &disk))
+    }
+
+    /// Answer an open conflict. Returns the update to send to everyone when the document
+    /// took the disk's text (`None` when nothing changed); the save state changes in both
+    /// cases (the saved text is the disk's now).
+    pub fn resolve_conflict(&mut self, how: Resolution) -> Result<Option<Vec<u8>>, String> {
+        let (disk, eol) = self
+            .conflict
+            .take()
+            .ok_or("The file has no conflict to resolve.")?;
+        self.eol = eol;
+        self.saved = disk.clone();
+        match how {
+            Resolution::KeepMemory => Ok(None),
+            Resolution::LoadFileSystem => {
+                let current = self.text();
+                let update = self.replace_text(&current, &disk);
+                Ok((current != disk).then_some(update))
+            }
         }
+    }
+
+    /// After an edit: an open conflict is gone when the document now has the disk's text.
+    /// True when it was settled (the document is saved now).
+    pub fn settle_conflict(&mut self) -> bool {
+        let Some((disk, eol)) = &self.conflict else {
+            return false;
+        };
+        if self.text() != *disk {
+            return false;
+        }
+        let (disk, eol) = (disk.clone(), *eol);
+        self.eol = eol;
+        self.mark_saved(disk);
+        true
+    }
+
+    /// Turn `current` (the document's text) into `target` with minimal edits in one
+    /// transaction with origin [`DISK_ORIGIN`]; the update to send.
+    fn replace_text(&mut self, current: &str, target: &str) -> Vec<u8> {
         let before = self.doc.transact().state_vector();
+        let edits = textdiff::edits(current, target);
         {
             let mut txn = self.doc.transact_mut_with(DISK_ORIGIN);
             for e in edits.iter().rev() {
@@ -180,7 +254,7 @@ impl SharedDoc {
                 }
             }
         }
-        DiskChange::Applied(self.doc.transact().encode_state_as_update_v1(&before))
+        self.doc.transact().encode_state_as_update_v1(&before)
     }
 
     /// Check and rewrite a participant's awareness update: entries for client ids that
@@ -334,6 +408,70 @@ mod tests {
         let mut dirty = SharedDoc::new(DocId(2), "b.php".into(), "x\n", Some("y\n"));
         assert_eq!(dirty.apply_disk("z\n"), DiskChange::Conflict);
         assert_eq!(dirty.text(), "y\n");
+    }
+
+    #[test]
+    fn a_file_cache_conflict_waits_for_the_host() {
+        let mut d = SharedDoc::new(DocId(1), "a.php".into(), "one\n", Some("one\nmemory\n"));
+        assert!(!d.has_conflict());
+        assert_eq!(d.apply_disk("one\r\ndisk\r\n"), DiskChange::Conflict);
+        assert!(d.has_conflict());
+        // A second change on disk replaces the disk side; memory is untouched.
+        assert_eq!(d.apply_disk("one\r\ndisk 2\r\n"), DiskChange::Conflict);
+        assert_eq!(d.text(), "one\nmemory\n");
+        let (guest, text) = replica(&d.full_update());
+        let update = d
+            .resolve_conflict(Resolution::LoadFileSystem)
+            .unwrap()
+            .expect("the text changed");
+        guest
+            .transact_mut()
+            .apply_update(Update::decode_v1(&update).unwrap())
+            .unwrap();
+        assert_eq!(text.get_string(&guest.transact()), "one\ndisk 2\n");
+        assert!(!d.is_dirty() && !d.has_conflict());
+        assert_eq!(d.eol, Eol::CrLf);
+        assert!(d.resolve_conflict(Resolution::KeepMemory).is_err());
+    }
+
+    #[test]
+    fn keeping_memory_changes_leaves_the_document_unsaved() {
+        let mut d = SharedDoc::new(DocId(1), "a.php".into(), "x\n", Some("memory\n"));
+        assert_eq!(d.apply_disk("disk\n"), DiskChange::Conflict);
+        assert_eq!(d.resolve_conflict(Resolution::KeepMemory), Ok(None));
+        assert_eq!(d.text(), "memory\n");
+        assert_eq!(d.saved_text(), "disk\n");
+        assert!(d.is_dirty() && !d.has_conflict());
+        assert_eq!(d.save_state(), SaveState::of("disk\n"));
+    }
+
+    #[test]
+    fn a_conflict_goes_away_when_the_texts_agree() {
+        // The disk changes back to the saved text.
+        let mut d = SharedDoc::new(DocId(1), "a.php".into(), "x\n", Some("memory\n"));
+        assert_eq!(d.apply_disk("disk\n"), DiskChange::Conflict);
+        assert_eq!(d.apply_disk("x\n"), DiskChange::Unchanged);
+        assert!(!d.has_conflict() && d.is_dirty());
+        // The disk gets the document's text (someone saved the same text elsewhere).
+        assert_eq!(d.apply_disk("disk\n"), DiskChange::Conflict);
+        assert_eq!(d.apply_disk("memory\n"), DiskChange::Matches);
+        assert!(!d.has_conflict() && !d.is_dirty());
+        // A participant edits the document into the disk's text.
+        let mut d = SharedDoc::new(DocId(2), "b.php".into(), "x\n", Some("memory\n"));
+        assert_eq!(d.apply_disk("disk\n"), DiskChange::Conflict);
+        assert!(!d.settle_conflict());
+        {
+            let mut txn = d.doc.transact_mut();
+            d.text.remove_range(&mut txn, 0, 6);
+            d.text.insert(&mut txn, 0, "disk");
+        }
+        assert!(d.settle_conflict());
+        assert!(!d.has_conflict() && !d.is_dirty());
+        // Saving settles it as well (memory wins).
+        let mut d = SharedDoc::new(DocId(3), "c.php".into(), "x\n", Some("memory\n"));
+        assert_eq!(d.apply_disk("disk\n"), DiskChange::Conflict);
+        d.mark_saved("memory\n".into());
+        assert!(!d.has_conflict() && !d.is_dirty());
     }
 
     fn awareness(client: u64, clock: u32, json: &str) -> Vec<u8> {

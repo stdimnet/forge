@@ -64,7 +64,8 @@ interface WireMsg {
     | "presence"
     | "follow-host"
     | "sync"
-    | "synced";
+    | "synced"
+    | "conflict";
   [key: string]: unknown;
 }
 
@@ -154,6 +155,8 @@ interface HostDoc {
   saved: string;
   /** "host", guest page ids, or "alex" for the scripted guest. */
   openBy: Set<string>;
+  /** The disk's text while a File Cache Conflict is open. */
+  conflict?: string;
 }
 
 interface MockGuest {
@@ -174,6 +177,7 @@ const opened = (d: HostDoc, readOnly = false): DocOpened => ({
   update: Y.encodeStateAsUpdate(d.ydoc),
   saved: { hash: contentHash(d.saved) },
   readOnly,
+  conflict: d.conflict !== undefined,
 });
 
 function hostChanged(): void {
@@ -217,8 +221,62 @@ function hostApply(from: string, docId: number, update: Uint8Array): void {
     return;
   }
   Y.applyUpdate(d.ydoc, update, from);
-  fanOut(d, from, { kind: "update", docId, update: toBase64(update) }, { update: toBase64(update) });
+  const author = guests.get(from)?.participant.id;
+  fanOut(d, from, { kind: "update", docId, update: toBase64(update) }, { update: toBase64(update), ...(author === undefined ? {} : { from: author }) });
 }
+
+/** Tell everyone with `d` open that its File Cache Conflict opened or ended (the host always). */
+function announceConflict(d: HostDoc): void {
+  const open = d.conflict !== undefined;
+  for (const key of d.openBy) if (key !== "host") toGuest(key, { kind: "conflict", docId: d.id, open });
+  emitDoc({ docId: d.id, conflict: { open, path: d.path } });
+}
+
+/** A tool outside Forge rewrote a shared file that has unsaved changes (`?cwmConflict`). */
+async function externalChange(d: HostDoc, disk: string): Promise<void> {
+  if (d.ydoc.getText("content").toString() === d.saved) return;
+  // The demo project's in-memory file, so Show Difference reads the new text.
+  await invoke("fs_write_file", { path: d.path, contents: disk });
+  const first = d.conflict === undefined;
+  d.conflict = disk;
+  log(`${d.path} changed on disk while it has unsaved changes`, true);
+  if (first) announceConflict(d);
+}
+
+/** Replace a Yjs text with minimal edits (common prefix and suffix kept), so carets stay. */
+function replaceText(ydoc: Y.Doc, target: string): Uint8Array | null {
+  const text = ydoc.getText("content");
+  const current = text.toString();
+  if (current === target) return null;
+  let start = 0;
+  while (start < current.length && start < target.length && current[start] === target[start]) start++;
+  let end = 0;
+  while (end < current.length - start && end < target.length - start && current[current.length - 1 - end] === target[target.length - 1 - end]) end++;
+  const before = Y.encodeStateVector(ydoc);
+  ydoc.transact(() => {
+    text.delete(start, current.length - start - end);
+    text.insert(start, target.slice(start, target.length - end));
+  }, "disk");
+  return Y.encodeStateAsUpdate(ydoc, before);
+}
+
+registerMock("collab_doc_resolve_conflict", ({ docId, load }) => {
+  if (role !== "host") throw new Error("No session is running.");
+  const d = docs.get(Number(docId));
+  if (!d || d.conflict === undefined) throw new Error("The file has no conflict to resolve.");
+  const disk = d.conflict;
+  d.conflict = undefined;
+  d.saved = disk;
+  const update = load ? replaceText(d.ydoc, disk) : null;
+  log(`${HOST_NAME} ${load ? "loaded the file system changes of" : "kept the memory changes of"} ${d.path}`);
+  if (update) {
+    fanOut(d, "", { kind: "update", docId: d.id, update: toBase64(update) }, { update: toBase64(update) });
+  }
+  announceConflict(d);
+  const saved = { hash: contentHash(disk) };
+  for (const key of d.openBy) if (key !== "host") toGuest(key, { kind: "saved", docId: d.id, saved });
+  if (d.openBy.has("host")) emitDoc({ docId: d.id, saved });
+});
 
 function hostAwareness(from: string, docId: number, update: Uint8Array): void {
   const d = docs.get(docId);
@@ -232,6 +290,11 @@ async function hostSave(docId: number): Promise<void> {
   const text = d.ydoc.getText("content").toString();
   await invoke("fs_write_file", { path: d.path, contents: text });
   d.saved = text;
+  if (d.conflict !== undefined) {
+    // Saving during a conflict keeps the memory changes.
+    d.conflict = undefined;
+    announceConflict(d);
+  }
   const saved = { hash: contentHash(text) };
   for (const key of d.openBy) if (key !== "host") toGuest(key, { kind: "saved", docId, saved });
   if (d.openBy.has("host")) emitDoc({ docId, saved });
@@ -319,7 +382,7 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
       else {
         d.openBy.add(from);
         const o = opened(d, guests.get(from)!.participant.permissions.files !== "edit");
-        toGuest(from, { kind: "opened", req: m.req, docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly, update: toBase64(o.update) });
+        toGuest(from, { kind: "opened", req: m.req, docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly, conflict: o.conflict, update: toBase64(o.update) });
       }
       break;
     }
@@ -333,8 +396,10 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
       if (guests.get(from)!.participant.permissions.files !== "edit") {
         log(`Refused save of ${guests.get(from)!.participant.name}: Your permission is Read-only`, true);
         toGuest(from, { kind: "saved", req: m.req, error: "Your permission is Read-only" });
-      }
-      else await hostSave(docId).then(() => toGuest(from, { kind: "saved", req: m.req }));
+      } else if (docs.get(docId)?.conflict !== undefined) {
+        const name = docs.get(docId)!.path.split("/").pop();
+        toGuest(from, { kind: "saved", req: m.req, error: `${name} changed on disk. The host is resolving the conflict; save again afterwards.` });
+      } else await hostSave(docId).then(() => toGuest(from, { kind: "saved", req: m.req }));
       break;
     case "close":
       hostClose(from, docId);
@@ -464,6 +529,11 @@ class ScriptedGuest {
       caret(from, to - 1);
       where(from);
     }
+    // `?cwmConflict`: a formatter rewrites the file on disk while Alex's edit is unsaved.
+    if (new URLSearchParams(location.search).has("cwmConflict")) {
+      await sleep(600);
+      if (!this.stopped) await externalChange(target, target.saved.replace("0.1 : 0.0;", "0.10 : 0.00;"));
+    }
   }
 }
 
@@ -514,6 +584,9 @@ function guestReceive(m: WireMsg): void {
       break;
     case "saved":
       emitDoc({ docId: m.docId, saved: m.saved });
+      break;
+    case "conflict":
+      emitDoc({ docId: m.docId, conflict: { open: !!m.open, path: "" } });
       break;
     case "presence":
       presences.set(Number(m.participant), m.presence as Presence);
@@ -685,7 +758,7 @@ registerMock("collab_doc_open", async ({ path, content }) => {
   if (role !== "guest") throw new Error("No session is running.");
   const r = await request({ kind: "open", path });
   if (r.error) throw new Error(String(r.error));
-  return encodeOpened({ docId: Number(r.docId), path: String(r.path), saved: r.saved as { hash: string }, readOnly: !!r.readOnly, update: fromBase64(String(r.update)) });
+  return encodeOpened({ docId: Number(r.docId), path: String(r.path), saved: r.saved as { hash: string }, readOnly: !!r.readOnly, conflict: !!r.conflict, update: fromBase64(String(r.update)) });
 });
 
 registerMock("collab_doc_update", ({ docId, update }) => {

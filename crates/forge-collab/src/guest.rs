@@ -69,6 +69,8 @@ pub struct DocSynced {
     pub state_vector: Vec<u8>,
     pub saved: SaveState,
     pub read_only: bool,
+    /// The host is resolving a File Cache Conflict for it.
+    pub conflict: bool,
 }
 
 /// What the guest's UI needs to know.
@@ -95,6 +97,13 @@ pub enum GuestEvent {
     DocClosed {
         doc: DocId,
         reason: String,
+    },
+    /// The file changed on the host's disk while the document has unsaved changes, and the
+    /// host is choosing what to keep (`true`), or it chose (`false`). Saving is refused
+    /// meanwhile.
+    DocConflict {
+        doc: DocId,
+        conflict: bool,
     },
     /// Where another participant is (only files this guest may see are named).
     Presence {
@@ -504,6 +513,7 @@ impl GuestSession {
                 update,
                 saved,
                 read_only,
+                conflict,
             } => {
                 if let Some(tx) = self.state().opens.remove(&request) {
                     let _ = tx.send(Ok(DocOpened {
@@ -512,6 +522,7 @@ impl GuestSession {
                         update: update.into_vec(),
                         saved,
                         read_only,
+                        conflict,
                     }));
                 }
             }
@@ -531,6 +542,7 @@ impl GuestSession {
                 state_vector,
                 saved,
                 read_only,
+                conflict,
             } => {
                 if let Some(tx) = self.state().syncs.remove(&request) {
                     let _ = tx.send(Ok(DocSynced {
@@ -540,6 +552,7 @@ impl GuestSession {
                         state_vector: state_vector.into_vec(),
                         saved,
                         read_only,
+                        conflict,
                     }));
                 }
             }
@@ -559,6 +572,9 @@ impl GuestSession {
             HostMessage::DocSaved { doc, saved } => sink(GuestEvent::DocSaved { doc, saved }),
             HostMessage::DocRenamed { doc, path } => sink(GuestEvent::DocRenamed { doc, path }),
             HostMessage::DocClosed { doc, reason } => sink(GuestEvent::DocClosed { doc, reason }),
+            HostMessage::DocConflict { doc, conflict } => {
+                sink(GuestEvent::DocConflict { doc, conflict })
+            }
             HostMessage::Denied { reason } => sink(GuestEvent::Denied(reason)),
             HostMessage::Welcome { .. }
             | HostMessage::Refused { .. }
@@ -582,6 +598,11 @@ impl GuestSession {
         if self.tx.try_send(msg).is_err() {
             tracing::warn!("Code With Me: the connection to the host is congested or closed");
         }
+    }
+
+    /// Messages waiting to go to the host (bounded: when the queue is full, sending fails).
+    pub fn backlog(&self) -> usize {
+        self.tx.max_capacity() - self.tx.capacity()
     }
 
     pub fn me(&self) -> ParticipantId {

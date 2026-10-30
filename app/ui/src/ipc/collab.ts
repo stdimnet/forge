@@ -235,6 +235,8 @@ export interface DocOpened {
   update: Uint8Array;
   saved: SaveState;
   readOnly: boolean;
+  /** The host is resolving a File Cache Conflict for it (older hosts leave it out). */
+  conflict?: boolean;
 }
 
 /** `collab_doc_sync`'s reply: what the replica missed after a reconnect. */
@@ -251,6 +253,14 @@ export interface DocEvent {
   saved?: SaveState;
   renamed?: string;
   closed?: string;
+  /**
+   * A File Cache Conflict opened (`open`) or ended: the file changed on the host's disk while
+   * the shared document has unsaved changes. The host answers with `resolveConflict`; `path`
+   * is the project path (empty for guests).
+   */
+  conflict?: { open: boolean; path: string };
+  /** Host: the guest whose edit `update` is (absent for changes from disk). */
+  from?: number;
 }
 
 /** A guest asks to join (`collab://join-request`, host); `code` is what the guest sees too. */
@@ -296,7 +306,7 @@ export function fromBase64(text: string): Uint8Array {
 
 /** `collab_doc_open`'s raw reply: a big-endian u32 length, a JSON header, the update. */
 export function encodeOpened(o: DocOpened): ArrayBuffer {
-  const header = new TextEncoder().encode(JSON.stringify({ docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly }));
+  const header = new TextEncoder().encode(JSON.stringify({ docId: o.docId, path: o.path, saved: o.saved, readOnly: o.readOnly, conflict: !!o.conflict }));
   const out = new Uint8Array(4 + header.length + o.update.length);
   new DataView(out.buffer).setUint32(0, header.length);
   out.set(header, 4);
@@ -315,7 +325,7 @@ export function decodeOpened(raw: ArrayBuffer | Uint8Array | number[]): DocOpene
 export function encodeSynced(s: DocSynced): ArrayBuffer {
   const { stateVector, ...opened } = s;
   const header = new TextEncoder().encode(
-    JSON.stringify({ docId: opened.docId, path: opened.path, saved: opened.saved, readOnly: opened.readOnly, stateVector: toBase64(stateVector) }),
+    JSON.stringify({ docId: opened.docId, path: opened.path, saved: opened.saved, readOnly: opened.readOnly, conflict: !!opened.conflict, stateVector: toBase64(stateVector) }),
   );
   const out = new Uint8Array(4 + header.length + opened.update.length);
   new DataView(out.buffer).setUint32(0, header.length);
@@ -369,6 +379,8 @@ export const collabApi = {
   /** Make Everyone Follow You on or off (host). */
   followEveryone: (on: boolean) => invoke<SessionView>("collab_follow_everyone", { on }),
   docSave: (docId: number) => invoke<void>("collab_doc_save", { docId }),
+  /** Answer a File Cache Conflict (host): `load` takes the disk's text, otherwise memory wins. */
+  resolveConflict: (docId: number, load: boolean) => invoke<void>("collab_doc_resolve_conflict", { docId, load }),
   /** Whether a relay token is stored in the keychain (the token itself never reaches the UI). */
   relayTokenStatus: () => invoke<RelayTokenStatus>("collab_relay_token_status"),
   /** Store the relay token in the keychain; empty or null removes it. */
