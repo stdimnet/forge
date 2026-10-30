@@ -71,6 +71,22 @@ const joinWaiting = (theme) => {
   return run;
 };
 
+/** Join with unsaved changes in the window's own project: Save, Don't Save or Cancel first. */
+const joinUnsaved = (theme) => {
+  const fn = joinDialog(theme);
+  const run = async (page) => {
+    await page.click(".cm-content");
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type("\n// draft");
+    await fn(page);
+    await page.click('.cwm-join-dialog button:has-text("Join")');
+    await page.waitForSelector("[data-testid=cwm-join-unsaved]");
+    await page.waitForTimeout(200);
+  };
+  run.clip = fn.clip;
+  return run;
+};
+
 /** The host stopped sharing its terminal: the guest's tab stays with what it showed. */
 const unsharedTerminal = (theme) => {
   const fn = async (page) => {
@@ -97,6 +113,8 @@ export default {
   "code-with-me-join-dialog-light": joinDialog("light"),
   "code-with-me-join-waiting": joinWaiting("dark"),
   "code-with-me-join-waiting-light": joinWaiting("light"),
+  "code-with-me-join-unsaved": joinUnsaved("dark"),
+  "code-with-me-join-unsaved-light": joinUnsaved("light"),
   "cwm-guest-terminal-unshared": unsharedTerminal("dark"),
   "cwm-guest-terminal-unshared-light": unsharedTerminal("light"),
 };
