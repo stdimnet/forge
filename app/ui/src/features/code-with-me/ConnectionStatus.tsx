@@ -7,6 +7,7 @@ import { Network, TriangleAlert, Waypoints } from "lucide-solid";
 import type { ConnectionPath } from "@/ipc/collab";
 import { connectionOf, pathLabel, pathTitle, relayProblem, relaySummary, statusBarText, statusBarTitle } from "./connection";
 import { session, setPopupOpen } from "./store";
+import { isReconnecting } from "./reconnect";
 
 /** "Direct" or "Relay (relay.example.com)" with an icon and the round-trip time. */
 export function PathBadge(props: { path: ConnectionPath }) {
@@ -33,7 +34,16 @@ export function SessionConnections() {
             <span class="cwm-dot" style={{ background: `var(--collab-${p.color})` }} />
             <span class="cwm-participant-name">{p.name}</span>
             <span class="cwm-participant-role muted">{p.role === "host" ? "Host" : "Guest"}</span>
-            <Show when={connectionOf(session(), p.id)} fallback={<span class="cwm-path pending muted">Connecting…</span>}>
+            <Show
+              when={!p.reconnecting && !(p.role === "host" && isReconnecting()) && connectionOf(session(), p.id)}
+              fallback={
+                p.reconnecting || (p.role === "host" && isReconnecting()) ? (
+                  <span class="cwm-path pending cwm-participant-reconnecting">Reconnecting…</span>
+                ) : (
+                  <span class="cwm-path pending muted">Connecting…</span>
+                )
+              }
+            >
               {(path) => <PathBadge path={path()} />}
             </Show>
           </div>
