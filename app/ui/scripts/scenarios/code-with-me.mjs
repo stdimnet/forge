@@ -373,8 +373,71 @@ const everyoneLight = async (page) => {
 };
 everyoneLight.clip = popupClip;
 
+/** The lines Alex changed have a marker in Alex's color in the host's gutter (until saved). */
+const guestLines = (theme) => {
+  const fn = async (page) => {
+    if (theme === "light") await light(page);
+    await sessionWithAlex(page);
+    await page.waitForSelector(".cm-cwm-guest-line");
+  };
+  fn.clip = editorClip;
+  return fn;
+};
+
+/**
+ * A formatter rewrote OrderController.php on disk while Alex's edit is unsaved: the host's
+ * File Cache Conflict dialog (`?cwmConflict`).
+ */
+const fileCacheConflict = (theme) => {
+  const fn = async (page) => {
+    if (theme === "light") await light(page);
+    await openController(page);
+    await openPopup(page);
+    await page.click('.cwm-level:has-text("Edit files") input');
+    await page.click('.cwm-popup button:has-text("Start Session")');
+    await acceptGuest(page);
+    await page.waitForSelector('.dialog:has-text("File Cache Conflict")', { timeout: 15000 });
+    await page.waitForTimeout(300);
+  };
+  fn.query = "?cwmConflict";
+  return fn;
+};
+
+/** The host chose Show Difference: the diff, and the choice kept in a sticky balloon. */
+const conflictBalloon = (theme) => {
+  const fn = async (page) => {
+    await fileCacheConflict(theme)(page);
+    await page.click('.dialog button:has-text("Show Difference")');
+    await page.waitForSelector('.balloon:has-text("File Cache Conflict")');
+    await page.waitForTimeout(500);
+  };
+  fn.query = "?cwmConflict";
+  return fn;
+};
+
+/** The host's popup driven by the keyboard: Down moves through the entries. */
+const popupKeyboard = (theme) => {
+  const fn = async (page) => {
+    if (theme === "light") await light(page);
+    await sessionWithAlex(page);
+    await openPopup(page);
+    for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowDown");
+    await page.waitForSelector('.cwm-popup [data-action="CodeWithMe.RegenerateLink"]:focus');
+  };
+  fn.clip = popupClip;
+  return fn;
+};
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "code-with-me-popup-keyboard": popupKeyboard("dark"),
+  "code-with-me-popup-keyboard-light": popupKeyboard("light"),
+  "code-with-me-guest-lines": guestLines("dark"),
+  "code-with-me-guest-lines-light": guestLines("light"),
+  "code-with-me-file-cache-conflict": fileCacheConflict("dark"),
+  "code-with-me-file-cache-conflict-light": fileCacheConflict("light"),
+  "code-with-me-conflict-diff": conflictBalloon("dark"),
+  "code-with-me-conflict-diff-light": conflictBalloon("light"),
   "code-with-me-follow-everyone": everyoneDark,
   "code-with-me-follow-everyone-light": everyoneLight,
   "code-with-me-following": following,
