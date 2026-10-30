@@ -8,6 +8,7 @@ import { Users } from "lucide-solid";
 import { collabApi } from "@/ipc/collab";
 import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
+import { StatusPopup } from "@/shell/StatusPopup";
 import { guestLevel, LEVEL_NAMES } from "./guest";
 import { session } from "./store";
 import { connectionLabel, isReconnecting } from "./reconnect";
@@ -25,18 +26,13 @@ export function GuestStatusItem() {
   const [latency, setLatency] = createSignal<number | null>(null);
   const host = () => workspace()?.collab?.host ?? session().hostLabel ?? "host";
   let el: HTMLDivElement | undefined;
-  const onDoc = (e: MouseEvent) => {
-    if (el && !el.contains(e.target as Node)) setOpen(false);
-  };
   const measure = () => (isReconnecting() ? setLatency(null) : void collabApi.ping().then(setLatency, () => setLatency(null)));
   const reconnecting = () => (isReconnecting() ? connectionLabel(session().connection) : null);
   onMount(() => {
-    document.addEventListener("mousedown", onDoc);
     measure();
     const timer = setInterval(measure, 5000);
     onCleanup(() => clearInterval(timer));
   });
-  onCleanup(() => document.removeEventListener("mousedown", onDoc));
 
   const leave = async () => {
     setOpen(false);
@@ -66,7 +62,7 @@ export function GuestStatusItem() {
         </Show>
       </button>
       <Show when={open()}>
-        <div class="cwm-status-popup" role="dialog" aria-label="Code With Me">
+        <StatusPopup anchor={el!} align="end" class="cwm-status-popup" label="Code With Me" onClose={() => setOpen(false)}>
           <div class="cwm-status-title">
             <Users size={14} /> {workspace()?.collab?.label ?? host()}
           </div>
@@ -97,7 +93,7 @@ export function GuestStatusItem() {
               Leave Session
             </button>
           </div>
-        </div>
+        </StatusPopup>
       </Show>
     </div>
   );
