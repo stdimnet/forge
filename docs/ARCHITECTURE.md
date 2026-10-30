@@ -1149,7 +1149,10 @@ time than it has); do it on the release machine before merging the Code With Me 
   `{ source: "browser" | "link" | "cli", client?, file, line?, column?, target }` with
   `target.kind` `open` (shown right away), `recent` or `outside` (the UI asks first unless the
   source is the CLI). Requests that arrive before the UI is ready are returned by
-  `companion_ui_ready()`. Directories from a second launch arrive as `companion://open-project`.
+  `companion_ui_ready()`. Directories from a second launch arrive as `companion://open-project`,
+  Code With Me session links (`forge://cwm/join?…`, checked by
+  `forge_collab::link::route_join_url`) as `companion://join-session` (pending:
+  `{ type: "joinSession", link }`) for the Join Session dialog.
 - IPC (Settings | Tools | Browser Companion): `companion_status`, `companion_start_pairing`,
   `companion_cancel_pairing`, `companion_revoke_client({ id })`, `companion_open_link({ url })`,
   `companion_project_profile({ envKeys, files })`, `companion_set_env_var({ file: ".env" |

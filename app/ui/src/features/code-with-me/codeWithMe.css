@@ -550,6 +550,20 @@
 .cwm-join-grid .link-btn:hover {
   text-decoration: underline;
 }
+.cwm-join-unsaved {
+  display: grid;
+  gap: 8px;
+  line-height: 1.45;
+}
+.cwm-join-files {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+}
+.cwm-join-files li {
+  overflow-wrap: anywhere;
+}
 .cwm-join-note {
   margin-top: 10px;
   font-size: var(--fs-small);

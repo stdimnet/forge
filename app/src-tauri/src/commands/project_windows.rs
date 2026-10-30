@@ -31,12 +31,16 @@ use crate::state::AppState;
 
 /// Set for instances started by [`project_window_open`].
 pub const NEW_WINDOW_ENV: &str = "FORGE_NEW_WINDOW";
+/// A Code With Me session link for a new window's Join Session dialog
+/// ([`spawn_join_window`]); in the environment, so it is not in the process list.
+pub const JOIN_LINK_ENV: &str = "FORGE_CWM_JOIN";
 const CONNECT_TIMEOUT: Duration = Duration::from_millis(300);
 const IO_TIMEOUT: Duration = Duration::from_secs(1);
 /// Longest request line the control port reads.
 const MAX_LINE: u64 = 256;
 
 static SECONDARY: AtomicBool = AtomicBool::new(false);
+static JOIN_LINK: Mutex<Option<String>> = Mutex::new(None);
 static ME: OnceLock<ProjectWindowEntry> = OnceLock::new();
 /// Serializes this instance's reads and writes of the registry file.
 static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
@@ -47,7 +51,21 @@ pub fn init_from_env() {
     if std::env::var_os(NEW_WINDOW_ENV).is_some() {
         SECONDARY.store(true, Ordering::SeqCst);
         std::env::remove_var(NEW_WINDOW_ENV);
+        if let Ok(link) = std::env::var(JOIN_LINK_ENV) {
+            *JOIN_LINK.lock().unwrap_or_else(|e| e.into_inner()) = Some(link);
+        }
     }
+    std::env::remove_var(JOIN_LINK_ENV);
+}
+
+/// The session link this window was opened for, once.
+pub fn take_join_link() -> Option<String> {
+    JOIN_LINK.lock().unwrap_or_else(|e| e.into_inner()).take()
+}
+
+/// Open a new window (on its Welcome screen) whose Join Session dialog shows `link`.
+pub fn spawn_join_window(link: &str) -> Result<()> {
+    spawn(None, Some(link))
 }
 
 /// This instance was opened as an additional project window.
@@ -348,9 +366,16 @@ pub async fn project_window_new() -> Result<()> {
 
 /// Start another instance as an additional project window, with `project` or without one.
 fn spawn_window(project: Option<&std::path::Path>) -> Result<()> {
+    spawn(project, None)
+}
+
+fn spawn(project: Option<&std::path::Path>, join_link: Option<&str>) -> Result<()> {
     let mut command = std::process::Command::new(own_program()?);
     if let Some(project) = project {
         command.arg(project);
+    }
+    if let Some(link) = join_link {
+        command.env(JOIN_LINK_ENV, link);
     }
     let mut child = command
         .env(NEW_WINDOW_ENV, "1")

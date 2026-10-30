@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { invoke, listen } from "@/ipc";
-import { COMPANION_OPEN_EVENT, type CompanionStatus, type OpenEvent, type ProjectProfile } from "@/ipc/companion";
+import { COMPANION_JOIN_SESSION_EVENT, COMPANION_OPEN_EVENT, type CompanionStatus, type OpenEvent, type ProjectProfile } from "@/ipc/companion";
 import "./workspaceMock";
 import "./companionMock";
 
@@ -36,5 +36,13 @@ describe("companion mock", () => {
     await invoke("companion_open_link", { url: "forge://open?file=app/Models/User.php&line=42" });
     un();
     expect(events[0]).toMatchObject({ source: "link", line: 42, target: { kind: "open", path: "app/Models/User.php" } });
+  });
+
+  it("hands session links to the Join Session dialog", async () => {
+    const links: string[] = [];
+    const un = await listen<string>(COMPANION_JOIN_SESSION_EVENT, (l) => links.push(l));
+    await invoke("companion_open_link", { url: "forge://cwm/join/?v=1&name=Robert#h=x&k=y" });
+    un();
+    expect(links).toEqual(["forge://cwm/join/?v=1&name=Robert#h=x&k=y"]);
   });
 });

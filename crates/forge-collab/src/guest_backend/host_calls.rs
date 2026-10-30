@@ -34,6 +34,7 @@ use crate::audit::{AuditEvent, FileAction};
 use crate::guest_backend::calls::{GitAction, GitQuery, HostCall, LspQuery, OpenedProject};
 use crate::guest_backend::git::Visible;
 use crate::permissions::is_plain_relative;
+use crate::reconnect::MissedChanges;
 
 /// Calls a guest may have in flight at once.
 const MAX_PENDING_CALLS: usize = 64;
@@ -113,6 +114,8 @@ pub(crate) struct CallState {
     services: Mutex<Option<Arc<dyn HostServices>>>,
     /// Guests that asked for `FsChanged`.
     watchers: Mutex<HashSet<ParticipantId>>,
+    /// File changes watching guests missed while their connection was down.
+    missed: Mutex<HashMap<ParticipantId, MissedChanges>>,
     /// Files each guest told us it has open (for diagnostics).
     lsp_open: Mutex<HashMap<ParticipantId, HashSet<String>>>,
     pending: Mutex<HashMap<ParticipantId, Arc<AtomicUsize>>>,
@@ -169,11 +172,13 @@ impl HostSession {
     }
 
     /// The project watcher reported changes: tell the guests that watch, minus what they may
-    /// not see.
+    /// not see. A guest that is away collects them until it resumes (`take_missed_fs`).
     pub(crate) fn forward_fs(&self, changes: &FsChanges) {
         let st = self.state();
         let mut watchers = lock(&self.calls.watchers);
         watchers.retain(|id| st.guests.contains_key(id));
+        let mut missed = lock(&self.calls.missed);
+        missed.retain(|id, _| watchers.contains(id));
         let mut out = Outbox::default();
         for id in watchers.iter() {
             let Some(g) = st.guests.get(id) else { continue };
@@ -188,6 +193,13 @@ impl HostSession {
             if changed.is_empty() && removed.is_empty() && !changes.git {
                 continue;
             }
+            if g.participant.reconnecting {
+                missed
+                    .entry(*id)
+                    .or_default()
+                    .record(&changed, &removed, changes.git);
+                continue;
+            }
             out.guests.push((
                 g.tx.clone(),
                 HostMessage::FsChanged {
@@ -197,9 +209,27 @@ impl HostSession {
                 },
             ));
         }
+        drop(missed);
         drop(watchers);
         drop(st);
         self.deliver(out);
+    }
+
+    /// What guest `id` missed while it was away, as one `FsChanged`, and forget it.
+    pub(crate) fn take_missed_fs(&self, id: ParticipantId) -> Option<HostMessage> {
+        let missed = lock(&self.calls.missed).remove(&id)?;
+        if missed.is_empty() {
+            return None;
+        }
+        if missed.overflowed() {
+            tracing::debug!("Code With Me: a guest missed more file changes than were kept");
+        }
+        let (changed, removed, git) = missed.into_parts();
+        Some(HostMessage::FsChanged {
+            changed,
+            removed,
+            git,
+        })
     }
 
     /// A project call from guest `from`: answered in the background so documents and carets

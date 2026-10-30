@@ -20,6 +20,7 @@ use forge_collab::host::{
     DevAutoAccept, HostConfig, HostServices, HostSession, LspRequest, DEV_PREVIEW_NOTICE,
 };
 use forge_collab::permissions::{FilesAccess, Permissions, RunAccess, VcsAccess};
+use forge_collab::reconnect::ReconnectPolicy;
 use forge_collab::transport::memory::MemoryNetwork;
 use forge_core::search::FindRequest;
 use forge_core::FsChanges;
@@ -158,14 +159,24 @@ impl World {
     }
 
     async fn join(&mut self, name: &str) -> Guest {
+        self.join_policy(name, ReconnectPolicy::default()).await
+    }
+
+    /// The endpoint key of the guest that joined last.
+    fn last_key(&self) -> [u8; 32] {
+        [self.next_key - 1; 32]
+    }
+
+    async fn join_policy(&mut self, name: &str, policy: ReconnectPolicy) -> Guest {
         let key = [self.next_key; 32];
         self.next_key += 1;
         let link = self.host.link();
-        let session = GuestSession::join(
+        let session = GuestSession::join_with(
             Arc::new(self.net.endpoint(key)),
             &link,
             name,
             Arc::new(|_: GuestEvent| {}),
+            policy,
         )
         .await
         .unwrap();
@@ -1009,6 +1020,86 @@ async fn the_guest_is_told_about_changes_it_may_see() {
         .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(seen.lock().unwrap().len(), 1);
+    drop(guard);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_resumed_guest_gets_the_changes_it_missed() {
+    let mut w = World::new(READ);
+    let fast = ReconnectPolicy {
+        backoff: vec![Duration::from_millis(20)],
+        give_up_after: Duration::from_secs(10),
+    };
+    let g = w.join_policy("Alex", fast).await;
+    let key = w.last_key();
+    let seen: Arc<Mutex<Vec<FsChanges>>> = Arc::default();
+    let sink = seen.clone();
+    let guard = g
+        .on(move |b| b.watch(Arc::new(move |c| sink.lock().unwrap().push(c))))
+        .await
+        .unwrap();
+
+    w.net.set_offline(key, true);
+    let host = w.host.clone();
+    for _ in 0..500 {
+        if host.participants().iter().any(|p| p.reconnecting) {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(host.participants().iter().any(|p| p.reconnecting));
+    // While Alex is away: a file is created and deleted again, one is created, one deleted,
+    // a hidden one changes, and a commit moves HEAD.
+    for (changed, removed, git) in [
+        (
+            vec!["app/Tmp.php", "app/New.php"],
+            vec!["app/Old.php"],
+            false,
+        ),
+        (vec![".env"], vec!["app/Tmp.php"], true),
+    ] {
+        w.host
+            .on_fs_changed(&FsChanges {
+                changed: changed.into_iter().map(String::from).collect(),
+                removed: removed.into_iter().map(String::from).collect(),
+                git,
+            })
+            .await;
+    }
+    assert!(seen.lock().unwrap().is_empty());
+
+    w.net.set_offline(key, false);
+    for _ in 0..500 {
+        if !seen.lock().unwrap().is_empty() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let got = seen.lock().unwrap().clone();
+    assert_eq!(got.len(), 1, "{got:?}");
+    assert_eq!(got[0].changed, vec!["app/New.php".to_string()]);
+    assert_eq!(
+        got[0].removed,
+        vec!["app/Old.php".to_string(), "app/Tmp.php".to_string()]
+    );
+    assert!(got[0].git);
+    // Once back, changes flow live again and nothing is sent twice.
+    w.host
+        .on_fs_changed(&FsChanges {
+            changed: vec!["app/Later.php".into()],
+            removed: vec![],
+            git: false,
+        })
+        .await;
+    for _ in 0..500 {
+        if seen.lock().unwrap().len() > 1 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let got = seen.lock().unwrap().clone();
+    assert_eq!(got.len(), 2, "{got:?}");
+    assert_eq!(got[1].changed, vec!["app/Later.php".to_string()]);
     drop(guard);
 }
 

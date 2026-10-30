@@ -146,7 +146,8 @@ impl CollabState {
         *self.active.lock().expect("collab lock poisoned") = Some(a);
     }
 
-    fn busy(&self) -> bool {
+    /// A session runs or a join waits for its host.
+    pub(crate) fn busy(&self) -> bool {
         self.active.lock().expect("collab lock poisoned").is_some()
             || self.joining.lock().expect("collab lock poisoned").is_some()
     }

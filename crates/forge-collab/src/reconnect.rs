@@ -10,8 +10,12 @@
 //!   [`GUEST_GIVE_UP`], which is shorter than the host's grace so its last attempt still
 //!   finds its place.
 //!
+//! - File changes a watching guest misses while it is away are collected
+//!   ([`MissedChanges`]) and sent when it resumes, so its project tree and git state catch up.
+//!
 //! Pure: no clock, no runtime. The session code passes the elapsed time.
 
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -102,8 +106,98 @@ pub fn same_token(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
+/// At most this many paths are kept for an away guest; it re-lists its open folders after a
+/// resume anyway, so an overflow only loses the per-file updates (open tabs, bookmarks).
+pub const MAX_MISSED_PATHS: usize = 10_000;
+
+/// Project file changes a guest missed while its connection was down, merged: the latest
+/// state of each path wins (created then deleted is "removed", deleted then created is
+/// "changed").
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct MissedChanges {
+    /// Path -> it exists now.
+    paths: BTreeMap<String, bool>,
+    git: bool,
+    overflowed: bool,
+}
+
+impl MissedChanges {
+    /// Add one batch of the host's watcher.
+    pub fn record(&mut self, changed: &[String], removed: &[String], git: bool) {
+        self.git |= git;
+        let batch = changed
+            .iter()
+            .map(|p| (p, true))
+            .chain(removed.iter().map(|p| (p, false)));
+        for (path, exists) in batch {
+            if self.paths.len() >= MAX_MISSED_PATHS && !self.paths.contains_key(path) {
+                self.overflowed = true;
+                continue;
+            }
+            self.paths.insert(path.clone(), exists);
+        }
+    }
+
+    /// Nothing was missed.
+    pub fn is_empty(&self) -> bool {
+        self.paths.is_empty() && !self.git
+    }
+
+    /// More paths changed than were kept.
+    pub fn overflowed(&self) -> bool {
+        self.overflowed
+    }
+
+    /// The merged changes: `(changed, removed, git)`.
+    pub fn into_parts(self) -> (Vec<String>, Vec<String>, bool) {
+        let (changed, removed): (Vec<_>, Vec<_>) =
+            self.paths.into_iter().partition(|(_, exists)| *exists);
+        let names = |v: Vec<(String, bool)>| v.into_iter().map(|(p, _)| p).collect();
+        (names(changed), names(removed), self.git)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    fn strings(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn missed_changes_keep_the_latest_state_of_each_path() {
+        let mut m = MissedChanges::default();
+        assert!(m.is_empty());
+        m.record(&strings(&["a.php", "b.php"]), &strings(&["old.php"]), false);
+        m.record(&strings(&["old.php"]), &strings(&["a.php"]), true);
+        m.record(&strings(&["b.php"]), &[], false);
+        assert!(!m.is_empty());
+        let (changed, removed, git) = m.into_parts();
+        assert_eq!(changed, strings(&["b.php", "old.php"]));
+        assert_eq!(removed, strings(&["a.php"]));
+        assert!(git);
+    }
+
+    #[test]
+    fn missed_git_changes_alone_count() {
+        let mut m = MissedChanges::default();
+        m.record(&[], &[], true);
+        assert!(!m.is_empty());
+        assert_eq!(m.into_parts(), (vec![], vec![], true));
+    }
+
+    #[test]
+    fn missed_changes_are_bounded() {
+        let mut m = MissedChanges::default();
+        let many: Vec<String> = (0..MAX_MISSED_PATHS + 5).map(|i| format!("f{i}")).collect();
+        m.record(&many, &[], false);
+        assert!(m.overflowed());
+        // A path already kept still follows its latest state.
+        m.record(&[], &strings(&["f0"]), false);
+        let (changed, removed, _) = m.into_parts();
+        assert_eq!(changed.len() + removed.len(), MAX_MISSED_PATHS);
+        assert_eq!(removed, strings(&["f0"]));
+    }
+
     use super::*;
 
     const S: fn(u64) -> Duration = Duration::from_secs;

@@ -960,7 +960,28 @@ screenshots.
   `userName`), the note that an open project is closed, then **Waiting for <host> to accept…**
   with the verification code and Cancel inside the dialog (the waiting balloon only appears for
   joins without the dialog); declined or unanswered requests are shown in the dialog with Try
-  Again. The plan's question about unsaved changes of the guest's own project is not asked yet.
+  Again.
+- Finished on `fix/code-with-me-guest-polish`: **unsaved changes** of the window's own project
+  are asked about when Join is pressed (`JoinSession.tsx`, step `unsaved`: the files, Save /
+  Don't Save / Cancel inside the dialog, so it never stacks with another modal). Shared tabs do
+  not count; without a project nothing is asked; Save uses the explicit trigger, so in Safe Mode
+  only the files are written (Actions on Save that run tools stay off there). Don't Save leaves
+  the edits in place until the host's project actually takes the window, so a declined join
+  loses nothing. A failed save stays in the dialog with the error.
+- **`forge://cwm/join?…` deep links**: the `forge` scheme was already registered
+  (`plugins.deep-link.desktop.schemes` in `tauri.conf.json`: `.desktop` MimeType
+  `x-scheme-handler/forge` on Linux, the URL protocol on Windows, `CFBundleURLTypes` on macOS;
+  runtime registration for AppImages and dev builds). `forge_collab::link::is_join_url` tells
+  session links from `forge_open`'s links and `route_join_url` parses them in full (also the
+  `forge://cwm/join/?` spelling) and picks the window: `JoinRoute::ThisWindow` (Welcome screen
+  or project; the unsaved question applies) or `JoinRoute::NewWindow` when this window is in a
+  session or joining. `companion::open_join_link` handles links from the deep-link plugin
+  (`on_open_url`, second launches through the single-instance plugin), launch arguments and the
+  Test button (`companion_open_link`); this window gets `PendingEvent::JoinSession` /
+  `companion://join-session` (queued until the UI is ready), a new window is a project-window
+  instance started with the canonical link in `FORGE_CWM_JOIN` (environment, not argv). The UI
+  (`features/code-with-me/join.ts`, `browserCompanion/openRequests.ts`) opens the Join Session
+  dialog filled in; nothing connects before Join. Browser mode: `?welcome&cwmLink`.
 - The **protected files are a setting**, `codeWithMe.protectedFiles` ("Files only Full access
   may change", default `forge_collab::excludes::DEFAULT_PROTECTED`, the former
   `PROTECTED_FILES`), passed as `HostConfig::protected` into every guest's `Policy`
@@ -1226,6 +1247,19 @@ Deviations from the plan above:
   next attempt), a sticky balloon "Connection to <host> lost" with Leave Session, "Reconnected
   to <host>." when back, and "Reconnecting…" with a faded avatar in the host's participant
   list. Browser mode: `?project=cwm-guest&reconnecting[=resume]`, `?cwmAway` (host).
+- Missed file changes (`fix/code-with-me-guest-polish`): while a watching guest is away the host
+  collects what its watcher reports (`reconnect::MissedChanges`, filtered by the guest's
+  policy, latest state per path, at most `MAX_MISSED_PATHS` = 10 000) and sends it as one
+  `FsChanged` with the resume. Changes queued on the dead connection before the host noticed
+  the drop are still lost, so the UI (`catchUpAfterResume` in `reconnect.ts`) also re-reads every
+  listed folder of the Project view (`refreshTree`, expansion and selection stay) and dispatches
+  a `git` change so Git status, Find and the other file-event views refresh. Test:
+  `a_resumed_guest_gets_the_changes_it_missed` (`tests/guest_backend.rs`).
+- Status bar popups (the guest's Code With Me item, the remote host item) are rendered by
+  `shell/StatusPopup.tsx`: in `document.body`, `position: fixed`, z-index 345 (above
+  CodeMirror's sticky panels at 300, which had covered their bottom ~26 px, and the balloons),
+  placed above the widget, shifted into the window, flipped below only with more room there,
+  and scrolling when the window is too low (`placeStatusPopup`, unit-tested).
 - Tests (in-memory network, `MemoryNetwork::set_offline` takes an endpoint's network down):
   resume with unsent edits on both sides converging, place and color kept, presence resent;
   grace expiry; giving up; removed while away; another endpoint or a wrong token cannot take
@@ -1287,7 +1321,7 @@ Deviations from the plan above:
   buttons keep their keys), action groups are `role="menu"`, the permission radio group, the
   shared files list and the session log have labels, the Custom Permissions and Session Log
   dialogs are `aria-modal`, the tool window tabs are focusable with `aria-selected`. The Join
-  Session dialog and the guest's status bar popup were left to `fix/code-with-me-guest-polish`.
+  Session dialog and the guest's status bar popup were done on `fix/code-with-me-guest-polish`.
 - **Docs**: the Code With Me section in `docs/ARCHITECTURE.md` (layers, contribution points,
   protocol, host enforcement, documents and conflicts, reconnect, IPC, tests, binary size), the
   guide's "Saving and changes on disk" and keyboard notes, README and ROADMAP.

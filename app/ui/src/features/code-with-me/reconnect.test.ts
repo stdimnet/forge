@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import { collabApi, type DocOpened, type DocSynced } from "@/ipc/collab";
 import { contentHash } from "@/state/editor";
 import { adoptDoc, GUEST_PREFIX, onSharedDocEvent, releaseAll, resyncDoc, setConflictListener } from "./docs";
-import { connectionLabel } from "./reconnect";
+import { catchUpAfterResume, connectionLabel } from "./reconnect";
 
 const PATH = "app/Order.php";
 
@@ -84,5 +84,15 @@ describe("the connection label", () => {
     expect(connectionLabel({ state: "connected" })).toBeNull();
     expect(connectionLabel({ state: "reconnecting", attempt: 2, nextRetrySecs: 4 })).toBe("Reconnecting… (next attempt in 4 s)");
     expect(connectionLabel({ state: "reconnecting", attempt: 1, nextRetrySecs: 0 })).toBe("Reconnecting…");
+  });
+});
+
+describe("catching up after a resume", () => {
+  it("re-reads the project tree and refreshes the views that follow file changes", () => {
+    const refreshTree = vi.fn();
+    const dispatch = vi.fn();
+    catchUpAfterResume({ refreshTree, dispatch });
+    expect(refreshTree).toHaveBeenCalledOnce();
+    expect(dispatch).toHaveBeenCalledWith({ changed: [], removed: [], git: true });
   });
 });

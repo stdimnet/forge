@@ -256,9 +256,87 @@ impl SessionLink {
     }
 }
 
+/// Where a session link handed over by the operating system (a clicked `forge://cwm/join?…`
+/// link) is shown in the Join Session dialog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JoinRoute {
+    /// The window that got the link: its Welcome screen or its project (the dialog asks about
+    /// unsaved changes before the project closes).
+    ThisWindow,
+    /// A new window, because this one is already in a session (as host or guest).
+    NewWindow,
+}
+
+/// Whether a `forge:` URL is a session link (and not, say, `forge://open?file=…`).
+pub fn is_join_url(url: &str) -> bool {
+    deep_link_body(url).is_some()
+}
+
+/// The part after `forge://cwm/join?`, also for the spellings operating systems hand over
+/// (`forge://cwm/join/?…`, any case of the scheme and host).
+fn deep_link_body(url: &str) -> Option<&str> {
+    let url = url.trim();
+    let head = url.get(..URL_PREFIX.len() - 1)?;
+    if !head.eq_ignore_ascii_case(&URL_PREFIX[..URL_PREFIX.len() - 1]) {
+        return None;
+    }
+    let rest = &url[head.len()..];
+    rest.strip_prefix("/?").or_else(|| rest.strip_prefix('?'))
+}
+
+/// Check a session link from the operating system and pick the window for it. The link is
+/// untrusted: it is parsed in full, and it only fills in the Join Session dialog, so nothing
+/// connects before the user presses Join. Returns the link in its canonical form.
+pub fn route_join_url(url: &str, window_in_session: bool) -> Result<(String, JoinRoute)> {
+    let body =
+        deep_link_body(url).ok_or_else(|| Error::InvalidLink("not a Code With Me link".into()))?;
+    let link = SessionLink::parse(&format!("{URL_PREFIX}{body}"))?;
+    let route = if window_in_session {
+        JoinRoute::NewWindow
+    } else {
+        JoinRoute::ThisWindow
+    };
+    Ok((link.to_url(), route))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deep_links_are_told_from_other_forge_links() {
+        let url = sample().to_url();
+        assert!(is_join_url(&url));
+        assert!(is_join_url(&url.replacen(
+            "forge://cwm/join?",
+            "FORGE://CWM/join/?",
+            1
+        )));
+        assert!(!is_join_url("forge://open?file=/tmp/a.php"));
+        assert!(!is_join_url("forge://cwm/joinx?v=1"));
+        assert!(!is_join_url(&sample().to_text()));
+    }
+
+    #[test]
+    fn a_deep_link_goes_to_this_window_unless_it_is_in_a_session() {
+        let url = sample().to_url();
+        let (link, route) = route_join_url(&url, false).unwrap();
+        assert_eq!(route, JoinRoute::ThisWindow);
+        assert_eq!(SessionLink::parse(&link).unwrap(), sample());
+        let (_, route) = route_join_url(&format!(" {url}\n"), true).unwrap();
+        assert_eq!(route, JoinRoute::NewWindow);
+        // The trailing-slash spelling some systems hand over is the same link.
+        let slashed = url.replacen("forge://cwm/join?", "forge://cwm/join/?", 1);
+        assert_eq!(route_join_url(&slashed, false).unwrap().0, link);
+    }
+
+    #[test]
+    fn a_broken_deep_link_is_refused() {
+        assert!(route_join_url("forge://open?file=/x", false).is_err());
+        assert!(route_join_url("forge://cwm/join?v=1&name=Robert", false).is_err());
+        let long = format!("forge://cwm/join?v=1&name={}", "a".repeat(MAX_LINK_LEN));
+        assert!(route_join_url(&long, false).is_err());
+    }
 
     fn sample() -> SessionLink {
         SessionLink {

@@ -3,11 +3,12 @@
  * while the connection is re-established, or "Disconnected". Clicking it shows the
  * connection details with Reconnect.
  */
-import { createSignal, Match, onCleanup, Show, Switch } from "solid-js";
+import { createSignal, Match, Show, Switch } from "solid-js";
 import { LoaderCircle, Server, Unplug } from "lucide-solid";
 import { remoteApi, type RemoteStatus } from "@/ipc/remote";
 import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
+import { StatusPopup } from "@/shell/StatusPopup";
 import { remoteStatus } from "./store";
 
 /** Latency class: fast / slow / very slow, colored in the widget. */
@@ -35,11 +36,6 @@ export function RemoteStatusItem() {
   const [open, setOpen] = createSignal(false);
   const label = () => remoteStatus()?.label ?? workspace()?.remote?.label ?? "";
   let el: HTMLDivElement | undefined;
-  const onDoc = (e: MouseEvent) => {
-    if (el && !el.contains(e.target as Node)) setOpen(false);
-  };
-  document.addEventListener("mousedown", onDoc);
-  onCleanup(() => document.removeEventListener("mousedown", onDoc));
 
   const reconnect = async () => {
     setOpen(false);
@@ -72,7 +68,7 @@ export function RemoteStatusItem() {
         <Show when={remoteStatus()}>{(s) => <span class="remote-status-detail">{statusText(s())}</span>}</Show>
       </button>
       <Show when={open()}>
-        <div class="remote-popup" role="dialog" aria-label="Remote Host">
+        <StatusPopup anchor={el!} class="remote-popup" label="Remote Host" onClose={() => setOpen(false)}>
           <div class="remote-popup-title">
             <Server size={14} /> {label()}
           </div>
@@ -115,7 +111,7 @@ export function RemoteStatusItem() {
               Reconnect
             </button>
           </div>
-        </div>
+        </StatusPopup>
       </Show>
     </div>
   );

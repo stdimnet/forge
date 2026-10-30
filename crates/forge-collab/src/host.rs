@@ -1112,6 +1112,9 @@ impl HostSession {
                 let guest = &st.guests[&participant];
                 presence_snapshot(&st, participant, guest, &mut out);
                 self.resync_guest(&st, participant, &mut out);
+                if let Some(fs) = self.take_missed_fs(participant) {
+                    out.guests.push((guest.tx.clone(), fs));
+                }
                 if st.follow_host {
                     out.guests
                         .push((guest.tx.clone(), HostMessage::FollowHost { on: true }));

@@ -1,7 +1,31 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerMock } from "@/ipc";
 import type { SessionView } from "@/ipc/collab";
-import { joinDialogOpen, linkProblem, openJoinDialog, showJoinWaiting } from "./JoinSession";
+import type { EditorTab } from "@/state/editor";
+import { joinDialogOpen, linkProblem, openJoinDialog, showJoinWaiting, unsavedFiles, unsavedMessage } from "./JoinSession";
+
+/** The window's own project and its tabs, changed per test. */
+const own = vi.hoisted(() => ({
+  project: null as { name: string; root: string } | null,
+  tabs: [] as unknown[],
+  saved: [] as string[],
+  saveError: null as string | null,
+}));
+vi.mock("@/state/workspace", async (orig) => ({ ...(await orig<object>()), workspace: () => own.project }));
+vi.mock("@/state/editor", async (orig) => ({
+  ...(await orig<object>()),
+  editor: {
+    get tabs() {
+      return own.tabs;
+    },
+  },
+  saveFile: async (path: string) => {
+    if (own.saveError) throw new Error(own.saveError);
+    own.saved.push(path);
+  },
+}));
+const tab = (path: string, dirty: boolean, extra: Partial<EditorTab> = {}) =>
+  ({ path, content: dirty ? "changed" : "same", saved: "same", ...extra }) as EditorTab;
 
 const LINK = "forge://cwm/join?v=1&name=Robert&m=workstation&s=abc#h=x&k=y";
 const joined: SessionView = { role: "guest", canHost: false, participants: [], files: [] };
@@ -25,7 +49,9 @@ const typeLink = (text: string) => {
 
 afterEach(() => {
   button("Cancel")?.click();
+  button("Cancel")?.click();
   cancel.mockClear();
+  Object.assign(own, { project: null, tabs: [], saved: [], saveError: null });
 });
 
 describe("the Join Session dialog", () => {
@@ -81,5 +107,51 @@ describe("the Join Session dialog", () => {
     typeLink("forge://cwm/join?v=1");
     await vi.waitFor(() => expect(dialog()!.querySelector(".dialog-error")?.textContent).toContain("name is missing"));
     expect(button("Join")!.disabled).toBe(true);
+  });
+
+  it("asks to save the open project's unsaved files before joining", async () => {
+    own.project = { name: "blog", root: "/home/alex/blog" };
+    own.tabs = [tab("a.php", true), tab("b.php", false), tab("shared.php", true, { shared: true })];
+    const result = openJoinDialog(LINK);
+    await vi.waitFor(() => expect(button("Join")?.disabled).toBe(false));
+    button("Join")!.click();
+    await vi.waitFor(() => expect(dialog()!.querySelector("[data-testid=cwm-join-unsaved]")).not.toBeNull());
+    expect(dialog()!.textContent).toContain("blog has unsaved changes in 1 file.");
+    expect(dialog()!.textContent).toContain("a.php");
+    // Cancel goes back to the link; nothing connects.
+    button("Cancel")!.click();
+    await vi.waitFor(() => expect(button("Join")).toBeDefined());
+    button("Join")!.click();
+    await vi.waitFor(() => expect(button("Save")).toBeDefined());
+    button("Save")!.click();
+    await vi.waitFor(() => expect(dialog()!.textContent).toContain("Connecting to"));
+    expect(own.saved).toEqual(["a.php"]);
+    joinAnswer(joined);
+    expect(await result).toEqual(joined);
+  });
+
+  it("joins without saving on Don't Save, and stays when saving fails", async () => {
+    own.project = { name: "blog", root: "/home/alex/blog" };
+    own.tabs = [tab("a.php", true)];
+    own.saveError = "disk full";
+    const result = openJoinDialog(LINK);
+    await vi.waitFor(() => expect(button("Join")?.disabled).toBe(false));
+    button("Join")!.click();
+    await vi.waitFor(() => expect(button("Save")).toBeDefined());
+    button("Save")!.click();
+    await vi.waitFor(() => expect(dialog()!.querySelector("[role=alert]")?.textContent).toContain("disk full"));
+    button("Try Again")!.click();
+    await vi.waitFor(() => expect(button("Don't Save")).toBeDefined());
+    button("Don't Save")!.click();
+    await vi.waitFor(() => expect(dialog()!.textContent).toContain("Connecting to"));
+    expect(own.saved).toEqual([]);
+    joinAnswer(joined);
+    expect(await result).toEqual(joined);
+  });
+
+  it("does not ask without unsaved files of its own", () => {
+    expect(unsavedFiles([tab("a.php", false), tab("s.php", true, { shared: true })])).toEqual([]);
+    expect(unsavedMessage("blog", 3, false)).toBe("blog has unsaved changes in 3 files. Save them before the project is closed?");
+    expect(unsavedMessage("blog", 1, true)).toContain("Safe Mode");
   });
 });
