@@ -13,6 +13,7 @@
 //! - [`relay`]: relay options (self-hosted relay, public relays, LAN discovery) and the
 //!   connection path (direct or relayed).
 //! - [`secrets`]: the relay token in the OS keychain.
+//! - [`share`]: shared terminals and runs (ids, what guests see, scrollback and run logs).
 //! - [`textdiff`]: minimal UTF-16 edits between two texts (reloading shared files from disk).
 //!
 //! With `runtime` (the default):
@@ -33,6 +34,7 @@ pub mod presence;
 pub mod protocol;
 pub mod relay;
 pub mod secrets;
+pub mod share;
 pub mod textdiff;
 pub mod verify;
 

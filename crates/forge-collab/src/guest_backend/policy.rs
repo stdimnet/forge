@@ -161,6 +161,28 @@ impl Policy {
             HostCall::Php(p) => self.check_php(p),
             HostCall::Framework(f) => self.check_framework(f),
             HostCall::Lsp(q) => self.check_lsp(q),
+            HostCall::TerminalOpen { cols, rows } => {
+                self.need_terminal_full()?;
+                if (1..=1000).contains(cols) && (1..=500).contains(rows) {
+                    Ok(())
+                } else {
+                    Err(denied("invalid terminal size"))
+                }
+            }
+            // The host checks that the terminal is the guest's own.
+            HostCall::TerminalClose { .. } => self.need_terminal_full(),
+            HostCall::RunStart { configuration } => {
+                self.need_run_full()?;
+                if !configuration.trim().is_empty()
+                    && configuration.len() <= 256
+                    && !configuration.chars().any(char::is_control)
+                {
+                    Ok(())
+                } else {
+                    Err(denied("invalid run configuration name"))
+                }
+            }
+            HostCall::RunStop { .. } => self.need_run_full(),
         }
     }
 
@@ -420,6 +442,51 @@ mod tests {
         HostCall::WriteFile {
             path: path.into(),
             contents: String::new(),
+        }
+    }
+
+    #[test]
+    fn terminals_and_runs_need_full_access_in_their_area() {
+        use crate::permissions::RunAccess;
+        use crate::share::{RunId, TerminalId};
+        let open = HostCall::TerminalOpen { cols: 80, rows: 24 };
+        let close = HostCall::TerminalClose {
+            terminal: TerminalId(1),
+        };
+        let run = HostCall::RunStart {
+            configuration: "UserTest".into(),
+        };
+        let stop = HostCall::RunStop { run: RunId(1) };
+        for p in [Permissions::READ_ONLY, Permissions::EDIT_FILES] {
+            for call in [&open, &close, &run, &stop] {
+                assert!(policy(p).check_call(call).is_err(), "{call:?} with {p:?}");
+            }
+        }
+        let full = policy(Permissions::FULL_ACCESS);
+        for call in [&open, &close, &run, &stop] {
+            assert!(full.check_call(call).is_ok(), "{call:?}");
+        }
+        let terminal_only = policy(Permissions {
+            terminal: TerminalAccess::Full,
+            run: RunAccess::ReadOnly,
+            ..Permissions::READ_ONLY
+        });
+        assert!(terminal_only.check_call(&open).is_ok());
+        assert!(terminal_only.check_call(&run).is_err());
+        for bad in [
+            HostCall::TerminalOpen { cols: 0, rows: 24 },
+            HostCall::TerminalOpen {
+                cols: 80,
+                rows: 9999,
+            },
+            HostCall::RunStart {
+                configuration: " ".into(),
+            },
+            HostCall::RunStart {
+                configuration: "a\nb".into(),
+            },
+        ] {
+            assert!(full.check_call(&bad).is_err(), "{bad:?}");
         }
     }
 

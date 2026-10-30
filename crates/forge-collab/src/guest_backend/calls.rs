@@ -7,7 +7,8 @@
 //!
 //! Calls travel as an opaque MessagePack payload inside `GuestMessage::Call`, replies inside
 //! `HostMessage::CallResult` (the MessagePack encoding of the call's reply type, noted on each
-//! variant). Later stages add variants (terminals, runs) without changing these.
+//! variant). Terminals and runs (S5) are requests here too; the keys typed into a terminal
+//! and console input travel as `GuestMessage::TerminalInput` / `RunInput`, in order.
 
 use forge_backend::protocol::PhpCall;
 use forge_backend::FrameworkCall;
@@ -15,6 +16,7 @@ use forge_core::search::FindRequest;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
+use crate::share::{RunId, TerminalId};
 use crate::{Error, Result};
 
 /// Largest call payload the host decodes (the frame limit already bounds it).
@@ -72,6 +74,16 @@ pub enum HostCall {
     Framework(FrameworkCall),
     /// Language server features, run by the host's servers -> JSON of the call's reply type
     Lsp(LspQuery),
+    /// Open a terminal on the host in the project folder, with the host's shell (titled
+    /// "<guest>: Local"); Terminal Full access -> [`SharedTerminal`](crate::share::SharedTerminal)
+    TerminalOpen { cols: u16, rows: u16 },
+    /// Close a terminal this guest opened; Terminal Full access -> `()`
+    TerminalClose { terminal: TerminalId },
+    /// Start the host's run configuration `configuration` (by name; a running one is rerun),
+    /// as if the host clicked Run; Run Full access -> `()`
+    RunStart { configuration: String },
+    /// Stop a run of the host; Run Full access -> `()`
+    RunStop { run: RunId },
 }
 
 /// Reply to [`HostCall::Open`]. The host's absolute project path is not sent.
@@ -267,6 +279,10 @@ impl HostCall {
             HostCall::Php(_) => "php",
             HostCall::Framework(_) => "framework",
             HostCall::Lsp(_) => "lsp",
+            HostCall::TerminalOpen { .. } => "open terminal",
+            HostCall::TerminalClose { .. } => "close terminal",
+            HostCall::RunStart { .. } => "run",
+            HostCall::RunStop { .. } => "stop run",
         }
     }
 

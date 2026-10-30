@@ -44,6 +44,11 @@ mod guest_calls;
 use guest_calls::CallState;
 pub use guest_calls::{virtual_root, HostServices, LspRequest};
 
+// Shared terminals and runs.
+#[path = "share_host.rs"]
+mod share_host;
+use share_host::ShareState;
+
 /// Messages queued for one guest before the guest counts as too slow and is disconnected.
 const GUEST_QUEUE: usize = 4096;
 /// Time a new connection has to send its knock.
@@ -190,6 +195,7 @@ pub struct HostSession {
     notice: Option<String>,
     state: Mutex<State>,
     calls: CallState,
+    share: Mutex<ShareState>,
     ended: AtomicBool,
     audit: Mutex<Option<SharedAudit>>,
 }
@@ -235,6 +241,7 @@ impl HostSession {
                 ..State::default()
             }),
             calls: CallState::default(),
+            share: Mutex::new(ShareState::default()),
             ended: AtomicBool::new(false),
             audit: Mutex::new(None),
         });
@@ -373,6 +380,8 @@ impl HostSession {
             }
         }
         self.deliver(out);
+        // Terminals and runs the guests may see now; lost terminal access closes theirs.
+        self.permissions_applied(ids);
     }
 
     /// Remove Guest: the guest is disconnected at once and told why. Removing does not ban;
@@ -785,6 +794,7 @@ impl HostSession {
         self.audit(AuditEvent::SessionEnded {
             reason: reason.to_string(),
         });
+        self.end_shares();
         let guests = std::mem::take(&mut self.state().guests);
         for g in guests.values() {
             let _ = g.tx.try_send(HostMessage::Ended {
@@ -930,6 +940,7 @@ impl HostSession {
             participants_changed(&self.host, &st, &mut out);
             let guest = &st.guests[&id];
             presence_snapshot(&st, id, guest, &mut out);
+            self.sync_new_guest(&st, id, &mut out);
             if st.follow_host {
                 out.guests
                     .push((guest.tx.clone(), HostMessage::FollowHost { on: true }));
@@ -992,6 +1003,10 @@ impl HostSession {
             .err()
             .or_else(|| self.document_write_denied(&policy, &msg));
         if let Some(denied) = denied {
+            // A client that keeps sending keys is refused once, not once per key.
+            if !self.report_refused_input(from, &msg) {
+                return;
+            }
             let reason = denied.to_string();
             self.audit(AuditEvent::Denied {
                 participant: from,
@@ -1076,6 +1091,16 @@ impl HostSession {
             }
             GuestMessage::DocClose { doc } => self.close_doc(from, doc),
             GuestMessage::Presence { presence } => self.set_presence(from, presence),
+            GuestMessage::TerminalInput { terminal, data } => {
+                if let Err(reason) = self.terminal_input(from, terminal, &data) {
+                    self.reply(from, HostMessage::Denied { reason });
+                }
+            }
+            GuestMessage::RunInput { run, data } => {
+                if let Err(reason) = self.run_input(from, run, &data) {
+                    self.reply(from, HostMessage::Denied { reason });
+                }
+            }
             GuestMessage::Knock { .. } | GuestMessage::Leave | GuestMessage::Call { .. } => {}
         }
     }
@@ -1206,6 +1231,9 @@ impl HostSession {
             out.events.push(HostEvent::Notice(text));
         }
         self.deliver(out);
+        if !self.is_ended() {
+            self.guest_gone(id);
+        }
     }
 }
 

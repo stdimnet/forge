@@ -56,11 +56,55 @@ pub struct LspRequest {
 }
 
 /// What the host application provides to answer guests beyond the project's files: its
-/// language servers.
+/// language servers, terminals and runs. The session checks every guest request against the
+/// guest's permissions before it calls these; the terminal and run methods default to "not
+/// available" for hosts that do not share them.
 pub trait HostServices: Send + Sync + 'static {
     /// Answer an [`LspQuery`] with the JSON of the reply type documented on it. Paths in
     /// locations are workspace-relative.
     fn lsp(&self, req: LspRequest) -> BoxFuture<'static, Result<Vec<u8>, String>>;
+
+    /// Open a terminal for a guest in the project folder with the host's own shell, shown in
+    /// the host's Terminal tool window as `title`. `key` is the terminal's id in the host
+    /// application; its output and exit are reported with
+    /// [`HostSession::terminal_output`] and [`HostSession::terminal_exited`].
+    fn terminal_open(
+        &self,
+        _key: String,
+        _title: String,
+        _cols: u16,
+        _rows: u16,
+    ) -> BoxFuture<'static, Result<(), String>> {
+        Box::pin(async { Err("Terminals are not available in this session.".to_string()) })
+    }
+
+    /// Keys a guest typed into a shared terminal of the host application.
+    fn terminal_write(&self, _key: &str, _data: &str) -> Result<(), String> {
+        Err("Terminals are not available in this session.".into())
+    }
+
+    /// Close a guest's terminal (the guest closed it, left, or lost Terminal Full access).
+    fn terminal_close(&self, _key: &str) {}
+
+    /// Start the host's run configuration `configuration` as if the host clicked Run (a
+    /// running one is rerun). `guest` is who asked, for the host's UI.
+    fn run_start(
+        &self,
+        _configuration: String,
+        _guest: String,
+    ) -> BoxFuture<'static, Result<(), String>> {
+        Box::pin(async { Err("Running is not available in this session.".to_string()) })
+    }
+
+    /// Stop a run of the host application (`key` is its run id there).
+    fn run_stop(&self, _key: &str) -> Result<(), String> {
+        Err("Running is not available in this session.".into())
+    }
+
+    /// Console input for a run of the host application.
+    fn run_write(&self, _key: &str, _data: &str) -> Result<(), String> {
+        Err("Running is not available in this session.".into())
+    }
 }
 
 /// The host's bookkeeping for guest project backends.
@@ -93,6 +137,11 @@ impl HostSession {
     /// Let guests use the host's language servers.
     pub fn set_services(&self, services: Arc<dyn HostServices>) {
         *lock(&self.calls.services) = Some(services);
+    }
+
+    /// The host application's services, once set.
+    pub(crate) fn services(&self) -> Option<Arc<dyn HostServices>> {
+        lock(&self.calls.services).clone()
     }
 
     /// Language server diagnostics (JSON, a list of `EditorDiagnostic`) for a project file:
@@ -274,6 +323,21 @@ impl HostSession {
                 enc(&())
             }
             HostCall::Lsp(q) => self.lsp(from, &policy, q).await,
+            HostCall::TerminalOpen { cols, rows } => {
+                enc(&self.open_guest_terminal(from, cols, rows).await?)
+            }
+            HostCall::TerminalClose { terminal } => {
+                self.close_guest_terminal(from, terminal)?;
+                enc(&())
+            }
+            HostCall::RunStart { configuration } => {
+                self.start_run_for(from, configuration).await?;
+                enc(&())
+            }
+            HostCall::RunStop { run } => {
+                self.stop_run_for(from, run)?;
+                enc(&())
+            }
             HostCall::Rename { from: a, to: b } => {
                 let (x, y) = (a.clone(), b.clone());
                 let r = blocking(move || {
@@ -559,7 +623,11 @@ impl<'a> Gate<'a> {
             | HostCall::Watch
             | HostCall::Git(_)
             | HostCall::GitAction(_)
-            | HostCall::Lsp(_) => Err("Unexpected request.".into()),
+            | HostCall::Lsp(_)
+            | HostCall::TerminalOpen { .. }
+            | HostCall::TerminalClose { .. }
+            | HostCall::RunStart { .. }
+            | HostCall::RunStop { .. } => Err("Unexpected request.".into()),
         }
     }
 

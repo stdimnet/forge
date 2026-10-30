@@ -101,7 +101,7 @@ impl GuestSession {
         }
     }
 
-    fn start_call(
+    pub(crate) fn start_call(
         &self,
         call: &HostCall,
         timeout: Duration,

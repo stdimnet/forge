@@ -28,6 +28,12 @@ mod session_calls;
 pub use session_calls::DiagnosticsSink;
 use session_calls::GuestCalls;
 
+// The host's shared terminals and runs.
+#[path = "share_guest.rs"]
+mod share_guest;
+use share_guest::GuestShare;
+pub use share_guest::RunEventSink;
+
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 /// How long the host may take to let a guest in (the host approval waits for a person).
 const ADMISSION_TIMEOUT: Duration = Duration::from_secs(120);
@@ -95,6 +101,7 @@ pub struct GuestSession {
     host_key: PeerKey,
     code: String,
     calls: GuestCalls,
+    share: GuestShare,
 }
 
 impl GuestSession {
@@ -161,6 +168,7 @@ impl GuestSession {
             host_key: link.host_id,
             code: verification_code(&link.host_id, &me, &link.session_id),
             calls: GuestCalls::new(),
+            share: GuestShare::default(),
         });
 
         tokio::spawn(async move {
@@ -188,6 +196,7 @@ impl GuestSession {
             reader.state().opens.clear();
             reader.state().saves.clear();
             reader.calls.fail_all();
+            reader.end_shares();
             if !was_ended {
                 sink(GuestEvent::Ended(reason));
             }
@@ -200,7 +209,7 @@ impl GuestSession {
     }
 
     fn dispatch(&self, msg: HostMessage, sink: &GuestSink) {
-        if self.dispatch_call_message(&msg) {
+        if self.dispatch_call_message(&msg) || self.dispatch_share_message(&msg, sink) {
             return;
         }
         match msg {
@@ -285,7 +294,11 @@ impl GuestSession {
             | HostMessage::Ended { .. }
             | HostMessage::CallResult { .. }
             | HostMessage::FsChanged { .. }
-            | HostMessage::Diagnostics { .. } => {}
+            | HostMessage::Diagnostics { .. }
+            | HostMessage::Terminals { .. }
+            | HostMessage::TerminalOutput { .. }
+            | HostMessage::Runs { .. }
+            | HostMessage::RunEvents { .. } => {}
         }
     }
 
@@ -415,6 +428,7 @@ impl GuestSession {
 
     pub async fn leave(&self) {
         self.state().ended = true;
+        self.end_shares();
         self.send(GuestMessage::Leave);
         tokio::time::sleep(Duration::from_millis(100)).await;
         self.transport.close().await;

@@ -5,9 +5,10 @@
 //! Nothing here is trusted by the host: every method is one [`HostCall`], which the host
 //! checks against the guest's permissions before it touches anything.
 //!
-//! Not available to guests (yet): terminals and processes (S5 shares the host's terminals and
-//! runs), language servers (the guest asks the host's servers through [`GuestSession::lsp`]),
-//! executables and language server management.
+//! Terminals open on the host with the host's shell (Terminal Full access). Not available to
+//! guests: processes (guests run the host's configurations by name,
+//! [`GuestSession::start_run`]), language servers (the guest asks the host's servers through
+//! [`GuestSession::lsp`]), executables and language server management.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -295,10 +296,17 @@ impl Backend for CollabBackend {
         }))
     }
 
-    fn open_terminal(&self, _spec: TerminalSpec, _sink: PtySink) -> Result<Arc<dyn Terminal>> {
-        Err(unavailable("Terminals"))
+    /// A terminal on the host (Terminal Full access): the host starts its own shell in the
+    /// project folder; only the size comes from the guest.
+    fn open_terminal(&self, spec: TerminalSpec, sink: PtySink) -> Result<Arc<dyn Terminal>> {
+        self.shared
+            .session
+            .open_terminal_blocking(spec.cols.max(1), spec.rows.max(1), sink)
+            .map_err(ForgeError::Other)
     }
 
+    /// Guests never send command lines; they run the host's configurations by name
+    /// (`GuestSession::start_run`).
     fn start_process(&self, _cmd: &CommandLine, _sink: RunSink) -> Result<Arc<dyn Process>> {
         Err(unavailable("Running programs"))
     }

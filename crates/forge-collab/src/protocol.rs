@@ -16,10 +16,11 @@ use serde_bytes::ByteBuf;
 
 use crate::permissions::Permissions;
 use crate::presence::{Participant, ParticipantId, Presence};
+use crate::share::{RunId, SharedRun, SharedTerminal, TerminalId};
 use crate::{Error, Result};
 
 /// Bumped on incompatible changes; the host refuses other versions in the knock.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// QUIC application protocol of Code With Me connections.
 pub const ALPN: &[u8] = b"forge/cwm/1";
@@ -116,6 +117,17 @@ pub enum GuestMessage {
     Presence {
         presence: Presence,
     },
+    /// Keys typed into a shared terminal (Terminal Full access). The keys are never logged,
+    /// only that the guest typed.
+    TerminalInput {
+        terminal: TerminalId,
+        data: String,
+    },
+    /// Console input for a shared run (Run Full access).
+    RunInput {
+        run: RunId,
+        data: String,
+    },
     Leave,
 }
 
@@ -131,6 +143,8 @@ impl GuestMessage {
             Self::DocClose { .. } => "close",
             Self::Call { .. } => "call",
             Self::Presence { .. } => "presence",
+            Self::TerminalInput { .. } => "terminal input",
+            Self::RunInput { .. } => "run input",
             Self::Leave => "leave",
         }
     }
@@ -233,6 +247,31 @@ pub enum HostMessage {
     /// asking.
     FollowHost {
         on: bool,
+    },
+    /// The terminals this guest may see (empty without Terminal access), after every change:
+    /// shared or unshared, opened, resized, exited, closed.
+    Terminals {
+        terminals: Vec<SharedTerminal>,
+    },
+    /// Output of a shared terminal. `snapshot`: the scrollback so far, sent once when the
+    /// terminal becomes visible to the guest; live output follows.
+    TerminalOutput {
+        terminal: TerminalId,
+        data: String,
+        #[serde(default)]
+        snapshot: bool,
+    },
+    /// The host's runs this guest may see (empty without Run access).
+    Runs {
+        runs: Vec<SharedRun>,
+    },
+    /// Rendered events of a run (`run://<runId>` JSON). `snapshot`: everything so far, sent
+    /// once when the run becomes visible to the guest.
+    RunEvents {
+        run: RunId,
+        events: Vec<String>,
+        #[serde(default)]
+        snapshot: bool,
     },
     /// A request was refused by the host's policy.
     Denied {
@@ -350,6 +389,14 @@ mod tests {
                     ..Presence::default()
                 },
             },
+            GuestMessage::TerminalInput {
+                terminal: TerminalId(4),
+                data: "ls\r".into(),
+            },
+            GuestMessage::RunInput {
+                run: RunId(5),
+                data: "y\n".into(),
+            },
             GuestMessage::Leave,
         ];
         let mut dec = FrameDecoder::new(MAX_GUEST_FRAME);
@@ -389,6 +436,50 @@ mod tests {
             } else {
                 assert_eq!(got, Some(msg.clone()));
             }
+        }
+    }
+
+    #[test]
+    fn terminal_and_run_messages_round_trip() {
+        let msgs = vec![
+            HostMessage::Terminals {
+                terminals: vec![SharedTerminal {
+                    id: TerminalId(1),
+                    title: "Local".into(),
+                    owner: ParticipantId::HOST,
+                    cols: 80,
+                    rows: 24,
+                    running: true,
+                    exit_code: None,
+                }],
+            },
+            HostMessage::TerminalOutput {
+                terminal: TerminalId(1),
+                data: "\u{1b}[32m$\u{1b}[0m ".into(),
+                snapshot: true,
+            },
+            HostMessage::Runs {
+                runs: vec![SharedRun {
+                    id: RunId(2),
+                    title: "UserTest".into(),
+                    kind: Some("phpunit".into()),
+                    started_by: ParticipantId(3),
+                    running: false,
+                    exit_code: Some(1),
+                }],
+            },
+            HostMessage::RunEvents {
+                run: RunId(2),
+                events: vec![r#"{"type":"started"}"#.into()],
+                snapshot: false,
+            },
+        ];
+        let mut dec = FrameDecoder::new(MAX_HOST_FRAME);
+        for m in &msgs {
+            dec.push(&encode(m, MAX_HOST_FRAME).unwrap());
+        }
+        for m in msgs {
+            assert_eq!(dec.next_message::<HostMessage>().unwrap(), Some(m));
         }
     }
 

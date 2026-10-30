@@ -170,6 +170,31 @@ impl Policy {
             GuestMessage::Presence { .. } => Ok(()),
             // Project calls are decoded and checked by the host (`Policy::check_call`).
             GuestMessage::Call { .. } => Ok(()),
+            // The host also checks that the guest can see the terminal or run.
+            GuestMessage::TerminalInput { .. } => self.need_terminal_full(),
+            GuestMessage::RunInput { .. } => self.need_run_full(),
+        }
+    }
+
+    /// Typing into shared terminals and opening terminals on the host.
+    pub fn need_terminal_full(&self) -> Result<(), Denied> {
+        if self.permissions.terminal == TerminalAccess::Full {
+            Ok(())
+        } else {
+            Err(Denied(
+                "Your permission does not allow using the host's terminal".into(),
+            ))
+        }
+    }
+
+    /// Starting, stopping and typing into the host's runs.
+    pub fn need_run_full(&self) -> Result<(), Denied> {
+        if self.permissions.run == RunAccess::Full {
+            Ok(())
+        } else {
+            Err(Denied(
+                "Your permission does not allow running code on the host".into(),
+            ))
         }
     }
 }
@@ -257,6 +282,30 @@ mod tests {
             assert_eq!(policy(p).check(&update()).is_ok(), allowed);
             assert_eq!(policy(p).check(&save).is_ok(), allowed);
         }
+    }
+
+    #[test]
+    fn terminal_and_run_input_need_full_access() {
+        let typed = GuestMessage::TerminalInput {
+            terminal: crate::share::TerminalId(1),
+            data: "ls\r".into(),
+        };
+        let console = GuestMessage::RunInput {
+            run: crate::share::RunId(1),
+            data: "y\n".into(),
+        };
+        for p in [Permissions::READ_ONLY, Permissions::EDIT_FILES] {
+            assert!(policy(p).check(&typed).is_err());
+            assert!(policy(p).check(&console).is_err());
+        }
+        assert!(policy(Permissions::FULL_ACCESS).check(&typed).is_ok());
+        assert!(policy(Permissions::FULL_ACCESS).check(&console).is_ok());
+        let terminal_only = Permissions {
+            terminal: TerminalAccess::Full,
+            ..Permissions::READ_ONLY
+        };
+        assert!(policy(terminal_only).check(&typed).is_ok());
+        assert!(policy(terminal_only).check(&console).is_err());
     }
 
     #[test]

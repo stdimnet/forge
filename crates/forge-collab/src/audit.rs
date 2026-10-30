@@ -47,6 +47,32 @@ pub enum FileAction {
     Deleted,
 }
 
+/// What happened to a shared terminal. Keys typed are never logged, only that a guest typed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TerminalAction {
+    /// The host shared its terminal tab with the guests.
+    Shared,
+    /// The host stopped sharing it.
+    Unshared,
+    /// A guest opened a terminal on the host.
+    Opened,
+    /// A guest typed into the terminal (once per guest and terminal).
+    Typed,
+    /// A guest closed its terminal.
+    Closed,
+}
+
+/// What a guest did with the host's runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RunAction {
+    Started,
+    Stopped,
+    /// Console input (once per guest and run).
+    Typed,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum AuditEvent {
@@ -103,6 +129,23 @@ pub enum AuditEvent {
         participant: ParticipantId,
         name: String,
         action: String,
+    },
+    /// A shared terminal; `participant: None` is the host.
+    #[serde(rename_all = "camelCase")]
+    Terminal {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        participant: Option<ParticipantId>,
+        name: String,
+        action: TerminalAction,
+        terminal: String,
+    },
+    /// A guest started, stopped or typed into one of the host's runs.
+    #[serde(rename_all = "camelCase")]
+    Run {
+        participant: ParticipantId,
+        name: String,
+        action: RunAction,
+        run: String,
     },
     #[serde(rename_all = "camelCase")]
     Denied {
@@ -173,6 +216,27 @@ impl AuditEvent {
                 FileAction::Deleted => format!("{name} deleted {path}"),
             },
             Self::Git { name, action, .. } => format!("{name}: git {action}"),
+            Self::Terminal {
+                name,
+                action,
+                terminal,
+                ..
+            } => match action {
+                TerminalAction::Shared => format!("{name} shared the terminal {terminal}"),
+                TerminalAction::Unshared => {
+                    format!("{name} stopped sharing the terminal {terminal}")
+                }
+                TerminalAction::Opened => format!("{name} opened the terminal {terminal}"),
+                TerminalAction::Typed => format!("{name} typed in the terminal {terminal}"),
+                TerminalAction::Closed => format!("{name} closed the terminal {terminal}"),
+            },
+            Self::Run {
+                name, action, run, ..
+            } => match action {
+                RunAction::Started => format!("{name} ran '{run}'"),
+                RunAction::Stopped => format!("{name} stopped '{run}'"),
+                RunAction::Typed => format!("{name} typed in the console of '{run}'"),
+            },
             Self::Denied {
                 name,
                 request,
@@ -462,5 +526,22 @@ mod tests {
             permissions: Permissions::FULL_ACCESS,
         };
         assert_eq!(all.message(), "Permission of all guests: Full access");
+        let typed = AuditEvent::Terminal {
+            participant: Some(ParticipantId(2)),
+            name: "Alex".into(),
+            action: TerminalAction::Typed,
+            terminal: "Local".into(),
+        };
+        assert_eq!(typed.message(), "Alex typed in the terminal Local");
+        let json = serde_json::to_string(&typed).unwrap();
+        assert!(json.contains("\"event\":\"terminal\""), "{json}");
+        assert!(!json.contains("ls"), "no keys in the log: {json}");
+        let run = AuditEvent::Run {
+            participant: ParticipantId(2),
+            name: "Alex".into(),
+            action: RunAction::Started,
+            run: "UserTest".into(),
+        };
+        assert_eq!(run.message(), "Alex ran 'UserTest'");
     }
 }
