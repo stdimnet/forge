@@ -10,6 +10,8 @@
 import * as Y from "yjs";
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, modifyAwarenessUpdate, removeAwarenessStates } from "y-protocols/awareness";
 import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant } from "@/ipc/collab";
+import { withAuthor, type Author } from "./guestChanges";
+import { session } from "./store";
 
 export const GUEST_PREFIX = "cwm://";
 
@@ -36,6 +38,13 @@ const early = new Map<number, DocEvent[]>();
 
 type Listener = (doc: SharedDoc, e: DocEvent) => void;
 const listeners = new Set<Listener>();
+
+let conflictListener: ((e: DocEvent) => void) | null = null;
+
+/** File Cache Conflicts (`conflict.ts`); they also concern documents not open here. */
+export function setConflictListener(cb: (e: DocEvent) => void): void {
+  conflictListener = cb;
+}
 
 /** Saves, renames and closes of shared documents (for the editor tabs). */
 export function onSharedDocEvent(cb: Listener): () => void {
@@ -136,8 +145,18 @@ export function releaseAll(): void {
   early.clear();
 }
 
+/** The guest whose edit an update is (host), for the gutter markers (`guestChanges.ts`). */
+function authorOf(from: number | undefined): Author | null {
+  if (from === undefined) return null;
+  const p = session().participants.find((x) => x.id === from);
+  return { color: p?.color ?? 1, name: p?.name ?? "A guest" };
+}
+
 function applyEvent(doc: SharedDoc, e: DocEvent): void {
-  if (e.update) Y.applyUpdate(doc.ydoc, fromBase64(e.update), REMOTE);
+  if (e.update) {
+    const update = fromBase64(e.update);
+    withAuthor(authorOf(e.from), () => Y.applyUpdate(doc.ydoc, update, REMOTE));
+  }
   if (e.awareness) {
     const update = modifyAwarenessUpdate(fromBase64(e.awareness), sanitizeState);
     applyAwarenessUpdate(doc.awareness, update, REMOTE);
@@ -172,7 +191,8 @@ export async function resyncDoc(doc: SharedDoc, api: ResyncApi = collabApi): Pro
   if (missing.length > 2) await api.docUpdate(doc.docId, missing);
   doc.readOnly = synced.readOnly;
   const renamed = doc.tabPath.startsWith(GUEST_PREFIX) && synced.path && GUEST_PREFIX + synced.path !== doc.tabPath;
-  handleDocEvent({ docId: doc.docId, saved: synced.saved, ...(renamed ? { renamed: synced.path } : {}) });
+  // A conflict may have opened or ended while the connection was down.
+  handleDocEvent({ docId: doc.docId, saved: synced.saved, conflict: { open: !!synced.conflict, path: "" }, ...(renamed ? { renamed: synced.path } : {}) });
   return true;
 }
 
@@ -183,6 +203,7 @@ export async function resyncAll(api: ResyncApi = collabApi): Promise<void> {
 
 /** A `collab://doc` event. */
 export function handleDocEvent(e: DocEvent): void {
+  if (e.conflict) conflictListener?.(e);
   const doc = byId.get(e.docId);
   if (doc) applyEvent(doc, e);
   else if (e.update || e.awareness) {

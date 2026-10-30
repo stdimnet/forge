@@ -9,8 +9,9 @@ import { history } from "@codemirror/commands";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { registerEditorExtension } from "@/editor/extensions";
 import { historyCompartment, registerHistory } from "@/editor/reload";
-import { sharedDoc, type SharedDoc } from "./docs";
+import { GUEST_PREFIX, sharedDoc, type SharedDoc } from "./docs";
 import { remoteCarets } from "./remoteCarets";
+import { clearGuestLines, guestChanges } from "./guestChanges";
 
 const collab = new Compartment();
 const views = new Map<string, EditorView>();
@@ -52,6 +53,8 @@ function bind(view: EditorView, doc: SharedDoc): void {
         doc.readOnly ? EditorState.readOnly.of(true) : [],
         collabTheme,
         remoteCarets(doc.awareness, doc.ytext),
+        // The host sees which lines guests changed until the next save.
+        doc.tabPath.startsWith(GUEST_PREFIX) ? [] : guestChanges(),
       ]),
     ],
   });
@@ -80,6 +83,12 @@ export function syncAllBindings(): void {
 }
 
 export const boundDoc = (view: EditorView): SharedDoc | undefined => bound.get(view);
+
+/** The document of `path` was saved: its guest-changed line markers go away. */
+export function clearGuestChanges(path: string): void {
+  const view = views.get(path);
+  if (view && bound.has(view)) view.dispatch({ effects: clearGuestLines.of(null) });
+}
 
 registerEditorExtension(({ path }) => [
   collab.of([]),

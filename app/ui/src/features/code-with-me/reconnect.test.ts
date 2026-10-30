@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { collabApi, type DocOpened, type DocSynced } from "@/ipc/collab";
 import { contentHash } from "@/state/editor";
-import { adoptDoc, GUEST_PREFIX, onSharedDocEvent, releaseAll, resyncDoc } from "./docs";
+import { adoptDoc, GUEST_PREFIX, onSharedDocEvent, releaseAll, resyncDoc, setConflictListener } from "./docs";
 import { connectionLabel } from "./reconnect";
 
 const PATH = "app/Order.php";
@@ -65,6 +65,16 @@ describe("a guest that reconnected", () => {
     const gone = await resyncDoc(doc, { ...api, docSync: () => Promise.reject(new Error("The file is no longer shared.")) });
     expect(gone).toBe(false);
     expect(events).toContain("The file is no longer shared.");
+  });
+
+  it("learns whether a File Cache Conflict opened or ended meanwhile", async () => {
+    const { doc, api } = setup();
+    const conflicts: boolean[] = [];
+    setConflictListener((e) => conflicts.push(!!e.conflict?.open));
+    await resyncDoc(doc, { ...api, docSync: async (id, sv) => ({ ...(await api.docSync(id, sv)), conflict: true }) });
+    await resyncDoc(doc, api);
+    expect(conflicts).toEqual([true, false]);
+    setConflictListener(() => undefined);
   });
 });
 

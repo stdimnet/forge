@@ -31,6 +31,8 @@ interface ChoiceRequest {
   choices: { id: string; label: string; disabled?: boolean; hint?: string }[];
   /** Label of a checkbox left of the buttons, e.g. "Remember, don't ask again". */
   checkbox?: string;
+  /** Dialog width in pixels, for long button labels (default 480, 580 with a checkbox). */
+  width?: number;
   done: (id: string | null, checked: boolean) => void;
 }
 
@@ -74,7 +76,7 @@ function ChoiceDialog(props: { req: ChoiceRequest }) {
     <div class="popup-backdrop modal">
       <div
         class="dialog"
-        style={{ width: `min(${props.req.checkbox ? 580 : 480}px, calc(100vw - 32px))` }}
+        style={{ width: `min(${props.req.width ?? (props.req.checkbox ? 580 : 480)}px, calc(100vw - 32px))` }}
         role="alertdialog"
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}
