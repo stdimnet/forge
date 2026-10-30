@@ -81,6 +81,8 @@ export function Participants() {
             class="cwm-participant"
             classList={{ followed: followState().leader === p.id, clickable: !isMe(p), reconnecting: !!p.reconnecting }}
             role="listitem"
+            tabIndex={isMe(p) ? undefined : -1}
+            data-nav={isMe(p) ? undefined : ""}
             data-participant={p.id}
             title={isMe(p) ? undefined : followState().leader === p.id ? `Stop following ${p.name}` : `Follow ${p.name}`}
             onClick={(e) => {

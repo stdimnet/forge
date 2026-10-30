@@ -18,6 +18,7 @@ import { LEVEL_TITLES, sessionPermissions, showSessionPermissionsMenu } from "./
 import { describePermissions } from "./permissionText";
 import { hostFollowers, Participants } from "./Participants";
 import { followState } from "./follow";
+import { navKeys } from "./a11y";
 
 export type StartHandler = (level: PermissionLevel, custom?: Permissions) => void;
 
@@ -49,7 +50,7 @@ function StartView(props: { onStart: StartHandler }) {
     <>
       <div class="cwm-popup-title">Start Session</div>
       <div class="cwm-popup-label muted">Permissions for guests</div>
-      <div class="cwm-levels" role="radiogroup">
+      <div class="cwm-levels" role="radiogroup" aria-label="Permissions for guests">
         <For each={LEVELS}>
           {(l) => (
             <label class="cwm-level" classList={{ selected: level() === l.level }}>
@@ -96,6 +97,8 @@ function MenuItem(props: { label: string; action: string; danger?: boolean }) {
       class="cwm-menu-item"
       classList={{ danger: props.danger }}
       role="menuitem"
+      tabIndex={-1}
+      data-nav
       data-action={props.action}
       onClick={() => {
         setPopupOpen(false);
@@ -120,6 +123,7 @@ function HostView() {
         <div class="cwm-popup-note muted">Send the session link to invite guests. The files open in your editor are shared.</div>
       </Show>
       <div class="cwm-sep" />
+      <div role="menu" aria-label="Session">
       <Show when={followState().leader !== null}>
         <MenuItem label="Stop Following" action="CodeWithMe.StopFollowing" />
       </Show>
@@ -128,6 +132,8 @@ function HostView() {
       <div
         class="cwm-menu-item cwm-submenu-item"
         role="menuitem"
+        tabIndex={-1}
+        data-nav
         aria-haspopup="menu"
         data-action="CodeWithMe.Permissions"
         title={describePermissions(sessionPermissions())}
@@ -143,6 +149,8 @@ function HostView() {
       <div
         class="cwm-menu-item cwm-check-item"
         role="menuitemcheckbox"
+        tabIndex={-1}
+        data-nav
         aria-checked={!!session().followEveryone}
         data-action="CodeWithMe.MakeEveryoneFollow"
         onClick={() => {
@@ -162,6 +170,7 @@ function HostView() {
       <MenuItem label="Settings…" action="CodeWithMe.Settings" />
       <div class="cwm-sep" />
       <MenuItem label="End Session" action="CodeWithMe.EndSession" danger />
+      </div>
     </>
   );
 }
@@ -175,12 +184,15 @@ function GuestView() {
       </Show>
       <Participants />
       <div class="cwm-popup-label muted">Shared files</div>
-      <div class="cwm-files" role="list">
+      <div class="cwm-files" role="list" aria-label="Shared files">
         <For each={session().files} fallback={<div class="cwm-popup-note muted">The host has no files open.</div>}>
           {(f) => (
             <div
               class="cwm-menu-item cwm-file"
               role="listitem"
+              tabIndex={-1}
+              data-nav
+              aria-label={`Open ${f.path}`}
               data-path={f.path}
               title={f.path}
               onClick={() => {
@@ -195,12 +207,14 @@ function GuestView() {
           )}
         </For>
       </div>
-      <Show when={followState().leader !== null}>
+      <div role="menu" aria-label="Session">
+        <Show when={followState().leader !== null}>
+          <div class="cwm-sep" />
+          <MenuItem label="Stop Following" action="CodeWithMe.StopFollowing" />
+        </Show>
         <div class="cwm-sep" />
-        <MenuItem label="Stop Following" action="CodeWithMe.StopFollowing" />
-      </Show>
-      <div class="cwm-sep" />
-      <MenuItem label="Leave Session" action="CodeWithMe.LeaveSession" danger />
+        <MenuItem label="Leave Session" action="CodeWithMe.LeaveSession" danger />
+      </div>
     </>
   );
 }
@@ -227,7 +241,12 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler
         role="dialog"
         aria-label="Code With Me"
         style={{ top: `${rect.bottom + 4}px`, left: `${Math.max(8, Math.min(rect.left, window.innerWidth - 380))}px` }}
-        onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setPopupOpen(false))}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            setPopupOpen(false);
+          } else navKeys(e);
+        }}
       >
         <Show when={inSession()}>
           <SessionConnections />
@@ -242,7 +261,9 @@ export function SessionPopup(props: { anchor: HTMLElement; onStart: StartHandler
         <Show when={session().role === "none"}>
           <StartView onStart={props.onStart} />
           <div class="cwm-sep" />
-          <MenuItem label="Join Session…" action="CodeWithMe.JoinSession" />
+          <div role="menu" aria-label="Code With Me">
+            <MenuItem label="Join Session…" action="CodeWithMe.JoinSession" />
+          </div>
         </Show>
       </div>
     </Portal>

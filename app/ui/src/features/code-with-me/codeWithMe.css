@@ -86,8 +86,10 @@
   border-radius: var(--radius);
   cursor: pointer;
 }
-.cwm-menu-item:hover {
+.cwm-menu-item:hover,
+.cwm-menu-item:focus-visible {
   background: var(--bg-hover);
+  outline: none;
 }
 .cwm-menu-item.danger {
   color: var(--danger);
@@ -116,8 +118,10 @@
   padding: 0 8px;
   border-radius: var(--radius);
 }
-.cwm-participant:hover {
+.cwm-participant:hover,
+.cwm-participant:focus-visible {
   background: var(--bg-hover);
+  outline: none;
 }
 .cwm-dot {
   width: 8px;
@@ -323,6 +327,7 @@
   opacity: 0.6;
 }
 .cwm-participant:hover .cwm-participant-menu,
+.cwm-participant:focus-visible .cwm-participant-menu,
 .cwm-participant-menu:focus-visible {
   opacity: 1;
 }

@@ -33,7 +33,7 @@ export function SessionLogList() {
   onCleanup(() => clearInterval(timer));
   return (
     <>
-      <div class="cwm-log" ref={list} role="log">
+      <div class="cwm-log" ref={list} role="log" aria-label="Session log" tabIndex={0}>
         <For each={log().lines} fallback={<div class="muted">No session has been hosted yet.</div>}>
           {(l) => (
             <div class="cwm-log-line" classList={{ warning: l.warning }}>
@@ -62,6 +62,7 @@ function Dialog() {
         class="dialog cwm-log-dialog"
         style={{ width: "min(640px, calc(100vw - 32px))" }}
         role="dialog"
+        aria-modal="true"
         aria-label="Session Log"
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}

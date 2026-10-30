@@ -8,6 +8,7 @@ import { session } from "./store";
 import { Participants } from "./Participants";
 import { SessionLogList } from "./SessionLog";
 import { followState } from "./follow";
+import { navKeys } from "./a11y";
 
 type Tab = "participants" | "log";
 
@@ -31,7 +32,14 @@ export function CodeWithMeTabs() {
             class="run-tab"
             classList={{ active: (tab() === "log" && session().role === "host" ? "log" : "participants") === t.id }}
             role="tab"
+            tabIndex={0}
+            aria-selected={(tab() === "log" && session().role === "host" ? "log" : "participants") === t.id}
             data-cwm-tab={t.id}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              setTab(t.id);
+            }}
             onClick={() => setTab(t.id)}
           >
             <span class="run-tab-title">{t.title}</span>
@@ -44,7 +52,7 @@ export function CodeWithMeTabs() {
 
 export function CodeWithMeToolWindow() {
   return (
-    <div class="cwm-tool-window">
+    <div class="cwm-tool-window" tabIndex={-1} onKeyDown={navKeys}>
       <Show
         when={tab() === "log" && session().role === "host"}
         fallback={

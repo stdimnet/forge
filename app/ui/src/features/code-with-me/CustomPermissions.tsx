@@ -74,6 +74,7 @@ function Dialog(props: { req: Request }) {
         class="dialog cwm-custom-dialog"
         style={{ width: "min(460px, calc(100vw - 32px))" }}
         role="dialog"
+        aria-modal="true"
         aria-label={props.req.title}
         tabIndex={-1}
         ref={(el) => queueMicrotask(() => el.focus())}
