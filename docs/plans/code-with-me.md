@@ -1052,7 +1052,17 @@ Where the plan was unclear or wrong, this is what the code does:
   To, Follow Participant… / Jump To Participant… choosers, setting
   `codeWithMe.followHostOnJoin` (default on; guests follow the host after the shared files
   opened).
-- Not done: the scrollbar markers of remote carets, and the name label fading after 2 s.
+- Finished on `feat/code-with-me-s5`: remote carets get a mark on the error stripe (the
+  existing `stripeMarks` facet, `remoteCarets.ts`, click moves the caret there) and their name
+  label shows only while the caret moved in the last 2 s (and on hover), faded with CSS; the
+  editor gets `cwm-label-<n>` classes for the active colors.
+- A guest's window no longer restores (or saves) a per-project layout: the layout restore ran
+  at the same time as following the host on join and could switch tabs, which stops following.
+  `layoutPersistence.keepsLayout()` is false for collab guests, so follow wins deterministically
+  (vitest).
+- Fixed on the way: the guest's "files are read-only now" balloon showed on every status update
+  (Solid's `on` passes the previous input, not a changed one), and the `cwm-guest-hover`
+  scenario hovered a line that rendered doc comments had pushed below the editor.
 
 ### S5 — Shared terminal and Run (5 d)
 
@@ -1062,6 +1072,46 @@ Where the plan was unclear or wrong, this is what the code does:
 - **Accept**: a Read-only guest sees terminal and run output but every input frame is refused
   (test); a Full access guest runs PHPUnit through the host's configuration and sees the test
   tree; the host sees guest terminals as tabs; audit entries exist.
+
+**S5 as built** (`forge_collab::share`, `share_host.rs` / `share_guest.rs` as child modules of
+`host` / `guest`, `crates/forge-collab/tests/terminals_runs.rs`):
+
+- Protocol 3. Ordered fire-and-forget input travels as `GuestMessage::TerminalInput` /
+  `RunInput` (so keys are never reordered); requests with an answer are `HostCall`s:
+  `TerminalOpen { cols, rows }`, `TerminalClose`, `RunStart { configuration }`, `RunStop`. The
+  host pushes `Terminals` / `Runs` (the full list the guest may see, after every change) and
+  `TerminalOutput` / `RunEvents`, each with a one-time `snapshot` when an item becomes visible
+  (join, permission upgrade, newly shared). Terminal scrollback keeps the last 2000 lines
+  (512 KB); a run keeps its rendered events up to 8 MB, dropping the oldest console deltas
+  first. Raw `output` run events are not sent (the UI renders `console`).
+- Enforcement on the host: `Policy::check` / `check_call` require Terminal or Run Full access;
+  the share module also checks that the terminal or run is visible to that guest and running,
+  that a guest closes only its own terminals, at most 8 guest terminals each. Refused input is
+  logged and answered once per guest and kind, not per key. Losing Terminal Full access,
+  leaving, removal and End Session close the guest's terminals.
+- The host application plugs in through `HostServices` (default methods: "not available"):
+  `terminal_open/write/close`, `run_start/stop/write`. In the app (`ShellServices` in
+  `collab.rs`) a guest's terminal is `terminal::open` with the host's shell in the project
+  folder, announced with `collab://terminal-opened`; the host's UI attaches to it with the new
+  `terminal_attach`. Every terminal session keeps its scrollback and size in `TerminalState`
+  (`pty_sink`), and terminal/run commands call the `collab::on_terminal_*` / `on_run_*` hooks.
+- Runs are started by name by the **host's UI** (`collab://run-request`, answered with
+  `collab_run_answer`), as if the host clicked Run: launch plans, before-launch tasks and
+  UI-built command lines stay where they are. `RunRequest` got `name` / `typeId` so runs with
+  UI-built command lines are shared under their configuration's name. Every run of the host's
+  Run tool window is shared; host paths in run events become the guest's `/<project>` root.
+- Guest: `CollabBackend::open_terminal` opens a terminal on the host (Terminal Full access), so
+  the Terminal tool window's "+" works unchanged; the host's shared terminals are tabs with a
+  `source` (`collab_terminal_attach` registers a proxy in the guest's `TerminalState`, so
+  `terminal_write` / `terminal_close` work as for any tab; the host's size wins, read-only tabs
+  disable input). The host's runs are Run tool window tabs (`showSharedRun`,
+  `collab_run_attach`, events on `run://cwm-run-<id>`), and `setRemoteRuns` routes Run, Rerun,
+  Stop and console input to the host. Debug and Run with Coverage say they are not available.
+  Terminal and Run tool windows show for guests with Terminal / Run access.
+- Settings: `codeWithMe.shareNewTerminals`. Action `CodeWithMe.ShareTerminal` (Share Terminal
+  with Guests) and the terminal tab menu entry Share with Guests (`registerTerminalTabActions`).
+- Not done: a guest's terminal tab on the guest closes when the host stops sharing it (no
+  "terminated" state is kept); port forwarding and shared debugging stay follow-ups.
 
 ### S6 — Relay and NAT traversal (3 d)
 

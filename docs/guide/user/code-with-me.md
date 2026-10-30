@@ -1,8 +1,8 @@
 ---
 title: Code With Me
-description: Invite guests into the open project and edit it together - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, following participants, Jump To, Make Everyone Follow You, the session log, files guests never see, joining and leaving.
+description: Invite guests into the open project and edit it together, with shared terminals and runs - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, following participants, Jump To, Make Everyone Follow You, the session log, files guests never see, joining and leaving.
 order: 200
-tags: [code with me, collaboration, pair programming, session, guest, host, permissions, follow]
+tags: [code with me, collaboration, pair programming, session, guest, host, permissions, follow, terminal, run]
 ---
 
 # Code With Me
@@ -109,6 +109,57 @@ no shortcuts to them; you can add your own.
 
 ![A guest follows the host after Make Everyone Follow You](../../screenshots/cwm-guest-follow.png)
 
+### Carets of the others
+
+Every participant's caret and selection show in their color. The name label above a caret shows
+while that participant moves or types and fades out two seconds after they stopped; hover the
+caret to see the name again. The right edge of the editor (over the scrollbar) has a mark in the
+participant's color where each of the others is in the file; click it to move your caret there.
+
+![Alex's caret, name label and the mark on the right edge](../../screenshots/code-with-me-carets.png)
+
+## Terminal and Run
+
+What guests see of your terminals and runs depends on their **Terminal** and **Run** permission:
+
+| Permission | Terminal | Run |
+| --- | --- | --- |
+| No access | no Terminal tool window | no Run tool window |
+| Read-only | watch the terminals you share | watch your runs (console and test results) |
+| Full access | type in the terminals you share, open their own terminals on your machine | run, rerun and stop your run configurations, type into the console |
+
+**Sharing a terminal (host).** Right-click a terminal tab and choose **Share with Guests** (also
+**Share Terminal with Guests** in Find Action, for the active tab). Shared tabs show the
+participants icon; choose it again to stop sharing. Guests see the tab with what it showed so
+far (the last 2000 lines) and follow it live, at your terminal's size. To share every terminal
+tab you open during a session, turn on **Settings | Tools | Code With Me | Share new terminal
+tabs**.
+
+**Guests' terminals.** A guest with Full terminal access opens new terminal tabs on your
+machine: the shell is yours (your shell and settings) and starts in the project folder. The tab
+shows up in your Terminal tool window as **Alex: Local**, so you always see what runs on your
+machine. A guest's terminals close when the guest leaves, is removed, or loses Full terminal
+access.
+
+**Runs.** Every run of your Run tool window is shown to guests with Run access, with its console
+and test tree; guests who join later see it from the start. A guest with Full run access uses the
+Run widget and the Run tool window as usual: Run, Rerun and Stop act on your machine, and Forge
+starts your run configuration by its name as if you clicked Run. Guests never send command
+lines, and they cannot change run configurations unless they have Full access (the files that
+configure what runs are protected). Debugging and Run with Coverage are not available to guests.
+
+The session log records shared and unshared terminals, the terminals guests open and close, that
+a guest typed in a terminal or a console (never the keys), and the runs guests start and stop.
+Input from a guest without Full access is refused by your Forge.
+
+![The host shares a terminal tab](../../screenshots/code-with-me-share-terminal.png)
+
+![A guest watches the host's shared terminal](../../screenshots/cwm-guest-terminal.png)
+
+![The host's test run in a guest's Run tool window](../../screenshots/cwm-guest-run.png)
+
+![A terminal a guest opened on the host](../../screenshots/code-with-me-guest-terminal.png)
+
 ## Session log
 
 **Session Log…** in the popup (also in Find Action and the **Session Log** tab of the Code With
@@ -162,7 +213,7 @@ If you close the balloon without answering, the request stays open until it time
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you.
 
-Guests see the Project tree, Structure, Find, Problems and Git (read-only unless the host gave
+Guests see the Project tree, Structure, Find, Problems, Terminal and Run (with Terminal or Run access, see [Terminal and Run](#terminal-and-run)) and Git (read-only unless the host gave
 Full access). AI Chat, Database, Services, Debug and the code host tool windows are not
 available in a guest's window, because they would use the host's accounts and secrets.
 
@@ -178,6 +229,6 @@ with Full access.
 ## Settings
 
 Settings | Tools | Code With Me: your name in sessions, the default permission level,
-whether ending a session asks for confirmation, whether guests follow the host when joining,
+whether ending a session asks for confirmation, whether guests follow the host when joining, whether new terminal tabs are shared,
 whether a session log is kept, the files guests never see and the connection settings of the
 [relay page](code-with-me-relay.md).
