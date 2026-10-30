@@ -105,6 +105,36 @@ const following = (theme) => {
   return fn;
 };
 
+/** The host shares its terminal; a Read-only guest watches it (S5). */
+const sharedTerminal = (theme) => {
+  const fn = async (page) => {
+    await page.waitForSelector("[data-testid=cwm-status]");
+    if (theme === "light") await light(page);
+    await page.keyboard.press("Alt+F12");
+    await page.waitForSelector('.term-tab[data-terminal-tab="Local"]');
+    await page.waitForSelector(".term-host:not(.hidden) .xterm-screen");
+    await page.waitForTimeout(800);
+  };
+  fn.query = "?project=cwm-guest&permission=readOnly&share";
+  fn.waitFor = "[data-testid=cwm-status]";
+  return fn;
+};
+
+/** The host's run of UserTest in a Full access guest's Run tool window, with the Run widget. */
+const sharedRun = (theme) => {
+  const fn = async (page) => {
+    await page.waitForSelector("[data-testid=cwm-status]");
+    if (theme === "light") await light(page);
+    await page.click('[data-tool-window="run"]');
+    await page.waitForSelector('.run-tab:has-text("UserTest")');
+    await page.waitForSelector(".test-tree");
+    await page.waitForTimeout(3500);
+  };
+  fn.query = "?project=cwm-guest&permission=full&share";
+  fn.waitFor = "[data-testid=cwm-status]";
+  return fn;
+};
+
 const withQuery = (fn, permission) => {
   fn.query = `?project=cwm-guest&permission=${permission}`;
   return fn;
@@ -112,6 +142,10 @@ const withQuery = (fn, permission) => {
 
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "cwm-guest-terminal": sharedTerminal("dark"),
+  "cwm-guest-terminal-light": sharedTerminal("light"),
+  "cwm-guest-run": sharedRun("dark"),
+  "cwm-guest-run-light": sharedRun("light"),
   "cwm-guest-follow": following("dark"),
   "cwm-guest-follow-light": following("light"),
   "cwm-guest-project": withQuery(project("dark"), "edit"),

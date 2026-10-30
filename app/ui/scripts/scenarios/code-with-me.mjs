@@ -79,6 +79,37 @@ const caretsLight = async (page) => {
   await sessionWithAlex(page);
 };
 caretsLight.clip = editorClip;
+/** Start a Full access session that Alex joins, and open the Terminal tool window. */
+async function fullSessionWithTerminal(page) {
+  await openPopup(page);
+  await page.click('.cwm-level:has-text("Full access") input');
+  await page.click('.cwm-popup button:has-text("Start Session")');
+  await acceptGuest(page);
+  await page.keyboard.press("Alt+F12");
+  await page.waitForSelector('.term-tab[data-terminal-tab="Local"]');
+  await page.waitForSelector(".term-host:not(.hidden) .xterm-screen");
+  await page.waitForTimeout(300);
+}
+
+/** The host's terminal tab menu with Share with Guests (S5). */
+const shareTerminalMenu = (theme) => async (page) => {
+  if (theme === "light") await light(page);
+  await fullSessionWithTerminal(page);
+  await page.click('.term-tab[data-terminal-tab="Local"]', { button: "right" });
+  await page.waitForSelector('.run-popup-menu :text("Share with Guests")');
+};
+
+/** Alex opened a terminal on the host's machine and typed into it; the host's Local tab is shared. */
+const guestTerminalOnHost = (theme) => async (page) => {
+  if (theme === "light") await light(page);
+  await fullSessionWithTerminal(page);
+  await page.click('.term-tab[data-terminal-tab="Local"]', { button: "right" });
+  await page.click('.run-popup-menu :text("Share with Guests")');
+  await page.evaluate(() => window.__forgeCollabMock.guestTerminal("Alex"));
+  await page.click('.term-tab[data-terminal-tab="Alex: Local"]');
+  await page.waitForTimeout(900);
+};
+
 /** Two seconds after Alex stopped, the name label has faded; the stripe mark on the right stays. */
 const caretsIdle = (theme) => {
   const fn = async (page) => {
@@ -363,6 +394,10 @@ export default {
   "code-with-me-start-popup-light": startPopupLight,
   "code-with-me-carets": carets,
   "code-with-me-carets-light": caretsLight,
+  "code-with-me-share-terminal": shareTerminalMenu("dark"),
+  "code-with-me-share-terminal-light": shareTerminalMenu("light"),
+  "code-with-me-guest-terminal": guestTerminalOnHost("dark"),
+  "code-with-me-guest-terminal-light": guestTerminalOnHost("light"),
   "code-with-me-carets-idle": caretsIdle("dark"),
   "code-with-me-carets-idle-light": caretsIdle("light"),
   "code-with-me-session-popup": sessionPopup,
