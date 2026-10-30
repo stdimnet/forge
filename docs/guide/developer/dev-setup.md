@@ -72,7 +72,8 @@ real file system, git, language servers, PTYs, databases and Docker.
 
 ## Keeping Rust builds manageable
 
-- `export CARGO_PROFILE_DEV_DEBUG=0` saves a lot of disk space and link time.
+- The dev profile already uses `debug = "line-tables-only"`. Don't override it with
+  `CARGO_PROFILE_DEV_DEBUG`: a second profile duplicates every artifact in `target/`.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`; a shared target dir can
   return stale builds of workspace crates.
 - Test one crate at a time while iterating: `cargo test -p forge-keymap`.
