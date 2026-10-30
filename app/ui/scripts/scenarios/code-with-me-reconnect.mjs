@@ -87,6 +87,18 @@ const joinUnsaved = (theme) => {
   return run;
 };
 
+/** Forge was opened by clicking a forge://cwm/join?… link: the Welcome screen shows the dialog. */
+const joinFromLink = (theme) => {
+  const fn = async (page) => {
+    if (theme === "light") await light(page);
+    await page.waitForSelector("[data-testid=cwm-join-summary]");
+    await page.waitForTimeout(300);
+  };
+  fn.query = "?welcome&cwmLink";
+  fn.waitFor = ".cwm-join-dialog";
+  return fn;
+};
+
 /** The host stopped sharing its terminal: the guest's tab stays with what it showed. */
 const unsharedTerminal = (theme) => {
   const fn = async (page) => {
@@ -115,6 +127,8 @@ export default {
   "code-with-me-join-waiting-light": joinWaiting("light"),
   "code-with-me-join-unsaved": joinUnsaved("dark"),
   "code-with-me-join-unsaved-light": joinUnsaved("light"),
+  "code-with-me-join-link": joinFromLink("dark"),
+  "code-with-me-join-link-light": joinFromLink("light"),
   "cwm-guest-terminal-unshared": unsharedTerminal("dark"),
   "cwm-guest-terminal-unshared-light": unsharedTerminal("light"),
 };

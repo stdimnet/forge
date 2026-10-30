@@ -24,7 +24,7 @@ import { ConnectionStatusItem } from "./ConnectionStatus";
 import { RelayServerTools } from "./RelaySettings";
 import { GuestStatusItem } from "./GuestStatusItem";
 import { trackGuestProject } from "./guest";
-import { hideWaiting, trackApprovals } from "./approval";
+import { trackApprovals } from "./approval";
 import { editSessionPermissions, regenerateLink } from "./hostActions";
 import { showSessionLog } from "./SessionLog";
 import { registerToolWindow } from "@/features/registry";
@@ -39,7 +39,7 @@ import type { Participant } from "@/ipc/collab";
 import { activeTab as activeTerminalTab, tabs as terminalTabs } from "@/features/terminal/store";
 import { setTerminalShared, trackTerminalsAndRuns } from "./terminalsRuns";
 import { isReconnecting, trackReconnects } from "./reconnect";
-import { openJoinDialog } from "./JoinSession";
+import { joinSession } from "./join";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -91,17 +91,6 @@ async function endSession(): Promise<void> {
   await refreshSession();
 }
 
-/** Join Session…: the dialog with the host's name, machine and the verification code. */
-async function joinSession(): Promise<void> {
-  setPopupOpen(false);
-  if (isHost() || isGuest()) return void showBalloon("Code With Me", "A session is already running.");
-  try {
-    const s = await openJoinDialog();
-    if (s) applySession(s);
-  } finally {
-    hideWaiting();
-  }
-}
 
 async function leaveSession(): Promise<void> {
   if (!isGuest()) return void showBalloon("Code With Me", "You are not in a session.");
@@ -186,7 +175,7 @@ const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.Permissions", "Permissions…", editSessionPermissions],
   ["CodeWithMe.ShowSessionLog", "Session Log…", showSessionLog],
   ["CodeWithMe.EndSession", "End Session", endSession],
-  ["CodeWithMe.JoinSession", "Join Session…", joinSession],
+  ["CodeWithMe.JoinSession", "Join Session…", () => joinSession()],
   ["CodeWithMe.OpenSharedFile", "Open Shared File…", () => void setPopupOpen(true)],
   ["CodeWithMe.LeaveSession", "Leave Session", leaveSession],
   ["CodeWithMe.Settings", "Code With Me Settings…", () => openSettings("tools.code-with-me")],

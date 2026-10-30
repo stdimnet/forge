@@ -91,6 +91,12 @@ pub fn run() {
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for url in event.urls() {
+                    if forge_collab::link::is_join_url(url.as_str()) {
+                        if let Err(e) = companion::open_join_link(&handle, url.as_str()) {
+                            tracing::warn!("ignoring session link: {e}");
+                        }
+                        continue;
+                    }
                     match forge_open::request::parse_forge_url(url.as_str()) {
                         Ok(link) => companion::open_link(&handle, &link),
                         Err(e) => tracing::warn!("ignoring link: {e}"),
@@ -101,6 +107,7 @@ pub fn run() {
             // The splash window and the loading steps (settings, plugins, the project from
             // the command line or the last session, services, updates), then the workbench.
             commands::project_windows::start(app.handle());
+            companion::queue_startup_join(app.handle());
             startup::begin(app.handle());
             Ok(())
         })
