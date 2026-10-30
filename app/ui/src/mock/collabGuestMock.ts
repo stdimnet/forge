@@ -7,11 +7,15 @@
  * features are the demo's own mocks, as if the host answered them. Nothing leaves the page.
  *
  * `&share` adds the host's shared terminal "Local" and its run of `UserTest` (S5);
- * `&permission=full` gives the guest Full access (it can type, run and stop).
+ * `&permission=full` gives the guest Full access (it can type, run and stop); `&unshare`
+ * makes the host stop sharing "Local" two seconds after it is shown.
+ *
+ * `&reconnecting` shows the window while the connection to the host is being restored;
+ * `&reconnecting=resume` restores it after three seconds (`collab://resumed`).
  */
 import * as Y from "yjs";
 import { emitMock, invoke, registerMock } from "@/ipc";
-import { encodeOpened, PRESETS, sharedRunId, type Permissions, type Presence, type SessionView, type SharedRun, type SharedTerminal } from "@/ipc/collab";
+import { encodeOpened, encodeSynced, PRESETS, sharedRunId, type ConnectionState, type Permissions, type Presence, type SessionView, type SharedRun, type SharedTerminal } from "@/ipc/collab";
 import type { RunConfigurations } from "@/ipc/run";
 import { contentHash } from "@/state/editor";
 import type { WorkspaceInfo } from "@/ipc/workspace";
@@ -71,6 +75,11 @@ const HOST_PRESENCE: Presence = {
 
 const idle: SessionView = { role: "none", canHost: false, participants: [], files: [] };
 
+let connection: ConnectionState = params().has("reconnecting")
+  ? { state: "reconnecting", attempt: 3, nextRetrySecs: 4, error: "Cannot connect to the host: network is unreachable" }
+  : { state: "connected" };
+let shownTerminals = terminals;
+
 function view(): SessionView {
   const p = permissions();
   return {
@@ -87,8 +96,9 @@ function view(): SessionView {
     workspace: collabGuestWorkspace(),
     presence: params().has("follow") ? [{ participant: 1, ...HOST_PRESENCE }] : [],
     followEveryone: params().get("follow") === "all",
-    terminals: sharing() && p.terminal !== "none" ? terminals : [],
+    terminals: sharing() && p.terminal !== "none" ? shownTerminals : [],
     runs: sharing() && p.run !== "none" ? runs : [],
+    connection,
   };
 }
 
@@ -108,6 +118,18 @@ if (isCollabGuestDemo()) {
     return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: permissions().files !== "edit" });
   });
   registerMock("collab_doc_save", () => undefined);
+  // Nothing changed on the demo host while the connection was down.
+  registerMock("collab_doc_sync", ({ docId, stateVector }) => {
+    void stateVector;
+    return encodeSynced({ docId: Number(docId), path: "", update: Y.encodeStateAsUpdate(new Y.Doc()), saved: { hash: "" }, readOnly: permissions().files !== "edit", stateVector: Y.encodeStateVector(new Y.Doc()) });
+  });
+  if (params().get("reconnecting") === "resume") {
+    setTimeout(() => {
+      connection = { state: "connected" };
+      emitMock("collab://status", view());
+      emitMock("collab://resumed", {});
+    }, 3000);
+  }
 
   // The host's shared terminal: a fake shell that starts with what it showed before.
   registerMock("collab_terminal_attach", async ({ terminal, id }) => {
@@ -116,6 +138,12 @@ if (isCollabGuestDemo()) {
     // Loaded lazily: the terminal mock depends on mocks that load after this one.
     const { startMockShell } = await import("./terminalMock");
     startMockShell(String(id), TRANSCRIPT);
+    if (params().has("unshare")) {
+      setTimeout(() => {
+        shownTerminals = [];
+        emitMock("collab://status", view());
+      }, 2000);
+    }
     return { scrollback: "", cols: t.cols, rows: t.rows, running: t.running };
   });
   // The host's runs: the demo runs the configuration here, on the shared run's events.

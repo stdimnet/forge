@@ -38,6 +38,7 @@ import { showResolvedMenu } from "@/features/contextMenu/state";
 import type { Participant } from "@/ipc/collab";
 import { activeTab as activeTerminalTab, tabs as terminalTabs } from "@/features/terminal/store";
 import { setTerminalShared, trackTerminalsAndRuns } from "./terminalsRuns";
+import { trackReconnects } from "./reconnect";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -230,4 +231,5 @@ if (!isDialogWindow()) {
   trackGuestProject();
   trackApprovals();
   trackTerminalsAndRuns();
+  trackReconnects();
 }

@@ -19,6 +19,7 @@ import { getSetting } from "@/state/settings";
 import { showToolWindow } from "@/state/layout";
 import { addSourceTab, registerTerminalTabActions, setActiveTab, setNewTabGuard, tabs, updateTab, type TerminalTab } from "@/features/terminal/store";
 import { closeTerminalTab } from "@/features/terminal/TerminalView";
+import { endSharedSession } from "@/features/terminal/sessions";
 import { findConfiguration } from "@/features/run/configStore";
 import { endSharedRuns, runConfiguration, setRemoteRuns, showSharedRun } from "@/features/run/runStore";
 import { applySession, isGuest, isHost, session } from "./store";
@@ -71,13 +72,22 @@ registerTerminalTabActions((tab) =>
 
 // ---- guest -------------------------------------------------------------------------------
 
-/** Show the host's terminals as tabs, keep their size and access current, drop the gone ones. */
-function syncGuestTerminals(list: SharedTerminal[], me: number | undefined, readOnly: boolean): void {
+/** What a guest's tab says when the host stopped sharing its terminal. */
+export const UNSHARED = "The host stopped sharing this terminal";
+
+/**
+ * Show the host's terminals as tabs and keep their size and access current. A terminal the
+ * host no longer shares stays as an ended tab (its output kept) until the guest closes it;
+ * shared again, it opens fresh.
+ */
+export function syncGuestTerminals(list: SharedTerminal[], me: number | undefined, readOnly: boolean): void {
   const shown = new Set<string>();
   for (const t of list) {
     if (t.owner === me) continue;
     const id = sharedTerminalTab(t.id);
     shown.add(id);
+    const stale = tabs().find((x) => x.id === id);
+    if (stale?.source?.kind === "collab" && stale.source.ended) closeTerminalTab(id);
     const tab = tabs().find((x) => x.id === id);
     const source = { kind: "collab" as const, terminal: t.id, readOnly, cols: t.cols, rows: t.rows };
     if (!tab) {
@@ -98,8 +108,11 @@ function syncGuestTerminals(list: SharedTerminal[], me: number | undefined, read
       updateTab(id, { source });
     }
   }
-  // Terminals the host no longer shares (an open tab hears it from its session and closes).
-  for (const tab of tabs()) if (tab.source?.kind === "collab" && !shown.has(tab.id)) closeTerminalTab(tab.id);
+  for (const tab of tabs()) {
+    if (tab.source?.kind !== "collab" || shown.has(tab.id) || tab.source.ended) continue;
+    updateTab(tab.id, { source: { ...tab.source, ended: UNSHARED } });
+    endSharedSession(tab.id, UNSHARED);
+  }
 }
 
 let guestWindow = false;

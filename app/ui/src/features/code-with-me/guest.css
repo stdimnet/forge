@@ -75,3 +75,10 @@
   color: var(--collab-1);
   font-weight: 500;
 }
+
+/* A dropped connection that is being restored. */
+.cwm-status.reconnecting svg,
+.cwm-status.reconnecting span,
+.cwm-status-reconnecting {
+  color: var(--warning);
+}

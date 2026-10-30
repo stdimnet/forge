@@ -15,6 +15,7 @@ import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from "y-protoc
 import { emitMock, invoke, registerMock } from "@/ipc";
 import {
   encodeOpened,
+  encodeSynced,
   fromBase64,
   levelOf,
   PRESETS,
@@ -61,7 +62,9 @@ interface WireMsg {
     | "waiting"
     | "refused"
     | "presence"
-    | "follow-host";
+    | "follow-host"
+    | "sync"
+    | "synced";
   [key: string]: unknown;
 }
 
@@ -273,6 +276,14 @@ function admit(key: string, name: string): MockGuest {
   guests.set(key, g);
   hostChanged();
   emitMock("collab://notice", { text: `${name} joined the session.` });
+  // `?cwmAway`: the guest's connection drops a moment later and the host keeps its place.
+  if (key === "alex" && new URLSearchParams(location.search).has("cwmAway")) {
+    setTimeout(() => {
+      g.participant = { ...g.participant, reconnecting: true };
+      log(`The connection of ${name} dropped`);
+      hostChanged();
+    }, 4000);
+  }
   return g;
 }
 
@@ -328,6 +339,17 @@ async function hostReceive(from: string, m: WireMsg): Promise<void> {
     case "close":
       hostClose(from, docId);
       break;
+    case "sync": {
+      // A guest catches up after a reconnect (Yjs sync step 1 -> step 2 and the host's step 1).
+      const d = docs.get(docId);
+      if (!d || !d.openBy.has(from)) toGuest(from, { kind: "synced", req: m.req, error: "The file is no longer shared." });
+      else {
+        const o = opened(d, guests.get(from)!.participant.permissions.files !== "edit");
+        const update = Y.encodeStateAsUpdate(d.ydoc, fromBase64(String(m.stateVector)));
+        toGuest(from, { kind: "synced", req: m.req, docId, path: o.path, saved: o.saved, readOnly: o.readOnly, update: toBase64(update), stateVector: toBase64(Y.encodeStateVector(d.ydoc)) });
+      }
+      break;
+    }
     case "leave":
       dropGuest(from);
       break;
@@ -562,7 +584,16 @@ registerMock("collab_parse_link", ({ link }) => {
   if (!text.startsWith("forge://cwm/join?") && !text.startsWith("cwm1:")) throw new Error("Invalid session link: not a Code With Me link");
   const name = decodeURIComponent(/[?&:]name=([^&#]*)/.exec(text)?.[1] ?? "");
   if (!name) throw new Error("Invalid session link: name is missing");
-  return { hostName: name, hostLabel: name, sessionId: /[?&]s=([^&#]*)/.exec(text)?.[1] ?? "" };
+  const machine = /[?&]m=([^&#]*)/.exec(text)?.[1];
+  const relay = /[#&]r=([^&]*)/.exec(text)?.[1];
+  return {
+    hostName: name,
+    machine: machine ? decodeURIComponent(machine) : undefined,
+    hostLabel: machine ? `${name} (${decodeURIComponent(machine)})` : name,
+    sessionId: /[?&]s=([^&#]*)/.exec(text)?.[1] ?? "",
+    relay: relay ? decodeURIComponent(relay) : undefined,
+    userName: "Alex",
+  };
 });
 
 registerMock("collab_start", ({ level, custom }) => {
@@ -682,6 +713,20 @@ registerMock("collab_follow_everyone", ({ on }) => {
 registerMock("collab_doc_close", ({ docId }) => {
   if (role === "host") hostClose("host", Number(docId));
   else if (role === "guest") send({ kind: "close", to: hostKey, docId });
+});
+
+registerMock("collab_doc_sync", async ({ docId, stateVector }) => {
+  if (role !== "guest") throw new Error("No session is running.");
+  const r = await request({ kind: "sync", docId, stateVector });
+  if (r.error) throw new Error(String(r.error));
+  return encodeSynced({
+    docId: Number(r.docId),
+    path: String(r.path),
+    saved: r.saved as { hash: string },
+    readOnly: !!r.readOnly,
+    update: fromBase64(String(r.update)),
+    stateVector: fromBase64(String(r.stateVector)),
+  });
 });
 
 registerMock("collab_doc_save", async ({ docId }) => {

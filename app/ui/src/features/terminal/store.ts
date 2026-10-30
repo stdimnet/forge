@@ -37,11 +37,13 @@ export interface TerminalTab {
  * - `existing`: a session of this window that is already running (a Code With Me guest
  *   opened it on this machine);
  * - `collab`: one of the Code With Me host's shared terminals in a guest's window. It shows
- *   at the host's size; `readOnly` while the guest may only watch.
+ *   at the host's size; `readOnly` while the guest may only watch. `ended` says why the tab
+ *   no longer shows the host's terminal (the host stopped sharing it); the tab stays, with
+ *   its output, until the guest closes it.
  */
 export type TerminalSource =
   | { kind: "existing" }
-  | { kind: "collab"; terminal: number; readOnly: boolean; cols: number; rows: number };
+  | { kind: "collab"; terminal: number; readOnly: boolean; cols: number; rows: number; ended?: string };
 
 /** An entry another feature adds to a terminal tab's context menu (Share with Guests). */
 export interface TerminalTabAction {

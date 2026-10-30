@@ -9,7 +9,7 @@
  */
 import * as Y from "yjs";
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, modifyAwarenessUpdate, removeAwarenessStates } from "y-protocols/awareness";
-import { collabApi, fromBase64, type DocEvent, type DocOpened, type Participant } from "@/ipc/collab";
+import { collabApi, fromBase64, type DocEvent, type DocOpened, type DocSynced, type Participant } from "@/ipc/collab";
 
 export const GUEST_PREFIX = "cwm://";
 
@@ -144,6 +144,41 @@ function applyEvent(doc: SharedDoc, e: DocEvent): void {
   }
   if (e.saved) doc.savedHash = e.saved.hash;
   if (e.saved || e.renamed !== undefined || e.closed !== undefined) listeners.forEach((l) => l(doc, e));
+}
+
+/** What resynchronizing a document needs from the session (`collabApi` in the app). */
+export interface ResyncApi {
+  docSync: (docId: number, stateVector: Uint8Array) => Promise<DocSynced>;
+  docUpdate: (docId: number, update: Uint8Array) => Promise<void>;
+}
+
+/**
+ * Bring one document up to date after the connection to the host was restored (Yjs sync
+ * both ways): apply what the host has and this replica missed, then send the host the edits
+ * made here while the connection was down. A rename or close while away arrives as the
+ * matching document event; returns false when the document is gone.
+ */
+export async function resyncDoc(doc: SharedDoc, api: ResyncApi = collabApi): Promise<boolean> {
+  let synced: DocSynced;
+  try {
+    synced = await api.docSync(doc.docId, Y.encodeStateVector(doc.ydoc));
+  } catch (e) {
+    handleDocEvent({ docId: doc.docId, closed: String((e as Error)?.message ?? e) });
+    return false;
+  }
+  Y.applyUpdate(doc.ydoc, synced.update, REMOTE);
+  const missing = Y.encodeStateAsUpdate(doc.ydoc, synced.stateVector);
+  // An empty update is two zero bytes (no structs, no deletes).
+  if (missing.length > 2) await api.docUpdate(doc.docId, missing);
+  doc.readOnly = synced.readOnly;
+  const renamed = doc.tabPath.startsWith(GUEST_PREFIX) && synced.path && GUEST_PREFIX + synced.path !== doc.tabPath;
+  handleDocEvent({ docId: doc.docId, saved: synced.saved, ...(renamed ? { renamed: synced.path } : {}) });
+  return true;
+}
+
+/** Resynchronize every shared document of this window (a guest that reconnected). */
+export async function resyncAll(api: ResyncApi = collabApi): Promise<void> {
+  for (const doc of sharedDocs()) await resyncDoc(doc, api).catch((e) => console.warn("cannot resync a shared file", e));
 }
 
 /** A `collab://doc` event. */

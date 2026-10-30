@@ -502,3 +502,12 @@
   flex: 1;
   height: auto;
 }
+
+/* A guest whose connection dropped: the host keeps its place while it reconnects. */
+.cwm-participant.reconnecting .cwm-avatar,
+.cwm-toolbar-avatar.reconnecting .cwm-avatar {
+  opacity: 0.45;
+}
+.cwm-participant-reconnecting {
+  color: var(--warning);
+}

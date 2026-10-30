@@ -79,7 +79,7 @@ export function Participants() {
         {(p) => (
           <div
             class="cwm-participant"
-            classList={{ followed: followState().leader === p.id, clickable: !isMe(p) }}
+            classList={{ followed: followState().leader === p.id, clickable: !isMe(p), reconnecting: !!p.reconnecting }}
             role="listitem"
             data-participant={p.id}
             title={isMe(p) ? undefined : followState().leader === p.id ? `Stop following ${p.name}` : `Follow ${p.name}`}
@@ -102,7 +102,12 @@ export function Participants() {
                   {isMe(p) ? " (you)" : ""}
                 </span>
               </span>
-              <Show when={(!isMe(p) && locationLabel(presence().get(p.id))) || followingLabel(p)}>
+              <Show when={p.reconnecting}>
+                <span class="cwm-participant-where cwm-participant-reconnecting" title="The connection dropped. The place is kept for two minutes.">
+                  Reconnecting…
+                </span>
+              </Show>
+              <Show when={!p.reconnecting && ((!isMe(p) && locationLabel(presence().get(p.id))) || followingLabel(p))}>
                 <span class="cwm-participant-where muted">
                   {[!isMe(p) ? locationLabel(presence().get(p.id)) : undefined, followingLabel(p)].filter(Boolean).join(" · ")}
                 </span>
@@ -146,9 +151,9 @@ export function ToolbarAvatars() {
           {(p) => (
             <button
               class="cwm-toolbar-avatar"
-              classList={{ followed: followState().leader === p.id }}
               data-participant={p.id}
-              title={`${p.name}${p.role === "host" ? " (host)" : ` · ${LEVEL_TITLES[levelOf(p.permissions)]}`}${followState().leader === p.id ? " · following" : ""}`}
+              classList={{ followed: followState().leader === p.id, reconnecting: !!p.reconnecting }}
+              title={`${p.name}${p.role === "host" ? " (host)" : ` · ${LEVEL_TITLES[levelOf(p.permissions)]}`}${p.reconnecting ? " · Reconnecting…" : ""}${followState().leader === p.id ? " · following" : ""}`}
               aria-pressed={followState().leader === p.id}
               onClick={() => (followState().leader === p.id ? stopFollowing() : follow(p.id))}
               onContextMenu={(e) => {

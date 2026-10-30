@@ -1,6 +1,7 @@
 /**
  * Status bar widget of a Code With Me guest: "Code With Me: <host>" with the round trip time
- * to the host. Clicking it shows the session (host, project, permission) with Leave Session.
+ * to the host, or "Reconnecting…" while a dropped connection is being restored. Clicking it
+ * shows the session (host, project, permission) with Leave Session.
  */
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Users } from "lucide-solid";
@@ -9,6 +10,7 @@ import { workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { guestLevel, LEVEL_NAMES } from "./guest";
 import { session } from "./store";
+import { connectionLabel, isReconnecting } from "./reconnect";
 
 /** Latency class: fast / slow / very slow, colored in the widget. */
 export function latencyClass(ms: number | null): "good" | "fair" | "poor" | "unknown" {
@@ -26,7 +28,8 @@ export function GuestStatusItem() {
   const onDoc = (e: MouseEvent) => {
     if (el && !el.contains(e.target as Node)) setOpen(false);
   };
-  const measure = () => void collabApi.ping().then(setLatency, () => setLatency(null));
+  const measure = () => (isReconnecting() ? setLatency(null) : void collabApi.ping().then(setLatency, () => setLatency(null)));
+  const reconnecting = () => (isReconnecting() ? connectionLabel(session().connection) : null);
   onMount(() => {
     document.addEventListener("mousedown", onDoc);
     measure();
@@ -49,6 +52,7 @@ export function GuestStatusItem() {
       <button
         class="status-item cwm-status"
         data-latency={latencyClass(latency())}
+        classList={{ reconnecting: !!reconnecting() }}
         title={`Code With Me: you are a guest of ${workspace()?.collab?.label ?? host()}`}
         aria-haspopup="dialog"
         aria-expanded={open()}
@@ -56,8 +60,8 @@ export function GuestStatusItem() {
         data-testid="cwm-status"
       >
         <Users size={12} />
-        <span>Code With Me: {host()}</span>
-        <Show when={latency() != null}>
+        <span>Code With Me: {reconnecting() ? "Reconnecting…" : host()}</span>
+        <Show when={latency() != null && !reconnecting()}>
           <span class="cwm-status-detail">{latency()} ms</span>
         </Show>
       </button>
@@ -73,7 +77,15 @@ export function GuestStatusItem() {
             <dd>
               a guest ({LEVEL_NAMES[guestLevel() ?? "readOnly"]})
             </dd>
-            <Show when={latency() != null}>
+            <Show when={reconnecting()}>
+              {(label) => (
+                <>
+                  <dt>Connection</dt>
+                  <dd class="cwm-status-reconnecting">{label()}</dd>
+                </>
+              )}
+            </Show>
+            <Show when={latency() != null && !reconnecting()}>
               <dt>Latency</dt>
               <dd>{latency()} ms</dd>
             </Show>

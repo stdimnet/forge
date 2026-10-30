@@ -38,7 +38,21 @@ export interface Participant {
   /** 1-based index of the theme's `--collab-N` colors. */
   color: number;
   permissions: Permissions;
+  /** The guest's connection dropped; the host keeps its place while it reconnects. */
+  reconnecting?: boolean;
 }
+
+/** A guest's connection to the host (`forge_collab::reconnect::ConnectionState`). */
+export type ConnectionState =
+  | { state: "connected" }
+  | {
+      state: "reconnecting";
+      /** 1-based attempt that starts in `nextRetrySecs`. */
+      attempt: number;
+      nextRetrySecs: number;
+      /** Why the previous attempt failed. */
+      error?: string;
+    };
 
 /** A 1-based caret position (column in UTF-16 units). */
 export interface Caret {
@@ -129,6 +143,8 @@ export interface SessionView {
   terminals?: SharedTerminal[];
   /** The host's runs this guest sees (guest). */
   runs?: SharedRun[];
+  /** Whether the connection to the host is up or being restored (guest). */
+  connection?: ConnectionState;
 }
 
 /** A shared terminal (`forge_collab::share::SharedTerminal`). */
@@ -196,9 +212,14 @@ export interface SessionLogView {
 /** What the Join Session dialog shows about a pasted link. */
 export interface LinkSummary {
   hostName: string;
+  /** The host's machine as the link names it. */
+  machine?: string;
+  /** `name` or `name (machine)`. */
   hostLabel: string;
   sessionId: string;
   relay?: string;
+  /** The name this window joins with (Settings | Tools | Code With Me | User name). */
+  userName: string;
 }
 
 /** The text as last written to disk: `contentHash` of it (`state/editor.ts`). */
@@ -214,6 +235,12 @@ export interface DocOpened {
   update: Uint8Array;
   saved: SaveState;
   readOnly: boolean;
+}
+
+/** `collab_doc_sync`'s reply: what the replica missed after a reconnect. */
+export interface DocSynced extends DocOpened {
+  /** The host's state vector: send it what it is missing. */
+  stateVector: Uint8Array;
 }
 
 /** A change to a shared document (`collab://doc`); updates are base64. */
@@ -252,6 +279,7 @@ export const PRESENCE_EVENT = "collab://presence";
 export const FOLLOW_HOST_EVENT = "collab://follow-host";
 export const RUN_REQUEST_EVENT = "collab://run-request";
 export const TERMINAL_OPENED_EVENT = "collab://terminal-opened";
+export const RESUMED_EVENT = "collab://resumed";
 
 export function toBase64(bytes: Uint8Array): string {
   let bin = "";
@@ -281,6 +309,24 @@ export function decodeOpened(raw: ArrayBuffer | Uint8Array | number[]): DocOpene
   const len = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0);
   const header = JSON.parse(new TextDecoder().decode(bytes.subarray(4, 4 + len))) as Omit<DocOpened, "update">;
   return { ...header, update: bytes.slice(4 + len) };
+}
+
+/** `collab_doc_sync`'s raw reply: like `collab_doc_open`'s, with the host's state vector. */
+export function encodeSynced(s: DocSynced): ArrayBuffer {
+  const { stateVector, ...opened } = s;
+  const header = new TextEncoder().encode(
+    JSON.stringify({ docId: opened.docId, path: opened.path, saved: opened.saved, readOnly: opened.readOnly, stateVector: toBase64(stateVector) }),
+  );
+  const out = new Uint8Array(4 + header.length + opened.update.length);
+  new DataView(out.buffer).setUint32(0, header.length);
+  out.set(header, 4);
+  out.set(opened.update, 4 + header.length);
+  return out.buffer;
+}
+
+export function decodeSynced(raw: ArrayBuffer | Uint8Array | number[]): DocSynced {
+  const opened = decodeOpened(raw) as DocOpened & { stateVector: unknown };
+  return { ...opened, stateVector: fromBase64(String(opened.stateVector ?? "")) };
 }
 
 export const collabApi = {
@@ -313,6 +359,11 @@ export const collabApi = {
   docUpdate: (docId: number, update: Uint8Array) => invoke<void>("collab_doc_update", { docId, update: toBase64(update) }),
   awareness: (docId: number, update: Uint8Array) => invoke<void>("collab_awareness", { docId, update: toBase64(update) }),
   docClose: (docId: number) => invoke<void>("collab_doc_close", { docId }),
+  /** Bring a document up to date after the connection was restored (guest). */
+  docSync: async (docId: number, stateVector: Uint8Array) =>
+    decodeSynced(await invoke<ArrayBuffer>("collab_doc_sync", { docId, stateVector: toBase64(stateVector) })),
+  /** The connection to the host was restored after it dropped (guest). */
+  onResumed: (cb: () => void) => listen<unknown>(RESUMED_EVENT, () => cb()),
   /** Where this participant is: file, caret, viewport and whom it follows (throttled by the caller). */
   presence: (presence: Presence) => invoke<void>("collab_presence", { presence }),
   /** Make Everyone Follow You on or off (host). */

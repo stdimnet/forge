@@ -5,7 +5,7 @@ import type { RunEvent } from "@/ipc/run";
 import { closeTab, newTabBlocked, tabs, terminalTabActions } from "@/features/terminal/store";
 import { launch, sessions, stopSession } from "@/features/run/runStore";
 import { applySession } from "./store";
-import { sharedTerminalTab, terminalBlockedReason, trackTerminalsAndRuns } from "./terminalsRuns";
+import { sharedTerminalTab, terminalBlockedReason, trackTerminalsAndRuns, UNSHARED } from "./terminalsRuns";
 
 const calls: { cmd: string; args: Record<string, unknown> }[] = [];
 const record = (cmd: string, answer: (args: Record<string, unknown>) => unknown = () => undefined) =>
@@ -67,8 +67,13 @@ describe("a guest's terminals", () => {
     expect(again?.source).toMatchObject({ readOnly: false, cols: 100 });
     expect(newTabBlocked()).toBeNull();
 
+    // The host stops sharing it: the tab stays as ended, with the reason, until closed.
     applySession(guest(PRESETS.fullAccess, []));
-    expect(tabs().some((t) => t.id === sharedTerminalTab(7))).toBe(false);
+    const ended = tabs().find((t) => t.id === sharedTerminalTab(7));
+    expect(ended?.source).toMatchObject({ kind: "collab", ended: UNSHARED });
+    // Shared again, it opens fresh.
+    applySession(guest(PRESETS.fullAccess, [local]));
+    expect(tabs().find((t) => t.id === sharedTerminalTab(7))?.source).not.toHaveProperty("ended");
   });
 
   it("explain why no terminal can be opened", () => {

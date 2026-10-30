@@ -42,6 +42,8 @@ interface Session {
   fixed?: { cols: number; rows: number };
   /** Keys are not sent (a guest that may only watch the host's terminal). */
   readOnly?: boolean;
+  /** A Code With Me host's terminal: its tab stays when it ends. */
+  shared?: boolean;
 }
 
 const sessions = new Map<string, Session>();
@@ -453,7 +455,11 @@ function handleEvent(id: string, s: Session, e: TerminalEvent): void {
   else {
     s.exited = true;
     setProgress(id, null);
-    if (e.code === 0 || e.code === null) {
+    if (s.shared) {
+      // The host's terminal ended: the guest's tab keeps its output, like a terminated session.
+      s.term.options.disableStdin = true;
+      s.term.write(`\r\n\x1b[2m[Process completed${e.code ? ` with exit code ${e.code}` : ""}]\x1b[0m\r\n`);
+    } else if (e.code === 0 || e.code === null) {
       disposeSession(id);
       closeTab(id);
     } else s.term.write(`\r\n\x1b[2m[Process completed with exit code ${e.code}]\x1b[0m\r\n`);
@@ -469,6 +475,14 @@ async function attachExisting(id: string, s: Session, source: TerminalSource): P
   s.unlisten = await terminalApi.onEvent(id, (e) => (queued ? queued.push(e) : handleEvent(id, s, e)));
   try {
     if (source.kind === "collab") {
+      s.shared = true;
+      if (source.ended) {
+        s.exited = true;
+        s.term.options.disableStdin = true;
+        s.term.write(`\x1b[2m[${source.ended}]\x1b[0m\r\n`);
+        s.opened = true;
+        return;
+      }
       const r = await collabApi.terminalAttach(source.terminal, id);
       updateSharedSession(id, r.cols, r.rows, source.readOnly);
       if (r.scrollback) s.term.write(r.scrollback);
@@ -518,6 +532,19 @@ async function start(id: string, s: Session, cwd?: string, command?: TerminalPro
     const what = ssh ? "Cannot start the SSH session" : "Cannot open the terminal";
     s.term.write(`\x1b[31m${what}: ${String(err)}\x1b[0m\r\n`);
   }
+}
+
+/**
+ * A Code With Me host's terminal is no longer shown in this tab (the host stopped sharing
+ * it): the tab keeps what it showed, takes no more input and says why.
+ */
+export function endSharedSession(id: string, reason: string): void {
+  const s = sessions.get(id);
+  if (!s) return;
+  s.exited = true;
+  setProgress(id, null);
+  s.term.options.disableStdin = true;
+  s.term.write(`\r\n\x1b[2m[${reason}]\x1b[0m\r\n`);
 }
 
 /** Kill the shell and destroy the xterm instance. */
