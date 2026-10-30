@@ -423,12 +423,10 @@ async fn unsharing_exiting_and_leaving_end_terminals() {
     until("the exit", || one.exited() == Some(Some(130))).await;
     w.host
         .share_terminal("term-2", "Local (2)", 80, 24, "", false);
-    until("the unshare", || two.exited() == Some(None)).await;
-    assert_eq!(
-        g.session.terminals().len(),
-        1,
-        "the exited one stays until closed"
-    );
+    until("the unshare", || g.session.terminals().len() == 1).await;
+    // Not an exit: the guest's tab says the host stopped sharing it (UI), the exited one
+    // stays until closed.
+    assert_eq!(two.exited(), None);
     w.host.terminal_closed("term-1");
     until("the close", || g.session.terminals().is_empty()).await;
     assert!(w
@@ -447,6 +445,38 @@ async fn unsharing_exiting_and_leaving_end_terminals() {
     let key = w.app.opened.lock().unwrap()[0].0.clone();
     g.session.leave().await;
     until("the close", || w.app.closed.lock().unwrap().contains(&key)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn after_a_reconnect_an_attached_terminal_gets_what_it_missed_once() {
+    let mut w = World::new(READ);
+    w.host
+        .share_terminal("term-1", "Local", 80, 24, "$ make\r\n", true);
+    let g = w.join("Alex").await;
+    until("the shared terminal", || terminal(&g, "Local").is_some()).await;
+    let tab = Tab::default();
+    let (shown, _, _) = g
+        .session
+        .attach_terminal(terminal(&g, "Local").unwrap().id, tab.sink())
+        .unwrap();
+    assert_eq!(shown, "$ make\r\n");
+    w.net.set_offline([2; 32], true);
+    until("Alex is away", || {
+        w.host.participants().iter().any(|p| p.reconnecting)
+    })
+    .await;
+    w.host.terminal_output("term-1", "built while away\r\n");
+    w.net.set_offline([2; 32], false);
+    until("the missed output", || {
+        tab.text().contains("built while away")
+    })
+    .await;
+    w.host.terminal_output("term-1", "live again\r\n");
+    until("live output", || tab.text().contains("live again")).await;
+    assert_eq!(tab.text(), "built while away\r\nlive again\r\n");
+    assert_eq!(tab.exited(), None);
+    assert_eq!(w.logged("Alex reconnected"), 1);
+    assert_eq!(w.logged("The connection of Alex dropped"), 1);
 }
 
 // ---- runs --------------------------------------------------------------------------------

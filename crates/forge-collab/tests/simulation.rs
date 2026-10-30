@@ -14,10 +14,14 @@ use forge_collab::link::SessionLink;
 use forge_collab::permissions::Permissions;
 use forge_collab::presence::{Caret, ParticipantId, Presence, Viewport};
 use forge_collab::protocol::{text_hash, DocId, SaveState};
+use forge_collab::reconnect::ReconnectPolicy;
 use forge_collab::transport::memory::MemoryNetwork;
 use forge_core::FsChanges;
 use yrs::updates::decoder::Decode;
-use yrs::{Doc, GetString, OffsetKind, Options, ReadTxn, Text, TextRef, Transact, Update};
+use yrs::updates::encoder::Encode;
+use yrs::{
+    Doc, GetString, OffsetKind, Options, ReadTxn, StateVector, Text, TextRef, Transact, Update,
+};
 
 /// A participant's editor: one replica per open document, and what arrived for it.
 #[derive(Default)]
@@ -33,6 +37,8 @@ struct Editor {
     /// Where the others are, as this participant was told.
     presence: HashMap<ParticipantId, Presence>,
     follow_host: bool,
+    /// How often the connection was restored.
+    resumed: usize,
 }
 
 type Shared = Arc<Mutex<Editor>>;
@@ -191,12 +197,31 @@ impl Harness {
         self.join_with(name, &link).await.unwrap()
     }
 
+    async fn join_policy(&mut self, name: &str, policy: ReconnectPolicy) -> Peer {
+        let link = self.host.link();
+        self.join_full(name, &link, policy).await.unwrap()
+    }
+
+    /// The endpoint key of the guest that joined last.
+    fn last_key(&self) -> [u8; 32] {
+        [self.next_key - 1; 32]
+    }
+
     async fn join_with(&mut self, name: &str, link: &SessionLink) -> Result<Peer, String> {
+        self.join_full(name, link, ReconnectPolicy::default()).await
+    }
+
+    async fn join_full(
+        &mut self,
+        name: &str,
+        link: &SessionLink,
+        policy: ReconnectPolicy,
+    ) -> Result<Peer, String> {
         let key = [self.next_key; 32];
         self.next_key += 1;
         let editor: Shared = Arc::default();
         let sink_editor = editor.clone();
-        let guest = GuestSession::join(
+        let guest = GuestSession::join_with(
             Arc::new(self.net.endpoint(key)),
             link,
             name,
@@ -218,9 +243,11 @@ impl Harness {
                         ed.presence.insert(participant, presence);
                     }
                     GuestEvent::FollowHost(on) => ed.follow_host = on,
+                    GuestEvent::Resumed => ed.resumed += 1,
                     GuestEvent::Awareness { .. } | GuestEvent::Changed => {}
                 }
             }),
+            policy,
         )
         .await?;
         Ok(Peer { guest, editor })
@@ -567,8 +594,10 @@ async fn leaving_disconnecting_and_ending() {
             .any(|n| n == "Alex left the session.")
     })
     .await;
-    // A dropped connection counts as leaving; the others keep editing.
-    let joe = h.join("Joe").await;
+    // Without a grace period a dropped connection counts as leaving; the others keep
+    // editing. (Reconnecting is tested below.)
+    h.host.set_reconnect_grace(Duration::ZERO);
+    let joe = h.join_policy("Joe", fast(5_000)).await;
     joe.open("app/Order.php").await.unwrap();
     h.net.disconnect([4; 32]);
     eventually("Joe's connection is gone", || {
@@ -762,4 +791,228 @@ async fn presence_follows_permission_changes_and_leaving() {
         seen(&alex_ed, ParticipantId::HOST) == Some(presence_in("app/Order.php", 2))
     })
     .await;
+}
+
+// ---- reconnect --------------------------------------------------------------------------
+
+/// Quick retries for tests: every 20 ms, for `give_up_ms`.
+fn fast(give_up_ms: u64) -> ReconnectPolicy {
+    ReconnectPolicy {
+        backoff: vec![Duration::from_millis(20)],
+        give_up_after: Duration::from_millis(give_up_ms),
+    }
+}
+
+impl Peer {
+    /// What the UI does on `Resumed` for one document: Yjs sync step 1 and 2 both ways.
+    async fn resync(&self, doc: DocId) -> Result<(), String> {
+        let sv = {
+            let ed = self.editor.lock().unwrap();
+            let (d, _) = &ed.docs[&doc];
+            let sv = d.transact().state_vector().encode_v1();
+            sv
+        };
+        let synced = self.guest.sync_doc(doc, sv).await?;
+        let missing = {
+            let ed = self.editor.lock().unwrap();
+            let (d, _) = &ed.docs[&doc];
+            d.transact_mut()
+                .apply_update(Update::decode_v1(&synced.update).unwrap())
+                .unwrap();
+            let host_sv = StateVector::decode_v1(&synced.state_vector).unwrap();
+            let missing = d.transact().encode_state_as_update_v1(&host_sv);
+            missing
+        };
+        self.guest.update(doc, missing);
+        Ok(())
+    }
+
+    fn resumed(&self) -> usize {
+        self.editor.lock().unwrap().resumed
+    }
+}
+
+fn reconnecting(host: &HostSession, name: &str) -> bool {
+    host.participants()
+        .iter()
+        .any(|p| p.name == name && p.reconnecting)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_guest_reconnects_and_keeps_its_place_and_its_unsent_edits() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    let doc = h.host_open("app/Order.php").await;
+    let alex = h.join_policy("Alex", fast(5_000)).await;
+    let key = h.last_key();
+    alex.open("app/Order.php").await.unwrap();
+    alex.guest.set_presence(presence_in("app/Order.php", 3));
+    let me = alex.guest.me();
+    let color = h.host.participants()[1].color;
+
+    h.net.set_offline(key, true);
+    let host = h.host.clone();
+    eventually("the host sees Alex reconnecting", || {
+        reconnecting(&host, "Alex")
+    })
+    .await;
+    let g = alex.guest.clone();
+    eventually("Alex is reconnecting", || !g.connection().is_connected()).await;
+    assert_eq!(h.host.participants().len(), 2, "the place is kept");
+    // Requests fail fast while the connection is down; edits stay in the editor.
+    assert_eq!(
+        alex.guest.open_doc("README.md").await.unwrap_err(),
+        forge_collab::reconnect::RECONNECTING
+    );
+    alex.edit(doc, 0, 0, "// offline\n");
+    h.host_edit(doc, 5, 0, " // host");
+
+    h.net.set_offline(key, false);
+    eventually("Alex is back", || {
+        g.connection().is_connected() && !reconnecting(&host, "Alex")
+    })
+    .await;
+    eventually("Alex was told to resync", || alex.resumed() == 1).await;
+    assert_eq!(alex.guest.me(), me);
+    assert_eq!(h.host.participants()[1].color, color);
+    alex.resync(doc).await.unwrap();
+    let host_editor = h.host_editor.clone();
+    eventually("both edits are everywhere", || {
+        let text = host_editor.lock().unwrap().text(doc);
+        text.contains("// offline") && text.contains("// host") && alex.text(doc) == text
+    })
+    .await;
+    // Presence came again, and Alex keeps editing as before.
+    eventually("the host knows where Alex is", || {
+        host.presence()
+            .iter()
+            .any(|(id, p)| *id == me && p.caret.is_some())
+    })
+    .await;
+    alex.edit(doc, 0, 0, "x");
+    eventually("live edits flow again", || {
+        host_editor
+            .lock()
+            .unwrap()
+            .text(doc)
+            .starts_with("x// offline")
+    })
+    .await;
+    assert!(alex.editor.lock().unwrap().ended.is_none());
+    let lines = h.host.session_hex();
+    assert!(!lines.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_host_frees_the_place_after_the_grace_period() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    h.host.set_reconnect_grace(Duration::from_millis(150));
+    let alex = h.join_policy("Alex", fast(5_000)).await;
+    let key = h.last_key();
+    h.net.set_offline(key, true);
+    let host = h.host.clone();
+    eventually("Alex's place is gone", || host.participants().len() == 1).await;
+    let host_editor = h.host_editor.clone();
+    eventually("the host was told", || {
+        host_editor
+            .lock()
+            .unwrap()
+            .notices
+            .iter()
+            .any(|n| n == "Alex lost the connection and did not come back.")
+    })
+    .await;
+    h.net.set_offline(key, false);
+    let ed = alex.editor.clone();
+    eventually("Alex hears that the place is gone", || {
+        ed.lock()
+            .unwrap()
+            .ended
+            .as_deref()
+            .is_some_and(|r| r.contains("no longer keeps your place"))
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_guest_gives_up_when_the_host_stays_unreachable() {
+    let mut h = Harness::new(Permissions::READ_ONLY);
+    let alex = h.join_policy("Alex", fast(200)).await;
+    h.net.set_offline([1; 32], true);
+    let ed = alex.editor.clone();
+    eventually("Alex gave up", || {
+        ed.lock().unwrap().ended.as_deref() == Some(forge_collab::reconnect::GAVE_UP)
+    })
+    .await;
+    assert!(alex.guest.is_ended());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_guest_removed_while_away_learns_why() {
+    let mut h = Harness::new(Permissions::READ_ONLY);
+    let alex = h.join_policy("Alex", fast(5_000)).await;
+    let key = h.last_key();
+    h.net.set_offline(key, true);
+    let host = h.host.clone();
+    eventually("Alex is away", || reconnecting(&host, "Alex")).await;
+    assert!(h.host.remove(alex.guest.me()));
+    h.net.set_offline(key, false);
+    let ed = alex.editor.clone();
+    eventually("Alex was told", || {
+        ed.lock().unwrap().ended.as_deref() == Some("The host removed you from the session.")
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn nobody_else_can_take_a_place_back() {
+    use forge_collab::protocol::{
+        GuestMessage, HostMessage, MAX_GUEST_FRAME, MAX_HOST_FRAME, PROTOCOL_VERSION,
+    };
+    use forge_collab::transport::{read_msg, write_msg, Transport};
+    let mut h = Harness::new(Permissions::READ_ONLY);
+    let alex = h.join_policy("Alex", fast(5_000)).await;
+    let key = h.last_key();
+    h.net.set_offline(key, true);
+    let host = h.host.clone();
+    eventually("Alex is away", || reconnecting(&host, "Alex")).await;
+    // Another endpoint (or a guessed token) names Alex's place.
+    let mallory = h.net.endpoint([99; 32]);
+    let mut conn = mallory.connect([1; 32], vec![]).await.unwrap();
+    let resume = GuestMessage::Resume {
+        protocol: PROTOCOL_VERSION,
+        session: serde_bytes::ByteBuf::from(h.host.link().session_id.to_vec()),
+        participant: alex.guest.me(),
+        token: serde_bytes::ByteBuf::from(vec![0; 32]),
+    };
+    write_msg(&mut conn.send, &resume, MAX_GUEST_FRAME)
+        .await
+        .unwrap();
+    let answer: Option<HostMessage> = read_msg(&mut conn.recv, MAX_HOST_FRAME).await.unwrap();
+    assert!(
+        matches!(answer, Some(HostMessage::Refused { .. })),
+        "{answer:?}"
+    );
+    assert!(reconnecting(&h.host, "Alex"), "the place is still Alex's");
+    h.net.set_offline(key, false);
+    let g = alex.guest.clone();
+    eventually("Alex is back", || g.connection().is_connected()).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn documents_closed_while_away_fail_to_resync() {
+    let mut h = Harness::new(Permissions::EDIT_FILES);
+    let doc = h.host_open("README.md").await;
+    let alex = h.join_policy("Alex", fast(5_000)).await;
+    let key = h.last_key();
+    alex.open("README.md").await.unwrap();
+    h.net.set_offline(key, true);
+    let host = h.host.clone();
+    eventually("Alex is away", || reconnecting(&host, "Alex")).await;
+    std::fs::remove_file(h.root.join("README.md")).unwrap();
+    h.host.on_deleted("README.md");
+    h.net.set_offline(key, false);
+    let g = alex.guest.clone();
+    eventually("Alex is back", || g.connection().is_connected()).await;
+    let err = alex.resync(doc).await.unwrap_err();
+    assert_eq!(err, "The file is no longer shared.");
 }

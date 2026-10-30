@@ -109,6 +109,17 @@ impl SharedDoc {
             .encode_state_as_update_v1(&StateVector::default())
     }
 
+    /// What a replica with state vector `sv` (Yjs v1 encoding) is missing, and this
+    /// document's state vector (Yjs sync step 2 and step 1, for a reconnect).
+    pub fn diff_since(&self, sv: &[u8]) -> Result<(Vec<u8>, Vec<u8>), String> {
+        let sv = StateVector::decode_v1(sv).map_err(|e| format!("invalid state vector: {e}"))?;
+        let txn = self.doc.transact();
+        Ok((
+            txn.encode_state_as_update_v1(&sv),
+            txn.state_vector().encode_v1(),
+        ))
+    }
+
     pub fn text(&self) -> String {
         self.text.get_string(&self.doc.transact())
     }
@@ -265,6 +276,7 @@ mod tests {
             role: Role::Guest,
             color,
             permissions: Permissions::EDIT_FILES,
+            reconnecting: false,
         }
     }
 

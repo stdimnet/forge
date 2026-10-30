@@ -53,13 +53,9 @@ impl GuestSession {
                 let mut ended = Vec::new();
                 {
                     let mut map = lock(&self.share.terminals);
-                    map.retain(|id, t| {
-                        let keep = terminals.iter().any(|x| x.id == *id);
-                        if !keep && t.info.running {
-                            ended.push((t.sink.take(), None));
-                        }
-                        keep
-                    });
+                    // A terminal the host stopped sharing is not an exit: the UI keeps its tab
+                    // as ended and says why (it sees the terminal leave the list).
+                    map.retain(|id, _| terminals.iter().any(|x| x.id == *id));
                     for info in terminals {
                         match map.get_mut(&info.id) {
                             Some(t) => {
@@ -99,15 +95,19 @@ impl GuestSession {
                     let Some(t) = map.get_mut(terminal) else {
                         return true;
                     };
-                    if *snapshot {
-                        t.output = Scrollback::new();
-                    }
+                    let new = if *snapshot {
+                        // A snapshot comes when the terminal becomes visible and again after a
+                        // reconnect: an attached UI gets only what it has not shown yet.
+                        let shown = std::mem::replace(&mut t.output, Scrollback::new());
+                        snapshot_tail(shown.text(), data)
+                    } else {
+                        data.clone()
+                    };
                     t.output.push(data);
-                    // A snapshot is what an attached UI showed already.
-                    t.sink.clone().filter(|_| !*snapshot)
+                    t.sink.clone().filter(|_| !new.is_empty()).map(|s| (s, new))
                 };
-                if let Some(s) = live {
-                    s(PtyEvent::Output { data: data.clone() });
+                if let Some((s, data)) = live {
+                    s(PtyEvent::Output { data });
                 }
                 true
             }
@@ -138,17 +138,30 @@ impl GuestSession {
                     let Some(r) = map.get_mut(run) else {
                         return true;
                     };
-                    if *snapshot {
-                        r.log = RunLog::new();
-                    }
+                    let skip = if *snapshot {
+                        // Again after a reconnect: an attached UI gets the events it missed.
+                        let shown: Vec<String> = std::mem::replace(&mut r.log, RunLog::new())
+                            .events()
+                            .map(str::to_string)
+                            .collect();
+                        let continues = events.len() >= shown.len()
+                            && events.iter().zip(&shown).all(|(a, b)| a == b);
+                        if continues {
+                            shown.len()
+                        } else {
+                            events.len()
+                        }
+                    } else {
+                        0
+                    };
                     for e in events {
                         let console = e.contains("\"type\":\"console\"");
                         r.log.push(e.clone(), console);
                     }
-                    r.sink.clone().filter(|_| !*snapshot)
+                    r.sink.clone().map(|s| (s, skip))
                 };
-                if let Some(s) = live {
-                    for e in events {
+                if let Some((s, skip)) = live {
+                    for e in events.iter().skip(skip) {
                         s(e.clone());
                     }
                 }
@@ -291,6 +304,19 @@ impl GuestSession {
     }
 }
 
+/// What a terminal that showed `shown` has to write to show `snapshot`: the new part when
+/// the snapshot continues it, else a reset and the whole snapshot (the host's scrollback
+/// dropped old lines meanwhile).
+fn snapshot_tail(shown: &str, snapshot: &str) -> String {
+    if shown.is_empty() {
+        snapshot.to_string()
+    } else if let Some(rest) = snapshot.strip_prefix(shown) {
+        rest.to_string()
+    } else {
+        format!("\x1bc{snapshot}")
+    }
+}
+
 /// A shared terminal as the guest's terminal tool window uses it.
 struct GuestTerminalHandle {
     session: Arc<GuestSession>,
@@ -325,5 +351,18 @@ impl Terminal for GuestTerminalHandle {
             self.session.detach_terminal(self.terminal);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::snapshot_tail;
+
+    #[test]
+    fn snapshots_after_a_reconnect_add_only_the_missed_output() {
+        assert_eq!(snapshot_tail("", "$ ls\r\n"), "$ ls\r\n");
+        assert_eq!(snapshot_tail("$ ls\r\n", "$ ls\r\na b\r\n"), "a b\r\n");
+        assert_eq!(snapshot_tail("$ ls\r\n", "$ ls\r\n"), "");
+        assert_eq!(snapshot_tail("old\r\n", "new\r\n"), "\x1bcnew\r\n");
     }
 }

@@ -24,6 +24,8 @@ struct Net {
     latency: Duration,
     /// Relay tasks of each connection with the two peers' keys.
     links: Vec<(PeerKey, PeerKey, Vec<JoinHandle<()>>)>,
+    /// Endpoints whose network is down: they can neither dial nor be dialed.
+    offline: std::collections::HashSet<PeerKey>,
 }
 
 /// The shared network. Clone it to hand it to several endpoints.
@@ -65,8 +67,25 @@ impl MemoryNetwork {
         });
     }
 
+    /// Take an endpoint's network down (its connections drop, dialing fails both ways) or
+    /// bring it back, like a lost Wi-Fi.
+    pub fn set_offline(&self, key: PeerKey, offline: bool) {
+        if offline {
+            self.net.lock().unwrap().offline.insert(key);
+            self.disconnect(key);
+        } else {
+            self.net.lock().unwrap().offline.remove(&key);
+        }
+    }
+
     fn connect(&self, from: PeerKey, to: PeerKey) -> io::Result<Connection> {
         let mut net = self.net.lock().unwrap();
+        if net.offline.contains(&from) || net.offline.contains(&to) {
+            return Err(io::Error::new(
+                io::ErrorKind::NetworkUnreachable,
+                "network is unreachable",
+            ));
+        }
         let Some(listener) = net.listeners.get(&to).cloned() else {
             return Err(io::Error::new(
                 io::ErrorKind::ConnectionRefused,
@@ -204,6 +223,21 @@ mod tests {
         net.disconnect([2; 32]);
         let got: Option<GuestMessage> = read_msg(&mut inc.recv, MAX_GUEST_FRAME).await.unwrap();
         assert_eq!(got, None);
+    }
+
+    #[tokio::test]
+    async fn offline_endpoints_drop_their_connections_and_cannot_dial() {
+        let net = MemoryNetwork::new();
+        let host = net.endpoint([1; 32]);
+        let guest = net.endpoint([2; 32]);
+        let _out = guest.connect([1; 32], vec![]).await.unwrap();
+        let mut inc = host.accept().await.unwrap();
+        net.set_offline([2; 32], true);
+        let got: Option<GuestMessage> = read_msg(&mut inc.recv, MAX_GUEST_FRAME).await.unwrap();
+        assert_eq!(got, None);
+        assert!(guest.connect([1; 32], vec![]).await.is_err());
+        net.set_offline([2; 32], false);
+        assert!(guest.connect([1; 32], vec![]).await.is_ok());
     }
 
     #[tokio::test]

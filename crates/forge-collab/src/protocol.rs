@@ -20,7 +20,7 @@ use crate::share::{RunId, SharedRun, SharedTerminal, TerminalId};
 use crate::{Error, Result};
 
 /// Bumped on incompatible changes; the host refuses other versions in the knock.
-pub const PROTOCOL_VERSION: u32 = 3;
+pub const PROTOCOL_VERSION: u32 = 4;
 
 /// QUIC application protocol of Code With Me connections.
 pub const ALPN: &[u8] = b"forge/cwm/1";
@@ -83,6 +83,16 @@ pub enum GuestMessage {
         name: String,
         proof: ByteBuf,
     },
+    /// The first message on a new connection of a guest whose connection dropped: it takes
+    /// its place in the session back. `token` is the `resume` token of its `Welcome`; the
+    /// host also checks that the connection comes from the same endpoint key. Answered with
+    /// a `Welcome` (`resumed`) or `Refused`.
+    Resume {
+        protocol: u32,
+        session: ByteBuf,
+        participant: ParticipantId,
+        token: ByteBuf,
+    },
     /// Open a shared file -> [`HostMessage::DocOpened`] or [`HostMessage::DocError`].
     DocOpen {
         request: u64,
@@ -105,6 +115,15 @@ pub enum GuestMessage {
     },
     DocClose {
         doc: DocId,
+    },
+    /// Bring an open document up to date after a reconnect (Yjs sync step 1): the guest's
+    /// state vector -> [`HostMessage::DocSynced`] with what the guest is missing, or
+    /// [`HostMessage::DocError`]. The guest then sends what the host is missing as a
+    /// `DocUpdate`.
+    DocSync {
+        request: u64,
+        doc: DocId,
+        state_vector: ByteBuf,
     },
     /// A project request of the guest's backend (`guest_backend::HostCall`, MessagePack) ->
     /// [`HostMessage::CallResult`]. The payload stays opaque here so this module is pure.
@@ -136,11 +155,13 @@ impl GuestMessage {
     pub fn name(&self) -> &'static str {
         match self {
             Self::Knock { .. } => "knock",
+            Self::Resume { .. } => "reconnect",
             Self::DocOpen { .. } => "open",
             Self::DocUpdate { .. } => "edit",
             Self::Awareness { .. } => "caret",
             Self::DocSave { .. } => "save",
             Self::DocClose { .. } => "close",
+            Self::DocSync { .. } => "sync",
             Self::Call { .. } => "call",
             Self::Presence { .. } => "presence",
             Self::TerminalInput { .. } => "terminal input",
@@ -162,6 +183,14 @@ pub enum HostMessage {
         /// Session-wide notice, e.g. that this is a development preview without approval.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         notice: Option<String>,
+        /// The token that lets this guest take its place back after a dropped connection
+        /// ([`GuestMessage::Resume`]); empty when the host does not keep places.
+        #[serde(default)]
+        resume: ByteBuf,
+        /// The answer to a `Resume`: the guest's documents, terminals and runs are still
+        /// there and get resynchronized.
+        #[serde(default)]
+        resumed: bool,
     },
     /// The knock was refused (wrong version, removed guest, ...). Wrong proofs get no answer.
     Refused {
@@ -190,6 +219,18 @@ pub enum HostMessage {
     DocError {
         request: u64,
         error: String,
+    },
+    /// The answer to [`GuestMessage::DocSync`]: what the guest is missing (one Yjs update),
+    /// the host's state vector (so the guest can send what the host is missing), and the
+    /// document's current path, save state and access.
+    DocSynced {
+        request: u64,
+        doc: DocId,
+        path: String,
+        update: ByteBuf,
+        state_vector: ByteBuf,
+        saved: SaveState,
+        read_only: bool,
     },
     DocUpdate {
         doc: DocId,
@@ -420,11 +461,14 @@ mod tests {
                 role: Role::Host,
                 color: 1,
                 permissions: Permissions::FULL_ACCESS,
+                reconnecting: false,
             }],
             files: vec![SharedFile {
                 path: "a.php".into(),
             }],
             notice: None,
+            resume: ByteBuf::from(vec![7; 32]),
+            resumed: false,
         };
         let frame = encode(&msg, MAX_HOST_FRAME).unwrap();
         let mut dec = FrameDecoder::new(MAX_HOST_FRAME);

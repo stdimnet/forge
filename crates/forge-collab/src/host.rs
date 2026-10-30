@@ -34,8 +34,11 @@ use crate::protocol::{
     DocId, GuestMessage, HostMessage, SaveState, SharedFile, MAX_GUEST_FRAME, MAX_HOST_FRAME,
     PROTOCOL_VERSION,
 };
+use crate::reconnect::{same_token, HOST_GRACE};
 use crate::relay::{ConnectionPath, RelayStatus};
-use crate::transport::{read_msg, write_msg, BoxFuture, Connection, PeerKey, Transport};
+use crate::transport::{
+    read_msg, write_msg, BoxFuture, BoxRead, BoxWrite, Connection, PeerKey, Transport,
+};
 use crate::verify::{check_proof, verification_code};
 
 // The host's side of the guests' project backend (tree, search, git, language servers).
@@ -54,6 +57,28 @@ const GUEST_QUEUE: usize = 4096;
 /// Time a new connection has to send its knock.
 const KNOCK_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_KNOCK: usize = 16 * 1024;
+/// How long a guest's writer may take to flush its last messages.
+const WRITER_FLUSH: Duration = Duration::from_secs(5);
+const RESUME_TOKEN_LEN: usize = 32;
+
+/// Why a guest is no longer in the session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Leaving {
+    Left,
+    Removed,
+    /// Its connection dropped and it did not come back within the grace period.
+    Lost,
+}
+
+/// How a guest's connection ended.
+enum ConnectionEnd {
+    /// The guest said Leave.
+    Left,
+    /// The connection dropped.
+    Lost,
+    /// The session ended, the guest was removed, or a newer connection took over.
+    Gone,
+}
 
 /// What the host's UI needs to know.
 #[derive(Debug, Clone, PartialEq)]
@@ -155,7 +180,18 @@ struct Guest {
     remote: PeerKey,
     participant: Participant,
     policy: Policy,
+    /// The current connection's queue; a closed queue while the guest reconnects.
     tx: mpsc::Sender<HostMessage>,
+    /// Lets the guest take its place back after a dropped connection.
+    resume: [u8; RESUME_TOKEN_LEN],
+    /// Counts the guest's connections; a dropped connection only counts while it is the
+    /// newest.
+    epoch: u64,
+}
+
+/// A queue that takes nothing: what a guest gets while it is away.
+fn closed_queue() -> mpsc::Sender<HostMessage> {
+    mpsc::channel(1).0
 }
 
 #[derive(Default)]
@@ -170,6 +206,8 @@ struct State {
     presence: BTreeMap<ParticipantId, Presence>,
     /// Make Everyone Follow You is on.
     follow_host: bool,
+    /// Guests removed by the host while they were reconnecting, to tell them why.
+    removed: std::collections::BTreeSet<ParticipantId>,
 }
 
 /// Sends collected after the lock is released.
@@ -198,6 +236,8 @@ pub struct HostSession {
     share: Mutex<ShareState>,
     ended: AtomicBool,
     audit: Mutex<Option<SharedAudit>>,
+    /// How long a guest whose connection dropped keeps its place.
+    grace: Mutex<Duration>,
 }
 
 fn random<const N: usize>() -> [u8; N] {
@@ -229,6 +269,7 @@ impl HostSession {
                 role: Role::Host,
                 color: ColorAssigner::host(),
                 permissions: Permissions::FULL_ACCESS,
+                reconnecting: false,
             },
             permissions: Mutex::new(config.permissions),
             excludes: config.excludes,
@@ -244,6 +285,7 @@ impl HostSession {
             share: Mutex::new(ShareState::default()),
             ended: AtomicBool::new(false),
             audit: Mutex::new(None),
+            grace: Mutex::new(HOST_GRACE),
         });
         let accepting = session.clone();
         tokio::spawn(async move {
@@ -263,6 +305,21 @@ impl HostSession {
 
     pub fn is_ended(&self) -> bool {
         self.ended.load(Ordering::SeqCst)
+    }
+
+    /// How long a guest whose connection dropped keeps its place (default
+    /// [`HOST_GRACE`]); zero removes it at once.
+    pub fn set_reconnect_grace(&self, grace: Duration) {
+        *self.grace.lock().expect("grace lock poisoned") = grace;
+    }
+
+    fn grace(&self) -> Duration {
+        *self.grace.lock().expect("grace lock poisoned")
+    }
+
+    /// The rules for a guest with `permissions`.
+    fn policy_for(&self, permissions: Permissions) -> Policy {
+        Policy::new(permissions, self.excludes.clone())
     }
 
     /// The invitation link.
@@ -364,7 +421,7 @@ impl HostSession {
                     continue;
                 }
                 g.participant.permissions = permissions;
-                g.policy = Policy::new(permissions, self.excludes.clone());
+                g.policy = self.policy_for(permissions);
                 out.guests
                     .push((g.tx.clone(), HostMessage::Permissions { permissions }));
                 changed = true;
@@ -387,14 +444,21 @@ impl HostSession {
     /// Remove Guest: the guest is disconnected at once and told why. Removing does not ban;
     /// with the same link the guest can ask again ([`Self::regenerate_link`] prevents it).
     pub fn remove(&self, id: ParticipantId) -> bool {
-        let tx = self.state().guests.get(&id).map(|g| g.tx.clone());
-        let Some(tx) = tx else {
-            return false;
+        let tx = {
+            let mut st = self.state();
+            let Some(g) = st.guests.get(&id) else {
+                return false;
+            };
+            let (tx, away) = (g.tx.clone(), g.participant.reconnecting);
+            if away {
+                st.removed.insert(id);
+            }
+            tx
         };
         let _ = tx.try_send(HostMessage::Ended {
-            reason: "The host removed you from the session.".into(),
+            reason: REMOVED.into(),
         });
-        self.remove_guest(id, true);
+        self.remove_guest(id, Leaving::Removed);
         true
     }
 
@@ -511,6 +575,10 @@ impl HostSession {
 
     fn deliver(&self, out: Outbox) {
         for (tx, msg) in out.guests {
+            // A guest that is reconnecting gets nothing; it resynchronizes when it is back.
+            if tx.is_closed() {
+                continue;
+            }
             // A guest that does not keep up is cut off (its reader ends the connection).
             if tx.try_send(msg).is_err() {
                 tracing::warn!("Code With Me guest queue full or closed");
@@ -817,29 +885,58 @@ impl HostSession {
             mut recv,
             keepalive,
         } = conn;
-        let knock = tokio::time::timeout(
+        let first = tokio::time::timeout(
             KNOCK_TIMEOUT,
             read_msg::<_, GuestMessage>(&mut recv, MAX_KNOCK),
         )
         .await;
-        let Ok(Ok(Some(GuestMessage::Knock {
-            protocol,
-            session,
-            name,
-            proof,
-        }))) = knock
-        else {
+        let attached = match first {
+            Ok(Ok(Some(GuestMessage::Knock {
+                protocol,
+                session,
+                name,
+                proof,
+            }))) => {
+                self.admit(remote, &mut send, protocol, &session, name, &proof)
+                    .await
+            }
+            Ok(Ok(Some(GuestMessage::Resume {
+                protocol,
+                session,
+                participant,
+                token,
+            }))) => {
+                self.resume(remote, &mut send, protocol, &session, participant, &token)
+                    .await
+            }
+            _ => None,
+        };
+        let Some((id, epoch, rx)) = attached else {
             return;
         };
+        self.run_guest(id, epoch, send, recv, keepalive, rx).await;
+    }
+
+    /// A knock: check the proof, ask the admission, and add the guest. Returns the guest's
+    /// id, connection epoch and queue.
+    async fn admit(
+        &self,
+        remote: PeerKey,
+        send: &mut BoxWrite,
+        protocol: u32,
+        session: &[u8],
+        name: String,
+        proof: &[u8],
+    ) -> Option<(ParticipantId, u64, mpsc::Receiver<HostMessage>)> {
         let host_key = self.transport.local_key();
         // Without the link there is no prompt and no answer.
-        if session.as_slice() != self.session_id
+        if session != self.session_id
             || !check_proof(
                 &self.join_secret(),
                 &host_key,
                 &remote,
                 &self.session_id,
-                &proof,
+                proof,
             )
         {
             tracing::info!("Code With Me: dropped a connection with a wrong join proof");
@@ -849,12 +946,11 @@ impl HostSession {
                 outcome: KnockOutcome::WrongProof,
                 permissions: None,
             });
-            return;
+            return None;
         }
         if protocol != PROTOCOL_VERSION {
-            let reason = "The host uses a different version of Forge.".to_string();
-            let _ = write_msg(&mut send, &HostMessage::Refused { reason }, MAX_HOST_FRAME).await;
-            return;
+            refuse(send, OTHER_VERSION).await;
+            return None;
         }
         let name = clean_name(&name);
         let code = verification_code(&host_key, &remote, &self.session_id);
@@ -883,19 +979,12 @@ impl HostSession {
                     Decision::Unanswered => "The host did not answer.",
                     _ => "The host declined your request.",
                 };
-                let _ = write_msg(
-                    &mut send,
-                    &HostMessage::Refused {
-                        reason: reason.to_string(),
-                    },
-                    MAX_HOST_FRAME,
-                )
-                .await;
-                return;
+                refuse(send, reason).await;
+                return None;
             }
         };
         if self.is_ended() {
-            return;
+            return None;
         }
         self.audit(AuditEvent::Knock {
             name: name.clone(),
@@ -904,7 +993,7 @@ impl HostSession {
             permissions: Some(permissions),
         });
 
-        let (tx, mut rx) = mpsc::channel(GUEST_QUEUE);
+        let (tx, rx) = mpsc::channel(GUEST_QUEUE);
         let mut out = Outbox::default();
         let id = {
             let mut st = self.state();
@@ -916,7 +1005,9 @@ impl HostSession {
                 role: Role::Guest,
                 color: st.colors.next_guest(),
                 permissions,
+                reconnecting: false,
             };
+            let resume: [u8; RESUME_TOKEN_LEN] = random();
             let welcome = HostMessage::Welcome {
                 protocol: PROTOCOL_VERSION,
                 you: id,
@@ -926,6 +1017,8 @@ impl HostSession {
                     .collect(),
                 files: shared_files(&st),
                 notice: self.notice.clone(),
+                resume: ByteBuf::from(resume.to_vec()),
+                resumed: false,
             };
             out.guests.push((tx.clone(), welcome));
             st.guests.insert(
@@ -933,8 +1026,10 @@ impl HostSession {
                 Guest {
                     remote,
                     participant,
-                    policy: Policy::new(permissions, self.excludes.clone()),
+                    policy: self.policy_for(permissions),
                     tx,
+                    resume,
+                    epoch: 1,
                 },
             );
             participants_changed(&self.host, &st, &mut out);
@@ -950,7 +1045,91 @@ impl HostSession {
         out.events
             .push(HostEvent::Notice(format!("{name} joined the session.")));
         self.deliver(out);
+        Some((id, 1, rx))
+    }
 
+    /// A guest whose connection dropped is back: same endpoint key, its resume token, and
+    /// its place is still kept. It gets a `Welcome` (`resumed`), everyone's presence, and
+    /// its terminals and runs again; its documents resynchronize with `DocSync`.
+    async fn resume(
+        &self,
+        remote: PeerKey,
+        send: &mut BoxWrite,
+        protocol: u32,
+        session: &[u8],
+        participant: ParticipantId,
+        token: &[u8],
+    ) -> Option<(ParticipantId, u64, mpsc::Receiver<HostMessage>)> {
+        if session != self.session_id || self.is_ended() {
+            return None;
+        }
+        if protocol != PROTOCOL_VERSION {
+            refuse(send, OTHER_VERSION).await;
+            return None;
+        }
+        let (tx, rx) = mpsc::channel(GUEST_QUEUE);
+        let mut out = Outbox::default();
+        let attached = {
+            let mut st = self.state();
+            let removed = st.removed.remove(&participant);
+            let known = st
+                .guests
+                .get(&participant)
+                .is_some_and(|g| g.remote == remote && same_token(&g.resume, token));
+            if known {
+                let g = st.guests.get_mut(&participant).expect("checked");
+                g.epoch += 1;
+                g.tx = tx.clone();
+                g.participant.reconnecting = false;
+                let (epoch, name, resume) = (g.epoch, g.participant.name.clone(), g.resume);
+                let welcome = HostMessage::Welcome {
+                    protocol: PROTOCOL_VERSION,
+                    you: participant,
+                    participants: participants(&self.host, &st),
+                    files: shared_files(&st),
+                    notice: self.notice.clone(),
+                    resume: ByteBuf::from(resume.to_vec()),
+                    resumed: true,
+                };
+                out.guests.push((tx, welcome));
+                participants_changed(&self.host, &st, &mut out);
+                let guest = &st.guests[&participant];
+                presence_snapshot(&st, participant, guest, &mut out);
+                self.resync_guest(&st, participant, &mut out);
+                if st.follow_host {
+                    out.guests
+                        .push((guest.tx.clone(), HostMessage::FollowHost { on: true }));
+                }
+                Ok((epoch, name))
+            } else if removed {
+                Err(REMOVED)
+            } else {
+                Err(PLACE_GONE)
+            }
+        };
+        match attached {
+            Ok((epoch, name)) => {
+                self.deliver(out);
+                self.audit(AuditEvent::Reconnected { participant, name });
+                Some((participant, epoch, rx))
+            }
+            Err(reason) => {
+                refuse(send, reason).await;
+                None
+            }
+        }
+    }
+
+    /// Serve one connection of an admitted guest until it ends.
+    async fn run_guest(
+        self: &Arc<Self>,
+        id: ParticipantId,
+        epoch: u64,
+        mut send: BoxWrite,
+        mut recv: BoxRead,
+        keepalive: Box<dyn std::any::Any + Send>,
+        mut rx: mpsc::Receiver<HostMessage>,
+    ) {
         let writer = tokio::spawn(async move {
             let _keepalive = keepalive;
             while let Some(msg) = rx.recv().await {
@@ -963,20 +1142,77 @@ impl HostSession {
             let _ = send.shutdown().await;
         });
 
-        loop {
+        let end = loop {
             match read_msg::<_, GuestMessage>(&mut recv, MAX_GUEST_FRAME).await {
-                Ok(Some(GuestMessage::Leave)) | Ok(None) | Err(_) => break,
+                Ok(Some(GuestMessage::Leave)) => break ConnectionEnd::Left,
+                Ok(None) | Err(_) => break ConnectionEnd::Lost,
                 Ok(Some(GuestMessage::Call { id: call, payload })) => {
                     self.spawn_call(id, call, payload)
                 }
                 Ok(Some(msg)) => self.handle(id, msg).await,
             }
-            if self.is_ended() || !self.state().guests.contains_key(&id) {
-                break;
+            if self.is_ended() || !self.is_current(id, epoch) {
+                break ConnectionEnd::Gone;
             }
+        };
+        match end {
+            ConnectionEnd::Left => self.remove_guest(id, Leaving::Left),
+            ConnectionEnd::Lost => self.connection_lost(id, epoch),
+            ConnectionEnd::Gone => {}
         }
-        self.remove_guest(id, false);
-        let _ = writer.await;
+        if tokio::time::timeout(WRITER_FLUSH, writer).await.is_err() {
+            tracing::debug!("Code With Me: a guest's writer did not finish");
+        }
+    }
+
+    /// Whether `epoch` is the guest's newest connection.
+    fn is_current(&self, id: ParticipantId, epoch: u64) -> bool {
+        self.state()
+            .guests
+            .get(&id)
+            .is_some_and(|g| g.epoch == epoch)
+    }
+
+    /// A guest's connection dropped: keep its place for the grace period (everyone sees it
+    /// as reconnecting), then remove it unless it came back.
+    fn connection_lost(self: &Arc<Self>, id: ParticipantId, epoch: u64) {
+        if self.is_ended() || !self.is_current(id, epoch) {
+            return;
+        }
+        let grace = self.grace();
+        if grace.is_zero() {
+            self.remove_guest(id, Leaving::Lost);
+            return;
+        }
+        let mut out = Outbox::default();
+        let name = {
+            let mut st = self.state();
+            let Some(g) = st.guests.get_mut(&id) else {
+                return;
+            };
+            g.participant.reconnecting = true;
+            g.tx = closed_queue();
+            let name = g.participant.name.clone();
+            participants_changed(&self.host, &st, &mut out);
+            name
+        };
+        self.deliver(out);
+        self.audit(AuditEvent::ConnectionLost {
+            participant: id,
+            name,
+        });
+        let me = self.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(grace).await;
+            let expired = me
+                .state()
+                .guests
+                .get(&id)
+                .is_some_and(|g| g.epoch == epoch && g.participant.reconnecting);
+            if expired && !me.is_ended() {
+                me.remove_guest(id, Leaving::Lost);
+            }
+        });
     }
 
     fn reply(&self, to: ParticipantId, msg: HostMessage) {
@@ -1090,6 +1326,34 @@ impl HostSession {
                 self.reply(from, HostMessage::SaveResult { request, error });
             }
             GuestMessage::DocClose { doc } => self.close_doc(from, doc),
+            GuestMessage::DocSync {
+                request,
+                doc,
+                state_vector,
+            } => {
+                let answer = {
+                    let st = self.state();
+                    match st.docs.get(&doc).filter(|d| d.open_by.contains(&from)) {
+                        None => HostMessage::DocError {
+                            request,
+                            error: "The file is no longer shared.".into(),
+                        },
+                        Some(d) => match d.diff_since(&state_vector) {
+                            Err(error) => HostMessage::DocError { request, error },
+                            Ok((update, sv)) => HostMessage::DocSynced {
+                                request,
+                                doc,
+                                path: d.path.clone(),
+                                update: ByteBuf::from(update),
+                                state_vector: ByteBuf::from(sv),
+                                saved: d.save_state(),
+                                read_only: policy.check_write_path(&d.path).is_err(),
+                            },
+                        },
+                    }
+                };
+                self.reply(from, answer);
+            }
             GuestMessage::Presence { presence } => self.set_presence(from, presence),
             GuestMessage::TerminalInput { terminal, data } => {
                 if let Err(reason) = self.terminal_input(from, terminal, &data) {
@@ -1101,7 +1365,10 @@ impl HostSession {
                     self.reply(from, HostMessage::Denied { reason });
                 }
             }
-            GuestMessage::Knock { .. } | GuestMessage::Leave | GuestMessage::Call { .. } => {}
+            GuestMessage::Knock { .. }
+            | GuestMessage::Resume { .. }
+            | GuestMessage::Leave
+            | GuestMessage::Call { .. } => {}
         }
     }
 
@@ -1196,7 +1463,7 @@ impl HostSession {
         self.deliver(out);
     }
 
-    fn remove_guest(&self, id: ParticipantId, removed: bool) {
+    fn remove_guest(&self, id: ParticipantId, why: Leaving) {
         let mut out = Outbox::default();
         let name = {
             let mut st = self.state();
@@ -1212,7 +1479,7 @@ impl HostSession {
             guest.participant.name
         };
         if !self.is_ended() {
-            self.audit(if removed {
+            self.audit(if why == Leaving::Removed {
                 AuditEvent::Removed {
                     participant: id,
                     name: name.clone(),
@@ -1223,10 +1490,10 @@ impl HostSession {
                     name: name.clone(),
                 }
             });
-            let text = if removed {
-                format!("{name} was removed from the session.")
-            } else {
-                format!("{name} left the session.")
+            let text = match why {
+                Leaving::Removed => format!("{name} was removed from the session."),
+                Leaving::Left => format!("{name} left the session."),
+                Leaving::Lost => format!("{name} lost the connection and did not come back."),
             };
             out.events.push(HostEvent::Notice(text));
         }
@@ -1235,6 +1502,22 @@ impl HostSession {
             self.guest_gone(id);
         }
     }
+}
+
+const OTHER_VERSION: &str = "The host uses a different version of Forge.";
+const REMOVED: &str = "The host removed you from the session.";
+const PLACE_GONE: &str =
+    "The host no longer keeps your place in the session. Join again with the session link.";
+
+async fn refuse(send: &mut BoxWrite, reason: &str) {
+    let _ = write_msg(
+        send,
+        &HostMessage::Refused {
+            reason: reason.to_string(),
+        },
+        MAX_HOST_FRAME,
+    )
+    .await;
 }
 
 /// Read a file for sharing: inside the project (also after resolving symlinks), not too

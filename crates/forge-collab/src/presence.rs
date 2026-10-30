@@ -42,6 +42,9 @@ pub struct Participant {
     /// 1-based index into the theme's participant colors.
     pub color: u8,
     pub permissions: Permissions,
+    /// The guest's connection dropped; the host keeps its place while it reconnects.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub reconnecting: bool,
 }
 
 /// A 1-based caret position (line, and column in UTF-16 units like the editor counts them).

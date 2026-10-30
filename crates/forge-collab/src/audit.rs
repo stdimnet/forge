@@ -105,6 +105,18 @@ pub enum AuditEvent {
         participant: ParticipantId,
         name: String,
     },
+    /// A guest's connection dropped; the host keeps its place for a while.
+    #[serde(rename_all = "camelCase")]
+    ConnectionLost {
+        participant: ParticipantId,
+        name: String,
+    },
+    /// A guest whose connection dropped took its place back.
+    #[serde(rename_all = "camelCase")]
+    Reconnected {
+        participant: ParticipantId,
+        name: String,
+    },
     /// `participant: None` is the session's permission (every guest).
     #[serde(rename_all = "camelCase")]
     PermissionsChanged {
@@ -192,6 +204,8 @@ impl AuditEvent {
             },
             Self::Left { name, .. } => format!("{name} left"),
             Self::Removed { name, .. } => format!("Removed {name}"),
+            Self::ConnectionLost { name, .. } => format!("The connection of {name} dropped"),
+            Self::Reconnected { name, .. } => format!("{name} reconnected"),
             Self::PermissionsChanged {
                 name, permissions, ..
             } => match name {

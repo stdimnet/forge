@@ -154,7 +154,9 @@ impl Policy {
     /// Decide a message from an admitted guest before the host acts on it.
     pub fn check(&self, msg: &GuestMessage) -> Result<(), Denied> {
         match msg {
-            GuestMessage::Knock { .. } => Err(Denied("already in the session".into())),
+            GuestMessage::Knock { .. } | GuestMessage::Resume { .. } => {
+                Err(Denied("already in the session".into()))
+            }
             GuestMessage::DocOpen { path, .. } => self.check_path(path),
             GuestMessage::DocUpdate { .. } | GuestMessage::DocSave { .. } => {
                 if self.permissions.can_edit_files() {
@@ -163,8 +165,10 @@ impl Policy {
                     Err(Denied("Your permission is Read-only".into()))
                 }
             }
+            // A resync only reads a document the guest has open (checked by the host).
             GuestMessage::Awareness { .. }
             | GuestMessage::DocClose { .. }
+            | GuestMessage::DocSync { .. }
             | GuestMessage::Leave => Ok(()),
             // The host sanitizes presence and passes on only what each receiver may see.
             GuestMessage::Presence { .. } => Ok(()),

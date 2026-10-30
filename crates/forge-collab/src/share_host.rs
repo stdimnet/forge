@@ -154,6 +154,19 @@ impl HostSession {
         }
     }
 
+    /// A guest reconnected: it missed output while it was away, so every terminal and run
+    /// it may see comes again with a snapshot (the guest's side forwards only what is new).
+    /// Refused input is answered again, once.
+    pub(super) fn resync_guest(&self, st: &State, id: ParticipantId, out: &mut Outbox) {
+        if let Some(g) = st.guests.get(&id) {
+            let mut share = self.share();
+            share.seen_terminals.remove(&id);
+            share.seen_runs.remove(&id);
+            share.refused_input.retain(|(p, _)| *p != id);
+            sync_guest(&mut share, id, g, out);
+        }
+    }
+
     /// After a permission change: guests that lost Terminal Full access lose their own
     /// terminals; everyone gets what they may see now.
     pub(super) fn permissions_applied(&self, ids: &[ParticipantId]) {

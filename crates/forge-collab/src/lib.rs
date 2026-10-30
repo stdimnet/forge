@@ -12,6 +12,7 @@
 //! - [`presence`]: participants and their colors.
 //! - [`relay`]: relay options (self-hosted relay, public relays, LAN discovery) and the
 //!   connection path (direct or relayed).
+//! - [`reconnect`]: reconnecting after a dropped connection (backoff, grace period, state).
 //! - [`secrets`]: the relay token in the OS keychain.
 //! - [`share`]: shared terminals and runs (ids, what guests see, scrollback and run logs).
 //! - [`textdiff`]: minimal UTF-16 edits between two texts (reloading shared files from disk).
@@ -32,6 +33,7 @@ pub mod link;
 pub mod permissions;
 pub mod presence;
 pub mod protocol;
+pub mod reconnect;
 pub mod relay;
 pub mod secrets;
 pub mod share;

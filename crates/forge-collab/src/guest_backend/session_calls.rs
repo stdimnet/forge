@@ -106,9 +106,7 @@ impl GuestSession {
         call: &HostCall,
         timeout: Duration,
     ) -> Result<oneshot::Receiver<Result<Vec<u8>, String>>, String> {
-        if self.state().ended {
-            return Err("The session has ended.".into());
-        }
+        self.check_usable()?;
         let payload = call.encode().map_err(|e| e.to_string())?;
         let id = self.calls.next.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
