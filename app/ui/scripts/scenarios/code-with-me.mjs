@@ -79,6 +79,17 @@ const caretsLight = async (page) => {
   await sessionWithAlex(page);
 };
 caretsLight.clip = editorClip;
+/** Two seconds after Alex stopped, the name label has faded; the stripe mark on the right stays. */
+const caretsIdle = (theme) => {
+  const fn = async (page) => {
+    if (theme === "light") await light(page);
+    await sessionWithAlex(page);
+    await page.waitForSelector(".cm-stripe-collab-2");
+    await page.waitForTimeout(2600);
+  };
+  fn.clip = editorClip;
+  return fn;
+};
 
 const sessionPopup = async (page) => {
   await sessionWithAlex(page);
@@ -352,6 +363,8 @@ export default {
   "code-with-me-start-popup-light": startPopupLight,
   "code-with-me-carets": carets,
   "code-with-me-carets-light": caretsLight,
+  "code-with-me-carets-idle": caretsIdle("dark"),
+  "code-with-me-carets-idle-light": caretsIdle("light"),
   "code-with-me-session-popup": sessionPopup,
   "code-with-me-session-popup-light": sessionPopupLight,
   "code-with-me-approval": approval,

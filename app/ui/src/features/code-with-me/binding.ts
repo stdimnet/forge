@@ -10,17 +10,20 @@ import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { registerEditorExtension } from "@/editor/extensions";
 import { historyCompartment, registerHistory } from "@/editor/reload";
 import { sharedDoc, type SharedDoc } from "./docs";
+import { remoteCarets } from "./remoteCarets";
 
 const collab = new Compartment();
 const views = new Map<string, EditorView>();
 const bound = new WeakMap<EditorView, SharedDoc>();
 
-/** Carets 2 px wide with the name above them, in the theme's participant colors. */
+/**
+ * Carets 2 px wide with the name above them, in the theme's participant colors. The label
+ * shows while the participant moves and fades out afterwards (`remoteCarets.ts`).
+ */
 const collabTheme = EditorView.theme({
   ".cm-ySelectionCaret": { borderLeftWidth: "1px", borderRightWidth: "1px" },
   ".cm-ySelectionCaretDot": { display: "none" },
   ".cm-ySelectionInfo": {
-    opacity: 1,
     top: "-1.35em",
     padding: "0 4px",
     borderRadius: "3px 3px 3px 0",
@@ -48,6 +51,7 @@ function bind(view: EditorView, doc: SharedDoc): void {
         // Only `true`: the guest's own permission (`guest.ts`) decides otherwise.
         doc.readOnly ? EditorState.readOnly.of(true) : [],
         collabTheme,
+        remoteCarets(doc.awareness, doc.ytext),
       ]),
     ],
   });
