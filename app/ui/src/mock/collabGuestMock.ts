@@ -5,10 +5,14 @@
  * (`&follow=all`: the host asked everyone to follow); without it the guest does not follow on
  * joining, so the window starts on the demo's `User.php`. The project, search and language
  * features are the demo's own mocks, as if the host answered them. Nothing leaves the page.
+ *
+ * `&share` adds the host's shared terminal "Local" and its run of `UserTest` (S5);
+ * `&permission=full` gives the guest Full access (it can type, run and stop).
  */
 import * as Y from "yjs";
 import { emitMock, invoke, registerMock } from "@/ipc";
-import { encodeOpened, PRESETS, type Permissions, type Presence, type SessionView } from "@/ipc/collab";
+import { encodeOpened, PRESETS, sharedRunId, type Permissions, type Presence, type SessionView, type SharedRun, type SharedTerminal } from "@/ipc/collab";
+import type { RunConfigurations } from "@/ipc/run";
 import { contentHash } from "@/state/editor";
 import type { WorkspaceInfo } from "@/ipc/workspace";
 import { demoProjectName } from "./demoProject";
@@ -36,7 +40,27 @@ export function collabGuestWorkspace(): WorkspaceInfo {
   };
 }
 
-const permissions = (): Permissions => (params().get("permission") === "edit" ? PRESETS.editFiles : PRESETS.readOnly);
+const permissions = (): Permissions => {
+  const p = params().get("permission");
+  return p === "edit" ? PRESETS.editFiles : p === "full" ? PRESETS.fullAccess : PRESETS.readOnly;
+};
+
+/** The host's terminal and runs with `&share`. */
+const sharing = () => params().has("share");
+const terminals: SharedTerminal[] = [{ id: 1, title: "Local", owner: 1, cols: 110, rows: 24, running: true }];
+const runs: SharedRun[] = [{ id: 1, title: "UserTest", kind: "phpunit", startedBy: 1, running: true }];
+
+/** What the host's terminal showed before the guest joined. */
+const TRANSCRIPT = [
+  "\x1b[32mdev@forge\x1b[0m:\x1b[34m~/Projects/acme-shop\x1b[0m$ php artisan migrate:status",
+  "",
+  "  Migration name .................................................. Batch / Status",
+  "  2026_01_01_000000_create_users_table ................................ [1] Ran",
+  "  2026_01_01_000000_create_orders_table ............................... [1] Ran",
+  "  2026_02_14_120000_add_discount_to_orders ............................ Pending",
+  "",
+  "",
+].join("\n");
 
 /** Where the host is with `&follow`. */
 const HOST_PRESENCE: Presence = {
@@ -63,6 +87,8 @@ function view(): SessionView {
     workspace: collabGuestWorkspace(),
     presence: params().has("follow") ? [{ participant: 1, ...HOST_PRESENCE }] : [],
     followEveryone: params().get("follow") === "all",
+    terminals: sharing() && p.terminal !== "none" ? terminals : [],
+    runs: sharing() && p.run !== "none" ? runs : [],
   };
 }
 
@@ -82,6 +108,36 @@ if (isCollabGuestDemo()) {
     return encodeOpened({ docId: nextDoc++, path: String(path), update: Y.encodeStateAsUpdate(doc), saved: { hash: contentHash(text) }, readOnly: permissions().files !== "edit" });
   });
   registerMock("collab_doc_save", () => undefined);
+
+  // The host's shared terminal: a fake shell that starts with what it showed before.
+  registerMock("collab_terminal_attach", async ({ terminal, id }) => {
+    const t = terminals.find((x) => x.id === Number(terminal));
+    if (!t || !sharing()) throw new Error("The terminal is no longer shared.");
+    // Loaded lazily: the terminal mock depends on mocks that load after this one.
+    const { startMockShell } = await import("./terminalMock");
+    startMockShell(String(id), TRANSCRIPT);
+    return { scrollback: "", cols: t.cols, rows: t.rows, running: t.running };
+  });
+  // The host's runs: the demo runs the configuration here, on the shared run's events.
+  const startDemoRun = async (run: SharedRun) => {
+    const file = await invoke<RunConfigurations>("run_configurations_load");
+    const configuration = file.configurations.find((c) => c.name === run.title);
+    if (configuration) await invoke("run_start", { request: { runId: sharedRunId(run.id), configuration, testRunner: true } });
+  };
+  registerMock("collab_run_attach", ({ run }) => {
+    const r = runs.find((x) => x.id === Number(run));
+    if (!r) throw new Error("The run is no longer shown.");
+    setTimeout(() => void startDemoRun(r), 50);
+    return [];
+  });
+  registerMock("collab_run_detach", () => undefined);
+  registerMock("collab_run_start", ({ configuration }) => {
+    if (permissions().run !== "full") throw new Error("Your permission does not allow running code on the host.");
+    runs.push({ id: runs.length + 1, title: String(configuration), startedBy: 2, running: true });
+    emitMock("collab://status", view());
+  });
+  registerMock("collab_run_stop", ({ run }) => invoke("run_stop", { runId: sharedRunId(Number(run)) }));
+  registerMock("collab_run_input", ({ run, data }) => invoke("run_write", { runId: sharedRunId(Number(run)), data }));
   registerMock("collab_leave", () => {
     joined = false;
     emitMock("collab://ended", { reason: "You left the session." });

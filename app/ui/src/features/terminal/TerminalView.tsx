@@ -3,7 +3,7 @@
  * opened in the project root. Tabs keep their shell while hidden.
  */
 import { createEffect, For, on, onCleanup, onMount, Show } from "solid-js";
-import { ChevronDown, Plus, X } from "lucide-solid";
+import { Check, ChevronDown, Plus, Users, X } from "lucide-solid";
 import { isToolWindowVisible } from "@/state/layout";
 import { theme } from "@/state/theme";
 import { openMenu, type MenuItem } from "@/features/run/PopupMenu";
@@ -13,6 +13,7 @@ import {
   closeTab,
   displayTitle,
   newTab,
+  newTabBlocked,
   newTabHere,
   renameTab,
   renaming,
@@ -22,7 +23,9 @@ import {
   tabById,
   tabIds,
   tabs,
+  terminalTabActions,
   type TerminalProgram,
+  type TerminalSource,
   type TerminalTab,
 } from "./store";
 import type { SshTarget } from "@/ipc/terminal";
@@ -38,6 +41,7 @@ import {
   hasSelection,
   paste,
   selectAll,
+  updateSharedSession,
 } from "./sessions";
 import { progressLabel } from "./osc";
 import { ProgressRing } from "./ProgressRing";
@@ -50,11 +54,15 @@ export function closeTerminalTab(id: string): void {
 }
 
 function tabMenu(tab: TerminalTab, x: number, y: number) {
+  const blocked = !!newTabBlocked();
+  const extra = terminalTabActions(tab);
   const items: MenuItem[] = [
-    { label: "New Tab", run: () => newTab() },
-    { label: "New Tab in Current Directory", run: () => newTabHere() },
+    { label: "New Tab", disabled: blocked, run: () => newTab() },
+    { label: "New Tab in Current Directory", disabled: blocked, run: () => newTabHere() },
     { label: "Rename Session", run: () => setRenaming(tab.id) },
     { separator: true },
+    ...extra.flatMap((a): MenuItem[] => [{ label: a.label, icon: a.checked ? Check : undefined, run: a.run }]),
+    ...(extra.length ? [{ separator: true }] : []),
     { label: "Close Tab", shortcut: "Ctrl+Shift+F4", run: () => closeTerminalTab(tab.id) },
     {
       label: "Close Other Tabs",
@@ -70,6 +78,8 @@ function tabTooltip(tab: TerminalTab): string {
   if (tab.renamed && tab.appTitle) lines.push(tab.appTitle);
   if (tab.liveCwd) lines.push(tab.liveCwd);
   if (tab.progress) lines.push(`Progress: ${progressLabel(tab.progress)}`);
+  if (tab.shared) lines.push("Shared with Code With Me guests");
+  if (tab.source?.kind === "collab") lines.push(tab.source.readOnly ? "The host's terminal (read-only)" : "The host's terminal");
   return lines.join("\n");
 }
 
@@ -104,6 +114,9 @@ export function TerminalTabs() {
                 }}
               >
                 <Show when={tab().progress}>{(p) => <ProgressRing progress={p()} />}</Show>
+                <Show when={tab().shared || tab().source?.kind === "collab"}>
+                  <Users size={12} class="term-tab-shared" aria-label="Shared" />
+                </Show>
                 <Show when={tab().bell && activeTab() !== tab().id}>
                   <span class="term-tab-bell" title="Bell" />
                 </Show>
@@ -135,9 +148,11 @@ export function TerminalTabs() {
           </Show>
         )}
       </For>
-      <button class="icon-btn term-new" title="New Tab (Ctrl+Shift+T)" onClick={() => newTab()}>
-        <Plus size={15} />
-      </button>
+      <Show when={!newTabBlocked()}>
+        <button class="icon-btn term-new" title="New Tab (Ctrl+Shift+T)" onClick={() => newTab()}>
+          <Plus size={15} />
+        </button>
+      </Show>
       <button
         class="icon-btn term-new"
         title="New Tab Options"
@@ -148,9 +163,9 @@ export function TerminalTabs() {
             x: r.left,
             y: r.bottom + 4,
             items: [
-              { label: "New Tab", shortcut: "Ctrl+Shift+T", run: () => newTab() },
-              ...shellProfiles().map((p) => ({ label: p.label, run: () => void newTab(p.cwd, p.command) })),
-              { label: "New Tab in Current Directory", disabled: !id, run: () => newTabHere() },
+              { label: "New Tab", shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
+              ...shellProfiles().map((p) => ({ label: p.label, disabled: !!newTabBlocked(), run: () => void newTab(p.cwd, p.command) })),
+              { label: "New Tab in Current Directory", disabled: !id || !!newTabBlocked(), run: () => newTabHere() },
               { label: "SSH Session…", run: () => void chooseSshSession() },
               { separator: true },
               { label: "Rename Session", disabled: !id, run: () => id && setRenaming(id) },
@@ -165,11 +180,11 @@ export function TerminalTabs() {
   );
 }
 
-function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgram; ssh?: SshTarget }) {
+function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgram; ssh?: SshTarget; source?: TerminalSource }) {
   let host!: HTMLDivElement;
   const visible = () => activeTab() === props.id && isToolWindowVisible("terminal");
   onMount(() => {
-    attachSession(props.id, host, props.cwd, props.command, props.ssh);
+    attachSession(props.id, host, props.cwd, props.command, props.ssh, props.source);
     const ro = new ResizeObserver(() => visible() && fitSession(props.id));
     ro.observe(host);
     onCleanup(() => ro.disconnect());
@@ -182,6 +197,20 @@ function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgr
           focusSession(props.id);
         });
     }),
+  );
+  // A host's shared terminal: its size and whether this guest may type follow the host.
+  createEffect(
+    on(
+      () => {
+        const s = tabById(props.id)?.source;
+        return s?.kind === "collab" ? `${s.cols}x${s.rows}:${s.readOnly}` : null;
+      },
+      () => {
+        const s = tabById(props.id)?.source;
+        if (s?.kind === "collab") updateSharedSession(props.id, s.cols, s.rows, s.readOnly);
+      },
+      { defer: true },
+    ),
   );
   return (
     <div
@@ -201,8 +230,8 @@ function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgr
             { separator: true },
             { label: "Clear Buffer", run: () => clearBuffer(id) },
             { separator: true },
-            { label: "New Tab", shortcut: "Ctrl+Shift+T", run: () => newTab() },
-            { label: "New Tab in Current Directory", run: () => newTabHere() },
+            { label: "New Tab", shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
+            { label: "New Tab in Current Directory", disabled: !!newTabBlocked(), run: () => newTabHere() },
             { label: "Rename Session", run: () => setRenaming(id) },
             { label: "Close Tab", run: () => closeTerminalTab(id) },
           ],
@@ -215,18 +244,25 @@ function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgr
 export function TerminalView() {
   // Opening the tool window without a session starts one, like PHPStorm.
   createEffect(() => {
-    if (isToolWindowVisible("terminal") && tabs().length === 0) newTab();
+    if (isToolWindowVisible("terminal") && tabs().length === 0 && !newTabBlocked()) newTab();
   });
   createEffect(on(theme, () => requestAnimationFrame(applyThemeToAll), { defer: true }));
   return (
     <div class="terminal-view">
-      <For each={tabIds()}>{(id) => <TerminalHost id={id} cwd={tabById(id)?.cwd} command={tabById(id)?.command} ssh={tabById(id)?.ssh} />}</For>
+      <For each={tabIds()}>
+        {(id) => <TerminalHost id={id} cwd={tabById(id)?.cwd} command={tabById(id)?.command} ssh={tabById(id)?.ssh} source={tabById(id)?.source} />}
+      </For>
       <Show when={tabs().length === 0}>
         <div class="placeholder-panel">
-          No terminal sessions.{" "}
-          <button class="link-btn" onClick={() => newTab()}>
-            Open a new tab
-          </button>
+          <Show
+            when={!newTabBlocked()}
+            fallback={newTabBlocked()}
+          >
+            No terminal sessions.{" "}
+            <button class="link-btn" onClick={() => newTab()}>
+              Open a new tab
+            </button>
+          </Show>
         </div>
       </Show>
     </div>

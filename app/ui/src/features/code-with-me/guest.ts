@@ -35,13 +35,17 @@ export const LEVEL_NAMES: Record<PermissionLevel, string> = {
 /**
  * Tool windows a guest does not get. AI Chat, Database, Services and Pull Requests would use
  * the host's secrets and accounts or the guest's own, and the Debug window controls the
- * host's debugger. Terminal and Run come with shared terminals and runs; the Commit window
- * writes to the host's repository, so it needs Full access to version control.
+ * host's debugger. Terminal and Run show the host's shared terminals and runs, so they need
+ * Terminal or Run access; the Commit window writes to the host's repository, so it needs Full
+ * access to version control.
  */
 export function hiddenForGuest(id: string): boolean {
   if (!isCollabGuest()) return false;
-  if (["ai-chat", "database", "services", "debug", "pull-requests", "terminal", "run"].includes(id)) return true;
-  if (id === "commit") return guestPermissions()?.vcs !== "full";
+  if (["ai-chat", "database", "services", "debug", "pull-requests"].includes(id)) return true;
+  const p = guestPermissions();
+  if (id === "terminal") return !p || p.terminal === "none";
+  if (id === "run") return !p || p.run === "none";
+  if (id === "commit") return p?.vcs !== "full";
   return false;
 }
 

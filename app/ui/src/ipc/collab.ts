@@ -125,7 +125,58 @@ export interface SessionView {
   presence?: ParticipantPresence[];
   /** Make Everyone Follow You is on. */
   followEveryone?: boolean;
+  /** Shared terminals: the ones the host shares (with `key`), or the host's terminals this guest sees. */
+  terminals?: SharedTerminal[];
+  /** The host's runs this guest sees (guest). */
+  runs?: SharedRun[];
 }
+
+/** A shared terminal (`forge_collab::share::SharedTerminal`). */
+export interface SharedTerminal {
+  id: number;
+  /** The host's tab title, or "<guest>: Local" for a guest's terminal on the host. */
+  title: string;
+  /** Who opened it: the host (0) or a guest. */
+  owner: number;
+  /** The host's size; guests render at it. */
+  cols: number;
+  rows: number;
+  running: boolean;
+  exitCode?: number;
+  /** The terminal's id in this window (host). */
+  key?: string;
+}
+
+/** One of the host's runs as a guest sees it (`forge_collab::share::SharedRun`). */
+export interface SharedRun {
+  id: number;
+  /** The run configuration's name. */
+  title: string;
+  /** The configuration's type id. */
+  kind?: string;
+  /** Who started it (the host, or the guest who asked). */
+  startedBy: number;
+  running: boolean;
+  exitCode?: number;
+}
+
+/** What a guest's tab of a shared terminal starts with. */
+export interface TerminalAttach {
+  scrollback: string;
+  cols: number;
+  rows: number;
+  running: boolean;
+}
+
+/** A guest asks the host to run a configuration (`collab://run-request`, host). */
+export interface RunRequest {
+  request: number;
+  configuration: string;
+  guest: string;
+}
+
+/** The run id a guest's Run tool window uses for one of the host's runs. */
+export const sharedRunId = (run: number) => `cwm-run-${run}`;
 
 /** One entry of the host's session log. */
 export interface LogLine {
@@ -199,6 +250,8 @@ export const NOTICE_EVENT = "collab://notice";
 export const ENDED_EVENT = "collab://ended";
 export const PRESENCE_EVENT = "collab://presence";
 export const FOLLOW_HOST_EVENT = "collab://follow-host";
+export const RUN_REQUEST_EVENT = "collab://run-request";
+export const TERMINAL_OPENED_EVENT = "collab://terminal-opened";
 
 export function toBase64(bytes: Uint8Array): string {
   let bin = "";
@@ -285,4 +338,23 @@ export const collabApi = {
   onFollowHost: (cb: (e: { on: boolean }) => void) => listen<{ on: boolean }>(FOLLOW_HOST_EVENT, cb),
   /** Round trip to the host in milliseconds (guest). */
   ping: () => invoke<number>("collab_ping"),
+  /** Share With Guests on a terminal tab, or stop sharing it (host). */
+  shareTerminal: (id: string, title: string, shared: boolean) => invoke<SessionView>("collab_share_terminal", { id, title, shared }),
+  /** Show one of the host's terminals in the tab `id`; it then works like any terminal session (guest). */
+  terminalAttach: (terminal: number, id: string) => invoke<TerminalAttach>("collab_terminal_attach", { terminal, id }),
+  /** Show one of the host's runs: its events so far; live events follow on `run://cwm-run-<run>` (guest). */
+  runAttach: (run: number) => invoke<import("./run").RunEvent[]>("collab_run_attach", { run }),
+  runDetach: (run: number) => invoke<void>("collab_run_detach", { run }),
+  /** Run one of the host's configurations by name (guest, Run Full access). */
+  runStart: (configuration: string) => invoke<void>("collab_run_start", { configuration }),
+  /** Stop one of the host's runs (guest, Run Full access). */
+  runStop: (run: number) => invoke<void>("collab_run_stop", { run }),
+  /** Console input for one of the host's runs (guest, Run Full access). */
+  runInput: (run: number, data: string) => invoke<void>("collab_run_input", { run, data }),
+  /** The host's UI started (or could not start) a run a guest asked for (host). */
+  runAnswer: (request: number, error?: string) => invoke<void>("collab_run_answer", { request, error: error ?? null }),
+  /** A guest asks to run a configuration (host). */
+  onRunRequest: (cb: (r: RunRequest) => void) => listen<RunRequest>(RUN_REQUEST_EVENT, cb),
+  /** A guest opened a terminal on this machine (host). */
+  onTerminalOpened: (cb: (e: { id: string; title: string }) => void) => listen<{ id: string; title: string }>(TERMINAL_OPENED_EVENT, cb),
 };

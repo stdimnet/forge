@@ -36,6 +36,8 @@ import { presence, trackPresence } from "./presence";
 import { CodeWithMeTabs, CodeWithMeToolWindow } from "./ToolWindow";
 import { showResolvedMenu } from "@/features/contextMenu/state";
 import type { Participant } from "@/ipc/collab";
+import { activeTab as activeTerminalTab, tabs as terminalTabs } from "@/features/terminal/store";
+import { setTerminalShared, trackTerminalsAndRuns } from "./terminalsRuns";
 import "./binding";
 import "./codeWithMe.css";
 import "./guest.css";
@@ -146,8 +148,17 @@ registerKeymapActions(
     ["CodeWithMe.MakeEveryoneFollow", "Make Everyone Follow You"],
     ["CodeWithMe.JumpToParticipant", "Jump To Participant…"],
     ["CodeWithMe.ShowToolWindow", "Code With Me"],
+    ["CodeWithMe.ShareTerminal", "Share Terminal with Guests"],
   ].map(([id, title]) => ({ id, title, group: "Plugins/Code With Me" })),
 );
+
+/** Share With Guests for the active terminal tab (host). */
+function shareActiveTerminal(): void {
+  if (!isHost()) return void showBalloon("Code With Me", "Start a session to share a terminal.");
+  const tab = terminalTabs().find((t) => t.id === activeTerminalTab());
+  if (!tab || tab.source) return void showBalloon("Code With Me", "Open a terminal tab to share it.");
+  void setTerminalShared(tab, !tab.shared);
+}
 
 /** A chooser of the other participants under the toolbar icon (Follow Participant…, Jump To Participant…). */
 function chooseParticipant(title: string, pick: (p: Participant) => void): void {
@@ -191,6 +202,7 @@ const commands: [string, string, () => void | Promise<void>][] = [
   ["CodeWithMe.StopFollowing", "Stop Following", stopFollowing],
   ["CodeWithMe.MakeEveryoneFollow", "Make Everyone Follow You", makeEveryoneFollow],
   ["CodeWithMe.ShowToolWindow", "Code With Me", () => (inSession() ? showToolWindow("code-with-me") : setPopupOpen(true))],
+  ["CodeWithMe.ShareTerminal", "Share Terminal with Guests", shareActiveTerminal],
 ];
 for (const [id, title, run] of commands) registerCommand({ id, title, category: "Code With Me", run });
 
@@ -217,4 +229,5 @@ if (!isDialogWindow()) {
   trackEditorSharing();
   trackGuestProject();
   trackApprovals();
+  trackTerminalsAndRuns();
 }

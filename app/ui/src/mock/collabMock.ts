@@ -28,6 +28,7 @@ import {
   type RelayStatus,
   type RelayTokenStatus,
   type SessionView,
+  type SharedTerminal,
 } from "@/ipc/collab";
 import { contentHash } from "@/state/editor";
 
@@ -114,8 +115,14 @@ function view(): SessionView {
     notice: NOTICE,
     presence: [...presences].filter(([id]) => id !== me).map(([participant, p]) => ({ participant, ...p })),
     followEveryone,
+    terminals: role === "host" ? [...sharedTerminals.values()] : [],
+    runs: [],
   };
 }
+
+/** The host's shared terminals, by their id in this window. */
+const sharedTerminals = new Map<string, SharedTerminal>();
+let nextTerminal = 0;
 
 /** Secret files the mock host never names to guests (like `hostOpen` refuses them). */
 const hiddenFile = (path: string) => /(^|\/)\.env($|\.)/.test(path) && !/\.env\.(example|dist)$/.test(path);
@@ -349,6 +356,7 @@ function endHost(reason: string): void {
   docs.clear();
   presences.clear();
   followEveryone = false;
+  sharedTerminals.clear();
   alex?.stop();
   alex = null;
   role = "none";
@@ -682,6 +690,61 @@ registerMock("collab_doc_save", async ({ docId }) => {
   if (r.error) throw new Error(String(r.error));
 });
 
+// ---- shared terminals and runs ------------------------------------------------------------
+
+registerMock("collab_share_terminal", ({ id, title, shared }) => {
+  if (role !== "host") throw new Error("No session is running.");
+  const key = String(id);
+  const existing = sharedTerminals.get(key);
+  if (existing && existing.owner !== 0) throw new Error("A guest's terminal is always shared.");
+  if (shared && !existing) {
+    sharedTerminals.set(key, { id: ++nextTerminal, title: String(title), owner: 0, cols: 100, rows: 24, running: true, key });
+    log(`${HOST_NAME} shared the terminal ${title}`);
+  } else if (!shared && existing) {
+    sharedTerminals.delete(key);
+    log(`${HOST_NAME} stopped sharing the terminal ${title}`);
+  }
+  emitStatus();
+  return view();
+});
+
+// The host's UI answers a guest's run request; the demo guest does not wait for it.
+registerMock("collab_run_answer", () => undefined);
+
+// Guest-only commands: the demo guest window (`?project=cwm-guest`) answers them.
+for (const command of ["collab_terminal_attach", "collab_run_attach", "collab_run_start", "collab_run_stop", "collab_run_input"]) {
+  registerMock(command, () => {
+    throw new Error("No session is running.");
+  });
+}
+registerMock("collab_run_detach", () => undefined);
+
+/** The scripted guest opens a terminal on the host and types into it (Terminal Full access). */
+async function guestTerminal(name = "Alex"): Promise<string> {
+  if (role !== "host") throw new Error("No session is running.");
+  const guest = [...guests.values()].find((g) => g.participant.name === name);
+  const key = `cwm-demo-terminal-${++nextTerminal}`;
+  const title = `${name}: Local`;
+  // Loaded lazily: the terminal mock depends on mocks that load after this one.
+  const { startMockShell, typeIntoMockShell } = await import("./terminalMock");
+  startMockShell(key);
+  sharedTerminals.set(key, { id: nextTerminal, title, owner: guest?.participant.id ?? 1, cols: 100, rows: 24, running: true, key });
+  log(`${name} opened the terminal ${title}`);
+  emitMock("collab://terminal-opened", { id: key, title });
+  emitStatus();
+  await sleep(600);
+  for (const ch of "php -v\r") await typeIntoMockShell(key, ch);
+  log(`${name} typed in the terminal ${title}`);
+  return key;
+}
+
+/** The scripted guest asks the host to run a configuration (Run Full access). */
+function guestRun(configuration: string, name = "Alex"): void {
+  if (role !== "host") throw new Error("No session is running.");
+  log(`${name} ran '${configuration}'`);
+  emitMock("collab://run-request", { request: Date.now(), configuration, guest: name });
+}
+
 // `?collab=host` starts hosting with Edit files; `?collab=guest` joins the host page.
 if (mode === "host") startHost("editFiles");
 if (mode === "guest") {
@@ -726,7 +789,11 @@ registerMock("collab_test_relay", ({ url, public: publicRelays }) => {
 // Screenshot and test hook: show a session in the popup and the status bar.
 declare global {
   interface Window {
-    __forgeCollabMock?: { show: (view: SessionView) => void };
+    __forgeCollabMock?: {
+      show: (view: SessionView) => void;
+      guestTerminal: (name?: string) => Promise<string>;
+      guestRun: (configuration: string, name?: string) => void;
+    };
   }
 }
-window.__forgeCollabMock = { show: (view) => emitMock(STATUS_EVENT, view) };
+window.__forgeCollabMock = { show: (view) => emitMock(STATUS_EVENT, view), guestTerminal, guestRun };

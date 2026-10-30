@@ -14,14 +14,15 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { terminalApi, type SshTarget } from "@/ipc/terminal";
+import { terminalApi, type SshTarget, type TerminalEvent } from "@/ipc/terminal";
+import { collabApi } from "@/ipc/collab";
 import { getSetting } from "@/state/settings";
 import { runApi } from "@/ipc/run";
 import { isToolWindowVisible, showToolWindow } from "@/state/layout";
 import { workspace } from "@/state/workspace";
 import { revealLocation } from "@/features/lsp/navigation";
 import { showBalloon } from "@/keymap";
-import { activeTab, closeTab, displayTitle, setActiveTab, tabs, updateTab, type TerminalProgram } from "./store";
+import { activeTab, closeTab, displayTitle, setActiveTab, tabs, updateTab, type TerminalProgram, type TerminalSource } from "./store";
 import { isLinkActivation, linkTarget, parseOsc, terminalKeySequence, type Progress } from "./osc";
 import { terminalOptions, terminalRenderer, type TerminalRenderer } from "./options";
 
@@ -37,6 +38,10 @@ interface Session {
   unlisten?: () => void;
   lastSize?: string;
   disposables: IDisposable[];
+  /** Another machine's size, kept instead of fitting (a Code With Me host's terminal). */
+  fixed?: { cols: number; rows: number };
+  /** Keys are not sent (a guest that may only watch the host's terminal). */
+  readOnly?: boolean;
 }
 
 const sessions = new Map<string, Session>();
@@ -147,6 +152,11 @@ export function fitSession(id: string): void {
   const s = sessions.get(id);
   const el = s?.term.element;
   if (!s || !el || el.offsetParent === null || el.clientWidth === 0) return;
+  // The host's size wins: a guest renders the host's terminal at its columns and rows.
+  if (s.fixed) {
+    if (s.term.cols !== s.fixed.cols || s.term.rows !== s.fixed.rows) s.term.resize(s.fixed.cols, s.fixed.rows);
+    return;
+  }
   try {
     s.fit.fit();
   } catch {
@@ -339,8 +349,18 @@ function registerHandlers(id: string, s: Session): void {
   });
 }
 
-/** Create the xterm instance for a tab inside `host` and start its shell. */
-export function attachSession(id: string, host: HTMLElement, cwd?: string, command?: TerminalProgram, ssh?: SshTarget): void {
+/** A shared terminal's size or access changed on the host (Code With Me guest). */
+export function updateSharedSession(id: string, cols: number, rows: number, readOnly: boolean): void {
+  const s = sessions.get(id);
+  if (!s) return;
+  s.fixed = { cols, rows };
+  s.readOnly = readOnly;
+  s.term.options.disableStdin = readOnly;
+  fitSession(id);
+}
+
+/** Create the xterm instance for a tab inside `host` and start its shell (or attach to `source`). */
+export function attachSession(id: string, host: HTMLElement, cwd?: string, command?: TerminalProgram, ssh?: SshTarget, source?: TerminalSource): void {
   const existing = sessions.get(id);
   if (existing) {
     if (existing.term.element && existing.term.element.parentElement !== host) host.appendChild(existing.term.element);
@@ -415,9 +435,10 @@ export function attachSession(id: string, host: HTMLElement, cwd?: string, comma
     /* host not laid out yet; the resize observer fits later */
   }
   term.onData((data) => {
-    if (session.opened && !session.exited) void terminalApi.write(id, data).catch(() => undefined);
+    if (session.opened && !session.exited && !session.readOnly) void terminalApi.write(id, data).catch(() => undefined);
   });
-  void start(id, session, cwd, command, ssh);
+  if (source) void attachExisting(id, session, source);
+  else void start(id, session, cwd, command, ssh);
 }
 
 let sshHostKeys: (target: SshTarget) => Promise<boolean> = async () => false;
@@ -426,18 +447,52 @@ export function setSshHostKeyResolver(resolve: (target: SshTarget) => Promise<bo
   sshHostKeys = resolve;
 }
 
-async function start(id: string, s: Session, cwd?: string, command?: TerminalProgram, ssh?: SshTarget): Promise<void> {
-  s.unlisten = await terminalApi.onEvent(id, (e) => {
-    if (e.type === "output") s.term.write(e.data);
-    else {
-      s.exited = true;
-      setProgress(id, null);
-      if (e.code === 0 || e.code === null) {
-        disposeSession(id);
-        closeTab(id);
-      } else s.term.write(`\r\n\x1b[2m[Process completed with exit code ${e.code}]\x1b[0m\r\n`);
+/** Output and exit of a session's backend. */
+function handleEvent(id: string, s: Session, e: TerminalEvent): void {
+  if (e.type === "output") s.term.write(e.data);
+  else {
+    s.exited = true;
+    setProgress(id, null);
+    if (e.code === 0 || e.code === null) {
+      disposeSession(id);
+      closeTab(id);
+    } else s.term.write(`\r\n\x1b[2m[Process completed with exit code ${e.code}]\x1b[0m\r\n`);
+  }
+}
+
+/**
+ * Show a session that already runs: what it showed so far, then its live output. Output
+ * that arrives while the earlier output loads is written after it.
+ */
+async function attachExisting(id: string, s: Session, source: TerminalSource): Promise<void> {
+  let queued: TerminalEvent[] | null = [];
+  s.unlisten = await terminalApi.onEvent(id, (e) => (queued ? queued.push(e) : handleEvent(id, s, e)));
+  try {
+    if (source.kind === "collab") {
+      const r = await collabApi.terminalAttach(source.terminal, id);
+      updateSharedSession(id, r.cols, r.rows, source.readOnly);
+      if (r.scrollback) s.term.write(r.scrollback);
+      if (!r.running) {
+        s.exited = true;
+        s.term.write(`\r\n\x1b[2m[Process completed]\x1b[0m\r\n`);
+      }
+    } else {
+      const r = await terminalApi.attach(id);
+      if (r.scrollback) s.term.write(r.scrollback);
     }
-  });
+    s.opened = true;
+    s.lastSize = `${s.term.cols}x${s.term.rows}`;
+  } catch (err) {
+    s.exited = true;
+    s.term.write(`\x1b[31mCannot show the terminal: ${String((err as Error)?.message ?? err)}\x1b[0m\r\n`);
+  }
+  const pending = queued;
+  queued = null;
+  for (const e of pending) handleEvent(id, s, e);
+}
+
+async function start(id: string, s: Session, cwd?: string, command?: TerminalProgram, ssh?: SshTarget): Promise<void> {
+  s.unlisten = await terminalApi.onEvent(id, (e) => handleEvent(id, s, e));
   const open = () =>
     terminalApi.open({
       id,
