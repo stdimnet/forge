@@ -953,6 +953,18 @@ screenshots.
   admissions, permission changes, removals, Regenerate Link, guests' file changes and git
   actions, and refused requests. Shown in a Session Log dialog from the popup and, since S4,
   in the Session Log tab of the Code With Me tool window.
+- Finished on `feat/code-with-me-s6`: the **Join Session dialog** (`JoinSession.tsx`, behind the
+  action `CodeWithMe.JoinSession`, mounted on first use so it also works without a project)
+  shows the host's name and machine, direct or through the link's relay, and the name to join
+  with (`collab_parse_link` answers a `JoinPreview`: `LinkSummary` with the new `machine` plus
+  `userName`), the note that an open project is closed, then **Waiting for <host> to accept…**
+  with the verification code and Cancel inside the dialog (the waiting balloon only appears for
+  joins without the dialog); declined or unanswered requests are shown in the dialog with Try
+  Again. The plan's question about unsaved changes of the guest's own project is not asked yet.
+- The **protected files are a setting**, `codeWithMe.protectedFiles` ("Files only Full access
+  may change", default `forge_collab::excludes::DEFAULT_PROTECTED`, the former
+  `PROTECTED_FILES`), passed as `HostConfig::protected` into every guest's `Policy`
+  (`Policy::with_protected`); a manifest test keeps the defaults equal to the crate's.
 
 ### S3 — Guest project backend (8 d)
 
@@ -1110,8 +1122,12 @@ Where the plan was unclear or wrong, this is what the code does:
   Terminal and Run tool windows show for guests with Terminal / Run access.
 - Settings: `codeWithMe.shareNewTerminals`. Action `CodeWithMe.ShareTerminal` (Share Terminal
   with Guests) and the terminal tab menu entry Share with Guests (`registerTerminalTabActions`).
-- Not done: a guest's terminal tab on the guest closes when the host stops sharing it (no
-  "terminated" state is kept); port forwarding and shared debugging stay follow-ups.
+- Finished on `feat/code-with-me-s6`: when the host stops sharing a terminal, the guest's tab
+  stays as ended with **[The host stopped sharing this terminal]** (`TerminalSource.ended`,
+  `endSharedSession`), like a terminated session, until the guest closes it; shared again it
+  opens fresh. The guest's backend no longer reports a fake exit for an unshared terminal, and
+  a host shell that ends leaves the guest's tab with **[Process completed]** instead of closing
+  it. Port forwarding and shared debugging stay follow-ups.
 
 ### S6 — Relay and NAT traversal (3 d)
 
@@ -1154,11 +1170,9 @@ Where the plan was unclear or wrong, this is what the code does:
 
 Deviations from the plan above:
 
-- **Reconnects with backoff are not part of S6.** A dropped QUIC connection still ends the
-  guest session ("The connection to the host was lost."). iroh keeps a connection alive across
-  path changes (Wi-Fi to cable, relay to direct), so only a real outage is visible. Resuming a
-  guest after an outage needs a protocol step (re-knock that keeps the participant and its
-  documents) and belongs with host approval (S2) and polish (S7).
+- Reconnects with backoff came later, on `feat/code-with-me-s6` (see "S6 reconnect as built"
+  below). iroh keeps a connection alive across path changes (Wi-Fi to cable, relay to direct),
+  so only a real outage is visible.
 - The guest-side relay state is only shown while iroh has a home relay for it; the path badge is
   the reliable indicator on guests.
 - With a relay configured, iroh's HTTPS latency probes run against that relay only (needed to
@@ -1168,6 +1182,57 @@ Deviations from the plan above:
   loses the packet boundaries QUIC needs.
 - Added Test Connection and the connection badges (the participants list itself arrives with
   S4, so the badges are in the popup and the status bar until then).
+
+**S6 reconnect as built** (`forge_collab::reconnect`, `host.rs`, `guest.rs`,
+`crates/forge-collab/tests/simulation.rs` "reconnect" tests, `features/code-with-me/reconnect.ts`):
+
+- Protocol 4. `Welcome` carries a random 32-byte `resume` token. A guest whose connection
+  dropped dials again and sends `GuestMessage::Resume { session, participant, token }` instead
+  of a knock; the host takes it back only from the same endpoint key with the right token
+  (compared in constant time) while it keeps the place, without asking the host's user again
+  and independent of Regenerate Link. Anything else gets `Refused` ("The host no longer keeps
+  your place…", or "The host removed you…" for a guest removed while away); the place stays
+  its owner's.
+- Host: a dropped connection (read error or EOF without `Leave`) marks the guest
+  `Participant.reconnecting` (everyone sees it, the session log says "The connection of Alex
+  dropped") and replaces its queue with a closed one, so nothing is queued for it. Its id,
+  color, permissions, open documents, terminals, runs and calls state stay for
+  `reconnect::HOST_GRACE` (2 minutes, `HostSession::set_reconnect_grace`, zero = old
+  behaviour); then it is removed ("Alex lost the connection and did not come back."). A resume
+  bumps the guest's connection epoch, so a late read error of the old connection is ignored, and
+  sends `Welcome { resumed: true }`, the participants, everyone's presence, Make Everyone Follow
+  You, and the terminals and runs again with fresh snapshots ("Alex reconnected").
+- Guest: `GuestSession` supervises its connection. On a drop it fails the requests in flight,
+  sends nothing (documents resynchronize, presence is sent again; terminal and console keys
+  typed meanwhile are lost), keeps participants, presence, terminals and runs, and tries again
+  with `ReconnectPolicy` (1, 2, 4, 8, then every 15 s; gives up after
+  `reconnect::GUEST_GIVE_UP` = 105 s, before the host frees the place) — like
+  `forge-remote::connection`. Requests fail fast with "The connection to the host is being
+  restored." `GuestSession::connection()` is the `ConnectionState`; `GuestEvent::Resumed` tells
+  the UI to resync. Giving up ends the session with `reconnect::GAVE_UP`.
+- Documents: `GuestMessage::DocSync { state_vector }` -> `HostMessage::DocSynced { update,
+  state_vector, path, saved, read_only }` (Yjs sync step 1/2 on the host's `yrs` replica,
+  `SharedDoc::diff_since`); the UI (`resyncDoc` in `docs.ts`) applies the host's part and sends
+  what the host is missing as a normal `DocUpdate`, so edits made while the connection was down
+  are kept. A document closed meanwhile answers `DocError` and the tab closes as for
+  `closed`; a rename meanwhile is followed.
+- Terminals and runs after a resume: a snapshot for something the guest already shows is turned
+  into the missed part only (`snapshot_tail`: the new suffix, or a terminal reset and the whole
+  scrollback when the host's scrollback dropped lines; for runs the events after the ones
+  shown).
+- IPC: `collab_doc_sync({ docId, stateVector })` (raw bytes like `collab_doc_open`, header with
+  the host's `stateVector`), event `collab://resumed`, `SessionView.connection` (guest),
+  `Participant.reconnecting`. UI: status item "Code With Me: Reconnecting…" (its popup shows the
+  next attempt), a sticky balloon "Connection to <host> lost" with Leave Session, "Reconnected
+  to <host>." when back, and "Reconnecting…" with a faded avatar in the host's participant
+  list. Browser mode: `?project=cwm-guest&reconnecting[=resume]`, `?cwmAway` (host).
+- Tests (in-memory network, `MemoryNetwork::set_offline` takes an endpoint's network down):
+  resume with unsent edits on both sides converging, place and color kept, presence resent;
+  grace expiry; giving up; removed while away; another endpoint or a wrong token cannot take
+  a place; documents deleted while away; an attached terminal gets the missed output exactly
+  once. Not covered: a real QUIC outage (iroh's idle timeout decides how fast a dead
+  connection is noticed) and a host that restarts (its new session has a new key; guests give
+  up).
 
 ### S7 — Polish, docs, screenshots, stress tests (5 d)
 

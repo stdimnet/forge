@@ -43,7 +43,7 @@ Nothing listens on your machine before you start a session.
 
 Files that control what runs on your machine (run configurations, `composer.json`,
 `package.json`, `Makefile`, …) can only be changed by guests with Files **Edit** and Run
-**Full access**.
+**Full access**. The list is a setting, see [Files guests never see](#files-guests-never-see).
 
 ![Custom Permissions dialog](../../screenshots/code-with-me-custom-permissions.png)
 
@@ -131,7 +131,11 @@ What guests see of your terminals and runs depends on their **Terminal** and **R
 **Sharing a terminal (host).** Right-click a terminal tab and choose **Share with Guests** (also
 **Share Terminal with Guests** in Find Action, for the active tab). Shared tabs show the
 participants icon; choose it again to stop sharing. Guests see the tab with what it showed so
-far (the last 2000 lines) and follow it live, at your terminal's size. To share every terminal
+far (the last 2000 lines) and follow it live, at your terminal's size. When you stop sharing a
+terminal, the guest's tab stays with what it showed and the line **[The host stopped sharing
+this terminal]**, like a terminal whose shell ended; the guest closes it. Shared again, it
+opens fresh. A shell that ends on your machine shows **[Process completed]** in the guest's
+tab. To share every terminal
 tab you open during a session, turn on **Settings | Tools | Code With Me | Share new terminal
 tabs**.
 
@@ -157,6 +161,8 @@ Input from a guest without Full access is refused by your Forge.
 ![A guest watches the host's shared terminal](../../screenshots/cwm-guest-terminal.png)
 
 ![The host's test run in a guest's Run tool window](../../screenshots/cwm-guest-run.png)
+
+![A terminal the host stopped sharing, in the guest's window](../../screenshots/cwm-guest-terminal-unshared.png)
 
 ![A terminal a guest opened on the host](../../screenshots/code-with-me-guest-terminal.png)
 
@@ -207,11 +213,46 @@ If you close the balloon without answering, the request stays open until it time
 ## Joining a session
 
 1. Click the link (`forge://cwm/join?…`), or choose **Tools | Code With Me | Join Session…**
-   and paste it.
-2. Forge shows **Waiting for <host> to accept…** with the verification code and **Cancel**.
-3. When the host accepts, the host's project opens in your window and you follow the host. The
+   and paste it into **Session link**.
+2. The dialog shows where the link leads before anything connects: the **Host** and its
+   **Machine** as the link names them, the **Connection** (direct, or through the host's relay
+   server) and the name you **Join as** (**Change…** opens Settings | Tools | Code With Me). If a
+   project is open, it says that it is closed while you are a guest. Click **Join**.
+3. The dialog shows **Waiting for <host> to accept…** with the **verification code** and
+   **Cancel**. Tell the host the code; the host sees the same one. If the host declines or does
+   not answer, the dialog says so and offers **Try Again**.
+4. When the host accepts, the host's project opens in your window and you follow the host. The
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
    ends it for you.
+
+![Join Session dialog](../../screenshots/code-with-me-join-dialog.png)
+
+![Waiting for the host with the verification code](../../screenshots/code-with-me-join-waiting.png)
+
+### When the connection drops
+
+If the connection to the host drops (Wi-Fi gone, laptop asleep, VPN reconnecting), the session
+is not over:
+
+- Your window keeps the host's project and your open files. The status bar says **Code With Me:
+  Reconnecting…**, and a balloon **Connection to <host> lost** stays until the connection is
+  back, with **Leave Session**. Forge tries again after 1, 2, 4 and 8 seconds and then every 15
+  seconds.
+- Keep typing: your edits stay in the editor and are sent when the connection is back; edits
+  the others made meanwhile arrive then too, and everything merges. Saving, opening files,
+  search and other requests to the host fail while the connection is down. Keys typed into a
+  shared terminal or a run's console meanwhile are lost.
+- Back again, you see **Reconnected to <host>.** Shared terminals and runs show what you
+  missed, and the others see you where you were.
+- The host keeps your place (your color, permissions, terminals) for two minutes and shows you
+  as **Reconnecting…** in the participant list meanwhile. After about 105 seconds without a
+  connection your Forge gives up: the session ends with **The connection to the host was lost and
+  could not be restored. Join again with the session link.** Edits that did not reach the host
+  are lost then. If the host removed you meanwhile, you are told so.
+
+![A guest's window while the connection is restored](../../screenshots/cwm-guest-reconnecting.png)
+
+![The host sees a guest reconnecting](../../screenshots/code-with-me-guest-reconnecting.png)
 
 Guests see the Project tree, Structure, Find, Problems, Terminal and Run (with Terminal or Run access, see [Terminal and Run](#terminal-and-run)) and Git (read-only unless the host gave
 Full access). AI Chat, Database, Services, Debug and the code host tool windows are not
@@ -222,13 +263,19 @@ available in a guest's window, because they would use the host's accounts and se
 Secret files are invisible to guests whatever their level, in the tree, in search, in Git and
 in analysis results: `.env` and `.env.*` (but not `.env.example`), private keys, certificates
 and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Files larger than
-**Larger files open read-only (KB)** open read-only. Files that configure what runs on the host
-(`composer.json`, `package.json`, `Makefile`, `.idea/`, run configurations) can be changed only
-with Full access.
+**Larger files open read-only (KB)** open read-only.
+
+Files that configure what runs on the host can be changed only by guests with Full access to
+Run (with Edit files they open read-only): **Settings | Tools | Code With Me | Files only Full
+access may change**. By default these are run configurations (`.forge/runConfigurations*.toml`),
+`.forge/settings.toml`, `.vscode/`, `.idea/`, `.husky/`, `composer.json`, `package.json`,
+`Makefile`, `artisan` and `bin/console`. The patterns work like the excluded files (`!pattern`
+removes a file from the list); changes apply to sessions you start afterwards.
 
 ## Settings
 
 Settings | Tools | Code With Me: your name in sessions, the default permission level,
 whether ending a session asks for confirmation, whether guests follow the host when joining, whether new terminal tabs are shared,
-whether a session log is kept, the files guests never see and the connection settings of the
+whether a session log is kept, the files guests never see, the files only Full access may change
+and the connection settings of the
 [relay page](code-with-me-relay.md).
