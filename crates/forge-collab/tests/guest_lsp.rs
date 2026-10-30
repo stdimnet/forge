@@ -207,6 +207,7 @@ async fn setup() -> Setup {
             machine: None,
             permissions: Permissions::READ_ONLY,
             excludes: Excludes::defaults(),
+            protected: Excludes::protected_defaults(),
             max_file_size: 1 << 20,
             notice: Some(DEV_PREVIEW_NOTICE.into()),
         },

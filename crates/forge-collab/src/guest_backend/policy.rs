@@ -2,36 +2,16 @@
 //! the guest's permissions, never at the file system; what a path resolves to (symlinks) is
 //! checked where the file is touched, in [`super::host`].
 
-use std::sync::OnceLock;
-
 use forge_backend::frameworks::{DoctrineQuery, SymfonyQuery};
 use forge_backend::protocol::PhpCall;
 use forge_backend::FrameworkCall;
 
 use super::calls::{GitAction, GitQuery, HostCall, LspQuery};
-use crate::excludes::Excludes;
 use crate::permissions::{is_plain_relative, Denied, Policy, RunAccess, VcsAccess};
 
-/// Files that configure what runs on the host. Changing them lets a guest turn the host's
-/// next Run, commit or install into the guest's command, so they need Full access
-/// (Run Full), not just Files Edit. Same pattern syntax as the excluded files.
-pub const PROTECTED_FILES: &[&str] = &[
-    ".forge/runConfigurations*.toml",
-    ".forge/settings.toml",
-    ".vscode/",
-    ".idea/",
-    ".husky/",
-    "composer.json",
-    "package.json",
-    "Makefile",
-    "artisan",
-    "bin/console",
-];
-
-fn protected() -> &'static Excludes {
-    static PROTECTED: OnceLock<Excludes> = OnceLock::new();
-    PROTECTED.get_or_init(|| Excludes::new(PROTECTED_FILES).expect("protected patterns compile"))
-}
+/// The default files that configure what runs on the host (setting
+/// `codeWithMe.protectedFiles`, same pattern syntax as the excluded files).
+pub use crate::excludes::DEFAULT_PROTECTED as PROTECTED_FILES;
 
 fn denied(msg: impl Into<String>) -> Denied {
     Denied(msg.into())
@@ -102,19 +82,20 @@ fn identifier(s: &str) -> Result<(), Denied> {
 }
 
 impl Policy {
-    /// Whether `path` configures what runs on the host (see [`PROTECTED_FILES`]).
-    pub fn is_protected(path: &str) -> bool {
-        protected().is_excluded(path)
+    /// Whether `path` configures what runs on the host (the protected files, by default
+    /// [`PROTECTED_FILES`]).
+    pub fn is_protected(&self, path: &str) -> bool {
+        self.protected.is_excluded(path)
     }
 
     /// May the guest change `path` (create, write, rename, delete)? Visible, inside the
-    /// project, Files Edit, and Run Full access for [`PROTECTED_FILES`].
+    /// project, Files Edit, and Run Full access for the protected files.
     pub fn check_write_path(&self, path: &str) -> Result<(), Denied> {
         self.check_path(path)?;
         if !self.permissions.can_edit_files() {
             return Err(denied("Your permission is Read-only"));
         }
-        if Self::is_protected(path) && self.permissions.run != RunAccess::Full {
+        if self.is_protected(path) && self.permissions.run != RunAccess::Full {
             return Err(denied(format!(
                 "\"{path}\" configures what runs on the host and needs Full access"
             )));
@@ -431,6 +412,7 @@ impl Policy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::excludes::Excludes;
     use crate::permissions::{Permissions, TerminalAccess};
     use forge_core::search::FindRequest;
 
@@ -611,7 +593,7 @@ mod tests {
             "artisan",
             "bin/console",
         ] {
-            assert!(Policy::is_protected(path), "{path}");
+            assert!(policy(Permissions::READ_ONLY).is_protected(path), "{path}");
             assert!(
                 policy(Permissions::EDIT_FILES)
                     .check_call(&write(path))
@@ -630,8 +612,18 @@ mod tests {
             "src/artisan_helper.php",
             "docs/package.jsonl",
         ] {
-            assert!(!Policy::is_protected(path), "{path}");
+            assert!(!policy(Permissions::READ_ONLY).is_protected(path), "{path}");
         }
+    }
+
+    #[test]
+    fn the_protected_files_are_a_setting() {
+        let p = policy(Permissions::EDIT_FILES)
+            .with_protected(Excludes::new(&["deploy.php", "!composer.json"]).unwrap());
+        assert!(p.check_call(&write("deploy.php")).is_err());
+        assert!(p.check_call(&write("composer.json")).is_ok());
+        let none = policy(Permissions::EDIT_FILES).with_protected(Excludes::default());
+        assert!(none.check_call(&write("Makefile")).is_ok());
     }
 
     #[test]

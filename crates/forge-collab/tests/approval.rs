@@ -40,6 +40,7 @@ fn setup(timeout: Duration) -> Setup {
             machine: None,
             permissions: Permissions::READ_ONLY,
             excludes: Excludes::defaults(),
+            protected: Excludes::protected_defaults(),
             max_file_size: 64 * 1024,
             notice: None,
         },

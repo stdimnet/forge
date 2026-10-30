@@ -84,6 +84,9 @@ impl fmt::Debug for SessionLink {
 #[serde(rename_all = "camelCase")]
 pub struct LinkSummary {
     pub host_name: String,
+    /// The host's machine as the link names it (the Join Session dialog shows it).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub machine: Option<String>,
     /// `name` or `name (machine)`.
     pub host_label: String,
     pub session_id: String,
@@ -242,6 +245,7 @@ impl SessionLink {
     pub fn summary(&self) -> LinkSummary {
         LinkSummary {
             host_name: self.host_name.clone(),
+            machine: self.machine.clone(),
             host_label: match &self.machine {
                 Some(m) => format!("{} ({m})", self.host_name),
                 None => self.host_name.clone(),
@@ -307,6 +311,7 @@ mod tests {
     fn summary_has_no_secrets() {
         let s = sample().summary();
         assert_eq!(s.host_label, "ExtremTechniker (büro-pc)");
+        assert_eq!(s.machine.as_deref(), Some("büro-pc"));
         let json = serde_json::to_string(&s).unwrap();
         assert!(!json.contains(&encode_id(&[9; JOIN_SECRET_LEN])));
         assert!(!format!("{:?}", sample()).contains(&encode_id(&[9; JOIN_SECRET_LEN])));

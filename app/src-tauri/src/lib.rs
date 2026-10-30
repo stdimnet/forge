@@ -152,6 +152,7 @@ pub fn run() {
             commands::collab::collab_presence,
             commands::collab::collab_follow_everyone,
             commands::collab::collab_doc_close,
+            commands::collab::collab_doc_sync,
             commands::collab::collab_doc_save,
             commands::collab::collab_relay_token_status,
             commands::collab::collab_set_relay_token,

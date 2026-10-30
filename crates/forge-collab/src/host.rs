@@ -159,6 +159,8 @@ pub struct HostConfig {
     /// The session's guest permissions.
     pub permissions: Permissions,
     pub excludes: Excludes,
+    /// Files that need Run Full access to change (`codeWithMe.protectedFiles`).
+    pub protected: Excludes,
     /// Larger files are not shared (bytes).
     pub max_file_size: usize,
     pub notice: Option<String>,
@@ -228,6 +230,7 @@ pub struct HostSession {
     host: Participant,
     permissions: Mutex<Permissions>,
     excludes: Excludes,
+    protected: Excludes,
     max_file_size: usize,
     machine: Option<String>,
     notice: Option<String>,
@@ -273,6 +276,7 @@ impl HostSession {
             },
             permissions: Mutex::new(config.permissions),
             excludes: config.excludes,
+            protected: config.protected,
             max_file_size: config.max_file_size,
             machine: config.machine,
             notice: config.notice,
@@ -319,7 +323,7 @@ impl HostSession {
 
     /// The rules for a guest with `permissions`.
     fn policy_for(&self, permissions: Permissions) -> Policy {
-        Policy::new(permissions, self.excludes.clone())
+        Policy::new(permissions, self.excludes.clone()).with_protected(self.protected.clone())
     }
 
     /// The invitation link.

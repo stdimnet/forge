@@ -125,14 +125,24 @@ pub struct Denied(pub String);
 pub struct Policy {
     pub permissions: Permissions,
     pub excludes: Excludes,
+    /// Files that need Run Full access to change (setting `codeWithMe.protectedFiles`).
+    pub protected: Excludes,
 }
 
 impl Policy {
+    /// With the default protected files.
     pub fn new(permissions: Permissions, excludes: Excludes) -> Self {
         Self {
             permissions,
             excludes,
+            protected: Excludes::protected_defaults(),
         }
+    }
+
+    /// The same rules with another list of protected files.
+    pub fn with_protected(mut self, protected: Excludes) -> Self {
+        self.protected = protected;
+        self
     }
 
     /// Whether a guest may see this workspace-relative path at all: inside the project,

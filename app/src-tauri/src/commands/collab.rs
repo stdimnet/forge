@@ -11,6 +11,9 @@
 //! - `collab://follow-host` `{ on }` when the host turned Make Everyone Follow You on or off
 //!   (guest);
 //! - `collab://ended` `{ reason }` when the session is over for this window.
+//! - `collab://resumed` (guest) when the connection to the host was restored after it
+//!   dropped: the UI brings its shared documents up to date with `collab_doc_sync`. While
+//!   the connection is being restored, [`SessionView::connection`] says so.
 //! - `collab://run-request` `{ request, configuration, guest }` (host): a guest with Run Full
 //!   access asks to run a configuration; the host's UI starts it like Run and answers with
 //!   `collab_run_answer`;
@@ -49,6 +52,7 @@ use forge_collab::link::{LinkSummary, SessionLink};
 use forge_collab::permissions::{PermissionLevel, Permissions};
 use forge_collab::presence::{Participant, ParticipantId, Presence};
 use forge_collab::protocol::{DocId, SaveState, SharedFile};
+use forge_collab::reconnect::ConnectionState;
 use forge_collab::relay::{
     normalize_relay_token, normalize_relay_url, ConnectionPath, RelayOptions, RelayStatus,
 };
@@ -79,6 +83,7 @@ pub const PRESENCE_EVENT: &str = "collab://presence";
 pub const FOLLOW_HOST_EVENT: &str = "collab://follow-host";
 pub const RUN_REQUEST_EVENT: &str = "collab://run-request";
 pub const TERMINAL_OPENED_EVENT: &str = "collab://terminal-opened";
+pub const RESUMED_EVENT: &str = "collab://resumed";
 
 /// How long the host's UI may take to start a run a guest asked for.
 const RUN_REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
@@ -217,6 +222,9 @@ pub struct SessionView {
     pub terminals: Vec<TerminalView>,
     /// The host's runs this guest sees (guest).
     pub runs: Vec<SharedRun>,
+    /// Whether the connection to the host is up or being restored (guest).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection: Option<ConnectionState>,
 }
 
 /// A shared terminal in the session view.
@@ -271,6 +279,7 @@ fn idle_view() -> SessionView {
         follow_everyone: false,
         terminals: Vec::new(),
         runs: Vec::new(),
+        connection: None,
     }
 }
 
@@ -305,6 +314,7 @@ fn view(state: &CollabState) -> SessionView {
                 })
                 .collect(),
             runs: Vec::new(),
+            connection: None,
         };
     }
     if let Some(g) = state.guest() {
@@ -344,6 +354,7 @@ fn view(state: &CollabState) -> SessionView {
                 })
                 .collect(),
             runs: g.runs(),
+            connection: Some(g.connection()),
         };
     }
     idle_view()
@@ -437,6 +448,7 @@ fn on_guest_event(app: &AppHandle, e: GuestEvent) {
             },
         ),
         GuestEvent::FollowHost(on) => emit(app, FOLLOW_HOST_EVENT, json!({ "on": on })),
+        GuestEvent::Resumed => emit(app, RESUMED_EVENT, json!({})),
         GuestEvent::Ended(reason) => {
             end_guest_project(app);
             emit(app, ENDED_EVENT, json!({ "reason": reason }));
@@ -592,12 +604,25 @@ pub fn collab_status(state: State<'_, CollabState>) -> SessionView {
     view(&state)
 }
 
-/// What the Join Session dialog shows about a pasted link.
+/// What the Join Session dialog shows about a pasted link: the host, its machine, the relay,
+/// and the name this window joins with.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JoinPreview {
+    #[serde(flatten)]
+    pub summary: LinkSummary,
+    pub user_name: String,
+}
+
 #[tauri::command]
-pub fn collab_parse_link(link: String) -> Result<LinkSummary> {
-    SessionLink::parse(&link)
+pub fn collab_parse_link(link: String, app: AppHandle) -> Result<JoinPreview> {
+    let summary = SessionLink::parse(&link)
         .map(|l| l.summary())
-        .map_err(other)
+        .map_err(other)?;
+    Ok(JoinPreview {
+        summary,
+        user_name: user_name(&app),
+    })
 }
 
 /// Start Session: open the listening socket and share the files open in the editor.
@@ -614,17 +639,24 @@ pub async fn collab_start(
     let permissions = Permissions::preset(level)
         .or(custom)
         .ok_or_else(|| other("Choose the custom permissions first."))?;
-    let (excludes, max_kb, address, port, keep_log) = {
+    let (excludes, protected, max_kb, address, port, keep_log) = {
         let state = app.state::<AppState>();
         let s = state.read_settings();
         let patterns: Vec<String> = s.get_as("codeWithMe.excludedFiles").unwrap_or_default();
+        let protected: Vec<String> = s.get_as("codeWithMe.protectedFiles").unwrap_or_else(|| {
+            forge_collab::excludes::DEFAULT_PROTECTED
+                .iter()
+                .map(|p| p.to_string())
+                .collect()
+        });
         let max_kb: u64 = s.get_as("codeWithMe.maxSharedFileSize").unwrap_or(5120);
         let address: String = s.get_as("codeWithMe.listenAddress").unwrap_or_default();
         let port: u16 = s.get_as("codeWithMe.listenPort").unwrap_or(0);
         let keep_log: bool = s.get_as("codeWithMe.auditLog").unwrap_or(true);
-        (patterns, max_kb, address, port, keep_log)
+        (patterns, protected, max_kb, address, port, keep_log)
     };
     let excludes = Excludes::new(&excludes).map_err(other)?;
+    let protected = Excludes::new(&protected).map_err(other)?;
     let address = match address.trim() {
         "" => None,
         a => Some(a.parse().map_err(|_| {
@@ -659,6 +691,7 @@ pub async fn collab_start(
             machine: machine_name(),
             permissions,
             excludes,
+            protected,
             max_file_size: (max_kb as usize).saturating_mul(1024),
             notice: None,
         },
@@ -1009,6 +1042,36 @@ pub fn collab_follow_everyone(on: bool, app: AppHandle) -> Result<SessionView> {
     let host = running_host(&app.state::<CollabState>())?;
     host.set_follow_everyone(on);
     Ok(view(&app.state::<CollabState>()))
+}
+
+/// Bring a shared document up to date after the connection to the host was restored
+/// (guest). `state_vector` is the UI replica's (Yjs v1, base64). The reply is raw bytes like
+/// [`collab_doc_open`]'s: a JSON header `{ docId, path, saved, readOnly, stateVector }`
+/// (the host's state vector, base64) and the update the replica is missing.
+#[tauri::command]
+pub async fn collab_doc_sync(
+    doc_id: u64,
+    state_vector: String,
+    app: AppHandle,
+) -> Result<tauri::ipc::Response> {
+    let guest = guest_or_err(&app)?;
+    let synced = guest
+        .sync_doc(DocId(doc_id), decode(&state_vector)?)
+        .await
+        .map_err(other)?;
+    let header = serde_json::to_vec(&json!({
+        "docId": synced.doc.0,
+        "path": synced.path,
+        "saved": synced.saved,
+        "readOnly": synced.read_only,
+        "stateVector": B64.encode(&synced.state_vector),
+    }))
+    .map_err(other)?;
+    let mut out = Vec::with_capacity(4 + header.len() + synced.update.len());
+    out.extend_from_slice(&(header.len() as u32).to_be_bytes());
+    out.extend_from_slice(&header);
+    out.extend_from_slice(&synced.update);
+    Ok(tauri::ipc::Response::new(out))
 }
 
 #[tauri::command]
@@ -1413,8 +1476,19 @@ mod tests {
     }
 
     #[test]
+    fn manifest_protected_files_match_the_crate_defaults() {
+        let registry = crate::plugins::builtin_registry().unwrap();
+        let spec = registry
+            .all_settings()
+            .find(|s| s.key == "codeWithMe.protectedFiles")
+            .unwrap();
+        let defaults: Vec<String> = serde_json::from_value(spec.default.clone()).unwrap();
+        assert_eq!(defaults, forge_collab::excludes::DEFAULT_PROTECTED);
+    }
+
+    #[test]
     fn bad_links_are_reported() {
-        assert!(collab_parse_link("https://example.com".into()).is_err());
+        assert!(SessionLink::parse("https://example.com").is_err());
     }
 
     #[test]

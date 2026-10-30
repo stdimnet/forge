@@ -223,6 +223,27 @@ section = "Shared Files"
 order = 50
 
 [[contributions.settings]]
+key = "codeWithMe.protectedFiles"
+title = "Files only Full access may change"
+description = "Files that configure what runs on your machine (run configurations, scripts, build files). Guests need Full access to Run to change them; with Edit files they open read-only. Same patterns as above; applies to sessions you start from now on."
+type = "list"
+default = [
+  ".forge/runConfigurations*.toml",
+  ".forge/settings.toml",
+  ".vscode/",
+  ".idea/",
+  ".husky/",
+  "composer.json",
+  "package.json",
+  "Makefile",
+  "artisan",
+  "bin/console",
+]
+group = "tools.code-with-me"
+section = "Shared Files"
+order = 55
+
+[[contributions.settings]]
 key = "codeWithMe.maxSharedFileSize"
 title = "Larger files open read-only (KB)"
 type = "int"

@@ -141,6 +141,7 @@ impl Harness {
                 machine: Some("laptop".into()),
                 permissions,
                 excludes: Excludes::defaults(),
+                protected: Excludes::protected_defaults(),
                 max_file_size: 64 * 1024,
                 notice: Some(DEV_PREVIEW_NOTICE.into()),
             },

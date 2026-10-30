@@ -71,6 +71,7 @@ async fn a_host_on_an_ssh_project_shares_it_with_guests() {
             machine: None,
             permissions: Permissions::READ_ONLY,
             excludes: Excludes::defaults(),
+            protected: Excludes::protected_defaults(),
             max_file_size: 1 << 20,
             notice: None,
         },

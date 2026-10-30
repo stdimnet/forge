@@ -32,6 +32,22 @@ pub const DEFAULT_PATTERNS: &[&str] = &[
     "config/master.key",
 ];
 
+/// The default value of `codeWithMe.protectedFiles`: files that configure what runs on the
+/// host. Changing them lets a guest turn the host's next Run, commit or install into the
+/// guest's command, so they need Run Full access, not just Files Edit.
+pub const DEFAULT_PROTECTED: &[&str] = &[
+    ".forge/runConfigurations*.toml",
+    ".forge/settings.toml",
+    ".vscode/",
+    ".idea/",
+    ".husky/",
+    "composer.json",
+    "package.json",
+    "Makefile",
+    "artisan",
+    "bin/console",
+];
+
 #[derive(Debug, Clone)]
 struct Rule {
     matcher: GlobMatcher,
@@ -93,6 +109,14 @@ impl Excludes {
     /// The default list.
     pub fn defaults() -> Self {
         Self::new(DEFAULT_PATTERNS).expect("default patterns compile")
+    }
+
+    /// The default protected files ([`DEFAULT_PROTECTED`]).
+    pub fn protected_defaults() -> Self {
+        static PROTECTED: std::sync::OnceLock<Excludes> = std::sync::OnceLock::new();
+        PROTECTED
+            .get_or_init(|| Self::new(DEFAULT_PROTECTED).expect("protected patterns compile"))
+            .clone()
     }
 
     /// The active patterns (for "Files matching N exclude patterns are hidden").

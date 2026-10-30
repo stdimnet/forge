@@ -57,6 +57,7 @@ fn host_config() -> HostConfig {
         machine: None,
         permissions: Permissions::EDIT_FILES,
         excludes: Excludes::defaults(),
+        protected: Excludes::protected_defaults(),
         max_file_size: 1 << 20,
         notice: None,
     }
