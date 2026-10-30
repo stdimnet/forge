@@ -1,8 +1,8 @@
 ---
 title: Code With Me
-description: Invite guests into the open project and edit it together, with shared terminals and runs - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, following participants, Jump To, Make Everyone Follow You, the session log, files guests never see, joining and leaving.
+description: Invite guests into the open project and edit it together, with shared terminals and runs - starting a session, the host's approval with the verification code, permission levels, changing permissions, removing guests, following participants, Jump To, Make Everyone Follow You, saving, File Cache Conflicts, lines changed by guests, the session log, files guests never see, joining and leaving.
 order: 200
-tags: [code with me, collaboration, pair programming, session, guest, host, permissions, follow, terminal, run]
+tags: [code with me, collaboration, pair programming, session, guest, host, permissions, follow, terminal, run, file cache conflict]
 ---
 
 # Code With Me
@@ -74,6 +74,39 @@ guest, their open editors turn read-only and they are told so; changes they send
 refused by your Forge.
 
 ![A guest's menu in the session popup](../../screenshots/code-with-me-guest-menu.png)
+
+The popup works with the keyboard: **Up** and **Down** move between its entries (**Home** and
+**End** jump to the first and last), **Enter** or **Space** chooses one, **Escape** closes the
+popup. The same keys move through the participants in the Code With Me tool window.
+
+![The session popup driven by the keyboard](../../screenshots/code-with-me-popup-keyboard.png)
+
+### Saving and changes on disk
+
+A shared file is saved for everybody: **Save** (Ctrl+S) by the host or by a guest who may edit
+files writes it on the host's disk, and every participant's tab shows the same unsaved marker.
+
+On the host, the lines guests changed have a marker in the guest's color in the gutter, next to
+the line numbers, until the file is saved; hover it to see who changed the line.
+
+When a shared file changes on the host's disk (a `git checkout`, a formatter, an AI agent) and
+it has no unsaved changes, everybody's editor takes the new text, and carets stay where they
+were. If it has unsaved changes, the host gets PHPStorm's **File Cache Conflict** dialog:
+"Changes have been made to … in memory and on disk."
+
+- **Load File System Changes** replaces the shared text with the file on disk, for everybody.
+- **Keep Memory Changes** keeps the shared text; it stays unsaved, and saving it overwrites the
+  file on disk.
+- **Show Difference** shows the file on disk next to the shared text. The choice then waits in
+  a balloon, as it does when you close the dialog.
+
+Guests see a balloon that the host is choosing which version to keep; they cannot save the file
+until then. Saving it yourself as the host also keeps the memory changes, and the conflict ends
+by itself when the file on disk changes back.
+
+![The host's File Cache Conflict dialog](../../screenshots/code-with-me-file-cache-conflict.png)
+
+![Lines changed by Alex, marked in the host's gutter](../../screenshots/code-with-me-guest-lines.png)
 
 ## Following participants
 

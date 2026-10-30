@@ -972,6 +972,121 @@ or without Git, for local and remote projects.
   opens `deploy@shop.example.com:/var/www/shop` (the demo project), `?welcome=remote` shows
   Welcome > Remote Development.
 
+## Code With Me (`forge-collab`, `forge.codewithme`)
+
+A host invites guests into the project open in its Forge; everyone edits the same files with
+their own carets, follows each other, and uses the host's terminals and run configurations.
+The design, threat model and stage notes ("as built") are in
+[`plans/code-with-me.md`](plans/code-with-me.md); the user guide is
+[`guide/user/code-with-me.md`](guide/user/code-with-me.md).
+
+**Layers.**
+
+- `crates/forge-collab`: pure modules (`link`, `permissions`, `protocol`, `verify`, `excludes`,
+  `presence`, `relay`, `reconnect`, `share`, `textdiff`; also built without `runtime`), and with
+  `runtime` the sessions: `host::HostSession`, `guest::GuestSession`, the host's `yrs` copy of
+  every shared file (`docs::SharedDoc`), the session log (`audit`), host approval (`approval`)
+  and the guest's project backend (`guest_backend::CollabBackend`, a `forge_backend::Backend`).
+  `net` adds the iroh transport (`transport::net`, `transport::relay`); tests use
+  `transport::memory::MemoryNetwork`.
+- `app/src-tauri/src/commands/collab.rs`: the `collab_*` commands and events, `ShellServices`
+  (the host application behind `host::HostServices`: guest terminals, runs, language servers),
+  and the hooks other commands call (`on_terminal_*`, `on_run_*`, the project watcher).
+- `app/ui/src/features/code-with-me/`: the toolbar popup, the Code With Me tool window, the
+  editor binding (`y-codemirror.next`), follow, presence, guest UI and the browser mock
+  (`mock/collabMock.ts`, `mock/collabGuestMock.ts`).
+
+**Contribution points.** `registerToolbarItem` (the toolbar icon and avatars),
+`registerToolWindow` (`codeWithMe`: Participants and Session Log tabs), `registerCommand` /
+`registerKeymapActions` (`CodeWithMe.*`, all through the keymap), `registerSettingsPage`
+(Tools | Code With Me, schema in `plugins/code-with-me.toml`), `registerStatusItem` (connection
+path; the guest's "Code With Me: <host>" item), `registerEditorExtension` (the shared document
+binding, presence, follow banner, guest read-only), `registerTerminalTabActions` (Share with
+Guests), `registerToolWindowFilter` (tool windows a guest does not get),
+`setSharedTabSource` / `registerFileSystem` in `state/editor.ts` (shared tabs open and save
+through the session; guest tabs are `cwm://<path>`), and `registerHistory` (Undo / Redo run
+the participant's own Yjs undo manager).
+
+**Protocol.** One QUIC stream per guest (ALPN `forge/cwm/1`), frames as in the agent protocol:
+a big-endian `u32` length and a MessagePack map with named fields, so new optional fields
+(`#[serde(default)]`) stay compatible; new message variants bump `PROTOCOL_VERSION` (5 since
+S7), and the host refuses other versions in the knock. `GuestMessage` holds only requests the
+host's policy can check; project calls travel as the closed `HostCall` enum inside
+`GuestMessage::Call`. Frames are limited (`MAX_GUEST_FRAME` 4 MB, `MAX_HOST_FRAME` 32 MB);
+per-guest queues are bounded (`GUEST_QUEUE`, a guest that does not keep up is cut off;
+`HostSession::backlog` reports the deepest queue). Documents use Yjs v1 updates and
+`y-protocols/awareness`; the host stamps every awareness entry with the sender's name and
+color, so carets cannot be spoofed.
+
+**Host enforcement.** Everything is decided on the host: `permissions::Policy` checks every
+message and call (Files / Terminal / Run / Version control access), paths go through
+`is_plain_relative`, the secret excludes (`codeWithMe.excludedFiles`, `.env` by default, never
+`.git/`) and `Gate::verify` (symlinks resolved, must stay inside the project); files that
+configure what runs (`codeWithMe.protectedFiles`) need Full access. Git runs only as typed
+`GitQuery` / `GitAction` values the host rebuilds; framework analysis never runs project code
+for guests. Refusals are answered once and recorded in the session log. Guests see only what
+their policy allows: file lists, presence (`Presence::visible_to`), terminals and runs.
+
+**Shared documents.** The host owns one `SharedDoc` per file (UTF-16 offsets, as in
+CodeMirror); participants hold Yjs replicas. `SaveState { hash }` (`protocol::text_hash`, the
+UI's `contentHash`) makes the dirty marker identical everywhere. The project watcher
+(`HostSession::on_fs_changed`) applies disk changes to documents without unsaved changes as a
+minimal diff (`textdiff`, origin `disk`, no undo step). With unsaved changes the document
+opens a **File Cache Conflict** (`SharedDoc::apply_disk` -> `DiskChange::Conflict`): the host's
+UI gets `collab://doc` `{ conflict: { open, path } }` and asks Load File System Changes / Keep
+Memory Changes (`collab_doc_resolve_conflict`); guests get `HostMessage::DocConflict` (and
+`conflict` in `DocOpened` / `DocSynced`) and cannot save until it is resolved. It also ends
+when the host saves (memory wins), when the disk changes back to the saved text, or when the
+document is edited into the disk's text. Updates from guests reach the host's UI with `from`
+(the participant), and the host's editor marks the lines guests changed until the next save
+(`guestChanges.ts`, a gutter in the guest's color).
+
+**Reconnect.** `Welcome` carries a resume token; a guest whose connection dropped dials again
+with `GuestMessage::Resume` and keeps its place, color, documents, terminals and runs for
+`reconnect::HOST_GRACE` (2 minutes). Documents resynchronize with Yjs sync (`DocSync` /
+`DocSynced`, `collab_doc_sync`), terminals and runs get only the missed output. The guest
+retries with `ReconnectPolicy` and gives up after `GUEST_GIVE_UP`, before the host frees the
+place. Relay and NAT traversal are iroh's; Forge contacts no third-party host unless the user
+configured a relay or opted in to public relays (`relay::RelayOptions`).
+
+**IPC.** Commands: `collab_status`, `collab_start`, `collab_end`, `collab_link`,
+`collab_regenerate_link`, `collab_set_permissions`, `collab_set_guest_permissions`,
+`collab_remove_guest`, `collab_answer_join`, `collab_session_log`, `collab_parse_link`,
+`collab_join`, `collab_cancel_join`, `collab_leave`, `collab_ping`, `collab_doc_open`,
+`collab_doc_update`, `collab_awareness`, `collab_doc_sync`, `collab_doc_close`,
+`collab_doc_save`, `collab_doc_resolve_conflict`, `collab_presence`, `collab_follow_everyone`,
+`collab_share_terminal`, `collab_terminal_attach`, `collab_run_answer`, `collab_run_attach`,
+`collab_run_detach`, `collab_run_start`, `collab_run_stop`, `collab_run_input`,
+`collab_relay_token_status`, `collab_set_relay_token`, `collab_test_relay`. Events:
+`collab://status`, `collab://doc`, `collab://notice`, `collab://presence`,
+`collab://follow-host`, `collab://ended`, `collab://resumed`, `collab://join-request`,
+`collab://join-closed`, `collab://waiting`, `collab://run-request`,
+`collab://terminal-opened`. Document state crosses the IPC as raw bytes (`collab_doc_open`,
+`collab_doc_sync`: `u32` header length, JSON header, Yjs update), updates and awareness as
+base64. The typed client is `ipc/collab.ts`; every command has a browser mock.
+
+**Tests.** `crates/forge-collab/tests/`: `simulation.rs` (host and guests over the in-memory
+network: edits, saves, disk changes and conflicts, renames, permissions, reconnects),
+`convergence.rs` (proptest: random interleavings converge), `stress.rs` (10 participants
+editing, following and sharing a terminal; asserts convergence and bounded queues; a heavier
+variant is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`),
+`decoding.rs` (proptest: links, frames and host calls from peers fail cleanly and round-trip),
+`guest_backend.rs`, `guest_lsp.rs`, `terminals_runs.rs`, `approval.rs`, `relay.rs` (an
+in-process `iroh-relay`), `quic_loopback.rs`. Fuzz targets (cargo-fuzz, own workspace, not run
+by `cargo test`) are in `crates/forge-collab/fuzz`: `link_parse`, `frame_decode`,
+`host_call_decode`; run one with `cd crates/forge-collab/fuzz && cargo +nightly fuzz run
+link_parse`.
+
+**Binary size.** forge-collab is the only path to 72 crates of the app's 871 (normal
+dependencies, `cargo tree -p forge-app -e normal --prefix none` compared with the same command
+with `--prune forge-collab`): iroh with its relay client, DNS and mDNS lookup, the QUIC stack
+(`noq`), `netwatch` / `netdev` / `netlink-*`, `yrs`, `blake3`, AES-GCM and `postcard`. TLS
+(`rustls` / `ring`) and tokio are shared with the rest of the app. The size in bytes is
+measured on a release build: `cargo bloat --release -p forge-app --crates -n 60` (cargo-bloat)
+lists the `.text` size per crate; the sum over the crates above is forge-collab's share. It
+was not measured on the development machine (a release build of the app needs more disk and
+time than it has); do it on the release machine before merging the Code With Me PR.
+
 ## Dev Containers and WSL (`forge-devenv`)
 
 - A project in a dev container or a WSL distribution is a `RemoteBackend` like an SSH project;

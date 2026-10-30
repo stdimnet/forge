@@ -1244,6 +1244,63 @@ Deviations from the plan above:
 - **Accept**: all screenshots in the list below reviewed; the performance targets met in the
   bench and stress tests; the manual desktop test plan passes on Linux, Windows and macOS.
 
+**S7 as built** (branch `feat/code-with-me-s7`):
+
+- **File Cache Conflict** (`docs::SharedDoc::apply_disk` / `resolve_conflict` /
+  `settle_conflict`, `HostSession::resolve_conflict`, protocol 5): a disk change to a shared file
+  with unsaved changes keeps the document and opens a conflict holding the disk's text; a
+  second change while it is open replaces that text without asking again. The host's UI gets
+  `collab://doc` `{ conflict: { open, path } }` (also without the tab open) and shows PHPStorm's
+  dialog ("Changes have been made to '<path>' in memory and on disk.") with Show Difference,
+  Keep Memory Changes and Load File System Changes (`features/code-with-me/conflict.ts`, one
+  dialog at a time); Show Difference and closing the dialog leave the choice in a sticky
+  balloon. `collab_doc_resolve_conflict({ docId, load })` answers: Load applies the minimal diff
+  for everyone, Keep makes the disk's text the saved text so the document stays unsaved and the
+  next save overwrites the file. Guests get `HostMessage::DocConflict` (and `conflict` in
+  `DocOpened` / `DocSynced` for late joiners and resumes), a balloon, and their saves are
+  refused while it is open. The conflict also ends when the host saves (memory wins), when
+  the disk changes back to the saved text, and when an edit makes the document equal to the
+  disk. The former notice "changed on disk. The unsaved shared changes are kept." is gone.
+- **Lines changed by guests** (`features/code-with-me/guestChanges.ts`): `HostEvent::DocUpdate`
+  and `collab://doc` carry `from` (the guest; absent for disk changes). The UI applies the
+  update inside `withAuthor`, a transaction extender tags the editor transaction
+  `y-codemirror.next` dispatches synchronously, and a gutter next to the line numbers marks the
+  lines in the guest's color (title "Changed by Alex"), one marker per line, the latest author
+  wins, positions follow later edits; every save (and a reload from disk) clears them. Host
+  only; it is per-keystroke editor work, so it is TypeScript with vitest, not Rust.
+- **Stress test** (`tests/stress.rs`): the host and 9 guests over the in-memory network type
+  into two files, move carets and follow each other, the host's shared terminal prints and the
+  guests type into it. Asserts identical replicas, everyone's last presence everywhere, the
+  terminal output exactly once per guest, every key at the host's shell, no refusals, and the
+  backlog: `HostSession::backlog` / `GuestSession::backlog` (new) peak far below the
+  cut-off (`GUEST_QUEUE` = 4096; measured 21 and 2 at 200 rounds) and drain to zero. About two
+  seconds in `cargo test`; the plan's target load (5 characters per second each, 5 ms latency,
+  300 rounds) is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`
+  (`FORGE_CWM_STRESS_ROUNDS` sets the rounds). CPU per core is not measured.
+- **Fuzzing**: cargo-fuzz targets in `crates/forge-collab/fuzz` (own workspace, `Cargo.lock`
+  ignored): `link_parse` (parse, then the URL and text forms round-trip), `frame_decode`
+  (guest and host frames from arbitrary chunks), `host_call_decode` (decode, then round-trip).
+  `cargo +nightly fuzz run <target>`; not run in CI or `cargo test`. The always-run proptest
+  sibling is `tests/decoding.rs` (proptest was already a dev-dependency).
+- **Wording and accessibility**: the popup's entries and shared files and the participants are
+  keyboard items (`a11y.ts`: Up / Down / Home / End move, Enter / Space choose; native radio
+  buttons keep their keys), action groups are `role="menu"`, the permission radio group, the
+  shared files list and the session log have labels, the Custom Permissions and Session Log
+  dialogs are `aria-modal`, the tool window tabs are focusable with `aria-selected`. The Join
+  Session dialog and the guest's status bar popup were left to `fix/code-with-me-guest-polish`.
+- **Docs**: the Code With Me section in `docs/ARCHITECTURE.md` (layers, contribution points,
+  protocol, host enforcement, documents and conflicts, reconnect, IPC, tests, binary size), the
+  guide's "Saving and changes on disk" and keyboard notes, README and ROADMAP.
+- **Binary size**: still not measured in bytes (no release build on the development machine,
+  no cargo-bloat). `cargo tree --prune forge-collab` shows 72 of the app's 871 crates are only
+  reachable through forge-collab (iroh, its QUIC stack `noq`, relay client, DNS / mDNS,
+  `netwatch` / `netlink-*`, `yrs`, `blake3`, AES-GCM, `postcard`); the method for the release
+  machine is in ARCHITECTURE.md.
+- Not done in S7: large and binary files are still refused for sharing rather than opened
+  read-only for guests (oversized files stay normal host tabs); per-guest rate limits are not
+  implemented (bounded queues and frame limits are); the manual desktop test plan on Linux,
+  Windows and macOS.
+
 ## Keeping one large PR reviewable
 
 A PR of this size (estimated 12 000 to 15 000 changed lines including tests) stays reviewable
