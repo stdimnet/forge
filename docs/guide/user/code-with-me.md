@@ -214,11 +214,17 @@ If you close the balloon without answering, the request stays open until it time
 
 1. Click the link (`forge://cwm/join?…`), or choose **Tools | Code With Me | Join Session…**
    and paste it into **Session link**. Without a project open, the Welcome screen has the same
-   action under **Remote Development | Code With Me | Join Session…**.
+   action under **Remote Development | Code With Me | Join Session…**. A clicked link opens
+   Forge (or brings it to the front) with the dialog filled in; if that window is already in a
+   session, a new window opens for it. Nothing connects before you click **Join**.
 2. The dialog shows where the link leads before anything connects: the **Host** and its
    **Machine** as the link names them, the **Connection** (direct, or through the host's relay
    server) and the name you **Join as** (**Change…** opens Settings | Tools | Code With Me). If a
-   project is open, it says that it is closed while you are a guest. Click **Join**.
+   project is open, it says that it is closed while you are a guest. Click **Join**. If that
+   project has unsaved changes, the dialog first lists the files and asks: **Save** them,
+   **Don't Save** (they stay unsaved, and are dropped only when the host's project takes the
+   window), or **Cancel** to go back to the link. In Safe Mode, Save only writes the files;
+   Actions on Save that run tools do not run.
 3. The dialog shows **Waiting for <host> to accept…** with the **verification code** and
    **Cancel**. Tell the host the code; the host sees the same one. If the host declines or does
    not answer, the dialog says so and offers **Try Again**.
@@ -242,6 +248,14 @@ the host (see [Terminal and Run](#terminal-and-run)).
 
 ![Join Session dialog](../../screenshots/code-with-me-join-dialog.png)
 
+![Unsaved changes in your own project before it closes](../../screenshots/code-with-me-join-unsaved.png)
+
+![Forge opened by a clicked session link](../../screenshots/code-with-me-join-link.png)
+
+The installers register Forge for `forge://` links (the `x-scheme-handler/forge` MIME type on
+Linux, the URL protocol on Windows, the URL type on macOS). AppImages and development builds
+register it when they start.
+
 ![Waiting for the host with the verification code](../../screenshots/code-with-me-join-waiting.png)
 
 ### When the connection drops
@@ -258,7 +272,9 @@ is not over:
   search and other requests to the host fail while the connection is down. Keys typed into a
   shared terminal or a run's console meanwhile are lost.
 - Back again, you see **Reconnected to <host>.** Shared terminals and runs show what you
-  missed, and the others see you where you were.
+  missed, and the others see you where you were. The host sends the file changes you missed;
+  the Project tree reads its open folders again (expansion and selection stay), and Git status,
+  Find and the other views that follow file changes refresh.
 - The host keeps your place (your color, permissions, terminals) for two minutes and shows you
   as **Reconnecting…** in the participant list meanwhile. After about 105 seconds without a
   connection your Forge gives up: the session ends with **The connection to the host was lost and
