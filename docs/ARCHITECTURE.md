@@ -159,6 +159,10 @@ app/ui/            SolidJS UI
 - Layout, wording and shortcuts follow PHPStorm; colors are Forge's own.
 - Every UI change is checked with `pnpm screenshots` (see `.claude/skills/verify-ui-with-screenshots`).
 - Project tree: single click selects, double click opens (setting `projectView.openFilesWithSingleClick`).
+- Per-project UI state (tree expansion, problems, search results, banners) is dropped through
+  `onProjectSwitch` (`src/state/workspace.ts`) when the window's project changes: This Window,
+  a Code With Me guest getting the host's project, Close Project. Views keyed on the project
+  render from `workspace()?.root`, not just from `workspace()` being set.
 - Commits: small, imperative subject lines, no co-author trailers.
 
 ## Shared IPC contracts
@@ -785,6 +789,8 @@ or without Git, for local and remote projects.
   `current_exe` (or `$APPIMAGE`) with the folder and `FORGE_NEW_WINDOW=1`, which skips the
   single-instance plugin, the splash, the update check, `forge://` registration and the
   Browser Companion server; a window that already shows the folder is focused instead.
+  `project_window_new()` (File | New Window) starts an instance without a folder, which shows
+  the Welcome screen (additional windows never reopen the last project).
   Instances register in `<cache dir>/forge/project-windows.json`
   (`forge_window::ProjectWindows`) and answer `forge-window <token> info|focus` lines on a
   `127.0.0.1` control port (`forge_window::parse_control_line`); entries that do not answer
@@ -1251,7 +1257,10 @@ or without Git, for local and remote projects.
   (`remote_key`); a location covers the projects below it on the same machine. Dev container
   projects use their local source folder's key, WSL projects their `//wsl.localhost/…` path.
 - `AppState::safe_mode` (`forge_trust::SafeMode`) is set by `set_workspace` /
-  `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted.
+  `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted, and
+  always for a Code With Me guest (`needs_safe_mode`; its key is `cwm://host/name`, never the
+  placeholder root). `trust_status` reports `guest: true` for it (the UI shows no banner) and
+  `trust_project` refuses it. `close_project` turns Safe Mode off.
   **Every command that starts project programs calls `state.require_trusted("<action>")?`**
   and fails with `forge_trust::refusal`: `run::start_built` (all runs: configurations, tests,
   debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),

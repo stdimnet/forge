@@ -122,6 +122,11 @@ both for an untrusted folder, and the project in the container is trusted with i
 WSL project is trusted by its `\\wsl.localhost\<distro>\…` path. See
 [Dev Containers and WSL](dev-containers-and-wsl.md).
 
+A [Code With Me](code-with-me.md#joining-a-session) guest's window is always in Safe Mode, but
+shows no banner and offers no **Trust Project…**: the host's project is not on this machine and
+nothing of it runs here. Its trust is the host's decision. Leaving the session ends Safe Mode
+with the project.
+
 ## Browser mode
 
 The demo projects of browser mode live in `~/Projects`, a trusted location, so they open

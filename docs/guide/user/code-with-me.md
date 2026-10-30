@@ -207,11 +207,26 @@ If you close the balloon without answering, the request stays open until it time
 ## Joining a session
 
 1. Click the link (`forge://cwm/join?…`), or choose **Tools | Code With Me | Join Session…**
-   and paste it.
+   and paste it. Without a project open, the Welcome screen has the same action under
+   **Remote Development | Code With Me | Join Session…**.
 2. Forge shows **Waiting for <host> to accept…** with the verification code and **Cancel**.
 3. When the host accepts, the host's project opens in your window and you follow the host. The
    title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
-   ends it for you.
+   ends it for you, and the window returns to the Welcome screen.
+
+![Joining from the Welcome screen](../../screenshots/code-with-me-welcome.png)
+
+The host's project replaces the project the window had open. Everything the window showed of
+that project goes with it: the Project tree shows the host's files right away, and the
+problems, Find and Inspection Results tabs and the Safe Mode banner of your own project are
+gone. To keep your project open, join from another window: **File | New Window** opens one on
+the Welcome screen.
+
+![The host's project after joining](../../screenshots/code-with-me-join-joined.png)
+
+A guest's window is always in Safe Mode, without the banner and without **Trust Project…**:
+nothing of the host's project runs on your machine. Terminals and runs the host shares run on
+the host (see [Terminal and Run](#terminal-and-run)).
 
 Guests see the Project tree, Structure, Find, Problems, Terminal and Run (with Terminal or Run access, see [Terminal and Run](#terminal-and-run)) and Git (read-only unless the host gave
 Full access). AI Chat, Database, Services, Debug and the code host tool windows are not
