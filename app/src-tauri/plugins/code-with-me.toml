@@ -122,6 +122,16 @@ section = "Session"
 order = 25
 
 [[contributions.settings]]
+key = "codeWithMe.shareNewTerminals"
+title = "Share new terminal tabs"
+description = "While you host a session, terminal tabs you open are shared with guests right away. Otherwise share a tab from its context menu (Share with Guests). Guests with Read-only terminal access watch shared tabs; with Full access they can type in them."
+type = "bool"
+default = false
+group = "tools.code-with-me"
+section = "Session"
+order = 27
+
+[[contributions.settings]]
 key = "codeWithMe.auditLog"
 title = "Keep a session log"
 description = "Who joined, permission changes, what guests changed and what was refused, as one file per session in Forge's data directory (never in the project). Logs older than 30 days are deleted."

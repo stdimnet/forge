@@ -11,6 +11,18 @@
 //! - `collab://follow-host` `{ on }` when the host turned Make Everyone Follow You on or off
 //!   (guest);
 //! - `collab://ended` `{ reason }` when the session is over for this window.
+//! - `collab://run-request` `{ request, configuration, guest }` (host): a guest with Run Full
+//!   access asks to run a configuration; the host's UI starts it like Run and answers with
+//!   `collab_run_answer`;
+//! - `collab://terminal-opened` `{ id, title }` (host): a guest opened a terminal on this
+//!   machine; the host's Terminal tool window shows it (`terminal_attach`).
+//!
+//! Shared terminals and runs: the host shares a terminal tab with `collab_share_terminal`
+//! (every run is shared); their output reaches the session through the hooks below
+//! (`on_terminal_*`, `on_run_*`). A guest attaches to a shared terminal with
+//! `collab_terminal_attach` (it then works like any terminal session: `terminal_write`,
+//! `terminal_close`) and to a run with `collab_run_attach` (events on
+//! `run://cwm-run-<id>`).
 //!
 //! Updates and awareness cross the IPC as base64 strings; the initial state of a document is
 //! sent as raw bytes ([`collab_doc_open`]).
@@ -32,7 +44,7 @@ use forge_collab::excludes::Excludes;
 use forge_collab::guest::{GuestEvent, GuestSession};
 use forge_collab::guest_backend::lsp_host::{LspServices, ManagerSource};
 use forge_collab::guest_backend::{CollabBackend, LspQuery};
-use forge_collab::host::{HostConfig, HostEvent, HostSession};
+use forge_collab::host::{HostConfig, HostEvent, HostServices, HostSession, LspRequest};
 use forge_collab::link::{LinkSummary, SessionLink};
 use forge_collab::permissions::{PermissionLevel, Permissions};
 use forge_collab::presence::{Participant, ParticipantId, Presence};
@@ -41,15 +53,17 @@ use forge_collab::relay::{
     normalize_relay_token, normalize_relay_url, ConnectionPath, RelayOptions, RelayStatus,
 };
 use forge_collab::secrets::{KeyringStore, RelayToken, RelayTokenStatus};
+use forge_collab::share::{RunId, SharedRun, SharedTerminal, TerminalId};
 use forge_collab::transport::net::{ListenOptions, NetTransport};
 use forge_collab::transport::relay::NetConfig;
 use forge_collab::transport::Transport;
 use forge_collab::verify::verification_code;
 use forge_core::{ForgeError, FsChanges, Result};
+use futures_util::future::BoxFuture;
 use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, State};
-use tokio::sync::Notify;
+use tokio::sync::{oneshot, Notify};
 
 use crate::commands::workspace::WorkspaceInfo;
 use crate::state::AppState;
@@ -63,6 +77,11 @@ pub const JOIN_CLOSED_EVENT: &str = "collab://join-closed";
 pub const WAITING_EVENT: &str = "collab://waiting";
 pub const PRESENCE_EVENT: &str = "collab://presence";
 pub const FOLLOW_HOST_EVENT: &str = "collab://follow-host";
+pub const RUN_REQUEST_EVENT: &str = "collab://run-request";
+pub const TERMINAL_OPENED_EVENT: &str = "collab://terminal-opened";
+
+/// How long the host's UI may take to start a run a guest asked for.
+const RUN_REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
 
 enum Active {
     Host(Arc<HostSession>),
@@ -81,7 +100,12 @@ pub struct CollabState {
     joining: Mutex<Option<Arc<Notify>>>,
     /// The host's session log (kept after the session ends, until the next one starts).
     log: Mutex<Option<Arc<SessionLog>>>,
+    /// Guests' run requests waiting for the host's UI.
+    run_requests: Mutex<std::collections::HashMap<u64, RunAnswer>>,
+    next_run_request: std::sync::atomic::AtomicU64,
 }
+
+type RunAnswer = oneshot::Sender<std::result::Result<(), String>>;
 
 /// Clears the joining state however the join ends.
 struct JoiningGuard<'a>(&'a CollabState);
@@ -188,6 +212,22 @@ pub struct SessionView {
     pub presence: Vec<ParticipantPresence>,
     /// Make Everyone Follow You is on.
     pub follow_everyone: bool,
+    /// Shared terminals: the ones the host shares (with their ids in this window), or the
+    /// host's terminals this guest sees.
+    pub terminals: Vec<TerminalView>,
+    /// The host's runs this guest sees (guest).
+    pub runs: Vec<SharedRun>,
+}
+
+/// A shared terminal in the session view.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalView {
+    #[serde(flatten)]
+    pub terminal: SharedTerminal,
+    /// The terminal's id in this window (host).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
 }
 
 /// One participant's presence (`collab://presence` and [`SessionView::presence`]).
@@ -229,6 +269,8 @@ fn idle_view() -> SessionView {
         workspace: None,
         presence: Vec::new(),
         follow_everyone: false,
+        terminals: Vec::new(),
+        runs: Vec::new(),
     }
 }
 
@@ -254,6 +296,15 @@ fn view(state: &CollabState) -> SessionView {
             workspace: None,
             presence: presence_list(h.presence(), ParticipantId::HOST),
             follow_everyone: h.follow_everyone(),
+            terminals: h
+                .shared_terminals()
+                .into_iter()
+                .map(|(key, terminal)| TerminalView {
+                    terminal,
+                    key: Some(key),
+                })
+                .collect(),
+            runs: Vec::new(),
         };
     }
     if let Some(g) = state.guest() {
@@ -284,6 +335,15 @@ fn view(state: &CollabState) -> SessionView {
                 .clone(),
             presence: presence_list(g.presence(), g.me()),
             follow_everyone: g.follow_host(),
+            terminals: g
+                .terminals()
+                .into_iter()
+                .map(|terminal| TerminalView {
+                    terminal,
+                    key: None,
+                })
+                .collect(),
+            runs: g.runs(),
         };
     }
     idle_view()
@@ -605,9 +665,10 @@ pub async fn collab_start(
         approvals.clone(),
         Arc::new(move |e| on_host_event(&handle, e)),
     );
-    host.set_services(Arc::new(LspServices(Arc::new(ShellServers {
+    host.set_services(Arc::new(ShellServices {
+        lsp: LspServices(Arc::new(ShellServers { app: app.clone() })),
         app: app.clone(),
-    }))));
+    }));
     let log = session_log(keep_log, &host.session_hex());
     host.set_audit(log.clone());
     *collab.log.lock().expect("collab lock poisoned") = Some(log);
@@ -630,6 +691,11 @@ pub async fn collab_end(app: AppHandle) -> Result<()> {
     if let Some(approvals) = state.approvals.lock().expect("collab lock poisoned").take() {
         approvals.refuse_all();
     }
+    state
+        .run_requests
+        .lock()
+        .expect("collab lock poisoned")
+        .clear();
     host.end("The host ended the session.").await;
     emit_status(&app);
     Ok(())
@@ -1030,6 +1096,304 @@ pub fn on_renamed(app: &AppHandle, from: &str, to: &str) {
 pub fn on_deleted(app: &AppHandle, path: &str) {
     if let Some(host) = app.state::<CollabState>().host() {
         host.on_deleted(path);
+    }
+}
+
+// ---- shared terminals and runs -----------------------------------------------------------
+
+/// What this window does for its guests: language servers, terminals and runs. The session
+/// has checked the guest's permissions before any of these is called.
+struct ShellServices {
+    lsp: LspServices<ShellServers>,
+    app: AppHandle,
+}
+
+impl HostServices for ShellServices {
+    fn lsp(&self, req: LspRequest) -> BoxFuture<'static, std::result::Result<Vec<u8>, String>> {
+        self.lsp.lsp(req)
+    }
+
+    /// A shell in the project folder (the host's own shell and settings), shown in the host's
+    /// Terminal tool window as `title`.
+    fn terminal_open(
+        &self,
+        key: String,
+        title: String,
+        cols: u16,
+        rows: u16,
+    ) -> BoxFuture<'static, std::result::Result<(), String>> {
+        let app = self.app.clone();
+        Box::pin(async move {
+            let options = crate::commands::terminal::TerminalOpenOptions {
+                id: Some(key.clone()),
+                cwd: Some(".".into()),
+                cols,
+                rows,
+                ..Default::default()
+            };
+            crate::commands::terminal::open(options, app.clone())
+                .await
+                .map_err(|e| e.to_string())?;
+            emit(
+                &app,
+                TERMINAL_OPENED_EVENT,
+                json!({ "id": key, "title": title }),
+            );
+            Ok(())
+        })
+    }
+
+    fn terminal_write(&self, key: &str, data: &str) -> std::result::Result<(), String> {
+        let terminals = self.app.state::<crate::commands::terminal::TerminalState>();
+        crate::commands::terminal::terminal_write(key.to_string(), data.to_string(), terminals)
+            .map_err(|e| e.to_string())
+    }
+
+    fn terminal_close(&self, key: &str) {
+        let terminals = self.app.state::<crate::commands::terminal::TerminalState>();
+        if let Some(t) = terminals.remove(key) {
+            if let Err(e) = t.kill() {
+                tracing::warn!("Code With Me: cannot close a guest's terminal: {e}");
+            }
+        }
+    }
+
+    /// The host's UI starts the configuration as if the host clicked Run.
+    fn run_start(
+        &self,
+        configuration: String,
+        guest: String,
+    ) -> BoxFuture<'static, std::result::Result<(), String>> {
+        let app = self.app.clone();
+        Box::pin(async move {
+            let collab = app.state::<CollabState>();
+            let request = collab
+                .next_run_request
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                + 1;
+            let (tx, rx) = oneshot::channel();
+            collab
+                .run_requests
+                .lock()
+                .expect("collab lock poisoned")
+                .insert(request, tx);
+            emit(
+                &app,
+                RUN_REQUEST_EVENT,
+                json!({ "request": request, "configuration": configuration, "guest": guest }),
+            );
+            match tokio::time::timeout(RUN_REQUEST_TIMEOUT, rx).await {
+                Ok(Ok(answer)) => answer,
+                _ => {
+                    collab
+                        .run_requests
+                        .lock()
+                        .expect("collab lock poisoned")
+                        .remove(&request);
+                    Err("The host did not start the run.".into())
+                }
+            }
+        })
+    }
+
+    fn run_stop(&self, key: &str) -> std::result::Result<(), String> {
+        let runs = self.app.state::<crate::commands::run::RunState>();
+        let (process, _) = runs.get(key).map_err(|e| e.to_string())?;
+        std::thread::spawn(move || process.kill(std::time::Duration::from_secs(2)));
+        Ok(())
+    }
+
+    fn run_write(&self, key: &str, data: &str) -> std::result::Result<(), String> {
+        crate::commands::run::run_write(
+            key.to_string(),
+            data.to_string(),
+            self.app.clone(),
+            self.app.state(),
+        )
+        .map_err(|e| e.to_string())
+    }
+}
+
+/// The host's UI started (or could not start) the run a guest asked for.
+#[tauri::command]
+pub fn collab_run_answer(request: u64, error: Option<String>, state: State<'_, CollabState>) {
+    let waiting = state
+        .run_requests
+        .lock()
+        .expect("collab lock poisoned")
+        .remove(&request);
+    if let Some(tx) = waiting {
+        let _ = tx.send(error.map_or(Ok(()), Err));
+    }
+}
+
+/// Share With Guests on a terminal tab (host), or stop sharing it.
+#[tauri::command]
+pub fn collab_share_terminal(
+    id: String,
+    title: String,
+    shared: bool,
+    app: AppHandle,
+) -> Result<SessionView> {
+    let host = running_host(&app.state())?;
+    let (scrollback, cols, rows) = app
+        .state::<crate::commands::terminal::TerminalState>()
+        .snapshot(&id)
+        .ok_or_else(|| other("The terminal is not running."))?;
+    if !host.share_terminal(&id, &title, cols, rows, &scrollback, shared) {
+        return Err(other("A guest's terminal is always shared."));
+    }
+    Ok(view(&app.state()))
+}
+
+fn guest_or_err(app: &AppHandle) -> Result<Arc<GuestSession>> {
+    guest_session(app).ok_or_else(|| other("No session is running."))
+}
+
+/// What a guest's terminal tab starts with.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalAttach {
+    pub scrollback: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub running: bool,
+}
+
+/// Show one of the host's shared terminals in the tab `id` (guest): it then works like any
+/// terminal session of this window (`terminal_write`; `terminal_close` detaches).
+#[tauri::command]
+pub fn collab_terminal_attach(terminal: u64, id: String, app: AppHandle) -> Result<TerminalAttach> {
+    let guest = guest_or_err(&app)?;
+    let event = format!("terminal://{id}");
+    let handle = app.clone();
+    let (scrollback, info, proxy) = guest
+        .attach_terminal(
+            TerminalId(terminal),
+            Arc::new(move |e| {
+                if let Err(err) = handle.emit(&event, &e) {
+                    tracing::warn!("cannot emit {event}: {err}");
+                }
+            }),
+        )
+        .map_err(other)?;
+    app.state::<crate::commands::terminal::TerminalState>()
+        .insert(id, proxy);
+    Ok(TerminalAttach {
+        scrollback,
+        cols: info.cols,
+        rows: info.rows,
+        running: info.running,
+    })
+}
+
+/// Show one of the host's runs (guest): what happened so far; live events follow on
+/// `run://cwm-run-<run>`.
+#[tauri::command]
+pub fn collab_run_attach(run: u64, app: AppHandle) -> Result<Vec<serde_json::Value>> {
+    let guest = guest_or_err(&app)?;
+    let event = format!("run://cwm-run-{run}");
+    let handle = app.clone();
+    let events = guest
+        .attach_run(
+            RunId(run),
+            Arc::new(move |e| {
+                if let Ok(value) = serde_json::from_str::<serde_json::Value>(&e) {
+                    emit(&handle, &event, value);
+                }
+            }),
+        )
+        .map_err(other)?;
+    Ok(events
+        .iter()
+        .filter_map(|e| serde_json::from_str(e).ok())
+        .collect())
+}
+
+/// The run's tab closed (guest).
+#[tauri::command]
+pub fn collab_run_detach(run: u64, app: AppHandle) {
+    if let Some(guest) = guest_session(&app) {
+        guest.detach_run(RunId(run));
+    }
+}
+
+/// Run one of the host's configurations by name (guest, Run Full access).
+#[tauri::command]
+pub async fn collab_run_start(configuration: String, app: AppHandle) -> Result<()> {
+    guest_or_err(&app)?
+        .start_run(&configuration)
+        .await
+        .map_err(other)
+}
+
+/// Stop one of the host's runs (guest, Run Full access).
+#[tauri::command]
+pub async fn collab_run_stop(run: u64, app: AppHandle) -> Result<()> {
+    guest_or_err(&app)?
+        .stop_run(RunId(run))
+        .await
+        .map_err(other)
+}
+
+/// Console input for one of the host's runs (guest, Run Full access).
+#[tauri::command]
+pub fn collab_run_input(run: u64, data: String, app: AppHandle) -> Result<()> {
+    guest_or_err(&app)?.run_input(RunId(run), &data);
+    Ok(())
+}
+
+// ---- hooks from the terminal and run commands --------------------------------------------
+
+fn hosting(app: &AppHandle) -> Option<Arc<HostSession>> {
+    app.try_state::<CollabState>()?.host()
+}
+
+/// Output of a terminal of this window; shared with guests if the terminal is shared.
+pub fn on_terminal_output(app: &AppHandle, id: &str, data: &str) {
+    if let Some(host) = hosting(app) {
+        host.terminal_output(id, data);
+    }
+}
+
+pub fn on_terminal_exited(app: &AppHandle, id: &str, code: Option<i32>) {
+    if let Some(host) = hosting(app) {
+        host.terminal_exited(id, code);
+    }
+}
+
+pub fn on_terminal_resized(app: &AppHandle, id: &str, cols: u16, rows: u16) {
+    if let Some(host) = hosting(app) {
+        host.terminal_resized(id, cols, rows);
+    }
+}
+
+pub fn on_terminal_closed(app: &AppHandle, id: &str) {
+    if let Some(host) = hosting(app) {
+        host.terminal_closed(id);
+    }
+}
+
+/// A run of the Run tool window is about to start: guests who see runs see it.
+pub fn on_run_starting(app: &AppHandle, run_id: &str, name: &str, kind: Option<&str>) {
+    if let Some(host) = hosting(app) {
+        host.run_started(run_id, name, kind);
+    }
+}
+
+/// An event of a run (`run://<runId>`).
+pub fn on_run_event<T: Serialize>(app: &AppHandle, run_id: &str, payload: &T) {
+    if let Some(host) = hosting(app) {
+        if let Ok(json) = serde_json::to_string(payload) {
+            host.run_event(run_id, &json);
+        }
+    }
+}
+
+/// A run's tab closed (or the run did not start).
+pub fn on_run_disposed(app: &AppHandle, run_id: &str) {
+    if let Some(host) = hosting(app) {
+        host.run_disposed(run_id);
     }
 }
 
