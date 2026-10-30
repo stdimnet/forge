@@ -5,6 +5,7 @@
 import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { lspApi, type EditorDiagnostic, type ServerStatus, type Severity } from "@/ipc/lsp";
+import { onProjectSwitch } from "@/state/workspace";
 
 const [diagnostics, setDiagnostics] = createStore<Record<string, EditorDiagnostic[]>>({});
 const [servers, setServers] = createSignal<ServerStatus[]>([]);
@@ -83,6 +84,16 @@ export function publishDiagnostics(path: string, diags: EditorDiagnostic[], sour
   sources.set(source, diags);
   show(path);
 }
+
+/** Forget every file's problems (another project opened in this window). */
+export function clearDiagnostics(): void {
+  const paths = [...bySource.keys()];
+  bySource.clear();
+  setDiagnostics(reconcile({}));
+  for (const path of paths) listeners.forEach((l) => l(path, []));
+}
+
+onProjectSwitch(clearDiagnostics);
 
 export function setServerStatuses(s: ServerStatus[]): void {
   setServers(s);

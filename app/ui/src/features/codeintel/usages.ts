@@ -7,6 +7,7 @@
 import { createSignal } from "solid-js";
 import type { EditorView } from "@codemirror/view";
 import { editor, isDirty } from "@/state/editor";
+import { onProjectSwitch } from "@/state/workspace";
 import { showToolWindow } from "@/state/layout";
 import { openFileAt } from "@/editor/views";
 import { showBalloon } from "@/keymap";
@@ -184,6 +185,13 @@ export { findTabs, activeFindTab, setActiveFindTab };
 export const SEARCH_TAB = 0;
 const [searchTabOpen, setSearchTabOpen] = createSignal(false);
 export { searchTabOpen };
+
+// The Find tool window's tabs are about the project they searched.
+onProjectSwitch(() => {
+  setFindTabs([]);
+  setActiveFindTab(null);
+  setSearchTabOpen(false);
+});
 
 /** Show the Find in Files tab of the Find tool window. */
 export function showSearchTab(): void {

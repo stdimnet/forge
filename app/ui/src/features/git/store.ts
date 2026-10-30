@@ -8,6 +8,7 @@ import { listen } from "@/ipc";
 import { setCurrentBranch, setFileStatuses, type FileStatus } from "@/state/vcs";
 import { editor, readOpenFile, type Eol } from "@/state/editor";
 import { onFsChanged } from "@/state/fsWatch";
+import { workspace } from "@/state/workspace";
 import { logNotification, modeOf, registerNotificationGroup } from "@/state/notifications";
 import { getSetting } from "@/state/settings";
 import { gitApi, displayStatus, GIT_CHANGED_EVENT, type RepoStatus } from "./api";
@@ -142,6 +143,8 @@ export function startGitStore(): void {
     else void refreshStatus();
   });
   createRoot(() => {
+    // Another project in this window (a Code With Me guest got the host's): its repository.
+    createEffect(on(() => workspace()?.root, () => void repositoryChanged(), { defer: true }));
     // Refresh after saves: watch the saved snapshot of every tab.
     createEffect(
       on(
