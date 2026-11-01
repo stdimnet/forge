@@ -279,7 +279,7 @@ app/ui/            SolidJS UI
   action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
   same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
 - Git menu dialogs and the shelf (`forge_vcs::ops`, `repo/ops.rs`, `repo/shelve.rs`,
-  `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogs.tsx`,
+  `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogHost.tsx`,
   `StashShelfPanels.tsx`, `operation.ts`): `git_pull_with({ options: { remote, branches, rebase?,
   ffOnly?, noFf?, squash?, noCommit?, noVerify? } }) -> { output }`, `git_merge_with({ options: {
   branches, noFf?, ffOnly?, squash?, message?, noCommit?, allowUnrelatedHistories?, noVerify? }
@@ -301,7 +301,7 @@ app/ui/            SolidJS UI
   (`?rebasing` starts in a stopped rebase).
 - Changelists, partial commits and patches (`forge_vcs::{changelists, hunks, patch}`,
   `repo/partial.rs`, `repo/patches.rs`, `commands/git_changes.rs`, UI `features/git/
-  changelists.ts`, `changesDialogs.ts`, `ChangesDialogs.tsx`, `partialGutter.ts`,
+  changelists.ts`, `changesDialogs.ts`, `ChangesDialogViews.tsx`, `partialGutter.ts`,
   `commitChecks.ts`): changelists live in `<data dir>/forge/projects/<name>-<hash>/
   changelists.json`; every changelist command answers the lists `{ id, name, comment, active,
   files: { path, hunks: string[] | null }[] }[]`: `git_changelists()`,

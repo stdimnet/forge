@@ -32,7 +32,7 @@ import {
 } from "./gitDialogs";
 import { Check, Frame, Row } from "./DialogFrame";
 import { InteractiveRebaseDialog, RewordDialog, SquashCommitsDialog } from "./LogDialogs";
-import { ApplyPatchDialog, ChangelistDialog, CreatePatchDialog, MoveChangelistDialog } from "./ChangesDialogs";
+import { ApplyPatchDialog, ChangelistDialog, CreatePatchDialog, MoveChangelistDialog } from "./ChangesDialogViews";
 import { CloneDialog, NewWorktreeDialog } from "./ExtrasDialogs";
 import "./dialogs.css";
 
