@@ -56,6 +56,14 @@ tauri dev` shows the update panel on the splash with a fake download instead; se
 Browser mode is the fastest loop for UI work and screenshots. Use `pnpm tauri dev` to test the
 real file system, git, language servers, PTYs, databases and Docker.
 
+### `forge://` links on macOS
+
+`make dev` is `pnpm tauri dev` plus a Cargo runner on macOS (`scripts/macos-dev-runner.sh`). It
+starts the debug binary from a small `target/debug/Forge Dev.app` bundle whose `Info.plist`
+claims the `forge://` scheme, because macOS registers URL schemes only through app bundles.
+With it, links such as `forge://cwm/join?…` open in the running dev instance. Plain
+`pnpm tauri dev` skips the runner, so `forge://` links do not work there on macOS.
+
 ## Useful scripts (`app/ui`)
 
 | Script | Does |
