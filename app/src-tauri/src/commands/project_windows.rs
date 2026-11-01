@@ -25,7 +25,7 @@ use forge_window::{
     control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo,
     ProjectWindows,
 };
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::state::AppState;
 
@@ -161,6 +161,10 @@ fn serve(app: &AppHandle, stream: TcpStream, token: &str, id: &str) {
             focus_main(app);
             "ok".into()
         }
+        Some(ControlRequest::Quit) => {
+            quit_this(app);
+            "ok".into()
+        }
         None => return,
     };
     let mut stream = stream;
@@ -264,6 +268,26 @@ fn live_windows(app: &AppHandle) -> Vec<ProjectWindowInfo> {
     infos
 }
 
+/// How long the main window has to save its files before this instance exits anyway.
+const QUIT_GRACE: Duration = Duration::from_secs(5);
+
+/// Ask this instance's main window to save and exit (`app://quit`, answered with `app_exit`);
+/// without an answer the instance exits after [`QUIT_GRACE`].
+fn quit_this(app: &AppHandle) {
+    if app
+        .emit_to(crate::startup::MAIN_LABEL, "app://quit", ())
+        .is_err()
+    {
+        app.exit(0);
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(QUIT_GRACE);
+        app.exit(0);
+    });
+}
+
 fn focus_other(id: &str) -> Result<()> {
     let registry = load_registry();
     let entry = registry
@@ -284,6 +308,26 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T> + Send + 'sta
 #[tauri::command]
 pub async fn project_windows_list(app: AppHandle) -> Result<Vec<ProjectWindowInfo>> {
     blocking(move || Ok(live_windows(&app))).await
+}
+
+/// Exit | Cmd+Q: every project window of Forge saves its files and closes, this one too.
+#[tauri::command]
+pub async fn app_quit_all(app: AppHandle) -> Result<()> {
+    blocking(move || {
+        let me = ME.get().map(|m| m.id.clone()).unwrap_or_default();
+        for entry in load_registry().windows.iter().filter(|w| w.id != me) {
+            let _ = request(entry, ControlRequest::Quit);
+        }
+        quit_this(&app);
+        Ok(())
+    })
+    .await
+}
+
+/// Leave the process now (the answer of the main window to `app://quit`, files saved).
+#[tauri::command]
+pub fn app_exit(app: AppHandle) {
+    app.exit(0);
 }
 
 /// Bring another project window to the front.

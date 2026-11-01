@@ -6,7 +6,6 @@
  * manifest or `registerMainMenuEntries` (see `./model`).
  */
 import { render } from "solid-js/web";
-import { isTauri } from "@/ipc";
 import { redoIn, undoIn } from "@/editor/reload";
 import { workspaceApi } from "@/ipc/workspace";
 import { runAction } from "@/keymap";
@@ -48,13 +47,6 @@ for (const [id, cmd] of [
   });
 }
 
-if (isTauri()) {
-  registerCommand({
-    id: "Exit",
-    title: "Exit",
-    run: async () => (await import("@tauri-apps/api/window")).getCurrentWindow().close(),
-  });
-}
 
 // ---- View | Appearance toggles
 const flip = (key: string) => void saveSetting(key, !getSetting<boolean>(key, false));

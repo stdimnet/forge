@@ -62,6 +62,10 @@ export const windowApi = {
   /** Open (or focus) a dialog window owned by the calling window. */
   openDialog: (request: DialogWindowRequest) => invoke<void>("dialog_window_open", { request }),
   /** Close the calling dialog window, reporting `result` to its parent. */
+  /** Exit: every project window saves its files and closes, this one too. */
+  quitAll: () => invoke<void>("app_quit_all"),
+  /** Leave the process now (the answer to `app://quit`). */
+  exit: () => invoke<void>("app_exit"),
   /** The dialog window has rendered; the backend shows it (it is created hidden). */
   dialogReady: () => invoke<void>("dialog_window_ready"),
   closeDialog: (result: unknown) => invoke<void>("dialog_window_close", { result: result ?? null }),
