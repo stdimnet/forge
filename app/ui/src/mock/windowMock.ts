@@ -31,6 +31,7 @@ const desktopOnly = () => {
   throw new Error("dialog windows need the desktop app");
 };
 registerMock("dialog_window_open", desktopOnly);
+registerMock("dialog_window_ready", desktopOnly);
 registerMock("dialog_window_close", desktopOnly);
 registerMock("dialog_window_message", desktopOnly);
 

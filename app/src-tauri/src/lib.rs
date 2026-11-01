@@ -1187,6 +1187,7 @@ pub fn run() {
             commands::window::dialog_window_open,
             commands::window::dialog_window_close,
             commands::window::dialog_window_message,
+            commands::window::dialog_window_ready,
             commands::window::window_set_fullscreen,
             commands::window::window_is_fullscreen,
             commands::window::window_set_zoom,
