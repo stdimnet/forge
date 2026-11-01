@@ -700,7 +700,7 @@ or without Git, for local and remote projects.
 ## Startup splash and updates (`forge-update`)
 
 - **Windows.** `tauri.conf.json` declares two windows with `create: false`: `splash`
-  (640×400, undecorated, transparent, centered, `skipTaskbar`, loads `index.html?splash`) and
+  (640×400, undecorated, transparent, centered, `skipTaskbar`, loads `splash.html`, a page of its own that paints a static wordmark before any script runs) and
   `main`. `startup::begin` (called from `setup`) opens the splash unless `appearance.showSplash`
   is off and runs the loading steps on the `forge-startup` thread: keymap, plugin listeners and
   servers, the CLI / `forge://` / last project (`system.reopenLastProject`) with framework

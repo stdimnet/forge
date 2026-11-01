@@ -14,7 +14,7 @@
       {
         "label": "splash",
         "create": false,
-        "url": "index.html?splash",
+        "url": "splash.html",
         "title": "Forge",
         "width": 640,
         "height": 400,

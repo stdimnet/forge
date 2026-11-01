@@ -97,7 +97,13 @@ pub fn begin(app: &AppHandle) {
         .unwrap_or(true);
     // Additional project windows open without a splash, like PHPStorm.
     if show && !crate::commands::project_windows::is_secondary() {
-        if let Err(e) = window_from_config(app, SPLASH_LABEL).and_then(|b| b.build()) {
+        // The static page of the splash (`splash.html`) paints in the theme of the settings.
+        let theme = serde_json::to_string(&splash_theme(app)).unwrap_or_else(|_| "\"dark\"".into());
+        let opened = window_from_config(app, SPLASH_LABEL).and_then(|b| {
+            b.initialization_script(format!("window.__FORGE_SPLASH_THEME__ = {theme};"))
+                .build()
+        });
+        if let Err(e) = opened {
             tracing::warn!("cannot open the splash window: {e}");
         }
     }
@@ -295,14 +301,18 @@ pub fn startup_workbench_ready(
         .take()
 }
 
+/// The theme setting, as the splash shows it.
+fn splash_theme(app: &AppHandle) -> String {
+    app.state::<AppState>()
+        .read_settings()
+        .get_as::<String>("appearance.theme")
+        .unwrap_or_else(|| "dark".into())
+}
+
 /// The splash window's current state.
 #[tauri::command]
 pub fn splash_state(app: AppHandle, startup: State<'_, StartupState>) -> SplashSnapshot {
-    let theme = app
-        .state::<AppState>()
-        .read_settings()
-        .get_as::<String>("appearance.theme")
-        .unwrap_or_else(|| "dark".into());
+    let theme = splash_theme(&app);
     SplashSnapshot {
         progress: startup
             .progress
