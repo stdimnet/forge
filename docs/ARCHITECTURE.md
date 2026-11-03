@@ -1158,6 +1158,31 @@ time than it has); do it on the release machine before merging the Code With Me 
   `companion_project_profile({ envKeys, files })`, `companion_set_env_var({ file: ".env" |
   ".env.local", key, value })`; `companion://status` reports server restarts.
 
+## MCP server (`forge-mcp`)
+
+- Forge as a Model Context Protocol server for external agents. Off by default (`mcp.enabled`);
+  only the first project window runs it. Streamable HTTP on `http://127.0.0.1:64342/mcp` (next
+  nine ports if taken; `mcp.port`), legacy HTTP+SSE on `/sse` + `/messages?sessionId=`. Every
+  request needs a loopback `Host`, no foreign `Origin` and `Authorization: Bearer <token>`; the
+  token is in the keychain (`forge-mcp` / `server-token`). `forge --mcp-stdio` proxies stdio to
+  the server found in `<config dir>/forge/mcp-server.json` (`{ port, pid, version }`).
+- Every `tools/call` goes through `forge_mcp::CallPolicy::decide` (tool groups `mcp.tools.*`,
+  `mcp.requireApproval`, Safe Mode for tools that run project code, `ai.enabled`, `.aiignore`,
+  the project boundary), then an approval card if asked, then the IDE (`McpHost::call_tool`),
+  then `.aiignore` filtering of the result and the call log.
+- Tools whose runner is `Backend` are answered in Rust (`commands/mcp.rs`, through the project
+  backend, codeintel, inspections, `forge_vcs`, `forge_db` with a read-only guard). `Editor`
+  tools are forwarded as `mcp://tool-request { id, tool, arguments }` and answered with
+  `mcp_tool_result({ id, answer: { result?, error? } })`; the UI handles `get_open_editors`,
+  `get_current_file`, `open_file_in_editor`, `get_problems`, `list_run_configurations`,
+  `reformat_file`, `run_configuration` and the internal `buffer_text` / `apply_text` (Rust
+  computes `replace_text_in_file`, the editor applies the text as one undo step and saves).
+- Approvals: `mcp://approval` `ApprovalRequest { id, client, tool, summary, arguments,
+  sessionAllowed, … }`, answered with `mcp_answer_approval({ id, answer: "once" | "session" |
+  "deny" })`; `mcp://approval-closed { id }` when it timed out (denied after two minutes).
+- IPC: `mcp_status`, `mcp_client_configs`, `mcp_regenerate_token`, `mcp_call_log`,
+  `mcp_clear_log`, `mcp_disconnect({ session })`; events `mcp://status`, `mcp://call`.
+
 ## Project types and New Project (`forge-project`)
 
 - Detection reads markers in the project root and one level below (`composer.json`/`composer.lock`,

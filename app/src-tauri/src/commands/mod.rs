@@ -63,6 +63,7 @@ pub mod lsp;
 pub mod lua;
 pub mod maintenance;
 pub mod markdown;
+pub mod mcp;
 pub mod output;
 pub mod php;
 pub mod php_interpreters;

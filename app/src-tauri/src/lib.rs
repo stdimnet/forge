@@ -11,6 +11,12 @@ use state::AppState;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 
+/// `forge --mcp-stdio`: the stdio proxy to the running Forge's MCP server (for clients that
+/// only start stdio servers). Returns the exit code, or `None` for other arguments.
+pub fn mcp_stdio_main(args: &[String]) -> Option<i32> {
+    commands::mcp::stdio_main(args)
+}
+
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -52,6 +58,7 @@ pub fn run() {
         .manage(startup::StartupState::default())
         .manage(commands::updates::UpdatesState::default())
         .manage(companion::CompanionState::load())
+        .manage(commands::mcp::McpState::default())
         .manage(commands::ai::AiState::load())
         .manage(commands::ai_editor::AiEditorState::default())
         .manage(commands::agent::AgentState::default())
@@ -722,6 +729,14 @@ pub fn run() {
             commands::project::project_create,
             commands::project::project_create_cancel,
             commands::companion::companion_status,
+            commands::mcp::mcp_status,
+            commands::mcp::mcp_client_configs,
+            commands::mcp::mcp_regenerate_token,
+            commands::mcp::mcp_call_log,
+            commands::mcp::mcp_clear_log,
+            commands::mcp::mcp_answer_approval,
+            commands::mcp::mcp_tool_result,
+            commands::mcp::mcp_disconnect,
             commands::companion::companion_start_pairing,
             commands::companion::companion_cancel_pairing,
             commands::companion::companion_revoke_client,
@@ -1261,6 +1276,22 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
         });
     if !commands::project_windows::is_secondary() {
         companion::apply_server_settings(app);
+    }
+
+    // MCP server (Settings | Tools | MCP Server), restarted when it is turned on or off or
+    // its port changes. Like the Browser Companion, only the first project window runs it.
+    let handle = app.clone();
+    app.state::<AppState>()
+        .write_settings()
+        .subscribe(move |change| {
+            if (change.key == commands::mcp::KEY_ENABLED || change.key == commands::mcp::KEY_PORT)
+                && !commands::project_windows::is_secondary()
+            {
+                commands::mcp::apply_server_settings(&handle);
+            }
+        });
+    if !commands::project_windows::is_secondary() {
+        commands::mcp::apply_server_settings(app);
     }
 
     // Docker / Kubernetes reconnect when their settings change (they connect in the

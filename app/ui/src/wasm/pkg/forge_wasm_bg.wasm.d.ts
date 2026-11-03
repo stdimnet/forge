@@ -302,6 +302,7 @@ export const markdown_anchor_line: (a: number, b: number, c: number) => void;
 export const markdown_document: (a: number, b: number, c: number) => void;
 export const markdown_hover: (a: number, b: number, c: number) => void;
 export const markdown_parse: (a: number, b: number, c: number) => void;
+export const mcp_client_configs: (a: number, b: number, c: number) => void;
 export const nav_bar_segments: (a: number, b: number, c: number) => void;
 export const node_coverage_wrap: (a: number, b: number, c: number) => void;
 export const nuget_parse_search: (a: number, b: number, c: number) => void;

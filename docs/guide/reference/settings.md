@@ -1210,6 +1210,22 @@ Page id `tools.browser-companion`.
 | `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
 | `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
+### Tools | MCP Server
+
+Page id `tools.mcp-server`. See [MCP Server](../user/mcp-server.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `mcp.enabled` | bool | `false` | user | Server | Enable MCP server — Runs a Model Context Protocol server on 127.0.0.1 that external agents can use with the bearer token shown below. Off by default. |
+| `mcp.port` | int (1024–65535) | `64342` | user | Server | Port — If the port is taken, the next 9 ports are tried. The client configurations below always show the port in use. |
+| `mcp.requireApproval` | bool | `true` | user | Approval | Ask before tools that edit files, run configurations or query databases — Shows an approval card in Forge for every such call. Terminal commands always ask. |
+| `mcp.tools.read` | bool | `true` | user | Tools | Read the project: open editors, files, search, navigation, problems, inspections |
+| `mcp.tools.vcs` | bool | `true` | user | Tools | Version control: Git status and diffs |
+| `mcp.tools.edit` | bool | `true` | user | Tools | Edit files: replace text, write files, reformat (undoable in the editor) |
+| `mcp.tools.run` | bool | `true` | user | Tools | Run configurations and tests — Refused in Safe Mode. |
+| `mcp.tools.terminal` | bool | `false` | user | Tools | Terminal commands (asked on every call) — Refused in Safe Mode. |
+| `mcp.tools.database` | bool | `true` | user | Tools | Data sources and read-only queries — Only SELECT-like statements run; read-only and production data sources keep their guards. |
+
 ### Tools | External Tools
 
 Page id `tools.external-tools`. See [External Tools](../user/run-debug.md#external-tools).

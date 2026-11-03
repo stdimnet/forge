@@ -113,4 +113,5 @@ not finished, the page says so.
 | [Deployment](deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
 | [Remote Host and SSH sessions](remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
 | [AI](ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
+| [MCP Server](mcp-server.md) | external agents (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex) use Forge's tools: client configurations, tool groups, approval cards, Safe Mode, `.aiignore`, call log |
 | [Browser Companion](browser-companion.md) | browser extension, `forge://` links, error page integrations |

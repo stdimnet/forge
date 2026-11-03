@@ -15527,6 +15527,132 @@
     }
   },
   {
+    "id": "forge.mcp-server",
+    "name": "MCP Server",
+    "version": "0.1.0",
+    "pack": "core",
+    "description": "Let external AI agents (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex) use Forge's tools on the open project through the Model Context Protocol.",
+    "vendor": "Forge",
+    "depends": [
+      "forge.ai"
+    ],
+    "required": false,
+    "enabled": true,
+    "contributions": {
+      "languages": [],
+      "fileTypes": [],
+      "commands": [],
+      "keybindings": [],
+      "toolWindows": [],
+      "settings": [
+        {
+          "key": "mcp.enabled",
+          "title": "Enable MCP server",
+          "description": "Runs a Model Context Protocol server on 127.0.0.1 that external agents can use with the bearer token shown below. Off by default.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.mcp-server",
+          "section": "Server",
+          "project": false,
+          "order": 0
+        },
+        {
+          "key": "mcp.port",
+          "title": "Port",
+          "description": "If the port is taken, the next 9 ports are tried. The client configurations below always show the port in use.",
+          "type": "int",
+          "min": 1024,
+          "max": 65535,
+          "default": 64342,
+          "group": "tools.mcp-server",
+          "section": "Server",
+          "project": false,
+          "order": 1
+        },
+        {
+          "key": "mcp.requireApproval",
+          "title": "Ask before tools that edit files, run configurations or query databases",
+          "description": "Shows an approval card in Forge for every such call. Terminal commands always ask.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.mcp-server",
+          "section": "Approval",
+          "project": false,
+          "order": 10
+        },
+        {
+          "key": "mcp.tools.read",
+          "title": "Read the project: open editors, files, search, navigation, problems, inspections",
+          "type": "bool",
+          "default": true,
+          "group": "tools.mcp-server",
+          "section": "Tools",
+          "project": false,
+          "order": 20
+        },
+        {
+          "key": "mcp.tools.vcs",
+          "title": "Version control: Git status and diffs",
+          "type": "bool",
+          "default": true,
+          "group": "tools.mcp-server",
+          "section": "Tools",
+          "project": false,
+          "order": 21
+        },
+        {
+          "key": "mcp.tools.edit",
+          "title": "Edit files: replace text, write files, reformat (undoable in the editor)",
+          "type": "bool",
+          "default": true,
+          "group": "tools.mcp-server",
+          "section": "Tools",
+          "project": false,
+          "order": 22
+        },
+        {
+          "key": "mcp.tools.run",
+          "title": "Run configurations and tests",
+          "description": "Refused in Safe Mode.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.mcp-server",
+          "section": "Tools",
+          "project": false,
+          "order": 23
+        },
+        {
+          "key": "mcp.tools.terminal",
+          "title": "Terminal commands (asked on every call)",
+          "description": "Refused in Safe Mode.",
+          "type": "bool",
+          "default": false,
+          "group": "tools.mcp-server",
+          "section": "Tools",
+          "project": false,
+          "order": 24
+        },
+        {
+          "key": "mcp.tools.database",
+          "title": "Data sources and read-only queries",
+          "description": "Only SELECT-like statements run; read-only and production data sources keep their guards.",
+          "type": "bool",
+          "default": true,
+          "group": "tools.mcp-server",
+          "section": "Tools",
+          "project": false,
+          "order": 25
+        }
+      ],
+      "lspServers": [],
+      "runConfigurationTypes": [],
+      "aiProviders": [],
+      "chatAgents": [],
+      "codeGenerators": [],
+      "mainMenu": []
+    }
+  },
+  {
     "id": "forge.bash",
     "name": "Bash",
     "version": "0.1.0",

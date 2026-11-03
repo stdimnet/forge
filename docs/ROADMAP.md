@@ -152,7 +152,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
 - [x] Code review: Review pull/merge requests inside Forge with AI summaries
 - [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — stages S0 to S7 built on `feat/code-with-me` (not the auto-runner's; leave it to its owner), waiting for the manual desktop test plan and the release-build size measurement before it merges; [plan](plans/code-with-me.md), [guide](guide/user/code-with-me.md)
-- [ ] MCP: Forge as an MCP server for external agents
+- [x] MCP: Forge as an MCP server for external agents
 
 ## Milestone 7 — Platform and release
 

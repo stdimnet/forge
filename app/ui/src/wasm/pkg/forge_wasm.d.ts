@@ -1550,6 +1550,11 @@ export function markdown_hover(request_json: string): string;
 export function markdown_parse(request_json: string): string;
 
 /**
+ * `{ url, token, exe }` → `ClientConfig[]`.
+ */
+export function mcp_client_configs(request_json: string): string;
+
+/**
  * `{ project, path, scopes, showMembers }` → `NavSegment[]`.
  */
 export function nav_bar_segments(request_json: string): string;
@@ -2914,6 +2919,7 @@ export interface InitOutput {
     readonly markdown_document: (a: number, b: number, c: number) => void;
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
+    readonly mcp_client_configs: (a: number, b: number, c: number) => void;
     readonly nav_bar_segments: (a: number, b: number, c: number) => void;
     readonly node_coverage_wrap: (a: number, b: number, c: number) => void;
     readonly nuget_parse_search: (a: number, b: number, c: number) => void;

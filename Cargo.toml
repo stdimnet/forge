@@ -80,6 +80,7 @@ forge-deploy = { path = "crates/forge-deploy" }
 forge-window = { path = "crates/forge-window" }
 forge-update = { path = "crates/forge-update" }
 forge-vulns = { path = "crates/forge-vulns" }
+forge-mcp = { path = "crates/forge-mcp", default-features = false }
 phpforge-builtin-lsp = { path = "packs/phpforge/builtin-lsp" }
 phpforge-composer = { path = "packs/phpforge/composer" }
 phpforge-interpreters = { path = "packs/phpforge/interpreters" }

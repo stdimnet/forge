@@ -29,6 +29,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `ssh.toml` | saved SSH configurations (no passwords) |
 | `dataSources.toml` | global database data sources (no passwords) |
 | `browser-companion.json` | paired browsers (SHA-256 hashes of their tokens only) |
+| `mcp-server.json` | port and process id of the running MCP server, for `forge --mcp-stdio` (no token) |
 | `dialog-windows.json` | size and position of dialog windows |
 | `updates.json` | update checks: time of the last check, the skipped version and a postponed ("Later") version |
 | `scratches/` | scratch files and buffers |
@@ -118,6 +119,7 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | `forge-deploy` | `ftp://user@host:port` | FTP/FTPS deployment password |
 | `forge-containers` | `registry:<server>` | Docker registry password |
 | `forge-jupyter` | `server:<base URL>` | Jupyter server token |
+| `forge-mcp` | `server-token` | bearer token of the MCP server |
 
 ## Remote hosts
 

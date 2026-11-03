@@ -37,6 +37,7 @@ import "./project-type";
 import "./new-project";
 import "./languages";
 import "./browserCompanion";
+import "./mcp";
 import "./terminal";
 import "./run";
 import "./testFrameworks";

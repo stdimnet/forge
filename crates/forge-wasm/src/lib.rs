@@ -53,6 +53,7 @@ mod livetemplates;
 mod localhistory;
 mod lua;
 mod maintenance;
+mod mcp;
 mod php_interpreters;
 mod profiler;
 mod project_structure;

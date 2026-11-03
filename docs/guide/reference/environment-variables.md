@@ -17,6 +17,7 @@ tags: [environment, variables, reference]
 | `FORGE_GIT` | git executable to use instead of `git` on the `PATH` (e.g. a bundled git on Windows) |
 | `FORGE_REMOTE_AGENT_DIR` | folder with the remote agent binaries (`forge-remote-agent-<arch>-linux[.gz]`), searched before the bundle's `agents/` folder |
 | `FORGE_AGENT_LOG` | log filter of the remote agent on the host (e.g. `debug`); the agent logs to stderr |
+| `FORGE_MCP_TOKEN` | bearer token for `forge --mcp-stdio` when the system keychain has none (see [MCP Server](../user/mcp-server.md)) |
 | `RUST_LOG` | log filter of the desktop app (e.g. `RUST_LOG=forge_lsp=debug`; `forge_app_lib::startup=debug` logs the splash steps) |
 | `FORGE_SIMULATE_UPDATE` | e.g. `0.2.0`: the splash and Help \| Check for Updates… offer this version as a simulated update with a fake download; nothing is installed (for development, works in any build) |
 | `APPIMAGE` | set by the AppImage runtime; Forge then registers the `forge://` scheme at startup |

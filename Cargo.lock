@@ -2652,6 +2652,7 @@ dependencies = [
  "forge-lsp",
  "forge-maintenance",
  "forge-markdown",
+ "forge-mcp",
  "forge-open",
  "forge-plugin-api",
  "forge-ports",
@@ -3276,6 +3277,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-mcp"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dirs 6.0.0",
+ "forge-ai-editor",
+ "getrandom 0.2.17",
+ "keyring",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "forge-open"
 version = "0.1.0"
 dependencies = [
@@ -3696,6 +3713,7 @@ dependencies = [
  "forge-localhistory",
  "forge-maintenance",
  "forge-markdown",
+ "forge-mcp",
  "forge-output",
  "forge-plugin-api",
  "forge-profiler",

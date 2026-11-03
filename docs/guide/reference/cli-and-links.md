@@ -32,6 +32,13 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).
 
+### `forge --mcp-stdio`
+
+A stdio MCP server for clients that only start stdio servers (Claude Desktop, Codex): it
+forwards newline-delimited JSON-RPC from stdin to the running Forge's MCP server and writes the
+answers to stdout. It finds the server through `<config dir>/forge/mcp-server.json` and takes
+the token from the keychain or `FORGE_MCP_TOKEN`. See [MCP Server](../user/mcp-server.md).
+
 ### `forge inspect`
 
 ```text

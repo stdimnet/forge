@@ -1,0 +1,29 @@
+[package]
+name = "forge-mcp"
+description = "Forge IDE as a Model Context Protocol server: JSON-RPC, tool catalog, permissions, Streamable HTTP and SSE transports on loopback, and the stdio proxy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["server"]
+# Transports, sessions and the stdio proxy (tokio). Without it the crate is pure (WebAssembly):
+# JSON-RPC, the tool catalog, the permission policy and the client configurations.
+server = ["dep:tokio", "dep:async-trait", "dep:getrandom", "dep:tracing", "dep:dirs"]
+# The bearer token in the OS keychain.
+keychain = ["server", "dep:keyring"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-ai-editor.workspace = true
+tokio = { workspace = true, optional = true }
+async-trait = { version = "0.1", optional = true }
+getrandom = { version = "0.2", optional = true }
+tracing = { workspace = true, optional = true }
+dirs = { workspace = true, optional = true }
+keyring = { version = "3", optional = true, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile.workspace = true
