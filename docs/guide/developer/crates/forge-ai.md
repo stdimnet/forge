@@ -51,6 +51,7 @@ pub use types::{…};
 ## Used by
 
 - IPC: `ai_complete`, `ai_stream`, `ai_cancel`, `ai_providers_list`, `ai_provider_save`, `ai_provider_delete`, `ai_provider_test`, `ai_models`, `ai_set_default` (`app/src-tauri/src/commands/ai.rs`); `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` with [`forge-ai-editor`](forge-ai-editor.md) (`app/src-tauri/src/commands/ai_editor.rs`)
+- Code review: [`forge-code-review`](forge-code-review.md) (Summarize PR, AI Review, Explain this change)
 - UI: `app/ui/src/features/ai`, `app/ui/src/features/ai-editor`, `app/ui/src/features/git (AI commit messages)`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
