@@ -73,6 +73,46 @@ pub trait CodeHost: Send + Sync {
     /// Latest CI status of a branch or commit, with its jobs/checks.
     async fn ci_status(&self, repo: &RepoRef, git_ref: &str) -> HostResult<Option<Pipeline>>;
 
+    /// Review verdicts [`CodeHost::submit_review`] accepts.
+    fn review_events(&self) -> Vec<ReviewEvent> {
+        let mut events = vec![ReviewEvent::Comment];
+        if self.capabilities().approvals {
+            events.push(ReviewEvent::Approve);
+        }
+        events
+    }
+
+    /// Submit pending comments as one review. Hosts without a review API post the comments
+    /// one by one, then the body, then approve.
+    async fn submit_review(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+        review: &NewReview,
+    ) -> HostResult<()> {
+        if !self.review_events().contains(&review.event) {
+            return Err(crate::error::HostError::Unsupported {
+                host: self.kind().display_name().into(),
+                what: "this review verdict".into(),
+            });
+        }
+        for c in &review.comments {
+            let body = match (c.start_line, c.position.new_line.or(c.position.old_line)) {
+                (Some(s), Some(e)) if s < e => format!("*Lines {s}–{e}:*\n\n{}", c.body),
+                _ => c.body.clone(),
+            };
+            self.add_comment(repo, number, &body, Some(&c.position))
+                .await?;
+        }
+        if !review.body.trim().is_empty() {
+            self.add_comment(repo, number, &review.body, None).await?;
+        }
+        if review.event == ReviewEvent::Approve {
+            self.approve(repo, number).await?;
+        }
+        Ok(())
+    }
+
     /// Users who can be asked for a review.
     async fn members(&self, repo: &RepoRef) -> HostResult<Vec<User>>;
     /// A file at a revision (`None` if it does not exist there).

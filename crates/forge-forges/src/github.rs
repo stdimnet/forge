@@ -638,6 +638,63 @@ impl CodeHost for GitHub {
             .await
     }
 
+    fn review_events(&self) -> Vec<ReviewEvent> {
+        vec![
+            ReviewEvent::Comment,
+            ReviewEvent::Approve,
+            ReviewEvent::RequestChanges,
+        ]
+    }
+
+    /// One `POST /pulls/{n}/reviews` with all comments (multi-line ones use `start_line`).
+    async fn submit_review(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+        review: &NewReview,
+    ) -> HostResult<()> {
+        let pr: Value = self
+            .http
+            .get(&Self::pr_path(repo, number), "pull request")
+            .await?;
+        let comments: Vec<Value> = review
+            .comments
+            .iter()
+            .filter_map(|c| {
+                let p = &c.position;
+                let (line, side) = match (p.new_line, p.old_line) {
+                    (Some(n), _) => (n, "RIGHT"),
+                    (None, Some(o)) => (o, "LEFT"),
+                    (None, None) => return None,
+                };
+                let mut v = json!({ "path": p.path, "body": c.body, "line": line, "side": side });
+                if let Some(start) = c.start_line.filter(|s| *s < line) {
+                    v["start_line"] = json!(start);
+                    v["start_side"] = json!(side);
+                }
+                Some(v)
+            })
+            .collect();
+        let event = match review.event {
+            ReviewEvent::Comment => "COMMENT",
+            ReviewEvent::Approve => "APPROVE",
+            ReviewEvent::RequestChanges => "REQUEST_CHANGES",
+        };
+        self.http
+            .send_unit(
+                Method::POST,
+                &format!("{}/reviews", Self::pr_path(repo, number)),
+                Some(&json!({
+                    "commit_id": pr.get("head").map(|h| s(h, "sha")).unwrap_or_default(),
+                    "body": review.body,
+                    "event": event,
+                    "comments": comments,
+                })),
+                "pull request",
+            )
+            .await
+    }
+
     async fn merge(&self, repo: &RepoRef, number: u64, opts: &MergeOptions) -> HostResult<()> {
         let mut body = json!({
             "merge_method": match opts.method {
