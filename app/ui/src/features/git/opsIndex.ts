@@ -8,7 +8,7 @@ import { registerMainMenuEntries } from "@/features/mainMenu";
 import { action, separator } from "@/features/mainMenu/model";
 import { registerCompareHandler } from "@/features/compare/state";
 import { showToolWindow } from "@/state/layout";
-import { GitDialogs } from "./GitDialogs";
+import { GitDialogs } from "./GitDialogHost";
 import { mergeDialog, pullDialog, rebaseDialog, resetDialog, shelveDialog } from "./gitDialogs";
 import { merging, operationAction, rebasing, watchOperation } from "./operation";
 import { diffSelectedShelved, diffSelectedStash, showShelfTab, unshelveSelected } from "./StashShelfPanels";

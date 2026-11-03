@@ -146,6 +146,21 @@ impl AppState {
         *self.backend.write().expect("backend lock poisoned") = Some(backend);
         self.refresh_safe_mode();
     }
+    /// Open the host's project of a Code With Me session as a guest. Project settings are
+    /// read from the host (read-only for the guest). Blocks while the host answers (call off
+    /// the async runtime).
+    pub fn set_collab_project(&self, backend: Arc<dyn Backend>) {
+        self.set_remote_project(backend);
+    }
+
+    /// Close the open project (a Code With Me session ended).
+    pub fn close_project(&self) {
+        self.write_settings().close_project();
+        *self.workspace.write().expect("workspace lock poisoned") = None;
+        *self.backend.write().expect("backend lock poisoned") = None;
+        self.refresh_safe_mode();
+    }
+
     /// The open project's folder when it is on this machine (`None` for remote projects).
     /// Only for things that are about this machine, like which local project a file
     /// opened from outside belongs to.
@@ -179,8 +194,10 @@ impl AppState {
         Ok(self.backend()?.info().root.clone())
     }
 
+    /// The project's files are not on this machine: an SSH host, or the host of a Code With
+    /// Me session.
     pub fn is_remote(&self) -> bool {
-        self.project_info().is_some_and(|i| i.remote.is_some())
+        self.project_info().is_some_and(|i| !i.is_local())
     }
 
     /// The trusted projects and locations (empty when the store cannot be read).
@@ -210,10 +227,13 @@ impl AppState {
 
     /// Turn Safe Mode on when the open project is not trusted, off otherwise. Returns
     /// whether it is on.
+    ///
+    /// A Code With Me guest is always in Safe Mode: the host's project is not this
+    /// machine's to trust, and nothing of it runs here (the host runs what the guest may run).
     pub fn refresh_safe_mode(&self) -> bool {
         let on = self
-            .project_trust_key()
-            .is_some_and(|key| !self.trust_store().is_trusted(&key));
+            .project_info()
+            .is_some_and(|info| needs_safe_mode(&info, &self.trust_store()));
         self.safe_mode.set(on);
         on
     }
@@ -224,8 +244,19 @@ impl AppState {
     }
 }
 
-/// A project's trust key: the canonical local path, or `ssh://user@host:port/path`.
+/// Whether a project opens in Safe Mode: it is not trusted, or it is the host's project of
+/// a Code With Me session (always).
+pub fn needs_safe_mode(info: &BackendInfo, store: &forge_trust::TrustStore) -> bool {
+    info.collab.is_some() || !store.is_trusted(&trust_key(info))
+}
+
+/// A project's trust key: the canonical local path, or `ssh://user@host:port/path`. A Code
+/// With Me guest's project is `cwm://host/name`: its root is a placeholder (`/<name>`) that
+/// must never stand for a local folder of the same name.
 pub fn trust_key(info: &BackendInfo) -> String {
+    if info.collab.is_some() {
+        return info.display_root();
+    }
     let root = info.root.to_string_lossy();
     if let Some(key) = info
         .remote
@@ -237,5 +268,59 @@ pub fn trust_key(info: &BackendInfo) -> String {
     match &info.remote {
         Some(r) => forge_trust::remote_key(&r.user, &r.host, r.port, &info.root.to_string_lossy()),
         None => forge_trust::local_key(&info.root),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use forge_backend::CollabHost;
+
+    fn guest_info(name: &str) -> BackendInfo {
+        BackendInfo {
+            name: name.into(),
+            root: PathBuf::from(format!("/{name}")),
+            remote: None,
+            collab: Some(CollabHost {
+                name: "Robert".into(),
+                label: "Robert (workstation)".into(),
+            }),
+        }
+    }
+
+    #[test]
+    fn a_guest_project_never_aliases_a_local_folder() {
+        assert_eq!(trust_key(&guest_info("shop")), "cwm://Robert/shop");
+        let mut store = forge_trust::TrustStore::default();
+        // A trusted local folder named like the placeholder root.
+        store.trust("/shop").unwrap();
+        assert!(needs_safe_mode(&guest_info("shop"), &store));
+    }
+
+    #[test]
+    fn local_projects_follow_the_store() {
+        let local = BackendInfo {
+            name: "shop".into(),
+            root: PathBuf::from("/opt/shop"),
+            remote: None,
+            collab: None,
+        };
+        let mut store = forge_trust::TrustStore::default();
+        assert!(needs_safe_mode(&local, &store));
+        store.trust(&trust_key(&local)).unwrap();
+        assert!(!needs_safe_mode(&local, &store));
+    }
+
+    #[test]
+    fn closing_the_project_ends_safe_mode() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState {
+            trust_path: Some(dir.path().join("trusted-projects.toml")),
+            ..AppState::default()
+        };
+        state.set_workspace(forge_core::Workspace::open(dir.path()).unwrap());
+        assert!(state.safe_mode.is_on());
+        state.close_project();
+        assert!(!state.safe_mode.is_on());
     }
 }

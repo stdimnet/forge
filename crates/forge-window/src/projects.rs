@@ -102,6 +102,8 @@ pub enum ControlRequest {
     Info,
     /// Bring the window to the front.
     Focus,
+    /// Quit the whole instance (Exit: every project window closes).
+    Quit,
 }
 
 impl ControlRequest {
@@ -109,6 +111,7 @@ impl ControlRequest {
         match self {
             ControlRequest::Info => "info",
             ControlRequest::Focus => "focus",
+            ControlRequest::Quit => "quit",
         }
     }
 }
@@ -127,6 +130,7 @@ pub fn parse_control_line(line: &str, token: &str) -> Option<ControlRequest> {
     let request = match parts.next()? {
         "info" => ControlRequest::Info,
         "focus" => ControlRequest::Focus,
+        "quit" => ControlRequest::Quit,
         _ => return None,
     };
     parts.next().is_none().then_some(request)
@@ -238,7 +242,11 @@ mod tests {
         assert_eq!(parse_control_line(&line, "other"), None);
         assert_eq!(parse_control_line(&line, ""), None);
         assert_eq!(
-            parse_control_line("forge-window s3cret quit\n", "s3cret"),
+            parse_control_line(&control_line("s3cret", ControlRequest::Quit), "s3cret"),
+            Some(ControlRequest::Quit)
+        );
+        assert_eq!(
+            parse_control_line("forge-window s3cret restart\n", "s3cret"),
             None
         );
         assert_eq!(

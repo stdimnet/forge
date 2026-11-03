@@ -91,6 +91,12 @@ pub fn run() {
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for url in event.urls() {
+                    if forge_collab::link::is_join_url(url.as_str()) {
+                        if let Err(e) = companion::open_join_link(&handle, url.as_str()) {
+                            tracing::warn!("ignoring session link: {e}");
+                        }
+                        continue;
+                    }
                     match forge_open::request::parse_forge_url(url.as_str()) {
                         Ok(link) => companion::open_link(&handle, &link),
                         Err(e) => tracing::warn!("ignoring link: {e}"),
@@ -101,6 +107,7 @@ pub fn run() {
             // The splash window and the loading steps (settings, plugins, the project from
             // the command line or the last session, services, updates), then the workbench.
             commands::project_windows::start(app.handle());
+            companion::queue_startup_join(app.handle());
             startup::begin(app.handle());
             Ok(())
         })
@@ -108,6 +115,7 @@ pub fn run() {
         .manage(commands::library::LibraryState::default())
         .manage(commands::workspace::WatchState::default())
         .manage(commands::remote::RemoteState::default())
+        .manage(commands::collab::CollabState::default())
         .manage(commands::devenv::DevEnvState::default())
         .manage(commands::deployment::DeploymentState::default())
         .manage(commands::remote_host::RemoteHostState::default())
@@ -130,6 +138,41 @@ pub fn run() {
         .manage(commands::git_clone::CloneState::default())
         .invoke_handler(tauri::generate_handler![
             commands::workspace::workspace_open,
+            commands::collab::collab_status,
+            commands::collab::collab_parse_link,
+            commands::collab::collab_start,
+            commands::collab::collab_end,
+            commands::collab::collab_link,
+            commands::collab::collab_join,
+            commands::collab::collab_answer_join,
+            commands::collab::collab_set_permissions,
+            commands::collab::collab_set_guest_permissions,
+            commands::collab::collab_remove_guest,
+            commands::collab::collab_regenerate_link,
+            commands::collab::collab_session_log,
+            commands::collab::collab_cancel_join,
+            commands::collab::collab_leave,
+            commands::collab::collab_ping,
+            commands::collab::collab_doc_open,
+            commands::collab::collab_doc_update,
+            commands::collab::collab_awareness,
+            commands::collab::collab_presence,
+            commands::collab::collab_follow_everyone,
+            commands::collab::collab_doc_close,
+            commands::collab::collab_doc_sync,
+            commands::collab::collab_doc_save,
+            commands::collab::collab_doc_resolve_conflict,
+            commands::collab::collab_relay_token_status,
+            commands::collab::collab_set_relay_token,
+            commands::collab::collab_test_relay,
+            commands::collab::collab_run_answer,
+            commands::collab::collab_share_terminal,
+            commands::collab::collab_terminal_attach,
+            commands::collab::collab_run_attach,
+            commands::collab::collab_run_detach,
+            commands::collab::collab_run_start,
+            commands::collab::collab_run_stop,
+            commands::collab::collab_run_input,
             commands::trust::trust_check,
             commands::trust::trust_status,
             commands::trust::trust_project,
@@ -182,9 +225,12 @@ pub fn run() {
             commands::project_state::layouts_save,
             commands::project_state::layouts_delete,
             commands::project_windows::project_windows_list,
+            commands::project_windows::app_quit_all,
+            commands::project_windows::app_exit,
             commands::project_windows::project_window_focus,
             commands::project_windows::project_window_cycle,
             commands::project_windows::project_window_open,
+            commands::project_windows::project_window_new,
             commands::project_state::agent_history_list,
             commands::project_state::agent_history_load,
             commands::project_state::agent_history_save,
@@ -677,6 +723,7 @@ pub fn run() {
             commands::terminal::terminal_write,
             commands::terminal::terminal_resize,
             commands::terminal::terminal_close,
+            commands::terminal::terminal_attach,
             commands::run::run_configurations_load,
             commands::run::run_configurations_save,
             commands::run::run_command_line,
@@ -1140,6 +1187,7 @@ pub fn run() {
             startup::splash_state,
             startup::startup_workbench_ready,
             commands::window::dialog_window_open,
+            commands::window::dialog_window_ready,
             commands::window::dialog_window_close,
             commands::window::dialog_window_message,
             commands::window::window_set_fullscreen,

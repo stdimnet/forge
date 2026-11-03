@@ -107,6 +107,8 @@ not finished, the page says so.
 | [Scratches, consoles and HTTP client](scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](remote-development.md) | SSH, the Forge agent, what runs remotely |
+| [Code With Me](code-with-me.md) | invite guests, accept them with the verification code, permission levels and Custom permissions, per-guest permissions, Remove Guest, Regenerate Link, session log, files guests never see, joining |
+| [Code With Me: relay and NAT traversal](code-with-me-relay.md) | direct and relayed connections, Relay server settings, running `iroh-relay`, SSH tunnel and VPN |
 | [Dev Containers and WSL](dev-containers-and-wsl.md) | devcontainer.json, building with the Docker CLI and the build log, Start / Stop / Rebuild / Delete, WSL distributions, `\\wsl$` paths, Terminal › WSL |
 | [Deployment](deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
 | [Remote Host and SSH sessions](remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |

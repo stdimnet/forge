@@ -23,7 +23,9 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::collab::{guest_lsp, guest_session};
 use crate::state::AppState;
+use forge_collab::guest_backend::LspQuery;
 
 #[derive(Serialize, Clone)]
 struct ApplyEditEvent {
@@ -104,7 +106,7 @@ impl LspState {
         }
         // Catalog servers are planned where the project is: a remote host scans and probes
         // in the agent, so it is asked in the background.
-        if backend.info().remote.is_none() {
+        if backend.info().is_local() {
             crate::commands::langservers::register_enabled(&manager, ws);
         } else {
             let (app, manager) = (app.clone(), manager.clone());
@@ -199,13 +201,13 @@ fn forward_events(app: AppHandle, manager: &Arc<LspManager>) {
                     };
                     // Several servers may report on one file; send all of them.
                     let merged = manager.merge_diagnostics(&server_id, &uri, diagnostics);
-                    let _ = app.emit(
-                        "lsp://diagnostics",
-                        DiagnosticsEvent {
-                            path: to_ui_path(manager.root(), &abs),
-                            diagnostics: merged.iter().map(EditorDiagnostic::from).collect(),
-                        },
-                    );
+                    let event = DiagnosticsEvent {
+                        path: to_ui_path(manager.root(), &abs),
+                        diagnostics: merged.iter().map(EditorDiagnostic::from).collect(),
+                    };
+                    // Guests of a Code With Me session see the host's diagnostics.
+                    crate::commands::collab::on_diagnostics(&app, &event.path, &event.diagnostics);
+                    let _ = app.emit("lsp://diagnostics", event);
                 }
                 LspEvent::State { .. } => {
                     let _ = app.emit("lsp://status", manager.statuses());
@@ -249,6 +251,13 @@ pub async fn lsp_did_open(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<()> {
+    if let Some(guest) = guest_session(&app) {
+        // The host's servers read the file's current text themselves.
+        let _ = text;
+        return guest_lsp::<serde_json::Value>(&guest, LspQuery::Sync { path })
+            .await
+            .map(drop);
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager.did_open(&c.abs, &text).await
 }
@@ -261,6 +270,12 @@ pub async fn lsp_did_change(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<()> {
+    if guest_session(&app).is_some() {
+        // Edits reach the host through the shared document; every request below makes the
+        // host's servers read its current text first.
+        let _ = (path, text);
+        return Ok(());
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager.did_change(&c.abs, &text).await
 }
@@ -273,6 +288,10 @@ pub async fn lsp_did_save(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<()> {
+    if guest_session(&app).is_some() {
+        let _ = (path, text);
+        return Ok(());
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager.did_save(&c.abs, &text)
 }
@@ -284,6 +303,11 @@ pub async fn lsp_did_close(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<()> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp::<serde_json::Value>(&guest, LspQuery::Close { path })
+            .await
+            .map(drop);
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager.did_close(&c.abs)
 }
@@ -297,6 +321,17 @@ pub async fn lsp_hover(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Option<EditorHover>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(
+            &guest,
+            LspQuery::Hover {
+                path,
+                line,
+                character,
+            },
+        )
+        .await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager
         .hover(&c.abs, Position::new(line, character))
@@ -312,6 +347,17 @@ pub async fn lsp_completion(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Option<EditorCompletionList>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(
+            &guest,
+            LspQuery::Completion {
+                path,
+                line,
+                character,
+            },
+        )
+        .await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager
         .completion(&c.abs, Position::new(line, character))
@@ -326,6 +372,10 @@ pub async fn lsp_completion_resolve(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Option<EditorCompletionItem>> {
+    if let Some(guest) = guest_session(&app) {
+        let item = item.to_string();
+        return guest_lsp(&guest, LspQuery::CompletionResolve { path, item }).await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager.completion_resolve(&c.abs, item).await
 }
@@ -339,6 +389,17 @@ pub async fn lsp_definition(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<EditorLocation>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(
+            &guest,
+            LspQuery::Definition {
+                path,
+                line,
+                character,
+            },
+        )
+        .await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     let locs = c
         .manager
@@ -356,6 +417,17 @@ pub async fn lsp_references(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<EditorLocation>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(
+            &guest,
+            LspQuery::References {
+                path,
+                line,
+                character,
+            },
+        )
+        .await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     let locs = c
         .manager
@@ -371,6 +443,9 @@ pub async fn lsp_document_symbols(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<EditorSymbol>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(&guest, LspQuery::DocumentSymbols { path }).await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager.document_symbols(&c.abs).await
 }
@@ -384,6 +459,17 @@ pub async fn lsp_signature_help(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Option<EditorSignatureHelp>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(
+            &guest,
+            LspQuery::SignatureHelp {
+                path,
+                line,
+                character,
+            },
+        )
+        .await;
+    }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
     c.manager
         .signature_help(&c.abs, Position::new(line, character))
@@ -403,6 +489,17 @@ pub async fn lsp_format(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<TextEdit>> {
+    if let Some(guest) = guest_session(&app) {
+        return guest_lsp(
+            &guest,
+            LspQuery::Format {
+                path,
+                tab_size: tab_size.unwrap_or(4),
+                insert_spaces: insert_spaces.unwrap_or(true),
+            },
+        )
+        .await;
+    }
     let patch = language_id
         .as_deref()
         .and_then(|id| forge_codestyle::model().language_for_file_type(id))
@@ -487,6 +584,10 @@ pub fn lsp_status(
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
 ) -> Result<Vec<ServerStatus>> {
+    // The host runs the language servers of a guest's project.
+    if guest_session(&app).is_some() {
+        return Ok(vec![]);
+    }
     match lsp.manager(&app, &ws) {
         Ok(m) => Ok(m.statuses()),
         // No project open yet: nothing is running.

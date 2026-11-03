@@ -36,7 +36,7 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Switcher](#switcher) | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
 | [Select Next Tab](#select-next-tab) | `Alt+Right` | `Ctrl+Right`, `Cmd+Shift+]` |
 | [Select Previous Tab](#select-previous-tab) | `Alt+Left` | `Ctrl+Left`, `Cmd+Shift+[` |
-| [Close Tab](#close-tab) | `Ctrl+F4` | `Cmd+W` |
+| [Close Tab](#close-tab) | `Ctrl+F4` | `Cmd+W`, `Ctrl+F4` |
 | [Close All Tabs](#close-all-tabs) | — | — |
 | [Close Other Tabs](#close-other-tabs) | — | `Cmd+Alt+W` |
 | [Close Unmodified Tabs](#close-unmodified-tabs) | — | — |
@@ -338,9 +338,9 @@ More: [Workbench and tool windows](../../user/workbench.md#editor-tabs)
 
 ## Close Tab
 
-**Shortcut:** `Ctrl+F4` · macOS `Cmd+W` · action id `CloseContent`
+**Shortcut:** `Ctrl+F4` · macOS `Cmd+W`, `Ctrl+F4` · action id `CloseContent`
 
-Closes the current editor tab.
+Closes the current editor tab. Without an open tab it closes the window; in Settings or a detached editor window it closes that window. Popups close with `Esc`.
 
 **Menu:** Window | Editor Tabs | Close Tab
 

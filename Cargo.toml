@@ -73,6 +73,7 @@ forge-jsonschema = { path = "crates/forge-jsonschema" }
 forge-scratches = { path = "crates/forge-scratches", default-features = false }
 forge-backend = { path = "crates/forge-backend", default-features = false }
 forge-remote = { path = "crates/forge-remote" }
+forge-collab = { path = "crates/forge-collab" }
 forge-devenv = { path = "crates/forge-devenv" }
 forge-deploy = { path = "crates/forge-deploy" }
 forge-window = { path = "crates/forge-window" }
@@ -132,6 +133,11 @@ toml = "0.8"
 dirs = "6"
 tempfile = "3"
 ignore = "0.4"
+
+# Line tables keep panics and backtraces readable at a fraction of full debug info's size.
+# Everyone (make dev, tests, agents) builds the same profile, so target/ holds one copy.
+[profile.dev]
+debug = "line-tables-only"
 
 [profile.release]
 lto = "thin"

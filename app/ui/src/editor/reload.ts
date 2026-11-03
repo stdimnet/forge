@@ -6,7 +6,7 @@
  */
 import { Compartment, Transaction } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { history } from "@codemirror/commands";
+import { history, redo, undo } from "@codemirror/commands";
 
 /** Holds the editor's undo history so a reload can reset it. */
 export const historyCompartment = new Compartment();
@@ -25,3 +25,24 @@ export function replaceDocument(view: EditorView, text: string): void {
   view.dispatch({ effects: historyCompartment.reconfigure([]) });
   view.dispatch({ effects: historyCompartment.reconfigure(history()) });
 }
+
+/**
+ * Undo and Redo of the Edit menu. Views can bring their own history (shared Code With Me
+ * documents undo only the participant's own edits); `registerHistory` installs it.
+ */
+export interface ViewHistory {
+  undo: (view: EditorView) => boolean;
+  redo: (view: EditorView) => boolean;
+}
+
+const histories: ((view: EditorView) => ViewHistory | undefined)[] = [];
+
+export function registerHistory(lookup: (view: EditorView) => ViewHistory | undefined): void {
+  histories.push(lookup);
+}
+
+const historyOf = (view: EditorView): ViewHistory =>
+  histories.map((h) => h(view)).find((h) => h) ?? { undo: (v) => undo(v), redo: (v) => redo(v) };
+
+export const undoIn = (view: EditorView): boolean => historyOf(view).undo(view);
+export const redoIn = (view: EditorView): boolean => historyOf(view).redo(view);

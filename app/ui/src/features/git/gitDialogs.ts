@@ -1,7 +1,7 @@
 /**
  * The Git menu dialogs, like PHPStorm: Stash, Unstash, Pull, Merge, Rebase, Reset HEAD, New
  * Tag, Manage Remotes, Shelve Changes and Unshelve. This module holds the open dialog and the
- * actions behind the buttons; `GitDialogs.tsx` renders them. Everything git does happens in
+ * actions behind the buttons; `GitDialogHost.tsx` renders them. Everything git does happens in
  * Rust (`forge_vcs::ops`, `forge_vcs::shelf`); operations that stop with conflicts hand over to
  * the conflict resolver through `runMerging`.
  */

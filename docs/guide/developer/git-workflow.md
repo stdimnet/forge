@@ -33,7 +33,8 @@ push, pull request or schedule triggers to any workflow. See [Release builds](re
 ## Worktrees
 
 Several git worktrees can build in parallel; give each its own `CARGO_TARGET_DIR` (a shared target
-dir can return stale builds of workspace crates) and consider `CARGO_PROFILE_DEV_DEBUG=0`.
+dir can return stale builds of workspace crates) and keep the dev profile as it is, so each
+target dir holds one copy of every artifact.
 
 ## Pull requests
 

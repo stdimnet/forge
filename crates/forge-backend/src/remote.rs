@@ -181,6 +181,7 @@ impl RemoteBackend {
                 name: opened.name,
                 root: opened.root,
                 remote: Some(host),
+                collab: None,
             },
             conn,
             routes: Mutex::new(Routes::default()),

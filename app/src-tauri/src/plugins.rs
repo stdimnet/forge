@@ -64,6 +64,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/browser-companion.toml"),
     ),
     (
+        "code-with-me.toml",
+        include_str!("../plugins/code-with-me.toml"),
+    ),
+    (
         "natural-languages.toml",
         include_str!("../plugins/natural-languages.toml"),
     ),

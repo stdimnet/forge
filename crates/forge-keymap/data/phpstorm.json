@@ -329,7 +329,7 @@
   {"id":"StoreNewLayout","title":"Save Current Layout as New…","group":"Main Menu/Window/Layouts","win":"","mac":""},
   {"id":"NextTab","title":"Select Next Tab","group":"Main Menu/Window/Editor Tabs","win":"Alt+Right","mac":"Ctrl+Right | Cmd+Shift+]"},
   {"id":"PreviousTab","title":"Select Previous Tab","group":"Main Menu/Window/Editor Tabs","win":"Alt+Left","mac":"Ctrl+Left | Cmd+Shift+["},
-  {"id":"CloseContent","title":"Close Tab","group":"Main Menu/Window/Editor Tabs","win":"Ctrl+F4","mac":"Cmd+W"},
+  {"id":"CloseContent","title":"Close Tab","group":"Main Menu/Window/Editor Tabs","win":"Ctrl+F4","mac":"Cmd+W | Ctrl+F4"},
   {"id":"CloseAllEditors","title":"Close All Tabs","group":"Main Menu/Window/Editor Tabs","win":"","mac":""},
   {"id":"CloseAllEditorsButActive","title":"Close Other Tabs","group":"Main Menu/Window/Editor Tabs","win":"","mac":"Cmd+Alt+W"},
   {"id":"CloseAllUnmodifiedEditors","title":"Close Unmodified Tabs","group":"Main Menu/Window/Editor Tabs","win":"","mac":""},

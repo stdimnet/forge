@@ -26,7 +26,52 @@ export interface TerminalTab {
   command?: TerminalProgram;
   /** An SSH session to another host (Tools | Start SSH Session…). */
   ssh?: SshTarget;
+  /** A session that already runs instead of a new shell (see {@link TerminalSource}). */
+  source?: TerminalSource;
+  /** Shared with Code With Me guests (host). */
+  shared?: boolean;
 }
+
+/**
+ * A tab that shows a session started elsewhere instead of starting a shell:
+ * - `existing`: a session of this window that is already running (a Code With Me guest
+ *   opened it on this machine);
+ * - `collab`: one of the Code With Me host's shared terminals in a guest's window. It shows
+ *   at the host's size; `readOnly` while the guest may only watch. `ended` says why the tab
+ *   no longer shows the host's terminal (the host stopped sharing it); the tab stays, with
+ *   its output, until the guest closes it.
+ */
+export type TerminalSource =
+  | { kind: "existing" }
+  | { kind: "collab"; terminal: number; readOnly: boolean; cols: number; rows: number; ended?: string };
+
+/** An entry another feature adds to a terminal tab's context menu (Share with Guests). */
+export interface TerminalTabAction {
+  label: string;
+  checked?: boolean;
+  run: () => void;
+}
+
+const [tabActionSources, setTabActionSources] = createSignal<((tab: TerminalTab) => TerminalTabAction[])[]>([]);
+
+/** Add entries to the context menu of terminal tabs. */
+export function registerTerminalTabActions(actions: (tab: TerminalTab) => TerminalTabAction[]): void {
+  setTabActionSources((s) => [...s, actions]);
+}
+
+export const terminalTabActions = (tab: TerminalTab): TerminalTabAction[] => tabActionSources().flatMap((a) => a(tab));
+
+const [newTabBlock, setNewTabBlock] = createSignal<(() => string | null) | null>(null);
+
+/**
+ * Why new shells cannot be opened in this window (a Code With Me guest without Full access
+ * to the host's terminal), or null. `reason` is reactive.
+ */
+export function setNewTabGuard(reason: (() => string | null) | null): void {
+  setNewTabBlock(() => reason);
+}
+
+export const newTabBlocked = (): string | null => newTabBlock()?.() ?? null;
 
 export interface TerminalProgram {
   program: string;
@@ -112,6 +157,19 @@ export function newSshTab(title: string, ssh: SshTarget): TerminalTab {
   };
   setTabs((t) => [...t, tab]);
   setActiveTab(tab.id);
+  return tab;
+}
+
+/**
+ * A tab for a session started elsewhere (see {@link TerminalSource}); not activated unless
+ * asked. Returns the existing tab when it is shown already.
+ */
+export function addSourceTab(id: string, title: string, source: TerminalSource, activate = false): TerminalTab {
+  const existing = tabs().find((t) => t.id === id);
+  if (existing) return existing;
+  const tab: TerminalTab = { id, title: nextTitle(tabs().map((t) => t.title), title), source };
+  setTabs((t) => [...t, tab]);
+  if (activate || !activeTab()) setActiveTab(tab.id);
   return tab;
 }
 

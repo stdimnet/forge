@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- The startup splash window. Its own page, so it shows before any script runs and does not
+     wait for the main bundle: the static wordmark is replaced by the live splash (fire,
+     progress, update offer) as soon as src/splash/main.tsx has loaded. -->
+<html lang="en" data-theme="dark" data-window="splash">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/forge.svg" />
+    <link rel="stylesheet" href="/src/theme/theme.css" />
+    <link rel="stylesheet" href="/src/shell/shell.css" />
+    <link rel="stylesheet" href="/src/splash/splash.css" />
+    <title>Forge</title>
+    <script>
+      // The backend hands over the theme setting; the live splash applies it again later.
+      document.documentElement.dataset.theme = window.__FORGE_SPLASH_THEME__ || "dark";
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot" class="splash-stage">
+      <div class="splash" data-tauri-drag-region>
+        <div class="splash-mark" data-tauri-drag-region>
+          <h1 class="splash-word" data-tauri-drag-region><span class="cold">Forge</span></h1>
+        </div>
+        <div class="splash-status"><span><b>Starting</b></span></div>
+      </div>
+    </div>
+    <script type="module" src="/src/splash/main.tsx"></script>
+  </body>
+</html>

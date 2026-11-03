@@ -101,6 +101,12 @@
     opacity: 0;
   }
 }
+/* Shared with Code With Me guests, or the host's terminal in a guest's window. */
+.term-tab-shared {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
 .term-tab-bell {
   width: 6px;
   height: 6px;

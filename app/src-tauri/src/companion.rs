@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use forge_backend::Backend;
+use forge_collab::link::JoinRoute;
 use forge_core::{FileKind, FileMatch};
 use forge_open::cli::{parse_launch_args, LaunchTarget};
 use forge_open::live_edit::LiveEditHub;
@@ -29,6 +30,8 @@ use crate::state::AppState;
 
 pub const OPEN_EVENT: &str = "companion://open";
 pub const OPEN_PROJECT_EVENT: &str = "companion://open-project";
+/// A Code With Me session link to show in the Join Session dialog.
+pub const JOIN_SESSION_EVENT: &str = "companion://join-session";
 pub const STATUS_EVENT: &str = "companion://status";
 
 pub const KEY_ENABLED: &str = "browserCompanion.enabled";
@@ -64,6 +67,11 @@ pub enum PendingEvent {
     #[serde(rename_all = "camelCase")]
     OpenProject {
         root: String,
+    },
+    /// A Code With Me session link (canonical, checked) for the Join Session dialog.
+    #[serde(rename_all = "camelCase")]
+    JoinSession {
+        link: String,
     },
 }
 
@@ -132,6 +140,7 @@ fn dispatch(app: &AppHandle, event: PendingEvent) {
     let sent = match &event {
         PendingEvent::Open(e) => app.emit(OPEN_EVENT, e),
         PendingEvent::OpenProject { root } => app.emit(OPEN_PROJECT_EVENT, root),
+        PendingEvent::JoinSession { link } => app.emit(JOIN_SESSION_EVENT, link),
     };
     if let Err(e) = sent {
         tracing::warn!("cannot forward open request to the UI: {e}");
@@ -293,6 +302,31 @@ pub fn open_link(app: &AppHandle, link: &LinkAction) {
     }
 }
 
+/// Handle a `forge://cwm/join?…` link (from the OS, so it is not trusted): checked here, then
+/// shown in the Join Session dialog of this window, or of a new window when this one is in a
+/// session already. Nothing connects before the user presses Join.
+pub fn open_join_link(app: &AppHandle, url: &str) -> Result<(), String> {
+    let busy = app.state::<crate::commands::collab::CollabState>().busy();
+    let (link, route) = forge_collab::link::route_join_url(url, busy).map_err(|e| e.to_string())?;
+    match route {
+        JoinRoute::ThisWindow => dispatch(app, PendingEvent::JoinSession { link }),
+        JoinRoute::NewWindow => {
+            crate::commands::project_windows::spawn_join_window(&link).map_err(|e| e.to_string())?
+        }
+    }
+    Ok(())
+}
+
+/// The session link a new window was started with (`project_windows::spawn_join_window`):
+/// its Join Session dialog opens once the Welcome screen is ready.
+pub fn queue_startup_join(app: &AppHandle) {
+    if let Some(link) = crate::commands::project_windows::take_join_link() {
+        if let Err(e) = open_join_link(app, &link) {
+            tracing::warn!("ignoring session link: {e}");
+        }
+    }
+}
+
 /// Handle launcher arguments: at startup (`startup = true`) a project or file argument
 /// opens its project directly; later (second launch) everything goes through the UI.
 pub fn handle_launch_args<I, S>(app: &AppHandle, args: I, cwd: &Path, startup: bool)
@@ -300,6 +334,16 @@ where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
+    // Session links are Code With Me's; `forge_open` handles the other forge:// links.
+    let (joins, args): (Vec<String>, Vec<String>) = args
+        .into_iter()
+        .map(|a| a.as_ref().to_string())
+        .partition(|a| forge_collab::link::is_join_url(a));
+    for url in joins {
+        if let Err(e) = open_join_link(app, &url) {
+            tracing::warn!("ignoring session link: {e}");
+        }
+    }
     for target in parse_launch_args(args, cwd) {
         match target {
             LaunchTarget::Project(dir) => {

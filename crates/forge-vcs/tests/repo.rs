@@ -1,20 +1,70 @@
 //! End-to-end tests against throwaway repositories created with the real git CLI.
 
 use std::fs;
+use std::io::Write;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::sync::Arc;
 
-use forge_vcs::{FileState, LogQuery, RefKind, Repo};
+use forge_core::Result;
+use forge_vcs::{FileState, GitExec, GitOutput, GitRequest, LogQuery, RefKind, Repo};
 use tempfile::TempDir;
 
-fn sh(dir: &Path, args: &[&str]) -> String {
-    let out = Command::new("git")
-        .current_dir(dir)
-        .args(args)
-        .env("GIT_CONFIG_NOSYSTEM", "1")
+/// Isolates a git invocation from the machine's git setup: no system or global config
+/// (`core.autocrlf`, aliases, hooks paths, …), so results only depend on the test repo.
+fn isolate(cmd: &mut Command, dir: &Path) {
+    cmd.env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", dir.join(".no-global-config"))
         .env("HOME", dir)
-        .output()
-        .expect("git runs");
+        .env("GIT_EDITOR", "true")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("LC_ALL", "C");
+}
+
+/// Runs the repository's git commands like [`forge_vcs::LocalGit`], but isolated from the
+/// user's global and system git config.
+struct IsolatedGit;
+
+impl GitExec for IsolatedGit {
+    fn exec(&self, req: &GitRequest) -> Result<GitOutput> {
+        let cwd = Path::new(&req.cwd);
+        let mut cmd = Command::new(forge_vcs::git_binary());
+        cmd.current_dir(cwd)
+            .args(["-c", "core.quotepath=off", "-c", "color.ui=never"])
+            .args(&req.args)
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .env("GIT_PAGER", "cat")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdin(if req.stdin.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            });
+        isolate(&mut cmd, cwd);
+        let mut child = cmd.spawn().expect("git runs");
+        if let (Some(input), Some(mut stdin)) = (&req.stdin, child.stdin.take()) {
+            stdin.write_all(input.as_bytes()).expect("git stdin");
+        }
+        let out = child.wait_with_output().expect("git runs");
+        Ok(GitOutput {
+            ok: out.status.success(),
+            stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
+        })
+    }
+}
+
+/// Open the repository containing `dir` with [`IsolatedGit`].
+fn open(dir: impl AsRef<Path>) -> Result<Repo> {
+    Repo::open_with(dir, Arc::new(IsolatedGit))
+}
+
+fn sh(dir: &Path, args: &[&str]) -> String {
+    let mut cmd = Command::new("git");
+    cmd.current_dir(dir).args(args);
+    isolate(&mut cmd, dir);
+    let out = cmd.output().expect("git runs");
     assert!(
         out.status.success(),
         "git {args:?}: {}",
@@ -54,7 +104,7 @@ fn status_reports_staged_unstaged_untracked() {
     sh(d, &["add", "staged.php"]);
     fs::remove_file(d.join("src/b.php")).unwrap();
 
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
     let st = repo.status().unwrap();
     assert_eq!(st.branch.as_deref(), Some("main"));
     assert!(st.head.is_some());
@@ -70,7 +120,7 @@ fn diff_show_and_blame() {
     let tmp = fixture();
     let d = tmp.path();
     write(d, "a.php", "<?php\necho 1;\necho 3;\n");
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     let head = repo.show("HEAD", "a.php").unwrap().unwrap();
     assert_eq!(head, "<?php\necho 1;\necho 2;\n");
@@ -103,7 +153,7 @@ fn stage_unstage_rollback() {
     let d = tmp.path();
     write(d, "a.php", "changed\n");
     write(d, "added.php", "<?php\n");
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     repo.stage(&["a.php".into(), "added.php".into()]).unwrap();
     let st = repo.status().unwrap();
@@ -134,7 +184,7 @@ fn commit_selected_paths_and_amend() {
     write(d, "a.php", "one\n");
     write(d, "src/b.php", "two\n");
     write(d, "new.php", "three\n");
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     let sha = repo
         .commit(
@@ -170,7 +220,7 @@ fn signs_off_commits_and_reads_config() {
     let tmp = fixture();
     let d = tmp.path();
     write(d, "a.php", "signed\n");
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
     let sha = repo
         .commit_with("Sign this", false, Some(&["a.php".into()]), true)
         .unwrap();
@@ -185,7 +235,7 @@ fn signs_off_commits_and_reads_config() {
 fn branches_checkout_merge_and_log_graph() {
     let tmp = fixture();
     let d = tmp.path();
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     repo.create_branch("feature/login", None, true).unwrap();
     write(d, "login.php", "<?php\n");
@@ -256,7 +306,7 @@ fn push_pull_fetch_against_local_remote() {
         d,
         &["remote", "add", "origin", remote.path().to_str().unwrap()],
     );
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     repo.push(false).unwrap();
     let st = repo.status().unwrap();
@@ -294,7 +344,7 @@ fn push_pull_fetch_against_local_remote() {
 #[test]
 fn push_without_remote_reports_error() {
     let tmp = fixture();
-    let repo = Repo::open(tmp.path()).unwrap();
+    let repo = open(tmp.path()).unwrap();
     let err = repo.push(false).unwrap_err().to_string();
     assert!(err.contains("no remote"), "{err}");
 }
@@ -305,7 +355,7 @@ fn workspace_in_subdirectory_uses_relative_paths() {
     let d = tmp.path();
     write(d, "src/b.php", "<?php\nclass B { }\n");
     write(d, "a.php", "outside\n");
-    let repo = Repo::open(d.join("src")).unwrap();
+    let repo = open(d.join("src")).unwrap();
     let st = repo.status().unwrap();
     assert_eq!(st.entries.len(), 1);
     assert_eq!(st.entries[0].path, "b.php");
@@ -321,7 +371,7 @@ fn workspace_in_subdirectory_uses_relative_paths() {
 #[test]
 fn open_outside_repository_fails() {
     let tmp = TempDir::new().unwrap();
-    assert!(Repo::open(tmp.path()).is_err());
+    assert!(open(tmp.path()).is_err());
 }
 
 #[test]
@@ -336,7 +386,7 @@ fn tracked_among_lists_tracked_files_even_when_ignored() {
     sh(d, &["add", "-f", "vendor/forced.php"]);
     sh(d, &["commit", "-q", "-m", "Force add"]);
 
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
     let paths: Vec<String> = [
         "vendor",
         "vendor/forced.php",
@@ -357,7 +407,7 @@ fn tracked_among_lists_tracked_files_even_when_ignored() {
 fn tracked_among_uses_workspace_relative_paths() {
     let tmp = fixture();
     let d = tmp.path();
-    let repo = Repo::open(d.join("src")).unwrap();
+    let repo = open(d.join("src")).unwrap();
     assert_eq!(
         repo.tracked_among(&["b.php".to_string()]).unwrap(),
         vec!["b.php"]
@@ -371,7 +421,7 @@ fn add_to_gitignore_writes_anchored_patterns_once() {
     write(d, ".gitignore", "/vendor/");
     write(d, "app/debug.log", "x\n");
     write(d, "build/out.js", "x\n");
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     let added = repo
         .add_to_gitignore(&["app/debug.log".into(), "build".into()])
@@ -393,7 +443,7 @@ fn add_to_gitignore_from_workspace_subdirectory() {
     let tmp = fixture();
     let d = tmp.path();
     write(d, "src/tmp.txt", "x\n");
-    let repo = Repo::open(d.join("src")).unwrap();
+    let repo = open(d.join("src")).unwrap();
     repo.add_to_gitignore(&["tmp.txt".into()]).unwrap();
     assert_eq!(
         fs::read_to_string(d.join(".gitignore")).unwrap(),
@@ -405,7 +455,7 @@ fn add_to_gitignore_from_workspace_subdirectory() {
 fn tags_stashes_and_remotes() {
     let tmp = fixture();
     let d = tmp.path();
-    let repo = Repo::open(d).unwrap();
+    let repo = open(d).unwrap();
 
     repo.create_tag("v1.0.0", None, None).unwrap();
     repo.create_tag("v1.0.1", Some("HEAD"), Some("Release 1.0.1"))

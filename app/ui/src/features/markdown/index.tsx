@@ -8,10 +8,13 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { getSetting } from "@/state/settings";
 import { TextEditorWithPreview, type PreviewLayout } from "@/editor/TextEditorWithPreview";
+import { GUEST_PREFIX } from "@/features/code-with-me/docs";
 import { MarkdownPreview } from "./MarkdownPreview";
 import "./markdown.css";
 
-export const isMarkdownPath = (path: string) => /\.(md|markdown)$/i.test(path) && !path.includes("://");
+/** Markdown files of the project, and of the host's project in a Code With Me guest window. */
+export const isMarkdownPath = (path: string) =>
+  /\.(md|markdown)$/i.test(path) && !path.replace(GUEST_PREFIX, "").includes("://");
 
 registerFileEditor({
   id: "markdown",

@@ -6,6 +6,8 @@ import "./colorSchemeMock";
 import { fileTypesReady } from "./filetypesMock";
 import "./projectMock";
 import "./remoteMock";
+import "./collabMock";
+import "./collabGuestMock";
 import "./devenvMock";
 import "./deploymentMock";
 import "./remoteHostMock";

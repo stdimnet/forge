@@ -9,10 +9,10 @@ import type { SshTarget } from "@/ipc/terminal";
 import { registerStatusItem } from "@/features/statusItems";
 import { getSetting } from "@/state/settings";
 import { registerCommand } from "@/state/commands";
-import { registerKeymapActions } from "@/keymap";
+import { registerKeymapActions, showBalloon } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { TerminalTabs, TerminalView, closeTerminalTab } from "./TerminalView";
-import { activeTab, displayTitle, newSshTab, newTab, overallProgress, progressTab, tabs, type TerminalProgram } from "./store";
+import { activeTab, displayTitle, newSshTab, newTab, newTabBlocked, overallProgress, progressTab, tabs, type TerminalProgram } from "./store";
 import { focusSession, revealTerminalTab, setSshHostKeyResolver } from "./sessions";
 import { chooseSshSession, confirmSshHostKey, setSshTabOpener } from "./ssh";
 import { progressLabel } from "./osc";
@@ -65,6 +65,8 @@ registerToolWindow({
 
 /** Open a new terminal tab in `dir` (relative to the project root), e.g. "Open In > Terminal". */
 export function openTerminalAt(dir?: string): void {
+  const blocked = newTabBlocked();
+  if (blocked) return void showBalloon("Terminal", blocked);
   const tab = newTab(dir);
   showToolWindow("terminal");
   requestAnimationFrame(() => focusSession(tab.id));

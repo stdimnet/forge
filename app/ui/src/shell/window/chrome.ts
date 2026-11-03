@@ -75,6 +75,9 @@ const INTERACTIVE = "button, a, input, select, textarea, [role='button'], [data-
 export const dragRegion = {
   onMouseDown(e: MouseEvent): void {
     if (e.button !== 0 || !isTauri() || !drawsControls()) return;
+    // Solid bubbles events from a `Portal` (popovers, menus) to the component that rendered it,
+    // so a click inside a popover would reach a title bar it is not drawn in.
+    if (!(e.currentTarget as Node | null)?.contains(e.target as Node)) return;
     if ((e.target as Element | null)?.closest(INTERACTIVE)) return;
     // Like Tauri's `data-tauri-drag-region`: the second click of a double click maximizes
     // (a started drag would swallow the `dblclick` event on some platforms).

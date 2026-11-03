@@ -27,6 +27,13 @@ export interface EditorTab {
    * them (`registerEditorView`); their path is a pseudo URI like `db-console://shop/1`.
    */
   view?: string;
+  /**
+   * The text is a shared document (Code With Me): edits arrive through the editor binding,
+   * saving goes through the session, and `savedHash` (not `saved`) says what is on disk.
+   */
+  shared?: boolean;
+  /** `contentHash` of the text on disk, for shared tabs. */
+  savedHash?: string;
 }
 
 interface EditorState {
@@ -108,7 +115,58 @@ async function writeTab(tab: EditorTab, text: string): Promise<void> {
 /** View tabs are not files, except those backed by a file system provider (a SQL scratch in a console). */
 const isFileTab = (t: EditorTab) => !t.view || !!fileSystemFor(t.path);
 
-export const isDirty = (t: EditorTab) => isFileTab(t) && t.content !== t.saved;
+export const isDirty = (t: EditorTab) =>
+  isFileTab(t) && (t.savedHash !== undefined ? contentHash(t.content) !== t.savedHash : t.content !== t.saved);
+
+const hashCache = new Map<string, string>();
+
+/**
+ * `<UTF-16 length>:<FNV-1a 32, hex>` of a text; the Code With Me host computes the same
+ * value in Rust (`forge_collab::protocol::text_hash`) for the saved text of shared files.
+ */
+export function contentHash(text: string): string {
+  const cached = hashCache.get(text);
+  if (cached) return cached;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const out = `${text.length}:${h.toString(16).padStart(8, "0")}`;
+  if (hashCache.size > 64) hashCache.clear();
+  hashCache.set(text, out);
+  return out;
+}
+
+/**
+ * Where shared tabs (Code With Me) get their text and how they are saved. `open` answers
+ * `undefined` for files that are not shared; they open as usual.
+ */
+export interface SharedTabSource {
+  open: (path: string) => Promise<{ content: string; savedHash: string } | undefined>;
+  save: (path: string) => Promise<void>;
+}
+
+let sharedTabs: SharedTabSource | null = null;
+
+export function setSharedTabSource(source: SharedTabSource | null): void {
+  sharedTabs = source;
+}
+
+/** Turn an open tab into a shared one (a session started while it was open). */
+export function markTabShared(path: string, savedHash: string): void {
+  setEditor("tabs", (t) => t.path === path, { shared: true, savedHash });
+}
+
+/** The saved state of a shared tab changed (someone saved, or the file changed on disk). */
+export function setSavedHash(path: string, savedHash: string): void {
+  setEditor("tabs", (t) => t.path === path && !!t.shared, "savedHash", savedHash);
+}
+
+/** A shared tab becomes a normal tab again; `saved` is the text on disk. */
+export function unshareTab(path: string, saved: string): void {
+  setEditor("tabs", (t) => t.path === path, { shared: false, savedHash: undefined, saved });
+}
 
 /**
  * Editor tabs that show a feature view instead of a file (e.g. a merge request). Their ids
@@ -307,9 +365,28 @@ export async function openFile(path: string, opts: { group?: number; activate?: 
     ]);
   }
   if (!editor.tabs.some((t) => t.path === path)) {
-    const file = await readText(path);
+    const shared = await sharedTabs?.open(path);
+    const file = shared ? undefined : await readText(path);
     // Opened twice while reading: keep the first tab.
-    if (!editor.tabs.some((t) => t.path === path)) {
+    if (shared && !editor.tabs.some((t) => t.path === path)) {
+      const { content, savedHash } = shared;
+      setEditor("tabs", (tabs) => [
+        ...tabs,
+        {
+          path,
+          name: path.split("/").pop() ?? path,
+          content,
+          saved: content,
+          eol: "\n",
+          eolKnown: content.includes("\n"),
+          encoding: "UTF-8",
+          bom: false,
+          cursor: { line: 1, col: 1 },
+          shared: true,
+          savedHash,
+        },
+      ]);
+    } else if (file && !editor.tabs.some((t) => t.path === path)) {
       const name = path.split("/").pop() ?? path;
       setEditor("tabs", (tabs) => [
         ...tabs,
@@ -457,6 +534,13 @@ export function saveFile(path: string, trigger: SaveTrigger = "plain"): Promise<
 async function saveFileNow(path: string, trigger: SaveTrigger): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
   if (!tab || !isFileTab(tab)) return;
+  if (tab.shared && sharedTabs) {
+    // The host writes the shared document; its save state arrives through the session.
+    const content = tab.content;
+    await sharedTabs.save(path);
+    saveListeners.forEach((l) => l(path, content, trigger));
+    return;
+  }
   const original = tab.content;
   const contentNow = () => editor.tabs.find((t) => t.path === path)?.content;
   let content = original;
@@ -519,7 +603,8 @@ export async function saveAll(trigger: SaveTrigger = "autosave"): Promise<void> 
 /** Re-read an open file from disk after an external change (unless it has unsaved edits). */
 export async function reloadFile(path: string): Promise<void> {
   const tab = editor.tabs.find((t) => t.path === path);
-  if (!tab || !isFileTab(tab) || isDirty(tab)) return;
+  // Shared tabs follow the disk through the session (the host applies the change).
+  if (!tab || !isFileTab(tab) || isDirty(tab) || tab.shared) return;
   const file = await readText(path, tab.encoding === "UTF-8" ? undefined : tab.encoding);
   if (file.text === tab.content && file.eol === tab.eol && file.bom === tab.bom) return;
   setEditor("tabs", (t) => t.path === path, {
@@ -579,6 +664,14 @@ export function setTabFormat(path: string, format: FileFormat): void {
   setEditor("tabs", (t) => t.path === path, "format", format);
 }
 
+const resetListeners = new Set<() => void>();
+
+/** Notified after `closeAllTabs`, i.e. when another project took the window (per-project state resets). */
+export function onTabsReset(cb: () => void): () => void {
+  resetListeners.add(cb);
+  return () => resetListeners.delete(cb);
+}
+
 /** Close every tab, e.g. when switching projects. */
 export function closeAllTabs(): void {
   const closing = [...editor.tabs];
@@ -586,6 +679,7 @@ export function closeAllTabs(): void {
   setEditor({ tabs: [], active: null });
   setEditor("layout", reconcile(groups.newLayout()));
   for (const t of closing) closeListeners.forEach((l) => l(t));
+  resetListeners.forEach((l) => l());
 }
 
 /** Adopt the line ending of a file that was rewritten on disk (rollback, checkout, ...). */

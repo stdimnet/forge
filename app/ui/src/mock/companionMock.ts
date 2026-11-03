@@ -5,10 +5,12 @@
  */
 import { emitMock, invoke, registerMock } from "@/ipc";
 import {
+  COMPANION_JOIN_SESSION_EVENT,
   COMPANION_OPEN_EVENT,
   type OpenEvent,
   type PairedClient,
   type PairingCode,
+  type PendingEvent,
   type ProjectProfile,
 } from "@/ipc/companion";
 import { demoProjectName } from "./demoProject";
@@ -48,7 +50,15 @@ registerMock("companion_revoke_client", ({ id }) => {
   return clients.length !== before;
 });
 
-registerMock("companion_ui_ready", () => []);
+/** A demo session link: `?cwmLink` starts browser mode as if Forge was opened by clicking it. */
+export const DEMO_JOIN_LINK =
+  "forge://cwm/join?v=1&name=Robert&m=workstation&s=browsermodedemo0000000000#h=demo&k=demo&a=192.168.1.20:41641";
+
+registerMock("companion_ui_ready", (): PendingEvent[] =>
+  typeof location !== "undefined" && new URLSearchParams(location.search).has("cwmLink")
+    ? [{ type: "joinSession", link: DEMO_JOIN_LINK }]
+    : [],
+);
 
 /** Same shape the Rust side sends; files under the demo root open directly. */
 export function mockOpenEvent(file: string, line?: number, column?: number, source: OpenEvent["source"] = "browser"): OpenEvent {
@@ -71,6 +81,8 @@ export function mockOpenEvent(file: string, line?: number, column?: number, sour
 }
 
 registerMock("companion_open_link", ({ url }) => {
+  // Session links go to the Join Session dialog (the backend checks them in full).
+  if (/^forge:\/\/cwm\/join\/?\?/i.test(String(url))) return void emitMock(COMPANION_JOIN_SESSION_EVENT, String(url).trim());
   const u = new URL(String(url).replace(/^forge:\/\//, "http://forge/"));
   const file = u.searchParams.get("file") ?? u.searchParams.get("path");
   if (!file) throw new Error("file is missing");

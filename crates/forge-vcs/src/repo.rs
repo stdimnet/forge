@@ -350,12 +350,7 @@ impl Repo {
 
     pub fn commit_details(&self, sha: &str) -> Result<CommitDetails> {
         check_rev(sha)?;
-        let meta = self.git(&[
-            "show",
-            "-s",
-            "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ct%x1f%G?%x1f%GS%x1f%GK%x1f%B",
-            sha,
-        ])?;
+        let meta = self.git(&["show", "-s", log::COMMIT_META_FORMAT, sha])?;
         let f: Vec<&str> = meta.splitn(11, '\x1f').collect();
         if f.len() < 11 {
             return Err(ForgeError::Other(format!(

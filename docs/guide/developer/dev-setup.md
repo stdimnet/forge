@@ -56,6 +56,14 @@ tauri dev` shows the update panel on the splash with a fake download instead; se
 Browser mode is the fastest loop for UI work and screenshots. Use `pnpm tauri dev` to test the
 real file system, git, language servers, PTYs, databases and Docker.
 
+### `forge://` links on macOS
+
+`make dev` is `pnpm tauri dev` plus a Cargo runner on macOS (`scripts/macos-dev-runner.sh`). It
+starts the debug binary from a small `target/debug/Forge Dev.app` bundle whose `Info.plist`
+claims the `forge://` scheme, because macOS registers URL schemes only through app bundles.
+With it, links such as `forge://cwm/join?…` open in the running dev instance. Plain
+`pnpm tauri dev` skips the runner, so `forge://` links do not work there on macOS.
+
 ## Useful scripts (`app/ui`)
 
 | Script | Does |
@@ -72,7 +80,8 @@ real file system, git, language servers, PTYs, databases and Docker.
 
 ## Keeping Rust builds manageable
 
-- `export CARGO_PROFILE_DEV_DEBUG=0` saves a lot of disk space and link time.
+- The dev profile already uses `debug = "line-tables-only"`. Don't override it with
+  `CARGO_PROFILE_DEV_DEBUG`: a second profile duplicates every artifact in `target/`.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`; a shared target dir can
   return stale builds of workspace crates.
 - Test one crate at a time while iterating: `cargo test -p forge-keymap`.

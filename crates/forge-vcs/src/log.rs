@@ -6,8 +6,10 @@ use serde::{Deserialize, Serialize};
 use crate::signing::SignatureStatus;
 
 /// Field separator (unit separator) and record separator used in the log format.
-#[cfg_attr(not(feature = "git"), allow(dead_code))]
-pub(crate) const LOG_FORMAT: &str = "--format=%H%x1f%P%x1f%D%x1f%an%x1f%ae%x1f%at%x1f%G?%x1f%s%x1e";
+pub const LOG_FORMAT: &str = "--format=%H%x1f%P%x1f%D%x1f%an%x1f%ae%x1f%at%x1f%G?%x1f%s%x1e";
+/// `git show -s` format of a commit's details (author, committer, signature, message).
+pub const COMMIT_META_FORMAT: &str =
+    "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%cn%x1f%ct%x1f%G?%x1f%GS%x1f%GK%x1f%B";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -166,10 +168,19 @@ fn classify(full: &str) -> Option<RefLabel> {
     })
 }
 
+/// A full object id: 40 (SHA-1) or 64 (SHA-256) hex digits.
+pub fn is_object_id(token: &str) -> bool {
+    matches!(token.len(), 40 | 64) && token.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
 /// Parse `git diff-tree -r -z --name-status -M` output.
 pub fn parse_name_status(out: &str) -> Vec<ChangedFile> {
     let mut files = Vec::new();
-    let mut it = out.split('\0').filter(|s| !s.is_empty());
+    let mut it = out.split('\0').filter(|s| !s.is_empty()).peekable();
+    // `diff-tree --root <commit>` starts with the commit id.
+    if it.peek().is_some_and(|t| is_object_id(t)) {
+        it.next();
+    }
     while let Some(status) = it.next() {
         let letter = status.chars().next().unwrap_or('M');
         if letter == 'R' || letter == 'C' {
