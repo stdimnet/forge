@@ -134,7 +134,7 @@
 }
 .mcp-log-row {
   display: grid;
-  grid-template-columns: auto auto minmax(110px, auto) minmax(0, 1fr) auto auto;
+  grid-template-columns: 58px 14px 160px minmax(0, 1fr) 96px 52px;
   align-items: center;
   gap: 8px;
   padding: 3px 8px;
@@ -166,6 +166,12 @@
 .mcp-log-status[data-status="refused"],
 .mcp-log-status[data-status="denied"] {
   color: var(--warning);
+}
+.mcp-log-client,
+.mcp-log-tool {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mcp-log-duration {
   text-align: right;

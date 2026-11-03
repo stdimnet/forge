@@ -936,6 +936,7 @@ not finished, the page says so.
 | [Deployment](docs/guide/user/deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
 | [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
 | [AI](docs/guide/user/ai.md) | providers, AI commit messages, Claude Code and Gemini CLI chat |
+| [MCP Server](docs/guide/user/mcp-server.md) | external agents (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex) use Forge's tools: client configurations, tool groups, approval cards, Safe Mode, `.aiignore`, call log |
 | [Browser Companion](docs/guide/user/browser-companion.md) | browser extension, `forge://` links, error page integrations |
 
 
@@ -21051,6 +21052,132 @@ on your machine. Apart from Agent Tasks, none of the AI features runs project co
 work the same in [Safe Mode](docs/guide/user/project-trust.md). Agent Tasks send the task, the files the agent
 reads and the test output to the chosen provider or CLI.
 
+## External agents (MCP)
+
+Agents that run outside Forge (Claude Code in a terminal, Claude Desktop, Cursor, Gemini CLI,
+Codex) can use Forge's tools through its built-in MCP server: search and navigation with
+Forge's indexes, the problems it shows, undoable edits in the editor, run configurations and
+tests, Git and read-only database queries, with approval cards and the same `ai.enabled`,
+`.aiignore` and Safe Mode rules. It is off by default; see [MCP Server](docs/guide/user/mcp-server.md).
+
+
+---
+
+Source: docs/guide/user/mcp-server.md
+
+# MCP Server
+
+Like JetBrains IDEs, Forge has a built-in [Model Context Protocol](https://modelcontextprotocol.io)
+server (`forge.mcp-server`). External agents such as Claude Code, Claude Desktop, Cursor,
+Gemini CLI or Codex connect to the running Forge and use its tools on the project open in it:
+they see what you are looking at, search and navigate with Forge's indexes, read the problems
+Forge shows, edit in the editor (so every change is undoable), run your run configurations and
+tests, look at Git, and query your data sources read-only.
+
+![MCP Server settings](docs/screenshots/mcp-server-settings.png)
+
+The server is **off by default**. Turn it on in Settings | Tools | MCP Server (`mcp.enabled`).
+
+## Connecting a client
+
+Settings | Tools | MCP Server shows the server's address and, under **Client Configuration**,
+a ready-made configuration for each client. Pick the client and click **Copy**:
+
+| Client | Transport | Where it goes |
+| --- | --- | --- |
+| Claude Code | Streamable HTTP | run the copied `claude mcp add --transport http forge http://127.0.0.1:64342/mcp --header "Authorization: Bearer …"` |
+| Claude Desktop | stdio proxy | `claude_desktop_config.json` (Settings › Developer › Edit Config) |
+| Cursor | Streamable HTTP | `~/.cursor/mcp.json` or `.cursor/mcp.json` |
+| Gemini CLI | Streamable HTTP | `~/.gemini/settings.json` (`httpUrl` with the `Authorization` header) |
+| Codex CLI | stdio proxy | `~/.codex/config.toml` |
+| VS Code (Copilot) | Streamable HTTP | `.vscode/mcp.json` |
+
+The server listens on `127.0.0.1` only, on port `64342` (`mcp.port`; when it is taken the next
+9 ports are tried and the configurations show the port in use). Every request needs the
+**bearer token** from the configuration. The token is kept in the system keychain, so copied
+configurations keep working after a restart; **Regenerate Token** replaces it (connected
+clients and old configurations stop working).
+
+Clients that only start stdio servers run `forge --mcp-stdio`. This hidden mode of the `forge`
+executable finds the running Forge through `<config dir>/forge/mcp-server.json` (port and
+process id, no secrets) and forwards every message to it, with the token from the keychain or
+the `FORGE_MCP_TOKEN` environment variable. When Forge is not running the proxy answers every
+request with an error saying so, and connects as soon as Forge is back.
+
+Older clients that still use the HTTP+SSE transport of protocol version 2024-11-05 can connect
+to `http://127.0.0.1:64342/sse` with the same token.
+
+## Tools
+
+Paths are relative to the project root, lines and columns are 1-based.
+
+| Group (setting) | Tools |
+| --- | --- |
+| Read the project (`mcp.tools.read`) | `get_open_editors`, `get_current_file` (caret, selection, optionally the unsaved text), `open_file_in_editor`, `read_file` (optionally a line range), `list_directory`, `find_files` (like Go to File), `search_in_files` (Find in Files with regex, case, whole words, file masks, directory), `find_symbol` (Go to Symbol / Class), `go_to_definition`, `find_usages`, `get_problems` (what the editor and the Problems tool window show), `run_inspections` (the project's inspection profile on a file or folder), `list_run_configurations` |
+| Version control (`mcp.tools.vcs`) | `git_status`, `git_diff` (working tree or staged, optionally for some paths) |
+| Edit files (`mcp.tools.edit`) | `replace_text_in_file`, `write_file`, `reformat_file` (Reformat Code with the project's code style) |
+| Run configurations and tests (`mcp.tools.run`) | `run_configuration`: runs it in the Run tool window and waits: exit code, test results with the failed tests, the end of the console |
+| Terminal commands (`mcp.tools.terminal`, off by default) | `execute_terminal_command` in the project root, with exit code and output |
+| Databases (`mcp.tools.database`) | `list_data_sources`, `run_sql_query` (read-only) |
+
+Edits are made **in Forge's editor**: the file opens, the change is one undo step and the file
+is saved. `Ctrl+Z` (macOS `Cmd+Z`) in Forge reverts it, and Local History has it too.
+
+The server also offers **resources** (the open editors as `forge://project/<path>`, any project
+file through the `forge://project/{path}` template) and three **prompts**: `review_changes`,
+`fix_problems` and `explain_selection`.
+
+## Approval and safety
+
+- **Approval cards.** With **Ask before tools that edit files, run configurations or query
+  databases** (`mcp.requireApproval`, on by default), every such call shows a card above the
+  status bar: which client, what it wants to do ("edit app/Models/Order.php", the command, the
+  query, the replaced text) and **Allow**, **Allow for This Session** (that tool, until the
+  client disconnects) or **Deny**. A card nobody answers within two minutes is denied.
+  Terminal commands always ask, on every call, whatever the setting says.
+- **Tool groups.** Each group can be turned off; its tools then disappear from the client's
+  tool list and calls are refused.
+- **Safe Mode.** In a project you have not trusted, run configurations and terminal commands
+  are refused before anything is asked. Reading and editing still work.
+- **AI switch and `.aiignore`.** When AI features are turned off for the project
+  (`ai.enabled`, Settings | Tools | AI Assistant) every call is refused. Files matched by
+  `.aiignore` or `.aiexclude` cannot be read, searched or edited, and they are left out of
+  listings and search results (the result says how many were left out). Paths outside the
+  project are refused.
+- **Databases.** `run_sql_query` only runs read-only statements (`SELECT`, `SHOW`, `EXPLAIN`,
+  …); writes and schema changes are refused before they reach the database, and the data
+  source's own read-only and production guards still apply.
+- **Loopback only.** The server binds `127.0.0.1`, refuses requests whose `Host` is not a
+  loopback name (against DNS rebinding) and requests with a foreign `Origin` (web pages), and
+  compares the token in constant time.
+
+## Status bar and call log
+
+While the server is on, the status bar shows **MCP** and the connected client
+("MCP: Claude Code", "MCP: 2 clients"). Clicking it shows the connected clients (with
+**Disconnect**), the latest tool calls with their result (done, failed, refused by the
+settings, denied by you) and duration, and a link to the settings. The full call log is at the
+bottom of Settings | Tools | MCP Server. Find Action: **Show MCP Server Calls**,
+**MCP Server Settings**.
+
+![MCP status popup](docs/screenshots/mcp-server-popup.png)
+
+![Approval card](docs/screenshots/mcp-server-approval.png)
+
+## Settings
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `mcp.enabled` | `false` | run the server |
+| `mcp.port` | `64342` | first port tried |
+| `mcp.requireApproval` | `true` | approval cards for edit, run and database tools |
+| `mcp.tools.read`, `mcp.tools.vcs`, `mcp.tools.edit`, `mcp.tools.run`, `mcp.tools.database` | `true` | tool groups |
+| `mcp.tools.terminal` | `false` | terminal commands |
+
+Only the first project window runs the server; the tools work on the project open in it. See
+the [settings reference](docs/guide/reference/settings.md#tools--mcp-server) and, for developers, the
+[forge-mcp crate](docs/guide/developer/crates/forge-mcp.md).
+
 
 ---
 
@@ -23747,6 +23874,22 @@ Page id `tools.browser-companion`.
 | `liveEdit.reloadOnSave` | bool | `true` | user | Live Edit | Reload pages when HTML, scripts or templates are saved |
 | `liveEdit.delayMs` | int (100–5000) | `400` | user | Live Edit | Delay before updating (ms) |
 
+### Tools | MCP Server
+
+Page id `tools.mcp-server`. See [MCP Server](docs/guide/user/mcp-server.md).
+
+| Key | Type | Default | Scope | Section | Title and description |
+| --- | --- | --- | --- | --- | --- |
+| `mcp.enabled` | bool | `false` | user | Server | Enable MCP server — Runs a Model Context Protocol server on 127.0.0.1 that external agents can use with the bearer token shown below. Off by default. |
+| `mcp.port` | int (1024–65535) | `64342` | user | Server | Port — If the port is taken, the next 9 ports are tried. The client configurations below always show the port in use. |
+| `mcp.requireApproval` | bool | `true` | user | Approval | Ask before tools that edit files, run configurations or query databases — Shows an approval card in Forge for every such call. Terminal commands always ask. |
+| `mcp.tools.read` | bool | `true` | user | Tools | Read the project: open editors, files, search, navigation, problems, inspections |
+| `mcp.tools.vcs` | bool | `true` | user | Tools | Version control: Git status and diffs |
+| `mcp.tools.edit` | bool | `true` | user | Tools | Edit files: replace text, write files, reformat (undoable in the editor) |
+| `mcp.tools.run` | bool | `true` | user | Tools | Run configurations and tests — Refused in Safe Mode. |
+| `mcp.tools.terminal` | bool | `false` | user | Tools | Terminal commands (asked on every call) — Refused in Safe Mode. |
+| `mcp.tools.database` | bool | `true` | user | Tools | Data sources and read-only queries — Only SELECT-like statements run; read-only and production data sources keep their guards. |
+
 ### Tools | External Tools
 
 Page id `tools.external-tools`. See [External Tools](docs/guide/user/run-debug.md#external-tools).
@@ -24409,6 +24552,13 @@ forge [PROJECT_DIR | FILE[:LINE[:COLUMN]] | forge://…] …
   outside known projects.
 - Log output: set `RUST_LOG` (e.g. `RUST_LOG=debug forge`).
 
+### `forge --mcp-stdio`
+
+A stdio MCP server for clients that only start stdio servers (Claude Desktop, Codex): it
+forwards newline-delimited JSON-RPC from stdin to the running Forge's MCP server and writes the
+answers to stdout. It finds the server through `<config dir>/forge/mcp-server.json` and takes
+the token from the keychain or `FORGE_MCP_TOKEN`. See [MCP Server](docs/guide/user/mcp-server.md).
+
 ### `forge inspect`
 
 ```text
@@ -24504,6 +24654,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `ssh.toml` | saved SSH configurations (no passwords) |
 | `dataSources.toml` | global database data sources (no passwords) |
 | `browser-companion.json` | paired browsers (SHA-256 hashes of their tokens only) |
+| `mcp-server.json` | port and process id of the running MCP server, for `forge --mcp-stdio` (no token) |
 | `dialog-windows.json` | size and position of dialog windows |
 | `updates.json` | update checks: time of the last check, the skipped version and a postponed ("Later") version |
 | `scratches/` | scratch files and buffers |
@@ -24593,6 +24744,7 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | `forge-deploy` | `ftp://user@host:port` | FTP/FTPS deployment password |
 | `forge-containers` | `registry:<server>` | Docker registry password |
 | `forge-jupyter` | `server:<base URL>` | Jupyter server token |
+| `forge-mcp` | `server-token` | bearer token of the MCP server |
 
 ## Remote hosts
 
@@ -24629,6 +24781,7 @@ Source: docs/guide/reference/environment-variables.md
 | `FORGE_GIT` | git executable to use instead of `git` on the `PATH` (e.g. a bundled git on Windows) |
 | `FORGE_REMOTE_AGENT_DIR` | folder with the remote agent binaries (`forge-remote-agent-<arch>-linux[.gz]`), searched before the bundle's `agents/` folder |
 | `FORGE_AGENT_LOG` | log filter of the remote agent on the host (e.g. `debug`); the agent logs to stderr |
+| `FORGE_MCP_TOKEN` | bearer token for `forge --mcp-stdio` when the system keychain has none (see [MCP Server](docs/guide/user/mcp-server.md)) |
 | `RUST_LOG` | log filter of the desktop app (e.g. `RUST_LOG=forge_lsp=debug`; `forge_app_lib::startup=debug` logs the splash steps) |
 | `FORGE_SIMULATE_UPDATE` | e.g. `0.2.0`: the splash and Help \| Check for Updates… offer this version as a simulated update with a fake download; nothing is installed (for development, works in any build) |
 | `APPIMAGE` | set by the AppImage runtime; Forge then registers the `forge://` scheme at startup |
@@ -26726,6 +26879,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-localhistory](docs/guide/developer/crates/forge-localhistory.md) | Local History: file contents recorded on save, refactorings, VCS operations and external changes, with labels, revert and selection history |
 | [forge-lsp](docs/guide/developer/crates/forge-lsp.md) | Forge IDE: generic Language Server Protocol client and server manager |
 | [forge-maintenance](docs/guide/developer/crates/forge-maintenance.md) | Repairing and resetting the IDE: Invalidate Caches, Restore Default Settings, Export / Import Settings |
+| [forge-mcp](docs/guide/developer/crates/forge-mcp.md) | Forge IDE as a Model Context Protocol server: JSON-RPC, tool catalog, permissions and approvals, Streamable HTTP and SSE on loopback, the `forge --mcp-stdio` proxy |
 | [forge-markdown](docs/guide/developer/crates/forge-markdown.md) | Forge Markdown: a safe AST (no raw HTML) for chat messages and documentation popups, built with pulldown-cmark (pure, also built to WebAssembly) |
 | [forge-viewers](docs/guide/developer/crates/forge-viewers.md) | Forge file viewers: image metadata for the image editor and CSV/TSV tables for Edit as Table (pure, also built to WebAssembly) |
 | [forge-open](docs/guide/developer/crates/forge-open.md) | Forge IDE open requests: forge:// links, the CLI launcher and the Browser Companion local server |
@@ -30015,6 +30169,93 @@ pub fn backup_settings(dirs: &ForgeDirs, now_secs: u64) -> Result<PathBuf, Strin
 7 source files; 9 unit tests (dialog model, cleanup plan with every option in a temporary
 folder, the marker running once, settings groups, archive round trip and plans, foreign
 archives, UTC timestamps, backups and reset).
+
+
+---
+
+Source: docs/guide/developer/crates/forge-mcp.md
+
+# forge-mcp
+
+`crates/forge-mcp` — Forge IDE as a Model Context Protocol server: JSON-RPC, the tool catalog,
+permissions and approvals, Streamable HTTP and SSE on loopback, and the `forge --mcp-stdio`
+proxy. User documentation: [MCP Server](docs/guide/user/mcp-server.md).
+
+## Purpose
+
+External agents connect to the running Forge and call its tools on the open project. The crate
+holds everything that is not the IDE itself:
+
+- the protocol: JSON-RPC 2.0 messages (single and batched), `initialize` with version
+  negotiation (2025-06-18, 2025-03-26, 2024-11-05), `tools/list`, `tools/call`,
+  `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`,
+  `prompts/get`, `ping`;
+- the tool catalog with JSON Schemas, groups (`read`, `vcs`, `edit`, `run`, `terminal`,
+  `database`), kinds (read, write, exec) and where the IDE answers them (Rust services or the
+  editor UI);
+- the permission policy: allowed groups, "require approval", Safe Mode for tools that run
+  project code, `ai.enabled`, `.aiignore` (arguments are checked, results are filtered) and
+  the project boundary;
+- sessions, approvals ("allow for this session" is remembered per session, never for terminal
+  commands) and the call log;
+- the transports: Streamable HTTP on `/mcp` and HTTP+SSE on `/sse` + `/messages`, bound to
+  `127.0.0.1`, with a bearer token, loopback `Host` and no foreign `Origin`;
+- the stdio proxy for `forge --mcp-stdio` and its discovery file;
+- "Copy client configuration" snippets and result adapters (1-based positions).
+
+The IDE side implements `McpHost`: `policy`, `approve`, `call_tool`, `list_resources`,
+`read_resource` and `on_event`. In the app that is `app/src-tauri/src/commands/mcp.rs`.
+
+## Modules
+
+| Module | Summary |
+| --- | --- |
+| `jsonrpc.rs` | JSON-RPC 2.0 requests, notifications and responses, single or batched, with the standard error codes. |
+| `protocol.rs` | Version negotiation, the `initialize` result, server instructions, prompts and `forge://project/` resource URIs. |
+| `tools.rs` | The tool catalog: names, descriptions, input schemas, groups, kinds, runners and argument checks. |
+| `policy.rs` | Whether a call may run (allow, ask, deny) and filtering of results by `.aiignore`. |
+| `adapters.rs` | IDE answers turned into tool results: numbered line ranges, Find in Files, symbols, declarations, usages and inspection reports with 1-based positions, text replacement, capped output. |
+| `clients.rs` | Client configurations for Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex and VS Code. |
+| `engine.rs` | Sessions and the path of every call through the policy, the approval, the host and the call log (`server` feature). |
+| `server.rs` | The loopback HTTP server: Streamable HTTP, legacy SSE, token, `Host` and `Origin` checks (`server` feature). |
+| `http.rs` | A small HTTP/1.1 subset for the server and its clients, with size limits (`server` feature). |
+| `stdio.rs` | The stdio proxy and the discovery file `<config dir>/forge/mcp-server.json` (`server` feature). |
+| `token.rs` | The bearer token in the OS keychain, service `forge-mcp` (`keychain` feature). |
+
+## Features
+
+- default `server`: transports, sessions and the proxy (tokio).
+- `keychain`: the token in the OS keychain (`keyring`).
+- Without features the crate is pure and builds to WebAssembly: browser mode uses
+  `mcp_client_configs` from `crates/forge-wasm/src/mcp.rs`.
+
+## Used by
+
+- IPC: `mcp_status`, `mcp_client_configs`, `mcp_regenerate_token`, `mcp_call_log`,
+  `mcp_clear_log`, `mcp_answer_approval`, `mcp_tool_result`, `mcp_disconnect`
+  (`app/src-tauri/src/commands/mcp.rs`); events `mcp://status`, `mcp://call`,
+  `mcp://approval`, `mcp://approval-closed`, `mcp://tool-request`
+- The launcher: `forge --mcp-stdio` (`app/src-tauri/src/main.rs`)
+- UI: `app/ui/src/features/mcp`
+- Browser mode: `app/ui/src/mock/mcpMock.ts`
+
+## Dependencies
+
+- Workspace crates: [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md) (`.aiignore`)
+- External: `serde`, `serde_json`; with `server`: `tokio`, `async-trait`, `getrandom`,
+  `tracing`, `dirs`; with `keychain`: `keyring`
+
+## Tests
+
+Protocol, catalog, policy, adapter and client configuration unit tests, plus end-to-end tests
+in `tests/e2e.rs` with a fake IDE and an in-process client: Streamable HTTP (lifecycle, tools,
+resources, ending sessions), token / `Host` / `Origin` checks, approvals (deny, allow once,
+terminal commands asked every time, Safe Mode, the AI switch), the SSE transport, and the stdio
+proxy against a running and a stopped server. Only loopback sockets are used.
+
+```sh
+cargo test -p forge-mcp
+```
 
 
 ---

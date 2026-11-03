@@ -60,7 +60,7 @@ export interface McpApprovalRequest {
   title: string;
   group: McpToolGroup;
   kind: McpToolKind;
-  /** "edit app/Models/User.php", "run `npm test`". */
+  /** "edit app/Models/User.php", "run a terminal command". */
   summary: string;
   arguments: Record<string, unknown>;
   /** Whether "Allow for this session" is offered (never for terminal commands). */

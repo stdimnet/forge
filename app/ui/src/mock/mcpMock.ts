@@ -93,7 +93,15 @@ registerMock("mcp_regenerate_token", () => {
   emitStatus();
 });
 
-registerMock("mcp_call_log", () => [...log]);
+let demoApprovalShown = false;
+registerMock("mcp_call_log", () => {
+  // The UI asks for the log once it listens to the events: show the `?mcpApproval` card then.
+  if (params().has("mcpApproval") && !demoApprovalShown) {
+    demoApprovalShown = true;
+    setTimeout(showDemoApproval, 300);
+  }
+  return [...log];
+});
 registerMock("mcp_clear_log", () => {
   log = [];
 });
@@ -131,7 +139,7 @@ export function showDemoApproval(): McpApprovalRequest {
     title: "Execute Terminal Command",
     group: "terminal",
     kind: "exec",
-    summary: "run `php artisan test --filter=OrderTest`",
+    summary: "run a terminal command",
     arguments: { command: "php artisan test --filter=OrderTest", timeoutSeconds: 120 },
     sessionAllowed: false,
   };
@@ -151,4 +159,3 @@ if (params().has("mcp") || params().has("mcpApproval")) {
     emitStatus();
   });
 }
-if (params().has("mcpApproval")) setTimeout(showDemoApproval, 1500);

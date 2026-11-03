@@ -49,7 +49,7 @@ pub struct ApprovalRequest {
     pub title: String,
     pub group: ToolGroup,
     pub kind: ToolKind,
-    /// "edit app/Models/User.php", "run `npm test`".
+    /// "edit app/Models/User.php", "run a terminal command".
     pub summary: String,
     pub arguments: Value,
     /// Whether "Allow for this session" is offered.
@@ -214,25 +214,14 @@ fn str_arg<'a>(args: &'a Value, name: &str) -> &'a str {
 
 /// The approval card's one-line summary.
 pub fn approval_summary(spec: &ToolSpec, args: &Value) -> String {
-    let first_line = |s: &str| {
-        let line = s.lines().next().unwrap_or("").trim();
-        if line.chars().count() > 120 {
-            format!("{}…", line.chars().take(120).collect::<String>())
-        } else {
-            line.to_string()
-        }
-    };
     match spec.name {
         "replace_text_in_file" => format!("edit {}", str_arg(args, "path")),
         "write_file" => format!("write {}", str_arg(args, "path")),
         "reformat_file" => format!("reformat {}", str_arg(args, "path")),
         "run_configuration" => format!("run '{}'", str_arg(args, "name")),
-        "execute_terminal_command" => format!("run `{}`", first_line(str_arg(args, "command"))),
-        "run_sql_query" => format!(
-            "query {}: {}",
-            str_arg(args, "dataSource"),
-            first_line(str_arg(args, "sql"))
-        ),
+        // The card shows the command and the query in full.
+        "execute_terminal_command" => "run a terminal command".into(),
+        "run_sql_query" => format!("query {}", str_arg(args, "dataSource")),
         _ => spec.title.to_lowercase(),
     }
 }
