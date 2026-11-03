@@ -59,6 +59,7 @@ pub fn run() {
         .manage(commands::db::DbState::load())
         .manage(commands::db_objects::DbObjectsState::default())
         .manage(commands::forges::ForgesState::load())
+        .manage(commands::code_review::CodeReviewState::default())
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
         .manage(commands::inspections::InspectionsState::default())
@@ -504,6 +505,15 @@ pub fn run() {
             commands::compare::compare_dirs,
             commands::compare::compare_copy,
             commands::forges::forges_accounts,
+            commands::code_review::review_session,
+            commands::code_review::review_set_viewed,
+            commands::code_review::review_save_draft,
+            commands::code_review::review_delete_draft,
+            commands::code_review::review_submit,
+            commands::code_review::review_summarize,
+            commands::code_review::review_ai,
+            commands::code_review::review_finding,
+            commands::code_review::review_explain,
             commands::forges::forges_login,
             commands::forges::forges_logout,
             commands::forges::forges_verify,

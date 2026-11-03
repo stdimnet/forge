@@ -105,6 +105,7 @@ import "./cppMock";
 import "./profilerMock";
 import "./doctrineMock";
 import "./forgesMock";
+import "./codeReviewMock";
 import "./markdownMock";
 import "./viewersMock";
 import "./liveTemplatesMock";

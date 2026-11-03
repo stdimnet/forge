@@ -50,15 +50,19 @@ export function CommentEditor(props: {
   onCancel?: () => void;
   autofocus?: boolean;
   rows?: number;
+  initial?: string;
+  /** A second submit button (e.g. "Add Single Comment" next to "Add Review Comment"). */
+  secondary?: { label: string; onSubmit: (body: string) => Promise<boolean> };
+  hint?: string;
 }) {
-  const [text, setText] = createSignal("");
+  const [text, setText] = createSignal(props.initial ?? "");
   const [busy, setBusy] = createSignal(false);
-  const submit = async () => {
+  const submit = async (via = props.onSubmit) => {
     const body = text().trim();
     if (!body || busy()) return;
     setBusy(true);
     try {
-      if (await props.onSubmit(body)) setText("");
+      if (await via(body)) setText("");
     } finally {
       setBusy(false);
     }
@@ -82,12 +86,19 @@ export function CommentEditor(props: {
         }}
       />
       <div class="fg-editor-actions">
-        <span class="muted fg-small">Markdown supported · Ctrl+Enter to submit</span>
+        <span class="muted fg-small">{props.hint ?? "Markdown supported · Ctrl+Enter to submit"}</span>
         <span class="spacer" />
         <Show when={props.onCancel}>
           <button class="btn-secondary" onClick={() => props.onCancel?.()}>
             Cancel
           </button>
+        </Show>
+        <Show when={props.secondary}>
+          {(s) => (
+            <button class="btn-secondary" disabled={!text().trim() || busy()} onClick={() => void submit(s().onSubmit)} data-action="single-comment">
+              {s().label}
+            </button>
+          )}
         </Show>
         <button class="btn-primary" disabled={!text().trim() || busy()} onClick={() => void submit()}>
           <Show when={busy()}>

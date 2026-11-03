@@ -8,6 +8,7 @@ pub mod ai_editor;
 pub mod android;
 pub mod clipboard;
 pub mod cms;
+pub mod code_review;
 pub mod code_style;
 pub mod codeintel;
 pub mod collab;

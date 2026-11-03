@@ -72,7 +72,10 @@ async fn remotes(state: &AppState) -> Result<Vec<(String, String)>> {
     .await
 }
 
-async fn current(app: &AppState, forges: &ForgesState) -> Result<(RepoRef, Arc<dyn CodeHost>)> {
+pub(crate) async fn current(
+    app: &AppState,
+    forges: &ForgesState,
+) -> Result<(RepoRef, Arc<dyn CodeHost>)> {
     let repo = forges
         .service
         .detect(&remotes(app).await?)

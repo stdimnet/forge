@@ -67,3 +67,15 @@ describe("review diff", () => {
     expect(line.some((s) => s.text === "protected" && s.cls)).toBe(true);
   });
 });
+
+describe("review comments", () => {
+  it("starts ranges only within one hunk", async () => {
+    const { rangeStart, positionOnRow } = await import("./ReviewDiff");
+    const rows = diffRows(file);
+    expect(rangeStart(rows, 1, 4)).toBe(10);
+    expect(rangeStart(rows, null, 4)).toBeNull();
+    expect(rangeStart(rows, 4, 4)).toBeNull();
+    expect(positionOnRow({ path: file.path, newLine: 11 }, rows[3])).toBe(true);
+    expect(positionOnRow(null, rows[3])).toBe(false);
+  });
+});

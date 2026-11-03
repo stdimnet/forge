@@ -44,6 +44,7 @@ forge-langservers.workspace = true
 forge-vcs.workspace = true
 forge-diff.workspace = true
 forge-forges.workspace = true
+forge-code-review.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
