@@ -226,7 +226,7 @@ function CreateDialog() {
                 Mark as draft
               </label>
             </Show>
-            <Show when={context()?.repo.kind === "gitlab"}>
+            <Show when={context()?.repo.kind === "gitlab" || context()?.repo.kind === "azure"}>
               <label class="git-dialog-check">
                 <input type="checkbox" checked={removeSource()} onChange={(e) => setRemoveSource(e.currentTarget.checked)} />
                 Delete source branch when merged

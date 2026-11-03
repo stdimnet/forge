@@ -1,9 +1,11 @@
 /**
  * A small .NET solution for browser mode, opened with `?project=dotnet`: `Bookstore`, an
- * ASP.NET Core API (`Bookstore.Api`, launch profiles), a class library (`Bookstore.Core`,
- * two target frameworks), xUnit tests (`Bookstore.Tests`) and an F# tool (`Reports`), with
- * central package management, `global.json` and `.editorconfig`. The same files are
- * DotNetForge's test fixture (`packs/dotnetforge/lang-dotnet/tests/fixtures/bookstore`);
+ * ASP.NET Core API (`Bookstore.Api`, launch profiles, minimal APIs and a controller, Blazor
+ * components, EF Core with migrations, user secrets), an Aspire AppHost
+ * (`Bookstore.AppHost`), a class library (`Bookstore.Core`, two target frameworks), xUnit
+ * tests (`Bookstore.Tests`) and an F# tool (`Reports`), with central package management,
+ * `global.json` and `.editorconfig`. Most files are DotNetForge's test fixture
+ * (`packs/dotnetforge/lang-dotnet/tests/fixtures/bookstore`);
  * dotnetMock.ts answers the `dotnet_*` and `nuget_*` commands, running the Rust crates
  * through WebAssembly. `?build=broken` makes the build fail with compiler errors.
  */
@@ -28,6 +30,17 @@ export const dotnetDemoInfo: ProjectInfo = {
 };
 
 export const dotnetDemoFiles: Record<string, string> = {
+  ".config/dotnet-tools.json": `{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-ef": {
+      "version": "8.0.11",
+      "commands": ["dotnet-ef"]
+    }
+  }
+}
+`,
   ".editorconfig": `root = true
 
 [*.cs]
@@ -61,6 +74,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Reports", "tools\\Reports\\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0003}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bookstore.AppHost", "src\\Bookstore.AppHost\\Bookstore.AppHost.csproj", "{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0105}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +90,7 @@ Global
 		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0102} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}
 		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0103} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0002}
 		{8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0003} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}
+		{3F2B6C10-7A1D-4E0B-9C51-4B6E0D2A0105} = {8E1A2C70-0E4A-4C55-9B0E-3B1D1C7A0001}
 	EndGlobalSection
 EndGlobal
 `,
@@ -88,6 +104,7 @@ EndGlobal
   <Folder Name="/src/">
     <Project Path="src/Bookstore.Api/Bookstore.Api.csproj" />
     <Project Path="src/Bookstore.Core/Bookstore.Core.csproj" />
+    <Project Path="src/Bookstore.AppHost/Bookstore.AppHost.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bookstore.Tests/Bookstore.Tests.csproj" />
@@ -116,6 +133,11 @@ EndGlobal
     <PackageVersion Include="xunit" Version="2.7.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.7" />
     <PackageVersion Include="FluentAssertions" Version="6.12.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.0.0" />
   </ItemGroup>
 </Project>
 `,
@@ -153,6 +175,8 @@ dotnet run --project src/Bookstore.Api
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" VersionOverride="8.0.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
@@ -176,7 +200,171 @@ app.MapGet("/books", (Inventory inventory) => inventory.All());
 app.MapGet("/books/{isbn}", (string isbn, Inventory inventory) =>
     inventory.Find(isbn) is { } book ? Results.Ok(book) : Results.NotFound());
 
+var authors = app.MapGroup("/api/authors").WithTags("Authors");
+authors.MapGet("/", (BookstoreContext db) => db.Authors.ToListAsync());
+authors.MapGet("/{id:int}", async (int id, BookstoreContext db) =>
+    await db.Authors.FindAsync(id) is { } a ? Results.Ok(a) : Results.NotFound())
+    .WithName("GetAuthor");
+authors.MapPost("/", async (Author author, BookstoreContext db) =>
+{
+    db.Authors.Add(author);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/authors/{author.Id}", author);
+}).RequireAuthorization();
+
+app.MapControllers();
+app.MapRazorComponents<App>();
+
 app.Run();
+`,
+  "src/Bookstore.Api/Controllers/OrdersController.cs": `using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Bookstore.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController(IOrderStore store) : ControllerBase
+{
+    [HttpGet]
+    public IEnumerable<Order> List([FromQuery] int page = 1) => store.Page(page);
+
+    [HttpGet("{id:guid}", Name = "GetOrder")]
+    public ActionResult<Order> Get(Guid id) => store.Find(id) is { } o ? o : NotFound();
+
+    [HttpPost]
+    [Authorize(Roles = "Clerk")]
+    public IActionResult Create(NewOrder order)
+    {
+        var created = store.Add(order);
+        return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+    }
+
+    [HttpPut("{id:guid}/status")]
+    public IActionResult SetStatus(Guid id, [FromBody] OrderStatus status) => NoContent();
+
+    [HttpDelete("{id:guid}")]
+    public IActionResult Cancel(Guid id) => NoContent();
+}
+`,
+  "src/Bookstore.Api/Data/BookstoreContext.cs": `using Bookstore.Core.Catalog;
+using Microsoft.EntityFrameworkCore;
+
+namespace Bookstore.Api.Data;
+
+public class BookstoreContext(DbContextOptions<BookstoreContext> options) : DbContext(options)
+{
+    public DbSet<Book> Books => Set<Book>();
+
+    public DbSet<Author> Authors => Set<Author>();
+
+    public DbSet<Review> Reviews => Set<Review>();
+}
+`,
+  "src/Bookstore.Api/Data/Migrations/20241001120000_InitialCreate.Designer.cs": `// <auto-generated />
+using Bookstore.Api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Bookstore.Api.Data.Migrations
+{
+    [DbContext(typeof(BookstoreContext))]
+    [Migration("20241001120000_InitialCreate")]
+    partial class InitialCreate
+    {
+    }
+}
+`,
+  "src/Bookstore.Api/Data/Migrations/20241005093000_AddAuthors.Designer.cs": `// <auto-generated />
+using Bookstore.Api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Bookstore.Api.Data.Migrations
+{
+    [DbContext(typeof(BookstoreContext))]
+    [Migration("20241005093000_AddAuthors")]
+    partial class AddAuthors
+    {
+    }
+}
+`,
+  "src/Bookstore.Api/Data/Migrations/20241012150000_AddReviews.Designer.cs": `// <auto-generated />
+using Bookstore.Api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Bookstore.Api.Data.Migrations
+{
+    [DbContext(typeof(BookstoreContext))]
+    [Migration("20241012150000_AddReviews")]
+    partial class AddReviews
+    {
+    }
+}
+`,
+  "src/Bookstore.Api/Components/_Imports.razor": `@using Microsoft.AspNetCore.Components.Web
+@using Bookstore.Api.Components.Shared
+@namespace Bookstore.Api.Components
+`,
+  "src/Bookstore.Api/Components/Pages/Shelf.razor": `@page "/shelf"
+@page "/shelf/{Genre}"
+@inject Inventory Inventory
+
+<PageTitle>Shelf</PageTitle>
+
+<h1>@(Genre ?? "All books")</h1>
+
+@if (books is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <ul class="shelf">
+        @foreach (var book in books)
+        {
+            <li @key="book.Isbn">
+                @book.Title <Rating Value="@book.Stars" Max="5" />
+                <button class="btn" @onclick="() => Pick(book)">Add to cart</button>
+            </li>
+        }
+    </ul>
+}
+
+@* The cart lives in the layout. *@
+@code {
+    [Parameter] public string? Genre { get; set; }
+
+    private IReadOnlyList<Book>? books;
+
+    protected override void OnParametersSet() => books = Inventory.All().ToList();
+
+    private void Pick(Book book) => Console.WriteLine($"Picked {book.Title}");
+}
+`,
+  "src/Bookstore.Api/Components/Shared/Rating.razor": `<span class="rating" title="@Value of @Max">
+    @for (var i = 1; i <= Max; i++)
+    {
+        <span class="@(i <= Value ? "star on" : "star")">★</span>
+    }
+</span>
+
+@code {
+    /// <summary>The number of filled stars.</summary>
+    [Parameter, EditorRequired]
+    public int Value { get; set; }
+
+    [Parameter] public int Max { get; set; } = 5;
+
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+}
 `,
   "src/Bookstore.Api/Properties/launchSettings.json": `{
   "$schema": "https://json.schemastore.org/launchsettings.json",
@@ -222,6 +410,60 @@ app.Run();
     }
   },
   "AllowedHosts": "*"
+}
+`,
+  "src/Bookstore.AppHost/Bookstore.AppHost.csproj": `<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>2f6c1a9e-0d34-4e7a-b1f5-6f2e9c0a7d21</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\Bookstore.Api\\Bookstore.Api.csproj" />
+  </ItemGroup>
+
+</Project>
+`,
+  "src/Bookstore.AppHost/Program.cs": `var builder = DistributedApplication.CreateBuilder(args);
+
+var cache = builder.AddRedis("cache");
+var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume();
+var db = postgres.AddDatabase("bookstore");
+
+builder.AddContainer("mail", "axllent/mailpit", "v1.20")
+    .WithHttpEndpoint(port: 8025, targetPort: 8025);
+
+builder.AddProject<Projects.Bookstore_Api>("api")
+    .WithReference(db)
+    .WithReference(cache)
+    .WaitFor(postgres)
+    .WithExternalHttpEndpoints();
+
+builder.Build().Run();
+`,
+  "src/Bookstore.AppHost/Properties/launchSettings.json": `{
+  "profiles": {
+    "https": {
+      "commandName": "Project",
+      "applicationUrl": "https://localhost:17037;http://localhost:15180",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21011"
+      }
+    }
+  }
 }
 `,
   "src/Bookstore.Core/Bookstore.Core.csproj": `<Project Sdk="Microsoft.NET.Sdk">

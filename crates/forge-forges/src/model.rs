@@ -10,16 +10,23 @@ pub enum HostKind {
     Gitlab,
     Forgejo,
     Github,
+    Azure,
 }
 
 impl HostKind {
-    pub const ALL: [HostKind; 3] = [HostKind::Gitlab, HostKind::Forgejo, HostKind::Github];
+    pub const ALL: [HostKind; 4] = [
+        HostKind::Gitlab,
+        HostKind::Forgejo,
+        HostKind::Github,
+        HostKind::Azure,
+    ];
 
     pub fn display_name(self) -> &'static str {
         match self {
             HostKind::Gitlab => "GitLab",
             HostKind::Forgejo => "Forgejo / Gitea",
             HostKind::Github => "GitHub",
+            HostKind::Azure => "Azure DevOps",
         }
     }
 
@@ -29,6 +36,8 @@ impl HostKind {
             HostKind::Gitlab => "https://gitlab.com",
             HostKind::Forgejo => "https://codeberg.org",
             HostKind::Github => "https://github.com",
+            // Accounts name the organization: `https://dev.azure.com/acme`.
+            HostKind::Azure => "https://dev.azure.com",
         }
     }
 
@@ -37,6 +46,7 @@ impl HostKind {
             HostKind::Gitlab => "gitlab",
             HostKind::Forgejo => "forgejo",
             HostKind::Github => "github",
+            HostKind::Azure => "azure",
         }
     }
 }
@@ -48,7 +58,8 @@ pub struct RepoRef {
     pub kind: HostKind,
     /// `https://host[:port]` of the web UI.
     pub server: String,
-    /// `owner/repo`, or `group/subgroup/project` on GitLab.
+    /// `owner/repo`, `group/subgroup/project` on GitLab, `project/repo` on Azure DevOps
+    /// (whose `server` is the organization or collection URL).
     pub path: String,
     /// Name of the git remote it was found on.
     pub remote: String,
@@ -61,7 +72,13 @@ impl RepoRef {
     }
 
     pub fn web_url(&self) -> String {
-        format!("{}/{}", self.server, self.path)
+        match self.kind {
+            HostKind::Azure => {
+                let (project, repo) = self.owner_repo();
+                format!("{}/{project}/_git/{repo}", self.server)
+            }
+            _ => format!("{}/{}", self.server, self.path),
+        }
     }
 }
 

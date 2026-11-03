@@ -101,6 +101,10 @@
 .svc-ic-springApp {
   color: var(--success);
 }
+.svc-ic-aspire,
+.svc-ic-dotnetProject {
+  color: var(--graph-5);
+}
 .svc-ic-kubernetes,
 .svc-ic-context,
 .svc-ic-deployment {

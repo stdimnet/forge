@@ -28,6 +28,7 @@ pub mod deployment;
 pub mod devenv;
 pub mod doctrine;
 pub mod dotnet;
+pub mod dotnet_web;
 pub mod editor;
 pub mod embedded;
 pub mod emmet;

@@ -58,6 +58,7 @@ const HOSTS: { kind: HostKind; title: string; page: string }[] = [
   { kind: "github", title: "GitHub", page: "vcs.github" },
   { kind: "gitlab", title: "GitLab", page: "vcs.gitlab" },
   { kind: "forgejo", title: "Forgejo / Gitea", page: "vcs.forgejo" },
+  { kind: "azure", title: "Azure DevOps", page: "vcs.azure" },
 ];
 
 const errorText = (e: unknown) => String((e as Error)?.message ?? e);

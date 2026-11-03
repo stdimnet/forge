@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
 use crate::accounts::{account_id, env_vars, Account, AccountsFile, SecretStore};
+use crate::azure::AzureDevOps;
 use crate::error::{HostError, HostResult};
 use crate::forgejo::Forgejo;
 use crate::github::GitHub;
@@ -27,6 +28,7 @@ pub fn open_host(
         HostKind::Gitlab => Arc::new(GitLab::new(client, api_base, token)),
         HostKind::Forgejo => Arc::new(Forgejo::new(client, api_base, token)),
         HostKind::Github => Arc::new(GitHub::new(client, api_base, token)),
+        HostKind::Azure => Arc::new(AzureDevOps::new(client, api_base, token)),
     }
 }
 
@@ -35,6 +37,8 @@ pub fn review_ref(kind: HostKind, number: u64) -> String {
     match kind {
         HostKind::Gitlab => format!("refs/merge-requests/{number}/head"),
         HostKind::Forgejo | HostKind::Github => format!("refs/pull/{number}/head"),
+        // Azure DevOps keeps only the merge commit of a pull request.
+        HostKind::Azure => format!("refs/pull/{number}/merge"),
     }
 }
 
@@ -120,7 +124,11 @@ impl ForgeService {
             Ok(_) => {}
             Err(e) => tracing::warn!("keychain lookup for {} failed: {e}", acc.id),
         }
-        if normalize_server(&acc.server) == acc.kind.default_server() {
+        let server = normalize_server(&acc.server);
+        // Azure DevOps accounts name the organization below the public server.
+        let public = server == acc.kind.default_server()
+            || acc.kind == HostKind::Azure && server.starts_with("https://dev.azure.com/");
+        if public {
             for var in env_vars(acc.kind) {
                 if let Some(t) = (self.env)(var).filter(|t| !t.is_empty()) {
                     return (Some(t), TokenSource::Env);
@@ -144,6 +152,11 @@ impl ForgeService {
         } else {
             server
         });
+        if kind == HostKind::Azure && server == HostKind::Azure.default_server() {
+            return Err(HostError::Config(
+                "Enter the organization: https://dev.azure.com/<organization>".into(),
+            ));
+        }
         let mut account = Account {
             id: String::new(),
             kind,
@@ -292,6 +305,8 @@ fn clone_username(acc: &Account) -> String {
     match acc.kind {
         HostKind::Github => "x-access-token".into(),
         HostKind::Gitlab => "oauth2".into(),
+        // Any user name works with a personal access token.
+        HostKind::Azure => "pat".into(),
         HostKind::Forgejo => acc
             .username
             .clone()
@@ -368,5 +383,14 @@ mod tests {
             ..gh
         };
         assert_eq!(svc.token(&ghe), (None, TokenSource::None));
+        let svc = svc.with_env(|k| (k == "AZURE_DEVOPS_EXT_PAT").then(|| "pat".to_string()));
+        let az = Account {
+            id: "azure-dev.azure.com-acme".into(),
+            kind: HostKind::Azure,
+            server: "https://dev.azure.com/acme".into(),
+            username: None,
+            api_url: None,
+        };
+        assert_eq!(svc.token(&az), (Some("pat".into()), TokenSource::Env));
     }
 }

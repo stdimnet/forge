@@ -33,7 +33,7 @@ pub struct DotnetCommand {
 }
 
 impl DotnetCommand {
-    fn new(ctx: &DotnetContext, args: Vec<String>) -> Self {
+    pub(crate) fn new(ctx: &DotnetContext, args: Vec<String>) -> Self {
         DotnetCommand {
             program: ctx.dotnet(),
             args,

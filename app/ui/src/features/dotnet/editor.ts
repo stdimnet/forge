@@ -1,12 +1,11 @@
 /**
  * DotNetForge in the editor: MSBuild files (`.csproj`, `.props`, `.slnx`, …) as XML, Razor
- * as HTML, `.sln` solutions with their own highlighting; Reformat Code with `dotnet format`
+ * as HTML with C# (`web/razor.ts`), `.sln` solutions with their own highlighting; Reformat Code with `dotnet format`
  * (`dotnet.formatter`), Code Cleanup with `dotnet format` on a file, folder or the
  * solution; the solution reloads when a project file is saved.
  */
 import type { StreamParser, StringStream } from "@codemirror/language";
 import { xml } from "@codemirror/lang-xml";
-import { html } from "@codemirror/lang-html";
 import { registerLanguage } from "@/editor/languages";
 import { streamLanguage } from "@/editor/tokens";
 import { registerFormatProvider } from "@/features/lsp/format";
@@ -48,7 +47,6 @@ export const slnParser: StreamParser<{ value: boolean }> = {
 };
 
 registerLanguage({ id: "msbuild", load: () => xml() });
-registerLanguage({ id: "razor", load: () => html() });
 registerLanguage({ id: "sln", load: () => streamLanguage(slnParser) });
 
 const isDotnetSource = (path: string) => /\.(cs|csx|fs|fsi|fsx|vb)$/i.test(path);
