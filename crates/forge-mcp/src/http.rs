@@ -177,7 +177,10 @@ async fn read_message<R: AsyncRead + Unpin>(
         if buf.len() > MAX_HEAD_BYTES {
             return Err(HttpError::HeadTooLarge);
         }
-        let n = stream.read(&mut chunk).await.map_err(|_| HttpError::Closed)?;
+        let n = stream
+            .read(&mut chunk)
+            .await
+            .map_err(|_| HttpError::Closed)?;
         if n == 0 {
             return Err(HttpError::Closed);
         }
@@ -187,7 +190,12 @@ async fn read_message<R: AsyncRead + Unpin>(
         return Err(HttpError::HeadTooLarge);
     }
     let (first, headers) = parse_head(&buf[..head_end])?;
-    let header = |name: &str| headers.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str());
+    let header = |name: &str| {
+        headers
+            .iter()
+            .find(|(k, _)| k == name)
+            .map(|(_, v)| v.as_str())
+    };
     if header("transfer-encoding").is_some() {
         return Err(HttpError::Unsupported);
     }
@@ -201,7 +209,10 @@ async fn read_message<R: AsyncRead + Unpin>(
     let mut body = buf[head_end + 4..].to_vec();
     body.truncate(length);
     while body.len() < length {
-        let n = stream.read(&mut chunk).await.map_err(|_| HttpError::Closed)?;
+        let n = stream
+            .read(&mut chunk)
+            .await
+            .map_err(|_| HttpError::Closed)?;
         if n == 0 {
             return Err(HttpError::Closed);
         }
@@ -292,7 +303,8 @@ mod tests {
 
     #[tokio::test]
     async fn reads_requests_and_responses() {
-        let mut raw: &[u8] = b"POST /mcp?sessionId=ab HTTP/1.1\r\nHost: 127.0.0.1:1\r\nContent-Length: 2\r\n\r\n{}";
+        let mut raw: &[u8] =
+            b"POST /mcp?sessionId=ab HTTP/1.1\r\nHost: 127.0.0.1:1\r\nContent-Length: 2\r\n\r\n{}";
         let req = read_request(&mut raw).await.unwrap();
         assert_eq!(req.method, "POST");
         assert_eq!(req.path, "/mcp");
@@ -309,13 +321,19 @@ mod tests {
 
     #[tokio::test]
     async fn enforces_limits() {
-        let big = format!("POST / HTTP/1.1\r\nContent-Length: {}\r\n\r\n", MAX_BODY_BYTES + 1);
+        let big = format!(
+            "POST / HTTP/1.1\r\nContent-Length: {}\r\n\r\n",
+            MAX_BODY_BYTES + 1
+        );
         assert_eq!(
             read_request(&mut big.as_bytes()).await,
             Err(HttpError::BodyTooLarge)
         );
         let mut chunked: &[u8] = b"POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n";
-        assert_eq!(read_request(&mut chunked).await, Err(HttpError::Unsupported));
+        assert_eq!(
+            read_request(&mut chunked).await,
+            Err(HttpError::Unsupported)
+        );
         let mut bad: &[u8] = b"GET http://evil/ HTTP/1.1\r\n\r\n";
         assert_eq!(read_request(&mut bad).await, Err(HttpError::Malformed));
     }

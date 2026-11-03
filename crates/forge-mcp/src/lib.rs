@@ -34,8 +34,8 @@ pub use tools::{catalog, ToolGroup, ToolKind, ToolSpec};
 
 #[cfg(feature = "server")]
 pub use engine::{
-    Approval, ApprovalRequest, CallLogEntry, CallStatus, Engine, McpHost, ServerEvent,
-    SessionInfo, ToolOutput,
+    Approval, ApprovalRequest, CallLogEntry, CallStatus, Engine, McpHost, ServerEvent, SessionInfo,
+    ToolOutput,
 };
 #[cfg(feature = "server")]
 pub use server::{McpServer, DEFAULT_PORT};

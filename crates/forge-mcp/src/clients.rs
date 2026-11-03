@@ -137,16 +137,25 @@ mod tests {
             "claude mcp add --transport http forge http://127.0.0.1:64342/mcp --header \"Authorization: Bearer abc123\""
         );
         let desktop: serde_json::Value = serde_json::from_str(&get("claude-desktop").text).unwrap();
-        assert_eq!(desktop["mcpServers"]["forge"]["command"], "/opt/Forge/forge");
+        assert_eq!(
+            desktop["mcpServers"]["forge"]["command"],
+            "/opt/Forge/forge"
+        );
         assert_eq!(desktop["mcpServers"]["forge"]["args"][0], "--mcp-stdio");
         let cursor: serde_json::Value = serde_json::from_str(&get("cursor").text).unwrap();
-        assert_eq!(cursor["mcpServers"]["forge"]["url"], "http://127.0.0.1:64342/mcp");
+        assert_eq!(
+            cursor["mcpServers"]["forge"]["url"],
+            "http://127.0.0.1:64342/mcp"
+        );
         assert_eq!(
             cursor["mcpServers"]["forge"]["headers"]["Authorization"],
             "Bearer abc123"
         );
         let gemini: serde_json::Value = serde_json::from_str(&get("gemini-cli").text).unwrap();
-        assert_eq!(gemini["mcpServers"]["forge"]["httpUrl"], "http://127.0.0.1:64342/mcp");
+        assert_eq!(
+            gemini["mcpServers"]["forge"]["httpUrl"],
+            "http://127.0.0.1:64342/mcp"
+        );
         assert_eq!(
             get("codex").text,
             "[mcp_servers.forge]\ncommand = \"/opt/Forge/forge\"\nargs = [\"--mcp-stdio\"]\n"
@@ -156,7 +165,11 @@ mod tests {
 
     #[test]
     fn quotes_windows_paths() {
-        let all = configs("http://127.0.0.1:1/mcp", "t", "C:\\Program Files\\Forge\\forge.exe");
+        let all = configs(
+            "http://127.0.0.1:1/mcp",
+            "t",
+            "C:\\Program Files\\Forge\\forge.exe",
+        );
         let codex = all.iter().find(|c| c.id == "codex").unwrap();
         assert!(codex
             .text

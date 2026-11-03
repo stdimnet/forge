@@ -67,7 +67,9 @@ fn origin_allowed(origin: Option<&str>, port: u16) -> bool {
 
 fn bearer(req: &Request) -> Option<&str> {
     let (scheme, token) = req.header("authorization")?.split_once(' ')?;
-    scheme.eq_ignore_ascii_case("bearer").then_some(token.trim())
+    scheme
+        .eq_ignore_ascii_case("bearer")
+        .then_some(token.trim())
 }
 
 /// What to send back: a plain response or an event stream.
@@ -122,8 +124,10 @@ impl Router {
                     Some(_) => Response::error(404, "session not found"),
                     None => Response::error(400, "Mcp-Session-Id header is missing"),
                 },
-                ("GET", ENDPOINT) => Response::error(405, "this server sends no server-initiated messages")
-                    .with_header("Allow", "POST, DELETE"),
+                ("GET", ENDPOINT) => {
+                    Response::error(405, "this server sends no server-initiated messages")
+                        .with_header("Allow", "POST, DELETE")
+                }
                 ("GET", SSE_ENDPOINT) => {
                     let session = random_hex(16);
                     let (tx, rx) = mpsc::unbounded_channel();
@@ -154,17 +158,23 @@ impl Router {
             return Err(Response::error(403, "invalid host"));
         }
         if !origin_allowed(req.header("origin"), self.port) {
-            return Err(Response::error(403, "requests from web pages are not allowed"));
+            return Err(Response::error(
+                403,
+                "requests from web pages are not allowed",
+            ));
         }
-        let authorized = bearer(req)
-            .is_some_and(|t| constant_time_eq(t.as_bytes(), self.token.as_bytes()));
+        let authorized =
+            bearer(req).is_some_and(|t| constant_time_eq(t.as_bytes(), self.token.as_bytes()));
         if !authorized {
             return Err(Response::error(401, "missing or invalid bearer token")
                 .with_header("WWW-Authenticate", "Bearer realm=\"forge\""));
         }
         if let Some(v) = req.header("mcp-protocol-version") {
             if !SUPPORTED_VERSIONS.contains(&v) {
-                return Err(Response::error(400, &format!("unsupported protocol version {v}")));
+                return Err(Response::error(
+                    400,
+                    &format!("unsupported protocol version {v}"),
+                ));
             }
         }
         if let Some(ct) = req.header("content-type") {
@@ -182,9 +192,10 @@ impl Router {
         };
         let session = req.header("mcp-session-id");
         match self.engine.handle(session, None, "http", incoming).await {
-            Err(EngineError::MissingSession) => {
-                Response::error(400, "Mcp-Session-Id header is missing; send initialize first")
-            }
+            Err(EngineError::MissingSession) => Response::error(
+                400,
+                "Mcp-Session-Id header is missing; send initialize first",
+            ),
             Err(EngineError::UnknownSession) => Response::error(404, "session not found"),
             Ok(outcome) => {
                 let mut resp = match outcome.body() {
@@ -213,7 +224,10 @@ impl Router {
                 return Response::new(202);
             }
         };
-        let known = self.engine.has_session(&session).then_some(session.as_str());
+        let known = self
+            .engine
+            .has_session(&session)
+            .then_some(session.as_str());
         match self
             .engine
             .handle(known, Some(&session), "sse", incoming)
@@ -296,7 +310,11 @@ async fn serve(listener: TcpListener, router: Arc<Router>, shutdown: watch::Rece
     }
 }
 
-async fn connection(mut stream: TcpStream, router: Arc<Router>, mut shutdown: watch::Receiver<bool>) {
+async fn connection(
+    mut stream: TcpStream,
+    router: Arc<Router>,
+    mut shutdown: watch::Receiver<bool>,
+) {
     let req = match tokio::time::timeout(READ_TIMEOUT, read_request(&mut stream)).await {
         Ok(Ok(req)) => req,
         Ok(Err(e)) => {
@@ -323,7 +341,9 @@ async fn connection(mut stream: TcpStream, router: Arc<Router>, mut shutdown: wa
                         _ = keepalive.tick() => ": keepalive\n\n".to_string(),
                         _ = shutdown.changed() => break,
                     };
-                    if stream.write_all(chunk.as_bytes()).await.is_err() || stream.flush().await.is_err() {
+                    if stream.write_all(chunk.as_bytes()).await.is_err()
+                        || stream.flush().await.is_err()
+                    {
                         break;
                     }
                 }
@@ -335,7 +355,10 @@ async fn connection(mut stream: TcpStream, router: Arc<Router>, mut shutdown: wa
 
 /// `{ "error": … }` body for transports that must answer a request they cannot route.
 pub fn transport_error(id: serde_json::Value, message: &str) -> serde_json::Value {
-    jsonrpc::error_response(id, &jsonrpc::RpcError::new(jsonrpc::INTERNAL_ERROR, message))
+    jsonrpc::error_response(
+        id,
+        &jsonrpc::RpcError::new(jsonrpc::INTERNAL_ERROR, message),
+    )
 }
 
 #[cfg(test)]

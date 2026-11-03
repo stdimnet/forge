@@ -186,10 +186,9 @@ mod tests {
         assert!(matches!(n, Incoming::Single(Message::Notification { .. })));
         let resp = parse(br#"{"jsonrpc":"2.0","id":"a","result":{}}"#).unwrap();
         assert_eq!(resp, Incoming::Single(Message::Response { id: json!("a") }));
-        let batch = parse(
-            br#"[{"jsonrpc":"2.0","id":1,"method":"ping"},{"jsonrpc":"2.0","method":"x"}]"#,
-        )
-        .unwrap();
+        let batch =
+            parse(br#"[{"jsonrpc":"2.0","id":1,"method":"ping"},{"jsonrpc":"2.0","method":"x"}]"#)
+                .unwrap();
         assert_eq!(batch.messages().len(), 2);
     }
 
@@ -211,7 +210,10 @@ mod tests {
     #[test]
     fn builds_responses() {
         let ok = result_response(json!(7), json!({ "a": 1 }));
-        assert_eq!(ok, json!({ "jsonrpc": "2.0", "id": 7, "result": { "a": 1 } }));
+        assert_eq!(
+            ok,
+            json!({ "jsonrpc": "2.0", "id": 7, "result": { "a": 1 } })
+        );
         let err = error_response(json!("x"), &RpcError::method_not_found("nope"));
         assert_eq!(err["error"]["code"], METHOD_NOT_FOUND);
         assert_eq!(err["error"]["message"], "Method not found: nope");

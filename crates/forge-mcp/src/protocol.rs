@@ -131,7 +131,11 @@ pub fn prompt_get(name: &str, arguments: &Value) -> Option<Value> {
     let p = PROMPTS.iter().find(|p| p.name == name)?;
     let mut text = p.text.to_string();
     if let Some((arg, _)) = p.argument {
-        if let Some(v) = arguments.get(arg).and_then(Value::as_str).filter(|v| !v.trim().is_empty()) {
+        if let Some(v) = arguments
+            .get(arg)
+            .and_then(Value::as_str)
+            .filter(|v| !v.trim().is_empty())
+        {
             text.push_str(&format!("\n\nFocus on: {}", v.trim()));
         }
     }
@@ -170,7 +174,10 @@ mod tests {
         let text = p["messages"][0]["content"]["text"].as_str().unwrap();
         assert!(text.ends_with("Focus on: security"));
         assert!(prompt_get("nope", &Value::Null).is_none());
-        assert_eq!(resource_path("forge://project/src/a.php"), Some("src/a.php"));
+        assert_eq!(
+            resource_path("forge://project/src/a.php"),
+            Some("src/a.php")
+        );
         assert_eq!(resource_path("file:///etc/passwd"), None);
         assert_eq!(resource_uri("a/b.ts"), "forge://project/a/b.ts");
     }

@@ -51,7 +51,9 @@ pub enum Decision {
     /// The user must approve the call first.
     Ask,
     /// Refused; the message goes back to the client.
-    Deny { reason: String },
+    Deny {
+        reason: String,
+    },
 }
 
 fn deny(reason: impl Into<String>) -> Decision {
@@ -68,9 +70,7 @@ pub fn normalize_path(path: &str) -> Result<String, String> {
         || p.as_bytes().get(1) == Some(&b':')
         || p.contains("://");
     if looks_absolute {
-        return Err(format!(
-            "{path}: use a path relative to the project root"
-        ));
+        return Err(format!("{path}: use a path relative to the project root"));
     }
     let mut parts = Vec::new();
     for seg in p.split('/') {

@@ -155,7 +155,10 @@ where
             t.port,
             "DELETE",
             ENDPOINT,
-            &[("Authorization", auth.as_str()), (SESSION_HEADER, s.as_str())],
+            &[
+                ("Authorization", auth.as_str()),
+                (SESSION_HEADER, s.as_str()),
+            ],
             b"",
         )
         .await;
@@ -193,9 +196,13 @@ mod tests {
             request_ids(r#"{"jsonrpc":"2.0","id":4,"method":"ping"}"#),
             vec![Value::from(4)]
         );
-        assert!(request_ids(r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#).is_empty());
+        assert!(
+            request_ids(r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#).is_empty()
+        );
         assert_eq!(
-            request_ids(r#"[{"jsonrpc":"2.0","id":"a","method":"x"},{"jsonrpc":"2.0","method":"y"}]"#),
+            request_ids(
+                r#"[{"jsonrpc":"2.0","id":"a","method":"x"},{"jsonrpc":"2.0","method":"y"}]"#
+            ),
             vec![Value::from("a")]
         );
     }

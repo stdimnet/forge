@@ -328,7 +328,9 @@ impl Engine {
                         .map(str::to_string)
                         .unwrap_or_else(|| random_hex(16));
                     let response = self.initialize(&new_id, transport, &params);
-                    outcome.responses.push(jsonrpc::result_response(id, response));
+                    outcome
+                        .responses
+                        .push(jsonrpc::result_response(id, response));
                     outcome.created_session = Some(new_id.clone());
                     session_id = Some(new_id);
                 }
@@ -416,7 +418,9 @@ impl Engine {
             }
             "resources/list" => {
                 let policy = self.host.policy().await;
-                if !policy.ai_enabled || !policy.lists(&tools::find("read_file").expect("read_file")) {
+                if !policy.ai_enabled
+                    || !policy.lists(&tools::find("read_file").expect("read_file"))
+                {
                     return Ok(json!({ "resources": [] }));
                 }
                 let resources: Vec<Value> = self
@@ -442,16 +446,21 @@ impl Engine {
                     .as_str()
                     .ok_or_else(|| RpcError::invalid_params("uri is missing"))?;
                 let path = protocol::resource_path(uri).ok_or_else(|| {
-                    RpcError::new(jsonrpc::RESOURCE_NOT_FOUND, format!("Resource not found: {uri}"))
+                    RpcError::new(
+                        jsonrpc::RESOURCE_NOT_FOUND,
+                        format!("Resource not found: {uri}"),
+                    )
                 })?;
                 let spec = tools::find("read_file").expect("read_file");
                 let policy = self.host.policy().await;
                 if let Decision::Deny { reason } = policy.decide(&spec, &json!({ "path": path })) {
                     return Err(RpcError::new(jsonrpc::INVALID_PARAMS, reason));
                 }
-                let text = self.host.read_resource(path).await.map_err(|e| {
-                    RpcError::new(jsonrpc::RESOURCE_NOT_FOUND, e)
-                })?;
+                let text = self
+                    .host
+                    .read_resource(path)
+                    .await
+                    .map_err(|e| RpcError::new(jsonrpc::RESOURCE_NOT_FOUND, e))?;
                 Ok(json!({
                     "contents": [{ "uri": uri, "mimeType": "text/plain", "text": cut(&text, MAX_RESULT_CHARS) }]
                 }))
@@ -567,7 +576,11 @@ impl Engine {
                 }
                 let text = serde_json::to_string_pretty(&value).unwrap_or_default();
                 if text.chars().count() > MAX_RESULT_CHARS {
-                    (CallStatus::Ok, None, tool_result(cut(&text, MAX_RESULT_CHARS), None, false))
+                    (
+                        CallStatus::Ok,
+                        None,
+                        tool_result(cut(&text, MAX_RESULT_CHARS), None, false),
+                    )
                 } else {
                     (CallStatus::Ok, None, tool_result(text, Some(value), false))
                 }
@@ -627,7 +640,12 @@ mod tests {
 
     async fn send(engine: &Engine, session: Option<&str>, msg: Value) -> Outcome {
         engine
-            .handle(session, None, "http", parse(msg.to_string().as_bytes()).unwrap())
+            .handle(
+                session,
+                None,
+                "http",
+                parse(msg.to_string().as_bytes()).unwrap(),
+            )
             .await
             .unwrap()
     }
@@ -636,21 +654,35 @@ mod tests {
         let out = send(
             engine,
             None,
-            request(1, "initialize", json!({
-                "protocolVersion": "2025-03-26",
-                "clientInfo": { "name": "claude-code", "version": "2.0.0" },
-                "capabilities": {}
-            })),
+            request(
+                1,
+                "initialize",
+                json!({
+                    "protocolVersion": "2025-03-26",
+                    "clientInfo": { "name": "claude-code", "version": "2.0.0" },
+                    "capabilities": {}
+                }),
+            ),
         )
         .await;
         assert_eq!(out.responses[0]["result"]["protocolVersion"], "2025-03-26");
         let sid = out.created_session.unwrap();
-        send(engine, Some(&sid), jsonrpc::notification("notifications/initialized", json!({}))).await;
+        send(
+            engine,
+            Some(&sid),
+            jsonrpc::notification("notifications/initialized", json!({})),
+        )
+        .await;
         sid
     }
 
     async fn call(engine: &Engine, sid: &str, name: &str, args: Value) -> Value {
-        let out = send(engine, Some(sid), request(9, "tools/call", json!({ "name": name, "arguments": args }))).await;
+        let out = send(
+            engine,
+            Some(sid),
+            request(9, "tools/call", json!({ "name": name, "arguments": args })),
+        )
+        .await;
         out.responses[0]["result"].clone()
     }
 
@@ -695,7 +727,10 @@ mod tests {
         // Terminal commands are off by default.
         assert!(!names.contains(&"execute_terminal_command"));
         let unknown = send(&engine, Some(&sid), request(3, "nope/nope", json!({}))).await;
-        assert_eq!(unknown.responses[0]["error"]["code"], jsonrpc::METHOD_NOT_FOUND);
+        assert_eq!(
+            unknown.responses[0]["error"]["code"],
+            jsonrpc::METHOD_NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -723,11 +758,17 @@ mod tests {
         let (engine, _) = setup(Fake::default());
         let sid = connect(&engine).await;
         let r = call(&engine, &sid, "find_files", json!({ "query": "a" })).await;
-        assert_eq!(r["structuredContent"]["files"], json!([{ "path": "src/a.php" }]));
+        assert_eq!(
+            r["structuredContent"]["files"],
+            json!([{ "path": "src/a.php" }])
+        );
         assert_eq!(r["structuredContent"]["excludedByAiIgnore"], 1);
         let r = call(&engine, &sid, "read_file", json!({ "path": ".env" })).await;
         assert_eq!(r["isError"], true);
-        assert!(r["content"][0]["text"].as_str().unwrap().contains(".aiignore"));
+        assert!(r["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains(".aiignore"));
     }
 
     #[tokio::test]
@@ -764,9 +805,18 @@ mod tests {
             ..Fake::default()
         });
         let sid = connect(&engine).await;
-        let r = call(&engine, &sid, "run_configuration", json!({ "name": "Tests" })).await;
+        let r = call(
+            &engine,
+            &sid,
+            "run_configuration",
+            json!({ "name": "Tests" }),
+        )
+        .await;
         assert_eq!(r["isError"], true);
-        assert!(r["content"][0]["text"].as_str().unwrap().contains("Safe Mode"));
+        assert!(r["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Safe Mode"));
         assert!(fake.approvals.lock().unwrap().is_empty());
         assert_eq!(fake.log.lock().unwrap()[0].status, CallStatus::Refused);
     }
@@ -778,18 +828,34 @@ mod tests {
         let out = send(
             &engine,
             Some(&sid),
-            request(4, "resources/read", json!({ "uri": "forge://project/src/a.php" })),
+            request(
+                4,
+                "resources/read",
+                json!({ "uri": "forge://project/src/a.php" }),
+            ),
         )
         .await;
-        assert_eq!(out.responses[0]["result"]["contents"][0]["text"], "text of src/a.php");
+        assert_eq!(
+            out.responses[0]["result"]["contents"][0]["text"],
+            "text of src/a.php"
+        );
         let out = send(
             &engine,
             Some(&sid),
-            request(5, "resources/read", json!({ "uri": "forge://project/.env" })),
+            request(
+                5,
+                "resources/read",
+                json!({ "uri": "forge://project/.env" }),
+            ),
         )
         .await;
         assert!(out.responses[0]["error"].is_object());
-        let out = send(&engine, Some(&sid), request(6, "prompts/get", json!({ "name": "fix_problems" }))).await;
+        let out = send(
+            &engine,
+            Some(&sid),
+            request(6, "prompts/get", json!({ "name": "fix_problems" })),
+        )
+        .await;
         assert!(out.responses[0]["result"]["messages"].is_array());
     }
 
@@ -797,7 +863,11 @@ mod tests {
     async fn batches_answer_with_arrays() {
         let (engine, _) = setup(Fake::default());
         let sid = connect(&engine).await;
-        let body = json!([request(1, "ping", json!({})), jsonrpc::notification("x", json!({})), request(2, "ping", json!({}))]);
+        let body = json!([
+            request(1, "ping", json!({})),
+            jsonrpc::notification("x", json!({})),
+            request(2, "ping", json!({}))
+        ]);
         let out = send(&engine, Some(&sid), body).await;
         let body = out.body().unwrap();
         assert_eq!(body.as_array().unwrap().len(), 2);
