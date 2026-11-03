@@ -7,10 +7,12 @@
 //! - [`tools`]: the tool catalog with JSON Schemas, groups and kinds.
 //! - [`policy`]: allowed groups, approvals, Safe Mode, `ai.enabled` and `.aiignore`.
 //! - [`clients`]: "Copy client configuration" snippets.
+//! - [`adapters`]: IDE service answers turned into tool results (1-based positions).
 //! - With the `server` feature: [`engine`] (sessions, calls, approvals, call log over an
 //!   [`engine::McpHost`]), [`server`] (Streamable HTTP and HTTP+SSE on `127.0.0.1` with a
 //!   bearer token), [`stdio`] (the `forge --mcp-stdio` proxy) and [`http`].
 
+pub mod adapters;
 pub mod clients;
 pub mod jsonrpc;
 pub mod policy;
