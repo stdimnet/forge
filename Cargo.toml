@@ -61,6 +61,7 @@ forge-dbschema = { path = "crates/forge-dbschema" }
 forge-dbtransfer = { path = "crates/forge-dbtransfer" }
 forge-sqlcode = { path = "crates/forge-sqlcode" }
 forge-forges = { path = "crates/forge-forges" }
+forge-code-review = { path = "crates/forge-code-review" }
 forge-keymap = { path = "crates/forge-keymap" }
 forge-vim = { path = "crates/forge-vim" }
 forge-livetemplates = { path = "crates/forge-livetemplates" }

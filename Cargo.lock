@@ -2783,6 +2783,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-code-review"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dirs 6.0.0",
+ "forge-ai",
+ "forge-ai-editor",
+ "forge-forges",
+ "forge-vcs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
 name = "forge-codeintel"
 version = "0.1.0"
 dependencies = [
