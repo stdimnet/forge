@@ -19,6 +19,8 @@ pub enum Auth {
     Token(String),
     /// GitHub: `Authorization: Bearer <token>`.
     Bearer(String),
+    /// Azure DevOps: HTTP Basic with an empty user name and the token as password.
+    Basic(String, String),
     None,
 }
 
@@ -87,6 +89,7 @@ impl Http {
             Auth::PrivateToken(t) => rb.header("PRIVATE-TOKEN", t),
             Auth::Token(t) => rb.header(AUTHORIZATION, format!("token {t}")),
             Auth::Bearer(t) => rb.header(AUTHORIZATION, format!("Bearer {t}")),
+            Auth::Basic(u, p) => rb.basic_auth(u, Some(p)),
             Auth::None => rb,
         };
         rb
@@ -95,6 +98,17 @@ impl Http {
     /// Send a request; non-2xx responses become errors. `what` names the resource for 404s.
     pub async fn send(&self, rb: reqwest::RequestBuilder, what: &str) -> HostResult<Response> {
         let res = rb.send().await.map_err(|e| self.transport_error(&e))?;
+        // Azure DevOps answers a rejected token with 203 and its HTML sign-in page.
+        let html = res
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|v| v.starts_with("text/html"));
+        if res.status() == StatusCode::NON_AUTHORITATIVE_INFORMATION && html {
+            return Err(HostError::Unauthorized {
+                host: self.host.clone(),
+            });
+        }
         if res.status().is_success() {
             Ok(res)
         } else {

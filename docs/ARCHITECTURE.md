@@ -2411,15 +2411,18 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   tree-sitter on the desktop, with its lexical finder in browser mode).
 ## Code hosts (`forge-forges`)
 
-- `CodeHost` trait with GitLab (REST v4, `PRIVATE-TOKEN`), Forgejo/Gitea (`/api/v1`, `token`) and
-  GitHub (REST + GraphQL for review threads, `Bearer`) implementations. Numbers are the per-project
+- `CodeHost` trait with GitLab (REST v4, `PRIVATE-TOKEN`), Forgejo/Gitea (`/api/v1`, `token`),
+  GitHub (REST + GraphQL for review threads, `Bearer`) and Azure DevOps (REST 7.1, Basic with a
+  PAT; the account server is the organization or collection, repositories are
+  `project/repo`; work items via WIQL as issues, builds as pipelines, changed files diffed
+  locally) implementations. Numbers are the per-project
   ones (`!12` on GitLab, `#12` elsewhere); `Capabilities` tell the UI the wording and which actions
   the host supports (e.g. Forgejo cannot resolve threads through its API).
 - The repository is detected from `git remote -v` (https, ssh, scp-like, nested GitLab groups);
   accounts make self-hosted servers known, also with relative URL roots and SSH ports.
 - Accounts live in `<config dir>/forge/forges.toml`; tokens in the OS keychain (service
   `forge-forges`, account = account id) with `GITLAB_TOKEN`, `FORGEJO_TOKEN`/`GITEA_TOKEN`,
-  `GITHUB_TOKEN`/`GH_TOKEN` as fallback for the public servers.
+  `GITHUB_TOKEN`/`GH_TOKEN`, `AZURE_DEVOPS_EXT_PAT` as fallback for the public servers.
 - IPC (`app/ui/src/ipc/forges.ts`): `forges_accounts`, `forges_login({ kind, server, token, apiUrl? })`
   (verifies before storing), `forges_logout({ id })`, `forges_verify({ id })`, `forges_repo() ->
   { repo, repos, account, capabilities } | null`, `forges_merge_requests({ filter }) -> Page<MergeRequest>`,
@@ -2432,6 +2435,19 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `forges_checkout({ number, sourceBranch }) -> branch` (emits `git://changed`).
 - Errors are worded for balloons: rejected tokens, missing permissions, rate limits (with the reset
   time), unreachable servers.
+- `CodeHost::submit_review(repo, number, NewReview { event: comment | approve | requestChanges,
+  body, comments: { body, position, startLine? }[] })`: one review on GitHub and Forgejo/Gitea;
+  the default implementation (GitLab) posts the comments, the body and the approval one by one.
+  `review_events()` lists the verdicts the host accepts.
+- Review mode (`forge-code-review`, `app/ui/src/ipc/codeReview.ts`): `review_session({ number })
+  -> { headSha, files: { path, digest, viewed, aiExcluded }[], changes, drafts, events, summary,
+  findings, ai: { provider, model, local, problem } }`, `review_set_viewed({ number, path, digest,
+  viewed })`, `review_save_draft({ number, draft }) -> Draft[]`, `review_delete_draft({ number, id })`,
+  `review_submit({ number, event, body })`, `review_summarize({ number, refresh })`,
+  `review_ai({ number, refresh })`, `review_finding({ number, id, action: "draft" | "dismiss" })`,
+  `review_explain({ number, path, hunk })`. State lives in `<cache dir>/forge/code-review/`; AI
+  results are cached per head SHA. AI calls use the actions model and pass the `ai.enabled` /
+  `.aiignore` policy; excluded files are neither sent nor named.
 
 ## Services: Docker, Docker Compose and Kubernetes (`forge-containers`)
 
@@ -3307,6 +3323,29 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `.NET Project` generator lives in `forge-project`. Browser mode: `?project=dotnet` opens
   the `Bookstore` demo (`mock/demoDotnetProject.ts`, `dotnetMock.ts`, `dotnetTestsMock.ts`;
   `&build=broken`, `&roslyn=missing`; WebAssembly `crates/forge-wasm/src/dotnet.rs`).
+- Web and cloud projects (`dotnetforge-lang-dotnet`: `csharp` tokenizer, `aspnet`, `razor`,
+  `efcore`, `aspire`, `docker`, `watch`, `secrets`, and `web` for the solution-wide models;
+  `commands/dotnet_web.rs`; UI `features/dotnet/web`; mock `dotnetWebMock.ts`). IPC
+  (`app/ui/src/ipc/dotnetWeb.ts`): `dotnet_endpoints() -> { endpoints, baseUrls }`,
+  `dotnet_http_request({ endpoint }) -> string`, `dotnet_razor_components() ->
+  RazorComponent[]`, `dotnet_ef_model() -> { projects, contexts, migrations, localTool }`,
+  `dotnet_ef_command({ request }) -> CommandLine`, `dotnet_ef_output({ output }) -> {
+  migrations, contexts?, error?, hint?, toolMissing }`, `dotnet_aspire_hosts() -> AppHost[]`,
+  `dotnet_run_output({ text }) -> { aspire: { dashboardUrl?, started }, watch: WatchEvent[] }`,
+  `dotnet_dockerfile({ project, port? }) -> GeneratedDocker` (+ `dockerfileExists`,
+  `dockerignoreExists`), `dotnet_docker_build({ configuration }) -> CommandLine`,
+  `dotnet_user_secrets({ project })`, `dotnet_user_secrets_init({ project })` (adds a
+  `UserSecretsId` to the project file and creates `secrets.json` in the user profile),
+  `dotnet_user_secrets_read({ id })`, `dotnet_user_secrets_write({ id, content })` (local
+  projects only; the UI opens them as `usersecrets://<id>/secrets.json` through
+  `registerFileSystem`). `run.rs` builds the `dotnet-aspire` (`aspire::run_command`) and
+  `dotnet-docker` (`docker run`; `docker build` runs first from the type's `start`) processes
+  through `dotnet_web::run_command_line`. The UI contributes the `aspnet` view of the
+  Endpoints tool window, the `efcore` tool window, the `aspire` Services provider (node icons
+  `aspire`, `dotnetProject`), the Razor overlay over HTML (`web/razor.ts`, C# through the
+  legacy C# stream parser) with Blazor Go to Declaration and parameter completion, Hot Reload
+  in the status bar (watch runs are followed from the `.NET Project` type's `start`) and the
+  `UpdateRunningApplication` action (`Ctrl+F10`, Apply Changes).
 
 ## Spring Boot and Jakarta EE (`packs/javaforge/fw-spring`)
 

@@ -44,6 +44,8 @@ pub fn api_base(kind: HostKind, server: &str) -> String {
     match kind {
         HostKind::Gitlab => format!("{server}/api/v4"),
         HostKind::Forgejo => format!("{server}/api/v1"),
+        // `https://dev.azure.com/<organization>`: the API lives below the organization.
+        HostKind::Azure => server,
         HostKind::Github => {
             if server == "https://github.com" || server == "https://www.github.com" {
                 "https://api.github.com".into()
@@ -151,6 +153,7 @@ pub fn env_vars(kind: HostKind) -> &'static [&'static str] {
         HostKind::Gitlab => &["GITLAB_TOKEN"],
         HostKind::Forgejo => &["FORGEJO_TOKEN", "GITEA_TOKEN"],
         HostKind::Github => &["GITHUB_TOKEN", "GH_TOKEN"],
+        HostKind::Azure => &["AZURE_DEVOPS_EXT_PAT"],
     }
 }
 

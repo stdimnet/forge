@@ -19,6 +19,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-tasks](forge-agent-tasks.md) | Agent tasks: AI agents that run, test and fix code in a git worktree sandbox, with path confinement, a command allowlist, step budgets and the diff to review and apply |
 | [forge-backend](forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
+| [forge-code-review](forge-code-review.md) | Forge IDE code review: viewed files, pending review comments and AI summaries and reviews of pull/merge requests |
 | [forge-codeintel](forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-codestyle](forge-codestyle.md) | Code style schemes (Settings \| Editor \| Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly) |
 | [forge-colors](forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |

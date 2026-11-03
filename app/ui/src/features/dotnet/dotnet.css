@@ -454,3 +454,303 @@
 .dn-problem .tree-hint {
   flex: none;
 }
+
+/* ---- Web and cloud: ASP.NET Core endpoints, EF Core, Docker, Hot Reload ---- */
+
+.dn-ep {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dn-ep-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.dn-ep-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 340px;
+  min-width: 140px;
+  padding: 0 6px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--fg-muted);
+}
+.dn-ep-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  outline: none;
+  padding: 0;
+}
+.dn-ep-segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.dn-ep-segmented button {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.dn-ep-segmented button.active {
+  background: var(--bg-active);
+  color: var(--fg-strong);
+}
+.dn-ep-summary {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.dn-ep-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+.dn-ep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-ui);
+}
+.dn-ep-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-weight: normal;
+  text-align: left;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dn-ep-table td {
+  padding: 2px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+.dn-ep-table tbody tr {
+  cursor: pointer;
+}
+.dn-ep-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.dn-ep-table tbody tr.selected {
+  background: var(--bg-selection);
+}
+.dn-ep-method {
+  width: 70px;
+}
+.dn-ep-kind {
+  width: 110px;
+}
+.dn-ep-actions {
+  width: 28px;
+  text-align: right;
+}
+.dn-ep-actions .icon-btn {
+  width: 22px;
+  height: 20px;
+  color: var(--success);
+}
+.dn-verb {
+  display: inline-block;
+  min-width: 46px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: center;
+  color: var(--fg-muted);
+  background: var(--bg-hover);
+}
+.dn-verb.verb-get {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+.dn-verb.verb-post {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+}
+.dn-verb.verb-put,
+.dn-verb.verb-patch {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+.dn-verb.verb-delete {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+.dn-ep-path {
+  font-family: var(--font-mono);
+  color: var(--fg-strong);
+}
+.dn-ep-param {
+  color: var(--syn-variable);
+}
+.dn-ep-lock {
+  margin-left: 6px;
+  color: var(--warning);
+  vertical-align: -1px;
+}
+.dn-ep-name {
+  margin-left: 8px;
+  font-size: var(--fs-small);
+}
+.dn-ep-handler {
+  color: var(--syn-function);
+}
+.dn-ep-badge {
+  font-size: var(--fs-small);
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--fg-muted);
+}
+.dn-ep-badge.fw-blazor,
+.dn-ep-badge.fw-razorPages {
+  color: var(--syn-type);
+}
+.dn-ep-badge.fw-controller {
+  color: var(--syn-keyword);
+}
+.dn-ep-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+.dn-ef-split {
+  min-height: 0;
+}
+.dn-ef-contexts {
+  width: 30%;
+  min-width: 200px;
+  max-width: 360px;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+  padding: 4px 0;
+}
+.dn-ef-migrations {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+.dn-ef-head {
+  padding: 2px 10px 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dn-ef-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dn-ef-row:hover {
+  background: var(--bg-hover);
+}
+.dn-ef-set {
+  padding-left: 30px;
+  cursor: default;
+}
+.dn-ef-db {
+  color: var(--syn-type);
+}
+.dn-ef-provider {
+  padding: 8px 10px 0;
+  font-size: var(--fs-small);
+}
+.dn-ef-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dn-ef-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+}
+.dn-ef-status.applied {
+  color: var(--success);
+}
+.dn-ef-status.pending {
+  color: var(--warning);
+}
+.dn-ef-busy {
+  font-size: var(--fs-small);
+  margin-right: 4px;
+}
+.dn-ef-form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+.dn-ef-form .form-label {
+  margin: 0;
+}
+.dn-ef-note {
+  grid-column: 1 / -1;
+  color: var(--fg-muted);
+}
+.dn-ef-hint {
+  margin-right: auto;
+  font-size: var(--fs-small);
+}
+.dn-docker-path {
+  margin: 12px 0 6px;
+  font-size: var(--fs-small);
+}
+.dn-docker-preview {
+  margin: 0 0 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre;
+}
+.status-item.dn-hot-reload {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning);
+}
+.status-item.dn-hot-reload.ok {
+  color: var(--success);
+}
+.status-item.dn-hot-reload.bad {
+  color: var(--danger);
+}

@@ -141,7 +141,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 ## Milestone 5 — Language packs II: .NET and Ruby
 
 - [x] .NET pack: Roslyn LSP (managed), .NET SDK, solutions/projects, build window, run configurations and launch profiles, netcoredbg debugger, xUnit/NUnit/MSTest, NuGet window, `dotnet new` templates, EditorConfig cleanup
-- [ ] .NET pack: ASP.NET Core (Razor/Blazor, endpoints), EF Core commands, Aspire, Docker, Hot Reload, user secrets, Azure DevOps code host
+- [x] .NET pack: ASP.NET Core (Razor/Blazor, endpoints), EF Core commands, Aspire, Docker, Hot Reload, user secrets, Azure DevOps code host
 - [ ] .NET pack: Unity and Godot integration (editor bridge, tests, debugging)
 - [x] Ruby pack: ruby-lsp, version managers, Bundler, Rake, RSpec/Minitest, rdbg debugger, RuboCop, ERB, IRB console
 - [x] Ruby pack: Rails (navigation, routes, generators, console, ActiveRecord data sources, i18n, Hotwire)
@@ -150,7 +150,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 - [x] AI in the editor: Inline completion (local or hosted models), "Explain / Fix with AI" in Alt+Enter, AI-generated tests and docs
 - [x] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
-- [ ] Code review: Review pull/merge requests inside Forge with AI summaries
+- [x] Code review: Review pull/merge requests inside Forge with AI summaries
 - [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — stages S0 to S7 built on `feat/code-with-me` (not the auto-runner's; leave it to its owner), waiting for the manual desktop test plan and the release-build size measurement before it merges; [plan](plans/code-with-me.md), [guide](guide/user/code-with-me.md)
 - [ ] MCP: Forge as an MCP server for external agents
 

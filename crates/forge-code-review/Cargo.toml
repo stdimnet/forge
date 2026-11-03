@@ -1,0 +1,21 @@
+[package]
+name = "forge-code-review"
+description = "Forge IDE code review: viewed files, pending review comments and AI summaries and reviews of pull/merge requests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-ai.workspace = true
+forge-ai-editor.workspace = true
+forge-forges.workspace = true
+forge-vcs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+dirs.workspace = true
+
+[dev-dependencies]
+async-trait = "0.1"
+tempfile.workspace = true
+tokio.workspace = true

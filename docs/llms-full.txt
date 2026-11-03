@@ -13751,8 +13751,8 @@ one level below, `global.json`, a C# or F# file in the root, or two or more in a
 
 - C#, F# and Visual Basic files are highlighted out of the box. MSBuild files (`.csproj`,
   `.fsproj`, `.vbproj`, `.props`, `.targets`, `.slnx`, `.nuspec`, `.runsettings`, `.resx`)
-  are XML, Razor (`.razor`, `.cshtml`) is HTML, and `.sln` solutions have their own
-  highlighting (sections, GUIDs, configurations).
+  are XML, Razor (`.razor`, `.cshtml`) is HTML with C# (see [Razor and Blazor](#razor-and-blazor)),
+  and `.sln` solutions have their own highlighting (sections, GUIDs, configurations).
 - Completion, navigation, hover, rename, code actions and diagnostics for C# come from the
   **Roslyn language server** (see [below](#roslyn-language-server)), F# from FsAutoComplete
   when it is installed (`dotnet tool install --global fsautocomplete`).
@@ -13838,8 +13838,8 @@ The **.NET Project** configuration type runs a project with `dotnet run`:
 - **Launch profile**: a profile of `launchSettings.json` (`--launch-profile`), the default
   (the first one) or **None** (`--no-launch-profile`). Profiles of other kinds (IIS
   Express, Docker) are listed in the Build tool window but `dotnet run` cannot start them.
-- **Run with**: `dotnet run`, or `dotnet watch` with hot reload (rude edits restart the
-  program).
+- **Run with**: `dotnet run`, or `dotnet watch` with [Hot Reload](#hot-reload) (rude edits
+  restart the program).
 - **Target framework**, **Configuration** (else Settings | .NET), **Do not build** and more
   `dotnet run` options; program arguments go after `--`.
 - **Build before running tests and debugging** (Settings | .NET) builds the solution through
@@ -13934,19 +13934,165 @@ VS Code's C# extension. It is never bundled:
   project files without one. It replaces csharp-ls while it runs.
 - Settings: **Analyze** open files, the whole solution or nothing; parameter and type hints.
 
+## Razor and Blazor
+
+Razor files (`.razor`, `.cshtml`) keep their HTML highlighting, and Razor is a layer on top,
+like Rider's template data language: `@expressions`, `@(…)`, `@{ … }` and `@code { … }`
+blocks, `@if` / `@foreach` and the other control blocks, directives (`@page`, `@inject`,
+`@using`, …), directive attributes (`@onclick`, `@bind-Value`) and `@* comments *@`, with C#
+colored inside.
+
+![A Blazor page with C# inside Razor and the parameters of a component in completion](docs/screenshots/dotnet-razor.png)
+
+- **Blazor components**: every `.razor` file is a component named after the file. **Go to
+  Declaration** (`Ctrl+B`) on `<Rating>` opens `Rating.razor`.
+- **Completion**: after `<` the components; inside a component's tag its `[Parameter]`
+  properties (from `@code` blocks and the `.razor.cs` code-behind) with their types,
+  `[EditorRequired]` ones first; cascading parameters are left out.
+- The components (names, parameters, `@page` routes, `@namespace` from `_Imports.razor`) are
+  read in Rust and refreshed when a `.razor` file is saved.
+
+## ASP.NET Core endpoints
+
+In solutions with a web project the **Endpoints** tool window has an **ASP.NET Core** view,
+like Rider's Endpoints:
+
+![The Endpoints tool window with minimal API routes, controller actions and Blazor pages](docs/screenshots/dotnet-endpoints.png)
+
+- **Minimal APIs**: `MapGet`, `MapPost`, `MapPut`, `MapDelete`, `MapPatch`, `Map`,
+  `MapMethods` and `MapHealthChecks`, with the prefixes of route groups (`var api =
+  app.MapGroup("/api")`, chained `MapGroup(…).MapGet(…)`), `WithName` and
+  `RequireAuthorization` (a lock).
+- **Controllers**: classes with `[ApiController]` or a `Controller` / `ControllerBase` base,
+  `[Route]` on the class and the action, `[HttpGet("{id}")]` and the other verbs,
+  `[AcceptVerbs]`, `[controller]`, `[action]` and `[area]` tokens and `~/` routes.
+- **Blazor** `@page` routes and **Razor Pages** (`Pages/Books/Edit.cshtml` with `@page
+  "{id:int}"` is `/Books/Edit/{id:int}`).
+- Parameters come from the handler: route values, `[FromQuery]`, `[FromBody]` and the other
+  binding attributes, simple types as query parameters and complex ones as the body of `POST`
+  / `PUT` / `PATCH`.
+- Click a row to open its handler; search by method, route or handler and filter by kind.
+- **Generate HTTP Request** (the row's ▶ or its context menu) opens an `.http` request in the
+  [HTTP Client](docs/guide/user/scratches-and-http.md#http-client-http-files): against the URL of the project's launch profile
+  (`applicationUrl`), route values as `{{variables}}`, query parameters listed, a JSON body
+  for body parameters.
+
+![Generate HTTP Request: the request of a controller action in the HTTP Client](docs/screenshots/dotnet-http-request.png)
+
+## Entity Framework Core
+
+The **EF Core** tool window (bottom) appears when a project references EF Core:
+
+![The EF Core tool window with the DbContext, its DbSets and the migrations with their state](docs/screenshots/dotnet-efcore.png)
+
+- **DbContexts** of the sources with their `DbSet`s, the provider of each EF Core project.
+- **Migrations** of the sources (`[Migration("…")]` with its `[DbContext]`), with their
+  creation time. **Refresh** runs `dotnet ef migrations list --json` and marks each one
+  **Applied** or **Pending** (and lists those only the database knows).
+- **Add Migration…**, **Remove Last Migration…**, **Update Database…** (to the latest, a
+  chosen migration, or `0`), **Scaffold DbContext…** (connection string, provider, tables,
+  output folder, data annotations): each opens a dialog with the DbContext project, the
+  **startup project** (Settings | .NET | EF Core startup project, else the first application
+  that references EF Core) and the DbContext, then runs `dotnet ef` in the Run tool window.
+  The same actions are in **Tools | Entity Framework Core** and Find Action; a migration's
+  context menu has **Update Database to This Migration**.
+- `dotnet ef`'s output is read in Rust: failures get a hint (a missing
+  `Microsoft.EntityFrameworkCore.Design` package, a DbContext that cannot be created, a build
+  error, an unreachable database). When `dotnet-ef` is missing, a balloon offers **Install
+  dotnet-ef** (`dotnet tool install --global dotnet-ef`, after you confirm); a local tool in
+  `.config/dotnet-tools.json` is used as is.
+
+![Add Migration](docs/screenshots/dotnet-ef-add-migration.png)
+
+## .NET Aspire
+
+AppHost projects (`IsAspireHost`, the `Aspire.AppHost.Sdk` or the `Aspire.Hosting.AppHost`
+package) get the **.NET Aspire** run configuration type (`dotnet run` of the AppHost with a
+launch profile):
+
+![The AppHost and its resources in the Services tool window with the dashboard link](docs/screenshots/dotnet-aspire.png)
+
+- The **Services** tool window lists each AppHost with the resources its `Program.cs`
+  declares: projects (`AddProject<Projects.Bookstore_Api>("api")`, linked to their project),
+  containers with their image, Redis, PostgreSQL and other servers with their databases, npm
+  apps and executables, with `WithReference` / `WaitFor` references and external endpoints.
+  **Start**, **Stop** and **Restart** use the run configuration.
+- While the AppHost runs, Forge reads the **dashboard URL** from its output (`Login to the
+  dashboard at …`): a balloon offers **Open Dashboard**, the Services details link it, and
+  **Open Aspire Dashboard** is in Find Action. Settings | .NET | *Open the Aspire dashboard
+  when an AppHost starts* opens it right away.
+
+## Docker
+
+**Tools | Add Docker Support…** writes a Dockerfile for an application project, like Rider's:
+
+![Add Docker Support with the generated Dockerfile](docs/screenshots/dotnet-docker.png)
+
+- A multi-stage build (`sdk` → `build` → `publish` → `aspnet` or `runtime` of the project's
+  .NET version) next to the project, built from the **solution folder** so project references,
+  `Directory.Build.props`, `Directory.Packages.props` and `NuGet.config` are copied before
+  `dotnet restore`; `EXPOSE` of the container port; `ENTRYPOINT` of the assembly.
+- A `.dockerignore` in the solution folder (`bin`, `obj`, `.git`, …) unless there is one.
+- A **.NET Docker** run configuration: `docker build -f <Dockerfile> -t <image> <context>`
+  in its own tab, then `docker run --rm` with the **ports** (`8080:8080`), **environment**
+  and options. The container appears in the [Services](docs/guide/user/services.md) tool window.
+
+## Hot Reload
+
+A **.NET Project** configuration with **Run with: dotnet watch** runs with Hot Reload, like
+Rider's:
+
+![A dotnet watch run with Hot Reload applied in the status bar](docs/screenshots/dotnet-hot-reload.png)
+
+- The status bar shows the Hot Reload state of the running application, read from `dotnet
+  watch`'s output in Rust: watching, applying, **Changes applied** (with the time), no
+  changes, a **rude edit** that needs a restart, or a failed build.
+- **Run | Apply Changes (Hot Reload)** (`Ctrl+F10`, IntelliJ's *Update Running Application*)
+  saves the edited files so `dotnet watch` applies them; after a rude edit it answers `dotnet
+  watch`'s restart question. Forge starts `dotnet watch` with
+  `DOTNET_WATCH_RESTART_ON_RUDE_EDIT`, so rude edits usually restart on their own.
+
+## User secrets
+
+**Tools | Manage User Secrets** opens the project's `secrets.json` in an editor tab, like
+Rider:
+
+![secrets.json of the API in an editor tab](docs/screenshots/dotnet-user-secrets.png)
+
+- The file lives in your user profile, not in the project, so it is never committed:
+  `~/.microsoft/usersecrets/<UserSecretsId>/secrets.json` (Linux, macOS) or
+  `%APPDATA%\Microsoft\UserSecrets\<UserSecretsId>\secrets.json` (Windows). On Unix it is
+  created readable only by you.
+- The project is the one of the current file, the only application of the solution, or one
+  you choose. A project without a `UserSecretsId` gets one after you confirm (what `dotnet
+  user-secrets init` does, without running anything) and an empty `secrets.json`.
+- Remote projects keep their secrets on the remote machine; use `dotnet user-secrets` in its
+  terminal.
+
+## Azure DevOps
+
+Repositories on Azure DevOps (`dev.azure.com`, `*.visualstudio.com`, Azure DevOps Server) get
+pull requests, work items and builds in the Pull Requests tool window; see [Code
+hosts](docs/guide/user/code-hosts.md#azure-devops).
+
 ## Project trust
 
 Building, running, testing, restoring, formatting and debugging run project code (MSBuild
 targets, source generators, analyzers), so [Safe Mode](docs/guide/user/project-trust.md) refuses them, and
-the Roslyn server and FsAutoComplete do not start. Reading the solution, project files and
-launch profiles and searching NuGet stay available.
+the Roslyn server and FsAutoComplete do not start. The same goes for `dotnet ef` (it builds
+and starts the startup project), the .NET Aspire and .NET Docker configurations (`docker
+build`) and `dotnet watch`. Reading the solution, project files and launch profiles, the
+endpoints, components, migrations and Aspire resources, generating a Dockerfile, user secrets
+and searching NuGet stay available.
 
 ## Browser mode
 
 `?project=dotnet` opens the `Bookstore` demo solution (an ASP.NET Core API, a class library
 with two target frameworks, xUnit tests and an F# tool, with central package management);
 `&build=broken` makes its build fail with compiler errors, `&roslyn=missing` starts without
-the Roslyn server.
+the Roslyn server. The demo has minimal APIs, a controller, Blazor components, EF Core
+migrations, an Aspire AppHost, user secrets (kept in memory) and an Azure DevOps remote;
+`dotnet ef`, `docker` and the AppHost print canned output.
 
 
 ---
@@ -16001,13 +16147,14 @@ Source: docs/guide/user/code-hosts.md
 
 # Code hosts
 
-The plugin **GitLab, Forgejo and GitHub** (`forge.code-hosts`) brings code review into Forge:
+The plugin **GitLab, Forgejo, GitHub and Azure DevOps** (`forge.code-hosts`) brings code review into Forge:
 
 | Host | API | Number format | Self-hosted |
 | --- | --- | --- | --- |
 | GitLab | REST v4 | `!12` | yes (self-managed, also with a relative URL root or SSH port) |
 | Forgejo / Gitea | `/api/v1` | `#12` | yes (e.g. Codeberg) |
 | GitHub | REST + GraphQL for review threads | `#12` | GitHub Enterprise Server |
+| Azure DevOps | REST 7.1 | `!12` | Azure DevOps Server (the collection URL) |
 
 The repository is detected from `git remote -v` (https, ssh and scp-style URLs, nested GitLab
 groups); in a [remote project](docs/guide/user/remote-development.md) git runs on the host, while the API calls
@@ -16015,7 +16162,7 @@ go from your machine with your tokens. Wording follows the host: "merge request"
 
 ## Logging in
 
-Open Settings | Version Control | **GitLab**, **Forgejo / Gitea** or **GitHub** and click
+Open Settings | Version Control | **GitLab**, **Forgejo / Gitea**, **GitHub** or **Azure DevOps** and click
 **Log In with Token…**. Enter the **Server** (for self-hosted instances) and an access token:
 
 | Host | Token permissions |
@@ -16023,14 +16170,15 @@ Open Settings | Version Control | **GitLab**, **Forgejo / Gitea** or **GitHub** 
 | GitLab | scopes `api`, `read_user` |
 | Forgejo / Gitea | read/write for repository and issue, read for user |
 | GitHub | scopes `repo`, `read:org`, `workflow` (or a fine-grained token with pull request, issue and actions access) |
+| Azure DevOps | a personal access token with Code (Read & Write), Work Items (Read & Write), Build (Read), Project and Team (Read) |
 
 ![Accounts](docs/screenshots/forges-accounts.png)
 
 The token is verified first and then stored in the operating system keychain (service
 `forge-forges`), never in a settings file. Accounts themselves (server, user) are kept in
 `forges.toml` in Forge's config folder. Without an account, the environment variables
-`GITLAB_TOKEN`, `FORGEJO_TOKEN` / `GITEA_TOKEN` and `GITHUB_TOKEN` / `GH_TOKEN` are used for
-the public servers ("Token from environment").
+`GITLAB_TOKEN`, `FORGEJO_TOKEN` / `GITEA_TOKEN`, `GITHUB_TOKEN` / `GH_TOKEN` and
+`AZURE_DEVOPS_EXT_PAT` are used for the public servers ("Token from environment").
 
 Errors are explained in plain words: a rejected token, missing permissions, rate limits (with
 the reset time) or an unreachable server.
@@ -16059,14 +16207,74 @@ has three tabs.
   resolve/unresolve (where the host supports it; Forgejo cannot resolve threads through its
   API), reviewers and approvals, assignees, labels, the pipeline with its jobs, and the merge
   status ("No conflicts with main").
-- **Files**: the changed files with their diffs; comment on a line to start a thread.
-  **Show Diff (side by side)** opens the diff viewer.
+- **Files**: review mode (see below): the changed files with their viewed state and diffs,
+  inline threads, pending review comments and **Submit Review**. **Show Diff (side by side)**
+  opens the diff viewer.
+- **AI Review**: **Summarize PR** and **AI Review** (see [AI summary and AI review](#ai-summary-and-ai-review)).
 - Actions: **Approve**, **Merge…** (merge commit, **Squash and merge**, **Rebase and
   merge**, "Mark as ready before merging" for drafts, the commit message), **Close**,
   **Check Out** (fetches the source branch and checks it out locally), **Open in Browser** and
   **Refresh**.
 
 ![Files](docs/screenshots/forges-mr-files.png)
+
+### Review mode
+
+The **Files** tab works like PHPStorm's review mode:
+
+- **Viewed files**: tick the checkbox in front of a file (or **Viewed** above its diff). The
+  tab shows how many files you have viewed ("2/4"). The state is kept per request in Forge's
+  cache folder, together with a digest of the file's diff: when a new push changes a file, it
+  shows as not viewed again.
+- **Threads**: existing review threads sit under their line; **Reply** and
+  **Resolve**/**Unresolve** (where the host allows it) work in place.
+- **New comments**: hover a line and click **+**. Shift+click **+** on a second line of the
+  same hunk to comment on a range. **Start Review** / **Add Review Comment** keeps the comment
+  as **Pending**; **Add Single Comment** posts it right away. Pending comments can be edited
+  and deleted and survive a restart of Forge.
+- **Submit Review** (with the number of pending comments) sends all pending comments as one
+  review with a summary and a verdict: **Comment**, **Approve** or **Request changes**.
+  GitHub and Forgejo/Gitea receive one review; GitLab has no batch API for this in Forge, so the
+  comments are posted one by one, then the summary, then the approval (GitLab offers no
+  **Request changes**). Azure DevOps turns every comment into a thread (ranges stay ranges),
+  the summary into a general thread and the verdict into your vote (**Approve** is "Approved",
+  **Request changes** is "Waiting for author"). A pending comment whose line disappeared after a push goes into the
+  review summary with its file and line, so nothing you wrote is lost.
+- **Check Out** in the header checks out the request's branch (also from forks).
+
+![Review mode with an explanation and a pending comment](docs/screenshots/code-review-files.png)
+
+![Submit Review](docs/screenshots/code-review-submit.png)
+
+### AI summary and AI review
+
+The **AI Review** tab uses the AI provider of the editor actions (Settings | Tools | AI
+Assistant, see [AI](docs/guide/user/ai.md#ai-code-review)); the bar at the top names the provider and model
+and whether the code stays on this machine.
+
+- **Summarize PR** writes an overview, the risk areas (with severity and files), one sentence
+  per file and a suggested test plan.
+- **AI Review** proposes findings: file, line (or range), severity, explanation and, where it
+  helps, a suggested change. Findings also appear in the Files diff under their line. **Add
+  as Draft Comment** turns one into a pending review comment (GitHub and GitLab show the
+  suggestion as an applicable change); **Dismiss** hides it. Nothing is posted until you
+  submit the review.
+- **Explain** on a hunk header in the Files diff ("Explain this change") explains that hunk
+  inline.
+
+![AI summary and findings](docs/screenshots/code-review-ai-summary.png)
+
+Results are cached per head commit: reopening the request shows them again, a new push needs
+a new run (**Regenerate Summary**, **Run AI Review Again**).
+
+What is sent: the request's title and description and its diff, most important files first
+(source code, then tests, configuration and documentation). Lock files, minified and generated
+files are only named, long files are cut, and big requests are split into up to three parts.
+Files excluded by `.aiignore` are never sent or named, and the result lists them ("Not sent").
+With AI turned off for the project (`ai.enabled`) or without a provider, the buttons are
+disabled and nothing is sent.
+
+![AI review, light theme](docs/screenshots/code-review-ai-summary-light.png)
 
 ### Create a pull/merge request
 
@@ -16084,7 +16292,31 @@ Search and filter issues, open one as a tab, read and add comments.
 ### Pipelines
 
 CI runs of the repository (GitLab pipelines, GitHub Actions workflow runs, Forgejo/Gitea
-Actions runs) with their status and jobs.
+Actions runs, Azure Pipelines builds) with their status and jobs.
+
+## Azure DevOps
+
+![Settings | Version Control | Azure DevOps](docs/screenshots/azure-devops-accounts.png)
+
+- The account's **Server** is the organization, `https://dev.azure.com/<organization>`
+  (Azure DevOps Server: the collection URL, such as `https://tfs.example.com/tfs/DefaultCollection`);
+  the token is a personal access token of that organization, sent with HTTP Basic
+  authentication.
+- Remotes are recognized in all their forms: `https://<org>@dev.azure.com/<org>/<project>/_git/<repo>`,
+  `git@ssh.dev.azure.com:v3/<org>/<project>/<repo>`, `https://<org>.visualstudio.com/…`
+  and `…/_git/<repo>` on a server.
+- **Pull requests**: the list (active, completed, abandoned), details with reviewers and
+  their votes (approved, waiting for author, rejected), required reviewers, merge status and
+  the latest build, the changed files (diffed by Forge from the merge base, since the API has
+  no patches), threads with replies and **Resolve** (status *Fixed* / *Active*), **Approve**
+  (vote 10), **Complete** (merge commit, squash or rebase, delete the source branch) and
+  **Abandon**. **Create Pull Request** sets reviewers, labels, draft and "delete source branch".
+- **Issues** are the project's **work items** (found with a WIQL query: open or closed states
+  of the Agile, Scrum, CMMI and Basic processes, assignee, author, tag and title search), with
+  their type and tags as labels, descriptions and comments; **Comment** adds a work item
+  comment.
+- **Pipelines** are the builds of the repository (Azure Pipelines), with the status bar's CI
+  status of the current branch.
 
 ## CI status in the status bar
 
@@ -20492,7 +20724,7 @@ you enable it.
 
 | Setting | Meaning |
 | --- | --- |
-| Actions model | Provider and model of Explain, Fix and Generate with AI (the **Chat** model of Settings \| Tools \| AI Providers). |
+| Actions model | Provider and model of Explain, Fix and Generate with AI and of the AI code review (the **Chat** model of Settings \| Tools \| AI Providers). |
 | Enable AI features in this project (`ai.enabled`) | A **project** setting: off keeps all of the project's code away from AI. |
 | Completion model | Provider and model of inline completion (the **Code completion** model). A fast local code model such as `qwen2.5-coder` on Ollama works best. |
 | Enable inline code completion (`ai.completion.enabled`) | Gray suggestions while you type. Also in the status bar widget and as Enable/Disable AI Inline Completion (`ai.toggleInlineCompletion`). |
@@ -20604,6 +20836,16 @@ language's own entries (in files without a Generate menu only these two); they a
   ![Generate Tests](docs/screenshots/ai-generate-tests-preview.png)
 
 ![Fix with AI, light theme](docs/screenshots/ai-fix-preview-light.png)
+
+## AI code review
+
+Pull and merge requests have an **AI Review** tab: **Summarize PR** (overview, risk areas, a
+summary per file and a test plan), **AI Review** (inline findings you can add to your review as
+pending comments or dismiss) and **Explain** on a hunk of the diff. They use the **Actions
+model** and the same rules as the editor actions: `ai.enabled`, `.aiignore` (excluded files
+are neither sent nor named) and no request without a configured provider. The provider and
+model are shown above the results. Nothing is posted to the code host until you submit the
+review. See [Code hosts](docs/guide/user/code-hosts.md#ai-summary-and-ai-review).
 
 ## AI commit messages
 
@@ -20799,7 +21041,9 @@ quit shows as Cancelled.
 
 Forge sends data only to the providers you configure and the CLIs you run: commit diffs to the
 commit message provider, code around the caret to the completion provider (only with inline
-completion enabled), the code an editor action is about to the actions provider, and your chat
+completion enabled), the code an editor action is about to the actions provider, a pull
+request's title, description and diff to the actions provider when you ask for an AI summary,
+AI review or explanation, and your chat
 messages and attached context to the agent CLI (which talks to its own service). Nothing is
 sent anywhere by default. Disabled providers, projects with AI turned off and files in
 `.aiignore` are never sent. A local provider (Ollama, LM Studio, llama.cpp) keeps everything
@@ -21644,6 +21888,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Reader Mode | `ToggleReaderMode` |  |  | any |
 | Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
 | Clear All Notifications | `ClearAllNotifications` |  |  | any |
+| Apply Changes (Hot Reload of `dotnet watch` runs; IntelliJ's Update Running Application) | `UpdateRunningApplication` | `Ctrl+F10` | `Cmd+F10` | any |
 
 ## Commands without shortcuts
 
@@ -23138,6 +23383,9 @@ Page id `lang.dotnet` (plugin `forge.dotnet`; the page also shows the dotnet hos
 | `dotnet.debugger.justMyCode` | bool | `true` | user | Debugger | Step through my code only (Just My Code) |
 | `dotnet.nuget.source` | string | `"https://api.nuget.org/v3/index.json"` | user | NuGet | NuGet feed — The service index the NuGet tool window searches. |
 | `dotnet.nuget.prerelease` | bool | `false` | user, project | NuGet | Include prerelease versions |
+| `dotnet.aspire.openDashboard` | bool | `false` | user | ASP.NET Core and Aspire | Open the Aspire dashboard when an AppHost starts |
+| `dotnet.ef.startupProject` | string | `""` | user, project | ASP.NET Core and Aspire | EF Core startup project — The project dotnet ef starts to find the DbContext (--startup-project). Empty: the first runnable project that references EF Core. |
+| `dotnet.hotReload.showStatus` | bool | `true` | user | ASP.NET Core and Aspire | Show the Hot Reload status of dotnet watch runs in the status bar |
 
 ### Languages & Frameworks | Jupyter
 
@@ -24274,6 +24522,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `vulnerabilities/<project hash>/<tool>-<folder hash>.json` | the last result of each audit tool of the vulnerable dependency check, with the hash of the manifest and lock file it was made from; reused on project open while the files are unchanged and younger than `vulnerabilities.cacheHours` |
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
+| `code-review/<host>-<server>-<repository>/<number>.json` | review mode of a pull/merge request: viewed files (with a digest of their diff), pending review comments and the AI summary and findings of the last head commit |
 | `php-lsp/` | php-lsp's index cache and unpacked PHP stubs (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
@@ -24395,6 +24644,7 @@ Source: docs/guide/reference/environment-variables.md
 | `GITLAB_TOKEN` | gitlab.com |
 | `FORGEJO_TOKEN`, `GITEA_TOKEN` | Forgejo / Gitea (public servers) |
 | `GITHUB_TOKEN`, `GH_TOKEN` | github.com |
+| `AZURE_DEVOPS_EXT_PAT` | Azure DevOps Services (`dev.azure.com` organizations) |
 
 ### Tools and environment
 
@@ -24455,7 +24705,7 @@ script and config language plugins.
 | --- | --- | --- | --- | --- | --- |
 | Browser Companion | `forge.browser-companion` | core |  | always | 1 commands; 3 settings |
 | Natural Languages | `forge.natural-languages` | core |  | always | 17 settings |
-| GitLab, Forgejo and GitHub | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
+| GitLab, Forgejo, GitHub and Azure DevOps | `forge.code-hosts` | core | `forge.git` | always | tool windows: Pull Requests; 2 commands; 2 settings |
 | Forge Platform (required) | `forge.core` | core |  | always | tool windows: Project; 2 commands; 49 settings; 3 keybindings |
 | Database Tools and SQL | `forge.database` | core |  | always | tool windows: Database; 2 commands; 3 settings |
 | Git | `forge.git` | core |  | always | tool windows: Commit, Git; 2 commands; 8 settings; 1 keybindings |
@@ -24486,7 +24736,7 @@ script and config language plugins.
 | Jupyter | `forge.jupyter` | pyforge | `forge.python` | always | 9 commands; 6 settings; the notebook editor and notebook diffs for `.ipynb` |
 | Java | `forge.java` | javaforge |  | `javaforge` | 3 commands; 21 settings; 1 debug adapters (java-debug); 2 test frameworks (JUnit, TestNG); run types (UI): Application, Gradle, Maven, JUnit, TestNG, Remote JVM Debug |
 | C/C++ | `forge.cpp` | cforge | `forge.debugger` | `cforge` | tool windows (UI): CMake, PlatformIO; 18 commands; 41 settings; file types: Clang Configuration; run types: OpenOCD Download & Run, Embedded GDB Server, CMake Application; test frameworks: Google Test, Catch2, CTest |
-| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet; 10 commands; 18 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
+| .NET | `forge.dotnet` | dotnetforge | `forge.debugger` | `dotnetforge` | tool windows (UI): Build, NuGet, EF Core, the ASP.NET Core view of Endpoints; 19 commands; 21 settings; file types: MSBuild, Solution File, Razor; run types: .NET Project, .NET Aspire, .NET Docker; test frameworks: .NET Tests; 1 debug adapter (coreclr, netcoredbg) |
 | Spring Boot and Jakarta EE | `forge.spring` | javaforge | `forge.java` | `spring-boot`, `jakarta-ee` | tool windows: Endpoints, Spring; 3 commands; 7 settings; run types (UI): Spring Boot; Services provider: Spring Boot run dashboard |
 | Groovy | `forge.groovy` | javaforge | `forge.java` | `groovy` | 2 settings; 1 test frameworks (Spock); run types (UI): Groovy Script, Spock |
 | Scala | `forge.scala` | javaforge | `forge.java` | `scala` | tool windows (UI): sbt; 3 commands; 6 settings; 2 test frameworks (ScalaTest, MUnit); run types (UI): sbt Task, ScalaTest, MUnit |
@@ -26443,6 +26693,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [forge-agent-tasks](docs/guide/developer/crates/forge-agent-tasks.md) | Agent tasks: AI agents that run, test and fix code in a git worktree sandbox, with path confinement, a command allowlist, step budgets and the diff to review and apply |
 | [forge-backend](docs/guide/developer/crates/forge-backend.md) | Forge IDE project backends: the Backend trait, the local backend and the remote agent protocol |
 | [forge-bookmarks](docs/guide/developer/crates/forge-bookmarks.md) | Bookmarks: lists, mnemonics and line tracking through edits (pure, WebAssembly-friendly) |
+| [forge-code-review](docs/guide/developer/crates/forge-code-review.md) | Forge IDE code review: viewed files, pending review comments and AI summaries and reviews of pull/merge requests |
 | [forge-codeintel](docs/guide/developer/crates/forge-codeintel.md) | Code intelligence models: workspace edits with LSP positions and Find Usages grouping (pure, WebAssembly-friendly) |
 | [forge-codestyle](docs/guide/developer/crates/forge-codestyle.md) | Code style schemes (Settings \| Editor \| Code Style): options per language, presets, scheme storage and resolution, import/export and the formatting passes and previews (pure, WebAssembly-friendly) |
 | [forge-colors](docs/guide/developer/crates/forge-colors.md) | Color values in code: finding CSS colors (hex, rgb, hsl, hwb, named, Tailwind) in CSS, markup and script files, parsing and formatting them in their notation (pure, WebAssembly-friendly) |
@@ -26689,6 +26940,7 @@ pub use types::{…};
 ## Used by
 
 - IPC: `ai_complete`, `ai_stream`, `ai_cancel`, `ai_providers_list`, `ai_provider_save`, `ai_provider_delete`, `ai_provider_test`, `ai_models`, `ai_set_default` (`app/src-tauri/src/commands/ai.rs`); `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` with [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md) (`app/src-tauri/src/commands/ai_editor.rs`)
+- Code review: [`forge-code-review`](docs/guide/developer/crates/forge-code-review.md) (Summarize PR, AI Review, Explain this change)
 - UI: `app/ui/src/features/ai`, `app/ui/src/features/ai-editor`, `app/ui/src/features/git (AI commit messages)`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -26766,6 +27018,7 @@ pub use policy::{AiIgnore, Feature, Policy, Verdict};
 ## Used by
 
 - IPC: `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` (`app/src-tauri/src/commands/ai_editor.rs`)
+- [`forge-code-review`](docs/guide/developer/crates/forge-code-review.md): the `.aiignore` policy for pull request diffs
 - UI: `app/ui/src/features/ai-editor`
 - Browser mode: [`forge-wasm`](docs/guide/developer/crates/forge-wasm.md) `ai_editor.rs` (`ai_inline_finish`, `ai_action_prompt`, `ai_action_proposal`, `ai_policy_check`) for `app/ui/src/mock/aiEditorMock.ts`
 
@@ -27029,6 +27282,88 @@ through inserted and removed lines, renames).
 
 ```sh
 cargo test -p forge-bookmarks
+```
+
+
+---
+
+Source: docs/guide/developer/crates/forge-code-review.md
+
+# forge-code-review
+
+`crates/forge-code-review` — review mode of pull/merge requests: viewed files, pending review
+comments submitted as one review, and the AI features "Summarize PR", "AI Review" and
+"Explain this change". Logic only; the host API is [`forge-forges`](docs/guide/developer/crates/forge-forges.md), the
+models are [`forge-ai`](docs/guide/developer/crates/forge-ai.md) providers and the `.aiignore` policy comes from
+[`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md).
+
+## Purpose
+
+- **Diff context** (`context.rs`): `plan` orders the changed files by `Priority` (source,
+  tests, configuration, documentation; lock files, minified, vendored and generated files are
+  only named), larger changes first, renders each hunk with new-file line numbers in front of
+  added and context lines, cuts files to `Budget::max_file_chars` at hunk or line boundaries
+  and fills chunks of `Budget::max_chars` (at most `max_chunks`; the rest is "omitted").
+  Files the policy refuses (new or old path in `.aiignore`, AI off for the project) are
+  `Excluded`: they appear in no text, not even by name.
+- **Prompts** (`prompt.rs`): summary (JSON: overview, risks, files, testPlan), review (JSON
+  findings with path, line, endLine, severity, title, explanation, suggestion; one request
+  per chunk) and explain (one hunk with the start of its file's diff).
+- **Parsing** (`parse.rs`): the first JSON value in the answer (fences and prose around it are
+  ignored), field synonyms, severities mapped from the words models use (`critical`, `nit`, …),
+  at most 40 findings; prose without JSON becomes the summary's overview.
+- **Anchoring** (`anchor.rs`): findings matched to changed files (exact, old path or an
+  unambiguous path suffix) and to lines shown in the diff; a line up to three lines away snaps
+  to the nearest shown line, a range becomes a multi-line comment when both ends are in one
+  hunk, anything else stays unplaced (it goes into the review body). Ids are stable hashes,
+  so a dismissal survives a re-run.
+- **Batching** (`batch.rs`): `Draft`s become one `forge_forges::NewReview`; drafts whose line
+  left the diff and general drafts are added to the review body; `finding_body` writes a
+  finding as a comment with a `suggestion` block on GitHub and GitLab.
+- **Store** (`store.rs`): `ReviewRecord` per request in
+  `<cache dir>/forge/code-review/<kind>-<server>-<repo>/<number>.json`: viewed files with a
+  digest of their diff (a new push makes them unviewed), drafts, and the summary and findings
+  of one head SHA.
+- **Runs** (`run.rs`): `summarize`, `review` and `explain` check the policy, call the provider
+  and return what was excluded and omitted. Nothing is posted to the host here.
+
+## Main public items
+
+```rust
+pub use anchor::{anchor, Finding};
+pub use batch::{build_review, draft_from_finding, finding_body, Draft};
+pub use context::{plan, Budget, ContextFile, ContextPlan, DiffChunk, Inclusion, Priority};
+pub use parse::{parse_findings, parse_summary, FileSummary, RawFinding, Risk, Severity, Summary};
+pub use prompt::{Prompt, RequestMeta};
+pub use run::{explain, review, summarize, AiRun, Explanation, ReviewError, ReviewOutcome};
+pub use store::{digest, CachedFindings, CachedSummary, ReviewRecord, ReviewStore};
+```
+
+## Used by
+
+- IPC: `review_session`, `review_set_viewed`, `review_save_draft`, `review_delete_draft`,
+  `review_submit`, `review_summarize`, `review_ai`, `review_finding`, `review_explain`
+  (`app/src-tauri/src/commands/code_review.rs`)
+- UI: `app/ui/src/features/forges` (`MergeRequestTab.tsx`, `ReviewDiff.tsx`, `ReviewPanel.tsx`,
+  `ReviewCards.tsx`), client `app/ui/src/ipc/codeReview.ts`
+- Browser mode: not built to WebAssembly (it depends on the HTTP crates); `app/ui/src/mock/codeReviewMock.ts`
+  serves the demo pull request #41 with canned AI answers and applies the same `ai.enabled`
+  and `.aiignore` rules through the AI mocks.
+
+## Dependencies
+
+- Workspace crates: [`forge-ai`](docs/guide/developer/crates/forge-ai.md), [`forge-ai-editor`](docs/guide/developer/crates/forge-ai-editor.md), [`forge-forges`](docs/guide/developer/crates/forge-forges.md), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md)
+- External: `dirs`, `serde`, `serde_json`, `thiserror`
+
+## Tests
+
+Unit tests with a fake provider (no network): prioritisation and chunking, `.aiignore`
+exclusion from prompts, prompt contents, lenient parsing, anchoring and snapping, review
+batching and the cache store. The hosts' `submit_review` is tested against a local mock
+server in `crates/forge-forges/tests/`.
+
+```sh
+cargo test -p forge-code-review
 ```
 
 
@@ -28836,12 +29171,15 @@ Source: docs/guide/developer/crates/forge-forges.md
 
 # forge-forges
 
-`crates/forge-forges` — Forge IDE code hosts: GitLab, Forgejo/Gitea and GitHub merge requests, issues and pipelines.
+`crates/forge-forges` — Forge IDE code hosts: GitLab, Forgejo/Gitea, GitHub and Azure DevOps merge requests, issues and pipelines.
 
 ## Purpose
 
-Forge code hosts: GitLab (REST v4), Forgejo/Gitea (`/api/v1`) and GitHub (REST, plus
-GraphQL for review threads) behind one `CodeHost` trait.
+Forge code hosts: GitLab (REST v4), Forgejo/Gitea (`/api/v1`), GitHub (REST, plus
+GraphQL for review threads) and Azure DevOps (REST 7.1 with a personal access token: pull
+requests, threads, votes and completion; work items found with WIQL as issues; builds as
+pipelines; changed files diffed locally with `similar`, since the API has no patches)
+behind one `CodeHost` trait.
 
 Repositories are detected from `git remote -v` (`remote`); accounts and their tokens
 (OS keychain, service `forge-forges`) are managed by `ForgeService`.
@@ -28851,20 +29189,22 @@ Repositories are detected from `git remote -v` (`remote`); accounts and their to
 | Module | Summary |
 | --- | --- |
 | `accounts.rs` | Code host accounts. The list lives in `<config dir>/forge/forges.toml`; tokens are kept in the OS keychain (service `forge-forges`, account = account id), never in files. |
+| `azure.rs` | Azure DevOps Services and Server (REST `api-version=7.1`, Basic authentication with a PAT). The account's server is the organization or collection; a repository is `project/repository`. |
 | `error.rs` |  |
 | `forgejo.rs` | Forgejo and Gitea (`/api/v1`, `Authorization: token ...`). Both share the API; Codeberg runs Forgejo. Pull request review comments are grouped into threads by file and line, since the API has no thread objects. |
 | `github.rs` | GitHub REST API (github.com and GitHub Enterprise Server, `Authorization: Bearer`). Review threads are rebuilt from `in_reply_to_id`; their resolved state and resolving use the GraphQL API, which REST does not cover. |
 | `gitlab.rs` | GitLab REST API v4 (gitlab.com and self-managed). Authentication with a personal access token (`PRIVATE-TOKEN`). Projects are addressed by their URL-encoded full path, so nested groups work without looking up numeric ids. |
-| `host.rs` | The `CodeHost` trait implemented by GitLab, Forgejo/Gitea and GitHub. |
+| `host.rs` | The `CodeHost` trait implemented by GitLab, Forgejo/Gitea, GitHub and Azure DevOps. `submit_review` sends a `NewReview` (verdict, body, inline comments with optional start lines) as one review on GitHub and Forgejo/Gitea, and as threads with line ranges plus a vote (10 approved, -5 waiting for author) on Azure DevOps; its default posts the comments one by one and approves (GitLab). `review_events` lists the verdicts a host accepts. |
 | `http.rs` | A small JSON REST client shared by the host implementations: authentication headers, `Link`-header pagination and translating HTTP failures into friendly `HostError`s. |
 | `json.rs` | Lenient accessors for API JSON. Hosts differ between versions (fields appear, vanish or become null), so missing values fall back to defaults instead of failing a whole list. |
 | `model.rs` | Host-neutral types for merge requests, issues and pipelines. GitHub and Forgejo call merge requests "pull requests"; the UI picks the wording from `HostKind`. |
-| `remote.rs` | Detect the code host and project of a repository from its git remotes (`https://`, `ssh://`, scp-like `git@host:path`, nested GitLab groups, self-hosted servers known through accounts). |
+| `remote.rs` | Detect the code host and project of a repository from its git remotes (`https://`, `ssh://`, scp-like `git@host:path`, nested GitLab groups, self-hosted servers known through accounts, Azure DevOps `dev.azure.com`, `ssh.dev.azure.com:v3`, `*.visualstudio.com` and `/_git/` remotes). |
 | `service.rs` | Accounts plus host construction: the entry point the IDE uses. |
 
 ## Main public items
 
 ```rust
+pub use azure::AzureDevOps;
 pub use accounts::{Account, KeyringStore, MemoryStore, SecretStore, KEYCHAIN_SERVICE};
 pub use error::{HostError, HostResult};
 pub use forgejo::Forgejo;
@@ -28877,18 +29217,18 @@ pub use service::{open_host, review_ref, AccountInfo, ForgeService, TokenSource}
 
 ## Used by
 
-- IPC: `forges_accounts`, `forges_login`, `forges_logout`, `forges_verify`, `forges_repo`, `forges_merge_requests`, `forges_merge_request`, `forges_mr_files`, `forges_discussions`, `forges_create_mr`, `forges_comment`, `forges_reply`, `forges_resolve`, `forges_approve`, `forges_merge`, `forges_close`, `forges_issues`, `forges_issue`, `forges_issue_comment`, `forges_pipelines`, `forges_ci_status`, `forges_members`, `forges_file`, `forges_checkout` (`app/src-tauri/src/commands/forges.rs`)
+- IPC: `forges_accounts`, `forges_login`, `forges_logout`, `forges_verify`, `forges_repo`, `forges_merge_requests`, `forges_merge_request`, `forges_mr_files`, `forges_discussions`, `forges_create_mr`, `forges_comment`, `forges_reply`, `forges_resolve`, `forges_approve`, `forges_merge`, `forges_close`, `forges_issues`, `forges_issue`, `forges_issue_comment`, `forges_pipelines`, `forges_ci_status`, `forges_members`, `forges_file`, `forges_checkout` (`app/src-tauri/src/commands/forges.rs`); review mode through [`forge-code-review`](docs/guide/developer/crates/forge-code-review.md)
 - UI: `app/ui/src/features/forges`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
 - Workspace crates: [`forge-core`](docs/guide/developer/crates/forge-core.md), [`forge-vcs`](docs/guide/developer/crates/forge-vcs.md)
-- External: `async-trait`, `dirs`, `futures-util`, `keyring`, `reqwest`, `serde`, `serde_json`, `thiserror`, `tokio`, `toml`, `tracing`
+- External: `async-trait`, `dirs`, `futures-util`, `keyring`, `reqwest`, `serde`, `serde_json`, `similar`, `thiserror`, `tokio`, `toml`, `tracing`
 
 ## Tests
 
-12 source files, about 4459 lines; 14 unit tests and 18 integration tests in `tests/` (`forgejo.rs`, `github.rs`, `gitlab.rs`, `service.rs`).
+13 source files; unit tests and integration tests in `tests/` (`azure.rs`, `forgejo.rs`, `github.rs`, `gitlab.rs`, `service.rs`) against a local mock HTTP server, without network access.
 
 ```sh
 cargo test -p forge-forges
@@ -31491,7 +31831,7 @@ Rebuild the bundle with `pnpm --dir app/ui wasm` (output: `app/ui/src/wasm/pkg`)
 | `agents.rs` | Agent CLIs (`forge_agent_cli`) for the browser-mode agent mock: the built-in agents' profiles (what `agent_list` reports besides detection) and the stream parsers, so the mock replays recorded CLI output through the same Rust code as the desktop app. |
 | `containers.rs` | Services tool window (`forge-containers`) for the browser-mode mock: the mock keeps a fake Docker daemon as Engine API JSON, compose files and a kubeconfig as text, and asks Rust for the models, the tree, the details pane, the gutter markers, command lines and pull progress, like the desktop app's hub. |
 | `editing.rs` | Editor actions (`forge-editing`): postfix templates and their expansion, Complete Current Statement and Cyclic Expand Word, mirroring the `editor_postfix_*`, `editor_complete_statement` and `editor_expand_word` commands. |
-| `dotnet.rs` | DotNetForge (`dotnetforge-lang-dotnet`), mirroring the `dotnet_*` and `nuget_*` commands for the `Bookstore` demo: the workspace from the demo files, build output as problems, test discovery and source scans, run / build / NuGet / `dotnet new` / `dotnet format` command lines, `dotnet new list`, NuGet search answers and upgrades. |
+| `dotnet.rs` | DotNetForge (`dotnetforge-lang-dotnet`), mirroring the `dotnet_*` and `nuget_*` commands for the `Bookstore` demo: the workspace from the demo files, build output as problems, test discovery and source scans, run / build / NuGet / `dotnet new` / `dotnet format` command lines, `dotnet new list`, NuGet search answers and upgrades; ASP.NET Core endpoints and `.http` requests, Blazor components, the EF Core model, `dotnet ef` command lines and output, Aspire AppHosts, run output (dashboard URL, Hot Reload), Dockerfiles and `.NET Docker` / `.NET Aspire` command lines, `UserSecretsId` in project files. |
 | `codestyle.rs` | Code style schemes (`forge-codestyle`), mirroring the `code_style_*` commands and `editor_file_format` with the selected scheme; the schemes are stored in the mock settings layers. |
 | `emmet.rs` | Emmet (`forge-emmet`) and colors (`forge-colors`), mirroring the `emmet_*` and `colors_*` commands; the expand key, the abbreviation preview, color swatches and the color picker call them synchronously. |
 | `hierarchy.rs` | The Hierarchy tool window's views (`forge_codeintel::hierarchy`), called synchronously in the desktop app and in browser mode alike: `hierarchy_type_view`, `hierarchy_method_view` and `hierarchy_call_view` recompute a tree from the data the `code_*_hierarchy` commands answered when the view, scope or sorting changes. |
@@ -33426,6 +33766,16 @@ desktop backend and the WebAssembly build of browser mode.
 - `dotnet new list` tables, NuGet v3 service index / search / versions, NuGet SemVer
   comparison and upgrades, `dotnet format` JSON reports and EditorConfig lookup, the Roslyn
   server's arguments, `solution/open` and settings.
+- Web and cloud projects, on a small C# tokenizer (`csharp.rs`: names, punctuation and string
+  values, attributes, argument lists): ASP.NET Core endpoints (minimal APIs with `MapGroup`
+  route groups, `WithName`, `RequireAuthorization`; controllers with `[Route]`, `[Http*]`,
+  `[controller]` / `[action]` tokens, `~/` routes, `[Area]`; Blazor `@page`; Razor Pages
+  routes from their path) with their parameters and `.http` requests; Blazor components with
+  `[Parameter]`s from `@code` blocks and code-behind; EF Core projects, DbContexts with
+  DbSets, migrations, `dotnet ef` command lines and their JSON / text output; Aspire AppHosts
+  and their resources, the dashboard URL in the AppHost's output; multi-stage Dockerfiles and
+  the ".NET Docker" command lines; `dotnet watch` Hot Reload events; user secrets paths and
+  adding a `UserSecretsId` to a project file.
 
 ## Modules
 
@@ -33445,11 +33795,22 @@ desktop backend and the WebAssembly build of browser mode.
 | `nuget.rs`, `version.rs` | `parse_service_index`, `parse_search`, `parse_versions`, URLs; `NuGetVersion`, `compare`, `upgrade`. |
 | `format.rs` | `parse_format_report`, `editorconfig_candidates`. |
 | `roslyn.rs` | `RoslynSetup`, `file_uri`. |
+| `csharp.rs` | `tokenize`, `Token`, `attribute_list`, `arguments`, `matching`. |
+| `aspnet.rs` | `scan_file`, `Endpoint`, `EndpointParam`, `join_route`, `route_params`, `base_url`, `http_request`. |
+| `razor.rs` | `scan_razor`, `components`, `parameters_in_code`, `RazorComponent`, `ComponentParameter`, `tag_at`. |
+| `efcore.rs` | `ef_projects`, `scan_source`, `ef_command`, `EfRequest`, `parse_ef_output`, `EfModel`, `Migration`. |
+| `aspire.rs` | `is_app_host`, `scan_app_host`, `app_hosts`, `parse_output`, `run_command`, `DOTNET_ASPIRE`. |
+| `docker.rs` | `generate`, `docker_commands`, `image_version`, `DOTNET_DOCKER`. |
+| `watch.rs` | `parse_watch_output`, `WatchEvent`, `HotReloadState`. |
+| `secrets.rs` | `secrets_path`, `add_user_secrets_id`, `new_id`, `valid_id`. |
+| `web.rs` | `endpoints`, `http_request`, `components`, `ef_model`, `run_output` (solution-wide models from a workspace and its sources). |
 
 ## Used by
 
-- IPC: `app/src-tauri/src/commands/dotnet.rs`; `run.rs` registers `DotnetTests` and builds
-  ".NET Project" runs, `testing.rs` hands C# / F# files to `discover_file`.
+- IPC: `app/src-tauri/src/commands/dotnet.rs` and `dotnet_web.rs` (endpoints, components,
+  EF Core, Aspire, Docker, run output, user secrets); `run.rs` registers `DotnetTests` and
+  builds ".NET Project", ".NET Aspire" and ".NET Docker" runs, `testing.rs` hands C# / F#
+  files to `discover_file`.
 - WebAssembly: `crates/forge-wasm/src/dotnet.rs` and the test registry (browser mode).
 
 ## Dependencies
@@ -33464,7 +33825,9 @@ Unit tests on the `Bookstore` fixture solution (`tests/fixtures/bookstore`: `.sl
 and BOM, `.slnx`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`
 with comments, a web project with launch profiles, a multi-target library, an xUnit
 project, an F# tool) and recorded `dotnet build`, `dotnet --list-sdks`, `dotnet new list`
-and NuGet search output. No SDK or network is needed.
+and NuGet search output; ASP.NET Core, EF Core and Aspire sources (`tests/fixtures/aspnet`,
+`efcore`, `aspire`) with a recorded `dotnet ef migrations list --json` answer. No SDK,
+Docker or network is needed.
 
 ```sh
 cargo test -p dotnetforge-lang-dotnet

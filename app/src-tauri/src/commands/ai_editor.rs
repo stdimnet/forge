@@ -43,7 +43,7 @@ fn setting<T: serde::de::DeserializeOwned>(state: &AppState, key: &str, default:
 }
 
 /// The policy of the open project (settings + `.aiignore` / `.aiexclude`).
-async fn policy(state: &AppState) -> Policy {
+pub(crate) async fn policy(state: &AppState) -> Policy {
     let project_enabled = setting(state, PROJECT_ENABLED, true);
     let disabled_languages = setting::<Vec<String>>(state, DISABLED_LANGUAGES, Vec::new());
     let ignore = match state.backend() {

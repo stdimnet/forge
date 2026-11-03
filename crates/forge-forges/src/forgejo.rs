@@ -644,6 +644,55 @@ impl CodeHost for Forgejo {
             .await
     }
 
+    fn review_events(&self) -> Vec<ReviewEvent> {
+        vec![
+            ReviewEvent::Comment,
+            ReviewEvent::Approve,
+            ReviewEvent::RequestChanges,
+        ]
+    }
+
+    /// One review with all comments (Forgejo comments are single-line).
+    async fn submit_review(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+        review: &NewReview,
+    ) -> HostResult<()> {
+        let commit = self.head_sha(repo, number).await?;
+        let comments: Vec<Value> = review
+            .comments
+            .iter()
+            .map(|c| {
+                let mut v = json!({ "path": c.position.path, "body": c.body });
+                match (c.position.new_line, c.position.old_line) {
+                    (Some(n), _) => v["new_position"] = json!(n),
+                    (None, Some(o)) => v["old_position"] = json!(o),
+                    (None, None) => {}
+                }
+                v
+            })
+            .collect();
+        let event = match review.event {
+            ReviewEvent::Comment => "COMMENT",
+            ReviewEvent::Approve => "APPROVED",
+            ReviewEvent::RequestChanges => "REQUEST_CHANGES",
+        };
+        self.http
+            .send_unit(
+                Method::POST,
+                &format!("{}/reviews", Self::pr_path(repo, number)),
+                Some(&json!({
+                    "event": event,
+                    "body": review.body,
+                    "commit_id": commit,
+                    "comments": comments,
+                })),
+                "pull request",
+            )
+            .await
+    }
+
     async fn merge(&self, repo: &RepoRef, number: u64, opts: &MergeOptions) -> HostResult<()> {
         let mut body = json!({
             "Do": match opts.method {

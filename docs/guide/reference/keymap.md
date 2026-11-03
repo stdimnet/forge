@@ -678,6 +678,7 @@ Actions that Forge's plugins add (group **Plugins** in Settings | Keymap, some u
 | Reader Mode | `ToggleReaderMode` |  |  | any |
 | Mark All Notifications as Read | `MarkNotificationsAsRead` |  |  | any |
 | Clear All Notifications | `ClearAllNotifications` |  |  | any |
+| Apply Changes (Hot Reload of `dotnet watch` runs; IntelliJ's Update Running Application) | `UpdateRunningApplication` | `Ctrl+F10` | `Cmd+F10` | any |
 
 ## Commands without shortcuts
 

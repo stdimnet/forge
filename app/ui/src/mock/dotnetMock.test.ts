@@ -18,7 +18,7 @@ describe("DotNetForge mock (Rust crates through WebAssembly)", () => {
   it("reads the solution and its projects", async () => {
     const ws = await invoke<DotnetWorkspace>("dotnet_workspace", { refresh: true });
     expect(ws.solution).toBe("Bookstore.sln");
-    expect(ws.projects.map((p) => p.name)).toEqual(["Bookstore.Api", "Bookstore.Core", "Bookstore.Tests", "Reports"]);
+    expect(ws.projects.map((p) => p.name)).toEqual(["Bookstore.Api", "Bookstore.Core", "Bookstore.Tests", "Reports", "Bookstore.AppHost"]);
     const api = ws.projects[0]!;
     expect(api.web).toBe(true);
     expect(api.launchProfiles?.map((p) => p.name)).toEqual(["http", "https", "IIS Express"]);

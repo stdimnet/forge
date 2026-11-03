@@ -1,11 +1,11 @@
 /**
- * Code hosts (GitLab, Forgejo/Gitea, GitHub): typed client for `commands/forges.rs`.
+ * Code hosts (GitLab, Forgejo/Gitea, GitHub, Azure DevOps): typed client for `commands/forges.rs`.
  * GitHub and Forgejo call merge requests "pull requests"; `capabilities.requestName`
  * carries the host's wording.
  */
 import { invoke } from "./index";
 
-export type HostKind = "gitlab" | "forgejo" | "github";
+export type HostKind = "gitlab" | "forgejo" | "github" | "azure";
 
 export interface RepoRef {
   kind: HostKind;
@@ -255,10 +255,12 @@ export const hostNames: Record<HostKind, string> = {
   gitlab: "GitLab",
   forgejo: "Forgejo / Gitea",
   github: "GitHub",
+  azure: "Azure DevOps",
 };
 
 export const defaultServers: Record<HostKind, string> = {
   gitlab: "https://gitlab.com",
   forgejo: "https://codeberg.org",
   github: "https://github.com",
+  azure: "https://dev.azure.com/",
 };

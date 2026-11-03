@@ -61,6 +61,7 @@ pub use policy::{AiIgnore, Feature, Policy, Verdict};
 ## Used by
 
 - IPC: `ai_inline_complete`, `ai_inline_cancel`, `ai_editor_status`, `ai_action`, `ai_explain` (`app/src-tauri/src/commands/ai_editor.rs`)
+- [`forge-code-review`](forge-code-review.md): the `.aiignore` policy for pull request diffs
 - UI: `app/ui/src/features/ai-editor`
 - Browser mode: [`forge-wasm`](forge-wasm.md) `ai_editor.rs` (`ai_inline_finish`, `ai_action_prompt`, `ai_action_proposal`, `ai_policy_check`) for `app/ui/src/mock/aiEditorMock.ts`
 

@@ -59,6 +59,7 @@ pub fn run() {
         .manage(commands::db::DbState::load())
         .manage(commands::db_objects::DbObjectsState::default())
         .manage(commands::forges::ForgesState::load())
+        .manage(commands::code_review::CodeReviewState::default())
         .manage(commands::services::ServicesState::default())
         .manage(commands::spell::SpellState::default())
         .manage(commands::inspections::InspectionsState::default())
@@ -504,6 +505,15 @@ pub fn run() {
             commands::compare::compare_dirs,
             commands::compare::compare_copy,
             commands::forges::forges_accounts,
+            commands::code_review::review_session,
+            commands::code_review::review_set_viewed,
+            commands::code_review::review_save_draft,
+            commands::code_review::review_delete_draft,
+            commands::code_review::review_submit,
+            commands::code_review::review_summarize,
+            commands::code_review::review_ai,
+            commands::code_review::review_finding,
+            commands::code_review::review_explain,
             commands::forges::forges_login,
             commands::forges::forges_logout,
             commands::forges::forges_verify,
@@ -925,6 +935,20 @@ pub fn run() {
             commands::dotnet::dotnet_format_report,
             commands::dotnet::dotnet_debug_request,
             commands::dotnet::dotnet_attach_request,
+            commands::dotnet_web::dotnet_endpoints,
+            commands::dotnet_web::dotnet_http_request,
+            commands::dotnet_web::dotnet_razor_components,
+            commands::dotnet_web::dotnet_ef_model,
+            commands::dotnet_web::dotnet_ef_command,
+            commands::dotnet_web::dotnet_ef_output,
+            commands::dotnet_web::dotnet_aspire_hosts,
+            commands::dotnet_web::dotnet_run_output,
+            commands::dotnet_web::dotnet_dockerfile,
+            commands::dotnet_web::dotnet_docker_build,
+            commands::dotnet_web::dotnet_user_secrets,
+            commands::dotnet_web::dotnet_user_secrets_init,
+            commands::dotnet_web::dotnet_user_secrets_read,
+            commands::dotnet_web::dotnet_user_secrets_write,
             commands::cpp_tools::cpp_sanitizer_reports,
             commands::cpp_tools::cpp_native_tools,
             commands::cpp_tools::cpp_valgrind_open,

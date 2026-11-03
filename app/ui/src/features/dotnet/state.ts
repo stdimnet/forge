@@ -71,6 +71,29 @@ export async function runDotnetCommand(cmd: CommandLine, name = commandName(cmd)
   return handle ? await handle.exited : null;
 }
 
+/** Output collected for `runDotnetCapture`, by capture id (read by the `dotnet-command` type). */
+const captures = new Map<string, { chunks: string[]; done: (code: number | null) => void }>();
+let captureSeq = 0;
+export const captureFor = (id: string) => captures.get(id);
+
+/** Run a command line in the Run tool window and collect its output (EF Core lists). */
+export async function runDotnetCapture(cmd: CommandLine, name = commandName(cmd)): Promise<{ code: number | null; output: string }> {
+  const id = `capture-${++captureSeq}`;
+  let done!: (code: number | null) => void;
+  const exited = new Promise<number | null>((r) => (done = r));
+  const entry = { chunks: [] as string[], done };
+  captures.set(id, entry);
+  try {
+    const cfg: RunConfiguration = { name, type: "dotnet-command", options: { commandLine: JSON.stringify(cmd), build: "false", capture: id } };
+    const handle = await launch(cfg);
+    if (!handle) return { code: null, output: "" };
+    const code = await Promise.race([exited, handle.exited.then((c) => new Promise<number | null>((r) => setTimeout(() => r(c), 300)))]);
+    return { code, output: entry.chunks.join("") };
+  } finally {
+    captures.delete(id);
+  }
+}
+
 // ---- Builds ---------------------------------------------------------------------------------------
 
 const [report, setReport] = createSignal<BuildReport | null>(null);

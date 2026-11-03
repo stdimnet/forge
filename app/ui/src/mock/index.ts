@@ -86,6 +86,7 @@ import "./rustMock";
 import "./rubyMock";
 import "./railsMock";
 import "./dotnetMock";
+import "./dotnetWebMock";
 // pytest / unittest / tox, debugpy sessions, the Python Console and profiles.
 import "./pythonToolsMock";
 import "./pythonDebugMock";
@@ -105,6 +106,7 @@ import "./cppMock";
 import "./profilerMock";
 import "./doctrineMock";
 import "./forgesMock";
+import "./codeReviewMock";
 import "./markdownMock";
 import "./viewersMock";
 import "./liveTemplatesMock";

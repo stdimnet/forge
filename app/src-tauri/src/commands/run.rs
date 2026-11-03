@@ -435,6 +435,8 @@ fn build(state: &AppState, runs: &RunState, mut req: RunRequest) -> Result<Built
                 super::rails::run_command(state, &cfg)?
             } else if cfg.type_id == dotnetforge_lang_dotnet::DOTNET_RUN {
                 super::dotnet::run_command_line(state, &cfg)?
+            } else if super::dotnet_web::handles(&cfg.type_id) {
+                super::dotnet_web::run_command_line(state, &cfg)?
             } else {
                 if cfg.type_id == "phpunit" {
                     tests.configuration = Some(cfg.clone());

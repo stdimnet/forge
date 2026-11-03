@@ -20,22 +20,40 @@
 //! - [`nuget`] and [`version`]: NuGet v3 answers and NuGet versions.
 //! - [`format`]: `dotnet format` reports and EditorConfig lookup.
 //! - [`roslyn`]: the Roslyn language server's command line, `solution/open` and settings.
+//! - [`aspnet`]: ASP.NET Core endpoints (minimal APIs with route groups, controllers,
+//!   Blazor and Razor Pages) and their `.http` requests; [`razor`]: Blazor components and
+//!   their parameters.
+//! - [`efcore`]: EF Core projects, DbContexts, migrations, `dotnet ef` command lines and
+//!   output.
+//! - [`aspire`]: .NET Aspire AppHosts, their resources and dashboard URL.
+//! - [`docker`]: Dockerfiles and the ".NET Docker" run configuration's command lines.
+//! - [`watch`]: Hot Reload events of `dotnet watch`; [`secrets`]: user secrets.
+//! - [`csharp`]: the small C# tokenizer behind those models.
 
+pub mod aspire;
+pub mod aspnet;
 pub mod build;
 pub mod command;
 pub mod context;
+pub mod csharp;
+pub mod docker;
+pub mod efcore;
 pub mod format;
 pub mod launch;
 pub mod msbuild;
 pub mod nuget;
 pub mod paths;
 pub mod provider;
+pub mod razor;
 pub mod roslyn;
 pub mod scan;
 pub mod sdk;
+pub mod secrets;
 pub mod solution;
 pub mod templates;
 pub mod version;
+pub mod watch;
+pub mod web;
 pub mod workspace;
 mod xml;
 

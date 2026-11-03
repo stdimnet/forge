@@ -97,6 +97,52 @@ pub fn guess_kind(host: &str) -> Option<HostKind> {
     }
 }
 
+/// Azure DevOps remotes, as the organization (or collection) URL and `project/repo`:
+/// `https://[org@]dev.azure.com/org/project/_git/repo`, `git@ssh.dev.azure.com:v3/org/project/repo`,
+/// `https://org.visualstudio.com/[DefaultCollection/]project/_git/repo`,
+/// `org@vs-ssh.visualstudio.com:v3/org/project/repo`, and Azure DevOps Server
+/// (`https://tfs.acme.dev/tfs/DefaultCollection/project/_git/repo`).
+pub fn azure_remote(remote: &RemoteUrl) -> Option<(String, String)> {
+    let parts: Vec<String> = remote
+        .path
+        .split('/')
+        .map(crate::azure::percent_decode)
+        .collect();
+    let host = remote.host.as_str();
+    if host == "ssh.dev.azure.com" || host == "vs-ssh.visualstudio.com" {
+        // v3/org/project/repo
+        let [v3, org, project, repo] = parts.as_slice() else {
+            return None;
+        };
+        return (v3 == "v3").then(|| {
+            (
+                format!("https://dev.azure.com/{org}"),
+                format!("{project}/{repo}"),
+            )
+        });
+    }
+    let git = parts.iter().position(|p| p == "_git")?;
+    let repo = parts.get(git + 1)?;
+    let project = parts.get(git.checked_sub(1)?)?;
+    let before = &parts[..git - 1];
+    let port = match (remote.ssh, remote.port) {
+        (false, Some(p)) => format!(":{p}"),
+        _ => String::new(),
+    };
+    let server = if host == "dev.azure.com" {
+        format!("https://dev.azure.com/{}", before.first()?)
+    } else if let Some(org) = host.strip_suffix(".visualstudio.com") {
+        format!("https://dev.azure.com/{org}")
+    } else if remote.ssh {
+        return None;
+    } else if before.is_empty() {
+        format!("{}://{host}{port}", remote.scheme)
+    } else {
+        format!("{}://{host}{port}/{}", remote.scheme, before.join("/"))
+    };
+    Some((server, format!("{project}/{repo}")))
+}
+
 /// Split a server URL (`https://git.example.com:8443/gitlab`) into host, port and path.
 fn server_parts(server: &str) -> Option<(String, Option<u16>, String)> {
     let rest = server
@@ -130,6 +176,21 @@ pub fn normalize_server(server: &str) -> String {
 /// roots), then well-known hosts and host-name hints.
 pub fn resolve_remote(name: &str, url: &str, accounts: &[Account]) -> Option<RepoRef> {
     let remote = parse_remote_url(url)?;
+    if let Some((server, path)) = azure_remote(&remote) {
+        // An account for the organization or collection keeps its spelling of the server.
+        let server = accounts
+            .iter()
+            .filter(|a| a.kind == HostKind::Azure)
+            .map(|a| normalize_server(&a.server))
+            .find(|s| s.eq_ignore_ascii_case(&server))
+            .unwrap_or(server);
+        return Some(RepoRef {
+            kind: HostKind::Azure,
+            server,
+            path,
+            remote: name.to_string(),
+        });
+    }
     for acc in accounts {
         let Some((host, port, prefix)) = server_parts(&acc.server) else {
             continue;
@@ -289,6 +350,41 @@ mod tests {
         )
         .unwrap();
         assert_eq!(r.server, "http://localhost:3000");
+    }
+
+    #[test]
+    fn azure_devops_remotes() {
+        for url in [
+            "https://acme@dev.azure.com/acme/Book%20Shop/_git/shop",
+            "git@ssh.dev.azure.com:v3/acme/Book%20Shop/shop",
+            "https://acme.visualstudio.com/DefaultCollection/Book%20Shop/_git/shop",
+            "acme@vs-ssh.visualstudio.com:v3/acme/Book%20Shop/shop",
+        ] {
+            let r = resolve_remote("origin", url, &[]).unwrap();
+            assert_eq!(
+                (r.kind, r.server.as_str(), r.path.as_str()),
+                (
+                    HostKind::Azure,
+                    "https://dev.azure.com/acme",
+                    "Book Shop/shop"
+                ),
+                "{url}"
+            );
+            assert_eq!(
+                r.web_url(),
+                "https://dev.azure.com/acme/Book Shop/_git/shop"
+            );
+        }
+        let r = resolve_remote(
+            "origin",
+            "https://tfs.acme.dev/tfs/DefaultCollection/Shop/_git/shop",
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            (r.server.as_str(), r.path.as_str()),
+            ("https://tfs.acme.dev/tfs/DefaultCollection", "Shop/shop")
+        );
     }
 
     #[test]

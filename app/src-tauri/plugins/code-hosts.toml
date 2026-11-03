@@ -1,9 +1,9 @@
 id = "forge.code-hosts"
-name = "GitLab, Forgejo and GitHub"
+name = "GitLab, Forgejo, GitHub and Azure DevOps"
 version = "0.1.0"
 pack = "core"
 vendor = "Forge"
-description = "Merge and pull requests, code review, issues and CI pipelines for GitLab, Forgejo/Gitea and GitHub."
+description = "Merge and pull requests, code review, issues and CI pipelines for GitLab, Forgejo/Gitea, GitHub and Azure DevOps (work items as issues, builds as pipelines)."
 depends = ["forge.git"]
 
 [[contributions.commands]]

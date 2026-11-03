@@ -31,6 +31,7 @@ import type {
 import type { Branches } from "@/features/git/api";
 import { unifiedDiff } from "@/features/git/textDiff";
 import { demoFiles } from "./demoProject";
+import { isDotnetDemo } from "./demoDotnetProject";
 import { fakeSha } from "./gitMock";
 import { demoStatus } from "./demoStatus";
 
@@ -491,6 +492,7 @@ const issues: IssueDetails[] = [
 
 const accounts: Account[] = [
   { id: "forgejo-git.acme.dev", kind: "forgejo", server: SERVER, username: "marlon", tokenSource: "keychain" },
+  ...(isDotnetDemo() ? [{ id: "azure-dev.azure.com-acme", kind: "azure" as const, server: "https://dev.azure.com/acme", username: "anna@acme.dev", tokenSource: "keychain" as const }] : []),
 ];
 
 registerMock("forges_accounts", () => accounts.map((a) => ({ ...a })));
@@ -498,7 +500,7 @@ registerMock("forges_login", async ({ kind, server, token }) => {
   await delay(500);
   const t = String(token ?? "").trim();
   if (!t || t.length < 8 || t.includes("invalid")) {
-    throw new Error(`${kind === "github" ? "GitHub" : kind === "gitlab" ? "GitLab" : "Forgejo"}: the token was rejected. Log in again in Settings | Version Control`);
+    throw new Error(`${kind === "github" ? "GitHub" : kind === "gitlab" ? "GitLab" : kind === "azure" ? "Azure DevOps" : "Forgejo"}: the token was rejected. Log in again in Settings | Version Control`);
   }
   const host = String(server || "").replace(/\/$/, "") || "https://example.com";
   const id = `${kind}-${host.replace(/^https?:\/\//, "").replace(/[/:]/g, "-")}`;
@@ -521,19 +523,23 @@ registerMock("forges_verify", async ({ id }) => {
 
 // ---- repository -------------------------------------------------------------------------
 
-const repoRef = { kind: "forgejo" as const, server: SERVER, path: REPO, remote: "origin" };
+// The .NET demo lives on Azure DevOps (pull requests are `!12`, threads can be resolved).
+const azure = isDotnetDemo();
+const repoRef = azure
+  ? { kind: "azure" as const, server: "https://dev.azure.com/acme", path: "Bookstore/bookstore", remote: "origin" }
+  : { kind: "forgejo" as const, server: SERVER, path: REPO, remote: "origin" };
 
 registerMock("forges_repo", (): RepoContext => ({
   repo: repoRef,
   repos: [repoRef],
-  account: accounts.find((a) => a.kind === "forgejo" && a.server === SERVER) ?? null,
+  account: accounts.find((a) => a.kind === repoRef.kind && a.server === repoRef.server) ?? null,
   capabilities: {
-    resolveThreads: false,
+    resolveThreads: azure,
     approvals: true,
     draft: true,
     mergeMethods: ["merge", "squash", "rebase"],
     requestName: "Pull Request",
-    numberPrefix: "#",
+    numberPrefix: azure ? "!" : "#",
   },
 }));
 

@@ -72,7 +72,7 @@ you enable it.
 
 | Setting | Meaning |
 | --- | --- |
-| Actions model | Provider and model of Explain, Fix and Generate with AI (the **Chat** model of Settings \| Tools \| AI Providers). |
+| Actions model | Provider and model of Explain, Fix and Generate with AI and of the AI code review (the **Chat** model of Settings \| Tools \| AI Providers). |
 | Enable AI features in this project (`ai.enabled`) | A **project** setting: off keeps all of the project's code away from AI. |
 | Completion model | Provider and model of inline completion (the **Code completion** model). A fast local code model such as `qwen2.5-coder` on Ollama works best. |
 | Enable inline code completion (`ai.completion.enabled`) | Gray suggestions while you type. Also in the status bar widget and as Enable/Disable AI Inline Completion (`ai.toggleInlineCompletion`). |
@@ -184,6 +184,16 @@ language's own entries (in files without a Generate menu only these two); they a
   ![Generate Tests](../../screenshots/ai-generate-tests-preview.png)
 
 ![Fix with AI, light theme](../../screenshots/ai-fix-preview-light.png)
+
+## AI code review
+
+Pull and merge requests have an **AI Review** tab: **Summarize PR** (overview, risk areas, a
+summary per file and a test plan), **AI Review** (inline findings you can add to your review as
+pending comments or dismiss) and **Explain** on a hunk of the diff. They use the **Actions
+model** and the same rules as the editor actions: `ai.enabled`, `.aiignore` (excluded files
+are neither sent nor named) and no request without a configured provider. The provider and
+model are shown above the results. Nothing is posted to the code host until you submit the
+review. See [Code hosts](code-hosts.md#ai-summary-and-ai-review).
 
 ## AI commit messages
 
@@ -379,7 +389,9 @@ quit shows as Cancelled.
 
 Forge sends data only to the providers you configure and the CLIs you run: commit diffs to the
 commit message provider, code around the caret to the completion provider (only with inline
-completion enabled), the code an editor action is about to the actions provider, and your chat
+completion enabled), the code an editor action is about to the actions provider, a pull
+request's title, description and diff to the actions provider when you ask for an AI summary,
+AI review or explanation, and your chat
 messages and attached context to the agent CLI (which talks to its own service). Nothing is
 sent anywhere by default. Disabled providers, projects with AI turned off and files in
 `.aiignore` are never sent. A local provider (Ollama, LM Studio, llama.cpp) keeps everything

@@ -1,0 +1,23 @@
+info: Build started...
+info: Build succeeded.
+verbose: Finding DbContext classes...
+data: [
+data:   {
+data:     "id": "20241001120000_InitialCreate",
+data:     "name": "InitialCreate",
+data:     "safeName": "InitialCreate",
+data:     "applied": true
+data:   },
+data:   {
+data:     "id": "20241005093000_AddAuthors",
+data:     "name": "AddAuthors",
+data:     "safeName": "AddAuthors",
+data:     "applied": true
+data:   },
+data:   {
+data:     "id": "20241012150000_AddReviews",
+data:     "name": "AddReviews",
+data:     "safeName": "AddReviews",
+data:     "applied": false
+data:   }
+data: ]
