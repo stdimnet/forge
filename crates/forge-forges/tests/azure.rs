@@ -407,3 +407,75 @@ async fn service_logs_in_and_detects_remotes() {
     assert_eq!(refs[0].path, "Shop/shop");
     assert_eq!(review_ref(HostKind::Azure, 3), "refs/pull/3/merge");
 }
+
+#[tokio::test]
+async fn submits_a_review_as_threads_and_a_vote() {
+    let (server, az) = host(vec![
+        Route::json("POST", &format!("{G}/pullrequests/1/threads"), "{}"),
+        Route::json("GET", "/acme/_apis/connectionData", ME),
+        Route::json("PUT", &format!("{G}/pullrequests/1/reviewers/u-anna"), "{}"),
+    ])
+    .await;
+    let r = repo(&server.base);
+    assert!(az.review_events().contains(&ReviewEvent::RequestChanges));
+    let review = NewReview {
+        event: ReviewEvent::RequestChanges,
+        body: "Needs tests".into(),
+        comments: vec![
+            ReviewComment {
+                body: "Extract this".into(),
+                position: Position {
+                    path: "src/Cart.cs".into(),
+                    new_line: Some(9),
+                    ..Position::default()
+                },
+                start_line: Some(5),
+            },
+            ReviewComment {
+                body: "Why removed?".into(),
+                position: Position {
+                    path: "src/Old.cs".into(),
+                    old_line: Some(4),
+                    ..Position::default()
+                },
+                start_line: None,
+            },
+        ],
+    };
+    az.submit_review(&r, 1, &review).await.unwrap();
+    let threads: Vec<serde_json::Value> = server
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|q| q.method == "POST" && q.path == format!("{G}/pullrequests/1/threads"))
+        .map(|q| q.json())
+        .collect();
+    assert_eq!(threads.len(), 3);
+    let ctx = &threads[0]["threadContext"];
+    assert_eq!(ctx["filePath"], "/src/Cart.cs");
+    assert_eq!(ctx["rightFileStart"]["line"], 5);
+    assert_eq!(ctx["rightFileEnd"]["line"], 9);
+    assert_eq!(threads[0]["comments"][0]["content"], "Extract this");
+    assert_eq!(threads[1]["threadContext"]["leftFileStart"]["line"], 4);
+    assert_eq!(threads[1]["threadContext"]["leftFileEnd"]["line"], 4);
+    assert_eq!(threads[2]["comments"][0]["content"], "Needs tests");
+    assert!(threads[2].get("threadContext").is_none());
+    assert_eq!(
+        server
+            .find("PUT", &format!("{G}/pullrequests/1/reviewers/u-anna"))
+            .json()["vote"],
+        -5
+    );
+
+    // A plain comment review sets no vote.
+    let comment_only = NewReview {
+        body: "FYI".into(),
+        ..NewReview::default()
+    };
+    az.submit_review(&r, 1, &comment_only).await.unwrap();
+    assert_eq!(
+        server.count("PUT", &format!("{G}/pullrequests/1/reviewers/u-anna")),
+        1
+    );
+}

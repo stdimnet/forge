@@ -400,15 +400,6 @@
   outline: none;
   border-color: var(--accent);
 }
-.php-radio {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 26px;
-}
-.php-radio input {
-  accent-color: var(--accent);
-}
 .php-hint {
   color: var(--fg-muted);
   font-size: var(--fs-small);
@@ -430,9 +421,6 @@
   align-items: center;
   justify-content: space-between;
   height: 26px;
-}
-.php-licence {
-  margin: 10px 0 6px;
 }
 
 /* ---------- CLI Interpreter picker and the CLI Interpreters dialog ---------- */

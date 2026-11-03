@@ -6,7 +6,7 @@
 - [x] Plugin API + registry, layered settings with searchable Settings dialog; every setting in the dialog is applied
 - [x] Editor + LSP client: hover docs, completion, diagnostics, go to definition
 - [x] Language servers for ~30 languages: catalog, detection, install from Settings, several servers per file, project-wide symbol search
-- [x] PHPForge language pack: Intelephense (bring your own license, one-click install) / phpactor, PHPDoc & attribute hover, Generate menu (Alt+Insert: getters/setters/constructor)
+- [x] PHPForge language pack: Intelephense (bring your own license, one-click install) / phpactor (both later replaced by the built-in php-lsp), PHPDoc & attribute hover, Generate menu (Alt+Insert: getters/setters/constructor)
 - [x] Git: Commit tool window, diff, inline blame, branches, AI commit messages, Project view Git submenu (Add to .gitignore, tags, stash, remotes)
 - [x] AI providers: Anthropic, OpenRouter, Ollama, llama.cpp, LM Studio, any OpenAI-compatible API
 - [x] AI chat: Claude Code rendered as chat (no terminal), tool calls & diffs as cards; Gemini CLI as a second agent; chat history per project
@@ -150,8 +150,8 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 
 - [x] AI in the editor: Inline completion (local or hosted models), "Explain / Fix with AI" in Alt+Enter, AI-generated tests and docs
 - [x] Agents: Agent tasks that run, test and fix in a sandbox, with diffs to review
-- [ ] Code review: Review pull/merge requests inside Forge with AI summaries
-- [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — in progress on `feat/code-with-me` (not the auto-runner's; leave it to its owner)
+- [x] Code review: Review pull/merge requests inside Forge with AI summaries
+- [ ] Collaboration: Shared sessions (Code With Me style): follow, co-edit, shared terminal — stages S0 to S7 built on `feat/code-with-me` (not the auto-runner's; leave it to its owner), waiting for the manual desktop test plan and the release-build size measurement before it merges; [plan](plans/code-with-me.md), [guide](guide/user/code-with-me.md)
 - [ ] MCP: Forge as an MCP server for external agents
 
 ## Milestone 7 — Platform and release

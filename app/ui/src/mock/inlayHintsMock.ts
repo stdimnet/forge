@@ -1,5 +1,5 @@
 /**
- * Browser-mode inlay hints: a small "server" that reports what Intelephense would on the demo
+ * Browser-mode inlay hints: a small "server" that reports what php-lsp would on the demo
  * project (parameter names at literal arguments, variable and closure return types). Grouping
  * and filtering by the settings run through the same Rust code as the desktop app
  * (`forge_codeintel::inlay` as WebAssembly).

@@ -45,7 +45,7 @@ describe("code navigation wiring", () => {
     expect(libraryCrumbs(path)).toEqual(["PHP Runtime", "Core", "Core_c.php", "Throwable"]);
     noteLibrarySymbol(path, "Exception::getMessage()");
     expect(libraryCrumbs(path).at(-1)).toBe("Exception::getMessage");
-    expect(libraryCrumbs("library://file//opt/intelephense/lib/stub/Core/Core_c.php")).toEqual(["External Libraries", "Core", "Core_c.php"]);
+    expect(libraryCrumbs("library://file//opt/stubs/Core/Core_c.php")).toEqual(["External Libraries", "Core", "Core_c.php"]);
   });
 
   it("keeps symbol names for the Choose Declaration list", () => {

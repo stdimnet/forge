@@ -216,6 +216,8 @@ export function SchemaPage(props: {
   pageId: string;
   /** Extra content at the top of a section (by section title), e.g. a detection status. */
   sectionHeader?: (section: string) => JSX.Element;
+  /** Extra content at the end of a section (by section title), e.g. a Test Connection button. */
+  sectionFooter?: (section: string) => JSX.Element;
 }) {
   const specs = createMemo(() =>
     settingsState.schema.filter((s) => s.group === props.pageId && !s.hidden).sort((a, b) => a.order - b.order),
@@ -255,6 +257,7 @@ export function SchemaPage(props: {
               <div class="set-section-body" classList={{ indented: !!section.title }}>
                 <Show when={section.title ? props.sectionHeader : undefined}>{(header) => header()(section.title!)}</Show>
                 <For each={section.specs}>{(spec) => <SettingRow spec={spec} />}</For>
+                <Show when={section.title ? props.sectionFooter : undefined}>{(footer) => footer()(section.title!)}</Show>
               </div>
             </section>
           )}

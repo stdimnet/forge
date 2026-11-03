@@ -193,6 +193,74 @@ async fn changed_settings_are_pushed_and_answered() {
 }
 
 #[tokio::test]
+async fn a_server_that_exits_is_started_again_on_next_use() {
+    let dir = tempfile::tempdir().unwrap();
+    let manager = LspManager::new(dir.path());
+    manager.register_server(config());
+    let mut rx = manager.subscribe();
+    let php = dir.path().join("a.php");
+    let diagnostics_for_php = |e: LspEvent| match e {
+        LspEvent::Diagnostics { uri, .. }
+            if uri.to_file_path().ok().as_deref() == Some(php.as_path()) =>
+        {
+            Some(())
+        }
+        _ => None,
+    };
+    manager.did_open(&php, "<?php // TODO").await.unwrap();
+    next_matching(&mut rx, diagnostics_for_php).await;
+
+    let crash = |manager: &LspManager| {
+        let client = manager.running_client_for(&php).expect("server running");
+        client
+            .notify_raw("fake/crash", serde_json::Value::Null)
+            .unwrap();
+        client
+    };
+    async fn until_exited(client: &LspClient) {
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while !client.has_exited() {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("server did not exit");
+    }
+
+    // Up to five times within three minutes, the next change starts it again.
+    for i in 0..5 {
+        let client = crash(&manager);
+        until_exited(&client).await;
+        assert_eq!(manager.statuses()[0].state, ServerState::Stopped);
+        assert!(manager.running_client_for(&php).is_none());
+        manager
+            .did_change(&php, &format!("<?php // TODO {i}"))
+            .await
+            .unwrap();
+        next_matching(&mut rx, diagnostics_for_php).await;
+        assert!(matches!(
+            manager.statuses()[0].state,
+            ServerState::Ready | ServerState::Busy { .. }
+        ));
+    }
+
+    // The sixth exit is final until the server is registered again.
+    let client = crash(&manager);
+    until_exited(&client).await;
+    manager.did_change(&php, "<?php // TODO 6").await.unwrap();
+    assert!(manager.running_client_for(&php).is_none());
+    assert!(matches!(
+        manager.statuses()[0].state,
+        ServerState::Failed { .. }
+    ));
+    manager.register_server(config());
+    manager.did_change(&php, "<?php // TODO 7").await.unwrap();
+    assert!(manager.running_client_for(&php).is_some());
+
+    manager.shutdown_all().await;
+}
+
+#[tokio::test]
 async fn missing_server_binary_reports_failure() {
     let dir = tempfile::tempdir().unwrap();
     let manager = LspManager::new(dir.path());

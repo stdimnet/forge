@@ -47,7 +47,8 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `vulnerabilities/<project hash>/<tool>-<folder hash>.json` | the last result of each audit tool of the vulnerable dependency check, with the hash of the manifest and lock file it was made from; reused on project open while the files are unchanged and younger than `vulnerabilities.cacheHours` |
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
-| `intelephense/` | Intelephense's storage (`storagePath`) |
+| `code-review/<host>-<server>-<repository>/<number>.json` | review mode of a pull/merge request: viewed files (with a digest of their diff), pending review comments and the AI summary and findings of the last head commit |
+| `php-lsp/` | php-lsp's index cache and unpacked PHP stubs (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
@@ -111,7 +112,6 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | Service | Account | Secret |
 | --- | --- | --- |
 | `forge-ai` | provider id | AI provider API key |
-| `forge-lsp` | `intelephense` | Intelephense licence key |
 | `forge-forges` | account id | GitHub/GitLab/Forgejo token |
 | `forge-ssh` | SSH configuration id | SSH password or key passphrase |
 | `forge-db` | data source id | database password |

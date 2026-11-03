@@ -22,7 +22,7 @@ import {
   slotOfToolWindow,
 } from "./layout";
 import { SLOTS, isSlot, type Placements } from "./toolWindowLayout";
-import { workspace } from "./workspace";
+import { isCollabGuest, workspace } from "./workspace";
 
 const ANCHORS: LayoutAnchor[] = ["left", "right", "bottom"];
 const SAVE_DELAY_MS = 400;
@@ -117,13 +117,21 @@ export async function storeLayoutAsDefault(): Promise<void> {
 let restoring = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
+/**
+ * Whether the open project keeps a layout. A Code With Me guest's project is the host's,
+ * seen through the session: the guest's window shows the host's shared files and follows the
+ * host on joining, so a layout restored at the same time would open other tabs and switch
+ * away from the host's file (which stops following). Guests neither restore nor save one.
+ */
+export const keepsLayout = (): boolean => !!workspace() && !isCollabGuest();
+
 createRoot(() => {
   createEffect(
     on(
       () => workspace()?.root,
       async (root) => {
         clearTimeout(timer);
-        if (!root) return;
+        if (!root || !keepsLayout()) return;
         restoring = true;
         try {
           const saved = await projectStateApi.loadLayout().catch(() => null);
@@ -140,11 +148,11 @@ createRoot(() => {
     on(
       () => JSON.stringify(currentLayout()),
       () => {
-        if (restoring || !workspace()) return;
+        if (restoring || !keepsLayout()) return;
         clearTimeout(timer);
         const root = workspace()?.root;
         timer = setTimeout(() => {
-          if (workspace()?.root !== root || restoring) return;
+          if (workspace()?.root !== root || restoring || !keepsLayout()) return;
           void projectStateApi.saveLayout(currentLayout()).catch((e) => console.warn("the layout could not be saved", e));
         }, SAVE_DELAY_MS);
       },

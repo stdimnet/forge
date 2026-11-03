@@ -27,7 +27,7 @@ pub struct ServerIo {
     pub process: Box<dyn ServerProcess>,
     /// `processId` sent in `initialize`: a process on the server's machine whose exit tells
     /// the server to exit too. `None` for a server on another machine, where Forge's own pid
-    /// means nothing (Intelephense exits when that process does not exist).
+    /// means nothing (some servers exit when that process does not exist).
     pub parent_pid: Option<u32>,
 }
 

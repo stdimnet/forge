@@ -19,7 +19,6 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-- `export CARGO_PROFILE_DEV_DEBUG=0` saves disk space and time.
 - With several worktrees, give each its own `CARGO_TARGET_DIR`.
 - After changing plugin manifests or project generators:
   `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.

@@ -30,7 +30,7 @@ Repositories are detected from `git remote -v` (`remote`); accounts and their to
 | `forgejo.rs` | Forgejo and Gitea (`/api/v1`, `Authorization: token ...`). Both share the API; Codeberg runs Forgejo. Pull request review comments are grouped into threads by file and line, since the API has no thread objects. |
 | `github.rs` | GitHub REST API (github.com and GitHub Enterprise Server, `Authorization: Bearer`). Review threads are rebuilt from `in_reply_to_id`; their resolved state and resolving use the GraphQL API, which REST does not cover. |
 | `gitlab.rs` | GitLab REST API v4 (gitlab.com and self-managed). Authentication with a personal access token (`PRIVATE-TOKEN`). Projects are addressed by their URL-encoded full path, so nested groups work without looking up numeric ids. |
-| `host.rs` | The `CodeHost` trait implemented by GitLab, Forgejo/Gitea and GitHub. |
+| `host.rs` | The `CodeHost` trait implemented by GitLab, Forgejo/Gitea, GitHub and Azure DevOps. `submit_review` sends a `NewReview` (verdict, body, inline comments with optional start lines) as one review on GitHub and Forgejo/Gitea, and as threads with line ranges plus a vote (10 approved, -5 waiting for author) on Azure DevOps; its default posts the comments one by one and approves (GitLab). `review_events` lists the verdicts a host accepts. |
 | `http.rs` | A small JSON REST client shared by the host implementations: authentication headers, `Link`-header pagination and translating HTTP failures into friendly `HostError`s. |
 | `json.rs` | Lenient accessors for API JSON. Hosts differ between versions (fields appear, vanish or become null), so missing values fall back to defaults instead of failing a whole list. |
 | `model.rs` | Host-neutral types for merge requests, issues and pipelines. GitHub and Forgejo call merge requests "pull requests"; the UI picks the wording from `HostKind`. |
@@ -53,7 +53,7 @@ pub use service::{open_host, review_ref, AccountInfo, ForgeService, TokenSource}
 
 ## Used by
 
-- IPC: `forges_accounts`, `forges_login`, `forges_logout`, `forges_verify`, `forges_repo`, `forges_merge_requests`, `forges_merge_request`, `forges_mr_files`, `forges_discussions`, `forges_create_mr`, `forges_comment`, `forges_reply`, `forges_resolve`, `forges_approve`, `forges_merge`, `forges_close`, `forges_issues`, `forges_issue`, `forges_issue_comment`, `forges_pipelines`, `forges_ci_status`, `forges_members`, `forges_file`, `forges_checkout` (`app/src-tauri/src/commands/forges.rs`)
+- IPC: `forges_accounts`, `forges_login`, `forges_logout`, `forges_verify`, `forges_repo`, `forges_merge_requests`, `forges_merge_request`, `forges_mr_files`, `forges_discussions`, `forges_create_mr`, `forges_comment`, `forges_reply`, `forges_resolve`, `forges_approve`, `forges_merge`, `forges_close`, `forges_issues`, `forges_issue`, `forges_issue_comment`, `forges_pipelines`, `forges_ci_status`, `forges_members`, `forges_file`, `forges_checkout` (`app/src-tauri/src/commands/forges.rs`); review mode through [`forge-code-review`](forge-code-review.md)
 - UI: `app/ui/src/features/forges`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 

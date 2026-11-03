@@ -12,7 +12,6 @@ import { workspace } from "@/state/workspace";
 import { draft, draftValue, openSettings, setDraft } from "@/features/settings/dialogState";
 import { SettingRow } from "@/features/settings/SchemaPage";
 import { InstallDialog } from "./InstallDialog";
-import { IntelephenseLicence } from "./Licence";
 import { groupRows, jsonError, shortenHome, skipText, STATUS_LABEL } from "./model";
 import { applyServers, loading, refreshRows, rows } from "./store";
 import { managedOption, progressText } from "./autoInstall";
@@ -131,7 +130,7 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
         <Show when={isPack()}>
           <span class="ls-form-label">Executable:</span>
           <span class="ls-path-text">
-            {row().path ? shortenHome(row().path) : "Not found"}
+            {row().builtinVersion ? `Built into Forge · version ${row().builtinVersion}` : row().path ? shortenHome(row().path) : "Not found"}
             <span class="muted"> · configured in </span>
             <button class="ls-link" onClick={() => openSettings("lang.php")}>
               Languages & Frameworks | PHP
@@ -161,10 +160,6 @@ function Details(props: { row: ServerRow; onInstall: () => void }) {
           </span>
         </Show>
 
-        <Show when={row().id === "intelephense"}>
-          <span class="ls-form-label">Licence:</span>
-          <IntelephenseLicence compact />
-        </Show>
         <Show when={row().id === "lua-language-server"}>
           <span class="ls-form-label">Environment:</span>
           <span>
@@ -324,16 +319,25 @@ export function LanguageServersPage(props: { groups?: string[] } = {}) {
                       </span>
                       <span class="ls-path-cell">
                         <Show
-                          when={r.path}
+                          when={!r.builtinVersion}
                           fallback={
-                            <Show when={r.install.length}>
-                              <InstallButton row={r} onDialog={() => setInstalling(r)} />
-                            </Show>
+                            <span class="ls-path ls-builtin" title={r.path ?? ""} data-testid="ls-builtin">
+                              Built-in · {r.builtinVersion}
+                            </span>
                           }
                         >
-                          <span class="ls-path" title={r.path ?? ""}>
-                            {shortenHome(r.path)}
-                          </span>
+                          <Show
+                            when={r.path}
+                            fallback={
+                              <Show when={r.install.length}>
+                                <InstallButton row={r} onDialog={() => setInstalling(r)} />
+                              </Show>
+                            }
+                          >
+                            <span class="ls-path" title={r.path ?? ""}>
+                              {shortenHome(r.path)}
+                            </span>
+                          </Show>
                         </Show>
                       </span>
                     </div>

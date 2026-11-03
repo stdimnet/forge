@@ -121,10 +121,11 @@ export function CodeEditor(props: { tab: EditorTab; group?: number }) {
     ),
   );
 
-  // Content replaced from outside (e.g. reloaded after an AI agent edited the file).
+  // Content replaced from outside (e.g. reloaded after an AI agent edited the file). Shared
+  // tabs (Code With Me) change through their editor binding, never as whole documents.
   createEffect(() => {
     const content = props.tab.content;
-    if (view && content !== view.state.doc.toString()) replaceDocument(view, content);
+    if (view && !props.tab.shared && content !== view.state.doc.toString()) replaceDocument(view, content);
   });
 
   onCleanup(() => {

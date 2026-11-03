@@ -1,0 +1,99 @@
+<!doctype html>
+<!-- Source of the DMG window background (660×400). `node app/ui/scripts/build-dmg-background.mjs`
+     renders it to background.tiff (1x + 2x). The icons are drawn by Finder on top, at
+     bundle.macOS.dmg.appPosition (180,190) and applicationFolderPosition (480,190). -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Unbounded";
+        font-weight: 800;
+        src: url("unbounded-latin-800.woff2") format("woff2");
+      }
+      :root {
+        --bg: #131316;
+        --edge: #26262d;
+        --steel: #2a2a31;
+        --steel-hi: #3a3a44;
+        --m1: #ff4d00;
+        --m2: #ff8a1f;
+        --m3: #ffd27a;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      html, body { width: 660px; height: 400px; overflow: hidden; background: var(--bg); }
+      body {
+        position: relative;
+        font-family: -apple-system, "Inter", system-ui, sans-serif;
+        background:
+          radial-gradient(75% 60% at 50% 120%, color-mix(in srgb, var(--m1) 34%, transparent), transparent 72%),
+          radial-gradient(40% 30% at 50% 108%, color-mix(in srgb, var(--m3) 22%, transparent), transparent 70%),
+          var(--bg);
+      }
+      /* Fine anvil-grid texture, fading out upwards. */
+      .grid {
+        position: absolute; inset: 0;
+        background-image:
+          linear-gradient(var(--edge) 1px, transparent 1px),
+          linear-gradient(90deg, var(--edge) 1px, transparent 1px);
+        background-size: 33px 33px;
+        opacity: 0.35;
+        -webkit-mask-image: linear-gradient(180deg, transparent 5%, #000 95%);
+        mask-image: linear-gradient(180deg, transparent 5%, #000 95%);
+      }
+      .word {
+        position: absolute; top: 30px; left: 0; right: 0; text-align: center;
+        font-family: "Unbounded", "Arial Black", sans-serif; font-weight: 800;
+        font-size: 44px; letter-spacing: -0.02em; line-height: 1.2;
+        color: transparent;
+        background: linear-gradient(180deg, var(--steel-hi), var(--steel) 55%, var(--steel-hi));
+        -webkit-background-clip: text; background-clip: text;
+      }
+      .word::after {
+        content: "Forge"; position: absolute; inset: 0;
+        background: linear-gradient(180deg, var(--m3), var(--m2) 45%, var(--m1));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--m2) 70%, transparent));
+      }
+      .tag {
+        position: absolute; top: 88px; left: 0; right: 0; text-align: center;
+        font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: #6c6c78;
+      }
+      svg { position: absolute; inset: 0; }
+      .hint {
+        position: absolute; bottom: 38px; left: 0; right: 0; text-align: center;
+        font-size: 13px; letter-spacing: 0.04em; color: #a2a2ae;
+      }
+      .hint b { color: var(--m2); font-weight: 600; }
+      .spark { position: absolute; border-radius: 50%; background: var(--m3); box-shadow: 0 0 6px var(--m2); }
+    </style>
+  </head>
+  <body>
+    <div class="grid"></div>
+    <div class="word">Forge</div>
+    <div class="tag">Code editor</div>
+    <svg width="660" height="400" viewBox="0 0 660 400">
+      <defs>
+        <linearGradient id="arrow" gradientUnits="userSpaceOnUse" x1="262" y1="0" x2="398" y2="0">
+          <stop offset="0" stop-color="#ff4d00" stop-opacity="0.2" />
+          <stop offset="0.6" stop-color="#ff8a1f" />
+          <stop offset="1" stop-color="#ffd27a" />
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-80%" width="140%" height="260%">
+          <feGaussianBlur stdDeviation="4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#glow)" fill="none" stroke="url(#arrow)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M262 190 H392" />
+        <path d="M374 168 L398 190 L374 212" />
+      </g>
+    </svg>
+    <div class="hint">Drag <b>Forge</b> into <b>Applications</b> to install</div>
+    <i class="spark" style="left:300px;top:312px;width:3px;height:3px"></i>
+    <i class="spark" style="left:352px;top:296px;width:2px;height:2px"></i>
+    <i class="spark" style="left:418px;top:322px;width:3px;height:3px;opacity:.7"></i>
+    <i class="spark" style="left:236px;top:330px;width:2px;height:2px;opacity:.6"></i>
+    <i class="spark" style="left:470px;top:300px;width:2px;height:2px;opacity:.5"></i>
+  </body>
+</html>

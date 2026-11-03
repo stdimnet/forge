@@ -620,6 +620,15 @@ button.status-item:hover {
   background: var(--bg-hover);
   color: var(--fg);
 }
+/* A status bar widget's popup (StatusPopup.tsx), placed in script and kept inside the window.
+   Above CodeMirror's sticky editor panels (z-index 300, e.g. the breadcrumbs) and the balloons
+   (340), below modal dialogs (350). */
+.status-popup-anchored {
+  position: fixed;
+  z-index: 345;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
 
 /* Project view drag and drop (Move). */
 .tree-row.drop-target {

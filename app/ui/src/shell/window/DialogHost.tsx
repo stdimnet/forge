@@ -2,7 +2,7 @@
  * Renders dialogs: in-page over a backdrop (`DialogHost`, browser mode) or as the whole page
  * of a dialog window (`DialogWindowApp`, `?dialog=<id>`).
  */
-import { createResource, For, onMount, Show } from "solid-js";
+import { createEffect, createResource, For, onMount, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { isTauri } from "@/ipc";
 import { windowApi } from "@/ipc/window";
@@ -65,6 +65,11 @@ export function DialogWindowApp(props: { boot: DialogBoot }) {
     return prepare(id, dialogProps);
   });
   if (def) document.title = dialogTitle(def, dialogProps);
+  // The window is created hidden; show it once the dialog is on screen.
+  createEffect(() => {
+    if (!isTauri() || (def && !ready())) return;
+    requestAnimationFrame(() => void windowApi.dialogReady().catch(() => undefined));
+  });
   onMount(() => {
     trackMaximized();
     // A browser popup (browser mode) that the user closes runs the dialog's Cancel path, so

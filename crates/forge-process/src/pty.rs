@@ -82,9 +82,16 @@ impl PtySession {
             None => {
                 let defaults = shell_args(&shell);
                 let integration = opts.integration_dir.as_deref().and_then(|dir| {
-                    let user_zdotdir = std::env::var_os("ZDOTDIR")
-                        .or_else(|| std::env::var_os("HOME"))
-                        .map(PathBuf::from);
+                    // The shell's own environment wins over Forge's.
+                    let var = |key: &str| {
+                        opts.env
+                            .iter()
+                            .rev()
+                            .find(|(k, _)| k == key)
+                            .map(|(_, v)| std::ffi::OsString::from(v))
+                            .or_else(|| std::env::var_os(key))
+                    };
+                    let user_zdotdir = var("ZDOTDIR").or_else(|| var("HOME")).map(PathBuf::from);
                     crate::integration::prepare(&shell, &defaults, dir, user_zdotdir)
                         .map_err(|e| tracing::warn!("shell integration unavailable: {e}"))
                         .ok()
@@ -342,6 +349,8 @@ mod tests {
         });
         let home = tempfile::tempdir().unwrap();
         let scripts = tempfile::tempdir().unwrap();
+        // zsh starts its new-user setup in a home without startup files; an empty one skips it.
+        std::fs::write(home.path().join(".zshenv"), "").unwrap();
         let s = PtySession::spawn(
             PtyOptions {
                 shell: Some(shell.display().to_string()),

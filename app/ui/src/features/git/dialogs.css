@@ -1,4 +1,4 @@
-/* Git menu dialogs (GitDialogs.tsx) and the Stash / Shelf tabs of the Commit tool window.
+/* Git menu dialogs (GitDialogHost.tsx) and the Stash / Shelf tabs of the Commit tool window.
    Colors come from theme.css only. */
 .gd.gd-wide {
   width: 600px;

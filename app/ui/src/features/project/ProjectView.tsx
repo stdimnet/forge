@@ -10,8 +10,9 @@ import { Dynamic } from "solid-js/web";
 import { ChevronDown, ChevronRight, ChevronsDownUp, EllipsisVertical, LocateFixed } from "lucide-solid";
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { projectStructureApi, type TreeRow } from "@/ipc/projectStructure";
-import { workspace } from "@/state/workspace";
-import { activeTab, editor, isCustomTab, openFile } from "@/state/editor";
+import { onProjectSwitch, workspace } from "@/state/workspace";
+import { activeTab, editor, isCustomTab } from "@/state/editor";
+import { openFileReported } from "@/features/navigation/openReported";
 import { statusOf, dirHasChanges, dirHasConflicts } from "@/state/vcs";
 import { FileIcon } from "@/shell/FileIcon";
 import { getSetting, saveSetting } from "@/state/settings";
@@ -203,7 +204,7 @@ const singleClickOpens = () => getSetting<boolean>("projectView.openFilesWithSin
 /** Double click (or single click with the setting on): expand/collapse folders, open files. */
 function activate(entry: FileEntry): void {
   if (entry.kind === "dir") toggle(entry.path);
-  else void openFile(entry.path);
+  else void openFileReported(entry.path);
 }
 
 /** The entry a row stands for (menus, drag and drop). */
@@ -460,6 +461,22 @@ export function registerProjectViewSection(section: { id: string; order: number;
   setSections((prev) => [...prev.filter((s) => s.id !== section.id), section].sort((a, b) => a.order - b.order));
 }
 
+/**
+ * Another project in this window (e.g. a Code With Me guest got the host's project): its
+ * tree starts collapsed and unselected, and every listing is read again.
+ */
+export function resetProjectTree(): void {
+  setExpanded(new Set<string>());
+  setSelected(null);
+  setAlsoSelected([]);
+  setDragged([]);
+  setDropTarget(null);
+  setDirRevisions({});
+  setStructureRevision((n) => n + 1);
+}
+
+onProjectSwitch(resetProjectTree);
+
 /** Expansion and selection of the Project tree, for sections. */
 export const projectTree = { expanded, setOpen, toggle, selected, setSelected: selectOnly, selectedPaths, singleClickOpens };
 
@@ -474,7 +491,7 @@ export function ProjectView() {
       root.querySelector(`.tree-row[data-path="${CSS.escape(action.path)}"]`)?.scrollIntoView({ block: "nearest" });
     } else if (action.type === "expand") setOpen(action.path, true);
     else if (action.type === "collapse") setOpen(action.path, false);
-    else void openFile(action.path);
+    else void openFileReported(action.path);
   };
   return (
     <div
@@ -489,8 +506,9 @@ export function ProjectView() {
         showFileMenu(null, e.clientX, e.clientY);
       }}
     >
-      <Show when={workspace()}>
-        {(ws) => (
+      {/* Keyed by the root: another project gets a new tree, not the old one's listings. */}
+      <Show when={workspace()?.root} keyed>
+        {(root) => (
           <>
             <div
               class="tree-row tree-root"
@@ -510,9 +528,9 @@ export function ProjectView() {
               <span class="tree-chevron">
                 <ChevronDown size={14} />
               </span>
-              <FileIcon name={ws().name} dir open />
-              <span class="tree-label strong">{ws().name}</span>
-              <span class="tree-hint">{ws().root}</span>
+              <FileIcon name={workspace()?.name ?? ""} dir open />
+              <span class="tree-label strong">{workspace()?.name}</span>
+              <span class="tree-hint">{workspace()?.collab?.label ?? root}</span>
             </div>
             <DirChildren path="" depth={1} />
             <For each={sections()}>{(section) => <Dynamic component={section.component} />}</For>

@@ -16,6 +16,8 @@ const root = document.getElementById("root")!;
 async function bootWorkbench() {
   // Features load after the mocks so anything they invoke at startup has a backend.
   await import("./features");
+  // The Settings dialog window shows a form: it skips the IDE-only features.
+  if (dialogBoot()?.id !== "settings") await import("./features/ideOnly");
   const { App } = await import("./App");
   const { DialogHost, DialogWindowApp } = await import("./shell/window/DialogHost");
   // `?dialog=<id>`: a dialog window (see shell/window/dialogs.ts) shows only that dialog.

@@ -222,8 +222,8 @@ pub async fn php_tidy_blank_lines(
     blocking(move || Ok(tidy_blank_lines(&text, &style))).await
 }
 
-/// Language servers installed on the project's machine (this one when no project is open),
-/// for Settings > PHP.
+/// The PHP language server of the project's machine (this one when no project is open):
+/// php-lsp built into Forge or the remote agent, for Settings > PHP.
 #[tauri::command]
 pub async fn php_detect_servers(
     settings: Option<PhpLspSettings>,
@@ -235,60 +235,27 @@ pub async fn php_detect_servers(
             let remote = backend.info().remote.is_some();
             blocking(move || backend.php().detect_servers(for_host(settings, remote))).await
         }
-        Err(_) => {
-            let settings = forge_backend::php::with_managed_intelephense(settings);
-            let path_env = std::env::var("PATH").ok();
-            let dirs = lsp::search_dirs(path_env.as_deref(), dirs::home_dir().as_deref());
-            Ok(lsp::detect(&settings, &dirs, &lsp::FsProbe))
-        }
+        Err(_) => Ok(lsp::detect()),
     }
 }
 
-/// The language server to start for the open project, according to the PHP settings
-/// (the given ones, else Forge's settings store).
-#[tauri::command]
-pub async fn php_lsp_config(
-    settings: Option<PhpLspSettings>,
-    state: State<'_, AppState>,
-) -> Result<Option<LspServerConfig>> {
-    let backend = state.backend()?;
-    let mut settings = settings.unwrap_or_else(|| lsp_settings(&state));
-    // The licence key lives in the OS keychain only; free mode sends none.
-    settings.licence_key = intelephense_licence_key();
-    let remote = backend.info().remote.is_some();
-    blocking(move || backend.php().lsp_config(for_host(settings, remote))).await
-}
-
-/// Settings for the machine the project lives on: local executable and cache paths mean
-/// nothing on a remote host, where the agent finds Intelephense / phpactor itself. Locally,
-/// Forge's managed Intelephense install comes before anything on `PATH`.
-/// Local paths do not apply on a remote host. The backend adds the managed Intelephense of
-/// the project's machine (`forge_backend::php`).
+/// Settings for the machine the project lives on: the local cache path means nothing on a
+/// remote host, where the agent picks its own.
 fn for_host(mut settings: PhpLspSettings, remote: bool) -> PhpLspSettings {
     if remote {
-        settings.intelephense_path = None;
-        settings.intelephense_node = None;
-        settings.phpactor_path = None;
         settings.storage_path = None;
     }
     settings
 }
 
-/// Id under which the PHP language server (Intelephense or phpactor) is registered.
+/// Id under which the PHP language server (php-lsp) is registered.
 pub const PHP_SERVER_ID: &str = "php";
-
-/// The Intelephense licence key from the OS keychain (`None` = free mode).
-pub fn intelephense_licence_key() -> Option<String> {
-    crate::commands::langservers::intelephense_licence_key()
-}
 
 /// The PHP language server settings from Forge's settings store.
 fn lsp_settings(state: &AppState) -> PhpLspSettings {
     // Code style keys (brace placement) come from the selected scheme.
     let settings = crate::commands::code_style::code_style_settings(state);
-    let mut s = PhpLspSettings::from_settings(|k| settings.get(k).cloned());
-    s.licence_key = intelephense_licence_key();
-    s
+    PhpLspSettings::from_settings(|k| settings.get(k).cloned())
 }
 
 fn to_lsp_config(cfg: LspServerConfig) -> forge_lsp::LspServerConfig {
@@ -306,9 +273,9 @@ fn to_lsp_config(cfg: LspServerConfig) -> forge_lsp::LspServerConfig {
 }
 
 /// Register (or remove) the PHP language server for the open project: PHP projects with
-/// the PHP plugin enabled get Intelephense or phpactor according to Settings > PHP, found
-/// on the project's machine (a remote project's server runs next to its files and indexes
-/// them there). Call it after a project was detected and when PHP settings change; an
+/// the PHP plugin enabled get php-lsp, configured from Settings > PHP and started by the
+/// binary on the project's machine (a remote project's server runs in the agent next to its
+/// files and indexes them there). Call it after a project was detected and when PHP settings change; an
 /// unchanged config keeps the running server. Blocking (file system lookups, remote calls),
 /// so call it off the main thread.
 ///

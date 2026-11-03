@@ -200,7 +200,10 @@ async function applyAdditionalEdits({ path, view, item, from }: AppliedCompletio
 }
 
 export function toOption(path: string, item: EditorCompletionItem, rank: number): Completion {
-  const callable = CALLABLE.has(item.kind) && (item.insertText ?? item.label) === item.label;
+  // Methods and functions put the caret between the parentheses, also when the server
+  // inserts them itself (php-lsp sends `name()` to clients without snippets).
+  const insert = item.insertText ?? item.label;
+  const callable = CALLABLE.has(item.kind) && (insert === item.label || insert === `${item.label}()`);
   // Options are matched on `label`; servers whose edit replaces more than the word (JSON keys
   // include the quotes) send the text to match as `filterText`.
   const filter = item.filterText && item.filterText !== item.label ? item.filterText : undefined;

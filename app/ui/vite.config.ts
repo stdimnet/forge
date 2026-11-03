@@ -9,6 +9,16 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/**"] } },
   envPrefix: ["VITE_", "TAURI_ENV_"],
-  build: { target: "es2022", sourcemap: !!process.env.TAURI_ENV_DEBUG },
+  build: {
+    target: "es2022",
+    sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    // The splash window is a page of its own (splash.html).
+    rollupOptions: {
+      input: {
+        index: fileURLToPath(new URL("./index.html", import.meta.url)),
+        splash: fileURLToPath(new URL("./splash.html", import.meta.url)),
+      },
+    },
+  },
   test: { environment: "jsdom" },
 });

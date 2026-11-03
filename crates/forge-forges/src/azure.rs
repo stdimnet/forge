@@ -260,6 +260,63 @@ impl AzureDevOps {
     }
 
     /// A file at a commit or branch through the items API.
+    /// A new active thread; with a position it is anchored to a line (or the range from
+    /// `start_line`, on the same side).
+    async fn post_thread(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+        body: &str,
+        position: Option<&Position>,
+        start_line: Option<u32>,
+    ) -> HostResult<()> {
+        let mut thread = json!({
+            "comments": [{ "parentCommentId": 0, "content": body, "commentType": 1 }],
+            "status": 1,
+        });
+        if let Some(p) = position {
+            let mut ctx = json!({ "filePath": format!("/{}", p.path.trim_start_matches('/')) });
+            let side = match (p.new_line, p.old_line) {
+                (Some(n), _) => Some(("right", n)),
+                (None, Some(o)) => Some(("left", o)),
+                (None, None) => None,
+            };
+            if let Some((side, end)) = side {
+                let start = start_line.filter(|s| *s < end).unwrap_or(end);
+                ctx[format!("{side}FileStart")] = json!({ "line": start, "offset": 1 });
+                ctx[format!("{side}FileEnd")] = json!({ "line": end, "offset": 1 });
+            }
+            thread["threadContext"] = ctx;
+        }
+        self.http
+            .send_unit(
+                Method::POST,
+                &format!("{}/threads?{API}", Self::pr(repo, number)),
+                Some(&thread),
+                "pull request",
+            )
+            .await
+    }
+
+    /// Sets the signed-in user's vote (10 approved, -5 waiting for author).
+    async fn vote(&self, repo: &RepoRef, number: u64, vote: i32) -> HostResult<()> {
+        let me = self.me().await?;
+        let id = s(&me, "id");
+        if id.is_empty() {
+            return Err(HostError::Unauthorized {
+                host: "Azure DevOps".into(),
+            });
+        }
+        self.http
+            .send_unit(
+                Method::PUT,
+                &format!("{}/reviewers/{}?{API}", Self::pr(repo, number), enc(&id)),
+                Some(&json!({ "vote": vote })),
+                "pull request",
+            )
+            .await
+    }
+
     async fn item(&self, repo: &RepoRef, path: &str, git_ref: &str) -> HostResult<Option<String>> {
         let kind = if is_sha(git_ref) { "commit" } else { "branch" };
         let url = format!(
@@ -758,29 +815,7 @@ impl CodeHost for AzureDevOps {
         body: &str,
         position: Option<&Position>,
     ) -> HostResult<()> {
-        let mut thread = json!({
-            "comments": [{ "parentCommentId": 0, "content": body, "commentType": 1 }],
-            "status": 1,
-        });
-        if let Some(p) = position {
-            let mut ctx = json!({ "filePath": format!("/{}", p.path.trim_start_matches('/')) });
-            if let Some(n) = p.new_line {
-                ctx["rightFileStart"] = json!({ "line": n, "offset": 1 });
-                ctx["rightFileEnd"] = json!({ "line": n, "offset": 1 });
-            } else if let Some(o) = p.old_line {
-                ctx["leftFileStart"] = json!({ "line": o, "offset": 1 });
-                ctx["leftFileEnd"] = json!({ "line": o, "offset": 1 });
-            }
-            thread["threadContext"] = ctx;
-        }
-        self.http
-            .send_unit(
-                Method::POST,
-                &format!("{}/threads?{API}", Self::pr(repo, number)),
-                Some(&thread),
-                "pull request",
-            )
-            .await
+        self.post_thread(repo, number, body, position, None).await
     }
 
     async fn reply(
@@ -826,21 +861,39 @@ impl CodeHost for AzureDevOps {
     }
 
     async fn approve(&self, repo: &RepoRef, number: u64) -> HostResult<()> {
-        let me = self.me().await?;
-        let id = s(&me, "id");
-        if id.is_empty() {
-            return Err(HostError::Unauthorized {
-                host: "Azure DevOps".into(),
-            });
+        self.vote(repo, number, 10).await
+    }
+
+    fn review_events(&self) -> Vec<ReviewEvent> {
+        vec![
+            ReviewEvent::Comment,
+            ReviewEvent::Approve,
+            ReviewEvent::RequestChanges,
+        ]
+    }
+
+    /// Azure DevOps has no batched review: every comment becomes a thread (multi-line ones
+    /// with a line range), the body a general thread, and the verdict a vote ("Approved" or
+    /// "Waiting for author").
+    async fn submit_review(
+        &self,
+        repo: &RepoRef,
+        number: u64,
+        review: &NewReview,
+    ) -> HostResult<()> {
+        for c in &review.comments {
+            self.post_thread(repo, number, &c.body, Some(&c.position), c.start_line)
+                .await?;
         }
-        self.http
-            .send_unit(
-                Method::PUT,
-                &format!("{}/reviewers/{}?{API}", Self::pr(repo, number), enc(&id)),
-                Some(&json!({ "vote": 10 })),
-                "pull request",
-            )
-            .await
+        if !review.body.trim().is_empty() {
+            self.post_thread(repo, number, &review.body, None, None)
+                .await?;
+        }
+        match review.event {
+            ReviewEvent::Comment => Ok(()),
+            ReviewEvent::Approve => self.vote(repo, number, 10).await,
+            ReviewEvent::RequestChanges => self.vote(repo, number, -5).await,
+        }
     }
 
     async fn merge(&self, repo: &RepoRef, number: u64, opts: &MergeOptions) -> HostResult<()> {

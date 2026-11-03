@@ -2,11 +2,13 @@
  * Handles files opened from outside the IDE (browser extension, forge:// links, the
  * `forge` launcher): opens them right away when they belong to the open project, and asks
  * before switching projects or opening a folder outside every known project, unless the
- * user typed the command in a terminal.
+ * user typed the command in a terminal. Code With Me session links open the Join Session
+ * dialog, filled in.
  */
 import { companionApi, type OpenEvent, type PendingEvent } from "@/ipc/companion";
 import { openFileAt } from "@/editor/views";
 import { openWorkspace, restoreWorkspace, workspace } from "@/state/workspace";
+import { joinSession } from "@/features/code-with-me/join";
 import { confirmDialog } from "./ConfirmDialog";
 
 export type OpenPlan =
@@ -74,6 +76,7 @@ export async function handleOpenEvent(event: OpenEvent): Promise<void> {
 
 async function handlePending(e: PendingEvent): Promise<void> {
   if (e.type === "openProject") await openWorkspace(e.root);
+  else if (e.type === "joinSession") await joinSession(e.link);
   else await handleOpenEvent(e);
 }
 
@@ -87,5 +90,6 @@ const enqueue = (job: () => Promise<void>) => {
 export async function listenForOpenRequests(): Promise<void> {
   await companionApi.onOpen((e) => enqueue(() => handleOpenEvent(e)));
   await companionApi.onOpenProject((root) => enqueue(async () => void (await openWorkspace(root))));
+  await companionApi.onJoinSession((link) => enqueue(() => joinSession(link)));
   for (const e of await companionApi.uiReady()) enqueue(() => handlePending(e));
 }

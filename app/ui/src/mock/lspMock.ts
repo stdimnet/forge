@@ -1,5 +1,5 @@
 /**
- * Browser-mode language server: behaves like Intelephense on the demo project (hover
+ * Browser-mode language server: behaves like php-lsp on the demo project (hover
  * docs, completion, diagnostics, go to declaration, parameter info, formatting, status).
  */
 import { emitMock, registerMock } from "@/ipc";
@@ -88,7 +88,7 @@ export function diagnosticsFor(path: string, text: string): EditorDiagnostic[] {
           range: rangeOf(text, from, to),
           severity: r.severity,
           message: r.message,
-          source: "intelephense",
+          source: "php-lsp",
           code: null,
           unnecessary: !!r.unnecessary,
           deprecated: !!r.deprecated,
@@ -127,7 +127,7 @@ const SERVER = isLuaDemo()
       ? { id: "kotlin-lsp", name: "Kotlin LSP" }
     : isScalaDemo()
       ? { id: "metals", name: "Metals" }
-    : { id: "intelephense", name: "Intelephense" };
+    : { id: "php-lsp", name: "php-lsp" };
 let status: ServerStatus = { ...SERVER, state: "notStarted" };
 let started = false;
 /** Other mock servers (e.g. the TypeScript server of the language servers mock). */
@@ -138,7 +138,7 @@ const setStatus = (s: ServerStatus) => {
   emitMock("lsp://status", allStatuses());
 };
 
-/** Publish the state of another mock server next to Intelephense. */
+/** Publish the state of another mock server next to the demo's main server. */
 export function setMockServerStatus(s: ServerStatus): void {
   otherServers.set(s.id, s);
   emitMock("lsp://status", allStatuses());
@@ -150,22 +150,15 @@ export function onMockDidOpen(cb: (path: string) => void): void {
   openHooks.push(cb);
 }
 
-/**
- * `?intelephense=missing`: the demo starts without Intelephense (and without Node.js), so
- * the install offer, licence consent and download progress can be tried. The server starts
- * once the mock install finished.
- */
-export const intelephenseMissingAtStart = () =>
-  typeof location !== "undefined" && new URLSearchParams(location.search).get("intelephense") === "missing";
 /** `?project=java&jdtls=missing`: the Java demo starts without Eclipse JDT LS. */
 const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
 /** `?project=kotlin&kotlin-lsp=missing`: the Kotlin demo starts without kotlin-lsp. */
 const kotlinLspMissingAtStart = () => isKotlinDemo() && new URLSearchParams(location.search).get("kotlin-lsp") === "missing";
 let serverInstalled =
-  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isCppDemo() || isDotnetDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : !intelephenseMissingAtStart());
+  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isCppDemo() || isDotnetDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : true);
 
-/** The mock install of Intelephense finished: start it for the open files. */
-export function markMockIntelephenseInstalled(): void {
+/** The mock install of the demo's server (JDT LS, kotlin-lsp) finished: start it for the open files. */
+export function markMockServerInstalled(): void {
   serverInstalled = true;
   if (Object.keys(docs).length) startServer();
 }
@@ -184,7 +177,7 @@ function startServer() {
   setTimeout(
     () => {
       setStatus({ ...base, state: "ready" });
-      // Like Intelephense after indexing: diagnostics for the whole workspace.
+      // Like php-lsp after indexing: diagnostics for the whole workspace.
       Object.keys(docs).forEach(publish);
     },
     120 + steps.length * 150,
@@ -238,7 +231,7 @@ function kotlinCompletionAt(text: string, offset: number): EditorCompletionList 
 export function completionAt(path: string, pos: LspPosition): EditorCompletionList {
   if (isJavaDemo()) return path.endsWith(".java") ? javaCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
   if (isKotlinDemo()) return path.endsWith(".kt") ? kotlinCompletionAt(docs[path] ?? "", offsetAt(docs[path] ?? "", pos)) : { isIncomplete: false, items: [] };
-  // The simulated server is Intelephense: it completes PHP files only.
+  // The simulated server is php-lsp: it completes PHP files only.
   if (!/\.php$/.test(path)) return { isIncomplete: false, items: [] };
   const text = docs[path] ?? "";
   const offset = offsetAt(text, pos);

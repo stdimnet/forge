@@ -64,6 +64,10 @@ const MANIFESTS: &[(&str, &str)] = &[
         include_str!("../plugins/browser-companion.toml"),
     ),
     (
+        "code-with-me.toml",
+        include_str!("../plugins/code-with-me.toml"),
+    ),
+    (
         "natural-languages.toml",
         include_str!("../plugins/natural-languages.toml"),
     ),
@@ -126,7 +130,7 @@ mod tests {
             registry
                 .lsp_server_for_extension("php")
                 .map(|s| s.id.as_str()),
-            Some("intelephense")
+            Some("php-lsp")
         );
         let mut adapters = HashSet::new();
         for a in registry.debug_adapters() {

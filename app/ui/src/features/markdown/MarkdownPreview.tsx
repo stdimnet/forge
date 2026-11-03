@@ -13,6 +13,7 @@ import { markdownApi, type MdBlock, type MdDocument, type MdInline, type MdListI
 import { viewersApi } from "@/ipc/viewers";
 import { editor, openFile, type EditorTab } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
+import { GUEST_PREFIX } from "@/features/code-with-me/docs";
 import { getSetting } from "@/state/settings";
 import { theme } from "@/state/theme";
 import { highlightFence } from "./highlight";
@@ -339,13 +340,17 @@ export function MarkdownPreview(props: { tab: EditorTab; editorView: () => Edito
   );
   onCleanup(() => clearTimeout(timer));
 
+  // A Code With Me guest reads the host's file as `cwm://<path>`: relative links and images
+  // are resolved in the host's project. Its images cannot be read from here.
+  const guest = props.tab.path.startsWith(GUEST_PREFIX);
+  const docPath = guest ? props.tab.path.slice(GUEST_PREFIX.length) : props.tab.path;
   const images = new Map<string, Promise<string | null>>();
   const ctx: Ctx = {
     path: props.tab.path,
     image: (src) => {
-      const source = imageSource(props.tab.path, src);
+      const source = imageSource(docPath, src);
       if (source.kind === "url") return Promise.resolve(source.url);
-      if (source.kind === "none") return Promise.resolve(null);
+      if (source.kind === "none" || guest) return Promise.resolve(null);
       let p = images.get(source.path);
       if (!p) {
         p = viewersApi.imageRead(source.path).then(
@@ -357,7 +362,7 @@ export function MarkdownPreview(props: { tab: EditorTab; editorView: () => Edito
       return p;
     },
     open: (href) => {
-      const target = linkTarget(props.tab.path, href);
+      const target = linkTarget(docPath, href);
       switch (target.kind) {
         case "anchor":
           scrollToAnchor(container, target.anchor);
@@ -366,7 +371,7 @@ export function MarkdownPreview(props: { tab: EditorTab; editorView: () => Edito
           window.open(target.url, "_blank", "noopener");
           break;
         case "file":
-          void openLinkedFile(target.path, target.anchor);
+          void openLinkedFile(guest ? GUEST_PREFIX + target.path : target.path, target.anchor);
           break;
       }
     },

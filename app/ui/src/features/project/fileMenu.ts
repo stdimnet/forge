@@ -8,7 +8,8 @@ import { item, providedEntries, separator, showContextMenu, submenu, type MenuEn
 import { workspaceApi, type FileEntry } from "@/ipc/workspace";
 import { showBalloon } from "@/keymap";
 import { closeTab, editor, isDirty, openFile, saveFile } from "@/state/editor";
-import { workspace } from "@/state/workspace";
+import { isCollabGuest, workspace } from "@/state/workspace";
+import { guestCanEdit } from "@/features/code-with-me/guest";
 import { projectTree, refreshDirs, revealPath } from "./ProjectView";
 import { openFindInFiles } from "@/features/find/state";
 import { copyEntries, moveEntries, safeDeleteEntries } from "@/features/codeintel/moveRefactorings";
@@ -174,14 +175,20 @@ export function newMenuEntries(dir: string): MenuEntry[] {
 /** Menu of a tree row (`null` = the project root). */
 export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
   const dir = targetDir(entry);
-  const entries: MenuEntry[] = [
-    submenu("New", newMenuEntries(dir)),
-    separator,
-  ];
+  const guest = isCollabGuest();
+  // A guest changes files only with Files: Edit (the host checks it again).
+  const canEdit = guestCanEdit();
+  const entries: MenuEntry[] = canEdit
+    ? [
+        submenu("New", newMenuEntries(dir)),
+        separator,
+      ]
+    : [];
   if (entry) {
     entries.push(
       submenu("Copy Path/Reference", [
-        item("Absolute Path", () => void copy(absolute(entry.path), "path"), "CopyPaths"),
+        // The host's path is not shared with guests.
+        ...(guest ? [] : [item("Absolute Path", () => void copy(absolute(entry.path), "path"), "CopyPaths")]),
         item("Path From Project Root", () => void copy(entry.path, "path")),
         item("File Name", () => void copy(entry.name, "name")),
       ]),
@@ -189,7 +196,7 @@ export function fileMenuEntries(entry: FileEntry | null): MenuEntry[] {
     );
   }
   entries.push(item("Find in Files…", () => openFindInFiles({ directory: dir }), "FindInPath"));
-  if (entry) {
+  if (entry && canEdit) {
     // The selected rows (Ctrl+click) move and are deleted together.
     const paths = () => (projectTree.selectedPaths().includes(entry.path) ? projectTree.selectedPaths() : [entry.path]);
     entries.push(

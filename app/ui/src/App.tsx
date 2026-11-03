@@ -50,7 +50,10 @@ export function App() {
       node: "src/orders/pricing.ts",
       webtools: "apps/api/openapi.yaml",
     };
-    await openFile(INITIAL[new URLSearchParams(location.search).get("project") ?? ""] ?? "app/Models/User.php");
+    const params = new URLSearchParams(location.search);
+    // A Code With Me guest that follows the host shows the host's file instead.
+    if (params.get("project") === "cwm-guest" && params.has("follow")) return;
+    await openFile(INITIAL[params.get("project") ?? ""] ?? "app/Models/User.php");
   });
   const welcome = () => (
     <Show when={drawsControls()} fallback={<WelcomeScreen />}>

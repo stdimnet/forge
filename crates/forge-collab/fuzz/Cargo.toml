@@ -1,0 +1,42 @@
+# cargo-fuzz targets for the inputs a Code With Me peer controls: session links, collab
+# frames and the host calls in them. Not part of the workspace and not run by `cargo test`
+# (`tests/decoding.rs` is the cheap property test that is). Run one with
+# `cargo +nightly fuzz run <target>` in this folder; see docs/ARCHITECTURE.md, "Code With Me".
+[package]
+name = "forge-collab-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# `runtime` for the host call decoder; no network transport.
+forge-collab = { path = "..", default-features = false, features = ["runtime"] }
+
+# Its own workspace, so the main workspace neither builds nor locks it.
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "link_parse"
+path = "fuzz_targets/link_parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "frame_decode"
+path = "fuzz_targets/frame_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "host_call_decode"
+path = "fuzz_targets/host_call_decode.rs"
+test = false
+doc = false
+bench = false

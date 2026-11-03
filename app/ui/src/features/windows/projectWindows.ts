@@ -12,7 +12,8 @@ import { getSetting, saveSetting } from "@/state/settings";
 import { openWorkspace, setProjectOpener, trustBeforeOpen, workspace } from "@/state/workspace";
 import { showBalloon } from "@/keymap";
 import { askChoiceWithCheckbox } from "@/features/contextMenu/dialogs";
-import { registerMainMenuDynamic } from "@/features/mainMenu/model";
+import { action, registerMainMenuDynamic, registerMainMenuEntries } from "@/features/mainMenu/model";
+import { registerKeymapActions } from "@/keymap/store";
 
 export const OPEN_PROJECT_IN = "system.openProjectIn";
 export type OpenProjectIn = "ask" | "newWindow" | "thisWindow";
@@ -67,6 +68,19 @@ async function cycle(delta: 1 | -1): Promise<void> {
     showBalloon("Cannot switch the project window", String((e as Error)?.message ?? e));
   }
 }
+
+/** File | New Window: another window on the Welcome screen, e.g. to join a Code With Me session. */
+async function newWindow(): Promise<void> {
+  try {
+    await projectWindowsApi.openEmpty();
+  } catch (e) {
+    showBalloon("Cannot open a new window", String((e as Error)?.message ?? e));
+  }
+}
+
+registerKeymapActions([{ id: "NewWindow", title: "New Window", group: "File" }]);
+registerCommand({ id: "NewWindow", title: "New Window", category: "File", run: newWindow });
+registerMainMenuEntries("File", [action("NewWindow", "New _Window")], { after: "OpenFile" });
 
 registerCommand({ id: "NextProjectWindow", title: "Next Project Window", category: "Window", run: () => cycle(1) });
 registerCommand({ id: "PreviousProjectWindow", title: "Previous Project Window", category: "Window", run: () => cycle(-1) });

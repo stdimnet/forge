@@ -34,7 +34,7 @@ struct Run {
 }
 
 /// A run's process and its rendered output.
-type RunHandles = (Arc<dyn Process>, Arc<Mutex<RunOutput>>);
+pub(crate) type RunHandles = (Arc<dyn Process>, Arc<Mutex<RunOutput>>);
 
 pub struct RunState {
     runs: Mutex<HashMap<String, Run>>,
@@ -125,7 +125,7 @@ impl RunState {
             .insert(run_id.to_string(), Run { process, output });
     }
 
-    fn get(&self, id: &str) -> Result<RunHandles> {
+    pub(crate) fn get(&self, id: &str) -> Result<RunHandles> {
         self.runs
             .lock()
             .expect("runs poisoned")
@@ -144,7 +144,7 @@ fn root(state: &AppState) -> Result<std::path::PathBuf> {
 pub async fn run_configurations_load(state: State<'_, AppState>) -> Result<RunConfigurations> {
     let backend = state.backend()?;
     blocking(move || {
-        if backend.info().remote.is_none() {
+        if backend.info().is_local() {
             return RunConfigurations::load(&backend.info().root);
         }
         let shared = backend.read_file(forge_process::config::PROJECT_FILE).ok();
@@ -161,7 +161,7 @@ pub async fn run_configurations_save(
 ) -> Result<()> {
     let backend = state.backend()?;
     blocking(move || {
-        if backend.info().remote.is_none() {
+        if backend.info().is_local() {
             return configurations.save(&backend.info().root);
         }
         let [shared, local] = configurations.to_texts()?;
@@ -189,6 +189,12 @@ pub struct RunRequest {
     /// Id chosen by the UI so it can subscribe to `run://<runId>` before the start;
     /// generated when missing.
     pub run_id: Option<String>,
+    /// The configuration's name and type when the UI builds the command line (Code With Me
+    /// shows the run to guests under this name); taken from `configuration` otherwise.
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub type_id: Option<String>,
     pub configuration: Option<RunConfiguration>,
     pub command: Option<CommandLine>,
     /// Extra environment, e.g. `XDEBUG_SESSION` from a debug launcher.
@@ -845,6 +851,15 @@ pub async fn run_start(
     let test_runner = request.test_runner;
     let mut request = request;
     let mut spring_run = false;
+    // Code With Me: guests who see runs see this one from its first event on.
+    let shared_as = request
+        .configuration
+        .as_ref()
+        .map(|c| (c.name.clone(), Some(c.type_id.clone())))
+        .or_else(|| request.name.clone().map(|n| (n, request.type_id.clone())));
+    if let Some((name, kind)) = &shared_as {
+        crate::commands::collab::on_run_starting(&app, &run_id, name, kind.as_deref());
+    }
     if let Some(cfg) = request.configuration.as_mut() {
         // The run dashboard follows Spring Boot runs through their output.
         if cfg.type_id == javaforge_fw_spring::run::TYPE {
@@ -888,6 +903,9 @@ pub async fn run_start(
         }
         Err(e) => Err(e),
     };
+    if started.is_err() && shared_as.is_some() {
+        crate::commands::collab::on_run_disposed(&app, &run_id);
+    }
     if started.is_err() && sanitizer_run {
         runs.observers
             .lock()
@@ -1126,7 +1144,8 @@ pub fn run_write(
 
 /// Forget a finished run (its tab was closed); a running one is stopped first.
 #[tauri::command]
-pub async fn run_dispose(run_id: String, runs: State<'_, RunState>) -> Result<()> {
+pub async fn run_dispose(run_id: String, app: AppHandle, runs: State<'_, RunState>) -> Result<()> {
+    crate::commands::collab::on_run_disposed(&app, &run_id);
     let removed = runs.runs.lock().expect("runs poisoned").remove(&run_id);
     if let Some(r) = removed {
         blocking(move || {
@@ -1139,6 +1158,9 @@ pub async fn run_dispose(run_id: String, runs: State<'_, RunState>) -> Result<()
 }
 
 fn emit<T: Serialize>(app: &AppHandle, event: &str, payload: &T) {
+    if let Some(run_id) = event.strip_prefix("run://") {
+        crate::commands::collab::on_run_event(app, run_id, payload);
+    }
     if let Err(err) = app.emit(event, payload) {
         tracing::warn!("cannot emit {event}: {err}");
     }

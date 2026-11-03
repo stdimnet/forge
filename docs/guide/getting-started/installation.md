@@ -94,7 +94,7 @@ Forge works without any of these, but features light up when they are installed:
 | `php` | running PHP scripts, PHPUnit, artisan, the Symfony console, PHP scratches |
 | `composer` | Composer scripts, new Laravel/Symfony projects |
 | Node.js + `npm` | npm scripts and new web projects (language servers do not need it: Forge downloads Node.js itself when missing) |
-| language servers | completion, hover and diagnostics, see [Language servers](../user/language-servers.md) |
+| language servers | completion, hover and diagnostics for languages other than PHP (PHP's server, php-lsp, is built into Forge), see [Language servers](../user/language-servers.md) |
 | `docker`, `kubectl` | the Services tool window |
 | a Secret Service keyring (GNOME Keyring, KWallet) | storing API keys, tokens and passwords, see [Troubleshooting](../troubleshooting.md#keychain-on-linux) |
 

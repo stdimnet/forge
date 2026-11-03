@@ -1,5 +1,5 @@
-//! Code navigation on the PHP index, used when no language server answers (none installed,
-//! or free Intelephense without implementation / type definition): the symbol under the
+//! Code navigation on the PHP index, used when no language server answers (none running, or
+//! one without implementation / type definition): the symbol under the
 //! caret, Go to Declaration, Find Usages, Go to Implementation, Go to Super Method, Go to
 //! Type Declaration and the implemented / overridden gutter markers.
 //!

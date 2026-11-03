@@ -57,6 +57,7 @@ impl LocalBackend {
                 name: folder_name(&root),
                 root: root.clone(),
                 remote: None,
+                collab: None,
             },
             php: Arc::new(LocalPhp::new(workspace.clone())),
             frameworks: LocalFrameworks::new(workspace.clone()),

@@ -13,7 +13,7 @@ import type { Completion, CompletionContext, CompletionResult } from "@codemirro
 import { KeyRound } from "lucide-solid";
 import { phpMetaApi, type PhpCompletion, type PhpCompletionItem, type PhpProblem } from "@/ipc/phpMeta";
 import type { EditorDiagnostic } from "@/ipc/lsp";
-import { publishDiagnostics } from "@/features/lsp/store";
+import { PHP_INSPECTIONS_SOURCE, publishDiagnostics } from "@/features/lsp/store";
 import { registerCompletionKind } from "@/features/lsp/completion";
 import { toLsp } from "@/features/lsp/util";
 import { getSetting } from "@/state/settings";
@@ -21,7 +21,7 @@ import { isPluginActive } from "@/state/project";
 import { lastStats } from "./status";
 
 export const INSPECTIONS_KEY = "php.inspections.enabled";
-const SOURCE = "php-inspections";
+const SOURCE = PHP_INSPECTIONS_SOURCE;
 
 registerCompletionKind("key", KeyRound, "property");
 

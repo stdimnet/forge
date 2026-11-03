@@ -7,7 +7,8 @@ license.workspace = true
 
 [lib]
 name = "forge_app_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# Only the desktop binary links this library; staticlib/cdylib (mobile) would add GBs per build.
+crate-type = ["rlib"]
 
 [[bin]]
 name = "forge"
@@ -43,6 +44,7 @@ forge-langservers.workspace = true
 forge-vcs.workspace = true
 forge-diff.workspace = true
 forge-forges.workspace = true
+forge-code-review.workspace = true
 forge-project.workspace = true
 forge-open.workspace = true
 forge-process.workspace = true
@@ -72,11 +74,13 @@ forge-jsonschema = { workspace = true, features = ["remote"] }
 forge-scratches = { workspace = true, features = ["client"] }
 forge-backend = { workspace = true, features = ["search"] }
 forge-remote.workspace = true
+forge-collab.workspace = true
 forge-devenv.workspace = true
 forge-deploy.workspace = true
 forge-window.workspace = true
 forge-update.workspace = true
 phpforge-lang-php = { path = "../../packs/phpforge/lang-php" }
+phpforge-builtin-lsp.workspace = true
 phpforge-interpreters.workspace = true
 phpforge-cli-tools.workspace = true
 phpforge-quality-tools.workspace = true

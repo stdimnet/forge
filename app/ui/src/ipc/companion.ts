@@ -50,7 +50,11 @@ export interface OpenEvent {
   target: OpenTarget;
 }
 
-export type PendingEvent = ({ type: "open" } & OpenEvent) | { type: "openProject"; root: string };
+export type PendingEvent =
+  | ({ type: "open" } & OpenEvent)
+  | { type: "openProject"; root: string }
+  /** A checked Code With Me session link for the Join Session dialog. */
+  | { type: "joinSession"; link: string };
 
 export interface ProjectProfile {
   composer: string[];
@@ -63,6 +67,7 @@ export interface ProjectProfile {
 
 export const COMPANION_OPEN_EVENT = "companion://open";
 export const COMPANION_OPEN_PROJECT_EVENT = "companion://open-project";
+export const COMPANION_JOIN_SESSION_EVENT = "companion://join-session";
 export const COMPANION_STATUS_EVENT = "companion://status";
 
 export const companionApi = {
@@ -79,5 +84,7 @@ export const companionApi = {
     invoke<void>("companion_set_env_var", { file, key, value }),
   onOpen: (cb: (e: OpenEvent) => void) => listen<OpenEvent>(COMPANION_OPEN_EVENT, cb),
   onOpenProject: (cb: (root: string) => void) => listen<string>(COMPANION_OPEN_PROJECT_EVENT, cb),
+  /** A clicked forge://cwm/join?… link, checked by the backend. */
+  onJoinSession: (cb: (link: string) => void) => listen<string>(COMPANION_JOIN_SESSION_EVENT, cb),
   onStatus: (cb: (s: ServerStatus) => void) => listen<ServerStatus>(COMPANION_STATUS_EVENT, cb),
 };

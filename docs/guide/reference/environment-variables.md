@@ -69,7 +69,6 @@ tags: [environment, variables, reference]
 | `FORGE_URL` | base URL of the dev server for `scripts/screenshots.mjs` (default `http://localhost:1420`) |
 | `CHROMIUM_PATH` | Chromium for the screenshot script |
 | `CARGO_TARGET_DIR` | separate target folder per git worktree |
-| `CARGO_PROFILE_DEV_DEBUG=0` | smaller debug builds |
 | `CC_<triple>`, `CFLAGS_<triple>`, `CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER` | cross-compiling the remote agents (`pnpm agents`) |
 | `FORGE_UPDATER_PUBKEY` | at build time: the updater public key compiled into the app; without it the build never checks for updates (see [Release builds](../developer/release-builds.md#updates-and-signing)) |
 | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | at build time: sign the updater artifacts; `pnpm tauri build` / `pnpm release` turn on `createUpdaterArtifacts` only when the key is set |

@@ -34,14 +34,14 @@ mod status;
 pub mod worktree;
 
 pub use blame::{parse_blame, Blame, BlameCommit};
-pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches};
+pub use branch::{parse_recent_checkouts, parse_refs, BranchInfo, Branches, REF_FORMAT};
 pub use diff::{parse_diff, DiffLine, FileDiff, Hunk, LineKind};
 pub use history::{
     parse_block_history, parse_file_history, BlockRevision, FileRevision, HistoryQuery,
 };
 pub use log::{
-    parse_decorations, parse_log, parse_name_status, ChangedFile, Commit, CommitDetails, LogQuery,
-    RefKind, RefLabel,
+    is_object_id, parse_decorations, parse_log, parse_name_status, ChangedFile, Commit,
+    CommitDetails, LogQuery, RefKind, RefLabel, COMMIT_META_FORMAT, LOG_FORMAT,
 };
 #[cfg(feature = "git")]
 pub use manage::{

@@ -14,7 +14,7 @@ import { isJavaDemo, JAVA_TEST_PKG, javaDemoInfo, javaDemoName } from "./demoJav
 import { mockFiles } from "./workspaceMock";
 import { mockSettingValue } from "./settingsMock";
 import { projectRoot, startMockRun, type MockCoverage, type Step } from "./runMock";
-import { markMockIntelephenseInstalled } from "./lspMock";
+import { markMockServerInstalled } from "./lspMock";
 
 const HOME = "/home/anna";
 const ROOT = () => projectRoot().replace(/^~/, HOME);
@@ -157,7 +157,7 @@ registerMock("java_jdtls_install", async () => {
   );
   jdtls = "1.40.0-202409261450";
   // The mock language server (here: JDT LS) starts for the open files.
-  markMockIntelephenseInstalled();
+  markMockServerInstalled();
   return jdtls;
 });
 

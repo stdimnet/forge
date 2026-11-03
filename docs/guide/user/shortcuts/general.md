@@ -340,7 +340,7 @@ Shows the version, platform and build information.
 
 **Shortcut:** — · macOS `Cmd+Q` · action id `Exit`
 
-Closes the Forge window (desktop app only).
+Asks "Confirm Exit" once (Settings | Appearance & Behavior | System Settings), then every open project window saves its files and closes (desktop app only).
 
 **Menu:** File | Exit
 
