@@ -2432,6 +2432,19 @@ tool window, one breakpoint store (`.forge/breakpoints.json`) and one event stre
   `forges_checkout({ number, sourceBranch }) -> branch` (emits `git://changed`).
 - Errors are worded for balloons: rejected tokens, missing permissions, rate limits (with the reset
   time), unreachable servers.
+- `CodeHost::submit_review(repo, number, NewReview { event: comment | approve | requestChanges,
+  body, comments: { body, position, startLine? }[] })`: one review on GitHub and Forgejo/Gitea;
+  the default implementation (GitLab) posts the comments, the body and the approval one by one.
+  `review_events()` lists the verdicts the host accepts.
+- Review mode (`forge-code-review`, `app/ui/src/ipc/codeReview.ts`): `review_session({ number })
+  -> { headSha, files: { path, digest, viewed, aiExcluded }[], changes, drafts, events, summary,
+  findings, ai: { provider, model, local, problem } }`, `review_set_viewed({ number, path, digest,
+  viewed })`, `review_save_draft({ number, draft }) -> Draft[]`, `review_delete_draft({ number, id })`,
+  `review_submit({ number, event, body })`, `review_summarize({ number, refresh })`,
+  `review_ai({ number, refresh })`, `review_finding({ number, id, action: "draft" | "dismiss" })`,
+  `review_explain({ number, path, hunk })`. State lives in `<cache dir>/forge/code-review/`; AI
+  results are cached per head SHA. AI calls use the actions model and pass the `ai.enabled` /
+  `.aiignore` policy; excluded files are neither sent nor named.
 
 ## Services: Docker, Docker Compose and Kubernetes (`forge-containers`)
 

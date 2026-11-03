@@ -257,3 +257,56 @@ async fn lists_the_accounts_repositories_across_pages() {
     assert!(first.query.contains("page=2") || first.query.contains("affiliation=owner"));
     assert_eq!(server.count("GET", "/user/repos"), 2);
 }
+
+fn review() -> NewReview {
+    NewReview {
+        event: ReviewEvent::RequestChanges,
+        body: "A few things".into(),
+        comments: vec![
+            ReviewComment {
+                body: "Range".into(),
+                position: Position {
+                    path: "app/User.php".into(),
+                    new_line: Some(14),
+                    ..Position::default()
+                },
+                start_line: Some(12),
+            },
+            ReviewComment {
+                body: "Removed line".into(),
+                position: Position {
+                    path: "app/User.php".into(),
+                    old_line: Some(3),
+                    ..Position::default()
+                },
+                start_line: None,
+            },
+        ],
+    }
+}
+
+#[tokio::test]
+async fn submits_a_review_with_all_comments_at_once() {
+    let (server, gh) = host(vec![
+        Route::json("GET", &format!("{R}/pulls/1"), &pr(1, "x", "null", false)),
+        Route::json("POST", &format!("{R}/pulls/1/reviews"), "{}"),
+    ])
+    .await;
+    assert!(gh.review_events().contains(&ReviewEvent::RequestChanges));
+    gh.submit_review(&repo(), 1, &review()).await.unwrap();
+    assert_eq!(server.count("POST", &format!("{R}/pulls/1/reviews")), 1);
+    let body = server.find("POST", &format!("{R}/pulls/1/reviews")).json();
+    assert_eq!(body["event"], "REQUEST_CHANGES");
+    assert_eq!(body["commit_id"], "h1");
+    assert_eq!(body["body"], "A few things");
+    let c = &body["comments"];
+    assert_eq!(
+        (c[0]["line"].as_u64(), c[0]["start_line"].as_u64()),
+        (Some(14), Some(12))
+    );
+    assert_eq!(
+        (c[0]["side"].as_str(), c[1]["side"].as_str()),
+        (Some("RIGHT"), Some("LEFT"))
+    );
+    assert!(c[1].get("start_line").is_none());
+}

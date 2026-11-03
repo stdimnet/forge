@@ -395,3 +395,52 @@ async fn lists_member_projects() {
         Some("glpat-secret")
     );
 }
+
+#[tokio::test]
+async fn reviews_fall_back_to_single_comments_and_approve() {
+    let (server, gl) = host(vec![
+        Route::json(
+            "GET",
+            &format!("{P}/merge_requests/7"),
+            r#"{"iid":7,"diff_refs":{"base_sha":"b","start_sha":"s","head_sha":"h"}}"#,
+        ),
+        Route::json("POST", &format!("{P}/merge_requests/7/discussions"), "{}").status(201),
+        Route::json("POST", &format!("{P}/merge_requests/7/notes"), "{}").status(201),
+        Route::json("POST", &format!("{P}/merge_requests/7/approve"), "{}").status(201),
+    ])
+    .await;
+    assert!(!gl.review_events().contains(&ReviewEvent::RequestChanges));
+    let mut review = NewReview {
+        event: ReviewEvent::Approve,
+        body: "Thanks".into(),
+        comments: vec![ReviewComment {
+            body: "Check this".into(),
+            position: Position {
+                path: "src/a.rb".into(),
+                new_line: Some(9),
+                ..Position::default()
+            },
+            start_line: Some(5),
+        }],
+    };
+    gl.submit_review(&repo(), 7, &review).await.unwrap();
+    let d = server
+        .find("POST", &format!("{P}/merge_requests/7/discussions"))
+        .json();
+    assert_eq!(d["position"]["new_line"], 9);
+    assert!(d["body"].as_str().unwrap().starts_with("*Lines 5–9:*"));
+    assert_eq!(
+        server
+            .find("POST", &format!("{P}/merge_requests/7/notes"))
+            .json()["body"],
+        "Thanks"
+    );
+    assert_eq!(
+        server.count("POST", &format!("{P}/merge_requests/7/approve")),
+        1
+    );
+
+    review.event = ReviewEvent::RequestChanges;
+    let err = gl.submit_review(&repo(), 7, &review).await.unwrap_err();
+    assert!(matches!(err, HostError::Unsupported { .. }));
+}

@@ -488,3 +488,33 @@ pub struct Capabilities {
     /// "!" (GitLab) or "#".
     pub number_prefix: String,
 }
+
+/// The verdict of a submitted review.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReviewEvent {
+    #[default]
+    Comment,
+    Approve,
+    RequestChanges,
+}
+
+/// One inline comment of a review. `start_line` (same side as the position's line) makes
+/// it a multi-line comment where the host supports that.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ReviewComment {
+    pub body: String,
+    pub position: Position,
+    pub start_line: Option<u32>,
+}
+
+/// Pending comments submitted together as one review.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NewReview {
+    pub event: ReviewEvent,
+    /// Markdown; may be empty.
+    pub body: String,
+    pub comments: Vec<ReviewComment>,
+}

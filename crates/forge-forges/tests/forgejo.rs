@@ -335,3 +335,35 @@ async fn lists_the_users_repositories_newest_first() {
     assert_eq!(repos[1].ssh_url, None);
     assert!(repos[0].private);
 }
+
+#[tokio::test]
+async fn submits_a_review_with_all_comments_at_once() {
+    let (server, fj) = host(vec![
+        Route::json(
+            "GET",
+            &format!("{R}/pulls/4"),
+            &pr(4, "x", false, "open", "anna"),
+        ),
+        Route::json("POST", &format!("{R}/pulls/4/reviews"), "{}"),
+    ])
+    .await;
+    let review = NewReview {
+        event: ReviewEvent::Approve,
+        body: "LGTM".into(),
+        comments: vec![ReviewComment {
+            body: "Nit".into(),
+            position: Position {
+                path: "a.php".into(),
+                new_line: Some(7),
+                ..Position::default()
+            },
+            start_line: None,
+        }],
+    };
+    fj.submit_review(&repo(), 4, &review).await.unwrap();
+    assert_eq!(server.count("POST", &format!("{R}/pulls/4/reviews")), 1);
+    let body = server.find("POST", &format!("{R}/pulls/4/reviews")).json();
+    assert_eq!(body["event"], "APPROVED");
+    assert_eq!(body["commit_id"], "sha4");
+    assert_eq!(body["comments"][0]["new_position"], 7);
+}

@@ -1,7 +1,9 @@
 /**
  * Merge/pull request details as an editor tab: header with actions (Approve, Merge…,
- * Close, Check out), Overview (description, timeline, comment box, reviewers, pipeline) and
- * Files (changed files tree with the diff and inline review threads).
+ * Close, Check out), Overview (description, timeline, comment box, reviewers, pipeline),
+ * Files (review mode: changed files with their viewed state, the diff with inline review
+ * threads, pending review comments, AI findings and "Explain this change", Submit Review)
+ * and AI Review (Summarize PR and AI Review findings).
  */
 import { createEffect, createMemo, createResource, createSignal, For, Match, on, Show, Switch } from "solid-js";
 import {
@@ -18,6 +20,7 @@ import {
   GitMerge,
   MessageSquare,
   RefreshCw,
+  Sparkles,
   ThumbsUp,
   X,
 } from "lucide-solid";
@@ -27,9 +30,12 @@ import { approve, checkoutRequest, confirmClose, run, setDialog, showRequestDiff
 import { caps, errorText, me, ref, requestName, revision } from "./store";
 import { CommentEditor, Markdown, NoteView, SystemNote, ThreadView } from "./Thread";
 import { ReviewDiff } from "./ReviewDiff";
+import { reviewApi, type Draft, type ExplainResult, type Finding, type ReviewEvent, type ReviewSession } from "@/ipc/codeReview";
+import { AiReviewView, SubmitReview } from "./ReviewPanel";
+import { notify } from "@/features/git/store";
 import { Avatar, BranchPill, CiIcon, ciLabels, LabelPill, MrStateIcon, StateBadge, ago, displayName } from "./ui";
 
-type View = "overview" | "files";
+type View = "overview" | "files" | "ai";
 
 const reviewText: Record<ReviewState, string> = {
   requested: "Review requested",
@@ -43,12 +49,74 @@ export function MergeRequestTab(props: { number: number }) {
   const [mr, { refetch: refetchMr }] = createResource(() => props.number, forgesApi.mergeRequest);
   const [discussions, { refetch: refetchDiscussions }] = createResource(() => props.number, forgesApi.discussions);
   const [filesWanted, setFilesWanted] = createSignal(false);
-  const [files] = createResource(() => (view() === "files" || filesWanted() ? props.number : false), forgesApi.files);
+  const [session, { mutate: setSession, refetch: refetchSession }] = createResource(
+    () => (view() !== "overview" || filesWanted() ? props.number : false),
+    reviewApi.session,
+  );
+  const files = () => session()?.changes;
   const [selectedFile, setSelectedFile] = createSignal<string | null>(null);
+  const [summarizing, setSummarizing] = createSignal(false);
+  const [reviewing, setReviewing] = createSignal(false);
 
   const reload = () => {
     void refetchMr();
     void refetchDiscussions();
+    if (session()) void refetchSession();
+  };
+  const patch = (p: Partial<ReviewSession>) => setSession((s) => (s ? { ...s, ...p } : s));
+
+  const setViewed = async (path: string, viewed: boolean) => {
+    const f = session()?.files.find((x) => x.path === path);
+    if (!f) return;
+    patch({ files: session()!.files.map((x) => (x.path === path ? { ...x, viewed } : x)) });
+    if (!(await run("Could not save the viewed state", () => reviewApi.setViewed(props.number, path, f.digest, viewed)))) void refetchSession();
+  };
+  const saveDraft = async (draft: Draft) => {
+    try {
+      patch({ drafts: await reviewApi.saveDraft(props.number, draft) });
+      return true;
+    } catch (e) {
+      notify("error", "Could not save the review comment", errorText(e));
+      return false;
+    }
+  };
+  const deleteDraft = async (d: Draft) => {
+    if (await run("Could not delete the review comment", async () => patch({ drafts: await reviewApi.deleteDraft(props.number, d.id) }))) {
+      if (d.finding) void refetchSession();
+    }
+  };
+  const onFinding = async (f: Finding, action: "draft" | "dismiss") => {
+    await run(action === "draft" ? "Could not add the finding to the review" : "Could not dismiss the finding", async () => {
+      const u = await reviewApi.finding(props.number, f.id, action);
+      patch({ drafts: u.drafts, findings: u.findings });
+    });
+  };
+  const submitReview = async (event: ReviewEvent, body: string) => {
+    const pending = session()?.drafts.length ?? 0;
+    const ok = await run("Submitting the review failed", () => reviewApi.submit(props.number, event, body), `Review submitted${pending ? ` with ${pending} comment${pending === 1 ? "" : "s"}` : ""}`);
+    if (ok) {
+      patch({ drafts: [] });
+      reload();
+    }
+    return ok;
+  };
+  const summarize = async (refresh: boolean) => {
+    setSummarizing(true);
+    await run("Summarize PR failed", async () => patch({ summary: await reviewApi.summarize(props.number, refresh) }));
+    setSummarizing(false);
+  };
+  const aiReview = async (refresh: boolean) => {
+    setReviewing(true);
+    await run("AI Review failed", async () => patch({ findings: await reviewApi.aiReview(props.number, refresh) }));
+    setReviewing(false);
+  };
+  const explain = async (path: string, hunk: number) => {
+    try {
+      return await reviewApi.explain(props.number, path, hunk);
+    } catch (e) {
+      notify("error", "Explain this change failed", errorText(e));
+      return null;
+    }
   };
   createEffect(on(revision, reload, { defer: true }));
 
@@ -72,6 +140,7 @@ export function MergeRequestTab(props: { number: number }) {
     setSelectedFile(path);
     setView("files");
   };
+  const viewedCount = () => session()?.files.filter((f) => f.viewed).length ?? 0;
 
   const threadCount = (path: string) => (discussions() ?? []).filter((d) => d.position?.path === path && !d.resolved).length;
 
@@ -105,20 +174,48 @@ export function MergeRequestTab(props: { number: number }) {
                   data-view="files"
                 >
                   Files
-                  <Show when={files()}>
-                    <span class="fg-count">{files()!.length}</span>
+                  <Show when={session()}>
+                    <span class="fg-count" title={`${viewedCount()} of ${session()!.files.length} files viewed`}>
+                      {viewedCount()}/{session()!.files.length}
+                    </span>
+                  </Show>
+                </button>
+                <button class="git-tab" classList={{ active: view() === "ai" }} onClick={() => setView("ai")} data-view="ai">
+                  <Sparkles size={13} />
+                  AI Review
+                  <Show when={session()?.findings?.findings.length}>
+                    <span class="fg-count">{session()!.findings!.findings.length}</span>
                   </Show>
                 </button>
               </div>
               <Show when={view() === "overview"}>
                 <Overview mr={d()} discussions={discussions() ?? []} comment={comment} reply={reply} resolve={resolve} openFile={openFileThread} />
               </Show>
+              <Show when={view() === "ai"}>
+                <Show when={session()} fallback={<div class="fg-empty muted">{session.error ? errorText(session.error) : "Loading changes…"}</div>}>
+                  {(s) => (
+                    <AiReviewView
+                      ai={s().ai}
+                      headSha={s().headSha}
+                      summary={s().summary}
+                      findings={s().findings}
+                      summarizing={summarizing()}
+                      reviewing={reviewing()}
+                      summarize={(r) => void summarize(r)}
+                      review={(r) => void aiReview(r)}
+                      onFinding={(f, a) => void onFinding(f, a)}
+                      openFile={openFileThread}
+                    />
+                  )}
+                </Show>
+              </Show>
               <Show when={view() === "files"}>
                 <FilesView
                   mr={d()}
                   files={files()}
-                  loading={files.loading}
-                  error={files.error ? errorText(files.error) : null}
+                  session={session()}
+                  loading={session.loading}
+                  error={session.error ? errorText(session.error) : null}
                   discussions={discussions() ?? []}
                   selected={selectedFile()}
                   select={setSelectedFile}
@@ -126,6 +223,12 @@ export function MergeRequestTab(props: { number: number }) {
                   comment={comment}
                   reply={reply}
                   resolve={resolve}
+                  setViewed={(p, v) => void setViewed(p, v)}
+                  saveDraft={saveDraft}
+                  deleteDraft={(d) => void deleteDraft(d)}
+                  onFinding={(f, a) => void onFinding(f, a)}
+                  submitReview={submitReview}
+                  explain={explain}
                 />
               </Show>
             </>
@@ -372,6 +475,13 @@ interface TreeGroup {
 function FilesView(props: {
   mr: MergeRequestDetails;
   files: ChangedFile[] | undefined;
+  session: ReviewSession | undefined;
+  setViewed: (path: string, viewed: boolean) => void;
+  saveDraft: (d: Draft) => Promise<boolean>;
+  deleteDraft: (d: Draft) => void;
+  onFinding: (f: Finding, action: "draft" | "dismiss") => void;
+  submitReview: (event: ReviewEvent, body: string) => Promise<boolean>;
+  explain: (path: string, hunk: number) => Promise<ExplainResult | null>;
   loading: boolean;
   error: string | null;
   discussions: Discussion[];
@@ -397,6 +507,11 @@ function FilesView(props: {
     if (f && props.selected !== f.path) props.select(f.path);
   });
   const totals = () => (props.files ?? []).reduce((t, f) => [t[0] + f.additions, t[1] + f.deletions], [0, 0]);
+  const reviewFile = (path: string) => props.session?.files.find((f) => f.path === path);
+  const viewed = (path: string) => !!reviewFile(path)?.viewed;
+  const pendingOn = (path: string) => (props.session?.drafts ?? []).filter((d) => d.position?.path === path).length;
+  const findingsOn = (path: string) => (props.session?.findings?.findings ?? []).filter((f) => f.path === path).length;
+  const canExplain = (path: string) => !props.session?.ai.problem && !reviewFile(path)?.aiExcluded;
   const toggle = (dir: string) =>
     setCollapsed((s) => {
       const n = new Set(s);
@@ -419,6 +534,10 @@ function FilesView(props: {
               {props.files!.length} file{props.files!.length === 1 ? "" : "s"} changed
               <span class="fg-add">+{totals()[0]}</span>
               <span class="fg-del">−{totals()[1]}</span>
+              <span class="spacer" />
+              <span title="Files marked as viewed">
+                {props.session?.files.filter((f) => f.viewed).length ?? 0}/{props.files!.length} viewed
+              </span>
             </div>
             <For each={groups()}>
               {(g) => (
@@ -439,15 +558,36 @@ function FilesView(props: {
                         return (
                           <div
                             class="tree-row fg-tree-file"
-                            classList={{ selected: current()?.path === f.path, nested: !!g.dir }}
+                            classList={{ selected: current()?.path === f.path, nested: !!g.dir, viewed: viewed(f.path) }}
                             data-file={f.path}
                             title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
                             onClick={() => props.select(f.path)}
                             onDblClick={() => void showRequestDiff(props.mr, f)}
                           >
+                            <input
+                              type="checkbox"
+                              class="fg-viewed-box"
+                              title={viewed(f.path) ? "Viewed (click to mark as not viewed)" : "Mark as viewed"}
+                              checked={viewed(f.path)}
+                              disabled={!props.session}
+                              data-viewed={f.path}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => props.setViewed(f.path, e.currentTarget.checked)}
+                            />
                             <FileIcon name={name} size={14} />
                             <span class={`tree-label vcs-${f.status === "renamed" ? "modified" : f.status}`}>{name}</span>
                             <span class="spacer" />
+                            <Show when={pendingOn(f.path)}>
+                              <span class="fg-file-pending" title="Pending review comments">
+                                {pendingOn(f.path)}
+                              </span>
+                            </Show>
+                            <Show when={findingsOn(f.path)}>
+                              <span class="fg-file-findings" title="AI Review findings">
+                                <Sparkles size={10} />
+                                {findingsOn(f.path)}
+                              </span>
+                            </Show>
                             <Show when={props.threadCount(f.path)}>
                               <span class="fg-file-threads" title="Unresolved threads">
                                 <MessageSquare size={11} />
@@ -475,10 +615,17 @@ function FilesView(props: {
                     <span class="fg-add fg-small">+{f().additions}</span>
                     <span class="fg-del fg-small">−{f().deletions}</span>
                     <span class="spacer" />
+                    <label class="fg-viewed-label">
+                      <input type="checkbox" checked={viewed(f().path)} disabled={!props.session} onChange={(e) => props.setViewed(f().path, e.currentTarget.checked)} />
+                      Viewed
+                    </label>
                     <button class="pill-btn" title="Show Diff (side by side)" onClick={() => void showRequestDiff(props.mr, f())}>
                       <Columns2 size={14} />
                       Show Diff
                     </button>
+                    <Show when={props.mr.state === "open" && props.session}>
+                      <SubmitReview pending={props.session!.drafts.length} events={props.session!.events} submit={props.submitReview} />
+                    </Show>
                   </div>
                   <div class="fg-diff-scroll">
                     <ReviewDiff
@@ -488,6 +635,13 @@ function FilesView(props: {
                       onComment={(body, pos) => props.comment(body, pos)}
                       onReply={props.reply}
                       onResolve={props.resolve}
+                      drafts={props.session?.drafts}
+                      findings={props.session?.findings?.findings}
+                      onDraft={props.session ? (body, position, startLine) => props.saveDraft({ id: "", body, position, startLine }) : undefined}
+                      onEditDraft={(d, body) => props.saveDraft({ ...d, body })}
+                      onDeleteDraft={props.deleteDraft}
+                      onFinding={props.onFinding}
+                      onExplain={canExplain(f().path) ? (h) => props.explain(f().path, h) : undefined}
                     />
                   </div>
                 </>
