@@ -2622,6 +2622,7 @@ dependencies = [
  "forge-ai-editor",
  "forge-backend",
  "forge-bookmarks",
+ "forge-code-review",
  "forge-codestyle",
  "forge-collab",
  "forge-colors",
