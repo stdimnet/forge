@@ -5,7 +5,10 @@
 .popup-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  /* Above CodeMirror's sticky editor panels (z-index 300: the per-file Find/Replace bar,
+     banners, breadcrumbs), which are not inside a stacking context of their own, and below
+     modal dialogs (350). */
+  z-index: 345;
   display: flex;
   justify-content: center;
   align-items: flex-start;
