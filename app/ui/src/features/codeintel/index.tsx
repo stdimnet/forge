@@ -89,9 +89,9 @@ export async function navigateAt(kind: NavKind, path: string, view: EditorView, 
   await syncNow(path);
   const answer = await codeApi
     .navigate(path, toLsp(view.state.doc, pos), kind, view.state.doc.toString())
-    .catch((e) => ({ targets: [], missing: { feature: kind, message: String(e instanceof Error ? e.message : e), premium: false } }));
+    .catch((e) => ({ targets: [], missing: { feature: kind, message: String(e instanceof Error ? e.message : e) } }));
   if (!answer.targets.length) {
-    // Intelephense without a licence has no implementations; say so instead of nothing.
+    // A server without implementations says so instead of nothing.
     showHint(view, pos, answer.missing?.message ?? NAV_TITLES[kind].none);
     return;
   }

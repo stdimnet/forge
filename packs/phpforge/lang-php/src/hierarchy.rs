@@ -1,5 +1,5 @@
 //! Type, Method and Call Hierarchy on the PHP index, used when no language server answers
-//! (none installed, or free Intelephense). The answers are the data model of
+//! (none running, or one without hierarchies). The answers are the data model of
 //! [`forge_codeintel::hierarchy`], which computes the views:
 //!
 //! - [`HierarchyQuery::Type`]: the class at the caret with its supertypes (parents,

@@ -189,15 +189,31 @@ pub fn system_rows(req: &LangServersRequest) -> Vec<ServerRow> {
 }
 
 /// A row of a server the PHP pack starts itself: listed for status and install hints only.
+/// php-lsp is built into this binary (Forge or the remote agent): always there, with its
+/// version instead of a detected executable.
 fn pack_row(mut r: ServerRow) -> ServerRow {
     r.source = "php".into();
     r.enabled = true;
+    if r.id == BUILTIN_PHP_ROW {
+        let builtin = phpforge_lang_php::lsp::builtin_server();
+        r.path = builtin.map(|b| b.command.display().to_string());
+        r.builtin_version = builtin.map(|b| b.version.clone());
+        r.install.clear();
+        if builtin.is_some() && r.status != RowStatus::Running {
+            r.status = RowStatus::Installed;
+        } else if builtin.is_none() {
+            r.status = RowStatus::NotInstalled;
+        }
+    }
     r.status = match r.status {
         RowStatus::Disabled => RowStatus::Installed,
         s => s,
     };
     r
 }
+
+/// The Language Servers row of the built-in PHP language server.
+pub const BUILTIN_PHP_ROW: &str = "php-lsp";
 
 /// What to install on the project's machine.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -226,7 +242,7 @@ pub struct InstallRequest {
 /// Receives the steps, download progress and output of an install.
 pub type InstallSink = Arc<dyn Fn(Event) + Send + Sync>;
 
-/// The name an install reports when it is done ("Intelephense installed.").
+/// The name an install reports when it is done ("Pyright installed.").
 pub fn install_name(target: &InstallTarget) -> String {
     match target {
         InstallTarget::Server { id, .. } => Catalog::builtin()

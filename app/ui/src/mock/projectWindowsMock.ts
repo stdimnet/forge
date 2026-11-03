@@ -30,3 +30,9 @@ registerMock("project_window_open", ({ path }) => {
   openedProjectWindows.push(url);
   if (typeof window !== "undefined" && typeof window.open === "function") window.open(url, "_blank");
 });
+// File | New Window: the Welcome screen in a new browser tab.
+registerMock("project_window_new", () => {
+  const url = `${location.pathname}?welcome`;
+  openedProjectWindows.push(url);
+  if (typeof window !== "undefined" && typeof window.open === "function") window.open(url, "_blank");
+});

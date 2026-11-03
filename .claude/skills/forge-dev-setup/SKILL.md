@@ -39,27 +39,26 @@ Development builds and browser mode never check for real updates; use the simula
 Browser mode is the fastest loop: every IPC command has a mock in `app/ui/src/mock/`.
 Use it for UI work and screenshots; use `pnpm tauri dev` to test real file system, git, LSP, PTY.
 
-## 4. Language servers (Intelephense and other npm servers)
+## 4. Language servers (php-lsp and npm servers)
 
-Nothing to install by hand. Browser mode needs no servers at all (the mock behaves like
-Intelephense; `?intelephense=missing` shows the install flow). In `pnpm tauri dev`, opening a
-PHP project without Intelephense shows "PHP language server Intelephense is not installed —
-Install": Forge downloads it (and Node.js when no Node.js 18+ is found) into
-`<data dir>/forge/langservers` (`~/.local/share/forge/...` on Linux) and starts it. Other npm
-servers get a one-click Install on Settings | Languages & Frameworks | Language Servers.
+Nothing to install by hand. PHP's language server, php-lsp, is built into Forge (the binary
+runs it as `forge --php-lsp --stdio`). Browser mode needs no servers at all (the mock behaves
+like php-lsp; `?node=missing` shows a managed install that downloads Node.js first). npm
+servers get a one-click Install on Settings | Languages & Frameworks | Language Servers: Forge
+downloads them (and Node.js when no Node.js 18+ is found) into `<data dir>/forge/langservers`
+(`~/.local/share/forge/...` on Linux) and starts them.
 
 To pre-install with the same Rust installer (`crates/forge-langservers/src/bin/forge-langservers.rs`):
 
 ```sh
 cd app/ui
-pnpm langservers install --accept-intelephense-licence   # Intelephense (agrees to its licence)
-pnpm langservers install yaml-language-server             # any npm server
-pnpm langservers updates                                  # newer versions?
-pnpm langservers where                                    # directories, Node.js, launch command
+pnpm langservers install yaml-language-server   # any npm server(s)
+pnpm langservers updates                        # newer versions?
+pnpm langservers where                          # directories and Node.js
 ```
 
 `FORGE_NPM_REGISTRY` / `FORGE_NODE_MIRROR` override the download sources. Never commit or
-bundle Intelephense: its licence forbids redistribution; each user downloads it.
+bundle downloaded servers or paid tools.
 
 ## 5. Where things live
 

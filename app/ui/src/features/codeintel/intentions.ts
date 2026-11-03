@@ -99,7 +99,7 @@ export async function showContextActions(path: string, view: EditorView): Promis
     return;
   }
   if (!answer.actions.length) {
-    showHint(view, pos, answer.missing?.premium ? answer.missing.message : NO_ACTIONS);
+    showHint(view, pos, NO_ACTIONS);
     return;
   }
   const line = view.state.doc.lineAt(pos);

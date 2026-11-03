@@ -463,10 +463,6 @@ select.ssh-input {
   color: var(--danger);
 }
 .remote-popup {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 6px);
-  z-index: 60;
   width: 340px;
   padding: 10px 12px 12px;
   background: var(--bg-elevated);

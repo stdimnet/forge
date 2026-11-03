@@ -2,6 +2,10 @@
 //! terminal runs on the remote machine), and SSH sessions to other hosts (Tools | Start SSH
 //! Session…). Output and exit arrive on `terminal://<id>` as
 //! `{ type: "output", data } | { type: "exited", code }`.
+//!
+//! Each session keeps its recent output ([`Scrollback`]) and size: Code With Me shares a tab
+//! with guests from what it showed so far, and the host's window shows a terminal a guest
+//! opened on this machine by attaching to it (`terminal_attach`).
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -9,17 +13,27 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use forge_backend::{Backend, LocalBackend, Terminal, TerminalSpec};
+use forge_collab::share::Scrollback;
 use forge_core::{ForgeError, Result};
 use forge_process::{PtyEvent, PtySink};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::workspace::blocking;
 use crate::state::AppState;
 
+/// What a session showed recently and its size.
+#[derive(Default)]
+struct Screen {
+    scrollback: Scrollback,
+    cols: u16,
+    rows: u16,
+}
+
 #[derive(Default)]
 pub struct TerminalState {
     sessions: Mutex<HashMap<String, Arc<dyn Terminal>>>,
+    screens: Mutex<HashMap<String, Arc<Mutex<Screen>>>>,
     next_id: AtomicU64,
 }
 
@@ -32,6 +46,90 @@ impl TerminalState {
             .cloned()
             .ok_or_else(|| ForgeError::Other(format!("no terminal session {id}")))
     }
+
+    /// A session started elsewhere (a Code With Me guest's view of a shared terminal).
+    pub(crate) fn insert(&self, id: String, terminal: Arc<dyn Terminal>) {
+        self.sessions
+            .lock()
+            .expect("terminal sessions poisoned")
+            .insert(id, terminal);
+    }
+
+    fn screen(&self, id: &str, cols: u16, rows: u16) -> Arc<Mutex<Screen>> {
+        let screen = Arc::new(Mutex::new(Screen {
+            scrollback: Scrollback::new(),
+            cols,
+            rows,
+        }));
+        self.screens
+            .lock()
+            .expect("terminal screens poisoned")
+            .insert(id.to_string(), screen.clone());
+        screen
+    }
+
+    /// The recent output of a session and its size.
+    pub(crate) fn snapshot(&self, id: &str) -> Option<(String, u16, u16)> {
+        let screen = self
+            .screens
+            .lock()
+            .expect("terminal screens poisoned")
+            .get(id)
+            .cloned()?;
+        let s = screen.lock().expect("terminal screen poisoned");
+        Some((s.scrollback.text().to_string(), s.cols, s.rows))
+    }
+
+    fn resized(&self, id: &str, cols: u16, rows: u16) {
+        if let Some(screen) = self
+            .screens
+            .lock()
+            .expect("terminal screens poisoned")
+            .get(id)
+        {
+            let mut s = screen.lock().expect("terminal screen poisoned");
+            s.cols = cols;
+            s.rows = rows;
+        }
+    }
+
+    /// Forget a session; returns it so it can be killed.
+    pub(crate) fn remove(&self, id: &str) -> Option<Arc<dyn Terminal>> {
+        self.screens
+            .lock()
+            .expect("terminal screens poisoned")
+            .remove(id);
+        self.sessions
+            .lock()
+            .expect("terminal sessions poisoned")
+            .remove(id)
+    }
+}
+
+/// Emit a session's output and exit on `terminal://<id>`, keep its recent output, and pass
+/// both on to the Code With Me session (which shares the terminal only if it is shared).
+fn pty_sink(app: &AppHandle, id: &str, cols: u16, rows: u16) -> PtySink {
+    let screen = app.state::<TerminalState>().screen(id, cols, rows);
+    let event = format!("terminal://{id}");
+    let (app, id) = (app.clone(), id.to_string());
+    Arc::new(move |e: PtyEvent| {
+        match &e {
+            PtyEvent::Output { data } => {
+                screen
+                    .lock()
+                    .expect("terminal screen poisoned")
+                    .scrollback
+                    .push(data);
+                crate::commands::collab::on_terminal_output(&app, &id, data);
+            }
+            PtyEvent::Exited { code } => {
+                crate::commands::collab::on_terminal_exited(&app, &id, *code)
+            }
+        }
+        if let Err(err) = app.emit(&event, &e) {
+            tracing::warn!("cannot emit {event}: {err}");
+        }
+    })
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -84,12 +182,15 @@ pub struct TerminalOpened {
 /// Start a shell. Without `cwd` it starts in the setting `terminal.startDirectory` or the
 /// project root; without `shell` in `terminal.shellPath` or the system default shell.
 #[tauri::command]
-pub async fn terminal_open(
-    options: TerminalOpenOptions,
-    app: AppHandle,
-    state: State<'_, AppState>,
-    terminals: State<'_, TerminalState>,
-) -> Result<TerminalOpened> {
+pub async fn terminal_open(options: TerminalOpenOptions, app: AppHandle) -> Result<TerminalOpened> {
+    open(options, app).await
+}
+
+/// [`terminal_open`] for callers inside the app (a Code With Me guest's terminal on this
+/// machine).
+pub(crate) async fn open(options: TerminalOpenOptions, app: AppHandle) -> Result<TerminalOpened> {
+    let state = app.state::<AppState>();
+    let terminals = app.state::<TerminalState>();
     // Without a project (or for a program of this machine in a remote project) the shell
     // starts in the home directory of this machine.
     let backend: Arc<dyn Backend> = match state.backend() {
@@ -99,7 +200,7 @@ pub async fn terminal_open(
         )?),
     };
     let root = backend.info().root.clone();
-    let remote = backend.info().remote.is_some();
+    let remote = !backend.info().is_local();
     let (setting_dir, setting_shell, setting_env, integration) = {
         let s = state.read_settings();
         // In Safe Mode the project's own settings cannot pick the shell or its environment
@@ -145,12 +246,7 @@ pub async fn terminal_open(
         let n = terminals.next_id.fetch_add(1, Ordering::SeqCst) + 1;
         format!("term-{n}")
     });
-    let event = format!("terminal://{id}");
-    let sink: PtySink = Arc::new(move |e: PtyEvent| {
-        if let Err(err) = app.emit(&event, &e) {
-            tracing::warn!("cannot emit {event}: {err}");
-        }
-    });
+    let sink = pty_sink(&app, &id, options.cols, options.rows);
     if let Some(target) = options.ssh {
         let session = open_ssh(&state, target, options.cols, options.rows, sink).await?;
         let opened = TerminalOpened {
@@ -261,22 +357,49 @@ pub async fn terminal_resize(
     id: String,
     cols: u16,
     rows: u16,
+    app: AppHandle,
     terminals: State<'_, TerminalState>,
 ) -> Result<()> {
     let term = terminals.get(&id)?;
+    terminals.resized(&id, cols, rows);
+    crate::commands::collab::on_terminal_resized(&app, &id, cols, rows);
     blocking(move || term.resize(cols, rows)).await
 }
 
 /// Kill the shell and forget the session (closing its tab).
 #[tauri::command]
-pub fn terminal_close(id: String, terminals: State<'_, TerminalState>) -> Result<()> {
-    let session = terminals
-        .sessions
-        .lock()
-        .expect("terminal sessions poisoned")
-        .remove(&id);
-    if let Some(s) = session {
+pub fn terminal_close(
+    id: String,
+    app: AppHandle,
+    terminals: State<'_, TerminalState>,
+) -> Result<()> {
+    crate::commands::collab::on_terminal_closed(&app, &id);
+    if let Some(s) = terminals.remove(&id) {
         s.kill()?;
     }
     Ok(())
+}
+
+/// A session that is already running (a Code With Me guest opened it on this machine): what
+/// it showed so far; its output follows on `terminal://<id>`.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalAttached {
+    pub scrollback: String,
+    pub cols: u16,
+    pub rows: u16,
+}
+
+#[tauri::command]
+pub fn terminal_attach(
+    id: String,
+    terminals: State<'_, TerminalState>,
+) -> Result<TerminalAttached> {
+    terminals.get(&id)?;
+    let (scrollback, cols, rows) = terminals.snapshot(&id).unwrap_or_default();
+    Ok(TerminalAttached {
+        scrollback,
+        cols,
+        rows,
+    })
 }

@@ -5,10 +5,11 @@
  * - Synchronization: when Forge gets the focus back, open files are re-read from disk and the
  *   project view and Git status refresh (`system.syncExternalChanges`).
  * - Exit: "Confirm Exit" before the main window closes (`system.confirmExit`), then every
- *   file is saved. Installed by the main window only (`installSystemBehaviour`).
+ *   file is saved; Cmd+Q (`exitApp`) does the same for all project windows. Installed by the main window only (`installSystemBehaviour`).
  */
 import { createEffect, createRoot, onCleanup } from "solid-js";
-import { isTauri } from "@/ipc";
+import { isTauri, listen } from "@/ipc";
+import { windowApi } from "@/ipc/window";
 import { editor, isDirty, saveAll } from "@/state/editor";
 import { dispatchFsChanges } from "@/state/fsWatch";
 import { getSetting, saveSetting } from "@/state/settings";
@@ -73,7 +74,37 @@ export function installSystemBehaviour(): void {
     }),
   );
 
-  if (isTauri()) void confirmExitOnClose();
+  if (isTauri()) {
+    void confirmExitOnClose();
+    // Another window (or a second project window) asked everyone to exit: save first.
+    void listen("app://quit", async () => {
+      await autosave();
+      await windowApi.exit().catch(() => undefined);
+    });
+  }
+}
+
+/** Exit (Cmd+Q): after the "Confirm Exit" question every project window saves and closes. */
+export async function exitApp(): Promise<void> {
+  if (!isTauri()) return;
+  if (getSetting<boolean>("system.confirmExit", true)) {
+    const answer = await askConfirmWithCheckbox({
+      title: "Confirm Exit",
+      message: "Are you sure you want to exit Forge? All project windows will close.",
+      confirm: "Exit",
+      checkbox: "Do not ask me again",
+    });
+    if (!answer.ok) return;
+    if (answer.checked) await saveSetting("system.confirmExit", false).catch(() => undefined);
+  }
+  await windowApi.quitAll().catch((e) => showBalloon("Cannot exit Forge", String(e instanceof Error ? e.message : e), 6000));
+}
+
+/** Close this window (Cmd+W without a tab to close); the main window asks "Confirm Exit". */
+export async function closeThisWindow(): Promise<void> {
+  if (!isTauri()) return;
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().close();
 }
 
 async function confirmExitOnClose(): Promise<void> {

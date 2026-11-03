@@ -33,6 +33,11 @@ pipelines for GitLab (also self-managed), Forgejo/Gitea and GitHub.
 Deployment works like PHPStorm's Tools | Deployment: SFTP, FTP/FTPS and local-folder servers with
 path mappings, upload on save, Sync with Deployed and the File Transfer tool window.
 
+**Code With Me**: invite guests into your project and edit together, with everyone's carets,
+following, shared terminals and runs. Connections go directly from guest to host over QUIC
+(through your own relay when needed), the host approves every guest with a verification code,
+and its Forge enforces the permissions ([guide](docs/guide/user/code-with-me.md)).
+
 The layout and keymap follow PHPStorm 1:1 so you feel at home immediately; the look is Forge's own.
 Vim users get IdeaVim-style emulation (Tools | Vim) that reads `~/.ideavimrc`.
 
@@ -63,5 +68,6 @@ skills in `.claude/skills/`), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 ## License
 
-MIT. Third-party language servers (e.g. Intelephense premium) and AI providers require
-your own license or API key.
+MIT. The built-in PHP language server php-lsp (MIT OR Apache-2.0) and the components listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) keep their own licences. Third-party language
+servers you install and AI providers keep their own licences and may need your own API key.

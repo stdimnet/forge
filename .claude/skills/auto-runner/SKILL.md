@@ -54,7 +54,7 @@ requests unless asked" **only** for the steps below; every other rule in AGENTS.
 - Push to `main` or `dev/main` directly, force-push, or rewrite published history.
 - Trigger workflows, create or publish releases, or bump the version.
 - Add co-author or other trailers, or mention AI tools in commits.
-- Commit secrets, Intelephense or other paid tools.
+- Commit secrets or paid tools (e.g. Intelephense).
 
 ## Branches left on GitHub
 

@@ -36,6 +36,7 @@ cache directory (see [File locations](../reference/file-locations.md)).
 
 | Action | Shortcut | What it does |
 | --- | --- | --- |
+| File \| New Window | — | opens another window on the Welcome screen, e.g. to open a project from there or to join a [Code With Me](code-with-me.md#joining-a-session) session next to the open project |
 | Window \| Next Project Window | `Ctrl+Alt+]` (macOS ``Cmd+` ``) | brings the next project window to the front |
 | Window \| Previous Project Window | `Ctrl+Alt+[` (macOS ``Cmd+Shift+` ``) | the previous one |
 | Window \| *project name* | — | the end of the Window menu lists every project window; the current one is checked |

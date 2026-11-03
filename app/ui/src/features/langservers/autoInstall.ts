@@ -1,86 +1,14 @@
 /**
- * "Click and play" language servers: when a PHP project opens without Intelephense, Forge
- * offers to install it (PHPStorm-style balloon with Install / Not now / Don't ask again),
- * or installs it right away when `php.intelephense.autoInstall` is `always`. The decisions
- * live here as plain functions; `managed.ts` runs them against the real UI.
- *
- * Intelephense is never bundled with Forge (its licence forbids redistribution): the
- * backend downloads it from the npm registry onto the user's machine after they accepted
- * its licence once.
+ * Helpers for Forge-managed installs of language servers (npm packages and Node.js
+ * downloaded and verified by the backend): the install option Forge runs itself, progress
+ * text for the status bar, update summaries and failure details for balloons. Plain
+ * functions; `managed.ts` runs them against the real UI.
  */
 import type { InstallRow, PackageUpdate, ServerRow } from "@/ipc/langservers";
-
-export const AUTO_INSTALL_KEY = "php.intelephense.autoInstall";
-export const LICENCE_ACCEPTED_KEY = "php.intelephense.licenceAccepted";
-export const INTELEPHENSE_ID = "intelephense";
-
-export type AutoInstall = "ask" | "always" | "never";
 
 /** The install option Forge runs itself (npm packages, no prerequisites). */
 export function managedOption(row: ServerRow | undefined): InstallRow | undefined {
   return row?.install.find((o) => o.managed && o.runnable);
-}
-
-export interface PromptInput {
-  /** The open project uses PHP and the PHP plugin is on. */
-  php: boolean;
-  /**
-   * `user@host` of a remote project: its servers run (and are installed) on that host, and
-   * Forge always asks before downloading onto it.
-   */
-  host?: string;
-  /** The Intelephense row of the Language Servers list. */
-  row: ServerRow | undefined;
-  autoInstall: string;
-  /** `php.lsp.server`: phpactor or none means the user does not want Intelephense. */
-  server: string;
-  /** Already offered in this session (Not now). */
-  offered: boolean;
-}
-
-export type PromptAction = "none" | "ask" | "install";
-
-/** What to do about a missing Intelephense when a project opens. */
-export function intelephenseAction(i: PromptInput): PromptAction {
-  if (!i.php || i.offered || !i.row) return "none";
-  if (i.row.status !== "notInstalled" || i.row.path) return "none";
-  if (i.server === "phpactor" || i.server === "none") return "none";
-  if (!managedOption(i.row)) return "none";
-  if (i.autoInstall === "never") return "none";
-  return i.autoInstall === "always" && !i.host ? "install" : "ask";
-}
-
-export interface BalloonAction {
-  label: string;
-  run: () => void;
-}
-
-export interface OfferDeps {
-  showBalloon: (text: string, detail?: string, ms?: number, actions?: BalloonAction[]) => number;
-  install: (row: ServerRow) => Promise<unknown>;
-  saveSetting: (key: string, value: string) => Promise<void> | void;
-}
-
-export const OFFER_TEXT = "PHP language server Intelephense is not installed";
-export const OFFER_DETAIL =
-  "Code completion, navigation and diagnostics need it. Forge downloads it from the npm registry (and Node.js, if needed) — nothing else to set up.";
-
-/** Run the decision: show the balloon, install, or nothing. Returns what was done. */
-export function offerIntelephense(input: PromptInput, deps: OfferDeps): PromptAction {
-  const action = intelephenseAction(input);
-  const row = input.row;
-  if (!row || action === "none") return action;
-  if (action === "install") {
-    void deps.install(row);
-    return action;
-  }
-  const text = input.host ? `${OFFER_TEXT} on ${input.host}` : OFFER_TEXT;
-  deps.showBalloon(text, OFFER_DETAIL, 0, [
-    { label: "Install", run: () => void deps.install(row) },
-    { label: "Not now", run: () => {} },
-    { label: "Don't ask again", run: () => void deps.saveSetting(AUTO_INSTALL_KEY, "never") },
-  ]);
-  return action;
 }
 
 /** "Downloading Node.js v22.11.0 · 45%" for the status bar. */
@@ -95,7 +23,7 @@ export function progressFraction(done: number, total?: number | null): number | 
   return total && total > 0 ? Math.min(1, done / total) : null;
 }
 
-/** "intelephense 1.12.6 → 1.14.4, yaml-language-server 1.14.0 → 1.15.0" */
+/** "typescript-language-server 4.3.3 → 4.3.4, yaml-language-server 1.14.0 → 1.15.0" */
 export function updateSummary(updates: PackageUpdate[]): string {
   return updates.map((u) => `${u.name} ${u.installed} → ${u.latest}`).join(", ");
 }

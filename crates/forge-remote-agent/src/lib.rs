@@ -4,7 +4,7 @@
 //! The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 //! `forge-remote-agent serve` and talks to it with [`forge_backend::rpc::RpcClient`]. Every
 //! service runs next to the project's files: file system, file search, git, terminals,
-//! processes, language servers (Intelephense indexes the remote project itself), language
+//! processes, language servers (php-lsp indexes the remote project itself), language
 //! server installs, the PHP index and the framework and WebForge analysis.
 
 mod browse;

@@ -14,7 +14,7 @@
       {
         "label": "splash",
         "create": false,
-        "url": "index.html?splash",
+        "url": "splash.html",
         "title": "Forge",
         "width": 640,
         "height": 400,
@@ -42,7 +42,16 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "resources": { "../../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md" },
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": {
+      "dmg": {
+        "background": "dmg/background.tiff",
+        "windowSize": { "width": 660, "height": 400 },
+        "appPosition": { "x": 180, "y": 190 },
+        "applicationFolderPosition": { "x": 480, "y": 190 }
+      }
+    }
   },
   "plugins": {
     "deep-link": {

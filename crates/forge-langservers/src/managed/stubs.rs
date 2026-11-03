@@ -5,8 +5,7 @@
 //! downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, unpacked with its
 //! `LICENSE` (and `NOTICE`, when the release has one) and checked against a pinned digest of
 //! its files (see [`content_digest`]).
-//! Users can point `php.stubs.path` at their own checkout instead, and Intelephense's own
-//! stubs (`lib/stub` in its package) are used when it is installed and nothing else is.
+//! Users can point `php.stubs.path` at their own checkout instead.
 
 use std::path::{Path, PathBuf};
 
@@ -92,28 +91,6 @@ const COMPLETE: &str = ".forge-complete";
 pub fn installed(base: &Path, version: &str) -> Option<PathBuf> {
     let dir = base.join(version);
     dir.join(COMPLETE).is_file().then_some(dir)
-}
-
-/// Intelephense's own stubs (`node_modules/intelephense/lib/stub`) in Forge's server
-/// directory or next to an `intelephense` executable, when installed.
-pub fn intelephense_stubs(candidates: &[PathBuf]) -> Option<PathBuf> {
-    candidates.iter().find_map(|c| {
-        let mut dir = c.as_path();
-        // From an executable (`…/node_modules/.bin/intelephense` or
-        // `…/node_modules/intelephense/lib/intelephense.js`) up to the package.
-        for _ in 0..4 {
-            for pkg in [
-                dir.join("node_modules/intelephense/lib/stub"),
-                dir.join("lib/stub"),
-            ] {
-                if pkg.is_dir() && pkg.join("Core").is_dir() {
-                    return Some(pkg);
-                }
-            }
-            dir = dir.parent()?;
-        }
-        None
-    })
 }
 
 /// Download, verify and unpack `release` into `base/<version>` unless it is there already.
@@ -281,23 +258,5 @@ mod tests {
             .unwrap_err();
         assert!(err.contains("Stubs path"), "{err}");
         assert_eq!(server.routes.hits("/stubs.tar.gz"), 1);
-    }
-
-    #[test]
-    fn finds_intelephense_stubs_from_its_executable() {
-        let dir = tempfile::tempdir().unwrap();
-        let pkg = dir.path().join("node_modules/intelephense");
-        std::fs::create_dir_all(pkg.join("lib/stub/Core")).unwrap();
-        std::fs::create_dir_all(dir.path().join("node_modules/.bin")).unwrap();
-        let bin = dir.path().join("node_modules/.bin/intelephense");
-        std::fs::write(&bin, "").unwrap();
-        assert_eq!(
-            intelephense_stubs(&[PathBuf::from("/nowhere"), bin]),
-            Some(pkg.join("lib/stub"))
-        );
-        assert_eq!(
-            intelephense_stubs(&[dir.path().to_path_buf()]),
-            Some(pkg.join("lib/stub"))
-        );
     }
 }

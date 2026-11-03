@@ -239,7 +239,7 @@ export function SshConnectionDialog(p: { props: SshDialogRequest }) {
                 </button>
               </div>
               <p class="ssh-hint">
-                Forge installs its agent in <code>~/.cache/forge-agent</code> on the host. Indexing, Intelephense and
+                Forge installs its agent in <code>~/.cache/forge-agent</code> on the host. Indexing, php-lsp and
                 other language servers, git, terminals and run configurations work on the host; files open in this
                 window.
               </p>

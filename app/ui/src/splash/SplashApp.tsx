@@ -1,8 +1,8 @@
 /**
- * The startup splash window (`index.html?splash`, 640×400): the Forge wordmark in cold steel
+ * The startup splash window (`splash.html`, 640×400): the Forge wordmark in cold steel
  * fills with molten metal as Rust reports the loading steps (`splash://progress`), the
  * version below it, the current step at the bottom, and the update offer when the last step
- * finds one. Rust closes the window when the workbench is shown. In browser mode `?splash`
+ * finds one. Rust closes the window when the workbench is shown. In browser mode `index.html?splash`
  * previews it with the mocked steps and then opens the workbench (`onDone`).
  */
 import { createSignal, onCleanup, onMount, Show } from "solid-js";

@@ -46,5 +46,7 @@ export const terminalApi = {
   write: (id: string, data: string) => invoke<void>("terminal_write", { id, data }),
   resize: (id: string, cols: number, rows: number) => invoke<void>("terminal_resize", { id, cols, rows }),
   close: (id: string) => invoke<void>("terminal_close", { id }),
+  /** A session that already runs (a Code With Me guest opened it on this machine): what it showed so far. */
+  attach: (id: string) => invoke<{ scrollback: string; cols: number; rows: number }>("terminal_attach", { id }),
   onEvent: (id: string, cb: (e: TerminalEvent) => void) => listen<TerminalEvent>(terminalEvent(id), cb),
 };

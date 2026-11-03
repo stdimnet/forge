@@ -372,6 +372,7 @@ mod tests {
             ("Generate", "Cmd+N"),
             ("ActivateProjectToolWindow", "Cmd+1"),
             ("CloseContent", "Cmd+W"),
+            ("CloseContent", "Ctrl+F4"),
             ("Run", "Ctrl+R"),
             ("Refactorings.QuickListPopupAction", "Ctrl+T"),
         ];

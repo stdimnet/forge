@@ -11,13 +11,44 @@ export { workspace };
 /** The open project lives on a remote host (opened over SSH). */
 export const isRemoteProject = () => !!workspace()?.remote;
 
+/** The open project is the host's in a Code With Me session (this window is a guest). */
+export const isCollabGuest = () => !!workspace()?.collab;
+
 /** Show a project the backend opened (e.g. by a dialog window) in this window. */
 export function adoptWorkspace(info: WorkspaceInfo): void {
   adopt(info);
 }
 
+type ProjectSwitchListener = () => void;
+const switchListeners = new Set<ProjectSwitchListener>();
+
+/**
+ * Drop per-project UI state (tree expansion, problems, search results) when this window's
+ * project changes: another project opens in this window, a Code With Me guest gets the
+ * host's project, or the project closes. Runs before the new project becomes current.
+ */
+export function onProjectSwitch(listener: ProjectSwitchListener): () => void {
+  switchListeners.add(listener);
+  return () => switchListeners.delete(listener);
+}
+
+function projectSwitched(): void {
+  closeAllTabs();
+  for (const listener of [...switchListeners]) {
+    try {
+      listener();
+    } catch (e) {
+      console.warn("resetting project state failed", e);
+    }
+  }
+}
+
 function adopt(info: WorkspaceInfo): void {
-  if (workspace()?.root !== info.root) closeAllTabs();
+  if (workspace()?.root !== info.root) {
+    // From the Welcome screen there is nothing of another project to drop.
+    if (workspace()) projectSwitched();
+    else closeAllTabs();
+  }
   setWorkspace(info);
 }
 
@@ -122,6 +153,6 @@ export async function pickAndOpenWorkspace(): Promise<void> {
 }
 
 export function closeWorkspace(): void {
-  closeAllTabs();
+  projectSwitched();
   setWorkspace(null);
 }

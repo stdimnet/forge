@@ -5,7 +5,10 @@
 .popup-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  /* Above CodeMirror's sticky editor panels (z-index 300: the per-file Find/Replace bar,
+     banners, breadcrumbs), which are not inside a stacking context of their own, and below
+     modal dialogs (350). */
+  z-index: 345;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -325,7 +328,9 @@ mark.hl {
   position: fixed;
   right: 16px;
   bottom: calc(var(--statusbar-h) + 12px);
-  z-index: 200;
+  /* Above CodeMirror's sticky editor panels (z-index 300: breadcrumbs, banners) and the tool
+     windows, below modal dialogs (350). The same layer as the Git balloons (git.css). */
+  z-index: 340;
   display: flex;
   flex-direction: column;
   gap: 8px;

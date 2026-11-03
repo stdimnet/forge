@@ -57,6 +57,9 @@ pub fn companion_ui_ready(state: State<'_, CompanionState>) -> Vec<PendingEvent>
 /// Open a `forge://` link as if the OS had handed it over (the "Test" button).
 #[tauri::command]
 pub fn companion_open_link(url: String, app: AppHandle) -> Result<()> {
+    if forge_collab::link::is_join_url(&url) {
+        return companion::open_join_link(&app, &url).map_err(ForgeError::Other);
+    }
     match forge_open::request::parse_forge_url(&url) {
         Ok(LinkAction::Open(r)) => companion::open_request(&app, &r, OpenSource::Link, None)
             .map(|_| ())

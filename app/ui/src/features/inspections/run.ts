@@ -18,6 +18,7 @@ import {
 import { showBalloon } from "@/keymap";
 import { showToolWindow } from "@/state/layout";
 import { editor, reloadFile, saveAll } from "@/state/editor";
+import { onProjectSwitch } from "@/state/workspace";
 
 export const RESULTS_WINDOW = "inspectionResults";
 
@@ -33,6 +34,12 @@ export interface ResultsTab {
 const [tabs, setTabs] = createSignal<ResultsTab[]>([]);
 const [activeTab, setActiveTab] = createSignal<number | null>(null);
 const [running, setRunning] = createSignal<(InspectProgress & { title: string }) | null>(null);
+
+// The results are about the project that was inspected.
+onProjectSwitch(() => {
+  setTabs([]);
+  setActiveTab(null);
+});
 
 export { tabs as resultTabs, activeTab as activeResultsTab, setActiveTab as setActiveResultsTab, running as runningInspection };
 

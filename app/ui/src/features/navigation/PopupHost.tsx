@@ -7,7 +7,7 @@ import { DialogHost } from "@/features/contextMenu/dialogs";
 import { SearchEverywhere } from "@/features/search/SearchEverywhere";
 import { seOpen } from "@/features/search/state";
 import { RecentFilesPopup, recentOpen } from "./RecentFiles";
-import { ChooseDeclarationPopup } from "./ChooseDeclaration";
+import { ChooseDeclarationPopup } from "./ChooseDeclarationPopup";
 import { chooser } from "./declarationChooser";
 import { FileStructurePopup, fileStructureSession } from "@/features/fileStructure/FileStructurePopup";
 import { FloatingNavBar } from "@/features/navBar";

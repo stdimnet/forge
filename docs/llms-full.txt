@@ -45,7 +45,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 ## Popular pages
 
 - [Keymap reference](docs/guide/reference/keymap.md) — every shortcut on Windows/Linux and macOS
-- [Language servers](docs/guide/user/language-servers.md) — install Intelephense and friends, licence keys
+- [Language servers](docs/guide/user/language-servers.md) — the built-in php-lsp, one-click installs of the others
 - [Laravel](docs/guide/user/laravel.md) and [Symfony](docs/guide/user/symfony.md)
 - [WordPress](docs/guide/user/wordpress.md) and [Drupal, Joomla and Shopware](docs/guide/user/cms.md)
 - [Debugging](docs/guide/user/debugging.md)
@@ -54,6 +54,12 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
 
 ## Recently added
 
+- **php-lsp is the only PHP language server**: support for Intelephense and Phpactor was
+  removed (no server choice, licence key or install offer any more); old settings are ignored
+  ([Language servers](docs/guide/user/language-servers.md#php-php-lsp)).
+- **Built-in PHP language server**: [php-lsp](docs/guide/user/language-servers.md#php-lsp-built-in) is
+  built into Forge: completion, diagnostics, rename, refactorings, type hierarchy and
+  formatting in Intelephense's style with nothing to install and no licence key.
 - **AI in the editor**: inline (ghost text) completion with local fill-in-the-middle models or
   hosted chat models (`Tab`, `Ctrl+Right`, `Alt+]`), "Explain with AI" (into the AI Chat) and
   "Fix with AI" in `Alt+Enter`, Generate Documentation / Tests with AI with a diff preview,
@@ -218,7 +224,7 @@ Claude Code and Gemini CLI as a native chat) and a browser companion.
   ([Workbench](docs/guide/user/workbench.md#main-menu)).
 - **Find in Files** (`Ctrl+Shift+F`) and the **Choose Declaration** popup
   ([Search Everywhere](docs/guide/user/search-everywhere.md#find-in-files), [Editor](docs/guide/user/editor.md#go-to-declaration)).
-- **One-click language server installs**, including Intelephense with its own Node.js
+- **One-click language server installs** of npm servers, with their own Node.js
   ([Language servers](docs/guide/user/language-servers.md#installing-a-server)).
 - **HTTP client**: environment picker, response handlers, body files, dynamic variables
   ([Scratches and HTTP client](docs/guide/user/scratches-and-http.md#http-client-http-files)).
@@ -357,7 +363,7 @@ Forge works without any of these, but features light up when they are installed:
 | `php` | running PHP scripts, PHPUnit, artisan, the Symfony console, PHP scratches |
 | `composer` | Composer scripts, new Laravel/Symfony projects |
 | Node.js + `npm` | npm scripts and new web projects (language servers do not need it: Forge downloads Node.js itself when missing) |
-| language servers | completion, hover and diagnostics, see [Language servers](docs/guide/user/language-servers.md) |
+| language servers | completion, hover and diagnostics for languages other than PHP (PHP's server, php-lsp, is built into Forge), see [Language servers](docs/guide/user/language-servers.md) |
 | `docker`, `kubectl` | the Services tool window |
 | a Secret Service keyring (GNOME Keyring, KWallet) | storing API keys, tokens and passwords, see [Troubleshooting](docs/guide/troubleshooting.md#keychain-on-linux) |
 
@@ -779,7 +785,7 @@ what is not there yet.
 
 | Topic | PHPStorm | Forge |
 | --- | --- | --- |
-| PHP intelligence | built-in PHP engine | an external language server: Intelephense (free, or premium with your own licence key) or Phpactor, plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md). |
+| PHP intelligence | built-in PHP engine | the built-in language server php-lsp (Intelephense-compatible, premium features included, nothing to install), plus Forge's own PHP index for structure, search, hover and code generation. See [Language servers](docs/guide/user/language-servers.md#php-php-lsp). |
 | Other languages | plugins | language servers from a catalog of about 30, installed from Settings, see [Language servers](docs/guide/user/language-servers.md) |
 | Projects | `.idea/` folder | `.forge/` folder with TOML/JSON files; there is no project model to import |
 | Project tree | single click selects | single click **opens** files by default; switch off "Open files with single click" (Settings | Appearance & Behavior | Appearance) for PHPStorm's behaviour |
@@ -807,9 +813,8 @@ The [keymap reference](docs/guide/reference/keymap.md) marks every action as imp
 ## Moving a project over
 
 1. Open the project folder in Forge. The `.idea/` folder is ignored; nothing is converted.
-2. Install the language servers you need from Settings | Languages & Frameworks |
-   Language Servers. For PHP, accept the offer "Intelephense is not installed" (or click **Install
-   Intelephense**) and, if you own a licence, enter the key on the same page.
+2. PHP works right away with the built-in language server php-lsp. Install the language
+   servers of your other languages from Settings | Languages & Frameworks | Language Servers.
 3. Set the PHP interpreter and language level in Settings | Languages & Frameworks | PHP.
 4. Recreate run configurations in Run | Edit Configurations (the run widget in the toolbar).
    PHPStorm's `.run/` XML files are not imported.
@@ -856,7 +861,7 @@ not finished, the page says so.
 | [Go to Test and Create Test](docs/guide/user/go-to-test.md) | Navigate \| Test (`Ctrl+Shift+T`) between classes, components and their tests, Choose Test popup, Create New PHP Test / Create New Test dialog (PHPUnit, Pest, Vitest, Jest, PSR-4 `autoload-dev`, Laravel Unit/Feature and Symfony layouts, test method stubs) |
 | [File Structure, Navigation Bar and Related Symbol](docs/guide/user/navigation-bar-and-file-structure.md) | File Structure popup (`Ctrl+F12`, Show Inherited, speed search), Navigation Bar (`Alt+Home`, Top / In Status Bar / Don't Show, members), Related Symbol (`Ctrl+Alt+Home`: tests, views, templates, routes, migrations) |
 | [File types and syntax highlighting](docs/guide/user/file-types.md) | file type detection, highlighted languages, config formats, template data languages, Settings \| Editor \| File Types (patterns, custom file types, ignored files) |
-| [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, Intelephense licence |
+| [Language servers](docs/guide/user/language-servers.md) | detection, installation, per-server settings, the built-in php-lsp |
 | [Keymap](docs/guide/user/keymap.md) | PHPStorm, VS Code, Eclipse, Sublime Text and Emacs keymaps, your own keymaps, changing keyboard and mouse shortcuts, contexts |
 | [Shortcuts by topic](docs/guide/user/shortcuts/index.md) | every implemented shortcut explained by topic, plus a printable [reference card](docs/guide/user/shortcuts/reference-card.md) |
 | [Color schemes](docs/guide/user/color-schemes.md) | Settings \| Editor \| Color Scheme: Ember, Anvil and your own schemes, attributes with foreground, background, bold, italic and effects, live preview, IntelliJ `.icls` import and export |
@@ -925,6 +930,8 @@ not finished, the page says so.
 | [Scratches, consoles and HTTP client](docs/guide/user/scratches-and-http.md) | scratch files, runs, `.http` requests, environments |
 | [Services](docs/guide/user/services.md) | Docker, Docker Compose, Kubernetes |
 | [Remote development](docs/guide/user/remote-development.md) | SSH, the Forge agent, what runs remotely |
+| [Code With Me](docs/guide/user/code-with-me.md) | invite guests, accept them with the verification code, permission levels and Custom permissions, per-guest permissions, Remove Guest, Regenerate Link, session log, files guests never see, joining |
+| [Code With Me: relay and NAT traversal](docs/guide/user/code-with-me-relay.md) | direct and relayed connections, Relay server settings, running `iroh-relay`, SSH tunnel and VPN |
 | [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md) | devcontainer.json, building with the Docker CLI and the build log, Start / Stop / Rebuild / Delete, WSL distributions, `\\wsl$` paths, Terminal › WSL |
 | [Deployment](docs/guide/user/deployment.md) | SFTP, FTP/FTPS and local servers, mappings, upload on save, Sync with Deployed |
 | [Remote Host and SSH sessions](docs/guide/user/remote-host-and-ssh.md) | Remote Host tool window, Edit Remote File, SSH configurations, SSH terminal sessions |
@@ -1230,7 +1237,7 @@ Right-click a file, a folder or the empty area below the tree:
 
 - Each open file has a tab. The active one is highlighted; a modified file is marked until it
   is saved.
-- Close a tab with its × button, a middle click, or `Ctrl+F4` (macOS `Cmd+W`).
+- Close a tab with its × button, a middle click, or `Ctrl+F4` (macOS `Cmd+W` or `Ctrl+F4`). Without an open tab, `Cmd+W` closes the window.
 - `Alt+Right` / `Alt+Left` (macOS `Ctrl+Right` / `Ctrl+Left`) select the next/previous tab.
 - `Ctrl+S` (macOS `Cmd+S`) saves all files (**Save All**).
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as
@@ -1483,6 +1490,7 @@ cache directory (see [File locations](docs/guide/reference/file-locations.md)).
 
 | Action | Shortcut | What it does |
 | --- | --- | --- |
+| File \| New Window | — | opens another window on the Welcome screen, e.g. to open a project from there or to join a [Code With Me](docs/guide/user/code-with-me.md#joining-a-session) session next to the open project |
 | Window \| Next Project Window | `Ctrl+Alt+]` (macOS ``Cmd+` ``) | brings the next project window to the front |
 | Window \| Previous Project Window | `Ctrl+Alt+[` (macOS ``Cmd+Shift+` ``) | the previous one |
 | Window \| *project name* | — | the end of the Window menu lists every project window; the current one is checked |
@@ -1834,8 +1842,8 @@ to where you were.
 | Super Method | `Ctrl+U` | `Cmd+U` |
 
 They ask the language servers (`textDocument/implementation`, `typeDefinition`) and fall back
-to the PHP index in PHP files. When a server lacks the feature (Go to Implementation in
-Intelephense without a licence) and the index finds nothing, the hint says so.
+to the PHP index in PHP files. When a server lacks the feature and the index finds
+nothing, the hint says so.
 
 > **Note:** Go to Test (`Ctrl+Shift+T`) is not available yet. In React and Vue projects, Go to
 > Declaration on a component's own name lists its usages through the framework provider.
@@ -1985,8 +1993,8 @@ check also runs when a language server computes the rename.
 
 ![Rename dialog](docs/screenshots/rename-dialog.png)
 
-- The language server computes the rename where it can (TypeScript, Vue, Lua, Intelephense
-  Premium, …); PHP files fall back to Forge's PHP index, see [PHP](docs/guide/user/php.md#rename).
+- The language server computes the rename where it can (TypeScript, Vue, Lua, php-lsp,
+  …); PHP files fall back to Forge's PHP index, see [PHP](docs/guide/user/php.md#rename).
 - Renaming a class whose file is named after it (`Order.php` declaring `class Order`) also
   renames the file, like PHPStorm; untick **Rename file** in the hint below the edit box or in
   the dialog to keep the name. Open tabs follow the file.
@@ -2341,7 +2349,7 @@ SQL **Upper case keywords**.
 Indents come from the scheme unless EditorConfig or the detected indent of the file wins
 (see above). Then:
 
-- The language server gets the options in its settings before it formats: Intelephense the
+- The language server gets the options in its settings before it formats: php-lsp the
   brace placement, typescript-language-server the spaces, braces, semicolons and quote
   preference (`typescript.format` / `javascript.format`), the CSS, HTML, JSON, YAML and XML
   servers their `format` settings, lua-language-server its `Lua.format.defaultConfig`.
@@ -2388,9 +2396,8 @@ Language servers show parameter names at call sites (`precision: 2`) and inferre
 | Implementations and inheritors (Code Vision) | `editor.inlayHints.implementations` | on |
 | Per language: PHP, JavaScript and TypeScript, Lua, other languages | `editor.inlayHints.languages.<id>` | on |
 
-Hints need a server that reports them: Intelephense Premium, phpactor,
-typescript-language-server / vtsls and lua-language-server (Forge turns their hints on and
-filters them by these settings). Free Intelephense shows none.
+Hints need a server that reports them: php-lsp, typescript-language-server / vtsls and
+lua-language-server (Forge turns their hints on and filters them by these settings).
 
 **Code Vision**: above PHP classes and methods with subclasses, implementations or overrides
 Forge shows "4 inheritors", "2 implementations" or "1 override" (from the PHP index); click
@@ -4915,7 +4922,7 @@ double click open the declaration.
 ## Where the data comes from
 
 - **Language servers** first: their `typeHierarchy` and `callHierarchy` requests (for example
-  the TypeScript server for JavaScript and TypeScript, Intelephense Premium for PHP).
+  the TypeScript server for JavaScript and TypeScript, php-lsp for PHP).
 - **Forge's PHP index** for PHP files: classes, interfaces, traits and enums of the project
   with their parents (vendor classes are resolved through Composer's PSR-4 autoloading when
   vendor packages are indexed as libraries), method declarations and calls. It works without
@@ -5327,12 +5334,18 @@ Source: docs/guide/user/language-servers.md
 
 Completion, hover documentation, diagnostics, Go to Declaration and formatting for most
 languages come from **language servers**: separate programs that speak the Language Server
-Protocol. Forge does not bundle them. It knows about 30 of them, finds the ones you have
+Protocol. Apart from PHP's [php-lsp](#php-lsp-built-in), which is built into Forge, Forge
+does not bundle them. It knows about 30 of them, finds the ones you have
 installed, offers to install missing ones, and starts them when a project needs them.
 
 Servers start **lazily**: when you open the first file of a language. Several servers can serve
 the same file and their results are merged, for example TypeScript + ESLint + Tailwind CSS on
 a `.tsx` file.
+
+A server that crashes or is killed starts again with the next edit or request in one of its
+files, and gets the open documents again. After five exits within three minutes Forge stops
+restarting it and shows it as failed; turning it off and on again on the Language Servers page
+(or reopening the project) resets the count.
 
 ## Settings | Languages & Frameworks | Language Servers
 
@@ -5353,8 +5366,7 @@ Each row has:
 
 - an **Enabled** checkbox (`langservers.servers.<id>.enabled`);
 - the **Status**: Running (with indexing progress), Installed, Not found, Disabled, or why a
-  server is skipped (for example "Chosen in Languages & Frameworks | PHP" for the PHP
-  servers, or a server of the same alternative group already running);
+  server is skipped (for example a server of the same alternative group already running);
 - the **Path** where it was found, or an **Install…** button.
 
 Select a row to see its details:
@@ -5387,18 +5399,20 @@ everything itself, nothing else needs to be installed first:
    official Node.js LTS build from `langservers.download.nodeMirror`
    (default `https://nodejs.org/dist`), checks it against the release's `SHASUMS256.txt` and
    keeps it in `<data dir>/forge/runtimes/`.
-2. **The package**: packages without dependencies (Intelephense) come straight from the npm
+2. **The package**: packages without dependencies come straight from the npm
    registry (`langservers.download.npmRegistry`, default `https://registry.npmjs.org`) and are
    checked against the registry's sha512 integrity hash; others are installed with the npm that
    belongs to that Node.js, into Forge's server folder — never globally.
 3. Servers in Forge's folder are started with Forge's Node.js, so no `node` on your `PATH` is
    needed.
 
-Progress shows in the status bar ("Installing Intelephense: Downloading Node.js … 45%") and in
-the row. Afterwards the server starts with the next matching file, without reopening the
+Progress shows in the status bar ("Docker Compose Language Service: Downloading Node.js … 45%")
+and in the row. Afterwards the server starts with the next matching file, without reopening the
 project.
 
 ![Install buttons](docs/screenshots/language-servers-install-buttons.png)
+
+![Downloading Node.js for an install](docs/screenshots/managed-install-progress.png)
 
 Other servers keep **Install…**, which opens a dialog with the command and its output:
 
@@ -5429,7 +5443,7 @@ restarts the server.
 | Node.js download mirror | `langservers.download.nodeMirror` | `https://nodejs.org/dist` |
 
 For development there is also a command-line installer (`pnpm langservers` in `app/ui`, binary
-`forge-langservers`): `install [--accept-intelephense-licence] [package…]`, `updates`, `where`.
+`forge-langservers`): `install <package…>`, `updates`, `where`.
 
 ### Alternatives
 
@@ -5461,63 +5475,43 @@ runs for a file, Forge leaves schema problems, completion and hover to it.
 The language server widget shows "Indexing… TypeScript 45%" while a server reports progress,
 otherwise the running servers and their state. Click it to open the Language Servers page.
 
-## PHP: Intelephense and Phpactor
+## PHP: php-lsp
 
-PHP servers are configured by the PHP pack, on Settings | Languages & Frameworks | **PHP**
-(`php.lsp.server`):
+PHP has one language server: php-lsp, built into Forge. The PHP pack configures it from
+Settings | Languages & Frameworks | **PHP**; it starts when a PHP project opens and restarts
+when those settings change. To run PHP without a language server, turn off the PHP plugin
+(Settings | Plugins); Forge's own PHP index then still gives structure, search and hover.
 
-| Choice | Behaviour |
-| --- | --- |
-| Auto (default) | Intelephense if installed, else Phpactor |
-| Intelephense | always Intelephense (shows where it was found, or "not found on PATH (npm i -g intelephense)") |
-| phpactor | always Phpactor |
-| None (built-in index only) | no language server; completion and diagnostics from a server are missing, Forge's index still gives structure, search, hover and Generate |
+> **Note:** earlier versions could also run Intelephense or Phpactor
+> (`php.lsp.server`, `php.intelephense.*`, a licence key in the keychain). Support for both was
+> removed; old values of these settings are ignored and php-lsp starts instead.
 
-The server starts when a PHP project opens and restarts when these settings change. Its cache
-goes to `<cache dir>/forge/intelephense`, never into your project.
+### php-lsp (built-in)
 
-### Installing Intelephense
+php-lsp is a PHP language server written in Rust (MIT OR Apache-2.0) that works like
+Intelephense: the same diagnostics (codes, messages and severities), the same formatting and the
+same `intelephense.*` settings, with Intelephense's premium features included and free: rename,
+code actions and refactorings, Go to Implementation and Type Definition, type and call
+hierarchy, inlay hints. It is linked into Forge itself, so there is **nothing to install and no
+licence key**. Forge runs it in its own process (`forge --php-lsp --stdio`), so a crash of the
+server never takes the IDE down (it starts again with the next edit); the status bar and the Language Servers page show it as
+**php-lsp (built-in)** with its version.
 
-Intelephense is never bundled with Forge (its licence forbids redistribution), but Forge
-downloads it for you from the npm registry. When a local PHP project opens without it, a
-balloon says "PHP language server Intelephense is not installed" with **Install**, **Not now**
-and **Don't ask again**. The PHP settings page and the Language Servers page have an
-**Install Intelephense** button as well.
+![php-lsp on the Language Servers page](docs/screenshots/php-lsp-language-servers.png)
 
-![Install offer](docs/screenshots/intelephense-install-offer.png)
+Forge configures it from the PHP settings: the language level (`environment.phpVersion`),
+include paths, the max indexed file size, the brace style of the PHP code style, "Add packages
+as libraries" and the stub sets of the frameworks in `composer.json`. PHPStan, Psalm and
+PHP_CodeSniffer stay with Forge's [Quality Tools](docs/guide/user/php.md#quality-tools), so php-lsp's own tool
+runners are off and no problem shows twice. Its index cache and unpacked PHP stubs live in
+`<cache dir>/forge/php-lsp`, never in your project; repeated starts only parse changed files.
+In [remote projects](#remote-projects) the Forge agent on the host runs the same built-in
+server.
 
-The first install asks you to accept the Intelephense licence (stored as
-`php.intelephense.licenceAccepted`). Forge then installs it as described in
-[Installing a server](#installing-a-server) (with Node.js if needed) and starts it right away.
+Forge does not use php-lsp's semantic tokens (Forge highlights PHP itself) or its code lenses
+(the gutter's run icons and "implemented / overridden" markers cover them).
 
-![Installing](docs/screenshots/intelephense-install-progress.png)
-
-| Option (Settings \| Languages & Frameworks \| PHP) | Setting | Default |
-| --- | --- | --- |
-| When Intelephense is not installed: Ask when a PHP project opens, Install automatically, Do not install | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
-
-You can still install it yourself (`npm install -g intelephense`); Forge finds it on the `PATH`.
-
-### Intelephense licence key (premium)
-
-Intelephense is free; a licence key from intelephense.com unlocks its premium features (rename,
-code actions, type hierarchy and more). Forge never ships a key.
-
-1. Open Settings | Languages & Frameworks | Language Servers (or the PHP page) and find
-   **Intelephense: Free**.
-2. Click **Enter Licence Key…**, paste your key and confirm with `Enter`.
-3. The status changes to **Premium (key …1234)** and Intelephense restarts.
-
-![Licence dialog](docs/screenshots/intelephense-licence-dialog.png)
-
-The key is stored in the operating system's keychain (service `forge-lsp`, account
-`intelephense`), never in a settings file, and is passed to the server as `licenceKey`. In free
-mode no key is sent. **Change Licence Key…** replaces it; **Remove Licence** in the dialog
-deletes it.
-
-> **Note:** a key saved by an older Forge version in the setting `php.lsp.licenceKey` is moved
-> to the keychain once.
+![The language server on the PHP settings page](docs/screenshots/php-lsp-settings.png)
 
 ## Lua
 
@@ -5527,17 +5521,14 @@ Frameworks | Lua | **Lua environment**. See [LuaForge](docs/guide/user/luaforge.
 ## Remote projects
 
 In a [remote project](docs/guide/user/remote-development.md) language servers run on the remote host, next to
-the files: the PHP server (the Forge agent finds Intelephense or Phpactor on the host) and the
-catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
+the files: the PHP server (the Forge agent runs its built-in php-lsp) and the catalog servers, whose project scan, detection (`node_modules/.bin`, `PATH`, npm/nvm/volta, …)
 and configuration happen on the host too.
 
 **Install** on the Language Servers page installs on the host: the Forge agent downloads
 Node.js (when the host has none) and the npm package into Forge's directory on the host
 (`~/.local/share/forge`), checking their hashes, and streams its steps and download progress to
-the page. The page names the host, and so do the install dialog and the Intelephense offer, which
-always asks before downloading onto a host (also with `auto install` set to always). The
-Intelephense licence is accepted on your machine. Updates of the servers Forge installed are
-checked on the host too.
+the page. The page and the install dialog name the host. Updates of the servers Forge installed
+are checked on the host too.
 
 ![Language Servers page of a remote project](docs/screenshots/remote-finish-langserver.png)
 
@@ -6138,7 +6129,7 @@ Shows the version, platform and build information.
 
 **Shortcut:** — · macOS `Cmd+Q` · action id `Exit`
 
-Closes the Forge window (desktop app only).
+Asks "Confirm Exit" once (Settings | Appearance & Behavior | System Settings), then every open project window saves its files and closes (desktop app only).
 
 **Menu:** File | Exit
 
@@ -6914,7 +6905,7 @@ Jumping to declarations, implementations, super methods, lines, problems, recent
 | [Switcher](#switcher) | `Ctrl+Tab`, `Ctrl+Shift+Tab` | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
 | [Select Next Tab](#select-next-tab) | `Alt+Right` | `Ctrl+Right`, `Cmd+Shift+]` |
 | [Select Previous Tab](#select-previous-tab) | `Alt+Left` | `Ctrl+Left`, `Cmd+Shift+[` |
-| [Close Tab](#close-tab) | `Ctrl+F4` | `Cmd+W` |
+| [Close Tab](#close-tab) | `Ctrl+F4` | `Cmd+W`, `Ctrl+F4` |
 | [Close All Tabs](#close-all-tabs) | — | — |
 | [Close Other Tabs](#close-other-tabs) | — | `Cmd+Alt+W` |
 | [Close Unmodified Tabs](#close-unmodified-tabs) | — | — |
@@ -7216,9 +7207,9 @@ More: [Workbench and tool windows](docs/guide/user/workbench.md#editor-tabs)
 
 ## Close Tab
 
-**Shortcut:** `Ctrl+F4` · macOS `Cmd+W` · action id `CloseContent`
+**Shortcut:** `Ctrl+F4` · macOS `Cmd+W`, `Ctrl+F4` · action id `CloseContent`
 
-Closes the current editor tab.
+Closes the current editor tab. Without an open tab it closes the window; in Settings or a detached editor window it closes that window. Popups close with `Esc`.
 
 **Menu:** Window | Editor Tabs | Close Tab
 
@@ -9247,7 +9238,7 @@ Optional:
 | Clear file system cache and Local History | the [Local History](docs/guide/user/local-history.md) of all projects |
 | Clear downloaded shared indexes | the PHP stubs downloaded for the PHP index (downloaded again when needed) |
 | Delete embedded browser engine cache | the cache of the webview that draws Forge's window |
-| Delete language server data | Intelephense's storage and the Java language server's workspaces |
+| Delete language server data | php-lsp's index cache, Intelephense data left by earlier versions and the Java language server's workspaces |
 
 **Invalidate and Restart** schedules the cleanup and restarts Forge; **Just Restart** only
 restarts; **Cancel** does nothing.
@@ -9335,9 +9326,12 @@ PHP support is the **PHPForge** pack (plugin `forge.php`). It combines two engin
   powers the Structure tool window, Go to Class/Symbol, index-based hover, the Generate
   actions and [navigation](#navigation) when no language server answers, and works without
   any language server.
-- **A PHP language server**, Intelephense or Phpactor, for completion, diagnostics,
-  Go to Declaration, hover and formatting. See
-  [Language servers](docs/guide/user/language-servers.md#php-intelephense-and-phpactor).
+- **A PHP language server** for completion, diagnostics, Go to Declaration, hover, rename,
+  quick fixes and formatting: [php-lsp](https://github.com/stdimnet/php-lsp), which is
+  **built into Forge**: nothing to install, no licence key, and Intelephense's premium features
+  (rename, code actions, type hierarchy, implementations) included. It is Forge's only PHP
+  language server; Intelephense and Phpactor are no longer supported. See
+  [Language servers](docs/guide/user/language-servers.md#php-php-lsp).
 
 The pack activates in projects with a `composer.json` or `.php` files.
 
@@ -9389,7 +9383,7 @@ entry to jump to it.
 
 Navigation works like in PHPStorm on every PHP symbol. The language server answers first;
 when none runs (or it has no answer) Forge's PHP index does, so navigation also works without
-Intelephense. Everything runs through the project's backend, so it works the same in
+a language server. Everything runs through the project's backend, so it works the same in
 [remote projects](#remote-projects).
 
 ### Go to Declaration
@@ -9438,14 +9432,13 @@ Where the stubs come from:
 2. Otherwise Forge downloads a pinned phpstorm-stubs release on first use into
    `<cache dir>/forge/php-stubs/<version>`, checks the unpacked files against a pinned digest
    and keeps its licence file. The status bar shows the download.
-3. When Intelephense is installed and nothing else is available, its own stubs are used.
 
-When Intelephense runs, its definition (which points into the stubs inside its package) is
-opened read-only directly.
+php-lsp carries phpstorm-stubs inside Forge: its definition of a built-in symbol points into
+`<cache dir>/forge/php-lsp/php-lsp-stubs-<version>/` and opens read-only, without any download.
 
 > **Note:** the download needs access to `codeload.github.com`. Offline, set **Default stubs
-> path** or install Intelephense; otherwise Go to Declaration on a built-in symbol explains how
-> to get the stubs.
+> path**; otherwise Go to Declaration on a built-in symbol explains how to get the stubs
+> (php-lsp still answers it from its own copy).
 
 ### Show Usages and Find Usages
 
@@ -9488,15 +9481,15 @@ override the parents' methods (see [Highlight usages](docs/guide/user/editor.md#
 | Super Method | `Ctrl+U` | `Cmd+U` | the method this method overrides or implements; on a class, its parent and interfaces |
 | Type Declaration | `Ctrl+Shift+B` | `Cmd+Shift+B` | the class of the variable, property or method return type at the caret |
 
-Several targets open the Choose Declaration popup with names and namespaces. Go to
-Implementation needs Intelephense Premium in Intelephense; without a licence Forge answers from
-the index, and says so when the index finds nothing either.
+Several targets open the Choose Declaration popup with names and namespaces. php-lsp answers
+Go to Implementation; when it does not run, Forge answers from the index, and says so when the
+index finds nothing either.
 
 ### Hierarchies
 
 Type Hierarchy (`Ctrl+H`), Method Hierarchy (`Ctrl+Shift+H`) and Call Hierarchy
 (`Ctrl+Alt+H`) work from the index too, with traits, abstract classes and interfaces, and are
-merged with Intelephense Premium's type and call hierarchy when it runs. See
+merged with php-lsp's type and call hierarchy when it runs. See
 [Type, Method and Call Hierarchy](docs/guide/user/hierarchies.md).
 
 ### Gutter icons
@@ -9519,27 +9512,22 @@ Click an icon to go to the target, or to choose one of several.
 constants, functions and variables; see [Editor](docs/guide/user/editor.md#rename) for the in-place editing,
 the dialog and undo.
 
-- With **Intelephense Premium** (licence key in Settings | Languages & Frameworks | PHP) or
-  Phpactor, the language server renames.
-- **Intelephense without a licence** cannot rename. Forge then renames with its PHP index: the
-  declaration and every usage the index finds in the project (imports, `new`, static calls,
-  type hints, PHPDoc types, `$this->` and typed receivers, members through parent and child
-  classes). Members used on expressions the index cannot type (dynamic usages) are not renamed;
-  Forge says how many it skipped. The first time this happens in a session, a balloon explains
-  that the full rename needs Intelephense Premium and links to the licence key setting.
+- php-lsp, the built-in language server, renames.
+- Without a running language server (the PHP plugin's server did not start), Forge renames
+  with its PHP index: the declaration and every usage the index finds in the project (imports,
+  `new`, static calls, type hints, PHPDoc types, `$this->` and typed receivers, members through
+  parent and child classes). Members used on expressions the index cannot type (dynamic usages)
+  are not renamed; Forge says how many it skipped.
 - Renaming a class also renames its file when the file is named after it (`Order.php` →
   `Purchase.php`).
 - Conflicts: a class with the new name in the same namespace, or a method, property or constant
   with the new name in the same class, are listed in **Problems Detected** before anything
   changes.
 
-![Premium hint after a rename with the index](docs/screenshots/rename-premium-hint.png)
-
 ## Extract, introduce and inline
 
 The Refactor menu's **Extract/Introduce** and **Inline** refactorings work like PHPStorm's. Forge
-computes them itself from the PHP syntax tree, so they need no language server (and no
-Intelephense licence); call sites and usages in other files come from the PHP index. Every
+computes them itself from the PHP syntax tree, so they need no language server; call sites and usages in other files come from the PHP index. Every
 refactoring is one undo step, also when it changes several files, and works in remote projects.
 Problems (a name that is taken, a call that cannot be updated, an initializer with side
 effects) are listed in **Problems Detected** first; **Preview** in the dialogs lists every
@@ -9600,7 +9588,7 @@ enclosing scope", "Inline variable"…) in a popup.
 ## Move, copy, safe delete, change signature and make static
 
 The other refactorings of the Refactor menu work like PHPStorm's too. Forge finds the usages
-with its PHP index and computes every edit itself (no language server or licence needed); the
+with its PHP index and computes every edit itself (no language server needed); the
 whole refactoring, file moves included, is one undo step (`Ctrl+Z` in any changed editor) and
 works in remote projects. **Preview** lists every change first, **Problems Detected** the
 conflicts (a class that already exists, a call that cannot be updated).
@@ -9702,8 +9690,13 @@ class names in moved code are imported in the target file. New files come from y
 
 ## Context actions and intentions
 
-**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes (Intelephense
-Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#show-context-actions):
+**Show Context Actions** (`Alt+Enter`) lists the language server's quick fixes and refactorings
+(php-lsp: remove unused import, add PHPDoc, generate constructor, promote constructor
+properties, extract variable / method / constant, inline variable, add return type, ...) and
+Forge's own PHP intentions, see
+[Editor](docs/guide/user/editor.md#show-context-actions). When the server offers what an intention below does
+(php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import 'App\Models\User'",
+"Change namespace to '…'"), the popup lists Forge's intention once, in PHPStorm's wording:
 
 | Intention | Where |
 | --- | --- |
@@ -9716,9 +9709,6 @@ Premium) and Forge's own PHP intentions, see [Editor](docs/guide/user/editor.md#
 | Generate… | anywhere in a class: opens the Generate popup (`Alt+Insert`) |
 
 ![PHP intentions](docs/screenshots/context-actions-intentions.png)
-
-Without Intelephense Premium the popup shows only Forge's intentions and says that the language
-server's quick fixes need Premium.
 
 ### Create from usage
 
@@ -9879,7 +9869,11 @@ The attributes of the `jetbrains/phpstorm-attributes` package (and PHP 8.4's own
 ![Expected values in completion](docs/screenshots/php-meta-completion.png)
 
 The inspections are Forge's own (from the PHP index, next to the language server's problems)
-and appear in the editor and the Problems tool window. Turn them off with **Inspections from
+and appear in the editor and the Problems tool window. When the language server reports the
+same deprecated call or unreachable statement, it is shown once (the server's problem); the
+**Replace with '…'** fix stays in Alt+Enter. php-lsp does not know the `JetBrains\PhpStorm`
+attribute classes yet and reports them as undefined types unless the package is installed in
+`vendor/`. Turn them off with **Inspections from
 PHPStorm metadata and attributes** (`php.inspections.enabled`) on Settings | Languages &
 Frameworks | PHP.
 
@@ -9928,17 +9922,15 @@ relative to the project. Changing the include paths indexes the project again.
 | CLI Interpreter (an interpreter's name, or the path of a local `php`) | `php.interpreter` | `php` |
 | CLI Interpreters (available in every project) | `php.interpreters` | empty |
 | CLI Interpreters "Visible only for this project" | `php.projectInterpreters` | empty |
-| Language server (Auto, Intelephense, phpactor, None) | `php.lsp.server` | Auto |
+| Language server: php-lsp (built-in) with its version; there is no other choice | — | — |
 | Max indexed file size for the server (KB) | `php.lsp.maxFileSize` | 5000 |
-| When Intelephense is not installed (`ask`, `always`, `never`), see [Installing Intelephense](docs/guide/user/language-servers.md#installing-intelephense) | `php.intelephense.autoInstall` | `ask` |
-| I accept the Intelephense licence | `php.intelephense.licenceAccepted` | off |
 | Include Path | `php.includePaths` | empty |
 | Inspections from PHPStorm metadata and attributes | `php.inspections.enabled` | on |
 | Default stubs path (PHP Runtime), see [PHP's own classes and functions](#phps-own-classes-and-functions) | `php.stubs.path` | empty (managed download) |
 
 The language level and the interpreter can be stored per project ("For current project" in
 the page header). The status bar shows the language level in effect ("PHP 8.3"; its tooltip
-says when it comes from composer.json); click it to open this page. The page also shows the [Intelephense licence](docs/guide/user/language-servers.md#intelephense-licence-key-premium).
+says when it comes from composer.json); click it to open this page.
 
 Sub-pages: **Composer**, **Debug**, **Servers** (see [Debugging](docs/guide/user/debugging.md)),
 **Laravel**, **Symfony**, **Doctrine**.
@@ -10004,7 +9996,7 @@ Settings | Languages & Frameworks | PHP | Composer:
 | Path to composer.json | `php.composer.json` | `composer.json` | relative to the project root |
 | Path to composer | `php.composer.executable` | `composer` | a composer executable or a composer.phar (run with the PHP interpreter); "Download composer.phar from getcomposer.org" fetches one with your consent |
 | Synchronize IDE settings with composer.json | `php.composer.syncWithComposerJson` | on | the language level follows `require.php` (`^8.2` → 8.2, `^7.3 \|\| ^8.0` → 7.4); without a constraint the language level setting applies |
-| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by Intelephense; off leaves `vendor/` out |
+| Add packages as libraries | `php.composer.addPackagesAsLibraries` | on | classes in `vendor/` are resolved for navigation and completion and indexed by php-lsp; off leaves `vendor/` out |
 | Check for package updates on project open | `php.composer.checkUpdates` | off | runs `composer outdated --direct` on the project's machine and lists the updates in a balloon |
 | Use Packagist for completion, versions and outdated packages | `php.composer.packagist` | on | package names, versions and outdated markers from packagist.org (cached); off: installed packages only |
 
@@ -10032,7 +10024,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
 - **Wrapping and Braces**: brace placement in class declarations, function declarations and
   other blocks (End of line / Next line; a multi-line parameter list keeps `) {` together as
   PSR-12 says, and empty bodies stay `{}`), and `else`, `catch` and `finally` on a new line.
-  Intelephense formats with the closest of its brace styles; the Generate actions write
+  The language server (php-lsp, in Intelephense's style) formats with the
+  closest of its brace styles; the Generate actions write
   methods with the function brace placement.
 - **Blank Lines**: Forge cuts runs of blank lines to **Keep maximum blank lines in code** and
   sets the blank lines **After namespace**, **After imports**, **Around method** (at least)
@@ -10045,7 +10038,8 @@ Settings | Editor | Code Style | PHP (schemes, presets and the preview are descr
   namespace), blank lines between groups and "Prefer FQN"; Optimize Imports, Auto Import and
   the refactorings follow them, see [Optimize Imports and Auto Import](docs/guide/user/imports.md#php-code-style-imports).
 
-Reformat Code (`Ctrl+Alt+L`) lets Intelephense format the file and then applies the spaces,
+Reformat Code (`Ctrl+Alt+L`) lets the language server (php-lsp by default) format the file and
+then applies the spaces,
 brace placement, blank lines and conversions on the lines as they are. Strings, heredocs,
 comments and inline HTML are never changed.
 
@@ -16180,7 +16174,7 @@ blocked even if a plugin or the UI tries to start them:
 
 What still works: the editor, the Project view, search, the PHP and Lua indexes, Go to
 Declaration, completion from the built-in analysis, language servers installed outside the
-project (for example Intelephense from npm or Forge's own install), Git, Local History,
+project (for example a server from npm or Forge's own install), Git, Local History,
 databases, the HTTP client and [Deployment](docs/guide/user/deployment.md) actions you start yourself (upload,
 download, compare and sync only copy files), and the [Remote Host](docs/guide/user/remote-host-and-ssh.md)
 tool window with Edit Remote File.
@@ -16223,6 +16217,11 @@ Forge asks before the image build and `postCreateCommand` (they run the project'
 both for an untrusted folder, and the project in the container is trusted with its sources. A
 WSL project is trusted by its `\\wsl.localhost\<distro>\…` path. See
 [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md).
+
+A [Code With Me](docs/guide/user/code-with-me.md#joining-a-session) guest's window is always in Safe Mode, but
+shows no banner and offers no **Trust Project…**: the host's project is not on this machine and
+nothing of it runs here. Its trust is the host's decision. Leaving the session ends Safe Mode
+with the project.
 
 ## Browser mode
 
@@ -19276,7 +19275,7 @@ machine.
 
 | Side | Needs |
 | --- | --- |
-| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, Intelephense etc. installed on the host as you would need them locally. |
+| Remote host | **Linux** on x86_64 or aarch64, an SSH server, a POSIX shell, write access to `~/.cache`. PHP, Git, language servers etc. installed on the host as you would need them locally (PHP's php-lsp is built into the agent). |
 | Forge | a build that bundles the agents (`pnpm release`), or agent binaries in `FORGE_REMOTE_AGENT_DIR` / an `agents/` folder next to the `forge` binary. See [Release builds](docs/guide/developer/release-builds.md). |
 
 Nothing needs to be installed on the host in advance: Forge uploads the agent itself.
@@ -19284,7 +19283,7 @@ Nothing needs to be installed on the host in advance: Forge uploads the agent it
 The same agent also runs **in a dev container** (over `docker exec`) and **in a WSL
 distribution** (over `wsl.exe`); see [Dev Containers and WSL](docs/guide/user/dev-containers-and-wsl.md). The
 Welcome screen's Remote Development section has a page for each: **SSH**, **Dev Containers** and
-**WSL**.
+**WSL**. Its **Code With Me** page joins a [Code With Me](docs/guide/user/code-with-me.md#joining-a-session) session.
 
 ## Connecting
 
@@ -19371,9 +19370,9 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 | Scopes (Find in Files, Find Usages, Structural Search), the Scopes page's file tree | yes, evaluated and listed on the host |
 | Structural Search and Replace | yes: the files are parsed on the host; Replace All writes through the agent |
 | Analyze Stack Trace | yes: files are looked up on the host; PHP servers' path mappings and Compose bind mounts are read from the host |
-| PHP index, Structure, Generate, Intelephense/Phpactor | yes; Intelephense indexes the remote files itself |
+| PHP index, Structure, Generate, php-lsp | yes; the agent's built-in php-lsp indexes the remote files itself |
 | Catalog language servers (TypeScript, YAML, Python, …) | yes: scan, detection and the servers run on the host |
-| Installing language servers (Settings, Intelephense offer) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here; the Intelephense licence is accepted on your machine |
+| Installing language servers (Settings) | yes: the agent downloads Node.js and the npm servers into Forge's directory on the host, with progress here |
 | Laravel, Symfony and Doctrine analysis | yes, in the agent; artisan and `bin/console` run on the host |
 | WebForge: npm tool window, React / Vue / Angular navigation and gutter icons | yes: `package.json` files, scripts, package managers and components are read in the agent; scripts run on the host |
 | LuaForge index | yes, all Lua files are read on the host in one batch |
@@ -19393,7 +19392,7 @@ Project?" right after connecting; trust is kept per host, user, port and folder,
 ![Remote terminal](docs/screenshots/remote-terminal.png)
 
 Every feature works in remote projects. Things that are about your machine stay local on
-purpose: code host API calls (your tokens), the keychain, the Intelephense licence prompt and,
+purpose: code host API calls (your tokens), the keychain and,
 when you choose it, HTTP requests ("Send requests from: This machine") and Docker or Kubernetes
 of this machine (see [Services](docs/guide/user/services.md#remote-projects)).
 
@@ -19437,6 +19436,556 @@ See [Troubleshooting: remote agent upload](docs/guide/troubleshooting.md#remote-
 
 ---
 
+Source: docs/guide/user/code-with-me.md
+
+# Code With Me
+
+Code With Me lets you invite guests into the project that is open in your Forge. Everyone edits
+the same files at the same time and sees the others' carets and selections. Guests use Forge
+itself. Connections go straight from guest to host; no account and no Forge service is needed
+(see [relay and NAT traversal](docs/guide/user/code-with-me-relay.md) for networks where that does not work).
+
+## Hosting a session
+
+1. Click the Code With Me icon in the toolbar (or **Tools | Code With Me | Start Session…**).
+2. Pick what guests may do:
+
+   | Level | Guests can |
+   | --- | --- |
+   | **Read-only** (default) | view files |
+   | **Edit files** | edit files, but not use the terminal or run code |
+   | **Full access** | edit files, use the terminal and run code on your machine |
+   | **Custom…** | what you choose per area (see below) |
+
+3. **Start Session** starts listening and copies the invitation link to the clipboard. Send the
+   link to your guest. **Copy Session Link** in the popup copies it again.
+4. **End Session** ends the session for everybody and the link stops working.
+
+Nothing listens on your machine before you start a session.
+
+### Custom permissions
+
+**Custom…** opens the **Custom Permissions** dialog with one value per area:
+
+| Area | Values |
+| --- | --- |
+| Files | Read-only · Edit |
+| Terminal | No access · Read-only · Full access |
+| Run | No access · Read-only (see output) · Full access (start, stop, rerun) |
+| Version control | Read-only (status, diff, blame, log) · Full access (commit, push, checkout, …) |
+
+Files that control what runs on your machine (run configurations, `composer.json`,
+`package.json`, `Makefile`, …) can only be changed by guests with Files **Edit** and Run
+**Full access**. The list is a setting, see [Files guests never see](#files-guests-never-see).
+
+![Custom Permissions dialog](docs/screenshots/code-with-me-custom-permissions.png)
+
+## During a session
+
+The popup lists the participants with their permission and offers:
+
+- **Copy Session Link** copies the invitation link again.
+- **Regenerate Link** creates a new link and copies it. The old link stops working at once;
+  guests who are already in the session stay.
+- **Permissions ▸** changes the permission of the whole session: guests who join later get it,
+  and every guest in the session gets it at once.
+- **Make Everyone Follow You** asks every guest to follow you (see [Following](#following-participants)).
+- **End Session** ends the session for everybody.
+
+The **⋮** button next to a participant (or a right click on the participant) opens the
+participant's menu:
+
+- **Follow** / **Stop Following** and **Jump To** (see [Following](#following-participants)).
+- **Permissions ▸** (host) changes only this guest's permission (Read-only, Edit files, Full access or
+  Custom…).
+- **Remove Guest** (host) disconnects the guest at once. The guest is told that the host removed them.
+  Removing does not ban: with the same link the guest can ask to join again, so use
+  **Regenerate Link** if they should not.
+
+A new permission counts from the guest's next request. When files become read-only for a
+guest, their open editors turn read-only and they are told so; changes they send afterwards are
+refused by your Forge.
+
+![A guest's menu in the session popup](docs/screenshots/code-with-me-guest-menu.png)
+
+The popup works with the keyboard: **Up** and **Down** move between its entries (**Home** and
+**End** jump to the first and last), **Enter** or **Space** chooses one, **Escape** closes the
+popup. The same keys move through the participants in the Code With Me tool window.
+
+![The session popup driven by the keyboard](docs/screenshots/code-with-me-popup-keyboard.png)
+
+### Saving and changes on disk
+
+A shared file is saved for everybody: **Save** (Ctrl+S) by the host or by a guest who may edit
+files writes it on the host's disk, and every participant's tab shows the same unsaved marker.
+
+On the host, the lines guests changed have a marker in the guest's color in the gutter, next to
+the line numbers, until the file is saved; hover it to see who changed the line.
+
+When a shared file changes on the host's disk (a `git checkout`, a formatter, an AI agent) and
+it has no unsaved changes, everybody's editor takes the new text, and carets stay where they
+were. If it has unsaved changes, the host gets PHPStorm's **File Cache Conflict** dialog:
+"Changes have been made to … in memory and on disk."
+
+- **Load File System Changes** replaces the shared text with the file on disk, for everybody.
+- **Keep Memory Changes** keeps the shared text; it stays unsaved, and saving it overwrites the
+  file on disk.
+- **Show Difference** shows the file on disk next to the shared text. The choice then waits in
+  a balloon, as it does when you close the dialog.
+
+Guests see a balloon that the host is choosing which version to keep; they cannot save the file
+until then. Saving it yourself as the host also keeps the memory changes, and the conflict ends
+by itself when the file on disk changes back.
+
+![The host's File Cache Conflict dialog](docs/screenshots/code-with-me-file-cache-conflict.png)
+
+![Lines changed by Alex, marked in the host's gutter](docs/screenshots/code-with-me-guest-lines.png)
+
+## Following participants
+
+Every participant sees where the others are: the participant list shows the file and line each
+one is in (`OrderController.php:27`) and whom they follow ("following you"), and the others'
+avatars appear next to the Code With Me icon in the toolbar.
+
+- **Follow**: click a participant in the list or their avatar in the toolbar. Forge opens their
+  file and keeps their part of the file in view as they move and switch files. A banner above
+  the editor says **Following Alex** in their color. Typing, clicking into the editor or opening
+  another file stops following, as does **Stop** in the banner (or **Stop Following**).
+- **Jump To**: in the participant's menu, opens their file at their caret once, without
+  following.
+- **Make Everyone Follow You** (host): every guest follows you, including guests who join later.
+  The guests' banner says **Robert asked everyone to follow**; they can still press **Stop**.
+  The popup shows how many guests follow you. Choose it again to stop asking.
+- Guests follow the host when they join (Settings | Tools | Code With Me | **Follow the host
+  when joining**).
+
+A guest is never told the name of a file it may not see: while the host is in `.env` or another
+hidden file, guests see the host without a location and following guests stay where they are.
+
+The **Code With Me** tool window (right, while a session runs) lists the participants with the
+same actions, **Stop Following** and, for the host, **Make Everyone Follow You** and the
+**Session Log** tab.
+
+All of these are also in Find Action and Settings | Keymap under Plugins | Code With Me:
+**Follow Participant…** and **Jump To Participant…** (a chooser of the participants), **Stop
+Following**, **Make Everyone Follow You** and **Code With Me** (the tool window). PHPStorm binds
+no shortcuts to them; you can add your own.
+
+![Following Alex](docs/screenshots/code-with-me-following.png)
+
+![A guest follows the host after Make Everyone Follow You](docs/screenshots/cwm-guest-follow.png)
+
+### Carets of the others
+
+Every participant's caret and selection show in their color. The name label above a caret shows
+while that participant moves or types and fades out two seconds after they stopped; hover the
+caret to see the name again. The right edge of the editor (over the scrollbar) has a mark in the
+participant's color where each of the others is in the file; click it to move your caret there.
+
+![Alex's caret, name label and the mark on the right edge](docs/screenshots/code-with-me-carets.png)
+
+## Terminal and Run
+
+What guests see of your terminals and runs depends on their **Terminal** and **Run** permission:
+
+| Permission | Terminal | Run |
+| --- | --- | --- |
+| No access | no Terminal tool window | no Run tool window |
+| Read-only | watch the terminals you share | watch your runs (console and test results) |
+| Full access | type in the terminals you share, open their own terminals on your machine | run, rerun and stop your run configurations, type into the console |
+
+**Sharing a terminal (host).** Right-click a terminal tab and choose **Share with Guests** (also
+**Share Terminal with Guests** in Find Action, for the active tab). Shared tabs show the
+participants icon; choose it again to stop sharing. Guests see the tab with what it showed so
+far (the last 2000 lines) and follow it live, at your terminal's size. When you stop sharing a
+terminal, the guest's tab stays with what it showed and the line **[The host stopped sharing
+this terminal]**, like a terminal whose shell ended; the guest closes it. Shared again, it
+opens fresh. A shell that ends on your machine shows **[Process completed]** in the guest's
+tab. To share every terminal
+tab you open during a session, turn on **Settings | Tools | Code With Me | Share new terminal
+tabs**.
+
+**Guests' terminals.** A guest with Full terminal access opens new terminal tabs on your
+machine: the shell is yours (your shell and settings) and starts in the project folder. The tab
+shows up in your Terminal tool window as **Alex: Local**, so you always see what runs on your
+machine. A guest's terminals close when the guest leaves, is removed, or loses Full terminal
+access.
+
+**Runs.** Every run of your Run tool window is shown to guests with Run access, with its console
+and test tree; guests who join later see it from the start. A guest with Full run access uses the
+Run widget and the Run tool window as usual: Run, Rerun and Stop act on your machine, and Forge
+starts your run configuration by its name as if you clicked Run. Guests never send command
+lines, and they cannot change run configurations unless they have Full access (the files that
+configure what runs are protected). Debugging and Run with Coverage are not available to guests.
+
+The session log records shared and unshared terminals, the terminals guests open and close, that
+a guest typed in a terminal or a console (never the keys), and the runs guests start and stop.
+Input from a guest without Full access is refused by your Forge.
+
+![The host shares a terminal tab](docs/screenshots/code-with-me-share-terminal.png)
+
+![A guest watches the host's shared terminal](docs/screenshots/cwm-guest-terminal.png)
+
+![The host's test run in a guest's Run tool window](docs/screenshots/cwm-guest-run.png)
+
+![A terminal the host stopped sharing, in the guest's window](docs/screenshots/cwm-guest-terminal-unshared.png)
+
+![A terminal a guest opened on the host](docs/screenshots/code-with-me-guest-terminal.png)
+
+## Session log
+
+**Session Log…** in the popup (also in Find Action and the **Session Log** tab of the Code With
+Me tool window) shows what happened in the session you
+host, with the time: who joined, declined and unanswered requests, connections without a
+valid link, permission changes, Regenerate Link, removed and leaving guests, files guests
+saved, created, renamed or deleted, their git actions, and every request your Forge refused
+(shown as warnings). Terminal keystrokes and file contents are never logged.
+
+With **Keep a session log** on (the default, Settings | Tools | Code With Me), each session is
+also written to a file in Forge's data directory, never into the project:
+
+| OS | Folder |
+| --- | --- |
+| Linux | `~/.local/share/forge/code-with-me/` |
+| macOS | `~/Library/Application Support/forge/code-with-me/` |
+| Windows | `%APPDATA%\forge\code-with-me\` |
+
+The file is `<date>-<session>.jsonl`, one JSON object per line. Logs older than 30 days are
+deleted when you start a session.
+
+![Session Log](docs/screenshots/code-with-me-session-log.png)
+
+## Accepting guests
+
+Having the link is not enough. When a guest opens it, a balloon appears and stays until you
+answer:
+
+> **Alex wants to join the session**
+> Make sure the code is 482 913. With Read-only permission Alex can view files.
+> **Accept** · **Decline**
+
+The guest sees the same **verification code** while waiting. Compare the two over a call or
+chat before you accept: the code is derived from both sides' keys, so somebody who got hold of
+the link shows a different code than the person you invited. If the codes differ, decline.
+
+- A guest that is declined is told so. A request that is not answered within two minutes is
+  dropped and the guest is told that the host did not answer.
+- A guest can have one open request at a time, and at most five requests wait at once. Further
+  ones are refused without a prompt.
+- Ending the session refuses everyone who is still waiting.
+
+If you close the balloon without answering, the request stays open until it times out.
+
+## Joining a session
+
+1. Click the link (`forge://cwm/join?…`), or choose **Tools | Code With Me | Join Session…**
+   and paste it into **Session link**. Without a project open, the Welcome screen has the same
+   action under **Remote Development | Code With Me | Join Session…**. A clicked link opens
+   Forge (or brings it to the front) with the dialog filled in; if that window is already in a
+   session, a new window opens for it. Nothing connects before you click **Join**.
+2. The dialog shows where the link leads before anything connects: the **Host** and its
+   **Machine** as the link names them, the **Connection** (direct, or through the host's relay
+   server) and the name you **Join as** (**Change…** opens Settings | Tools | Code With Me). If a
+   project is open, it says that it is closed while you are a guest. Click **Join**. If that
+   project has unsaved changes, the dialog first lists the files and asks: **Save** them,
+   **Don't Save** (they stay unsaved, and are dropped only when the host's project takes the
+   window), or **Cancel** to go back to the link. In Safe Mode, Save only writes the files;
+   Actions on Save that run tools do not run.
+3. The dialog shows **Waiting for <host> to accept…** with the **verification code** and
+   **Cancel**. Tell the host the code; the host sees the same one. If the host declines or does
+   not answer, the dialog says so and offers **Try Again**.
+4. When the host accepts, the host's project opens in your window and you follow the host. The
+   title shows `<project> — <host> (Code With Me)`. **Leave Session** in the popup or the status item
+   ends it for you, and the window returns to the Welcome screen.
+
+![Joining from the Welcome screen](docs/screenshots/code-with-me-welcome.png)
+
+The host's project replaces the project the window had open. Everything the window showed of
+that project goes with it: the Project tree shows the host's files right away, and the
+problems, Find and Inspection Results tabs and the Safe Mode banner of your own project are
+gone. To keep your project open, join from another window: **File | New Window** opens one on
+the Welcome screen.
+
+![The host's project after joining](docs/screenshots/code-with-me-join-joined.png)
+
+A guest's window is always in Safe Mode, without the banner and without **Trust Project…**:
+nothing of the host's project runs on your machine. Terminals and runs the host shares run on
+the host (see [Terminal and Run](#terminal-and-run)).
+
+![Join Session dialog](docs/screenshots/code-with-me-join-dialog.png)
+
+![Unsaved changes in your own project before it closes](docs/screenshots/code-with-me-join-unsaved.png)
+
+![Forge opened by a clicked session link](docs/screenshots/code-with-me-join-link.png)
+
+The installers register Forge for `forge://` links (the `x-scheme-handler/forge` MIME type on
+Linux, the URL protocol on Windows, the URL type on macOS). AppImages and development builds
+register it when they start.
+
+![Waiting for the host with the verification code](docs/screenshots/code-with-me-join-waiting.png)
+
+### When the connection drops
+
+If the connection to the host drops (Wi-Fi gone, laptop asleep, VPN reconnecting), the session
+is not over:
+
+- Your window keeps the host's project and your open files. The status bar says **Code With Me:
+  Reconnecting…**, and a balloon **Connection to <host> lost** stays until the connection is
+  back, with **Leave Session**. Forge tries again after 1, 2, 4 and 8 seconds and then every 15
+  seconds.
+- Keep typing: your edits stay in the editor and are sent when the connection is back; edits
+  the others made meanwhile arrive then too, and everything merges. Saving, opening files,
+  search and other requests to the host fail while the connection is down. Keys typed into a
+  shared terminal or a run's console meanwhile are lost.
+- Back again, you see **Reconnected to <host>.** Shared terminals and runs show what you
+  missed, and the others see you where you were. The host sends the file changes you missed;
+  the Project tree reads its open folders again (expansion and selection stay), and Git status,
+  Find and the other views that follow file changes refresh.
+- The host keeps your place (your color, permissions, terminals) for two minutes and shows you
+  as **Reconnecting…** in the participant list meanwhile. After about 105 seconds without a
+  connection your Forge gives up: the session ends with **The connection to the host was lost and
+  could not be restored. Join again with the session link.** Edits that did not reach the host
+  are lost then. If the host removed you meanwhile, you are told so.
+
+![A guest's window while the connection is restored](docs/screenshots/cwm-guest-reconnecting.png)
+
+![The host sees a guest reconnecting](docs/screenshots/code-with-me-guest-reconnecting.png)
+
+Guests see the Project tree, Structure, Find, Problems, Terminal and Run (with Terminal or Run access, see [Terminal and Run](#terminal-and-run)) and Git (read-only unless the host gave
+Full access). AI Chat, Database, Services, Debug and the code host tool windows are not
+available in a guest's window, because they would use the host's accounts and secrets.
+
+## Files guests never see
+
+Secret files are invisible to guests whatever their level, in the tree, in search, in Git and
+in analysis results: `.env` and `.env.*` (but not `.env.example`), private keys, certificates
+and the like. The list is **Settings | Tools | Code With Me | Files guests never see**. Files larger than
+**Larger files open read-only (KB)** open read-only.
+
+Files that configure what runs on the host can be changed only by guests with Full access to
+Run (with Edit files they open read-only): **Settings | Tools | Code With Me | Files only Full
+access may change**. By default these are run configurations (`.forge/runConfigurations*.toml`),
+`.forge/settings.toml`, `.vscode/`, `.idea/`, `.husky/`, `composer.json`, `package.json`,
+`Makefile`, `artisan` and `bin/console`. The patterns work like the excluded files (`!pattern`
+removes a file from the list); changes apply to sessions you start afterwards.
+
+## Settings
+
+Settings | Tools | Code With Me: your name in sessions, the default permission level,
+whether ending a session asks for confirmation, whether guests follow the host when joining, whether new terminal tabs are shared,
+whether a session log is kept, the files guests never see, the files only Full access may change
+and the connection settings of the
+[relay page](docs/guide/user/code-with-me-relay.md).
+
+
+---
+
+Source: docs/guide/user/code-with-me-relay.md
+
+# Code With Me: relay and NAT traversal
+
+Code With Me connects the guest straight to the host. Nothing is contacted besides the host's
+addresses from the session link, and Forge runs no service of its own: there is no lobby, no
+account and no Forge relay. When guest and host cannot reach each other (different networks,
+NAT, firewalls) there are four ways out, from least to most effort:
+
+| Situation | What to do |
+| --- | --- |
+| Same network or VPN | Nothing. Direct connections work, and **Discover hosts on the local network** finds the host even when its address changed. |
+| Host has a public address or a port forward | Set **Port** (Settings \| Tools \| Code With Me) to a fixed UDP port and forward it on the router. |
+| Both sides are behind NATs | Set up a **Relay server** (below). Forge first connects through it and then tries to open a direct path (hole punching). |
+| Locked-down networks (UDP blocked, corporate firewall) | Join over a VPN such as WireGuard or Tailscale, or tunnel the UDP port (see [SSH tunnel and VPN](#ssh-tunnel-and-vpn)). |
+
+## How a connection is made
+
+Forge uses [iroh](https://www.iroh.computer): QUIC over UDP with TLS 1.3, where every endpoint is
+identified by a public key.
+
+1. The host starts a session. It opens a UDP socket and, if a relay server is set, connects to
+   it. The **session link** contains the host's key, its addresses and, as `r=`, the relay's URL.
+2. The guest dials the host's addresses **and** the relay at the same time. Direct addresses win
+   when they work (LAN, port forward, VPN).
+3. Otherwise the first packets travel through the relay. Both ends use that channel to exchange
+   their public addresses and punch holes through their NATs (hole punching). When it works, the
+   connection moves to the direct path by itself, without interruption. About nine out of ten
+   connections end up direct. When it does not (symmetric NATs, UDP filters), the connection
+   stays on the relay.
+4. The relay only forwards packets that are **end-to-end encrypted** between guest and host. It
+   sees who connects (IP addresses and the session's temporary endpoint keys) and how much data
+   flows, never file contents, keystrokes or the join secret.
+
+A new key pair is generated for every session, so links and relay logs cannot be correlated
+between sessions.
+
+## Settings
+
+Settings \| Tools \| Code With Me.
+
+| Setting | Meaning |
+| --- | --- |
+| **Port** | UDP port for direct connections. 0 picks a free port; set a fixed one for a port forward. |
+| **Listen on address** | Bind to one interface only: a VPN address, or `127.0.0.1` for tunnels. |
+| **Discover hosts on the local network** | Find the host on the same network with mDNS. Nothing leaves the local network. On by default. |
+| **Relay server** | URL of your own `iroh-relay`, e.g. `https://relay.example.com`. **Empty (the default): direct connections only, Forge contacts no server.** |
+| **Use the public relay servers of n0** | Opt-in, off by default. n0 (number 0 computer) operates the free public iroh relays. They are rate-limited and run by a third party; they only see encrypted traffic. Ignored when a relay server is set. |
+| **Relay token** (Set Token…) | The shared token of a relay that uses access control. Stored in the system keychain, never in settings files or links. |
+| **Test Connection** | Connects to the relay as typed in the page and reports whether it works or why not (wrong token, certificate, unreachable). |
+
+Notes:
+
+- A relay URL needs `https://` (or `http://` for a relay inside a trusted network or tunnel).
+  Without a scheme Forge assumes `https://`. User names, passwords and tokens do not belong
+  into the URL: they would end up in session links. Use **Set Token…**.
+- **The guest uses the relay of the link**, not their own setting. Guests only need their own
+  settings when the relay requires a token: enter it under **Set Token…** with the same relay
+  URL as in the link. A token is only ever sent to the relay it was set for.
+- Guests that the link cannot reach directly and that cannot reach the relay get the error
+  *The host did not answer*. Open **Test Connection** and the host's connection status first.
+- Hosts that use the public relays put one of n0's relay URLs into the link. Guests then
+  contact that relay because the link says so, even though they did not opt in themselves.
+  Only share such links with people you would let reach that service.
+
+## Seeing how you are connected
+
+- **Status bar**: *Code With Me: Direct · 12 ms* or *Code With Me: Relay (relay.example.com)* for
+  guests; hosts see *2 guests, direct* or *2 guests, 1 via relay*. The tooltip lists every
+  participant. A warning icon appears when the relay is set but not connected.
+- **Code With Me popup** (toolbar): every participant with a **Direct** or **Relay (host)**
+  badge and the round-trip time, plus the state of the relay server.
+
+A relayed connection is normal and fully encrypted, only slower (typically 20 to 100 ms more).
+The badge changes to **Direct** as soon as hole punching succeeds.
+
+![Participants with connection paths](docs/screenshots/cwm-connection-paths.png)
+
+![Relay server settings](docs/screenshots/cwm-relay-settings.png)
+
+## Running your own relay
+
+A relay is the open-source `iroh-relay` server. It is a single binary, runs on any small VPS
+(1 vCPU, 512 MB are plenty for a team) and needs a DNS name pointing at the machine.
+
+Open ports:
+
+| Port | Protocol | Use |
+| --- | --- | --- |
+| 443 | TCP | HTTPS and the relay connection (WebSocket) |
+| 80 | TCP | ACME HTTP challenge (Let's Encrypt) and a captive-portal probe |
+| 7842 | UDP | QUIC address discovery (helps hole punching; optional) |
+
+### With Docker Compose
+
+`Dockerfile`:
+
+```dockerfile
+FROM rust:1-bookworm AS build
+RUN cargo install iroh-relay --version "~1.3" --features server --locked --root /out
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/bin/iroh-relay /usr/local/bin/iroh-relay
+ENTRYPOINT ["iroh-relay", "--config-path", "/etc/iroh-relay/relay.toml"]
+```
+
+`relay.toml`: HTTPS with an automatic Let's Encrypt certificate and a shared token:
+
+```toml
+http_bind_addr = "[::]:80"
+enable_quic_addr_discovery = true
+
+[tls]
+https_bind_addr = "[::]:443"
+cert_mode = "LetsEncrypt"
+hostname = "relay.example.com"
+contact = "admin@example.com"
+cert_dir = "/var/lib/iroh-relay"
+
+# Only clients with this token may use the relay. Several tokens are allowed.
+# IROH_RELAY_ACCESS_TOKEN overrides this list with a single token.
+access.shared_token = ["change-me-to-a-long-random-string"]
+```
+
+`compose.yaml`:
+
+```yaml
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "7842:7842/udp"
+    volumes:
+      - ./relay.toml:/etc/iroh-relay/relay.toml:ro
+      - relay-data:/var/lib/iroh-relay
+volumes:
+  relay-data:
+```
+
+Generate the token with `openssl rand -base64 32 | tr -d '/+='` and start the relay with
+`docker compose up -d`. Then, on every machine that uses it:
+
+1. Settings \| Tools \| Code With Me \| **Relay server**: `https://relay.example.com`.
+2. **Set Token…**: the token from `relay.toml`.
+3. **Test Connection** should say *Connected to relay.example.com*.
+
+Without Docker, install the binary with `cargo install iroh-relay --features server` and run
+`iroh-relay --config-path relay.toml` from a systemd unit. For a quick test on your own
+network, `iroh-relay --dev` serves plain HTTP on port 3340: use `http://<address>:3340` as the
+relay server.
+
+Other access modes in `relay.toml` (`access = "everyone"` is the default): an allow list of
+endpoint keys or an HTTP callback. Keys are generated per session, so a shared token is the
+practical choice for Code With Me. Rate limits can be set in a `[limits]` section; see the
+[iroh-relay documentation](https://docs.rs/iroh-relay).
+
+### Behind a reverse proxy
+
+`iroh-relay` can run with `http_bind_addr` only (no `[tls]` section) behind a proxy that
+terminates TLS, as long as the proxy forwards WebSocket upgrades. Leave out
+`enable_quic_addr_discovery` then; hole punching still works, a bit less often.
+
+## SSH tunnel and VPN
+
+Code With Me is UDP. A plain `ssh -L` or `ssh -R` forwards TCP only, so it does not work on its
+own, and tools that push UDP through a TCP stream (such as `socat`) lose the packet boundaries
+QUIC needs. Two recipes work on locked-down networks.
+
+**VPN (recommended).** Put host and guests into one WireGuard or Tailscale network. Start the
+session after the VPN is up: the session link then contains the host's VPN address and the
+guest connects directly. Set **Listen on address** to the VPN address if the session must not
+be reachable from other interfaces. No relay is needed.
+
+**SSH tunnel device.** OpenSSH can carry IP traffic, including UDP, over its own tunnel
+(`ssh -w`). It needs root on both machines and `PermitTunnel yes` in the host's `sshd_config`:
+
+```sh
+# Guest (as root): open the tunnel to the host and give the tunnel an address.
+ssh -f -N -w 0:0 root@host.example.com
+ip addr add 10.99.0.2/30 dev tun0 && ip link set tun0 up
+
+# Host (as root): the same tunnel device appears on the host.
+ip addr add 10.99.0.1/30 dev tun0 && ip link set tun0 up
+```
+
+Then the host starts the session (**Listen on address** empty or `10.99.0.1`). Because the
+tunnel is up, the link contains `10.99.0.1`; the guest can join straight away. Without root
+access, use a VPN or a relay.
+
+## Troubleshooting
+
+| Message or symptom | Cause |
+| --- | --- |
+| *Cannot reach the relay server (… a relay token is required)* | The relay uses access control. Set the token with **Set Token…**. |
+| *Cannot reach the relay server (… did not answer)* | Wrong URL, DNS, port 443 closed, or a certificate that is not valid for that name. **Test Connection** shows the details. |
+| *The host did not answer* | Neither a direct path nor the relay works for this guest. Check the host's status bar for the relay state, then try a VPN. |
+| Badge stays on **Relay** | Hole punching failed: usually a symmetric NAT or UDP filtering. The relay path keeps working. Open UDP 7842 on the relay and keep QUIC address discovery enabled to improve the odds. |
+
+
+---
+
 Source: docs/guide/user/dev-containers-and-wsl.md
 
 # Dev Containers and WSL
@@ -19445,7 +19994,7 @@ Besides [SSH hosts](docs/guide/user/remote-development.md), Forge opens projects
 **inside a WSL distribution**, like PHPStorm and JetBrains Gateway. In both cases Forge starts its
 headless agent (the same one it uses over SSH) in the container or the distribution and talks to
 it over the stdio of `docker exec` or `wsl.exe` instead of an SSH channel. The project then opens
-like a remote project: indexing, Intelephense and other language servers, Git, terminals and run
+like a remote project: indexing, php-lsp and other language servers, Git, terminals and run
 configurations all happen in the container or the distribution, with its PHP, Composer, Node.js
 and tools.
 
@@ -22223,11 +22772,8 @@ Page id `lang.php`.
 | `projectStructure.folders` | objects (unique `path`) | `[]` | user, project | Directories | Excluded and resource folders — Folders marked as Excluded, Resource Root or Test Resources Root (Settings \| Directories, Project view: Mark Directory as), stored in the project. Kind `included` cancels the default exclusion of a folder like `node_modules`. Excluded folders are left out of the indexes, Find in Files, Search Everywhere, inspections and local history. |
 | `projectStructure.excludePatterns` | string | `""` | user, project | Directories | Exclude files — File and folder name patterns excluded from the project, separated by `;` (`*.min.js;tmp`). |
 | `php.inspections.enabled` | bool | `true` | user | Inspections | Inspections from PHPStorm metadata and attributes — Deprecated symbols, expected values, #[Immutable] writes, unused #[Pure] results, unreachable code after exit points and the PSR-0/PSR-4 namespace check. |
-| `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use, or uses Intelephense's stubs. |
-| `php.lsp.server` | enum: `auto`, `intelephense`, `phpactor`, `none` | `auto` | user | Language Server | Language server — Started automatically when a PHP project opens. |
+| `php.stubs.path` | path | `""` | user | PHP Runtime | Default stubs path — A phpstorm-stubs checkout used for PHP's own classes, functions and constants (Go to Declaration on \Throwable, array_map). Empty: Forge downloads JetBrains' phpstorm-stubs into its cache folder on first use. |
 | `php.lsp.maxFileSize` | int (100–100000) | `5000` | user | Language Server | Max indexed file size (KB) |
-| `php.intelephense.autoInstall` | enum: `ask`, `always`, `never` | `ask` | user | Language Server | When Intelephense is not installed — Forge downloads Intelephense from the npm registry into its own directory (and Node.js when none is installed). Intelephense is not bundled with Forge. |
-| `php.intelephense.licenceAccepted` | bool | `false` | user | Language Server | I accept the Intelephense licence — Asked once before Forge downloads Intelephense for you. Its licence (LICENSE.txt in the npm package, intelephense.com) applies to your copy. |
 
 ### Languages & Frameworks | PHP | Composer
 
@@ -22238,7 +22784,7 @@ Page id `lang.php.composer`.
 | `php.composer.json` | path | `composer.json` | user, project |  | Path to composer.json — Relative to the project root. |
 | `php.composer.executable` | path | `composer` | user, project | Execution | Path to composer — A composer executable, or a composer.phar (run with the PHP interpreter of Settings \| PHP). Empty: `composer` from PATH. |
 | `php.composer.syncWithComposerJson` | bool | `true` | user, project |  | Synchronize IDE settings with composer.json — The PHP language level follows `require.php` of composer.json (the status bar shows it); the language level setting applies when there is no constraint. |
-| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and Intelephense. Off: vendor/ is left out. |
+| `php.composer.addPackagesAsLibraries` | bool | `true` | user, project |  | Add packages as libraries — Classes in vendor/ are resolved for navigation, completion and the language server (php-lsp). Off: vendor/ is left out. |
 | `php.composer.checkUpdates` | bool | `false` | user |  | Check for package updates on project open — Runs `composer outdated --direct` on the project's machine and reports updates in a balloon. |
 | `php.composer.packagist` | bool | `true` | user |  | Use Packagist for completion, versions and outdated packages — Package names, versions and descriptions come from packagist.org (cached in Forge's cache directory). Off: only installed packages are used and Forge never contacts Packagist. |
 
@@ -23538,8 +24084,7 @@ settings work.
 
 | Server | Id | Languages | Command | Install | Licence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Intelephense](https://intelephense.com) | `intelephense` | PHP | `intelephense --stdio` | `npm install -g intelephense` | Proprietary (free core, premium licence key optional) | needs plugin `forge.php`; Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy. |
-| [Phpactor](https://phpactor.readthedocs.io) | `phpactor` | PHP | `phpactor language-server` | `composer global require phpactor/phpactor`<br>[download](https://github.com/phpactor/phpactor/releases) | MIT | needs plugin `forge.php`; Used when Intelephense is not installed, or when chosen in the PHP settings. |
+| [php-lsp (built-in)](https://github.com/stdimnet/php-lsp) | `php-lsp` | PHP | `forge --php-lsp --stdio` | built into Forge | MIT OR Apache-2.0 | needs plugin `forge.php`; Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server. |
 
 
 ## Languages
@@ -23729,7 +24274,7 @@ Forge uses the platform's standard folders (Rust's `dirs` crate):
 | `vulnerabilities/<project hash>/<tool>-<folder hash>.json` | the last result of each audit tool of the vulnerable dependency check, with the hash of the manifest and lock file it was made from; reused on project open while the files are unchanged and younger than `vulnerabilities.cacheHours` |
 | `profiles/<project>/<time>-<name>.pstats` (+ `.json`) | cProfile snapshots of Run \| Profile (Python) for the Profiler tool window; the newest `python.profiler.snapshots` are kept |
 | `pypi/json/<name>.json`, `pypi/search/` | PyPI package metadata (12 hours) and searches (1 hour) for Python Packages, requirements completion and latest versions (only while `python.packages.pypi` is on) |
-| `intelephense/` | Intelephense's storage (`storagePath`) |
+| `php-lsp/` | php-lsp's index cache and unpacked PHP stubs (`storagePath`) |
 | `jdtls/config-<version>/`, `jdtls/workspaces/<project>-<hash>/` | Eclipse JDT LS: its OSGi configuration and the workspace data of each project (never inside the project) |
 | `jupyter/kernel-<key>.json` | connection files of running Jupyter kernels (ports and signing key, readable only by you); deleted when the kernel stops |
 | `shell-integration/` | the bash and zsh scripts of the terminal's shell integration (also on remote hosts, in their cache dir) |
@@ -23793,7 +24338,6 @@ Keychain on macOS, Credential Manager on Windows), never in files:
 | Service | Account | Secret |
 | --- | --- | --- |
 | `forge-ai` | provider id | AI provider API key |
-| `forge-lsp` | `intelephense` | Intelephense licence key |
 | `forge-forges` | account id | GitHub/GitLab/Forgejo token |
 | `forge-ssh` | SSH configuration id | SSH password or key passphrase |
 | `forge-db` | data source id | database password |
@@ -23887,7 +24431,6 @@ Source: docs/guide/reference/environment-variables.md
 | `FORGE_URL` | base URL of the dev server for `scripts/screenshots.mjs` (default `http://localhost:1420`) |
 | `CHROMIUM_PATH` | Chromium for the screenshot script |
 | `CARGO_TARGET_DIR` | separate target folder per git worktree |
-| `CARGO_PROFILE_DEV_DEBUG=0` | smaller debug builds |
 | `CC_<triple>`, `CFLAGS_<triple>`, `CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER` | cross-compiling the remote agents (`pnpm agents`) |
 | `FORGE_UPDATER_PUBKEY` | at build time: the updater public key compiled into the app; without it the build never checks for updates (see [Release builds](docs/guide/developer/release-builds.md#updates-and-signing)) |
 | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | at build time: sign the updater artifacts; `pnpm tauri build` / `pnpm release` turn on `createUpdaterArtifacts` only when the key is set |
@@ -24267,6 +24810,14 @@ tauri dev` shows the update panel on the splash with a fake download instead; se
 Browser mode is the fastest loop for UI work and screenshots. Use `pnpm tauri dev` to test the
 real file system, git, language servers, PTYs, databases and Docker.
 
+### `forge://` links on macOS
+
+`make dev` is `pnpm tauri dev` plus a Cargo runner on macOS (`scripts/macos-dev-runner.sh`). It
+starts the debug binary from a small `target/debug/Forge Dev.app` bundle whose `Info.plist`
+claims the `forge://` scheme, because macOS registers URL schemes only through app bundles.
+With it, links such as `forge://cwm/join?…` open in the running dev instance. Plain
+`pnpm tauri dev` skips the runner, so `forge://` links do not work there on macOS.
+
 ## Useful scripts (`app/ui`)
 
 | Script | Does |
@@ -24277,13 +24828,14 @@ real file system, git, language servers, PTYs, databases and Docker.
 | `pnpm screenshots [scenario…]` | Playwright screenshots into `docs/screenshots/` |
 | `pnpm wasm` | rebuild `crates/forge-wasm` into `src/wasm/pkg` |
 | `pnpm agents [x86_64\|aarch64]` | build the static remote agents into `target/agents/` |
-| `pnpm langservers install [--accept-intelephense-licence] [package…]` | pre-install npm language servers (and Node.js if missing) into Forge's data directory, like the IDE does; also `updates`, `where` |
+| `pnpm langservers install <package…>` | pre-install npm language servers (and Node.js if missing) into Forge's data directory, like the IDE does; also `updates`, `where` |
 | `pnpm release …` | agents + `tauri build` with bundled agents |
 | `pnpm tauri …` | the Tauri CLI (runs from `app/` through `scripts/tauri.mjs`, which adds the updater signing settings to `tauri build`) |
 
 ## Keeping Rust builds manageable
 
-- `export CARGO_PROFILE_DEV_DEBUG=0` saves a lot of disk space and link time.
+- The dev profile already uses `debug = "line-tables-only"`. Don't override it with
+  `CARGO_PROFILE_DEV_DEBUG`: a second profile duplicates every artifact in `target/`.
 - With several git worktrees, give each its own `CARGO_TARGET_DIR`; a shared target dir can
   return stale builds of workspace crates.
 - Test one crate at a time while iterating: `cargo test -p forge-keymap`.
@@ -25475,7 +26027,6 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-- `export CARGO_PROFILE_DEV_DEBUG=0` saves disk space and time.
 - With several worktrees, give each its own `CARGO_TARGET_DIR`.
 - After changing plugin manifests or project generators:
   `FORGE_UPDATE_SNAPSHOTS=1 cargo test -p forge-app`.
@@ -25862,7 +26413,8 @@ push, pull request or schedule triggers to any workflow. See [Release builds](do
 ## Worktrees
 
 Several git worktrees can build in parallel; give each its own `CARGO_TARGET_DIR` (a shared target
-dir can return stale builds of workspace crates) and consider `CARGO_PROFILE_DEV_DEBUG=0`.
+dir can return stale builds of workspace crates) and keep the dev profile as it is, so each
+target dir holds one copy of every artifact.
 
 ## Pull requests
 
@@ -25987,6 +26539,7 @@ Every Rust crate of the workspace. The pages are generated from each crate's `li
 | [pyforge-frameworks](docs/guide/developer/crates/pyforge-frameworks.md) | PyForge: Django, Flask, FastAPI and Celery read statically from the sources (settings, URL patterns, routes, models, tasks, templates, manage.py commands, run command lines; pure, also built to WebAssembly) |
 | [pyforge-jupyter](docs/guide/developer/crates/pyforge-jupyter.md) | PyForge: Jupyter notebooks (nbformat round-trip, rendered outputs with sanitized HTML/SVG, DataFrame tables, notebook diffs, the messaging protocol; pure, also built to WebAssembly; kernels over ZeroMQ and Jupyter servers with `runtime`) |
 | [pyforge-testing](docs/guide/developer/crates/pyforge-testing.md) | PyForge: pytest, unittest and tox on the shared test runner, debugpy and cProfile command lines, `.pstats` profiles and the Python Console protocol (pure, also built to WebAssembly) |
+| [phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md) | PHPForge: the built-in PHP language server php-lsp, run by the Forge binary and the remote agent in a hidden `--php-lsp --stdio` mode |
 | [phpforge-cli-tools](docs/guide/developer/crates/phpforge-cli-tools.md) | PHPForge: Command Line Tool Support (tool model and detection, `list --format=json` and `wp cli cmd-dump` parsing, console input parsing and completion; pure, also built to WebAssembly) |
 | [phpforge-quality-tools](docs/guide/developer/crates/phpforge-quality-tools.md) | PHPForge: PHP quality tools (PHPStan, Psalm, PHP CS Fixer, PHP_CodeSniffer, PHP Mess Detector, Laravel Pint, Rector): configurations, command lines, JSON report parsing with path mapping, unified diffs (pure) |
 | [phpforge-test-frameworks](docs/guide/developer/crates/phpforge-test-frameworks.md) | PHPForge: PHP test frameworks (PHPUnit, Pest, Codeception, Behat, PHPSpec): settings and detection, run configuration command lines, test discovery for gutter icons, Gherkin and Behat step definitions, Rerun Failed Tests (pure, also built to WebAssembly) |
@@ -26673,7 +27226,7 @@ pub fn lsp::stylua_args(values: &Values) -> Vec<String> { … }
   (registered as the last format post-processor of Reformat Code).
 - `editor_file_format` resolves indents with the selected scheme (`effective_settings`, file
   types mapped to their code style language); the PHP code style (braces, blank lines) and
-  Intelephense's settings read it too; `lsp_format({ …, languageId })` pushes
+  the `intelephense.*` settings php-lsp reads use it too; `lsp_format({ …, languageId })` pushes
   `settings_patch` to the file's server (`LspClient::update_settings`); `lua_format` passes
   `stylua_args`.
 - Browser mode: built into `forge-wasm` (`codestyle.rs`); the mocks in
@@ -28757,10 +29310,10 @@ Forge's catalog of language servers for many languages, and everything around it
 - `install`: running an install command with streamed output,
 - `managed`: installs of npm servers without prerequisites (Node.js and packages
   downloaded and verified into Forge's data directory) and their update check,
-- `licence`: the Intelephense licence key in the OS keychain.
 
-PHP servers (Intelephense, phpactor) stay in the PHP pack; the app lists them next to
-these rows.
+PHP's server, the built-in php-lsp, stays in the PHP pack (`pack_servers.toml`, next to the
+servers of other packs such as jdtls and clangd); the app lists them next to these rows. `builtin = true` marks a server
+built into Forge (no install hint; the backend shows its version as `builtin_version`).
 
 ## Modules
 
@@ -28771,7 +29324,6 @@ these rows.
 | `config.rs` | Turning a catalog entry into a `LspServerConfig` for one project: file routing, user overrides and the project specific bits some servers need (TypeScript SDK, the Vue TypeScript plugin, ESLint's workspace folder, jdtls' data directory, Lua runtime). |
 | `detect.rs` | Finding installed language servers: `PATH` plus the places package managers put executables that are often missing from `PATH` in a desktop session (npm global prefix, nvm/fnm/volta, `~/.local/bin` for pip/pipx, `~/.cargo/bin`, `~/go/bin`, `~/.dotnet/tools`, gem user dirs and Neovim's Mason directory). |
 | `install.rs` | Running an install command (`npm install …`, `pipx install …`) with streamed output. Commands come from the catalog only and run without a shell. |
-| `licence.rs` | Intelephense licence key: kept in the OS keychain (service `forge-lsp`, account `intelephense`), never in settings files. |
 | `managed/archive.rs` | Unpacking downloaded archives (`.tgz` npm tarballs, Node.js `.tar.gz` and `.zip` builds) into a directory. Entries are checked before anything is written: absolute paths, `..` components and symlinks pointing outside the destination are refused. |
 | `managed/javadebug.rs` | Microsoft's java-debug plugin for JavaForge: the newest release named by Maven Central's `maven-metadata.xml`, checked against the repository's `.sha256` (else `.sha1`), into `<data dir>/forge/langservers/java-debug`. |
 | `managed/clangd.rs` | CForge's clangd download from the official GitHub releases at a pinned version (`CLANGD_VERSION`, `clangd_release` per platform): the SHA-256 recorded in `CLANGD_BUILDS`, else the asset `digest` of the GitHub REST API for the pinned release (`asset_digest`); without one the install is refused. Unpacked into `<data dir>/forge/langservers/clangd/<version>` (`installed_clangd`). clangd is a pack server (plugin `forge.cpp`). |
@@ -28780,10 +29332,10 @@ these rows.
 | `managed/netcoredbg.rs` | DotNetForge's netcoredbg (MIT, Samsung) from its GitHub releases at a pinned version (`NETCOREDBG_VERSION`): the SHA-256 recorded in `NETCOREDBG_BUILDS`, else the GitHub API's asset digest; without one the install is refused. Unpacked into `<data dir>/forge/debuggers/netcoredbg/<version>`. |
 | `managed/jdtls.rs` | Eclipse JDT LS for JavaForge: the newest milestone (or snapshot) from download.eclipse.org named by `latest.txt`, checked against its `.sha256`, unpacked into `<data dir>/forge/langservers/jdtls/<version>`; `inspect` / `installed` find the equinox launcher and `required_java` reads the Java release the bundles need (21, 25 for newer builds) from their manifests. JDT LS is a pack server (`pack_servers.toml`, plugin `forge.java`). |
 | `managed/http.rs` | A small HTTP client for downloads with progress (Node.js builds, npm metadata and tarballs). The system proxy settings (`HTTPS_PROXY`, …) are honoured. |
-| `managed/mod.rs` | Zero-prerequisite installs of npm language servers (Intelephense, typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
+| `managed/mod.rs` | Zero-prerequisite installs of npm language servers (typescript-language-server, vscode-langservers-extracted, yaml-language-server, …) on the user's machine: |
 | `managed/node.rs` | A Node.js runtime for npm language servers: a suitable one on the machine (>= 18), or the official build from nodejs.org (or a mirror) downloaded into `<data dir>/forge/runtimes/node-<version>`, verified against the release's `SHASUMS256.txt`. |
 | `managed/npm.rs` | npm packages without npm: registry metadata, tarball download with `dist.integrity` (sha512) verification, unpacking into `<managed dir>/node_modules/<name>` and the `node_modules/.bin` entries detection looks for. |
-| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, unpacked and checked against a pinned `content_digest` of its files (reproducible from `git archive <commit>`; see the ignored `print_content_digest` test), with its `LICENSE`; `intelephense_stubs` finds Intelephense's own `lib/stub`. |
+| `managed/stubs.rs` | PHP stubs for Go to Declaration on PHP's own symbols: a pinned JetBrains phpstorm-stubs release downloaded on first use into `<cache dir>/forge/php-stubs/<version>`, unpacked and checked against a pinned `content_digest` of its files (reproducible from `git archive <commit>`; see the ignored `print_content_digest` test), with its `LICENSE`. Forge's PHP index uses them; nothing else needs them. |
 | `managed/testserver.rs` | A tiny HTTP/1.1 server on localhost for tests: fixed bodies per path, request counts. |
 | `managed/updates.rs` | "A newer version is available": at most one registry check a day, remembered in `<managed dir>/.forge-update-check.json`. |
 | `plan.rs` | Which servers to start for a project, and the rows of the Language Servers settings page. |
@@ -28803,19 +29355,19 @@ pub use scan::{scan_project, ProjectScan};
 
 ## Used by
 
-- IPC: `langservers_list`, `langservers_apply`, `langservers_install`, `langservers_check_updates`, `langservers_update`, `langservers_cancel_install`, `lsp_workspace_symbols`, `intelephense_licence_status`, `intelephense_set_licence` (`app/src-tauri/src/commands/langservers.rs`)
+- IPC: `langservers_list`, `langservers_apply`, `langservers_install`, `langservers_check_updates`, `langservers_update`, `langservers_cancel_install`, `lsp_workspace_symbols` (`app/src-tauri/src/commands/langservers.rs`)
 - UI: `app/ui/src/features/langservers`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
 ## Dependencies
 
 - Workspace crates: [`forge-lsp`](docs/guide/developer/crates/forge-lsp.md)
-- External: `base64`, `dirs`, `flate2`, `ignore`, `keyring`, `reqwest`, `serde`, `serde_json`, `sha2`, `tar`, `tokio`, `toml`, `tracing`, `zip`
-- Features: `default` = `keychain`; `keychain` = `dep:keyring`
+- External: `base64`, `dirs`, `flate2`, `ignore`, `reqwest`, `serde`, `serde_json`, `sha2`, `tar`, `tokio`, `toml`, `tracing`, `zip`
+- Features: `testserver` (the download tests' HTTP server, for packs that test their own downloads)
 
 ## Tests
 
-17 source files, about 5313 lines; 54 unit tests.
+24 source files, about 8000 lines; 79 unit tests.
 
 ```sh
 cargo test -p forge-langservers
@@ -29145,7 +29697,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
   lines of every top-level block (synchronized scrolling), the front matter and the footnotes.
   Raw HTML is sanitized into the AST (`<img>`, `<a href>`, `<br>`, `<b>`, `<i>`, `<s>`); comments
   and every other tag are dropped.
-- `hover`: language server hover Markdown (Intelephense & co.) split into the parts of
+- `hover`: language server hover Markdown (php-lsp & co.) split into the parts of
   a PHPStorm-style documentation popup.
 
 ## Modules
@@ -29155,7 +29707,7 @@ documentation `<br>`/`<p>` become line breaks and every other tag is dropped.
 | `ast.rs` | The Markdown AST sent to the UI (JSON tagged by `t`). |
 | `doc_comment.rs` | Documentation comments for the editor's rendered view and Reader mode: `doc_comments(text, language)` finds `/** … */` (PHPDoc, JSDoc / TSDoc) and `---` (LuaDoc / LuaCATS) comments, `parse_doc_comment` turns one into a `HoverDoc`: the description as Markdown (inline `{@link url text}` / `{@see X}` as links and code), the tags as `Params:` / `Returns:` / `Throws:` / `Properties:` / `See also:` … sections, `@deprecated` as the note and `@example` as a code block. |
 | `document.rs` | The Markdown preview of a file: GitHub-flavored blocks with the source lines of every top-level block, the front matter and the footnotes; `anchor_line` for links into a file. |
-| `hover.rs` | Language server hovers (Markdown as Intelephense, phpactor & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
+| `hover.rs` | Language server hovers (Markdown as php-lsp & co. send it) split into the parts of a PHPStorm-style documentation popup: owner FQCN, signature, description and `Params:` / `Returns:` / `Throws:` sections. |
 | `parse.rs` | pulldown-cmark events into the `Block` tree. |
 
 ## Main public items
@@ -29722,7 +30274,7 @@ Source: docs/guide/developer/crates/forge-remote.md
 
 Remote development over SSH, like JetBrains Gateway: Forge connects to a host, installs
 its headless agent (`crates/forge-remote-agent`) there and opens the project through a
-`forge_backend::RemoteBackend`, so indexing, Intelephense, git, terminals and runs all
+`forge_backend::RemoteBackend`, so indexing, language servers, git, terminals and runs all
 happen next to the files.
 
 Pure modules (also built for WebAssembly without the `client` feature):
@@ -29800,8 +30352,10 @@ The Forge agent: a headless `LocalBackend` behind the agent
 The desktop app uploads this binary to `~/.cache/forge-agent/<version>/`, starts
 `forge-remote-agent serve` and talks to it with `forge_backend::rpc::RpcClient`. Every
 service runs next to the project's files: file system, file search, git, terminals,
-processes, language servers (Intelephense indexes the remote project itself) and the
-PHP index.
+processes, language servers (the PHP server indexes the remote project itself) and the
+PHP index. The agent links the built-in PHP language server php-lsp
+([phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md)): `forge-remote-agent --php-lsp --stdio`
+runs it, and the PHP pack's config on the host starts the agent binary that way.
 
 ## Modules
 
@@ -33152,6 +33706,60 @@ cargo test -p pyforge-testing --test smoke -- --ignored
 
 ---
 
+Source: docs/guide/developer/crates/phpforge-builtin-lsp.md
+
+# phpforge-builtin-lsp
+
+`packs/phpforge/builtin-lsp` — PHPForge: the built-in PHP language server
+[php-lsp](https://github.com/stdimnet/php-lsp), run by the Forge binary and the remote agent in
+a hidden `--php-lsp --stdio` mode.
+
+## Purpose
+
+php-lsp is a pure-Rust PHP language server under MIT OR Apache-2.0, a drop-in for Intelephense
+(same CLI flags, `intelephense.*` settings, diagnostics and formatting) with its premium
+features free. It is Forge's only PHP language server and is linked into Forge, so users
+install nothing. It is a cargo git dependency pinned to one revision
+(`rev = "7011d4c1e1b4f27ad8ded67b55ae4fabcd92ef09"`); its embedded JetBrains phpstorm-stubs
+(Apache-2.0) and the js-beautify port (MIT) are listed in `THIRD_PARTY_NOTICES.md`.
+
+The server runs in a **separate process** for crash isolation: `forge` (and
+`forge-remote-agent`) call `main_hook` first thing in `main`. With `--php-lsp` as the first
+argument it runs `php_lsp::run_stdio()` and exits, before Tauri, logging or the agent runtime
+start. Otherwise it announces the executable to `phpforge-lang-php`
+(`lsp::register_builtin_server`), whose `server_config` then starts `<current exe> --php-lsp
+--stdio` through forge-lsp like any other server. Transport, restarts, Safe Mode, remote
+projects (the agent runs its own copy on the host) and the Language Servers UI work unchanged.
+
+The in-process `php_lsp::Embedded` was not used: a server bug would take the IDE down, and the
+LSP client would need a second, in-memory transport.
+
+## Public items
+
+| Item | Summary |
+| --- | --- |
+| `FLAG` | `"--php-lsp"`, the first argument of the hidden mode. |
+| `VERSION`, `REVISION`, `version_label()` | php-lsp's version and pinned commit, `"0.1.0 (7011d4c)"` (`VERSION` is `php_lsp::VERSION`; a test checks the pinned commit against `Cargo.lock`). |
+| `main_hook(args)` | Runs the server in the hidden mode (`--version` prints the version) and returns the exit code; otherwise registers the built-in server and returns `None`. |
+| `is_server_mode`, `server_args`, `run_stdio`, `register` | The pieces of `main_hook`. |
+
+## Dependencies
+
+`php-lsp` (git, pinned), `phpforge-lang-php`. It brings `lsp-types` 0.97 and `rowan` 0.17
+next to forge-lsp's `lsp-types` 0.95 and tree-sitter-based crates; the server talks to Forge only
+through JSON-RPC, so the versions never meet.
+
+## Tests
+
+- Unit tests: the hidden-mode arguments and the pinned version against `Cargo.lock`.
+- `tests/server.rs` starts the test host `phpforge-builtin-lsp-host` (`tests/support/host.rs`,
+  never shipped) through forge-lsp's `LspClient` with the configuration Forge builds from its
+  PHP settings, on a small project in a temporary folder: initialize (capabilities), hover,
+  cross-file definition, completion, diagnostics, formatting and rename. No network.
+
+
+---
+
 Source: docs/guide/developer/crates/phpforge-cli-tools.md
 
 # phpforge-cli-tools
@@ -33733,7 +34341,7 @@ PHPForge language pack: PHP support built on tree-sitter.
   access, the implementing / overriding methods on `implements` / `extends`.
 - `hierarchy` Type, Method and Call Hierarchy.
 - `stubs` PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
-- `lsp` describes how to launch Intelephense / phpactor.
+- `lsp` describes how to launch the built-in php-lsp, Forge's only PHP language server.
 
 ## Modules
 
@@ -33749,14 +34357,14 @@ PHPForge language pack: PHP support built on tree-sitter.
 | `generate.rs` | "Generate" actions (Alt+Insert): constructor, getters/setters, `__toString()`, override/implement method stubs and PHPDoc blocks. |
 | `highlight.rs` | Highlight Usages in File on the index (when no language server answers `documentHighlight`): the usages of the symbol at the caret in its file, the declaration as a write, and on `implements` / `extends` the class's methods that implement / override the parents' methods. |
 | `hover.rs` | Index-based hover for project symbols: signature + attributes + parsed docblock as markdown. Complements a language server's hover (which covers built-ins). |
-| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. |
+| `intentions.rs` | Built-in intentions for Show Context Actions (Alt+Enter) on the index: replace qualifier with an import, accessors, "Add 'readonly' modifier", method stubs, PHPDoc and the "Generate..." link. `is_lsp_twin` tells which language server actions do the same (php-lsp's "Generate getter for $name", "Implement 2 missing methods", "Import '…'", "Change namespace to '…'") so Alt+Enter lists them once. |
 | `imports/` | Optimize Imports: removes `use` imports nothing refers to (code, attributes, docblocks and annotations count) and arranges the rest by the code style's Imports tab; group uses are expanded, braced namespaces handled separately. `style.rs`: `ImportStyle` (sorting, grouping, blank lines, Prefer FQN and the PHP Auto Import settings) and the style of the running call (`with_style`, `set_default`). `insert.rs`: `insert_imports`, the one helper every import goes through (Import class, completion, Create from usage, Move, Copy, Pull Members Up). `auto.rs`: Auto Import: unresolved class names with candidates (`ProjectIndex::class_candidates`, project and vendor by file name), `reference_edits` (import, short name or FQN), the "Import class" fix with the chooser, the import popup and the on-the-fly decisions. |
 | `hierarchy.rs` | Type, Method and Call Hierarchy on the index (`HierarchyQuery`, answer `PhpHierarchy { graph?, title?, root?, calls }` in `forge_codeintel::hierarchy`'s model): the class at the caret with all its supertypes (parents, interfaces, traits; vendor classes resolved lazily, unknown ones by name) and every project class below it; for a method also the subtypes of its topmost declaration and each type's `MethodPresence`; the callable at the caret, its callers (`find_usages` call sites grouped by the enclosing method, function or file) and callees (calls in its body resolved like Go to Declaration, constructors through `new`, PHP's own functions as library items). |
 | `index.rs` | Workspace-wide PHP index: parallel indexing, mtime-keyed persistent cache, fuzzy symbol search, ancestor lookup and lazy resolution of vendor classes through Composer's PSR-4 metadata. |
 | `injections.rs` | `language_places`: every `#[Language]` parameter of the indexed functions, methods and constructors, handed to `forge-injections` (`InjectionSettings::places`). |
 | `inspections.rs` | Forge's PHP inspections (`inspect`, `fixes_at`): deprecated symbols with "Replace with …", expected values, `#[Immutable]` writes, unused `#[Pure]` results, unreachable statements after `#[NoReturn]` / `exitPoint()` calls, and "Namespace name doesn't match PSR-0/PSR-4 project structure" with "Set namespace to …" (source roots of the index), plus the data-flow inspections. Calls and names resolve through `navigate::resolve_word`. `PhpProblem::code` is the inspection id of [`forge-inspections`](docs/guide/developer/crates/forge-inspections.md) (`PhpDeprecation`, `PhpExpectedValuesShouldBeUsed`, `PhpImmutablePropertyIsChanged`, `PhpExpressionResultUnused`, `PhpUnreachableStatement`, `PhpIllegalPsrClassPath`, …); `to_problem` turns a problem into the framework's `Problem`. |
 | `dataflow.rs` | PHP data flow on the tree-sitter tree, per function, method and closure (and the top level): values of local variables through straight-line code and branches (merged at joins, loops forget what they assign), reporting "Variable is always null" (`PhpVariableIsAlwaysNull`), "Undefined variable" (`PhpUndefinedVariable`), "Condition is always true / false" (`PhpConstantCondition`) and "Unused assignment" (`PhpUnusedAssignment`, with "Remove unused assignment" / "Remove assignment, keep the expression"). Functions with `$$name`, `extract()`, `compact()`, `get_defined_vars()`, `eval`, `include` or `goto` are skipped; variables shared by reference are never tracked. |
-| `lsp.rs` | How to launch a PHP language server: Intelephense (preferred, users bring their own licence key) with phpactor as fallback. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
+| `lsp.rs` | How to launch PHP's language server: php-lsp, built into Forge (see [phpforge-builtin-lsp](docs/guide/developer/crates/phpforge-builtin-lsp.md)) and its only PHP server. `register_builtin_server` / `builtin_server` (the binary's built-in server), `detect` (`DetectedServers` for the settings page), `php_lsp_config` (the `intelephense` settings php-lsp reads plus a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS runners, cache in `<cache dir>/forge/php-lsp`). Settings of removed servers (`php.lsp.server`, `php.intelephense.*`) are not read, so old values fall back to php-lsp. Independent of the generic LSP client; the app turns `LspServerConfig` into a running server. |
 | `meta.rs` | `.phpstorm.meta.php` (`is_meta_path`, `parse` → `PhpMeta`): `override()` with `map()` (`@` patterns, `::class` keys), `type()`, `elementType()`; `expectedArguments()`, `expectedReturnValues()`, `registerArgumentsSet()` / `argumentsSet()`, `exitPoint()`; lookups `function_return` / `method_return` (→ `MetaType`), `map_entry`, `map_keys`, `expected_arguments`, `expected_return_values`, `is_exit_point`. `ProjectIndex::meta()` merges the files of the project, vendor packages and include paths (cached with the index, read again on change). |
 | `model.rs` | Symbol model produced by the indexer. Everything is serializable so it can be cached on disk and sent over IPC unchanged (camelCase field names for the UI). |
 | `navigate.rs` | Code navigation on the index when no language server answers: the symbol under the caret (classes with or without a leading backslash through imports, aliases, group uses and the namespace; functions and constants with PHP's global fallback; members through `$this`, `self`/`static`/`parent`, typed variables, `catch`, `@var`, property and return-type chains; variables), `definition` (target, "on a declaration" or an `ExternalSymbol` for the stubs), `find_usages` / `find_usages_with` (usage kinds, dynamic usages, members through parent and child classes; with the Find Usages options also usages of a class's methods and fields, derived / implementing classes, derived interfaces and overriding methods, comments and strings), Go to Implementation / Super Method / Type Declaration and the implemented / overridden `line_markers`. |
@@ -33780,7 +34388,7 @@ pub enum PhpError { … }
 
 ## Used by
 
-- IPC: `php_inspect`, `php_complete`, `php_language_places`, `php_libraries`, `php_library_list`, `php_source_roots` (`commands/php_meta.rs`), `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers`, `php_lsp_config` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
+- IPC: `php_inspect`, `php_complete`, `php_language_places`, `php_libraries`, `php_library_list`, `php_source_roots` (`commands/php_meta.rs`), `php_index_workspace`, `php_search_symbols`, `php_file_structure`, `php_hover`, `php_generate_targets`, `php_generate`, `php_detect_servers` (`app/src-tauri/src/commands/php.rs`); `code_goto_declaration`, `code_symbol_info`, `code_find_usages`, `code_highlight_usages`, `code_usage_target`, `code_navigate`, `code_line_markers`, `code_prepare_rename`, `code_rename`, `code_context_actions`, `library_read` (`commands/codeintel.rs`, `commands/library.rs`) through `forge_backend::PhpBackend`, so remote projects answer from the agent
 - UI: `app/ui/src/features/php`, `app/ui/src/features/codeintel`
 - Browser mode: not built to WebAssembly (runtime code); browser mode uses mocks
 
@@ -34329,8 +34937,9 @@ A PHPStorm-style IDE for Windows, Linux and macOS, written in Rust (Tauri 2) wit
 The layout, wording and keymap follow PHPStorm; the colors are Forge's own.
 
 **Is it free?**
-Forge is MIT-licensed. Third-party tools you connect keep their own terms: Intelephense premium
-needs your own licence, AI providers need your own API key or subscription.
+Forge is MIT-licensed. The built-in PHP language server php-lsp is free as well (MIT OR
+Apache-2.0) and needs no licence key. Third-party tools you connect keep their own terms:
+AI providers need your own API key or subscription.
 
 **Which version is this guide for?**
 Forge 0.1.0 as on the branch that contains this guide. Recent additions and what is not available
@@ -34350,7 +34959,8 @@ be imported yet; re-create changes in Settings | Keymap.
 No. Forge keeps its own data in `.forge/` and ignores `.idea/`.
 
 **Is PHP support as deep as PHPStorm's?**
-Not yet. Completion and diagnostics come from Intelephense (or Phpactor); Forge adds its own
+Not yet. Completion and diagnostics come from the built-in language server php-lsp
+(Intelephense-compatible, with rename and refactorings); Forge adds its own
 index with navigation (Go to Declaration including PHP's own stubs, Find/Show Usages,
 implementations, gutter icons) that also works without a server, Generate actions, Laravel,
 Symfony and Doctrine support. Refactorings, inspections with quick-fixes and Replace in Files
@@ -34375,7 +34985,7 @@ No. They are separate programs you install, from the Language Servers settings p
 click or with your package manager. Forge never bundles paid tools or keys.
 
 **Do I need Node.js?**
-Only for npm scripts and web project generators. npm-based language servers (Intelephense, TypeScript, Vue, …) do not need it: Forge
+Only for npm scripts and web project generators. npm-based language servers (TypeScript, Vue, YAML, …) do not need it: Forge
 downloads an official Node.js build for them when none (18 or newer) is installed.
 
 ## AI
@@ -34511,17 +35121,13 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
    ESLint, Tailwind and Angular the project must use them.
 
-### Intelephense starts but premium features are missing
-
-Enter your licence key (Settings | Languages & Frameworks | Language Servers or PHP →
-**Enter Licence Key…**). The status must read "Premium (key …1234)". If the keychain is not
-available, the key cannot be stored (see below).
-
 ### No completion in PHP at all
 
-Check Settings | Languages & Frameworks | PHP | **Language server**: with "None (built-in index
-only)" no server runs. With "Auto", install Intelephense (**Install Intelephense** on the PHP page) or
-Phpactor.
+PHP's language server, php-lsp, is built into Forge and starts when a PHP project opens. Check
+that the PHP plugin is enabled (Settings | Plugins) and that Settings | Languages & Frameworks |
+PHP shows **php-lsp (built-in)** with a version, and look at the language server widget in the
+status bar. Earlier versions could run Intelephense or Phpactor instead; that choice
+(`php.lsp.server`) is ignored now.
 
 ## Keychain on Linux
 
@@ -34568,9 +35174,10 @@ fingerprints. Confirm only if you know why it changed (reinstalled server).
 
 ### Language server missing in a remote project
 
-Catalog servers and Intelephense run **on the host**. Install them from Settings | Languages &
-Frameworks | Language Servers (Forge installs npm servers on the host) or on the host yourself,
-e.g. `npm install -g intelephense`, then reopen the project.
+Catalog servers run **on the host** (PHP's php-lsp runs inside the Forge agent there). Install
+them from Settings | Languages & Frameworks | Language Servers (Forge installs npm servers on the
+host) or on the host yourself, e.g. `npm install -g yaml-language-server`, then reopen the
+project.
 
 ### HTTP request in a remote project cannot connect
 

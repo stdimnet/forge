@@ -1,0 +1,80 @@
+/* Code With Me guest: status bar item, project widget tag. */
+
+.cwm-status-wrap {
+  position: relative;
+  display: flex;
+}
+.cwm-status {
+  gap: 6px;
+}
+.cwm-status svg {
+  color: var(--collab-1);
+}
+.cwm-status-detail {
+  color: var(--fg-muted);
+}
+.cwm-status[data-latency="good"] .cwm-status-detail {
+  color: var(--success);
+}
+.cwm-status[data-latency="fair"] .cwm-status-detail {
+  color: var(--warning);
+}
+.cwm-status[data-latency="poor"] .cwm-status-detail {
+  color: var(--danger);
+}
+.cwm-status-popup {
+  width: 340px;
+  padding: 10px 12px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-small);
+}
+.cwm-status-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: var(--fs-ui);
+  color: var(--fg-strong);
+}
+.cwm-status-title svg {
+  color: var(--collab-1);
+}
+.cwm-status-grid {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 5px 10px;
+  margin: 0 0 10px;
+}
+.cwm-status-grid dt {
+  color: var(--fg-muted);
+}
+.cwm-status-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.cwm-status-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The project widget of the title bar names the host. */
+.cwm-guest-tag {
+  color: var(--fg-muted);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.cwm-guest-tag b {
+  color: var(--collab-1);
+  font-weight: 500;
+}
+
+/* A dropped connection that is being restored. */
+.cwm-status.reconnecting svg,
+.cwm-status.reconnecting span,
+.cwm-status-reconnecting {
+  color: var(--warning);
+}

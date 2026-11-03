@@ -32,6 +32,10 @@ import {
 import { workspace } from "@/state/workspace";
 import { toggleTheme } from "@/state/theme";
 import { actionById, installKeymap, migrateLegacyKeymap, runAction, showBalloon } from "@/keymap";
+import { isTauri } from "@/ipc";
+import { dialogBoot } from "@/shell/window/mode";
+import { requestCloseDialog } from "@/shell/window/dialogs";
+import { closeThisWindow, exitApp } from "@/features/system";
 import { openSearchEverywhere } from "@/features/search/state";
 import "@/features/search/builtinProviders";
 import { EDITOR_COMMANDS, activeView, runInEditor } from "./editorCommands";
@@ -173,7 +177,18 @@ action("ResizeToolWindowDown", stretch("down"));
 action("SaveAll", () => saveAll("explicit"));
 // Close actions work on the active editor group; pinned tabs stay on Close Others/All.
 const inActiveGroup = (fn: (group: number, id: string | null) => void) => () => fn(activeGroupId(), groupActive(activeGroupId()));
-action("CloseContent", inActiveGroup((g, id) => id && closeTabIn(g, id)));
+// Cmd+W / Ctrl+F4: in a dialog window (Settings, a detached editor) the window; in the main
+// window the active tab, or the window itself when no tab is open. Popups close with Esc.
+action(
+  "CloseContent",
+  inActiveGroup((g, id) => {
+    const dialog = dialogBoot()?.id;
+    if (dialog) return requestCloseDialog(dialog);
+    if (id) return closeTabIn(g, id);
+    void closeThisWindow();
+  }),
+);
+if (isTauri()) action("Exit", () => void exitApp());
 action("CloseAllEditors", inActiveGroup((g) => closeAllTabsIn(g)));
 action("CloseAllEditorsButActive", inActiveGroup((g, id) => id && closeOtherTabs(g, id)));
 action("CloseAllUnmodifiedEditors", inActiveGroup((g) => closeUnmodifiedTabs(g)));

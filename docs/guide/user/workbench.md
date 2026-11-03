@@ -299,7 +299,7 @@ Right-click a file, a folder or the empty area below the tree:
 
 - Each open file has a tab. The active one is highlighted; a modified file is marked until it
   is saved.
-- Close a tab with its × button, a middle click, or `Ctrl+F4` (macOS `Cmd+W`).
+- Close a tab with its × button, a middle click, or `Ctrl+F4` (macOS `Cmd+W` or `Ctrl+F4`). Without an open tab, `Cmd+W` closes the window.
 - `Alt+Right` / `Alt+Left` (macOS `Ctrl+Right` / `Ctrl+Left`) select the next/previous tab.
 - `Ctrl+S` (macOS `Cmd+S`) saves all files (**Save All**).
 - Some tabs are not files: merge requests, issues, database consoles and table editors open as

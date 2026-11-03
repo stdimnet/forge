@@ -14,7 +14,7 @@
 //!   Inline.
 //! - [`create`] Create symbols from usage (methods, fields, constants, functions, classes).
 //! - [`stubs`] PHP's own symbols from phpstorm-stubs (the "PHP Runtime").
-//! - [`lsp`] describes how to launch Intelephense / phpactor.
+//! - [`lsp`] describes how to launch the built-in php-lsp.
 //! - [`style`] brace placement and blank lines of the PHP code style.
 //! - [`imports`], [`rearrange`] and [`cleanup`]: Optimize Imports, Rearrange Code and Code
 //!   Cleanup (also run as Actions on Save).

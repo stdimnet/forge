@@ -1,6 +1,7 @@
 # Servers that language packs configure and start themselves. They are listed on the
 # Language Servers settings page (status, path, install hints) but never started from
-# here: PHPForge's `lang-php` builds their configs (Settings > Languages & Frameworks > PHP),
+# here: PHPForge's `lang-php` builds the config of its built-in php-lsp (Settings > Languages &
+# Frameworks > PHP),
 # JavaForge starts Eclipse JDT LS with the project JDK (Settings > Languages & Frameworks > Java),
 # KotlinForge kotlin-lsp or kotlin-language-server (Settings > Languages & Frameworks > Kotlin),
 # JavaForge's Scala support Metals (Settings > Languages & Frameworks > Scala),
@@ -14,35 +15,17 @@ name = "PHP"
 extensions = ["php", "phtml"]
 
 [[server]]
-id = "intelephense"
-name = "Intelephense"
+id = "php-lsp"
+name = "php-lsp (built-in)"
 group = "PHP"
 languages = ["php"]
-command = "intelephense"
-args = ["--stdio"]
+command = "forge"
+args = ["--php-lsp", "--stdio"]
 plugin = "forge.php"
-homepage = "https://intelephense.com"
-license = "Proprietary (free core, premium licence key optional)"
-note = "Free by default. Enter your own licence key to unlock premium features such as rename, code actions and type hierarchy."
-install = [
-  { tool = "npm", command = ["npm", "install", "-g", "intelephense"] },
-]
-
-[[server]]
-id = "phpactor"
-name = "Phpactor"
-group = "PHP"
-languages = ["php"]
-command = "phpactor"
-args = ["language-server"]
-plugin = "forge.php"
-homepage = "https://phpactor.readthedocs.io"
-license = "MIT"
-note = "Used when Intelephense is not installed, or when chosen in the PHP settings."
-install = [
-  { tool = "composer", command = ["composer", "global", "require", "phpactor/phpactor"] },
-  { tool = "download", url = "https://github.com/phpactor/phpactor/releases" },
-]
+homepage = "https://github.com/stdimnet/php-lsp"
+license = "MIT OR Apache-2.0"
+builtin = true
+note = "Built into Forge, nothing to install: completion, navigation, diagnostics, rename, refactorings and formatting in Intelephense's style, premium features included. Forge's PHP language server."
 
 [[language]]
 id = "java"

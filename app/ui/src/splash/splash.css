@@ -20,6 +20,15 @@ html[data-window="splash"] body {
   place-items: center;
 }
 /* Browser preview: the window on a dim desk. */
+/* The static splash of splash.html, above the live one until it has faded out. */
+#boot {
+  z-index: 1;
+  transition: opacity 0.18s ease-out;
+}
+#boot.leaving {
+  opacity: 0;
+  pointer-events: none;
+}
 .splash-stage.preview {
   background: var(--splash-desk);
   padding: 16px;

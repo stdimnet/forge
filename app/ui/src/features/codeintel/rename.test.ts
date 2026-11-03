@@ -7,7 +7,7 @@ import type { EditPlan, PrepareRenameAnswer, RenameAnswer, WorkspaceEdit } from 
 import { commands } from "@/state/commands";
 import { registerView } from "@/editor/views";
 import { applyWorkspaceEdit, refactoringHistory } from "./refactoring";
-import { cancelRename, commitRename, currentName, inPlaceRename, premiumHint, renameSessionOf, resetPremiumHint, startRename } from "./rename";
+import { cancelRename, commitRename, currentName, inPlaceRename, renameSessionOf, startRename } from "./rename";
 import { actionIcon } from "./intentions";
 import { conflictsAnswer } from "./RefactoringDialogs";
 import "./index";
@@ -58,14 +58,13 @@ const answer = (over: Partial<PrepareRenameAnswer> = {}): PrepareRenameAnswer =>
 });
 
 beforeEach(() => {
-  resetPremiumHint();
   registerMock("code_prepare_rename", () => answer());
   registerMock("code_rename", ({ newName }): RenameAnswer => ({
     edit: renameEdit(String(newName)),
     preview: [],
     conflicts: [],
     source: "index",
-    missing: { feature: "Rename", message: "Rename requires Intelephense Premium", premium: true },
+    missing: null,
     skipped: 0,
   }));
   // Both files are open: every text edit goes to its editor.
@@ -124,7 +123,7 @@ describe("in-place rename", () => {
     expect(renameSessionOf(view)).toBeNull();
   });
 
-  it("renames across open files as one undoable step and shows the premium hint once", async () => {
+  it("renames across open files as one undoable step", async () => {
     const view = make("app/User.php", USER);
     const other = make("app/Ctrl.php", CONTROLLER);
     view.dispatch({ selection: { anchor: 8 } });
@@ -135,8 +134,6 @@ describe("in-place rename", () => {
     expect(other.state.doc.toString()).toBe("<?php\nfunction show(Purchase $o) {}\n");
     expect(renameSessionOf(view)).toBeNull();
     expect(undoDepth(view.state)).toBe(1);
-    // The hint was shown for this rename; it is not repeated.
-    expect(premiumHint({ source: "index", missing: { feature: "Rename", message: "", premium: true } })).toBe(false);
 
     // Ctrl+Z in one editor undoes the whole rename.
     undo(view);

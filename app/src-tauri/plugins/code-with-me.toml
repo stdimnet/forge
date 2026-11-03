@@ -1,0 +1,255 @@
+# Code With Me: invite guests into the open project to edit files together
+# (crates/forge-collab, app/ui/src/features/code-with-me, docs/plans/code-with-me.md).
+id = "forge.codewithme"
+name = "Code With Me"
+version = "0.1.0"
+pack = "core"
+vendor = "Forge"
+description = "Real-time collaborative editing: invite guests with a session link, edit the same files at the same time and see each other's carets. Connections go directly from guest to host; no account or service is needed."
+depends = ["forge.core"]
+
+[[contributions.commands]]
+id = "CodeWithMe.StartSession"
+title = "Start Session…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.CopySessionLink"
+title = "Copy Session Link"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.EndSession"
+title = "End Session"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.JoinSession"
+title = "Join Session…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.LeaveSession"
+title = "Leave Session"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.OpenSharedFile"
+title = "Open Shared File…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.FollowParticipant"
+title = "Follow Participant…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.JumpToParticipant"
+title = "Jump To Participant…"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.StopFollowing"
+title = "Stop Following"
+category = "Code With Me"
+
+[[contributions.commands]]
+id = "CodeWithMe.MakeEveryoneFollow"
+title = "Make Everyone Follow You"
+category = "Code With Me"
+
+[[contributions.mainMenu]]
+path = "Tools/Code With _Me"
+items = [
+  { type = "action", id = "CodeWithMe.StartSession", label = "_Start Session..." },
+  { type = "action", id = "CodeWithMe.CopySessionLink", label = "_Copy Session Link" },
+  { type = "action", id = "CodeWithMe.EndSession", label = "_End Session" },
+  { type = "separator" },
+  { type = "action", id = "CodeWithMe.FollowParticipant", label = "_Follow Participant..." },
+  { type = "action", id = "CodeWithMe.JumpToParticipant", label = "Jump _To Participant..." },
+  { type = "action", id = "CodeWithMe.StopFollowing", label = "Stop Follo_wing" },
+  { type = "action", id = "CodeWithMe.MakeEveryoneFollow", label = "Make Everyone Follow _You" },
+  { type = "separator" },
+  { type = "action", id = "CodeWithMe.JoinSession", label = "_Join Session..." },
+  { type = "action", id = "CodeWithMe.OpenSharedFile", label = "_Open Shared File..." },
+  { type = "action", id = "CodeWithMe.LeaveSession", label = "_Leave Session" },
+]
+
+# ---- Settings | Tools | Code With Me ----------------------------------------------------
+
+[[contributions.settings]]
+key = "codeWithMe.userName"
+title = "User name"
+description = "Shown to the other participants next to your caret. Empty: the system user name."
+type = "string"
+default = ""
+group = "tools.code-with-me"
+section = "Session"
+order = 0
+
+[[contributions.settings]]
+key = "codeWithMe.defaultPermission"
+title = "Default permission for guests"
+description = "Preselected in Start Session."
+type = "enum"
+options = [
+  { value = "readOnly", label = "Read-only" },
+  { value = "editFiles", label = "Edit files" },
+  { value = "fullAccess", label = "Full access" },
+]
+default = "readOnly"
+group = "tools.code-with-me"
+section = "Session"
+order = 10
+
+[[contributions.settings]]
+key = "codeWithMe.confirmEndSession"
+title = "Ask before ending a session"
+type = "bool"
+default = true
+group = "tools.code-with-me"
+section = "Session"
+order = 20
+
+[[contributions.settings]]
+key = "codeWithMe.followHostOnJoin"
+title = "Follow the host when joining"
+description = "As a guest, start by following the host: their file and caret stay in view until you type, click into the editor or open another file."
+type = "bool"
+default = true
+group = "tools.code-with-me"
+section = "Session"
+order = 25
+
+[[contributions.settings]]
+key = "codeWithMe.shareNewTerminals"
+title = "Share new terminal tabs"
+description = "While you host a session, terminal tabs you open are shared with guests right away. Otherwise share a tab from its context menu (Share with Guests). Guests with Read-only terminal access watch shared tabs; with Full access they can type in them."
+type = "bool"
+default = false
+group = "tools.code-with-me"
+section = "Session"
+order = 27
+
+[[contributions.settings]]
+key = "codeWithMe.auditLog"
+title = "Keep a session log"
+description = "Who joined, permission changes, what guests changed and what was refused, as one file per session in Forge's data directory (never in the project). Logs older than 30 days are deleted."
+type = "bool"
+default = true
+group = "tools.code-with-me"
+section = "Session"
+order = 30
+
+[[contributions.settings]]
+key = "codeWithMe.listenPort"
+title = "Port"
+description = "UDP port for direct connections. 0: any free port. Set a fixed port for a port forward."
+type = "int"
+min = 0
+max = 65535
+default = 0
+group = "tools.code-with-me"
+section = "Connection"
+order = 30
+
+[[contributions.settings]]
+key = "codeWithMe.listenAddress"
+title = "Listen on address"
+description = "Bind to one interface, e.g. a VPN address, or 127.0.0.1 for SSH tunnels. Empty: all interfaces."
+type = "string"
+default = ""
+group = "tools.code-with-me"
+section = "Connection"
+order = 40
+
+[[contributions.settings]]
+key = "codeWithMe.lanDiscovery"
+title = "Discover hosts on the local network"
+description = "Find a host on the same network even when its address changed (mDNS). Nothing leaves the local network."
+type = "bool"
+default = true
+group = "tools.code-with-me"
+section = "Connection"
+order = 45
+
+[[contributions.settings]]
+key = "codeWithMe.relayUrl"
+title = "Relay server"
+description = "URL of your own iroh-relay, e.g. https://relay.example.com. Guests behind a NAT or firewall connect through it when a direct connection is not possible; it only forwards encrypted traffic. Empty: direct connections only, and Forge contacts no server."
+type = "string"
+default = ""
+group = "tools.code-with-me"
+section = "Relay Server"
+order = 47
+
+[[contributions.settings]]
+key = "codeWithMe.usePublicRelays"
+title = "Use the public relay servers of n0"
+description = "Opt in to the free iroh relays run by number 0 computer, a third party. They are rate-limited and see only encrypted traffic. Ignored when a relay server is set above."
+type = "bool"
+default = false
+group = "tools.code-with-me"
+section = "Relay Server"
+order = 48
+
+[[contributions.settings]]
+key = "codeWithMe.excludedFiles"
+title = "Files guests never see"
+description = "Patterns like .gitignore lines; !pattern shows a file again."
+type = "list"
+default = [
+  ".env",
+  ".env.*",
+  "!.env.example",
+  "!.env.dist",
+  "*.pem",
+  "*.key",
+  "*.p12",
+  "*.pfx",
+  "id_rsa*",
+  "id_ed25519*",
+  "auth.json",
+  ".npmrc",
+  ".pypirc",
+  ".netrc",
+  "*.kdbx",
+  ".forge/dataSources.toml",
+  ".forge/*.local.toml",
+  "config/master.key",
+]
+group = "tools.code-with-me"
+section = "Shared Files"
+order = 50
+
+[[contributions.settings]]
+key = "codeWithMe.protectedFiles"
+title = "Files only Full access may change"
+description = "Files that configure what runs on your machine (run configurations, scripts, build files). Guests need Full access to Run to change them; with Edit files they open read-only. Same patterns as above; applies to sessions you start from now on."
+type = "list"
+default = [
+  ".forge/runConfigurations*.toml",
+  ".forge/settings.toml",
+  ".vscode/",
+  ".idea/",
+  ".husky/",
+  "composer.json",
+  "package.json",
+  "Makefile",
+  "artisan",
+  "bin/console",
+]
+group = "tools.code-with-me"
+section = "Shared Files"
+order = 55
+
+[[contributions.settings]]
+key = "codeWithMe.maxSharedFileSize"
+title = "Larger files open read-only (KB)"
+type = "int"
+min = 1
+max = 102400
+default = 5120
+group = "tools.code-with-me"
+section = "Shared Files"
+order = 60

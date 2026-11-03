@@ -25,18 +25,22 @@ use forge_window::{
     control_line, parse_control_line, ControlRequest, ProjectWindowEntry, ProjectWindowInfo,
     ProjectWindows,
 };
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::state::AppState;
 
 /// Set for instances started by [`project_window_open`].
 pub const NEW_WINDOW_ENV: &str = "FORGE_NEW_WINDOW";
+/// A Code With Me session link for a new window's Join Session dialog
+/// ([`spawn_join_window`]); in the environment, so it is not in the process list.
+pub const JOIN_LINK_ENV: &str = "FORGE_CWM_JOIN";
 const CONNECT_TIMEOUT: Duration = Duration::from_millis(300);
 const IO_TIMEOUT: Duration = Duration::from_secs(1);
 /// Longest request line the control port reads.
 const MAX_LINE: u64 = 256;
 
 static SECONDARY: AtomicBool = AtomicBool::new(false);
+static JOIN_LINK: Mutex<Option<String>> = Mutex::new(None);
 static ME: OnceLock<ProjectWindowEntry> = OnceLock::new();
 /// Serializes this instance's reads and writes of the registry file.
 static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
@@ -47,7 +51,21 @@ pub fn init_from_env() {
     if std::env::var_os(NEW_WINDOW_ENV).is_some() {
         SECONDARY.store(true, Ordering::SeqCst);
         std::env::remove_var(NEW_WINDOW_ENV);
+        if let Ok(link) = std::env::var(JOIN_LINK_ENV) {
+            *JOIN_LINK.lock().unwrap_or_else(|e| e.into_inner()) = Some(link);
+        }
     }
+    std::env::remove_var(JOIN_LINK_ENV);
+}
+
+/// The session link this window was opened for, once.
+pub fn take_join_link() -> Option<String> {
+    JOIN_LINK.lock().unwrap_or_else(|e| e.into_inner()).take()
+}
+
+/// Open a new window (on its Welcome screen) whose Join Session dialog shows `link`.
+pub fn spawn_join_window(link: &str) -> Result<()> {
+    spawn(None, Some(link))
 }
 
 /// This instance was opened as an additional project window.
@@ -141,6 +159,10 @@ fn serve(app: &AppHandle, stream: TcpStream, token: &str, id: &str) {
         Some(ControlRequest::Info) => serde_json::to_string(&own_info(app, id)).unwrap_or_default(),
         Some(ControlRequest::Focus) => {
             focus_main(app);
+            "ok".into()
+        }
+        Some(ControlRequest::Quit) => {
+            quit_this(app);
             "ok".into()
         }
         None => return,
@@ -246,6 +268,26 @@ fn live_windows(app: &AppHandle) -> Vec<ProjectWindowInfo> {
     infos
 }
 
+/// How long the main window has to save its files before this instance exits anyway.
+const QUIT_GRACE: Duration = Duration::from_secs(5);
+
+/// Ask this instance's main window to save and exit (`app://quit`, answered with `app_exit`);
+/// without an answer the instance exits after [`QUIT_GRACE`].
+fn quit_this(app: &AppHandle) {
+    if app
+        .emit_to(crate::startup::MAIN_LABEL, "app://quit", ())
+        .is_err()
+    {
+        app.exit(0);
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(QUIT_GRACE);
+        app.exit(0);
+    });
+}
+
 fn focus_other(id: &str) -> Result<()> {
     let registry = load_registry();
     let entry = registry
@@ -266,6 +308,26 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T> + Send + 'sta
 #[tauri::command]
 pub async fn project_windows_list(app: AppHandle) -> Result<Vec<ProjectWindowInfo>> {
     blocking(move || Ok(live_windows(&app))).await
+}
+
+/// Exit | Cmd+Q: every project window of Forge saves its files and closes, this one too.
+#[tauri::command]
+pub async fn app_quit_all(app: AppHandle) -> Result<()> {
+    blocking(move || {
+        let me = ME.get().map(|m| m.id.clone()).unwrap_or_default();
+        for entry in load_registry().windows.iter().filter(|w| w.id != me) {
+            let _ = request(entry, ControlRequest::Quit);
+        }
+        quit_this(&app);
+        Ok(())
+    })
+    .await
+}
+
+/// Leave the process now (the answer of the main window to `app://quit`, files saved).
+#[tauri::command]
+pub fn app_exit(app: AppHandle) {
+    app.exit(0);
 }
 
 /// Bring another project window to the front.
@@ -334,19 +396,41 @@ pub async fn project_window_open(app: AppHandle, path: String) -> Result<()> {
             }
             return focus_other(&open.id);
         }
-        let mut child = std::process::Command::new(own_program()?)
-            .arg(&canonical)
-            .env(NEW_WINDOW_ENV, "1")
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
-            .map_err(|e| ForgeError::Other(format!("cannot open a new window: {e}")))?;
-        // Reap the instance when it exits (it outlives this one if this window closes first).
-        std::thread::spawn(move || {
-            let _ = child.wait();
-        });
-        Ok(())
+        spawn_window(Some(&canonical))
     })
     .await
+}
+
+/// File | New Window: another Forge instance on the Welcome screen (no project, the last
+/// one is not reopened), e.g. to join a Code With Me session next to the open project.
+#[tauri::command]
+pub async fn project_window_new() -> Result<()> {
+    blocking(|| spawn_window(None)).await
+}
+
+/// Start another instance as an additional project window, with `project` or without one.
+fn spawn_window(project: Option<&std::path::Path>) -> Result<()> {
+    spawn(project, None)
+}
+
+fn spawn(project: Option<&std::path::Path>, join_link: Option<&str>) -> Result<()> {
+    let mut command = std::process::Command::new(own_program()?);
+    if let Some(project) = project {
+        command.arg(project);
+    }
+    if let Some(link) = join_link {
+        command.env(JOIN_LINK_ENV, link);
+    }
+    let mut child = command
+        .env(NEW_WINDOW_ENV, "1")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| ForgeError::Other(format!("cannot open a new window: {e}")))?;
+    // Reap the instance when it exits (it outlives this one if this window closes first).
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
 }

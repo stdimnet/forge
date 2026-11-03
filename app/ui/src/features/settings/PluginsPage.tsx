@@ -49,7 +49,7 @@ function summary(p: PluginInfo): string[] {
   const out: string[] = [];
   if (c.languages.length) out.push(`Languages: ${c.languages.join(", ")}`);
   if (c.fileTypes.length) out.push(`File types: ${c.fileTypes.map((f) => f.name).join(", ")}`);
-  if (c.lspServers.length) out.push(`Language servers: ${c.lspServers.map((s) => s.command).join(", ")}`);
+  if (c.lspServers.length) out.push(`Language servers: ${c.lspServers.map((s) => s.id).join(", ")}`);
   if (c.runConfigurationTypes.length)
     out.push(`Run configurations: ${c.runConfigurationTypes.map((r) => r.name).join(", ")}`);
   if (c.aiProviders.length) out.push(`AI providers: ${c.aiProviders.map((a) => a.name).join(", ")}`);

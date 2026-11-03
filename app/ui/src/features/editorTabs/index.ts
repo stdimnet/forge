@@ -33,6 +33,8 @@ import { registerMainMenuEntries } from "@/features/mainMenu";
 import { action as menuAction } from "@/features/mainMenu/model";
 import { selectInTree } from "@/features/project/ProjectView";
 import { setTabMenuProvider } from "@/shell/tabMenu";
+import { windowApi } from "@/ipc/window";
+import { fileManagerName } from "@/features/editorNavigation/selectIn";
 import { canDetach, openTabInNewWindow } from "@/features/windows/detachedWindows";
 import "./recentLocations";
 import "./editorTabs.css";
@@ -140,6 +142,12 @@ const absolute = (path: string) => {
   return root ? `${root.replace(/\/$/, "")}/${path}` : path;
 };
 
+function revealInFileManager(path: string): void {
+  windowApi.revealInFileManager(path).catch((e) => {
+    showBalloon(`Cannot show the file in ${fileManagerName()}`, String(e instanceof Error ? e.message : e));
+  });
+}
+
 /** The context menu of an editor tab (PHPStorm's editor tab popup). */
 export function tabMenuEntries(group: number, id: string): MenuEntry[] {
   const pinned = isTabPinned(id);
@@ -177,6 +185,7 @@ export function tabMenuEntries(group: number, id: string): MenuEntry[] {
         item("File Name", () => void copy(name, "File name")),
       ]),
       item("Select in Project View", () => selectInProject(id), "SelectInProjectView"),
+      item(`Show in ${fileManagerName()}`, () => revealInFileManager(id)),
     );
   }
   if (canDetach(id)) {

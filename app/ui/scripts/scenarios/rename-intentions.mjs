@@ -1,7 +1,6 @@
 /**
- * Rename (Shift+F6) in place, the Refactoring Preview with conflicts, the Intelephense
- * Premium hint, Show Context Actions (Alt+Enter) with quick fixes and intentions, and the
- * light bulb.
+ * Rename (Shift+F6) in place, the Refactoring Preview with conflicts, Show Context Actions
+ * (Alt+Enter) with php-lsp's quick fixes and intentions, and the light bulb.
  */
 
 /** @param {import("playwright-core").Page} page @param {string} name */
@@ -59,11 +58,6 @@ async function quiet(page) {
   await page.evaluate(() => document.querySelectorAll(".balloon-close").forEach((b) => b.click()));
 }
 
-/** @param {import("playwright-core").Page} page */
-async function premium(page) {
-  await page.evaluate(() => window.__forgeMockLicence?.("DEMO-LICENCE-1234"));
-}
-
 /** Start renaming `Order` in User.php and type the new name. @param {import("playwright-core").Page} page */
 async function renameOrder(page, name) {
   await quiet(page);
@@ -79,12 +73,6 @@ export default {
   "rename-in-place": async (page) => {
     await renameOrder(page, "Purchase");
     await page.waitForSelector(".cm-rename-hint");
-  },
-  "rename-premium-hint": async (page) => {
-    await renameOrder(page, "Purchase");
-    await page.keyboard.press("Enter");
-    await page.waitForSelector(".balloon", { hasText: "Renamed with the PHP index" });
-    await page.waitForTimeout(400);
   },
   "rename-refactoring-preview": async (page) => {
     await renameOrder(page, "OrderStatus");
@@ -104,7 +92,6 @@ export default {
     await page.waitForSelector(".rename-dialog");
   },
   "context-actions": async (page) => {
-    await premium(page);
     await openFile(page, "InvoiceService.php");
     await quiet(page);
     await clickText(page, "$checkout", 0, 3);
@@ -121,7 +108,6 @@ export default {
     await page.waitForSelector(".intention-popup .intention-row");
   },
   "light-bulb": async (page) => {
-    await premium(page);
     await openFile(page, "InvoiceService.php");
     await quiet(page);
     await clickText(page, "utf8_encode", 0, 3);

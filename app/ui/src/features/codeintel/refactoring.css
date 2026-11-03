@@ -153,12 +153,6 @@
   padding: 6px 10px;
   color: var(--fg-muted);
 }
-.intention-footer {
-  padding: 5px 10px;
-  border-top: 1px solid var(--border);
-  color: var(--fg-muted);
-  font-size: var(--fs-small);
-}
 
 /* ---------- Rename dialog and Refactoring Preview ---------- */
 /* Above the editor's tooltips (the in-place rename hint). */

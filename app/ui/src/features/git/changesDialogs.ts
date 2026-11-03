@@ -2,7 +2,7 @@
  * Changelist and patch actions of the Commit tool window and Git ▸ Patch, like PHPStorm:
  * New / Edit / Delete Changelist, Set Active Changelist, Move to Another Changelist (F6),
  * Create Patch… and Apply Patch… / Apply Patch from Clipboard…. The dialogs render in
- * `ChangesDialogs.tsx`; the logic lives in Rust (`forge_vcs::{changelists, patch}`).
+ * `ChangesDialogViews.tsx`; the logic lives in Rust (`forge_vcs::{changelists, patch}`).
  */
 import { isTauri } from "@/ipc";
 import { askConfirm } from "@/features/contextMenu/dialogs";

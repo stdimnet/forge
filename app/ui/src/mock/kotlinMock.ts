@@ -14,7 +14,7 @@ import { isKotlinDemo, KT_PKG, KT_TEST_PKG, kotlinDemoInfo, kotlinDemoName } fro
 import { mockFiles } from "./workspaceMock";
 import { mockSettingValue } from "./settingsMock";
 import { projectRoot, startMockRun, type MockCoverage, type Step } from "./runMock";
-import { markMockIntelephenseInstalled } from "./lspMock";
+import { markMockServerInstalled } from "./lspMock";
 import "./kotlinDebugMock";
 
 const HOME = "/home/anna";
@@ -74,7 +74,7 @@ registerMock("kotlin_lsp_install", async () => {
     368_488_700,
   );
   kotlinLsp = PINNED;
-  markMockIntelephenseInstalled();
+  markMockServerInstalled();
   return kotlinLsp;
 });
 

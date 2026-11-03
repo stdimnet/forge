@@ -51,7 +51,13 @@ const C = {
 };
 
 const emit = (id: string, e: TerminalEvent) => emitMock(`terminal://${id}`, e);
-const out = (id: string, data: string) => emit(id, { type: "output", data: data.replace(/\n/g, "\r\n") });
+/** What each session printed (the last 64 KB), for `terminal_attach`. */
+const printed = new Map<string, string>();
+const out = (id: string, data: string) => {
+  const text = data.replace(/\n/g, "\r\n");
+  printed.set(id, ((printed.get(id) ?? "") + text).slice(-64 * 1024));
+  emit(id, { type: "output", data: text });
+};
 
 const homePath = (cwd: string) => cwd.replace(/^~/, "/home/dev");
 
@@ -337,4 +343,24 @@ registerMock("terminal_resize", () => undefined);
 registerMock("terminal_close", ({ id }) => {
   clearTimeout(shells.get(String(id))?.replay);
   shells.delete(String(id));
+  printed.delete(String(id));
+});
+
+/**
+ * Start a fake shell for `id` without a tab (Code With Me: a guest's terminal on the host, or
+ * the host's shared terminal in a guest's window). `before` is printed first, then the prompt.
+ */
+export function startMockShell(id: string, before = ""): void {
+  const s: FakeShell = { line: "", cwd: projectDir(), history: [], historyPos: 0 };
+  shells.set(id, s);
+  out(id, before + prompt(s));
+}
+
+/** Type into a fake shell as if keys arrived (a scripted Code With Me guest). */
+export const typeIntoMockShell = (id: string, data: string) => invoke("terminal_write", { id, data });
+
+registerMock("terminal_attach", ({ id }) => {
+  const key = String(id);
+  if (!shells.has(key)) throw new Error(`no terminal session ${key}`);
+  return { scrollback: printed.get(key) ?? "", cols: 100, rows: 24 };
 });

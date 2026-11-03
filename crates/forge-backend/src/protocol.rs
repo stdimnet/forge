@@ -633,7 +633,7 @@ mod tests {
                 channel: 12,
                 request: InstallRequest {
                     target: crate::langservers::InstallTarget::Server {
-                        id: "intelephense".into(),
+                        id: "vtsls".into(),
                         index: 0,
                     },
                     registry: None,

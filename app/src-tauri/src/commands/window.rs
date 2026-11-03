@@ -36,6 +36,9 @@ const CLOSED_EVENT: &str = "dialog://closed";
 const MESSAGE_EVENT: &str = "dialog://message";
 /// A dialog that did not answer a close request within this time is closed anyway.
 const CLOSE_GRACE: Duration = Duration::from_secs(3);
+/// A dialog window is shown at the latest this long after it was created, even if its UI
+/// never reported ready.
+const DIALOG_READY_TIMEOUT: Duration = Duration::from_secs(10);
 
 struct OpenDialog {
     id: String,
@@ -378,13 +381,26 @@ pub async fn dialog_window_open(
     );
     let _ = dialog.set_size(PhysicalSize::new(rect.width, rect.height));
     let _ = dialog.set_position(PhysicalPosition::new(rect.x, rect.y));
-    dialog.show().map_err(err)?;
-    let _ = dialog.set_focus();
+    // The window stays hidden until its UI has rendered (`dialog_window_ready`); showing it
+    // now would put an empty native window on screen while the frontend boots. If the UI
+    // never reports, it is shown after a timeout so the dialog cannot get lost.
+    let fallback = dialog.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(DIALOG_READY_TIMEOUT);
+        let _ = fallback.show();
+    });
     // Modal: the parent takes no input until the dialog closes.
     if request.modal {
         let _ = parent.set_enabled(false);
     }
     Ok(())
+}
+
+/// The dialog window's UI has rendered: show it.
+#[tauri::command]
+pub fn dialog_window_ready(window: WebviewWindow) -> Result<()> {
+    window.show().map_err(err)?;
+    window.set_focus().map_err(err)
 }
 
 /// Close the calling dialog window and report `result` to its parent (`null` = cancelled).

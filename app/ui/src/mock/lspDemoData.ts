@@ -1,5 +1,5 @@
 /**
- * Canned language server answers for the demo project, written the way Intelephense
+ * Canned language server answers for the demo project, written the way php-lsp
  * formats them (markdown hover with a `<?php` signature block and `_@param_` tags).
  */
 import type { EditorCompletionItem, Severity } from "@/ipc/lsp";

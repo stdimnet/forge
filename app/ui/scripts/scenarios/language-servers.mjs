@@ -1,7 +1,7 @@
 /**
  * Language servers for many languages: the Language Servers settings page, installing a
- * server with streamed output, the Intelephense licence (Free → Premium), project-wide
- * symbols from several servers in Search Everywhere and indexing progress in the status bar.
+ * server with streamed output, project-wide symbols from several servers in Search
+ * Everywhere and indexing progress in the status bar.
  */
 
 /** Freeze the mock TypeScript server's indexing at `percent` (null lets it finish). */
@@ -30,14 +30,6 @@ async function openPage(page) {
   await page.waitForTimeout(150);
 }
 
-/** @param {import("playwright-core").Page} page */
-async function openPhpPage(page) {
-  await page.evaluate(() => window.__forgeRunCommand("settings.open"));
-  await page.click('.set-tree-row[data-node="lang.php"]');
-  await page.waitForSelector('[data-testid="intelephense-licence"]');
-  await page.waitForTimeout(150);
-}
-
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
   "language-servers-settings": async (page) => {
@@ -49,7 +41,7 @@ export default {
   "language-servers-settings-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
     await openPage(page);
-    await page.click('.ls-tr[data-server="intelephense"]');
+    await page.click('.ls-tr[data-server="php-lsp"]');
     await page.locator(".set-content").evaluate((el) => (el.scrollTop = el.scrollHeight));
   },
   "language-servers-details": async (page) => {
@@ -72,22 +64,6 @@ export default {
     await page.click(".ls-install-dialog .btn-primary:has-text('Install')");
     await page.waitForSelector(".ls-log-line:has-text('funding')", { timeout: 10000 });
     await page.waitForSelector(".ls-progress-line .ls-ok");
-  },
-  "intelephense-licence-free": async (page) => {
-    await openPhpPage(page);
-  },
-  "intelephense-licence-dialog": async (page) => {
-    await openPhpPage(page);
-    await page.click('[data-testid="intelephense-licence"] button:has-text("Enter Licence Key")');
-    await page.waitForSelector(".ls-licence-dialog");
-    await page.fill("#ls-licence-key", "00K7M2Q9X4D81234");
-  },
-  "intelephense-licence-premium": async (page) => {
-    await openPhpPage(page);
-    await page.click('[data-testid="intelephense-licence"] button:has-text("Enter Licence Key")');
-    await page.fill("#ls-licence-key", "00K7M2Q9X4D81234");
-    await page.click(".ls-licence-dialog .btn-primary:has-text('Activate')");
-    await page.waitForSelector(".ls-tier.premium");
   },
   "search-everywhere-lsp-symbols": async (page) => {
     await page.click(".editor-slot:not(.hidden) .cm-content");

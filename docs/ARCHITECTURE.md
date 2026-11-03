@@ -159,6 +159,10 @@ app/ui/            SolidJS UI
 - Layout, wording and shortcuts follow PHPStorm; colors are Forge's own.
 - Every UI change is checked with `pnpm screenshots` (see `.claude/skills/verify-ui-with-screenshots`).
 - Project tree: single click selects, double click opens (setting `projectView.openFilesWithSingleClick`).
+- Per-project UI state (tree expansion, problems, search results, banners) is dropped through
+  `onProjectSwitch` (`src/state/workspace.ts`) when the window's project changes: This Window,
+  a Code With Me guest getting the host's project, Close Project. Views keyed on the project
+  render from `workspace()?.root`, not just from `workspace()` being set.
 - Commits: small, imperative subject lines, no co-author trailers.
 
 ## Shared IPC contracts
@@ -275,7 +279,7 @@ app/ui/            SolidJS UI
   action ids (`CheckinFiles`, `Git.Add`, `Compare.Selected`, …) inside `withVcsTargets`, and the
   same commands use the focused tree, Commit window or editor (`vcsTargets()`) for shortcuts.
 - Git menu dialogs and the shelf (`forge_vcs::ops`, `repo/ops.rs`, `repo/shelve.rs`,
-  `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogs.tsx`,
+  `forge_vcs::shelf`, `commands/git_ops.rs`, UI `features/git/gitDialogs.ts`, `GitDialogHost.tsx`,
   `StashShelfPanels.tsx`, `operation.ts`): `git_pull_with({ options: { remote, branches, rebase?,
   ffOnly?, noFf?, squash?, noCommit?, noVerify? } }) -> { output }`, `git_merge_with({ options: {
   branches, noFf?, ffOnly?, squash?, message?, noCommit?, allowUnrelatedHistories?, noVerify? }
@@ -297,7 +301,7 @@ app/ui/            SolidJS UI
   (`?rebasing` starts in a stopped rebase).
 - Changelists, partial commits and patches (`forge_vcs::{changelists, hunks, patch}`,
   `repo/partial.rs`, `repo/patches.rs`, `commands/git_changes.rs`, UI `features/git/
-  changelists.ts`, `changesDialogs.ts`, `ChangesDialogs.tsx`, `partialGutter.ts`,
+  changelists.ts`, `changesDialogs.ts`, `ChangesDialogViews.tsx`, `partialGutter.ts`,
   `commitChecks.ts`): changelists live in `<data dir>/forge/projects/<name>-<hash>/
   changelists.json`; every changelist command answers the lists `{ id, name, comment, active,
   files: { path, hunks: string[] | null }[] }[]`: `git_changelists()`,
@@ -696,7 +700,7 @@ or without Git, for local and remote projects.
 ## Startup splash and updates (`forge-update`)
 
 - **Windows.** `tauri.conf.json` declares two windows with `create: false`: `splash`
-  (640×400, undecorated, transparent, centered, `skipTaskbar`, loads `index.html?splash`) and
+  (640×400, undecorated, transparent, centered, `skipTaskbar`, loads `splash.html`, a page of its own that paints a static wordmark before any script runs) and
   `main`. `startup::begin` (called from `setup`) opens the splash unless `appearance.showSplash`
   is off and runs the loading steps on the `forge-startup` thread: keymap, plugin listeners and
   servers, the CLI / `forge://` / last project (`system.reopenLastProject`) with framework
@@ -785,6 +789,8 @@ or without Git, for local and remote projects.
   `current_exe` (or `$APPIMAGE`) with the folder and `FORGE_NEW_WINDOW=1`, which skips the
   single-instance plugin, the splash, the update check, `forge://` registration and the
   Browser Companion server; a window that already shows the folder is focused instead.
+  `project_window_new()` (File | New Window) starts an instance without a folder, which shows
+  the Welcome screen (additional windows never reopen the last project).
   Instances register in `<cache dir>/forge/project-windows.json`
   (`forge_window::ProjectWindows`) and answer `forge-window <token> info|focus` lines on a
   `127.0.0.1` control port (`forge_window::parse_control_line`); entries that do not answer
@@ -820,7 +826,8 @@ or without Git, for local and remote projects.
   `forge_vcs::GitExec`; `Backend::repo()` = `Repo::open_with`), `detect_project`, `watch`,
   `open_terminal`, `start_process`, `lsp_launcher()` (a `forge_lsp::ServerLauncher`; the app's
   `LspManager` is created with `LspManager::with_launcher`), `php()` (the PHP index and the
-  Intelephense / phpactor lookup, `forge_backend::PhpBackend`), `read_optional` (a file or
+  PHP language server config: the built-in php-lsp;
+  `forge_backend::PhpBackend`), `read_optional` (a file or
   `None`, one round trip), `framework(FrameworkCall)` (Laravel / Symfony / Doctrine / WordPress / CMS analysis,
   see below), `langservers(LangServersRequest)` (catalog server planning), `find_executable`
   (agent CLIs and tools on the project's machine) and `tunnels()` (SSH port forwarding,
@@ -830,8 +837,9 @@ or without Git, for local and remote projects.
   `RemoteBackend` serves a folder on another machine through the **Forge agent**
   (`crates/forge-remote-agent`): a headless `LocalBackend` behind the agent protocol on
   stdin/stdout. Git output is parsed locally (`forge-vcs` only runs `git` remotely), language
-  servers run on the host with their stdio proxied over a byte channel (Intelephense indexes
-  the remote files itself; its config is resolved on the host), the PHP index, file watcher,
+  servers run on the host with their stdio proxied over a byte channel (the PHP server indexes
+  the remote files itself; its config is resolved on the host, where the agent runs its own
+  built-in php-lsp as `forge-remote-agent --php-lsp --stdio`), the PHP index, file watcher,
   terminals and processes live in the agent.
 - Remote projects have the features of local ones; whatever reads many project files runs
   next to them:
@@ -853,8 +861,7 @@ or without Git, for local and remote projects.
     npm packages with integrity checks into the host's Forge directories) is
     `Call::LangServerInstall { channel, request }` in the agent, whose steps, output and
     download progress stream back as `Event::Install { channel, event }`; closing the channel
-    cancels it. `Call::LangServerUpdates` checks the host's installed packages. The Intelephense
-    licence is still accepted in the UI before the call.
+    cancels it. `Call::LangServerUpdates` checks the host's installed packages.
   - **WebForge** (`forge_backend::web`): `LocalWeb` loads and caches (5 s) the project's script,
     template and manifest files next to them and answers `Call::Web(WebCall)`: npm packages
     with scripts and package manager detection, React / Vue / Angular components, Go to
@@ -965,6 +972,121 @@ or without Git, for local and remote projects.
   opens `deploy@shop.example.com:/var/www/shop` (the demo project), `?welcome=remote` shows
   Welcome > Remote Development.
 
+## Code With Me (`forge-collab`, `forge.codewithme`)
+
+A host invites guests into the project open in its Forge; everyone edits the same files with
+their own carets, follows each other, and uses the host's terminals and run configurations.
+The design, threat model and stage notes ("as built") are in
+[`plans/code-with-me.md`](plans/code-with-me.md); the user guide is
+[`guide/user/code-with-me.md`](guide/user/code-with-me.md).
+
+**Layers.**
+
+- `crates/forge-collab`: pure modules (`link`, `permissions`, `protocol`, `verify`, `excludes`,
+  `presence`, `relay`, `reconnect`, `share`, `textdiff`; also built without `runtime`), and with
+  `runtime` the sessions: `host::HostSession`, `guest::GuestSession`, the host's `yrs` copy of
+  every shared file (`docs::SharedDoc`), the session log (`audit`), host approval (`approval`)
+  and the guest's project backend (`guest_backend::CollabBackend`, a `forge_backend::Backend`).
+  `net` adds the iroh transport (`transport::net`, `transport::relay`); tests use
+  `transport::memory::MemoryNetwork`.
+- `app/src-tauri/src/commands/collab.rs`: the `collab_*` commands and events, `ShellServices`
+  (the host application behind `host::HostServices`: guest terminals, runs, language servers),
+  and the hooks other commands call (`on_terminal_*`, `on_run_*`, the project watcher).
+- `app/ui/src/features/code-with-me/`: the toolbar popup, the Code With Me tool window, the
+  editor binding (`y-codemirror.next`), follow, presence, guest UI and the browser mock
+  (`mock/collabMock.ts`, `mock/collabGuestMock.ts`).
+
+**Contribution points.** `registerToolbarItem` (the toolbar icon and avatars),
+`registerToolWindow` (`codeWithMe`: Participants and Session Log tabs), `registerCommand` /
+`registerKeymapActions` (`CodeWithMe.*`, all through the keymap), `registerSettingsPage`
+(Tools | Code With Me, schema in `plugins/code-with-me.toml`), `registerStatusItem` (connection
+path; the guest's "Code With Me: <host>" item), `registerEditorExtension` (the shared document
+binding, presence, follow banner, guest read-only), `registerTerminalTabActions` (Share with
+Guests), `registerToolWindowFilter` (tool windows a guest does not get),
+`setSharedTabSource` / `registerFileSystem` in `state/editor.ts` (shared tabs open and save
+through the session; guest tabs are `cwm://<path>`), and `registerHistory` (Undo / Redo run
+the participant's own Yjs undo manager).
+
+**Protocol.** One QUIC stream per guest (ALPN `forge/cwm/1`), frames as in the agent protocol:
+a big-endian `u32` length and a MessagePack map with named fields, so new optional fields
+(`#[serde(default)]`) stay compatible; new message variants bump `PROTOCOL_VERSION` (5 since
+S7), and the host refuses other versions in the knock. `GuestMessage` holds only requests the
+host's policy can check; project calls travel as the closed `HostCall` enum inside
+`GuestMessage::Call`. Frames are limited (`MAX_GUEST_FRAME` 4 MB, `MAX_HOST_FRAME` 32 MB);
+per-guest queues are bounded (`GUEST_QUEUE`, a guest that does not keep up is cut off;
+`HostSession::backlog` reports the deepest queue). Documents use Yjs v1 updates and
+`y-protocols/awareness`; the host stamps every awareness entry with the sender's name and
+color, so carets cannot be spoofed.
+
+**Host enforcement.** Everything is decided on the host: `permissions::Policy` checks every
+message and call (Files / Terminal / Run / Version control access), paths go through
+`is_plain_relative`, the secret excludes (`codeWithMe.excludedFiles`, `.env` by default, never
+`.git/`) and `Gate::verify` (symlinks resolved, must stay inside the project); files that
+configure what runs (`codeWithMe.protectedFiles`) need Full access. Git runs only as typed
+`GitQuery` / `GitAction` values the host rebuilds; framework analysis never runs project code
+for guests. Refusals are answered once and recorded in the session log. Guests see only what
+their policy allows: file lists, presence (`Presence::visible_to`), terminals and runs.
+
+**Shared documents.** The host owns one `SharedDoc` per file (UTF-16 offsets, as in
+CodeMirror); participants hold Yjs replicas. `SaveState { hash }` (`protocol::text_hash`, the
+UI's `contentHash`) makes the dirty marker identical everywhere. The project watcher
+(`HostSession::on_fs_changed`) applies disk changes to documents without unsaved changes as a
+minimal diff (`textdiff`, origin `disk`, no undo step). With unsaved changes the document
+opens a **File Cache Conflict** (`SharedDoc::apply_disk` -> `DiskChange::Conflict`): the host's
+UI gets `collab://doc` `{ conflict: { open, path } }` and asks Load File System Changes / Keep
+Memory Changes (`collab_doc_resolve_conflict`); guests get `HostMessage::DocConflict` (and
+`conflict` in `DocOpened` / `DocSynced`) and cannot save until it is resolved. It also ends
+when the host saves (memory wins), when the disk changes back to the saved text, or when the
+document is edited into the disk's text. Updates from guests reach the host's UI with `from`
+(the participant), and the host's editor marks the lines guests changed until the next save
+(`guestChanges.ts`, a gutter in the guest's color).
+
+**Reconnect.** `Welcome` carries a resume token; a guest whose connection dropped dials again
+with `GuestMessage::Resume` and keeps its place, color, documents, terminals and runs for
+`reconnect::HOST_GRACE` (2 minutes). Documents resynchronize with Yjs sync (`DocSync` /
+`DocSynced`, `collab_doc_sync`), terminals and runs get only the missed output. The guest
+retries with `ReconnectPolicy` and gives up after `GUEST_GIVE_UP`, before the host frees the
+place. Relay and NAT traversal are iroh's; Forge contacts no third-party host unless the user
+configured a relay or opted in to public relays (`relay::RelayOptions`).
+
+**IPC.** Commands: `collab_status`, `collab_start`, `collab_end`, `collab_link`,
+`collab_regenerate_link`, `collab_set_permissions`, `collab_set_guest_permissions`,
+`collab_remove_guest`, `collab_answer_join`, `collab_session_log`, `collab_parse_link`,
+`collab_join`, `collab_cancel_join`, `collab_leave`, `collab_ping`, `collab_doc_open`,
+`collab_doc_update`, `collab_awareness`, `collab_doc_sync`, `collab_doc_close`,
+`collab_doc_save`, `collab_doc_resolve_conflict`, `collab_presence`, `collab_follow_everyone`,
+`collab_share_terminal`, `collab_terminal_attach`, `collab_run_answer`, `collab_run_attach`,
+`collab_run_detach`, `collab_run_start`, `collab_run_stop`, `collab_run_input`,
+`collab_relay_token_status`, `collab_set_relay_token`, `collab_test_relay`. Events:
+`collab://status`, `collab://doc`, `collab://notice`, `collab://presence`,
+`collab://follow-host`, `collab://ended`, `collab://resumed`, `collab://join-request`,
+`collab://join-closed`, `collab://waiting`, `collab://run-request`,
+`collab://terminal-opened`. Document state crosses the IPC as raw bytes (`collab_doc_open`,
+`collab_doc_sync`: `u32` header length, JSON header, Yjs update), updates and awareness as
+base64. The typed client is `ipc/collab.ts`; every command has a browser mock.
+
+**Tests.** `crates/forge-collab/tests/`: `simulation.rs` (host and guests over the in-memory
+network: edits, saves, disk changes and conflicts, renames, permissions, reconnects),
+`convergence.rs` (proptest: random interleavings converge), `stress.rs` (10 participants
+editing, following and sharing a terminal; asserts convergence and bounded queues; a heavier
+variant is `#[ignore]`d: `cargo test -p forge-collab --release --test stress -- --ignored`),
+`decoding.rs` (proptest: links, frames and host calls from peers fail cleanly and round-trip),
+`guest_backend.rs`, `guest_lsp.rs`, `terminals_runs.rs`, `approval.rs`, `relay.rs` (an
+in-process `iroh-relay`), `quic_loopback.rs`. Fuzz targets (cargo-fuzz, own workspace, not run
+by `cargo test`) are in `crates/forge-collab/fuzz`: `link_parse`, `frame_decode`,
+`host_call_decode`; run one with `cd crates/forge-collab/fuzz && cargo +nightly fuzz run
+link_parse`.
+
+**Binary size.** forge-collab is the only path to 72 crates of the app's 871 (normal
+dependencies, `cargo tree -p forge-app -e normal --prefix none` compared with the same command
+with `--prune forge-collab`): iroh with its relay client, DNS and mDNS lookup, the QUIC stack
+(`noq`), `netwatch` / `netdev` / `netlink-*`, `yrs`, `blake3`, AES-GCM and `postcard`. TLS
+(`rustls` / `ring`) and tokio are shared with the rest of the app. The size in bytes is
+measured on a release build: `cargo bloat --release -p forge-app --crates -n 60` (cargo-bloat)
+lists the `.text` size per crate; the sum over the crates above is forge-collab's share. It
+was not measured on the development machine (a release build of the app needs more disk and
+time than it has); do it on the release machine before merging the Code With Me PR.
+
 ## Dev Containers and WSL (`forge-devenv`)
 
 - A project in a dev container or a WSL distribution is a `RemoteBackend` like an SSH project;
@@ -1027,7 +1149,10 @@ or without Git, for local and remote projects.
   `{ source: "browser" | "link" | "cli", client?, file, line?, column?, target }` with
   `target.kind` `open` (shown right away), `recent` or `outside` (the UI asks first unless the
   source is the CLI). Requests that arrive before the UI is ready are returned by
-  `companion_ui_ready()`. Directories from a second launch arrive as `companion://open-project`.
+  `companion_ui_ready()`. Directories from a second launch arrive as `companion://open-project`,
+  Code With Me session links (`forge://cwm/join?…`, checked by
+  `forge_collab::link::route_join_url`) as `companion://join-session` (pending:
+  `{ type: "joinSession", link }`) for the Join Session dialog.
 - IPC (Settings | Tools | Browser Companion): `companion_status`, `companion_start_pairing`,
   `companion_cancel_pairing`, `companion_revoke_client({ id })`, `companion_open_link({ url })`,
   `companion_project_profile({ envKeys, files })`, `companion_set_env_var({ file: ".env" |
@@ -1250,7 +1375,10 @@ or without Git, for local and remote projects.
   (`remote_key`); a location covers the projects below it on the same machine. Dev container
   projects use their local source folder's key, WSL projects their `//wsl.localhost/…` path.
 - `AppState::safe_mode` (`forge_trust::SafeMode`) is set by `set_workspace` /
-  `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted.
+  `set_remote_project` (`refresh_safe_mode`): on while the open project is untrusted, and
+  always for a Code With Me guest (`needs_safe_mode`; its key is `cwm://host/name`, never the
+  placeholder root). `trust_status` reports `guest: true` for it (the UI shows no banner) and
+  `trust_project` refuses it. `close_project` turns Safe Mode off.
   **Every command that starts project programs calls `state.require_trusted("<action>")?`**
   and fails with `forge_trust::refusal`: `run::start_built` (all runs: configurations, tests,
   debug runs, scripts, External Tools, Before launch tasks, Command Line Tool Support),
@@ -1374,9 +1502,34 @@ or without Git, for local and remote projects.
   ids) and ~32 servers (TypeScript, Vue, Angular, Svelte, Astro, HTML/CSS/JSON/ESLint, Tailwind,
   YAML, TOML, XML, Markdown, Docker, Bash, SQL, LaTeX, Twig, Lua, Python, Go, Rust, Java,
   Kotlin, C#, Ruby, Zig) with command, initialization options, settings, install options and
-  licence. `pack_servers.toml` lists servers that packs start themselves (Intelephense, phpactor,
-  JDT LS, kotlin-lsp, clangd)
-  so they show up on the same settings page.
+  licence. `pack_servers.toml` lists servers that packs start themselves (php-lsp, JDT LS,
+  kotlin-lsp, clangd)
+  so they show up on the same settings page (`builtin = true`: built into Forge, the row shows
+  `builtinVersion` instead of an install option).
+
+### Built-in PHP language server (php-lsp)
+
+- php-lsp (<https://github.com/stdimnet/php-lsp>, MIT OR Apache-2.0) is Forge's only PHP server
+  (Intelephense and phpactor support was removed; the old `php.lsp.server` and
+  `php.intelephense.*` settings are ignored). `packs/phpforge/builtin-lsp` depends on
+  it (cargo git dependency pinned to a `rev`) and is linked into `forge` and
+  `forge-remote-agent`. Their `main` calls `phpforge_builtin_lsp::main_hook` first: with
+  `--php-lsp` it runs `php_lsp::run_stdio()` and exits before Tauri / the agent start;
+  otherwise it registers `current_exe() --php-lsp --stdio` with
+  `phpforge_lang_php::lsp::register_builtin_server`. `lsp::server_config` then builds a normal
+  `LspServerConfig` (id `php`), so the server runs in its own process (crash isolation) through
+  forge-lsp, Safe Mode, restarts and the remote byte channel like any other server.
+- `lsp::php_lsp_config` sends Forge's PHP settings as the `intelephense` section (php-lsp reads
+  Intelephense's settings) and a `php-lsp` section that turns off its PHPStan / Psalm / PHPCS
+  runners (Forge's Quality Tools run them) and keeps the built-in formatter; `storagePath` is
+  `<cache dir>/forge/php-lsp` (index cache, unpacked stubs).
+- Overlap with Forge's own PHP features: the index hover only answers where the server has
+  nothing (`setOtherHoverProvider`); `lsp/store.ts` `withoutInspectionTwins` drops a PHP
+  inspection problem (deprecated, unreachable) when the server reports the same range;
+  `code_context_actions` drops server actions that `intentions::is_lsp_twin` of Forge's
+  intentions (getters / setters, method stubs, Import class, Set namespace). Semantic tokens and
+  code lenses of the server are not requested.
+- Problems in php-lsp are reported upstream, never patched in Forge.
 - When a project's LSP manager is created, `commands::langservers::register_enabled` scans the
   project (honouring `.gitignore`, capped by `langservers.scanLimit`) and registers every enabled
   and installed server whose languages occur (and whose `when` markers exist, e.g. an ESLint config).
@@ -1395,7 +1548,7 @@ or without Git, for local and remote projects.
      `langservers.download.nodeMirror` (default `https://nodejs.org/dist`, `index.json`),
      checked against the release's `SHASUMS256.txt` and unpacked (`.tar.gz` on Linux/macOS,
      `.zip` on Windows) into a staging directory that is renamed into place (`managed::node`).
-  2. Packages without runtime dependencies (Intelephense) come straight from
+  2. Packages without runtime dependencies come straight from
      `langservers.download.npmRegistry` (`<registry>/<name>/latest` or a pinned version): the
      tarball is checked against `dist.integrity` (sha512), unpacked into
      `<dir>/node_modules/<name>`, `.bin` entries are created (symlink / `.cmd` shim) and the
@@ -1404,9 +1557,7 @@ or without Git, for local and remote projects.
      yaml-language-server, ...) run `npm install --prefix <dir> <name>@<version>` with the npm
      next to the Node.js in use (Forge's Node.js ships its own `npm-cli.js`).
   3. Servers in Forge's directory are started as `<node> <package script> <args>`
-     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH. Intelephense
-     (PHP pack) gets the same through `PhpLspSettings::intelephense_node`
-     (`commands::php::for_host`, local projects only).
+     (`Detector::launch`, used by `build_config`), so they need no `node` on PATH.
   4. Updates: `langservers_check_updates({ force }) -> PackageUpdate[] | null` asks the registry
      for newer versions of the recorded packages at most once a day
      (`<dir>/.forge-update-check.json`, setting `langservers.updates.check`);
@@ -1424,14 +1575,9 @@ or without Git, for local and remote projects.
   shows a one-click "Install" for them and keeps "Install…" (dialog) for the others. Other tools
   (brew, pipx, go, cargo, dotnet, ...) run as listed in the catalog. Tests use a local HTTP
   server (`managed::testserver`) with fake tarballs, never the network.
-- Intelephense is never bundled or committed: its licence forbids redistribution. When a local
-  PHP project opens without it, `src/features/langservers/managed.ts` shows a balloon
-  "PHP language server Intelephense is not installed" with Install / Not now / Don't ask again
-  (`php.intelephense.autoInstall`: `ask` | `always` | `never`; decisions in `autoInstall.ts`).
-  The first install asks for the licence (`IntelephenseConsent.tsx`, stored as
-  `php.intelephense.licenceAccepted`); after the install `langservers_install` registers the
-  catalog servers and runs `php::sync_lsp_server`, so Intelephense starts without reopening the
-  project. Browser mode simulates all of it with `?intelephense=missing` (and `?updates=1`).
+- Nothing is bundled or committed: servers are downloaded by each user, with their consent, from
+  the official source. Browser mode simulates a managed install with `?node=missing` (Node.js
+  downloaded first) and the update offer with `?updates=1`.
 - Per-server settings: `langservers.servers.<id>.enabled|path|settings` (settings = JSON string
   merged into the server settings; `initializationOptions` key for startup options). Global:
   `langservers.autoStart`, `langservers.scanLimit`, `langservers.lua.environment|version`,
@@ -1448,13 +1594,6 @@ or without Git, for local and remote projects.
   `langservers://changed`. Install commands come from the catalog only and run without a shell.
   Managed installs add `langservers://install-progress`, `langservers_check_updates` and
   `langservers_update` (see above).
-- Intelephense licence: `intelephense_licence_status() -> { premium, maskedKey?, error?,
-  purchaseUrl }`, `intelephense_set_licence({ key | null })`. The key lives in the OS keychain
-  (service `forge-lsp`, account `intelephense`); free mode never sends `licenceKey`. A registered
-  `intelephense` config gets the key applied (and restarts) when the manager is created or the key
-  changes; pack code building Intelephense configs can call
-  `commands::langservers::with_intelephense_licence(&mut config)`. A plaintext
-  `php.lsp.licenceKey` setting (or the PHP page's old localStorage value) is migrated once.
 - Events: `lsp://diagnostics` `{ path, diagnostics }` and `lsp://status` `ServerStatus[]`.
 
 ## Code intelligence: navigation and usages (`forge-codeintel`)
@@ -1481,8 +1620,8 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
 - PHP stubs (`forge_langservers::managed::stubs`, app state `commands::library::LibraryState`):
   `php.stubs.path`, else a pinned JetBrains phpstorm-stubs release downloaded on first use into
   `<cache dir>/forge/php-stubs/<version>` (the unpacked files are checked against a pinned
-  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept), else
-  Intelephense's own `lib/stub`. Progress is reported as
+  `content_digest`, which `git archive <commit>` reproduces; `LICENSE` kept). Progress is
+  reported as
   `langservers://install-progress` with id `php-stubs`. Indexed once per folder.
 - Library files: `library://php-stubs/<path>` (the stubs) and `library://file/<absolute path>`
   (a file outside the project a language server pointed to; only paths handed out by a
@@ -1519,7 +1658,7 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     dialog's checkboxes for the element at the caret.
   - `code_navigate({ path, line, character, kind: "implementation" | "superMethod" |
     "typeDeclaration", content? }) -> { targets, missing? }` — `missing` explains a server
-    without the feature (Intelephense Premium) when the index found nothing either.
+    without the feature when the index found nothing either.
   - `code_line_markers({ path, content? }) -> { line, kind: "subclassed" | "implemented" |
     "overridden" | "implements" | "overrides", title, targets }[]` — PHP gutter icons.
   - `library_read({ path }) -> { text, library, detail }`.
@@ -1555,7 +1694,7 @@ computes everything; `app/ui/src/features/codeintel` and `features/lsp/goto.ts` 
     invalid, message?, missing?, source: "lsp" | "index", occurrences, label?, classFile?,
     sigil }` — starts Rename (Shift+F6): the server's `prepareRename` and the occurrences in the
     file (a rename to the same name); PHP files fall back to the PHP index when the server
-    cannot rename (`missing`, Intelephense without a licence) or none runs. `$` is not part of
+    cannot rename (`missing`) or none runs. `$` is not part of
     the ranges (`sigil`).
   - `code_rename({ path, line, character, newName, buffers?, renameFile? }) -> { edit, preview,
     conflicts, source, missing?, fileRename?, skipped }` — the server's edit, else the index's
@@ -3391,13 +3530,13 @@ plugin manifest entry, and the chat UI needs no changes:
   `code_style_post_format({ request: { fileType, original, text } }) -> string`. The pages
   keep the edited schemes as a draft of the Settings dialog (`registerDraftSource` in
   `features/settings/dialogState.ts`). `editor_file_format`, the PHP code style and
-  Intelephense's settings read the selected scheme (`forge_codestyle::effective_settings`);
+  the `intelephense.*` settings for php-lsp read the selected scheme (`forge_codestyle::effective_settings`);
   `lsp_format({ path, tabSize, insertSpaces, languageId })` pushes the language's options to the
   server (`forge_codestyle::lsp::settings_patch`, `LspClient::update_settings`, which also
   answers later `workspace/configuration` requests), and `lua_format` passes StyLua's options
   when the project has no `stylua.toml`.
-- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (Intelephense's
-  `format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
+- PHP code style beyond indents (`phpforge_lang_php::style`): brace placement (php-lsp's
+  `intelephense.format.braces`, Generate) and `php_tidy_blank_lines({ text }) -> string | null`, the blank
   line pass after Reformat Code. Format post-processors (`registerFormatPostProcessor(fn,
   order)` in `features/lsp/format.ts`) run after the language server or a format provider and
   get the text before formatting too; the code style pass runs last (order 100).

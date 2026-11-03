@@ -332,40 +332,6 @@
   color: var(--warning);
 }
 
-/* Intelephense licence */
-.ls-licence {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.ls-licence-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-.ls-licence.compact .ls-licence-label {
-  display: none;
-}
-.ls-tier {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-size: var(--fs-small);
-  font-weight: 600;
-}
-.ls-tier.free {
-  background: var(--bg-active);
-  color: var(--fg);
-}
-.ls-tier.premium {
-  background: color-mix(in srgb, var(--success) 16%, transparent);
-  color: var(--success);
-}
-
 /* ---------- Dialogs (above the Settings dialog) ---------- */
 .ls-overlay {
   position: fixed;
@@ -389,9 +355,6 @@
 }
 .ls-install-dialog {
   width: 620px;
-}
-.ls-licence-dialog {
-  width: 460px;
 }
 .ls-remote-note {
   margin: 0 0 10px;

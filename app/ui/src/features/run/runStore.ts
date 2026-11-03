@@ -49,6 +49,8 @@ export interface RunSession {
   autoTest?: boolean;
   /** The shown result panel (`registerRunPanel`); the console when unset. */
   panel?: string;
+  /** A run of another machine shown here (Code With Me: the host's run id in a guest's window). */
+  shared?: number;
 }
 
 interface SessionData {
@@ -221,6 +223,82 @@ function onEvent(id: string, runId: string, e: RunEvent) {
   }
 }
 
+// ---- Runs of another machine (Code With Me) ----------------------------------------------
+
+/**
+ * Where runs happen when this window shows another machine's runs (a Code With Me guest:
+ * the host runs its own configurations; the guest only names them).
+ */
+export interface RemoteRuns {
+  /** Run (or rerun) a configuration by name. */
+  start(cfg: RunConfiguration): Promise<void>;
+  stop(run: number): Promise<void>;
+  input(run: number, text: string): Promise<void>;
+  /** The run's events so far; live events follow on `run://<runId>` of {@link showSharedRun}. */
+  attach(run: number): Promise<RunEvent[]>;
+  /** Its tab closed. */
+  detach(run: number): void;
+  /** Why Debug and Run with Coverage are not available. */
+  unavailable: string;
+}
+
+let remote: RemoteRuns | null = null;
+
+/** Route Run, Stop, Rerun and console input to another machine (`null`: this machine). */
+export function setRemoteRuns(r: RemoteRuns | null): void {
+  remote = r;
+}
+
+export const remoteRuns = () => remote;
+
+/** A run of another machine, as it is listed there. */
+export interface SharedRunInfo {
+  id: number;
+  title: string;
+  kind?: string;
+  running: boolean;
+  exitCode?: number;
+}
+
+/**
+ * Show a run of another machine in a tab (reusing the finished, unpinned tab of the same
+ * name, as for local runs): what happened so far, then its live events on `run://<runId>`.
+ */
+export async function showSharedRun(run: SharedRunInfo, runId: string, reveal = false): Promise<void> {
+  if (!remote || state.sessions.some((s) => s.shared === run.id)) return;
+  const reusable = state.sessions.find((s) => s.shared !== undefined && s.name === run.title && !s.pinned && !isRunning(s));
+  const id = reusable?.id ?? `tab-${++seq}`;
+  const config: RunConfiguration = { name: run.title, type: run.kind ?? "shared" };
+  const session = { runId, shared: run.id, status: (run.running ? "running" : "finished") as RunStatus, exitCode: run.exitCode, startedAt: Date.now() };
+  if (reusable) setState("sessions", (x) => x.id === id, { ...session, endedAt: undefined });
+  else setState("sessions", produce((list) => list.push({ id, name: run.title, config, debug: false, version: 0, pinned: false, ...session })));
+  data.get(id)?.unlisten?.();
+  data.set(id, { lines: [], tests: findType(config.type)?.testRunner ? emptyTestTree() : undefined });
+  bump(id);
+  if (reveal) {
+    setState("active", id);
+    showToolWindow("run");
+  } else if (!state.active) setState("active", id);
+  // Live events wait until what happened before is shown.
+  let queued: RunEvent[] | null = [];
+  const d = data.get(id)!;
+  d.unlisten = await runApi.onEvent(runId, (e) => (queued ? queued.push(e) : onEvent(id, runId, e)));
+  const before = await remote.attach(run.id).catch(() => [] as RunEvent[]);
+  for (const e of [...before, ...queued]) {
+    if (e.type === "tests" && !d.tests) d.tests = emptyTestTree();
+    onEvent(id, runId, e);
+  }
+  queued = null;
+}
+
+/** The other machine is gone (the session ended): its runs no longer report anything. */
+export function endSharedRuns(): void {
+  for (const s of state.sessions.filter((x) => x.shared !== undefined)) {
+    data.get(s.id)?.unlisten?.();
+    if (isRunning(s)) setState("sessions", (x) => x.id === s.id, { status: "finished", endedAt: Date.now() });
+  }
+}
+
 /** Build the backend request for a configuration. */
 function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["extra"]): RunRequest {
   const type = findType(cfg.type);
@@ -240,6 +318,8 @@ function requestFor(cfg: RunConfiguration, runId: string, extra?: SessionData["e
   if (type?.buildCommand) {
     const cmd = type.buildCommand(cfg);
     req.command = { ...cmd, cwd: cmd.cwd || cfg.workingDirectory || "", env: { ...(cmd.env ?? {}), ...(cfg.env ?? {}) } };
+    req.name = cfg.name;
+    req.typeId = cfg.type;
   } else req.configuration = cfg;
   return req;
 }
@@ -402,6 +482,14 @@ async function stopAndWait(s: RunSession): Promise<void> {
  * its own tab. Returns the (first) started run, null when nothing started.
  */
 export async function launch(cfg: RunConfiguration, opts: LaunchOptions = {}): Promise<RunHandle | null> {
+  if (remote) {
+    if (opts.debug || opts.extra) {
+      showBalloon(`Cannot run '${cfg.name}'`, remote.unavailable);
+      return null;
+    }
+    await remote.start(cfg).catch((err) => showBalloon(`Error running '${cfg.name}'`, String((err as Error)?.message ?? err)));
+    return null;
+  }
   const problem = validateConfiguration(cfg);
   if (problem) {
     showBalloon(`Error running '${cfg.name}'`, problem, 5000, [
@@ -467,6 +555,7 @@ export async function runWithCoverage(cfg: RunConfiguration | undefined = select
 }
 
 export async function debugConfiguration(cfg: RunConfiguration | undefined = selectedConfiguration()): Promise<void> {
+  if (remote) return void showBalloon(`Cannot debug '${cfg?.name ?? "the configuration"}'`, remote.unavailable);
   if (!cfg) {
     openRunConfigurations();
     return;
@@ -529,6 +618,10 @@ export async function stopSession(id: string | undefined = state.active ?? undef
   const s = state.sessions.find((x) => x.id === id) ?? runningSessions()[0];
   if (!s?.runId || !isRunning(s)) return;
   try {
+    if (s.shared !== undefined) {
+      if (remote) await remote.stop(s.shared);
+      return;
+    }
     await runApi.stop(s.runId);
   } catch (err) {
     showBalloon(`Cannot stop '${s.name}'`, String(err));
@@ -543,6 +636,11 @@ export async function rerunSession(id: string | undefined = state.active ?? unde
   }
   if (s.staticOutput) {
     data.get(s.id)?.rerun?.();
+    return;
+  }
+  // The other machine reruns its configuration (a running one restarts there).
+  if (s.shared !== undefined) {
+    if (remote) await launch(findConfiguration(s.name) ?? s.config);
     return;
   }
   if (isRunning(s) && s.runId) {
@@ -702,7 +800,8 @@ export function togglePin(id: string): void {
 export async function closeSession(id: string): Promise<void> {
   const s = state.sessions.find((x) => x.id === id);
   if (!s) return;
-  if (s.runId) await runApi.dispose(s.runId).catch(() => undefined);
+  if (s.shared !== undefined) remote?.detach(s.shared);
+  else if (s.runId) await runApi.dispose(s.runId).catch(() => undefined);
   data.get(id)?.unlisten?.();
   data.delete(id);
   clearTimeout(autoTimers.get(id));
@@ -719,5 +818,6 @@ export async function sendInput(id: string, text: string): Promise<void> {
   const s = state.sessions.find((x) => x.id === id);
   if (!s?.runId || !isRunning(s)) return;
   // The backend echoes the input in the console.
-  await runApi.write(s.runId, text).catch((err) => showBalloon("Cannot send input", String(err)));
+  const sent = s.shared !== undefined ? remote?.input(s.shared, text) : runApi.write(s.runId, text);
+  await sent?.catch((err) => showBalloon("Cannot send input", String(err)));
 }

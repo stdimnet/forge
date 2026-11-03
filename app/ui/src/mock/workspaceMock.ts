@@ -14,6 +14,7 @@ import {
   remoteWorkspace,
   setRemoteProjectFiles,
 } from "./remoteMock";
+import { collabGuestWorkspace, hiddenFromGuest, isCollabGuestDemo, isCollabJoinDemo, JOIN_DEMO_ROOT } from "./collabGuestMock";
 import { trackedPaths } from "./gitMock";
 import { recentPrimaries } from "./projectMock";
 import { isSymfonyDemo, symfonyDemoFiles, symfonyDemoName } from "./demoSymfonyProject";
@@ -136,7 +137,7 @@ function listDir(dir: string): FileEntry[] {
     const kind = tail.length ? "dir" : "file";
     seen.set(full, { name: head, path: full, kind, ignored: isIgnored(full, kind === "dir", tracked) });
   }
-  const listed = [...seen.values()];
+  const listed = [...seen.values()].filter((e) => !hiddenFromGuest(e.path));
   const flags = excludedFlags(listed.map((e) => [e.path, e.kind === "dir"]));
   listed.forEach((e, i) => flags[i] && (e.excluded = true));
   return listed.sort(
@@ -163,6 +164,8 @@ registerMock("workspace_recent", () =>
   })),
 );
 registerMock("workspace_open", () => {
+  if (isCollabGuestDemo()) return collabGuestWorkspace();
+  if (isCollabJoinDemo()) return { name: "legacy-crm", root: JOIN_DEMO_ROOT };
   if (isRemoteDemo()) return adoptRemoteProject(remoteWorkspace());
   closeRemoteProject();
   return { name: openName, root: `~/Projects/${openName}` };
@@ -177,6 +180,7 @@ async function withoutIgnored(entries: FileEntry[]): Promise<FileEntry[]> {
 
 registerMock("fs_list_dir", ({ path }) => withoutIgnored(listDir(String(path ?? ""))));
 registerMock("fs_read_file", ({ path }) => {
+  if (hiddenFromGuest(String(path))) throw new Error(`"${path}" is not shared with guests`);
   const content = files[String(path)];
   if (content === undefined) throw new Error(`not found: ${path}`);
   return content;

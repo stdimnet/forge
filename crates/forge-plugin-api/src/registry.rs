@@ -298,9 +298,9 @@ mod tests {
             "forge.php",
             &[],
             r#"[[contributions.lspServers]]
-               id = "intelephense"
+               id = "php-lsp"
                languageId = "php"
-               command = "intelephense"
+               command = "forge"
                fileExtensions = ["php", "phtml"]
                [[contributions.commands]]
                id = "php.run"
@@ -365,7 +365,7 @@ mod tests {
         let mut r = registry();
         assert_eq!(
             r.lsp_server_for_extension("PHTML").map(|s| s.id.as_str()),
-            Some("intelephense")
+            Some("php-lsp")
         );
         assert!(r.find_command("php.run").is_some());
         assert!(r.find_setting("php.languageLevel").is_some());

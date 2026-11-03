@@ -1,7 +1,6 @@
 //! PHP's own classes, functions and constants from stub files, like PHPStorm's "PHP Runtime":
 //! JetBrains' phpstorm-stubs (Apache-2.0; one folder per extension such as `Core/Core_c.php`,
-//! `standard/standard_9.php`, `SPL/SPL.php`) or a compatible layout (Intelephense's own
-//! stubs). Go to Declaration on `\Throwable` or `array_map` opens the stub read-only.
+//! `standard/standard_9.php`, `SPL/SPL.php`) or a compatible layout. Go to Declaration on `\Throwable` or `array_map` opens the stub read-only.
 //!
 //! The index is built once per stubs folder; lookups answer the [`ExternalSymbol`]s that
 //! [`crate::navigate`] cannot resolve in the project. Paths are relative to the stubs

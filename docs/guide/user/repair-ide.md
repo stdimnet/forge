@@ -51,7 +51,7 @@ Optional:
 | Clear file system cache and Local History | the [Local History](local-history.md) of all projects |
 | Clear downloaded shared indexes | the PHP stubs downloaded for the PHP index (downloaded again when needed) |
 | Delete embedded browser engine cache | the cache of the webview that draws Forge's window |
-| Delete language server data | Intelephense's storage and the Java language server's workspaces |
+| Delete language server data | php-lsp's index cache, Intelephense data left by earlier versions and the Java language server's workspaces |
 
 **Invalidate and Restart** schedules the cleanup and restarts Forge; **Just Restart** only
 restarts; **Cancel** does nothing.

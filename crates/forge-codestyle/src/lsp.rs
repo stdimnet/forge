@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use crate::format::Opts;
 use crate::model::{model, Values, GENERAL};
 
-/// Intelephense's `format.braces` for the three PHP brace options (`per` is PER Coding
+/// `intelephense.format.braces` (read by php-lsp) for the three PHP brace options (`per` is PER Coding
 /// Style, the successor of PSR-12).
 pub fn intelephense_braces(
     class_next: bool,

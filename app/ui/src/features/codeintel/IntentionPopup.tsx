@@ -184,9 +184,6 @@ export function IntentionPopup(props: { popup: IntentionPopupState }) {
           )}
         </For>
       </div>
-      <Show when={props.popup.missing?.premium}>
-        <div class="intention-footer">Quick fixes of the language server need Intelephense Premium</div>
-      </Show>
     </div>
   );
 }

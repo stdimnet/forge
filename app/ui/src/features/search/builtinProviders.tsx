@@ -3,7 +3,8 @@
  * actions (Find Action). Classes, symbols and text come from language packs.
  */
 import { FileIcon } from "@/shell/FileIcon";
-import { activeTab, openFile } from "@/state/editor";
+import { openFileReported } from "@/features/navigation/openReported";
+import { activeTab } from "@/state/editor";
 import { openFileAt } from "@/editor/views";
 import { workspace } from "@/state/workspace";
 import { isTauri } from "@/ipc";
@@ -26,7 +27,7 @@ function fileItem(path: string, score: number, matches?: number[]): SearchItem {
     kind: "file",
     icon: () => <FileIcon name={name} size={16} />,
     score,
-    run: () => openFile(path),
+    run: () => openFileReported(path),
   };
 }
 

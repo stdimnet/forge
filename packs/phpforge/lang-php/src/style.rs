@@ -3,7 +3,7 @@
 //! the values come from in `forge-codestyle`, which also runs the other PHP options (spaces,
 //! code conversion) after Reformat Code.
 //!
-//! - Brace placement is passed to Intelephense's formatter (`intelephense.format.braces`) and
+//! - Brace placement is passed to php-lsp's formatter (`intelephense.format.braces`) and
 //!   used by the "Generate" actions.
 //! - Blank lines are applied by [`tidy_blank_lines`] after Reformat Code (Ctrl+Alt+L): runs of
 //!   blank lines are cut to "Keep maximum blank lines", and the blank lines after the

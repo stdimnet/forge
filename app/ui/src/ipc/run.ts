@@ -89,6 +89,9 @@ export interface RunRequest {
   configuration?: RunConfiguration;
   /** ...or a command line built by a UI-side configuration type. */
   command?: CommandLine;
+  /** The configuration's name and type for a `command` (Code With Me guests see the run under it). */
+  name?: string;
+  typeId?: string;
   /** Extra environment, e.g. from a debug launcher. */
   env?: Record<string, string>;
   /** Extra arguments right after the program (e.g. `-dxdebug.mode=debug` for PHP). */
