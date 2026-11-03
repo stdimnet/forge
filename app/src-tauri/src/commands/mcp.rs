@@ -133,9 +133,10 @@ async fn ensure_token(app: &AppHandle) -> String {
     if let Some(t) = state.token() {
         return t;
     }
-    let (token, persistent) = tauri::async_runtime::spawn_blocking(forge_mcp::token::load_or_create)
-        .await
-        .unwrap_or_else(|_| (forge_mcp::server::new_token(), false));
+    let (token, persistent) =
+        tauri::async_runtime::spawn_blocking(forge_mcp::token::load_or_create)
+            .await
+            .unwrap_or_else(|_| (forge_mcp::server::new_token(), false));
     state.token_persistent.store(persistent, Ordering::Relaxed);
     *lock(&state.token) = Some(token.clone());
     token
@@ -296,7 +297,11 @@ impl McpHost for TauriHost {
         answer
     }
 
-    async fn call_tool(&self, spec: &ToolSpec, args: Value) -> std::result::Result<ToolOutput, String> {
+    async fn call_tool(
+        &self,
+        spec: &ToolSpec,
+        args: Value,
+    ) -> std::result::Result<ToolOutput, String> {
         match spec.runner {
             Runner::Editor if spec.name == "replace_text_in_file" => {
                 // The editor's text (with unsaved changes) is changed here and applied in
@@ -341,10 +346,12 @@ impl McpHost for TauriHost {
                 } else {
                     EDITOR_TIMEOUT
                 };
-                self.editor(spec.name, args, timeout).await.map(|v| match v {
-                    Value::String(s) => ToolOutput::Text(s),
-                    other => ToolOutput::Json(other),
-                })
+                self.editor(spec.name, args, timeout)
+                    .await
+                    .map(|v| match v {
+                        Value::String(s) => ToolOutput::Text(s),
+                        other => ToolOutput::Json(other),
+                    })
             }
             Runner::Backend => backend_tool(&self.app, spec.name, args)
                 .await
@@ -353,7 +360,10 @@ impl McpHost for TauriHost {
     }
 
     async fn list_resources(&self) -> Vec<ResourceInfo> {
-        let Ok(open) = self.editor("get_open_editors", json!({}), EDITOR_TIMEOUT).await else {
+        let Ok(open) = self
+            .editor("get_open_editors", json!({}), EDITOR_TIMEOUT)
+            .await
+        else {
             return Vec::new();
         };
         open["editors"]
@@ -370,7 +380,11 @@ impl McpHost for TauriHost {
     }
 
     async fn read_resource(&self, path: &str) -> std::result::Result<String, String> {
-        let backend = self.app.state::<AppState>().backend().map_err(|e| e.to_string())?;
+        let backend = self
+            .app
+            .state::<AppState>()
+            .backend()
+            .map_err(|e| e.to_string())?;
         let path = path.to_string();
         blocking(move || backend.read_file(&path))
             .await
@@ -469,15 +483,17 @@ async fn backend_tool(app: &AppHandle, name: &str, args: Value) -> Result<ToolOu
                 .map_err(|e| ForgeError::Other(format!("invalid arguments: {e}")))?;
             req.limit = args["limit"].as_u64().unwrap_or(200).clamp(1, 2000) as usize;
             let result = blocking(move || backend.find_in_files(&req)).await?;
-            let value = serde_json::to_value(result).map_err(|e| ForgeError::Other(e.to_string()))?;
+            let value =
+                serde_json::to_value(result).map_err(|e| ForgeError::Other(e.to_string()))?;
             Ok(ToolOutput::Json(adapters::find_result(&value)))
         }
         "find_symbol" => {
             let query = str_arg(&args, "query");
             let types_only = args["classesOnly"].as_bool().unwrap_or(false);
             let limit = args["limit"].as_u64().unwrap_or(50) as usize;
-            let hits = blocking(move || backend.find_symbols(&query, types_only, limit, &[], false))
-                .await?;
+            let hits =
+                blocking(move || backend.find_symbols(&query, types_only, limit, &[], false))
+                    .await?;
             let value = serde_json::to_value(hits).map_err(|e| ForgeError::Other(e.to_string()))?;
             Ok(ToolOutput::Json(adapters::symbol_hits(&value)))
         }
@@ -493,7 +509,8 @@ async fn backend_tool(app: &AppHandle, name: &str, args: Value) -> Result<ToolOu
                 app.state(),
             )
             .await?;
-            let value = serde_json::to_value(answer).map_err(|e| ForgeError::Other(e.to_string()))?;
+            let value =
+                serde_json::to_value(answer).map_err(|e| ForgeError::Other(e.to_string()))?;
             Ok(ToolOutput::Json(adapters::declaration(&value)))
         }
         "find_usages" => {
@@ -510,7 +527,8 @@ async fn backend_tool(app: &AppHandle, name: &str, args: Value) -> Result<ToolOu
                 app.state(),
             )
             .await?;
-            let value = serde_json::to_value(answer).map_err(|e| ForgeError::Other(e.to_string()))?;
+            let value =
+                serde_json::to_value(answer).map_err(|e| ForgeError::Other(e.to_string()))?;
             Ok(ToolOutput::Json(adapters::usages(&value)))
         }
         "run_inspections" => {
@@ -546,7 +564,8 @@ async fn backend_tool(app: &AppHandle, name: &str, args: Value) -> Result<ToolOu
                 app.clone(),
             )
             .await?;
-            let value = serde_json::to_value(report).map_err(|e| ForgeError::Other(e.to_string()))?;
+            let value =
+                serde_json::to_value(report).map_err(|e| ForgeError::Other(e.to_string()))?;
             Ok(ToolOutput::Json(adapters::inspection_report(&value)))
         }
         "git_status" => to_json(blocking(move || backend.repo()?.status()).await?),
@@ -568,8 +587,12 @@ async fn backend_tool(app: &AppHandle, name: &str, args: Value) -> Result<ToolOu
         }
         "execute_terminal_command" => {
             state.require_trusted("Terminal commands from MCP clients")?;
-            terminal_command(backend, &str_arg(&args, "command"), args["timeoutSeconds"].as_u64())
-                .await
+            terminal_command(
+                backend,
+                &str_arg(&args, "command"),
+                args["timeoutSeconds"].as_u64(),
+            )
+            .await
         }
         "list_data_sources" => {
             let list = app.state::<crate::commands::db::DbState>().service.list();
