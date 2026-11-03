@@ -2311,6 +2311,7 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-fw-rails",
  "rubyforge-lang-ruby",
  "rubyforge-sdk",
  "rustforge-lang-rust",
@@ -3281,6 +3282,7 @@ dependencies = [
  "pyforge-packages",
  "pyforge-testing",
  "regex-lite",
+ "rubyforge-fw-rails",
  "rubyforge-lang-ruby",
  "rustforge-lang-rust",
  "serde",
@@ -7386,6 +7388,16 @@ dependencies = [
  "signature 3.0.0",
  "spki 0.8.1",
  "zeroize",
+]
+
+[[package]]
+name = "rubyforge-fw-rails"
+version = "0.1.0"
+dependencies = [
+ "forge-runtools",
+ "rubyforge-lang-ruby",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

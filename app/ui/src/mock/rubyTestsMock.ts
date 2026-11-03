@@ -7,8 +7,9 @@
 import type { RunConfiguration } from "@/ipc/run";
 import type { Step } from "./runMock";
 import { mockSettingValue } from "./settingsMock";
+import { rubyDemoName } from "./demoRubyProject";
 
-export const RUBY_ROOT = "/home/anna/Projects/pantry";
+export const RUBY_ROOT = `/home/anna/Projects/${rubyDemoName}`;
 const RBENV = "/home/anna/.rbenv/versions/3.3.6";
 
 export const RUBY_TOOLS: Record<string, string> = {
@@ -213,5 +214,42 @@ export function rubyCommandSteps(args: string[]): Step[] {
       [10, { code: 1 }],
     ];
   if (sub === "exec" && args[1] === "rake") return rubyRunSteps({ name: "rake", type: "rake", options: { task: args[2] ?? "default" } });
+  if (sub === "bin/rails" && (args[1] === "generate" || args[1] === "destroy")) return railsGenerateSteps(args.slice(1));
   return [[400, "Done.\n"], [10, { code: 0 }]];
+}
+
+// ---- Rails --------------------------------------------------------------------------------------
+
+/** `bin/rails generate model Tag name:string` in the `blog` demo (nothing is written). */
+function railsGenerateSteps(args: string[]): Step[] {
+  const [verb, generator = "", name = "Thing"] = args;
+  const snake = name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+  const plural = snake.endsWith("s") ? snake : `${snake}s`;
+  const act = verb === "destroy" ? "remove" : "create";
+  const pretend = args.includes("--pretend") ? " (pretend)" : "";
+  const files: Record<string, string[]> = {
+    model: [`invoke  active_record`, `${act}    db/migrate/20241028120000_create_${plural}.rb`, `${act}    app/models/${snake}.rb`, `invoke    test_unit`, `${act}      test/models/${snake}_test.rb`, `${act}      test/fixtures/${plural}.yml`],
+    controller: [`${act}  app/controllers/${plural}_controller.rb`, `invoke  erb`, `${act}    app/views/${plural}`, `invoke  test_unit`, `${act}    test/controllers/${plural}_controller_test.rb`, `invoke  helper`, `${act}    app/helpers/${plural}_helper.rb`],
+    migration: [`invoke  active_record`, `${act}    db/migrate/20241028120000_${snake}.rb`],
+    stimulus: [`${act}  app/javascript/controllers/${snake}_controller.js`, `rails  stimulus:manifest:update`],
+  };
+  const lines = files[generator] ?? [`invoke  ${generator}`, `${act}    app/${generator}s/${snake}.rb`];
+  return [[700, `Running via Spring preloader in process 48211${pretend}\n`], ...lines.map((l): Step => [60, `      ${l}\n`]), [10, { code: 0 }]];
+}
+
+/** `bin/rails server` of the `blog` demo: Puma boots and serves a few requests. */
+export function railsServerSteps(cfg: RunConfiguration): Step[] {
+  const o = cfg.options ?? {};
+  const port = o.port || "3000";
+  const host = o.host || "localhost";
+  const env = o.environment || "development";
+  const debug = cfg.env?.FORGE_RDBG_PORT
+    ? [[60, `DEBUGGER: Debugger can attach via TCP/IP (127.0.0.1:${cfg.env.FORGE_RDBG_PORT})\nDEBUGGER: wait for debugger connection...\nDEBUGGER: Connected.\n`, "stderr"] as Step]
+    : [];
+  return [
+    ...debug,
+    [400, `=> Booting Puma\n=> Rails 7.2.1 application starting in ${env} \n=> Run \`bin/rails server --help\` for more startup options\n`],
+    [500, `Puma starting in single mode...\n* Puma version: 6.4.3 (ruby 3.3.6-p108) ("The Eagle of Durango")\n*  Min threads: 3\n*  Max threads: 3\n*  Environment: ${env}\n*          PID: 48230\n* Listening on http://${host === "0.0.0.0" ? "0.0.0.0" : "127.0.0.1"}:${port}\nUse Ctrl-C to stop\n`],
+    [900, `Started GET "/" for 127.0.0.1 at 2026-10-28 14:02:11 +0100\nProcessing by ArticlesController#index as HTML\n  Rendering layout layouts/application.html.erb\n  Rendering articles/index.html.erb within layouts/application\n  Article Load (0.6ms)  SELECT "articles".* FROM "articles" WHERE "articles"."status" = $1 ORDER BY "articles"."created_at" DESC  [["status", 1]]\n  Rendered collection of articles/_article.html.erb [3 times] (Duration: 2.1ms | GC: 0.0ms)\nCompleted 200 OK in 18ms (Views: 12.4ms | ActiveRecord: 0.6ms (1 query, 0 cached) | GC: 0.0ms)\n\n`],
+  ];
 }

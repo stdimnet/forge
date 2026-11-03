@@ -144,7 +144,7 @@ are in [research/jetbrains-gap-analysis.md](research/jetbrains-gap-analysis.md).
 - [x] .NET pack: ASP.NET Core (Razor/Blazor, endpoints), EF Core commands, Aspire, Docker, Hot Reload, user secrets, Azure DevOps code host
 - [ ] .NET pack: Unity and Godot integration (editor bridge, tests, debugging)
 - [x] Ruby pack: ruby-lsp, version managers, Bundler, Rake, RSpec/Minitest, rdbg debugger, RuboCop, ERB, IRB console
-- [ ] Ruby pack: Rails (navigation, routes, generators, console, ActiveRecord data sources, i18n, Hotwire)
+- [x] Ruby pack: Rails (navigation, routes, generators, console, ActiveRecord data sources, i18n, Hotwire)
 
 ## Milestone 6 — AI and collaboration
 

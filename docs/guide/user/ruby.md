@@ -10,8 +10,9 @@ tags: [ruby, rubyforge, rbenv, rvm, chruby, asdf, mise, bundler, gemfile, rake, 
 **RubyForge** brings RubyMine's Ruby support to Forge. Its plugin **Ruby** (`forge.ruby`)
 is active in [Ruby projects](../getting-started/project-detection.md): a `Gemfile`, a
 `Rakefile`, a `.ruby-version`, a `*.gemspec`, a `.rb` file in the root, or two or more
-`.rb` / `.rake` files in a folder. Rails support (routes, generators, the Rails console) is a
-separate plugin that builds on this one.
+`.rb` / `.rake` files in a folder. [Rails support](rails.md) (routes, navigation, generators,
+the Rails console and server, data sources, I18n, Stimulus and Turbo) is a separate plugin that
+builds on this one.
 
 - Ruby files (`.rb`, `.rake`, `.gemspec`, `.ru`, `.jbuilder`, `Gemfile`, `Rakefile`,
   `Guardfile`, `Capfile`, `.irbrc`, scripts with a `ruby` shebang) get Ruby highlighting;

@@ -21,6 +21,7 @@
 .pt-icon[data-type="vite"] { --pt: var(--graph-3); }
 .pt-icon[data-type="laravel"],
 .pt-icon[data-type="ruby"],
+.pt-icon[data-type="rails"],
 .pt-icon[data-type="joomla"],
 .pt-icon[data-type="angular"] { --pt: var(--danger); }
 .pt-icon[data-type="symfony"],

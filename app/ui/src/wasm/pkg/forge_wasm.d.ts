@@ -1784,6 +1784,37 @@ export function python_web_project(request_json: string): string;
 export function python_web_run_info(request_json: string): string;
 
 /**
+ * A Rails command line → `RubyCommand`.
+ */
+export function rails_command(request_json: string): string;
+
+/**
+ * `{ files, path, content, offset }` → `Completions | null`.
+ */
+export function rails_complete(request_json: string): string;
+
+/**
+ * `{ files, output? }` → `Generator[]`: from `bin/rails generate` output, else Rails' own
+ * generators and the project's `lib/generators`.
+ */
+export function rails_generators(request_json: string): string;
+
+/**
+ * `{ files, path, content, offset }` → `Location[]`.
+ */
+export function rails_goto(request_json: string): string;
+
+/**
+ * `{ files, path, content }` → `FileMarks`.
+ */
+export function rails_marks(request_json: string): string;
+
+/**
+ * `{ files, options }` → `RailsInfo`.
+ */
+export function rails_project(request_json: string): string;
+
+/**
  * `{ knownHosts, host, port, keyType, key, accept? }` → `{ status, fingerprint, ..., knownHosts? }`
  * (the verdict, and the updated file when a confirmed key was added).
  */
@@ -2929,6 +2960,12 @@ export interface InitOutput {
     readonly python_web_marks: (a: number, b: number, c: number) => void;
     readonly python_web_project: (a: number, b: number, c: number) => void;
     readonly python_web_run_info: (a: number, b: number, c: number) => void;
+    readonly rails_command: (a: number, b: number, c: number) => void;
+    readonly rails_complete: (a: number, b: number, c: number) => void;
+    readonly rails_generators: (a: number, b: number, c: number) => void;
+    readonly rails_goto: (a: number, b: number, c: number) => void;
+    readonly rails_marks: (a: number, b: number, c: number) => void;
+    readonly rails_project: (a: number, b: number, c: number) => void;
     readonly remote_check_host_key: (a: number, b: number, c: number) => void;
     readonly remote_ssh_hosts: (a: number, b: number, c: number) => void;
     readonly remote_validate_config: (a: number, b: number, c: number) => void;

@@ -1,0 +1,12 @@
+[package]
+name = "rubyforge-fw-rails"
+description = "RubyForge: Ruby on Rails read statically from the project (routes.rb and `rails routes` output, controllers, views and partials, models with their columns from schema.rb and migrations, database.yml, locale files, Stimulus controllers, Turbo frames), editor navigation, completion, gutter marks and inspections, generator lists and the command lines of the Rails console, server and generators; pure, also built to WebAssembly"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+forge-runtools.workspace = true
+rubyforge-lang-ruby.workspace = true

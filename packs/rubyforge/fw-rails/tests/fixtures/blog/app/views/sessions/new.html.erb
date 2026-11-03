@@ -1,0 +1,7 @@
+<h1>Sign in</h1>
+
+<%= form_with url: session_path do |form| %>
+  <%= form.email_field :email_address, required: true %>
+  <%= form.password_field :password, required: true %>
+  <%= form.submit "Sign in" %>
+<% end %>
