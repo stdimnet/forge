@@ -8,6 +8,10 @@ fn main() {
     if let Some(code) = phpforge_builtin_lsp::main_hook(&args) {
         std::process::exit(code);
     }
+    // `forge --mcp-stdio`: a stdio MCP server that forwards to the running Forge.
+    if let Some(code) = forge_app_lib::mcp_stdio_main(&args) {
+        std::process::exit(code);
+    }
     // `forge inspect …`: the command-line inspector runs headless and exits.
     if let Some(code) = forge_app_lib::cli::main(&args) {
         std::process::exit(code);

@@ -1,0 +1,315 @@
+/* MCP Server: settings page, status bar widget and popup, call log, approval cards. */
+
+.mcp-page .mcp-intro {
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  max-width: 720px;
+}
+.mcp-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+.mcp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-small);
+}
+.mcp-note {
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.mcp-server-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mcp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+.mcp-dot.off {
+  background: var(--fg-faint);
+  box-shadow: none;
+}
+.mcp-error-icon {
+  color: var(--danger);
+}
+.mcp-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+.mcp-link:hover {
+  text-decoration: underline;
+}
+
+/* Client configurations */
+.mcp-clients {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mcp-client-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+.mcp-client-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 4px 10px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font: inherit;
+}
+.mcp-client-tab:hover {
+  color: var(--fg);
+}
+.mcp-client-tab.active {
+  color: var(--fg-strong);
+  border-bottom-color: var(--accent);
+}
+.mcp-code {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  overflow: hidden;
+}
+.mcp-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: var(--fs-small);
+}
+.mcp-transport {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+.mcp-code pre {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+.mcp-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Call log */
+.mcp-log {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: var(--fs-small);
+}
+.mcp-log-empty {
+  padding: 8px 10px;
+}
+.mcp-log-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(110px, auto) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.mcp-log-row:last-child {
+  border-bottom: none;
+}
+.mcp-log-row:hover {
+  background: var(--bg-hover);
+}
+.mcp-log-args {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-log-tool {
+  color: var(--fg-strong);
+}
+.mcp-log-status {
+  display: inline-flex;
+}
+.mcp-log-status[data-status="ok"] {
+  color: var(--success);
+}
+.mcp-log-status[data-status="error"] {
+  color: var(--danger);
+}
+.mcp-log-status[data-status="refused"],
+.mcp-log-status[data-status="denied"] {
+  color: var(--warning);
+}
+.mcp-log-duration {
+  text-align: right;
+  min-width: 48px;
+}
+
+/* Status bar widget and popup */
+.mcp-status-wrap {
+  display: inline-flex;
+}
+.mcp-status.connected {
+  color: var(--fg);
+}
+.mcp-status.connected svg {
+  color: var(--success);
+}
+.mcp-status.problem svg {
+  color: var(--danger);
+}
+.mcp-popup {
+  width: 560px;
+  max-width: calc(100vw - 12px);
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mcp-popup-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+.mcp-popup-url {
+  font-weight: normal;
+  font-size: var(--fs-small);
+  margin-left: 4px;
+  flex: 1;
+}
+.mcp-popup-label {
+  margin-top: 6px;
+  font-size: var(--fs-small);
+}
+.mcp-popup-row {
+  display: flex;
+  justify-content: space-between;
+}
+.mcp-popup-empty,
+.mcp-popup-note {
+  font-size: var(--fs-small);
+}
+.mcp-popup-note {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+}
+.mcp-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-small);
+}
+.mcp-session-name {
+  color: var(--fg-strong);
+}
+.mcp-session .icon-btn {
+  margin-left: auto;
+}
+
+/* Approval cards, stacked above the status bar on the right. */
+.mcp-approvals {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--statusbar-h) + 12px);
+  z-index: 342;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.mcp-approval {
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mcp-approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--fg);
+}
+.mcp-approval-head svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.mcp-approval-tool {
+  font-size: var(--fs-small);
+}
+.mcp-approval-command,
+.mcp-approval-diff pre {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-editor);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 140px;
+  overflow: auto;
+}
+.mcp-approval-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mcp-approval-diff .mcp-diff-old {
+  background: var(--diff-deleted-bg);
+}
+.mcp-approval-diff .mcp-diff-new {
+  background: var(--diff-inserted-bg);
+}
+.mcp-approval-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.mcp-approval-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

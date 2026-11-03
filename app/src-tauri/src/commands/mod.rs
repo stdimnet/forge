@@ -62,6 +62,7 @@ pub mod local_history;
 pub mod lsp;
 pub mod lua;
 pub mod maintenance;
+pub mod mcp;
 pub mod markdown;
 pub mod output;
 pub mod php;

@@ -60,6 +60,7 @@ import "./documentationMock";
 import "./relatedMock";
 import "./goToTestMock";
 import "./companionMock";
+import "./mcpMock";
 import "./terminalMock";
 import "./runMock";
 import "./coverageMock";

@@ -175,6 +175,22 @@ pub fn inspection_report(report: &Value) -> Value {
     })
 }
 
+/// `replace_text_in_file`: the new text and how many occurrences were replaced. `old` must
+/// occur exactly once unless `all` is set.
+pub fn replace_text(text: &str, old: &str, new: &str, all: bool) -> Result<(String, usize), String> {
+    if old.is_empty() {
+        return Err("oldText must not be empty".into());
+    }
+    let count = text.matches(old).count();
+    match (count, all) {
+        (0, _) => Err("oldText was not found in the file (it must match exactly, including whitespace)".into()),
+        (1, _) | (_, true) => Ok((text.replace(old, new), count)),
+        (n, false) => Err(format!(
+            "oldText occurs {n} times; add surrounding lines to make it unique or set replaceAll"
+        )),
+    }
+}
+
 /// Output of a command or run, keeping the start and the end when it is too long.
 #[derive(Debug, Default, Clone)]
 pub struct OutputBuffer {
@@ -268,6 +284,15 @@ mod tests {
         assert_eq!(r["count"], 1);
         assert_eq!(r["problems"][0]["line"], 5);
         assert_eq!(r["problems"][0]["severity"], "Warning");
+    }
+
+    #[test]
+    fn replaces_text() {
+        assert_eq!(replace_text("a b a", "b", "c", false), Ok(("a c a".into(), 1)));
+        assert!(replace_text("a b a", "a", "c", false).unwrap_err().contains("2 times"));
+        assert_eq!(replace_text("a b a", "a", "c", true), Ok(("c b c".into(), 2)));
+        assert!(replace_text("a", "x", "y", false).unwrap_err().contains("not found"));
+        assert!(replace_text("a", "", "y", false).is_err());
     }
 
     #[test]

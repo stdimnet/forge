@@ -1,5 +1,6 @@
 /** Reformat Code (Ctrl+Alt+L) through the language server's document formatting. */
 import type { ChangeSpec, Extension } from "@codemirror/state";
+import { isolateHistory } from "@codemirror/commands";
 import { EditorView, keymap } from "@codemirror/view";
 import { lspApi, type TextEdit } from "@/ipc/lsp";
 import { syncNow } from "./sync";
@@ -43,8 +44,11 @@ export function registerFormatPostProcessor(processor: FormatPostProcessor, orde
   postProcessors.sort((a, b) => a.order - b.order);
 }
 
-/** Replace the document with `text` as one change of the part that differs. */
-export function replaceChangedPart(view: EditorView, text: string, userEvent = "format"): void {
+/**
+ * Replace the document with `text` as one change of the part that differs. `isolate` keeps
+ * it an undo step of its own (never merged with typing around it).
+ */
+export function replaceChangedPart(view: EditorView, text: string, userEvent = "format", isolate = false): void {
   const old = view.state.doc.toString();
   if (old === text) return;
   let start = 0;
@@ -56,6 +60,7 @@ export function replaceChangedPart(view: EditorView, text: string, userEvent = "
     changes: { from: start, to: old.length - end, insert: text.slice(start, text.length - end) },
     userEvent,
     scrollIntoView: false,
+    annotations: isolate ? isolateHistory.of("full") : undefined,
   });
 }
 

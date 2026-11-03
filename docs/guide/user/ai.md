@@ -398,3 +398,11 @@ sent anywhere by default. Disabled providers, projects with AI turned off and fi
 on your machine. Apart from Agent Tasks, none of the AI features runs project code, so they
 work the same in [Safe Mode](project-trust.md). Agent Tasks send the task, the files the agent
 reads and the test output to the chosen provider or CLI.
+
+## External agents (MCP)
+
+Agents that run outside Forge (Claude Code in a terminal, Claude Desktop, Cursor, Gemini CLI,
+Codex) can use Forge's tools through its built-in MCP server: search and navigation with
+Forge's indexes, the problems it shows, undoable edits in the editor, run configurations and
+tests, Git and read-only database queries, with approval cards and the same `ai.enabled`,
+`.aiignore` and Safe Mode rules. It is off by default; see [MCP Server](mcp-server.md).

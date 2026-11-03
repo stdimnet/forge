@@ -28,6 +28,7 @@ forge-viewers.workspace = true
 base64 = "0.22"
 forge-agent-cli = { path = "../forge-agent-cli", default-features = false }
 forge-ai-editor.workspace = true
+forge-mcp = { workspace = true, default-features = false }
 phpforge-dql = { path = "../../packs/phpforge/dql" }
 phpforge-composer = { path = "../../packs/phpforge/composer" }
 phpforge-interpreters = { path = "../../packs/phpforge/interpreters" }
