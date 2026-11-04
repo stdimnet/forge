@@ -19,7 +19,7 @@ id = "python"
 name = "Python"
 extensions = ["py", "pyw", "pyi", "pyx", "pxd", "gyp"]
 fileNames = ["SConstruct", "SConscript", "wscript", ".pythonstartup", ".pythonrc"]
-interpreters = ["python", "python3", "pypy", "pypy3"]
+interpreters = ["python", "python3", "pypy", "pypy3", "uv", "pythonw"]
 
 [[plugin.contributions.fileTypes]]
 id = "pip-requirements"

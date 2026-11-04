@@ -5,7 +5,8 @@
 use forge_backend::{SearchStatus, SymbolHit};
 use forge_core::Result;
 use forge_filetypes::{
-    delimiter_catalog, DelimiterCatalog, DetectRequest, FileTypeInfo, FileTypeRow,
+    delimiter_catalog, edit_overrides, DelimiterCatalog, DetectRequest, EditOverridesRequest,
+    FileTypeInfo, FileTypeOverride, FileTypeRow, OverrideChoices,
 };
 use forge_fuzzy::everywhere::{self, RankRequest, RankResponse};
 use forge_fuzzy::{FilterHit, FilterRequest};
@@ -43,6 +44,29 @@ pub fn filetypes_list(request: DetectRequest, state: State<'_, AppState>) -> Vec
     plugins
         .file_type_registry()
         .rows(&request.inactive_plugins, &request.user_file_types())
+}
+
+/// File | File Properties | Override File Type: every file type for `path` (the first of
+/// `request.files`), the type it is overridden to and its Associate with File Type pattern.
+#[tauri::command]
+pub fn filetypes_override_choices(
+    request: DetectRequest,
+    state: State<'_, AppState>,
+) -> OverrideChoices {
+    let plugins = state.plugins.read().expect("plugins lock poisoned");
+    let path = request.files.first().map_or("", |f| f.path.as_str());
+    plugins.file_type_registry().override_choices(
+        path,
+        &request.inactive_plugins,
+        &request.user_file_types(),
+        &request.overrides,
+    )
+}
+
+/// The `fileTypes.overrides` value after setting, reverting, moving or deleting an override.
+#[tauri::command]
+pub fn filetypes_edit_overrides(request: EditOverridesRequest) -> Vec<FileTypeOverride> {
+    edit_overrides(&request.overrides, &request.edit)
 }
 
 /// Template languages with configurable delimiters and the data languages (Settings |

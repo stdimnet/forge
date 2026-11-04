@@ -959,6 +959,12 @@ impl LspClient {
     // ---- Document synchronization (full sync) ----
 
     pub fn did_open(&self, path: &Path, text: &str) -> Result<()> {
+        self.did_open_as(path, text, None)
+    }
+
+    /// `didOpen` with the language id of the file's detected type (an extensionless
+    /// `artisan` is `php`); `None` derives it from the extension.
+    pub fn did_open_as(&self, path: &Path, text: &str, language_id: Option<String>) -> Result<()> {
         let uri = path_to_uri(path)?;
         self.inner
             .versions
@@ -968,7 +974,7 @@ impl LspClient {
         self.notify::<notif::DidOpenTextDocument>(DidOpenTextDocumentParams {
             text_document: TextDocumentItem {
                 uri: uri.clone(),
-                language_id: self.inner.config.language_id_for(path),
+                language_id: language_id.unwrap_or_else(|| self.inner.config.language_id_for(path)),
                 version: 1,
                 text: text.to_string(),
             },

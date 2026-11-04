@@ -7,10 +7,47 @@ tags: [file types, reference, syntax]
 
 # File types reference
 
-Detection order: file names and path patterns, then the longest matching extension, then the
-interpreter of a `#!` line. File names may contain `*` anywhere and `/` to match a path suffix
+Detection order: a manual override (Override File Type), file names and path patterns, then the
+longest matching extension, then the interpreter of a `#!` line, then a Vim or Emacs modeline. File names may contain `*` anywhere and `/` to match a path suffix
 (`config/services*.yaml`). Bundled types indent with 4 spaces unless a plugin type says
 otherwise. See [File types and syntax highlighting](../user/file-types.md).
+
+## Shebang interpreters
+
+Interpreters that select a type from the `#!` line of a file without a known name or extension.
+A name also matches with a version suffix (`php` matches `php8.3`). `/usr/bin/env` with flags
+(`-S`, `-i`, `-u NAME`), variable assignments and absolute paths are understood.
+
+| Type | Interpreters |
+| --- | --- |
+| `php` | `php`, `php-cgi`, `hhvm` |
+| `javascript` | `node`, `nodejs`, `bun`, `zx`, `qjs`, `gjs` |
+| `typescript` | `ts-node`, `ts-node-esm`, `tsx`, `deno` |
+| `shell` | `sh`, `bash`, `zsh`, `ksh`, `mksh`, `dash`, `ash`, `busybox`, `fish` |
+| `python` | `python`, `python3`, `pypy`, `pypy3`, `uv`, `pythonw` |
+| `ruby` | `ruby`, `jruby`, `truffleruby`, `macruby` |
+| `lua` | `lua`, `luajit`, `tarantool` |
+| `perl` | `perl` |
+| `groovy` | `groovy` |
+| `kotlin` | `kotlin`, `kotlinc` |
+| `scala` | `scala`, `scala-cli`, `amm` |
+| `go` | `gorun` |
+| `rust` | `rust-script` |
+| `swift`, `dart`, `crystal`, `julia`, `ocaml`, `octave`, `elixir` | the same name |
+| `csharp` | `dotnet-script` |
+| `erlang` | `escript` |
+| `haskell` | `runghc`, `runhaskell`, `stack` |
+| `clojure` | `clojure`, `clj`, `bb` |
+| `lisp` | `sbcl`, `clisp` |
+| `scheme` | `guile`, `racket`, `chicken`, `csi` |
+| `coffeescript` | `coffee` |
+| `r` | `Rscript` |
+| `tcl` | `tclsh`, `wish`, `expect` |
+| `powershell` | `pwsh`, `powershell` |
+| `makefile` | `make`, `gmake` (`#!/usr/bin/make -f`) |
+
+Modelines name a type by its id, name, extension or interpreter, or by a Vim/Emacs mode name
+(`sh`, `shell-script`, `js`, `c++`, `cperl`, …).
 
 ## Bundled file types
 

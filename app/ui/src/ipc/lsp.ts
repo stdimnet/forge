@@ -149,7 +149,12 @@ export interface EditorInlayHint {
 const at = (path: string, pos: LspPosition) => ({ path, line: pos.line, character: pos.character });
 
 export const lspApi = {
-  didOpen: (path: string, text: string) => invoke<void>("lsp_did_open", { path, text }),
+  /**
+   * `languageId` is the editor's file type id (an extensionless `artisan` is `php`, an
+   * override wins), `""` for none; omitted, the server side keeps what it knows.
+   */
+  didOpen: (path: string, text: string, languageId?: string) =>
+    invoke<void>("lsp_did_open", languageId === undefined ? { path, text } : { path, text, languageId }),
   didChange: (path: string, text: string) => invoke<void>("lsp_did_change", { path, text }),
   didSave: (path: string, text: string) => invoke<void>("lsp_did_save", { path, text }),
   didClose: (path: string) => invoke<void>("lsp_did_close", { path }),

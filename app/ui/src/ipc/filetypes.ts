@@ -8,7 +8,7 @@ import type { SettingObject } from "./settings";
 
 export interface FileRef {
   path: string;
-  /** First line of the content, for `#!` detection. */
+  /** First line of the content, for `#!` and modeline detection. */
   firstLine?: string;
 }
 
@@ -26,6 +26,40 @@ export interface DetectRequest {
   associations?: SettingObject[];
   /** The `fileTypes.custom` setting: the user's own file types. */
   customTypes?: SettingObject[];
+  /** The `fileTypes.overrides` setting: types chosen with Override File Type. */
+  overrides?: SettingObject[];
+}
+
+/** One entry of the `fileTypes.overrides` setting (path relative to the project). */
+export interface FileTypeOverride {
+  path: string;
+  fileType: string;
+}
+
+/** The value of an override that makes a file plain text. */
+export const PLAIN_TEXT_ID = "text";
+
+/** A change to the overrides (`forge_filetypes::OverrideEdit`). */
+export type OverrideEdit =
+  | { op: "set"; path: string; fileType: string }
+  | { op: "unset"; path: string }
+  /** The file or a folder above it was renamed or moved, or deleted (`to: null`). */
+  | { op: "moved"; from: string; to: string | null };
+
+/** One file type of the Override File Type list. */
+export interface OverrideChoice {
+  id: string;
+  name: string;
+  /** Contributing plugin that is off or unused by the project. */
+  inactivePlugin?: string;
+}
+
+export interface OverrideChoices {
+  choices: OverrideChoice[];
+  /** The type the file is overridden to, if any. */
+  current: string | null;
+  /** Pattern for Associate with File Type (`*.ext` or the file name). */
+  pattern: string;
 }
 
 /** Highlighting of a custom file type (Settings | Editor | File Types). */
@@ -84,6 +118,8 @@ export interface FileTypeInfo {
   delimiters: Record<string, string> | null;
   /** Highlighting of a custom file type. */
   custom?: CustomSyntax;
+  /** Chosen with Override File Type rather than detected. */
+  overridden?: boolean;
 }
 
 /** One delimiter of a template language, e.g. Twig's variable start `{{`. */
@@ -111,6 +147,11 @@ export const filetypesApi = {
   detect: (request: DetectRequest) => invoke<FileTypeInfo[]>("filetypes_detect", { request }),
   /** Settings | Editor | File Types (`files` may be empty). */
   list: (request: DetectRequest) => invoke<FileTypeRow[]>("filetypes_list", { request }),
+  /** Override File Type: every type for `request.files[0]`, its override and pattern. */
+  overrideChoices: (request: DetectRequest) => invoke<OverrideChoices>("filetypes_override_choices", { request }),
+  /** The `fileTypes.overrides` value after `edit`. */
+  editOverrides: (overrides: SettingObject[], edit: OverrideEdit) =>
+    invoke<FileTypeOverride[]>("filetypes_edit_overrides", { request: { overrides, edit } }),
   /** Template languages with configurable delimiters, and the data languages. */
   templateDelimiters: () => invoke<DelimiterCatalog>("filetypes_template_delimiters"),
 };

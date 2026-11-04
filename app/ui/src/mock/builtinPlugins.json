@@ -875,6 +875,20 @@
           "order": 10
         },
         {
+          "key": "fileTypes.overrides",
+          "title": "File type overrides",
+          "description": "Files whose type was chosen with File | File Properties | Override File Type: `{ path = \"artisan\", fileType = \"php\" }`, the path relative to the project. `fileType = \"text\"` makes a file plain text.",
+          "type": "objects",
+          "unique": [
+            "path"
+          ],
+          "default": [],
+          "group": "editor.file-types",
+          "project": true,
+          "hidden": true,
+          "order": 15
+        },
+        {
           "key": "fileTypes.ignoredFiles",
           "title": "Ignored Files and Folders",
           "description": "Files and folders with these names are hidden from the Project view, separated by ';' (`*` and `?` wildcards).",
@@ -7475,7 +7489,12 @@
             "profile",
             "engine"
           ],
-          "fileNames": []
+          "fileNames": [],
+          "interpreters": [
+            "php",
+            "php-cgi",
+            "hhvm"
+          ]
         }
       ],
       "commands": [
@@ -9754,7 +9773,9 @@
             "python",
             "python3",
             "pypy",
-            "pypy3"
+            "pypy3",
+            "uv",
+            "pythonw"
           ]
         },
         {
@@ -16439,8 +16460,11 @@
             "bash",
             "zsh",
             "ksh",
+            "mksh",
             "dash",
-            "ash"
+            "ash",
+            "busybox",
+            "fish"
           ],
           "indentSize": 2
         }
