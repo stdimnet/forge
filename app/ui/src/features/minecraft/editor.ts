@@ -1,10 +1,13 @@
 /**
- * Minecraft plugins in the editor: the `main` class of plugin descriptors is checked
- * (unknown or invalid classes are errors) and Ctrl+B / Ctrl+Click on it opens the class;
+ * Minecraft plugins and mods in the editor: the `main` class of plugin descriptors, the
+ * entrypoints and mixin configurations of `fabric.mod.json` and the classes of mixin
+ * configurations are checked (unknown or invalid classes are errors) and Ctrl+B /
+ * Ctrl+Click on them opens the class; `neoforge.mods.toml` gets key and value completion;
  * Java / Kotlin sources get gutter icons for event handlers and ▶ "Run Paper Server" on the
  * plugin's main class (with run-paper). Everything is computed in Rust.
  */
-import type { Extension } from "@codemirror/state";
+import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import { EditorState, type Extension } from "@codemirror/state";
 import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import { Play, Radio, Settings2 } from "lucide-solid";
 import { minecraftApi, type MinecraftMarker } from "@/ipc/minecraft";
@@ -20,6 +23,7 @@ import { openMenu } from "@/features/run/PopupMenu";
 import { openRunConfigurations } from "@/features/run/dialogState";
 import { launch } from "@/features/run/runStore";
 import { getSetting } from "@/state/settings";
+import { t } from "@/i18n";
 import { minecraftActive, RUN_SERVER, runServerConfiguration } from "./store";
 
 const SOURCE = "minecraft";
@@ -27,6 +31,12 @@ const SOURCE = "minecraft";
 /** `plugin.yml`, `paper-plugin.yml`, `bungee.yml` or `velocity-plugin.json` in `src/main/resources`. */
 export const isDescriptor = (path: string) =>
   /(^|[/\\])src[/\\]main[/\\]resources[/\\](plugin\.yml|paper-plugin\.yml|bungee\.yml|velocity-plugin\.json)$/.test(path);
+/** `fabric.mod.json` or a mixin configuration in `src/<source set>/resources`. */
+export const isModFile = (path: string) =>
+  /(^|[/\\])src[/\\][^/\\]+[/\\]resources[/\\](fabric\.mod\.json|[^/\\]*mixins\.json)$/.test(path);
+/** NeoForge's (or Forge's) mod metadata. */
+export const isModsToml = (path: string) => /(^|[/\\])(neoforge\.)?mods\.toml$/.test(path);
+const isChecked = (path: string) => isDescriptor(path) || isModFile(path);
 const isSource = (path: string) => /\.(java|kt)$/.test(path);
 
 // ---- Descriptors --------------------------------------------------------------------------
@@ -72,14 +82,43 @@ function diagnostics(path: string): Extension {
   });
 }
 
-registerEditorExtension(({ path }): Extension | null => (isDescriptor(path) ? diagnostics(path) : null));
+registerEditorExtension(({ path }): Extension | null => (isChecked(path) ? diagnostics(path) : null));
 
 registerDeclarationProvider(async (path, view, pos) => {
-  if (!minecraftActive() || !isDescriptor(path)) return false;
+  if (!minecraftActive() || !isChecked(path)) return false;
   const targets = await minecraftApi.goto(path, view.state.doc.toString(), pos).catch(() => []);
   if (!targets.length) return false;
-  chooseDeclarationAt(view, pos, targets, { title: "Main Class", open: (t) => void revealSymbol(t.path, { line: t.line, name: t.name }) });
+  const title = isDescriptor(path) ? "Main Class" : t("minecraft.declaration");
+  chooseDeclarationAt(view, pos, targets, { title, open: (target) => void revealSymbol(target.path, { line: target.line, name: target.name }) });
   return true;
+});
+
+// ---- neoforge.mods.toml -------------------------------------------------------------------
+
+const TOML_TYPES = { key: "property", value: "constant", table: "type" } as const;
+
+function tomlCompletion(path: string) {
+  return async (ctx: CompletionContext): Promise<CompletionResult | null> => {
+    if (!minecraftActive()) return null;
+    const line = ctx.state.doc.lineAt(ctx.pos);
+    const before = line.text.slice(0, ctx.pos - line.from);
+    // Keys at the line start, values after `=`, headers after `[`; explicit requests always.
+    if (!ctx.explicit && !/^\s*(\w+|\[\[?[\w.]*|\w+\s*=\s*"?\w*)$/.test(before)) return null;
+    const answer = await minecraftApi.complete(path, ctx.state.doc.toString(), ctx.pos).catch(() => null);
+    if (!answer || ctx.aborted || !answer.items.length) return null;
+    return {
+      from: answer.from,
+      to: Math.max(answer.to, ctx.pos),
+      options: answer.items.map((i) => ({ label: i.label, apply: i.apply, detail: i.detail, type: TOML_TYPES[i.kind] })),
+      validFor: /^[\w[\].$"{}]*$/,
+    };
+  };
+}
+
+registerEditorExtension(({ path }): Extension | null => {
+  if (!isModsToml(path)) return null;
+  const data = [{ autocomplete: tomlCompletion(path) }];
+  return EditorState.languageData.of(() => data);
 });
 
 // ---- Gutter -------------------------------------------------------------------------------

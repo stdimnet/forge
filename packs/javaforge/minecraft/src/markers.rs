@@ -1,5 +1,6 @@
 //! Gutter markers in Java and Kotlin sources of Minecraft plugins: event handler methods
-//! (`@EventHandler` of Bukkit / BungeeCord, `@Subscribe` of Velocity) with the event they
+//! (`@EventHandler` of Bukkit / BungeeCord, `@Subscribe` of Velocity, `@SubscribeEvent` of
+//! NeoForge mods) with the event they
 //! listen to, and the plugin's main class (`extends JavaPlugin`), which runs the test server.
 //! A line scanner, not a parser: comments and strings are skipped well enough for gutters.
 
@@ -25,7 +26,7 @@ pub struct Marker {
     pub name: String,
 }
 
-const HANDLER_ANNOTATIONS: &[&str] = &["@EventHandler", "@Subscribe"];
+const HANDLER_ANNOTATIONS: &[&str] = &["@EventHandler", "@Subscribe", "@SubscribeEvent"];
 /// How many lines after an annotation the method may start.
 const LOOKAHEAD: usize = 6;
 
@@ -277,5 +278,13 @@ class JoinListener : Listener {
             markers(&listener.contents, false)[0].name,
             "PlayerJoinEvent"
         );
+    }
+
+    #[test]
+    fn neoforge_subscribers() {
+        let src = "public class Events {\n    @SubscribeEvent\n    public static void onServerStarting(ServerStartingEvent event) {\n    }\n}\n";
+        let m = markers(src, false);
+        assert_eq!(m.len(), 1);
+        assert_eq!((m[0].line, m[0].name.as_str()), (2, "ServerStartingEvent"));
     }
 }

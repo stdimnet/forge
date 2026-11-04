@@ -159,7 +159,11 @@ pub const VERSION: &str = "1.0.0-SNAPSHOT";
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct GeneratedFile {
     pub path: String,
+    /// Empty for binary files.
     pub contents: String,
+    /// The bytes of a binary file (a PNG texture of a mod).
+    #[serde(skip)]
+    pub binary: Option<Vec<u8>>,
 }
 
 const JAVA_KEYWORDS: &[&str] = &[
@@ -433,7 +437,13 @@ pub fn generate(project: &str, o: &Options) -> Result<Vec<GeneratedFile>, String
 /// The files of a resolved project (sorted by path).
 pub fn files(p: &Project) -> Vec<GeneratedFile> {
     let mut out = Vec::new();
-    let mut add = |path: String, contents: String| out.push(GeneratedFile { path, contents });
+    let mut add = |path: String, contents: String| {
+        out.push(GeneratedFile {
+            path,
+            contents,
+            binary: None,
+        })
+    };
     match p.build {
         Build::GradleKts => {
             add(

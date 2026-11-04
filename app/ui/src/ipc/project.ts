@@ -100,7 +100,8 @@ export const projectApi = {
   create: (args: CreateArgs) => invoke<string>("project_create", { ...args }),
   cancel: () => invoke<void>("project_create_cancel"),
   /** Fresh choices of an option with `refresh` (its IPC command). */
-  refreshChoices: (command: string) => invoke<GeneratorChoice[]>(command),
+  /** Fresh choices of an option with a `refresh` command, for `generator`. */
+  refreshChoices: (command: string, generator: string) => invoke<GeneratorChoice[]>(command, { generator }),
   onDetected: (cb: (d: Detected) => void) => listen<Detected>(DETECTED_EVENT, cb),
   onCreate: (cb: (e: CreateEvent) => void) => listen<CreateEvent>(CREATE_EVENT, cb),
 };

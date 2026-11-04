@@ -79,6 +79,7 @@
   "menu.exit.ToggleFullScreen": "_Vollbildmodus beenden",
   "menu.exit.TogglePresentationMode": "_Präsentationsmodus beenden",
   "menu.exit.ToggleZenMode": "_Zen-Modus beenden",
+  "minecraft.declaration": "Deklaration",
   "notifications.clearAll": "Alle löschen",
   "notifications.displayAs": "„{group}“ anzeigen als",
   "notifications.markAllRead": "Alle als gelesen markieren",

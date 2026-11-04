@@ -8,12 +8,14 @@ Written for Forge (MIT, like Forge itself)
 ------------------------------------------
 
 The Minecraft plugin descriptor schemas, from the Bukkit, Paper, Velocity and BungeeCord
-documentation:
+documentation, and the mod metadata schemas, from the Fabric and Mixin documentation:
 
   minecraft-bukkit-plugin.json    plugin.yml (Bukkit, Spigot, Paper and forks)
   minecraft-paper-plugin.json     paper-plugin.yml
   minecraft-velocity-plugin.json  velocity-plugin.json
   minecraft-bungee-plugin.json    bungee.yml
+  minecraft-fabric-mod.json       fabric.mod.json (Fabric mods)
+  minecraft-mixins.json           *.mixins.json (Mixin configurations)
 
 The Unity assembly definition schemas, from Unity's manual (Assembly Definition and
 Assembly Definition Reference file formats):

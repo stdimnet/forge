@@ -74,8 +74,9 @@ pub async fn project_detect(state: State<'_, AppState>) -> Result<ProjectInfo> {
 
 #[tauri::command]
 pub fn project_generators_list() -> Vec<Generator> {
-    // Minecraft versions of the last "Refresh versions" join the pinned table.
-    forge_project::generators_with(&crate::commands::minecraft::cached_versions())
+    // Minecraft versions of the last "Refresh versions" join the pinned tables.
+    let (plugins, mods) = crate::commands::minecraft::cached_versions();
+    forge_project::generators_with(&plugins, &mods)
 }
 
 fn request(

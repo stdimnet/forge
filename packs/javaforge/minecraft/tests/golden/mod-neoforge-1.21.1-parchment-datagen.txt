@@ -1,0 +1,437 @@
+==== .forge/runConfigurations.toml ====
+selected = "Minecraft Client"
+
+[[configuration]]
+name = "Minecraft Client"
+type = "gradle"
+
+[configuration.options]
+tasks = "runClient"
+
+[[configuration]]
+name = "Minecraft Server"
+type = "gradle"
+
+[configuration.options]
+tasks = "runServer"
+
+[[configuration]]
+name = "Data Generation"
+type = "gradle"
+
+[configuration.options]
+tasks = "runData"
+==== .gitignore ====
+# Gradle
+.gradle/
+build/
+out/
+
+# The game directories of runClient / runServer
+run/
+runs/
+
+# The data generator's cache
+src/generated/resources/.cache/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.DS_Store
+==== README.md ====
+# Better Chests
+
+A NeoForge mod for Minecraft 1.21.1 (NeoForge 21.1.265), written in Java (Java 21).
+
+The code uses Mojang's names with Parchment parameter names (2024.11.17).
+
+## Build
+
+The project has no Gradle wrapper yet. Create it once with an installed Gradle 9 or newer:
+
+```sh
+gradle wrapper
+```
+
+Then build the mod (Gradle downloads a JDK 21 with the foojay toolchain resolver when none is installed):
+
+```sh
+./gradlew build
+```
+
+The mod jar is `build/libs/better_chests-1.0.0.jar`. Copy it into the `mods/` folder of a Minecraft 1.21.1 installation with NeoForge.
+
+## Run
+
+- `./gradlew runClient` (the **Minecraft Client** run configuration in Forge) starts the game with the mod.
+- `./gradlew runServer` (**Minecraft Server**) starts a dedicated server in `run/`. Accept the Minecraft EULA in `run/eula.txt` on the first start.
+- `./gradlew runData` (**Data Generation**) runs the data generators and writes to `src/generated/resources`.
+
+## Structure
+
+- `src/main/java/com/example/betterchests/BetterChests.java`: the main class
+- `src/main/java/com/example/betterchests/BetterChestsClient.java`: the client initializer
+- `src/main/java/com/example/betterchests/registry/`: the example item and block
+- `src/main/resources/assets/better_chests/`: translations, models and textures
+- `src/main/templates/META-INF/neoforge.mods.toml`: the mod's metadata (Gradle fills in the versions)
+- `src/main/resources/better_chests.mixins.json`: the mixin configuration, with the example mixins in the `mixin` package
+==== build.gradle ====
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+sourceSets.main.resources {
+    // Resources of the data generators (runData).
+    srcDir 'src/generated/resources'
+    exclude '.cache'
+}
+
+repositories {
+    // Add the repositories of other mods you depend on here.
+}
+
+neoForge {
+    version = project.neo_version
+
+    // Parameter names and javadoc on top of Mojang's names.
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+// Fills the version properties into src/main/templates (META-INF/neoforge.mods.toml).
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            mod_id                 : mod_id,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+==== gradle.properties ====
+# Gradle
+org.gradle.jvmargs=-Xmx2G
+org.gradle.parallel=true
+
+# NeoForge: see https://projects.neoforged.net/neoforged/neoforge for newer versions
+minecraft_version=1.21.1
+minecraft_version_range=[1.21.1]
+neo_version=21.1.265
+parchment_minecraft_version=1.21.1
+parchment_mappings_version=2024.11.17
+
+# Mod
+mod_id=better_chests
+mod_version=1.0.0
+mod_group_id=com.example
+==== gradle/gradle-daemon-jvm.properties ====
+#This file is generated by :updateDaemonJvm
+toolchainUrl.FREE_BSD.AARCH64=https\://api.foojay.io/disco/v3.0/ids/50d5fe9033e125599b2aa94dc590a27d/redirect
+toolchainUrl.FREE_BSD.X86_64=https\://api.foojay.io/disco/v3.0/ids/b15e5055c5b0ea5fda57f6fdafe96572/redirect
+toolchainUrl.LINUX.AARCH64=https\://api.foojay.io/disco/v3.0/ids/50d5fe9033e125599b2aa94dc590a27d/redirect
+toolchainUrl.LINUX.X86_64=https\://api.foojay.io/disco/v3.0/ids/b15e5055c5b0ea5fda57f6fdafe96572/redirect
+toolchainUrl.MAC_OS.AARCH64=https\://api.foojay.io/disco/v3.0/ids/9064f22734b42ac03e85df04b632e167/redirect
+toolchainUrl.MAC_OS.X86_64=https\://api.foojay.io/disco/v3.0/ids/4d0277c49991306ac78048580fe34bcf/redirect
+toolchainUrl.UNIX.AARCH64=https\://api.foojay.io/disco/v3.0/ids/50d5fe9033e125599b2aa94dc590a27d/redirect
+toolchainUrl.UNIX.X86_64=https\://api.foojay.io/disco/v3.0/ids/b15e5055c5b0ea5fda57f6fdafe96572/redirect
+toolchainUrl.WINDOWS.AARCH64=https\://api.foojay.io/disco/v3.0/ids/e2fccfcc46d573aadfa3c21ecf330564/redirect
+toolchainUrl.WINDOWS.X86_64=https\://api.foojay.io/disco/v3.0/ids/aa99913fa6d767d899ffc96082da01ca/redirect
+toolchainVersion=25
+==== settings.gradle ====
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    // Downloads the JDK of the project's Java release when it is not installed.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'better-chests'
+==== src/main/java/com/example/betterchests/BetterChests.java ====
+package com.example.betterchests;
+
+import org.slf4j.Logger;
+
+import com.mojang.logging.LogUtils;
+
+import net.minecraft.world.item.CreativeModeTabs;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import com.example.betterchests.datagen.ModDataGenerators;
+import com.example.betterchests.registry.ModBlocks;
+import com.example.betterchests.registry.ModItems;
+
+// The value must match the modId in META-INF/neoforge.mods.toml.
+@Mod(BetterChests.MOD_ID)
+public class BetterChests {
+    public static final String MOD_ID = "better_chests";
+    public static final Logger LOGGER = LogUtils.getLogger();
+
+    // The first code that runs when the mod loads. NeoForge passes the mod's event bus and
+    // container.
+    public BetterChests(IEventBus modEventBus, ModContainer modContainer) {
+        ModBlocks.BLOCKS.register(modEventBus);
+        ModItems.ITEMS.register(modEventBus);
+        modEventBus.addListener(this::addCreative);
+        modEventBus.addListener(ModDataGenerators::gatherData);
+        LOGGER.info("Hello from Better Chests!");
+    }
+
+    // Adds the example item and block to the creative inventory.
+    private void addCreative(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
+            event.accept(ModItems.EXAMPLE_ITEM);
+        }
+        if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
+            event.accept(ModBlocks.EXAMPLE_BLOCK_ITEM);
+        }
+    }
+}
+==== src/main/java/com/example/betterchests/BetterChestsClient.java ====
+package com.example.betterchests;
+
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+
+// Loaded only on the client.
+@Mod(value = BetterChests.MOD_ID, dist = Dist.CLIENT)
+public class BetterChestsClient {
+    public BetterChestsClient(IEventBus modEventBus, ModContainer container) {
+        modEventBus.addListener(this::setup);
+    }
+
+    private void setup(FMLClientSetupEvent event) {
+        BetterChests.LOGGER.info("Hello from the client of Better Chests!");
+    }
+}
+==== src/main/java/com/example/betterchests/datagen/ModDataGenerators.java ====
+package com.example.betterchests.datagen;
+
+import net.neoforged.neoforge.data.event.GatherDataEvent;
+
+/** Data generation (the runData task writes to src/generated/resources). */
+public final class ModDataGenerators {
+    private ModDataGenerators() {
+    }
+
+    public static void gatherData(GatherDataEvent event) {
+        // Add providers (models, recipes, loot tables, tags, translations) here, for example
+        // event.createProvider(MyRecipeProvider.Runner::new);
+    }
+}
+==== src/main/java/com/example/betterchests/mixin/ExampleMixin.java ====
+package com.example.betterchests.mixin;
+
+import net.minecraft.server.MinecraftServer;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(MinecraftServer.class)
+public class ExampleMixin {
+    @Inject(at = @At("HEAD"), method = "loadLevel")
+    private void init(CallbackInfo info) {
+        // Injected at the start of MinecraftServer.loadLevel().
+    }
+}
+==== src/main/java/com/example/betterchests/mixin/client/ExampleClientMixin.java ====
+package com.example.betterchests.mixin.client;
+
+import net.minecraft.client.Minecraft;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(Minecraft.class)
+public class ExampleClientMixin {
+    @Inject(at = @At("HEAD"), method = "run")
+    private void init(CallbackInfo info) {
+        // Injected at the start of Minecraft.run().
+    }
+}
+==== src/main/java/com/example/betterchests/registry/ModBlocks.java ====
+package com.example.betterchests.registry;
+
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.MapColor;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import com.example.betterchests.BetterChests;
+
+public final class ModBlocks {
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(BetterChests.MOD_ID);
+
+    public static final DeferredBlock<Block> EXAMPLE_BLOCK = BLOCKS.registerSimpleBlock("example_block",
+            BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5f));
+    public static final DeferredItem<BlockItem> EXAMPLE_BLOCK_ITEM =
+            ModItems.ITEMS.registerSimpleBlockItem("example_block", EXAMPLE_BLOCK);
+
+    private ModBlocks() {
+    }
+}
+==== src/main/java/com/example/betterchests/registry/ModItems.java ====
+package com.example.betterchests.registry;
+
+import net.minecraft.world.item.Item;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import com.example.betterchests.BetterChests;
+
+public final class ModItems {
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(BetterChests.MOD_ID);
+
+    public static final DeferredItem<Item> EXAMPLE_ITEM = ITEMS.registerSimpleItem("example_item");
+
+    private ModItems() {
+    }
+}
+==== src/main/resources/assets/better_chests/blockstates/example_block.json ====
+{
+  "variants": {
+    "": {
+      "model": "better_chests:block/example_block"
+    }
+  }
+}
+==== src/main/resources/assets/better_chests/lang/en_us.json ====
+{
+  "block.better_chests.example_block": "Example Block",
+  "item.better_chests.example_item": "Example Item"
+}
+==== src/main/resources/assets/better_chests/models/block/example_block.json ====
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "better_chests:block/example_block"
+  }
+}
+==== src/main/resources/assets/better_chests/models/item/example_block.json ====
+{
+  "parent": "better_chests:block/example_block"
+}
+==== src/main/resources/assets/better_chests/models/item/example_item.json ====
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "better_chests:item/example_item"
+  }
+}
+==== src/main/resources/assets/better_chests/textures/block/example_block.png ====
+(binary, 1108 bytes, checksum 03d35307)
+==== src/main/resources/assets/better_chests/textures/item/example_item.png ====
+(binary, 1108 bytes, checksum 2fc0f433)
+==== src/main/resources/better_chests.mixins.json ====
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.betterchests.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ExampleMixin"
+  ],
+  "client": [
+    "client.ExampleClientMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
+==== src/main/templates/META-INF/neoforge.mods.toml ====
+# The mod's metadata. Gradle fills in the properties from gradle.properties
+# (generateModMetadata). See https://docs.neoforged.net/docs/gettingstarted/modfiles
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "Better Chests"
+description = ""
+# A client-side mod: servers do not need it.
+displayTest = "IGNORE_ALL_VERSION"
+
+[[mixins]]
+config = "${mod_id}.mixins.json"
+
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neo_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

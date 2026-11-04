@@ -1,6 +1,6 @@
 [package]
 name = "javaforge-minecraft"
-description = "JavaForge: Minecraft plugins (the New Project generator for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord with a pinned version table, project detection, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml main class checks and navigation, event handler gutter markers; pure, also built to WebAssembly)"
+description = "JavaForge: Minecraft plugins and mods (the New Project generators for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord plugins and Fabric and NeoForge mods with pinned version tables, project detection, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml main class checks and navigation, fabric.mod.json and mixin class checks and navigation, neoforge.mods.toml completion, event handler gutter markers; pure, also built to WebAssembly)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
