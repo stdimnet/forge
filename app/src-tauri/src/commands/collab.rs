@@ -778,7 +778,7 @@ pub fn collab_link(state: State<'_, CollabState>) -> Result<String> {
     state
         .host()
         .map(|h| h.link().to_url())
-        .ok_or_else(|| other("No session is running."))
+        .ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))
 }
 
 /// Where the session logs go: `<data dir>/forge/code-with-me`, never the project.
@@ -827,7 +827,7 @@ pub fn collab_session_log(state: State<'_, CollabState>) -> SessionLogView {
 }
 
 fn running_host(state: &CollabState) -> Result<Arc<HostSession>> {
-    state.host().ok_or_else(|| other("No session is running."))
+    state.host().ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))
 }
 
 /// Permissions for the whole session (host): new guests and everyone in the session.
@@ -980,7 +980,7 @@ pub async fn collab_join(link: String, app: AppHandle) -> Result<SessionView> {
 /// The round trip to the host in milliseconds (the guest's status bar item).
 #[tauri::command]
 pub async fn collab_ping(app: AppHandle) -> Result<u64> {
-    let guest = guest_session(&app).ok_or_else(|| other("No session is running."))?;
+    let guest = guest_session(&app).ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))?;
     guest.ping().await.map_err(other)
 }
 
@@ -1017,7 +1017,7 @@ pub async fn collab_doc_open(
     } else if let Some(guest) = state.guest() {
         guest.open_doc(&path).await.map_err(other)?
     } else {
-        return Err(other("No session is running."));
+        return Err(other(forge_i18n::t("errors.collab.noSession")));
     };
     let header = serde_json::to_vec(&json!({
         "docId": opened.doc.0,
@@ -1048,7 +1048,7 @@ pub fn collab_doc_update(doc_id: u64, update: String, state: State<'_, CollabSta
         guest.update(DocId(doc_id), bytes);
         Ok(())
     } else {
-        Err(other("No session is running."))
+        Err(other(forge_i18n::t("errors.collab.noSession")))
     }
 }
 
@@ -1133,7 +1133,7 @@ pub async fn collab_doc_save(doc_id: u64, app: AppHandle) -> Result<()> {
     } else if let Some(guest) = state.guest() {
         guest.save(DocId(doc_id)).await.map_err(other)
     } else {
-        Err(other("No session is running."))
+        Err(other(forge_i18n::t("errors.collab.noSession")))
     }
 }
 
@@ -1365,7 +1365,7 @@ pub fn collab_share_terminal(
 }
 
 fn guest_or_err(app: &AppHandle) -> Result<Arc<GuestSession>> {
-    guest_session(app).ok_or_else(|| other("No session is running."))
+    guest_session(app).ok_or_else(|| other(forge_i18n::t("errors.collab.noSession")))
 }
 
 /// What a guest's terminal tab starts with.

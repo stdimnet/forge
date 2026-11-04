@@ -396,7 +396,7 @@ fn display_root(state: &AppState) -> Result<String> {
     state
         .project_info()
         .map(|i| i.display_root())
-        .ok_or_else(|| ForgeError::Other("no project is open".into()))
+        .ok_or_else(|| ForgeError::no_project())
 }
 
 /// Remember a finished test run in the Test History.

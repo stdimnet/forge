@@ -564,7 +564,7 @@ async fn library_declaration(
 ) -> DeclarationAnswer {
     let not_found = || DeclarationAnswer {
         source: "none".into(),
-        message: Some("Cannot find declaration to go to".into()),
+        message: Some(forge_i18n::t("errors.noDeclaration")),
         ..Default::default()
     };
     let (Some(rel), Some(text)) = (path.strip_prefix(STUBS_PREFIX), content) else {
@@ -648,7 +648,7 @@ async fn resolve_declaration(
     }
     let mut answer = DeclarationAnswer {
         source: "none".into(),
-        message: Some("Cannot find declaration to go to".into()),
+        message: Some(forge_i18n::t("errors.noDeclaration")),
         ..Default::default()
     };
     if !is_php(&path) {

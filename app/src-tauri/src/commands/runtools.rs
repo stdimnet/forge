@@ -99,7 +99,7 @@ fn display_root(state: &AppState) -> Result<String> {
     state
         .project_info()
         .map(|i| i.display_root())
-        .ok_or_else(|| ForgeError::Other("no project is open".into()))
+        .ok_or_else(|| ForgeError::no_project())
 }
 
 /// What ran from Run Anything in this project, newest first.

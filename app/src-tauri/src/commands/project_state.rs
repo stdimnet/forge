@@ -16,7 +16,7 @@ fn project_root(state: &AppState) -> Result<String> {
     state
         .project_info()
         .map(|i| i.display_root())
-        .ok_or_else(|| ForgeError::Other("no project is open".into()))
+        .ok_or_else(|| ForgeError::no_project())
 }
 
 fn layout_dir() -> Result<std::path::PathBuf> {

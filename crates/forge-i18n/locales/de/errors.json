@@ -1,4 +1,10 @@
 {
+  "errors.collab.noSession": "Es läuft keine Sitzung.",
+  "errors.io": "E/A-Fehler bei {path}: {error}",
+  "errors.noDeclaration": "Keine Deklaration gefunden, zu der gesprungen werden kann",
+  "errors.noProject": "Es ist kein Projekt geöffnet",
+  "errors.notFound": "Nicht gefunden: {path}",
+  "errors.outsideWorkspace": "Der Pfad liegt außerhalb des Arbeitsbereichs: {path}",
   "errors.safeMode.action.agent-tasks": "Agentenaufgaben",
   "errors.safeMode.action.applying-agent-tasks": "Das Anwenden von Agentenaufgaben",
   "errors.safeMode.action.applying-kubernetes-manifests": "Das Anwenden von Kubernetes-Manifesten",
