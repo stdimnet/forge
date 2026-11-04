@@ -864,6 +864,69 @@ fn minecraft_plugin_descriptors() {
 }
 
 #[test]
+fn minecraft_mod_metadata() {
+    let s = mapping::select(
+        "src/main/resources/fabric.mod.json",
+        "",
+        DocKind::Json,
+        &[],
+        None,
+    )
+    .unwrap();
+    assert_eq!(s.uri, bundled::MINECRAFT_FABRIC_MOD);
+    let s = mapping::select(
+        "src/client/resources/demo.client.mixins.json",
+        "",
+        DocKind::Json,
+        &[],
+        None,
+    )
+    .unwrap();
+    assert_eq!(s.uri, bundled::MINECRAFT_MIXINS);
+
+    let ok = r#"{
+  "schemaVersion": 1,
+  "id": "better_chests",
+  "version": "${version}",
+  "name": "Better Chests",
+  "authors": ["Alex", {"name": "Sam", "contact": {"homepage": "https://example.com"}}],
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.example.BetterChests"],
+    "client": [{"adapter": "kotlin", "value": "com.example.Client"}]
+  },
+  "mixins": ["better_chests.mixins.json", {"config": "x.mixins.json", "environment": "client"}],
+  "depends": {"fabricloader": ">=0.20.1", "minecraft": ["~26.3", "~26.2"]}
+}"#;
+    assert_eq!(
+        bundled_problems(bundled::MINECRAFT_FABRIC_MOD, DocKind::Json, ok),
+        Vec::<String>::new()
+    );
+    let bad = bundled_problems(
+        bundled::MINECRAFT_FABRIC_MOD,
+        DocKind::Json,
+        r#"{"schemaVersion": 1, "id": "Better", "version": "1", "environment": "both"}"#,
+    );
+    assert_eq!(bad.len(), 2, "{bad:?}");
+    let mixins = r#"{"required": true, "package": "a.mixin", "compatibilityLevel": "JAVA_25", "mixins": ["A"], "injectors": {"defaultRequire": 1}}"#;
+    assert_eq!(
+        bundled_problems(bundled::MINECRAFT_MIXINS, DocKind::Json, mixins),
+        Vec::<String>::new()
+    );
+
+    let mut r = Registry::new();
+    load_bundled(&mut r, bundled::MINECRAFT_FABRIC_MOD);
+    let text = "{\n  \"entrypoints\": {\n    \n  }\n}";
+    let pos = text.find("    \n").unwrap() + 4;
+    let c = complete(&r, bundled::MINECRAFT_FABRIC_MOD, DocKind::Json, text, pos).unwrap();
+    let names: Vec<&str> = c.items.iter().map(|i| i.label.as_str()).collect();
+    assert!(
+        names.contains(&"main") && names.contains(&"fabric-datagen"),
+        "{names:?}"
+    );
+}
+
+#[test]
 fn unity_assembly_definitions() {
     let s = mapping::select("Assets/Scripts/Game.asmdef", "", DocKind::Json, &[], None).unwrap();
     assert_eq!(s.uri, bundled::UNITY_ASMDEF);

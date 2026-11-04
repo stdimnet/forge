@@ -12,8 +12,12 @@
  *   like every run of project code);
  * - Settings | Languages & Frameworks | Java | Minecraft.
  *
- * Active only for projects whose build depends on a Minecraft server or proxy API. The New
- * Project wizard's Minecraft Plugin generator lives in `forge-project`.
+ * - `fabric.mod.json` and mixin configurations: entrypoint and mixin classes are checked and
+ *   Ctrl+B opens them; `neoforge.mods.toml` gets completion (`editor.ts`).
+ *
+ * Active only for projects whose build depends on a Minecraft server or proxy API, or applies
+ * a mod loader's Gradle plugin (Loom, ModDevGradle). The New Project wizard's Minecraft Plugin
+ * and Minecraft Mod generators live in `forge-project`.
  */
 import { registerSettingsPage } from "@/features/settingsPages";
 import { SchemaPage } from "@/features/settings/SchemaPage";
@@ -29,7 +33,7 @@ registerSettingsPage({
   group: "Languages & Frameworks",
   parent: "lang.java",
   order: 20,
-  keywords: ["minecraft", "paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "plugin.yml", "event handler", "run-paper"],
+  keywords: ["minecraft", "paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "plugin.yml", "event handler", "run-paper", "fabric", "neoforge", "mod", "mixin"],
   component: () => <SchemaPage pageId="lang.java.minecraft" />,
 });
 

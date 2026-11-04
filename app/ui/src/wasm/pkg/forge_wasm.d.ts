@@ -1602,7 +1602,13 @@ export function markdown_parse(request_json: string): string;
 export function mcp_client_configs(request_json: string): string;
 
 /**
- * `{ name, options }` → the generated files `[{ path, contents }]` or `{ error }`.
+ * `{ path, content, pos }` → `neoforge.mods.toml` completion or `null` (`minecraft_complete`).
+ */
+export function minecraft_complete(request_json: string): string;
+
+/**
+ * `{ generator?, name, options }` → the generated files `[{ path, contents }]` (binary files
+ * with empty contents) or `{ error }`.
  */
 export function minecraft_generate(request_json: string): string;
 
@@ -1618,12 +1624,13 @@ export function minecraft_goto(request_json: string): string;
 export function minecraft_gutter(request_json: string): string;
 
 /**
- * `{ path, content, files }` → descriptor problems (`minecraft_inspect`).
+ * `{ path, content, files }` → descriptor, `fabric.mod.json` and mixin configuration
+ * problems (`minecraft_inspect`).
  */
 export function minecraft_inspect(request_json: string): string;
 
 /**
- * `{ versions }` (refreshed Minecraft versions) → the wizard's version choices
+ * `{ versions, generator? }` (refreshed Minecraft versions) → the wizard's version choices
  * `[{ value, label }]`, the pinned table merged in (`minecraft_versions_refresh`).
  */
 export function minecraft_version_choices(request_json: string): string;
@@ -3018,6 +3025,7 @@ export interface InitOutput {
     readonly markdown_hover: (a: number, b: number, c: number) => void;
     readonly markdown_parse: (a: number, b: number, c: number) => void;
     readonly mcp_client_configs: (a: number, b: number, c: number) => void;
+    readonly minecraft_complete: (a: number, b: number, c: number) => void;
     readonly minecraft_generate: (a: number, b: number, c: number) => void;
     readonly minecraft_goto: (a: number, b: number, c: number) => void;
     readonly minecraft_gutter: (a: number, b: number, c: number) => void;

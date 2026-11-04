@@ -77,8 +77,52 @@ const wizardVelocityLight = async (page) => {
 wizardVelocityLight.query = "?welcome";
 wizardVelocityLight.waitFor = ".welcome-project";
 
+const openModWizard = async (page) => {
+  await page.evaluate(() => window.__forgeRunCommand("NewProject"));
+  await page.waitForSelector(".np-dialog .np-item");
+  await page.click('.np-item[data-generator="minecraft-mod"]');
+  await page.waitForSelector(".np-preview-file");
+  await page.fill(".np-row:has-text('Name:') input", "better-chests");
+  await page.fill('input[data-option="authors"]', "Alex, Sam");
+  await page.fill('input[data-option="description"]', "Bigger chests");
+};
+
+const modWizardFabric = async (page) => {
+  await openModWizard(page);
+  await page.click('button[aria-label="Refresh Minecraft"]');
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('select[data-option="mcVersion"] option')].some((o) => o.value === "1.21.5"),
+  );
+  await page.waitForTimeout(500);
+  await page.evaluate(() => {
+    const main = document.querySelector(".np-main");
+    if (main) main.scrollTop = 0;
+  });
+  await page.waitForTimeout(300);
+};
+modWizardFabric.query = "?welcome";
+modWizardFabric.waitFor = ".welcome-project";
+
+const modWizardNeoforge = async (page) => {
+  await openModWizard(page);
+  await page.click('.np-segmented button:text-is("NeoForge")').catch(() => page.selectOption('select[data-option="loader"]', "neoforge"));
+  await page.selectOption('select[data-option="mcVersion"]', "1.21.1");
+  await page.click('label:has-text("Data generation") input').catch(() => {});
+  await page.waitForTimeout(600);
+  // Show the file preview at the bottom of the form.
+  await page.evaluate(() => {
+    const main = document.querySelector(".np-main");
+    if (main) main.scrollTop = main.scrollHeight;
+  });
+  await page.waitForTimeout(300);
+};
+modWizardNeoforge.query = "?welcome";
+modWizardNeoforge.waitFor = ".welcome-project";
+
 /** @type {Record<string, (page: import("playwright-core").Page) => Promise<void>>} */
 export default {
+  "minecraft-mod-wizard-fabric": modWizardFabric,
+  "minecraft-mod-wizard-neoforge": modWizardNeoforge,
   "minecraft-wizard": wizard,
   "minecraft-wizard-kotlin": wizardKotlin,
   "minecraft-wizard-velocity-light": wizardVelocityLight,

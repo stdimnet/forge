@@ -1,10 +1,12 @@
-//! JavaForge's Minecraft plugin support (`javaforge-minecraft`) for the browser-mode mocks,
-//! mirroring the `minecraft_*` IPC commands and the New Project wizard: the generator's
-//! files, project detection, the descriptor `main` check and navigation, and gutter markers.
+//! JavaForge's Minecraft plugin and mod support (`javaforge-minecraft`) for the browser-mode
+//! mocks, mirroring the `minecraft_*` IPC commands and the New Project wizard: the
+//! generators' files, project detection, the descriptor / `fabric.mod.json` / mixin
+//! configuration checks and navigation, `neoforge.mods.toml` completion and gutter markers.
 
 use std::collections::BTreeMap;
 
 use javaforge_minecraft::markers::MarkerKind;
+use javaforge_minecraft::mods::{self, ModOptions};
 use javaforge_minecraft::{descriptor, markers, Options};
 use serde::Deserialize;
 use serde_json::json;
@@ -22,15 +24,27 @@ fn parse<T: for<'de> Deserialize<'de>>(json: &str) -> Result<T, String> {
 
 #[derive(Deserialize)]
 struct GenerateRequest {
+    /// `minecraft-plugin` (default) or `minecraft-mod`.
+    #[serde(default)]
+    generator: String,
     name: String,
     #[serde(default)]
     options: serde_json::Value,
 }
 
-/// `{ name, options }` → the generated files `[{ path, contents }]` or `{ error }`.
+/// `{ generator?, name, options }` → the generated files `[{ path, contents }]` (binary files
+/// with empty contents) or `{ error }`.
 #[wasm_bindgen]
 pub fn minecraft_generate(request_json: &str) -> String {
     let result = parse::<GenerateRequest>(request_json).and_then(|r| {
+        if r.generator == "minecraft-mod" {
+            let options = if r.options.is_null() {
+                ModOptions::default()
+            } else {
+                ModOptions::from_json(&r.options)?
+            };
+            return mods::generate_mod(&r.name, &options);
+        }
         let options = if r.options.is_null() {
             Options::default()
         } else {
@@ -56,13 +70,30 @@ struct EditorRequest {
     files: BTreeMap<String, String>,
 }
 
-/// `{ path, content, files }` → descriptor problems (`minecraft_inspect`).
+/// `{ path, content, files }` → descriptor, `fabric.mod.json` and mixin configuration
+/// problems (`minecraft_inspect`).
 #[wasm_bindgen]
 pub fn minecraft_inspect(request_json: &str) -> String {
     match parse::<EditorRequest>(request_json) {
-        Ok(r) => to_json(&descriptor::inspect(&r.path, &r.content, &|p| {
-            r.files.contains_key(p)
-        })),
+        Ok(r) => {
+            let exists = |p: &str| r.files.contains_key(p);
+            let mut out = descriptor::inspect(&r.path, &r.content, &exists);
+            out.extend(mods::editor::inspect(&r.path, &r.content, &exists));
+            to_json(&out)
+        }
+        Err(e) => error(e),
+    }
+}
+
+/// `{ path, content, pos }` → `neoforge.mods.toml` completion or `null` (`minecraft_complete`).
+#[wasm_bindgen]
+pub fn minecraft_complete(request_json: &str) -> String {
+    match parse::<EditorRequest>(request_json) {
+        Ok(r) => to_json(
+            &mods::toml::is_mods_toml(&r.path)
+                .then(|| mods::toml::complete(&r.content, r.pos))
+                .flatten(),
+        ),
         Err(e) => error(e),
     }
 }
@@ -72,7 +103,9 @@ pub fn minecraft_inspect(request_json: &str) -> String {
 pub fn minecraft_goto(request_json: &str) -> String {
     match parse::<EditorRequest>(request_json) {
         Ok(r) => {
-            let target = descriptor::goto(&r.path, &r.content, r.pos, &|p| r.files.get(p).cloned());
+            let read = |p: &str| r.files.get(p).cloned();
+            let target = descriptor::goto(&r.path, &r.content, r.pos, &read)
+                .or_else(|| mods::editor::goto(&r.path, &r.content, r.pos, &read));
             to_json(&target.into_iter().collect::<Vec<_>>())
         }
         Err(e) => error(e),
@@ -102,18 +135,25 @@ pub fn minecraft_gutter(request_json: &str) -> String {
 struct ChoicesRequest {
     #[serde(default)]
     versions: Vec<String>,
+    /// `minecraft-mod`: the mod generator's table.
+    #[serde(default)]
+    generator: String,
 }
 
-/// `{ versions }` (refreshed Minecraft versions) → the wizard's version choices
+/// `{ versions, generator? }` (refreshed Minecraft versions) → the wizard's version choices
 /// `[{ value, label }]`, the pinned table merged in (`minecraft_versions_refresh`).
 #[wasm_bindgen]
 pub fn minecraft_version_choices(request_json: &str) -> String {
     match parse::<ChoicesRequest>(request_json) {
         Ok(r) => to_json(
-            &javaforge_minecraft::versions::version_choices(&r.versions)
-                .into_iter()
-                .map(|(value, label)| json!({ "value": value, "label": label }))
-                .collect::<Vec<_>>(),
+            &if r.generator == "minecraft-mod" {
+                mods::versions::mod_version_choices(&r.versions)
+            } else {
+                javaforge_minecraft::versions::version_choices(&r.versions)
+            }
+            .into_iter()
+            .map(|(value, label)| json!({ "value": value, "label": label }))
+            .collect::<Vec<_>>(),
         ),
         Err(e) => error(e),
     }

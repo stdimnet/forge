@@ -54,6 +54,15 @@ pub const MINECRAFT_BUNGEE: &str = concat!(
     "minecraft-bungee-plugin.json"
 );
 
+pub const MINECRAFT_FABRIC_MOD: &str = concat!(
+    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "minecraft-fabric-mod.json"
+);
+pub const MINECRAFT_MIXINS: &str = concat!(
+    "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
+    "minecraft-mixins.json"
+);
+
 pub const UNITY_ASMDEF: &str = concat!(
     "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/",
     "unity-asmdef.json"
@@ -165,6 +174,14 @@ pub static BUNDLED: &[Bundled] = &[
     bundled!(
         "minecraft-bungee-plugin.json",
         ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-bungee-plugin.json"]
+    ),
+    bundled!(
+        "minecraft-fabric-mod.json",
+        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-fabric-mod.json"]
+    ),
+    bundled!(
+        "minecraft-mixins.json",
+        ["https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-mixins.json"]
     ),
     // Written for Forge (DotNetForge's Unity support).
     bundled!(

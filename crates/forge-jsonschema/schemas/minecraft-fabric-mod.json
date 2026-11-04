@@ -1,0 +1,387 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Reeperk/Forge/main/crates/forge-jsonschema/schemas/minecraft-fabric-mod.json",
+  "title": "Fabric fabric.mod.json",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "version"
+  ],
+  "definitions": {
+    "entrypoint": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "A fully qualified class (or `pkg.Class::field`)."
+        },
+        {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "adapter": {
+              "type": "string",
+              "description": "The language adapter, e.g. kotlin.",
+              "default": "default"
+            },
+            "value": {
+              "type": "string",
+              "description": "The class, field or method reference."
+            }
+          }
+        }
+      ]
+    },
+    "contact": {
+      "type": "object",
+      "description": "Contact information.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "An e-mail address."
+        },
+        "irc": {
+          "type": "string",
+          "description": "An IRC channel, irc://server:port/channel."
+        },
+        "homepage": {
+          "type": "string",
+          "description": "The project's website."
+        },
+        "issues": {
+          "type": "string",
+          "description": "The issue tracker."
+        },
+        "sources": {
+          "type": "string",
+          "description": "The source code repository."
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "person": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The person's name."
+            },
+            "contact": {
+              "$ref": "#/definitions/contact"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "The format version of this file: 1."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-_]{1,63}$",
+      "description": "The mod id: 2 to 64 lowercase letters, digits, '-' and '_', starting with a letter."
+    },
+    "version": {
+      "type": "string",
+      "description": "The mod version (SemVer recommended), usually ${version} filled in by Gradle."
+    },
+    "provides": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Other mod ids this mod provides (aliases)."
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "*",
+        "client",
+        "server"
+      ],
+      "default": "*",
+      "description": "Where the mod loads: * (everywhere), client or server."
+    },
+    "entrypoints": {
+      "type": "object",
+      "description": "The classes Fabric Loader calls, per entrypoint.",
+      "properties": {
+        "main": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "ModInitializer: runs on the client and the server."
+        },
+        "client": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "ClientModInitializer: runs only on the client."
+        },
+        "server": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "DedicatedServerModInitializer: runs only on dedicated servers."
+        },
+        "preLaunch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "PreLaunchEntrypoint: runs before the game starts (use with care)."
+        },
+        "fabric-datagen": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "DataGeneratorEntrypoint of Fabric API's data generation."
+        },
+        "fabric-gametest": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "Game tests of Fabric API."
+        },
+        "modmenu": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entrypoint"
+          },
+          "description": "Mod Menu's ModMenuApi (config screens)."
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/entrypoint"
+        }
+      }
+    },
+    "jars": {
+      "type": "array",
+      "description": "Nested jars (jar-in-jar) to load.",
+      "items": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "The path of the nested jar."
+          }
+        }
+      }
+    },
+    "languageAdapters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Language adapters this mod provides: name → class."
+    },
+    "mixins": {
+      "type": "array",
+      "description": "Mixin configurations in the resources.",
+      "items": {
+        "anyOf": [
+          {
+            "type": "string",
+            "description": "A mixin configuration, e.g. modid.mixins.json."
+          },
+          {
+            "type": "object",
+            "required": [
+              "config"
+            ],
+            "properties": {
+              "config": {
+                "type": "string",
+                "description": "A mixin configuration."
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "*",
+                  "client",
+                  "server"
+                ],
+                "description": "Where the configuration applies."
+              }
+            }
+          }
+        ]
+      }
+    },
+    "accessWidener": {
+      "type": "string",
+      "description": "The access widener file, e.g. modid.accesswidener."
+    },
+    "depends": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "description": "Mods (and minecraft, java, fabricloader) this mod needs: id → version range, e.g. \">=0.20.1\" or \"~26.3\"."
+    },
+    "recommends": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "description": "Mods that should be installed (a warning when missing)."
+    },
+    "suggests": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "description": "Mods that work well with this one."
+    },
+    "conflicts": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "description": "Mods that cause problems with this one (a warning)."
+    },
+    "breaks": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "description": "Mods this one does not work with (the game does not start)."
+    },
+    "name": {
+      "type": "string",
+      "description": "The display name."
+    },
+    "description": {
+      "type": "string",
+      "description": "The description shown in mod lists."
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/person"
+      },
+      "description": "The authors: names or { name, contact }."
+    },
+    "contributors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/person"
+      },
+      "description": "The contributors."
+    },
+    "contact": {
+      "$ref": "#/definitions/contact"
+    },
+    "license": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "The license: an SPDX identifier such as MIT, or several."
+    },
+    "icon": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "The icon in the jar, e.g. assets/modid/icon.png, or sizes → paths."
+    },
+    "custom": {
+      "type": "object",
+      "description": "Custom values for other mods (e.g. modmenu)."
+    }
+  }
+}

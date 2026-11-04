@@ -714,6 +714,242 @@
     ]
   },
   {
+    "id": "minecraft-mod",
+    "name": "Minecraft Mod",
+    "group": "Java",
+    "pack": "javaforge",
+    "description": "A Fabric (Loom) or NeoForge (ModDevGradle) mod with a main class, a client initializer, an example item and block, mixins and the mod metadata.",
+    "icon": "minecraft",
+    "defaultName": "my-mod",
+    "tools": [],
+    "options": [
+      {
+        "id": "loader",
+        "label": "Loader",
+        "kind": "enum",
+        "default": "fabric",
+        "choices": [
+          {
+            "value": "fabric",
+            "label": "Fabric"
+          },
+          {
+            "value": "neoforge",
+            "label": "NeoForge"
+          }
+        ]
+      },
+      {
+        "id": "mcVersion",
+        "label": "Minecraft",
+        "kind": "enum",
+        "default": "26.3",
+        "choices": [
+          {
+            "value": "26.3",
+            "label": "26.3 (Java 25)"
+          },
+          {
+            "value": "26.2",
+            "label": "26.2 (Java 25)"
+          },
+          {
+            "value": "26.1.2",
+            "label": "26.1.2 (Java 25)"
+          },
+          {
+            "value": "1.21.11",
+            "label": "1.21.11 (Java 21)"
+          },
+          {
+            "value": "1.21.10",
+            "label": "1.21.10 (Java 21)"
+          },
+          {
+            "value": "1.21.8",
+            "label": "1.21.8 (Java 21)"
+          },
+          {
+            "value": "1.21.4",
+            "label": "1.21.4 (Java 21)"
+          },
+          {
+            "value": "1.21.1",
+            "label": "1.21.1 (Java 21)"
+          }
+        ],
+        "description": "Refresh reads the versions from meta.fabricmc.net and the Fabric and NeoForge Maven repositories.",
+        "refresh": "minecraft_versions_refresh"
+      },
+      {
+        "id": "loaderVersion",
+        "label": "Loader version",
+        "kind": "string",
+        "default": "",
+        "placeholder": "Newest for the Minecraft version"
+      },
+      {
+        "id": "fabricMappings",
+        "label": "Mappings",
+        "kind": "enum",
+        "default": "mojang",
+        "choices": [
+          {
+            "value": "mojang",
+            "label": "Mojang mappings"
+          },
+          {
+            "value": "yarn",
+            "label": "Yarn"
+          }
+        ],
+        "description": "For Minecraft 1.21.x; 26.1 and newer are not obfuscated and need none.",
+        "visibleWhen": [
+          {
+            "option": "loader",
+            "values": [
+              "fabric"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "neoMappings",
+        "label": "Mappings",
+        "kind": "enum",
+        "default": "parchment",
+        "choices": [
+          {
+            "value": "parchment",
+            "label": "Parchment"
+          },
+          {
+            "value": "official",
+            "label": "Official (Mojang)"
+          }
+        ],
+        "description": "For Minecraft 1.21.x; 26.1 and newer are not obfuscated and need none.",
+        "visibleWhen": [
+          {
+            "option": "loader",
+            "values": [
+              "neoforge"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "kind": "enum",
+        "default": "java",
+        "choices": [
+          {
+            "value": "java",
+            "label": "Java"
+          },
+          {
+            "value": "kotlin",
+            "label": "Kotlin"
+          }
+        ],
+        "visibleWhen": [
+          {
+            "option": "loader",
+            "values": [
+              "fabric"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "modId",
+        "label": "Mod ID",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the project name"
+      },
+      {
+        "id": "modName",
+        "label": "Mod name",
+        "kind": "string",
+        "default": "",
+        "placeholder": "From the mod ID"
+      },
+      {
+        "id": "modVersion",
+        "label": "Version",
+        "kind": "string",
+        "default": "1.0.0"
+      },
+      {
+        "id": "groupId",
+        "label": "Group ID",
+        "kind": "string",
+        "default": "com.example"
+      },
+      {
+        "id": "authors",
+        "label": "Authors",
+        "kind": "string",
+        "default": "",
+        "placeholder": "Comma-separated"
+      },
+      {
+        "id": "description",
+        "label": "Description",
+        "kind": "string",
+        "default": ""
+      },
+      {
+        "id": "license",
+        "label": "License",
+        "kind": "string",
+        "default": "All Rights Reserved"
+      },
+      {
+        "id": "environment",
+        "label": "Entrypoints",
+        "kind": "enum",
+        "default": "both",
+        "choices": [
+          {
+            "value": "both",
+            "label": "Client and server"
+          },
+          {
+            "value": "client",
+            "label": "Client only"
+          },
+          {
+            "value": "server",
+            "label": "Server only"
+          }
+        ]
+      },
+      {
+        "id": "mixins",
+        "label": "Mixins",
+        "kind": "bool",
+        "default": true,
+        "description": "Adds a mixin configuration with example mixins."
+      },
+      {
+        "id": "datagen",
+        "label": "Data generation",
+        "kind": "bool",
+        "default": false,
+        "description": "Adds a data generator and its run configuration."
+      },
+      {
+        "id": "git",
+        "label": "Create Git repository",
+        "kind": "bool",
+        "default": false
+      }
+    ]
+  },
+  {
     "id": "lua-script",
     "name": "Lua Script",
     "group": "Lua",

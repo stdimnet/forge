@@ -1,6 +1,6 @@
 ---
 title: JSON Schema
-description: Validation, completion, documentation and Go to Declaration from JSON schemas in JSON, JSON5/JSONC and YAML files — built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors and Unity assembly definitions, $schema in the file, user mappings, the status bar widget and remote schemas from SchemaStore.
+description: Validation, completion, documentation and Go to Declaration from JSON schemas in JSON, JSON5/JSONC and YAML files — built-in schemas for composer.json, package.json, tsconfig, ESLint, Prettier, Docker Compose, GitHub Actions, GitLab CI, Minecraft plugin descriptors, fabric.mod.json and mixin configurations, and Unity assembly definitions, $schema in the file, user mappings, the status bar widget and remote schemas from SchemaStore.
 order: 28
 tags: [editor, json, yaml, json schema, schemastore, composer.json, package.json, docker compose, github actions, gitlab ci, inspections, completion]
 ---
@@ -110,6 +110,7 @@ Forge picks the first match:
    | GitHub Action | `action.yml`, `action.yaml` |
    | GitLab CI | `.gitlab-ci.yml`, `*.gitlab-ci.yml` (and `.yaml`) |
    | Minecraft plugin descriptors | `plugin.yml`, `paper-plugin.yml`, `velocity-plugin.json`, `bungee.yml` in `src/main/resources` (schemas written for Forge, see [Minecraft plugins](minecraft.md)) |
+   | Minecraft mods | `fabric.mod.json` and mixin configurations (`*.mixins.json`) (schemas written for Forge, see [Minecraft mods](minecraft.md#new-project-minecraft-mod)) |
 | Unity assembly definitions | `*.asmdef` and `*.asmref` (schemas written for Forge, see [Unity and Godot](unity-godot.md#unity-file-types)) |
 
 4. **The SchemaStore catalog** (schemastore.org), when remote schemas and the catalog are on:

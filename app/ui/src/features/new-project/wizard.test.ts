@@ -32,7 +32,7 @@ describe("generator list", () => {
       "composer-package",
       "wordpress-plugin",
     ]);
-    expect(groups[2].items.map((g) => g.name)).toEqual(["Minecraft Plugin"]);
+    expect(groups[2].items.map((g) => g.name)).toEqual(["Minecraft Plugin", "Minecraft Mod"]);
     expect(groups[3].items.map((g) => g.name)).toEqual(["Lua Script", "LÖVE Game", "Neovim Plugin"]);
   });
 

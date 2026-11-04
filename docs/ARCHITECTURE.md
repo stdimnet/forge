@@ -1230,14 +1230,19 @@ time than it has); do it on the release machine before merging the Code With Me 
 - The default location is the setting `system.defaultProjectDirectory` (`~/Projects`).
 - Generator options may carry `placeholder`, `visibleWhen: { option, values }[]` (hidden options
   take their defaults, in Rust and in the dialog) and `refresh` (an IPC command returning fresh
-  `choices`, run only on the Refresh button). Minecraft plugins (`javaforge-minecraft`,
-  `commands/minecraft.rs`): `minecraft_versions_refresh() -> Choice[]` (the `maven-metadata.xml`
-  of paper-api on repo.papermc.io and purpur-api on repo.purpurmc.org: versions and the newest
-  26.x API builds, cached in `<cache>/forge/minecraft/versions.json`, merged into
+  `choices`, run only on the Refresh button; it receives `{ generator }`). Minecraft plugins
+  and mods (`javaforge-minecraft`, `commands/minecraft.rs`):
+  `minecraft_versions_refresh({ generator }) -> Choice[]` (Minecraft Plugin: the
+  `maven-metadata.xml` of paper-api on repo.papermc.io and purpur-api on repo.purpurmc.org,
+  versions and the newest 26.x API builds; `minecraft-mod`: meta.fabricmc.net loader / game /
+  Yarn, the Fabric API and Loom metadata on maven.fabricmc.net, NeoForge and ModDevGradle on
+  maven.neoforged.net; cached in `<cache>/forge/minecraft/versions.json`, merged into
   `project_generators_list`), `minecraft_inspect({ path, content }) -> Problem[]` (descriptor
-  `main` class), `minecraft_goto({ path, content, pos }) -> Target[]`,
-  `minecraft_gutter({ path, content }) -> Marker[]` (event handlers, the main class with
-  run-paper).
+  `main` class, `fabric.mod.json` entrypoints and mixin configurations, mixin classes),
+  `minecraft_goto({ path, content, pos }) -> Target[]`,
+  `minecraft_complete({ path, content, pos }) -> { from, to, items } | null`
+  (`neoforge.mods.toml` keys, values and tables), `minecraft_gutter({ path, content }) ->
+  Marker[]` (event handlers, the main class with run-paper).
 
 ## Terminal and Run/Debug (`forge-process`)
 

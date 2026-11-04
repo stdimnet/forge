@@ -956,6 +956,13 @@ fn scan_java(dir: &Path, rel: &str, c: &mut Collector, files: &[String]) {
     texts.push(&catalog);
     if let Some(mc) = javaforge_minecraft::detect(&texts) {
         c.framework("minecraft", &mc.name(), "java", mc.mc_version.clone(), rel);
+    } else if gradle {
+        // Mods (Fabric Loom, NeoForge's ModDevGradle, ForgeGradle): the Minecraft version
+        // comes from gradle.properties.
+        let properties = fs::read_to_string(dir.join("gradle.properties")).unwrap_or_default();
+        if let Some(m) = javaforge_minecraft::mods::detect_mod(&texts, &properties) {
+            c.framework("minecraft", m.name, "java", m.mc_version, rel);
+        }
     }
     const JAKARTA: &[&str] = &[
         "jakarta.platform",

@@ -206,12 +206,13 @@ fn generator(d: Def, options: Vec<GeneratorOption>) -> Generator {
 
 /// All generators in display order.
 pub fn generators() -> Vec<Generator> {
-    generators_with(&[])
+    generators_with(&[], &[])
 }
 
 /// All generators, with Minecraft versions from "Refresh versions" added to the Minecraft
-/// Plugin generator's choices.
-pub fn generators_with(mc_versions: &[String]) -> Vec<Generator> {
+/// Plugin generator's choices (`mc_versions`) and the Minecraft Mod generator's
+/// (`mod_versions`).
+pub fn generators_with(mc_versions: &[String], mod_versions: &[String]) -> Vec<Generator> {
     vec![
         generator(
             Def {
@@ -412,6 +413,20 @@ pub fn generators_with(mc_versions: &[String]) -> Vec<Generator> {
                 fallback: None,
             },
             minecraft_options(mc_versions),
+        ),
+        generator(
+            Def {
+                id: "minecraft-mod",
+                name: "Minecraft Mod",
+                group: "Java",
+                pack: "javaforge",
+                icon: "minecraft",
+                default_name: "my-mod",
+                description: "A Fabric (Loom) or NeoForge (ModDevGradle) mod with a main class, a client initializer, an example item and block, mixins and the mod metadata.",
+                tools: &[],
+                fallback: None,
+            },
+            minecraft_mod_options(mod_versions),
         ),
         generator(
             Def {
@@ -671,6 +686,93 @@ fn minecraft_options(mc_versions: &[String]) -> Vec<GeneratorOption> {
             "Shadow jar",
             false,
             Some("Bundles libraries into the plugin jar; always on for Kotlin."),
+        ),
+        git(),
+    ]
+}
+
+fn minecraft_mod_options(mod_versions: &[String]) -> Vec<GeneratorOption> {
+    use javaforge_minecraft::mods::versions::{self, Loader};
+    let loaders = Loader::ALL
+        .iter()
+        .map(|l| choice(l.id(), l.label()))
+        .collect();
+    let mut mc = enum_opt(
+        "mcVersion",
+        "Minecraft",
+        versions::DEFAULT_MOD_MC_VERSION,
+        versions::mod_version_choices(mod_versions)
+            .into_iter()
+            .map(|(v, l)| Choice { value: v, label: l })
+            .collect(),
+    );
+    mc.refresh = Some("minecraft_versions_refresh".into());
+    mc.description = Some(
+        "Refresh reads the versions from meta.fabricmc.net and the Fabric and NeoForge Maven repositories."
+            .into(),
+    );
+    let mut fabric_mappings = enum_opt(
+        "fabricMappings",
+        "Mappings",
+        "mojang",
+        vec![choice("mojang", "Mojang mappings"), choice("yarn", "Yarn")],
+    )
+    .visible_when("loader", &["fabric"]);
+    fabric_mappings.description =
+        Some("For Minecraft 1.21.x; 26.1 and newer are not obfuscated and need none.".into());
+    let mut neo_mappings = enum_opt(
+        "neoMappings",
+        "Mappings",
+        "parchment",
+        vec![
+            choice("parchment", "Parchment"),
+            choice("official", "Official (Mojang)"),
+        ],
+    )
+    .visible_when("loader", &["neoforge"]);
+    neo_mappings.description = fabric_mappings.description.clone();
+    vec![
+        enum_opt("loader", "Loader", "fabric", loaders),
+        mc,
+        string_opt("loaderVersion", "Loader version", "")
+            .placeholder("Newest for the Minecraft version"),
+        fabric_mappings,
+        neo_mappings,
+        enum_opt(
+            "language",
+            "Language",
+            "java",
+            vec![choice("java", "Java"), choice("kotlin", "Kotlin")],
+        )
+        .visible_when("loader", &["fabric"]),
+        string_opt("modId", "Mod ID", "").placeholder("From the project name"),
+        string_opt("modName", "Mod name", "").placeholder("From the mod ID"),
+        string_opt("modVersion", "Version", "1.0.0"),
+        string_opt("groupId", "Group ID", "com.example"),
+        string_opt("authors", "Authors", "").placeholder("Comma-separated"),
+        string_opt("description", "Description", ""),
+        string_opt("license", "License", "All Rights Reserved"),
+        enum_opt(
+            "environment",
+            "Entrypoints",
+            "both",
+            vec![
+                choice("both", "Client and server"),
+                choice("client", "Client only"),
+                choice("server", "Server only"),
+            ],
+        ),
+        bool_opt(
+            "mixins",
+            "Mixins",
+            true,
+            Some("Adds a mixin configuration with example mixins."),
+        ),
+        bool_opt(
+            "datagen",
+            "Data generation",
+            false,
+            Some("Adds a data generator and its run configuration."),
         ),
         git(),
     ]
@@ -1086,11 +1188,12 @@ pub fn plan(req: &CreateRequest, has_tool: &dyn Fn(&str) -> bool) -> Result<Plan
             match crate::templates::render(template, n, options, *sample) {
                 Ok(rendered) => files.extend(
                     rendered
-                        .files
-                        .iter()
-                        .map(|(p, _)| p.to_string_lossy().replace('\\', "/")),
+                        .paths()
+                        .into_iter()
+                        .map(|p| p.to_string_lossy().replace('\\', "/")),
                 ),
-                // Options a generator rejects (the Minecraft plugin's names and versions).
+                // Options a generator rejects (the Minecraft plugin's and mod's names and
+                // versions).
                 Err(e) if error.is_none() => error = Some(e.to_string()),
                 Err(_) => {}
             }
@@ -1376,7 +1479,7 @@ mod tests {
         assert!(p.error.unwrap().contains("Group ID"));
 
         // Refreshed versions join the choices.
-        let gens = generators_with(&["27.1".to_string()]);
+        let gens = generators_with(&["27.1".to_string()], &[]);
         let mc = gens
             .iter()
             .find(|g| g.id == "minecraft-plugin")
@@ -1387,6 +1490,71 @@ mod tests {
             .unwrap();
         assert_eq!(mc.choices[0].value, "27.1");
         assert_eq!(mc.refresh.as_deref(), Some("minecraft_versions_refresh"));
+    }
+
+    #[test]
+    fn minecraft_mod_generator() {
+        let p = plan(&req("minecraft-mod", &[]), &|_| false).unwrap();
+        assert!(p.missing_tools.is_empty());
+        assert_eq!(p.error, None);
+        for f in [
+            "src/main/java/com/example/demo/Demo.java",
+            "src/main/resources/fabric.mod.json",
+            "src/main/resources/assets/demo/textures/item/example_item.png",
+            ".forge/runConfigurations.toml",
+        ] {
+            assert!(p.files.contains(&f.to_string()), "{f}: {:?}", p.files);
+        }
+        let mut sorted = p.files.clone();
+        sorted.sort();
+        assert_eq!(sorted, p.files);
+        // Hidden options take their defaults: NeoForge ignores Kotlin.
+        let p = plan(
+            &req(
+                "minecraft-mod",
+                &[("loader", json!("neoforge")), ("language", json!("kotlin"))],
+            ),
+            &all_tools,
+        )
+        .unwrap();
+        assert_eq!(p.error, None);
+        assert!(p
+            .files
+            .contains(&"src/main/templates/META-INF/neoforge.mods.toml".to_string()));
+        let p = plan(
+            &req("minecraft-mod", &[("modId", json!("Bad Id"))]),
+            &all_tools,
+        )
+        .unwrap();
+        assert!(p.error.unwrap().contains("Mod ID"));
+        let gens = generators_with(&[], &["26.4".to_string()]);
+        let mc = gens
+            .iter()
+            .find(|g| g.id == "minecraft-mod")
+            .unwrap()
+            .options
+            .iter()
+            .find(|o| o.id == "mcVersion")
+            .unwrap();
+        assert_eq!(mc.choices[0].value, "26.4");
+    }
+
+    #[test]
+    fn creates_a_minecraft_mod_offline() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut r = req("minecraft-mod", &[("loader", json!("neoforge"))]);
+        r.location = dir.path().display().to_string();
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        let root = crate::create::create(&r, &cancel, &mut |_| {}).unwrap();
+        let png = std::fs::read(
+            root.join("src/main/resources/assets/demo/textures/block/example_block.png"),
+        )
+        .unwrap();
+        assert!(png.starts_with(b"\x89PNG"));
+        let info = crate::detect(&root);
+        let mc = info.framework("minecraft").unwrap();
+        assert_eq!(mc.name, "NeoForge Mod");
+        assert_eq!(mc.version.as_deref(), Some("26.3"));
     }
 
     #[test]

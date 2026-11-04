@@ -13839,7 +13839,7 @@
     "name": "Minecraft Development",
     "version": "0.1.0",
     "pack": "javaforge",
-    "description": "Minecraft plugins for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord: the Minecraft Plugin project wizard, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml completion and validation with a checked, navigable main class, the Run Paper Server configuration (run-paper) and gutter icons for event handlers.",
+    "description": "Minecraft plugins for Paper, Purpur, Folia, Spigot, Bukkit, Velocity and BungeeCord and mods for Fabric and NeoForge: the Minecraft Plugin and Minecraft Mod project wizards, plugin.yml / paper-plugin.yml / velocity-plugin.json / bungee.yml, fabric.mod.json and mixin completion and validation with checked, navigable classes, neoforge.mods.toml completion, the Run Paper Server configuration (run-paper) and gutter icons for event handlers.",
     "vendor": "Forge",
     "depends": [
       "forge.java"
@@ -13865,7 +13865,7 @@
         {
           "key": "minecraft.gutterIcons",
           "title": "Show gutter icons",
-          "description": "Event handler methods (@EventHandler, @Subscribe) show the event they listen to; the plugin's main class runs the Paper test server.",
+          "description": "Event handler methods (@EventHandler, @Subscribe, @SubscribeEvent) show the event they listen to; the plugin's main class runs the Paper test server.",
           "type": "bool",
           "default": true,
           "group": "lang.java.minecraft",

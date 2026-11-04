@@ -677,6 +677,7 @@ pub fn run() {
             commands::spring::spring_gutter,
             commands::minecraft::minecraft_versions_refresh,
             commands::minecraft::minecraft_inspect,
+            commands::minecraft::minecraft_complete,
             commands::minecraft::minecraft_goto,
             commands::minecraft::minecraft_gutter,
             commands::spring::spring_config_complete,

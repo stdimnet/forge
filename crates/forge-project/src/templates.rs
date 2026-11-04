@@ -152,9 +152,9 @@ pub fn template(id: &str) -> Option<&'static Template> {
 }
 
 /// Generators whose files are computed instead of read from `templates/`.
-const COMPUTED: &[&str] = &["minecraft-plugin"];
+const COMPUTED: &[&str] = &["minecraft-plugin", "minecraft-mod"];
 
-/// A built-in template or a computed generator (the Minecraft plugin).
+/// A built-in template or a computed generator (the Minecraft plugin and mod).
 pub fn is_template(id: &str) -> bool {
     template(id).is_some() || COMPUTED.contains(&id)
 }
@@ -166,17 +166,30 @@ pub fn render(
     options: &BTreeMap<String, serde_json::Value>,
     sample: bool,
 ) -> Result<RenderedTemplate> {
-    if id == "minecraft-plugin" {
+    if COMPUTED.contains(&id) {
         let value = serde_json::Value::Object(options.clone().into_iter().collect());
-        let opts = javaforge_minecraft::Options::from_json(&value).map_err(ForgeError::Other)?;
-        let files = javaforge_minecraft::generate(name, &opts).map_err(ForgeError::Other)?;
-        return Ok(RenderedTemplate {
+        let files = if id == "minecraft-mod" {
+            let opts = javaforge_minecraft::mods::ModOptions::from_json(&value)
+                .map_err(ForgeError::Other)?;
+            javaforge_minecraft::mods::generate_mod(name, &opts)
+        } else {
+            let opts =
+                javaforge_minecraft::Options::from_json(&value).map_err(ForgeError::Other)?;
+            javaforge_minecraft::generate(name, &opts)
+        }
+        .map_err(ForgeError::Other)?;
+        let mut rendered = RenderedTemplate {
             dirs: Vec::new(),
-            files: files
-                .into_iter()
-                .map(|f| (PathBuf::from(f.path), f.contents))
-                .collect(),
-        });
+            files: Vec::new(),
+            binaries: Vec::new(),
+        };
+        for f in files {
+            match f.binary {
+                Some(bytes) => rendered.binaries.push((PathBuf::from(f.path), bytes)),
+                None => rendered.files.push((PathBuf::from(f.path), f.contents)),
+            }
+        }
+        return Ok(rendered);
     }
     let vars = TemplateVars::new(name, options);
     render_template(id, &vars, sample)
@@ -289,6 +302,25 @@ impl TemplateVars {
 pub struct RenderedTemplate {
     pub dirs: Vec<PathBuf>,
     pub files: Vec<(PathBuf, String)>,
+    /// Binary files (the textures of a Minecraft mod).
+    pub binaries: Vec<(PathBuf, Vec<u8>)>,
+}
+
+impl RenderedTemplate {
+    /// The relative paths of all files: in template order, sorted when there are binary
+    /// files (computed generators, whose text files are sorted already).
+    pub fn paths(&self) -> Vec<&PathBuf> {
+        let mut out: Vec<&PathBuf> = self
+            .files
+            .iter()
+            .map(|(p, _)| p)
+            .chain(self.binaries.iter().map(|(p, _)| p))
+            .collect();
+        if !self.binaries.is_empty() {
+            out.sort_by_key(|p| p.to_string_lossy().replace('\\', "/"));
+        }
+        out
+    }
 }
 
 pub fn render_template(id: &str, vars: &TemplateVars, sample: bool) -> Result<RenderedTemplate> {
@@ -308,7 +340,11 @@ pub fn render_template(id: &str, vars: &TemplateVars, sample: bool) -> Result<Re
         })
         .map(|f| (PathBuf::from(vars.render(f.path)), vars.render(f.contents)))
         .collect();
-    Ok(RenderedTemplate { dirs, files })
+    Ok(RenderedTemplate {
+        dirs,
+        files,
+        binaries: Vec::new(),
+    })
 }
 
 /// Write a rendered template below `target`. Returns the written files (relative).
@@ -319,7 +355,9 @@ pub fn write_template(target: &Path, rendered: &RenderedTemplate) -> Result<Vec<
         std::fs::create_dir_all(&p).map_err(|e| ForgeError::io(&p, e))?;
     }
     let mut written = Vec::new();
-    for (rel, contents) in &rendered.files {
+    let texts = rendered.files.iter().map(|(r, c)| (r, c.as_bytes()));
+    let binaries = rendered.binaries.iter().map(|(r, b)| (r, b.as_slice()));
+    for (rel, contents) in texts.chain(binaries) {
         let p = target.join(rel);
         if let Some(parent) = p.parent() {
             std::fs::create_dir_all(parent).map_err(|e| ForgeError::io(parent, e))?;
