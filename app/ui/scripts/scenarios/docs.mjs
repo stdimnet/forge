@@ -140,12 +140,12 @@ export default {
   "docs-recent-files": keys("Control+KeyE", [".recent-popup"], (page) => openFiles(page, ["OrderController", "Checkout", "web.php"])),
   "docs-switcher": action("Switcher", [".recent-popup"], (page) => openFiles(page, ["OrderController", "Checkout", "web.php"])),
   "docs-find-in-files": keys("Control+Shift+KeyF", [".find-popup"], undefined, type("orders()")),
-  "docs-find-in-file": keys("Control+KeyF", [`${editor} .cm-search`], (page) => caret(page, 30), async (page) => {
-    await page.fill(`${editor} .cm-search input[name=search]`, "orders");
+  "docs-find-in-file": keys("Control+KeyF", [`${editor} .cm-find-bar`], (page) => caret(page, 30), async (page) => {
+    await page.fill(`${editor} .cm-find-bar textarea`, "orders");
     await page.keyboard.press("Enter");
     await page.waitForTimeout(250);
-  }, { selectors: [`${editor} .cm-panels`], extendUp: 300 }),
-  "docs-goto-line": keys("Control+KeyG", [`${editor} .cm-panels`], (page) => caret(page, 10), async (page) => {
+  }, { selectors: [`${editor} .cm-panels-top`, `${editor} .cm-scroller`], maxHeight: 320 }),
+  "docs-goto-line": keys("Control+KeyG", [`${editor} .cm-panels-bottom`], (page) => caret(page, 10), async (page) => {
     await page.keyboard.type("28");
   }, { extendUp: 160 }),
 

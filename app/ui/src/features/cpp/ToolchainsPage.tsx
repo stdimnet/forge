@@ -11,6 +11,7 @@ import { CircleCheck, CircleX, Copy, Cpu, Minus, Plus, RefreshCw } from "lucide-
 import { cppApi, type Toolchain, type ToolchainEntry } from "@/ipc/cpp";
 import type { SettingObject } from "@/ipc/settings";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
+import { t as tr } from "@/i18n";
 import "./cpp.css";
 
 const KEY = "cpp.toolchains";
@@ -31,9 +32,9 @@ function Check(props: { label: string; path?: string; version?: string; detail?:
     <div class="tc-row">
       <span class="tc-label">{props.label}:</span>
       <span class="tc-value" classList={{ "tc-missing": !props.path }}>
-        {props.path ?? "Not found"}
+        {props.path ?? tr("common.notFound2")}
       </span>
-      <span class="tc-status" title={props.path ? props.version : "Not found"}>
+      <span class="tc-status" title={props.path ? props.version : tr("common.notFound2")}>
         <Show when={props.path} fallback={<CircleX size={13} class="tc-bad" />}>
           <CircleCheck size={13} class="tc-good" />
           <span class="muted">{props.detail ?? (props.version ? `Version: ${props.version}` : "")}</span>
@@ -49,13 +50,13 @@ function Details(props: { t: Toolchain }) {
   return (
     <div class="tc-details" data-testid="toolchain-details">
       <Check label="CMake" path={t().cmake?.path} version={t().cmake?.version} />
-      <Check label="Build Tool" path={build()?.path} version={build()?.version} />
-      <Check label="C Compiler" path={t().cCompiler} detail={t().compiler ? `${t().compiler!.family === "msvc" ? "MSVC" : t().compiler!.family === "gcc" ? "GNU" : "Clang"} ${t().compiler!.version}` : undefined} />
-      <Check label="C++ Compiler" path={t().cxxCompiler} detail={t().compiler ? `${t().compiler!.target}${t().compiler!.vendor ? ` (${t().compiler!.vendor})` : ""}` : undefined} />
-      <Check label="Debugger" path={t().debugger?.path} detail={t().debugger ? `${t().debugger!.kind === "gdb" ? "GDB" : "LLDB"} ${t().debugger!.version}` : undefined} />
+      <Check label={tr("langs.cpp.buildTool")} path={build()?.path} version={build()?.version} />
+      <Check label={tr("langs.cpp.cCompiler")} path={t().cCompiler} detail={t().compiler ? `${t().compiler!.family === "msvc" ? "MSVC" : t().compiler!.family === "gcc" ? "GNU" : "Clang"} ${t().compiler!.version}` : undefined} />
+      <Check label={tr("langs.cpp.cCompiler2")} path={t().cxxCompiler} detail={t().compiler ? `${t().compiler!.target}${t().compiler!.vendor ? ` (${t().compiler!.vendor})` : ""}` : undefined} />
+      <Check label={tr("langs.cpp.debugger")} path={t().debugger?.path} detail={t().debugger ? `${t().debugger!.kind === "gdb" ? "GDB" : "LLDB"} ${t().debugger!.version}` : undefined} />
       <Show when={t().environmentScript}>
         <div class="tc-row">
-          <span class="tc-label">Environment:</span>
+          <span class="tc-label">{tr("langs.cpp.environmentLabel")}</span>
           <span class="tc-value">{t().environmentScript}</span>
         </div>
       </Show>
@@ -90,7 +91,7 @@ function Editor(props: { index: number; entry: ToolchainEntry; onChange: (e: Too
     <div class="tc-editor" data-testid="toolchain-editor">
       {field("name", "Name", "")}
       <label class="tc-field">
-        <span>Kind:</span>
+        <span>{tr("langs.cpp.kindLabel")}</span>
         <select value={props.entry.kind || "system"} onChange={(e) => props.onChange({ ...props.entry, kind: e.currentTarget.value })}>
           <For each={["system", "mingw", "visualStudio", "cross", "custom"]}>{(k) => <option value={k}>{KIND_LABEL[k]}</option>}</For>
         </select>
@@ -140,12 +141,12 @@ export function ToolchainsPage() {
     <div class="tc-page" data-testid="toolchains-page">
       <div class="tc-list">
         <div class="tc-toolbar">
-          <button class="icon-btn" title="Add" onClick={() => add()}>
+          <button class="icon-btn" title={tr("common.add")} onClick={() => add()}>
             <Plus size={14} />
           </button>
           <button
             class="icon-btn"
-            title="Remove"
+            title={tr("common.remove")}
             disabled={!current()?.entry}
             onClick={() => {
               const r = current();
@@ -155,13 +156,13 @@ export function ToolchainsPage() {
           >
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Copy" disabled={!current()} onClick={() => {
+          <button class="icon-btn" title={tr("common.copy")} disabled={!current()} onClick={() => {
             const r = current();
             if (r) add(r.entry ?? copyDetected(r.toolchain!));
           }}>
             <Copy size={14} />
           </button>
-          <button class="icon-btn" title="Detect again" onClick={() => void refetch()}>
+          <button class="icon-btn" title={tr("common.detectAgain")} onClick={() => void refetch()}>
             <RefreshCw size={14} />
           </button>
         </div>
@@ -170,16 +171,16 @@ export function ToolchainsPage() {
             <div class="tree-row tc-item" classList={{ selected: current()?.key === r.key }} data-testid="toolchain-row" onClick={() => setSelected(r.key)}>
               <Cpu size={14} class="tc-icon" />
               <span class="tree-label">{r.name}</span>
-              <span class="tree-hint">{i() === 0 ? "(default)" : KIND_LABEL[r.kind] ?? ""}</span>
+              <span class="tree-hint">{i() === 0 ? tr("langs.cpp.default") : KIND_LABEL[r.kind] ?? ""}</span>
             </div>
           )}
         </For>
         <Show when={detected.loading}>
-          <div class="muted cmake-pad">Detecting toolchains…</div>
+          <div class="muted cmake-pad">{tr("langs.cpp.detectingToolchainsEllipsis")}</div>
         </Show>
       </div>
       <div class="tc-body">
-        <Show when={current()} fallback={<div class="muted cmake-pad">No toolchains found. Install GCC or Clang with CMake, or add a toolchain.</div>}>
+        <Show when={current()} fallback={<div class="muted cmake-pad">{tr("langs.cpp.noToolchainsFoundInstallGcc")}</div>}>
           {(r) => (
             <Show
               when={r().entry}
@@ -187,7 +188,7 @@ export function ToolchainsPage() {
                 <>
                   <div class="tc-head">
                     <span class="tc-name">{r().name}</span>
-                    <span class="muted">{KIND_LABEL[r().kind]} · detected</span>
+                    <span class="muted">{tr("langs.cpp.detected", { value: KIND_LABEL[r().kind] })}</span>
                   </div>
                   <Details t={r().toolchain!} />
                 </>

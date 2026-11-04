@@ -7,6 +7,7 @@ import { createSignal, onMount, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { ShieldAlert } from "lucide-solid";
 import type { TrustCheck } from "@/ipc/trust";
+import { t } from "@/i18n";
 
 export type TrustAnswer = { decision: "trust"; trustLocation: boolean } | { decision: "safe" } | { decision: "cancel" };
 
@@ -44,7 +45,7 @@ function Dialog(props: { req: Request }) {
     <dialog
       ref={dialog}
       class="trust-dialog"
-      aria-label={open() ? "Trust and Open Project?" : "Trust Project?"}
+      aria-label={open() ? t("tools.trust.trustAndOpenProject") : t("tools.trust.trustProject")}
       data-testid="trust-dialog"
       onCancel={(e) => {
         e.preventDefault();
@@ -58,18 +59,16 @@ function Dialog(props: { req: Request }) {
           </span>
           <div class="trust-dialog-text">
             <h2 class="trust-dialog-title">
-              {open() ? "Trust and Open Project" : "Trust Project"} '{name()}'?
+              {open() ? t("tools.trust.trustAndOpenProject2") : t("tools.trust.trustProject2")} '{name()}'?
             </h2>
             <p>
-              Forge provides features that may execute potentially malicious code contained in this project, for
-              example Composer and npm scripts, run configurations, tests, the debugger, build tools and language
-              servers installed in the project.
+              {t("tools.trust.forgeProvidesFeaturesThatMay")}
             </p>
             <Show
               when={open()}
-              fallback={<p>Trust the project only if it comes from a source you trust. Its scripts and tools can then run.</p>}
+              fallback={<p>{t("tools.trust.trustTheProjectOnlyIf")}</p>}
             >
-              <p>If you don't trust the source, preview the project in Safe Mode: you can browse and edit its files, but nothing of it runs.</p>
+              <p>{t("tools.trust.ifYouDonTTrust")}</p>
             </Show>
             <code class="trust-dialog-path">{props.req.check.display}</code>
             <Show when={props.req.check.parentDisplay}>
@@ -82,7 +81,7 @@ function Dialog(props: { req: Request }) {
                     data-testid="trust-location"
                   />
                   <span>
-                    Trust projects in <span class="trust-dialog-mono">{parent()}</span>
+                    {t("tools.trust.trustProjectsIn")} <span class="trust-dialog-mono">{parent()}</span>
                   </span>
                 </label>
               )}
@@ -94,20 +93,20 @@ function Dialog(props: { req: Request }) {
             when={open()}
             fallback={
               <button type="button" class="btn-secondary" onClick={() => answer({ decision: "cancel" })}>
-                Cancel
+                {t("common.cancel")}
               </button>
             }
           >
             <button type="button" class="btn-secondary" data-testid="trust-dont-open" onClick={() => answer({ decision: "cancel" })}>
-              Don't Open
+              {t("tools.trust.donTOpen")}
             </button>
             <span class="trust-dialog-spacer" />
             <button type="button" class="btn-secondary" data-testid="trust-safe-mode" onClick={() => answer({ decision: "safe" })}>
-              Preview in Safe Mode
+              {t("tools.trust.previewInSafeMode")}
             </button>
           </Show>
           <button type="submit" class="btn-primary" ref={trust} data-testid="trust-project">
-            Trust Project
+            {t("tools.trust.trustProject2")}
           </button>
         </footer>
       </form>

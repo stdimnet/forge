@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
 import { applyReplace, canUndoReplace, closeReplacePreview, openReplacePreview, previewTotals, replaceBusy, replaceMessage, replacePreview, replaceWith, setReplaceWith, undoReplace } from "./replace";
+import { t } from "@/i18n";
 
 export function ReplaceBar() {
   const totals = () => previewTotals(replacePreview() ?? []);
@@ -8,17 +9,17 @@ export function ReplaceBar() {
       <div class="fw-replace">
         <input
           class="fw-pattern"
-          placeholder="Replace with"
+          placeholder={t("tools.find.replaceWith")}
           value={replaceWith()}
           spellcheck={false}
           onInput={(e) => setReplaceWith(e.currentTarget.value)}
           onKeyDown={(e) => e.key === "Enter" && void openReplacePreview()}
         />
         <button class="btn" disabled={replaceBusy()} onClick={() => void openReplacePreview()}>
-          Replace…
+          {t("tools.find.replaceEllipsis")}
         </button>
-        <button class="btn" disabled={replaceBusy() || !canUndoReplace()} title="Put back the files the last replace changed" onClick={() => void undoReplace()}>
-          Undo replace
+        <button class="btn" disabled={replaceBusy() || !canUndoReplace()} title={t("tools.find.putBackTheFilesThe")} onClick={() => void undoReplace()}>
+          {t("tools.find.undoReplace")}
         </button>
         <Show when={replaceMessage()}>
           <span class="fw-note">{replaceMessage()}</span>
@@ -28,13 +29,13 @@ export function ReplaceBar() {
         <div class="fw-preview" data-testid="replace-preview">
           <div class="fw-preview-head">
             <span>
-              Replace {totals().matches} matches in {totals().files} files
+              {t("tools.find.replaceMatchesInFiles", { matches: totals().matches, files: totals().files })}
             </span>
             <button class="btn primary" disabled={replaceBusy()} onClick={() => void applyReplace()}>
-              Replace all
+              {t("tools.find.replaceAll")}
             </button>
             <button class="btn" onClick={closeReplacePreview}>
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
           <div class="fw-preview-body">

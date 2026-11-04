@@ -12,6 +12,7 @@ import { openFileAt } from "@/editor/views";
 import { workspaceApi } from "@/ipc/workspace";
 import type { Stack, StackFrame } from "@/ipc/cppTools";
 import { highlightsOf, setAnalysisHighlights } from "./analysisHighlights";
+import { t as tr } from "@/i18n";
 
 export interface Issue {
   id: string;
@@ -139,7 +140,7 @@ export function IssueTree(props: { issues: Issue[]; header?: JSX.Element; empty:
         <div class="native-header">
           {props.header}
           <span class="native-spacer" />
-          <button class="icon-btn" title="Clear Highlights" onClick={() => setAnalysisHighlights([])}>
+          <button class="icon-btn" title={tr("langs.cpp.clearHighlights")} onClick={() => setAnalysisHighlights([])}>
             <Eraser size={14} />
           </button>
         </div>
@@ -222,7 +223,7 @@ export function IssueTree(props: { issues: Issue[]; header?: JSX.Element; empty:
                   <div class="native-message">{i().message}</div>
                   <For each={i().details ?? []}>{(d) => <div class="native-detail muted">{d}</div>}</For>
                   <Show when={i().summary}>
-                    <div class="native-summary muted">SUMMARY: {i().summary}</div>
+                    <div class="native-summary muted">{tr("langs.cpp.summary", { summary: i().summary })}</div>
                   </Show>
                   <Show when={previewFrame()?.path ? previewFrame() : null} keyed>
                     {(f) => <Preview frame={f} />}

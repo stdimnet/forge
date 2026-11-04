@@ -10,6 +10,7 @@ import { pythonWebApi, type ManageCommand, type ManageCommands } from "@/ipc/pyt
 import { launch } from "@/features/run/runStore";
 import { useTemporary } from "@/features/run/configStore";
 import { shortcutLabel } from "@/keymap";
+import { t as tr } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 const [text, setText] = createSignal("");
@@ -101,18 +102,18 @@ export function ManageTaskPopup() {
   return (
     <Show when={open()}>
       <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeManageTask()}>
-        <div class="popup pyweb-manage-popup" role="dialog" aria-label="Run manage.py Task">
+        <div class="popup pyweb-manage-popup" role="dialog" aria-label={tr("langs.pythonWeb.runManagePyTask")}>
           <div class="cli-popup-header">
             <SquareTerminal size={15} class="cli-popup-icon" />
             <span class="cli-popup-title">manage.py@{list()?.source === "manage.py" ? "project" : "Django"}</span>
             <span class="muted pyweb-manage-source">
-              {list()?.source === "manage.py" ? "Commands from manage.py help --commands" : "Built-in and project commands"}
+              {list()?.source === "manage.py" ? tr("langs.pythonWeb.commandsFromManagePyHelp") : tr("langs.pythonWeb.builtInAndProjectCommands")}
             </span>
             <span class="kbd cli-popup-shortcut">{shortcutLabel("Django.RunManageTask")}</span>
-            <button class="icon-btn" title="Reload Commands" onClick={() => void load(true)}>
+            <button class="icon-btn" title={tr("langs.pythonWeb.reloadCommands")} onClick={() => void load(true)}>
               <RefreshCw size={13} classList={{ spin: loading() }} />
             </button>
-            <button class="icon-btn" title="Close (Esc)" onClick={closeManageTask}>
+            <button class="icon-btn" title={tr("common.closeEsc")} onClick={closeManageTask}>
               <X size={14} />
             </button>
           </div>
@@ -127,7 +128,7 @@ export function ManageTaskPopup() {
                 queueMicrotask(() => el.focus());
               }}
               value={text()}
-              placeholder="Enter a task, e.g. migrate or makemigrations catalog"
+              placeholder={tr("langs.pythonWeb.enterATaskEG")}
               spellcheck={false}
               onInput={(e) => {
                 setText(e.currentTarget.value);
@@ -159,13 +160,13 @@ export function ManageTaskPopup() {
             <Show when={!matches().length && !loading()}>
               <div class="pyweb-manage-empty muted">
                 <Show when={history().length} fallback="No matching commands">
-                  Recent: {history().slice(0, 5).join(" · ")}
+                  {tr("langs.pythonWeb.recent", { history: history().slice(0, 5).join(" · ") })}
                 </Show>
               </div>
             </Show>
           </div>
           <div class="cli-popup-footer muted">
-            <span>Tab to complete · ↑↓ to choose · Enter to run in the Run tool window · Esc to close</span>
+            <span>{tr("langs.pythonWeb.tabToCompleteToChoose")}</span>
           </div>
         </div>
       </div>

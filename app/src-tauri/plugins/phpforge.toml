@@ -914,6 +914,7 @@ projectTypes = ["drupal", "joomla", "shopware"]
 id = "php"
 name = "PHP"
 extensions = ["php", "phtml", "inc", "module", "install", "theme", "profile", "engine"]
+interpreters = ["php", "php-cgi", "hhvm"]
 
 [[plugin.contributions.commands]]
 id = "Cms.RunDrush"

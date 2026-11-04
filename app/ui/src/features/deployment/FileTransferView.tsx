@@ -22,15 +22,16 @@ import {
 import type { FileResult, FileStatus } from "@/ipc/deployment";
 import { formatSize } from "@/features/compare/DirDiffView";
 import { cancelOperation, clearLog, log, type Operation } from "./store";
+import { t } from "@/i18n";
 
 const STATUS: Record<FileStatus, { title: string; icon: typeof CircleCheck; cls: string }> = {
-  transferred: { title: "Transferred", icon: CircleCheck, cls: "ok" },
-  upToDate: { title: "Up to date, skipped", icon: Equal, cls: "muted" },
-  newerOnTarget: { title: "Newer on the target, not overwritten", icon: Clock, cls: "warn" },
-  excluded: { title: "Excluded", icon: EyeOff, cls: "muted" },
-  notMapped: { title: "Not mapped", icon: Ban, cls: "muted" },
-  deleted: { title: "Deleted", icon: Trash2, cls: "ok" },
-  failed: { title: "Failed", icon: CircleX, cls: "bad" },
+  transferred: { title: t("tools.deployment.transferred"), icon: CircleCheck, cls: "ok" },
+  upToDate: { title: t("tools.deployment.upToDateSkipped"), icon: Equal, cls: "muted" },
+  newerOnTarget: { title: t("tools.deployment.newerOnTheTargetNot"), icon: Clock, cls: "warn" },
+  excluded: { title: t("tools.deployment.excluded"), icon: EyeOff, cls: "muted" },
+  notMapped: { title: t("tools.deployment.notMapped"), icon: Ban, cls: "muted" },
+  deleted: { title: t("tools.deployment.deleted"), icon: Trash2, cls: "ok" },
+  failed: { title: t("tools.deployment.failed"), icon: CircleX, cls: "bad" },
 };
 
 const time = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -102,20 +103,20 @@ export function FileTransferView() {
   return (
     <div class="ft-view">
       <div class="panel-toolbar ft-toolbar">
-        <button class="icon-btn" title="Cancel" disabled={!log.operations.some((o) => !o.done)} onClick={() => log.operations.filter((o) => !o.done).forEach((o) => cancelOperation(o.id))}>
+        <button class="icon-btn" title={t("common.cancel")} disabled={!log.operations.some((o) => !o.done)} onClick={() => log.operations.filter((o) => !o.done).forEach((o) => cancelOperation(o.id))}>
           <X size={15} />
         </button>
-        <button class="icon-btn" title="Clear All" disabled={!log.operations.some((o) => o.done)} onClick={clearLog}>
+        <button class="icon-btn" title={t("common.clearAll")} disabled={!log.operations.some((o) => o.done)} onClick={clearLog}>
           <Trash2 size={14} />
         </button>
         <div class="toolbar-sep" />
-        <button class="pill-btn" classList={{ active: !hideSkipped() }} aria-pressed={!hideSkipped()} title="Show skipped files (up to date, excluded, not mapped)" onClick={() => setHideSkipped((v) => !v)}>
-          <EyeOff size={13} /> Show Skipped
+        <button class="pill-btn" classList={{ active: !hideSkipped() }} aria-pressed={!hideSkipped()} title={t("tools.deployment.showSkippedFilesUpTo")} onClick={() => setHideSkipped((v) => !v)}>
+          <EyeOff size={13} /> {t("tools.deployment.showSkipped")}
         </button>
       </div>
       <div class="ft-list" tabIndex={0}>
         <Show when={!ops().length}>
-          <div class="commit-empty">No file transfers yet. Use Tools | Deployment to upload or download files.</div>
+          <div class="commit-empty">{t("tools.deployment.noFileTransfersYetUse")}</div>
         </Show>
         <For each={ops()}>
           {(op) => (
@@ -134,7 +135,7 @@ export function FileTransferView() {
                 <Show when={!op.done}>
                   <button
                     class="icon-btn ft-cancel"
-                    title="Cancel"
+                    title={t("common.cancel")}
                     onClick={(e) => {
                       e.stopPropagation();
                       cancelOperation(op.id);

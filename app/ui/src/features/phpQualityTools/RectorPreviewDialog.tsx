@@ -4,6 +4,7 @@
  */
 import { For, Show } from "solid-js";
 import { closeDialog, type DialogComponentProps } from "@/shell/window/dialogs";
+import { t } from "@/i18n";
 
 export const RECTOR_DIALOG = "rector-preview";
 
@@ -39,7 +40,7 @@ export function RectorPreviewDialog(props: DialogComponentProps<RectorPreviewPro
       <div class="qt-dialog-body">
         <div class="qt-dialog-file">{props.props.path}</div>
         <Show when={props.props.rules.length}>
-          <div class="qt-dialog-label">Applied rules:</div>
+          <div class="qt-dialog-label">{t("langs.phpQualityTools.appliedRulesLabel")}</div>
           <ul class="qt-rules">
             <For each={props.props.rules}>{(r) => <li title={r}>{shortRule(r)}</li>}</For>
           </ul>
@@ -51,10 +52,10 @@ export function RectorPreviewDialog(props: DialogComponentProps<RectorPreviewPro
       <footer class="qt-dialog-footer">
         <span class="qt-spacer" />
         <button class="btn-secondary set-btn" onClick={() => close(false)}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button class="btn-primary set-btn" data-testid="rector-apply" onClick={() => close(true)}>
-          Apply
+          {t("common.apply")}
         </button>
       </footer>
     </div>

@@ -46,7 +46,7 @@ export function setActiveChangelist(list: ChangelistView): Promise<boolean> {
 /** Delete Changelist (`ChangesView.RemoveChangeList`): its changes move to the active list. */
 export async function deleteChangelist(list: ChangelistView): Promise<void> {
   if (list.active) {
-    notify("info", t("git.changesDialogs.theActiveChangelistCannotBe"), "Set another changelist active first.");
+    notify("info", t("git.changesDialogs.theActiveChangelistCannotBe"), t("tools.git.setAnotherChangelistActiveFirst"));
     return;
   }
   if (list.files.length) {
@@ -172,7 +172,7 @@ const baseName = (p: string) => p.slice(Math.max(p.lastIndexOf("/"), p.lastIndex
 export async function previewPatch(patch: string, name: string): Promise<void> {
   try {
     const files = await changesApi.patchPreview(patch, "");
-    if (!files.length) return notify("error", t("git.changesDialogs.applyPatch"), "The text is not a patch: no file changes found.");
+    if (!files.length) return notify("error", t("git.changesDialogs.applyPatch"), t("tools.git.theTextIsNotA"));
     setGitDialog({ kind: "applyPatch", patch, name, files });
   } catch (e) {
     notify("error", t("git.changesDialogs.applyPatchFailed"), errorText(e), 10000);
@@ -233,7 +233,7 @@ export async function applyPatch(patch: string, base: string, paths: string[] | 
   }
   for (const p of res.applied) setInclusion(p, null, true);
   if (res.failed.length) {
-    notify("error", `Patch could not be applied to ${plural(res.failed.length, "file")}`, res.failed.map(([p, m]) => `${p}: ${m}`).join("\n"), 15000);
+    notify("error", t("tools.git.patchCouldNotBeApplied", { value: plural(res.failed.length, "file") }), res.failed.map(([p, m]) => `${p}: ${m}`).join("\n"), 15000);
   }
   if (res.applied.length) notify("success", t("git.changesDialogs.patchApplied"), plural(res.applied.length, "file"));
   if (res.conflicts.length || conflictedPaths().length) resolveConflicts();

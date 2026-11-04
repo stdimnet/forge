@@ -10,6 +10,7 @@ import type { EditorView } from "@codemirror/view";
 import { colorsApi, type Rgba } from "@/ipc/emmet";
 import { getSetting, saveSetting } from "@/state/settings";
 import { cssOf, hexOf, hsvToRgb, rgbToHsv, type Hsva } from "./hsv";
+import { t as tr } from "@/i18n";
 
 export const RECENT_KEY = "editor.colorPicker.recentColors";
 const MAX_RECENT = 12;
@@ -177,7 +178,7 @@ function Picker(props: { picker: PickerState }) {
       class="color-picker"
       classList={{ "read-only": readOnly() }}
       role="dialog"
-      aria-label="Color Picker"
+      aria-label={tr("tools.colors.colorPicker")}
       tabindex={-1}
       style={{ left: `${pos().x}px`, top: `${pos().y}px` }}
       onKeyDown={onKey}
@@ -231,8 +232,8 @@ function Picker(props: { picker: PickerState }) {
           type="number"
           min={0}
           max={100}
-          aria-label="Opacity"
-          title="Opacity (%)"
+          aria-label={tr("tools.colors.opacity")}
+          title={tr("tools.colors.opacity2")}
           value={round(hsva().a * 100)}
           disabled={readOnly()}
           onChange={(e) => setHsva({ ...hsva(), a: Math.min(100, Math.max(0, Number(e.currentTarget.value) || 0)) / 100 })}
@@ -240,11 +241,11 @@ function Picker(props: { picker: PickerState }) {
         <span class="cp-percent">%</span>
       </div>
       <div class="cp-fields">
-        <span class="cp-label">Hex</span>
+        <span class="cp-label">{tr("tools.colors.hex")}</span>
         <input class="cp-hex" spellcheck={false} value={hex()} disabled={readOnly()} onChange={(e) => setHex(e.currentTarget.value)} />
       </div>
       <Show when={recent().length && !readOnly()}>
-        <div class="cp-recent-title">Recently used</div>
+        <div class="cp-recent-title">{tr("tools.colors.recentlyUsed")}</div>
         <div class="cp-recent">
           <For each={recent()}>
             {(c) => (

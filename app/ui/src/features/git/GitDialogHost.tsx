@@ -253,7 +253,7 @@ function UnstashDialog(props: { stashes: StashEntry[] }) {
         {(v) => (
           <div class="gd-files" aria-label={t("git.gitDialogHost.pathsAffectedInStash")}>
             <div class="gd-files-title">
-              Paths affected in stash@{`{${v.entry.index}}`}: {v.entry.message}
+              {t("tools.git.pathsAffectedInStash", { value: `{${v.entry.index}}`, message: v.entry.message })}
             </div>
             <For each={v.files} fallback={<div class="git-chooser-empty">{t("git.gitDialogHost.noFiles")}</div>}>
               {(f) => (
@@ -463,7 +463,7 @@ function RebaseDialog() {
         </Show>
       </div>
       <OptionsBar options={REBASE_OPTIONS} selected={opts()} onChange={setOpts} />
-      <div class="gd-note">Interactive rebase (--interactive) is not available yet.</div>
+      <div class="gd-note">{t("tools.git.interactiveRebaseInteractiveIsNot")}</div>
     </Frame>
   );
 }
@@ -641,7 +641,7 @@ function RemotesDialog() {
                       <td>
                         {r.fetchUrl}
                         <Show when={r.pushUrl}>
-                          <span class="muted"> (push: {r.pushUrl})</span>
+                          <span class="muted"> {t("tools.git.push", { pushUrl: r.pushUrl })}</span>
                         </Show>
                       </td>
                     </tr>
@@ -686,7 +686,7 @@ function FileChecks(props: { files: { path: string; status: string }[]; checked:
         <input type="checkbox" checked={all()} onChange={(e) => props.onChange(e.currentTarget.checked ? new Set(props.files.map((f) => f.path)) : new Set())} />
         <span class="strong">{t("git.gitDialogHost.changes")}</span>
         <span class="tree-hint">
-          {props.checked.size} of {props.files.length} files
+          {t("tools.git.ofFiles", { size: props.checked.size, count: props.files.length })}
         </span>
       </label>
       <For each={props.files}>

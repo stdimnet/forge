@@ -12,6 +12,7 @@ import { showBalloon } from "@/keymap";
 import { servicesApi, type GutterMarker, type ManifestAction } from "@/ipc/services";
 import { showToolWindow } from "@/state/layout";
 import { kubeSelection, select as selectNode, setTab } from "./store";
+import { t } from "@/i18n";
 
 const COMPOSE = /(^|\/)(docker-)?compose(\.[\w.-]+)?\.ya?ml$/;
 const DOCKERFILE = /(^|\/)((Docker|Container)file(\.[\w.-]+)?|[\w.-]+\.(docker|container)file)$/i;
@@ -25,7 +26,7 @@ async function kubectl(path: string, action: ManifestAction): Promise<void> {
   try {
     await servicesApi.kubeApply(path, action);
   } catch (err) {
-    showBalloon(action === "apply" ? "kubectl apply failed" : "kubectl delete failed", String(err).replace(/^Error: /, ""), 6000);
+    showBalloon(action === "apply" ? t("tools.services.kubectlApplyFailed") : t("tools.services.kubectlDeleteFailed"), String(err).replace(/^Error: /, ""), 6000);
   }
 }
 
@@ -48,7 +49,7 @@ async function run(m: GutterMarker, path: string): Promise<void> {
       await servicesApi.composeUp(path, m.service);
     }
   } catch (err) {
-    showBalloon(m.kind === "dockerfile" ? "Build failed" : "docker compose up failed", String(err).replace(/^Error: /, ""), 6000);
+    showBalloon(m.kind === "dockerfile" ? t("tools.services.buildFailed") : t("tools.services.dockerComposeUpFailed"), String(err).replace(/^Error: /, ""), 6000);
   }
 }
 

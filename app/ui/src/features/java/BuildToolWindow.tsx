@@ -43,6 +43,7 @@ import { buildModel, clearSyncLog, refreshModel, syncError, syncing, syncLog, sy
 import { BuildTree, branchIds, createTreeState, findNode, type TreeNode } from "./BuildTree";
 import { openExecuteDialog } from "./ExecuteDialog";
 import { gradleTask, runGradle, runMaven } from "./actions";
+import { t as tr } from "@/i18n";
 import "./java.css";
 
 // ---- Shared parts ----------------------------------------------------------------------------
@@ -62,7 +63,7 @@ function dependencyNodes(prefix: string, deps: DependencyNode[], maven: boolean)
       icon: d.failed ? CircleX : project ? Boxes : Library,
       iconClass: d.failed ? "java-bt-error" : project ? "java-build-icon" : "java-bt-lib",
       tone: d.failed ? "danger" : d.omitted ? "muted" : undefined,
-      title: d.failed ? `Could not resolve ${d.id}` : d.omitted ? `${d.id} (listed above)` : d.id,
+      title: d.failed ? tr("langs.java.couldNotResolve", { id: d.id }) : d.omitted ? tr("langs.java.listedAbove", { id: d.id }) : d.id,
       children: dependencyNodes(id, d.children, maven),
       data: { dependency: d.id },
     } satisfies TreeNode;
@@ -76,7 +77,7 @@ function declaredNodes(prefix: string, p: ProjectModel): TreeNode[] {
     secondary: `(${d.configuration})`,
     icon: Library,
     iconClass: "java-bt-lib",
-    title: "Declared in the build file; Reload shows the resolved tree",
+    title: tr("langs.java.declaredInTheBuildFile"),
   }));
 }
 
@@ -88,7 +89,7 @@ function sourceSetsNode(prefix: string, p: ProjectModel): TreeNode[] {
   return [
     {
       id: `${prefix}/sets`,
-      label: "Source Sets",
+      label: tr("langs.java.sourceSets"),
       icon: Folder,
       iconClass: "java-build-icon",
       data: { "source-sets": p.path || p.name },
@@ -128,8 +129,8 @@ function SyncPanel(props: { tool: string }) {
       <Show when={syncing()}>
         <div class="java-sync-status" data-testid="java-sync-status">
           <LoaderCircle size={13} class="lsp-spin" />
-          <span class="java-sync-text">{props.tool} sync: {last() || "starting…"}</span>
-          <button class="icon-btn" title="Stop" onClick={() => void javaApi.syncCancel()}>
+          <span class="java-sync-text">{props.tool} sync: {last() || tr("langs.java.startingEllipsis")}</span>
+          <button class="icon-btn" title={tr("common.stop")} onClick={() => void javaApi.syncCancel()}>
             <Square size={12} />
           </button>
         </div>
@@ -138,7 +139,7 @@ function SyncPanel(props: { tool: string }) {
         <div class="java-sync-status java-sync-failed" data-testid="java-sync-error">
           <CircleX size={13} />
           <span class="java-sync-text" title={syncError()!}>{syncError()}</span>
-          <button class="icon-btn" title="Close" onClick={clearSyncLog}>
+          <button class="icon-btn" title={tr("common.close")} onClick={clearSyncLog}>
             <X size={12} />
           </button>
         </div>
@@ -163,7 +164,7 @@ function useModel() {
   return buildModel;
 }
 
-const empty = (tool: string) => <div class="muted java-pad">No {tool} build in the project root.</div>;
+const empty = (tool: string) => <div class="muted java-pad">{tr("langs.java.noBuildInTheProject", { tool })}</div>;
 
 // ---- Gradle ----------------------------------------------------------------------------------
 
@@ -174,7 +175,7 @@ function gradleProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[])
   const order = (g: string) => (g === "other" ? "zz" : g.toLowerCase());
   const tasks: TreeNode = {
     id: `${id}/tasks`,
-    label: "Tasks",
+    label: tr("langs.java.tasks"),
     icon: FolderCog,
     iconClass: "java-build-icon",
     children: [...groups.entries()]
@@ -197,7 +198,7 @@ function gradleProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[])
   };
   const deps: TreeNode = {
     id: `${id}/deps`,
-    label: "Dependencies",
+    label: tr("common.dependencies"),
     icon: Network,
     iconClass: "java-build-icon",
     data: { "build-deps": p.path },
@@ -235,7 +236,7 @@ export function GradleToolWindow() {
     if (!root) return [];
     const runConfigs: TreeNode = {
       id: "p::/runs",
-      label: "Run Configurations",
+      label: tr("langs.java.runConfigurations"),
       icon: Folder,
       iconClass: "java-build-icon",
       children: allConfigurations()
@@ -270,39 +271,39 @@ export function GradleToolWindow() {
   return (
     <div class="java-build-tw" data-testid="gradle-tool-window">
       <div class="java-toolbar">
-        <button class="icon-btn" title="Reload All Gradle Projects" data-testid="gradle-sync" disabled={syncing()} onClick={() => void syncProject()}>
+        <button class="icon-btn" title={tr("langs.java.reloadAllGradleProjects")} data-testid="gradle-sync" disabled={syncing()} onClick={() => void syncProject()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn" title="Execute Gradle Task…" data-testid="gradle-execute" onClick={() => openExecuteDialog()}>
+        <button class="icon-btn" title={tr("langs.java.executeGradleTaskEllipsis")} data-testid="gradle-execute" onClick={() => openExecuteDialog()}>
           <SquareTerminal size={14} />
         </button>
-        <button class="icon-btn" title="Run" disabled={!selectedTask()} onClick={() => selectedTask() && runGradle(selectedTask()!)}>
+        <button class="icon-btn" title={tr("common.run2")} disabled={!selectedTask()} onClick={() => selectedTask() && runGradle(selectedTask()!)}>
           <Play size={14} />
         </button>
         <span class="java-toolbar-sep" />
-        <button class="icon-btn" title="Expand All" onClick={() => tree.setExpanded(new Set(branchIds(nodes(), 4)))}>
+        <button class="icon-btn" title={tr("common.expandAll2")} onClick={() => tree.setExpanded(new Set(branchIds(nodes(), 4)))}>
           <ChevronsUpDown size={14} />
         </button>
-        <button class="icon-btn" title="Collapse All" onClick={() => tree.setExpanded(new Set())}>
+        <button class="icon-btn" title={tr("common.collapseAll2")} onClick={() => tree.setExpanded(new Set())}>
           <ChevronsDownUp size={14} />
         </button>
         <span class="java-toolbar-sep" />
-        <Toggle on={offline()} title="Toggle Offline Mode" icon={WifiOff} testid="gradle-offline" onClick={() => void saveSetting("java.gradle.offline", !offline())} />
-        <button class="icon-btn" title="Show Dependencies" onClick={showDependencies}>
+        <Toggle on={offline()} title={tr("langs.java.toggleOfflineMode")} icon={WifiOff} testid="gradle-offline" onClick={() => void saveSetting("java.gradle.offline", !offline())} />
+        <button class="icon-btn" title={tr("langs.java.showDependencies")} onClick={showDependencies}>
           <Network size={14} />
         </button>
-        <button class="icon-btn" title="Gradle Settings" onClick={() => openSettings("build.tools.gradle")}>
+        <button class="icon-btn" title={tr("langs.java.gradleSettings")} onClick={() => openSettings("build.tools.gradle")}>
           <Settings size={14} />
         </button>
       </div>
       <SyncPanel tool="Gradle" />
       <Show when={model()?.tool === "gradle" && !model()!.synced && !syncing()}>
         <div class="java-sync-hint muted">
-          Tasks and dependencies from the build files. <button class="link-btn" onClick={() => void syncProject()}>Reload</button> asks Gradle for all of them.
+          {tr("langs.java.tasksAndDependenciesFromThe")} <button class="link-btn" onClick={() => void syncProject()}>{tr("common.reload")}</button> {tr("langs.java.asksGradleForAllOf")}
         </div>
       </Show>
       <Show when={model()?.synced && model()?.syncedAt}>
-        <div class="java-sync-hint muted">Synced {ago(model()!.syncedAt)}{offline() ? " · offline" : ""}</div>
+        <div class="java-sync-hint muted">{tr("langs.java.synced", { value: ago(model()!.syncedAt), value2: offline() ? tr("langs.java.offline") : "" })}</div>
       </Show>
       <BuildTree nodes={nodes()} state={tree} empty={empty("Gradle")} />
     </div>
@@ -327,7 +328,7 @@ function mavenProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[]):
   const id = `m:${p.dir}`;
   const lifecycle: TreeNode = {
     id: `${id}/lifecycle`,
-    label: "Lifecycle",
+    label: tr("langs.java.lifecycle"),
     icon: FolderCog,
     iconClass: "java-build-icon",
     children: p.tasks
@@ -343,7 +344,7 @@ function mavenProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[]):
   };
   const plugins: TreeNode = {
     id: `${id}/plugins`,
-    label: "Plugins",
+    label: tr("langs.java.plugins"),
     icon: Folder,
     iconClass: "java-build-icon",
     children: p.plugins.map((pl) => ({
@@ -363,7 +364,7 @@ function mavenProjectNode(p: ProjectModel, m: BuildModel, children: TreeNode[]):
   };
   const deps: TreeNode = {
     id: `${id}/deps`,
-    label: "Dependencies",
+    label: tr("common.dependencies"),
     icon: Network,
     iconClass: "java-build-icon",
     data: { "build-deps": p.dir || "root" },
@@ -392,7 +393,7 @@ export function MavenToolWindow() {
       const sel = selectedProfiles();
       out.push({
         id: "profiles",
-        label: "Profiles",
+        label: tr("langs.java.profiles"),
         icon: Folder,
         iconClass: "java-build-icon",
         children: m.profiles.map((pr) => ({
@@ -426,41 +427,41 @@ export function MavenToolWindow() {
   return (
     <div class="java-build-tw" data-testid="maven-tool-window">
       <div class="java-toolbar">
-        <button class="icon-btn" title="Reload All Maven Projects" data-testid="maven-sync" disabled={syncing()} onClick={() => void syncProject()}>
+        <button class="icon-btn" title={tr("langs.java.reloadAllMavenProjects")} data-testid="maven-sync" disabled={syncing()} onClick={() => void syncProject()}>
           <RefreshCw size={14} />
         </button>
-        <button class="icon-btn" title="Execute Maven Goal…" data-testid="maven-execute" onClick={() => openExecuteDialog()}>
+        <button class="icon-btn" title={tr("langs.java.executeMavenGoalEllipsis")} data-testid="maven-execute" onClick={() => openExecuteDialog()}>
           <SquareTerminal size={14} />
         </button>
-        <button class="icon-btn" title="Run Maven Build" disabled={!selectedGoal()} onClick={() => selectedGoal() && runMaven(selectedGoal()!.goal, selectedGoal()!.module)}>
+        <button class="icon-btn" title={tr("langs.java.runMavenBuild")} disabled={!selectedGoal()} onClick={() => selectedGoal() && runMaven(selectedGoal()!.goal, selectedGoal()!.module)}>
           <Play size={14} />
         </button>
         <span class="java-toolbar-sep" />
-        <Toggle on={offline()} title="Toggle Offline Mode" icon={WifiOff} testid="maven-offline" onClick={() => void saveSetting("java.maven.offline", !offline())} />
-        <Toggle on={skipTests()} title="Toggle 'Skip Tests' Mode" icon={FlaskConicalOff} testid="maven-skip-tests" onClick={() => void saveSetting("java.maven.skipTests", !skipTests())} />
+        <Toggle on={offline()} title={tr("langs.java.toggleOfflineMode")} icon={WifiOff} testid="maven-offline" onClick={() => void saveSetting("java.maven.offline", !offline())} />
+        <Toggle on={skipTests()} title={tr("langs.java.toggleSkipTestsMode")} icon={FlaskConicalOff} testid="maven-skip-tests" onClick={() => void saveSetting("java.maven.skipTests", !skipTests())} />
         <span class="java-toolbar-sep" />
-        <button class="icon-btn" title="Expand All" onClick={() => tree.setExpanded(new Set(branchIds(nodes(), 4)))}>
+        <button class="icon-btn" title={tr("common.expandAll2")} onClick={() => tree.setExpanded(new Set(branchIds(nodes(), 4)))}>
           <ChevronsUpDown size={14} />
         </button>
-        <button class="icon-btn" title="Collapse All" onClick={() => tree.setExpanded(new Set())}>
+        <button class="icon-btn" title={tr("common.collapseAll2")} onClick={() => tree.setExpanded(new Set())}>
           <ChevronsDownUp size={14} />
         </button>
-        <button class="icon-btn" title="Show Dependencies" onClick={showDependencies}>
+        <button class="icon-btn" title={tr("langs.java.showDependencies")} onClick={showDependencies}>
           <Network size={14} />
         </button>
-        <button class="icon-btn" title="Maven Settings" onClick={() => openSettings("build.tools.maven")}>
+        <button class="icon-btn" title={tr("langs.java.mavenSettings")} onClick={() => openSettings("build.tools.maven")}>
           <Settings size={14} />
         </button>
       </div>
       <SyncPanel tool="Maven" />
       <Show when={model()?.tool === "maven" && !model()!.synced && !syncing()}>
         <div class="java-sync-hint muted">
-          Declared dependencies only. <button class="link-btn" onClick={() => void syncProject()}>Reload</button> resolves the dependency tree.
+          {tr("langs.java.declaredDependenciesOnly")} <button class="link-btn" onClick={() => void syncProject()}>{tr("common.reload")}</button> {tr("langs.java.resolvesTheDependencyTree")}
         </div>
       </Show>
       <Show when={model()?.synced && model()?.syncedAt}>
         <div class="java-sync-hint muted">
-          Synced {ago(model()!.syncedAt)}
+          {tr("langs.java.synced2", { value: ago(model()!.syncedAt) })}
           <For each={[offline() && "offline", skipTests() && "skipping tests"].filter(Boolean)}>{(t) => <> · {t}</>}</For>
         </div>
       </Show>

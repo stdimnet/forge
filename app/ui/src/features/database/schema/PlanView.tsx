@@ -101,7 +101,7 @@ function PlanFlame(props: { plan: Plan; selected: number | null; onSelect: (id: 
         </For>
       </div>
       <div class="plan-flame-legend muted">
-        Bar width: {props.plan.weight === "cost" ? "estimated cost" : props.plan.weight === "rows" ? "estimated rows" : "operations (the database gives no estimates)"}
+        {t("tools.database.barWidth", { value: props.plan.weight === "cost" ? t("tools.database.estimatedCost") : props.plan.weight === "rows" ? t("tools.database.estimatedRows") : t("tools.database.operationsTheDatabaseGivesNo") })}
       </div>
     </div>
   );
@@ -121,11 +121,11 @@ export function PlanView(props: { result: ExplainResult }) {
         </button>
         <span class="db-spacer" />
         <span class="db-status muted" title={props.result.sql}>
-          <Show when={props.result.plan?.totalCost !== undefined}>total cost {fmt(props.result.plan?.totalCost)} · </Show>
+          <Show when={props.result.plan?.totalCost !== undefined}>{t("tools.database.totalCost", { value: fmt(props.result.plan?.totalCost) })} </Show>
           {props.result.elapsedMs} ms
         </span>
       </div>
-      <Show when={props.result.plan} fallback={<div class="plan-error">{props.result.error ?? "No plan"}</div>}>
+      <Show when={props.result.plan} fallback={<div class="plan-error">{props.result.error ?? t("tools.database.noPlan")}</div>}>
         {(p) => (
           <Show when={mode() === "tree"} fallback={<PlanFlame plan={p()} selected={selected()} onSelect={setSelected} />}>
             <PlanTree plan={p()} selected={selected()} onSelect={setSelected} />

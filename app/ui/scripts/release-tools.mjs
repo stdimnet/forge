@@ -1,7 +1,8 @@
 /**
  * Release helpers (logic and tests in releaseTools.mjs). Nothing here publishes anything.
  *
- *   node scripts/release-tools.mjs workflows          check the workflows' `on:` triggers
+ *   node scripts/release-tools.mjs workflows          check the workflows' `on:` triggers and
+ *       that they build through scripts/tauri.mjs (signing, MSI version)
  *   node scripts/release-tools.mjs channel            release workflow: stable or beta
  *       (reads RELEASE_TAG and RELEASE_PRERELEASE, writes `channel=…` to GITHUB_OUTPUT)
  *   node scripts/release-tools.mjs feed <channel> <latest.json> <out>
@@ -20,6 +21,7 @@ import {
   releaseChannel,
   srcinfo,
   stableVersion,
+  tauriBuildErrors,
   updateFlatpakManifest,
   updatePkgbuild,
   workflowTriggerErrors,
@@ -83,7 +85,12 @@ try {
       for (const e of errors) console.error(e);
       throw new Error("workflow triggers must stay: release.yml on pushed `v*` tags, all others on `workflow_dispatch` only");
     }
-    console.log(`workflow triggers unchanged (${workflows.map((w) => w.name).join(", ")})`);
+    const builds = tauriBuildErrors(workflows);
+    if (builds.length) {
+      for (const e of builds) console.error(e);
+      throw new Error("workflows must build Forge with scripts/tauri.mjs");
+    }
+    console.log(`workflow triggers unchanged, builds use scripts/tauri.mjs (${workflows.map((w) => w.name).join(", ")})`);
   } else if (command === "channel") {
     const tag = process.env.RELEASE_TAG ?? "";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";

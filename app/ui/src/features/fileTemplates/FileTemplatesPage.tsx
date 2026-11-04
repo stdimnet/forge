@@ -14,11 +14,12 @@ import type { SettingValue } from "@/ipc/settings";
 import { FileIcon } from "@/shell/FileIcon";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { CUSTOM_KEY } from "./model";
+import { t as tr } from "@/i18n";
 
 const TABS: { kind: TemplateKind; label: string }[] = [
-  { kind: "file", label: "Files" },
-  { kind: "include", label: "Includes" },
-  { kind: "code", label: "Code" },
+  { kind: "file", label: tr("tools.fileTemplates.files") },
+  { kind: "include", label: tr("tools.fileTemplates.includes") },
+  { kind: "code", label: tr("tools.fileTemplates.code") },
 ];
 
 const EMPTY: TemplateCatalog = { templates: [], variables: [] };
@@ -147,21 +148,21 @@ export function FileTemplatesPage() {
       <div class="ft-body">
         <div class="ft-list set-list">
           <div class="set-list-toolbar">
-            <button class="icon-btn" title="Create Template" onClick={() => add()}>
+            <button class="icon-btn" title={tr("tools.fileTemplates.createTemplate")} onClick={() => add()}>
               <Plus size={14} />
             </button>
-            <button class="icon-btn" title="Remove Template" disabled={!current() || current()!.builtin} onClick={remove}>
+            <button class="icon-btn" title={tr("tools.fileTemplates.removeTemplate")} disabled={!current() || current()!.builtin} onClick={remove}>
               <Minus size={14} />
             </button>
-            <button class="icon-btn" title="Copy Template" disabled={!current()} onClick={() => add(current())}>
+            <button class="icon-btn" title={tr("tools.fileTemplates.copyTemplate")} disabled={!current()} onClick={() => add(current())}>
               <Copy size={13} />
             </button>
-            <button class="icon-btn" title="Reset to Default" disabled={!current()?.modified} onClick={reset}>
+            <button class="icon-btn" title={tr("tools.fileTemplates.resetToDefault")} disabled={!current()?.modified} onClick={reset}>
               <RotateCcw size={13} />
             </button>
           </div>
-          <div class="ft-items" role="listbox" aria-label="Templates">
-            <For each={list()} fallback={<div class="set-list-empty">No templates</div>}>
+          <div class="ft-items" role="listbox" aria-label={tr("tools.fileTemplates.templates")}>
+            <For each={list()} fallback={<div class="set-list-empty">{tr("tools.fileTemplates.noTemplates")}</div>}>
               {(t) => (
                 <div
                   class="ft-item"
@@ -178,12 +179,12 @@ export function FileTemplatesPage() {
             </For>
           </div>
         </div>
-        <Show when={current()} fallback={<div class="ft-editor-pane set-empty">Select a template</div>}>
+        <Show when={current()} fallback={<div class="ft-editor-pane set-empty">{tr("tools.fileTemplates.selectATemplate")}</div>}>
           {(sel) => (
             <div class="ft-editor-pane">
               <div class="ft-fields">
                 <label class="set-label" for="ft-tpl-name">
-                  Name:
+                  {tr("common.nameLabel")}
                 </label>
                 <input
                   id="ft-tpl-name"
@@ -197,7 +198,7 @@ export function FileTemplatesPage() {
                 />
                 <Show when={sel().kind !== "code"}>
                   <label class="set-label" for="ft-tpl-ext">
-                    Extension:
+                    {tr("tools.fileTemplates.extensionLabel")}
                   </label>
                   <input
                     id="ft-tpl-ext"
@@ -216,7 +217,7 @@ export function FileTemplatesPage() {
               <textarea
                 class="ft-text"
                 spellcheck={false}
-                aria-label="Template text"
+                aria-label={tr("tools.fileTemplates.templateText")}
                 value={textOf(sel())}
                 onInput={(e) => write(withChange(custom(), { ...sel(), extension: extensionOf(sel()) }, { text: e.currentTarget.value }))}
                 onKeyDown={(e) => {
@@ -237,9 +238,8 @@ export function FileTemplatesPage() {
                 </Show>
                 <Show when={sel().kind !== "code"}>
                   <p>
-                    Apache Velocity template language is used: <code>{"#if (${NAMESPACE}) … #end"}</code>,{" "}
-                    <code>{'#set ($X = "…")'}</code> and <code>{'#parse("PHP File Header.php")'}</code>. The following predefined
-                    variables can be used:
+                    {tr("tools.fileTemplates.apacheVelocityTemplateLanguageIsLabel")} <code>{"#if (${NAMESPACE}) … #end"}</code>,{" "}
+                    <code>{'#set ($X = "…")'}</code> and <code>{'#parse("PHP File Header.php")'}</code>{tr("tools.fileTemplates.theFollowingPredefinedVariablesCanLabel")}
                   </p>
                   <table class="ft-vars">
                     <tbody>
@@ -255,7 +255,7 @@ export function FileTemplatesPage() {
                       </For>
                     </tbody>
                   </table>
-                  <p>Other variables are asked for in the New dialog.</p>
+                  <p>{tr("tools.fileTemplates.otherVariablesAreAskedFor")}</p>
                 </Show>
               </div>
             </div>

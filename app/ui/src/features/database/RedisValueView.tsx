@@ -79,8 +79,8 @@ export function RedisValueView(props: { tab: EditorTab }) {
             <>
               <span class={`db-redis-type ${v().type}`}>{v().type}</span>
               <span class="muted db-status">
-                {v().type === "string" ? `${v().length} bytes` : `${v().length} element${v().length === 1 ? "" : "s"}`}
-                {v().truncated ? ` (first ${table()?.rows.length ?? 0} shown)` : ""} · {v().ttlMs >= 0 ? `TTL ${ttlText(v().ttlMs)}` : "no expiry"}
+                {v().type === "string" ? `${v().length} bytes` : tr("tools.database.elements", { count: v().length })}
+                {v().truncated ? tr("tools.database.firstShown", { value: table()?.rows.length ?? 0 }) : ""} · {v().ttlMs >= 0 ? `TTL ${ttlText(v().ttlMs)}` : tr("tools.database.noExpiry")}
               </span>
             </>
           )}

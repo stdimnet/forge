@@ -34,15 +34,16 @@ import { Outputs } from "./Outputs";
 import { countLabel, kernelLabel, type CellState } from "./model";
 import { notebookFor, releaseNotebook, type NotebookController } from "./store";
 import { openFrameTab } from "./FrameTab";
+import { t as tr } from "@/i18n";
 
 function KernelStatusView(props: { ctl: NotebookController }) {
   const k = () => props.ctl.state.kernel;
   return (
-    <span class="nb-kernel" classList={{ [k().status]: true }} title={k().error ?? (k().label ? `${k().label}: ${kernelLabel(k().status)}` : "Starts with the first cell you run")}>
+    <span class="nb-kernel" classList={{ [k().status]: true }} title={k().error ?? (k().label ? `${k().label}: ${kernelLabel(k().status)}` : tr("langs.jupyter.startsWithTheFirstCell"))}>
       <Show when={k().status === "starting" || k().status === "restarting" || k().status === "busy"} fallback={<Circle size={9} class="nb-kernel-dot" />}>
         <LoaderCircle size={12} class="spin" />
       </Show>
-      <span class="nb-kernel-name">{k().label || "Python kernel"}</span>
+      <span class="nb-kernel-name">{k().label || tr("langs.jupyter.pythonKernel")}</span>
       <span class="muted">{kernelLabel(k().status)}</span>
     </span>
   );
@@ -53,54 +54,54 @@ function Toolbar(props: { ctl: NotebookController }) {
   const cellType = () => s.cells[s.selected]?.cellType ?? "code";
   const running = () => s.cells.some((c) => c.running);
   return (
-    <div class="nb-toolbar" role="toolbar" aria-label="Notebook">
-      <button class="icon-btn" title="Run Cell and Select Below (Shift+Enter)" onClick={() => void props.ctl.run(s.selected, "next")}>
+    <div class="nb-toolbar" role="toolbar" aria-label={tr("langs.jupyter.notebook")}>
+      <button class="icon-btn" title={tr("langs.jupyter.runCellAndSelectBelow")} onClick={() => void props.ctl.run(s.selected, "next")}>
         <Play size={14} />
       </button>
-      <button class="icon-btn" title="Run All Cells" onClick={() => void props.ctl.runAll()}>
+      <button class="icon-btn" title={tr("langs.jupyter.runAllCells")} onClick={() => void props.ctl.runAll()}>
         <FastForward size={14} />
       </button>
-      <button class="icon-btn" title="Interrupt Kernel" disabled={!s.kernel.id || !running()} onClick={() => void props.ctl.interrupt()}>
+      <button class="icon-btn" title={tr("langs.jupyter.interruptKernel")} disabled={!s.kernel.id || !running()} onClick={() => void props.ctl.interrupt()}>
         <Square size={13} />
       </button>
-      <button class="icon-btn" title="Restart Kernel" disabled={!s.kernel.id} onClick={() => void props.ctl.restart()}>
+      <button class="icon-btn" title={tr("langs.jupyter.restartKernel")} disabled={!s.kernel.id} onClick={() => void props.ctl.restart()}>
         <RotateCw size={14} />
       </button>
-      <button class="icon-btn" title="Clear All Outputs" onClick={() => props.ctl.clearOutputs()}>
+      <button class="icon-btn" title={tr("langs.jupyter.clearAllOutputs")} onClick={() => props.ctl.clearOutputs()}>
         <Eraser size={14} />
       </button>
       <span class="toolbar-sep" />
-      <button class="icon-btn" title="Add Code Cell Below (B)" onClick={() => props.ctl.insert(s.selected + 1, "code")}>
+      <button class="icon-btn" title={tr("langs.jupyter.addCodeCellBelowB")} onClick={() => props.ctl.insert(s.selected + 1, "code")}>
         <Plus size={14} />
       </button>
-      <button class="icon-btn" title="Delete Cell (D, D)" disabled={!s.cells.length} onClick={() => props.ctl.remove()}>
+      <button class="icon-btn" title={tr("langs.jupyter.deleteCellDD")} disabled={!s.cells.length} onClick={() => props.ctl.remove()}>
         <Trash2 size={14} />
       </button>
       <select
         class="nb-type-select"
-        title="Cell Type (Y / M / R)"
+        title={tr("langs.jupyter.cellTypeYMR")}
         value={cellType()}
         onChange={(e) => props.ctl.setType(e.currentTarget.value as CellType)}
       >
-        <option value="code">Code</option>
+        <option value="code">{tr("langs.jupyter.code")}</option>
         <option value="markdown">Markdown</option>
-        <option value="raw">Raw</option>
+        <option value="raw">{tr("langs.jupyter.raw")}</option>
       </select>
       <span class="spacer" />
       <button
         class="icon-btn"
         classList={{ active: s.showVariables }}
-        title="Show Variables"
+        title={tr("langs.jupyter.showVariables")}
         aria-pressed={s.showVariables}
         onClick={() => props.ctl.toggleVariables()}
       >
         <Variable size={14} />
       </button>
       <KernelStatusView ctl={props.ctl} />
-      <button class="icon-btn" title="Shut Down Kernel" disabled={!s.kernel.id} onClick={() => void props.ctl.shutdown()}>
+      <button class="icon-btn" title={tr("langs.jupyter.shutDownKernel")} disabled={!s.kernel.id} onClick={() => void props.ctl.shutdown()}>
         <Power size={13} />
       </button>
-      <button class="icon-btn" title="Jupyter Settings" onClick={() => openSettings("lang.jupyter")}>
+      <button class="icon-btn" title={tr("langs.jupyter.jupyterSettings")} onClick={() => openSettings("lang.jupyter")}>
         <Settings2 size={14} />
       </button>
     </div>
@@ -151,7 +152,7 @@ function CellView(props: { ctl: NotebookController; cell: CellState; index: numb
         <Show when={props.cell.cellType === "code"}>
           <button
             class="nb-run"
-            title={props.cell.running ? "Running…" : "Run Cell"}
+            title={props.cell.running ? tr("langs.jupyter.runningEllipsis") : tr("langs.jupyter.runCell")}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={() => void props.ctl.run(props.index)}
           >
@@ -200,8 +201,8 @@ function VariableRows(props: { ctl: NotebookController; vars: JupyterVariable[];
             </span>
             <span class="pycon-var-value">{v.value}</span>
             <Show when={v.frame}>
-              <button class="nb-var-view" title="View as DataFrame" onClick={() => void openFrameTab(props.ctl, v.expr)}>
-                <Sheet size={12} /> View
+              <button class="nb-var-view" title={tr("langs.jupyter.viewAsDataframe")} onClick={() => void openFrameTab(props.ctl, v.expr)}>
+                <Sheet size={12} /> {tr("langs.jupyter.view")}
               </button>
             </Show>
           </div>
@@ -219,16 +220,16 @@ function VariablesPanel(props: { ctl: NotebookController }) {
   return (
     <div class="nb-vars" data-testid="jupyter-variables">
       <div class="pycon-vars-head">
-        <Variable size={12} /> Variables
+        <Variable size={12} /> {tr("langs.jupyter.variables")}
         <span class="spacer" />
-        <button class="icon-btn" title="Refresh" disabled={!s.kernel.id} onClick={() => void props.ctl.refreshVariables()}>
+        <button class="icon-btn" title={tr("common.refresh")} disabled={!s.kernel.id} onClick={() => void props.ctl.refreshVariables()}>
           <RotateCw size={12} />
         </button>
       </div>
       <div class="pycon-vars-list">
         <Show
           when={s.vars.length}
-          fallback={<div class="muted pycon-vars-empty">{s.kernel.id ? "No variables yet" : "Run a cell to start the kernel"}</div>}
+          fallback={<div class="muted pycon-vars-empty">{s.kernel.id ? tr("langs.jupyter.noVariablesYet") : tr("langs.jupyter.runACellToStart")}</div>}
         >
           <VariableRows ctl={props.ctl} vars={s.vars} depth={0} />
         </Show>
@@ -279,14 +280,14 @@ export function NotebookEditor(props: { tab: EditorTab; group?: number }) {
           <Show when={s.error}>
             <div class="nb-error">
               <div>{s.error}</div>
-              <div class="muted">Open the file as text to fix it (right-click the tab, or reopen it after fixing the JSON).</div>
+              <div class="muted">{tr("langs.jupyter.openTheFileAsText")}</div>
             </div>
           </Show>
           <For each={s.cells}>{(cell, i) => <CellView ctl={ctl} cell={cell} index={i()} />}</For>
           <Show when={s.loaded && !s.error}>
             <div class="nb-add">
               <button class="pill-btn" onClick={() => ctl.insert(s.cells.length, "code")}>
-                <Plus size={12} /> Code
+                <Plus size={12} /> {tr("langs.jupyter.code")}
               </button>
               <button class="pill-btn" onClick={() => ctl.insert(s.cells.length, "markdown")}>
                 <Plus size={12} /> Markdown

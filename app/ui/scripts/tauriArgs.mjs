@@ -15,7 +15,13 @@
  *     `trusted-signing-cli` (which reads `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and
  *     `AZURE_TENANT_ID` itself).
  *   Neither set: the bundles are not signed.
+ * - `bundle.windows.wix.version` (Windows only): the MSI ProductVersion derived from the app
+ *   version (versionBump.mjs `msiVersion`, `0.1.1-beta.1` → `0.1.1.1`), because WiX rejects
+ *   SemVer pre-releases. `bundle.windows.allowDowngrades` stays on, so a beta, the next beta
+ *   and the final release (same first three MSI fields) install over each other. The NSIS
+ *   installer takes the SemVer version as it is.
  */
+import { msiVersion } from "./versionBump.mjs";
 
 /** The default RFC 3161 timestamp server for signtool. */
 export const DEFAULT_TIMESTAMP_URL = "http://timestamp.digicert.com";
@@ -50,11 +56,30 @@ export function windowsSigning(env) {
 }
 
 /**
+ * Problems in tauri.conf.json that would break the MSI version rule (see msiVersion): a fixed
+ * `wix.version` goes stale with the next release, and without downgrades a later beta (same
+ * MSI version as the final release) would not replace the installed one.
+ * @param {{ bundle?: { windows?: { allowDowngrades?: boolean, wix?: { version?: string } } } }} config
+ */
+export function msiConfigErrors(config) {
+  const windows = config.bundle?.windows ?? {};
+  const errors = [];
+  if (windows.wix?.version !== undefined) {
+    errors.push("tauri.conf.json sets bundle.windows.wix.version; scripts/tauri.mjs derives it from the app version");
+  }
+  if (windows.allowDowngrades === false) {
+    errors.push("tauri.conf.json turns off bundle.windows.allowDowngrades; betas and releases of one version would not replace each other");
+  }
+  return errors;
+}
+
+/**
  * @param {string[]} args
  * @param {Record<string, string | undefined>} env
  * @param {string} platform `process.platform` of the build machine
+ * @param {string | null} version the app version (tauri.conf.json); needed for Windows builds
  */
-export function tauriArgs(args, env, platform = process.platform) {
+export function tauriArgs(args, env, platform = process.platform, version = null) {
   const command = args.find((a) => !a.startsWith("-"));
   if (command !== "build" && command !== "bundle") return { args, notes: [] };
   const privateKey = !!env.TAURI_SIGNING_PRIVATE_KEY?.trim();
@@ -64,9 +89,10 @@ export function tauriArgs(args, env, platform = process.platform) {
   if (pubkey) config.plugins = { updater: { pubkey } };
   const notes = [];
   if (platform === "win32") {
+    if (!version) throw new Error("Windows builds need the app version for the MSI installer");
     const windows = windowsSigning(env);
-    if (windows) config.bundle.windows = windows;
-    else notes.push("No Windows signing certificate is configured: the bundles are not Authenticode signed.");
+    config.bundle.windows = { ...windows, allowDowngrades: true, wix: { version: msiVersion(version) } };
+    if (!windows) notes.push("No Windows signing certificate is configured: the bundles are not Authenticode signed.");
   }
   if (!privateKey) notes.push("TAURI_SIGNING_PRIVATE_KEY is not set: no signed updater artifacts are built.");
   if (!pubkey) notes.push("FORGE_UPDATER_PUBKEY is not set: this build will not check for updates.");

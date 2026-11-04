@@ -30,8 +30,8 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Paste Special › Paste as Plain Text | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes | Pastes the clipboard as plain text. [More](../../user/editor.md#editing-actions) |
 | Delete | `Delete` | `Delete`, `Backspace` | yes | Delete |
 | **Find** | | | | submenu |
-| Find › Find… | `Ctrl+F` | `Cmd+F` | yes | Opens the find panel of the editor for the current file. [More](../../user/editor.md#find-and-replace-in-a-file) ([screenshot](../../../screenshots/docs-find-in-file.png)) |
-| Find › Replace… | `Ctrl+R` | `Cmd+R` | yes | Opens the find panel with the replace field. [More](../../user/editor.md#find-and-replace-in-a-file) |
+| Find › Find… | `Ctrl+F` | `Cmd+F` | yes | Opens the Find bar at the top of the editor, prefilled with the selection or the word at the caret. [More](../../user/editor.md#find-and-replace-in-a-file) ([screenshot](../../../screenshots/docs-find-in-file.png)) |
+| Find › Replace… | `Ctrl+R` | `Cmd+R` | yes | Opens the Find bar with the replace row expanded. [More](../../user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Next / Move to Next Occurrence | `F3` | `Cmd+G` | yes | Moves to the next match of the current search. [More](../../user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Previous / Move to Previous Occurrence | `Shift+F3` | `Cmd+Shift+G` | yes | Moves to the previous match. [More](../../user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Word at Caret | `Ctrl+F3` | `Alt+Cmd+F3` | not yet | Not available yet; the entry is disabled. |

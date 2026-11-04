@@ -52,7 +52,7 @@ import { openRunConfigurations } from "@/features/run/dialogState";
 import { action, registerMainMenuEntries } from "@/features/mainMenu/model";
 import "./python.css";
 import "./profiler/profiler.css";
-import { t } from "@/i18n";
+import { t, t as tr } from "@/i18n";
 
 // ---- Settings -----------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ registerSettingsPage({
   component: () => (
     <div class="py-settings-page">
       <SchemaPage pageId="lang.python" />
-      <h3 class="set-section-title">Language Servers</h3>
+      <h3 class="set-section-title">{tr("langs.python.languageServers")}</h3>
       <LanguageServersPage groups={["Python"]} />
     </div>
   ),
@@ -121,7 +121,7 @@ async function storeResult(r: AddResult): Promise<void> {
   }
   await saveSettings(changes as Parameters<typeof saveSettings>[0]);
   await refreshInterpreter();
-  showBalloon("Python interpreter", `The project now uses ${currentInterpreter()?.label ?? r.select}.`);
+  showBalloon(tr("langs.python.pythonInterpreter2"), tr("langs.python.theProjectNowUses", { value: currentInterpreter()?.label ?? r.select }));
 }
 
 export function openAddInterpreter(): void {
@@ -169,14 +169,14 @@ function InterpreterStatus() {
     <button
       class="status-item py-status"
       data-status="python-interpreter"
-      title={currentInterpreter() ? `${currentInterpreter()!.interpreter.path}. Click to switch the Python interpreter` : "No Python interpreter. Click to configure"}
+      title={currentInterpreter() ? tr("langs.python.clickToSwitchThePython", { path: currentInterpreter()!.interpreter.path }) : tr("langs.python.noPythonInterpreterClickTo")}
       onClick={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
         void showInterpreterPopup(r.left, r.top - 4);
       }}
     >
       <FileCode size={12} />
-      <span>{currentInterpreter()?.label ?? "<No interpreter>"}</span>
+      <span>{currentInterpreter()?.label ?? tr("langs.python.noInterpreter")}</span>
     </button>
   );
 }
@@ -251,7 +251,7 @@ registerCommand({
   category: "Python",
   run: () => {
     const code = selectionOrLine();
-    if (!code?.trim()) return void showBalloon("Nothing to run", "Select Python code or place the caret on a line.");
+    if (!code?.trim()) return void showBalloon(tr("langs.python.nothingToRun"), tr("langs.python.selectPythonCodeOrPlace"));
     void executeCode(code);
   },
 });
@@ -261,7 +261,7 @@ registerCommand({
   category: "Python",
   run: () => {
     const a = activeView();
-    if (!a || !/\.pyw?$/i.test(a.path)) return void showBalloon("Run File in Python Console", "Open a Python file.");
+    if (!a || !/\.pyw?$/i.test(a.path)) return void showBalloon(tr("langs.python.runFileInPythonConsole"), tr("langs.python.openAPythonFile"));
     void runFileInConsole(a.path);
   },
 });
@@ -273,7 +273,7 @@ registerCommand({
   run: () => {
     const cfg = selectedConfiguration();
     if (!cfg) return openRunConfigurations();
-    if (cfg.type !== "python") return void showBalloon(`Cannot profile '${cfg.name}'`, "Profile runs Python configurations with cProfile.");
+    if (cfg.type !== "python") return void showBalloon(tr("langs.python.cannotProfile", { name: cfg.name }), tr("langs.python.profileRunsPythonConfigurationsWith"));
     void launch(cfg, { extra: { profile: true } });
   },
 });
@@ -329,7 +329,7 @@ async function installRequirements(): Promise<void> {
     }
   }
   if (!specs.length) {
-    showBalloon("All requirements are satisfied");
+    showBalloon(tr("langs.python.allRequirementsAreSatisfied"));
     return;
   }
   await packageAction("install", [...new Set(specs)]);
@@ -340,7 +340,7 @@ async function installRequirements(): Promise<void> {
 registerRunConfigurationType({
   id: "python",
   name: "Python",
-  description: "Run a Python script or module (python -m) with the project's interpreter.",
+  description: tr("langs.python.runAPythonScriptOr"),
   icon: FileCode,
   color: "var(--info)",
   pluginId: "forge.python-env",
@@ -351,15 +351,15 @@ registerRunConfigurationType({
   fields: [
     {
       key: "target",
-      label: "Run",
+      label: tr("common.run2"),
       kind: "segmented",
       options: [
-        { value: "script", label: "Script path" },
-        { value: "module", label: "Module name" },
+        { value: "script", label: tr("langs.python.scriptPath") },
+        { value: "module", label: tr("langs.python.moduleName") },
       ],
       default: "script",
     },
-    { key: "script", label: "Script / module", kind: "path", required: true, placeholder: "main.py or package.module" },
+    { key: "script", label: tr("langs.python.scriptModule"), kind: "path", required: true, placeholder: "main.py or package.module" },
   ],
   suggestName: (cfg) => {
     const s = cfg.options?.script;

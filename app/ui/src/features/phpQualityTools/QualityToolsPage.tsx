@@ -13,6 +13,7 @@ import { draft, draftValue, setDraft } from "@/features/settings/dialogState";
 import { Hl, settingMatches } from "@/features/settings/dialogSearch";
 import { SettingRow } from "@/features/settings/SchemaPage";
 import { ALL_TOOLS } from "./run";
+import { t as tr } from "@/i18n";
 
 const key = (tool: QualityTool, option: string) => `php.tools.${tool}.${option}`;
 
@@ -45,16 +46,16 @@ function InterpreterRow(props: { tool: QualityTool; interpreters: string[] }) {
           <Hl text="Run with" />:
         </label>
         <select class="set-input set-select qt-interpreter" value={value()} onChange={(e) => setDraft(k, e.currentTarget.value)}>
-          <option value="">Directly (where the project is)</option>
-          <option value="project">Project PHP interpreter</option>
+          <option value="">{tr("langs.phpQualityTools.directlyWhereTheProjectIs")}</option>
+          <option value="project">{tr("langs.phpQualityTools.projectPhpInterpreter")}</option>
           <For each={props.interpreters}>{(name) => <option value={name}>{name}</option>}</For>
           <Show when={!known()}>
-            <option value={value()}>{value()} (not configured)</option>
+            <option value={value()}>{tr("langs.phpQualityTools.notConfigured", { value: value() })}</option>
           </Show>
         </select>
       </div>
       <div class="set-desc">
-        Interpreters run the tool where their PHP is and map paths with their path mappings.
+        {tr("langs.phpQualityTools.interpretersRunTheToolWhere")}
       </div>
     </div>
   );
@@ -77,7 +78,7 @@ function ValidateRow(props: { tool: QualityTool }) {
   return (
     <div class="qt-validate">
       <button class="btn-secondary set-btn" disabled={state() === "running"} onClick={() => void run()}>
-        Validate
+        {tr("langs.phpQualityTools.validate")}
       </button>
       <Show when={state() === "running"}>
         <LoaderCircle size={14} class="qt-spin" />
@@ -86,7 +87,7 @@ function ValidateRow(props: { tool: QualityTool }) {
         {(r) => (
           <span class="qt-validation" classList={{ ok: r().ok, failed: !r().ok }} title={r().commandLine}>
             {r().ok ? <CircleCheck size={14} /> : <CircleX size={14} />}
-            <span>{r().ok ? `OK, ${r().message}` : r().message}</span>
+            <span>{r().ok ? tr("langs.phpQualityTools.ok", { message: r().message }) : r().message}</span>
           </span>
         )}
       </Show>
@@ -106,7 +107,7 @@ function ToolBlock(props: { tool: QualityTool; info: QualityToolInfo | undefined
   return (
     <section class="qt-tool" classList={{ hit: anyHit(), modified: modified(), on: on() }} data-tool={t}>
       <header class="qt-tool-header">
-        <button class="icon-btn qt-expand" title={open() ? "Collapse" : "Expand"} onClick={() => setOpen(!open())}>
+        <button class="icon-btn qt-expand" title={open() ? tr("common.collapse") : tr("common.expand")} onClick={() => setOpen(!open())}>
           {open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         <span class="qt-tool-name" onClick={() => setOpen(!open())}>
@@ -115,13 +116,13 @@ function ToolBlock(props: { tool: QualityTool; info: QualityToolInfo | undefined
         <span class="qt-tool-status">
           <Show when={props.info}>
             {(info) => (
-              <Show when={info().path} fallback={<span class="qt-missing">Not installed in the project</span>}>
+              <Show when={info().path} fallback={<span class="qt-missing">{tr("common.notInstalledInTheProject")}</span>}>
                 {(p) => <span title={p()}>{p()}</span>}
               </Show>
             )}
           </Show>
         </span>
-        <label class="qt-switch" title={on() ? "Inspection is on" : "Inspection is off"} data-setting={key(t, "inspection")}>
+        <label class="qt-switch" title={on() ? tr("langs.phpQualityTools.inspectionIsOn") : tr("langs.phpQualityTools.inspectionIsOff")} data-setting={key(t, "inspection")}>
           <input type="checkbox" checked={on()} onChange={(e) => setDraft(key(t, "inspection"), e.currentTarget.checked)} />
           <span class="qt-switch-track">
             <span class="qt-switch-thumb" />
@@ -132,7 +133,7 @@ function ToolBlock(props: { tool: QualityTool; info: QualityToolInfo | undefined
       <Show when={open() || anyHit()}>
         <div class="qt-tool-body">
           <Show when={props.info?.configFile && !draftValue<string>(key(t, "config"))}>
-            <div class="set-desc qt-found">Configuration file: {props.info!.configFile}</div>
+            <div class="set-desc qt-found">{tr("langs.phpQualityTools.configurationFile", { configFile: props.info!.configFile })}</div>
           </Show>
           <InterpreterRow tool={t} interpreters={props.interpreters} />
           <For each={rows}>{(o) => <Show when={spec(o)}>{(s) => <SettingRow spec={s()} />}</Show>}</For>
@@ -150,14 +151,12 @@ export function QualityToolsPage() {
     <div class="set-page qt-page">
       <Show
         when={onTheFly()}
-        fallback={<div class="set-empty">No settings to show. The PHP plugin may be disabled.</div>}
+        fallback={<div class="set-empty">{tr("langs.phpQualityTools.noSettingsToShowThe")}</div>}
       >
         {(s) => (
           <>
             <div class="set-desc qt-intro">
-              The tools come from the project (vendor/bin) or a path, and run where the project lives or with a PHP
-              interpreter. Their problems show in the editor, the Problems tool window and Code | Inspect Code with Quality
-              Tools. They run the project's code, so Forge never runs them in Safe Mode.
+              {tr("langs.phpQualityTools.theToolsComeFromThe")}
             </div>
             <SettingRow spec={s()} />
             <div class="qt-tools">

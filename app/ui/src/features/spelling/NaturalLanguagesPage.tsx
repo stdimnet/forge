@@ -8,6 +8,7 @@ import { BookA, CircleAlert } from "lucide-solid";
 import { spellApi } from "@/ipc/spell";
 import { setSelected } from "@/features/settings/dialogState";
 import { getSetting } from "@/state/settings";
+import { t } from "@/i18n";
 
 export const NATURAL_LANGUAGES_PAGE = "editor.natural-languages";
 export const SPELLING_PAGE = "editor.natural-languages.spelling";
@@ -22,32 +23,31 @@ export function NaturalLanguagesPage() {
     <div class="set-page spell-page">
       <section class="set-section">
         <div class="set-section-title">
-          <span>Languages</span>
+          <span>{t("tools.spelling.languages")}</span>
         </div>
         <div class="set-section-body indented spell-section-body">
           <div class="spell-language">
             <BookA size={14} />
-            <span>English (USA)</span>
-            <span class="spell-muted">Spelling and grammar</span>
+            <span>{t("tools.spelling.englishUsa")}</span>
+            <span class="spell-muted">{t("tools.spelling.spellingAndGrammar")}</span>
           </div>
           <div class="set-desc">
-            Comments, string literals, declared names, Markdown and plain text files and commit messages are checked. Add
-            more languages as Hunspell dictionaries under Spelling.
+            {t("tools.spelling.commentsStringLiteralsDeclaredNames")}
           </div>
         </div>
       </section>
       <section class="set-section">
         <div class="set-section-title">
-          <span>Dictionaries</span>
+          <span>{t("tools.spelling.dictionaries")}</span>
         </div>
         <div class="set-section-body indented spell-section-body">
           <div class="set-table-box">
             <table class="set-table spell-dictionaries">
               <thead>
                 <tr>
-                  <th>Dictionary</th>
-                  <th>Words</th>
-                  <th>Source</th>
+                  <th>{t("tools.spelling.dictionary")}</th>
+                  <th>{t("tools.spelling.words")}</th>
+                  <th>{t("common.source")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -75,10 +75,10 @@ export function NaturalLanguagesPage() {
           </div>
           <div class="spell-links">
             <a class="set-link" href="#" onClick={(e) => (e.preventDefault(), setSelected(SPELLING_PAGE))}>
-              Spelling
+              {t("tools.spelling.spelling")}
             </a>
             <a class="set-link" href="#" onClick={(e) => (e.preventDefault(), setSelected(GRAMMAR_PAGE))}>
-              Grammar and Style
+              {t("tools.spelling.grammarAndStyle")}
             </a>
           </div>
         </div>

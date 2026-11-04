@@ -15,6 +15,7 @@ import { item, showContextMenu, type MenuEntry } from "@/features/contextMenu/st
 import { showBalloon } from "@/keymap";
 import { getSetting } from "@/state/settings";
 import { currentInterpreter } from "./state";
+import { t } from "@/i18n";
 
 const opt = (cfg: RunConfiguration, key: string) => cfg.options?.[key] ?? "";
 const scope = (cfg: RunConfiguration) => opt(cfg, "scope") || "all";
@@ -169,7 +170,7 @@ export function toxConfiguration(environments: string): RunConfiguration {
 export async function showToxPopup(x?: number, y?: number): Promise<void> {
   const envs = await toxEnvironments();
   if (!envs.length) {
-    showBalloon("No tox environments", "Add a tox.ini, tox.toml or a [tool.tox] table to pyproject.toml.");
+    showBalloon(t("langs.python.noToxEnvironments"), t("langs.python.addAToxIniTox"));
     return;
   }
   const entries: MenuEntry[] = [

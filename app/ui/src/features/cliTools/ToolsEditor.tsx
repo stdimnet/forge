@@ -11,6 +11,7 @@ import { cliToolsApi, TOOL_KINDS, toolKindLabel, type CliTool, type ToolKind } f
 import type { SettingObject, SettingSpec } from "@/ipc/settings";
 import { decodeInterpreters, GLOBAL_KEY, PROJECT_KEY } from "@/features/php/interpreters";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
+import { t as tr } from "@/i18n";
 
 /** A row of the table: a configured entry (by index) or a detected tool. */
 type Row = { entry: SettingObject; index: number | null };
@@ -102,19 +103,19 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
     <div class="set-delims cli-tools-editor">
       <div class="set-list set-table-box cli-tools-table">
         <div class="set-list-toolbar">
-          <button class="icon-btn" title="Add" data-testid="cli-tools-add" onClick={() => setChoosing((v) => !v)}>
+          <button class="icon-btn" title={tr("common.add")} data-testid="cli-tools-add" onClick={() => setChoosing((v) => !v)}>
             <Plus size={14} />
           </button>
-          <button class="icon-btn" title="Remove" disabled={selected()?.index === null || sel() === null} onClick={remove}>
+          <button class="icon-btn" title={tr("common.remove")} disabled={selected()?.index === null || sel() === null} onClick={remove}>
             <Minus size={14} />
           </button>
-          <button class="icon-btn" title="Edit" disabled={sel() === null} onClick={edit}>
+          <button class="icon-btn" title={tr("common.edit")} disabled={sel() === null} onClick={edit}>
             <Pencil size={13} />
           </button>
         </div>
         <Show when={choosing()}>
-          <div class="cli-tools-choose" role="listbox" aria-label="Choose Tool to Add">
-            <div class="cli-tools-choose-title">Choose Tool to Add</div>
+          <div class="cli-tools-choose" role="listbox" aria-label={tr("tools.cliTools.chooseToolToAdd")}>
+            <div class="cli-tools-choose-title">{tr("tools.cliTools.chooseToolToAdd")}</div>
             <For each={TOOL_KINDS}>
               {(k) => (
                 <div class="cli-tools-choose-item" role="option" data-tool-kind={k.kind} onClick={() => add(k.kind)}>
@@ -128,10 +129,10 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
           <thead>
             <tr>
               <th />
-              <th>Name</th>
-              <th>Alias</th>
-              <th>Path</th>
-              <th>Show console in</th>
+              <th>{tr("common.name")}</th>
+              <th>{tr("tools.cliTools.alias")}</th>
+              <th>{tr("common.path")}</th>
+              <th>{tr("tools.cliTools.showConsoleIn")}</th>
             </tr>
           </thead>
           <tbody>
@@ -140,7 +141,7 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
                 <tr
                   classList={{ selected: sel() === i, "cli-tools-detected": row().index === null }}
                   data-alias={row().entry.alias}
-                  title={row().index === null ? "Detected in the project. Edit it to change its settings." : undefined}
+                  title={row().index === null ? tr("tools.cliTools.detectedInTheProjectEdit") : undefined}
                   onClick={() => setSel(i)}
                   onDblClick={() => {
                     setSel(i);
@@ -152,7 +153,7 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
                       type="checkbox"
                       checked={row().entry.enabled !== "false"}
                       disabled={row().index === null}
-                      title="Enabled"
+                      title={tr("common.enabled")}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => toggle(row().index!, e.currentTarget.checked)}
                     />
@@ -160,19 +161,19 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
                   <td>
                     {row().entry.name?.trim() || toolKindLabel(row().entry.kind)}
                     <Show when={row().index === null}>
-                      <span class="muted"> (auto-detected)</span>
+                      <span class="muted"> {tr("tools.cliTools.autoDetected")}</span>
                     </Show>
                   </td>
                   <td class="set-table-mono">{row().entry.alias}</td>
                   <td class="set-table-mono cli-tools-path">{row().entry.path}</td>
-                  <td>{row().entry.showConsoleIn === "popup" ? "Pop-up window" : "Tool window"}</td>
+                  <td>{row().entry.showConsoleIn === "popup" ? tr("tools.cliTools.popUpWindow") : tr("tools.cliTools.toolWindow")}</td>
                 </tr>
               )}
             </Index>
           </tbody>
         </table>
         <Show when={!rows().length}>
-          <div class="set-list-empty">No tools. Click + to add Composer, Artisan, Symfony Console, WP-CLI or another tool.</div>
+          <div class="set-list-empty">{tr("tools.cliTools.noToolsClickToAdd")}</div>
         </Show>
       </div>
 
@@ -180,16 +181,16 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
         <div class="set-delims-form" data-testid="cli-tools-form">
           <div class="cli-tools-form-title">{toolKindLabel(current()!.kind)}</div>
           <div class="set-delims-grid">
-            <label class="set-label">Name:</label>
+            <label class="set-label">{tr("common.nameLabel")}</label>
             <input class="set-input" value={current()!.name ?? ""} onInput={(e) => set("name", e.currentTarget.value)} />
-            <label class="set-label">Alias:</label>
+            <label class="set-label">{tr("tools.cliTools.aliasLabel")}</label>
             <input
               class="set-input cli-tools-alias"
               spellcheck={false}
               value={current()!.alias ?? ""}
               onInput={(e) => set("alias", e.currentTarget.value)}
             />
-            <label class="set-label">{current()!.kind === "composer" ? "Path to composer:" : current()!.kind === "wp-cli" ? "Path to wp:" : "Path to script:"}</label>
+            <label class="set-label">{current()!.kind === "composer" ? tr("tools.cliTools.pathToComposerLabel") : current()!.kind === "wp-cli" ? tr("tools.cliTools.pathToWpLabel") : tr("tools.cliTools.pathToScriptLabel")}</label>
             <input
               class="set-input set-table-mono"
               spellcheck={false}
@@ -197,12 +198,12 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
               value={current()!.path ?? ""}
               onInput={(e) => set("path", e.currentTarget.value)}
             />
-            <label class="set-label">PHP interpreter:</label>
+            <label class="set-label">{tr("tools.cliTools.phpInterpreterLabel")}</label>
             <select class="set-input set-select" value={current()!.interpreter ?? ""} onChange={(e) => set("interpreter", e.currentTarget.value)}>
-              <option value="">Project default</option>
+              <option value="">{tr("tools.cliTools.projectDefault")}</option>
               <For each={interpreters()}>{(name) => <option value={name}>{name}</option>}</For>
             </select>
-            <label class="set-label">Show console in:</label>
+            <label class="set-label">{tr("tools.cliTools.showConsoleInLabel")}</label>
             <div class="cli-tools-radios">
               <label>
                 <input
@@ -210,12 +211,10 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
                   name="cli-console"
                   checked={current()!.showConsoleIn !== "popup"}
                   onChange={() => set("showConsoleIn", "toolWindow")}
-                />{" "}
-                Tool window
+                />{tr("tools.cliTools.toolWindow")}
               </label>
               <label>
-                <input type="radio" name="cli-console" checked={current()!.showConsoleIn === "popup"} onChange={() => set("showConsoleIn", "popup")} /> Pop-up
-                window
+                <input type="radio" name="cli-console" checked={current()!.showConsoleIn === "popup"} onChange={() => set("showConsoleIn", "popup")} /> {tr("tools.cliTools.popUpWindow")}
               </label>
             </div>
           </div>
@@ -227,7 +226,7 @@ export function ToolsEditor(props: { spec: SettingSpec }) {
               OK
             </button>
             <button class="btn-secondary set-btn" onClick={() => setForm(null)}>
-              Cancel
+              {tr("common.cancel")}
             </button>
           </div>
         </div>

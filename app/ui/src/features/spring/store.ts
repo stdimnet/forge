@@ -10,6 +10,7 @@ import { isPluginActive, usesFramework } from "@/state/project";
 import { onFsChanged } from "@/state/fsWatch";
 import { revealSymbol } from "@/features/php/editorViews";
 import { openHttpRequest } from "@/features/scratches/store";
+import { t } from "@/i18n";
 
 export const PLUGIN_ID = "forge.spring";
 
@@ -36,7 +37,7 @@ export async function loadSpring(refresh = false): Promise<void> {
     const o = await springApi.model(refresh);
     if (id === seq) setOverview(o);
   } catch (err) {
-    if (refresh) showBalloon("Cannot read the Spring model", String(err).replace(/^Error: /, ""));
+    if (refresh) showBalloon(t("langs.spring.cannotReadTheSpringModel"), String(err).replace(/^Error: /, ""));
   } finally {
     if (id === seq) setLoading(false);
   }
@@ -75,7 +76,7 @@ export async function openInHttpClient(e: EndpointRow): Promise<void> {
   try {
     await openHttpRequest(await springApi.httpRequest(e));
   } catch (err) {
-    showBalloon("Cannot open the HTTP Client", String(err).replace(/^Error: /, ""));
+    showBalloon(t("langs.spring.cannotOpenTheHttpClient"), String(err).replace(/^Error: /, ""));
   }
 }
 

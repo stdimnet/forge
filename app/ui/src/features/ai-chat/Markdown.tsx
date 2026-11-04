@@ -8,6 +8,7 @@ import { Check, Copy, TextCursorInput } from "lucide-solid";
 import { insertAtCaret } from "@/editor/views";
 import type { MdBlock, MdInline, MdListItem } from "@/ipc/markdown";
 import { highlight, type HighlightedLines } from "./highlight";
+import { t } from "@/i18n";
 
 export function Inlines(props: { items: MdInline[] }) {
   return (
@@ -90,13 +91,13 @@ export function CodeBlock(props: { lang: string; text: string }) {
     <div class="chat-codeblock">
       <div class="chat-codeblock-bar">
         <span class="chat-codeblock-lang">{props.lang || "text"}</span>
-        <button class="chat-mini-btn" title="Insert at caret" onClick={() => insertAtCaret(props.text)}>
+        <button class="chat-mini-btn" title={t("tools.aiChat.insertAtCaret")} onClick={() => insertAtCaret(props.text)}>
           <TextCursorInput size={13} />
-          <span>Insert</span>
+          <span>{t("common.insert")}</span>
         </button>
-        <button class="chat-mini-btn" title="Copy" onClick={copy}>
+        <button class="chat-mini-btn" title={t("common.copy")} onClick={copy}>
           {copied() ? <Check size={13} /> : <Copy size={13} />}
-          <span>{copied() ? "Copied" : "Copy"}</span>
+          <span>{copied() ? t("common.copied") : t("common.copy")}</span>
         </button>
       </div>
       <pre class="chat-code">

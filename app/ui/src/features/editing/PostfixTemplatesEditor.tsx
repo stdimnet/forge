@@ -11,6 +11,7 @@ import type { PostfixTemplateInfo } from "@/ipc/editing";
 import { draftValue, setDraft } from "@/features/settings/dialogState";
 import { Hl } from "@/features/settings/dialogSearch";
 import { loadPostfixTemplates } from "./postfix";
+import { t as tr } from "@/i18n";
 
 export function PostfixTemplatesEditor(props: { spec: SettingSpec }) {
   const [templates] = createResource(loadPostfixTemplates, { initialValue: [] });
@@ -46,7 +47,7 @@ export function PostfixTemplatesEditor(props: { spec: SettingSpec }) {
             return (
               <>
                 <div class="postfix-row postfix-group" role="treeitem" aria-expanded={open()}>
-                  <button class="postfix-chevron" onClick={() => toggleGroup(g.group)} title={open() ? "Collapse" : "Expand"}>
+                  <button class="postfix-chevron" onClick={() => toggleGroup(g.group)} title={open() ? tr("common.collapse") : tr("common.expand")}>
                     {open() ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </button>
                   <input
@@ -93,11 +94,11 @@ export function PostfixTemplatesEditor(props: { spec: SettingSpec }) {
       <Show when={selected()}>
         {(t) => (
           <div class="postfix-preview">
-            <div class="postfix-preview-title">Description</div>
+            <div class="postfix-preview-title">{tr("common.description")}</div>
             <div class="postfix-preview-text">{t().description}.</div>
-            <div class="postfix-preview-title">Before</div>
+            <div class="postfix-preview-title">{tr("tools.editing.before")}</div>
             <pre class="postfix-code">{t().before}</pre>
-            <div class="postfix-preview-title">After</div>
+            <div class="postfix-preview-title">{tr("tools.editing.after")}</div>
             <pre class="postfix-code">{t().after}</pre>
           </div>
         )}

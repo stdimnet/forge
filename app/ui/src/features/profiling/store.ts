@@ -8,6 +8,7 @@ import { createStore } from "solid-js/store";
 import { profilerApi, type Snapshot, type SnapshotKind } from "@/ipc/profiler";
 import { showProfiler } from "@/features/profiler";
 import { balloonsFor } from "@/keymap";
+import { t } from "@/i18n";
 
 export type SourceId = "xdebug" | "spx" | "v8-cpu" | "v8-heap";
 
@@ -47,7 +48,7 @@ export async function openSnapshot(path: string, metric?: number): Promise<boole
     showSnapshot(snapshot, path);
     return true;
   } catch (e) {
-    showBalloon("Cannot open the profiler snapshot", String(e).replace(/^Error: /, ""), 8000);
+    showBalloon(t("tools.profiling.cannotOpenTheProfilerSnapshot"), String(e).replace(/^Error: /, ""), 8000);
     return false;
   }
 }
@@ -61,7 +62,7 @@ export async function switchMetric(source: SourceId, metric: number): Promise<vo
     const snapshot = await profilerApi.open(l.path, metric);
     setLoaded(source, { snapshot, path: l.path });
   } catch (e) {
-    showBalloon("Cannot read the profiler snapshot", String(e).replace(/^Error: /, ""), 8000);
+    showBalloon(t("tools.profiling.cannotReadTheProfilerSnapshot"), String(e).replace(/^Error: /, ""), 8000);
   } finally {
     setBusy(null);
   }

@@ -5,6 +5,8 @@
  *   whether its tag, version and pre-release flag agree.
  * - workflowTriggerErrors: the guard that the workflows' `on:` triggers never change
  *   (release only on pushed `v*` tags, everything else only on `workflow_dispatch`).
+ * - tauriBuildErrors: the guard that workflows build through Forge's Tauri wrapper, which adds
+ *   the signing settings and the MSI version (scripts/tauriArgs.mjs).
  * - parseChecksums / checksumFor: the release's `SHA256SUMS`.
  * - updatePkgbuild / srcinfo / updateFlatpakManifest / addMetainfoRelease: the AUR and
  *   Flatpak packaging files for a release.
@@ -75,6 +77,42 @@ export function workflowTriggerErrors(workflows) {
     } else if (blocks[0] !== expected) {
       errors.push(`${name}: triggers changed.\n  expected:\n${indent(expected)}\n  found:\n${indent(blocks[0])}`);
     }
+  }
+  return errors;
+}
+
+/** tauri-action's `tauriScript` that runs scripts/tauri.mjs (its `projectPath` is `app`). */
+export const TAURI_SCRIPT = "pnpm --dir ui tauri";
+
+/**
+ * Workflows must build bundles through scripts/tauri.mjs: the plain Tauri CLI has no MSI
+ * version for a pre-release (`0.1.1-beta.1`) and fails the Windows build.
+ * @param {{ name: string, text: string }[]} workflows the files in `.github/workflows`
+ * @returns {string[]} one message per violation
+ */
+export function tauriBuildErrors(workflows) {
+  const errors = [];
+  for (const { name, text } of workflows) {
+    const lines = text.split(/\r?\n/).map((l) => l.replace(/(^|\s)#.*$/, "").trimEnd());
+    lines.forEach((line, i) => {
+      if (/\b(?:npx|cargo|pnpm exec|yarn|npm run)\s+tauri\s+(?:build|bundle)\b/.test(line)) {
+        errors.push(`${name}:${i + 1}: runs the Tauri CLI directly; use \`pnpm tauri build\` (scripts/tauri.mjs)`);
+      }
+      const uses = /^(\s*)(-\s+)?uses:\s*tauri-apps\/tauri-action\b/.exec(line);
+      if (!uses) return;
+      // The step ends at the next line indented no deeper than its `- `.
+      const depth = uses[1].length;
+      let script = null;
+      for (let j = i + 1; j < lines.length; j++) {
+        const indentOf = /^\s*/.exec(lines[j])?.[0].length ?? 0;
+        if (lines[j] && (indentOf < depth || (indentOf === depth && lines[j].trimStart().startsWith("-")))) break;
+        const m = /^\s*tauriScript:\s*(.+)$/.exec(lines[j]);
+        if (m) script = m[1].replace(/^["']|["']$/g, "");
+      }
+      if (script !== TAURI_SCRIPT) {
+        errors.push(`${name}:${i + 1}: tauri-action needs \`tauriScript: ${TAURI_SCRIPT}\` (scripts/tauri.mjs)`);
+      }
+    });
   }
   return errors;
 }

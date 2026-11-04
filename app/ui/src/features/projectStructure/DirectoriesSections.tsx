@@ -10,6 +10,7 @@ import { draftValue, setDraft } from "@/features/settings/dialogState";
 import type { SettingValue } from "@/ipc/settings";
 import type { FolderKind, FolderMark, StructureConfig } from "@/ipc/projectStructure";
 import { describeFolders, FOLDERS_KEY, markedFolders, PATTERNS_KEY } from "./model";
+import { t } from "@/i18n";
 
 export type StructureKind = "resource" | "testResource" | "excluded";
 
@@ -26,10 +27,10 @@ export function addStructureFolder(path: string, kind: StructureKind): void {
 }
 
 const SECTIONS: { kind: FolderKind; title: string; remove: string }[] = [
-  { kind: "resource", title: "Resource Folders", remove: "Unmark as Resource Root" },
-  { kind: "testResource", title: "Test Resource Folders", remove: "Unmark as Test Resources Root" },
-  { kind: "excluded", title: "Excluded Folders", remove: "Cancel Exclusion" },
-  { kind: "included", title: "Cancelled Default Exclusions", remove: "Exclude Again" },
+  { kind: "resource", title: t("tools.projectStructure.resourceFolders"), remove: "Unmark as Resource Root" },
+  { kind: "testResource", title: t("tools.projectStructure.testResourceFolders"), remove: "Unmark as Test Resources Root" },
+  { kind: "excluded", title: t("tools.projectStructure.excludedFolders"), remove: "Cancel Exclusion" },
+  { kind: "included", title: t("tools.projectStructure.cancelledDefaultExclusions"), remove: "Exclude Again" },
 ];
 
 export function ProjectStructureSections() {
@@ -44,7 +45,7 @@ export function ProjectStructureSections() {
             <section>
               <h3 class={`php-dirs-title structure-dirs-${section.kind}`}>{section.title}</h3>
               <div class="php-list php-dirs-list" data-kind={section.kind}>
-                <For each={of(section.kind)} fallback={<div class="php-hint">Nothing to show</div>}>
+                <For each={of(section.kind)} fallback={<div class="php-hint">{t("common.nothingToShow")}</div>}>
                   {(row) => (
                     <div class="php-list-row php-dirs-row" data-path={row.path}>
                       <span class="php-dirs-path">{row.path}</span>
@@ -62,19 +63,18 @@ export function ProjectStructureSections() {
         )}
       </For>
       <section>
-        <h3>Exclude Files</h3>
+        <h3>{t("tools.projectStructure.excludeFiles")}</h3>
         <div class="structure-exclude-files">
           <input
             type="text"
-            placeholder="*.min.js;tmp"
+            placeholder={t("tools.projectStructure.minJsTmp")}
             spellcheck={false}
             value={draftConfig().excludePatterns}
             onChange={(e) => setDraft(PATTERNS_KEY, e.currentTarget.value)}
           />
         </div>
         <p class="php-hint">
-          Files and folders whose name matches one of these patterns are excluded. Separate patterns with a semicolon; use * and ?
-          as wildcards. node_modules is excluded by default; vendor stays in the project as a library.
+          {t("tools.projectStructure.filesAndFoldersWhoseName")}
         </p>
       </section>
     </>

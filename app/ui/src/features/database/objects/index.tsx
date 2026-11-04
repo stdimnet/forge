@@ -130,7 +130,7 @@ export function objectMenu(row: ObjectRow, selection: ObjectRow[]): MenuItem[] {
   const droppable = rows.filter((r) => [...TABLE_KINDS, "routine", "sequence", "type", "index", "trigger"].includes(r.kind) && r.schema === schema);
   if (live && droppable.length && droppable.length === rows.length) {
     items.push({
-      label: droppable.length > 1 ? tr("database.objects.main.dropCountObjects", { count: droppable.length }) : "Drop…",
+      label: droppable.length > 1 ? tr("database.objects.main.dropCountObjects", { count: droppable.length }) : tr("tools.database.dropEllipsis"),
       danger: true,
       icon: <Trash2 size={13} />,
       run: () =>

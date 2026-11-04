@@ -35,7 +35,7 @@ import "./spring.css";
 import { t } from "@/i18n";
 
 // The shared Endpoints tool window (features/endpoints) shows this view in Spring / Jakarta EE projects.
-registerEndpointsView({ id: "spring", title: "Spring and JAX-RS", order: 20, when: springActive, component: EndpointsView, actions: EndpointsActions });
+registerEndpointsView({ id: "spring", title: t("langs.spring.springAndJaxRs"), order: 20, when: springActive, component: EndpointsView, actions: EndpointsActions });
 
 registerToolWindow({
   id: "spring",

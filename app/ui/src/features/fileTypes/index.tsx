@@ -9,6 +9,7 @@ import { registerSettingsPage } from "@/features/settingsPages";
 import { getSetting } from "@/state/settings";
 import { refreshAllDirs } from "@/features/project/ProjectView";
 import { FileTypesPage, IGNORED_KEY } from "./FileTypesPage";
+import "./override";
 import "./fileTypes.css";
 import { t } from "@/i18n";
 

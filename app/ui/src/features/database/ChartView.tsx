@@ -112,7 +112,7 @@ export function ChartView(props: { columns: GridColumn[]; rows: Cell[][] }) {
         <label class="db-chart-field">
           <span class="muted">{tr("database.chartView.groupBy")}</span>
           <select value={spec().group ?? ""} onChange={(e) => update({ group: e.currentTarget.value || null })}>
-            <option value="">(none)</option>
+            <option value="">{tr("tools.database.none")}</option>
             <For each={props.columns.filter((c) => c.name !== spec().x)}>{(c) => <option value={c.name}>{c.name}</option>}</For>
           </select>
         </label>
@@ -316,9 +316,9 @@ function Chart(props: { data: ChartData; w: number; h: number }) {
       </Show>
       <Show when={props.data.truncated || props.data.skipped}>
         <text x={props.w - M.r} y={props.h - 6} text-anchor="end" class="db-chart-note">
-          {props.data.truncated ? `${props.data.truncated} categories not shown` : ""}
+          {props.data.truncated ? tr("tools.database.categoriesNotShown", { truncated: props.data.truncated }) : ""}
           {props.data.truncated && props.data.skipped ? " · " : ""}
-          {props.data.skipped ? `${props.data.skipped} non-numeric values skipped` : ""}
+          {props.data.skipped ? tr("tools.database.nonNumericValuesSkipped", { skipped: props.data.skipped }) : ""}
         </text>
       </Show>
     </svg>

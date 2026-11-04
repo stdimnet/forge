@@ -210,7 +210,7 @@ export async function shelve(paths: string[], name: string): Promise<boolean> {
   const cl = await runGit("Shelve failed", () => withLocalHistory("vcs", "Shelve changes", () => opsApi.shelve(paths, name), paths));
   if (!cl) return false;
   await reloadOpenFiles();
-  notify("success", t("git.gitDialogs.changesShelved"), `${plural(cl.files.length, "file")} in "${cl.name}"`);
+  notify("success", t("git.gitDialogs.changesShelved"), t("tools.git.in", { value: plural(cl.files.length, "file"), name: cl.name }));
   return true;
 }
 
@@ -233,7 +233,7 @@ export async function unshelve(cl: ShelvedChangelist, paths: string[] | null, re
 export async function showShelfDiff(cl: ShelvedChangelist, path: string): Promise<void> {
   const c = await runGit(t("git.gitDialogs.cannotShowName", { name: nameOf(path) }), () => opsApi.shelfFile(cl.id, path));
   if (!c) return;
-  if (c.binary) return notify("info", `${nameOf(path)} is a binary file`);
+  if (c.binary) return notify("info", t("tools.git.isABinaryFile", { value: nameOf(path) }));
   setDiffRequest({
     path,
     left: { title: c.before === null ? t("git.gitDialogs.emptyNewFile") : t("git.gitDialogs.baseVersionReadOnly"), content: c.before ?? "" },

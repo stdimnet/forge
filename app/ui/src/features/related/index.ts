@@ -13,6 +13,7 @@ import { activeView } from "@/features/lsp/navigation";
 import { showHint } from "@/features/lsp/hint";
 import { chooseDeclaration, chooseDeclarationAt, type DeclarationTarget } from "@/features/navigation/declarationChooser";
 import { showBalloon } from "@/keymap";
+import { t } from "@/i18n";
 
 const dirName = (path: string) => path.split("/").slice(0, -1).join("/");
 
@@ -48,7 +49,7 @@ registerCommand({
     const title = "Choose Target";
     if (!targets.length) {
       if (view) showHint(view, view.state.selection.main.head, "No related symbols");
-      else showBalloon("No related symbols");
+      else showBalloon(t("tools.related.noRelatedSymbols"));
       return;
     }
     if (view) chooseDeclarationAt(view, view.state.selection.main.head, targets, { title });

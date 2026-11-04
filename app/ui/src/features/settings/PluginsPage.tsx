@@ -14,7 +14,7 @@ import { settingsState } from "@/state/settings";
 import { pluginEnabled, pluginDraft, setPluginDraftEnabled } from "./dialogState";
 import { createSettingsSearch, segmentsOf, type SearchResult } from "./search";
 import { showContextMenu } from "@/features/contextMenu/state";
-import { t, tOr } from "@/i18n";
+import { t, tOr, t as tr } from "@/i18n";
 
 export const PACKS: Record<string, { label: string; order: number }> = {
   thirdParty: { label: "Downloaded", order: -1 },
@@ -87,14 +87,14 @@ function MarketplaceUrlEditor(props: { onClose: () => void }) {
   };
   return (
     <div class="plg-url plugins-note" data-testid="marketplace-url">
-      <span>Marketplace index URL (JSON, index format 1). The default plugins.forge.example is a placeholder: no public Forge marketplace is live yet.</span>
+      <span>{tr("tools.settings.marketplaceIndexUrlJsonIndex")}</span>
       <input value={url()} spellcheck={false} onInput={(e) => setUrl(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
       <div class="sync-status-row">
         <button class="btn-primary set-btn" onClick={save}>
-          Save
+          {tr("common.save")}
         </button>
         <button class="btn-secondary set-btn" onClick={props.onClose}>
-          Cancel
+          {tr("common.cancel")}
         </button>
       </div>
     </div>

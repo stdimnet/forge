@@ -7,6 +7,7 @@ import { createSignal, For, onMount, Show, type JSX } from "solid-js";
 import { Boxes, ChevronDown, ChevronRight, Database, FileCode, Folder, KeyRound, Link2, RefreshCw, Settings2, Table2 } from "lucide-solid";
 import type { DjangoModel, WebLocation } from "@/ipc/pythonWeb";
 import { loadWebProject, reveal, webLoading, webProject } from "./state";
+import { t } from "@/i18n";
 
 const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 const isOpen = (id: string) => !collapsed().has(id);
@@ -89,24 +90,24 @@ export function DjangoStructureView() {
   const roots = () => (webProject()?.templateRoots ?? []).filter((r) => r.framework === "django" || r.framework === "");
   return (
     <div class="pyweb-structure">
-      <Show when={django()} fallback={<div class="routes-empty">{webLoading() ? "Reading the project…" : "No Django project (manage.py) found"}</div>}>
+      <Show when={django()} fallback={<div class="routes-empty">{webLoading() ? t("langs.pythonWeb.readingTheProjectEllipsis") : t("langs.pythonWeb.noDjangoProjectManagePy")}</div>}>
         {(d) => (
           <>
             <Row
               id="settings"
               depth={0}
               icon={<Settings2 size={13} class="pyweb-icon-settings" />}
-              label="Settings"
-              detail={d().settingsModule ?? "DJANGO_SETTINGS_MODULE not found"}
+              label={t("langs.pythonWeb.settings")}
+              detail={d().settingsModule ?? t("langs.pythonWeb.djangoSettingsModuleNotFound")}
               location={d().settingsFile ? { path: d().settingsFile!, line: 0, character: 0 } : undefined}
             >
               <Row depth={1} icon={<FileCode size={12} />} label="manage.py" detail={d().manage} location={{ path: d().manage, line: 0, character: 0 }} />
               <Show when={d().rootUrlconf}>
-                <Row depth={1} icon={<FileCode size={12} />} label="ROOT_URLCONF" detail={d().rootUrlconf} />
+                <Row depth={1} icon={<FileCode size={12} />} label={t("langs.pythonWeb.rootUrlconf")} detail={d().rootUrlconf} />
               </Show>
-              <Row depth={1} icon={<FileCode size={12} />} label="Template engine" detail={d().jinja2 ? "Jinja2" : "Django templates"} />
+              <Row depth={1} icon={<FileCode size={12} />} label={t("langs.pythonWeb.templateEngine")} detail={d().jinja2 ? "Jinja2" : t("langs.pythonWeb.djangoTemplates")} />
             </Row>
-            <Row id="apps" depth={0} icon={<Boxes size={13} class="pyweb-icon-app" />} label="Apps" detail={`${d().apps.filter((a) => a.dir).length} in the project`}>
+            <Row id="apps" depth={0} icon={<Boxes size={13} class="pyweb-icon-app" />} label={t("langs.pythonWeb.apps")} detail={`${d().apps.filter((a) => a.dir).length} in the project`}>
               <For each={d().apps.filter((a) => a.dir)}>
                 {(app) => (
                   <Row
@@ -117,17 +118,17 @@ export function DjangoStructureView() {
                     detail={app.entry}
                     location={{ path: `${app.dir}/models.py`, line: 0, character: 0 }}
                   >
-                    <Show when={models(app.label).length} fallback={<Row depth={2} icon={<Database size={12} />} label={<span class="muted">No models</span>} />}>
+                    <Show when={models(app.label).length} fallback={<Row depth={2} icon={<Database size={12} />} label={<span class="muted">{t("langs.pythonWeb.noModels")}</span>} />}>
                       <For each={models(app.label)}>{(m) => <ModelNode model={m} depth={2} />}</For>
                     </Show>
                   </Row>
                 )}
               </For>
             </Row>
-            <Row id="installed" depth={0} icon={<Boxes size={13} />} label="Installed apps" detail={`${d().apps.filter((a) => !a.dir).length}`}>
+            <Row id="installed" depth={0} icon={<Boxes size={13} />} label={t("langs.pythonWeb.installedApps")} detail={`${d().apps.filter((a) => !a.dir).length}`}>
               <For each={d().apps.filter((a) => !a.dir)}>{(app) => <Row depth={1} icon={<Boxes size={12} />} label={app.entry} />}</For>
             </Row>
-            <Row id="templates" depth={0} icon={<Folder size={13} class="pyweb-icon-folder" />} label="Templates" detail={`${webProject()?.templates.length ?? 0} templates`}>
+            <Row id="templates" depth={0} icon={<Folder size={13} class="pyweb-icon-folder" />} label={t("langs.pythonWeb.templates")} detail={`${webProject()?.templates.length ?? 0} templates`}>
               <For each={roots()}>{(r) => <Row depth={1} icon={<Folder size={12} class="pyweb-icon-folder" />} label={r.dir} detail={r.origin} />}</For>
             </Row>
           </>
@@ -139,7 +140,7 @@ export function DjangoStructureView() {
 
 export function DjangoStructureActions() {
   return (
-    <button class="icon-btn" title="Refresh" onClick={() => void loadWebProject(true)}>
+    <button class="icon-btn" title={t("common.refresh")} onClick={() => void loadWebProject(true)}>
       <RefreshCw size={14} classList={{ spin: webLoading() }} />
     </button>
   );

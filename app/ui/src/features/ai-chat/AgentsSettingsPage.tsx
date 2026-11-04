@@ -9,6 +9,7 @@ import { CircleCheck, CircleX, Info, RefreshCw } from "lucide-solid";
 import { agentApi, type AgentInfo } from "@/ipc/agent";
 import { SchemaPage } from "@/features/settings/SchemaPage";
 import { draftValue } from "@/features/settings/dialogState";
+import { t } from "@/i18n";
 
 /** Section title in the schema → agent id. */
 const AGENT_SECTIONS: Record<string, { id: string }> = {
@@ -33,13 +34,13 @@ export function AgentsSettingsPage() {
     const custom = () => (enteredPaths()[meta.id] ?? "").trim();
     return (
       <div class="ai-agent-status" data-agent={meta.id}>
-        <Switch fallback={<span class="muted">Detecting…</span>}>
+        <Switch fallback={<span class="muted">{t("tools.aiChat.detectingEllipsis")}</span>}>
           <Match when={info()?.installed && info()}>
             {(a) => (
               <span class="ai-agent-found">
                 <CircleCheck size={14} />
                 <span>
-                  Found <code>{a().path}</code>
+                  {t("tools.aiChat.found")} <code>{a().path}</code>
                 </span>
               </span>
             )}
@@ -48,7 +49,7 @@ export function AgentsSettingsPage() {
             <span class="ai-agent-missing">
               <CircleX size={14} />
               <span>
-                {custom() ? "No executable at this path." : "Not found on PATH."} Install with <code>{info()!.installHint}</code>
+                {t("tools.aiChat.installWith", { value: custom() ? t("tools.aiChat.noExecutableAtThisPath") : t("tools.aiChat.notFoundOnPath") })} <code>{info()!.installHint}</code>
               </span>
             </span>
           </Match>
@@ -56,10 +57,10 @@ export function AgentsSettingsPage() {
         <Show when={info() && !info()!.supported}>
           <span class="ai-agent-note">
             <Info size={14} />
-            <span>Chat sessions with {info()!.name} are not supported yet.</span>
+            <span>{t("tools.aiChat.chatSessionsWithAreNot", { name: info()!.name })}</span>
           </span>
         </Show>
-        <button class="icon-btn ai-agent-refresh" title="Detect again" onClick={() => void refetch()}>
+        <button class="icon-btn ai-agent-refresh" title={t("common.detectAgain")} onClick={() => void refetch()}>
           <RefreshCw size={13} />
         </button>
       </div>

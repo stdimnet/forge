@@ -143,7 +143,7 @@ registerContextMenuProvider<EditorView>("editor", (view) => {
     separator,
     submenu("AI Actions", [
       item(ACTION_TITLES.explain, () => void explainWithAi(path, view), "ai.explain"),
-      item(ACTION_TITLES.fix, () => void fix(path, view), "ai.fix", { disabled: !problems, hint: problems ? undefined : "No problems at the caret" }),
+      item(ACTION_TITLES.fix, () => void fix(path, view), "ai.fix", { disabled: !problems, hint: problems ? undefined : t("tools.aiEditor.noProblemsAtTheCaret") }),
       separator,
       item(ACTION_TITLES.docs, () => void runProposal("docs", path, view), "ai.generateDocs"),
       item(ACTION_TITLES.tests, () => void runProposal("tests", path, view), "ai.generateTests"),
@@ -157,8 +157,8 @@ registerContextMenuProvider<EditorView>("editor", (view) => {
 registerGenerateItems((path, view) =>
   isFile(path)
     ? [
-        { label: "Documentation with AI…", mnemonic: 0, enabled: true, run: () => void runProposal("docs", path, view) },
-        { label: "Tests with AI…", mnemonic: 0, enabled: true, run: () => void runProposal("tests", path, view) },
+        { label: t("tools.aiEditor.documentationWithAiEllipsis"), mnemonic: 0, enabled: true, run: () => void runProposal("docs", path, view) },
+        { label: t("tools.aiEditor.testsWithAiEllipsis"), mnemonic: 0, enabled: true, run: () => void runProposal("tests", path, view) },
       ]
     : [],
 );

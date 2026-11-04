@@ -17,6 +17,7 @@ import { consoleSourceId, sourceById, sources } from "@/features/database/store"
 import { consoleDialect, fileSql, refreshFileSql } from "./language";
 import { reanalyze } from "./inspector";
 import { isSqlEditor } from "./targets";
+import { t as tr } from "@/i18n";
 
 export const SQL_DIALECTS_PAGE = "lang.sqlDialects";
 const MAPPINGS = "sql.dialect.mappings";
@@ -35,7 +36,7 @@ export async function mapFile(path: string, change: { dialect?: SqlDialect | "";
   try {
     await saveSetting(MAPPINGS, list as unknown as SettingObject[]);
   } catch (e) {
-    showBalloon("Cannot save the SQL dialect", String(e instanceof Error ? e.message : e));
+    showBalloon(tr("tools.sqlEditor.cannotSaveTheSqlDialect"), String(e instanceof Error ? e.message : e));
   }
   await refreshFileSql(path);
   reanalyze(path);
@@ -82,12 +83,12 @@ export function DialectStatus() {
     }));
     if (!console) {
       const mapped = mappingsSetting().some((m) => m.path === t.path && m.dialect);
-      entries.push({ kind: "action", label: "Use the Folder's or Project's Dialect", disabled: !mapped, run: () => void mapFile(t.path, { dialect: "" }) });
+      entries.push({ kind: "action", label: tr("tools.sqlEditor.useTheFolderSOr"), disabled: !mapped, run: () => void mapFile(t.path, { dialect: "" }) });
       entries.push("separator");
       const attached = fileSql[t.path]?.dataSourceId;
       entries.push({
         kind: "submenu",
-        label: "Resolve Against",
+        label: tr("tools.sqlEditor.resolveAgainst"),
         items: [
           { kind: "action", label: "<None>", checkable: true, checked: !attached, run: () => void mapFile(t.path, { dataSource: "" }) },
           ...sources()
@@ -103,7 +104,7 @@ export function DialectStatus() {
       });
     }
     entries.push("separator");
-    entries.push({ kind: "action", label: "SQL Dialects Settings…", run: () => openSettings(SQL_DIALECTS_PAGE) });
+    entries.push({ kind: "action", label: tr("tools.sqlEditor.sqlDialectsSettingsEllipsis"), run: () => openSettings(SQL_DIALECTS_PAGE) });
     const r = el.getBoundingClientRect();
     showResolvedMenu(entries, r.left, r.top - 2, { above: true, class: "status-popup" });
   };
@@ -113,7 +114,7 @@ export function DialectStatus() {
         <button
           class="status-item sql-dialect-status"
           data-status="sql-dialect"
-          title={`SQL Dialect: ${dialectLabel(d())}${dataSource() ? ` · resolving against ${dataSource()!.name}` : ""}`}
+          title={tr("tools.sqlEditor.sqlDialect", { value: dialectLabel(d()), value2: dataSource() ? ` · resolving against ${dataSource()!.name}` : "" })}
           onClick={(e) => open(e.currentTarget)}
         >
           {dialectLabel(d())}

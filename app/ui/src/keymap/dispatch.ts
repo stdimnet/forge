@@ -8,7 +8,7 @@ import type { FocusContext, KeyInput, Resolution } from "@/ipc/keymap";
 import { keymapApi } from "@/ipc/keymap";
 import { commands, runCommand } from "@/state/commands";
 import { DEFAULT_GROUP, logNotification, modeOf, registerNotificationGroup, type NotificationType } from "@/state/notifications";
-import { loadKeymapCore, mouseActionOf, mouseInputOf, resolveKeySync } from "./core";
+import { loadKeymapCore, mouseActionOf, mouseInputOf, resolveKeySync, strokeOfEvent } from "./core";
 import { actionById, startKeymap } from "./store";
 
 export interface BalloonAction {
@@ -118,6 +118,18 @@ export function focusContextOf(el: Element | null): FocusContext {
   return "global";
 }
 
+/**
+ * Whether a widget handles this keystroke itself: an element lists the strokes it owns in
+ * `data-own-keys` ("Alt+Enter Ctrl+Shift+Enter"), like the editor's Find/Replace bar whose
+ * Alt+Enter selects all occurrences instead of showing context actions.
+ */
+export function ownedByWidget(e: Pick<KeyboardEvent, "target" | "key" | "code" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">): boolean {
+  const owner = e.target instanceof Element ? e.target.closest("[data-own-keys]") : null;
+  if (!owner) return false;
+  const stroke = strokeOfEvent(e);
+  return !!stroke && (owner.getAttribute("data-own-keys") ?? "").split(/\s+/).includes(stroke);
+}
+
 let suspended = 0;
 
 /** Pause shortcut handling (e.g. while a "press a shortcut" field records keys). */
@@ -218,7 +230,7 @@ export function installKeymap(target: Window = window): Promise<void> {
   target.addEventListener(
     "keydown",
     (e) => {
-      if (suspended || e.isComposing) return;
+      if (suspended || e.isComposing || ownedByWidget(e)) return;
       const res = resolve(keyInput("keydown", e));
       if (!res?.consumed) return;
       e.preventDefault();

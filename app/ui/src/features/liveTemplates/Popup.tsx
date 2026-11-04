@@ -7,6 +7,7 @@
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { EditorView } from "@codemirror/view";
+import { t } from "@/i18n";
 
 export interface PopupItem {
   id: string;
@@ -146,7 +147,7 @@ function TemplatePopup(props: { popup: PopupState }) {
         </Show>
       </div>
       <div class="lt-popup-list" ref={list}>
-        <For each={visible()} fallback={<div class="lt-popup-empty">No matching templates</div>}>
+        <For each={visible()} fallback={<div class="lt-popup-empty">{t("tools.liveTemplates.noMatchingTemplates")}</div>}>
           {(item, i) => (
             <>
               <Show when={item.section && !props.popup.filter}>

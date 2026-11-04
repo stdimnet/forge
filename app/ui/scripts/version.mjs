@@ -2,7 +2,8 @@
  * Forge's version (Pride Versioning, see versionBump.mjs), kept the same in Cargo.toml,
  * tauri.conf.json and package.json.
  *
- *   pnpm version:check                         fail when the files disagree
+ *   pnpm version:check                         fail when the files disagree or the version has
+ *                                              no MSI version (versionBump.mjs msiVersion)
  *   pnpm version:bump proud|default|shame      write the next version everywhere
  *   pnpm version:bump default --pre beta.1     … as a pre-release (beta channel)
  *   pnpm version:bump pre                      next pre-release of the same version (beta.1 → beta.2)
@@ -14,7 +15,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { VERSION_FILES, bumpVersion, readVersion, writeVersion } from "./versionBump.mjs";
+import { msiConfigErrors } from "./tauriArgs.mjs";
+import { VERSION_FILES, bumpVersion, msiVersion, readVersion, writeVersion } from "./versionBump.mjs";
 
 const root = resolve(import.meta.dirname, "../../..");
 const read = (f) => readFileSync(resolve(root, f), "utf8");
@@ -32,7 +34,10 @@ function current() {
 const [command, part, ...rest] = process.argv.slice(2);
 try {
   if (command === "check") {
-    console.log(`version ${current()} (${VERSION_FILES.join(", ")})`);
+    const version = current();
+    const errors = msiConfigErrors(JSON.parse(read("app/src-tauri/tauri.conf.json")));
+    if (errors.length) throw new Error(errors.join("\n"));
+    console.log(`version ${version} (${VERSION_FILES.join(", ")}), MSI ${msiVersion(version)}`);
   } else if (command === "bump") {
     const preAt = rest.indexOf("--pre");
     const pre = preAt >= 0 ? rest[preAt + 1] : null;
@@ -42,7 +47,7 @@ try {
     for (const f of VERSION_FILES) writeFileSync(resolve(root, f), writeVersion(f, read(f), to));
     // Cargo.lock records the workspace crates' versions.
     execFileSync("cargo", ["update", "--workspace", "--offline"], { cwd: root, stdio: "inherit" });
-    console.log(`${from} → ${to}\nCommit the change, then push the tag v${to} to release it.`);
+    console.log(`${from} → ${to} (MSI ${msiVersion(to)})\nCommit the change, then push the tag v${to} to release it.`);
   } else {
     throw new Error("usage: version.mjs check | bump proud|default|shame|pre|release [--pre <label>]");
   }

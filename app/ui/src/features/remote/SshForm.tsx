@@ -6,6 +6,7 @@ import { createResource, For, Match, Show, Switch } from "solid-js";
 import { Folder } from "lucide-solid";
 import { remoteApi, type AuthMethod, type SshConfiguration } from "@/ipc/remote";
 import { isTauri } from "@/ipc";
+import { t } from "@/i18n";
 
 export const AUTH_LABELS: Record<AuthMethod, string> = {
   password: "Password",
@@ -32,7 +33,7 @@ export function SshForm(props: {
   const browseKey = async () => {
     if (!isTauri()) return;
     const { open } = await import("@tauri-apps/plugin-dialog");
-    const path = await open({ multiple: false, title: "Select Private Key File" });
+    const path = await open({ multiple: false, title: t("tools.remote.selectPrivateKeyFile") });
     if (typeof path === "string") props.update({ keyFile: path });
   };
 
@@ -49,7 +50,7 @@ export function SshForm(props: {
   return (
     <div class="ssh-form">
       <label class="ssh-label" for={`${id}-host`}>
-        Host:
+        {t("tools.remote.hostLabel")}
       </label>
       <div class="ssh-host-row">
         <input
@@ -57,7 +58,7 @@ export function SshForm(props: {
           class="ssh-input"
           classList={{ invalid: !!problem("host") }}
           list={`${id}-hosts`}
-          placeholder="example.com, 10.0.0.5 or a Host from ~/.ssh/config"
+          placeholder={t("tools.remote.exampleCom1000")}
           value={props.config.host}
           spellcheck={false}
           autofocus={props.autofocus}
@@ -70,7 +71,7 @@ export function SshForm(props: {
           </For>
         </datalist>
         <label class="ssh-label inline" for={`${id}-port`}>
-          Port:
+          {t("tools.remote.portLabel")}
         </label>
         <input
           id={`${id}-port`}
@@ -85,7 +86,7 @@ export function SshForm(props: {
       </div>
 
       <label class="ssh-label" for={`${id}-user`}>
-        Username:
+        {t("tools.remote.usernameLabel")}
       </label>
       <input
         id={`${id}-user`}
@@ -98,7 +99,7 @@ export function SshForm(props: {
       />
 
       <label class="ssh-label" for={`${id}-auth`}>
-        Authentication type:
+        {t("tools.remote.authenticationTypeLabel")}
       </label>
       <select
         id={`${id}-auth`}
@@ -112,14 +113,14 @@ export function SshForm(props: {
       <Switch>
         <Match when={props.config.auth === "password"}>
           <label class="ssh-label" for={`${id}-secret`}>
-            Password:
+            {t("tools.remote.passwordLabel")}
           </label>
           <div class="ssh-secret-row">
             <input
               id={`${id}-secret`}
               class="ssh-input"
               type="password"
-              placeholder={props.hasSecret ? "Stored in the system keychain" : ""}
+              placeholder={props.hasSecret ? t("tools.remote.storedInTheSystemKeychain") : ""}
               value={props.secret}
               onInput={(e) => props.setSecret(e.currentTarget.value)}
               data-testid="ssh-password"
@@ -130,27 +131,27 @@ export function SshForm(props: {
                 checked={!props.config.dontSaveSecret}
                 onChange={(e) => props.update({ dontSaveSecret: !e.currentTarget.checked })}
               />
-              Save password
+              {t("tools.remote.savePassword")}
             </label>
           </div>
         </Match>
         <Match when={props.config.auth === "keyPair"}>
           <label class="ssh-label" for={`${id}-key`}>
-            Private key file:
+            {t("tools.remote.privateKeyFileLabel")}
           </label>
           <div class="ssh-path">
             <input
               id={`${id}-key`}
               class="ssh-input"
               classList={{ invalid: !!problem("key") }}
-              placeholder="~/.ssh/id_ed25519"
+              placeholder={t("tools.remote.sshIdEd25519")}
               value={props.config.keyFile ?? ""}
               spellcheck={false}
               onInput={(e) => props.update({ keyFile: e.currentTarget.value })}
             />
             <button
               class="ssh-browse"
-              title={isTauri() ? "Browse…" : "The file chooser is available in the desktop app"}
+              title={isTauri() ? t("common.browseEllipsis") : t("tools.remote.theFileChooserIsAvailable")}
               disabled={!isTauri()}
               onClick={() => void browseKey()}
             >
@@ -158,14 +159,14 @@ export function SshForm(props: {
             </button>
           </div>
           <label class="ssh-label" for={`${id}-secret`}>
-            Passphrase:
+            {t("tools.remote.passphraseLabel")}
           </label>
           <div class="ssh-secret-row">
             <input
               id={`${id}-secret`}
               class="ssh-input"
               type="password"
-              placeholder={props.hasSecret ? "Stored in the system keychain" : "Empty for keys without a passphrase"}
+              placeholder={props.hasSecret ? t("tools.remote.storedInTheSystemKeychain") : t("tools.remote.emptyForKeysWithoutA")}
               value={props.secret}
               onInput={(e) => props.setSecret(e.currentTarget.value)}
             />
@@ -175,15 +176,14 @@ export function SshForm(props: {
                 checked={!props.config.dontSaveSecret}
                 onChange={(e) => props.update({ dontSaveSecret: !e.currentTarget.checked })}
               />
-              Save passphrase
+              {t("tools.remote.savePassphrase")}
             </label>
           </div>
         </Match>
         <Match when={props.config.auth === "agent"}>
           <span />
           <p class="ssh-hint">
-            Uses the keys of the running ssh-agent, the <code>IdentityFile</code> entries of <code>~/.ssh/config</code> and
-            the default keys in <code>~/.ssh</code>.
+            {t("tools.remote.usesTheKeysOfThe")} <code>IdentityFile</code> {t("tools.remote.entriesOf")} <code>~/.ssh/config</code> {t("tools.remote.andTheDefaultKeysIn")} <code>~/.ssh</code>.
           </p>
         </Match>
       </Switch>
@@ -196,7 +196,7 @@ export function SshForm(props: {
           onChange={(e) => props.update({ parseConfig: e.currentTarget.checked })}
           data-testid="ssh-parse-config"
         />
-        Parse config file <code>~/.ssh/config</code>
+        {t("tools.remote.parseConfigFile")} <code>~/.ssh/config</code>
       </label>
 
       <Show when={props.problems?.length}>

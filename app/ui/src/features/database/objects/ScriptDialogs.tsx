@@ -83,7 +83,7 @@ export function DropDialog(p: { ds: string; schema: string; objects: { kind: str
       <div class="dbo-pad">
         <label class="dbo-check">
           <input type="checkbox" checked={cascade()} onChange={(e) => setCascade(e.currentTarget.checked)} data-testid="dbo-cascade" />
-          Cascade: also drop the objects that depend on {p.objects.length === 1 ? "it" : "them"} (foreign keys, views)
+          {tr("tools.database.cascadeAlsoDropTheObjects", { count: p.objects.length })}
         </label>
       </div>
       <SqlPreview sql={sql()} dialect={dialect} />
@@ -129,7 +129,7 @@ export function RenameDialog(p: { ds: string; schema: string; table: string; col
       }
     >
       <div class="db-form dbo-pad">
-        <span class="db-form-label">Rename {p.column ? `column ${p.table}.${from}` : `table ${from}`} to:</span>
+        <span class="db-form-label">{tr("tools.database.renameToLabel", { value: p.column ? tr("tools.database.column", { table: p.table, from }) : `table ${from}` })}</span>
         <input
           class="dsd-input"
           value={name()}
@@ -178,7 +178,7 @@ export async function generateDdlTo(target: "clipboard" | "console" | "file", ds
     if (target === "console") scriptToConsole(ds, sql);
     else {
       await navigator.clipboard?.writeText(sql);
-      showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), `${objects.length} object${objects.length === 1 ? "" : "s"}`);
+      showBalloon(tr("database.objects.scriptDialogs.ddlCopied"), tr("tools.database.objects", { count: objects.length }));
     }
   } catch (e) {
     showBalloon(tr("database.objects.scriptDialogs.generateDdlFailed"), text(e));
@@ -274,7 +274,7 @@ export function GenerateDdlDialog(p: { ds: string; objects: DdlObject[] }) {
             {(o) => (
               <label class="dbo-check">
                 <input type="checkbox" checked={picked().has(key(o))} onChange={(e) => toggle(key(o), e.currentTarget.checked)} />
-                <span class="dbo-kind">{o.kind === "matview" ? "mat. view" : o.kind}</span>
+                <span class="dbo-kind">{o.kind === "matview" ? tr("tools.database.matView") : o.kind}</span>
                 {schemas.length > 1 ? `${o.schema}.` : ""}
                 {o.table ? `${o.table}.` : ""}
                 {o.name}

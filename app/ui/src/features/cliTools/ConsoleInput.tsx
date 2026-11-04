@@ -10,6 +10,7 @@ import { Dynamic } from "solid-js/web";
 import { ChevronRight, Flag, Folder, Hash, SquareTerminal, Wrench } from "lucide-solid";
 import { cliToolsApi, type CliCompletion, type CliCompletionItem, type CommandHelp, type CompletionKind } from "@/ipc/cliTools";
 import { history } from "./store";
+import { t } from "@/i18n";
 
 const KIND_ICONS: Record<CompletionKind, typeof Wrench> = {
   tool: Wrench,
@@ -51,11 +52,11 @@ export function CommandHelpView(props: { help: CommandHelp }) {
         <div class="cli-help-desc">{cmd().description}</div>
       </Show>
       <Show when={cmd().usage?.length}>
-        <div class="cli-help-section">Usage:</div>
+        <div class="cli-help-section">{t("tools.cliTools.usageLabel")}</div>
         <For each={cmd().usage!.slice(0, 2)}>{(u) => <code class="cli-help-usage">{u}</code>}</For>
       </Show>
       <Show when={cmd().arguments?.length}>
-        <div class="cli-help-section">Arguments:</div>
+        <div class="cli-help-section">{t("common.argumentsLabel")}</div>
         <For each={cmd().arguments}>
           {(a) => (
             <div class="cli-help-row" classList={{ active: active()?.kind === "argument" && active()?.name === a.name }}>
@@ -66,7 +67,7 @@ export function CommandHelpView(props: { help: CommandHelp }) {
         </For>
       </Show>
       <Show when={own().length}>
-        <div class="cli-help-section">Options:</div>
+        <div class="cli-help-section">{t("tools.cliTools.optionsLabel")}</div>
         <For each={own().slice(0, 8)}>
           {(o) => (
             <div class="cli-help-row" classList={{ active: active()?.kind === "option" && active()?.name === o.name }}>
@@ -79,7 +80,7 @@ export function CommandHelpView(props: { help: CommandHelp }) {
           )}
         </For>
         <Show when={own().length > 8}>
-          <div class="cli-help-row muted">… {own().length - 8} more</div>
+          <div class="cli-help-row muted">{t("tools.cliTools.more", { value: own().length - 8 })}</div>
         </Show>
       </Show>
     </div>
@@ -235,7 +236,7 @@ export function ConsoleInput(props: ConsoleInputProps) {
           ref={inputEl}
           class="cli-input-field"
           value={text()}
-          placeholder={props.placeholder ?? "alias command [arguments] [--options]"}
+          placeholder={props.placeholder ?? t("tools.cliTools.aliasCommandArgumentsOptions")}
           spellcheck={false}
           autocomplete="off"
           data-testid="cli-input"

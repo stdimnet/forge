@@ -9,6 +9,7 @@
 import { createMemo, createSignal, For, Show, type JSX } from "solid-js";
 import { ChevronDown, ChevronRight, Flame, ListTree, Rows3 } from "lucide-solid";
 import type { CallNode, ProfileView } from "@/ipc/profile";
+import { t as tr } from "@/i18n";
 import "./callTree.css";
 
 export type ProfileTab = "flame" | "tree" | "top";
@@ -83,7 +84,7 @@ function FlameGraph(props: { root: CallNode; unit: string; style: FrameStyle }) 
                 <div
                   class="prof-flame-frame"
                   style={{ left: `${f.x * 100}%`, width: `${f.w * 100}%`, background: color(f.node.name), color: f.node.name === "root" ? "var(--fg)" : undefined }}
-                  title={`${f.node.name}\n${formatValue(f.node.total, props.unit)} (${percent(f.node.total, props.root.total)}), self ${formatValue(f.node.self, props.unit)}${f.node.file ? `\n${f.node.file}:${f.node.line}` : ""}`}
+                  title={tr("tools.profiler.self", { name: f.node.name, value: formatValue(f.node.total, props.unit), value2: percent(f.node.total, props.root.total), value3: formatValue(f.node.self, props.unit), value4: f.node.file ? `\n${f.node.file}:${f.node.line}` : "" })}
                   onClick={() => setFocus(f.node === base() ? null : f.node)}
                   onDblClick={() => props.style.isOwn(f.node.file) && props.style.navigate(f.node.file, f.node.line)}
                 >
@@ -96,7 +97,7 @@ function FlameGraph(props: { root: CallNode; unit: string; style: FrameStyle }) 
       </For>
       <Show when={focus()}>
         <button class="prof-reset pill-btn" onClick={() => setFocus(null)}>
-          Reset zoom
+          {tr("tools.profiler.resetZoom")}
         </button>
       </Show>
     </div>
@@ -121,7 +122,7 @@ function TreeRow(props: { node: CallNode; depth: number; total: number; unit: st
           <span style={{ width: percent(props.node.total, props.total) }} />
         </span>
         <span class="prof-name" classList={{ "prof-own": props.style.isOwn(props.node.file) }}>
-          {props.node.name === "root" ? "All" : short(props.style, props.node.name)}
+          {props.node.name === "root" ? tr("common.all") : short(props.style, props.node.name)}
         </span>
         <span class="muted prof-value">{formatValue(props.node.total, props.unit)}</span>
         <Show when={props.node.self}>
@@ -140,13 +141,13 @@ export function ProfileTabs(props: { tab: ProfileTab; onTab: (t: ProfileTab) => 
   return (
     <div class="prof-tabs">
       <button classList={{ active: props.tab === "flame" }} onClick={() => props.onTab("flame")}>
-        <Flame size={13} /> Flame Graph
+        <Flame size={13} /> {tr("tools.profiler.flameGraph")}
       </button>
       <button classList={{ active: props.tab === "tree" }} onClick={() => props.onTab("tree")}>
-        <ListTree size={13} /> Call Tree
+        <ListTree size={13} /> {tr("common.callTree")}
       </button>
       <button classList={{ active: props.tab === "top" }} onClick={() => props.onTab("top")}>
-        <Rows3 size={13} /> Method List
+        <Rows3 size={13} /> {tr("tools.profiler.methodList")}
       </button>
     </div>
   );
@@ -172,11 +173,11 @@ export function ProfileBody(props: { view: ProfileView; tab: ProfileTab; style: 
         <table class="prof-top">
           <thead>
             <tr>
-              <th>Method</th>
-              <th>Self</th>
-              <th>Self %</th>
-              <th>Total</th>
-              <th>Total %</th>
+              <th>{tr("common.method")}</th>
+              <th>{tr("tools.profiler.self2")}</th>
+              <th>{tr("tools.profiler.self3")}</th>
+              <th>{tr("tools.profiler.total")}</th>
+              <th>{tr("tools.profiler.total2")}</th>
             </tr>
           </thead>
           <tbody>

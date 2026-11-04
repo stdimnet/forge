@@ -6,6 +6,7 @@ import { For } from "solid-js";
 import { Ellipsis } from "lucide-solid";
 import { openSettings } from "@/features/settings/dialogState";
 import { scopeEntries } from "./model";
+import { t } from "@/i18n";
 
 export const SCOPES_PAGE = "appearance.scopes";
 
@@ -17,20 +18,20 @@ export function ScopeSelect(props: { value: string; onChange: (name: string) => 
     <span class={`scope-select ${props.class ?? ""}`}>
       <select
         value={props.value}
-        aria-label={props.ariaLabel ?? "Scope"}
+        aria-label={props.ariaLabel ?? t("common.scope")}
         onMouseDown={(e) => e.stopPropagation()}
         onChange={(e) => props.onChange(e.currentTarget.value)}
       >
         <For each={predefined()}>{(e) => <option value={e.name}>{e.name}</option>}</For>
-        <optgroup label="Scopes">
+        <optgroup label={t("tools.scopes.scopes")}>
           <For each={named()}>{(e) => <option value={e.name}>{e.name}</option>}</For>
         </optgroup>
         {!entries().some((e) => e.name === props.value) && <option value={props.value}>{props.value}</option>}
       </select>
       <button
         class="icon-btn"
-        title="Edit Scopes…"
-        aria-label="Edit Scopes"
+        title={t("tools.scopes.editScopesEllipsis")}
+        aria-label={t("tools.scopes.editScopes")}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => openSettings(SCOPES_PAGE)}
       >

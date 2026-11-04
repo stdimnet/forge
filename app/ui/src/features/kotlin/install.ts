@@ -10,6 +10,7 @@ import { getSetting, saveSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { openSettings } from "@/features/settings/dialogState";
 import { active, clearInstall, listenForInstalls, megabytes, refreshStatus } from "./store";
+import { t } from "@/i18n";
 
 const showBalloon = balloonsFor("Kotlin");
 const AUTO_INSTALL_KEY = "kotlin.lsp.autoInstall";
@@ -24,10 +25,10 @@ export async function installLanguageServer(): Promise<void> {
   try {
     const version = await kotlinApi.installLanguageServer();
     const status = await refreshStatus();
-    if (status?.problems.length) showBalloon(`kotlin-lsp ${version} installed`, status.problems.join(" "), 0, [{ label: "Settings…", run: () => openSettings("lang.kotlin") }]);
-    else showBalloon(`kotlin-lsp ${version} installed`, "The Kotlin language server is importing the Gradle build.", 6000);
+    if (status?.problems.length) showBalloon(t("langs.kotlin.kotlinLspInstalled", { version }), status.problems.join(" "), 0, [{ label: "Settings…", run: () => openSettings("lang.kotlin") }]);
+    else showBalloon(t("langs.kotlin.kotlinLspInstalled", { version }), t("langs.kotlin.theKotlinLanguageServerIs"), 6000);
   } catch (e) {
-    showBalloon("kotlin-lsp could not be installed", String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installLanguageServer() }]);
+    showBalloon(t("langs.kotlin.kotlinLspCouldNotBe"), String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installLanguageServer() }]);
   } finally {
     installing = false;
     clearInstall();
@@ -44,9 +45,9 @@ export async function installLinters(): Promise<void> {
   try {
     await kotlinApi.installLinters();
     await refreshStatus();
-    showBalloon("ktlint and detekt installed", "Kotlin files are checked with ktlint; detekt runs after saving.", 5000);
+    showBalloon(t("langs.kotlin.ktlintAndDetektInstalled"), t("langs.kotlin.kotlinFilesAreCheckedWith"), 5000);
   } catch (e) {
-    showBalloon("ktlint and detekt could not be installed", String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installLinters() }]);
+    showBalloon(t("langs.kotlin.ktlintAndDetektCouldNot"), String(e).replace(/^Error: /, ""), 0, [{ label: "Retry", run: () => void installLinters() }]);
   } finally {
     installingLinters = false;
     clearInstall();
@@ -66,8 +67,8 @@ export async function checkKotlinSetup(): Promise<void> {
   if (mode === "never") return;
   if (mode === "always") return void installLanguageServer();
   showBalloon(
-    "Kotlin language server kotlin-lsp is not installed",
-    `Completion, navigation, inspections, refactorings and the Kotlin debugger in ${workspace()?.name ?? "this project"} need it. Forge downloads JetBrains' standalone kotlin-lsp ${status.pinnedVersion}${status.downloadSize ? ` (${megabytes(status.downloadSize)})` : ""} from download.jetbrains.com and checks its SHA-256.`,
+    t("langs.kotlin.kotlinLanguageServerKotlinLsp"),
+    t("langs.kotlin.completionNavigationInspectionsRefactori", { value: workspace()?.name ?? "this project", pinnedVersion: status.pinnedVersion, value2: status.downloadSize ? ` (${megabytes(status.downloadSize)})` : "" }),
     0,
     [
       { label: "Install", run: () => void installLanguageServer() },

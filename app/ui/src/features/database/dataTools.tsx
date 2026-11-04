@@ -375,7 +375,7 @@ export function TransposedGrid(props: {
         </tbody>
       </table>
       <Show when={props.count > LIMIT}>
-        <div class="dgt-more muted">Showing the first {LIMIT} of {props.count} rows</div>
+        <div class="dgt-more muted">{t("tools.database.showingTheFirstOfRows", { LIMIT, count: props.count })}</div>
       </Show>
     </div>
   );
@@ -397,12 +397,12 @@ export function PendingPanel(props: {
     <div class="db-pending" data-testid="db-pending">
       <div class="db-side-head">
         <span class="db-side-title">
-          Pending Changes <span class="db-badge">{props.count}</span>
+          {t("tools.database.pendingChanges")} <span class="db-badge">{props.count}</span>
         </span>
         <Show when={props.preview?.key}>
           {(k) => (
             <span class="muted db-pending-key">
-              rows identified by {k().source} ({k().columns.join(", ")})
+              {t("tools.database.rowsIdentifiedBy", { source: k().source, columns: k().columns.join(", ") })}
             </span>
           )}
         </Show>

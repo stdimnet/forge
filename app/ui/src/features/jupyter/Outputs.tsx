@@ -12,6 +12,7 @@ import { openFileLink, styleOf } from "@/features/run/Console";
 import { Markdown } from "@/features/ai-chat/Markdown";
 import { getSetting } from "@/state/settings";
 import { DataFrameView } from "./DataFrameView";
+import { t as tr } from "@/i18n";
 
 export function TextLines(props: { lines: ConsoleLine[] }) {
   return (
@@ -61,7 +62,7 @@ function HtmlOutput(props: { html: string }) {
     const h = frame.contentDocument?.documentElement.scrollHeight;
     if (h) setHeight(h + 2);
   };
-  return <iframe ref={frame} class="nb-out-html" sandbox="allow-same-origin" srcdoc={doc()} style={{ height: `${height()}px` }} onLoad={measure} title="HTML output" />;
+  return <iframe ref={frame} class="nb-out-html" sandbox="allow-same-origin" srcdoc={doc()} style={{ height: `${height()}px` }} onLoad={measure} title={tr("langs.jupyter.htmlOutput")} />;
 }
 
 function JsonNode(props: { name?: string; value: unknown; depth: number }) {

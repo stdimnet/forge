@@ -6,6 +6,7 @@
 import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import { suspendKeymap } from "@/keymap";
 import { allBookmarks } from "./store";
+import { t } from "@/i18n";
 
 export interface MnemonicRequest {
   path: string;
@@ -53,8 +54,8 @@ function Popup(props: { req: MnemonicRequest }) {
   );
   return (
     <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && finish(null)}>
-      <div class="popup mnemonic-popup" tabIndex={-1} ref={root} role="dialog" aria-label="Bookmark Mnemonic" onKeyDown={onKeyDown}>
-        <div class="mnemonic-title">Bookmark Mnemonic</div>
+      <div class="popup mnemonic-popup" tabIndex={-1} ref={root} role="dialog" aria-label={t("tools.bookmarks.bookmarkMnemonic")} onKeyDown={onKeyDown}>
+        <div class="mnemonic-title">{t("tools.bookmarks.bookmarkMnemonic")}</div>
         <div class="mnemonic-grid digits">
           <For each={DIGITS}>{(m) => <Cell m={m} />}</For>
         </div>
@@ -62,8 +63,8 @@ function Popup(props: { req: MnemonicRequest }) {
           <For each={LETTERS}>{(m) => <Cell m={m} />}</For>
         </div>
         <div class="mnemonic-hint">
-          Press a digit or letter to set the mnemonic
-          <Show when={props.req.current}> · Delete removes the bookmark</Show>
+          {t("tools.bookmarks.pressADigitOrLetter")}
+          <Show when={props.req.current}> {t("tools.bookmarks.deleteRemovesTheBookmark")}</Show>
         </div>
       </div>
     </div>

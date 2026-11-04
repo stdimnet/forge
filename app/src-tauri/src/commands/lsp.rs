@@ -249,6 +249,7 @@ impl Ctx {
 pub async fn lsp_did_open(
     path: String,
     text: String,
+    language_id: Option<String>,
     app: AppHandle,
     lsp: State<'_, LspState>,
     ws: State<'_, AppState>,
@@ -261,6 +262,12 @@ pub async fn lsp_did_open(
             .map(drop);
     }
     let c = Ctx::new(&path, &app, &lsp, &ws)?;
+    // The editor's file type routes files the extension does not (`artisan`, overrides);
+    // an empty one forgets it (no type), a missing one keeps what is known.
+    if let Some(language) = language_id.as_deref() {
+        c.manager
+            .set_document_language(&c.abs, Some(language).filter(|l| !l.is_empty()));
+    }
     c.manager.did_open(&c.abs, &text).await
 }
 

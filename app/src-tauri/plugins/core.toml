@@ -637,6 +637,18 @@ hidden = true
 order = 10
 
 [[contributions.settings]]
+key = "fileTypes.overrides"
+title = "File type overrides"
+description = "Files whose type was chosen with File | File Properties | Override File Type: `{ path = \"artisan\", fileType = \"php\" }`, the path relative to the project. `fileType = \"text\"` makes a file plain text."
+type = "objects"
+unique = ["path"]
+default = []
+group = "editor.file-types"
+project = true
+hidden = true
+order = 15
+
+[[contributions.settings]]
 key = "fileTypes.ignoredFiles"
 title = "Ignored Files and Folders"
 description = "Files and folders with these names are hidden from the Project view, separated by ';' (`*` and `?` wildcards)."
@@ -819,6 +831,66 @@ default = 500
 group = "editor.general"
 section = "Caret"
 order = 11
+
+[[contributions.settings]]
+key = "editor.find.matchCase"
+title = "Find in file: match case"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 200
+
+[[contributions.settings]]
+key = "editor.find.words"
+title = "Find in file: words"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 201
+
+[[contributions.settings]]
+key = "editor.find.regex"
+title = "Find in file: regex"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 202
+
+[[contributions.settings]]
+key = "editor.find.preserveCase"
+title = "Replace in file: preserve case"
+description = "Remembered by the editor's Find/Replace bar (Ctrl+F / Ctrl+R)."
+type = "bool"
+default = false
+group = "editor.general"
+hidden = true
+order = 203
+
+[[contributions.settings]]
+key = "editor.find.recentFind"
+title = "Recent searches"
+description = "Search history of the editor's Find/Replace bar, newest first."
+type = "list"
+default = []
+group = "editor.general"
+hidden = true
+order = 204
+
+[[contributions.settings]]
+key = "editor.find.recentReplace"
+title = "Recent replacements"
+description = "Replace history of the editor's Find/Replace bar, newest first."
+type = "list"
+default = []
+group = "editor.general"
+hidden = true
+order = 205
 
 [[contributions.settings]]
 key = "editor.softWraps"

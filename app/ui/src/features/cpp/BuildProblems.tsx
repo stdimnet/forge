@@ -14,6 +14,7 @@ import { publishDiagnostics } from "@/features/lsp/store";
 import { openFileAt } from "@/editor/views";
 import { showToolWindow } from "@/state/layout";
 import { setProblemsTab } from "@/features/lsp/ProblemsView";
+import { t } from "@/i18n";
 
 export const BUILD_TAB = "cpp-build";
 
@@ -117,7 +118,7 @@ export function BuildProblemsView() {
           <span>{summary()}</span>
         </div>
       </Show>
-      <Show when={problems().length} fallback={<div class="problems-empty">{summary() ? "No compiler or linker messages" : "Build the project (Ctrl+F9) to see its compiler and linker messages"}</div>}>
+      <Show when={problems().length} fallback={<div class="problems-empty">{summary() ? t("langs.cpp.noCompilerOrLinkerMessages") : t("langs.cpp.buildTheProjectCtrlF9")}</div>}>
         <For each={problems()}>{(p) => <Row p={p} depth={0} />}</For>
       </Show>
     </div>

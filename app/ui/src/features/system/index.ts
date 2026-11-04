@@ -16,6 +16,7 @@ import { getSetting, saveSetting } from "@/state/settings";
 import { workspace } from "@/state/workspace";
 import { askConfirmWithCheckbox } from "@/features/contextMenu/dialogs";
 import { showBalloon } from "@/keymap";
+import { t as tr } from "@/i18n";
 
 /** Save every modified file; failures are reported, never thrown. */
 export async function autosave(): Promise<void> {
@@ -23,7 +24,7 @@ export async function autosave(): Promise<void> {
   try {
     await saveAll();
   } catch (e) {
-    showBalloon("Cannot save files", String(e instanceof Error ? e.message : e), 6000);
+    showBalloon(tr("tools.system.cannotSaveFiles"), String(e instanceof Error ? e.message : e), 6000);
   }
 }
 
@@ -97,7 +98,7 @@ export async function exitApp(): Promise<void> {
     if (!answer.ok) return;
     if (answer.checked) await saveSetting("system.confirmExit", false).catch(() => undefined);
   }
-  await windowApi.quitAll().catch((e) => showBalloon("Cannot exit Forge", String(e instanceof Error ? e.message : e), 6000));
+  await windowApi.quitAll().catch((e) => showBalloon(tr("tools.system.cannotExitForge"), String(e instanceof Error ? e.message : e), 6000));
 }
 
 /** Close this window (Cmd+W without a tab to close); the main window asks "Confirm Exit". */

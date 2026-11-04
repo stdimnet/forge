@@ -283,7 +283,16 @@ mod tests {
         assert_eq!(id("bin/run", Some("#!/bin/bash")), Some("shell"));
         assert_eq!(id("bin/run", Some("#!/bin/sh")), Some("shell"));
         assert_eq!(id("bin/run", Some("#!/usr/bin/env luajit")), Some("lua"));
-        assert_eq!(id("bin/run", Some("#!/usr/bin/php")), None);
+        // Laravel's `artisan`, Symfony's `bin/console` and other PHP scripts.
+        assert_eq!(id("bin/run", Some("#!/usr/bin/php")), Some("php"));
+        assert_eq!(id("artisan", Some("#!/usr/bin/env php")), Some("php"));
+        assert_eq!(id("bin/console", Some("#!/usr/bin/env php")), Some("php"));
+        assert_eq!(
+            id("bin/run", Some("#!/usr/bin/env node")),
+            Some("javascript")
+        );
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env fish")), Some("shell"));
+        assert_eq!(id("bin/run", Some("#!/usr/bin/env ruby")), Some("ruby"));
         assert_eq!(id("bin/run", None), None);
         assert_eq!(id("notes.txt", None), None);
 

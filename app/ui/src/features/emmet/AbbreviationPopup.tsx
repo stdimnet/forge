@@ -6,6 +6,7 @@
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { EditorView } from "@codemirror/view";
+import { t } from "@/i18n";
 
 export interface AbbreviationPopupOptions {
   title: string;
@@ -108,7 +109,7 @@ function Popup(props: { popup: PopupState }) {
         class="emmet-popup-input"
         spellcheck={false}
         autocomplete="off"
-        placeholder="Enter abbreviation"
+        placeholder={t("tools.emmet.enterAbbreviation")}
         value={value()}
         onInput={(e) => {
           historyIndex = -1;

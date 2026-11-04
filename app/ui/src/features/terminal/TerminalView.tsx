@@ -45,6 +45,7 @@ import {
 } from "./sessions";
 import { progressLabel } from "./osc";
 import { ProgressRing } from "./ProgressRing";
+import { t } from "@/i18n";
 import "@xterm/xterm/css/xterm.css";
 import "./terminal.css";
 
@@ -57,15 +58,15 @@ function tabMenu(tab: TerminalTab, x: number, y: number) {
   const blocked = !!newTabBlocked();
   const extra = terminalTabActions(tab);
   const items: MenuItem[] = [
-    { label: "New Tab", disabled: blocked, run: () => newTab() },
-    { label: "New Tab in Current Directory", disabled: blocked, run: () => newTabHere() },
-    { label: "Rename Session", run: () => setRenaming(tab.id) },
+    { label: t("tools.terminal.newTab"), disabled: blocked, run: () => newTab() },
+    { label: t("tools.terminal.newTabInCurrentDirectory"), disabled: blocked, run: () => newTabHere() },
+    { label: t("tools.terminal.renameSession"), run: () => setRenaming(tab.id) },
     { separator: true },
     ...extra.flatMap((a): MenuItem[] => [{ label: a.label, icon: a.checked ? Check : undefined, run: a.run }]),
     ...(extra.length ? [{ separator: true }] : []),
-    { label: "Close Tab", shortcut: "Ctrl+Shift+F4", run: () => closeTerminalTab(tab.id) },
+    { label: t("common.closeTab"), shortcut: "Ctrl+Shift+F4", run: () => closeTerminalTab(tab.id) },
     {
-      label: "Close Other Tabs",
+      label: t("tools.terminal.closeOtherTabs"),
       disabled: tabs().length < 2,
       run: () => closeOtherTabs(tab.id).forEach(disposeSession),
     },
@@ -115,10 +116,10 @@ export function TerminalTabs() {
               >
                 <Show when={tab().progress}>{(p) => <ProgressRing progress={p()} />}</Show>
                 <Show when={tab().shared || tab().source?.kind === "collab"}>
-                  <Users size={12} class="term-tab-shared" aria-label="Shared" />
+                  <Users size={12} class="term-tab-shared" aria-label={t("tools.terminal.shared")} />
                 </Show>
                 <Show when={tab().bell && activeTab() !== tab().id}>
-                  <span class="term-tab-bell" title="Bell" />
+                  <span class="term-tab-bell" title={t("tools.terminal.bell")} />
                 </Show>
                 <Show when={renaming() === tab().id} fallback={<span class="term-tab-title">{displayTitle(tab())}</span>}>
                   <input
@@ -135,7 +136,7 @@ export function TerminalTabs() {
                 </Show>
                 <button
                   class="term-tab-close"
-                  title="Close Tab"
+                  title={t("common.closeTab")}
                   onClick={(e) => {
                     e.stopPropagation();
                     closeTerminalTab(tab().id);
@@ -149,13 +150,13 @@ export function TerminalTabs() {
         )}
       </For>
       <Show when={!newTabBlocked()}>
-        <button class="icon-btn term-new" title="New Tab (Ctrl+Shift+T)" onClick={() => newTab()}>
+        <button class="icon-btn term-new" title={t("tools.terminal.newTabCtrlShiftT")} onClick={() => newTab()}>
           <Plus size={15} />
         </button>
       </Show>
       <button
         class="icon-btn term-new"
-        title="New Tab Options"
+        title={t("tools.terminal.newTabOptions")}
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           const id = activeTab();
@@ -163,13 +164,13 @@ export function TerminalTabs() {
             x: r.left,
             y: r.bottom + 4,
             items: [
-              { label: "New Tab", shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
+              { label: t("tools.terminal.newTab"), shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
               ...shellProfiles().map((p) => ({ label: p.label, disabled: !!newTabBlocked(), run: () => void newTab(p.cwd, p.command) })),
-              { label: "New Tab in Current Directory", disabled: !id || !!newTabBlocked(), run: () => newTabHere() },
-              { label: "SSH Session…", run: () => void chooseSshSession() },
+              { label: t("tools.terminal.newTabInCurrentDirectory"), disabled: !id || !!newTabBlocked(), run: () => newTabHere() },
+              { label: t("tools.terminal.sshSessionEllipsis"), run: () => void chooseSshSession() },
               { separator: true },
-              { label: "Rename Session", disabled: !id, run: () => id && setRenaming(id) },
-              { label: "Clear Buffer", disabled: !id, run: () => id && clearBuffer(id) },
+              { label: t("tools.terminal.renameSession"), disabled: !id, run: () => id && setRenaming(id) },
+              { label: t("tools.terminal.clearBuffer"), disabled: !id, run: () => id && clearBuffer(id) },
             ],
           });
         }}
@@ -224,16 +225,16 @@ function TerminalHost(props: { id: string; cwd?: string; command?: TerminalProgr
           x: e.clientX,
           y: e.clientY,
           items: [
-            { label: "Copy", shortcut: "Ctrl+Shift+C", disabled: !hasSelection(id), run: () => void copySelection(id) },
-            { label: "Paste", shortcut: "Ctrl+Shift+V", run: () => void paste(id) },
-            { label: "Select All", run: () => selectAll(id) },
+            { label: t("common.copy"), shortcut: "Ctrl+Shift+C", disabled: !hasSelection(id), run: () => void copySelection(id) },
+            { label: t("tools.terminal.paste"), shortcut: "Ctrl+Shift+V", run: () => void paste(id) },
+            { label: t("tools.terminal.selectAll"), run: () => selectAll(id) },
             { separator: true },
-            { label: "Clear Buffer", run: () => clearBuffer(id) },
+            { label: t("tools.terminal.clearBuffer"), run: () => clearBuffer(id) },
             { separator: true },
-            { label: "New Tab", shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
-            { label: "New Tab in Current Directory", disabled: !!newTabBlocked(), run: () => newTabHere() },
-            { label: "Rename Session", run: () => setRenaming(id) },
-            { label: "Close Tab", run: () => closeTerminalTab(id) },
+            { label: t("tools.terminal.newTab"), shortcut: "Ctrl+Shift+T", disabled: !!newTabBlocked(), run: () => newTab() },
+            { label: t("tools.terminal.newTabInCurrentDirectory"), disabled: !!newTabBlocked(), run: () => newTabHere() },
+            { label: t("tools.terminal.renameSession"), run: () => setRenaming(id) },
+            { label: t("common.closeTab"), run: () => closeTerminalTab(id) },
           ],
         });
       }}
@@ -258,9 +259,9 @@ export function TerminalView() {
             when={!newTabBlocked()}
             fallback={newTabBlocked()}
           >
-            No terminal sessions.{" "}
+            {t("tools.terminal.noTerminalSessions")}
             <button class="link-btn" onClick={() => newTab()}>
-              Open a new tab
+              {t("tools.terminal.openANewTab")}
             </button>
           </Show>
         </div>

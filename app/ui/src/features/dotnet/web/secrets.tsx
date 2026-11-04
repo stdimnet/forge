@@ -11,6 +11,7 @@ import { askConfirm } from "@/features/contextMenu/dialogs";
 import { setChooserDialog } from "@/features/git/overlays";
 import { activeTab, openFile, registerFileSystem } from "@/state/editor";
 import { dotnetWorkspace, errorText, refreshSolution, runnableProjects, showDotnetBalloon } from "../state";
+import { t } from "@/i18n";
 
 const PREFIX = "usersecrets://";
 const idOf = (path: string) => path.slice(PREFIX.length).split("/")[0] ?? "";
@@ -30,9 +31,9 @@ export async function manageUserSecrets(project: string): Promise<void> {
     let s = await dotnetWebApi.userSecrets(project);
     if (!s.id) {
       const ok = await askConfirm({
-        title: "Manage User Secrets",
-        message: `${name} has no UserSecretsId. Add one to ${project.split("/").pop()} and create its secrets.json in your user profile (outside the project)?`,
-        confirm: "Initialize",
+        title: t("langs.dotnet.manageUserSecrets"),
+        message: t("langs.dotnet.hasNoUsersecretsidAddOne2", { name, value: project.split("/").pop() }),
+        confirm: t("langs.dotnet.initialize"),
       });
       if (!ok) return;
       s = await dotnetWebApi.initUserSecrets(project);
@@ -54,10 +55,10 @@ export function manageUserSecretsAction(): void {
   const apps = runnableProjects();
   if (apps.length === 1) return void manageUserSecrets(apps[0]!.path);
   setChooserDialog({
-    title: "Manage User Secrets",
-    items: projects.map((p) => ({ id: p.path, label: p.name, detail: p.properties.UserSecretsId ? `UserSecretsId ${p.properties.UserSecretsId}` : "No UserSecretsId yet" })),
+    title: t("langs.dotnet.manageUserSecrets"),
+    items: projects.map((p) => ({ id: p.path, label: p.name, detail: p.properties.UserSecretsId ? `UserSecretsId ${p.properties.UserSecretsId}` : t("langs.dotnet.noUsersecretsidYet") })),
     empty: "No projects",
-    okLabel: "Open",
+    okLabel: t("common.open"),
     onOk: (item) => void manageUserSecrets(item.id),
   });
 }

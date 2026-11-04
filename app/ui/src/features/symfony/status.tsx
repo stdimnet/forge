@@ -7,6 +7,7 @@ import { showToolWindow } from "@/state/layout";
 import { setActiveTab } from "./console";
 import { openConsolePopup } from "./ConsolePopup";
 import { loadSymfony, shortVersion, symfonyActive, symfonyInfo } from "./store";
+import { t } from "@/i18n";
 
 function Menu(props: { x: number; y: number; onClose: () => void }) {
   const onDoc = (e: MouseEvent) => {
@@ -53,7 +54,7 @@ export function SymfonyStatus() {
         <>
           <button
             class="status-item status-project-type"
-            title={`Symfony ${i().version ?? ""} (${i().environment})${i().containerXml ? `\nContainer: ${i().containerXml}` : ""}\n${i().routes} routes, ${i().services} services, ${i().templates} templates`}
+            title={t("langs.symfony.symfonyRoutesServicesTemplates", { value: i().version ?? "", environment: i().environment, value2: i().containerXml ? `\nContainer: ${i().containerXml}` : "", routes: i().routes, services: i().services, templates: i().templates })}
             onClick={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
               setMenu(menu() ? null : { x: Math.min(r.left, window.innerWidth - 240), y: window.innerHeight - r.top + 4 });

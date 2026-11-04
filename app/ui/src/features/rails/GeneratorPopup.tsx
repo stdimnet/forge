@@ -11,6 +11,7 @@ import { railsApi, type RailsGenerator, type RailsGenerators } from "@/ipc/rails
 import { runRubyCommand } from "@/features/ruby/state";
 import { shortcutLabel } from "@/keymap";
 import { errorText, loadRailsProject, showRailsBalloon } from "./state";
+import { t } from "@/i18n";
 
 const [open, setOpen] = createSignal(false);
 const [destroy, setDestroy] = createSignal(false);
@@ -110,16 +111,16 @@ export function GeneratorPopup() {
   return (
     <Show when={open()}>
       <div class="popup-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeGeneratorPopup()}>
-        <div class="popup rails-gen-popup" role="dialog" aria-label={destroy() ? "Destroy Generated Code" : "Run Rails Generator"}>
+        <div class="popup rails-gen-popup" role="dialog" aria-label={destroy() ? t("langs.rails.destroyGeneratedCode") : t("langs.rails.runRailsGenerator")}>
           <div class="cli-popup-header">
             <Wand2 size={15} class="cli-popup-icon" />
-            <span class="cli-popup-title">{destroy() ? "Destroy Generated Code" : "Run Rails Generator"}</span>
-            <span class="muted rails-gen-source">{list()?.source === "rails" ? "Generators from bin/rails generate" : "Rails and project generators"}</span>
+            <span class="cli-popup-title">{destroy() ? t("langs.rails.destroyGeneratedCode") : t("langs.rails.runRailsGenerator")}</span>
+            <span class="muted rails-gen-source">{list()?.source === "rails" ? t("langs.rails.generatorsFromBinRailsGenerate") : t("langs.rails.railsAndProjectGenerators")}</span>
             <span class="kbd cli-popup-shortcut">{shortcutLabel("rails.generate")}</span>
-            <button class="icon-btn" title="Reload Generators" onClick={() => void load(true)}>
+            <button class="icon-btn" title={t("langs.rails.reloadGenerators")} onClick={() => void load(true)}>
               <RefreshCw size={13} classList={{ spin: loading() }} />
             </button>
-            <button class="icon-btn" title="Close (Esc)" onClick={closeGeneratorPopup}>
+            <button class="icon-btn" title={t("common.closeEsc")} onClick={closeGeneratorPopup}>
               <X size={14} />
             </button>
           </div>
@@ -134,7 +135,7 @@ export function GeneratorPopup() {
                 queueMicrotask(() => el.focus());
               }}
               value={text()}
-              placeholder="model Article title:string body:text"
+              placeholder={t("langs.rails.modelArticleTitleStringBody")}
               spellcheck={false}
               onInput={(e) => {
                 setText(e.currentTarget.value);
@@ -146,7 +147,7 @@ export function GeneratorPopup() {
           <Show when={current()}>
             {(g) => (
               <div class="rails-gen-usage">
-                <span class="rails-gen-usage-label muted">Usage:</span>
+                <span class="rails-gen-usage-label muted">{t("langs.rails.usageLabel")}</span>
                 <code>
                   rails {verb()} {g().name} {g().usage}
                 </code>
@@ -171,22 +172,22 @@ export function GeneratorPopup() {
               )}
             </For>
             <Show when={!matches().length && !loading()}>
-              <div class="rails-gen-empty muted">No matching generators</div>
+              <div class="rails-gen-empty muted">{t("langs.rails.noMatchingGenerators")}</div>
             </Show>
           </div>
           <div class="rails-gen-options">
             <label>
-              <input type="checkbox" checked={pretend()} onChange={(e) => setPretend(e.currentTarget.checked)} /> Pretend (--pretend)
+              <input type="checkbox" checked={pretend()} onChange={(e) => setPretend(e.currentTarget.checked)} /> {t("langs.rails.pretendPretend")}
             </label>
             <label>
-              <input type="checkbox" checked={force()} onChange={(e) => setForce(e.currentTarget.checked)} /> Overwrite files (--force)
+              <input type="checkbox" checked={force()} onChange={(e) => setForce(e.currentTarget.checked)} /> {t("langs.rails.overwriteFilesForce")}
             </label>
             <label>
-              <input type="checkbox" checked={skip()} onChange={(e) => setSkip(e.currentTarget.checked)} /> Skip existing (--skip)
+              <input type="checkbox" checked={skip()} onChange={(e) => setSkip(e.currentTarget.checked)} /> {t("langs.rails.skipExistingSkip")}
             </label>
           </div>
           <div class="cli-popup-footer muted">
-            <span>Tab to complete · ↑↓ to choose · Enter to run in the Run tool window · Esc to close</span>
+            <span>{t("langs.rails.tabToCompleteToChoose")}</span>
           </div>
         </div>
       </div>

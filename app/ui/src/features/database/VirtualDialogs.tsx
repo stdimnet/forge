@@ -118,7 +118,7 @@ function ForeignKeyDialog(p: { ds: string; schema: string; table: string; column
         <input class="dsd-input" placeholder={`vfk_${p.table}_${p.column}_${selected()?.table.name ?? ""}`} value={name()} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
       </div>
       <div class="dsd-hint muted">
-        Virtual foreign keys are stored in the project (.forge/database/virtual.toml), not in the database. Navigation, Quick Documentation and join completion use them.
+        {tr("tools.database.virtualForeignKeysAreStored")}
       </div>
     </Modal>
   );
@@ -142,7 +142,7 @@ function ColumnDialog(p: { ds: string; schema: string; table: string }) {
         <span class="db-form-label">{tr("database.virtualDialogs.name")}</span>
         <input class="dsd-input" value={name()} spellcheck={false} onInput={(e) => setName(e.currentTarget.value)} />
         <span class="db-form-label">{tr("database.virtualDialogs.expression")}</span>
-        <input class="dsd-input" placeholder={"price * quantity"} value={expression()} spellcheck={false} onInput={(e) => setExpression(e.currentTarget.value)} />
+        <input class="dsd-input" placeholder={tr("tools.database.priceQuantity")} value={expression()} spellcheck={false} onInput={(e) => setExpression(e.currentTarget.value)} />
         <span class="db-form-label">{tr("database.virtualDialogs.type")}</span>
         <input class="dsd-input" placeholder="numeric" value={type()} spellcheck={false} onInput={(e) => setType(e.currentTarget.value)} />
       </div>

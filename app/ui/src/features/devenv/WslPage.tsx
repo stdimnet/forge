@@ -9,6 +9,7 @@ import { wslApi, type WslDistro } from "@/ipc/devenv";
 import type { RecentProject } from "@/ipc/workspace";
 import { connecting } from "@/features/remote/store";
 import { openWslProject } from "./store";
+import { t } from "@/i18n";
 
 export function WslPage(props: { recent: RecentProject[]; row: (p: RecentProject) => unknown; onError: (message: string) => void }) {
   const [info, { refetch }] = createResource(() => wslApi.distributions());
@@ -21,15 +22,14 @@ export function WslPage(props: { recent: RecentProject[]; row: (p: RecentProject
       <div class="welcome-remote-head">
         <h2>WSL</h2>
         <p class="muted">
-          Open a project inside a Windows Subsystem for Linux distribution. Forge runs its agent in the distribution, so
-          files are read at Linux speed and PHP, Composer, Node.js, git and language servers are the distribution's.
+          {t("tools.devenv.openAProjectInsideA")}
         </p>
       </div>
       <div class="welcome-remote-section">
         <div class="welcome-remote-section-title">
           <SquareTerminal size={15} />
-          <span>Distributions</span>
-          <button class="icon-btn welcome-remote-new" title="Refresh" onClick={() => void refetch()}>
+          <span>{t("tools.devenv.distributions")}</span>
+          <button class="icon-btn welcome-remote-new" title={t("common.refresh")} onClick={() => void refetch()}>
             <RefreshCw size={13} />
           </button>
         </div>
@@ -42,34 +42,34 @@ export function WslPage(props: { recent: RecentProject[]; row: (p: RecentProject
         </Show>
         <Show when={info.loading && !info()}>
           <div class="muted devc-loading">
-            <LoaderCircle size={14} class="ssh-spin" /> Asking wsl.exe…
+            <LoaderCircle size={14} class="ssh-spin" /> {t("tools.devenv.askingWslExeEllipsis")}
           </div>
         </Show>
         <Show when={info() && !info()!.available}>
           <div class="welcome-remote-empty">
             <SquareTerminal size={30} class="muted" />
-            <p>{info()!.error ?? "WSL is not installed."}</p>
-            <p class="muted ssh-small">Install it on Windows with <span class="mono">wsl --install</span>.</p>
+            <p>{info()!.error ?? t("tools.devenv.wslIsNotInstalled")}</p>
+            <p class="muted ssh-small">{t("tools.devenv.installItOnWindowsWith")} <span class="mono">{t("tools.devenv.wslInstall")}</span>.</p>
           </div>
         </Show>
         <Show when={info()?.available && info()!.distros.length === 0}>
           <div class="welcome-remote-empty">
             <SquareTerminal size={30} class="muted" />
-            <p>{info()!.error ?? "No distributions are installed."}</p>
+            <p>{info()!.error ?? t("tools.devenv.noDistributionsAreInstalled")}</p>
           </div>
         </Show>
         <Show when={recent().length}>
-          <div class="welcome-remote-group">Recent projects</div>
+          <div class="welcome-remote-group">{t("tools.devenv.recentProjects")}</div>
           <div class="welcome-list">
             <For each={recent()}>{(p) => <>{props.row(p)}</>}</For>
           </div>
         </Show>
         <Show when={info()?.distros.length}>
-          <div class="welcome-remote-group">Choose a distribution</div>
+          <div class="welcome-remote-group">{t("tools.devenv.chooseADistribution")}</div>
           <div class="welcome-list" data-testid="wsl-distros">
             <For each={info()!.distros}>
               {(d) => (
-                <button class="welcome-project" onClick={() => open(d)} title={`Choose a folder in ${d.name}`} data-distro={d.name}>
+                <button class="welcome-project" onClick={() => open(d)} title={t("tools.devenv.chooseAFolderIn", { name: d.name })} data-distro={d.name}>
                   <span class="welcome-badge devc-badge wsl-badge">
                     <SquareTerminal size={16} />
                   </span>
@@ -77,14 +77,14 @@ export function WslPage(props: { recent: RecentProject[]; row: (p: RecentProject
                     <span class="welcome-project-name">
                       {d.name}
                       <Show when={d.default}>
-                        <span class="devc-state">Default</span>
+                        <span class="devc-state">{t("common.default")}</span>
                       </Show>
                     </span>
                     <span class="welcome-project-path">
-                      WSL {d.version} · {d.state}
+                      {t("tools.devenv.wsl", { version: d.version, state: d.state })}
                     </span>
                   </span>
-                  <span class="welcome-project-type">Open Folder…</span>
+                  <span class="welcome-project-type">{t("tools.devenv.openFolderEllipsis")}</span>
                 </button>
               )}
             </For>

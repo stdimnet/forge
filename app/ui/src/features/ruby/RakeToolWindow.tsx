@@ -15,6 +15,7 @@ import { useTemporary } from "@/features/run/configStore";
 import { debugConfiguration, launch } from "@/features/run/runStore";
 import { revealSymbol } from "@/features/php/editorViews";
 import { rakeLoading, rakeTasks, refreshRake } from "./state";
+import { t as tr } from "@/i18n";
 import "./ruby.css";
 
 /** The Rake configuration of a task. */
@@ -73,29 +74,29 @@ export function RakeToolWindow() {
   return (
     <div class="rake-tw">
       <div class="rake-toolbar">
-        <button class="icon-btn" title="Reload Rake Tasks" data-action="rake-reload" onClick={() => void refreshRake(true)}>
+        <button class="icon-btn" title={tr("langs.ruby.reloadRakeTasks")} data-action="rake-reload" onClick={() => void refreshRake(true)}>
           <RefreshCw size={14} classList={{ "rake-spin": rakeLoading() }} />
         </button>
         <span class="rake-sep" />
-        <button class="icon-btn" title="Run Task" disabled={!selectedTask()} onClick={() => run(selectedTask())}>
+        <button class="icon-btn" title={tr("langs.ruby.runTask")} disabled={!selectedTask()} onClick={() => run(selectedTask())}>
           <Play size={14} class="rake-run" />
         </button>
-        <button class="icon-btn" title="Debug Task" disabled={!selectedTask()} onClick={() => debug(selectedTask())}>
+        <button class="icon-btn" title={tr("langs.ruby.debugTask")} disabled={!selectedTask()} onClick={() => debug(selectedTask())}>
           <Bug size={14} class="rake-run" />
         </button>
-        <button class="icon-btn" title="Jump to Source" disabled={!selectedTask()?.file} onClick={() => jump(selectedTask())}>
+        <button class="icon-btn" title={tr("langs.ruby.jumpToSource")} disabled={!selectedTask()?.file} onClick={() => jump(selectedTask())}>
           <FileCode size={14} />
         </button>
-        <input class="rake-filter" type="search" placeholder="Filter tasks" value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
+        <input class="rake-filter" type="search" placeholder={tr("langs.ruby.filterTasks")} value={filter()} onInput={(e) => setFilter(e.currentTarget.value)} />
       </div>
       <Show when={rakeTasks()?.error}>
         <div class="rake-message muted" title={rakeTasks()?.error}>
-          {rakeTasks()?.source === "files" ? "Tasks read from the Rakefile: " : ""}
+          {rakeTasks()?.source === "files" ? tr("langs.ruby.tasksReadFromTheRakefileLabel") : ""}
           {rakeTasks()?.error}
         </div>
       </Show>
       <Show when={rakeTasks() && !rakeTasks()!.tasks.length}>
-        <div class="rake-message muted">{rakeLoading() ? "Loading Rake tasks…" : "No Rake tasks"}</div>
+        <div class="rake-message muted">{rakeLoading() ? tr("langs.ruby.loadingRakeTasksEllipsis") : tr("langs.ruby.noRakeTasks")}</div>
       </Show>
       <div class="rake-tree" role="tree">
         <For each={rows()}>

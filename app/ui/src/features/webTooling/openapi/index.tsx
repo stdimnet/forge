@@ -28,7 +28,7 @@ const active = () => isPluginActive("forge.openapi");
 
 registerEndpointsView({
   id: "openapi",
-  title: "OpenAPI",
+  title: t("langs.webTooling.openapi"),
   order: 30,
   when: () => active() && openApiFiles().length > 0,
   component: OpenApiEndpointsView,
@@ -59,7 +59,7 @@ registerCommand({
   run: () => {
     const a = activeView();
     const file = a && openApiFiles().find((f) => f.path === a.path);
-    if (!a || !file) return void showBalloon("Generate HTTP Request", "Put the caret on an operation of an OpenAPI file.");
+    if (!a || !file) return void showBalloon(t("common.generateHttpRequest"), t("langs.webTooling.putTheCaretOnAn"));
     const line = a.view.state.doc.lineAt(a.view.state.selection.main.head).number - 1;
     // The operation whose method key is on or above the caret.
     const ep = [...file.endpoints].reverse().find((e) => e.line <= line) ?? file.endpoints[0];

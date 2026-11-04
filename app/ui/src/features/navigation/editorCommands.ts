@@ -23,7 +23,6 @@ import {
   findNext,
   findPrevious,
   gotoLine,
-  openSearchPanel,
   selectNextOccurrence,
   selectSelectionMatches,
 } from "@codemirror/search";
@@ -32,6 +31,7 @@ import { registerEditorExtension } from "@/editor/extensions";
 import { editor } from "@/state/editor";
 import { viewFor as sharedViewFor } from "@/editor/views";
 import { gotoHighlightedUsage } from "@/editor/usageHighlight";
+import { openFind, openReplace } from "@/features/find/findBar/commands";
 
 const views = new Map<string, EditorView>();
 
@@ -196,8 +196,9 @@ export const EDITOR_COMMANDS: Record<string, CmCommand> = {
   ExpandAllRegions: unfoldAll,
   CollapseAllRegions: foldAll,
   CodeCompletion: startCompletion,
-  Find: openSearchPanel,
-  Replace: openSearchPanel,
+  // The Find/Replace bar opens collapsed for Find and with the replace row for Replace.
+  Find: openFind,
+  Replace: openReplace,
   // After Highlight Usages in File (Ctrl+Shift+F7), F3 / Shift+F3 jump between the usages.
   FindNext: (view) => gotoHighlightedUsage(view, 1) || findNext(view),
   FindPrevious: (view) => gotoHighlightedUsage(view, -1) || findPrevious(view),
@@ -211,5 +212,8 @@ export function runInEditor(cmd: CmCommand): void {
   const view = activeView();
   if (!view) return;
   cmd(view);
-  view.focus();
+  // Commands that focus one of the editor's panels (the Find/Replace bar, Go to Line), or run
+  // from there (F3 in the bar), leave the focus in the panel.
+  const focused = document.activeElement;
+  if (!(focused?.closest(".cm-panels") && view.dom.contains(focused))) view.focus();
 }

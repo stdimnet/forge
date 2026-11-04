@@ -27,6 +27,7 @@ import {
   type PathMapping,
   type PhpInterpreter,
 } from "./interpreters";
+import { t } from "@/i18n";
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -160,7 +161,7 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
   return (
     <>
       <Modal
-        title="CLI Interpreters"
+        title={t("langs.php.cliInterpreters")}
         width={860}
         class="php-interp-main"
         testId="php-interpreters-dialog"
@@ -169,7 +170,7 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
         buttons={
           <>
             <button class="btn-secondary" onClick={props.onClose}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button class="btn-primary" onClick={ok}>
               OK
@@ -181,13 +182,13 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
           <div class="php-interp-list">
             <div class="php-interp-toolbar">
               <div class="php-interp-add">
-                <button class="icon-btn" title="Add" data-testid="php-interp-add" onClick={() => setAddMenu(!addMenu())}>
+                <button class="icon-btn" title={t("common.add")} data-testid="php-interp-add" onClick={() => setAddMenu(!addMenu())}>
                   <Plus size={14} />
                 </button>
                 <Show when={addMenu()}>
                   <div class="php-interp-menu" data-testid="php-interp-add-menu" onMouseLeave={() => setAddMenu(false)}>
                     <button onClick={() => addLocal()}>
-                      <Terminal size={13} /> Local Path to Interpreter…
+                      <Terminal size={13} /> {t("langs.php.localPathToInterpreterEllipsis")}
                     </button>
                     <button
                       onClick={() => {
@@ -195,10 +196,10 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
                         setRemote(true);
                       }}
                     >
-                      <Box size={13} /> From Docker, Vagrant, VM, WSL, Remote…
+                      <Box size={13} /> {t("langs.php.fromDockerVagrantVmWslEllipsis")}
                     </button>
                     <Show when={(detected() ?? []).length}>
-                      <div class="php-interp-menu-sep">Detected</div>
+                      <div class="php-interp-menu-sep">{t("common.detected")}</div>
                       <For each={detected()}>
                         {(d) => (
                           <button title={d.path} onClick={() => addLocal(d.path, d.version)}>
@@ -210,15 +211,15 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
                   </div>
                 </Show>
               </div>
-              <button class="icon-btn" title="Remove" disabled={!sel()} onClick={remove}>
+              <button class="icon-btn" title={t("common.remove")} disabled={!sel()} onClick={remove}>
                 <Minus size={14} />
               </button>
-              <button class="icon-btn" title="Copy" disabled={!sel()} onClick={copy}>
+              <button class="icon-btn" title={t("common.copy")} disabled={!sel()} onClick={copy}>
                 <Copy size={13} />
               </button>
             </div>
             <div class="php-interp-items">
-              <For each={list} fallback={<div class="php-hint php-interp-empty">No interpreters configured. Click + to add one.</div>}>
+              <For each={list} fallback={<div class="php-hint php-interp-empty">{t("langs.php.noInterpretersConfiguredClickTo")}</div>}>
                 {(i) => (
                   <div class="tree-row php-interp-row" classList={{ selected: i.id === current() }} data-interpreter={i.name} onClick={() => setCurrent(i.id)}>
                     <span class="php-interp-icon">{KIND_ICONS[i.kind]({ size: 13 })}</span>
@@ -232,7 +233,7 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
             </div>
           </div>
           <div class="php-interp-form">
-            <Show when={sel()} fallback={<div class="php-hint">Add a local or remote interpreter to run scripts and tests.</div>}>
+            <Show when={sel()} fallback={<div class="php-hint">{t("langs.php.addALocalOrRemote")}</div>}>
               {(s) => (
                 <InterpreterForm
                   interp={s()}
@@ -266,12 +267,12 @@ export function InterpretersDialog(props: InterpretersDialogProps) {
             onClose={() => setPhpinfo(null)}
             buttons={
               <button class="btn-primary" onClick={() => setPhpinfo(null)}>
-                Close
+                {t("common.close")}
               </button>
             }
           >
             <div class="dialog-body">
-              <Show when={p().text !== null} fallback={<div class="php-hint">Running php -i…</div>}>
+              <Show when={p().text !== null} fallback={<div class="php-hint">{t("langs.php.runningPhpIEllipsis")}</div>}>
                 <Show when={p().error}>
                   <div class="dialog-error">{p().error}</div>
                 </Show>
@@ -322,30 +323,30 @@ function InterpreterForm(props: {
   const [ssh] = createResource(() => (i().kind === "ssh" ? remoteApi.configs().catch((): SshConfigView[] => []) : Promise.resolve([] as SshConfigView[])));
   return (
     <div class="php-interp-fields">
-      <Row label="Name:" for="php-interp-name">
+      <Row label={t("common.nameLabel")} for="php-interp-name">
         <input id="php-interp-name" type="text" value={i().name} onInput={(e) => props.edit((x) => (x.name = e.currentTarget.value))} />
       </Row>
       <label class="php-interp-check">
         <input type="checkbox" checked={i().project} onChange={(e) => props.edit((x) => (x.project = e.currentTarget.checked))} />
-        Visible only for this project
+        {t("langs.php.visibleOnlyForThisProject")}
       </label>
 
       <Show when={remote()}>
         <div class="php-interp-section">{KIND_LABELS[i().kind]}</div>
         <Switch>
           <Match when={i().kind === "docker"}>
-            <Row label="Server:">
+            <Row label={t("langs.php.serverLabel")}>
               <input type="text" value={i().dockerServer || "Docker"} onChange={(e) => props.edit((x) => (x.dockerServer = e.currentTarget.value.trim() === "Docker" ? "" : e.currentTarget.value.trim()))} />
             </Row>
-            <Row label="Image name:">
+            <Row label={t("langs.php.imageNameLabel")}>
               <input type="text" value={i().image} placeholder="php:8.3-cli" onInput={(e) => props.edit((x) => (x.image = e.currentTarget.value))} />
             </Row>
           </Match>
           <Match when={i().kind === "compose"}>
-            <Row label="Server:">
+            <Row label={t("langs.php.serverLabel")}>
               <input type="text" value={i().dockerServer || "Docker"} onChange={(e) => props.edit((x) => (x.dockerServer = e.currentTarget.value.trim() === "Docker" ? "" : e.currentTarget.value.trim()))} />
             </Row>
-            <Row label="Configuration files:">
+            <Row label={t("langs.php.configurationFilesLabel")}>
               <input
                 type="text"
                 value={i().composeFiles.join("; ")}
@@ -353,40 +354,40 @@ function InterpreterForm(props: {
                 onChange={(e) => props.edit((x) => (x.composeFiles = e.currentTarget.value.split(";").map((f) => f.trim()).filter(Boolean)))}
               />
             </Row>
-            <Row label="Service:">
+            <Row label={t("langs.php.serviceLabel")}>
               <input type="text" value={i().service} placeholder="app" onInput={(e) => props.edit((x) => (x.service = e.currentTarget.value))} />
             </Row>
-            <Row label="Lifecycle:">
+            <Row label={t("langs.php.lifecycleLabel")}>
               <div class="php-interp-radios">
                 <label>
                   <input type="radio" name="php-lifecycle" checked={i().lifecycle === "run"} onChange={() => props.edit((x) => (x.lifecycle = "run"))} />
-                  Always start a new container ('docker compose run')
+                  {t("langs.php.alwaysStartANewContainer")}
                 </label>
                 <label>
                   <input type="radio" name="php-lifecycle" checked={i().lifecycle === "exec"} onChange={() => props.edit((x) => (x.lifecycle = "exec"))} />
-                  Connect to existing container ('docker compose exec')
+                  {t("langs.php.connectToExistingContainerDocker")}
                 </label>
               </div>
             </Row>
           </Match>
           <Match when={i().kind === "ssh"}>
-            <Row label="SSH configuration:">
+            <Row label={t("common.sshConfigurationLabel")}>
               <select value={i().sshConfig} onChange={(e) => props.edit((x) => (x.sshConfig = e.currentTarget.value))}>
-                <option value="">Select an SSH configuration</option>
+                <option value="">{t("langs.php.selectAnSshConfiguration")}</option>
                 <For each={ssh() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
               </select>
             </Row>
           </Match>
           <Match when={i().kind === "wsl"}>
-            <Row label="Distribution:">
-              <input type="text" value={i().distribution} placeholder="Default distribution" onInput={(e) => props.edit((x) => (x.distribution = e.currentTarget.value))} />
+            <Row label={t("langs.php.distributionLabel")}>
+              <input type="text" value={i().distribution} placeholder={t("langs.php.defaultDistribution")} onInput={(e) => props.edit((x) => (x.distribution = e.currentTarget.value))} />
             </Row>
           </Match>
         </Switch>
       </Show>
 
-      <div class="php-interp-section">General</div>
-      <Row label="PHP executable:" for="php-interp-path">
+      <div class="php-interp-section">{t("langs.php.general")}</div>
+      <Row label={t("langs.php.phpExecutableLabel")} for="php-interp-path">
         <div class="php-interp-path">
           <input
             id="php-interp-path"
@@ -398,7 +399,7 @@ function InterpreterForm(props: {
           <Show when={!remote()}>
             <button
               class="icon-btn"
-              title="Browse for the PHP executable"
+              title={t("langs.php.browseForThePhpExecutable")}
               onClick={async () => {
                 const p = await browseFile();
                 if (p) props.edit((x) => (x.path = p));
@@ -407,28 +408,28 @@ function InterpreterForm(props: {
               <FolderOpen size={14} />
             </button>
           </Show>
-          <button class="icon-btn" title="Reload phpinfo" data-testid="php-interp-reload" disabled={props.reloading} onClick={props.onReload}>
+          <button class="icon-btn" title={t("langs.php.reloadPhpinfo")} data-testid="php-interp-reload" disabled={props.reloading} onClick={props.onReload}>
             <RefreshCw size={14} class={props.reloading ? "php-spin" : undefined} />
           </button>
         </div>
       </Row>
-      <Row label="PHP version:">
+      <Row label={t("langs.php.phpVersionLabel")}>
         <span class="php-interp-info" data-testid="php-interp-version">
-          {props.reloading ? "Detecting…" : i().version ? i().version : "Not detected (click Reload)"}
+          {props.reloading ? t("langs.php.detectingEllipsis") : i().version ? i().version : t("langs.php.notDetectedClickReload")}
         </span>
       </Row>
-      <Row label="Configuration file:">
-        <span class="php-interp-info php-interp-mono">{i().configFile || (i().version ? "Not found" : "")}</span>
+      <Row label={t("langs.php.configurationFileLabel")}>
+        <span class="php-interp-info php-interp-mono">{i().configFile || (i().version ? t("common.notFound2") : "")}</span>
       </Row>
       <Show when={i().additionalIni}>
-        <Row label="Additional .ini files:">
+        <Row label={t("langs.php.additionalIniFilesLabel")}>
           <span class="php-interp-info php-interp-mono php-interp-wrap">{i().additionalIni}</span>
         </Row>
       </Show>
-      <Row label="Debugger:">
-        <span class="php-interp-info">{i().xdebug ? `Xdebug ${i().xdebug === "unknown" ? "" : i().xdebug}`.trim() : i().version ? "Not installed" : ""}</span>
+      <Row label={t("langs.php.debuggerLabel")}>
+        <span class="php-interp-info">{i().xdebug ? `Xdebug ${i().xdebug === "unknown" ? "" : i().xdebug}`.trim() : i().version ? t("common.notInstalled") : ""}</span>
       </Row>
-      <Row label="Debugger extension:">
+      <Row label={t("langs.php.debuggerExtensionLabel")}>
         <input
           type="text"
           value={i().debuggerExtension}
@@ -443,17 +444,17 @@ function InterpreterForm(props: {
       </Show>
 
       <Show when={remote()}>
-        <div class="php-interp-section">Path mappings</div>
+        <div class="php-interp-section">{t("langs.php.pathMappings")}</div>
         <div class="php-interp-table" data-testid="php-interp-mappings">
           <div class="php-interp-thead">
-            <span>Local Path</span>
-            <span>Remote Path</span>
+            <span>{t("langs.php.localPath")}</span>
+            <span>{t("langs.php.remotePath")}</span>
             <span />
           </div>
           <For each={automatic()}>
             {(m) => (
-              <div class="php-interp-trow auto" title="Derived from the interpreter">
-                <span class="php-interp-mono">{m.local || "<Project root>"}</span>
+              <div class="php-interp-trow auto" title={t("langs.php.derivedFromTheInterpreter")}>
+                <span class="php-interp-mono">{m.local || t("langs.php.projectRoot")}</span>
                 <span class="php-interp-mono">{m.remote}</span>
                 <span class="php-hint">auto</span>
               </div>
@@ -462,45 +463,45 @@ function InterpreterForm(props: {
           <For each={i().mappings}>
             {(m, n) => (
               <div class="php-interp-trow">
-                <input type="text" value={m.local} placeholder="<Project root>" onChange={(e) => props.edit((x) => (x.mappings[n()].local = e.currentTarget.value.trim()))} />
+                <input type="text" value={m.local} placeholder={t("langs.php.projectRoot")} onChange={(e) => props.edit((x) => (x.mappings[n()].local = e.currentTarget.value.trim()))} />
                 <input type="text" value={m.remote} placeholder="/var/www/html" onChange={(e) => props.edit((x) => (x.mappings[n()].remote = e.currentTarget.value.trim()))} />
-                <button class="icon-btn" title="Remove Mapping" onClick={() => props.edit((x) => x.mappings.splice(n(), 1))}>
+                <button class="icon-btn" title={t("langs.php.removeMapping")} onClick={() => props.edit((x) => x.mappings.splice(n(), 1))}>
                   <Minus size={13} />
                 </button>
               </div>
             )}
           </For>
           <button class="php-interp-link" onClick={() => props.edit((x) => x.mappings.push({ local: "", remote: "" }))}>
-            <Plus size={12} /> Add mapping
+            <Plus size={12} /> {t("langs.php.addMapping")}
           </button>
         </div>
       </Show>
 
-      <div class="php-interp-section">Additional</div>
+      <div class="php-interp-section">{t("langs.php.additional")}</div>
       <div class="php-interp-table" data-testid="php-interp-options">
         <div class="php-interp-thead">
-          <span>Configuration directive</span>
-          <span>Value</span>
+          <span>{t("langs.php.configurationDirective")}</span>
+          <span>{t("common.value")}</span>
           <span />
         </div>
-        <For each={i().options} fallback={<div class="php-hint php-interp-none">No configuration options (passed as -d name=value)</div>}>
+        <For each={i().options} fallback={<div class="php-hint php-interp-none">{t("langs.php.noConfigurationOptionsPassedAs")}</div>}>
           {(o, n) => (
             <div class="php-interp-trow">
               <input type="text" value={o.name} placeholder="memory_limit" onChange={(e) => props.edit((x) => (x.options[n()].name = e.currentTarget.value.trim()))} />
               <input type="text" value={o.value} placeholder="-1" onChange={(e) => props.edit((x) => (x.options[n()].value = e.currentTarget.value.trim()))} />
-              <button class="icon-btn" title="Remove" onClick={() => props.edit((x) => x.options.splice(n(), 1))}>
+              <button class="icon-btn" title={t("common.remove")} onClick={() => props.edit((x) => x.options.splice(n(), 1))}>
                 <Minus size={13} />
               </button>
             </div>
           )}
         </For>
         <button class="php-interp-link" onClick={() => props.edit((x) => x.options.push({ name: "", value: "" }))}>
-          <Plus size={12} /> Add option
+          <Plus size={12} /> {t("langs.php.addOption")}
         </button>
       </div>
       <div class="php-interp-actions">
         <button class="btn-secondary" data-testid="php-interp-phpinfo" onClick={props.onPhpinfo}>
-          Show phpinfo
+          {t("langs.php.showPhpinfo")}
         </button>
         <span class="php-hint">{interpreterDetail(i())}</span>
       </div>
@@ -550,13 +551,13 @@ export function RemoteInterpreterDialog(props: { onClose: () => void; onOk: (i: 
   };
   const kinds: { id: InterpreterKind; label: string }[] = [
     { id: "docker", label: "Docker" },
-    { id: "compose", label: "Docker Compose" },
+    { id: "compose", label: t("langs.php.dockerCompose") },
     { id: "ssh", label: "SSH" },
     { id: "wsl", label: "WSL" },
   ];
   return (
     <Modal
-      title="Configure Remote PHP Interpreter"
+      title={t("langs.php.configureRemotePhpInterpreter")}
       width={560}
       testId="php-remote-interpreter-dialog"
       onClose={props.onClose}
@@ -564,7 +565,7 @@ export function RemoteInterpreterDialog(props: { onClose: () => void; onOk: (i: 
       buttons={
         <>
           <button class="btn-secondary" onClick={props.onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button class="btn-primary" disabled={!valid()} onClick={ok}>
             OK
@@ -576,7 +577,7 @@ export function RemoteInterpreterDialog(props: { onClose: () => void; onOk: (i: 
         <div class="php-interp-kinds">
           <For each={kinds}>
             {(k) => (
-              <label classList={{ disabled: k.id === "wsl" && !windows() }} title={k.id === "wsl" && !windows() ? "WSL is available on Windows" : undefined}>
+              <label classList={{ disabled: k.id === "wsl" && !windows() }} title={k.id === "wsl" && !windows() ? t("langs.php.wslIsAvailableOnWindows") : undefined}>
                 <input type="radio" name="php-remote-kind" checked={kind() === k.id} disabled={k.id === "wsl" && !windows()} onChange={() => setKind(k.id)} />
                 {k.label}
               </label>
@@ -585,7 +586,7 @@ export function RemoteInterpreterDialog(props: { onClose: () => void; onOk: (i: 
         </div>
         <Switch>
           <Match when={kind() === "docker" || kind() === "compose"}>
-            <Row label="Server:">
+            <Row label={t("langs.php.serverLabel")}>
               <select value={draft.dockerServer} onChange={(e) => setDraft("dockerServer", e.currentTarget.value)}>
                 <option value="">Docker</option>
                 <For each={(contexts() ?? []).filter((c) => c.name !== "default")}>{(c) => <option value={c.name}>{c.name}</option>}</For>
@@ -594,12 +595,12 @@ export function RemoteInterpreterDialog(props: { onClose: () => void; onOk: (i: 
             <Show
               when={kind() === "compose"}
               fallback={
-                <Row label="Image name:" for="php-remote-image">
+                <Row label={t("langs.php.imageNameLabel")} for="php-remote-image">
                   <input id="php-remote-image" type="text" value={draft.image} placeholder="php:8.3-cli" onInput={(e) => setDraft("image", e.currentTarget.value)} />
                 </Row>
               }
             >
-              <Row label="Configuration files:">
+              <Row label={t("langs.php.configurationFilesLabel")}>
                 <input
                   type="text"
                   value={draft.composeFiles.join("; ")}
@@ -615,48 +616,48 @@ export function RemoteInterpreterDialog(props: { onClose: () => void; onOk: (i: 
                   }
                 />
               </Row>
-              <Row label="Service:">
+              <Row label={t("langs.php.serviceLabel")}>
                 <select value={draft.service} onChange={(e) => setDraft("service", e.currentTarget.value)}>
                   <Show when={!(services() ?? []).length}>
-                    <option value="">No services found</option>
+                    <option value="">{t("langs.php.noServicesFound")}</option>
                   </Show>
                   <For each={services() ?? []}>{(s) => <option value={s}>{s}</option>}</For>
                 </select>
               </Row>
-              <Row label="Lifecycle:">
+              <Row label={t("langs.php.lifecycleLabel")}>
                 <div class="php-interp-radios">
                   <label>
                     <input type="radio" name="php-remote-lifecycle" checked={draft.lifecycle === "run"} onChange={() => setDraft("lifecycle", "run")} />
-                    Always start a new container ('docker compose run')
+                    {t("langs.php.alwaysStartANewContainer")}
                   </label>
                   <label>
                     <input type="radio" name="php-remote-lifecycle" checked={draft.lifecycle === "exec"} onChange={() => setDraft("lifecycle", "exec")} />
-                    Connect to existing container ('docker compose exec')
+                    {t("langs.php.connectToExistingContainerDocker")}
                   </label>
                 </div>
               </Row>
             </Show>
           </Match>
           <Match when={kind() === "ssh"}>
-            <Row label="SSH configuration:">
+            <Row label={t("common.sshConfigurationLabel")}>
               <select value={draft.sshConfig} onChange={(e) => setDraft("sshConfig", e.currentTarget.value)}>
                 <Show when={!(ssh() ?? []).length}>
-                  <option value="">No SSH configurations (Settings | Tools | SSH Configurations)</option>
+                  <option value="">{t("langs.php.noSshConfigurationsSettingsTools")}</option>
                 </Show>
                 <For each={ssh() ?? []}>{(c) => <option value={c.id}>{c.name || c.label}</option>}</For>
               </select>
             </Row>
           </Match>
           <Match when={kind() === "wsl"}>
-            <Row label="Linux distribution:">
+            <Row label={t("langs.php.linuxDistributionLabel")}>
               <select value={draft.distribution} onChange={(e) => setDraft("distribution", e.currentTarget.value)}>
-                <option value="">Default</option>
+                <option value="">{t("common.default")}</option>
                 <For each={distributions() ?? []}>{(d) => <option value={d}>{d}</option>}</For>
               </select>
             </Row>
           </Match>
         </Switch>
-        <Row label="PHP interpreter path:" for="php-remote-path">
+        <Row label={t("langs.php.phpInterpreterPathLabel")} for="php-remote-path">
           <input id="php-remote-path" type="text" value={draft.path} placeholder="php" onInput={(e) => setDraft("path", e.currentTarget.value)} />
         </Row>
       </div>

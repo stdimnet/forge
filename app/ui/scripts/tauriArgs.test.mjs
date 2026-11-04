@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TIMESTAMP_URL, tauriArgs, windowsSigning } from "./tauriArgs.mjs";
+import { DEFAULT_TIMESTAMP_URL, msiConfigErrors, tauriArgs, windowsSigning } from "./tauriArgs.mjs";
 
 const extra = (args) => JSON.parse(args[args.lastIndexOf("--config") + 1]);
 
@@ -33,15 +33,37 @@ describe("tauri build arguments", () => {
   it("signs Windows bundles only on Windows and only with signing material", () => {
     const thumbprint = "ab12".repeat(10);
     const env = { FORGE_WINDOWS_CERT_THUMBPRINT: thumbprint };
-    expect(extra(tauriArgs(["build"], env, "win32").args).bundle.windows).toEqual({
+    expect(extra(tauriArgs(["build"], env, "win32", "0.1.0").args).bundle.windows).toEqual({
       certificateThumbprint: thumbprint.toUpperCase(),
       digestAlgorithm: "sha256",
       timestampUrl: DEFAULT_TIMESTAMP_URL,
+      allowDowngrades: true,
+      wix: { version: "0.1.0" },
     });
-    expect(extra(tauriArgs(["build"], env, "linux").args).bundle.windows).toBeUndefined();
-    const unsigned = tauriArgs(["build"], {}, "win32");
-    expect(extra(unsigned.args).bundle.windows).toBeUndefined();
+    expect(extra(tauriArgs(["build"], env, "linux", "0.1.0").args).bundle.windows).toBeUndefined();
+    const unsigned = tauriArgs(["build"], {}, "win32", "0.1.0");
+    expect(extra(unsigned.args).bundle.windows).toEqual({ allowDowngrades: true, wix: { version: "0.1.0" } });
     expect(unsigned.notes.join(" ")).toContain("not Authenticode signed");
+  });
+
+  it("gives Windows builds an MSI version WiX accepts", () => {
+    const windows = (/** @type {string} */ version) =>
+      extra(tauriArgs(["build", "--config", "src-tauri/tauri.agents.conf.json"], {}, "win32", version).args).bundle
+        .windows;
+    expect(windows("0.1.1-beta.1")).toEqual({ allowDowngrades: true, wix: { version: "0.1.1.1" } });
+    expect(windows("0.1.1-rc.2").wix.version).toBe("0.1.1.2");
+    expect(windows("0.1.1").wix.version).toBe("0.1.1");
+    expect(() => windows("0.1.1-beta.70000")).toThrow(/at most 65535/);
+    expect(() => tauriArgs(["build"], {}, "win32")).toThrow(/app version/);
+    // Linux and macOS builds need no MSI version, so any version passes there.
+    expect(extra(tauriArgs(["build"], {}, "darwin", "0.1.1-beta.70000").args).bundle.windows).toBeUndefined();
+  });
+
+  it("keeps tauri.conf.json from breaking MSI upgrades", () => {
+    expect(msiConfigErrors({})).toEqual([]);
+    expect(msiConfigErrors({ bundle: { windows: { allowDowngrades: true } } })).toEqual([]);
+    expect(msiConfigErrors({ bundle: { windows: { wix: { version: "0.1.0" } } } })[0]).toMatch(/wix\.version/);
+    expect(msiConfigErrors({ bundle: { windows: { allowDowngrades: false } } })[0]).toMatch(/allowDowngrades/);
   });
 
   it("supports a pfx thumbprint or Azure Trusted Signing", () => {

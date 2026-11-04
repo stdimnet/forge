@@ -2165,11 +2165,48 @@ doc comments and Reader mode are described in
 
 ## Find and replace in a file
 
-**Find** (`Ctrl+F`, macOS `Cmd+F`) and **Replace** (`Ctrl+R`, macOS `Cmd+R`) open the search
-panel of the editor (CodeMirror's search panel) with match case, regular expression and
-whole word options. **Find Next**
-`F3` and **Find Previous** `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`) move between matches.
-Other occurrences of the selected text are highlighted automatically.
+**Find** (`Ctrl+F`, macOS `Cmd+F`) opens the Find bar at the top of the editor; **Replace**
+(`Ctrl+R`, macOS `Cmd+R`) opens it with the replace row expanded. The arrow at the left
+expands and collapses the replace row. The same bar works in SQL consoles of the
+[Database tools](docs/guide/user/database.md).
+
+![Find bar](docs/screenshots/find-bar-find.png)
+
+The search field starts with the selection, or with the word at the caret. A selection over
+several lines turns on **In Selection** instead, so the search stays inside it (the scope stays
+marked in the editor). The field has:
+
+| Control | What it does |
+| --- | --- |
+| magnifier with arrow | recent searches (also `Alt+Down`); the replace field has its own history |
+| **Multiline** | makes the field taller; `Ctrl+Shift+Enter` inserts a line break |
+| **Cc** / **W** / **.\*** | Match Case, Words, Regex (Forge remembers them, as PHPStorm does) |
+
+Next to it, the counter shows the current match and the total (`2/5`), or the number of
+results while the caret is not on a match. Without matches the field turns red and the
+counter says **0 results**; an invalid regular expression shows **Bad pattern** (the error
+is in the tooltip).
+
+![No matches](docs/screenshots/find-bar-no-matches.png)
+
+| Key or button | Action |
+| --- | --- |
+| `Enter` / `Shift+Enter` in the field, `F3` / `Shift+F3` (macOS `Cmd+G` / `Cmd+Shift+G`), arrow buttons | next / previous occurrence |
+| `Alt+Enter`, **Select All Occurrences** button | a caret on every match, focus back in the editor |
+| **In Selection** button | search only in the selected text |
+| `Escape` | close the bar; the focus goes back to the editor |
+
+The replace row has **Replace** (also `Enter` in the replace field: replaces the current match
+and selects the next one), **Replace All**, **Exclude** (skips the current match: it no longer
+counts, and Replace All leaves it alone) and **Preserve case** (**Aa**): an upper-case match
+gets an upper-case replacement and a capitalized match a capitalized one. With **Regex**,
+`$1`, `$&` and `\n` work in the replacement.
+
+![Replace](docs/screenshots/find-bar-replace.png)
+
+The options, Preserve case and both histories are saved in the user settings
+(`editor.find.*`), like PHPStorm's find settings. Other occurrences of the selected text are
+highlighted automatically.
 
 To search the whole project, use [Find in Files](docs/guide/user/search-everywhere.md#find-in-files)
 (`Ctrl+Shift+F`, macOS `Cmd+Shift+F`).
@@ -5181,12 +5218,42 @@ Source: docs/guide/user/file-types.md
 
 Like PHPStorm's Settings | Editor | File Types, Forge decides a file's type from, in this order:
 
-1. **file names and path patterns**, e.g. `Dockerfile`, `.env.local`, `composer.lock`,
+1. a **manual override** (File | File Properties | **Override File Type**, below);
+2. **file names and path patterns**, e.g. `Dockerfile`, `.env.local`, `composer.lock`,
    `config/services.yaml` (in Symfony projects);
-2. the **longest matching extension**, so `user.blade.php` is Blade, not PHP, and
+3. the **longest matching extension**, so `user.blade.php` is Blade, not PHP, and
    `page.html.twig` is Twig;
-3. the **interpreter of a `#!` line** for files without an extension (`#!/usr/bin/env bash`,
-   `#!/usr/bin/env python3`, `#!/usr/bin/env lua`).
+4. the **interpreter of a `#!` line** for files without a known name or extension;
+5. a **Vim or Emacs modeline** on the first line: `# vim: set ft=php:`, `// vi: filetype=javascript`,
+   `# -*- mode: python -*-`, `;; -*- lisp -*-`.
+
+### Scripts with a `#!` line
+
+Laravel's `artisan`, Symfony's `bin/console`, Composer's `bin/*` scripts and other files without
+an extension open in their language when their first line names an interpreter:
+
+| Language | Interpreters |
+| --- | --- |
+| PHP | `php` (also `php8.3`), `php-cgi`, `hhvm` |
+| JavaScript | `node`, `nodejs`, `bun`, `zx` |
+| TypeScript | `ts-node`, `tsx`, `deno` |
+| Shell Script | `sh`, `bash`, `zsh`, `ksh`, `dash`, `ash`, `fish` |
+| Python, Ruby, Lua, Perl | `python3`, `pypy`, `uv`; `ruby`, `jruby`; `lua`, `luajit`; `perl` |
+| others | `groovy`, `kotlin`, `scala`, `gorun`, `rust-script`, `swift`, `dart`, `elixir`, `escript`, `runghc`, `Rscript`, `julia`, `tclsh`, `pwsh`, `make -f`, … |
+
+The [file types reference](docs/guide/reference/file-types.md#shebang-interpreters) lists all of them.
+Every common form works: `#!/usr/bin/php`, `#!/usr/local/bin/php -q`,
+`#!/opt/homebrew/bin/php`, `#!/usr/bin/env php`, `#!/usr/bin/env -S php -d memory_limit=-1`,
+`#!/usr/bin/env -i php` and `#!/usr/bin/env APP_ENV=dev php`. Version suffixes match
+(`php8.3`, `python3.12`). A known file name or extension still wins: `deploy.sh` stays a shell
+script whatever its `#!` line says.
+
+The type follows the first line while you type: typing or pasting `#!/usr/bin/env php` into a
+new extensionless file switches it from Plain text to PHP right away, with highlighting, the
+PHP language server (php-lsp or Intelephense) and PHP's editor features. Language servers
+receive such files under their detected type, not only by extension.
+
+![artisan opens as PHP](docs/screenshots/file-type-shebang.png)
 
 Files that match nothing are "Plain text". The type is shown in the status bar and decides the
 highlighting, the indentation (2 or 4 spaces), the language server and the file icon.
@@ -5196,6 +5263,33 @@ Plugins add types or replace bundled ones while they are active: in a Symfony pr
 
 The complete list of types, extensions and file names is in the
 [file types reference](docs/guide/reference/file-types.md).
+
+## Override File Type
+
+When a file's type is detected wrongly, or not at all, choose it by hand like in PHPStorm:
+**File | File Properties | Override File Type**, the same entry in the editor tab and Project
+view context menus, Find Action (`Ctrl+Shift+A`, "Override File Type") or a click on the file
+type in the status bar. A searchable list of all file types opens; picking one re-highlights the
+file at once and switches its language support (language server, inspections, structure,
+formatter). **Plain text** turns all of that off for the file.
+
+![Override File Type](docs/screenshots/file-type-override.png)
+
+![An overridden file and the tab menu](docs/screenshots/file-type-override-applied.png)
+
+- **Revert File Type Override** (shown for overridden files only) goes back to the detected type.
+- **Associate with File Type…** (offered for files without a type) adds the file's pattern
+  (`*.ext`, or its name when it has no extension) to a file type in Settings | Editor | File
+  Types, for every file like it.
+- The status bar shows the effective type; for an overridden file its tooltip, and the tab's,
+  say "(overridden)".
+- Overrides are kept per project in the `fileTypes.overrides` setting (`.forge/settings.toml`),
+  never in your files, so they survive restarts. They follow the file when it is renamed or
+  moved, also with its folder, and disappear when it is deleted.
+- A type whose plugin is off for the project (for example Symfony Services outside a Symfony
+  project) is marked "*plugin* off" in the list. Picking it still works: the file gets that
+  type's highlighting and language server, while the plugin's other features stay off until you
+  enable it in Settings | Plugins.
 
 ## Changing file types
 
@@ -7595,7 +7689,7 @@ More: [Search Everywhere and Find Action](docs/guide/user/search-everywhere.md#f
 
 **Shortcut:** `Ctrl+F` · macOS `Cmd+F` · action id `Find`
 
-Opens the find panel of the editor for the current file.
+Opens the Find bar at the top of the editor for the current file, prefilled with the selection or the word at the caret.
 
 **Menu:** Edit | Find | Find…
 
@@ -7607,7 +7701,9 @@ More: [Editor](docs/guide/user/editor.md#find-and-replace-in-a-file)
 
 **Shortcut:** `Ctrl+R` · macOS `Cmd+R` · action id `Replace`
 
-Opens the find panel with the replace field.
+Opens the Find bar with the replace row expanded.
+
+![Replace in File](docs/screenshots/find-bar-replace.png)
 
 **Menu:** Edit | Find | Replace…
 
@@ -9067,16 +9163,16 @@ settings, so it applies to every project.
 | Forge's own actions without a PHPStorm counterpart (e.g. New Window, Code With Me, AI, Database actions) in Find Action and the keymap | yes |
 | Settings pages Languages & Frameworks \| PHP (with Composer, Quality Tools, Debug, Laravel, Symfony, Doctrine, WordPress), Editor, Version Control and Tools | yes |
 | Safe Mode refusals and common backend errors (no project open, file not found, I/O errors) | yes |
-| Other tool windows and dialogs (.NET, C/C++, code hosts, Code With Me, game engines, Python, Java, Services, …), the settings of other language packs, file templates and New Project generator names | not yet, they stay English |
+| Tool windows and dialogs of the language packs and tools: .NET, C/C++, code hosts (merge requests, review), game engines, Python, PHP, web tooling, Java, Kotlin, Rust, Go, Ruby, Jupyter, inspections, remote development, Services, deployment | yes |
+| Settings of every bundled plugin and language pack, plugin names and descriptions | yes |
+| Code With Me, Agent Tasks, file templates and New Project generator names | not yet, they stay English |
 
 Untranslated text is always English, never a key or an empty label. The
 [developer guide](docs/guide/developer/localization.md) explains how the coverage is measured and how
 to add translations.
 
-> **Note:** plugin names, settings and tool window titles of the bundled plugins are about half
-> translated: the PHP, Editor, Version Control and Tools pages are German, the settings of the
-> other language packs stay English for now. Third-party plugins can ship their own translations
-> in their manifest.
+> **Note:** plugin names, settings and tool window titles of all bundled plugins are translated.
+> Third-party plugins can ship their own translations in their manifest.
 
 ## Find Action in two languages
 
@@ -22988,8 +23084,8 @@ Undo, clipboard, find and replace, selection and line editing. Open it with ☰ 
 | Paste Special › Paste as Plain Text | `Ctrl+Alt+Shift+V` | `Cmd+Alt+Shift+V` | yes | Pastes the clipboard as plain text. [More](docs/guide/user/editor.md#editing-actions) |
 | Delete | `Delete` | `Delete`, `Backspace` | yes | Delete |
 | **Find** | | | | submenu |
-| Find › Find… | `Ctrl+F` | `Cmd+F` | yes | Opens the find panel of the editor for the current file. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) ([screenshot](docs/screenshots/docs-find-in-file.png)) |
-| Find › Replace… | `Ctrl+R` | `Cmd+R` | yes | Opens the find panel with the replace field. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
+| Find › Find… | `Ctrl+F` | `Cmd+F` | yes | Opens the Find bar at the top of the editor, prefilled with the selection or the word at the caret. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) ([screenshot](docs/screenshots/docs-find-in-file.png)) |
+| Find › Replace… | `Ctrl+R` | `Cmd+R` | yes | Opens the Find bar with the replace row expanded. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Next / Move to Next Occurrence | `F3` | `Cmd+G` | yes | Moves to the next match of the current search. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Previous / Move to Previous Occurrence | `Shift+F3` | `Cmd+Shift+G` | yes | Moves to the previous match. [More](docs/guide/user/editor.md#find-and-replace-in-a-file) |
 | Find › Find Word at Caret | `Ctrl+F3` | `Alt+Cmd+F3` | not yet | Not available yet; the entry is disabled. |
@@ -24979,10 +25075,47 @@ Source: docs/guide/reference/file-types.md
 
 # File types reference
 
-Detection order: file names and path patterns, then the longest matching extension, then the
-interpreter of a `#!` line. File names may contain `*` anywhere and `/` to match a path suffix
+Detection order: a manual override (Override File Type), file names and path patterns, then the
+longest matching extension, then the interpreter of a `#!` line, then a Vim or Emacs modeline. File names may contain `*` anywhere and `/` to match a path suffix
 (`config/services*.yaml`). Bundled types indent with 4 spaces unless a plugin type says
 otherwise. See [File types and syntax highlighting](docs/guide/user/file-types.md).
+
+## Shebang interpreters
+
+Interpreters that select a type from the `#!` line of a file without a known name or extension.
+A name also matches with a version suffix (`php` matches `php8.3`). `/usr/bin/env` with flags
+(`-S`, `-i`, `-u NAME`), variable assignments and absolute paths are understood.
+
+| Type | Interpreters |
+| --- | --- |
+| `php` | `php`, `php-cgi`, `hhvm` |
+| `javascript` | `node`, `nodejs`, `bun`, `zx`, `qjs`, `gjs` |
+| `typescript` | `ts-node`, `ts-node-esm`, `tsx`, `deno` |
+| `shell` | `sh`, `bash`, `zsh`, `ksh`, `mksh`, `dash`, `ash`, `busybox`, `fish` |
+| `python` | `python`, `python3`, `pypy`, `pypy3`, `uv`, `pythonw` |
+| `ruby` | `ruby`, `jruby`, `truffleruby`, `macruby` |
+| `lua` | `lua`, `luajit`, `tarantool` |
+| `perl` | `perl` |
+| `groovy` | `groovy` |
+| `kotlin` | `kotlin`, `kotlinc` |
+| `scala` | `scala`, `scala-cli`, `amm` |
+| `go` | `gorun` |
+| `rust` | `rust-script` |
+| `swift`, `dart`, `crystal`, `julia`, `ocaml`, `octave`, `elixir` | the same name |
+| `csharp` | `dotnet-script` |
+| `erlang` | `escript` |
+| `haskell` | `runghc`, `runhaskell`, `stack` |
+| `clojure` | `clojure`, `clj`, `bb` |
+| `lisp` | `sbcl`, `clisp` |
+| `scheme` | `guile`, `racket`, `chicken`, `csi` |
+| `coffeescript` | `coffee` |
+| `r` | `Rscript` |
+| `tcl` | `tclsh`, `wish`, `expect` |
+| `powershell` | `pwsh`, `powershell` |
+| `makefile` | `make`, `gmake` (`#!/usr/bin/make -f`) |
+
+Modelines name a type by its id, name, extension or interpreter, or by a Vim/Emacs mode name
+(`sh`, `shell-script`, `js`, `c++`, `cperl`, …).
 
 ## Bundled file types
 
@@ -27753,7 +27886,8 @@ Catalogs are flat JSON files `crates/forge-i18n/locales/<locale>/<area>.json`, o
 | `settings` | the Settings dialog, page titles (`settings.page.<id>`), groups, Plugins page |
 | `search`, `vcs`, `run`, `dialogs` (Project view, Rename, New Project, …), `welcome`, `errors` | their features |
 | `git`, `debug`, `database`, `codeintel` | the Git dialogs and tool window, the Debugger, the Database tools, refactorings / Find Usages / hierarchy dialogs; keys `<area>.<component>.<name>` (`git.branchesPopup.newBranch`, `database.objects.tableDialog.createTable`) |
-| `commands` | titles of Forge's own actions without a PHPStorm id (`action.NewWindow`, `action.Database.NewTable`), registered with `registerCommand` / `registerKeymapActions` in the UI |
+| `langs`, `tools` | tool windows, dialogs, settings pages and run configuration types of the language and framework packs (`langs.<feature>.<name>`: `langs.dotnet.restoreNugetPackages`) and of the other UI features (`tools.<feature>.<name>`: `tools.forges.submitReview`) |
+| `commands` | titles of Forge's own actions without a PHPStorm id (`action.NewWindow`, `action.Database.NewTable`), registered with `registerCommand` / `registerKeymapActions` in the UI, and the labels of main menu entries that UI features contribute with `registerMainMenuEntries` (`menu.<action id>`, `menu.group.<slug>`) |
 | `menu`, `actions`, `plugins` | **generated in English** (see below), translated by hand |
 
 A new area file must also be listed in `BUILTIN` in `crates/forge-i18n/src/catalog.rs`; a test
@@ -27893,36 +28027,33 @@ the hand-written areas are fully translated.
 ## Current coverage
 
 `pnpm i18n:check` now (German was added in #134 with 1,711 of 3,740 keys and 4,423 hard-coded
-strings):
+strings; #140 reached 4,416 of 5,614 keys and 3,382 strings):
 
 | Measure | Value |
 | --- | --- |
-| English catalog keys | 5,614 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
-| German translations | 4,416 (78.7 %): every hand-written key, all menu labels and PHPStorm action titles, and 1,226 of 2,424 manifest texts |
-| Keys used in the UI code | 2,203 literal keys plus 9 dynamic `t()` calls |
-| Hard-coded strings left in `.tsx` (heuristic) | 3,380 |
+| English catalog keys | 9,160 (of which 3,119 generated: 320 menu labels, 375 action titles, 2,424 manifest texts) |
+| German translations | 9,160 (100 %): every hand-written key, all menu labels, action titles and manifest texts of every pack |
+| Keys used in the UI code | 5,647 literal keys plus 9 dynamic `t()` calls |
+| Hard-coded strings left in `.tsx` (heuristic) | 783 (87.8 % of UI strings go through `t()`) |
 
-Translated: the main menu, Find Action and the keymap (PHPStorm actions and Forge's own
-actions), tool window titles and chrome, the status bar file widgets, index and language server
-status, the Settings dialog with the Appearance, System Settings, Language, Editor (General,
-Tabs, Font, Code Style, Inlay Hints, Live Templates, Postfix, Emmet, Reader Mode, Natural
-Languages), Version Control, Tools (Terminal, Actions on Save, AI, Code With Me, Database, MCP
-Server, Browser Companion, Search, External Tools) and Languages & Frameworks | PHP pages
-(Composer, Quality Tools, Debug, Test Frameworks, Laravel, Symfony, Doctrine, WordPress, Drupal),
-the Plugins page, the Welcome screen, Search Everywhere, Find in Files, Rename, New Project, the
-Git dialogs, Git log, file history, merge window and Branches popup, the Commit tool window, the
-Debugger tool window and dialogs, the Database tool window and dialogs, refactoring, Find Usages
-and hierarchy dialogs, the Find and Run tool windows, Run/Debug Configurations with the run
-configuration fields and types and the Run on targets, the Project view and editor tab and editor
-context menus, notifications, the language restart prompt, Safe Mode refusals and common backend
-errors (no project open, not found, I/O, outside the workspace).
+Translated: the main menu (including the entries UI features contribute), Find Action and the
+keymap, tool window titles and chrome, the status bar, the Settings dialog with all pages and the
+settings of every bundled plugin (PHP, Web, Lua, .NET, C/C++, Python, Java, Kotlin, Scala, Groovy,
+Go, Rust, Ruby, Minecraft, Unity / Godot, …), the Plugins page, the Welcome screen, Search
+Everywhere, Find in Files, the Git, Commit, Debugger, Database, Run and refactoring tools, and the
+tool windows and dialogs of the language packs and other features: .NET (Build, NuGet, EF Core,
+endpoints), C/C++ (CMake, PlatformIO, profiles, sanitizers, embedded), code hosts (merge
+requests, review, issues, pipelines), game engines, Python, PHP interpreters and tool windows,
+web tooling, Java / Kotlin / Gradle / Maven, inspections, remote development, Services,
+deployment, Rust, Jupyter, Go, Ruby / Rails, Symfony, Laravel, Spring and the run configuration
+types the UI registers.
 
-Still English: the other tool windows and dialogs (.NET 192 strings, C/C++ 147, code hosts 136,
-Code With Me 118, game engines 105, Python 105, PHP tool windows 95, web tooling 93, Java 88,
-inspections 80, remote development 72, …), the settings of the other language packs (1,198
-manifest texts), file templates and New Project generator names, menu entries contributed by UI
-features (`registerMainMenuEntries` labels), most other Rust errors (git and tool output stays as
-the tools write it), the splash screen.
+Still English: the action titles passed to `registerCommand` / `registerKeymapActions` in the
+source (by design: they are translated through `action.<id>` in Find Action and the keymap, which
+is most of the 783 strings the check still counts), Code With Me (`features/code-with-me`, 118
+strings, maintained by another developer and left for them), Agent Tasks (37), sentence
+fragments around inline code and links, file templates and New Project generator names, most
+other Rust errors (git and tool output stays as the tools write it), the splash screen.
 
 `app/ui/scripts/scenarios/localization-dialogs.mjs` captures the translated dialogs in German
 (`i18n-*-de.png`) by running the English scenarios of the features after switching the
@@ -28075,6 +28206,14 @@ resolver — synchronously, through the WebAssembly build, in desktop and browse
 then runs the returned action with `runAction`. Unimplemented actions show "not available yet".
 IPC: `keymap_actions`, `keymap_register_actions`, `keymap_set_override`, `keymap_conflicts`,
 `keymap_find_by_shortcut`, `keymap_resolve`, `keymap_import_legacy`.
+
+A widget whose own keys collide with a global action lists them in `data-own-keys` on an
+ancestor of the focused element (`data-own-keys="Alt+Enter Ctrl+Shift+Enter"`, canonical
+stroke ids); the dispatcher then leaves those strokes to the widget's `onKeyDown`. The editor's
+Find/Replace bar does this so `Alt+Enter` selects all occurrences instead of showing context
+actions. To react to a keymap-bound action inside a widget, compare
+`strokeOfEvent(e)` with `shortcutsOf(actionId)` (the bar expands its replace row on the
+`Replace` shortcut this way).
 
 ## Implementing a PHPStorm action
 
@@ -28535,6 +28674,13 @@ Pre-release versions come from `pnpm version:bump default --pre beta.1` and the 
 `pnpm version:bump pre` (see [Versioning](docs/guide/developer/versioning.md)). The `meta` job creates a tag with a
 `-label` as a pre-release, so a beta never becomes GitHub's "latest".
 
+The MSI cannot carry a SemVer pre-release, so on Windows `pnpm tauri build` sets
+`bundle.windows.wix.version` to a numeric version (`0.1.1-beta.1` → `0.1.1.1`) and keeps
+`bundle.windows.allowDowngrades` on, so betas and the final release of a version install over
+each other ([MSI version](docs/guide/developer/versioning.md#msi-version)). The NSIS installer and the bundle file
+names keep the SemVer version (`Forge_0.1.1-beta.1_x64-setup.exe`). Without this, WiX stops with
+"optional pre-release identifier in app version must be numeric-only".
+
 ## Linux packages
 
 ### Flatpak
@@ -28744,6 +28890,36 @@ The written form stays `X.Y.Z`, so Cargo, npm and Tauri's updater parse and orde
 SemVer. Pre-releases use a SemVer label (`0.2.0-beta.1`); they go to the beta update channel
 (`updates.channel`).
 
+### MSI version
+
+The Windows MSI installer (WiX) accepts only numeric versions `major.minor.build[.revision]`
+(at most 255.255.65535.65535), not `0.2.0-beta.1`. `pnpm tauri build` therefore passes a
+derived `bundle.windows.wix.version` on Windows (`app/ui/scripts/tauriArgs.mjs`); the app, the
+NSIS installer and the updater keep the SemVer version.
+
+| App version | MSI version |
+| --- | --- |
+| `0.1.1` | `0.1.1` |
+| `0.1.1-beta.1`, `0.1.1-alpha.1`, `0.1.1-rc.1` | `0.1.1.1` |
+| `0.1.1-rc.2` | `0.1.1.2` |
+| `0.1.1-7` | `0.1.1.7` |
+| `0.1.1-beta` | `0.1.1.0` |
+
+The label is dropped and its number becomes the fourth field. Windows Installer compares only
+the first three fields for an upgrade, so every pre-release of `0.1.1` and the final `0.1.1`
+count as the same version. They still install over each other because the MSI allows
+downgrades (`bundle.windows.allowDowngrades`, Tauri's default, which makes WiX's `MajorUpgrade`
+remove any installed Forge, the same version included): `beta.1` → `beta.2` → `rc.1` → `0.1.1`
+each replace the previous install. A later version (`0.1.2-beta.1` → `0.1.2.1`) is an ordinary
+upgrade.
+
+So a version must stay MSI-compatible: PROUD and DEFAULT at most 255, SHAME at most 65535, and
+a pre-release label of the form `<label>.<N>` (`beta.1`, `rc.2`), a bare number or a bare label,
+with `N` at most 65535. `pnpm version:bump` refuses anything else (`beta.1.2`, `beta.70000`), and
+`pnpm version:check` fails on it and when `tauri.conf.json` pins `bundle.windows.wix.version` or
+turns `allowDowngrades` off. `pnpm workflows:check` makes sure the workflows build through
+`pnpm tauri` (tauri-action's `tauriScript: pnpm --dir ui tauri`), which adds the MSI version.
+
 ## Where the version lives
 
 The same version is written in three files:
@@ -28755,7 +28931,7 @@ The same version is written in three files:
 Never edit them by hand. From `app/ui`:
 
 ```sh
-pnpm version:check                        # fails when the three files disagree
+pnpm version:check                        # fails when the files disagree or there is no MSI version
 pnpm version:bump default                 # 0.1.0 → 0.2.0 in all three files + Cargo.lock
 pnpm version:bump shame                   # 0.2.0 → 0.2.1
 pnpm version:bump proud                   # 0.2.1 → 1.0.0
@@ -31213,8 +31389,12 @@ language between the template tags.
 
 The bundled types (`builtin_file_types`) are extended or replaced by the file types of
 plugin manifests (`[[plugin.contributions.fileTypes]]`). Detection prefers, in order:
-file names and path patterns, the longest matching extension (so `x.blade.php` beats
-`php`), and the interpreter of a `#!` line. Later registrations win ties.
+a manual override (`overrides`, the `fileTypes.overrides` setting), file names and path
+patterns, the longest matching extension (so `x.blade.php` beats `php`), the interpreter of
+a `#!` line (`shebang_interpreter`: `/usr/bin/env` with `-S`, `-i`, `-u NAME`, assignments,
+absolute paths, `.exe`) and a Vim/Emacs modeline on the first line. Later registrations win
+ties; a plugin type without `interpreters` keeps those of the bundled type with its id. An
+override to a type of an inactive plugin uses that type for the overridden file only.
 
 The crate is pure so the desktop app (IPC) and the browser-mode UI (WebAssembly) share it.
 The UI only maps a file type id to its CodeMirror syntax mode.
@@ -31226,6 +31406,8 @@ The UI only maps a file type id to its CodeMirror syntax mode.
 | `builtin.rs` | File types every Forge installation knows (PHPStorm's bundled file types). Plugins add more, or replace one of these by contributing a file type with the same id, through `[[plugin.contributions.fileTypes]]` in their manifests. |
 | `data.rs` | Template Data Languages (as in PHPStorm): the language of the content *between* template tags. |
 | `glob.rs` | The two pattern flavours of file type settings. |
+| `modeline.rs` | Vim (`vim: set ft=php:`) and Emacs (`-*- mode: python -*-`) modelines on the first line. |
+| `overrides.rs` | Override File Type: `fileTypes.overrides` entries (`{ path, fileType }`), `edit_overrides` (set, unset, follow renames/moves, drop deleted files), `association_pattern`, `FileTypeRegistry::override_choices` (the popup's list). |
 | `user.rs` | Settings \| Editor \| File Types: patterns added to or removed from a type (`fileTypes.associations`; a pattern added to one type leaves the others), custom file types with their `CustomSyntax` (`fileTypes.custom`), `FileTypeRegistry::customized` and `rows` (the page's list), `DEFAULT_IGNORED_FILES`. |
 
 ## Main public items
@@ -31234,6 +31416,8 @@ The UI only maps a file type id to its CodeMirror syntax mode.
 pub use builtin::builtin_file_types;
 pub use data::{data_language_for, DataLanguage, DATA_LANGUAGES};
 pub use glob::{matches_glob_list, wildcard_match};
+pub use overrides::{edit_overrides, override_for, parse_overrides, association_pattern, OverrideEdit, OverrideChoices, PLAIN_TEXT_ID, …};
+pub fn shebang_interpreter(line: &str) -> Option<String>;
 pub struct FileTypeSpec { … }
 pub struct FileTypeRegistry { … }
 pub struct DetectRequest { … }
@@ -31243,8 +31427,10 @@ pub struct FileTypeInfo { … }
 
 ## Used by
 
-- IPC: `filetypes_detect`, `filetypes_list`; `fs_list_dir` hides `fileTypes.ignoredFiles`
-- UI: `app/ui/src/editor/fileTypes.ts`, `app/ui/src/features/fileTypes` (the settings page),
+- IPC: `filetypes_detect`, `filetypes_list`, `filetypes_override_choices`,
+  `filetypes_edit_overrides`; `fs_list_dir` hides `fileTypes.ignoredFiles`
+- UI: `app/ui/src/editor/fileTypes.ts` (re-detects open files when their first line changes),
+  `app/ui/src/features/fileTypes` (the settings page, `override.tsx`: Override File Type),
   `app/ui/src/editor/customFileType.ts` (highlighting of custom types)
 - Browser mode: built into `forge-wasm`
 
@@ -31255,7 +31441,8 @@ pub struct FileTypeInfo { … }
 
 ## Tests
 
-5 source files, about 1004 lines; 12 unit tests.
+8 source files; unit tests for names, extensions, shebangs with every `env` form, modelines,
+override priority and renames.
 
 ```sh
 cargo test -p forge-filetypes
@@ -32131,7 +32318,9 @@ Forge's generic Language Server Protocol client.
 - `framing`: `Content-Length` JSON-RPC framing over stdio.
 - `LspClient`: one server process; request/response correlation, notifications,
   answers to server→client requests, document sync and typed feature requests.
-- `LspManager`: routes files to servers by extension and starts them lazily; several
+- `LspManager`: routes files to servers by extension (or, with `set_document_language`, by the
+  editor's detected file type: an extensionless `artisan` goes to the PHP server, an
+  overridden file to its new type's servers, `text` to none) and starts them lazily; several
   servers may serve one file and their results are merged.
 - `model`: editor-friendly result types consumed by the UI.
 - `launch`: how server processes start (`LocalLauncher` here, or on a remote host). A

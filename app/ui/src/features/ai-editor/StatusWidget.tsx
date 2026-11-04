@@ -11,6 +11,7 @@ import { openSettings } from "@/features/settings/dialogState";
 import { getSetting, saveSetting } from "@/state/settings";
 import { inlineActivity, inlineError } from "./inline";
 import { aiStatus, refreshAiStatus } from "./status";
+import { t } from "@/i18n";
 
 function describe(): { on: boolean; text: string } {
   const s = aiStatus();
@@ -64,7 +65,7 @@ export function AiStatusWidget() {
       class="status-item ai-status"
       classList={{ off: !d().on, error: inlineActivity() === "error" }}
       title={inlineActivity() === "error" ? `${d().text}\n${inlineError() ?? ""}` : d().text}
-      aria-label="AI Assistant"
+      aria-label={t("tools.aiEditor.aiAssistant")}
       onClick={(e) => void openMenu(e.currentTarget)}
     >
       <Show when={inlineActivity() === "working"} fallback={<Sparkles size={14} />}>

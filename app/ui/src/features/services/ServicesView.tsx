@@ -49,6 +49,7 @@ import {
   setTab,
   version,
 } from "./store";
+import { t } from "@/i18n";
 import "./services.css";
 
 type IconComp = (p: { size?: number; "stroke-width"?: number; class?: string; fill?: string }) => JSX.Element;
@@ -92,15 +93,15 @@ interface ToolButton {
 }
 
 const TOOL_BUTTONS: (ToolButton | "sep")[] = [
-  { id: "start", title: "Start", icon: Play, cls: "run", actions: ["start", "up", "connect"] },
-  { id: "stop", title: "Stop", icon: Square, cls: "stop", actions: ["stop"] },
-  { id: "restart", title: "Restart", icon: RotateCw, actions: ["restart"] },
-  { id: "remove", title: "Delete", icon: Trash2, actions: ["remove", "down"] },
+  { id: "start", title: t("tools.services.start"), icon: Play, cls: "run", actions: ["start", "up", "connect"] },
+  { id: "stop", title: t("common.stop"), icon: Square, cls: "stop", actions: ["stop"] },
+  { id: "restart", title: t("tools.services.restart"), icon: RotateCw, actions: ["restart"] },
+  { id: "remove", title: t("common.delete"), icon: Trash2, actions: ["remove", "down"] },
   "sep",
-  { id: "logs", title: "Show Log", icon: ScrollText, actions: ["logs"] },
-  { id: "exec", title: "Exec (open a terminal in the container)", icon: SquareTerminal, actions: ["exec"] },
-  { id: "pull", title: "Pull Image", icon: Download, actions: ["pull"] },
-  { id: "forward", title: "Forward Ports…", icon: ArrowRightLeft, actions: ["forwardPorts"] },
+  { id: "logs", title: t("tools.services.showLog"), icon: ScrollText, actions: ["logs"] },
+  { id: "exec", title: t("tools.services.execOpenATerminalIn"), icon: SquareTerminal, actions: ["exec"] },
+  { id: "pull", title: t("tools.services.pullImage"), icon: Download, actions: ["pull"] },
+  { id: "forward", title: t("tools.services.forwardPortsEllipsis"), icon: ArrowRightLeft, actions: ["forwardPorts"] },
 ];
 
 const LABELS: Partial<Record<ServiceAction, string>> = {
@@ -143,13 +144,13 @@ function Toolbar() {
         }
       </For>
       <span class="svc-tool-sep" />
-      <button class="icon-btn svc-tool" title="Refresh" onClick={() => void refresh()}>
+      <button class="icon-btn svc-tool" title={t("common.refresh")} onClick={() => void refresh()}>
         <RefreshCw size={14} />
       </button>
-      <button class="icon-btn svc-tool" title="Expand All" onClick={expandAll}>
+      <button class="icon-btn svc-tool" title={t("common.expandAll2")} onClick={expandAll}>
         <ChevronsUpDown size={14} />
       </button>
-      <button class="icon-btn svc-tool" title="Collapse All" onClick={collapseAll}>
+      <button class="icon-btn svc-tool" title={t("common.collapseAll2")} onClick={collapseAll}>
         <ChevronsDownUp size={14} />
       </button>
     </div>
@@ -169,14 +170,14 @@ function contextMenu(node: ServiceNode, x: number, y: number) {
     add("stop", d.target.kind === "container" ? "Stop Container" : "Stop", Square, "var(--danger)");
     add("restart", d.target.kind === "deployment" ? "Restart Rollout" : "Restart", RotateCw);
     add("down", "Down", Trash2);
-    if (d.tabs.includes("log")) items.push({ label: "Show Log", icon: ScrollText, run: () => setTab("log") });
-    if (d.actions.includes("exec")) items.push({ label: "Exec…", icon: SquareTerminal, run: () => void openExec(d.nodeId, containerOf(d)) });
-    if (d.actions.includes("forwardPorts")) items.push({ label: "Forward Ports…", icon: ArrowRightLeft, run: () => void runAction(d, "forwardPorts") });
-    if (d.tabs.includes("inspection")) items.push({ label: "Inspect", run: () => setTab("inspection") });
+    if (d.tabs.includes("log")) items.push({ label: t("tools.services.showLog"), icon: ScrollText, run: () => setTab("log") });
+    if (d.actions.includes("exec")) items.push({ label: t("tools.services.execEllipsis"), icon: SquareTerminal, run: () => void openExec(d.nodeId, containerOf(d)) });
+    if (d.actions.includes("forwardPorts")) items.push({ label: t("tools.services.forwardPortsEllipsis"), icon: ArrowRightLeft, run: () => void runAction(d, "forwardPorts") });
+    if (d.tabs.includes("inspection")) items.push({ label: t("tools.services.inspect"), run: () => setTab("inspection") });
     if (d.actions.includes("pull"))
-      items.push({ label: "Pull Image", icon: Download, run: () => (d.target.kind === "dockerGroup" ? pullImageDialog() : void runAction(d, "pull")) });
-    if (d.actions.includes("remove")) items.push({ separator: true }, { label: "Delete…", icon: Trash2, run: () => void runAction(d, "remove") });
-    items.push({ separator: true }, { label: "Refresh", icon: RefreshCw, run: () => (d.actions.includes("refresh") ? void runAction(d, "refresh") : void refresh()) });
+      items.push({ label: t("tools.services.pullImage"), icon: Download, run: () => (d.target.kind === "dockerGroup" ? pullImageDialog() : void runAction(d, "pull")) });
+    if (d.actions.includes("remove")) items.push({ separator: true }, { label: t("tools.services.deleteEllipsis"), icon: Trash2, run: () => void runAction(d, "remove") });
+    items.push({ separator: true }, { label: t("common.refresh"), icon: RefreshCw, run: () => (d.actions.includes("refresh") ? void runAction(d, "refresh") : void refresh()) });
     openMenu({ x, y, items });
   });
 }
@@ -254,14 +255,14 @@ function KubeBar() {
     <Show when={kubeSelection()?.contexts.length ? kubeSelection() : null}>
       {(k) => (
         <div class="svc-kube-bar" data-testid="kube-selector">
-          <label title="Kubernetes context">
-            Context
+          <label title={t("tools.services.kubernetesContext")}>
+            {t("tools.services.context")}
             <select value={k().context ?? ""} onChange={(e) => void selectKube(e.currentTarget.value)} data-testid="kube-context">
               <For each={k().contexts}>{(c) => <option value={c}>{c}</option>}</For>
             </select>
           </label>
-          <label title="Namespace">
-            Namespace
+          <label title={t("tools.services.namespace")}>
+            {t("tools.services.namespace")}
             <select
               value={k().namespace ?? ""}
               disabled={!k().context}
@@ -271,7 +272,7 @@ function KubeBar() {
               <For each={k().namespaces}>{(n) => <option value={n}>{n}</option>}</For>
             </select>
           </label>
-          <span class="svc-kube-source" title={k().host ? `Contexts and kubectl of the remote host ${k().host}` : `Kubeconfig on this machine: ${k().source}`}>
+          <span class="svc-kube-source" title={k().host ? t("tools.services.contextsAndKubectlOfThe", { host: k().host }) : t("tools.services.kubeconfigOnThisMachine", { source: k().source })}>
             {k().host ? k().source : `from ${k().source}`}
           </span>
         </div>
@@ -303,7 +304,7 @@ export function ServicesView() {
       </div>
       <div class="splitter splitter-v" onMouseDown={startResize} />
       <div class="svc-details-pane">
-        <Show when={details()?.nodeId} keyed fallback={<div class="svc-empty muted">{findNode(selected()) ? "Loading…" : "Select a service to view its details"}</div>}>
+        <Show when={details()?.nodeId} keyed fallback={<div class="svc-empty muted">{findNode(selected()) ? t("common.loadingEllipsis") : t("tools.services.selectAServiceToView")}</div>}>
           {(_id) => <DetailsPane details={() => details()!} />}
         </Show>
       </div>

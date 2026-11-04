@@ -127,7 +127,7 @@ export function IntentionPopup(props: { popup: IntentionPopupState }) {
     >
       <Show when={query()}>
         <div class="intention-search">
-          Search for: <span class="intention-query">{query()}</span>
+          {t("tools.codeintel.searchForLabel")} <span class="intention-query">{query()}</span>
         </div>
       </Show>
       <div class="intention-list" role="listbox">

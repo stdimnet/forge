@@ -11,6 +11,7 @@ import { StreamLanguage } from "@codemirror/language";
 import { LayoutDashboard, Route } from "lucide-solid";
 import { registerLanguage } from "@/editor/languages";
 import { registerEditorExtension } from "@/editor/extensions";
+import { languageIdFor } from "@/editor/languages";
 import { registerToolWindow } from "@/features/registry";
 import { registerStatusItem } from "@/features/statusItems";
 import { registerSettingsPage } from "@/features/settingsPages";
@@ -43,7 +44,7 @@ registerLanguage({
     ),
 });
 
-const isPhpOrBlade = (path: string) => /\.(php|phtml)$/i.test(path);
+const isPhpOrBlade = (path: string) => ["php", "blade"].includes(languageIdFor(path) ?? "");
 
 registerEditorExtension(({ path }) =>
   isPhpOrBlade(path) ? [laravelCompletion(path), laravelGotoExtension(path), laravelGutter(path)] : null,
