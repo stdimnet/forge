@@ -33,8 +33,8 @@ use forge_agent_tasks::tools::ToolCall;
 use forge_agent_tasks::{
     permission, run_builtin, run_cli, AgentBackend, AgentTask, ApplyAnswer, ApplyMode, Budget,
     CliTurns, FileChange, FileVersions, Host, Outcome, RunOutput, SandboxCall, SandboxRef,
-    ShellCommand, StepKind, TaskContext, TaskRequest, TaskStatus, TaskStore, TestChoice,
-    TestSpec, Workspace,
+    ShellCommand, StepKind, TaskContext, TaskRequest, TaskStatus, TaskStore, TestChoice, TestSpec,
+    Workspace,
 };
 use forge_ai::{AiFeature, CancellationToken};
 use forge_ai_editor::policy::IGNORE_FILES;
@@ -627,8 +627,12 @@ async fn start_container(
             cwd: PathBuf::from(sandbox_dir),
             env: Default::default(),
         };
-        let u = runner.run(&id_of("-u"), CONTAINER_STOP_TIMEOUT, cancel).await;
-        let g = runner.run(&id_of("-g"), CONTAINER_STOP_TIMEOUT, cancel).await;
+        let u = runner
+            .run(&id_of("-u"), CONTAINER_STOP_TIMEOUT, cancel)
+            .await;
+        let g = runner
+            .run(&id_of("-g"), CONTAINER_STOP_TIMEOUT, cancel)
+            .await;
         match (u.exit_code, g.exit_code) {
             (Some(0), Some(0)) => Some(format!("{}:{}", u.output.trim(), g.output.trim())),
             _ => None,
@@ -764,9 +768,9 @@ async fn prepare_and_run(
     };
 
     let container = match &task.request.container {
-        Some(opts) => Some(
-            start_container(app, tasks, id, opts, &info.dir, &root, &runner, cancel).await?,
-        ),
+        Some(opts) => {
+            Some(start_container(app, tasks, id, opts, &info.dir, &root, &runner, cancel).await?)
+        }
         None => None,
     };
     let host = AppHost {
@@ -869,7 +873,12 @@ struct AppHost {
 
 impl AppHost {
     /// A host that only logs and asks for approvals.
-    fn logger(app: &AppHandle, tasks: &AgentTasksState, id: &str, cancel: &CancellationToken) -> Self {
+    fn logger(
+        app: &AppHandle,
+        tasks: &AgentTasksState,
+        id: &str,
+        cancel: &CancellationToken,
+    ) -> Self {
         Self {
             app: app.clone(),
             tasks: tasks.clone(),
