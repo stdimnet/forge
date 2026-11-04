@@ -747,6 +747,13 @@ impl Backend for RemoteBackend {
             .call_raw_blocking(Call::Web(call), SCAN_TIMEOUT)
     }
 
+    fn agent_sandbox(&self, call: crate::agent_tasks::SandboxCall) -> Result<Vec<u8>> {
+        // Creating a sandbox copies the working tree; applying patches it.
+        self.shared
+            .client()?
+            .call_raw_blocking(Call::AgentSandbox(call), SCAN_TIMEOUT)
+    }
+
     fn find_executable(&self, names: &[String], custom: Option<&str>) -> Result<Option<PathBuf>> {
         self.shared.call(
             Call::FindExecutable {

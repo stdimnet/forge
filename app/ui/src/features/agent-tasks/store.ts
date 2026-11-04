@@ -3,6 +3,7 @@ import { createSignal } from "solid-js";
 import { agentTasksApi, type AgentTask, type ApplyAnswer, type ApplyMode, type FileChange } from "@/ipc/agentTasks";
 import { setDiffRequest } from "@/features/git/overlays";
 import { logNotification } from "@/state/notifications";
+import { t } from "@/i18n";
 
 const [tasks, setTasks] = createSignal<AgentTask[]>([]);
 const [selectedId, setSelectedId] = createSignal<string | null>(null);
@@ -115,8 +116,8 @@ export async function applyTask(id: string, mode: ApplyMode, paths?: string[]): 
     logNotification({
       group: "Agent Tasks",
       type: "info",
-      title: r.created ? `Agent task applied: ${r.created}` : "Agent task applied",
-      content: `${task?.title ?? id}: ${r.files.length} file${r.files.length === 1 ? "" : "s"}`,
+      title: r.created ? t("tools.agentTasks.notify.appliedCreated", { created: r.created }) : t("tools.agentTasks.notify.applied"),
+      content: t("tools.agentTasks.notify.content", { title: task?.title ?? id, count: r.files.length }),
     });
   }
   await refreshChanges();

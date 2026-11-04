@@ -478,7 +478,8 @@ app/ui/            SolidJS UI
 - Agent Tasks (`forge-agent-tasks`, `commands/agent_tasks.rs`, UI `features/agent-tasks`):
   `agent_tasks_list() -> AgentTask[]`, `agent_task_create({ request: { prompt, scope, backend:
   { kind: "builtin", provider?, model? } | { kind: "cli", agentId, model? }, tests: { kind: "none" }
-  | { kind: "configuration", name } | { kind: "command", command }, maxSteps? } }) -> AgentTask`,
+  | { kind: "configuration", name } | { kind: "command", command }, maxSteps?, container?: { network,
+  image? } } }) -> AgentTask`,
   `agent_task_cancel({ id })`, `agent_task_approve({ id, step, allow })` (the index of a pending
   `approval` step), `agent_task_changes({ id }) -> { path, kind, additions, deletions, binary }[]`,
   `agent_task_file_diff({ id, path }) -> { before?, after? }`, `agent_task_apply({ id, mode: { mode:
@@ -486,8 +487,12 @@ app/ui/            SolidJS UI
   { applied, files, conflicts, message?, created? }`, `agent_task_discard({ id })`,
   `agent_task_remove({ id })`; every change emits `agent-tasks://changed` with the whole task
   (`{ id, title, request, status, steps: { index, at, kind, ... }[], outcome?, ... }`). Tasks run
-  one at a time per project in a git worktree under `<cache dir>/forge/agent-tasks/<project>`;
-  refused in Safe Mode, for remote projects and with `ai.enabled` off.
+  one at a time per project in a git worktree under `<cache dir>/forge/agent-tasks/<project>` of
+  the machine with the project's files: the sandbox is created, diffed, applied and removed
+  through `Backend::agent_sandbox(SandboxCall)` (agent call `AgentSandbox`, protocol 12), and a
+  remote task's file tools and processes run on the host. With `container` the commands and
+  tests run through `docker exec` in a container that mounts only the sandbox
+  (`forge_agent_tasks::container`). Refused in Safe Mode and with `ai.enabled` off.
 - Agent CLIs (`forge-agent-cli`, AI Chat tool window): `agent_list({ executables? }) -> AgentInfo[]`
   (`{ id, name, models, installHint, permissionPrompts, permissionModes: { value, label, short, hint }[],
   supported, installed, path }`),

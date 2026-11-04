@@ -13,6 +13,14 @@ export type AgentBackend =
 
 export type TestChoice = { kind: "none" } | { kind: "configuration"; name: string } | { kind: "command"; command: string };
 
+/** "Run in container": commands and tests run in a Docker / Podman container. */
+export interface ContainerOptions {
+  /** Allow network access (every command then asks for approval). */
+  network: boolean;
+  /** Image for this task; empty: the project's devcontainer.json, else the settings' image. */
+  image?: string | null;
+}
+
 export interface TaskRequest {
   prompt: string;
   /** Project-relative files and folders the agent may change; empty: the whole project. */
@@ -20,6 +28,8 @@ export interface TaskRequest {
   backend: AgentBackend;
   tests: TestChoice;
   maxSteps?: number | null;
+  /** Run in a container; absent: on the project's machine. */
+  container?: ContainerOptions | null;
 }
 
 export interface TestResult {
@@ -64,6 +74,10 @@ export interface AgentTask {
   outcome?: Outcome | null;
   error?: string | null;
   applied?: string | null;
+  /** The task's container while it may exist. */
+  container?: string | null;
+  /** The sandbox lives on the remote project's host. */
+  remote?: boolean;
   steps: Step[];
 }
 

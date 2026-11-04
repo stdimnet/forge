@@ -4,6 +4,7 @@
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
+#[cfg(feature = "agent")]
 use std::time::Duration;
 
 use forge_output::run::TestReport;
@@ -181,6 +182,7 @@ pub fn tail(text: &str, limit: usize) -> String {
 }
 
 /// Run `cmd`, capturing its output, killed after `timeout` or when `cancel` fires.
+#[cfg(feature = "agent")]
 pub async fn run_process(
     cmd: &ShellCommand,
     timeout: Duration,
@@ -370,6 +372,7 @@ mod tests {
         assert_eq!(tail("abcdef", 3), "… (3 characters cut)\ndef");
     }
 
+    #[cfg(feature = "agent")]
     #[tokio::test]
     async fn runs_processes_with_a_timeout() {
         let dir = tempfile::tempdir().unwrap();

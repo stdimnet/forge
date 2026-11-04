@@ -3,11 +3,20 @@
 //! JSON object `{"tool": "...", "args": {...}}` inside a `<tool>` tag (a fenced JSON block or
 //! a bare object are accepted too).
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-/// One tool call of the agent.
-#[derive(Debug, Clone, PartialEq, Eq)]
+use crate::commands::{tail, OUTPUT_LIMIT};
+use crate::workspace::Workspace;
+
+/// One tool call of the agent. Serialized for the remote protocol (the file tools of a
+/// remote project's sandbox run on its host).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "tool",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum ToolCall {
     ListFiles {
         path: String,
@@ -120,6 +129,26 @@ impl ToolCall {
                 | Self::RunCommand { .. }
         )
     }
+}
+
+/// Run a file tool (`list_files`, `read_file`, `search`, `write_file`, `edit_file`,
+/// `delete_file`) in `ws`; `None` for the other tools.
+pub fn execute_file_tool(ws: &Workspace, call: &ToolCall) -> Option<Result<String, String>> {
+    Some(match call {
+        ToolCall::ListFiles { path } => ws.list(path),
+        ToolCall::ReadFile {
+            path,
+            start_line,
+            end_line,
+        } => ws
+            .read(path, *start_line, *end_line)
+            .map(|t| tail(&t, OUTPUT_LIMIT * 4)),
+        ToolCall::Search { query, path } => ws.search(query, path),
+        ToolCall::WriteFile { path, content } => ws.write(path, content),
+        ToolCall::EditFile { path, old, new } => ws.edit(path, old, new),
+        ToolCall::DeleteFile { path } => ws.delete(path),
+        ToolCall::RunTests | ToolCall::RunCommand { .. } | ToolCall::Finish { .. } => return None,
+    })
 }
 
 #[derive(Deserialize)]
@@ -371,6 +400,30 @@ mod tests {
             .call
             .unwrap_err()
             .contains("not valid JSON"));
+    }
+
+    #[test]
+    fn file_tools_run_in_the_workspace_and_round_trip_as_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let ws = Workspace::new(dir.path(), Default::default(), Vec::new());
+        let write = ToolCall::WriteFile {
+            path: "a.txt".into(),
+            content: "hello\n".into(),
+        };
+        assert!(execute_file_tool(&ws, &write).unwrap().is_ok());
+        let read = ToolCall::ReadFile {
+            path: "a.txt".into(),
+            start_line: None,
+            end_line: None,
+        };
+        assert!(execute_file_tool(&ws, &read)
+            .unwrap()
+            .unwrap()
+            .contains("hello"));
+        assert!(execute_file_tool(&ws, &ToolCall::RunTests).is_none());
+        let json = serde_json::to_value(&read).unwrap();
+        assert_eq!(json["tool"], "readFile");
+        assert_eq!(serde_json::from_value::<ToolCall>(json).unwrap(), read);
     }
 
     #[test]

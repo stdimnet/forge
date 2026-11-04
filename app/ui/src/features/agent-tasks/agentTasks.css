@@ -99,6 +99,23 @@
   min-height: 72px;
   resize: vertical;
 }
+.at-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--fg);
+  cursor: pointer;
+}
+.at-check input {
+  margin: 0;
+}
+.at-container-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 20px;
+}
 .at-hint {
   font-size: var(--fs-small);
   margin: 6px 0 2px;

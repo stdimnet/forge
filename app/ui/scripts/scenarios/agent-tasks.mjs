@@ -56,6 +56,36 @@ export default {
     await page.waitForTimeout(400);
   },
 
+  "agent-tasks-container": async (page) => {
+    await open(page);
+    await page.click('.tool-window [title="New Agent Task"]');
+    await page.waitForSelector(".at-form textarea");
+    await page.fill(".at-form textarea", "Fix the failing OrderTest; run the tests in a container.");
+    await page.selectOption("#at-tests", "command");
+    await page.fill('.at-form input[placeholder="vendor/bin/phpunit"]', "vendor/bin/phpunit");
+    await page.check('[data-testid="at-container"]');
+    await page.check('[data-testid="at-network"]');
+    await page.waitForTimeout(200);
+  },
+
+  "agent-tasks-container-log": async (page) => {
+    await open(page);
+    await page.evaluate(() => document.querySelector(".at-steps")?.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(300);
+  },
+
+  "agent-tasks-container-de": async (page) => {
+    await page.evaluate(async () => {
+      const i18n = await import("/src/i18n/index.ts");
+      await i18n.setLocale?.("de");
+    });
+    await open(page);
+    await page.click('[data-testid="at-new"]');
+    await page.waitForSelector(".at-form textarea");
+    await page.check('[data-testid="at-container"]');
+    await page.waitForTimeout(300);
+  },
+
   "agent-tasks-light": async (page) => {
     await page.evaluate(() => (document.documentElement.dataset.theme = "light"));
     await open(page);

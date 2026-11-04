@@ -75,11 +75,30 @@ const tool = (t: string, summary: string, output: string, isError = false): Step
   isError,
 });
 
+/** The container steps of a container task (start, and removal at the end). */
+function containerSteps(t: AgentTask): { start: StepKind[]; end: StepKind[] } {
+  const c = t.request.container;
+  if (!c) return { start: [], end: [] };
+  const name = `forge-agent-${t.id}`;
+  const image = c.image?.trim() || String(mockSettingValue("ai.agentTasks.container.image") ?? "php:8.3-cli");
+  return {
+    start: [
+      {
+        kind: "info",
+        text: `Starting container ${name} from ${image} (${c.network ? "network allowed, every command asks first" : "no network"}; only the sandbox is mounted)`,
+      },
+    ],
+    end: [{ kind: "info", text: `Removed container ${name}` }],
+  };
+}
+
 /** The recorded run: (delay, step); "approval" waits for the answer to the step before. */
-function script(command: string): Array<[number, StepKind | "approval"]> {
-  return [
+function script(command: string, t?: AgentTask): Array<[number, StepKind | "approval"]> {
+  const c = t ? containerSteps(t) : { start: [], end: [] };
+  const run: Array<[number, StepKind | "approval"]> = [
     [300, { kind: "info", text: "Creating the sandbox (a git worktree in Forge's cache folder)" }],
     [400, { kind: "info", text: "Sandbox ready at ~/.cache/forge/agent-tasks/acme-shop/task-demo" }],
+    ...c.start.map((s): [number, StepKind] => [600, s]),
     [300, { kind: "info", text: "Forge agent with Anthropic (claude-sonnet-4-5)" }],
     [700, { kind: "thought", text: "CheckoutTest calls Checkout::total(), which does not exist yet. Let me look at the class and the test." }],
     [500, tool("read_file", CHECKOUT, checkoutBefore())],
@@ -108,6 +127,9 @@ function script(command: string): Array<[number, StepKind | "approval"]> {
       },
     ],
   ];
+  // The container goes before the run's end is reported.
+  if (c.end.length) run.splice(run.length - 1, 0, ...c.end.map((s): [number, StepKind] => [200, s]));
+  return run;
 }
 
 const tasks: AgentTask[] = [];
@@ -144,6 +166,8 @@ function newTask(request: TaskRequest, created = Date.now()): AgentTask {
     outcome: null,
     error: null,
     applied: null,
+    container: null,
+    remote: false,
     steps: [],
   };
 }
@@ -154,7 +178,8 @@ async function play(t: AgentTask) {
   t.baseCommit = "4f2c9e1";
   emit(t);
   const command = t.request.tests.kind === "command" ? t.request.tests.command : t.request.tests.kind === "configuration" ? t.request.tests.name : "vendor/bin/phpunit";
-  for (const [delay, step] of script(command)) {
+  let answer: Promise<boolean> | null = null;
+  for (const [delay, step] of script(command, t)) {
     await sleep(delay);
     if (cancelled.has(t.id)) {
       t.status = "cancelled";
@@ -163,7 +188,8 @@ async function play(t: AgentTask) {
     }
     if (step === "approval") {
       const index = t.steps.length - 1;
-      const allowed = await new Promise<boolean>((resolve) => approvals.set(`${t.id}:${index}`, resolve));
+      const allowed = await answer!;
+      answer = null;
       t.steps[index] = { ...t.steps[index], kind: "approval", command: "php -l app/Services/Checkout.php", state: allowed ? "allowed" : "denied" } as AgentTask["steps"][number];
       emit(t);
       continue;
@@ -171,6 +197,11 @@ async function play(t: AgentTask) {
     if (step.kind === "finished") {
       t.status = "needsReview";
       t.outcome = step.outcome;
+    }
+    if (step.kind === "approval") {
+      // Listen for the answer before the step is shown, so a quick answer is not lost.
+      const index = t.steps.length;
+      answer = new Promise<boolean>((resolve) => approvals.set(`${t.id}:${index}`, resolve));
     }
     push(t, step);
   }
@@ -185,13 +216,14 @@ function seed() {
       scope: ["app/Services", "tests/Unit"],
       backend: { kind: "builtin" },
       tests: { kind: "command", command: "vendor/bin/phpunit tests/Unit/CheckoutTest.php" },
+      container: { network: false },
     },
     Date.now() - 6 * 60_000,
   );
   t.status = "needsReview";
   t.sandbox = `~/.cache/forge/agent-tasks/acme-shop/${t.id}`;
   t.baseCommit = "4f2c9e1";
-  for (const [, step] of script("vendor/bin/phpunit tests/Unit/CheckoutTest.php")) {
+  for (const [, step] of script("vendor/bin/phpunit tests/Unit/CheckoutTest.php", t)) {
     if (step === "approval") {
       const s = t.steps[t.steps.length - 1];
       if (s.kind === "approval") s.state = "allowed";
