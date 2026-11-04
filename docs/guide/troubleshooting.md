@@ -90,6 +90,14 @@ The deb/rpm packages install it. For the AppImage, link it into your `PATH`
 5. The server must be **Enabled**, its plugin active (e.g. `forge.vue` for Volar), and for
    ESLint, Tailwind and Angular the project must use them.
 
+### Why did a server fail?
+
+Settings | Languages & Frameworks | Language Servers shows a failed server as **Failed to
+start**. Select its row: **Error** says why (the start error, or the exit code and the last
+stderr lines of a server that quit during startup), and **Show Log** shows its log (command
+line, project folder, stderr, log messages, exits). Copy both into a bug report. The status bar
+widget shows the same error in its tooltip.
+
 ### No completion in PHP at all
 
 PHP's language server, php-lsp, is built into Forge and starts when a PHP project opens. Check
@@ -97,6 +105,28 @@ that the PHP plugin is enabled (Settings | Plugins) and that Settings | Language
 PHP shows **php-lsp (built-in)** with a version, and look at the language server widget in the
 status bar. Earlier versions could run Intelephense or Phpactor instead; that choice
 (`php.lsp.server`) is ignored now.
+
+## Windows
+
+### Language servers on Windows
+
+Release builds of Forge for Windows run without a console, so nothing Forge or a language
+server prints appears in a terminal, even when you start `forge.exe` from one. To see what a
+server did:
+
+1. Open Settings | Languages & Frameworks | Language Servers (`Ctrl+Alt+S`). The php-lsp row is
+   in the **PHP** group; it should say **Running** once a PHP file is open.
+2. If a row says **Failed to start**, select it. **Error** is the reason, **Show Log** the
+   server's log: the command line (for php-lsp `forge.exe --php-lsp --stdio`), the project
+   folder, stderr and exits. Large exit codes are Windows status codes, explained in the error,
+   for example `0xc0000135` (a DLL is missing) or `0xc00000fd` (stack overflow).
+3. **Running** but no completion: check that the file belongs to the open project (files
+   outside it are not sent to the servers) and look at the log for errors after the start.
+
+php-lsp needs nothing installed: it is `forge.exe` itself, started a second time. Security
+software that blocks a program from starting itself again stops it; allow `forge.exe` there.
+Catalog servers installed with npm are `.cmd` files; Forge finds them through `PATHEXT` and
+starts them without a console window.
 
 ## Keychain on Linux
 

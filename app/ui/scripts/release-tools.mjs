@@ -81,7 +81,7 @@ try {
     const errors = workflowTriggerErrors(workflows);
     if (errors.length) {
       for (const e of errors) console.error(e);
-      throw new Error("workflow triggers must stay: release.yml on `release: published`, all others on `workflow_dispatch` only");
+      throw new Error("workflow triggers must stay: release.yml on pushed `v*` tags, all others on `workflow_dispatch` only");
     }
     console.log(`workflow triggers unchanged (${workflows.map((w) => w.name).join(", ")})`);
   } else if (command === "channel") {

@@ -114,9 +114,7 @@ fn log(args: &Args, level: u8, msg: &str) {
 
 /// Run the inspector; returns the exit code.
 pub fn inspect(args: &Args) -> Result<i32, String> {
-    let root = args
-        .project
-        .canonicalize()
+    let root = forge_core::paths::canonicalize(&args.project)
         .map_err(|e| format!("cannot open {}: {e}", args.project.display()))?;
     let plugins = crate::plugins::builtin_registry().map_err(|e| e.to_string())?;
     let mut settings = Settings::new();

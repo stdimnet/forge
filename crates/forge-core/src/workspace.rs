@@ -41,7 +41,9 @@ pub struct Workspace {
 impl Workspace {
     pub fn open(root: impl AsRef<Path>) -> Result<Self> {
         let root = root.as_ref();
-        let root = root.canonicalize().map_err(|e| ForgeError::io(root, e))?;
+        // Without Windows' `\\?\` prefix: language servers, Git and other tools get, and
+        // report back, the ordinary spelling of the project's paths.
+        let root = crate::paths::canonicalize(root).map_err(|e| ForgeError::io(root, e))?;
         if !root.is_dir() {
             return Err(ForgeError::NotFound(root));
         }

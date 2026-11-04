@@ -140,6 +140,8 @@ pub struct InstallRow {
 #[serde(rename_all = "camelCase")]
 pub enum RowStatus {
     Running,
+    /// Enabled, but its last start failed; `detail` says why.
+    Failed,
     Installed,
     NotInstalled,
     Disabled,
@@ -226,6 +228,8 @@ pub fn rows(
                 RowStatus::Disabled
             } else if state.is_some_and(|s| s.running) {
                 RowStatus::Running
+            } else if state.is_some_and(|s| s.detail.is_some()) {
+                RowStatus::Failed
             } else if executable.is_some() {
                 RowStatus::Installed
             } else {
@@ -559,13 +563,22 @@ mod tests {
         };
         let c = Catalog::builtin();
         let d = plan(c, &ctx, |_| true);
-        let live: HashMap<String, LiveState> = [(
-            "gopls".to_string(),
-            LiveState {
-                running: true,
-                detail: Some("Indexing 45%".into()),
-            },
-        )]
+        let live: HashMap<String, LiveState> = [
+            (
+                "gopls".to_string(),
+                LiveState {
+                    running: true,
+                    detail: Some("Indexing 45%".into()),
+                },
+            ),
+            (
+                "zls".to_string(),
+                LiveState {
+                    running: false,
+                    detail: Some("could not start zls: not found".into()),
+                },
+            ),
+        ]
         .into_iter()
         .collect();
         let rows = rows(c, &ctx, &d, &live, "linux");
@@ -577,6 +590,11 @@ mod tests {
         assert!(row("gopls").path.as_deref().unwrap().ends_with("bin/gopls"));
         assert_eq!(row("csharp-ls").status, RowStatus::Disabled);
         assert_eq!(row("taplo").status, RowStatus::NotInstalled);
+        assert_eq!(row("zls").status, RowStatus::Failed);
+        assert_eq!(
+            row("zls").detail.as_deref(),
+            Some("could not start zls: not found")
+        );
         assert_eq!(row("zls").custom_path.as_deref(), Some("/nope/zls"));
         assert_eq!(
             row("zls").path,

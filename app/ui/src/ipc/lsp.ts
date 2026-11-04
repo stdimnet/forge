@@ -170,6 +170,8 @@ export const lspApi = {
   inlayHints: (path: string, startLine: number, endLine: number, text: string, languageId: string | null) =>
     invoke<EditorInlayHint[]>("lsp_inlay_hints", { path, startLine, endLine, text, languageId }),
   status: () => invoke<ServerStatus[]>("lsp_status"),
+  /** Log of server `id` (start, stderr, log messages, start errors, exits), oldest first. */
+  serverLog: (id: string) => invoke<string[]>("lsp_server_log", { id }),
   registerServer: (config: LspServerConfig) => invoke<void>("lsp_register_server", { config }),
   onDiagnostics: (cb: (e: DiagnosticsEvent) => void) => listen<DiagnosticsEvent>("lsp://diagnostics", cb),
   onStatus: (cb: (s: ServerStatus[]) => void) => listen<ServerStatus[]>("lsp://status", cb),

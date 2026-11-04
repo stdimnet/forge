@@ -25,10 +25,11 @@ Run the [quality gates](quality-gates.md) locally instead. When the owner dispat
 and Linux jobs run on the project's self-hosted runner (`.github/scripts/linux-deps.sh` checks
 its system packages), Windows and macOS on GitHub's runners.
 
-`.github/workflows/release.yml` runs **only when a GitHub release is published**. It builds the
-Linux, Windows and macOS bundles (with the remote agents), signs the updater artifacts and uploads
-them plus `latest.json` to that release. Only the project owner publishes releases; never add
-push, pull request or schedule triggers to any workflow. See [Release builds](release-builds.md).
+`.github/workflows/release.yml` runs **only when a version tag `v*` is pushed**. It creates a
+draft GitHub release for the tag, builds the Linux, Windows and macOS bundles (with the remote
+agents), signs the updater artifacts, uploads them plus `latest.json` and publishes the release.
+Only the project owner pushes version tags; never add branch push, pull request or schedule
+triggers to any workflow. See [Release builds](release-builds.md).
 
 ## Worktrees
 
