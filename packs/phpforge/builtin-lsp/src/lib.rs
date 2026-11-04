@@ -42,9 +42,39 @@ pub fn server_args() -> Vec<String> {
     vec![FLAG.into(), "--stdio".into()]
 }
 
-/// Run php-lsp on stdin / stdout until the client exits. Returns the exit code.
+/// Stack of the thread that answers requests. php-lsp's parser and type inference recurse
+/// over the syntax tree; on Windows a program's main thread has only 1 MB of stack (8 MB on
+/// Linux), and long expression chains overflowed it there, which kills the server.
+pub const SERVER_STACK: usize = 64 << 20;
+
+/// Stack of php-lsp's own threads (indexing, rayon workers): `RUST_MIN_STACK` unless the
+/// environment sets it.
+pub const WORKER_STACK: usize = 16 << 20;
+
+/// Run php-lsp on stdin / stdout until the client exits, on a thread with a
+/// [`SERVER_STACK`]. Returns the exit code.
 pub fn run_stdio() -> i32 {
-    match php_lsp::run_stdio() {
+    if std::env::var_os("RUST_MIN_STACK").is_none() {
+        // Still single-threaded: nothing reads the environment concurrently.
+        std::env::set_var("RUST_MIN_STACK", WORKER_STACK.to_string());
+    }
+    let server = std::thread::Builder::new()
+        .name("php-lsp".into())
+        .stack_size(SERVER_STACK)
+        .spawn(php_lsp::run_stdio);
+    let result = match server {
+        Ok(handle) => match handle.join() {
+            Ok(result) => result,
+            // The panic message is on stderr already.
+            Err(_) => return 101,
+        },
+        // No thread with that stack: run on this one.
+        Err(e) => {
+            eprintln!("php-lsp: cannot start the server thread ({e}), using the main thread");
+            php_lsp::run_stdio()
+        }
+    };
+    match result {
         Ok(()) => 0,
         Err(e) => {
             eprintln!("php-lsp: {e}");
