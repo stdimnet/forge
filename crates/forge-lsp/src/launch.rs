@@ -42,6 +42,11 @@ pub trait ServerProcess: Send + Sync {
     fn stop(&mut self, grace: Duration) -> BoxFuture<'_, ()>;
     /// Kill the process right away.
     fn kill(&mut self) -> BoxFuture<'_, ()>;
+    /// How the process ended (`exit code: 1`), if it has and the launcher can tell; for the
+    /// error of a server that quits during startup.
+    fn exit_status(&mut self) -> Option<String> {
+        None
+    }
 }
 
 /// Starts language servers for a project root.
@@ -72,6 +77,38 @@ impl ServerProcess for LocalProcess {
         Box::pin(async move {
             let _ = self.0.kill().await;
         })
+    }
+
+    fn exit_status(&mut self) -> Option<String> {
+        self.0
+            .try_wait()
+            .ok()
+            .flatten()
+            .map(|status| describe_exit(&status))
+    }
+}
+
+/// `exit code: 1`, plus what common Windows status codes mean (a crash or a missing DLL
+/// shows up as a large exit code there).
+fn describe_exit(status: &std::process::ExitStatus) -> String {
+    let Some(code) = status.code() else {
+        return status.to_string();
+    };
+    let hint = match code as u32 {
+        0xC000_0135 => " (a DLL the program needs was not found)",
+        0xC000_0139 | 0xC000_007B => {
+            " (the program or a DLL it needs is broken or for another architecture)"
+        }
+        0xC000_0005 => " (access violation: the program crashed)",
+        0xC000_00FD => " (stack overflow)",
+        0xC000_0409 => " (the program aborted)",
+        0xC000_013A => " (stopped with Ctrl+C)",
+        _ => "",
+    };
+    if code < 0 || code > 0xFFFF {
+        format!("exit code: {code:#x}{hint}")
+    } else {
+        format!("exit code: {code}{hint}")
     }
 }
 
@@ -148,7 +185,8 @@ pub async fn connect_tcp(address: &str) -> Result<ServerIo> {
     })
 }
 
-/// Spawn `command` with piped stdio in `cwd` (looked up on `PATH` like a shell would).
+/// Spawn `command` with piped stdio in `cwd` (looked up on `PATH` like a shell would, with
+/// `PATHEXT` on Windows). On Windows the server gets no console window of its own.
 pub fn spawn_local(command: &str, args: &[String], cwd: &Path) -> Result<ServerIo> {
     spawn_local_with_env(command, args, cwd, &BTreeMap::new())
 }
@@ -161,16 +199,24 @@ pub fn spawn_local_with_env(
     env: &BTreeMap<String, String>,
 ) -> Result<ServerIo> {
     let program = find_on_path(command).unwrap_or_else(|| command.into());
-    let mut child = Command::new(&program)
-        .args(args)
+    let cwd = forge_core::paths::simplified(cwd);
+    let mut cmd = Command::new(&program);
+    cmd.args(args)
         .envs(env)
-        .current_dir(cwd)
+        .current_dir(&cwd)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .kill_on_drop(true)
+        .kill_on_drop(true);
+    #[cfg(windows)]
+    {
+        // CREATE_NO_WINDOW: console servers (node, .cmd shims, Java) would otherwise open
+        // a console window per server next to the GUI, and closing it kills the server.
+        cmd.creation_flags(0x0800_0000);
+    }
+    let mut child = cmd
         .spawn()
-        .map_err(|e| ForgeError::Other(format!("could not start {command}: {e}")))?;
+        .map_err(|e| ForgeError::Other(spawn_error(command, &program, &cwd, &e)))?;
     let stdin = child.stdin.take().expect("stdin is piped");
     let stdout = child.stdout.take().expect("stdout is piped");
     let stderr = child.stderr.take().expect("stderr is piped");
@@ -181,4 +227,63 @@ pub fn spawn_local_with_env(
         process: Box::new(LocalProcess(child)),
         parent_pid: Some(std::process::id()),
     })
+}
+
+/// The error text of a failed spawn: what was started, where, and why.
+fn spawn_error(command: &str, program: &Path, cwd: &Path, e: &std::io::Error) -> String {
+    let program = program.display().to_string();
+    let what = if program == command {
+        command.to_string()
+    } else {
+        format!("{command} ({program})")
+    };
+    let hint = match e.kind() {
+        std::io::ErrorKind::NotFound if !cwd.is_dir() => {
+            format!(" (the project folder {} does not exist)", cwd.display())
+        }
+        std::io::ErrorKind::NotFound => " (not found: install it or set its path)".to_string(),
+        std::io::ErrorKind::PermissionDenied => " (not executable or blocked)".to_string(),
+        _ => String::new(),
+    };
+    format!("could not start {what}: {e}{hint}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spawn_errors_name_the_program_and_the_reason() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = "forge-no-such-language-server";
+        let err = match spawn_local(missing, &[], dir.path()) {
+            Err(e) => e.to_string(),
+            Ok(_) => panic!("started a missing program"),
+        };
+        assert!(
+            err.starts_with(&format!("could not start {missing}: ")),
+            "{err}"
+        );
+        assert!(err.contains("not found"), "{err}");
+    }
+
+    #[test]
+    fn exit_codes_are_explained() {
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::ExitStatusExt;
+            assert_eq!(
+                describe_exit(&std::process::ExitStatus::from_raw(1 << 8)),
+                "exit code: 1"
+            );
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::ExitStatusExt;
+            assert_eq!(
+                describe_exit(&std::process::ExitStatus::from_raw(0xC000_0135)),
+                "exit code: 0xc0000135 (a DLL the program needs was not found)"
+            );
+        }
+    }
 }
