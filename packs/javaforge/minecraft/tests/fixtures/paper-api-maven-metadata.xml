@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A trimmed sample of https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml -->
+<metadata>
+  <groupId>io.papermc.paper</groupId>
+  <artifactId>paper-api</artifactId>
+  <versioning>
+    <latest>1.21.11-R0.1-SNAPSHOT</latest>
+    <versions>
+      <version>1.17-R0.1-SNAPSHOT</version>
+      <version>1.17.1-R0.1-SNAPSHOT</version>
+      <version>1.18.2-R0.1-SNAPSHOT</version>
+      <version>1.19.4-R0.1-SNAPSHOT</version>
+      <version>1.20.1-R0.1-SNAPSHOT</version>
+      <version>1.20.4-R0.1-SNAPSHOT</version>
+      <version>1.20.5-rc1-R0.1-SNAPSHOT</version>
+      <version>1.20.6-R0.1-SNAPSHOT</version>
+      <version>1.21-pre4-R0.1-SNAPSHOT</version>
+      <version>1.21-R0.1-SNAPSHOT</version>
+      <version>1.21.1-R0.1-SNAPSHOT</version>
+      <version>1.21.4-R0.1-SNAPSHOT</version>
+      <version>1.21.8-R0.1-SNAPSHOT</version>
+      <version>1.21.10-R0.1-SNAPSHOT</version>
+      <version>1.21.11-R0.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20260101000000</lastUpdated>
+  </versioning>
+</metadata>

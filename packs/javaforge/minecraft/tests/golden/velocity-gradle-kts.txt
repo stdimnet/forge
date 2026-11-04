@@ -1,0 +1,156 @@
+==== .gitignore ====
+# Gradle and Maven
+.gradle/
+build/
+target/
+
+# The test server of run-paper (runServer)
+run/
+
+# IDEs
+.idea/
+*.iml
+out/
+.vscode/
+.DS_Store
+==== README.md ====
+# LobbyProxy
+
+A Velocity proxy plugin, written in Java (Java 21).
+
+## Build
+
+The project has no Gradle wrapper yet. Create it once with an installed Gradle:
+
+```sh
+gradle wrapper
+```
+
+Then build the plugin:
+
+```sh
+./gradlew build
+```
+
+The plugin jar is `build/libs/lobby-proxy-1.0.0-SNAPSHOT.jar`. Copy it into the `plugins/` folder of your proxy.
+
+## Structure
+
+- `src/main/java/com/example/lobbyproxy/LobbyProxy.java`: the main class
+- `src/main/java/com/example/lobbyproxy/command/HelloCommand.java`: the `/hello` command
+- `src/main/java/com/example/lobbyproxy/listener/JoinListener.java`: greets players when they join
+- `src/main/resources/velocity-plugin.json`: the plugin descriptor
+==== build.gradle.kts ====
+plugins {
+    java
+}
+
+group = "com.example"
+version = "1.0.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+}
+
+dependencies {
+    compileOnly("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+
+tasks {
+    compileJava {
+        options.encoding = "UTF-8"
+        options.release.set(21)
+    }
+    processResources {
+        val props = mapOf("version" to version)
+        inputs.properties(props)
+        filteringCharset = "UTF-8"
+        filesMatching("velocity-plugin.json") {
+            expand(props)
+        }
+    }
+}
+==== settings.gradle.kts ====
+rootProject.name = "lobby-proxy"
+==== src/main/java/com/example/lobbyproxy/LobbyProxy.java ====
+package com.example.lobbyproxy;
+
+import com.example.lobbyproxy.command.HelloCommand;
+import com.example.lobbyproxy.listener.JoinListener;
+import com.google.inject.Inject;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+import com.velocitypowered.api.proxy.ProxyServer;
+import org.slf4j.Logger;
+
+public final class LobbyProxy {
+
+    private final ProxyServer server;
+    private final Logger logger;
+
+    @Inject
+    public LobbyProxy(ProxyServer server, Logger logger) {
+        this.server = server;
+        this.logger = logger;
+    }
+
+    @Subscribe
+    public void onProxyInitialize(ProxyInitializeEvent event) {
+        server.getEventManager().register(this, new JoinListener());
+        CommandManager commands = server.getCommandManager();
+        commands.register(commands.metaBuilder("hello").plugin(this).build(), new HelloCommand());
+        logger.info("LobbyProxy enabled");
+    }
+
+    @Subscribe
+    public void onProxyShutdown(ProxyShutdownEvent event) {
+        logger.info("LobbyProxy disabled");
+    }
+}
+==== src/main/java/com/example/lobbyproxy/command/HelloCommand.java ====
+package com.example.lobbyproxy.command;
+
+import com.velocitypowered.api.command.SimpleCommand;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
+/** {@code /hello}: greets whoever runs it. */
+public final class HelloCommand implements SimpleCommand {
+
+    @Override
+    public void execute(Invocation invocation) {
+        invocation.source().sendMessage(Component.text("Hello from the proxy!", NamedTextColor.GREEN));
+    }
+}
+==== src/main/java/com/example/lobbyproxy/listener/JoinListener.java ====
+package com.example.lobbyproxy.listener;
+
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.PostLoginEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
+public final class JoinListener {
+
+    @Subscribe
+    public void onPostLogin(PostLoginEvent event) {
+        String name = event.getPlayer().getUsername();
+        event.getPlayer().sendMessage(Component.text("Welcome, " + name + "!", NamedTextColor.YELLOW));
+    }
+}
+==== src/main/resources/velocity-plugin.json ====
+{
+  "id": "lobby-proxy",
+  "name": "LobbyProxy",
+  "version": "${version}",
+  "authors": ["Alex"],
+  "dependencies": [],
+  "main": "com.example.lobbyproxy.LobbyProxy"
+}

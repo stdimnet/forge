@@ -1,0 +1,170 @@
+==== .gitignore ====
+# Gradle and Maven
+.gradle/
+build/
+target/
+
+# The test server of run-paper (runServer)
+run/
+
+# IDEs
+.idea/
+*.iml
+out/
+.vscode/
+.DS_Store
+==== README.md ====
+# BetterChat
+
+A Spigot plugin for Minecraft 1.20.4, written in Java (Java 17).
+
+## Build
+
+```sh
+mvn package
+```
+
+The plugin jar is `target/better-chat-1.0.0-SNAPSHOT.jar`. Copy it into the `plugins/` folder of your server.
+
+## Structure
+
+- `src/main/java/com/example/betterchat/BetterChat.java`: the main class
+- `src/main/java/com/example/betterchat/command/HelloCommand.java`: the `/hello` command
+- `src/main/java/com/example/betterchat/listener/JoinListener.java`: greets players when they join
+- `src/main/resources/plugin.yml`: the plugin descriptor
+==== pom.xml ====
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>better-chat</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>BetterChat</name>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>spigotmc</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+==== src/main/java/com/example/betterchat/BetterChat.java ====
+package com.example.betterchat;
+
+import com.example.betterchat.command.HelloCommand;
+import com.example.betterchat.listener.JoinListener;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public final class BetterChat extends JavaPlugin {
+
+    @Override
+    public void onEnable() {
+        getServer().getPluginManager().registerEvents(new JoinListener(), this);
+        PluginCommand hello = getCommand("hello");
+        if (hello != null) {
+            hello.setExecutor(new HelloCommand());
+        }
+        getLogger().info("BetterChat enabled");
+    }
+
+    @Override
+    public void onDisable() {
+        getLogger().info("BetterChat disabled");
+    }
+}
+==== src/main/java/com/example/betterchat/command/HelloCommand.java ====
+package com.example.betterchat.command;
+
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+
+/** {@code /hello}: greets whoever runs it. */
+public final class HelloCommand implements CommandExecutor {
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        sender.sendMessage(ChatColor.GREEN + "Hello, " + sender.getName() + "!");
+        return true;
+    }
+}
+==== src/main/java/com/example/betterchat/listener/JoinListener.java ====
+package com.example.betterchat.listener;
+
+import org.bukkit.ChatColor;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+
+public final class JoinListener implements Listener {
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        event.getPlayer().sendMessage(ChatColor.YELLOW + "Welcome, " + event.getPlayer().getName() + "!");
+    }
+}
+==== src/main/resources/plugin.yml ====
+name: BetterChat
+version: '${project.version}'
+main: com.example.betterchat.BetterChat
+api-version: '1.20'
+
+commands:
+  hello:
+    description: Says hello
+    usage: /<command>
