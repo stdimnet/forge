@@ -159,6 +159,12 @@ impl ReportDir {
                             out.push(t);
                         }
                     }
+                    // GdUnit4 writes `<dir>/report_<n>/results.xml`.
+                    for d in files.iter().filter(|f| f.is_dir()) {
+                        if let Ok(t) = std::fs::read_to_string(d.join(NESTED_REPORT)) {
+                            out.push(t);
+                        }
+                    }
                 }
                 let _ = std::fs::remove_dir_all(dir);
             }
@@ -175,6 +181,16 @@ impl ReportDir {
                             out.push(t);
                         }
                     }
+                    for e in entries
+                        .iter()
+                        .filter(|e| e.kind == forge_core::workspace::FileKind::Dir)
+                    {
+                        if let Ok(Some(t)) =
+                            backend.read_optional(&format!("{}/{NESTED_REPORT}", e.path))
+                        {
+                            out.push(t);
+                        }
+                    }
                 }
                 let _ = backend.delete(rel);
             }
@@ -187,6 +203,10 @@ impl ReportDir {
         out
     }
 }
+
+/// The report a tool writes into a folder of its own below the report folder (GdUnit4's
+/// `report_<n>/results.xml`).
+const NESTED_REPORT: &str = "results.xml";
 
 /// The `TEST-*.xml` reports below a build tool's report folder (Gradle and Surefire name
 /// them so; other XML files there, like TestNG's `testng-results.xml`, are not JUnit).

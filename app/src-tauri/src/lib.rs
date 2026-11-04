@@ -140,6 +140,7 @@ pub fn run() {
         .manage(commands::testing::CoverageState::default())
         .manage(commands::symfony::SymfonyState::default())
         .manage(commands::spring::SpringState::default())
+        .manage(commands::gamedev::GameDevState::default())
         .manage(commands::workbench::BookmarksState::default())
         .manage(commands::local_history::LocalHistoryState::default())
         .manage(commands::clipboard::ClipboardState::default())
@@ -968,6 +969,17 @@ pub fn run() {
             commands::dotnet_web::dotnet_user_secrets_init,
             commands::dotnet_web::dotnet_user_secrets_read,
             commands::dotnet_web::dotnet_user_secrets_write,
+            commands::gamedev::unity_status,
+            commands::gamedev::unity_install_bridge,
+            commands::gamedev::unity_bridge_connect,
+            commands::gamedev::unity_bridge_disconnect,
+            commands::gamedev::unity_bridge_command,
+            commands::gamedev::unity_command,
+            commands::gamedev::unity_processes,
+            commands::gamedev::unity_attach_request,
+            commands::gamedev::godot_status,
+            commands::gamedev::godot_command,
+            commands::gamedev::godot_debug_request,
             commands::cpp_tools::cpp_sanitizer_reports,
             commands::cpp_tools::cpp_native_tools,
             commands::cpp_tools::cpp_valgrind_open,
@@ -1393,6 +1405,12 @@ pub(crate) fn activate_plugins(app: &AppHandle) {
                 || change.key == plugins::DISABLED_PLUGINS_KEY
             {
                 commands::dotnet::spawn_sync_lsp_server(&handle);
+            }
+            // Godot: the editor's GDScript language server.
+            if commands::gamedev::affects_server(&change.key)
+                || change.key == plugins::DISABLED_PLUGINS_KEY
+            {
+                commands::gamedev::spawn_sync_lsp_server(&handle);
             }
         });
 }

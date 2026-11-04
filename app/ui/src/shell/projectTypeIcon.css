@@ -29,6 +29,9 @@
 .pt-icon[data-type="next"] { --pt: var(--fg-strong); }
 .pt-icon[data-type="spring-boot"],
 .pt-icon[data-type="minecraft"] { --pt: var(--success); }
+.pt-icon[data-type="unity"] { --pt: var(--fg-strong); }
+.pt-icon[data-type="godot"],
+.pt-icon[data-type="gdscript"] { --pt: var(--info); }
 .pt-icon[data-type="composer"],
 .pt-icon[data-type="javascript"],
 .pt-icon[data-type="python"] { --pt: var(--warning); }

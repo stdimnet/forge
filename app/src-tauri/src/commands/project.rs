@@ -53,6 +53,10 @@ pub fn emit_detection(app: &AppHandle) {
         crate::commands::cpp::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
         crate::commands::scala::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
         crate::commands::dotnet::sync_lsp_server(&app, Some((&backend.info().root, &payload.info)));
+        crate::commands::gamedev::sync_lsp_server(
+            &app,
+            Some((&backend.info().root, &payload.info)),
+        );
         if let Err(e) = app.emit(DETECTED_EVENT, payload) {
             tracing::warn!("could not emit {DETECTED_EVENT}: {e}");
         }

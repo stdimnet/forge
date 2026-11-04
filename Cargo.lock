@@ -2631,6 +2631,7 @@ dependencies = [
  "cforge-lang-cpp",
  "cforge-toolchains",
  "dirs 6.0.0",
+ "dotnetforge-gamedev",
  "dotnetforge-lang-dotnet",
  "dotnetforge-sdk",
  "forge-agent-cli",

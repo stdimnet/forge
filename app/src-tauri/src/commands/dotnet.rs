@@ -780,7 +780,7 @@ pub fn dotnet_format_report(
 
 // ---- Debugging ---------------------------------------------------------------------------------
 
-fn adapter_command(state: &AppState) -> Result<String> {
+pub(crate) fn adapter_command(state: &AppState) -> Result<String> {
     netcoredbg(state)
         .map(|t| path_string(&t.path))
         .map_err(|e| {

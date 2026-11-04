@@ -69,7 +69,9 @@ their refs accept anything.
 `schemas/NOTICE` and `schemas/LICENSE-APACHE-2.0`: SchemaStore's `package.json`,
 `tsconfig.json`, `jsconfig.json`, `eslintrc.json`, `prettierrc.json`, `github-workflow.json`
 and `github-action.json` and the Compose Specification's `compose-spec.json` (Apache-2.0);
-Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT).
+Composer's `composer.json` schema and GitLab's `gitlab-ci.json` (MIT). Schemas written for Forge (MIT): the
+Minecraft plugin descriptors and the Unity assembly definitions (`unity-asmdef.json` for
+`*.asmdef`, `unity-asmref.json` for `*.asmref`).
 
 ## Dependencies
 

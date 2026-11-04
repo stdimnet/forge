@@ -28,6 +28,7 @@ import { cartMembers, isKotlinDemo, kotlinGlobals, orderMembers as kotlinOrderMe
 import { isScalaDemo } from "./demoScalaProject";
 import { isAndroidDemo } from "./demoAndroidProject";
 import { isMinecraftDemo } from "./demoMinecraftProject";
+import { godotEditorClosed, isGodotDemo, isUnityDemo } from "./demoGameProjects";
 import {
   collectionMembers,
   diagnosticRules,
@@ -120,8 +121,10 @@ const SERVER = isLuaDemo()
     ? { id: "ruby-lsp", name: "Ruby LSP" }
     : isCppDemo()
     ? { id: "clangd", name: "clangd" }
-    : isDotnetDemo()
+    : isDotnetDemo() || isUnityDemo()
     ? { id: "roslyn", name: "Roslyn" }
+    : isGodotDemo()
+    ? { id: "godot-gdscript", name: "Godot (GDScript)" }
     : isJavaDemo() || isMinecraftDemo()
       ? { id: "jdtls", name: "Eclipse JDT LS" }
     : isKotlinDemo() || isAndroidDemo()
@@ -155,8 +158,10 @@ export function onMockDidOpen(cb: (path: string) => void): void {
 const jdtlsMissingAtStart = () => isJavaDemo() && new URLSearchParams(location.search).get("jdtls") === "missing";
 /** `?project=kotlin&kotlin-lsp=missing`: the Kotlin demo starts without kotlin-lsp. */
 const kotlinLspMissingAtStart = () => isKotlinDemo() && new URLSearchParams(location.search).get("kotlin-lsp") === "missing";
+/** The game demos' servers: Roslyn, and the Godot editor's GDScript server while it runs. */
+const isGameDemoLsp = () => isUnityDemo() || (isGodotDemo() && !godotEditorClosed());
 let serverInstalled =
-  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isMinecraftDemo() || isCppDemo() || isDotnetDemo() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : true);
+  isLuaDemo() || isPythonDemo() || isGoDemo() || isRustDemo() || isRubyDemo() || isScalaDemo() || isAndroidDemo() || isMinecraftDemo() || isCppDemo() || isDotnetDemo() || isGameDemoLsp() || (isJavaDemo() ? !jdtlsMissingAtStart() : isKotlinDemo() ? !kotlinLspMissingAtStart() : true);
 
 /** The mock install of the demo's server (JDT LS, kotlin-lsp) finished: start it for the open files. */
 export function markMockServerInstalled(): void {

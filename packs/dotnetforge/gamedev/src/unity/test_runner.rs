@@ -48,6 +48,10 @@ pub struct UnityContext {
     /// Test class full names → project files (located test results).
     #[serde(default)]
     pub classes: BTreeMap<String, String>,
+    /// A Unity editor has the project open (`Library/EditorInstance.json` of a running
+    /// process): batch mode would fail.
+    #[serde(default)]
+    pub editor_open: bool,
 }
 
 impl UnityContext {
@@ -231,6 +235,9 @@ impl UnityTests {
                 "No Unity editor for this project: install its version with the Unity Hub or choose one in Settings | Languages & Frameworks | .NET | Unity".into(),
             );
         }
+        if unity.editor_open {
+            return Err("Unity has this project open: close the Unity editor to run its tests in batch mode (running tests inside the open editor is not supported yet)".into());
+        }
         Ok(TestCommand {
             program: unity.editor.clone(),
             args: test_args(cfg, &unity, &ctx.report_dir)?,
@@ -364,6 +371,7 @@ namespace Shooter.Tests
                 "Shooter.Tests.PlayerTests".to_string(),
                 "Assets/Tests/EditMode/PlayerTests.cs".to_string(),
             )]),
+            editor_open: false,
         }
     }
 
