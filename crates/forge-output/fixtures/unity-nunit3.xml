@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="6" result="Failed(Child)" total="6" passed="3" failed="2" inconclusive="0" skipped="1" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-04 10:00:00Z" end-time="2026-11-04 10:00:01Z" duration="0.612">
+  <test-suite type="TestSuite" id="1000" name="Shooter" fullname="Shooter" runstate="Runnable" testcasecount="6" result="Failed" site="Child" start-time="2026-11-04 10:00:00Z" end-time="2026-11-04 10:00:01Z" duration="0.612" total="6" passed="3" failed="2" inconclusive="0" skipped="1" asserts="0">
+    <properties />
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1007" name="Shooter.Tests.EditMode.dll" fullname="/home/sam/Shooter/Library/ScriptAssemblies/Shooter.Tests.EditMode.dll" runstate="Runnable" testcasecount="5" result="Failed" site="Child" duration="0.401" total="5" passed="2" failed="2" inconclusive="0" skipped="1" asserts="0">
+      <properties>
+        <property name="_PID" value="4242" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1008" name="Shooter" fullname="Shooter" runstate="Runnable" testcasecount="5" result="Failed" duration="0.401">
+        <test-suite type="TestSuite" id="1009" name="Tests" fullname="Shooter.Tests" runstate="Runnable" testcasecount="5" result="Failed" duration="0.401">
+          <test-suite type="TestFixture" id="1001" name="PlayerTests" fullname="Shooter.Tests.PlayerTests" classname="Shooter.Tests.PlayerTests" runstate="Runnable" testcasecount="5" result="Failed" site="Child" duration="0.401" total="5" passed="2" failed="2" inconclusive="0" skipped="1" asserts="0">
+            <properties />
+            <test-case id="1002" name="Jump_SetsVelocity" fullname="Shooter.Tests.PlayerTests.Jump_SetsVelocity" methodname="Jump_SetsVelocity" classname="Shooter.Tests.PlayerTests" runstate="Runnable" seed="1234" result="Passed" start-time="2026-11-04 10:00:00Z" end-time="2026-11-04 10:00:00Z" duration="0.004" asserts="0">
+              <properties />
+              <output><![CDATA[Jumping with 5
+]]></output>
+            </test-case>
+            <test-case id="1003" name="Health_Decreases" fullname="Shooter.Tests.PlayerTests.Health_Decreases" methodname="Health_Decreases" classname="Shooter.Tests.PlayerTests" runstate="Runnable" seed="1235" result="Failed" start-time="2026-11-04 10:00:00Z" end-time="2026-11-04 10:00:00Z" duration="0.012" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[  Expected: 5
+  But was:  3
+]]></message>
+                <stack-trace><![CDATA[at Shooter.Tests.PlayerTests.Health_Decreases () [0x00010] in /home/sam/Shooter/Assets/Tests/EditMode/PlayerTests.cs:25
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1010" name="Damage" fullname="Shooter.Tests.PlayerTests.Damage" classname="Shooter.Tests.PlayerTests" runstate="Runnable" testcasecount="2" result="Failed" duration="0.010">
+              <test-case id="1011" name="Damage(10)" fullname="Shooter.Tests.PlayerTests.Damage(10)" methodname="Damage" classname="Shooter.Tests.PlayerTests" runstate="Runnable" result="Passed" duration="0.003" asserts="0" />
+              <test-case id="1012" name="Damage(-1)" fullname="Shooter.Tests.PlayerTests.Damage(-1)" methodname="Damage" classname="Shooter.Tests.PlayerTests" runstate="Runnable" result="Failed" label="Error" duration="0.007" asserts="0">
+                <failure>
+                  <message><![CDATA[System.ArgumentOutOfRangeException : Damage must be positive]]></message>
+                  <stack-trace><![CDATA[  at Shooter.Player.TakeDamage (System.Int32 amount) [0x00012] in /home/sam/Shooter/Assets/Scripts/Player.cs:41
+  at Shooter.Tests.PlayerTests.Damage (System.Int32 amount) [0x00001] in /home/sam/Shooter/Assets/Tests/EditMode/PlayerTests.cs:33
+]]></stack-trace>
+                </failure>
+              </test-case>
+            </test-suite>
+            <test-case id="1004" name="Respawn" fullname="Shooter.Tests.PlayerTests.Respawn" methodname="Respawn" classname="Shooter.Tests.PlayerTests" runstate="Ignored" seed="1236" result="Skipped" label="Ignored" duration="0" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="Waiting for the new spawn system" />
+              </properties>
+              <reason>
+                <message><![CDATA[Waiting for the new spawn system]]></message>
+              </reason>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+    <test-suite type="Assembly" id="1020" name="Shooter.Tests.PlayMode.dll" fullname="/home/sam/Shooter/Library/ScriptAssemblies/Shooter.Tests.PlayMode.dll" runstate="Runnable" testcasecount="1" result="Passed" duration="0.211">
+      <test-suite type="TestFixture" id="1021" name="SpawnerTests" fullname="Shooter.Tests.SpawnerTests" classname="Shooter.Tests.SpawnerTests" runstate="Runnable" testcasecount="1" result="Passed" duration="0.211">
+        <test-case id="1022" name="SpawnsEnemiesOverTime" fullname="Shooter.Tests.SpawnerTests.SpawnsEnemiesOverTime" methodname="SpawnsEnemiesOverTime" classname="Shooter.Tests.SpawnerTests" runstate="Runnable" result="Passed" duration="0.211" asserts="0" />
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
